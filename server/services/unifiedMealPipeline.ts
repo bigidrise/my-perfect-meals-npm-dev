@@ -1813,6 +1813,7 @@ export async function generateCravingMealOptions(
   generationMode: 'meal' | 'recipe' = 'meal',
   cuisineOverride?: string,
   glp1Targets?: ResolvedGLP1Targets,
+  overriddenAllergens?: string[],
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -1857,9 +1858,18 @@ export async function generateCravingMealOptions(
 
       const allergies: string[] = (u?.allergies as string[]) || [];
       _varietyAllergies = allergies;
-      if (allergies.length > 0) {
-        allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${allergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
-        console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${allergies.length} items`);
+      // Remove explicitly authorized override allergen from the block sent to OpenAI.
+      // The override is request-scoped only — it does not modify the stored profile.
+      const enforcedAllergies = overriddenAllergens?.length
+        ? allergies.filter(a => !overriddenAllergens.some(oa =>
+            a.toLowerCase().includes(oa.toLowerCase()) || oa.toLowerCase().includes(a.toLowerCase())
+          ))
+        : allergies;
+      if (enforcedAllergies.length > 0) {
+        allergyBlock = `\n🚨 ALLERGEN BLOCK — ABSOLUTE MEDICAL SAFETY REQUIREMENT:\nThis user has confirmed allergies to: ${enforcedAllergies.join(', ')}.\nDo NOT include these ingredients or any derivative/hidden form in ANY of the 3 options. This overrides all other instructions.`;
+        console.log(`[VARIETY ENGINE] Allergy block active for user ${userId}: ${enforcedAllergies.length} items enforced` + (overriddenAllergens?.length ? ` (${overriddenAllergens.join(', ')} overridden by user consent)` : ''));
+      } else if (allergies.length > 0 && overriddenAllergens?.length) {
+        console.log(`[VARIETY ENGINE] All allergies overridden by user consent for user ${userId}: ${overriddenAllergens.join(', ')}`);
       }
 
       const healthConditions: string[] = (u?.healthConditions as string[]) || [];
