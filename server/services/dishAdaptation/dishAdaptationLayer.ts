@@ -48,11 +48,14 @@ interface DishDecomposition {
   dishForm?: string;
 }
 
-// Cache stores the decomposition + resolved conflicts (context-independent core).
-// The adaptationBlock is rendered per call because first_pass and fallback differ.
+// Cache stores ONLY the dish decomposition — the context-independent result of
+// the LLM structured-reasoning call.  Conflict resolution depends on the full
+// GuardrailContext (guardrail IDs + activeAllergens + overriddenAllergens) which
+// varies per user and per request, so it is intentionally NOT cached here.
+// Caching conflicts alongside the decomposition would mean a dish warmed by one
+// user's context could silently serve (or omit) allergen directives to another.
 interface CachedCore {
   decomposition: DishDecomposition;
-  conflicts: ConflictResolution[];
 }
 
 const dalCache = new LruTtlCache<CachedCore>(500, 24 * 60 * 60 * 1000);
@@ -64,6 +67,17 @@ export function _clearDalCache(): void {
 /** Exposed for tests/proof scripts only — counts real LLM decomposition calls. */
 export let _decompositionLlmCalls = 0;
 
+/**
+ * Exposed for tests only — pre-populates the decomposition cache so end-to-end
+ * `getDishAdaptationDirective` tests can run without a live LLM call.
+ */
+export function _setDecompositionForTest(
+  dishName: string,
+  decomposition: DishDecomposition,
+): void {
+  const key = decompositionCacheKey(normalizeDishName(dishName));
+  dalCache.set(key, { decomposition });
+}
 function normalizeDishName(dish: string): string {
   // Strip any injected bracketed override blocks and collapse whitespace
   return dish
@@ -74,12 +88,10 @@ function normalizeDishName(dish: string): string {
     .trim();
 }
 
-function cacheKey(dish: string, guardrails: ActiveGuardrail[]): string {
-  const ids = guardrails.map(g => g.id).sort().join(",");
-  return crypto.createHash("sha256").update(`${normalizeDishName(dish)}|${ids}`).digest("hex");
+/** Cache key for decomposition — dish-name only (guardrails/allergens not included). */
+function decompositionCacheKey(normalizedDish: string): string {
+  return crypto.createHash("sha256").update(normalizedDish).digest("hex");
 }
-
-// ── Dish decomposition (single fast structured-reasoning call) ──────────────
 async function decomposeDish(requestedDish: string): Promise<DishDecomposition | null> {
   const prompt = `You are a culinary analyst. For the dish "${requestedDish}", identify:
 1. The 3-5 components that define its identity (changing these makes it a different dish)
@@ -122,6 +134,101 @@ Return JSON only:
   }
 }
 
+// ── Allergen-safe directive sanitization ──────────────────────────────────────
+/**
+ * Guardrail-path substitutes can name ingredients that are unsafe when the
+ * user has an active allergen that overlaps with the recommended substitute.
+ * For example, the gluten-free profile recommends "tamari or coconut aminos"
+ * for soy sauce, but tamari is a soy-derived product — unsafe for soy-allergic
+ * users.  Similarly, "certified gluten-free oats" is still oat-containing —
+ * unsafe for oat-allergic users.
+ *
+ * Rules are tested against raw (lowercase) active allergen strings so they
+ * work even for allergens without a canonical key in the lookup tables (e.g.
+ * "oat allergy" — "oat" is not in ALLERGEN_SUBSTITUTES, but the /\boat\b/i
+ * test still catches it).
+ *
+ * Rules are applied in order; earlier rules should remove the longest/most
+ * specific phrase first so later fallback rules don't double-replace.
+ */
+const DIRECTIVE_SANITIZE_RULES: Array<{
+  /**
+   * Predicate tested against each active allergen string (lowercase). Fires
+   * when ANY allergen in the list satisfies it. Uses a function (not a plain
+   * RegExp) so complex conditions — like "contains soy but NOT gluten" — can
+   * be expressed without a second pass.
+   */
+  allergenTest: (lowerAllergen: string) => boolean;
+  /** Unsafe phrase pattern to replace within the directive string. */
+  directivePattern: RegExp;
+  /** Replacement text (empty string to delete the phrase). */
+  safeReplacement: string;
+}> = [
+  // Tamari is soy-derived — unsafe when a soy restriction is active.
+  //
+  // The allergenTest intentionally excludes strings that also contain "gluten"
+  // or "celiac" (e.g. "soy sauce (gluten)").  A user who enters that phrasing
+  // is worried about gluten in soy sauce, not soy protein — tamari is
+  // gluten-free and safe for them.  Only a standalone soy restriction (e.g.
+  // "soy allergy", "soy sauce allergy", "celiac" as a separate allergen entry
+  // + "soy" as another entry) triggers the tamari removal.
+  //
+  // Remove "tamari or " first (leaves the safe option), then handle lone tamari.
+  { allergenTest: a => /\bsoy\b/i.test(a) && !/gluten|celiac/i.test(a), directivePattern: /tamari\s+or\s+/gi,   safeReplacement: "" },
+  { allergenTest: a => /\bsoy\b/i.test(a) && !/gluten|celiac/i.test(a), directivePattern: /\s+or\s+tamari\b/gi, safeReplacement: "" },
+  { allergenTest: a => /\bsoy\b/i.test(a) && !/gluten|celiac/i.test(a), directivePattern: /\btamari\b/gi,        safeReplacement: "coconut aminos" },
+  // Certified GF oats still contain oats — unsafe when a genuine oat allergy
+  // or oat sensitivity is active (e.g. "oat allergy", "oat sensitivity").
+  //
+  // The allergenTest excludes strings that also contain "celiac" or "gluten"
+  // (e.g. "celiac — oat sensitivity", "gluten (oats)") because those phrasings
+  // mean the user is worried about gluten contamination IN oats, not about oats
+  // as an allergen themselves — certified GF oats remain the correct substitute
+  // for celiac/gluten-focused users.  A standalone oat allergy (separate
+  // allergen entry like "oat allergy" alongside "celiac") is still caught
+  // because each entry is evaluated independently.
+  {
+    allergenTest: a => /\boat\b/i.test(a) && !/celiac|gluten/i.test(a),
+    directivePattern: /\bcertified gluten-free oats\b/gi,
+    safeReplacement: "quinoa flakes or rice flakes (oat-free)",
+  },
+  // The oat cross-contamination rule appends an explanatory note stating that
+  // "only oats explicitly labelled certified gluten-free are safe" — for an
+  // oat-allergic user, even certified GF oats are unsafe.  Strip the note
+  // entirely so no positive oat-safety claim reaches the LLM.
+  {
+    allergenTest: a => /\boat\b/i.test(a) && !/celiac|gluten/i.test(a),
+    directivePattern: /\s*\(standard oats are frequently cross-contaminated[^)]*\)/gi,
+    safeReplacement: "",
+  },
+  // The gluten-free generalDirective "Oats must be explicitly certified
+  // gluten-free…" is also unsafe for oat-allergic users (certified GF oats
+  // still contain oats).  Replace it with an oat-free directive so the full
+  // adaptation block — including generalDirectives — is safe.
+  {
+    allergenTest: a => /\boat\b/i.test(a) && !/celiac|gluten/i.test(a),
+    directivePattern: /\bOats must be explicitly certified gluten-free[^.]*\./gi,
+    safeReplacement: "Avoid all oats entirely — use quinoa flakes or rice flakes as an oat-free alternative.",
+  },
+];
+
+/**
+ * Rewrite a guardrail-path directive string in-place to remove or replace any
+ * ingredient that is unsafe given the user's active allergens.
+ * Called once per conflict before it is pushed to the list.
+ */
+function sanitizeDirectiveForAllergens(directive: string, activeAllergens: string[]): string {
+  if (activeAllergens.length === 0) return directive;
+  const lowerAllergens = activeAllergens.map(a => a.toLowerCase());
+  let result = directive;
+  for (const { allergenTest, directivePattern, safeReplacement } of DIRECTIVE_SANITIZE_RULES) {
+    if (lowerAllergens.some(allergenTest)) {
+      result = result.replace(directivePattern, safeReplacement);
+    }
+  }
+  return result;
+}
+
 // ── Conflict resolution (cross-reference components × substitution map) ─────
 function componentMatchesTriggers(component: string, triggers: string[]): boolean {
   const c = component.toLowerCase();
@@ -158,34 +265,32 @@ export function resolveConflicts(
     const profile = GUARDRAIL_SUBSTITUTION_MAP[g.id];
     if (!profile) continue;
     for (const { c, defining } of allComponents) {
-      // Collect every rule this component triggers, then bias toward
-      // role-aware rules: if any matching rule knows the ingredient's
-      // structural function (binder, setter, …), it wins over generic
-      // substitutions for the SAME blocked ingredient — a functional substitute
-      // preserves how the dish holds together, not just its compliance.
+      // Collect every rule this component triggers, then apply role-aware
+      // precedence:
       //
-      // Grouping rule: preference is per blocked-ingredient category, not
-      // global.  Two rules that address different concerns (e.g. wheat flour
-      // structure AND oat cross-contamination) must BOTH fire even when one is
-      // role-aware and the other is not — suppressing the non-role-aware rule
-      // would silently drop a safety directive.
+      // 1. Role-aware rules (functionalRole set) win over generic rules — a
+      //    functional substitute preserves how the dish holds together, not
+      //    just its compliance.  When any role-aware rule matches, generic
+      //    rules are suppressed globally for this component.
+      //
+      // 2. alwaysEmit rules are an explicit exception: they address a concern
+      //    orthogonal to structural roles (e.g. the oat cross-contamination
+      //    rule addresses labelling, not structure) and must fire even
+      //    alongside role-aware rules.  They are never suppressed.
+      //
       // Build the dish context string once per component for dishContextPattern checks.
       const dishContext = `${dishName} ${decomposition.dishForm ?? ""}`.toLowerCase();
       const matching = profile.rules.filter(rule =>
         componentMatchesTriggers(c, rule.triggers) &&
         (rule.dishContextPattern == null || rule.dishContextPattern.test(dishContext)),
       );
-      // Group by blocked category; within each group prefer role-aware rules.
-      const blockedGroups = new Map<string, SubstitutionRule[]>();
-      for (const rule of matching) {
-        if (!blockedGroups.has(rule.blocked)) blockedGroups.set(rule.blocked, []);
-        blockedGroups.get(rule.blocked)!.push(rule);
-      }
-      const selected: SubstitutionRule[] = [];
-      for (const group of blockedGroups.values()) {
-        const roleAware = group.filter(r => r.functionalRole);
-        selected.push(...(roleAware.length > 0 ? roleAware : group));
-      }
+      const roleAware    = matching.filter(r => r.functionalRole);
+      const alwaysEmit   = matching.filter(r => r.alwaysEmit && !r.functionalRole);
+      // When role-aware rules are present: emit them + alwaysEmit rules.
+      // When not: emit everything (all rules are generic or alwaysEmit).
+      const selected = roleAware.length > 0
+        ? [...roleAware, ...alwaysEmit]
+        : matching;
       for (const rule of selected) {
         const dedupeKey = `${g.id}|${rule.blocked}|${c}`;
         if (seen.has(dedupeKey)) continue;
@@ -196,10 +301,17 @@ export function resolveConflicts(
         const roleReq = rule.functionalRole && rule.roleRequirement
           ? ` FUNCTIONAL REQUIREMENT (${rule.functionalRole}): ${rule.roleRequirement}.`
           : "";
+        // Sanitize before push: remove/replace any substitute ingredient that is
+        // itself an active allergen (e.g. tamari for soy-allergic, certified GF
+        // oats for oat-allergic) so the LLM never receives a contradictory directive.
+        const directive = sanitizeDirectiveForAllergens(
+          `Use ${rule.substitute}.${rule.note ? ` (${rule.note})` : ""}${roleReq}${preserve} The dish is still ${dishName}.`,
+          ctx.activeAllergens ?? [],
+        );
         conflicts.push({
           component: c,
           guardrail: `${profile.label}: no ${rule.blocked}`,
-          directive: `Use ${rule.substitute}.${rule.note ? ` (${rule.note})` : ""}${roleReq}${preserve} The dish is still ${dishName}.`,
+          directive,
           functionalRole: rule.functionalRole,
           roleRequirement: rule.roleRequirement,
         });
@@ -308,8 +420,15 @@ export function renderAdaptationBlock(
     );
   }
 
+  // Sanitize generalDirectives the same way per-component conflict directives
+  // are sanitized: an oat-allergic user must not receive "Oats must be
+  // certified gluten-free" in the adaptation block (certified GF oats still
+  // contain oats).  Filter out any line that becomes an empty string after
+  // sanitization so it doesn't produce a dangling bullet.
   const generals = ctx.guardrails
-    .flatMap(g => GUARDRAIL_SUBSTITUTION_MAP[g.id]?.generalDirectives ?? []);
+    .flatMap(g => GUARDRAIL_SUBSTITUTION_MAP[g.id]?.generalDirectives ?? [])
+    .map(d => sanitizeDirectiveForAllergens(d, ctx.activeAllergens ?? []))
+    .filter(d => d.trim().length > 0);
   if (generals.length > 0) {
     lines.push(``, `ADDITIONAL PROTOCOL RULES (do not relax):`);
     for (const d of generals) lines.push(`- ${d}`);
@@ -375,6 +494,10 @@ export function buildGuardrailContext(opts: {
   // entirely, not substitute them with certified gluten-free oats.  Phrasings
   // that imply celiac/gluten context (e.g. "celiac — oat sensitivity",
   // "gluten (oats)") are already caught by the "celiac" / "gluten" branches.
+  // NOTE: "soy sauce allergy" phrasings do NOT activate this guardrail — soy
+  // sauce is handled via the allergen substitution path (canonical key "soy" →
+  // coconut aminos or hemp seeds) which avoids recommending tamari, itself a
+  // soy product that is unsafe for soy-allergic users.
   if (activeAllergens.some(a => /gluten|wheat|celiac/i.test(a))) add("gluten-free");
 
   return {
@@ -402,34 +525,43 @@ export async function getDishAdaptationDirective(
   const dishName = normalizeDishName(requestedDish);
   if (!dishName) return null;
 
-  const key = cacheKey(requestedDish, activeGuardrails.guardrails);
+  // Decomposition is cached by dish name only — it is context-independent.
+  // Conflict resolution runs per-request so allergen/guardrail changes are
+  // always reflected even when the decomposition is served from cache.
+  const key = decompositionCacheKey(dishName);
   let core = dalCache.get(key);
 
   if (!core) {
     const decomposition = await decomposeDish(dishName);
     if (!decomposition) return null;
-    const conflicts = resolveConflicts(dishName, decomposition, activeGuardrails);
-    core = { decomposition, conflicts };
+    core = { decomposition };
     dalCache.set(key, core);
     console.log(
       `🍽️ [DAL] "${dishName}" decomposed — defining: [${decomposition.definingComponents.join(" | ")}], ` +
-      `adaptable: [${decomposition.adaptableComponents.join(" | ")}], ` +
-      `${core.conflicts.length} guardrail conflict(s) resolved (guardrails: ${activeGuardrails.guardrails.map(g => g.id).join(",") || "none"})`,
+      `adaptable: [${decomposition.adaptableComponents.join(" | ")}]`,
     );
   } else {
     console.log(`🍽️ [DAL] Cache hit for "${dishName}" (${callContext})`);
   }
+
+  // Resolve conflicts fresh for every request — allergens and overrides are
+  // user-specific and must never be served from a shared decomposition cache.
+  const conflicts = resolveConflicts(dishName, core.decomposition, activeGuardrails);
+
+  console.log(
+    `🍽️ [DAL] "${dishName}" — ${conflicts.length} conflict(s) resolved (guardrails: ${activeGuardrails.guardrails.map(g => g.id).join(",") || "none"}, allergens: ${activeGuardrails.activeAllergens?.join(",") || "none"})`,
+  );
 
   return {
     identityAnchor: `This IS ${dishName}. Do not change the dish.`,
     definingComponents: core.decomposition.definingComponents,
     adaptableComponents: core.decomposition.adaptableComponents,
     dishForm: core.decomposition.dishForm,
-    conflicts: core.conflicts,
+    conflicts,
     adaptationBlock: renderAdaptationBlock(
       dishName,
       core.decomposition,
-      core.conflicts,
+      conflicts,
       activeGuardrails,
       callContext,
     ),
