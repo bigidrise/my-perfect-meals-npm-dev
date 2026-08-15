@@ -571,3 +571,4 @@ describe("applySwapToPickedBrands — summary bar accuracy after swap", () => {
     expect(picks.size).toBe(0);
   });
 });
+
