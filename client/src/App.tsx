@@ -26,6 +26,7 @@ import { CopilotSystem } from "@/components/copilot/CopilotSystem";
 import type { CopilotAction } from "@/components/copilot/CopilotContext";
 import { setNavigationHandler, setModalHandler } from "@/components/copilot/CopilotCommandRegistry";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
 import { setupNotificationListeners } from "@/services/mealReminderService";
@@ -70,6 +71,7 @@ function UpdateBannerMount() {
 }
 
 export default function App() {
+  const { t } = useTranslation();
   const [isAppReady, setIsAppReady] = useState(false);
   const [, setLocation] = useLocation();
 
@@ -172,7 +174,7 @@ export default function App() {
           alt="Loading" 
           style={{ width: "80px", height: "80px", marginBottom: "16px" }}
         />
-        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>Loading...</p>
+        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>{t("common.loading")}</p>
       </div>
     );
   }

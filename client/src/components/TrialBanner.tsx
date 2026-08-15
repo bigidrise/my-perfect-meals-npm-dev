@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { X, Sparkles, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isInTrial } from "@/lib/subscriptionCheck";
+import { useTranslation } from "react-i18next";
 
 // Routes where the banner should not appear
 const EXCLUDED_ROUTES = [
@@ -30,6 +31,7 @@ function getDaysRemaining(trialEndsAt: string): number {
 }
 
 export function TrialBanner() {
+  const { t } = useTranslation("trialBanner");
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const [dismissed, setDismissed] = useState(false);
@@ -71,9 +73,9 @@ export function TrialBanner() {
 
   const isLastDay = daysLeft === 1;
   const isUrgent = daysLeft <= 3;
-  const dayLabel = isLastDay ? "1 day" : `${daysLeft} days`;
+  const dayLabel = isLastDay ? t("oneDayLeft") : t("daysLeft", { count: daysLeft });
   const trialTier = (user as any)?.trialTier ?? null;
-  const tierLabel = trialTier === "ultimate" ? "Clinical access" : "full access";
+  const tierLabel = trialTier === "ultimate" ? t("clinicalAccess") : t("fullAccess");
 
   return (
     <div
@@ -91,24 +93,24 @@ export function TrialBanner() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-red-300 leading-tight mb-0.5">
-                  Your complimentary Pro access ends today
+                  {t("lastDayTitle")}
                 </p>
                 <p className="text-xs text-white/60 leading-relaxed">
-                  Your account moves to the Free plan tonight.&nbsp;
-                  <span className="text-white/70">All your data stays safe.</span>
-                  &nbsp;Upgrade anytime to keep Pro features.
+                  {t("lastDayBody")}&nbsp;
+                  <span className="text-white/70">{t("lastDayDataSafe")}</span>
+                  &nbsp;{t("lastDayUpgradeHint")}
                 </p>
                 <button
                   onClick={() => setLocation("/pricing")}
                   className="mt-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-colors active:bg-red-700"
                 >
-                  Upgrade to Pro
+                  {t("upgradeToPro")}
                 </button>
               </div>
               <button
                 onClick={handleDismiss}
                 className="shrink-0 p-1 rounded-lg text-white/30 hover:text-white/60 active:bg-white/10 transition-colors"
-                aria-label="Dismiss"
+                aria-label={t("dismiss")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -123,28 +125,28 @@ export function TrialBanner() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white leading-tight mb-0.5">
-                  <span className={isUrgent ? "text-red-400" : "text-orange-400"}>{dayLabel} left</span>{" "}
-                  in your trial — {tierLabel} ends soon.
+                  <span className={isUrgent ? "text-red-400" : "text-orange-400"}>{dayLabel}</span>{" "}
+                  {t("trialCountdown", { tierLabel })}
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <button
                     onClick={() => setLocation("/pricing")}
                     className="text-xs font-semibold text-white bg-orange-600 hover:bg-orange-500 px-3 py-1.5 rounded-lg transition-colors active:bg-orange-700"
                   >
-                    Upgrade to Pro
+                    {t("upgradeToPro")}
                   </button>
                   <button
                     onClick={() => setLocation("/business-center")}
                     className="text-xs font-medium text-white/60 hover:text-white/80 underline underline-offset-2 transition-colors"
                   >
-                    Explore features
+                    {t("exploreFeatures")}
                   </button>
                 </div>
               </div>
               <button
                 onClick={handleDismiss}
                 className="shrink-0 p-1 rounded-lg text-white/30 hover:text-white/60 active:bg-white/10 transition-colors"
-                aria-label="Dismiss"
+                aria-label={t("dismiss")}
               >
                 <X className="h-4 w-4" />
               </button>

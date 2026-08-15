@@ -89,8 +89,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const uploadPhoto = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast({
-        title: "Invalid file",
-        description: "Please select an image file.",
+        title: t("profileSheet.invalidFileTitle"),
+        description: t("profileSheet.invalidFileDesc"),
         variant: "destructive",
       });
       return;
@@ -98,8 +98,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please select an image under 5MB.",
+        title: t("profileSheet.fileTooLargeTitle"),
+        description: t("profileSheet.fileTooLargeDesc"),
         variant: "destructive",
       });
       return;
@@ -168,14 +168,14 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       await refreshUser();
 
       toast({
-        title: "Photo updated",
-        description: "Your profile photo has been updated.",
+        title: t("profileSheet.photoUpdatedTitle"),
+        description: t("profileSheet.photoUpdatedDesc"),
       });
     } catch (error: any) {
       console.error("Photo upload error:", error);
       toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload photo.",
+        title: t("profileSheet.uploadFailedTitle"),
+        description: error.message || t("profileSheet.uploadFailedDesc"),
         variant: "destructive",
       });
     } finally {
@@ -205,8 +205,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       if (error.message !== "User cancelled photos app") {
         console.error("Camera error:", error);
         toast({
-          title: "Camera error",
-          description: "Could not access camera or photos.",
+          title: t("profileSheet.cameraErrorTitle"),
+          description: t("profileSheet.cameraErrorDesc"),
           variant: "destructive",
         });
       }
@@ -242,8 +242,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
   const handleRestorePurchases = async () => {
     toast({
-      title: "Restoring Purchases...",
-      description: "Looking for active subscriptions...",
+      title: t("profileSheet.restoringTitle"),
+      description: t("profileSheet.restoringDesc"),
     });
 
     try {
@@ -252,20 +252,19 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       const successful = results.filter((r) => r.success);
       if (successful.length > 0) {
         toast({
-          title: "Purchases Restored",
-          description: "Your subscription has been restored successfully.",
+          title: t("profileSheet.restoredTitle"),
+          description: t("profileSheet.restoredDesc"),
         });
       } else {
         toast({
-          title: "Restore Complete",
-          description:
-            "No active subscription found. If you believe this is an error, please contact support.",
+          title: t("profileSheet.restoreCompleteTitle"),
+          description: t("profileSheet.restoreCompleteDesc"),
         });
       }
     } catch (error) {
       toast({
-        title: "Restore Failed",
-        description: "Unable to restore purchases. Please try again.",
+        title: t("profileSheet.restoreFailedTitle"),
+        description: t("profileSheet.restoreFailedDesc"),
         variant: "destructive",
       });
     }
@@ -280,7 +279,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       window.open(`mailto:${supportEmail}?subject=${appName} Feedback`, "_blank");
     } else if (item.route) {
       if (item.route === "/select-builder" && !canAccessMealBuilders(user)) {
-        requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" });
+        requestUpgrade({ requiredTier: "meal-builders", featureName: t("menu.mealBuilderExchange") });
         return;
       }
       setSheetOpen(false);
@@ -310,15 +309,15 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       setLocation("/welcome");
 
       toast({
-        title: "Account Deleted",
-        description: "Your account and all data have been permanently deleted.",
+        title: t("profileSheet.accountDeletedTitle"),
+        description: t("profileSheet.accountDeletedDesc"),
       });
     } catch (error: any) {
       console.error("Delete account error:", error);
       toast({
-        title: "Error",
+        title: t("common.error"),
         description:
-          error.message || "Failed to delete account. Please try again.",
+          error.message || t("profileSheet.deleteFailedDesc"),
         variant: "destructive",
       });
     } finally {
@@ -547,7 +546,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
             data-testid="button-logout"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
+            {t("menu.signOut")}
           </Button>
 
           {/* Delete Account */}
@@ -559,29 +558,29 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
                 data-testid="button-delete-account"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
+                {t("profileSheet.deleteAccount")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent className="bg-black/95 border border-white/20 text-white">
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-white">
-                  Delete Account Permanently?
+                  {t("profileSheet.deleteDialogTitle")}
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-white/70 space-y-2">
                   <p>
-                    This action cannot be undone. This will permanently delete:
+                    {t("profileSheet.deleteDialogIntro")}
                   </p>
                   <ul className="list-disc list-inside text-sm space-y-1 mt-2">
-                    <li>Your account and profile information</li>
-                    <li>All meal plans and saved recipes</li>
-                    <li>Biometrics and health tracking data</li>
-                    <li>Subscription and payment history</li>
+                    <li>{t("profileSheet.deleteItemAccount")}</li>
+                    <li>{t("profileSheet.deleteItemMeals")}</li>
+                    <li>{t("profileSheet.deleteItemBiometrics")}</li>
+                    <li>{t("profileSheet.deleteItemBilling")}</li>
                   </ul>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-                  Cancel
+                  {t("common.cancel")}
                 </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDeleteAccount}
@@ -589,7 +588,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
                   className="bg-red-600 hover:bg-red-700 text-white"
                   data-testid="button-confirm-delete"
                 >
-                  {isDeleting ? "Deleting..." : "Delete My Account"}
+                  {isDeleting ? t("profileSheet.deleting") : t("profileSheet.deleteMyAccount")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

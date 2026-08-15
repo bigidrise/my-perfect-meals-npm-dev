@@ -67,7 +67,12 @@
     "translate": "Dịch",
     "share": "Chia sẻ",
     "log": "Ghi nhật ký",
-    "logMeal": "Ghi nhật ký bữa ăn"
+    "logMeal": "Ghi nhật ký bữa ăn",
+    "addToCalendar": "Thêm vào lịch",
+    "bringBackChef": "Gọi lại đầu bếp",
+    "comingSoon": "Sắp ra mắt",
+    "withChef": "Cùng với Đầu bếp",
+    "today": "Hôm nay:"
   },
   "language": {
     "pageTitle": "Ngôn ngữ",
@@ -100,7 +105,78 @@
     "founders": "Người sáng lập",
     "restaurant": "Trợ lý nhà hàng",
     "weeklyBuilder": "Trình tạo hàng tuần",
-    "mealsAwayFromHome": "Bữa ăn ngoài nhà"
+    "mealsAwayFromHome": "Bữa ăn ngoài nhà",
+    "academy": "Học viện",
+    "antiInflammatoryBuilder": "Công cụ xây dựng chế độ chống viêm",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "Áp dụng hướng dẫn",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "Chế độ xem bảng",
+    "bodyComposition": "Thành phần cơ thể",
+    "businessCenter": "Trung tâm doanh nghiệp",
+    "chefPairings": "Kết hợp cùng đầu bếp",
+    "clientDashboard": "Bảng điều khiển khách hàng",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Studio Thương hiệu & Sáng tạo",
+    "dailyJournal": "Nhật ký & Cảm hứng hàng ngày",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "Trung tâm Bệnh tiểu đường",
+    "diabetesSupport": "Hỗ trợ bệnh tiểu đường",
+    "diabeticBuilder": "Công cụ xây dựng chế độ cho người tiểu đường",
+    "diabeticHub": "Trung tâm Bệnh tiểu đường",
+    "drinkPairings": "Kết hợp đồ uống",
+    "editProfile": "Chỉnh sửa hồ sơ",
+    "findMeals": "Tìm bữa ăn",
+    "foundingPartnerProgram": "Chương trình Đối tác sáng lập",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "Công cụ xây dựng dinh dưỡng tổng quát",
+    "healthcarePartnerships": "Quan hệ đối tác Chăm sóc sức khỏe & Lâm sàng",
+    "howPartnershipsWork": "Cách thức hoạt động của đối tác",
+    "industryPartnerships": "Quan hệ đối tác ngành",
+    "kitchenNetwork": "Mạng lưới nhà bếp",
+    "mealBuilder": "Công cụ xây dựng bữa ăn",
+    "mealBuilderExchange": "Trao đổi công cụ xây dựng bữa ăn",
+    "metabolicBuilder": "Trình Xây dựng Thuốc Chuyển hóa",
+    "metabolicHub": "Trung tâm Thuốc Chuyển hóa",
+    "metabolicHubBack": "Trung tâm Chuyển hóa",
+    "metabolicTracking": "Theo dõi Thuốc Chuyển hóa",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "Bảng điều khiển Tổ chức",
+    "organizationSuccessCenter": "Trung tâm Thành công Tổ chức",
+    "pairingsHub": "Trung tâm Kết hợp",
+    "partnerCenter": "Trung tâm Đối tác",
+    "partnerManagement": "Quản lý Đối tác",
+    "partnerProgram": "Chương trình Đối tác",
+    "partnerPrograms": "Các Chương trình Đối tác",
+    "partnerRevenueCenter": "Trung tâm Đối tác & Doanh thu",
+    "patientDashboard": "Bảng điều khiển Bệnh nhân",
+    "performanceBuilder": "Trình Xây dựng Dinh dưỡng Hiệu suất",
+    "performanceHub": "Trung tâm Hiệu suất",
+    "physicianClients": "Khách hàng của Bác sĩ",
+    "physicianPortal": "Cổng thông tin Bác sĩ",
+    "physicianWelcome": "Chào mừng Bác sĩ",
+    "planner": "Công cụ Lập kế hoạch",
+    "pregnancy": "Thai kỳ hoàn hảo của tôi",
+    "proLaunchpad": "Bảng điều khiển Chuyên nghiệp",
+    "proPortal": "Cổng thông tin Pro",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "Đào tạo ProCare",
+    "procareWelcome": "Chào mừng ProCare",
+    "professionalWorkspace": "Không gian làm việc Chuyên nghiệp",
+    "promotions": "Khuyến mãi",
+    "reduceDrinking": "Kế hoạch Giảm uống rượu",
+    "restaurantGuide": "Trợ lý Nhà hàng",
+    "signatureKitchen": "Signature Kitchen",
+    "sleepTracker": "Trình theo dõi Giấc ngủ",
+    "supplementHub": "Trung tâm Thực phẩm bổ sung",
+    "trainerWelcome": "Chào mừng Huấn luyện viên",
+    "tutorialHub": "Trung tâm Hướng dẫn",
+    "weaningOff": "Công cụ Cai thuốc/Giảm dần",
+    "whiteLabelSolutions": "Giải pháp White Label",
+    "wineListHelper": "Trợ lý Danh mục Rượu"
   },
   "dashboard": {
     "professionalBadge": "Chuyên nghiệp",
@@ -218,7 +294,13 @@
     "badgeClinical": "Lâm sàng",
     "badgePro": "Pro",
     "badgeCurrent": "Hiện tại",
-    "badgeBehavioral": "AI hành vi™"
+    "badgeBehavioral": "AI hành vi™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "Lập kế hoạch bữa ăn cho vận động viên chuyên nghiệp dưới sự hướng dẫn của huấn luyện viên nhằm chuẩn bị thi đấu, đạt hiệu suất tối đa và phục hồi",
+    "performanceCompTitle": "Công cụ xây dựng Lịch trình thi đấu & Hiệu suất",
+    "plannerTitle": "Công cụ lập kế hoạch",
+    "weeklyDesc": "Các kế hoạch bữa ăn được AI tạo ra dành cho những người muốn ăn uống lành mạnh theo cách riêng của mình",
+    "weeklyTitle": "Công cụ xây dựng Bữa ăn hàng tuần"
   },
   "createDish": {
     "pageTitle": "Tạo món ăn",
@@ -242,7 +324,11 @@
     "errorMissing": "Thiếu thông tin",
     "errorDescribe": "Vui lòng mô tả món ăn bạn muốn tạo!",
     "errorFailed": "Không thể tạo món ăn. Vui lòng thử lại.",
-    "allergyAlert": "Cảnh báo dị ứng"
+    "allergyAlert": "Cảnh báo dị ứng",
+    "label": "Bạn muốn tạo món ăn nào?",
+    "notes": "Ghi chú tùy chọn",
+    "notesPlaceholder": "ví dụ: không sữa, siêu cay, ít muối, để chuẩn bị bữa ăn...",
+    "servings": "Số phần ăn (1–12)"
   },
   "snack": {
     "pageTitle": "Trình tạo đồ ăn vặt",
@@ -309,7 +395,8 @@
     "servings": "khẩu phần",
     "ingredientsServes": "Nguyên liệu (phục vụ {{count}})",
     "noIngredients": "Không có nguyên liệu được cung cấp",
-    "noInstructions": "Không có hướng dẫn được cung cấp"
+    "noInstructions": "Không có hướng dẫn được cung cấp",
+    "couldNotUpdateFavorites": "Không thể cập nhật mục yêu thích. Thử lại."
   },
   "shopping": {
     "pageTitle": "Danh sách mua sắm thông minh",
@@ -340,7 +427,29 @@
     "catPantry": "Tủ đồ ăn",
     "catFrozen": "Đồ đông lạnh",
     "catBakery": "Bánh mì",
-    "catOther": "Khác"
+    "catOther": "Khác",
+    "addItemsBtn": "Thêm mục",
+    "addedToList": "Đã thêm vào danh sách mua sắm",
+    "barcodePlaceholder": "Nhập mã vạch...",
+    "bulkInstructions": "Nhập hoặc dán mỗi mục trên một dòng, hoặc phân tách bằng dấu phẩy:",
+    "bulkPlaceholder": "sữa\ntrứng\nức gà\nrau chân vịt\ngạo lứt",
+    "bulkTitle": "Thêm mục hàng loạt",
+    "checked": "đã chọn",
+    "chefBuy": "Đầu bếp nói: Hãy mua đi!",
+    "chefCaution": "Đầu bếp nói: Cẩn thận chút nhé...",
+    "chefSkip": "Đầu bếp nói: Nên cân nhắc kỹ",
+    "continueToBiometrics": "Tiếp tục đến Chỉ số Sinh học",
+    "emptyList": "Danh sách mua sắm của bạn đang trống",
+    "emptyListHint": "Dán các mục hoặc thêm nhanh để bắt đầu",
+    "enterBarcode": "Nhập mã vạch",
+    "items": "mục",
+    "itemsAddedDesc": "Đã thêm {{count}} mục vào danh sách mua sắm của bạn.",
+    "itemsCopied": "Đã sao chép {{count}} mục",
+    "proLabel": "Pro",
+    "savedForReview": "Đã lưu để xem lại",
+    "savedForReviewDesc": "Bạn có thể xem lại bản quét này bất cứ lúc nào từ trang này.",
+    "scannedProduct": "Sản phẩm đã quét",
+    "tapView": "Chạm để xem →"
   },
   "restaurant": {
     "pageTitle": "Trợ lý nhà hàng",
@@ -357,7 +466,36 @@
     "errorZipDesc": "Vui lòng nhập mã bưu chính hợp lệ 5 chữ số.",
     "errorLocationDenied": "Quyền truy cập vị trí bị từ chối",
     "errorLocationDesc": "Vui lòng bật quyền truy cập vị trí trong cài đặt trình duyệt, hoặc nhập mã bưu chính thủ công.",
-    "generationFailed": "Tạo thất bại"
+    "generationFailed": "Tạo thất bại",
+    "addressCopied": "Đã sao chép địa chỉ",
+    "askFor": "Yêu cầu:",
+    "cannotDetectZip": "Không thể xác định mã ZIP",
+    "cannotDetectZipDesc": "Đã tìm thấy vị trí nhưng chúng tôi không thể xác định mã ZIP của bạn. Vui lòng nhập thủ công.",
+    "copyFailed": "Sao chép thất bại",
+    "copyManually": "Vui lòng sao chép thủ công.",
+    "entryDesc": "Hãy cho tôi biết bạn đang ăn ở đâu và bạn muốn dùng gì, tôi sẽ hiển thị cho bạn những lựa chọn tốt nhất từ thực đơn của họ.",
+    "entryTitle": "Trợ lý Nhà hàng",
+    "findDishes": "Tìm món ăn",
+    "findingDishes": "Đang tìm các món ăn hoàn hảo cho bạn...",
+    "howToUseTitle": "Cách sử dụng Trợ lý Nhà hàng",
+    "letsFindDishes": "Cùng tìm món ăn nào",
+    "locationFound": "Đã tìm thấy vị trí",
+    "pasteHint": "Dán vào Maps hoặc Waze.",
+    "recommendedAt": "Các bữa ăn được đề xuất tại",
+    "scanningMenu": "Đang quét thực đơn...",
+    "searchAgain": "Tìm kiếm lại",
+    "searchingFor": "Đang tìm kiếm {{restaurant}} cho các lựa chọn {{craving}}",
+    "step1": "Bước 1",
+    "step1Placeholder": "ví dụ: gà, cá hồi, mì ý, bít tết",
+    "step1Question": "Bạn đang thèm món ăn hay loại thực phẩm nào?",
+    "step2": "Bước 2",
+    "step2Placeholder": "ví dụ: Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "Bạn đang ăn ở đâu? Nhập tên nhà hàng.",
+    "step3": "Bước 3",
+    "step3Placeholder": "ví dụ: 30303, 90210, 10001",
+    "step3Question": "Nhập mã ZIP của bạn để tôi tìm địa điểm gần nhất.",
+    "translationFailed": "Dịch thất bại",
+    "whyHealthy": "Tại sao món này tốt cho sức khỏe:"
   },
   "upgrade": {
     "viewPlans": "Xem các gói",
@@ -369,7 +507,23 @@
     "essentialTagline": "Bộ công cụ tạo bữa ăn đầy đủ, được xây dựng xung quanh hồ sơ của bạn.",
     "proTagline": "Trình tạo mở rộng và ăn uống thực tế, tuân thủ giao thức đầy đủ.",
     "clinicalTagline": "Công cụ dinh dưỡng cấp y tế cho kết quả sức khỏe nghiêm túc.",
-    "proPromo": "Pro là gói phổ biến nhất của chúng tôi — mở khóa tất cả trình tạo."
+    "proPromo": "Pro là gói phổ biến nhất của chúng tôi — mở khóa tất cả trình tạo.",
+    "availableOn": "Có sẵn trên {{plan}}",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+    "buildersBenefit2": "Trao đổi Meal Builder — chuyển đổi trình xây dựng bất cứ lúc nào khi mục tiêu của bạn thay đổi",
+    "buildersBenefit3": "Trợ lý Nhà hàng, My Perfect Gatherings & các công cụ phong cách sống mở rộng",
+    "buildersBenefit4": "Essential giúp bạn bắt đầu · Clinical thêm các công cụ dinh dưỡng cấp độ y tế",
+    "clinicalBenefit1": "Tích hợp Xét nghiệm Lâm sàng — kết quả xét nghiệm máu giúp định hình chế độ ăn uống của bạn",
+    "clinicalBenefit2": "Quyền truy cập Đội ngũ Chăm sóc — kết nối với bác sĩ hoặc huấn luyện viên ngay trong ứng dụng",
+    "clinicalBenefit3": "Dinh dưỡng Hiệu suất, Chuẩn bị Thi đấu & Trình xây dựng cho Vận động viên",
+    "essentialBenefit1": "Create a Dish — Các bữa ăn bằng AI được tùy chỉnh theo đúng phác đồ dinh dưỡng của bạn",
+    "essentialBenefit2": "Danh sách mua sắm, Bữa ăn đã lưu & Lập kế hoạch bữa ăn hàng tuần",
+    "essentialBenefit3": "Công cụ làm công thức, Trình tạo đồ ăn nhẹ & Fridge Rescue không giới hạn",
+    "featurePartOf": "{{feature}} là một phần của {{plan}}",
+    "planBadge": "Gói {{label}}",
+    "proBenefit1": "Craving Creator, Beverage Creator & Sushi Creator",
+    "proBenefit2": "Restaurant Assistant — đặt món tại bất kỳ nhà hàng nào dựa trên phác đồ của bạn",
+    "proBenefit3": "Các kế hoạch dinh dưỡng My Perfect Gatherings & My Perfect Pets"
   },
   "pricing": {
     "pageTitle": "Đăng ký",
@@ -448,7 +602,10 @@
     "dietVegan": "Thuần chay",
     "dietVegetarian": "Chay",
     "dietPescatarian": "Pescatarian",
-    "dietCarnivore": "Ăn thịt"
+    "dietCarnivore": "Ăn thịt",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "selectPath": "Chọn lộ trình bên trên"
   },
   "findMeals": {
     "pageTitle": "Tìm Bữa Ăn Gần Đây",
@@ -989,7 +1146,28 @@
     "noMealsTitle": "Không có bữa ăn",
     "noSlotYet": "Chưa có {{slot}}",
     "snacks": "Đồ ăn nhẹ",
-    "whyWeeklyPlanning": "Tại sao lại lập kế hoạch hàng tuần?"
+    "whyWeeklyPlanning": "Tại sao lại lập kế hoạch hàng tuần?",
+    "savingPlan": "Đang lưu…",
+    "savedPlan": "Đã lưu ✓",
+    "savePlan": "Lưu kế hoạch",
+    "addMealsHint": "Sử dụng \"+\" để thêm bữa ăn",
+    "dayDuplicated": "Ngày đã được sao chép",
+    "dayDuplicatedBoth": "{{thisWeek}} ngày trong tuần này + {{future}} ngày trong các tuần tới",
+    "dayDuplicatedDesc": "Đã sao chép sang {{count}} ngày",
+    "duplicate": "Sao chép",
+    "failedToDuplicate": "Không thể sao chép",
+    "nextWeek": "Tuần sau",
+    "noSlotMealsYet": "Chưa có bữa ăn {{slot}}",
+    "partialDuplicate": "Sao chép một phần",
+    "partialDuplicateDesc": "Đã lưu {{count}} trong tổng số {{total}} ngày.",
+    "prevWeek": "Tuần trước",
+    "savedFutureWeek": "Đã lưu vào tuần sau",
+    "savedFutureWeekDesc": "Các bữa ăn đã được sao chép sang {{count}} ngày. Vuốt sang để xem.",
+    "shoppingListDesc": "Bạn CÓ THỂ gửi toàn bộ thực đơn trong tuần của mình vào danh sách mua sắm! Điều này giúp tổng hợp tất cả nguyên liệu để việc đi chợ trở nên dễ dàng. Hãy nhấp vào \"Gửi cả tuần\" ở dưới cùng.",
+    "shoppingListNext": "Tiếp theo: Kiểm tra Danh sách mua sắm để tìm hiểu cách sử dụng hiệu quả!",
+    "shoppingListTitle": "Danh sách mua sắm đã sẵn sàng",
+    "syncPending": "Đang chờ đồng bộ",
+    "tryAgain": "Vui lòng thử lại"
   },
   "coachCorner": {
     "title": "Góc Huấn Luyện Viên",
@@ -1064,7 +1242,15 @@
         "step5Desc": "Theo dõi các buổi check-in, xu hướng cân nặng và tiến độ dinh dưỡng của khách hàng.",
         "step6Title": "Lưu Thay đổi",
         "step6Desc": "Lưu các cập nhật của bạn để chúng được áp dụng trong trải nghiệm của khách hàng."
-      }
+      },
+      "activeOnClient": "Đang hoạt động trên khách hàng này",
+      "bodyComposition": "Thành phần cơ thể",
+      "bodyFat": "Mỡ cơ thể",
+      "fibrousCarbs": "Carb xơ",
+      "method": "Phương pháp",
+      "physicianAuthRequired": "Yêu cầu ủy quyền của bác sĩ",
+      "source": "Nguồn",
+      "targetBodyFat": "Mục tiêu mỡ cơ thể"
     },
     "fibrousCarbs": "Carbs xơ",
     "bodyComposition": "Thành phần cơ thể",
@@ -1444,6 +1630,171 @@
       "revokeConfirm": "Thu hồi quyền truy cập"
     }
   },
+  "mealCard": {
+    "protein": "Protein",
+    "carbs": "Tinh bột",
+    "fat": "Chất béo",
+    "ingredients": "Nguyên liệu:",
+    "instructions": "Hướng dẫn:",
+    "medicalSafety": "An toàn y tế",
+    "diabetesProtocol": "Giao thức tiểu đường",
+    "whyThisMealWasBuilt": "Tại sao bữa ăn này được tạo ra",
+    "showLess": "Hiển thị ít hơn",
+    "showAllSteps": "Hiện tất cả {{count}} bước",
+    "moreIngredients": "+ {{count}} nữa...",
+    "loggedSuccessfully": "Ghi nhật ký thành công",
+    "failedToLog": "Không thể ghi macro. Vui lòng thử lại.",
+    "deleteMeal": "Xóa bữa ăn",
+    "removeFromBoard": "Xóa bữa ăn này khỏi bảng?",
+    "refineMeal": "Tinh chỉnh bữa ăn",
+    "showingRefined": "Đang hiển thị phiên bản tinh chỉnh",
+    "restoreOriginal": "Khôi phục bản gốc",
+    "competitionPrepProtocol": "🏆 Đã áp dụng Giao thức Chuẩn bị Thi đấu",
+    "athleticPerformanceProtocol": "⚡ Đã áp dụng Giao thức Hiệu suất Thể thao",
+    "loggedDesc": "{{name}} đã được ghi vào macro của bạn.",
+    "ingredientFallback": "Nguyên liệu",
+    "generatedForBGL": "Tạo cho BGL:",
+    "relevantRange": "Phạm vi liên quan:",
+    "weeksOut": "còn {{n}} tuần",
+    "sessionsPerWeek": "{{n}} buổi/tuần",
+    "protocol_goalFatLoss": "Ưu tiên giảm mỡ",
+    "protocol_goalMuscleGain": "Ưu tiên tăng cơ",
+    "protocol_goalStrength": "Ưu tiên sức mạnh",
+    "protocol_goalPeak": "Ưu tiên hiệu suất đỉnh",
+    "protocol_athleticPerfLabel": "Hiệu suất thể thao — {{sport}}",
+    "protocol_competitionPrepLabel": "Chuẩn bị thi đấu — {{type}}",
+    "protocol_performancePhaseFallback": "Giai đoạn hiệu suất",
+    "protocol_recoverySupportActive": "Hỗ trợ phục hồi đang hoạt động",
+    "protocol_sport_strength": "Tập luyện sức mạnh",
+    "protocol_sport_hypertrophy": "Tăng cơ bắp",
+    "protocol_sport_powerlifting": "Powerlifting",
+    "protocol_sport_olympic_lifting": "Cử tạ Olympic",
+    "protocol_sport_mma": "MMA",
+    "protocol_sport_boxing": "Quyền anh",
+    "protocol_sport_wrestling": "Vật",
+    "protocol_sport_bjj": "BJJ / Grappling",
+    "protocol_sport_crossfit": "CrossFit",
+    "protocol_sport_endurance_running": "Chạy bộ",
+    "protocol_sport_cycling": "Đạp xe",
+    "protocol_sport_triathlon": "Ba môn phối hợp",
+    "protocol_sport_tactical": "Chiến thuật / Quân sự",
+    "protocol_sport_general_fitness": "Thể hình chung",
+    "protocol_sport_other": "Môn thể thao khác",
+    "protocol_phase_off_season": "Mùa nghỉ",
+    "protocol_phase_pre_season": "Tiền mùa giải",
+    "protocol_phase_in_season": "Trong mùa giải",
+    "protocol_phase_weight_cut": "Giai đoạn cắt cân",
+    "protocol_phase_recovery": "Giai đoạn phục hồi",
+    "protocol_bullet_fat_loss_0": "Mục tiêu protein cao (≥2g/kg)",
+    "protocol_bullet_fat_loss_1": "Chiến lược thâm hụt calo",
+    "protocol_bullet_conditioning_0": "Thời điểm carb — Trước/Sau tập",
+    "protocol_bullet_conditioning_1": "Phục hồi chống viêm",
+    "protocol_bullet_peak_prep_0": "Giảm natri đang hoạt động",
+    "protocol_bullet_peak_prep_1": "Ưu tiên khả năng tiêu hóa",
+    "protocol_bullet_peak_week_0": "Giao thức ít chất xơ đang hoạt động",
+    "protocol_bullet_peak_week_1": "Natri thấp — Kiểm soát nước",
+    "protocol_bullet_show_day_0": "Giao thức tiêu hóa nhanh",
+    "protocol_bullet_show_day_1": "Thời điểm carb cho hiệu suất",
+    "protocol_bullet_meet_week_0": "Nạp carb đang hoạt động",
+    "protocol_bullet_meet_week_1": "Dưỡng chất phục hồi hệ thần kinh",
+    "protocol_bullet_meet_day_0": "Giao thức carb trước thi đấu",
+    "protocol_bullet_meet_day_1": "Tiêu hóa dễ là ưu tiên",
+    "protocol_bullet_weight_cut_0": "Hạn chế natri đang hoạt động",
+    "protocol_bullet_weight_cut_1": "Quản lý điện giải",
+    "protocol_bullet_fight_week_0": "Giao thức quản lý nước",
+    "protocol_bullet_fight_week_1": "Bữa ăn sẵn sàng bù nước",
+    "protocol_bullet_taper_0": "Nạp carb (8–10g/kg)",
+    "protocol_bullet_taper_1": "Giảm chất xơ đang hoạt động",
+    "protocol_bullet_race_day_0": "Giao thức carb ngày đua",
+    "protocol_bullet_race_day_1": "Dinh dưỡng an toàn cho ruột",
+    "protocol_bullet_post_competition_0": "Nạp lại năng lượng phục hồi",
+    "protocol_bullet_post_competition_1": "Ưu tiên chống viêm",
+    "protocol_bullet_post_race_0": "Dinh dưỡng phục hồi sau đua",
+    "protocol_bullet_post_race_1": "Tăng calo",
+    "sportFallback": "Thể thao",
+    "mealFallback": "Bữa ăn",
+    "protocol_phaselabel_fat_loss": "Giai đoạn giảm mỡ",
+    "protocol_phaselabel_conditioning": "Giai đoạn thể lực",
+    "protocol_phaselabel_peak_prep": "Chuẩn bị đỉnh phong độ",
+    "protocol_phaselabel_peak_week": "Tuần đỉnh phong độ",
+    "protocol_phaselabel_show_day": "Ngày thi đấu",
+    "protocol_phaselabel_post_competition": "Hồi phục sau thi đấu",
+    "protocol_phaselabel_strength_building": "Xây dựng sức mạnh",
+    "protocol_phaselabel_intensity_phase": "Giai đoạn cường độ cao",
+    "protocol_phaselabel_taper": "Giai đoạn giảm tải",
+    "protocol_phaselabel_meet_week": "Tuần thi đấu",
+    "protocol_phaselabel_meet_day": "Ngày thi đấu",
+    "protocol_phaselabel_conditioning_combat": "Trại thể lực chiến đấu",
+    "protocol_phaselabel_fight_prep": "Chuẩn bị thi đấu",
+    "protocol_phaselabel_weight_cut": "Cắt cân",
+    "protocol_phaselabel_fight_week": "Tuần thi đấu",
+    "protocol_phaselabel_fight_day": "Ngày thi đấu",
+    "protocol_phaselabel_pre_season": "Tiền mùa giải",
+    "protocol_phaselabel_in_season": "Trong mùa giải",
+    "protocol_phaselabel_championship_week": "Tuần vô địch",
+    "protocol_phaselabel_match_day": "Ngày thi đấu",
+    "protocol_phaselabel_off_season": "Mùa nghỉ",
+    "protocol_phaselabel_base_conditioning": "Thể lực nền tảng",
+    "protocol_phaselabel_event_prep": "Chuẩn bị sự kiện",
+    "protocol_phaselabel_competition_week": "Tuần thi đấu",
+    "protocol_phaselabel_competition_day": "Ngày thi đấu",
+    "protocol_phaselabel_base_building": "Xây dựng nền tảng",
+    "protocol_phaselabel_build_phase": "Giai đoạn xây dựng",
+    "protocol_phaselabel_race_prep": "Chuẩn bị đua",
+    "protocol_phaselabel_race_day": "Ngày đua",
+    "protocol_phaselabel_post_race": "Hồi phục sau đua",
+    "protocol_comptype_bodybuilding_show": "Thi thể hình",
+    "protocol_comptype_mens_physique": "Men's Physique",
+    "protocol_comptype_classic_physique": "Classic Physique",
+    "protocol_comptype_figure": "Figure",
+    "protocol_comptype_bikini": "Bikini",
+    "protocol_comptype_wellness": "Wellness",
+    "protocol_comptype_powerlifting_meet": "Thi Powerlifting",
+    "protocol_comptype_strongman_competition": "Strongman",
+    "protocol_comptype_olympic_weightlifting_meet": "Cử tạ Olympic",
+    "protocol_comptype_fight_camp": "Trại tập chiến đấu",
+    "protocol_comptype_wrestling_season": "Mùa giải vật",
+    "protocol_comptype_crossfit_competition": "Thi CrossFit",
+    "protocol_comptype_hyrox": "Hyrox",
+    "protocol_comptype_marathon": "Marathon",
+    "protocol_comptype_triathlon_race": "Ba môn phối hợp",
+    "protocol_comptype_spartan_race": "Spartan Race",
+    "protocol_comptype_other": "Khác",
+    "protocol_bullet_strength_building_0": "Hỗ trợ calo giai đoạn xây dựng",
+    "protocol_bullet_strength_building_1": "Nhiên liệu tải trọng tăng dần",
+    "protocol_bullet_intensity_phase_0": "Thời điểm carb cường độ cao",
+    "protocol_bullet_intensity_phase_1": "Dinh dưỡng phục hồi hệ thần kinh",
+    "protocol_bullet_conditioning_combat_0": "Bữa ăn thể lực chiến đấu",
+    "protocol_bullet_conditioning_combat_1": "Tập trung chống viêm",
+    "protocol_bullet_fight_prep_0": "Dinh dưỡng chuẩn bị thi đấu",
+    "protocol_bullet_fight_prep_1": "Quản lý hạng cân",
+    "protocol_bullet_fight_day_0": "Giao thức nhiên liệu ngày thi đấu",
+    "protocol_bullet_fight_day_1": "Tiêu hóa nhanh đang hoạt động",
+    "protocol_bullet_pre_season_0": "Nhiên liệu nền tiền mùa giải",
+    "protocol_bullet_pre_season_1": "Hỗ trợ nền sức mạnh",
+    "protocol_bullet_in_season_0": "Bữa ăn phục hồi trong mùa giải",
+    "protocol_bullet_in_season_1": "Hỗ trợ cân nặng thi đấu",
+    "protocol_bullet_championship_week_0": "Giao thức đỉnh vô địch",
+    "protocol_bullet_championship_week_1": "Ít chất xơ — Nhiên liệu sạch",
+    "protocol_bullet_match_day_0": "Giao thức carb ngày thi đấu",
+    "protocol_bullet_match_day_1": "Tiêu hóa dễ là ưu tiên",
+    "protocol_bullet_off_season_0": "Dinh dưỡng nền mùa nghỉ",
+    "protocol_bullet_off_season_1": "Tập trung phục hồi đang hoạt động",
+    "protocol_bullet_base_conditioning_0": "Hỗ trợ nhiên liệu nền hiếu khí",
+    "protocol_bullet_base_conditioning_1": "Chu kỳ hóa carb đang hoạt động",
+    "protocol_bullet_event_prep_0": "Dinh dưỡng chuẩn bị sự kiện",
+    "protocol_bullet_event_prep_1": "Thời điểm carb tối ưu",
+    "protocol_bullet_competition_week_0": "Giao thức tuần thi đấu",
+    "protocol_bullet_competition_week_1": "Ít chất xơ đang hoạt động",
+    "protocol_bullet_competition_day_0": "Nhiên liệu ngày thi đấu",
+    "protocol_bullet_competition_day_1": "Giao thức tiêu hóa nhanh",
+    "protocol_bullet_base_building_0": "Dinh dưỡng nền hiếu khí",
+    "protocol_bullet_base_building_1": "Giao thức nhiên liệu sức bền",
+    "protocol_bullet_build_phase_0": "Nhiên liệu xây dựng tiến bộ",
+    "protocol_bullet_build_phase_1": "Chu kỳ hóa carb đang hoạt động",
+    "protocol_bullet_race_prep_0": "Giao thức carb luyện tập đỉnh",
+    "protocol_bullet_race_prep_1": "Tối ưu hóa nhiên liệu sức bền"
+  },
   "glp1Hub": {
     "autoSettings": "Các trình xây dựng bữa ăn của bạn tự động sử dụng các cài đặt này.",
     "careBody": "My Perfect Meals được thiết kế để hoạt động cùng bác sĩ, chuyên gia dinh dưỡng hoặc nhà cung cấp dịch vụ chăm sóc sức khỏe của bạn — không bao giờ thay thế họ. Sử dụng thông tin và công cụ tại đây để duy trì sự nhất quán giữa các lần khám, để hiểu cơ thể bạn và đưa ra những lựa chọn nhỏ, tự tin nhằm tôn trọng sự hướng dẫn chuyên môn. Mọi công cụ theo dõi, mọi bữa ăn và mọi gợi ý trong ứng dụng này nhằm mục đích hỗ trợ kế hoạch chăm sóc của bạn, không thay thế nó.",
@@ -1684,5 +2035,1668 @@
     "tour8Desc": "Protein và tinh bột được đánh dấu bằng dấu hoa thị (*) vì đó là những con số quan trọng nhất cần tập trung khi xây dựng bữa ăn của bạn. Hãy đảm bảo những con số đó đúng trước tiên.",
     "tour8Title": "Ý nghĩa của dấu hoa thị",
     "tourTitle": "Trình xây dựng Dinh dưỡng Tổng quát"
+  },
+  "trialBanner": {
+    "lastDayTitle": "Quyền truy cập Pro miễn phí của bạn kết thúc hôm nay",
+    "lastDayBody": "Tài khoản của bạn sẽ chuyển sang gói miễn phí tối nay.",
+    "lastDayDataSafe": "Tất cả dữ liệu của bạn vẫn an toàn.",
+    "lastDayUpgradeHint": "Nâng cấp bất cứ lúc nào để giữ các tính năng Pro.",
+    "upgradeToPro": "Nâng cấp lên Pro",
+    "exploreFeatures": "Khám phá tính năng",
+    "dismiss": "Đóng",
+    "daysLeft": "Còn {{count}} ngày",
+    "oneDayLeft": "Còn 1 ngày",
+    "trialCountdown": "trong kỳ dùng thử — {{tierLabel}} sắp kết thúc.",
+    "clinicalAccess": "Quyền truy cập lâm sàng",
+    "fullAccess": "truy cập đầy đủ"
+  },
+  "trialStatusCard": {
+    "adminTrial": "Dùng thử quản trị",
+    "clinicalTrial": "Dùng thử lâm sàng",
+    "promotionalTrial": "Dùng thử khuyến mãi",
+    "freeTrial": "Dùng thử miễn phí",
+    "clinicalUltimate": "Lâm sàng · Tối thượng",
+    "trialEndsToday": "Dùng thử của bạn kết thúc hôm nay",
+    "daysLeftInTrial": "Còn {{count}} ngày trong kỳ dùng thử",
+    "daysOfDaysRemaining": "Còn {{count}} trong {{total}} ngày",
+    "accountMovesFree": "Tài khoản của bạn sẽ chuyển sang gói miễn phí tối nay. Tất cả dữ liệu của bạn vẫn an toàn.",
+    "trialExpires": "Dùng thử hết hạn vào {{date}}",
+    "tierFull": "Đầy đủ",
+    "keepFullAccess": "Giữ quyền truy cập đầy đủ →"
+  },
+  "groceryDashCard": {
+    "title": "Danh sách mua sắm hàng tuần",
+    "description": "Danh sách mua sắm được cá nhân hóa dựa trên kế hoạch bữa ăn",
+    "itemsCompleted": "{{completed}} / {{total}} mặt hàng đã hoàn thành",
+    "shoppingDone": "{{pct}}% việc mua sắm đã hoàn thành",
+    "updatedToday": "Cập nhật hôm nay",
+    "recentItems": "Mặt hàng gần đây",
+    "addItem": "Thêm mặt hàng",
+    "viewFullList": "Xem danh sách đầy đủ",
+    "noItems": "Danh sách mua sắm của bạn trống. Thêm các mặt hàng từ kế hoạch ăn uống để bắt đầu."
+  },
+  "physicianCareTeam": {
+    "availability": {
+      "available": "Sẵn sàng",
+      "away": "Đi vắng",
+      "from": "Từ",
+      "offline": "Ngoại tuyến",
+      "saved": "Đã lưu",
+      "saving": "Đang lưu…",
+      "title": "Trạng thái sẵn sàng",
+      "until": "Đến"
+    },
+    "clinic": {
+      "activePatients": "Bệnh nhân đang điều trị",
+      "portalButton": "Mở cổng thông tin bác sĩ",
+      "viewAndManage": "Xem và quản lý bệnh nhân của bạn trong cổng thông tin bác sĩ."
+    },
+    "errors": {
+      "availabilityFailed": "Không thể cập nhật trạng thái sẵn sàng.",
+      "emailRequired": "Yêu cầu nhập email.",
+      "inviteFailed": "Không thể gửi lời mời.",
+      "loadFailed": "Không thể tải nhóm chăm sóc.",
+      "saveDatesFailed": "Không thể lưu ngày."
+    },
+    "invite": {
+      "emailLabel": "Email bệnh nhân",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "Vai trò chuyên môn",
+      "rolePlaceholder": "Chọn một vai trò",
+      "sendInvite": "Gửi lời mời",
+      "title": "Mời bệnh nhân"
+    },
+    "physicianCareTeam": {
+      "title": "Nhóm chăm sóc y tế"
+    },
+    "platform": {
+      "button": "Khám phá các tính năng",
+      "description": "Tìm hiểu cách nền tảng có thể giúp bạn hỗ trợ bệnh nhân của mình.",
+      "explore": "Khám phá nền tảng"
+    },
+    "roles": {
+      "dietitian": "Chuyên gia dinh dưỡng",
+      "doctor": "Bác sĩ",
+      "np": "Nurse Practitioner",
+      "nutritionist": "Chuyên viên dinh dưỡng",
+      "pa": "Physician Assistant",
+      "rn": "RN"
+    },
+    "toast": {
+      "invitationSent": "Đã gửi lời mời đến {{email}}"
+    },
+    "tour": {
+      "invitePatients": "Mời bệnh nhân",
+      "invitePatientsDesc": "Mời bệnh nhân kết nối với bạn để nhận hỗ trợ.",
+      "physicianPortal": "Sử dụng cổng thông tin bác sĩ",
+      "physicianPortalDesc": "Mở cổng thông tin bác sĩ để xem và quản lý bệnh nhân của bạn.",
+      "setAvailability": "Đặt trạng thái sẵn sàng",
+      "setAvailabilityDesc": "Cho bệnh nhân biết khi nào bạn sẵn sàng, đi vắng hoặc ngoại tuyến."
+    },
+    "tourTitle": "Nhóm Chăm sóc Y tế",
+    "title": "Nhóm Chăm sóc Bác sĩ"
+  },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "My Perfect Meals",
+      "features": "Tính năng",
+      "howItWorks": "Cách hoạt động",
+      "pricing": "Bảng giá",
+      "signIn": "Đăng nhập"
+    },
+    "errorBoundary": {
+      "title": "Đã xảy ra lỗi",
+      "description": "Chúng tôi gặp sự cố khi tải trang này. Vui lòng làm mới và thử lại.",
+      "refresh": "Làm mới trang"
+    },
+    "dateSlotPicker": {
+      "placeholder": "Chọn khung giờ bữa ăn"
+    },
+    "mealSlots": {
+      "breakfast": "Bữa sáng",
+      "lunch": "Bữa trưa",
+      "dinner": "Bữa tối",
+      "snack": "Bữa phụ"
+    },
+    "dailyNutritionTracker": {
+      "title": "Tiến độ Dinh dưỡng Hàng ngày",
+      "description": "Theo dõi lượng dinh dưỡng hàng ngày của bạn",
+      "calories": "Calo",
+      "protein": "Protein",
+      "carbohydrates": "Carbohydrate",
+      "fat": "Chất béo",
+      "onTrack": "Bạn đang đi đúng hướng để đạt mục tiêu hàng ngày!"
+    },
+    "pagination": {
+      "label": "phân trang",
+      "previousPage": "Đến trang trước",
+      "previous": "Trước",
+      "nextPage": "Đến trang tiếp theo",
+      "next": "Tiếp theo",
+      "morePages": "Nhiều trang hơn"
+    },
+    "mealCard": {
+      "noRecipe": "Không có công thức",
+      "addMeal": "Thêm bữa ăn",
+      "serving": "Khẩu phần:",
+      "ingredients": "Nguyên liệu:",
+      "cookingInstructions": "Hướng dẫn nấu ăn:",
+      "protein": "Protein",
+      "carbs": "Carbohydrate",
+      "fat": "Chất béo"
+    },
+    "nutritionSummary": {
+      "title": "Tóm tắt Dinh dưỡng",
+      "empty": "Tạo kế hoạch bữa ăn để xem tóm tắt dinh dưỡng của bạn",
+      "weeklyOverview": "Tổng quan Hàng tuần",
+      "totalCalories": "Tổng Calo",
+      "dailyAverage": "Trung bình Hàng ngày",
+      "totalProtein": "Tổng Protein",
+      "daysPlanned": "Ngày đã lên kế hoạch",
+      "dailyTargets": "Mục tiêu Hàng ngày",
+      "calories": "Calo",
+      "protein": "Protein",
+      "carbohydrates": "Carbohydrate",
+      "fat": "Chất béo",
+      "targetMet": "Đạt mục tiêu",
+      "goalProgress": "Tiến độ mục tiêu",
+      "fitnessGoal": "Mục tiêu thể dục",
+      "activityLevel": "Mức độ hoạt động",
+      "dietaryPreferences": "Sở thích ăn uống",
+      "balanceScore": "Điểm cân bằng",
+      "percentOfTarget": "{{n}}% mục tiêu",
+      "remainingCal": "Còn {{n}}",
+      "remainingG": "Còn {{n}}g"
+    },
+    "enhancedMealCard": {
+      "replace": "Thay thế",
+      "replacing": "Đang thay thế...",
+      "replaceTitle": "Thay thế bằng công thức bữa ăn hoàn toàn mới",
+      "replacingTitle": "Đang thay thế bữa ăn...",
+      "portionGuide": "Hướng dẫn khẩu phần:",
+      "ingredients": "Nguyên liệu:",
+      "instructions": "Hướng dẫn:",
+      "medicalSafety": "An toàn y tế:",
+      "error": "Lỗi:"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "Còn lại hôm nay",
+    "protein": "Protein",
+    "starchy": "Tinh bột",
+    "fibrous": "Chất xơ",
+    "fat": "Chất béo",
+    "setMacrosPrompt": "Đặt macro của bạn để xem còn lại bao nhiêu cho hôm nay.",
+    "saveDay": "Lưu ngày vào chỉ số sinh học",
+    "targetsUpdated": "Mục tiêu đã cập nhật trong ngày",
+    "targetsUpdatedReason": "Mục tiêu đã cập nhật trong ngày — {{reason}}",
+    "dismiss": "Bỏ qua",
+    "overLimit": "⚠ vượt giới hạn",
+    "limit": "★ giới hạn",
+    "coach": {
+      "title": "Huấn luyện viên macro",
+      "subtitle": "Cách đọc mục tiêu còn lại",
+      "proteinTitle": "Protein",
+      "proteinBody": "Đạt mục tiêu này để bảo vệ cơ và giữ cảm giác no.",
+      "proteinBullet1": "Ưu tiên nguồn nạc trong mỗi bữa ăn.",
+      "proteinBullet2": "Phân bổ lượng nạp trong cả ngày.",
+      "carbsTitle": "Carbohydrate",
+      "carbsBody": "Nạp năng lượng cho buổi tập bằng tinh bột, bổ sung bằng chất xơ.",
+      "carbsBullet1": "Tinh bột cung cấp năng lượng cho hiệu suất.",
+      "carbsBullet2": "Chất xơ hỗ trợ tiêu hóa và cảm giác no.",
+      "fatTitle": "Chất béo",
+      "fatBody": "Giữ chất béo ở mức vừa phải để cân bằng năng lượng và hormone.",
+      "fatBullet1": "Chọn chất béo lành mạnh.",
+      "fatBullet2": "Chú ý khẩu phần — chất béo nhiều calo.",
+      "closingTitle": "Giữ linh hoạt",
+      "closingBody": "Mục tiêu điều chỉnh theo ngày của bạn — hãy tiến gần và duy trì nhất quán.",
+      "infoAria": "Những con số này nghĩa là gì?",
+      "info": "Thông tin",
+      "starchyTitle": "Carbs tinh bột — mục tiêu chính của bạn",
+      "starchy1": "Giữ ở mức giới hạn hằng ngày hoặc thấp hơn.",
+      "starchy2": "Vượt quá sẽ làm chậm tiến độ — điều này quan trọng.",
+      "starchy3": "Thấp hơn thì hoàn toàn ổn. Đừng ép buộc.",
+      "flexTitle": "Protein & chất xơ — hãy linh hoạt",
+      "flex1": "Cao hoặc thấp một chút không phá hỏng điều gì.",
+      "flex2": "Đừng theo đuổi sự hoàn hảo ở hai thứ này.",
+      "fat1": "Chất béo tăng tự nhiên theo lựa chọn thực phẩm của bạn.",
+      "fat2": "Chất béo trong khẩu phần không phải nguyên nhân tăng mỡ — đừng quá bận tâm về nó.",
+      "closing1": "Tập trung giữ trong mục tiêu tinh bột và để phần còn lại tự ổn định.",
+      "closing2": "Bạn không cần hoàn hảo. Bạn cần nhất quán."
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "Đã lưu giao thức chuẩn bị thi đấu.",
+      "athleticSaved": "Đã lưu giao thức hiệu suất thể thao.",
+      "activated": "Giao thức đã kích hoạt",
+      "errorTitle": "Lỗi",
+      "errorDesc": "Không thể lưu. Vui lòng thử lại."
+    },
+    "stepCount": "Bước {{current}} / {{total}}",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "saving": "Đang lưu...",
+    "activateProtocol": "Kích hoạt giao thức",
+    "optional": "(tùy chọn)",
+    "track": {
+      "title": "Điều gì mô tả mục tiêu của bạn?",
+      "subtitle": "Mỗi lộ trình sử dụng một cơ chế giao thức hoàn toàn khác.",
+      "athleticTitle": "Hiệu suất thể thao",
+      "athleticDesc": "MMA, quyền anh, đấu vật, bóng bầu dục, CrossFit, sức bền, chiến thuật. Mục tiêu là hiệu suất — nạp năng lượng, phục hồi, thích nghi.",
+      "compTitle": "Chuẩn bị thi đấu",
+      "compDesc": "Thể hình, physique, giải powerlifting, trại huấn luyện đấu, mùa đấu vật. Ngày sự kiện tự động điều khiển từng giai đoạn."
+    },
+    "goals": {
+      "title": "Mục tiêu chính của bạn là gì?",
+      "subtitle": "Điều này quyết định ưu tiên macro và mật độ năng lượng bữa ăn.",
+      "fatLoss": {
+        "label": "Giảm mỡ",
+        "desc": "Trở nên săn chắc mà vẫn giữ hiệu suất"
+      },
+      "muscleGain": {
+        "label": "Tăng cơ",
+        "desc": "Phì đại và đồng hóa"
+      },
+      "maintenance": {
+        "label": "Duy trì",
+        "desc": "Ổn định thành phần cơ thể"
+      },
+      "performance": {
+        "label": "Hiệu suất đỉnh cao",
+        "desc": "Công suất, tốc độ và sức mạnh"
+      }
+    },
+    "trainingType": {
+      "title": "Bạn tập luyện theo kiểu nào?",
+      "subtitle": "Chọn môn thể thao hoặc chuyên môn chính của bạn.",
+      "otherPlaceholder": "Môn {{group}} khác…"
+    },
+    "trainingTypes": {
+      "strength": "Sức mạnh",
+      "hypertrophy": "Phì đại cơ",
+      "powerlifting": "Powerlifting",
+      "olympicLifting": "Cử tạ Olympic",
+      "mma": "MMA",
+      "boxing": "Quyền anh",
+      "wrestling": "Đấu vật",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "Chạy bộ",
+      "cycling": "Đạp xe",
+      "triathlon": "Ba môn phối hợp",
+      "tactical": "Chiến thuật / Quân đội",
+      "generalFitness": "Thể lực tổng quát"
+    },
+    "athleticGroups": {
+      "iron": "Môn sắt thép",
+      "combat": "Võ thuật",
+      "mixed": "Hỗn hợp",
+      "endurance": "Sức bền",
+      "other": "Khác"
+    },
+    "frequency": {
+      "title": "Bạn tập luyện thường xuyên đến mức nào?",
+      "subtitle": "Buổi tập mỗi tuần (không tính ngày nghỉ).",
+      "twoADayQuestion": "Bạn tập hai lần một ngày?",
+      "twoADayDesc": "Kích hoạt hướng dẫn bữa ăn phục hồi giữa các buổi tập",
+      "yes": "Có",
+      "no": "Không"
+    },
+    "freqs": {
+      "oneTwo": "1–2 ngày",
+      "threeFour": "3–4 ngày",
+      "fiveSix": "5–6 ngày",
+      "sevenPlus": "7+ (hằng ngày)"
+    },
+    "cardio": {
+      "title": "Trọng tâm cardio của bạn là gì?",
+      "subtitle": "Quyết định thời điểm nạp carb và nhu cầu nhiên liệu glycolytic.",
+      "none": {
+        "label": "Không cardio",
+        "desc": "Tập trung thuần sức mạnh hoặc kỹ thuật — không tim mạch"
+      },
+      "recovery": {
+        "label": "Đi bộ / Phục hồi",
+        "desc": "Chỉ vận động nhẹ — đi bộ, giãn cơ, đạp xe nhẹ"
+      },
+      "zone2": {
+        "label": "Cardio nhẹ",
+        "desc": "Nhịp độ thoải mái, có thể trò chuyện — xây nền aerobic"
+      },
+      "tempo": {
+        "label": "Cardio trung bình",
+        "desc": "Nỗ lực đều đặn, thử thách — thở gấp nhưng bền vững"
+      },
+      "threshold": {
+        "label": "Cardio cường độ cao",
+        "desc": "Nỗ lực cường độ cao liên tục — gần giới hạn"
+      },
+      "hiit": {
+        "label": "Chạy nước rút ngắt quãng",
+        "desc": "Bùng nổ hết sức ngắn xen kẽ nghỉ — nỗ lực tối đa"
+      },
+      "mixed": {
+        "label": "Cardio hỗn hợp",
+        "desc": "Thay đổi theo buổi tập — ngày dễ và ngày nặng"
+      }
+    },
+    "phase": {
+      "title": "Bạn đang ở đâu trong chu kỳ tập luyện?",
+      "subtitle": "Giai đoạn của bạn hiệu chỉnh mục tiêu macro và lựa chọn thực phẩm."
+    },
+    "phases": {
+      "offSeason": {
+        "label": "Ngoài mùa giải",
+        "desc": "Tập trung khối lượng, xây nền"
+      },
+      "preSeason": {
+        "label": "Trước mùa giải",
+        "desc": "Nâng cao thể lực"
+      },
+      "inSeason": {
+        "label": "Trong mùa giải",
+        "desc": "Duy trì hiệu suất"
+      },
+      "weightCut": {
+        "label": "Ép cân",
+        "desc": "Thiếu hụt ngắn hạn + bù nước"
+      },
+      "recovery": {
+        "label": "Phục hồi",
+        "desc": "Ưu tiên chống viêm, phục hồi"
+      }
+    },
+    "duration": {
+      "title": "Buổi tập điển hình của bạn kéo dài bao lâu?",
+      "subtitle": "Dùng để tính lượng glycogen tiêu hao và nhu cầu dinh dưỡng phục hồi."
+    },
+    "durations": {
+      "under30": {
+        "label": "Dưới 30 phút",
+        "desc": "Buổi tập ngắn / phụ trợ"
+      },
+      "thirtySixty": {
+        "label": "30–60 phút",
+        "desc": "Khối tập tiêu chuẩn"
+      },
+      "sixtyNinety": {
+        "label": "60–90 phút",
+        "desc": "Buổi tập đầy đủ có khởi động và thả lỏng"
+      },
+      "ninetyPlus": {
+        "label": "90 phút+",
+        "desc": "Buổi tập khối lượng lớn hoặc nhiều môn"
+      }
+    },
+    "recoveryStep": {
+      "title": "Hiện tại bạn phục hồi thế nào?",
+      "subtitle": "Tình trạng phục hồi hiện tại chi phối thời điểm nạp protein, ưu tiên chống viêm và mật độ calo."
+    },
+    "recovery": {
+      "good": {
+        "label": "Tốt",
+        "desc": "Ngủ ngon, ít đau cơ, năng lượng dồi dào"
+      },
+      "average": {
+        "label": "Trung bình",
+        "desc": "Có chút mệt nhưng vẫn kiểm soát được"
+      },
+      "poor": {
+        "label": "Kém",
+        "desc": "Mệt mỏi, đau cơ nhiều, thiếu ngủ"
+      }
+    },
+    "adaptationStep": {
+      "title": "Trọng tâm thể thao của bạn là gì?",
+      "subtitle": "Chọn điều bạn đang rèn luyện — nó hiệu chỉnh thời điểm nạp carb, hỗ trợ hệ năng lượng và cấu trúc bữa ăn."
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "Sức bền",
+        "desc": "Xây \"động cơ\" aerobic — nỗ lực lâu hơn, bền hơn"
+      },
+      "conditioning": {
+        "label": "Thể lực nền",
+        "desc": "Thể lực toàn diện qua nhiều hệ năng lượng"
+      },
+      "speed": {
+        "label": "Tốc độ",
+        "desc": "Chạy nước rút nhanh hơn — tập trung sợi cơ nhanh bùng nổ"
+      },
+      "power": {
+        "label": "Công suất",
+        "desc": "Di chuyển vật nặng nhanh — sức mạnh và bùng nổ"
+      },
+      "workCapacity": {
+        "label": "Khả năng làm việc",
+        "desc": "Làm nhiều hơn, phục hồi nhanh hơn — chịu khối lượng cao"
+      },
+      "activeRecovery": {
+        "label": "Phục hồi chủ động",
+        "desc": "Phục hồi và tái nạp — chống viêm, đặt lại hệ thần kinh"
+      }
+    },
+    "schedule": {
+      "title": "Thiết lập lịch tập luyện hằng tuần",
+      "subtitle": "Dinh dưỡng tự động điều chỉnh mỗi ngày theo nội dung bạn tập. Mỗi loại buổi tập dịch chuyển mục tiêu carb, calo và protein.",
+      "trainingPhase": "Giai đoạn tập luyện",
+      "weekSchedule": "Lịch tuần",
+      "howItWorksTitle": "Cách hoạt động",
+      "howItWorksBody": "MPM đọc lịch của bạn mỗi sáng và tự động điều chỉnh mục tiêu macro. Ngày công suất thêm carb, ngày phục hồi giảm carb. Không cần chỉnh tay."
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "Sức mạnh",
+        "short": "Mạnh",
+        "desc": "Tập kháng lực — hỗ trợ carb vừa phải"
+      },
+      "power": {
+        "label": "Công suất",
+        "short": "CS",
+        "desc": "Sức bùng nổ — kích hoạt thêm carb và protein"
+      },
+      "endurance": {
+        "label": "Sức bền",
+        "short": "Bền",
+        "desc": "Ưu tiên nhiên liệu aerobic — tăng khả dụng carb"
+      },
+      "sportPractice": {
+        "label": "Tập môn",
+        "short": "Môn",
+        "desc": "Nhu cầu hỗn hợp — hỗ trợ carb vừa phải"
+      },
+      "competition": {
+        "label": "Thi đấu",
+        "short": "Đấu",
+        "desc": "Nạp năng lượng ngày thi đấu — carb khả dụng tối đa"
+      },
+      "recovery": {
+        "label": "Phục hồi",
+        "short": "PH",
+        "desc": "Nhấn mạnh phục hồi — giảm carb, ưu tiên chống viêm"
+      },
+      "off": {
+        "label": "Ngày nghỉ",
+        "short": "Nghỉ",
+        "desc": "Nghỉ hoàn toàn — mục tiêu calo giảm"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "Ổn định",
+        "desc": "Giai đoạn nền — chất lượng động tác, ổn định lõi"
+      },
+      "strength": {
+        "label": "Sức mạnh",
+        "desc": "Xây dựng sức mạnh tối đa"
+      },
+      "power": {
+        "label": "Công suất",
+        "desc": "Sức bùng nổ — lực nhân tốc độ"
+      },
+      "peaking": {
+        "label": "Đạt đỉnh",
+        "desc": "Tinh chỉnh trước thi đấu — tăng cường độ, giảm khối lượng"
+      },
+      "inSeason": {
+        "label": "Trong mùa giải",
+        "desc": "Duy trì hiệu suất suốt lịch thi đấu"
+      },
+      "offSeason": {
+        "label": "Ngoài mùa giải",
+        "desc": "Xây nền và phục hồi giữa các mùa"
+      }
+    },
+    "days": {
+      "mon": "T2",
+      "tue": "T3",
+      "wed": "T4",
+      "thu": "T5",
+      "fri": "T6",
+      "sat": "T7",
+      "sun": "CN"
+    },
+    "compGroups": {
+      "physique": "Physique",
+      "strength": "Môn sức mạnh",
+      "combat": "Võ thuật",
+      "functional": "Chức năng / Hỗn hợp",
+      "endurance": "Sức bền"
+    },
+    "compTypeStep": {
+      "title": "Loại giải đấu nào?",
+      "subtitle": "Mỗi loại giải đấu dùng lịch chuẩn bị và giao thức tuần đỉnh cao khác nhau."
+    },
+    "compTypes": {
+      "bodybuilding": "Thể hình",
+      "mensPhysique": "Men's Physique",
+      "classicPhysique": "Classic Physique",
+      "figure": "Figure",
+      "bikini": "Bikini",
+      "wellness": "Wellness",
+      "powerliftingMeet": "Giải Powerlifting",
+      "strongman": "Strongman",
+      "olympicWeightlifting": "Cử tạ Olympic",
+      "fightCamp": "Trại huấn luyện đấu",
+      "wrestlingSeason": "Mùa đấu vật",
+      "crossfitCompetition": "Giải CrossFit",
+      "hyrox": "Hyrox",
+      "marathon": "Marathon",
+      "triathlon": "Ba môn phối hợp",
+      "spartanRace": "Spartan Race"
+    },
+    "eventStep": {
+      "title": "Sự kiện của bạn khi nào?",
+      "subtitle": "Ngày sự kiện tự động điều khiển từng giai đoạn — không phải đoán.",
+      "eventDate": "Ngày sự kiện",
+      "pickDate": "Chọn ngày sự kiện",
+      "weeksOut": "còn {{count}} tuần",
+      "division": "Hạng thi",
+      "divisionPlaceholder": "vd. Open, Masters 35+, hạng 93kg..."
+    },
+    "weightStep": {
+      "title": "Thông tin cân nặng",
+      "subtitle": "Tùy chọn — giúp giao thức đưa ra hướng dẫn chính xác về chiến lược ép cân và mục tiêu calo.",
+      "currentWeight": "Cân nặng hiện tại",
+      "currentPlaceholder": "vd. 185 lbs, 84 kg...",
+      "targetWeight": "Cân nặng / hạng mục tiêu",
+      "targetPlaceholder": "vd. 175 lbs, hạng 83kg, sẵn sàng lên sân khấu...",
+      "howItWorksTitle": "Cách hoạt động",
+      "howItWorksBody": "MPM tự động tính giai đoạn hiện tại từ ngày sự kiện. Khi sự kiện đến gần, giao thức thay đổi. Lịch quyết định — không phải AI."
+    }
+  },
+  "therapeuticCard": {
+    "title": "Trí tuệ dinh dưỡng trị liệu",
+    "active": "Đang bật",
+    "last": "Lần cuối: {{date}}",
+    "intro": "Nhập liều cho mọi mục đang bật. Liều lượng quan trọng — hệ thống dùng nó để định hình bối cảnh giao thức của bạn. Để trống nếu không áp dụng.",
+    "activeCount": "{{count}} đang bật",
+    "namePlaceholder": "Tên...",
+    "dosePlaceholder": "Liều",
+    "unitPlaceholder": "đơn vị",
+    "sections": {
+      "peptides": "Peptide",
+      "hormones": "Hormone",
+      "medications": "Thuốc ảnh hưởng dinh dưỡng",
+      "therapies": "Liệu pháp",
+      "recovery": "Mục tiêu phục hồi"
+    },
+    "addPeptide": "Thêm peptide tùy chỉnh",
+    "addHormone": "Thêm hormone tùy chỉnh",
+    "addMedication": "Thêm thuốc tùy chỉnh",
+    "therapiesHint": "Chọn tất cả những gì áp dụng cho giao thức hiện tại của bạn.",
+    "recoveryHint": "Chọn các mục tiêu phục hồi hiện tại của bạn.",
+    "saveProtocol": "Lưu giao thức",
+    "saving": "Đang lưu…",
+    "cancel": "Hủy",
+    "footerNote": "An toàn lâm sàng luôn được ưu tiên. Lựa chọn chỉ ảnh hưởng đến việc tạo bữa ăn — không phải lời khuyên y tế.",
+    "therapyOptions": {
+      "connectiveTissue": "Phục hồi mô liên kết",
+      "gutSupport": "Hỗ trợ đường ruột",
+      "redLight": "Liệu pháp ánh sáng đỏ",
+      "sauna": "Xông hơi / Phục hồi bằng nhiệt",
+      "cold": "Liệu pháp lạnh / Ngâm đá",
+      "iv": "Liệu pháp dưỡng chất tĩnh mạch"
+    },
+    "recoveryGoals": {
+      "joint": "Phục hồi khớp",
+      "muscle": "Phục hồi cơ",
+      "sleep": "Tối ưu giấc ngủ",
+      "inflammation": "Giảm viêm",
+      "gutHealing": "Chữa lành đường ruột",
+      "stress": "Phục hồi căng thẳng và tuyến thượng thận"
+    },
+    "toast": {
+      "savedTitle": "Đã lưu giao thức trị liệu",
+      "savedDesc": "Bối cảnh đã cập nhật. Mọi bộ tạo sẽ tôn trọng giao thức của bạn.",
+      "errorTitle": "Lỗi",
+      "errorDesc": "Không thể lưu. Vui lòng thử lại."
+    }
+  },
+  "clinicalLabs": {
+    "title": "Xét nghiệm lâm sàng",
+    "last": "Lần cuối: {{date}}",
+    "lastSaved": "Lưu lần cuối: {{date}}",
+    "labDate": "Ngày xét nghiệm",
+    "notes": "Ghi chú",
+    "notesPlaceholder": "Ghi chú tùy chọn của bác sĩ...",
+    "saveButton": "Lưu kết quả xét nghiệm",
+    "savedSuccess": "Đã lưu kết quả xét nghiệm thành công",
+    "normal": "Bình thường",
+    "elevated": "Tăng cao",
+    "active": "Đang bật",
+    "menopausePanel": "Bảng mãn kinh / tiền mãn kinh",
+    "status": {
+      "normal": "Bình thường",
+      "needsReview": "Cần xem xét",
+      "elevated": "{{count}} tăng cao"
+    },
+    "sections": {
+      "cardiac": "Tim mạch & Chuyển hóa",
+      "hormonal": "Hormone / Căng thẳng & Hormone sinh dục",
+      "liver": "Bảng gan",
+      "thyroid": "Bảng tuyến giáp",
+      "kidney": "Thận / Chức năng thận",
+      "inflammation": "Viêm & Phục hồi",
+      "oncology": "Ung thư & Phục hồi"
+    },
+    "fields": {
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "triglycerides": "Triglyceride",
+      "tgHdlRatio": "Tỷ lệ TG/HDL",
+      "bloodPressure": "Huyết áp",
+      "sys": "Tâm thu",
+      "dia": "Tâm trương",
+      "ejectionFraction": "Phân suất tống máu",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "Cần chú ý",
+      "physicianGuided": "Có bác sĩ hướng dẫn"
+    },
+    "toast": {
+      "enterOne": "Nhập ít nhất một kết quả xét nghiệm trước khi lưu",
+      "failed": "Lưu xét nghiệm thất bại"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "Rất phù hợp",
+      "b": "Phù hợp tốt",
+      "c": "Vài điểm cần cân nhắc",
+      "d": "Xung đột đáng chú ý"
+    },
+    "verdict": {
+      "buy": "Bếp trưởng nói: Cứ dùng!",
+      "caution": "Bếp trưởng nói: Chỉ để bạn biết...",
+      "skip": "Bếp trưởng nói: Có lẽ nên cân nhắc lại"
+    },
+    "decoder": {
+      "title": "Bộ giải mã dễ hiểu",
+      "legend": "🟢 Thường an toàn · 🟡 Nên biết · 🔴 Xung đột với hồ sơ của bạn"
+    },
+    "alignsWith": "Phù hợp với mục tiêu của bạn",
+    "watchFor": "Cần lưu ý",
+    "howItScores": "Cách chấm điểm cho các giao thức của bạn",
+    "howItScoresForYou": "Cách chấm điểm cho bạn",
+    "add": "Thêm",
+    "added": "Đã thêm",
+    "alternatives": {
+      "alsoWorthKnowing": "Cũng đáng biết",
+      "evenBetter": "Lựa chọn còn tốt hơn",
+      "betterOptions": "Lựa chọn sản phẩm tốt hơn cho bạn",
+      "profileMatched": "Khớp hồ sơ",
+      "brandedNote": "Dựa trên kiến thức sản phẩm — công thức và tình trạng có thể thay đổi.",
+      "categoryNote": "Hướng dẫn theo danh mục dựa trên hồ sơ sức khỏe của bạn — hãy tìm những đặc điểm này trên nhãn."
+    },
+    "profileFactorsHeading": "Các yếu tố hồ sơ định hướng phân tích này",
+    "scoreCards": {
+      "kids": "Trẻ em",
+      "adults": "Người lớn",
+      "diet": "Chế độ ăn của bạn",
+      "goal": "Mục tiêu của bạn"
+    },
+    "barcode": {
+      "dbMatch": "Khớp cơ sở dữ liệu · Open Food Facts",
+      "notInDb": "Không có trong cơ sở dữ liệu · Ước tính bằng AI",
+      "notFound": "Không tìm thấy mã vạch — phân tích dựa trên kiến thức sản phẩm của AI"
+    },
+    "tier": {
+      "quick": "Phân tích nhanh",
+      "verified": "Phân tích nhãn đã xác minh",
+      "full": "Cố vấn sản phẩm đầy đủ",
+      "subKnowledge": "Dựa trên kiến thức · Chưa quét nhãn",
+      "subLabelScanned": "Đã quét nhãn · {{name}}",
+      "subProductUnknown": "Đã quét nhãn · Sản phẩm chưa rõ",
+      "subLabel": "Đã quét nhãn",
+      "subFull": "Sản phẩm + Nhãn + Hồ sơ"
+    },
+    "scanLabelUp": "Quét nhãn ↑",
+    "highestConfidence": "Độ tin cậy cao nhất",
+    "whatMattersMost": "Điều quan trọng nhất với bạn",
+    "analysisProfile": {
+      "heading": "Hồ sơ phân tích của bạn",
+      "basedOn": "Khuyến nghị này dựa trên:",
+      "deeperTitle": "Muốn cá nhân hóa sâu hơn?",
+      "deeperBody": "Thêm các kết quả xét nghiệm như A1C, đường huyết lúc đói, cholesterol, triglyceride, chỉ số thận hoặc viêm.",
+      "updateProfile": "Cập nhật hồ sơ sức khỏe →",
+      "disclaimer": "Khuyến nghị được tạo từ thành phần, thông tin dinh dưỡng và hồ sơ sức khỏe của bạn. MPM không nhận thù lao từ nhà sản xuất thực phẩm và khuyến nghị không bao giờ chịu ảnh hưởng bởi hợp tác thương hiệu.",
+      "emptyState": "Thêm mục tiêu và tình trạng sức khỏe vào hồ sơ để nhận phân tích cá nhân hóa hoàn toàn."
+    },
+    "header": {
+      "companionScan": "Quét sản phẩm đồng hành",
+      "intelligence": "Trí tuệ thành phần",
+      "notIdentified": "Chưa xác định sản phẩm",
+      "scanningFor": "Đang quét cho {{name}}",
+      "frontLabelDetected": "Phát hiện nhãn mặt trước",
+      "byNameAnalysis": "Phân tích theo tên",
+      "fullAnalysis": "Phân tích đầy đủ"
+    },
+    "analyzeThisProduct": "Phân tích sản phẩm này",
+    "scanIngredientsLabel": "Quét nhãn thành phần / dinh dưỡng",
+    "analyzeDisclaimer": "\"Phân tích sản phẩm này\" dùng kiến thức của AI về sản phẩm — không phải quét nhãn trực tiếp. Công thức có thể thay đổi. Quét bảng thành phần để có kết quả đã xác minh.",
+    "analyzing": "Đang phân tích {{name}}…",
+    "checkingProfile": "Đang đối chiếu với hồ sơ sức khỏe của bạn",
+    "byNameBanner": {
+      "title": "Phân tích nhanh — không phải quét nhãn đã xác minh",
+      "body": "Dựa trên kiến thức sản phẩm tại thời điểm dữ liệu huấn luyện. Công thức có thể thay đổi.",
+      "scanLink": "Quét nhãn để có kết quả đã xác minh."
+    },
+    "lowQuality": {
+      "title": "Chất lượng ảnh thấp",
+      "body": "Hãy chụp lại sao cho bảng thành phần hiển thị đầy đủ, rõ nét và đủ sáng để phân tích chính xác hơn."
+    },
+    "labelFound": {
+      "title": "Đã tìm thấy nhãn dinh dưỡng",
+      "body": "Nói hoặc nhập tên sản phẩm để nhận các lựa chọn thương hiệu thay thế phù hợp với hồ sơ của bạn."
+    },
+    "incomplete": {
+      "title": "Phân tích chưa hoàn tất",
+      "lowImage": "Ảnh không đủ rõ để chấm điểm. Đảm bảo bảng thành phần hiển thị đầy đủ và đủ sáng, rồi thử lại.",
+      "needMore": "Cần thêm thông tin để tạo điểm số. Quét bảng thành phần hoặc dùng tra cứu sản phẩm."
+    },
+    "personalized": "Cá nhân hóa theo hồ sơ sức khỏe của bạn",
+    "generalAnalysis": "Phân tích chung — thêm mục tiêu sức khỏe để có kết quả cá nhân hóa",
+    "sections": {
+      "considerations": "Điểm cần cân nhắc về thành phần",
+      "mayNotAlign": "Có thể không phù hợp với mục tiêu của bạn",
+      "worksWellFor": "Phù hợp với",
+      "familyNotes": "Ghi chú cho gia đình"
+    },
+    "detectedIngredients": "Thành phần đã phát hiện",
+    "scanForVerified": "Quét nhãn để có phân tích đã xác minh",
+    "addNamedToList": "Thêm {{name}} vào danh sách",
+    "addToList": "Thêm vào danh sách",
+    "saveScan": "Lưu bản quét",
+    "saveToGroceries": "Lưu vào danh sách mua sắm",
+    "savedToGroceries": "Đã lưu vào danh sách mua sắm",
+    "toast": {
+      "removedTitle": "Đã xóa khỏi danh sách mua sắm",
+      "removedDesc": "{{name}} đã được xóa khỏi mục yêu thích của bạn.",
+      "removeFailTitle": "Không thể xóa",
+      "tryAgain": "Vui lòng thử lại.",
+      "alreadySaved": "Đã lưu rồi",
+      "savedTitle": "Đã lưu vào danh sách mua sắm",
+      "savedDesc": "{{name}} đã có trong mục yêu thích mua sắm của bạn.",
+      "saveFailTitle": "Không thể lưu",
+      "addedToList": "Đã thêm vào danh sách mua sắm của bạn"
+    }
+  },
+  "athletePicker": {
+    "added": "Đã thêm!",
+    "addedCount": "Đã thêm {{count}}",
+    "addingTo": "Đang thêm vào:",
+    "categories": {
+      "eggsShakes": "Trứng và sữa lắc",
+      "fish": "Cá phi lê",
+      "poultry": "Gà và gà tây",
+      "redmeat": "Thịt đỏ"
+    },
+    "copied": "Đã sao chép!",
+    "copy": "Sao chép",
+    "copyMealAria": "Sao chép chi tiết bữa ăn",
+    "copySessionAria": "Sao chép tóm tắt phiên vào bảng nhớ tạm",
+    "done": "Xong",
+    "errorShort": "Lỗi",
+    "fibrousNote": "Rau giàu chất xơ không giới hạn — chỉ tinh bột (gạo, yến mạch, khoai tây)",
+    "gotIt": "đã hiểu!",
+    "headerTitle": "Bữa ăn vận động viên làm sẵn — {{slot}}",
+    "hiddenCount_one": "Đã ẩn {{count}} bữa ăn — tinh bột sẽ vượt quá {{cap}}g",
+    "hiddenCount_other": "Đã ẩn {{count}} bữa ăn — tinh bột sẽ vượt quá {{cap}}g",
+    "howToAria": "Cách sử dụng Bộ tạo Bữa ăn Vận động viên",
+    "info": {
+      "intro": "Bữa ăn được thiết kế sẵn, tối ưu cho hiệu suất thể thao và xây dựng cơ bắp.",
+      "step1Label": "Chọn danh mục chất đạm của bạn",
+      "step1Text": "(Gà, Thịt đỏ, Cá, Trứng)",
+      "step2After": "chỉ là đạm + rau giàu chất xơ",
+      "step2Mid": "bữa ăn bao gồm gạo, yến mạch hoặc khoai tây.",
+      "step3Label": "Nhấp vào bất kỳ bữa ăn nào",
+      "step3Text": "để thêm ngay vào bảng của bạn",
+      "step4Label": "Tất cả macro",
+      "step4Text": "đã được tính sẵn và sẵn sàng theo dõi",
+      "stepsLabel": "Các bước:",
+      "tipAfter": "bữa ăn. Rau giàu chất xơ luôn không giới hạn.",
+      "tipBefore": "Vào những ngày ít tinh bột, dùng",
+      "tipLabel": "💡 Mẹo:",
+      "tipMid": "bữa ăn. Vào ngày nạp lại, thêm",
+      "title": "Cách sử dụng Bộ tạo Bữa ăn Vận động viên"
+    },
+    "lowStarchDay": "Ngày ít tinh bột",
+    "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+    "noCoachConnection": "Không có kết nối huấn luyện viên nào đang hoạt động",
+    "noteDesc": "Bữa ăn được thiết kế sẵn, tối ưu cho hiệu suất thể thao và xây dựng cơ bắp.",
+    "noteStep1": "Chọn danh mục chất đạm của bạn (Gà, Thịt đỏ, Cá, Trứng)",
+    "noteStep2After": "chỉ là đạm + rau giàu chất xơ",
+    "noteStep2Before": "Bữa ăn được gắn nhãn",
+    "noteStep2Mid": "bao gồm gạo, yến mạch hoặc khoai tây —",
+    "noteStep3": "Nhấp vào bất kỳ bữa ăn nào để thêm ngay vào bảng của bạn",
+    "noteStep4": "Tất cả macro đã được tính sẵn và sẵn sàng theo dõi",
+    "noteTitle": "Bữa ăn vận động viên làm sẵn",
+    "refeedDay": "Ngày nạp lại",
+    "selectCategory": "Chọn danh mục chất đạm:",
+    "selectCategoryShort": "Chọn danh mục",
+    "sendCoachAria": "Gửi tóm tắt phiên cho huấn luyện viên",
+    "sendFailed": "Gửi thất bại — thử lại",
+    "sendToCoach": "Gửi cho huấn luyện viên",
+    "sending": "Đang gửi…",
+    "sent": "Đã gửi!",
+    "sessionTotal": "Tổng phiên:",
+    "slots": {
+      "breakfast": "Bữa sáng",
+      "dinner": "Bữa tối",
+      "lunch": "Bữa trưa",
+      "meal4": "Bữa ăn 4",
+      "meal5": "Bữa ăn 5",
+      "meal6": "Bữa ăn 6",
+      "snacks": "Đồ ăn nhẹ"
+    },
+    "starch": "Tinh bột",
+    "starchAllocation": "Phân bổ tinh bột",
+    "starchCap": "Giới hạn tinh bột {{cap}}g",
+    "starchUsage": "{{used}}g / {{cap}}g tinh bột",
+    "summaryText_one": "Đã thêm {{count}} bữa ăn — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "summaryText_other": "Đã thêm {{count}} bữa ăn — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "viewChatAria": "Xem tin nhắn trong trò chuyện với huấn luyện viên",
+    "viewInChat": "Xem trong trò chuyện"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "Cổ vũ tôi khi tôi vấp ngã",
+        "label": "Động viên tôi"
+      },
+      "pushHard": {
+        "desc": "Buộc tôi chịu trách nhiệm nghiêm ngặt",
+        "label": "Thúc đẩy tôi mạnh mẽ"
+      },
+      "remind": {
+        "desc": "Nhắc nhở nhẹ nhàng là đủ",
+        "label": "Chỉ cần nhắc tôi"
+      },
+      "selfDirected": {
+        "desc": "Tôi tự tạo động lực cho mình",
+        "label": "Tự định hướng"
+      }
+    },
+    "back": "Quay lại",
+    "challenges": {
+      "consistency": "Duy trì sự nhất quán",
+      "cravings": "Thèm ăn",
+      "emotionalEating": "Ăn theo cảm xúc",
+      "knowledge": "Biết nên ăn gì",
+      "mealPrep": "Chuẩn bị bữa ăn",
+      "motivation": "Động lực",
+      "socialPressure": "Áp lực xã hội",
+      "time": "Không đủ thời gian"
+    },
+    "error": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "lifestyle": {
+      "budgetConscious": "Tiết kiệm ngân sách",
+      "busySchedule": "Lịch trình bận rộn",
+      "frequentTravel": "Đi lại thường xuyên",
+      "parent": "Cha mẹ / Người chăm sóc",
+      "pickyEater": "Kén ăn",
+      "shiftWorker": "Làm việc theo ca",
+      "socialEater": "Ăn uống giao tiếp",
+      "stressEater": "Ăn khi căng thẳng"
+    },
+    "loading": "Đang tải hồ sơ của bạn...",
+    "motivations": {
+      "athletic": "Thành tích thể thao",
+      "confidence": "Cảm thấy tự tin",
+      "energy": "Nhiều năng lượng hơn",
+      "family": "Sức khỏe gia đình",
+      "longevity": "Tuổi thọ",
+      "mentalClarity": "Sự minh mẫn tinh thần",
+      "weightLoss": "Giảm cân"
+    },
+    "next": "Tiếp theo",
+    "saveProfile": "Lưu hồ sơ",
+    "savedDesc": "Hồ sơ huấn luyện của bạn đã sẵn sàng.",
+    "savedTitle": "Đã lưu hồ sơ!",
+    "saving": "Đang lưu...",
+    "steps": {
+      "accountability": {
+        "subtitle": "Chọn điều tạo động lực cho bạn nhất",
+        "title": "Chúng tôi nên giữ bạn chịu trách nhiệm như thế nào?"
+      },
+      "challenges": {
+        "subtitle": "Hãy thành thật — điều này giúp chúng tôi tập trung vào điều thực sự quan trọng",
+        "title": "Thách thức lớn nhất của bạn là gì?"
+      },
+      "lifestyle": {
+        "subtitle": "Chọn tất cả những điều phù hợp — chúng tôi sẽ điều chỉnh lời khuyên theo đó",
+        "title": "Điều nào mô tả lối sống của bạn?"
+      },
+      "motivations": {
+        "subtitle": "Chọn tất cả những điều phù hợp",
+        "title": "Điều gì thúc đẩy bạn?"
+      },
+      "style": {
+        "subtitle": "Chọn phong cách giao tiếp phù hợp với bạn",
+        "title": "Bạn muốn được huấn luyện như thế nào?"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "Kết hợp tất cả các cách tiếp cận",
+        "label": "Cân bằng"
+      },
+      "direct": {
+        "desc": "Nói cho tôi biết phải làm gì — không rườm rà",
+        "label": "Trực tiếp"
+      },
+      "educational": {
+        "desc": "Giải thích lý do đằng sau mỗi lựa chọn",
+        "label": "Giáo dục"
+      },
+      "encouraging": {
+        "desc": "Củng cố và hỗ trợ tích cực",
+        "label": "Động viên"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "Carb",
+    "categories": {
+      "eggsShakes": "Trứng và sữa lắc",
+      "fish": "Cá phi lê",
+      "poultry": "Gà và gà tây",
+      "redmeat": "Thịt đỏ"
+    },
+    "gotIt": "đã hiểu!",
+    "headerAddTo": "Bữa ăn chuẩn bị thi đấu - Thêm vào {{slot}}",
+    "howToAria": "Cách sử dụng Bộ tạo Hiệu suất & Thi đấu",
+    "info": {
+      "intro": "Bữa ăn cho vận động viên được thiết kế sẵn, tối ưu cho việc xây dựng cơ nạc và hiệu suất.",
+      "step1Label": "Chọn danh mục chất đạm của bạn",
+      "step1Text": "(Gà, Thịt đỏ, Cá, Trứng)",
+      "step2Label": "Bữa ăn được gắn nhãn",
+      "step2Text": "«Carb» hoặc «P+V» (Đạm + Rau)",
+      "step3Label": "Nhấp vào bất kỳ bữa ăn nào",
+      "step3Text": "để thêm ngay vào bảng của bạn",
+      "step4Label": "Tất cả macro",
+      "step4Text": "đã được tính sẵn và sẵn sàng theo dõi",
+      "stepsLabel": "Các bước:",
+      "tipLabel": "💡 Mẹo:",
+      "tipText": "Chọn bữa ăn dựa trên mục tiêu carb hàng ngày của bạn - dùng bữa «Carb» khi bạn cần năng lượng, và bữa «P+V» cho những ngày ít carb!",
+      "title": "Cách sử dụng Bộ tạo Hiệu suất & Thi đấu"
+    },
+    "noteDesc": "Bữa ăn cho vận động viên được thiết kế sẵn, tối ưu cho việc xây dựng cơ nạc và hiệu suất.",
+    "noteStep1": "Chọn danh mục chất đạm của bạn (Gà, Thịt đỏ, Cá, Trứng)",
+    "noteStep2": "Bữa ăn được gắn nhãn «Carb» hoặc «P+V» (Đạm + Rau)",
+    "noteStep3": "Nhấp vào bất kỳ bữa ăn nào để thêm ngay vào bảng của bạn",
+    "noteStep4": "Tất cả macro đã được tính sẵn và sẵn sàng theo dõi",
+    "noteTitle": "Bữa ăn chuẩn bị thi đấu",
+    "selectCategory": "Chọn danh mục chất đạm:",
+    "selectCategoryShort": "Chọn danh mục"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "Cơ hội lớn nhất",
+    "breakfastLogged": "Đã ghi bữa sáng",
+    "caloriesOnTarget": "Calo đúng mục tiêu",
+    "consistencyScore": "Điểm nhất quán",
+    "days": "ngày",
+    "dinnerLogged": "Đã ghi bữa tối",
+    "last7Days": "7 ngày qua",
+    "lastNDays": "{{count}} ngày qua",
+    "loggedMeals": "Bữa ăn đã ghi",
+    "lunchLogged": "Đã ghi bữa trưa",
+    "noActivity": "Chưa ghi nhận hoạt động dinh dưỡng nào. Bắt đầu ghi lại bữa ăn để xem tóm tắt hoạt động cá nhân của bạn tại đây.",
+    "noMeals": "Chưa ghi lại bữa ăn nào. Bắt đầu ghi lại bữa ăn để xem tóm tắt hoạt động của bạn.",
+    "ofDays": "{{value}} trên {{total}}",
+    "proteinGoalMet": "Đạt mục tiêu protein",
+    "setTargets": "Đặt mục tiêu macro của bạn để kích hoạt theo dõi dinh dưỡng đầy đủ.",
+    "title": "Tóm tắt hoạt động dinh dưỡng"
+  },
+  "mealPicker": {
+    "addTo": "Thêm vào {{slot}}",
+    "cafeteria": "Căng tin",
+    "categories": {
+      "fats": "Chất béo",
+      "fibrousCarbs": "Carb giàu chất xơ",
+      "fruit": "Trái cây",
+      "proteins": "Chất đạm",
+      "starchyCarbs": "Tinh bột giàu carb"
+    },
+    "close": "Đóng",
+    "generate": "Tạo",
+    "generateCount": "Tạo ({{count}})",
+    "generating": "Đang tạo…",
+    "gotIt": "đã hiểu!",
+    "howToAria": "Cách sử dụng Bộ chọn bữa ăn",
+    "info": {
+      "addLabel": "Nhấp để thêm:",
+      "addText": "Nhấn vào bất kỳ thẻ bữa ăn nào để thêm ngay vào khe {{slot}} của bạn",
+      "browseLabel": "Duyệt bữa ăn:",
+      "browseText": "Cuộn qua các mẫu bữa ăn được tuyển chọn của chúng tôi",
+      "cafeteriaLabel": "Tùy chọn căng tin:",
+      "cafeteriaText": "Nhấp «Căng tin» để có gợi ý bữa ăn ngẫu nhiên nhanh chóng",
+      "intro": "Cách nhanh chóng và dễ dàng để thêm bữa ăn làm sẵn vào kế hoạch của bạn.",
+      "personalizedLabel": "Cá nhân hóa:",
+      "personalizedText": "Bữa ăn được lọc dựa trên dị ứng và sở thích của bạn",
+      "tipLabel": "💡 Mẹo:",
+      "tipText": "Sử dụng nút Căng tin khi bạn muốn có gợi ý lành mạnh nhanh chóng mà không cần duyệt!",
+      "title": "Cách sử dụng Bộ chọn bữa ăn"
+    },
+    "lowerGlycemic": "Tác động đường huyết thấp hơn",
+    "quickMeal": "Bữa {{slot}} nhanh",
+    "regularGi": "GI thông thường"
+  },
+  "mealReminders": {
+    "addReminder": "Thêm lời nhắc bữa ăn",
+    "checkAgain": "Kiểm tra lại",
+    "checking": "Đang kiểm tra…",
+    "connectionDiagnostics": "Chẩn đoán kết nối",
+    "footerBlocked": "Thiết lập thời gian ngay — thông báo sẽ kích hoạt khi được cấp quyền.",
+    "footerDefault": "Tối đa 6 lời nhắc. Nhấn vào nhãn để đổi tên.",
+    "footerEnabled": "Giữ trình duyệt của bạn mở để gửi đáng tin cậy.",
+    "footerNative": "Nhấn vào nhãn để đổi tên. Lời nhắc được gửi qua ứng dụng iOS.",
+    "mealN": "Bữa ăn {{n}}",
+    "nativeDelivery": "Gửi qua iOS gốc",
+    "saving": "Đang lưu…",
+    "statusBlocked": "Thông báo bị chặn trong trình duyệt",
+    "statusConnected": "Đã kết nối thông báo",
+    "statusPartial": "Chưa kết nối đầy đủ — bật một khe để hoàn tất thiết lập",
+    "statusPending": "Bật một khe để kích hoạt thông báo",
+    "statusUnsupported": "Không được trình duyệt này hỗ trợ",
+    "title": "Lời nhắc bữa ăn",
+    "toUnblock": "Để bỏ chặn:",
+    "toastBlockedIosDesc": "Vào Cài đặt iPhone › My Perfect Meals › Cho phép thông báo",
+    "toastBlockedTitle": "Thông báo bị chặn",
+    "toastBlockedWebDesc": "Cho phép thông báo qua biểu tượng khóa trong thanh địa chỉ, sau đó nhấn Kiểm tra lại.",
+    "toastEnableFailedTitle": "Không thể bật thông báo",
+    "toastNotSupportedDesc": "Trình duyệt này không hỗ trợ thông báo đẩy.",
+    "toastNotSupportedTitle": "Không được hỗ trợ",
+    "toastPermissionDenied": "Quyền bị từ chối.",
+    "toastSaveFailed": "Không thể lưu lời nhắc",
+    "toastTryAgain": "Thử lại sau giây lát.",
+    "unblockAllow": "Cho phép",
+    "unblockLock": "🔒 khóa",
+    "unblockNotifications": "Thông báo",
+    "unblockStep1After": "trong thanh địa chỉ trình duyệt của bạn",
+    "unblockStep1Before": "Nhấp vào",
+    "unblockStep2Before": "Đặt",
+    "unblockStep2Mid": "thành",
+    "unblockStep3After": "bên dưới",
+    "unblockStep3Before": "Nhấn",
+    "unsupportedHint": "Hãy thử Chrome hoặc Edge trên máy tính. Safari trên iOS yêu cầu ứng dụng.",
+    "webDelivery": "Gửi qua web push"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "Bếp đặc trưng",
+    "optSignatureDesc": "Gian bếp mang thương hiệu riêng của bạn trong nền tảng",
+    "optProductLabel": "Tích hợp sản phẩm",
+    "optProductDesc": "Tích hợp thương hiệu, sản phẩm hoặc thực phẩm bổ sung của bạn",
+    "optWhiteLabelLabel": "White Label",
+    "optWhiteLabelDesc": "Trải nghiệm nền tảng gắn thương hiệu hoàn toàn",
+    "optRestaurantLabel": "Chuỗi nhà hàng",
+    "optRestaurantDesc": "Hợp tác nhiều địa điểm hoặc nhượng quyền",
+    "optAthleteLabel": "Bếp vận động viên",
+    "optAthleteDesc": "Bản sắc ẩm thực cho hiệu suất và thể thao",
+    "stepIdentity": "Danh tính",
+    "stepCulinary": "Bản sắc ẩm thực",
+    "stepPlatform": "Nền tảng",
+    "stepInterest": "Quan tâm",
+    "stepSubmit": "Gửi",
+    "partnershipReview": "Xét duyệt hợp tác",
+    "errorGeneric": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "errorConnection": "Không thể gửi. Vui lòng kiểm tra kết nối và thử lại.",
+    "identityHeading": "Hãy cho chúng tôi biết về bạn.",
+    "identitySub": "Thông tin cơ bản và liên hệ.",
+    "fullNameLabel": "Họ và tên",
+    "fullNamePlaceholder": "Họ và tên của bạn",
+    "brandLabel": "Đầu bếp / Tên thương hiệu",
+    "brandPlaceholder": "Thương hiệu ẩm thực công khai của bạn",
+    "emailLabel": "Email",
+    "phoneLabel": "Điện thoại",
+    "locationLabel": "Địa điểm",
+    "locationPlaceholder": "Thành phố, tỉnh / quốc gia",
+    "culinaryHeading": "Bản sắc ẩm thực của bạn.",
+    "culinarySub": "Điều này định hình cách gian bếp của bạn được xây dựng trong nền tảng.",
+    "cuisineFocusLabel": "Trọng tâm ẩm thực",
+    "cuisineFocusPlaceholder": "vd. miền Nam, Nhật, Địa Trung Hải",
+    "cookingPhilosophyLabel": "Triết lý nấu ăn",
+    "cookingPhilosophyPlaceholder": "Bạn mô tả cách tiếp cận với ẩm thực của mình thế nào?",
+    "signatureStylesLabel": "Phong cách đặc trưng",
+    "signatureStylesPlaceholder": "vd. giàu đạm, món ăn ấm lòng, từ thực vật",
+    "wellnessPhilosophyLabel": "Triết lý sức khỏe",
+    "wellnessPhilosophyPlaceholder": "Sức khỏe và dinh dưỡng ảnh hưởng thế nào đến việc nấu ăn của bạn?",
+    "platformHeading": "Khán giả của bạn ở đâu?",
+    "platformSub": "Chia sẻ sự hiện diện trên mạng xã hội và web. Mọi trường đều tùy chọn.",
+    "websiteLabel": "Trang web",
+    "interestHeading": "Bạn quan tâm điều gì?",
+    "interestSub": "Chọn tất cả những gì phù hợp. Có thể chọn nhiều mục.",
+    "readyHeading": "Sẵn sàng gửi.",
+    "readySub": "Đội ngũ của chúng tôi xem xét từng đơn cá nhân. Chúng tôi sẽ phản hồi trong 3–5 ngày làm việc.",
+    "summaryHeading": "Tóm tắt đơn đăng ký",
+    "summaryName": "Tên",
+    "summaryBrand": "Thương hiệu",
+    "summaryEmail": "Email",
+    "summaryCuisine": "Ẩm thực",
+    "summaryInterest": "Quan tâm",
+    "consentText": "Bằng cách gửi, bạn đồng ý để My Perfect Meals sử dụng thông tin bạn cung cấp nhằm đánh giá đơn hợp tác của bạn. Không có cam kết nào cho đến khi ký thỏa thuận chính thức.",
+    "submitting": "Đang gửi…",
+    "requestReview": "Yêu cầu xét duyệt hợp tác",
+    "successHeading": "Đã nhận đơn.",
+    "successSub": "Đội ngũ của chúng tôi sẽ xem xét đơn và liên hệ trong 3–5 ngày làm việc. Chúng tôi xem xét từng đơn cá nhân.",
+    "contactAt": "Chúng tôi sẽ liên hệ với bạn qua",
+    "done": "Xong",
+    "back": "Quay lại",
+    "next": "Tiếp"
+  },
+  "safetyPin": {
+    "title": "Mã PIN bảo mật",
+    "sessionExpired": "Phiên đã hết hạn — hãy đăng xuất rồi đăng nhập lại để quản lý mã PIN",
+    "statusSet": "Đã đặt PIN — đã bật bảo vệ bổ sung",
+    "statusUnset": "Chưa đặt PIN — hãy đặt một mã để bảo vệ thêm",
+    "changePin": "Đổi PIN",
+    "removePin": "Xóa PIN",
+    "setPin": "Đặt mã PIN bảo mật",
+    "enterPin": "Nhập PIN",
+    "confirmPin": "Xác nhận PIN",
+    "currentPin": "PIN hiện tại",
+    "newPin": "PIN mới",
+    "confirmNewPin": "Xác nhận PIN mới",
+    "removePrompt": "Nhập PIN hiện tại để xóa.",
+    "fourDigits": "4 chữ số",
+    "hidePin": "Ẩn PIN",
+    "showPin": "Hiện PIN",
+    "cancel": "Hủy",
+    "setPinBtn": "Đặt PIN",
+    "changePinBtn": "Đổi PIN",
+    "removePinBtn": "Xóa PIN",
+    "errorFourDigits": "PIN phải gồm đúng 4 chữ số",
+    "errorNoMatch": "PIN không khớp",
+    "errorNewFourDigits": "PIN mới phải gồm 4 chữ số",
+    "errorNewNoMatch": "PIN mới không khớp",
+    "errorSetFailed": "Không đặt được PIN",
+    "errorSetRetry": "Không thể đặt PIN. Vui lòng thử lại.",
+    "errorChangeFailed": "Không đổi được PIN",
+    "errorChangeRetry": "Không thể đổi PIN. Vui lòng thử lại.",
+    "errorRemoveFailed": "Không xóa được PIN",
+    "errorRemoveRetry": "Không thể xóa PIN. Vui lòng thử lại.",
+    "setToastTitle": "Đã đặt mã PIN bảo mật",
+    "setToastDesc": "Mã PIN bảo mật của bạn đã được tạo.",
+    "changeToastTitle": "Đã đổi PIN",
+    "changeToastDesc": "Mã PIN bảo mật của bạn đã được cập nhật.",
+    "removeToastTitle": "Đã xóa PIN",
+    "removeToastDesc": "Mã PIN bảo mật của bạn đã được xóa."
+  },
+  "mfa": {
+    "errorStartSetup": "Không thể bắt đầu thiết lập. Vui lòng thử lại.",
+    "errorInvalidCode": "Mã không hợp lệ. Thử lại.",
+    "errorDisableInvalid": "Mã không hợp lệ. Chưa tắt MFA.",
+    "loading": "Đang tải…",
+    "enabledTitle": "Đã bật xác thực hai yếu tố",
+    "saveBackupPrompt": "Lưu mã dự phòng trước khi đóng trang này.",
+    "backupCodesHeading": "Mã dự phòng — lưu ngay bây giờ",
+    "copied": "Đã sao chép!",
+    "copyAllCodes": "Sao chép tất cả",
+    "backupCodesNote": "Mỗi mã chỉ dùng được một lần. Hãy lưu ở nơi an toàn. Nếu mất quyền truy cập ứng dụng xác thực, bạn sẽ cần một mã để đăng nhập.",
+    "savedBackupBtn": "Tôi đã lưu mã dự phòng",
+    "onTitle": "Xác thực hai yếu tố đang bật",
+    "enabledOn": "Đã bật vào {{date}}",
+    "disable2fa": "Tắt 2FA",
+    "disableTitle": "Tắt xác thực hai yếu tố",
+    "disablePrompt": "Nhập mã xác thực hiện tại để xác nhận.",
+    "cancel": "Hủy",
+    "disabling": "Đang tắt…",
+    "scanTitle": "Quét bằng ứng dụng xác thực của bạn",
+    "scanApps": "Google Authenticator, Authy hoặc 1Password đều rất tốt.",
+    "qrAlt": "Quét mã QR này bằng ứng dụng xác thực của bạn",
+    "manualKeyPrompt": "Không quét được? Nhập khóa này thủ công:",
+    "addedAccountNext": "Tôi đã thêm tài khoản — tiếp",
+    "confirmTitle": "Xác nhận mã xác thực của bạn",
+    "confirmPrompt": "Nhập mã 6 chữ số từ ứng dụng để kích hoạt 2FA.",
+    "activating": "Đang kích hoạt…",
+    "activate2fa": "Kích hoạt 2FA",
+    "back": "Quay lại",
+    "defaultTitle": "Xác thực hai yếu tố",
+    "defaultSubtitle": "Thêm một lớp bảo mật cho tài khoản của bạn.",
+    "settingUp": "Đang thiết lập…",
+    "enable2fa": "Bật 2FA"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "Đã tạo món ăn!",
+    "mealCreatedDesc": "{{name}} đã sẵn sàng cho bạn",
+    "generationFailedTitle": "Tạo thất bại",
+    "signInTitle": "Vui lòng đăng nhập",
+    "signInDesc": "Bạn cần đăng nhập để tạo món ăn",
+    "guestLimitTitle": "Đã đạt giới hạn khách",
+    "guestLimitDesc": "Tạo tài khoản miễn phí để tiếp tục tạo món ăn",
+    "describeMealTitle": "Vui lòng mô tả món ăn của bạn",
+    "describeMealDesc": "Cho Đầu bếp biết bạn đang thèm gì",
+    "enterAlternativeTitle": "Vui lòng nhập lựa chọn thay thế",
+    "enterAlternativeDesc": "Cho chúng tôi biết bạn muốn gì thay thế",
+    "placeholderBreakfast": "vd. 'bánh pancake protein', 'trứng ngọt với trái cây', 'trứng ốp low-carb'",
+    "placeholderLunch": "vd. 'salad gà nướng', 'wrap giàu đạm', 'bowl Địa Trung Hải'",
+    "placeholderDinner": "vd. 'taco low-carb', 'bít tết với rau', 'cá hồi với cơm'",
+    "placeholderDefault": "vd. 'món gì đó nhẹ và lành mạnh', 'bữa ăn giàu đạm'",
+    "title": "Tạo với AI Chef",
+    "subtitle": "Cho Đầu bếp biết bạn muốn gì cho {{mealType}}",
+    "starchLimitTitle": "Đã đạt giới hạn tinh bột",
+    "starchUsedSingular": "Bạn đã dùng bữa tinh bột hôm nay ({{used}} / {{max}}).",
+    "starchUsedPlural": "Bạn đã dùng các bữa tinh bột hôm nay ({{used}} / {{max}}).",
+    "youRequested": "Bạn đã yêu cầu:",
+    "fibrousPrefix": "Bạn có muốn chọn một loại",
+    "fibrousCarb": "carb giàu chất xơ",
+    "fibrousSuffix": "thay thế, hay để Đầu bếp chọn giúp bạn?",
+    "fibrousPlaceholder": "vd. bông cải xanh, măng tây, súp lơ...",
+    "generating": "Đang tạo...",
+    "useMyChoice": "Dùng lựa chọn của tôi",
+    "or": "hoặc",
+    "chefsChoice": "Lựa chọn của Đầu bếp",
+    "chefSubstituteHint": "Đầu bếp sẽ thay bằng một lựa chọn carb giàu chất xơ thơm ngon",
+    "inputHint": "Mô tả điều bạn thèm và Đầu bếp sẽ tạo một bữa ăn cá nhân hóa cho bạn",
+    "orbCheckingSafety": "Đang kiểm tra hồ sơ an toàn…",
+    "orbFinishing": "Đang hoàn thiện…",
+    "orbPreparing": "Đầu bếp đang chuẩn bị bữa ăn của bạn…",
+    "mealSafety": "An toàn bữa ăn",
+    "ingredientControl": "Kiểm soát nguyên liệu",
+    "todaysStarchMeals": "Bữa tinh bột hôm nay:",
+    "starchUsedCount": "đã dùng {{used}} / {{max}}",
+    "generateBtn": "Tạo bữa ăn bằng AI",
+    "stop": "Dừng",
+    "cancel": "Hủy"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "Tệp không hợp lệ",
+    "invalidFileDesc": "Vui lòng chọn tệp hình ảnh.",
+    "fileTooLargeTitle": "Tệp quá lớn",
+    "fileTooLargeDesc": "Vui lòng chọn ảnh dưới 5MB.",
+    "photoUpdatedTitle": "Đã cập nhật ảnh",
+    "photoUpdatedDesc": "Ảnh hồ sơ của bạn đã được cập nhật.",
+    "uploadFailedTitle": "Tải lên thất bại",
+    "uploadFailedDesc": "Không tải được ảnh lên.",
+    "cameraErrorTitle": "Lỗi máy ảnh",
+    "cameraErrorDesc": "Không truy cập được máy ảnh hoặc ảnh.",
+    "restoringTitle": "Đang khôi phục giao dịch...",
+    "restoringDesc": "Đang tìm gói đăng ký đang hoạt động...",
+    "restoredTitle": "Đã khôi phục giao dịch",
+    "restoredDesc": "Gói đăng ký của bạn đã được khôi phục thành công.",
+    "restoreCompleteTitle": "Khôi phục hoàn tất",
+    "restoreCompleteDesc": "Không tìm thấy gói đăng ký đang hoạt động. Nếu bạn cho rằng đây là lỗi, hãy liên hệ hỗ trợ.",
+    "restoreFailedTitle": "Khôi phục thất bại",
+    "restoreFailedDesc": "Không thể khôi phục giao dịch. Vui lòng thử lại.",
+    "accountDeletedTitle": "Đã xóa tài khoản",
+    "accountDeletedDesc": "Tài khoản và toàn bộ dữ liệu của bạn đã bị xóa vĩnh viễn.",
+    "deleteFailedDesc": "Xóa tài khoản thất bại. Vui lòng thử lại.",
+    "deleteAccount": "Xóa tài khoản",
+    "deleteDialogTitle": "Xóa tài khoản vĩnh viễn?",
+    "deleteDialogIntro": "Hành động này không thể hoàn tác. Việc này sẽ xóa vĩnh viễn:",
+    "deleteItemAccount": "Tài khoản và thông tin hồ sơ của bạn",
+    "deleteItemMeals": "Toàn bộ kế hoạch bữa ăn và công thức đã lưu",
+    "deleteItemBiometrics": "Dữ liệu sinh trắc học và theo dõi sức khỏe",
+    "deleteItemBilling": "Lịch sử đăng ký và thanh toán",
+    "deleting": "Đang xóa...",
+    "deleteMyAccount": "Xóa tài khoản của tôi"
+  },
+  "inspiration": {
+    "servingsJustMe": "Chỉ mình tôi",
+    "servings2": "2 người",
+    "servings3": "3 người",
+    "servingsFamily": "Gia đình (4)",
+    "servingsMealPrep": "Chuẩn bị bữa (6)",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "Nhìn thấy. Nói ra. Gửi đi. Chúng tôi biến nó thành của bạn.",
+    "copilotSpokenText": "Recipe Maker là một trong những công cụ mạnh nhất của ứng dụng. Ý tưởng rất đơn giản: bạn thấy món ăn ở đâu đó — một video TikTok, một bài lưu Instagram, một cuốn sách nấu ăn, một thực đơn, hoặc chỉ là điều gì đó trong trí tưởng tượng — và thay vì để khoảnh khắc đó trôi qua, bạn mang nó vào đây và chúng tôi tạo ra cho bạn. Bạn có bốn cách để đưa ý tưởng vào. Choose Photo cho phép bạn chọn bất kỳ ảnh chụp màn hình hay ảnh món ăn đã lưu nào từ thư viện — ảnh chụp TikTok, bài lưu Instagram, bảng Pinterest, công thức Facebook, bất cứ thứ gì đã có trên thiết bị. Camera mở máy ảnh trực tiếp để bạn hướng vào sách nấu ăn, thực đơn hoặc màn hình. Speak cho phép bạn mô tả món ăn bằng lời, đúng như cách bạn kể cho một người bạn. Type cho phép bạn dán mô tả hoặc viết ra điều bạn nghĩ. Đây là điều làm Recipe Maker khác biệt: bạn không cần công thức. Nếu bạn có thể cho thấy hoặc mô tả, chúng tôi có thể tạo ra. Sau khi bạn gửi ý tưởng, Recipe Maker không đưa ra một kết quả. Nó tạo ba phiên bản được cá nhân hóa hoàn toàn cho ý tưởng của bạn cùng lúc — cùng một món, ba cách diễn giải — mỗi phiên bản được xây dựng quanh mục tiêu macro, dị ứng, bản sắc ăn uống và mọi giao thức sức khỏe đang hoạt động trên tài khoản của bạn. Bạn thấy cả ba, có thể lưu bất kỳ hoặc tất cả, và lựa chọn của bạn vẫn nằm trên bảng điều khiển cho đến khi bạn quyết định xóa. Ứng dụng không bao giờ tự động gỡ chúng.",
+    "hintAuthentic": "Giữ hương vị và nguyên liệu gốc càng gần càng tốt.",
+    "hintBalanced": "Cá nhân hóa theo hồ sơ của bạn nhưng giữ tinh thần của món ăn.",
+    "hintHealthier": "Tối ưu mạnh về dinh dưỡng nhưng vẫn giữ món ăn dễ nhận ra.",
+    "analysisFailed": "Phân tích thất bại",
+    "analyzeFailedMsg": "Không phân tích được nguyên liệu.",
+    "imageReadError": "Không đọc được ảnh. Vui lòng thử lại.",
+    "voiceNotSupportedTitle": "Không hỗ trợ giọng nói",
+    "voiceNotSupportedDesc": "Trình duyệt của bạn không hỗ trợ nhập bằng giọng nói. Hãy thử gõ.",
+    "micErrorTitle": "Lỗi micrô",
+    "micErrorDesc": "Vui lòng thử lại.",
+    "somethingWrong": "Đã xảy ra lỗi",
+    "createFailedMsg": "Không tạo được bữa ăn cá nhân hóa của bạn.",
+    "saveFailedError": "Lưu thất bại",
+    "savedTitle": "Đã lưu!",
+    "savedDesc": "Đã thêm vào mục lưu Recipe Maker trong Yêu thích.",
+    "saveFailedTitle": "Lưu thất bại",
+    "scanFoodFor": "Quét món ăn cho {{name}}",
+    "productScan": "Quét sản phẩm",
+    "customizeMeal": "Tùy chỉnh bữa ăn của bạn",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "Phân tích nguyên liệu cho {{name}}",
+    "analyzeBeforeBuy": "Phân tích nguyên liệu trước khi mua",
+    "optionsSubtitle": "Điều chỉnh trước khi chúng tôi tạo phiên bản cá nhân hóa của bạn.",
+    "captureSubtitle": "Quét bất kỳ ý tưởng bữa ăn nào và chúng tôi sẽ cá nhân hóa cho bạn.",
+    "choosePhoto": "Chọn ảnh",
+    "cameraPill": "Máy ảnh",
+    "speakPill": "Nói",
+    "typePill": "Gõ",
+    "uploadHint": "Chọn ảnh chụp màn hình, ảnh món ăn đã lưu hoặc ảnh từ cuộn máy ảnh hay thư viện.",
+    "chooseFromGallery": "Chọn từ thư viện",
+    "galleryHint": "Ảnh chụp màn hình, ảnh đã lưu, bất kỳ ảnh món ăn nào",
+    "cameraHint": "Hướng máy ảnh vào bất kỳ công thức, thực đơn, màn hình hoặc ảnh món ăn nào.",
+    "openCamera": "Mở máy ảnh",
+    "cameraSubHint": "Chụp ảnh trực tiếp cho bất kỳ ý tưởng món ăn nào",
+    "voiceHint": "Mô tả món ăn bằng lời — nguyên liệu, phong cách, bất cứ điều gì bạn nhớ.",
+    "tapToStop": "Chạm để dừng",
+    "tapToSpeak": "Chạm để nói",
+    "nextCustomize": "Tiếp — Tùy chỉnh →",
+    "textHint": "Gõ hoặc dán một ý tưởng bữa ăn, mô tả công thức hoặc tên món.",
+    "textPlaceholder": "vd. Bowl gà buffalo với cơm, bơ và sốt ranch…",
+    "servingsHeading": "Khẩu phần",
+    "adaptationStyleHeading": "Phong cách điều chỉnh",
+    "authentic": "Nguyên bản",
+    "balanced": "Cân bằng",
+    "healthier": "Lành mạnh hơn",
+    "proteinLevelHeading": "Mức protein",
+    "proteinStandard": "Tiêu chuẩn",
+    "proteinHigh": "Giàu protein",
+    "proteinAthlete": "Vận động viên",
+    "prepStyleHeading": "Phong cách chế biến",
+    "prepOriginal": "Chế biến nguyên bản",
+    "prepEasy": "Chế biến dễ",
+    "cuisineStyleHeading": "Phong cách ẩm thực",
+    "generateMyVersion": "Tạo phiên bản của tôi",
+    "analyzingIngredients": "Đang phân tích nguyên liệu…",
+    "buildingVersion": "Đang tạo phiên bản của bạn…",
+    "checkingCompanionProfile": "Đang đối chiếu với hồ sơ của {{name}}",
+    "checkingYourProfile": "Đang đối chiếu với hồ sơ của bạn",
+    "adaptingProfile": "Đang điều chỉnh theo hồ sơ dinh dưỡng của bạn",
+    "versionsReady": "{{count}} phiên bản đã sẵn sàng",
+    "savedCount": " · đã lưu {{count}}",
+    "deleteScan": "Xóa lần quét này",
+    "tapAnotherHint": "Chạm vào phiên bản khác để lưu thêm, hoặc đóng và quay lại sau.",
+    "tapSelectHint": "Chạm để chọn rồi lưu. Quay lại bất cứ lúc nào — chúng ở đây cho đến khi bạn xóa.",
+    "adaptedForStrategy": "Đã điều chỉnh theo chiến lược dinh dưỡng hôm nay",
+    "calValue": "{{value}} cal",
+    "proteinValue": "{{value}}g protein",
+    "carbsValue": "{{value}}g carb",
+    "saving": "Đang lưu…",
+    "saveAgain": "Lưu lại",
+    "saveThisVersion": "Lưu phiên bản này",
+    "try3More": "Thử 3 phiên bản nữa",
+    "viewSavedMeals": "Xem bữa ăn đã lưu trong Yêu thích →",
+    "personalizedReady": "Phiên bản cá nhân hóa của bạn đã sẵn sàng.",
+    "macroCal": "Cal",
+    "macroProtein": "Protein",
+    "macroCarbs": "Carb",
+    "macroFat": "Chất béo",
+    "savedCheck": "Đã lưu ✓",
+    "saveToFavorites": "Lưu vào Yêu thích",
+    "scanAnother": "Quét cái khác",
+    "viewInFavorites": "Xem trong Yêu thích →"
+  },
+  "parentsCorner": {
+    "title": "Góc phụ huynh",
+    "yourChild": "con bạn",
+    "helpingBuildHabits": "Giúp {{name}} xây dựng thói quen lành mạnh",
+    "backToBeginnings": "Quay lại My Perfect Beginnings",
+    "startFresh": "Bắt đầu lại",
+    "startNewConversation": "Bắt đầu cuộc trò chuyện mới",
+    "clearConfirm": "Xóa cuộc trò chuyện này và bắt đầu lại?",
+    "clear": "Xóa",
+    "cancel": "Hủy",
+    "dismiss": "Đóng",
+    "boundaryLanguage": "Tôi có thể đưa ra hướng dẫn dinh dưỡng dựa trên bằng chứng cho gia đình bạn. Với các vấn đề y tế, bác sĩ nhi khoa hoặc chuyên gia dinh dưỡng nhi đã đăng ký luôn là bước tiếp theo đúng đắn — tôi sẽ báo khi cần đến điều đó.",
+    "todaysTip": "Mẹo hôm nay",
+    "loadingConversation": "Đang tải cuộc trò chuyện…",
+    "commonQuestions": "Câu hỏi thường gặp",
+    "browseCommonQuestions": "Xem câu hỏi thường gặp",
+    "followUp": "Hỏi tiếp",
+    "makeItNow": "Làm ngay",
+    "thinking": "Đang suy nghĩ…",
+    "emptyPrompt": "Chạm vào thẻ ở trên hoặc hỏi bên dưới.",
+    "askAnything": "Hỏi bất cứ điều gì",
+    "inputPlaceholder": "Nhập câu hỏi của bạn ở đây…",
+    "send": "Gửi",
+    "noResponse": "Xin lỗi, không nhận được phản hồi. Vui lòng thử lại.",
+    "connectionError": "Hiện có chút trục trặc. Hãy kiểm tra kết nối và thử lại.",
+    "stage": {
+      "earlyInfant": "Trẻ sơ sinh sớm",
+      "beginningFoods": "Bắt đầu ăn dặm",
+      "youngToddler": "Trẻ chập chững nhỏ",
+      "toddler": "Trẻ chập chững",
+      "preschool": "Mầm non",
+      "earlySchoolAge": "Đầu tuổi đi học",
+      "growingChild": "Trẻ đang lớn"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "Bé không chịu ăn.",
+        "question": "Bé không chịu ăn. Tôi nên làm gì?"
+      },
+      "toddlerHatesVegetables": {
+        "label": "Con tôi ghét rau.",
+        "question": "Con tôi ghét rau. Làm sao cho bé ăn nhiều hơn?"
+      },
+      "lunchPacking": {
+        "label": "Chuẩn bị bữa trưa gì?",
+        "question": "Có ý tưởng nào cho bữa trưa lành mạnh và hấp dẫn?"
+      },
+      "healthySnacks": {
+        "label": "Đồ ăn nhẹ lành mạnh sau giờ học.",
+        "question": "Có ý tưởng đồ ăn nhẹ lành mạnh nào sau giờ học?"
+      },
+      "calcium": {
+        "label": "Con tôi có đủ canxi không?",
+        "question": "Con tôi có đủ canxi không? Làm sao để đảm bảo?"
+      },
+      "introducingFoods": {
+        "label": "Giới thiệu món mới thế nào?",
+        "question": "Làm sao giới thiệu món ăn mới mà không thành cuộc chiến?"
+      },
+      "youngAthlete": {
+        "label": "Vận động viên nhí nên ăn gì?",
+        "question": "Con tôi chơi thể thao. Nên ăn gì trước và sau khi tập?"
+      },
+      "waterIntake": {
+        "label": "Con tôi cần bao nhiêu nước?",
+        "question": "Con tôi nên uống bao nhiêu nước mỗi ngày?"
+      },
+      "pizza": {
+        "label": "Con tôi vẫn ăn pizza được chứ?",
+        "question": "Con tôi vẫn ăn pizza và các món vui miệng khác được không, hay tôi nên nghiêm khắc hơn?"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "Ghi nhận thành phần cơ thể",
+    "bodyFatPct": "% mỡ cơ thể",
+    "bodyFatPlaceholder": "vd. 18.5",
+    "goalBodyFatPct": "% mỡ mục tiêu (tùy chọn)",
+    "goalBodyFatPlaceholder": "vd. 15",
+    "scanMethod": "Phương pháp đo",
+    "pickMethod": "Chọn phương pháp",
+    "date": "Ngày",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "notLoggedIn": "Chưa đăng nhập",
+    "notLoggedInDesc": "Vui lòng đăng nhập để lưu dữ liệu thành phần cơ thể.",
+    "invalidBodyFat": "Mỡ cơ thể không hợp lệ",
+    "invalidBodyFatDesc": "Tỷ lệ mỡ phải nằm trong khoảng 1% đến 70%.",
+    "saved": "Đã lưu",
+    "savedDesc": "Đã ghi nhận thành phần cơ thể thành công.",
+    "saveFailed": "Lưu thất bại",
+    "saveFailedDesc": "Không thể lưu dữ liệu của bạn. Vui lòng thử lại."
+  },
+  "sponsorEnded": {
+    "launchProCare": "Mở tài khoản ProCare độc lập của bạn",
+    "openStudio": "Mở studio độc lập của bạn",
+    "completeVerification": "Hoàn tất xác minh chứng chỉ",
+    "continueTraining": "Tiếp tục khóa Platform Mastery",
+    "startOwnPractice": "Bắt đầu công việc của riêng tôi",
+    "continueAsClient": "Tiếp tục với tư cách khách hàng",
+    "continueAsClientDesc": "Tiếp tục dùng MPM với tư cách thành viên cá nhân",
+    "continueWithFree": "Tiếp tục với Free",
+    "continueWithFreeDesc": "Tạo bữa ăn cơ bản — luôn miễn phí",
+    "joinAnotherOrg": "Tham gia tổ chức khác",
+    "joinAnotherOrgDesc": "Chấp nhận lời mời từ doanh nghiệp khác",
+    "accessEnded": "Quyền truy cập được {{business}} tài trợ đã kết thúc",
+    "accessEndedBody": "Tài khoản cá nhân, lịch sử bữa ăn, tiến độ Academy và chứng chỉ của bạn vẫn còn đó. Hãy chọn cách tiếp tục."
+  },
+  "dietStyleBadge": {
+    "kosher": "Kosher ✓",
+    "halal": "Halal ✓",
+    "vegan": "Thuần chay ✓",
+    "vegetarian": "Chay ✓",
+    "pescatarian": "Chay ăn cá ✓",
+    "mediterranean": "Địa Trung Hải ✓",
+    "paleo": "Paleo ✓",
+    "keto": "Keto ✓",
+    "carnivore": "Ăn thịt ✓",
+    "dairyFree": "Không sữa ✓",
+    "custom": "Chế độ tùy chỉnh ✓"
+  },
+  "pregnancySupport": {
+    "title": "Thiết lập My Perfect Pregnancy",
+    "intro": "Việc này cá nhân hóa hướng dẫn dinh dưỡng của bạn. Thông tin của bạn được giữ riêng tư và định hình mọi gợi ý bữa ăn, kiểm tra an toàn thực phẩm và phản hồi huấn luyện.",
+    "whereAreYou": "Bạn đang ở giai đoạn nào?",
+    "breastfeedingQuestion": "Bạn có đang cho con bú không?",
+    "breastfeedingHelp": "Điều này quyết định lộ trình dinh dưỡng của bạn. Cho con bú và phục hồi sau sinh có ưu tiên khác nhau — chúng tôi xử lý riêng.",
+    "yesBreastfeeding": "Có, đang cho bú",
+    "noBreastfeeding": "Không, không cho bú",
+    "breastfeedingNote": "Bạn sẽ nhận dinh dưỡng cho việc tạo sữa cùng một lớp phục hồi để mau lành.",
+    "postpartumNote": "Bạn sẽ nhận phác đồ phục hồi sau sinh riêng — chất xơ, ăn chống viêm, hỗ trợ nội tiết và tái tạo cơ thể. Không ăn kiêng cực đoan.",
+    "trackByDueDate": "Theo dõi theo ngày dự sinh?",
+    "trackByDueDateHelp": "Nhập ngày dự sinh thì tuần và tam cá nguyệt sẽ tự cập nhật. Bạn cũng có thể bỏ qua và theo dõi thủ công.",
+    "yesEnterDueDate": "Có, nhập ngày dự sinh",
+    "skipManual": "Bỏ qua — chỉ theo dõi thủ công",
+    "dueDatePlaceholder": "Ngày dự sinh (YYYY-MM-DD)",
+    "activeSymptoms": "Có triệu chứng nào đang gặp?",
+    "activeSymptomsHelp": "Chọn tất cả những gì phù hợp — bữa ăn sẽ điều chỉnh theo.",
+    "disclaimerPart1": "My Perfect Pregnancy chỉ cung cấp giáo dục dinh dưỡng chung và hỗ trợ cấu trúc bữa ăn. Đây không phải là",
+    "disclaimerNotSubstitute": "sự thay thế",
+    "disclaimerPart2": "cho bác sĩ OB/GYN, nữ hộ sinh hoặc chuyên gia dinh dưỡng đã đăng ký của bạn. Luôn tuân theo khuyến nghị của chuyên gia y tế trước tiên.",
+    "saveButton": "Lưu thiết lập thai kỳ",
+    "savingButton": "Đang lưu…",
+    "savedButton": "✓ Đã lưu!",
+    "turnOff": "Tắt dinh dưỡng thai kỳ",
+    "turnOffConfirm": "Tắt dinh dưỡng thai kỳ?",
+    "turnOffHelp": "Việc này sẽ gỡ hướng dẫn dành riêng cho thai kỳ khỏi bữa ăn và huấn luyện. Bạn có thể bật lại bất cứ lúc nào — không phán xét, không thắc mắc.",
+    "turningOff": "Đang tắt…",
+    "yesTurnOff": "Có, tắt đi",
+    "keepItOn": "Giữ bật",
+    "stage": {
+      "tryingToConceive": {
+        "label": "Đang thử thụ thai",
+        "desc": "Dinh dưỡng trước thụ thai"
+      },
+      "trimester1": {
+        "label": "Tam cá nguyệt 1",
+        "desc": "Tuần 1–13 · Folate, buồn nôn"
+      },
+      "trimester2": {
+        "label": "Tam cá nguyệt 2",
+        "desc": "Tuần 14–27 · Protein, canxi, DHA"
+      },
+      "trimester3": {
+        "label": "Tam cá nguyệt 3",
+        "desc": "Tuần 28–40 · Sắt, DHA, chuẩn bị"
+      },
+      "breastfeeding": {
+        "label": "Cho con bú",
+        "desc": "Tạo sữa, DHA, i-ốt, canxi"
+      },
+      "postpartum": {
+        "label": "Sau sinh",
+        "desc": "Phục hồi, tái tạo, nội tiết, sức mạnh"
+      }
+    },
+    "symptom": {
+      "nausea": "Buồn nôn",
+      "heartburn": "Ợ nóng",
+      "constipation": "Táo bón",
+      "fatigue": "Mệt mỏi",
+      "foodAversions": "Chán ăn một số món",
+      "swelling": "Sưng phù",
+      "shortnessOfBreath": "Khó thở",
+      "lowAppetite": "Kém ăn"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "Hôm nay bạn cảm thấy thế nào?",
+    "noCheckinToday": "Hôm nay chưa ghi nhận triệu chứng. Bữa ăn của bạn dùng hồ sơ thuốc tiêu chuẩn.",
+    "checkInPrompt": "Ghi nhận để điều chỉnh bữa ăn, sinh tố và gợi ý nhà hàng hôm nay.",
+    "checkIn": "Ghi nhận",
+    "update": "Cập nhật",
+    "updated": "Cập nhật {{time}}",
+    "escalationStatusBody": "Các triệu chứng này có thể cần được đánh giá y tế. Hãy liên hệ sớm với chuyên gia hoặc nhóm chăm sóc của bạn.",
+    "mealsAdapting": "Bữa ăn đang điều chỉnh theo triệu chứng hôm nay",
+    "updatedTapAdjustments": "Cập nhật {{time}} · Chạm để xem điều chỉnh",
+    "noSymptomsToday": "Hôm nay không ghi nhận triệu chứng",
+    "updatedStandardProfile": "Cập nhật {{time}} · Hồ sơ tiêu chuẩn đang hoạt động",
+    "escalationCardBody": "Các triệu chứng này có thể cần được đánh giá y tế. Hãy liên hệ nhóm chăm sóc của bạn.",
+    "nutritionAdjustments": "Điều chỉnh dinh dưỡng hôm nay ({{count}})",
+    "reason": "Lý do",
+    "adaptation": "Điều chỉnh",
+    "evidence": "Bằng chứng",
+    "justNow": "vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "giSymptomsHeader": "Triệu chứng tiêu hóa — hôm nay nặng đến đâu?",
+    "otherSymptomsHeader": "Triệu chứng khác",
+    "vomitingHeader": "Nôn hôm nay",
+    "quickQuestionsHeader": "Vài câu hỏi nhanh",
+    "notifyHeader": "Bạn có muốn báo nhóm chăm sóc không?",
+    "notifyHelp": "Tùy chọn — bạn quyết định hôm nay báo cho ai.",
+    "updatesThroughoutDay": "Nội dung này cập nhật suốt cả ngày.",
+    "updatesThroughoutDayBody": "Nếu sau đó bạn thấy khá hơn, hãy ghi nhận lại — bữa ăn sẽ điều chỉnh ngay. Phần ghi nhận đặt lại mỗi sáng.",
+    "cancel": "Hủy",
+    "saving": "Đang lưu…",
+    "saveCheckIn": "Lưu ghi nhận",
+    "severity": {
+      "none": "Không",
+      "mild": "Nhẹ",
+      "moderate": "Vừa",
+      "severe": "Nặng"
+    },
+    "symptom": {
+      "nausea": "Buồn nôn",
+      "constipation": "Táo bón",
+      "diarrhea": "Tiêu chảy",
+      "reflux": "Ợ nóng/trào ngược",
+      "bloating": "Đầy hơi",
+      "earlyFullness": "Mau no",
+      "foodAversions": "Chán ăn một số món",
+      "fatigue": "Mệt mỏi",
+      "dizziness": "Chóng mặt",
+      "headache": "Đau đầu"
+    },
+    "vomiting": {
+      "none": "Không",
+      "once": "Một lần",
+      "multiple": "2–3 lần",
+      "cantKeepFluids": "4+ / Không giữ được nước"
+    },
+    "q": {
+      "keepFluids": "Bạn có giữ được nước không?",
+      "eatWithoutWorsening": "Bạn có ăn được mà không nặng thêm triệu chứng không?",
+      "reducedUrination": "Bạn đi tiểu ít hơn hẳn bình thường?",
+      "symptomTrend": "Triệu chứng của bạn đang diễn biến ra sao?",
+      "appetite": "Hôm nay bạn ăn ngon miệng thế nào?"
+    },
+    "opt": {
+      "yes": "Có",
+      "no": "Không",
+      "withDifficulty": "Khó khăn",
+      "partially": "Một phần"
+    },
+    "trend": {
+      "improving": "Đang cải thiện",
+      "same": "Như cũ",
+      "worsening": "Đang nặng thêm",
+      "na": "Không chắc"
+    },
+    "appetite": {
+      "suppressed": "Không thèm ăn",
+      "reduced": "Giảm",
+      "normal": "Bình thường",
+      "increased": "Tăng"
+    },
+    "notify": {
+      "keepPrivate": "Không, giữ riêng tư",
+      "coach": "Báo huấn luyện viên của tôi",
+      "both": "Báo cả hai"
+    }
   }
 }

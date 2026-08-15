@@ -67,7 +67,12 @@
     "translate": "Traduci",
     "share": "Condividi",
     "log": "Registra",
-    "logMeal": "Registra Pasto"
+    "logMeal": "Registra Pasto",
+    "addToCalendar": "Aggiungi al calendario",
+    "bringBackChef": "Riporta il tuo chef",
+    "comingSoon": "Prossimamente",
+    "withChef": "Con lo Chef",
+    "today": "Oggi:"
   },
   "language": {
     "pageTitle": "Lingua",
@@ -100,7 +105,78 @@
     "founders": "Fondatori",
     "restaurant": "Assistente Ristoranti",
     "weeklyBuilder": "Builder Settimanale",
-    "mealsAwayFromHome": "Pasti Fuori Casa"
+    "mealsAwayFromHome": "Pasti Fuori Casa",
+    "academy": "Accademia",
+    "antiInflammatoryBuilder": "Costruttore anti-infiammatorio",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "Applica guida",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "Vista bacheca",
+    "bodyComposition": "Composizione corporea",
+    "businessCenter": "Centro business",
+    "chefPairings": "Abbinamenti dello chef",
+    "clientDashboard": "Dashboard cliente",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Creator & Brand Studio",
+    "dailyJournal": "Diario quotidiano e ispirazione",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "Centro per il diabete",
+    "diabetesSupport": "Supporto per il diabete",
+    "diabeticBuilder": "Costruttore per diabetici",
+    "diabeticHub": "Centro per diabetici",
+    "drinkPairings": "Abbinamenti bevande",
+    "editProfile": "Modifica profilo",
+    "findMeals": "Trova pasti",
+    "foundingPartnerProgram": "Programma partner fondatori",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "Costruttore di nutrizione generale",
+    "healthcarePartnerships": "Partnership sanitarie e cliniche",
+    "howPartnershipsWork": "Come funzionano le partnership",
+    "industryPartnerships": "Partnership industriali",
+    "kitchenNetwork": "The Kitchen Network",
+    "mealBuilder": "Costruttore di pasti",
+    "mealBuilderExchange": "Scambio costruttore di pasti",
+    "metabolicBuilder": "Costruttore di farmaci metabolici",
+    "metabolicHub": "Centro di farmaci metabolici",
+    "metabolicHubBack": "Centro metabolico",
+    "metabolicTracking": "Monitoraggio dei farmaci metabolici",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "Dashboard organizzativa",
+    "organizationSuccessCenter": "Centro di successo organizzativo",
+    "pairingsHub": "Centro Abbinamenti",
+    "partnerCenter": "Centro Partner",
+    "partnerManagement": "Gestione Partner",
+    "partnerProgram": "Programma Partner",
+    "partnerPrograms": "Programmi Partner",
+    "partnerRevenueCenter": "Centro Partner e Ricavi",
+    "patientDashboard": "Dashboard Paziente",
+    "performanceBuilder": "Performance Nutrition Builder",
+    "performanceHub": "Centro Performance",
+    "physicianClients": "Clienti Medici",
+    "physicianPortal": "Portale Medico",
+    "physicianWelcome": "Benvenuto Medico",
+    "planner": "Pianificatore",
+    "pregnancy": "La mia gravidanza perfetta",
+    "proLaunchpad": "Dashboard Professionale",
+    "proPortal": "Pro Portal",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "Formazione ProCare",
+    "procareWelcome": "Benvenuto ProCare",
+    "professionalWorkspace": "Area di Lavoro Professionale",
+    "promotions": "Promozioni",
+    "reduceDrinking": "Piano per Ridurre l'Alcol",
+    "restaurantGuide": "Assistente Ristorante",
+    "signatureKitchen": "Signature Kitchen",
+    "sleepTracker": "Monitoraggio Sonno",
+    "supplementHub": "Centro Integratori",
+    "trainerWelcome": "Benvenuto Trainer",
+    "tutorialHub": "Centro Tutorial",
+    "weaningOff": "Strumento di Svezzamento",
+    "whiteLabelSolutions": "Soluzioni White Label",
+    "wineListHelper": "Assistente Lista Vini"
   },
   "dashboard": {
     "professionalBadge": "Professionale",
@@ -218,7 +294,13 @@
     "badgeClinical": "Clinico",
     "badgePro": "Pro",
     "badgeCurrent": "Attuale",
-    "badgeBehavioral": "IA Comportamentale™"
+    "badgeBehavioral": "IA Comportamentale™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "Pianificazione dei pasti guidata da un coach per atleti d'élite per la preparazione alle gare, il picco di performance e il recupero",
+    "performanceCompTitle": "Performance & Competition Builder",
+    "plannerTitle": "Pianificatore",
+    "weeklyDesc": "Piani alimentari generati dall'AI per utenti che desiderano mangiare in modo più sano a modo loro",
+    "weeklyTitle": "My Weekly Meal Builder"
   },
   "createDish": {
     "pageTitle": "Crea un Piatto",
@@ -242,7 +324,11 @@
     "errorMissing": "Informazione mancante",
     "errorDescribe": "Per favore descrivi il piatto che vuoi creare!",
     "errorFailed": "Impossibile creare il piatto. Per favore riprova.",
-    "allergyAlert": "Avviso allergie"
+    "allergyAlert": "Avviso allergie",
+    "label": "Quale piatto vuoi creare?",
+    "notes": "Note opzionali",
+    "notesPlaceholder": "es. senza latticini, molto piccante, basso contenuto di sodio, per la preparazione dei pasti...",
+    "servings": "Porzioni (1–12)"
   },
   "snack": {
     "pageTitle": "Creatore di Snack",
@@ -309,7 +395,8 @@
     "servings": "porzioni",
     "ingredientsServes": "Ingredienti (per {{count}})",
     "noIngredients": "Nessun ingrediente fornito",
-    "noInstructions": "Nessuna istruzione fornita"
+    "noInstructions": "Nessuna istruzione fornita",
+    "couldNotUpdateFavorites": "Impossibile aggiornare i preferiti. Riprova."
   },
   "shopping": {
     "pageTitle": "Lista della Spesa Intelligente",
@@ -340,7 +427,29 @@
     "catPantry": "Dispensa",
     "catFrozen": "Surgelati",
     "catBakery": "Panetteria",
-    "catOther": "Altro"
+    "catOther": "Altro",
+    "addItemsBtn": "Aggiungi Elementi",
+    "addedToList": "Aggiunto alla lista della spesa",
+    "barcodePlaceholder": "Inserisci il numero del codice a barre...",
+    "bulkInstructions": "Digita o incolla un elemento per riga, oppure separa gli elementi con virgole:",
+    "bulkPlaceholder": "latte\nuova\npetto di pollo\nspinaci\nriso integrale",
+    "bulkTitle": "Aggiunta Massiva Elementi",
+    "checked": "selezionato",
+    "chefBuy": "Lo Chef dice: Vacci!",
+    "chefCaution": "Lo Chef dice: Fai attenzione...",
+    "chefSkip": "Lo Chef dice: Pensaci due volte",
+    "continueToBiometrics": "Continua ai Biometrici",
+    "emptyList": "La tua lista della spesa è vuota",
+    "emptyListHint": "Incolla elementi o aggiungi rapidamente per iniziare",
+    "enterBarcode": "Inserisci Codice a Barre",
+    "items": "elementi",
+    "itemsAddedDesc": "{{count}} elementi aggiunti alla tua lista della spesa.",
+    "itemsCopied": "{{count}} elementi copiati",
+    "proLabel": "Pro",
+    "savedForReview": "Salvato per la revisione",
+    "savedForReviewDesc": "Puoi rivedere questa scansione in qualsiasi momento da questa pagina.",
+    "scannedProduct": "Prodotto Scansionato",
+    "tapView": "Tocca per visualizzare →"
   },
   "restaurant": {
     "pageTitle": "Assistente Ristorante",
@@ -357,7 +466,36 @@
     "errorZipDesc": "Per favore inserisci un CAP valido a 5 cifre.",
     "errorLocationDenied": "Accesso alla posizione negato",
     "errorLocationDesc": "Abilita l'accesso alla posizione nelle impostazioni del browser, o inserisci il CAP manualmente.",
-    "generationFailed": "Generazione fallita"
+    "generationFailed": "Generazione fallita",
+    "addressCopied": "Indirizzo copiato",
+    "askFor": "Chiedi di:",
+    "cannotDetectZip": "Impossibile rilevare il codice ZIP",
+    "cannotDetectZipDesc": "La posizione è stata trovata ma non siamo riusciti a determinare il tuo ZIP. Inseriscilo manualmente.",
+    "copyFailed": "Copia non riuscita",
+    "copyManually": "Si prega di copiare manualmente.",
+    "entryDesc": "Dimmi dove stai mangiando e cosa hai voglia di mangiare, e ti mostrerò le migliori opzioni dal loro menù.",
+    "entryTitle": "Assistente Ristorante",
+    "findDishes": "Trova piatti",
+    "findingDishes": "Sto cercando i tuoi piatti perfetti...",
+    "howToUseTitle": "Come utilizzare l'Assistente Ristorante",
+    "letsFindDishes": "Cerchiamo i piatti",
+    "locationFound": "Posizione trovata",
+    "pasteHint": "Incolla in Maps o Waze.",
+    "recommendedAt": "Piatti consigliati presso",
+    "scanningMenu": "Analisi del menù in corso...",
+    "searchAgain": "Cerca di nuovo",
+    "searchingFor": "Ricerca di opzioni per {{craving}} presso {{restaurant}}",
+    "step1": "Passaggio 1",
+    "step1Placeholder": "es. pollo, salmone, pasta, bistecca",
+    "step1Question": "Quale piatto o tipo di cibo desideri?",
+    "step2": "Passaggio 2",
+    "step2Placeholder": "es. Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "Dove stai mangiando? Inserisci il nome del ristorante.",
+    "step3": "Passaggio 3",
+    "step3Placeholder": "es. 30303, 90210, 10001",
+    "step3Question": "Inserisci il tuo codice ZIP così posso trovare la posizione più vicina.",
+    "translationFailed": "Traduzione non riuscita",
+    "whyHealthy": "Perché è salutare:"
   },
   "upgrade": {
     "viewPlans": "Visualizza piani",
@@ -369,7 +507,23 @@
     "essentialTagline": "Il kit completo per la costruzione di pasti, costruito attorno al tuo profilo.",
     "proTagline": "Creatori estesi e alimentazione reale, pienamente conformi al protocollo.",
     "clinicalTagline": "Strumenti nutrizionali di qualità medica per risultati di salute seri.",
-    "proPromo": "Pro è il nostro piano più popolare — sblocca tutti i creatori."
+    "proPromo": "Pro è il nostro piano più popolare — sblocca tutti i creatori.",
+    "availableOn": "Disponibile su {{plan}}",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+    "buildersBenefit2": "Meal Builder Exchange — passa da un builder all'altro in base all'evoluzione dei tuoi obiettivi",
+    "buildersBenefit3": "Assistente Ristorante, My Perfect Gatherings & strumenti lifestyle avanzati",
+    "buildersBenefit4": "Essential ti permette di iniziare · Clinical aggiunge strumenti nutrizionali di livello medico",
+    "clinicalBenefit1": "Integrazione Laboratorio Clinico — le tue analisi del sangue modellano i tuoi protocolli alimentari",
+    "clinicalBenefit2": "Accesso al Team di Assistenza — connettiti con un medico o un trainer nell'app",
+    "clinicalBenefit3": "Performance Nutrition, Preparazione alle Gare & Builder per Atleti",
+    "essentialBenefit1": "Create a Dish — pasti AI su misura per i tuoi protocolli nutrizionali specifici",
+    "essentialBenefit2": "Lista della Spesa, Pasti Salvati & Pianificatore Settimanale dei Pasti",
+    "essentialBenefit3": "Recipe Maker, Snack Creator & Fridge Rescue illimitato",
+    "featurePartOf": "{{feature}} fa parte di {{plan}}",
+    "planBadge": "Piano {{label}}",
+    "proBenefit1": "Craving Creator, Beverage Creator & Sushi Creator",
+    "proBenefit2": "Assistente Ristorante — ordinazioni consapevoli del protocollo in qualsiasi ristorante",
+    "proBenefit3": "Piani nutrizionali My Perfect Gatherings & My Perfect Pets"
   },
   "pricing": {
     "pageTitle": "Abbonamento",
@@ -448,7 +602,10 @@
     "dietVegan": "Vegano",
     "dietVegetarian": "Vegetariano",
     "dietPescatarian": "Pescatariano",
-    "dietCarnivore": "Carnivoro"
+    "dietCarnivore": "Carnivoro",
+    "back": "Indietro",
+    "next": "Avanti",
+    "selectPath": "Seleziona un percorso qui sopra"
   },
   "findMeals": {
     "pageTitle": "Trova Pasti Vicino a Me",
@@ -989,7 +1146,28 @@
     "noMealsTitle": "Nessun Pasto",
     "noSlotYet": "Nessuno {{slot}} ancora",
     "snacks": "Snack",
-    "whyWeeklyPlanning": "Perché la pianificazione settimanale?"
+    "whyWeeklyPlanning": "Perché la pianificazione settimanale?",
+    "savingPlan": "Salvataggio…",
+    "savedPlan": "Salvato ✓",
+    "savePlan": "Salva piano",
+    "addMealsHint": "Usa \"+\" per aggiungere pasti",
+    "dayDuplicated": "Giorno duplicato",
+    "dayDuplicatedBoth": "{{thisWeek}} giorno/i questa settimana + {{future}} giorno/i nelle settimane future",
+    "dayDuplicatedDesc": "Copiato in {{count}} giorno/i",
+    "duplicate": "Duplica",
+    "failedToDuplicate": "Impossibile duplicare",
+    "nextWeek": "Settimana prossima",
+    "noSlotMealsYet": "Nessun pasto per {{slot}} ancora",
+    "partialDuplicate": "Duplicazione parziale",
+    "partialDuplicateDesc": "{{count}} di {{total}} giorni salvati.",
+    "prevWeek": "Settimana precedente",
+    "savedFutureWeek": "Salvato nella settimana futura",
+    "savedFutureWeekDesc": "Pasti copiati in {{count}} giorno/i. Scorri in avanti per visualizzarli.",
+    "shoppingListDesc": "PUOI inviare l'intera settimana alla lista della spesa! Questo consolida tutti gli ingredienti per fare la spesa facilmente. Clicca su \"Invia l'intera settimana\" in fondo.",
+    "shoppingListNext": "Avanti: Dai un'occhiata alla lista della spesa per imparare a usarla al meglio!",
+    "shoppingListTitle": "Lista della spesa pronta",
+    "syncPending": "Sincronizzazione in sospeso",
+    "tryAgain": "Per favore riprova"
   },
   "coachCorner": {
     "title": "Angolo del Coach",
@@ -1930,5 +2108,1830 @@
     "tour8Desc": "Proteine e carboidrati sono contrassegnati con asterischi (*) perché sono i numeri più importanti su cui concentrarsi quando prepari i tuoi pasti. Ottieni prima quelli corretti.",
     "tour8Title": "Cosa significano gli asterischi",
     "tourTitle": "Generatore Nutrizione Generale"
+  },
+  "mealCard": {
+    "protein": "Proteine",
+    "carbs": "Carboidrati",
+    "fat": "Grassi",
+    "ingredients": "Ingredienti:",
+    "instructions": "Istruzioni:",
+    "medicalSafety": "Sicurezza medica",
+    "diabetesProtocol": "Protocollo diabete",
+    "whyThisMealWasBuilt": "Perché questo pasto è stato creato",
+    "showLess": "Mostra meno",
+    "showAllSteps": "Mostra tutti i {{count}} passaggi",
+    "moreIngredients": "+ altri {{count}}...",
+    "loggedSuccessfully": "Registrato con successo",
+    "failedToLog": "Impossibile registrare i macro. Riprova.",
+    "deleteMeal": "Elimina pasto",
+    "removeFromBoard": "Rimuovere questo pasto dalla board?",
+    "refineMeal": "Raffina il pasto",
+    "showingRefined": "Mostrando versione raffinata",
+    "restoreOriginal": "Ripristina originale",
+    "competitionPrepProtocol": "🏆 Protocollo preparazione gara applicato",
+    "athleticPerformanceProtocol": "⚡ Protocollo performance atletica applicato",
+    "loggedDesc": "{{name}} è stato registrato nei tuoi macro.",
+    "ingredientFallback": "Ingrediente",
+    "generatedForBGL": "Generato per BGL:",
+    "relevantRange": "Intervallo rilevante:",
+    "weeksOut": "{{n}} settimane rimaste",
+    "sessionsPerWeek": "{{n}} sessioni/settimana",
+    "protocol_goalFatLoss": "Priorità perdita grasso",
+    "protocol_goalMuscleGain": "Priorità massa muscolare",
+    "protocol_goalStrength": "Priorità forza",
+    "protocol_goalPeak": "Priorità prestazione massima",
+    "protocol_athleticPerfLabel": "Performance atletica — {{sport}}",
+    "protocol_competitionPrepLabel": "Preparazione gara — {{type}}",
+    "protocol_performancePhaseFallback": "Fase prestazione",
+    "protocol_recoverySupportActive": "Supporto recupero attivo",
+    "protocol_sport_strength": "Allenamento forza",
+    "protocol_sport_hypertrophy": "Ipertrofia",
+    "protocol_sport_powerlifting": "Powerlifting",
+    "protocol_sport_olympic_lifting": "Sollevamento pesi olimpico",
+    "protocol_sport_mma": "MMA",
+    "protocol_sport_boxing": "Boxe",
+    "protocol_sport_wrestling": "Lotta",
+    "protocol_sport_bjj": "BJJ / Grappling",
+    "protocol_sport_crossfit": "CrossFit",
+    "protocol_sport_endurance_running": "Corsa",
+    "protocol_sport_cycling": "Ciclismo",
+    "protocol_sport_triathlon": "Triathlon",
+    "protocol_sport_tactical": "Tattico / Militare",
+    "protocol_sport_general_fitness": "Fitness generale",
+    "protocol_sport_other": "Altro sport",
+    "protocol_phase_off_season": "Off Season",
+    "protocol_phase_pre_season": "Pre-stagione",
+    "protocol_phase_in_season": "In stagione",
+    "protocol_phase_weight_cut": "Fase taglio peso",
+    "protocol_phase_recovery": "Fase recupero",
+    "protocol_bullet_fat_loss_0": "Alto obiettivo proteico (≥2g/kg)",
+    "protocol_bullet_fat_loss_1": "Strategia deficit calorico",
+    "protocol_bullet_conditioning_0": "Timing carboidrati — Pre/Post allenamento",
+    "protocol_bullet_conditioning_1": "Recupero antinfiammatorio",
+    "protocol_bullet_peak_prep_0": "Riduzione sodio attiva",
+    "protocol_bullet_peak_prep_1": "Priorità digeribilità",
+    "protocol_bullet_peak_week_0": "Protocollo bassa fibra attivo",
+    "protocol_bullet_peak_week_1": "Sodio basso — Controllo idrico",
+    "protocol_bullet_show_day_0": "Protocollo digeribilità rapida",
+    "protocol_bullet_show_day_1": "Timing carboidrati per prestazione",
+    "protocol_bullet_meet_week_0": "Carico carboidrati attivo",
+    "protocol_bullet_meet_week_1": "Nutrienti recupero SNC",
+    "protocol_bullet_meet_day_0": "Protocollo carboidrati pre-gara",
+    "protocol_bullet_meet_day_1": "Digeribilità prima",
+    "protocol_bullet_weight_cut_0": "Restrizione sodio attiva",
+    "protocol_bullet_weight_cut_1": "Gestione elettroliti",
+    "protocol_bullet_fight_week_0": "Protocollo gestione idrica",
+    "protocol_bullet_fight_week_1": "Pasti pronti per reidratazione",
+    "protocol_bullet_taper_0": "Carico carboidrati (8–10g/kg)",
+    "protocol_bullet_taper_1": "Riduzione fibre attiva",
+    "protocol_bullet_race_day_0": "Protocollo carboidrati giorno gara",
+    "protocol_bullet_race_day_1": "Nutrizione sicura per intestino",
+    "protocol_bullet_post_competition_0": "Refeed recupero attivo",
+    "protocol_bullet_post_competition_1": "Priorità antinfiammatoria",
+    "protocol_bullet_post_race_0": "Nutrizione recupero post-gara",
+    "protocol_bullet_post_race_1": "Aumento calorico",
+    "sportFallback": "Sport",
+    "mealFallback": "Pasto",
+    "protocol_phaselabel_fat_loss": "Fase perdita grasso",
+    "protocol_phaselabel_conditioning": "Fase di condizionamento",
+    "protocol_phaselabel_peak_prep": "Preparazione al picco",
+    "protocol_phaselabel_peak_week": "Settimana del picco",
+    "protocol_phaselabel_show_day": "Giorno della gara",
+    "protocol_phaselabel_post_competition": "Recupero post-gara",
+    "protocol_phaselabel_strength_building": "Costruzione della forza",
+    "protocol_phaselabel_intensity_phase": "Fase di intensità",
+    "protocol_phaselabel_taper": "Fase di scarico",
+    "protocol_phaselabel_meet_week": "Settimana della gara",
+    "protocol_phaselabel_meet_day": "Giorno della gara",
+    "protocol_phaselabel_conditioning_combat": "Campo di condizionamento",
+    "protocol_phaselabel_fight_prep": "Preparazione al combattimento",
+    "protocol_phaselabel_weight_cut": "Calo di peso",
+    "protocol_phaselabel_fight_week": "Settimana del combattimento",
+    "protocol_phaselabel_fight_day": "Giorno del combattimento",
+    "protocol_phaselabel_pre_season": "Pre-stagione",
+    "protocol_phaselabel_in_season": "In stagione",
+    "protocol_phaselabel_championship_week": "Settimana del campionato",
+    "protocol_phaselabel_match_day": "Giorno della partita",
+    "protocol_phaselabel_off_season": "Fuori stagione",
+    "protocol_phaselabel_base_conditioning": "Condizionamento base",
+    "protocol_phaselabel_event_prep": "Preparazione all'evento",
+    "protocol_phaselabel_competition_week": "Settimana della competizione",
+    "protocol_phaselabel_competition_day": "Giorno della competizione",
+    "protocol_phaselabel_base_building": "Costruzione della base",
+    "protocol_phaselabel_build_phase": "Fase di costruzione",
+    "protocol_phaselabel_race_prep": "Preparazione alla gara",
+    "protocol_phaselabel_race_day": "Giorno di gara",
+    "protocol_phaselabel_post_race": "Recupero post-gara",
+    "protocol_comptype_bodybuilding_show": "Gara di bodybuilding",
+    "protocol_comptype_mens_physique": "Men's Physique",
+    "protocol_comptype_classic_physique": "Classic Physique",
+    "protocol_comptype_figure": "Figure",
+    "protocol_comptype_bikini": "Bikini",
+    "protocol_comptype_wellness": "Wellness",
+    "protocol_comptype_powerlifting_meet": "Gara di powerlifting",
+    "protocol_comptype_strongman_competition": "Strongman",
+    "protocol_comptype_olympic_weightlifting_meet": "Sollevamento pesi olimpico",
+    "protocol_comptype_fight_camp": "Campo di allenamento",
+    "protocol_comptype_wrestling_season": "Stagione di lotta",
+    "protocol_comptype_crossfit_competition": "Competizione CrossFit",
+    "protocol_comptype_hyrox": "Hyrox",
+    "protocol_comptype_marathon": "Maratona",
+    "protocol_comptype_triathlon_race": "Triathlon",
+    "protocol_comptype_spartan_race": "Spartan Race",
+    "protocol_comptype_other": "Altro",
+    "protocol_bullet_strength_building_0": "Supporto calorico fase costruzione",
+    "protocol_bullet_strength_building_1": "Carburante sovraccarico progressivo",
+    "protocol_bullet_intensity_phase_0": "Timing carboidrati intensificato",
+    "protocol_bullet_intensity_phase_1": "Nutrizione recupero SNC",
+    "protocol_bullet_conditioning_combat_0": "Pasti condizionamento combattimento",
+    "protocol_bullet_conditioning_combat_1": "Focus antinfiammatorio",
+    "protocol_bullet_fight_prep_0": "Nutrizione preparazione combattimento attiva",
+    "protocol_bullet_fight_prep_1": "Consapevolezza categoria di peso",
+    "protocol_bullet_fight_day_0": "Protocollo carburante giorno di combattimento",
+    "protocol_bullet_fight_day_1": "Digeribilità rapida attiva",
+    "protocol_bullet_pre_season_0": "Carburante base pre-stagione",
+    "protocol_bullet_pre_season_1": "Supporto fondazione di forza",
+    "protocol_bullet_in_season_0": "Pasti recupero in stagione",
+    "protocol_bullet_in_season_1": "Supporto peso competizione",
+    "protocol_bullet_championship_week_0": "Protocollo picco campionato",
+    "protocol_bullet_championship_week_1": "Poca fibra — Alimentazione pulita",
+    "protocol_bullet_match_day_0": "Protocollo carboidrati giorno partita",
+    "protocol_bullet_match_day_1": "Digeribilità prima",
+    "protocol_bullet_off_season_0": "Nutrizione base fuori stagione",
+    "protocol_bullet_off_season_1": "Focus recupero attivo",
+    "protocol_bullet_base_conditioning_0": "Supporto base aerobica",
+    "protocol_bullet_base_conditioning_1": "Periodizzazione carboidrati attiva",
+    "protocol_bullet_event_prep_0": "Nutrizione preparazione evento attiva",
+    "protocol_bullet_event_prep_1": "Timing carboidrati ottimizzato",
+    "protocol_bullet_competition_week_0": "Protocollo settimana competizione",
+    "protocol_bullet_competition_week_1": "Poca fibra attiva",
+    "protocol_bullet_competition_day_0": "Carburante giorno competizione",
+    "protocol_bullet_competition_day_1": "Protocollo digeribilità rapida",
+    "protocol_bullet_base_building_0": "Nutrizione base aerobica",
+    "protocol_bullet_base_building_1": "Protocollo carburante resistenza",
+    "protocol_bullet_build_phase_0": "Carburante costruzione progressiva",
+    "protocol_bullet_build_phase_1": "Periodizzazione carboidrati attiva",
+    "protocol_bullet_race_prep_0": "Protocollo carboidrati allenamento picco",
+    "protocol_bullet_race_prep_1": "Ottimizzazione carburante resistenza"
+  },
+  "trialStatusCard": {
+    "adminTrial": "Trial amministratore",
+    "clinicalTrial": "Trial clinico",
+    "promotionalTrial": "Trial promozionale",
+    "freeTrial": "Prova gratuita",
+    "clinicalUltimate": "Clinico · Ultimate",
+    "trialEndsToday": "Il tuo periodo di prova termina oggi",
+    "daysLeftInTrial": "{{count}} giorni rimasti nel tuo periodo di prova",
+    "daysOfDaysRemaining": "{{count}} di {{total}} giorni rimanenti",
+    "accountMovesFree": "Il tuo account passerà al piano gratuito stanotte. Tutti i tuoi dati restano al sicuro.",
+    "trialExpires": "Il periodo di prova scade il {{date}}",
+    "keepFullAccess": "Mantieni l'accesso completo →",
+    "tierFull": "Completo"
+  },
+  "trialBanner": {
+    "lastDayTitle": "Il tuo accesso Pro gratuito termina oggi",
+    "lastDayBody": "Il tuo account passerà al piano gratuito stanotte.",
+    "lastDayDataSafe": "Tutti i tuoi dati rimangono al sicuro.",
+    "lastDayUpgradeHint": "Aggiorna in qualsiasi momento per mantenere le funzioni Pro.",
+    "upgradeToPro": "Passa a Pro",
+    "exploreFeatures": "Esplora funzionalità",
+    "dismiss": "Chiudi",
+    "daysLeft": "{{count}} giorni rimanenti",
+    "oneDayLeft": "1 giorno rimanente",
+    "trialCountdown": "nel tuo periodo di prova — {{tierLabel}} termina presto.",
+    "clinicalAccess": "Accesso clinico",
+    "fullAccess": "accesso completo"
+  },
+  "groceryDashCard": {
+    "title": "Lista della spesa settimanale",
+    "description": "La tua lista della spesa personalizzata basata sui piani pasto",
+    "itemsCompleted": "{{completed}} di {{total}} articoli completati",
+    "shoppingDone": "{{pct}}% degli acquisti completati",
+    "updatedToday": "Aggiornato oggi",
+    "recentItems": "Articoli recenti",
+    "addItem": "Aggiungi articolo",
+    "viewFullList": "Visualizza lista completa",
+    "noItems": "La tua lista della spesa è vuota. Aggiungi articoli dal tuo piano alimentare."
+  },
+  "physicianCareTeam": {
+    "availability": {
+      "available": "Disponibile",
+      "away": "Assente",
+      "from": "Da",
+      "offline": "Offline",
+      "saved": "Salvato",
+      "saving": "Salvataggio...",
+      "title": "Stato di disponibilità",
+      "until": "Fino a"
+    },
+    "clinic": {
+      "activePatients": "Pazienti attivi",
+      "portalButton": "Apri portale medico",
+      "viewAndManage": "Visualizza e gestisci i tuoi pazienti nel portale medico."
+    },
+    "errors": {
+      "availabilityFailed": "Impossibile aggiornare la disponibilità.",
+      "emailRequired": "L'email è obbligatoria.",
+      "inviteFailed": "Impossibile inviare l'invito.",
+      "loadFailed": "Impossibile caricare il team di cura.",
+      "saveDatesFailed": "Impossibile salvare le date."
+    },
+    "invite": {
+      "emailLabel": "Email del paziente",
+      "emailPlaceholder": "paziente@esempio.it",
+      "roleLabel": "Ruolo professionale",
+      "rolePlaceholder": "Scegli un ruolo",
+      "sendInvite": "Invia invito",
+      "title": "Invita un paziente"
+    },
+    "platform": {
+      "button": "Esplora le funzionalità",
+      "description": "Scopri come la piattaforma può aiutarti a supportare i tuoi pazienti.",
+      "explore": "Esplora la piattaforma"
+    },
+    "roles": {
+      "dietitian": "Dietista",
+      "doctor": "Medico",
+      "np": "Nurse Practitioner",
+      "nutritionist": "Nutrizionista",
+      "pa": "Physician Assistant",
+      "rn": "RN"
+    },
+    "title": "Physician Care Team",
+    "toast": {
+      "invitationSent": "Invito inviato a {{email}}"
+    },
+    "tour": {
+      "invitePatients": "Invita pazienti",
+      "invitePatientsDesc": "Invita i pazienti a connettersi con te e a ricevere supporto.",
+      "physicianPortal": "Usa il portale medico",
+      "physicianPortalDesc": "Apri il portale medico per visualizzare e gestire i tuoi pazienti.",
+      "setAvailability": "Imposta la tua disponibilità",
+      "setAvailabilityDesc": "Fai sapere ai pazienti quando sei disponibile, assente o offline."
+    },
+    "tourTitle": "Team di assistenza medica"
+  },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "My Perfect Meals",
+      "features": "Funzionalità",
+      "howItWorks": "Come Funziona",
+      "pricing": "Prezzi",
+      "signIn": "Accedi"
+    },
+    "errorBoundary": {
+      "title": "Qualcosa è andato storto",
+      "description": "Stiamo avendo problemi a caricare questa pagina. Aggiorna e riprova.",
+      "refresh": "Aggiorna la pagina"
+    },
+    "dateSlotPicker": {
+      "placeholder": "Seleziona slot pasto"
+    },
+    "mealSlots": {
+      "breakfast": "Colazione",
+      "lunch": "Pranzo",
+      "dinner": "Cena",
+      "snack": "Spuntino"
+    },
+    "dailyNutritionTracker": {
+      "title": "Progresso Nutrizionale Giornaliero",
+      "description": "Monitora il tuo apporto nutrizionale giornaliero",
+      "calories": "Calorie",
+      "protein": "Proteine",
+      "carbohydrates": "Carboidrati",
+      "fat": "Grassi",
+      "onTrack": "Sei sulla buona strada per i tuoi obiettivi giornalieri!"
+    },
+    "pagination": {
+      "label": "paginazione",
+      "previousPage": "Vai alla pagina precedente",
+      "previous": "Precedente",
+      "nextPage": "Vai alla pagina successiva",
+      "next": "Successivo",
+      "morePages": "Altre pagine"
+    },
+    "mealCard": {
+      "noRecipe": "Nessuna ricetta",
+      "addMeal": "Aggiungi un pasto",
+      "serving": "Porzione:",
+      "ingredients": "Ingredienti:",
+      "cookingInstructions": "Istruzioni di cottura:",
+      "protein": "Proteine",
+      "carbs": "Carboidrati",
+      "fat": "Grassi"
+    },
+    "nutritionSummary": {
+      "title": "Riepilogo Nutrizionale",
+      "empty": "Genera un piano pasti per vedere il tuo riepilogo nutrizionale",
+      "weeklyOverview": "Panoramica Settimanale",
+      "totalCalories": "Calorie Totali",
+      "dailyAverage": "Media Giornaliera",
+      "totalProtein": "Proteine Totali",
+      "daysPlanned": "Giorni Pianificati",
+      "dailyTargets": "Obiettivi Giornalieri",
+      "calories": "Calorie",
+      "protein": "Proteine",
+      "carbohydrates": "Carboidrati",
+      "fat": "Grassi",
+      "targetMet": "Obiettivo raggiunto",
+      "goalProgress": "Progresso degli Obiettivi",
+      "fitnessGoal": "Obiettivo Fitness",
+      "activityLevel": "Livello di Attività",
+      "dietaryPreferences": "Preferenze Alimentari",
+      "balanceScore": "Punteggio di Equilibrio",
+      "percentOfTarget": "{{n}}% dell'obiettivo",
+      "remainingCal": "{{n}} rimanenti",
+      "remainingG": "{{n}}g rimanenti"
+    },
+    "enhancedMealCard": {
+      "replace": "Sostituisci",
+      "replacing": "Sostituzione in corso...",
+      "replaceTitle": "Sostituisci con una ricetta completamente nuova",
+      "replacingTitle": "Sostituzione del pasto...",
+      "portionGuide": "Guida alle porzioni:",
+      "ingredients": "Ingredienti:",
+      "instructions": "Istruzioni:",
+      "medicalSafety": "Sicurezza medica:",
+      "error": "Errore:"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "Rimanente oggi",
+    "protein": "Proteine",
+    "starchy": "Amidacei",
+    "fibrous": "Fibre",
+    "fat": "Grassi",
+    "setMacrosPrompt": "Imposta le tue macro per vedere cosa resta oggi.",
+    "saveDay": "Salva giornata in biometria",
+    "targetsUpdated": "Obiettivi aggiornati durante il giorno",
+    "targetsUpdatedReason": "Obiettivi aggiornati durante il giorno — {{reason}}",
+    "dismiss": "Ignora",
+    "overLimit": "⚠ oltre il limite",
+    "limit": "★ limite",
+    "coach": {
+      "title": "Coach delle macro",
+      "subtitle": "Come leggere i tuoi obiettivi rimanenti",
+      "proteinTitle": "Proteine",
+      "proteinBody": "Raggiungi questo obiettivo per proteggere i muscoli e restare sazio.",
+      "proteinBullet1": "Dai priorità a fonti magre a ogni pasto.",
+      "proteinBullet2": "Distribuisci l’assunzione durante la giornata.",
+      "carbsTitle": "Carboidrati",
+      "carbsBody": "Alimenta l’allenamento con carboidrati amidacei, completa con le fibre.",
+      "carbsBullet1": "I carboidrati amidacei danno energia alle prestazioni.",
+      "carbsBullet2": "Le fibre favoriscono digestione e sazietà.",
+      "fatTitle": "Grassi",
+      "fatBody": "Mantieni i grassi moderati per bilanciare energia e ormoni.",
+      "fatBullet1": "Preferisci grassi sani.",
+      "fatBullet2": "Attenzione alle porzioni — i grassi sono calorici.",
+      "closingTitle": "Resta flessibile",
+      "closingBody": "Gli obiettivi si adattano alla tua giornata — avvicinati e resta costante.",
+      "infoAria": "Cosa significano questi numeri?",
+      "info": "Info",
+      "starchyTitle": "Carboidrati amidacei — il tuo obiettivo principale",
+      "starchy1": "Resta al tuo limite giornaliero o al di sotto.",
+      "starchy2": "Superarlo rallenta i tuoi progressi — questo conta.",
+      "starchy3": "Restare sotto va benissimo. Non forzarlo.",
+      "flexTitle": "Proteine e fibre — resta flessibile",
+      "flex1": "Un po' in più o in meno non rovina nulla.",
+      "flex2": "Non inseguire la perfezione su questi due.",
+      "fat1": "I grassi salgono naturalmente in base alle tue scelte alimentari.",
+      "fat2": "Il grasso alimentare non è la causa dell'aumento di grasso — non fissarti su di esso.",
+      "closing1": "Concentrati sul restare entro il tuo obiettivo di amidi e lascia che il resto si sistemi.",
+      "closing2": "Non devi essere perfetto. Devi essere costante."
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "Protocollo di preparazione alla gara salvato.",
+      "athleticSaved": "Protocollo di prestazione atletica salvato.",
+      "activated": "Protocollo attivato",
+      "errorTitle": "Errore",
+      "errorDesc": "Impossibile salvare. Riprova."
+    },
+    "stepCount": "Passo {{current}} di {{total}}",
+    "back": "Indietro",
+    "next": "Avanti",
+    "saving": "Salvataggio...",
+    "activateProtocol": "Attiva protocollo",
+    "optional": "(facoltativo)",
+    "track": {
+      "title": "Cosa descrive il tuo obiettivo?",
+      "subtitle": "Ogni percorso usa un motore di protocollo completamente diverso.",
+      "athleticTitle": "Prestazione atletica",
+      "athleticDesc": "MMA, boxe, lotta, football, CrossFit, endurance, tattico. L’obiettivo è la prestazione — carburante, recupero, adattamento.",
+      "compTitle": "Preparazione alla gara",
+      "compDesc": "Bodybuilding, physique, powerlifting, fight camp, stagione di lotta. La data del tuo evento guida ogni fase automaticamente."
+    },
+    "goals": {
+      "title": "Qual è il tuo obiettivo principale?",
+      "subtitle": "Questo definisce le priorità delle macro e la densità energetica dei pasti.",
+      "fatLoss": {
+        "label": "Perdita di grasso",
+        "desc": "Definirti preservando la prestazione"
+      },
+      "muscleGain": {
+        "label": "Aumento muscolare",
+        "desc": "Ipertrofia e anabolismo"
+      },
+      "maintenance": {
+        "label": "Mantenimento",
+        "desc": "Stabilità della composizione corporea"
+      },
+      "performance": {
+        "label": "Massima prestazione",
+        "desc": "Output, velocità e potenza"
+      }
+    },
+    "trainingType": {
+      "title": "Che tipo di allenamento fai?",
+      "subtitle": "Seleziona il tuo sport o disciplina principale.",
+      "otherPlaceholder": "Altro sport {{group}}…"
+    },
+    "trainingTypes": {
+      "strength": "Forza",
+      "hypertrophy": "Ipertrofia",
+      "powerlifting": "Powerlifting",
+      "olympicLifting": "Sollevamento olimpico",
+      "mma": "MMA",
+      "boxing": "Boxe",
+      "wrestling": "Lotta",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "Corsa",
+      "cycling": "Ciclismo",
+      "triathlon": "Triathlon",
+      "tactical": "Tattico / Militare",
+      "generalFitness": "Fitness generale"
+    },
+    "athleticGroups": {
+      "iron": "Sport del ferro",
+      "combat": "Sport da combattimento",
+      "mixed": "Misto",
+      "endurance": "Endurance",
+      "other": "Altro"
+    },
+    "frequency": {
+      "title": "Con che frequenza ti alleni?",
+      "subtitle": "Sessioni settimanali (esclusi i giorni di riposo).",
+      "twoADayQuestion": "Ti alleni due volte al giorno?",
+      "twoADayDesc": "Attiva le indicazioni sui pasti di recupero tra le sessioni",
+      "yes": "Sì",
+      "no": "No"
+    },
+    "freqs": {
+      "oneTwo": "1–2 giorni",
+      "threeFour": "3–4 giorni",
+      "fiveSix": "5–6 giorni",
+      "sevenPlus": "7+ (quotidiano)"
+    },
+    "cardio": {
+      "title": "Qual è il tuo focus cardio?",
+      "subtitle": "Determina il timing dei carboidrati e il fabbisogno glicolitico.",
+      "none": {
+        "label": "Niente cardio",
+        "desc": "Focus puro su forza o tecnica — nessun lavoro cardiovascolare"
+      },
+      "recovery": {
+        "label": "Camminata / Recupero",
+        "desc": "Solo movimento leggero — camminate, stretching, bici facile"
+      },
+      "zone2": {
+        "label": "Cardio leggero",
+        "desc": "Ritmo comodo in cui puoi conversare — costruisce la base aerobica"
+      },
+      "tempo": {
+        "label": "Cardio moderato",
+        "desc": "Sforzo costante e impegnativo — respiro affannoso ma sostenibile"
+      },
+      "threshold": {
+        "label": "Cardio intenso",
+        "desc": "Sforzo intenso sostenuto — vicino al tuo limite"
+      },
+      "hiit": {
+        "label": "Sprint a intervalli",
+        "desc": "Brevi scatti massimali con pause — sforzo massimo"
+      },
+      "mixed": {
+        "label": "Cardio misto",
+        "desc": "Varia in base alla sessione — giorni facili e giorni duri"
+      }
+    },
+    "phase": {
+      "title": "A che punto sei del tuo ciclo di allenamento?",
+      "subtitle": "La tua fase calibra gli obiettivi delle macro e le scelte alimentari."
+    },
+    "phases": {
+      "offSeason": {
+        "label": "Fuori stagione",
+        "desc": "Focus sul volume, costruire la base"
+      },
+      "preSeason": {
+        "label": "Pre-stagione",
+        "desc": "Incremento della condizione"
+      },
+      "inSeason": {
+        "label": "In stagione",
+        "desc": "Mantenimento della prestazione"
+      },
+      "weightCut": {
+        "label": "Taglio del peso",
+        "desc": "Deficit a breve termine + reidratazione"
+      },
+      "recovery": {
+        "label": "Recupero",
+        "desc": "Antinfiammatorio, priorità alla riparazione"
+      }
+    },
+    "duration": {
+      "title": "Quanto durano le tue sessioni tipiche?",
+      "subtitle": "Usato per calcolare il consumo di glicogeno e il fabbisogno di recupero."
+    },
+    "durations": {
+      "under30": {
+        "label": "Meno di 30 min",
+        "desc": "Sessioni brevi / accessorie"
+      },
+      "thirtySixty": {
+        "label": "30–60 min",
+        "desc": "Blocco di allenamento standard"
+      },
+      "sixtyNinety": {
+        "label": "60–90 min",
+        "desc": "Sessione completa con riscaldamento e defaticamento"
+      },
+      "ninetyPlus": {
+        "label": "90 min+",
+        "desc": "Sessioni ad alto volume o multidisciplinari"
+      }
+    },
+    "recoveryStep": {
+      "title": "Com’è il tuo recupero in questo momento?",
+      "subtitle": "Il tuo stato di recupero determina il timing delle proteine, le priorità antinfiammatorie e la densità calorica."
+    },
+    "recovery": {
+      "good": {
+        "label": "Buono",
+        "desc": "Buon sonno, poca indolenzimento, molta energia"
+      },
+      "average": {
+        "label": "Medio",
+        "desc": "Un po’ di fatica ma gestibile"
+      },
+      "poor": {
+        "label": "Scarso",
+        "desc": "Affaticato, molto indolenzito, privato del sonno"
+      }
+    },
+    "adaptationStep": {
+      "title": "Qual è il tuo focus atletico?",
+      "subtitle": "Scegli per cosa ti alleni — questo calibra il timing dei carboidrati, il supporto ai sistemi energetici e la composizione dei pasti."
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "Endurance",
+        "desc": "Sviluppa il motore aerobico — sforzi più lunghi, più resistenza"
+      },
+      "conditioning": {
+        "label": "Condizionamento",
+        "desc": "Forma fisica completa su più sistemi energetici"
+      },
+      "speed": {
+        "label": "Velocità",
+        "desc": "Sprint più veloce — focus esplosivo, fibre rapide"
+      },
+      "power": {
+        "label": "Potenza",
+        "desc": "Muovi pesi in fretta — forza ed esplosività"
+      },
+      "workCapacity": {
+        "label": "Capacità di lavoro",
+        "desc": "Fai di più, recupera prima — gestisci alti volumi"
+      },
+      "activeRecovery": {
+        "label": "Recupero attivo",
+        "desc": "Ripara e ricarica — antinfiammatorio, reset del SNC"
+      }
+    },
+    "schedule": {
+      "title": "Imposta il tuo programma di allenamento settimanale",
+      "subtitle": "La tua nutrizione si adatta automaticamente ogni giorno in base a ciò che alleni. Ogni tipo di sessione modifica i tuoi obiettivi di carboidrati, calorie e proteine.",
+      "trainingPhase": "Fase di allenamento",
+      "weekSchedule": "Programma settimanale",
+      "howItWorksTitle": "Come funziona",
+      "howItWorksBody": "MPM legge il tuo programma ogni mattina e regola automaticamente i tuoi obiettivi di macro. I giorni di potenza aggiungono carboidrati. I giorni di recupero li riducono. Nessuna regolazione manuale necessaria."
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "Forza",
+        "short": "For",
+        "desc": "Allenamento di resistenza — supporto moderato di carboidrati"
+      },
+      "power": {
+        "label": "Potenza",
+        "short": "Pot",
+        "desc": "Output esplosivo — carboidrati e proteine aggiuntivi attivi"
+      },
+      "endurance": {
+        "label": "Endurance",
+        "short": "End",
+        "desc": "Priorità al carburante aerobico — maggiore disponibilità di carboidrati"
+      },
+      "sportPractice": {
+        "label": "Pratica sportiva",
+        "short": "Sport",
+        "desc": "Richieste miste — supporto moderato di carboidrati"
+      },
+      "competition": {
+        "label": "Competizione",
+        "short": "Comp",
+        "desc": "Alimentazione del giorno di gara — massima disponibilità di carboidrati"
+      },
+      "recovery": {
+        "label": "Recupero",
+        "short": "Rec",
+        "desc": "Enfasi sulla riparazione — meno carboidrati, priorità antinfiammatoria"
+      },
+      "off": {
+        "label": "Giorno di riposo",
+        "short": "Off",
+        "desc": "Riposo completo — obiettivi calorici ridotti"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "Stabilizzazione",
+        "desc": "Fase di base — qualità del movimento, stabilità del core"
+      },
+      "strength": {
+        "label": "Forza",
+        "desc": "Costruzione della capacità di forza massimale"
+      },
+      "power": {
+        "label": "Potenza",
+        "desc": "Output esplosivo — forza per velocità"
+      },
+      "peaking": {
+        "label": "Peaking",
+        "desc": "Affinamento pre-gara — intensità su, volume giù"
+      },
+      "inSeason": {
+        "label": "In stagione",
+        "desc": "Mantenere la prestazione durante il calendario di gara"
+      },
+      "offSeason": {
+        "label": "Fuori stagione",
+        "desc": "Costruzione della base e recupero tra le stagioni"
+      }
+    },
+    "days": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mer",
+      "thu": "Gio",
+      "fri": "Ven",
+      "sat": "Sab",
+      "sun": "Dom"
+    },
+    "compGroups": {
+      "physique": "Physique",
+      "strength": "Sport di forza",
+      "combat": "Sport da combattimento",
+      "functional": "Funzionale / Misto",
+      "endurance": "Endurance"
+    },
+    "compTypeStep": {
+      "title": "Che tipo di competizione?",
+      "subtitle": "Ogni tipo di competizione usa una tempistica di preparazione e un protocollo di peak week diversi."
+    },
+    "compTypes": {
+      "bodybuilding": "Bodybuilding",
+      "mensPhysique": "Men’s Physique",
+      "classicPhysique": "Classic Physique",
+      "figure": "Figure",
+      "bikini": "Bikini",
+      "wellness": "Wellness",
+      "powerliftingMeet": "Gara di powerlifting",
+      "strongman": "Strongman",
+      "olympicWeightlifting": "Sollevamento olimpico",
+      "fightCamp": "Fight Camp",
+      "wrestlingSeason": "Stagione di lotta",
+      "crossfitCompetition": "Competizione CrossFit",
+      "hyrox": "Hyrox",
+      "marathon": "Maratona",
+      "triathlon": "Triathlon",
+      "spartanRace": "Spartan Race"
+    },
+    "eventStep": {
+      "title": "Quando è il tuo evento?",
+      "subtitle": "La data del tuo evento guida ogni fase automaticamente — senza indovinare.",
+      "eventDate": "Data dell’evento",
+      "pickDate": "Scegli la data dell’evento",
+      "weeksOut": "tra {{count}} settimane",
+      "division": "Categoria",
+      "divisionPlaceholder": "es. Open, Masters 35+, classe 93kg..."
+    },
+    "weightStep": {
+      "title": "Informazioni sul peso",
+      "subtitle": "Facoltativo — aiuta il tuo protocollo a dare indicazioni precise sulla strategia di taglio e sugli obiettivi calorici.",
+      "currentWeight": "Peso attuale",
+      "currentPlaceholder": "es. 185 lbs, 84 kg...",
+      "targetWeight": "Peso / classe target",
+      "targetPlaceholder": "es. 175 lbs, classe 83kg, pronto per il palco...",
+      "howItWorksTitle": "Come funziona",
+      "howItWorksBody": "MPM calcola automaticamente la tua fase attuale dalla data dell’evento. Con l’avvicinarsi dell’evento, i protocolli cambiano. Decide il calendario — non l’IA."
+    }
+  },
+  "therapeuticCard": {
+    "title": "Intelligenza nutrizionale terapeutica",
+    "active": "Attivo",
+    "last": "Ultimo: {{date}}",
+    "intro": "Inserisci la tua dose per tutto ciò che è attivo. Il dosaggio conta — il sistema lo usa per costruire il contesto del tuo protocollo. Lascia vuoto se non applicabile.",
+    "activeCount": "{{count}} attivi",
+    "namePlaceholder": "Nome...",
+    "dosePlaceholder": "Dose",
+    "unitPlaceholder": "unità",
+    "sections": {
+      "peptides": "Peptidi",
+      "hormones": "Ormoni",
+      "medications": "Farmaci che influenzano la nutrizione",
+      "therapies": "Terapie",
+      "recovery": "Obiettivi di recupero"
+    },
+    "addPeptide": "Aggiungi peptide personalizzato",
+    "addHormone": "Aggiungi ormone personalizzato",
+    "addMedication": "Aggiungi farmaco personalizzato",
+    "therapiesHint": "Seleziona tutto ciò che si applica al tuo protocollo attuale.",
+    "recoveryHint": "Seleziona i tuoi obiettivi di recupero attuali.",
+    "saveProtocol": "Salva protocollo",
+    "saving": "Salvataggio…",
+    "cancel": "Annulla",
+    "footerNote": "La sicurezza clinica ha sempre la priorità. Le selezioni informano solo la generazione dei pasti — non sono consigli medici.",
+    "therapyOptions": {
+      "connectiveTissue": "Recupero del tessuto connettivo",
+      "gutSupport": "Supporto intestinale",
+      "redLight": "Terapia con luce rossa",
+      "sauna": "Sauna / Recupero con calore",
+      "cold": "Terapia del freddo / Bagno di ghiaccio",
+      "iv": "Terapia di nutrienti IV"
+    },
+    "recoveryGoals": {
+      "joint": "Recupero articolare",
+      "muscle": "Recupero muscolare",
+      "sleep": "Ottimizzazione del sonno",
+      "inflammation": "Riduzione dell’infiammazione",
+      "gutHealing": "Guarigione intestinale",
+      "stress": "Recupero da stress e surrenale"
+    },
+    "toast": {
+      "savedTitle": "Protocollo terapeutico salvato",
+      "savedDesc": "Contesto aggiornato. Tutti i generatori rispetteranno il tuo protocollo.",
+      "errorTitle": "Errore",
+      "errorDesc": "Impossibile salvare. Riprova."
+    }
+  },
+  "clinicalLabs": {
+    "title": "Esami clinici",
+    "last": "Ultimo: {{date}}",
+    "lastSaved": "Ultimo salvataggio: {{date}}",
+    "labDate": "Data esame",
+    "notes": "Note",
+    "notesPlaceholder": "Note del medico (facoltative)...",
+    "saveButton": "Salva valori di laboratorio",
+    "savedSuccess": "Valori di laboratorio salvati correttamente",
+    "normal": "Normale",
+    "elevated": "Elevato",
+    "active": "Attivo",
+    "menopausePanel": "Pannello menopausa / perimenopausa",
+    "status": {
+      "normal": "Normale",
+      "needsReview": "Da rivedere",
+      "elevated": "{{count}} elevati"
+    },
+    "sections": {
+      "cardiac": "Cardiaco e metabolico",
+      "hormonal": "Ormonale / Stress e ormoni sessuali",
+      "liver": "Pannello epatico",
+      "thyroid": "Pannello tiroideo",
+      "kidney": "Rene / Renale",
+      "inflammation": "Infiammazione e recupero",
+      "oncology": "Oncologia e recupero"
+    },
+    "fields": {
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "triglycerides": "Trigliceridi",
+      "tgHdlRatio": "Rapporto TG/HDL",
+      "bloodPressure": "Pressione sanguigna",
+      "sys": "Sist",
+      "dia": "Diast",
+      "ejectionFraction": "Frazione di eiezione",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "Richiede attenzione",
+      "physicianGuided": "Guidato dal medico"
+    },
+    "toast": {
+      "enterOne": "Inserisci almeno un valore prima di salvare",
+      "failed": "Salvataggio degli esami non riuscito"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "Allineamento eccellente",
+      "b": "Buon allineamento",
+      "c": "Alcune considerazioni",
+      "d": "Conflitti rilevanti"
+    },
+    "verdict": {
+      "buy": "Lo chef dice: Vai!",
+      "caution": "Lo chef dice: Solo un avviso...",
+      "skip": "Lo chef dice: Forse pensaci due volte"
+    },
+    "decoder": {
+      "title": "Decodificatore in parole semplici",
+      "legend": "🟢 Generalmente sicuro · 🟡 Utile da sapere · 🔴 In conflitto con il tuo profilo"
+    },
+    "alignsWith": "In linea con i tuoi obiettivi",
+    "watchFor": "Attenzione a",
+    "howItScores": "Come si valuta per i tuoi protocolli",
+    "howItScoresForYou": "Come si valuta per te",
+    "add": "Aggiungi",
+    "added": "Aggiunto",
+    "alternatives": {
+      "alsoWorthKnowing": "Anche utile da sapere",
+      "evenBetter": "Opzioni ancora migliori",
+      "betterOptions": "Migliori opzioni di prodotto per te",
+      "profileMatched": "Abbinato al profilo",
+      "brandedNote": "Basato sulla conoscenza del prodotto — formule e disponibilità possono cambiare.",
+      "categoryNote": "Indicazioni per categoria in base al tuo profilo di salute — cerca queste caratteristiche sulle etichette."
+    },
+    "profileFactorsHeading": "Fattori del profilo che guidano questa analisi",
+    "scoreCards": {
+      "kids": "Bambini",
+      "adults": "Adulti",
+      "diet": "La tua dieta",
+      "goal": "Il tuo obiettivo"
+    },
+    "barcode": {
+      "dbMatch": "Corrispondenza nel database · Open Food Facts",
+      "notInDb": "Non nel database · Stima IA",
+      "notFound": "Codice a barre non trovato — analisi basata sulla conoscenza IA"
+    },
+    "tier": {
+      "quick": "Analisi rapida",
+      "verified": "Analisi etichetta verificata",
+      "full": "Consulente prodotto completo",
+      "subKnowledge": "Basato sulla conoscenza · Nessuna scansione etichetta",
+      "subLabelScanned": "Etichetta scansionata · {{name}}",
+      "subProductUnknown": "Etichetta scansionata · Prodotto sconosciuto",
+      "subLabel": "Etichetta scansionata",
+      "subFull": "Prodotto + Etichetta + Profilo"
+    },
+    "scanLabelUp": "Scansiona etichetta ↑",
+    "highestConfidence": "Massima affidabilità",
+    "whatMattersMost": "Ciò che conta di più per te",
+    "analysisProfile": {
+      "heading": "Il tuo profilo di analisi",
+      "basedOn": "Questo consiglio si basa su:",
+      "deeperTitle": "Vuoi una personalizzazione più profonda?",
+      "deeperBody": "Aggiungi valori di laboratorio come A1C, glicemia a digiuno, colesterolo, trigliceridi, marcatori renali o infiammatori.",
+      "updateProfile": "Aggiorna profilo di salute →",
+      "disclaimer": "I consigli sono generati dalla composizione degli ingredienti, dai valori nutrizionali e dal tuo profilo di salute. MPM non riceve compensi dai produttori alimentari e i consigli non sono mai influenzati da partnership di marca.",
+      "emptyState": "Aggiungi obiettivi e condizioni di salute al tuo profilo per un’analisi completamente personalizzata."
+    },
+    "header": {
+      "companionScan": "Scansione prodotto per accompagnatore",
+      "intelligence": "Intelligenza degli ingredienti",
+      "notIdentified": "Prodotto non identificato",
+      "scanningFor": "Scansione per {{name}}",
+      "frontLabelDetected": "Etichetta frontale rilevata",
+      "byNameAnalysis": "Analisi per nome",
+      "fullAnalysis": "Analisi completa"
+    },
+    "analyzeThisProduct": "Analizza questo prodotto",
+    "scanIngredientsLabel": "Scansiona etichetta ingredienti / valori nutrizionali",
+    "analyzeDisclaimer": "\"Analizza questo prodotto\" usa la conoscenza IA di questo prodotto — non una scansione dal vivo. Le formule possono cambiare. Scansiona il pannello degli ingredienti per un risultato verificato.",
+    "analyzing": "Analisi di {{name}}…",
+    "checkingProfile": "Confronto con il tuo profilo di salute",
+    "byNameBanner": {
+      "title": "Analisi rapida — Non una scansione etichetta verificata",
+      "body": "Basato sulla conoscenza del prodotto dai dati di addestramento. Le formule possono cambiare.",
+      "scanLink": "Scansiona l’etichetta per un risultato verificato."
+    },
+    "lowQuality": {
+      "title": "La qualità dell’immagine era bassa",
+      "body": "Riscatta la foto con il pannello degli ingredienti completamente visibile, a fuoco e ben illuminato per un’analisi più accurata."
+    },
+    "labelFound": {
+      "title": "Etichetta nutrizionale trovata",
+      "body": "Pronuncia o digita il nome del prodotto per ricevere alternative di marca personalizzate."
+    },
+    "incomplete": {
+      "title": "Analisi incompleta",
+      "lowImage": "L’immagine non era abbastanza chiara per la valutazione. Assicurati che il pannello degli ingredienti sia completo e ben illuminato, poi riprova.",
+      "needMore": "Servono più informazioni per generare un voto. Prova a scansionare il pannello degli ingredienti o usa la ricerca prodotto."
+    },
+    "personalized": "Personalizzato in base al tuo profilo di salute",
+    "generalAnalysis": "Analisi generale — aggiungi obiettivi di salute per risultati personalizzati",
+    "sections": {
+      "considerations": "Considerazioni sugli ingredienti",
+      "mayNotAlign": "Potrebbe non essere in linea con i tuoi obiettivi",
+      "worksWellFor": "Adatto per",
+      "familyNotes": "Note per la famiglia"
+    },
+    "detectedIngredients": "Ingredienti rilevati",
+    "scanForVerified": "Scansiona etichetta per analisi verificata",
+    "addNamedToList": "Aggiungi {{name}} alla lista",
+    "addToList": "Aggiungi alla lista",
+    "saveScan": "Salva scansione",
+    "saveToGroceries": "Salva nella spesa",
+    "savedToGroceries": "Salvato nella spesa",
+    "toast": {
+      "removedTitle": "Rimosso dalla spesa",
+      "removedDesc": "{{name}} è stato rimosso dai tuoi preferiti.",
+      "removeFailTitle": "Impossibile rimuovere",
+      "tryAgain": "Riprova.",
+      "alreadySaved": "Già salvato",
+      "savedTitle": "Salvato nella spesa",
+      "savedDesc": "{{name}} è nei tuoi preferiti della spesa.",
+      "saveFailTitle": "Impossibile salvare",
+      "addedToList": "Aggiunto alla tua lista della spesa"
+    }
+  },
+  "athletePicker": {
+    "added": "Aggiunto!",
+    "addedCount": "{{count}} aggiunti",
+    "addingTo": "Aggiungi a:",
+    "categories": {
+      "eggsShakes": "Uova e shake",
+      "fish": "Pesce a filetto",
+      "poultry": "Pollo e tacchino",
+      "redmeat": "Carne rossa"
+    },
+    "copied": "Copiato!",
+    "copy": "Copia",
+    "copyMealAria": "Copia i dettagli del pasto",
+    "copySessionAria": "Copia il riepilogo della sessione",
+    "done": "Fatto",
+    "errorShort": "Errore",
+    "fibrousNote": "Verdure fibrose illimitate — solo amido (riso, avena, patate)",
+    "gotIt": "capito!",
+    "headerTitle": "Pasti da atleta pronti — {{slot}}",
+    "hiddenCount_one": "{{count}} pasto nascosto — l'amido supererebbe {{cap}}g",
+    "hiddenCount_other": "{{count}} pasti nascosti — l'amido supererebbe {{cap}}g",
+    "howToAria": "Usare il builder pasti da atleta",
+    "info": {
+      "intro": "Pasti pronti, ottimizzati per prestazione atletica e sviluppo muscolare.",
+      "step1Label": "Scegli la categoria proteica",
+      "step1Text": "(pollo, carne rossa, pesce, uova)",
+      "step2After": "è solo proteina + verdure fibrose",
+      "step2Mid": "i pasti includono riso, avena o patate.",
+      "step3Label": "Tocca un pasto",
+      "step3Text": "per aggiungerlo subito",
+      "step4Label": "Tutti i macro",
+      "step4Text": "sono calcolati e pronti da tracciare",
+      "stepsLabel": "Passi:",
+      "tipAfter": "pasti. Le verdure fibrose sono sempre illimitate.",
+      "tipBefore": "Nei giorni a basso amido usa",
+      "tipLabel": "💡 Suggerimento:",
+      "tipMid": "pasti. Nei giorni di ricarica aggiungi",
+      "title": "Usare il builder pasti da atleta"
+    },
+    "lowStarchDay": "Giorno a basso amido",
+    "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · A {{starch}}g · G {{fat}}g",
+    "noCoachConnection": "Nessun coach connesso",
+    "noteDesc": "Pasti pronti, ottimizzati per prestazione atletica e sviluppo muscolare.",
+    "noteStep1": "Scegli la categoria proteica (pollo, carne rossa, pesce, uova)",
+    "noteStep2After": "è solo proteina + verdure fibrose",
+    "noteStep2Before": "I pasti con etichetta",
+    "noteStep2Mid": "includono riso, avena o patate —",
+    "noteStep3": "Tocca un pasto per aggiungerlo subito",
+    "noteStep4": "Tutti i macro sono calcolati e pronti da tracciare",
+    "noteTitle": "Pasti da atleta pronti",
+    "refeedDay": "Giorno di ricarica",
+    "selectCategory": "Scegli categoria proteica:",
+    "selectCategoryShort": "Scegli categoria",
+    "sendCoachAria": "Invia il riepilogo al coach",
+    "sendFailed": "Invio non riuscito, riprova",
+    "sendToCoach": "Invia al coach",
+    "sending": "Invio…",
+    "sent": "Inviato!",
+    "sessionTotal": "Totale sessione:",
+    "slots": {
+      "breakfast": "Colazione",
+      "dinner": "Cena",
+      "lunch": "Pranzo",
+      "meal4": "Pasto 4",
+      "meal5": "Pasto 5",
+      "meal6": "Pasto 6",
+      "snacks": "Snack"
+    },
+    "starch": "Amido",
+    "starchAllocation": "Quota di amido",
+    "starchCap": "limite {{cap}}g amido",
+    "starchUsage": "{{used}}g / {{cap}}g amido",
+    "summaryText_one": "{{count}} pasto aggiunto — {{cals}} cal · P {{protein}}g · C {{carbs}}g · G {{fat}}g",
+    "summaryText_other": "{{count}} pasti aggiunti — {{cals}} cal · P {{protein}}g · C {{carbs}}g · G {{fat}}g",
+    "viewChatAria": "Vedi il messaggio nella chat coach",
+    "viewInChat": "Vedi in chat"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "Sostienimi quando cedo",
+        "label": "Incoraggiami"
+      },
+      "pushHard": {
+        "desc": "Sii severo sugli obiettivi",
+        "label": "Spingimi"
+      },
+      "remind": {
+        "desc": "Bastano promemoria gentili",
+        "label": "Solo ricordamelo"
+      },
+      "selfDirected": {
+        "desc": "Mi motivo da solo",
+        "label": "Autonomo"
+      }
+    },
+    "back": "Indietro",
+    "challenges": {
+      "consistency": "Essere costante",
+      "cravings": "Voglie",
+      "emotionalEating": "Fame emotiva",
+      "knowledge": "Sapere cosa mangiare",
+      "mealPrep": "Preparare i pasti",
+      "motivation": "Motivazione",
+      "socialPressure": "Pressione sociale",
+      "time": "Poco tempo"
+    },
+    "error": "Qualcosa è andato storto. Riprova.",
+    "lifestyle": {
+      "budgetConscious": "Attento al budget",
+      "busySchedule": "Agenda piena",
+      "frequentTravel": "Viaggio spesso",
+      "parent": "Genitore/caregiver",
+      "pickyEater": "Schizzinoso",
+      "shiftWorker": "Lavoro a turni",
+      "socialEater": "Mangio in compagnia",
+      "stressEater": "Mangio per stress"
+    },
+    "loading": "Caricamento profilo...",
+    "motivations": {
+      "athletic": "Prestazione sportiva",
+      "confidence": "Sentirmi sicuro",
+      "energy": "Più energia",
+      "family": "Salute della famiglia",
+      "longevity": "Longevità",
+      "mentalClarity": "Lucidità mentale",
+      "weightLoss": "Perdere peso"
+    },
+    "next": "Avanti",
+    "saveProfile": "Salva profilo",
+    "savedDesc": "Il tuo profilo di coaching è pronto.",
+    "savedTitle": "Profilo salvato!",
+    "saving": "Salvataggio...",
+    "steps": {
+      "accountability": {
+        "subtitle": "Scegli ciò che ti motiva di più",
+        "title": "Come teniamo il tuo impegno?"
+      },
+      "challenges": {
+        "subtitle": "Sii sincero: ci aiuta a puntare al punto",
+        "title": "Le tue sfide più grandi?"
+      },
+      "lifestyle": {
+        "subtitle": "Seleziona tutto; adatteremo i consigli",
+        "title": "Il tuo stile di vita?"
+      },
+      "motivations": {
+        "subtitle": "Seleziona tutto ciò che vale",
+        "title": "Cosa ti spinge?"
+      },
+      "style": {
+        "subtitle": "Scegli lo stile di comunicazione giusto per te",
+        "title": "Come vuoi essere seguito?"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "Un mix di tutti gli approcci",
+        "label": "Equilibrato"
+      },
+      "direct": {
+        "desc": "Dimmi cosa fare, senza giri",
+        "label": "Diretto"
+      },
+      "educational": {
+        "desc": "Spiega il perché di ogni scelta",
+        "label": "Educativo"
+      },
+      "encouraging": {
+        "desc": "Rinforzo positivo e supporto",
+        "label": "Incoraggiante"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "Carbo",
+    "categories": {
+      "eggsShakes": "Uova e shake",
+      "fish": "Pesce a filetto",
+      "poultry": "Pollo e tacchino",
+      "redmeat": "Carne rossa"
+    },
+    "gotIt": "capito!",
+    "headerAddTo": "Pasti da gara - Aggiungi a {{slot}}",
+    "howToAria": "Usare il builder gara",
+    "info": {
+      "intro": "Pasti da atleta pronti, ottimizzati per massa magra e prestazione.",
+      "step1Label": "Scegli la categoria proteica",
+      "step1Text": "(pollo, carne rossa, pesce, uova)",
+      "step2Label": "I pasti sono etichettati",
+      "step2Text": "\"Carbo\" o \"P+V\" (proteina + verdure)",
+      "step3Label": "Tocca un pasto",
+      "step3Text": "per aggiungerlo subito",
+      "step4Label": "Tutti i macro",
+      "step4Text": "sono calcolati e pronti da tracciare",
+      "stepsLabel": "Passi:",
+      "tipLabel": "💡 Suggerimento:",
+      "tipText": "Scegli in base ai tuoi carbo: \"Carbo\" per energia, \"P+V\" per giorni low-carb.",
+      "title": "Usare il builder gara"
+    },
+    "noteDesc": "Pasti da atleta pronti, ottimizzati per massa magra e prestazione.",
+    "noteStep1": "Scegli la categoria proteica (pollo, carne rossa, pesce, uova)",
+    "noteStep2": "I pasti sono etichettati \"Carbo\" o \"P+V\" (proteina + verdure)",
+    "noteStep3": "Tocca un pasto per aggiungerlo subito",
+    "noteStep4": "Tutti i macro sono calcolati e pronti da tracciare",
+    "noteTitle": "Pasti da gara",
+    "selectCategory": "Scegli categoria proteica:",
+    "selectCategoryShort": "Scegli categoria"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "Priorità principale",
+    "breakfastLogged": "Colazione registrata",
+    "caloriesOnTarget": "Calorie nel target",
+    "consistencyScore": "Punteggio costanza",
+    "days": "giorni",
+    "dinnerLogged": "Cena registrata",
+    "last7Days": "Ultimi 7 giorni",
+    "lastNDays": "Ultimi {{count}} giorni",
+    "loggedMeals": "Pasti registrati",
+    "lunchLogged": "Pranzo registrato",
+    "noActivity": "Nessuna attività ancora. Registra i pasti per vedere qui il tuo riepilogo.",
+    "noMeals": "Nessun pasto registrato. Registra i pasti per vedere il riepilogo.",
+    "ofDays": "{{value}} di {{total}}",
+    "proteinGoalMet": "Obiettivo proteine",
+    "setTargets": "Imposta gli obiettivi macro per attivare il tracciamento completo.",
+    "title": "Riepilogo attività nutrizionale"
+  },
+  "mealPicker": {
+    "addTo": "Aggiungi a {{slot}}",
+    "cafeteria": "Mensa",
+    "categories": {
+      "fats": "Grassi",
+      "fibrousCarbs": "Carbo fibrosi",
+      "fruit": "Frutta",
+      "proteins": "Proteine",
+      "starchyCarbs": "Carbo amidacei"
+    },
+    "close": "Chiudi",
+    "generate": "Genera",
+    "generateCount": "Genera ({{count}})",
+    "generating": "Generazione…",
+    "gotIt": "capito!",
+    "howToAria": "Usare il selettore pasti",
+    "info": {
+      "addLabel": "Tocca per aggiungere:",
+      "addText": "Tocca una scheda per aggiungerla allo slot {{slot}}",
+      "browseLabel": "Sfoglia i pasti:",
+      "browseText": "Scorri i nostri modelli di pasto",
+      "cafeteriaLabel": "Opzione mensa:",
+      "cafeteriaText": "Tocca \"Mensa\" per un suggerimento casuale veloce",
+      "intro": "Modo rapido per aggiungere pasti pronti al tuo piano.",
+      "personalizedLabel": "Personalizzato:",
+      "personalizedText": "Pasti filtrati in base ad allergie e preferenze",
+      "tipLabel": "💡 Suggerimento:",
+      "tipText": "Usa Mensa per un suggerimento sano e veloce senza cercare.",
+      "title": "Usare il selettore pasti"
+    },
+    "lowerGlycemic": "Minore impatto glicemico",
+    "quickMeal": "Pasto veloce {{slot}}",
+    "regularGi": "IG normale"
+  },
+  "mealReminders": {
+    "addReminder": "Aggiungi promemoria",
+    "checkAgain": "Ricontrolla",
+    "checking": "Controllo…",
+    "connectionDiagnostics": "Diagnostica connessione",
+    "footerBlocked": "Imposta gli orari ora; si attiveranno dopo il permesso.",
+    "footerDefault": "Fino a 6 promemoria. Tocca un'etichetta per rinominare.",
+    "footerEnabled": "Tieni il browser aperto per una consegna affidabile.",
+    "footerNative": "Tocca un'etichetta per rinominare. Consegna tramite l'app iOS.",
+    "mealN": "Pasto {{n}}",
+    "nativeDelivery": "Consegna nativa iOS",
+    "saving": "Salvataggio…",
+    "statusBlocked": "Notifiche bloccate nel browser",
+    "statusConnected": "Notifiche connesse",
+    "statusPartial": "Non del tutto connesso: attiva uno slot per finire",
+    "statusPending": "Attiva uno slot per abilitare le notifiche",
+    "statusUnsupported": "Non supportato da questo browser",
+    "title": "Promemoria pasti",
+    "toUnblock": "Per sbloccare:",
+    "toastBlockedIosDesc": "Impostazioni iPhone › My Perfect Meals › Consenti notifiche",
+    "toastBlockedTitle": "Notifiche bloccate",
+    "toastBlockedWebDesc": "Consenti le notifiche dal lucchetto nella barra, poi tocca Ricontrolla.",
+    "toastEnableFailedTitle": "Impossibile attivare le notifiche",
+    "toastNotSupportedDesc": "Questo browser non supporta le notifiche push.",
+    "toastNotSupportedTitle": "Non supportato",
+    "toastPermissionDenied": "Permesso negato.",
+    "toastSaveFailed": "Impossibile salvare",
+    "toastTryAgain": "Riprova tra poco.",
+    "unblockAllow": "Consenti",
+    "unblockLock": "🔒 lucchetto",
+    "unblockNotifications": "Notifiche",
+    "unblockStep1After": "nella barra degli indirizzi",
+    "unblockStep1Before": "Tocca il",
+    "unblockStep2Before": "Imposta",
+    "unblockStep2Mid": "su",
+    "unblockStep3After": "sotto",
+    "unblockStep3Before": "Tocca",
+    "unsupportedHint": "Usa Chrome o Edge su desktop. Safari su iOS richiede l'app.",
+    "webDelivery": "Consegna push web"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "Cucina signature",
+    "optSignatureDesc": "La tua cucina a marchio personale nella piattaforma",
+    "optProductLabel": "Integrazione prodotto",
+    "optProductDesc": "Integra il tuo marchio, prodotti o integratori",
+    "optWhiteLabelLabel": "White label",
+    "optWhiteLabelDesc": "Un'esperienza di piattaforma completamente brandizzata",
+    "optRestaurantLabel": "Gruppo di ristoranti",
+    "optRestaurantDesc": "Partnership multi-sede o franchising",
+    "optAthleteLabel": "Cucina dell'atleta",
+    "optAthleteDesc": "Identità culinaria per prestazioni e sport",
+    "stepIdentity": "Identità",
+    "stepCulinary": "Identità culinaria",
+    "stepPlatform": "Piattaforma",
+    "stepInterest": "Interesse",
+    "stepSubmit": "Invia",
+    "partnershipReview": "Revisione partnership",
+    "errorGeneric": "Qualcosa è andato storto. Riprova.",
+    "errorConnection": "Invio non riuscito. Controlla la connessione e riprova.",
+    "identityHeading": "Parlaci di te.",
+    "identitySub": "Identità di base e recapiti.",
+    "fullNameLabel": "Nome completo",
+    "fullNamePlaceholder": "Il tuo nome completo",
+    "brandLabel": "Chef / Nome del marchio",
+    "brandPlaceholder": "Il tuo marchio culinario pubblico",
+    "emailLabel": "Email",
+    "phoneLabel": "Telefono",
+    "locationLabel": "Posizione",
+    "locationPlaceholder": "Città, regione / paese",
+    "culinaryHeading": "La tua identità culinaria.",
+    "culinarySub": "Questo definisce come viene costruita la tua cucina nella piattaforma.",
+    "cuisineFocusLabel": "Focus della cucina",
+    "cuisineFocusPlaceholder": "es. del Sud, giapponese, mediterranea",
+    "cookingPhilosophyLabel": "Filosofia di cucina",
+    "cookingPhilosophyPlaceholder": "Come descriveresti il tuo approccio al cibo?",
+    "signatureStylesLabel": "Stili distintivi",
+    "signatureStylesPlaceholder": "es. ricco di proteine, comfort food, a base vegetale",
+    "wellnessPhilosophyLabel": "Filosofia del benessere",
+    "wellnessPhilosophyPlaceholder": "Quanto contano salute e nutrizione nella tua cucina?",
+    "platformHeading": "Dov'è il tuo pubblico?",
+    "platformSub": "Condividi la tua presenza social e web. Tutti i campi sono facoltativi.",
+    "websiteLabel": "Sito web",
+    "interestHeading": "Cosa ti interessa?",
+    "interestSub": "Seleziona tutto ciò che è pertinente. Puoi sceglierne più di uno.",
+    "readyHeading": "Pronto per l'invio.",
+    "readySub": "Il nostro team esamina ogni candidatura personalmente. Ti risponderemo entro 3–5 giorni lavorativi.",
+    "summaryHeading": "Riepilogo candidatura",
+    "summaryName": "Nome",
+    "summaryBrand": "Marchio",
+    "summaryEmail": "Email",
+    "summaryCuisine": "Cucina",
+    "summaryInterest": "Interesse",
+    "consentText": "Inviando, accetti che My Perfect Meals utilizzi le informazioni fornite per valutare la tua candidatura di partnership. Nessun impegno finché non viene firmato un accordo formale.",
+    "submitting": "Invio in corso…",
+    "requestReview": "Richiedi revisione partnership",
+    "successHeading": "Candidatura ricevuta.",
+    "successSub": "Il nostro team esaminerà la tua candidatura e ti contatterà entro 3–5 giorni lavorativi. Esaminiamo ogni candidatura personalmente.",
+    "contactAt": "Ti contatteremo a",
+    "done": "Fatto",
+    "back": "Indietro",
+    "next": "Avanti"
+  },
+  "safetyPin": {
+    "title": "PIN di sicurezza",
+    "sessionExpired": "Sessione scaduta: esci e rientra per gestire il PIN",
+    "statusSet": "PIN impostato: protezione aggiuntiva attiva",
+    "statusUnset": "Nessun PIN impostato: creane uno per maggiore protezione",
+    "changePin": "Cambia PIN",
+    "removePin": "Rimuovi PIN",
+    "setPin": "Imposta PIN di sicurezza",
+    "enterPin": "Inserisci PIN",
+    "confirmPin": "Conferma PIN",
+    "currentPin": "PIN attuale",
+    "newPin": "Nuovo PIN",
+    "confirmNewPin": "Conferma nuovo PIN",
+    "removePrompt": "Inserisci il PIN attuale per rimuoverlo.",
+    "fourDigits": "4 cifre",
+    "hidePin": "Nascondi PIN",
+    "showPin": "Mostra PIN",
+    "cancel": "Annulla",
+    "setPinBtn": "Imposta PIN",
+    "changePinBtn": "Cambia PIN",
+    "removePinBtn": "Rimuovi PIN",
+    "errorFourDigits": "Il PIN deve avere esattamente 4 cifre",
+    "errorNoMatch": "I PIN non corrispondono",
+    "errorNewFourDigits": "Il nuovo PIN deve avere 4 cifre",
+    "errorNewNoMatch": "I nuovi PIN non corrispondono",
+    "errorSetFailed": "Impossibile impostare il PIN",
+    "errorSetRetry": "Impossibile impostare il PIN. Riprova.",
+    "errorChangeFailed": "Impossibile cambiare il PIN",
+    "errorChangeRetry": "Impossibile cambiare il PIN. Riprova.",
+    "errorRemoveFailed": "Impossibile rimuovere il PIN",
+    "errorRemoveRetry": "Impossibile rimuovere il PIN. Riprova.",
+    "setToastTitle": "PIN di sicurezza impostato",
+    "setToastDesc": "Il tuo PIN di sicurezza è stato creato.",
+    "changeToastTitle": "PIN cambiato",
+    "changeToastDesc": "Il tuo PIN di sicurezza è stato aggiornato.",
+    "removeToastTitle": "PIN rimosso",
+    "removeToastDesc": "Il tuo PIN di sicurezza è stato rimosso."
+  },
+  "mfa": {
+    "errorStartSetup": "Impossibile avviare la configurazione. Riprova.",
+    "errorInvalidCode": "Codice non valido. Riprova.",
+    "errorDisableInvalid": "Codice non valido. MFA non disattivato.",
+    "loading": "Caricamento…",
+    "enabledTitle": "Autenticazione a due fattori attivata",
+    "saveBackupPrompt": "Salva i codici di backup prima di chiudere questa pagina.",
+    "backupCodesHeading": "Codici di backup: salvali ora",
+    "copied": "Copiato!",
+    "copyAllCodes": "Copia tutti",
+    "backupCodesNote": "Ogni codice è usabile una sola volta. Conservali in un luogo sicuro. Se perdi l'accesso all'app di autenticazione, ti servirà uno di questi per accedere.",
+    "savedBackupBtn": "Ho salvato i codici di backup",
+    "onTitle": "L'autenticazione a due fattori è attiva",
+    "enabledOn": "Attivata il {{date}}",
+    "disable2fa": "Disattiva 2FA",
+    "disableTitle": "Disattiva l'autenticazione a due fattori",
+    "disablePrompt": "Inserisci il codice attuale dell'autenticatore per confermare.",
+    "cancel": "Annulla",
+    "disabling": "Disattivazione…",
+    "scanTitle": "Scansiona con la tua app di autenticazione",
+    "scanApps": "Google Authenticator, Authy o 1Password vanno benissimo.",
+    "qrAlt": "Scansiona questo codice QR con la tua app di autenticazione",
+    "manualKeyPrompt": "Non riesci a scansionare? Inserisci questa chiave manualmente:",
+    "addedAccountNext": "Ho aggiunto l'account — avanti",
+    "confirmTitle": "Conferma il codice dell'autenticatore",
+    "confirmPrompt": "Inserisci il codice a 6 cifre dell'app per attivare la 2FA.",
+    "activating": "Attivazione…",
+    "activate2fa": "Attiva 2FA",
+    "back": "Indietro",
+    "defaultTitle": "Autenticazione a due fattori",
+    "defaultSubtitle": "Aggiungi un livello di sicurezza in più al tuo account.",
+    "settingUp": "Configurazione…",
+    "enable2fa": "Attiva 2FA"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "Pasto creato!",
+    "mealCreatedDesc": "{{name}} è pronto per te",
+    "generationFailedTitle": "Generazione non riuscita",
+    "signInTitle": "Accedi",
+    "signInDesc": "Devi accedere per creare pasti",
+    "guestLimitTitle": "Limite ospite raggiunto",
+    "guestLimitDesc": "Crea un account gratuito per continuare a generare pasti",
+    "describeMealTitle": "Descrivi il tuo pasto",
+    "describeMealDesc": "Dì allo Chef cosa ti va",
+    "enterAlternativeTitle": "Inserisci un'alternativa",
+    "enterAlternativeDesc": "Dicci cosa preferisci",
+    "placeholderBreakfast": "es. 'pancake proteici', 'uova dolci con frutta', 'omelette low-carb'",
+    "placeholderLunch": "es. 'insalata di pollo', 'wrap proteico', 'bowl mediterranea'",
+    "placeholderDinner": "es. 'tacos low-carb', 'bistecca con verdure', 'salmone con riso'",
+    "placeholderDefault": "es. 'qualcosa di leggero e sano', 'pasto proteico'",
+    "title": "Crea con AI Chef",
+    "subtitle": "Dì allo Chef cosa vuoi per {{mealType}}",
+    "starchLimitTitle": "Limite di carboidrati amidacei raggiunto",
+    "starchUsedSingular": "Hai già usato il tuo pasto amidaceo di oggi ({{used}} di {{max}}).",
+    "starchUsedPlural": "Hai già usato i tuoi pasti amidacei di oggi ({{used}} di {{max}}).",
+    "youRequested": "Hai richiesto:",
+    "fibrousPrefix": "Vuoi scegliere un",
+    "fibrousCarb": "carboidrato fibroso",
+    "fibrousSuffix": "invece, o lasciar decidere lo Chef?",
+    "fibrousPlaceholder": "es. broccoli, asparagi, cavolfiore...",
+    "generating": "Generazione...",
+    "useMyChoice": "Usa la mia scelta",
+    "or": "o",
+    "chefsChoice": "Scelta dello Chef",
+    "chefSubstituteHint": "Lo Chef sostituirà con un delizioso carboidrato fibroso",
+    "inputHint": "Descrivi cosa desideri e lo Chef creerà un pasto personalizzato per te",
+    "orbCheckingSafety": "Verifica del profilo di sicurezza…",
+    "orbFinishing": "Tocchi finali…",
+    "orbPreparing": "Lo Chef sta preparando il tuo pasto…",
+    "mealSafety": "Sicurezza del pasto",
+    "ingredientControl": "Controllo ingredienti",
+    "todaysStarchMeals": "Pasti amidacei di oggi:",
+    "starchUsedCount": "{{used}} / {{max}} usati",
+    "generateBtn": "Genera pasto IA",
+    "stop": "Ferma",
+    "cancel": "Annulla"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "File non valido",
+    "invalidFileDesc": "Seleziona un file immagine.",
+    "fileTooLargeTitle": "File troppo grande",
+    "fileTooLargeDesc": "Seleziona un'immagine sotto i 5MB.",
+    "photoUpdatedTitle": "Foto aggiornata",
+    "photoUpdatedDesc": "La tua foto profilo è stata aggiornata.",
+    "uploadFailedTitle": "Caricamento non riuscito",
+    "uploadFailedDesc": "Impossibile caricare la foto.",
+    "cameraErrorTitle": "Errore fotocamera",
+    "cameraErrorDesc": "Impossibile accedere a fotocamera o foto.",
+    "restoringTitle": "Ripristino acquisti...",
+    "restoringDesc": "Ricerca di abbonamenti attivi...",
+    "restoredTitle": "Acquisti ripristinati",
+    "restoredDesc": "Il tuo abbonamento è stato ripristinato con successo.",
+    "restoreCompleteTitle": "Ripristino completato",
+    "restoreCompleteDesc": "Nessun abbonamento attivo trovato. Se pensi sia un errore, contatta l'assistenza.",
+    "restoreFailedTitle": "Ripristino non riuscito",
+    "restoreFailedDesc": "Impossibile ripristinare gli acquisti. Riprova.",
+    "accountDeletedTitle": "Account eliminato",
+    "accountDeletedDesc": "Il tuo account e tutti i dati sono stati eliminati definitivamente.",
+    "deleteFailedDesc": "Impossibile eliminare l'account. Riprova.",
+    "deleteAccount": "Elimina account",
+    "deleteDialogTitle": "Eliminare l'account definitivamente?",
+    "deleteDialogIntro": "Questa azione non può essere annullata. Verranno eliminati definitivamente:",
+    "deleteItemAccount": "Il tuo account e le informazioni del profilo",
+    "deleteItemMeals": "Tutti i piani pasto e le ricette salvate",
+    "deleteItemBiometrics": "Dati biometrici e sulla salute",
+    "deleteItemBilling": "Cronologia abbonamenti e pagamenti",
+    "deleting": "Eliminazione...",
+    "deleteMyAccount": "Elimina il mio account"
+  },
+  "inspiration": {
+    "servingsJustMe": "Solo io",
+    "servings2": "2 persone",
+    "servings3": "3 persone",
+    "servingsFamily": "Famiglia (4)",
+    "servingsMealPrep": "Meal prep (6)",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "Guardalo. Dillo. Invialo. Lo rendiamo tuo.",
+    "copilotSpokenText": "Recipe Maker è uno degli strumenti più potenti dell'app. L'idea è semplice: vedi del cibo da qualche parte — un TikTok, un salvataggio Instagram, un libro di cucina, un menù o anche solo un'idea in mente — e invece di lasciar passare il momento, lo porti qui e lo costruiamo per te. Hai quattro modi per portare la tua idea. Choose Photo ti fa scegliere qualsiasi screenshot o foto di cibo salvata dalla galleria: screenshot TikTok, salvataggi Instagram, bacheche Pinterest, ricette Facebook, tutto ciò che è già sul dispositivo. Camera apre la fotocamera dal vivo per inquadrare un libro, un menù o uno schermo. Speak ti fa descrivere il pasto a voce, come lo racconteresti a un amico. Type ti fa incollare una descrizione o scrivere la tua idea. Ecco cosa rende diverso Recipe Maker: non ti serve la ricetta. Se puoi mostrarla o descriverla, possiamo crearla. Dopo l'invio, Recipe Maker non ti dà un solo risultato. Crea tre versioni completamente personalizzate della tua idea contemporaneamente — stesso piatto, tre interpretazioni — ciascuna costruita sui tuoi obiettivi di macro, allergie, identità alimentare e ogni protocollo di salute attivo sul tuo account. Le vedi tutte e tre, puoi salvarne una o tutte, e le tue scelte restano nella dashboard finché non le cancelli. L'app non le rimuove mai automaticamente.",
+    "hintAuthentic": "Mantieni il più possibile sapori e ingredienti originali.",
+    "hintBalanced": "Personalizza in base al tuo profilo preservando lo spirito del piatto.",
+    "hintHealthier": "Ottimizza al massimo la nutrizione mantenendo il piatto riconoscibile.",
+    "analysisFailed": "Analisi non riuscita",
+    "analyzeFailedMsg": "Impossibile analizzare gli ingredienti.",
+    "imageReadError": "Impossibile leggere l'immagine. Riprova.",
+    "voiceNotSupportedTitle": "Voce non supportata",
+    "voiceNotSupportedDesc": "Il tuo browser non supporta l'input vocale. Prova a scrivere.",
+    "micErrorTitle": "Errore microfono",
+    "micErrorDesc": "Riprova.",
+    "somethingWrong": "Qualcosa è andato storto",
+    "createFailedMsg": "Impossibile creare il tuo pasto personalizzato.",
+    "saveFailedError": "Salvataggio non riuscito",
+    "savedTitle": "Salvato!",
+    "savedDesc": "Aggiunto ai tuoi salvataggi Recipe Maker nei Preferiti.",
+    "saveFailedTitle": "Salvataggio non riuscito",
+    "scanFoodFor": "Scansiona cibo per {{name}}",
+    "productScan": "Scansione prodotto",
+    "customizeMeal": "Personalizza il tuo pasto",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "Analizza ingredienti per {{name}}",
+    "analyzeBeforeBuy": "Analizza gli ingredienti prima di comprare",
+    "optionsSubtitle": "Regola questi prima di generare la tua versione personalizzata.",
+    "captureSubtitle": "Scansiona un'idea di pasto e la personalizziamo per te.",
+    "choosePhoto": "Scegli foto",
+    "cameraPill": "Fotocamera",
+    "speakPill": "Parla",
+    "typePill": "Scrivi",
+    "uploadHint": "Scegli uno screenshot, una foto di cibo salvata o un'immagine dalla galleria.",
+    "chooseFromGallery": "Scegli dalla galleria",
+    "galleryHint": "Screenshot, foto salvate, qualsiasi immagine di cibo",
+    "cameraHint": "Inquadra una ricetta, un menù, uno schermo o una foto di cibo.",
+    "openCamera": "Apri fotocamera",
+    "cameraSubHint": "Scatta una foto dal vivo di un'idea di cibo",
+    "voiceHint": "Descrivi il pasto a voce: ingredienti, stile, ciò che ricordi.",
+    "tapToStop": "Tocca per fermare",
+    "tapToSpeak": "Tocca per parlare",
+    "nextCustomize": "Avanti — Personalizza →",
+    "textHint": "Scrivi o incolla un'idea di pasto, una descrizione di ricetta o il nome di un piatto.",
+    "textPlaceholder": "es. Bowl di pollo buffalo con riso, avocado e ranch…",
+    "servingsHeading": "Porzioni",
+    "adaptationStyleHeading": "Stile di adattamento",
+    "authentic": "Autentico",
+    "balanced": "Bilanciato",
+    "healthier": "Più sano",
+    "proteinLevelHeading": "Livello di proteine",
+    "proteinStandard": "Standard",
+    "proteinHigh": "Ricco di proteine",
+    "proteinAthlete": "Atleta",
+    "prepStyleHeading": "Stile di preparazione",
+    "prepOriginal": "Preparazione originale",
+    "prepEasy": "Preparazione facile",
+    "cuisineStyleHeading": "Stile di cucina",
+    "generateMyVersion": "Genera la mia versione",
+    "analyzingIngredients": "Analisi degli ingredienti…",
+    "buildingVersion": "Creazione della tua versione…",
+    "checkingCompanionProfile": "Confronto con il profilo di {{name}}",
+    "checkingYourProfile": "Confronto con il tuo profilo",
+    "adaptingProfile": "Adattamento al tuo profilo nutrizionale",
+    "versionsReady": "{{count}} versioni pronte",
+    "savedCount": " · {{count}} salvate",
+    "deleteScan": "Elimina questa scansione",
+    "tapAnotherHint": "Tocca un'altra per salvarla anch'essa, o chiudi e torna più tardi.",
+    "tapSelectHint": "Tocca una per selezionarla e salvarla. Torna quando vuoi: restano finché non le elimini.",
+    "adaptedForStrategy": "Adattato alla strategia nutrizionale di oggi",
+    "calValue": "{{value}} cal",
+    "proteinValue": "{{value}}g proteine",
+    "carbsValue": "{{value}}g carboidrati",
+    "saving": "Salvataggio…",
+    "saveAgain": "Salva di nuovo",
+    "saveThisVersion": "Salva questa versione",
+    "try3More": "Altre 3",
+    "viewSavedMeals": "Vedi i pasti salvati nei Preferiti →",
+    "personalizedReady": "La tua versione personalizzata è pronta.",
+    "macroCal": "Cal",
+    "macroProtein": "Proteine",
+    "macroCarbs": "Carboidrati",
+    "macroFat": "Grassi",
+    "savedCheck": "Salvato ✓",
+    "saveToFavorites": "Salva nei Preferiti",
+    "scanAnother": "Scansiona un altro",
+    "viewInFavorites": "Vedi nei Preferiti →"
+  },
+  "parentsCorner": {
+    "title": "Angolo dei genitori",
+    "yourChild": "tuo figlio",
+    "helpingBuildHabits": "Aiuta {{name}} a creare abitudini sane",
+    "backToBeginnings": "Torna a My Perfect Beginnings",
+    "startFresh": "Ricomincia",
+    "startNewConversation": "Avvia una nuova conversazione",
+    "clearConfirm": "Cancellare questa conversazione e ricominciare?",
+    "clear": "Cancella",
+    "cancel": "Annulla",
+    "dismiss": "Ignora",
+    "boundaryLanguage": "Posso offrire consigli nutrizionali basati su prove per la tua famiglia. Per questioni mediche, il pediatra o un dietista pediatrico è sempre il passo giusto; ti avviserò quando serve quel confronto.",
+    "todaysTip": "Consiglio di oggi",
+    "loadingConversation": "Caricamento della conversazione…",
+    "commonQuestions": "Domande frequenti",
+    "browseCommonQuestions": "Vedi le domande frequenti",
+    "followUp": "Approfondimento",
+    "makeItNow": "Preparalo ora",
+    "thinking": "Sto pensando…",
+    "emptyPrompt": "Tocca una scheda o chiedi qui sotto.",
+    "askAnything": "Chiedi qualsiasi cosa",
+    "inputPlaceholder": "Scrivi qui la tua domanda…",
+    "send": "Invia",
+    "noResponse": "Spiacente, nessuna risposta. Riprova.",
+    "connectionError": "C'è un piccolo problema ora. Controlla la connessione e riprova.",
+    "stage": {
+      "earlyInfant": "Neonato",
+      "beginningFoods": "Inizio svezzamento",
+      "youngToddler": "Piccolo bimbo",
+      "toddler": "Bambino piccolo",
+      "preschool": "Prescolare",
+      "earlySchoolAge": "Prima età scolare",
+      "growingChild": "Bambino in crescita"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "Il mio bimbo non mangia.",
+        "question": "Il mio bimbo non mangia. Cosa faccio?"
+      },
+      "toddlerHatesVegetables": {
+        "label": "Mio figlio odia le verdure.",
+        "question": "Mio figlio odia le verdure. Come gliene faccio mangiare di più?"
+      },
+      "lunchPacking": {
+        "label": "Cosa metto per pranzo?",
+        "question": "Quali idee per un pranzo sano e invitante?"
+      },
+      "healthySnacks": {
+        "label": "Spuntini sani dopo la scuola.",
+        "question": "Quali idee di spuntini sani dopo la scuola?"
+      },
+      "calcium": {
+        "label": "Mio figlio assume abbastanza calcio?",
+        "question": "Mio figlio assume abbastanza calcio? Come lo verifico?"
+      },
+      "introducingFoods": {
+        "label": "Come introduco nuovi cibi?",
+        "question": "Come introduco nuovi cibi senza che diventi una lotta?"
+      },
+      "youngAthlete": {
+        "label": "Cosa deve mangiare il mio giovane atleta?",
+        "question": "Mio figlio fa sport. Cosa mangiare prima e dopo l'allenamento?"
+      },
+      "waterIntake": {
+        "label": "Quanta acqua serve a mio figlio?",
+        "question": "Quanta acqua dovrebbe bere mio figlio al giorno?"
+      },
+      "pizza": {
+        "label": "Mio figlio può ancora mangiare la pizza?",
+        "question": "Mio figlio può ancora mangiare pizza e sfizi, o devo essere più severo?"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "Registra composizione corporea",
+    "bodyFatPct": "% massa grassa",
+    "bodyFatPlaceholder": "es. 18.5",
+    "goalBodyFatPct": "% massa grassa obiettivo (facoltativo)",
+    "goalBodyFatPlaceholder": "es. 15",
+    "scanMethod": "Metodo di misura",
+    "pickMethod": "Scegli un metodo",
+    "date": "Data",
+    "save": "Salva",
+    "saving": "Salvataggio...",
+    "notLoggedIn": "Non hai effettuato l'accesso",
+    "notLoggedInDesc": "Accedi per salvare i dati di composizione corporea.",
+    "invalidBodyFat": "Massa grassa non valida",
+    "invalidBodyFatDesc": "La percentuale di grasso deve essere tra 1% e 70%.",
+    "saved": "Salvato",
+    "savedDesc": "Composizione corporea registrata correttamente.",
+    "saveFailed": "Salvataggio non riuscito",
+    "saveFailedDesc": "Impossibile salvare i dati. Riprova."
+  },
+  "sponsorEnded": {
+    "launchProCare": "Avvia il tuo account ProCare indipendente",
+    "openStudio": "Apri il tuo studio indipendente",
+    "completeVerification": "Completa la verifica delle credenziali",
+    "continueTraining": "Continua la formazione Platform Mastery",
+    "startOwnPractice": "Avvia la mia attività",
+    "continueAsClient": "Continua come cliente",
+    "continueAsClientDesc": "Continua a usare MPM come membro individuale",
+    "continueWithFree": "Continua con Free",
+    "continueWithFreeDesc": "Generazione base dei pasti — sempre gratis",
+    "joinAnotherOrg": "Unisciti a un'altra organizzazione",
+    "joinAnotherOrgDesc": "Accetta un invito da un'altra azienda",
+    "accessEnded": "Il tuo accesso sponsorizzato da {{business}} è terminato",
+    "accessEndedBody": "Account personale, cronologia pasti, progressi Academy e certificazioni sono ancora qui. Scegli come continuare."
+  },
+  "dietStyleBadge": {
+    "kosher": "Kosher ✓",
+    "halal": "Halal ✓",
+    "vegan": "Vegana ✓",
+    "vegetarian": "Vegetariana ✓",
+    "pescatarian": "Pescetariana ✓",
+    "mediterranean": "Mediterranea ✓",
+    "paleo": "Paleo ✓",
+    "keto": "Keto ✓",
+    "carnivore": "Carnivora ✓",
+    "dairyFree": "Senza latticini ✓",
+    "custom": "Dieta personalizzata ✓"
+  },
+  "pregnancySupport": {
+    "title": "Configura My Perfect Pregnancy",
+    "intro": "Questo personalizza i tuoi consigli nutrizionali. I tuoi dati restano privati e guidano ogni pasto, controllo di sicurezza e risposta di coaching.",
+    "whereAreYou": "A che punto sei nel tuo percorso?",
+    "breastfeedingQuestion": "Stai allattando al seno?",
+    "breastfeedingHelp": "Questo definisce il tuo percorso nutrizionale. Allattamento e recupero post-parto hanno priorità diverse; li gestiamo separatamente.",
+    "yesBreastfeeding": "Sì, allatto",
+    "noBreastfeeding": "No, non allatto",
+    "breastfeedingNote": "Avrai nutrizione per la produzione di latte più un livello di recupero per guarire.",
+    "postpartumNote": "Avrai un protocollo di recupero post-parto dedicato: fibre, alimentazione anti-infiammatoria, supporto ormonale e ricomposizione. Niente diete drastiche.",
+    "trackByDueDate": "Seguire per data prevista?",
+    "trackByDueDateHelp": "Inserendo la data prevista, settimana e trimestre si aggiornano da soli. Puoi saltare e seguire manualmente.",
+    "yesEnterDueDate": "Sì, inserisci la data",
+    "skipManual": "Salta — solo fase manuale",
+    "dueDatePlaceholder": "Data prevista (YYYY-MM-DD)",
+    "activeSymptoms": "Sintomi attivi?",
+    "activeSymptomsHelp": "Seleziona tutto ciò che serve; i pasti si adatteranno.",
+    "disclaimerPart1": "My Perfect Pregnancy offre solo educazione nutrizionale generale e supporto alla struttura dei pasti. Non sostituisce",
+    "disclaimerNotSubstitute": "un sostituto",
+    "disclaimerPart2": "il tuo OB/GYN, l'ostetrica o il dietista. Segui sempre prima le indicazioni del tuo professionista sanitario.",
+    "saveButton": "Salva la mia configurazione",
+    "savingButton": "Salvataggio…",
+    "savedButton": "✓ Salvato!",
+    "turnOff": "Disattiva nutrizione gravidanza",
+    "turnOffConfirm": "Disattivare la nutrizione gravidanza?",
+    "turnOffHelp": "Rimuoverà i consigli per la gravidanza da pasti e coaching. Puoi riattivarla quando vuoi, senza giudizi.",
+    "turningOff": "Disattivazione…",
+    "yesTurnOff": "Sì, disattiva",
+    "keepItOn": "Mantieni attiva",
+    "stage": {
+      "tryingToConceive": {
+        "label": "Cerco una gravidanza",
+        "desc": "Nutrizione preconcepimento"
+      },
+      "trimester1": {
+        "label": "Primo trimestre",
+        "desc": "Settimane 1–13 · Folati, nausea"
+      },
+      "trimester2": {
+        "label": "Secondo trimestre",
+        "desc": "Settimane 14–27 · Proteine, calcio, DHA"
+      },
+      "trimester3": {
+        "label": "Terzo trimestre",
+        "desc": "Settimane 28–40 · Ferro, DHA, preparazione"
+      },
+      "breastfeeding": {
+        "label": "Allattamento",
+        "desc": "Produzione di latte, DHA, iodio, calcio"
+      },
+      "postpartum": {
+        "label": "Post-parto",
+        "desc": "Recupero, ricomposizione, ormoni, forza"
+      }
+    },
+    "symptom": {
+      "nausea": "Nausea",
+      "heartburn": "Bruciore di stomaco",
+      "constipation": "Stitichezza",
+      "fatigue": "Stanchezza",
+      "foodAversions": "Avversioni al cibo",
+      "swelling": "Gonfiore",
+      "shortnessOfBreath": "Fiato corto",
+      "lowAppetite": "Poco appetito"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "Come ti senti oggi?",
+    "noCheckinToday": "Nessun check-in dei sintomi oggi. I pasti usano il tuo profilo farmacologico standard.",
+    "checkInPrompt": "Fai il check-in per adattare pasti, shake e suggerimenti di oggi.",
+    "checkIn": "Check-in",
+    "update": "Aggiorna",
+    "updated": "Aggiornato {{time}}",
+    "escalationStatusBody": "Questi sintomi potrebbero richiedere una valutazione medica. Contatta presto il tuo medico o il team di cura.",
+    "mealsAdapting": "Pasti in adattamento ai sintomi di oggi",
+    "updatedTapAdjustments": "Aggiornato {{time}} · Tocca per vedere le modifiche",
+    "noSymptomsToday": "Nessun sintomo segnalato oggi",
+    "updatedStandardProfile": "Aggiornato {{time}} · Profilo standard attivo",
+    "escalationCardBody": "Questi sintomi potrebbero richiedere una valutazione medica. Contatta il tuo team di cura.",
+    "nutritionAdjustments": "Modifiche nutrizionali di oggi ({{count}})",
+    "reason": "Motivo",
+    "adaptation": "Adattamento",
+    "evidence": "Evidenza",
+    "justNow": "proprio ora",
+    "minutesAgo": "{{count}} min fa",
+    "hoursAgo": "{{count}} ore fa",
+    "giSymptomsHeader": "Sintomi GI — Quanto gravi oggi?",
+    "otherSymptomsHeader": "Altri sintomi",
+    "vomitingHeader": "Vomito oggi",
+    "quickQuestionsHeader": "Alcune domande veloci",
+    "notifyHeader": "Vuoi che lo sappia il tuo team di cura?",
+    "notifyHelp": "Facoltativo — decidi tu chi avvisare oggi.",
+    "updatesThroughoutDay": "Si aggiorna durante la giornata.",
+    "updatesThroughoutDayBody": "Se più tardi stai meglio, torna a fare il check-in; i pasti si adatteranno subito. Il check-in si azzera ogni mattina.",
+    "cancel": "Annulla",
+    "saving": "Salvataggio…",
+    "saveCheckIn": "Salva check-in",
+    "severity": {
+      "none": "Nessuno",
+      "mild": "Lieve",
+      "moderate": "Moderato",
+      "severe": "Grave"
+    },
+    "symptom": {
+      "nausea": "Nausea",
+      "constipation": "Stitichezza",
+      "diarrhea": "Diarrea",
+      "reflux": "Bruciore/reflusso",
+      "bloating": "Gonfiore",
+      "earlyFullness": "Sazietà precoce",
+      "foodAversions": "Avversioni al cibo",
+      "fatigue": "Stanchezza",
+      "dizziness": "Vertigini",
+      "headache": "Mal di testa"
+    },
+    "vomiting": {
+      "none": "Nessuno",
+      "once": "Una volta",
+      "multiple": "2–3 volte",
+      "cantKeepFluids": "4+ / Non trattengo liquidi"
+    },
+    "q": {
+      "keepFluids": "Riesci a trattenere i liquidi?",
+      "eatWithoutWorsening": "Riesci a mangiare senza peggiorare i sintomi?",
+      "reducedUrination": "Urini molto meno del solito?",
+      "symptomTrend": "Come stanno andando i sintomi?",
+      "appetite": "Com'è il tuo appetito oggi?"
+    },
+    "opt": {
+      "yes": "Sì",
+      "no": "No",
+      "withDifficulty": "Con difficoltà",
+      "partially": "In parte"
+    },
+    "trend": {
+      "improving": "In miglioramento",
+      "same": "Uguale",
+      "worsening": "In peggioramento",
+      "na": "Non so"
+    },
+    "appetite": {
+      "suppressed": "Nessun appetito",
+      "reduced": "Ridotto",
+      "normal": "Normale",
+      "increased": "Aumentato"
+    },
+    "notify": {
+      "keepPrivate": "No, resta privato",
+      "coach": "Avvisa il mio coach",
+      "both": "Avvisa entrambi"
+    }
   }
 }

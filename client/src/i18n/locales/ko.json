@@ -67,7 +67,12 @@
     "translate": "번역",
     "share": "공유",
     "log": "기록",
-    "logMeal": "식사 기록"
+    "logMeal": "식사 기록",
+    "addToCalendar": "캘린더에 추가",
+    "bringBackChef": "셰프 다시 불러오기",
+    "comingSoon": "곧 출시",
+    "withChef": "셰프와 함께",
+    "today": "오늘:"
   },
   "language": {
     "pageTitle": "언어",
@@ -100,7 +105,78 @@
     "founders": "창립자",
     "restaurant": "레스토랑 어시스턴트",
     "weeklyBuilder": "주간 빌더",
-    "mealsAwayFromHome": "외식"
+    "mealsAwayFromHome": "외식",
+    "academy": "아카데미",
+    "antiInflammatoryBuilder": "항염증 빌더",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "가이드 적용",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "보드 뷰",
+    "bodyComposition": "신체 구성",
+    "businessCenter": "비즈니스 센터",
+    "chefPairings": "셰프 페어링",
+    "clientDashboard": "클라이언트 대시보드",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Creator & Brand Studio",
+    "dailyJournal": "데일리 저널 및 영감",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "당뇨 허브",
+    "diabetesSupport": "당뇨 지원",
+    "diabeticBuilder": "당뇨 빌더",
+    "diabeticHub": "당뇨 허브",
+    "drinkPairings": "음료 페어링",
+    "editProfile": "프로필 편집",
+    "findMeals": "식사 찾기",
+    "foundingPartnerProgram": "창립 파트너 프로그램",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "일반 영양 빌더",
+    "healthcarePartnerships": "의료 및 임상 파트너십",
+    "howPartnershipsWork": "파트너십 운영 방식",
+    "industryPartnerships": "산업 파트너십",
+    "kitchenNetwork": "The Kitchen Network",
+    "mealBuilder": "식단 빌더",
+    "mealBuilderExchange": "식단 빌더 교환",
+    "metabolicBuilder": "대사 관리제 빌더",
+    "metabolicHub": "대사 관리제 허브",
+    "metabolicHubBack": "대사 허브",
+    "metabolicTracking": "대사 관리제 추적",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "기관 대시보드",
+    "organizationSuccessCenter": "기관 성공 센터",
+    "pairingsHub": "페어링 허브",
+    "partnerCenter": "파트너 센터",
+    "partnerManagement": "파트너 관리",
+    "partnerProgram": "파트너 프로그램",
+    "partnerPrograms": "파트너 프로그램들",
+    "partnerRevenueCenter": "파트너 및 수익 센터",
+    "patientDashboard": "환자 대시보드",
+    "performanceBuilder": "성능 영양 빌더",
+    "performanceHub": "성능 허브",
+    "physicianClients": "의사 고객",
+    "physicianPortal": "의사 포털",
+    "physicianWelcome": "의사 환영 메시지",
+    "planner": "플래너",
+    "pregnancy": "나의 완벽한 임신",
+    "proLaunchpad": "전문가 대시보드",
+    "proPortal": "Pro 포털",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "ProCare 교육",
+    "procareWelcome": "ProCare 환영 메시지",
+    "professionalWorkspace": "전문가 작업 공간",
+    "promotions": "프로모션",
+    "reduceDrinking": "음주 감소 플랜",
+    "restaurantGuide": "레스토랑 어시스턴트",
+    "signatureKitchen": "시그니처 키친",
+    "sleepTracker": "수면 추적기",
+    "supplementHub": "보충제 허브",
+    "trainerWelcome": "트레이너 환영 메시지",
+    "tutorialHub": "튜토리얼 허브",
+    "weaningOff": "중단 보조 도구",
+    "whiteLabelSolutions": "화이트 라벨 솔루션",
+    "wineListHelper": "와인 리스트 도우미"
   },
   "dashboard": {
     "professionalBadge": "프로페셔널",
@@ -218,7 +294,13 @@
     "badgeClinical": "클리니컬",
     "badgePro": "프로",
     "badgeCurrent": "현재",
-    "badgeBehavioral": "행동 AI™"
+    "badgeBehavioral": "행동 AI™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "엘리트 운동선수의 대회 준비, 최고 기량 발휘 및 회복을 위한 코치 가이드 식단 플랜",
+    "performanceCompTitle": "Performance & Competition Builder",
+    "plannerTitle": "플래너",
+    "weeklyDesc": "건강한 식단을 자신만의 방식으로 즐기고 싶은 사용자를 위한 AI 생성 식단 플랜",
+    "weeklyTitle": "My Weekly Meal Builder"
   },
   "createDish": {
     "pageTitle": "요리 만들기",
@@ -242,7 +324,11 @@
     "errorMissing": "정보 누락",
     "errorDescribe": "만들고 싶은 요리를 설명해 주세요!",
     "errorFailed": "요리를 만들 수 없습니다. 다시 시도해 주세요.",
-    "allergyAlert": "알레르기 경고"
+    "allergyAlert": "알레르기 경고",
+    "label": "어떤 요리를 만들고 싶으신가요?",
+    "notes": "기타 참고 사항",
+    "notesPlaceholder": "예: 유제품 제외, 매우 맵게, 저염, 식단 준비용 등...",
+    "servings": "인분 (1–12)"
   },
   "snack": {
     "pageTitle": "스낵 메이커",
@@ -309,7 +395,8 @@
     "servings": "인분",
     "ingredientsServes": "재료 ({{count}}인분)",
     "noIngredients": "재료가 제공되지 않았습니다",
-    "noInstructions": "지침이 제공되지 않았습니다"
+    "noInstructions": "지침이 제공되지 않았습니다",
+    "couldNotUpdateFavorites": "즐겨찾기를 업데이트할 수 없습니다. 다시 시도하세요."
   },
   "shopping": {
     "pageTitle": "스마트 쇼핑 목록",
@@ -340,7 +427,29 @@
     "catPantry": "식료품 창고",
     "catFrozen": "냉동식품",
     "catBakery": "베이커리",
-    "catOther": "기타"
+    "catOther": "기타",
+    "addItemsBtn": "항목 추가",
+    "addedToList": "쇼핑 목록에 추가됨",
+    "barcodePlaceholder": "바코드 번호 입력...",
+    "bulkInstructions": "항목을 한 줄에 하나씩 입력하거나 붙여넣고, 쉼표로 구분하세요:",
+    "bulkPlaceholder": "우유\\n계란\\n닭가슴살\\n시금치\\n현미",
+    "bulkTitle": "대량 항목 추가",
+    "checked": "확인됨",
+    "chefBuy": "셰프의 추천: 선택하세요!",
+    "chefCaution": "셰프의 조언: 주의하세요...",
+    "chefSkip": "셰프의 조언: 다시 한번 생각해보세요",
+    "continueToBiometrics": "생체 인식으로 계속",
+    "emptyList": "쇼핑 목록이 비어 있습니다",
+    "emptyListHint": "항목을 붙여넣거나 빠르게 추가하여 시작하세요",
+    "enterBarcode": "바코드 입력",
+    "items": "항목",
+    "itemsAddedDesc": "{{count}}개의 항목이 쇼핑 목록에 추가되었습니다.",
+    "itemsCopied": "{{count}}개의 항목이 복사되었습니다",
+    "proLabel": "Pro",
+    "savedForReview": "검토를 위해 저장됨",
+    "savedForReviewDesc": "이 페이지에서 언제든지 스캔 내용을 다시 확인할 수 있습니다.",
+    "scannedProduct": "스캔된 제품",
+    "tapView": "탭하여 보기 →"
   },
   "restaurant": {
     "pageTitle": "레스토랑 어시스턴트",
@@ -357,7 +466,36 @@
     "errorZipDesc": "유효한 5자리 우편번호를 입력해 주세요.",
     "errorLocationDenied": "위치 액세스 거부됨",
     "errorLocationDesc": "브라우저 설정에서 위치 액세스를 활성화하거나 우편번호를 수동으로 입력하세요.",
-    "generationFailed": "생성 실패"
+    "generationFailed": "생성 실패",
+    "addressCopied": "주소가 복사되었습니다",
+    "askFor": "요청 사항:",
+    "cannotDetectZip": "ZIP 코드를 감지할 수 없습니다",
+    "cannotDetectZipDesc": "위치는 확인되었으나 ZIP 코드를 확인할 수 없습니다. 수동으로 입력해 주세요.",
+    "copyFailed": "복사 실패",
+    "copyManually": "수동으로 복사해 주세요.",
+    "entryDesc": "식사 장소와 원하는 메뉴를 알려주시면 메뉴에서 가장 적합한 옵션을 찾아드립니다.",
+    "entryTitle": "Restaurant Assistant",
+    "findDishes": "요리 찾기",
+    "findingDishes": "완벽한 요리를 찾는 중...",
+    "howToUseTitle": "Restaurant Assistant 사용 방법",
+    "letsFindDishes": "요리 찾기 시작",
+    "locationFound": "위치 확인됨",
+    "pasteHint": "Maps 또는 Waze에 붙여넣으세요.",
+    "recommendedAt": "추천 메뉴:",
+    "scanningMenu": "메뉴 스캔 중...",
+    "searchAgain": "다시 검색",
+    "searchingFor": "{{restaurant}}에서 {{craving}} 옵션을 검색하는 중",
+    "step1": "1단계",
+    "step1Placeholder": "예: 치킨, 연어, 파스타, 스테이크",
+    "step1Question": "어떤 요리나 음식이 당기시나요?",
+    "step2": "2단계",
+    "step2Placeholder": "예: Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "어디에서 식사하시나요? 레스토랑 이름을 입력하세요.",
+    "step3": "3단계",
+    "step3Placeholder": "예: 30303, 90210, 10001",
+    "step3Question": "가장 가까운 지점을 찾을 수 있도록 ZIP 코드를 입력하세요.",
+    "translationFailed": "번역 실패",
+    "whyHealthy": "이 메뉴가 건강한 이유:"
   },
   "upgrade": {
     "viewPlans": "플랜 보기",
@@ -369,7 +507,23 @@
     "essentialTagline": "프로필을 중심으로 구축된 완전한 식사 구성 툴킷.",
     "proTagline": "확장된 크리에이터와 실제 식사, 프로토콜 완전 준수.",
     "clinicalTagline": "심각한 건강 결과를 위한 의료급 영양 도구.",
-    "proPromo": "프로는 가장 인기 있는 플랜입니다 — 모든 크리에이터를 잠금 해제하세요."
+    "proPromo": "프로는 가장 인기 있는 플랜입니다 — 모든 크리에이터를 잠금 해제하세요.",
+    "availableOn": "{{plan}}에서 이용 가능",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator 및 Sushi Creator",
+    "buildersBenefit2": "Meal Builder Exchange — 목표가 변화함에 따라 언제든 빌더를 전환하세요",
+    "buildersBenefit3": "Restaurant Assistant, My Perfect Gatherings 및 확장된 라이프스타일 도구",
+    "buildersBenefit4": "Essential 플랜으로 시작하고 · Clinical 플랜으로 의료 등급 영양 도구를 추가하세요",
+    "clinicalBenefit1": "임상 실험실 통합 — 혈액 검사 결과에 따른 맞춤형 식단 프로토콜 제공",
+    "clinicalBenefit2": "Care Team Access — 앱 내에서 의사나 트레이너와 상담하세요",
+    "clinicalBenefit3": "퍼포먼스 영양, 대회 준비 및 선수용 식단",
+    "essentialBenefit1": "Create a Dish — 당신의 정확한 영양 프로토콜에 맞춘 AI 식단",
+    "essentialBenefit2": "쇼핑 리스트, 저장된 식단 및 주간 식단 플래너",
+    "essentialBenefit3": "레시피 메이커, Snack Creator 및 무제한 Fridge Rescue",
+    "featurePartOf": "{{feature}}은(는) {{plan}}에 포함되어 있습니다",
+    "planBadge": "{{label}} 플랜",
+    "proBenefit1": "Craving Creator, Beverage Creator 및 Sushi Creator",
+    "proBenefit2": "Restaurant Assistant — 모든 식당에서 프로토콜을 준수하는 주문",
+    "proBenefit3": "My Perfect Gatherings 및 My Perfect Pets 영양 플랜"
   },
   "pricing": {
     "pageTitle": "구독",
@@ -448,7 +602,10 @@
     "dietVegan": "비건",
     "dietVegetarian": "채식",
     "dietPescatarian": "페스카타리안",
-    "dietCarnivore": "육식"
+    "dietCarnivore": "육식",
+    "back": "뒤로",
+    "next": "다음",
+    "selectPath": "위 경로 중 하나를 선택하세요"
   },
   "findMeals": {
     "pageTitle": "근처 식사 찾기",
@@ -989,7 +1146,28 @@
     "noMealsTitle": "식사 없음",
     "noSlotYet": "아직 {{slot}} 없음",
     "snacks": "간식",
-    "whyWeeklyPlanning": "주간 계획이 필요한 이유?"
+    "whyWeeklyPlanning": "주간 계획이 필요한 이유?",
+    "savingPlan": "저장 중…",
+    "savedPlan": "저장됨 ✓",
+    "savePlan": "플랜 저장",
+    "addMealsHint": "식사를 추가하려면 \"+\"를 사용하세요",
+    "dayDuplicated": "일정이 복사되었습니다",
+    "dayDuplicatedBoth": "이번 주 {{thisWeek}}일 + 향후 주차 {{future}}일",
+    "dayDuplicatedDesc": "{{count}}일 분량으로 복사됨",
+    "duplicate": "복사",
+    "failedToDuplicate": "복사 실패",
+    "nextWeek": "다음 주",
+    "noSlotMealsYet": "아직 {{slot}} 식사가 없습니다",
+    "partialDuplicate": "부분 복사",
+    "partialDuplicateDesc": "총 {{total}}일 중 {{count}}일이 저장되었습니다.",
+    "prevWeek": "지난 주",
+    "savedFutureWeek": "향후 주차에 저장됨",
+    "savedFutureWeekDesc": "{{count}}일 분량의 식사가 복사되었습니다. 옆으로 밀어 확인해 보세요.",
+    "shoppingListDesc": "전체 주간 식단을 장보기 목록으로 보낼 수 있습니다! 모든 재료를 하나로 합쳐 간편하게 장을 볼 수 있습니다. 하단의 \"전체 주간 보내기\"를 클릭하세요.",
+    "shoppingListNext": "다음 단계: 장보기 목록을 효과적으로 사용하는 방법을 확인해 보세요!",
+    "shoppingListTitle": "장보기 목록 준비 완료",
+    "syncPending": "동기화 대기 중",
+    "tryAgain": "다시 시도해 주세요"
   },
   "coachCorner": {
     "title": "코치 코너",
@@ -1064,7 +1242,15 @@
         "step5Desc": "클라이언트의 체크인, 체중 변화 및 영양 진행 상황을 모니터링하세요.",
         "step6Title": "변경사항 저장",
         "step6Desc": "업데이트를 저장하여 클라이언트 환경에 반영하세요."
-      }
+      },
+      "activeOnClient": "이 클라이언트에서 활성화됨",
+      "bodyComposition": "신체 구성",
+      "bodyFat": "체지방",
+      "fibrousCarbs": "섬유질 탄수화물",
+      "method": "방법",
+      "physicianAuthRequired": "의사 승인 필요",
+      "source": "출처",
+      "targetBodyFat": "목표 체지방"
     },
     "fibrousCarbs": "식이섬유 탄수화물",
     "bodyComposition": "체성분",
@@ -1444,6 +1630,171 @@
       "revokeConfirm": "액세스 취소"
     }
   },
+  "mealCard": {
+    "protein": "단백질",
+    "carbs": "탄수화물",
+    "fat": "지방",
+    "ingredients": "재료:",
+    "instructions": "조리법:",
+    "medicalSafety": "의료 안전",
+    "diabetesProtocol": "당뇨 프로토콜",
+    "whyThisMealWasBuilt": "이 식사가 만들어진 이유",
+    "showLess": "간략히 보기",
+    "showAllSteps": "전체 {{count}}단계 보기",
+    "moreIngredients": "+ {{count}}개 더...",
+    "loggedSuccessfully": "기록 완료",
+    "failedToLog": "매크로 기록에 실패했습니다. 다시 시도해 주세요.",
+    "deleteMeal": "식사 삭제",
+    "removeFromBoard": "이 식사를 보드에서 제거하시겠습니까?",
+    "refineMeal": "식사 개선",
+    "showingRefined": "개선된 버전 표시 중",
+    "restoreOriginal": "원본 복원",
+    "competitionPrepProtocol": "🏆 대회 준비 프로토콜 적용됨",
+    "athleticPerformanceProtocol": "⚡ 운동 성능 프로토콜 적용됨",
+    "loggedDesc": "{{name}}이(가) 매크로에 기록되었습니다.",
+    "ingredientFallback": "재료",
+    "generatedForBGL": "BGL용 생성:",
+    "relevantRange": "관련 범위:",
+    "weeksOut": "{{n}}주 남음",
+    "sessionsPerWeek": "주{{n}}회",
+    "protocol_goalFatLoss": "체지방 감소 우선",
+    "protocol_goalMuscleGain": "근육 증가 우선",
+    "protocol_goalStrength": "근력 향상 우선",
+    "protocol_goalPeak": "최고 성능 우선",
+    "protocol_athleticPerfLabel": "운동 성능 — {{sport}}",
+    "protocol_competitionPrepLabel": "대회 준비 — {{type}}",
+    "protocol_performancePhaseFallback": "성능 단계",
+    "protocol_recoverySupportActive": "회복 지원 활성",
+    "protocol_sport_strength": "근력 훈련",
+    "protocol_sport_hypertrophy": "근비대",
+    "protocol_sport_powerlifting": "파워리프팅",
+    "protocol_sport_olympic_lifting": "역도",
+    "protocol_sport_mma": "MMA",
+    "protocol_sport_boxing": "복싱",
+    "protocol_sport_wrestling": "레슬링",
+    "protocol_sport_bjj": "BJJ / 그래플링",
+    "protocol_sport_crossfit": "크로스핏",
+    "protocol_sport_endurance_running": "달리기",
+    "protocol_sport_cycling": "사이클링",
+    "protocol_sport_triathlon": "트라이애슬론",
+    "protocol_sport_tactical": "전술 / 군사",
+    "protocol_sport_general_fitness": "일반 피트니스",
+    "protocol_sport_other": "기타 스포츠",
+    "protocol_phase_off_season": "비시즌",
+    "protocol_phase_pre_season": "프리시즌",
+    "protocol_phase_in_season": "시즌 중",
+    "protocol_phase_weight_cut": "감량 단계",
+    "protocol_phase_recovery": "회복 단계",
+    "protocol_bullet_fat_loss_0": "고단백 목표 (≥2g/kg)",
+    "protocol_bullet_fat_loss_1": "칼로리 적자 전략",
+    "protocol_bullet_conditioning_0": "탄수화물 타이밍 — 운동 전/후",
+    "protocol_bullet_conditioning_1": "항염증 회복",
+    "protocol_bullet_peak_prep_0": "나트륨 감소 활성",
+    "protocol_bullet_peak_prep_1": "소화성 우선",
+    "protocol_bullet_peak_week_0": "저섬유 프로토콜 활성",
+    "protocol_bullet_peak_week_1": "저나트륨 — 수분 조절",
+    "protocol_bullet_show_day_0": "빠른 소화 프로토콜",
+    "protocol_bullet_show_day_1": "성능을 위한 탄수화물 타이밍",
+    "protocol_bullet_meet_week_0": "탄수화물 로딩 프로토콜 활성",
+    "protocol_bullet_meet_week_1": "CNS 회복 영양소",
+    "protocol_bullet_meet_day_0": "대회 전 탄수화물 프로토콜",
+    "protocol_bullet_meet_day_1": "소화성 최우선",
+    "protocol_bullet_weight_cut_0": "나트륨 제한 활성",
+    "protocol_bullet_weight_cut_1": "전해질 관리",
+    "protocol_bullet_fight_week_0": "수분 관리 프로토콜",
+    "protocol_bullet_fight_week_1": "즉시 재수화 가능한 식사",
+    "protocol_bullet_taper_0": "탄수화물 로딩 (8–10g/kg)",
+    "protocol_bullet_taper_1": "섬유질 감소 활성",
+    "protocol_bullet_race_day_0": "경기 당일 탄수화물 프로토콜",
+    "protocol_bullet_race_day_1": "장 친화적 영양",
+    "protocol_bullet_post_competition_0": "회복 리피드 활성",
+    "protocol_bullet_post_competition_1": "항염증 우선",
+    "protocol_bullet_post_race_0": "경기 후 회복 영양",
+    "protocol_bullet_post_race_1": "칼로리 증가",
+    "sportFallback": "스포츠",
+    "mealFallback": "식사",
+    "protocol_phaselabel_fat_loss": "체지방 감소 단계",
+    "protocol_phaselabel_conditioning": "컨디셔닝 단계",
+    "protocol_phaselabel_peak_prep": "피크 준비",
+    "protocol_phaselabel_peak_week": "피크 위크",
+    "protocol_phaselabel_show_day": "대회 당일",
+    "protocol_phaselabel_post_competition": "대회 후 회복",
+    "protocol_phaselabel_strength_building": "근력 구축",
+    "protocol_phaselabel_intensity_phase": "강도 단계",
+    "protocol_phaselabel_taper": "테이퍼 단계",
+    "protocol_phaselabel_meet_week": "대회 주간",
+    "protocol_phaselabel_meet_day": "대회 당일",
+    "protocol_phaselabel_conditioning_combat": "컨디셔닝 캠프",
+    "protocol_phaselabel_fight_prep": "시합 준비",
+    "protocol_phaselabel_weight_cut": "감량",
+    "protocol_phaselabel_fight_week": "시합 주간",
+    "protocol_phaselabel_fight_day": "시합 당일",
+    "protocol_phaselabel_pre_season": "프리시즌",
+    "protocol_phaselabel_in_season": "시즌 중",
+    "protocol_phaselabel_championship_week": "챔피언십 주간",
+    "protocol_phaselabel_match_day": "경기 당일",
+    "protocol_phaselabel_off_season": "비시즌",
+    "protocol_phaselabel_base_conditioning": "기초 컨디셔닝",
+    "protocol_phaselabel_event_prep": "이벤트 준비",
+    "protocol_phaselabel_competition_week": "대회 주간",
+    "protocol_phaselabel_competition_day": "대회 당일",
+    "protocol_phaselabel_base_building": "기초 구축",
+    "protocol_phaselabel_build_phase": "빌드 단계",
+    "protocol_phaselabel_race_prep": "레이스 준비",
+    "protocol_phaselabel_race_day": "레이스 당일",
+    "protocol_phaselabel_post_race": "레이스 후 회복",
+    "protocol_comptype_bodybuilding_show": "보디빌딩 대회",
+    "protocol_comptype_mens_physique": "맨즈 피지크",
+    "protocol_comptype_classic_physique": "클래식 피지크",
+    "protocol_comptype_figure": "피겨",
+    "protocol_comptype_bikini": "비키니",
+    "protocol_comptype_wellness": "웰니스",
+    "protocol_comptype_powerlifting_meet": "파워리프팅 대회",
+    "protocol_comptype_strongman_competition": "스트롱맨",
+    "protocol_comptype_olympic_weightlifting_meet": "올림픽 역도",
+    "protocol_comptype_fight_camp": "파이트 캠프",
+    "protocol_comptype_wrestling_season": "레슬링 시즌",
+    "protocol_comptype_crossfit_competition": "크로스핏 대회",
+    "protocol_comptype_hyrox": "Hyrox",
+    "protocol_comptype_marathon": "마라톤",
+    "protocol_comptype_triathlon_race": "트라이애슬론",
+    "protocol_comptype_spartan_race": "스파르탄 레이스",
+    "protocol_comptype_other": "기타",
+    "protocol_bullet_strength_building_0": "구축 단계 칼로리 지원",
+    "protocol_bullet_strength_building_1": "점진적 과부하 연료",
+    "protocol_bullet_intensity_phase_0": "강화된 탄수화물 타이밍",
+    "protocol_bullet_intensity_phase_1": "CNS 회복 영양",
+    "protocol_bullet_conditioning_combat_0": "격투기 컨디셔닝 식단",
+    "protocol_bullet_conditioning_combat_1": "항염증 집중",
+    "protocol_bullet_fight_prep_0": "시합 준비 영양 활성",
+    "protocol_bullet_fight_prep_1": "체급 인식",
+    "protocol_bullet_fight_day_0": "시합 당일 연료 프로토콜",
+    "protocol_bullet_fight_day_1": "빠른 소화 활성",
+    "protocol_bullet_pre_season_0": "프리시즌 기초 연료",
+    "protocol_bullet_pre_season_1": "근력 기초 지원",
+    "protocol_bullet_in_season_0": "시즌 중 회복 식단",
+    "protocol_bullet_in_season_1": "대회 체중 지원",
+    "protocol_bullet_championship_week_0": "챔피언십 피크 프로토콜",
+    "protocol_bullet_championship_week_1": "저섬유 — 클린 연료",
+    "protocol_bullet_match_day_0": "경기 당일 탄수화물 프로토콜",
+    "protocol_bullet_match_day_1": "소화성 최우선",
+    "protocol_bullet_off_season_0": "비시즌 기초 영양",
+    "protocol_bullet_off_season_1": "회복 집중 활성",
+    "protocol_bullet_base_conditioning_0": "유산소 기초 연료 지원",
+    "protocol_bullet_base_conditioning_1": "탄수화물 주기화 활성",
+    "protocol_bullet_event_prep_0": "이벤트 준비 영양 활성",
+    "protocol_bullet_event_prep_1": "탄수화물 타이밍 최적화",
+    "protocol_bullet_competition_week_0": "대회 주간 프로토콜",
+    "protocol_bullet_competition_week_1": "저섬유 활성",
+    "protocol_bullet_competition_day_0": "대회 당일 연료",
+    "protocol_bullet_competition_day_1": "빠른 소화 프로토콜",
+    "protocol_bullet_base_building_0": "유산소 기초 영양",
+    "protocol_bullet_base_building_1": "지구력 연료 프로토콜",
+    "protocol_bullet_build_phase_0": "점진적 구축 연료",
+    "protocol_bullet_build_phase_1": "탄수화물 주기화 활성",
+    "protocol_bullet_race_prep_0": "피크 훈련 탄수화물 프로토콜",
+    "protocol_bullet_race_prep_1": "지구력 연료 최적화"
+  },
   "glp1Hub": {
     "autoSettings": "식사 빌더가 이 설정을 자동으로 사용합니다.",
     "careBody": "My Perfect Meals는 담당 의사, 영양사 또는 의료 전문가의 치료를 보조하기 위해 설계되었으며, 결코 그들을 대체하지 않습니다. 제공된 정보와 도구를 사용하여 방문 사이사이에 일관성을 유지하고, 신체를 이해하며, 전문가의 지침을 존중하는 작지만 확신 있는 선택을 하세요. 이 앱의 모든 추적기, 식사 및 제안은 귀하의 치료 계획을 지원하기 위한 것이지 대체하기 위한 것이 아닙니다.",
@@ -1595,7 +1946,9 @@
     "tour7Title": "전분 슬롯 확인",
     "tour8Desc": "단백질과 탄수화물은 식사 구성 시 가장 중요한 숫자이므로 별표(*)로 표시됩니다. 이를 먼저 맞추는 데 집중하세요.",
     "tour8Title": "별표(*)의 의미",
-    "tourTitle": "당뇨 식사 빌더 가이드"
+    "tourTitle": "당뇨 식사 빌더 가이드",
+    "tour9Desc": "단백질과 탄수화물은 식단 구성 시 가장 중요하게 고려해야 할 수치이므로 별표(*)로 표시되어 있습니다. 이 수치부터 먼저 맞춰보세요.",
+    "tour9Title": "별표의 의미"
   },
   "antiInflammatoryBuilder": {
     "backLabel": "당뇨 허브",
@@ -1684,5 +2037,1665 @@
     "tour8Desc": "단백질과 탄수화물은 식사 구성 시 가장 중요한 숫자이므로 별표(*)로 표시됩니다. 이를 먼저 맞추는 데 집중하세요.",
     "tour8Title": "별표(*)의 의미",
     "tourTitle": "일반 영양 빌더"
+  },
+  "trialBanner": {
+    "lastDayTitle": "무료 Pro 접근이 오늘 종료됩니다",
+    "lastDayBody": "계정이 오늘 밤 무료 플랜으로 전환됩니다.",
+    "lastDayDataSafe": "모든 데이터는 안전하게 보관됩니다.",
+    "lastDayUpgradeHint": "Pro 기능을 유지하려면 언제든지 업그레이드하세요.",
+    "upgradeToPro": "Pro로 업그레이드",
+    "exploreFeatures": "기능 탐색",
+    "dismiss": "닫기",
+    "daysLeft": "{{count}}일 남음",
+    "oneDayLeft": "1일 남음",
+    "trialCountdown": "체험판에서 — {{tierLabel}}이 곧 종료됩니다.",
+    "clinicalAccess": "임상 접근",
+    "fullAccess": "전체 접근"
+  },
+  "trialStatusCard": {
+    "adminTrial": "관리자 체험판",
+    "clinicalTrial": "임상 체험판",
+    "promotionalTrial": "프로모션 체험판",
+    "freeTrial": "무료 체험판",
+    "clinicalUltimate": "임상 · 얼티밋",
+    "trialEndsToday": "오늘 체험판이 종료됩니다",
+    "daysLeftInTrial": "체험판 {{count}}일 남음",
+    "daysOfDaysRemaining": "{{total}}일 중 {{count}}일 남음",
+    "accountMovesFree": "계정이 오늘 밤 무료 플랜으로 전환됩니다. 모든 데이터는 안전하게 보관됩니다.",
+    "trialExpires": "체험판 만료일: {{date}}",
+    "tierFull": "전체",
+    "keepFullAccess": "전체 접근 유지하기 →"
+  },
+  "groceryDashCard": {
+    "title": "주간 식료품 목록",
+    "description": "식단 계획을 기반으로 한 맞춤형 쇼핑 목록",
+    "itemsCompleted": "{{total}}개 중 {{completed}}개 완료",
+    "shoppingDone": "쇼핑의 {{pct}}% 완료",
+    "updatedToday": "오늘 업데이트됨",
+    "recentItems": "최근 항목",
+    "addItem": "항목 추가",
+    "viewFullList": "전체 목록 보기",
+    "noItems": "장바구니가 비어 있습니다. 식단 계획에서 항목을 추가하세요."
+  },
+  "physicianCareTeam": {
+    "availability": {
+      "available": "활동 중",
+      "away": "자리 비움",
+      "from": "시작",
+      "offline": "오프라인",
+      "saved": "저장됨",
+      "saving": "저장 중…",
+      "title": "활동 상태",
+      "until": "종료"
+    },
+    "clinic": {
+      "activePatients": "현재 진료 중인 환자",
+      "portalButton": "의사 포털 열기",
+      "viewAndManage": "의사 포털에서 환자를 확인하고 관리하세요."
+    },
+    "errors": {
+      "availabilityFailed": "활동 상태 업데이트에 실패했습니다.",
+      "emailRequired": "이메일 주소가 필요합니다.",
+      "inviteFailed": "초대장 발송에 실패했습니다.",
+      "loadFailed": "케어 팀 정보를 불러오지 못했습니다.",
+      "saveDatesFailed": "날짜 저장에 실패했습니다."
+    },
+    "invite": {
+      "emailLabel": "환자 이메일",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "전문 분야",
+      "rolePlaceholder": "역할 선택",
+      "sendInvite": "초대장 발송",
+      "title": "환자 초대"
+    },
+    "platform": {
+      "button": "기능 살펴보기",
+      "description": "본 플랫폼이 환자 지원에 어떻게 도움이 되는지 알아보세요.",
+      "explore": "플랫폼 살펴보기"
+    },
+    "roles": {
+      "dietitian": "영양사",
+      "doctor": "의사",
+      "np": "NP",
+      "nutritionist": "영양 전문가",
+      "pa": "PA",
+      "rn": "RN"
+    },
+    "title": "의사 케어팀",
+    "toast": {
+      "invitationSent": "{{email}} 님께 초대장이 발송되었습니다"
+    },
+    "tour": {
+      "invitePatients": "환자 초대",
+      "invitePatientsDesc": "환자를 초대하여 연결하고 지원을 제공하세요.",
+      "physicianPortal": "의사 포털 사용",
+      "physicianPortalDesc": "의사 포털을 열어 환자를 확인하고 관리하세요.",
+      "setAvailability": "가용 시간 설정",
+      "setAvailabilityDesc": "환자에게 사용 가능, 부재중 또는 오프라인 상태임을 알리세요."
+    },
+    "tourTitle": "Physician Care Team"
+  },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "My Perfect Meals",
+      "features": "기능",
+      "howItWorks": "사용 방법",
+      "pricing": "가격",
+      "signIn": "로그인"
+    },
+    "errorBoundary": {
+      "title": "문제가 발생했습니다",
+      "description": "이 페이지를 로드하는 데 문제가 있습니다. 새로 고침 후 다시 시도해 주세요.",
+      "refresh": "페이지 새로 고침"
+    },
+    "dateSlotPicker": {
+      "placeholder": "식사 슬롯 선택"
+    },
+    "mealSlots": {
+      "breakfast": "아침 식사",
+      "lunch": "점심 식사",
+      "dinner": "저녁 식사",
+      "snack": "간식"
+    },
+    "dailyNutritionTracker": {
+      "title": "일일 영양 진행 상황",
+      "description": "일일 영양 섭취량을 추적하세요",
+      "calories": "칼로리",
+      "protein": "단백질",
+      "carbohydrates": "탄수화물",
+      "fat": "지방",
+      "onTrack": "일일 목표를 향해 순조롭게 진행 중입니다!"
+    },
+    "pagination": {
+      "label": "페이지 탐색",
+      "previousPage": "이전 페이지로 이동",
+      "previous": "이전",
+      "nextPage": "다음 페이지로 이동",
+      "next": "다음",
+      "morePages": "더 많은 페이지"
+    },
+    "mealCard": {
+      "noRecipe": "레시피 없음",
+      "addMeal": "식사 추가",
+      "serving": "1인분:",
+      "ingredients": "재료:",
+      "cookingInstructions": "조리 방법:",
+      "protein": "단백질",
+      "carbs": "탄수화물",
+      "fat": "지방"
+    },
+    "nutritionSummary": {
+      "title": "영양 요약",
+      "empty": "영양 요약을 보려면 식사 계획을 생성하세요",
+      "weeklyOverview": "주간 개요",
+      "totalCalories": "총 칼로리",
+      "dailyAverage": "일일 평균",
+      "totalProtein": "총 단백질",
+      "daysPlanned": "계획된 일수",
+      "dailyTargets": "일일 목표",
+      "calories": "칼로리",
+      "protein": "단백질",
+      "carbohydrates": "탄수화물",
+      "fat": "지방",
+      "targetMet": "목표 달성",
+      "goalProgress": "목표 진행 상황",
+      "fitnessGoal": "피트니스 목표",
+      "activityLevel": "활동 수준",
+      "dietaryPreferences": "식이 선호도",
+      "balanceScore": "균형 점수",
+      "percentOfTarget": "목표의 {{n}}%",
+      "remainingCal": "{{n}} 남음",
+      "remainingG": "{{n}}g 남음"
+    },
+    "enhancedMealCard": {
+      "replace": "교체",
+      "replacing": "교체 중...",
+      "replaceTitle": "완전히 새로운 식사 레시피로 교체",
+      "replacingTitle": "식사 교체 중...",
+      "portionGuide": "1인분 가이드:",
+      "ingredients": "재료:",
+      "instructions": "조리법:",
+      "medicalSafety": "의료 안전성:",
+      "error": "오류:"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "오늘 남은 양",
+    "protein": "단백질",
+    "starchy": "전분질",
+    "fibrous": "식이섬유",
+    "fat": "지방",
+    "setMacrosPrompt": "매크로를 설정하여 오늘 남은 양을 확인하세요.",
+    "saveDay": "오늘을 생체지표에 저장",
+    "targetsUpdated": "하루 중 목표가 업데이트됨",
+    "targetsUpdatedReason": "하루 중 목표가 업데이트됨 — {{reason}}",
+    "dismiss": "닫기",
+    "overLimit": "⚠ 한도 초과",
+    "limit": "★ 한도",
+    "coach": {
+      "title": "매크로 코치",
+      "subtitle": "남은 목표를 읽는 방법",
+      "proteinTitle": "단백질",
+      "proteinBody": "이 목표를 채워 근육을 보호하고 포만감을 유지하세요.",
+      "proteinBullet1": "매 끼니 살코기 위주로 선택하세요.",
+      "proteinBullet2": "하루 동안 나누어 섭취하세요.",
+      "carbsTitle": "탄수화물",
+      "carbsBody": "전분질 탄수화물로 훈련에 연료를 공급하고 식이섬유로 보완하세요.",
+      "carbsBullet1": "전분질 탄수화물이 수행 능력을 뒷받침합니다.",
+      "carbsBullet2": "식이섬유는 소화와 포만감을 돕습니다.",
+      "fatTitle": "지방",
+      "fatBody": "에너지와 호르몬 균형을 위해 지방은 적당히 유지하세요.",
+      "fatBullet1": "건강한 지방을 선택하세요.",
+      "fatBullet2": "양에 유의하세요 — 지방은 열량이 높습니다.",
+      "closingTitle": "유연하게",
+      "closingBody": "목표는 당신의 하루에 맞춰 조정됩니다 — 가깝게 맞추고 일관성을 유지하세요.",
+      "infoAria": "이 숫자들은 무슨 의미인가요?",
+      "info": "정보",
+      "starchyTitle": "전분질 탄수화물 — 당신의 주요 목표",
+      "starchy1": "일일 상한선에 맞추거나 그 이하로 유지하세요.",
+      "starchy2": "초과하면 진행이 느려집니다 — 이것이 중요합니다.",
+      "starchy3": "미달은 전혀 괜찮습니다. 억지로 채우지 마세요.",
+      "flexTitle": "단백질과 섬유질 — 유연하게",
+      "flex1": "조금 높거나 낮아도 아무 문제 없습니다.",
+      "flex2": "이 두 가지에서 완벽을 좇지 마세요.",
+      "fat1": "지방은 음식 선택에 따라 자연스럽게 올라갑니다.",
+      "fat2": "식이 지방은 체지방 증가의 원인이 아닙니다 — 집착하지 마세요.",
+      "closing1": "전분 목표 안에 머무는 데 집중하면 나머지는 자연히 맞춰집니다.",
+      "closing2": "완벽할 필요는 없습니다. 일관되면 됩니다."
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "대회 준비 프로토콜이 저장되었습니다.",
+      "athleticSaved": "운동 수행 프로토콜이 저장되었습니다.",
+      "activated": "프로토콜이 활성화됨",
+      "errorTitle": "오류",
+      "errorDesc": "저장할 수 없습니다. 다시 시도하세요."
+    },
+    "stepCount": "{{total}}단계 중 {{current}}단계",
+    "back": "뒤로",
+    "next": "다음",
+    "saving": "저장 중...",
+    "activateProtocol": "프로토콜 활성화",
+    "optional": "(선택 사항)",
+    "track": {
+      "title": "무엇이 당신의 목표를 설명하나요?",
+      "subtitle": "각 트랙은 완전히 다른 프로토콜 엔진을 사용합니다.",
+      "athleticTitle": "운동 수행",
+      "athleticDesc": "MMA, 복싱, 레슬링, 미식축구, CrossFit, 지구력, 전술. 목표는 수행 능력 — 연료 공급, 회복, 적응.",
+      "compTitle": "대회 준비",
+      "compDesc": "보디빌딩, 피지크, 파워리프팅 대회, 격투 캠프, 레슬링 시즌. 대회 날짜가 모든 단계를 자동으로 이끕니다."
+    },
+    "goals": {
+      "title": "주요 목표는 무엇인가요?",
+      "subtitle": "이것이 매크로 우선순위와 식사 에너지 밀도를 결정합니다.",
+      "fatLoss": {
+        "label": "체지방 감소",
+        "desc": "수행 능력을 유지하며 라인 만들기"
+      },
+      "muscleGain": {
+        "label": "근육 증가",
+        "desc": "근비대와 동화작용"
+      },
+      "maintenance": {
+        "label": "유지",
+        "desc": "체성분 안정"
+      },
+      "performance": {
+        "label": "최고 수행",
+        "desc": "출력, 속도, 파워"
+      }
+    },
+    "trainingType": {
+      "title": "어떤 유형의 훈련을 하나요?",
+      "subtitle": "주 종목이나 분야를 선택하세요.",
+      "otherPlaceholder": "기타 {{group}} 종목…"
+    },
+    "trainingTypes": {
+      "strength": "근력",
+      "hypertrophy": "근비대",
+      "powerlifting": "파워리프팅",
+      "olympicLifting": "역도",
+      "mma": "MMA",
+      "boxing": "복싱",
+      "wrestling": "레슬링",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "달리기",
+      "cycling": "사이클링",
+      "triathlon": "트라이애슬론",
+      "tactical": "전술 / 군사",
+      "generalFitness": "일반 피트니스"
+    },
+    "athleticGroups": {
+      "iron": "아이언 스포츠",
+      "combat": "격투 스포츠",
+      "mixed": "혼합",
+      "endurance": "지구력",
+      "other": "기타"
+    },
+    "frequency": {
+      "title": "얼마나 자주 훈련하나요?",
+      "subtitle": "주간 훈련 세션 (휴식일 제외).",
+      "twoADayQuestion": "하루 두 번 훈련하나요?",
+      "twoADayDesc": "세션 사이 회복 식사 안내를 활성화",
+      "yes": "예",
+      "no": "아니요"
+    },
+    "freqs": {
+      "oneTwo": "1–2일",
+      "threeFour": "3–4일",
+      "fiveSix": "5–6일",
+      "sevenPlus": "7일 이상 (매일)"
+    },
+    "cardio": {
+      "title": "유산소 초점은 무엇인가요?",
+      "subtitle": "탄수화물 타이밍과 해당 연료 필요량을 결정합니다.",
+      "none": {
+        "label": "유산소 없음",
+        "desc": "순수 근력 또는 기술 초점 — 심혈관 운동 없음"
+      },
+      "recovery": {
+        "label": "걷기 / 회복",
+        "desc": "가벼운 움직임만 — 산책, 스트레칭, 가벼운 자전거"
+      },
+      "zone2": {
+        "label": "가벼운 유산소",
+        "desc": "대화가 가능한 편안한 페이스 — 유산소 기반 형성"
+      },
+      "tempo": {
+        "label": "중간 유산소",
+        "desc": "꾸준하고 도전적인 노력 — 숨차지만 지속 가능"
+      },
+      "threshold": {
+        "label": "고강도 유산소",
+        "desc": "고강도의 지속적 노력 — 한계에 가까움"
+      },
+      "hiit": {
+        "label": "스프린트 인터벌",
+        "desc": "짧은 전력 질주와 휴식 — 최대 노력"
+      },
+      "mixed": {
+        "label": "혼합 유산소",
+        "desc": "세션마다 다름 — 쉬운 날과 힘든 날"
+      }
+    },
+    "phase": {
+      "title": "훈련 주기의 어느 단계인가요?",
+      "subtitle": "당신의 단계가 매크로 목표와 음식 선택을 보정합니다."
+    },
+    "phases": {
+      "offSeason": {
+        "label": "비시즌",
+        "desc": "볼륨 중심, 기반 구축"
+      },
+      "preSeason": {
+        "label": "시즌 전",
+        "desc": "컨디셔닝 강화"
+      },
+      "inSeason": {
+        "label": "시즌 중",
+        "desc": "수행 유지"
+      },
+      "weightCut": {
+        "label": "체중 감량",
+        "desc": "단기 적자 + 재수분"
+      },
+      "recovery": {
+        "label": "회복",
+        "desc": "항염, 회복 우선"
+      }
+    },
+    "duration": {
+      "title": "일반적인 세션 시간은 얼마인가요?",
+      "subtitle": "글리코겐 소모와 회복 영양 필요량 계산에 사용됩니다."
+    },
+    "durations": {
+      "under30": {
+        "label": "30분 미만",
+        "desc": "짧은 / 보조 세션"
+      },
+      "thirtySixty": {
+        "label": "30–60분",
+        "desc": "표준 훈련 블록"
+      },
+      "sixtyNinety": {
+        "label": "60–90분",
+        "desc": "워밍업과 쿨다운을 포함한 완전 세션"
+      },
+      "ninetyPlus": {
+        "label": "90분 이상",
+        "desc": "고볼륨 또는 다종목 세션"
+      }
+    },
+    "recoveryStep": {
+      "title": "지금 회복 상태는 어떤가요?",
+      "subtitle": "현재 회복 상태가 단백질 타이밍, 항염 우선순위, 열량 밀도를 좌우합니다."
+    },
+    "recovery": {
+      "good": {
+        "label": "좋음",
+        "desc": "잘 자고, 근육통 적고, 에너지 충분"
+      },
+      "average": {
+        "label": "보통",
+        "desc": "약간의 피로가 있지만 관리 가능"
+      },
+      "poor": {
+        "label": "나쁨",
+        "desc": "피로, 심한 근육통, 수면 부족"
+      }
+    },
+    "adaptationStep": {
+      "title": "운동 초점은 무엇인가요?",
+      "subtitle": "무엇을 위해 훈련하는지 선택하세요 — 탄수화물 타이밍, 에너지 시스템 지원, 식사 구성을 보정합니다."
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "지구력",
+        "desc": "유산소 엔진 구축 — 더 긴 노력, 더 나은 지구력"
+      },
+      "conditioning": {
+        "label": "컨디셔닝",
+        "desc": "여러 에너지 시스템에 걸친 전반적 체력"
+      },
+      "speed": {
+        "label": "스피드",
+        "desc": "더 빠른 스프린트 — 폭발적 속근 훈련 초점"
+      },
+      "power": {
+        "label": "파워",
+        "desc": "무거운 것을 빠르게 — 근력과 폭발력"
+      },
+      "workCapacity": {
+        "label": "작업 능력",
+        "desc": "더 많이, 더 빨리 회복 — 높은 훈련량 소화"
+      },
+      "activeRecovery": {
+        "label": "능동 회복",
+        "desc": "회복과 재충전 — 항염, 중추신경 리셋"
+      }
+    },
+    "schedule": {
+      "title": "주간 훈련 일정을 설정하세요",
+      "subtitle": "영양은 훈련 내용에 따라 매일 자동으로 조정됩니다. 각 세션 유형이 탄수화물, 열량, 단백질 목표를 이동시킵니다.",
+      "trainingPhase": "훈련 단계",
+      "weekSchedule": "주간 일정",
+      "howItWorksTitle": "작동 방식",
+      "howItWorksBody": "MPM은 매일 아침 일정을 읽고 매크로 목표를 자동으로 조정합니다. 파워 데이는 탄수화물을 늘리고, 회복 데이는 줄입니다. 수동 조정이 필요 없습니다."
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "근력",
+        "short": "근",
+        "desc": "저항 훈련 — 중간 수준 탄수화물 지원"
+      },
+      "power": {
+        "label": "파워",
+        "short": "파",
+        "desc": "폭발적 출력 — 추가 탄수화물과 단백질 활성"
+      },
+      "endurance": {
+        "label": "지구력",
+        "short": "지",
+        "desc": "유산소 연료 우선 — 탄수화물 가용성 상승"
+      },
+      "sportPractice": {
+        "label": "종목 연습",
+        "short": "연",
+        "desc": "혼합 요구 — 중간 수준 탄수화물 지원"
+      },
+      "competition": {
+        "label": "경기",
+        "short": "경",
+        "desc": "경기 당일 연료 공급 — 최대 탄수화물 가용성"
+      },
+      "recovery": {
+        "label": "회복",
+        "short": "회",
+        "desc": "회복 강조 — 탄수화물 감소, 항염 우선"
+      },
+      "off": {
+        "label": "휴식일",
+        "short": "휴",
+        "desc": "완전 휴식 — 열량 목표 감소"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "안정화",
+        "desc": "기초 단계 — 동작 품질, 코어 안정성"
+      },
+      "strength": {
+        "label": "근력",
+        "desc": "최대 근력 능력 구축"
+      },
+      "power": {
+        "label": "파워",
+        "desc": "폭발적 출력 — 힘 곱하기 속도"
+      },
+      "peaking": {
+        "label": "피킹",
+        "desc": "경기 전 다듬기 — 강도 상승, 볼륨 감소"
+      },
+      "inSeason": {
+        "label": "시즌 중",
+        "desc": "경기 일정 내내 수행 유지"
+      },
+      "offSeason": {
+        "label": "비시즌",
+        "desc": "시즌 사이 기반 구축과 회복"
+      }
+    },
+    "days": {
+      "mon": "월",
+      "tue": "화",
+      "wed": "수",
+      "thu": "목",
+      "fri": "금",
+      "sat": "토",
+      "sun": "일"
+    },
+    "compGroups": {
+      "physique": "피지크",
+      "strength": "근력 스포츠",
+      "combat": "격투 스포츠",
+      "functional": "기능성 / 혼합",
+      "endurance": "지구력"
+    },
+    "compTypeStep": {
+      "title": "어떤 유형의 대회인가요?",
+      "subtitle": "각 대회 유형은 다른 준비 일정과 피크 위크 프로토콜을 사용합니다."
+    },
+    "compTypes": {
+      "bodybuilding": "보디빌딩",
+      "mensPhysique": "맨즈 피지크",
+      "classicPhysique": "클래식 피지크",
+      "figure": "피규어",
+      "bikini": "비키니",
+      "wellness": "웰니스",
+      "powerliftingMeet": "파워리프팅 대회",
+      "strongman": "스트롱맨",
+      "olympicWeightlifting": "역도",
+      "fightCamp": "격투 캠프",
+      "wrestlingSeason": "레슬링 시즌",
+      "crossfitCompetition": "CrossFit 대회",
+      "hyrox": "Hyrox",
+      "marathon": "마라톤",
+      "triathlon": "트라이애슬론",
+      "spartanRace": "스파르탄 레이스"
+    },
+    "eventStep": {
+      "title": "대회는 언제인가요?",
+      "subtitle": "대회 날짜가 모든 단계를 자동으로 이끕니다 — 추측 불필요.",
+      "eventDate": "대회 날짜",
+      "pickDate": "대회 날짜 선택",
+      "weeksOut": "{{count}}주 남음",
+      "division": "체급",
+      "divisionPlaceholder": "예: 오픈, 마스터스 35+, 93kg급..."
+    },
+    "weightStep": {
+      "title": "체중 정보",
+      "subtitle": "선택 사항 — 감량 전략과 열량 목표에 대한 정확한 안내에 도움이 됩니다.",
+      "currentWeight": "현재 체중",
+      "currentPlaceholder": "예: 185 lbs, 84 kg...",
+      "targetWeight": "목표 체중 / 체급",
+      "targetPlaceholder": "예: 175 lbs, 83kg급, 무대 준비 완료...",
+      "howItWorksTitle": "작동 방식",
+      "howItWorksBody": "MPM은 대회 날짜로부터 현재 단계를 자동 계산합니다. 대회가 다가올수록 프로토콜이 바뀝니다. 결정하는 것은 달력 — AI가 아닙니다."
+    }
+  },
+  "therapeuticCard": {
+    "title": "치료 영양 인텔리전스",
+    "active": "활성",
+    "last": "최근: {{date}}",
+    "intro": "활성화된 모든 항목에 용량을 입력하세요. 용량이 중요합니다 — 시스템이 프로토콜의 맥락을 구성하는 데 사용합니다. 해당 없으면 비워 두세요.",
+    "activeCount": "{{count}}개 활성",
+    "namePlaceholder": "이름...",
+    "dosePlaceholder": "용량",
+    "unitPlaceholder": "단위",
+    "sections": {
+      "peptides": "펩타이드",
+      "hormones": "호르몬",
+      "medications": "영양에 영향을 주는 약물",
+      "therapies": "요법",
+      "recovery": "회복 목표"
+    },
+    "addPeptide": "맞춤 펩타이드 추가",
+    "addHormone": "맞춤 호르몬 추가",
+    "addMedication": "맞춤 약물 추가",
+    "therapiesHint": "현재 프로토콜에 해당하는 모든 항목을 선택하세요.",
+    "recoveryHint": "현재 회복 목표를 선택하세요.",
+    "saveProtocol": "프로토콜 저장",
+    "saving": "저장 중…",
+    "cancel": "취소",
+    "footerNote": "임상적 안전이 항상 우선합니다. 선택은 식사 생성에만 반영되며 — 의학적 조언이 아닙니다.",
+    "therapyOptions": {
+      "connectiveTissue": "결합 조직 회복",
+      "gutSupport": "장 지원",
+      "redLight": "적색광 요법",
+      "sauna": "사우나 / 온열 회복",
+      "cold": "냉요법 / 얼음 목욕",
+      "iv": "정맥 영양 요법"
+    },
+    "recoveryGoals": {
+      "joint": "관절 회복",
+      "muscle": "근육 회복",
+      "sleep": "수면 최적화",
+      "inflammation": "염증 감소",
+      "gutHealing": "장 치유",
+      "stress": "스트레스 및 부신 회복"
+    },
+    "toast": {
+      "savedTitle": "치료 프로토콜이 저장됨",
+      "savedDesc": "맥락이 업데이트되었습니다. 모든 생성기가 프로토콜을 준수합니다.",
+      "errorTitle": "오류",
+      "errorDesc": "저장할 수 없습니다. 다시 시도하세요."
+    }
+  },
+  "clinicalLabs": {
+    "title": "임상 검사",
+    "last": "최근: {{date}}",
+    "lastSaved": "마지막 저장: {{date}}",
+    "labDate": "검사 날짜",
+    "notes": "메모",
+    "notesPlaceholder": "선택 사항: 의료진 메모...",
+    "saveButton": "검사 수치 저장",
+    "savedSuccess": "검사 수치가 성공적으로 저장됨",
+    "normal": "정상",
+    "elevated": "상승",
+    "active": "활성",
+    "menopausePanel": "폐경기 / 폐경이행기 패널",
+    "status": {
+      "normal": "정상",
+      "needsReview": "검토 필요",
+      "elevated": "{{count}}개 상승"
+    },
+    "sections": {
+      "cardiac": "심장 및 대사",
+      "hormonal": "호르몬 / 스트레스 및 성호르몬",
+      "liver": "간 패널",
+      "thyroid": "갑상선 패널",
+      "kidney": "신장 / 신기능",
+      "inflammation": "염증 및 회복",
+      "oncology": "종양 및 회복"
+    },
+    "fields": {
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "triglycerides": "중성지방",
+      "tgHdlRatio": "TG/HDL 비율",
+      "bloodPressure": "혈압",
+      "sys": "수축기",
+      "dia": "이완기",
+      "ejectionFraction": "박출률",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "주의 필요",
+      "physicianGuided": "의사 지도"
+    },
+    "toast": {
+      "enterOne": "저장하기 전에 최소 하나의 검사 수치를 입력하세요",
+      "failed": "검사 저장 실패"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "매우 적합",
+      "b": "좋은 적합",
+      "c": "몇 가지 고려사항",
+      "d": "주목할 만한 충돌"
+    },
+    "verdict": {
+      "buy": "셰프의 한마디: 가세요!",
+      "caution": "셰프의 한마디: 참고로...",
+      "skip": "셰프의 한마디: 다시 생각해보세요"
+    },
+    "decoder": {
+      "title": "쉬운 말 해독기",
+      "legend": "🟢 일반적으로 안전 · 🟡 알아두면 좋음 · 🔴 프로필과 충돌"
+    },
+    "alignsWith": "목표에 부합",
+    "watchFor": "주의할 점",
+    "howItScores": "당신의 프로토콜에서의 점수",
+    "howItScoresForYou": "당신에게의 점수",
+    "add": "추가",
+    "added": "추가됨",
+    "alternatives": {
+      "alsoWorthKnowing": "함께 알아두면 좋음",
+      "evenBetter": "더 나은 선택지",
+      "betterOptions": "당신에게 더 나은 제품 선택지",
+      "profileMatched": "프로필 매칭",
+      "brandedNote": "제품 지식 기반 — 배합과 재고는 변할 수 있습니다.",
+      "categoryNote": "건강 프로필 기반 카테고리 안내 — 라벨에서 이러한 특성을 찾아보세요."
+    },
+    "profileFactorsHeading": "이 분석을 이끄는 프로필 요인",
+    "scoreCards": {
+      "kids": "어린이",
+      "adults": "성인",
+      "diet": "당신의 식단",
+      "goal": "당신의 목표"
+    },
+    "barcode": {
+      "dbMatch": "데이터베이스 일치 · Open Food Facts",
+      "notInDb": "데이터베이스에 없음 · AI 추정",
+      "notFound": "바코드를 찾을 수 없음 — AI 제품 지식 기반 분석"
+    },
+    "tier": {
+      "quick": "빠른 분석",
+      "verified": "검증된 라벨 분석",
+      "full": "전체 제품 어드바이저",
+      "subKnowledge": "지식 기반 · 라벨 미스캔",
+      "subLabelScanned": "라벨 스캔됨 · {{name}}",
+      "subProductUnknown": "라벨 스캔됨 · 제품 미상",
+      "subLabel": "라벨 스캔됨",
+      "subFull": "제품 + 라벨 + 프로필"
+    },
+    "scanLabelUp": "라벨 스캔 ↑",
+    "highestConfidence": "최고 신뢰도",
+    "whatMattersMost": "당신에게 가장 중요한 것",
+    "analysisProfile": {
+      "heading": "당신의 분석 프로필",
+      "basedOn": "이 추천은 다음을 기반으로 합니다:",
+      "deeperTitle": "더 깊은 맞춤화를 원하시나요?",
+      "deeperBody": "A1C, 공복 혈당, 콜레스테롤, 중성지방, 신장 또는 염증 지표 같은 검사 수치를 추가하세요.",
+      "updateProfile": "건강 프로필 업데이트 →",
+      "disclaimer": "추천은 성분 구성, 영양 정보, 당신의 건강 프로필에서 생성됩니다. MPM은 식품 제조사로부터 보상을 받지 않으며 추천은 브랜드 제휴의 영향을 받지 않습니다.",
+      "emptyState": "완전히 맞춤화된 분석을 위해 프로필에 건강 목표와 상태를 추가하세요."
+    },
+    "header": {
+      "companionScan": "동반자 제품 스캔",
+      "intelligence": "성분 인텔리전스",
+      "notIdentified": "제품 미식별",
+      "scanningFor": "{{name}} 스캔 중",
+      "frontLabelDetected": "전면 라벨 감지됨",
+      "byNameAnalysis": "이름 기반 분석",
+      "fullAnalysis": "전체 분석"
+    },
+    "analyzeThisProduct": "이 제품 분석",
+    "scanIngredientsLabel": "성분 / 영양 라벨 스캔",
+    "analyzeDisclaimer": "\"이 제품 분석\"은 이 제품에 대한 AI 지식을 사용합니다 — 실시간 라벨 스캔이 아닙니다. 배합은 변할 수 있습니다. 검증된 결과를 위해 성분 패널을 스캔하세요.",
+    "analyzing": "{{name}} 분석 중…",
+    "checkingProfile": "건강 프로필과 대조 중",
+    "byNameBanner": {
+      "title": "빠른 분석 — 검증된 라벨 스캔 아님",
+      "body": "학습 데이터 기준 제품 지식에 기반합니다. 배합은 변할 수 있습니다.",
+      "scanLink": "검증된 결과를 위해 라벨을 스캔하세요."
+    },
+    "lowQuality": {
+      "title": "이미지 품질이 낮았습니다",
+      "body": "더 정확한 분석을 위해 성분 패널 전체가 보이고 초점이 맞으며 조명이 밝은 상태로 다시 촬영하세요."
+    },
+    "labelFound": {
+      "title": "영양 라벨을 찾았습니다",
+      "body": "제품명을 말하거나 입력하면 프로필에 맞춘 브랜드 대안을 받습니다."
+    },
+    "incomplete": {
+      "title": "분석 미완료",
+      "lowImage": "이미지가 채점에 충분히 선명하지 않았습니다. 성분 패널 전체가 보이고 조명이 밝은지 확인한 뒤 다시 시도하세요.",
+      "needMore": "등급 생성에 더 많은 정보가 필요합니다. 성분 패널을 스캔하거나 제품 조회를 사용하세요."
+    },
+    "personalized": "건강 프로필에 맞춤화됨",
+    "generalAnalysis": "일반 분석 — 맞춤 결과를 위해 건강 목표를 추가하세요",
+    "sections": {
+      "considerations": "성분 고려사항",
+      "mayNotAlign": "목표와 맞지 않을 수 있음",
+      "worksWellFor": "적합한 대상",
+      "familyNotes": "가족 메모"
+    },
+    "detectedIngredients": "감지된 성분",
+    "scanForVerified": "검증된 분석을 위해 라벨 스캔",
+    "addNamedToList": "{{name}} 목록에 추가",
+    "addToList": "목록에 추가",
+    "saveScan": "스캔 저장",
+    "saveToGroceries": "장보기에 저장",
+    "savedToGroceries": "장보기에 저장됨",
+    "toast": {
+      "removedTitle": "장보기에서 제거됨",
+      "removedDesc": "{{name}}이(가) 즐겨찾기에서 제거되었습니다.",
+      "removeFailTitle": "제거할 수 없음",
+      "tryAgain": "다시 시도하세요.",
+      "alreadySaved": "이미 저장됨",
+      "savedTitle": "장보기에 저장",
+      "savedDesc": "{{name}}이(가) 장보기 즐겨찾기에 있습니다.",
+      "saveFailTitle": "저장할 수 없음",
+      "addedToList": "장보기 목록에 추가됨"
+    }
+  },
+  "athletePicker": {
+    "added": "추가됨!",
+    "addedCount": "{{count}}개 추가",
+    "addingTo": "추가 대상:",
+    "categories": {
+      "eggsShakes": "달걀·셰이크",
+      "fish": "필렛 생선",
+      "poultry": "닭고기·칠면조",
+      "redmeat": "붉은 고기"
+    },
+    "copied": "복사됨!",
+    "copy": "복사",
+    "copyMealAria": "식사 상세 복사",
+    "copySessionAria": "세션 요약 복사",
+    "done": "완료",
+    "errorShort": "오류",
+    "fibrousNote": "섬유 채소는 무제한 — 전분만(쌀, 귀리, 감자)",
+    "gotIt": "확인!",
+    "headerTitle": "완성 선수 식사 — {{slot}}",
+    "hiddenCount_one": "{{count}}개 숨김 — 전분이 {{cap}}g을 초과",
+    "hiddenCount_other": "{{count}}개 숨김 — 전분이 {{cap}}g을 초과",
+    "howToAria": "선수 식사 빌더 사용법",
+    "info": {
+      "intro": "운동 퍼포먼스와 근육 성장에 최적화된 완성 식사.",
+      "step1Label": "단백질 카테고리 선택",
+      "step1Text": "(닭, 붉은 고기, 생선, 달걀)",
+      "step2After": "는 단백질+섬유 채소만",
+      "step2Mid": "식사는 쌀·귀리·감자 포함.",
+      "step3Label": "식사를 누르기",
+      "step3Text": "보드에 바로 추가",
+      "step4Label": "모든 매크로",
+      "step4Text": "계산되어 추적 준비 완료",
+      "stepsLabel": "단계:",
+      "tipAfter": "식사를 추가. 섬유 채소는 항상 무제한.",
+      "tipBefore": "저전분일엔",
+      "tipLabel": "💡 팁:",
+      "tipMid": "식사를. 리피드일엔",
+      "title": "선수 식사 빌더 사용법"
+    },
+    "lowStarchDay": "저전분일",
+    "mealCopyText": "{{title}} — {{cals}} kcal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+    "noCoachConnection": "활성 코치 연결 없음",
+    "noteDesc": "운동 퍼포먼스와 근육 성장에 최적화된 완성 식사.",
+    "noteStep1": "단백질 카테고리 선택(닭, 붉은 고기, 생선, 달걀)",
+    "noteStep2After": "는 단백질+섬유 채소만",
+    "noteStep2Before": "표시가",
+    "noteStep2Mid": "인 식사는 쌀·귀리·감자 포함 —",
+    "noteStep3": "식사를 눌러 보드에 바로 추가",
+    "noteStep4": "모든 매크로가 계산되어 추적 준비 완료",
+    "noteTitle": "완성 선수 식사",
+    "refeedDay": "리피드 데이",
+    "selectCategory": "단백질 카테고리 선택:",
+    "selectCategoryShort": "카테고리 선택",
+    "sendCoachAria": "세션 요약을 코치에게 전송",
+    "sendFailed": "전송 실패, 다시 시도",
+    "sendToCoach": "코치에게 전송",
+    "sending": "전송 중…",
+    "sent": "전송됨!",
+    "sessionTotal": "세션 합계:",
+    "slots": {
+      "breakfast": "아침",
+      "dinner": "저녁",
+      "lunch": "점심",
+      "meal4": "식사 4",
+      "meal5": "식사 5",
+      "meal6": "식사 6",
+      "snacks": "간식"
+    },
+    "starch": "전분",
+    "starchAllocation": "전분 배분",
+    "starchCap": "전분 상한 {{cap}}g",
+    "starchUsage": "{{used}}g / {{cap}}g 전분",
+    "summaryText_one": "{{count}}개 추가됨 — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "summaryText_other": "{{count}}개 추가됨 — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "viewChatAria": "코치 채팅에서 메시지 보기",
+    "viewInChat": "채팅에서 보기"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "흔들릴 때 응원해줘요",
+        "label": "응원해줘요"
+      },
+      "pushHard": {
+        "desc": "엄격하게 관리해줘요",
+        "label": "강하게 밀어줘요"
+      },
+      "remind": {
+        "desc": "가벼운 알림이면 충분해요",
+        "label": "알림만 줘요"
+      },
+      "selfDirected": {
+        "desc": "스스로 동기부여해요",
+        "label": "자기주도"
+      }
+    },
+    "back": "뒤로",
+    "challenges": {
+      "consistency": "꾸준함 유지",
+      "cravings": "식욕",
+      "emotionalEating": "감정적 식사",
+      "knowledge": "뭘 먹을지 모름",
+      "mealPrep": "식단 준비",
+      "motivation": "동기",
+      "socialPressure": "사회적 압박",
+      "time": "시간 부족"
+    },
+    "error": "문제가 발생했어요. 다시 시도해 주세요.",
+    "lifestyle": {
+      "budgetConscious": "예산 중시",
+      "busySchedule": "바쁜 일정",
+      "frequentTravel": "잦은 출장",
+      "parent": "부모/돌봄자",
+      "pickyEater": "편식",
+      "shiftWorker": "교대 근무",
+      "socialEater": "모임 식사 잦음",
+      "stressEater": "스트레스성 식사"
+    },
+    "loading": "프로필 불러오는 중…",
+    "motivations": {
+      "athletic": "운동 능력",
+      "confidence": "자신감",
+      "energy": "활력 증진",
+      "family": "가족 건강",
+      "longevity": "장수",
+      "mentalClarity": "정신적 명료함",
+      "weightLoss": "체중 감량"
+    },
+    "next": "다음",
+    "saveProfile": "프로필 저장",
+    "savedDesc": "코칭 프로필이 준비됐어요.",
+    "savedTitle": "프로필 저장됨!",
+    "saving": "저장 중…",
+    "steps": {
+      "accountability": {
+        "subtitle": "가장 동기부여되는 방식을 골라요",
+        "title": "어떻게 관리해 드릴까요?"
+      },
+      "challenges": {
+        "subtitle": "솔직하게—핵심에 집중하도록 도와줘요",
+        "title": "가장 큰 어려움은?"
+      },
+      "lifestyle": {
+        "subtitle": "모두 선택하면 조언을 맞춰드려요",
+        "title": "생활 방식은?"
+      },
+      "motivations": {
+        "subtitle": "해당되는 것 모두 선택",
+        "title": "무엇이 당신을 움직이나요?"
+      },
+      "style": {
+        "subtitle": "편한 소통 방식을 골라요",
+        "title": "어떤 코칭을 원하세요?"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "모든 방식을 골고루",
+        "label": "균형형"
+      },
+      "direct": {
+        "desc": "뭘 할지 군더더기 없이 알려줘요",
+        "label": "직설적"
+      },
+      "educational": {
+        "desc": "모든 선택의 이유를 설명해요",
+        "label": "설명형"
+      },
+      "encouraging": {
+        "desc": "긍정적 지지와 응원",
+        "label": "격려형"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "탄수",
+    "categories": {
+      "eggsShakes": "달걀·셰이크",
+      "fish": "필렛 생선",
+      "poultry": "닭고기·칠면조",
+      "redmeat": "붉은 고기"
+    },
+    "gotIt": "확인!",
+    "headerAddTo": "대회 준비 식사 - {{slot}}에 추가",
+    "howToAria": "퍼포먼스 & 대회 빌더 사용법",
+    "info": {
+      "intro": "제지방과 퍼포먼스에 최적화된 완성 선수 식사.",
+      "step1Label": "단백질 카테고리 선택",
+      "step1Text": "(닭, 붉은 고기, 생선, 달걀)",
+      "step2Label": "식사 표시",
+      "step2Text": "「탄수」 또는 「P+V」(단백질+채소)",
+      "step3Label": "식사를 누르기",
+      "step3Text": "보드에 바로 추가",
+      "step4Label": "모든 매크로",
+      "step4Text": "계산되어 추적 준비 완료",
+      "stepsLabel": "단계:",
+      "tipLabel": "💡 팁:",
+      "tipText": "탄수 목표에 맞게 선택: 에너지엔 「탄수」, 저탄수일엔 「P+V」.",
+      "title": "퍼포먼스 & 대회 빌더 사용법"
+    },
+    "noteDesc": "제지방과 퍼포먼스에 최적화된 완성 선수 식사.",
+    "noteStep1": "단백질 카테고리 선택(닭, 붉은 고기, 생선, 달걀)",
+    "noteStep2": "식사는 「탄수」 또는 「P+V」(단백질+채소)로 표시",
+    "noteStep3": "식사를 눌러 보드에 바로 추가",
+    "noteStep4": "모든 매크로가 계산되어 추적 준비 완료",
+    "noteTitle": "대회 준비 식사",
+    "selectCategory": "단백질 카테고리 선택:",
+    "selectCategoryShort": "카테고리 선택"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "가장 큰 개선점",
+    "breakfastLogged": "아침 기록",
+    "caloriesOnTarget": "칼로리 달성",
+    "consistencyScore": "꾸준함 점수",
+    "days": "일",
+    "dinnerLogged": "저녁 기록",
+    "last7Days": "최근 7일",
+    "lastNDays": "최근 {{count}}일",
+    "loggedMeals": "식사 기록",
+    "lunchLogged": "점심 기록",
+    "noActivity": "아직 활동이 없어요. 식사를 기록하면 요약이 표시돼요.",
+    "noMeals": "기록된 식사가 없어요. 식사를 기록하면 요약이 표시돼요.",
+    "ofDays": "{{value}} / {{total}}",
+    "proteinGoalMet": "단백질 달성",
+    "setTargets": "매크로 목표를 설정하면 전체 추적이 켜져요.",
+    "title": "영양 활동 요약"
+  },
+  "mealPicker": {
+    "addTo": "{{slot}}에 추가",
+    "cafeteria": "랜덤 추천",
+    "categories": {
+      "fats": "지방",
+      "fibrousCarbs": "섬유 탄수",
+      "fruit": "과일",
+      "proteins": "단백질",
+      "starchyCarbs": "전분 탄수"
+    },
+    "close": "닫기",
+    "generate": "생성",
+    "generateCount": "생성 ({{count}})",
+    "generating": "생성 중…",
+    "gotIt": "확인!",
+    "howToAria": "식사 선택기 사용법",
+    "info": {
+      "addLabel": "눌러서 추가:",
+      "addText": "카드를 눌러 {{slot}} 슬롯에 바로 추가",
+      "browseLabel": "식사 둘러보기:",
+      "browseText": "엄선한 식사 템플릿을 살펴보세요",
+      "cafeteriaLabel": "랜덤 추천:",
+      "cafeteriaText": "「랜덤 추천」으로 빠른 무작위 제안",
+      "intro": "미리 만든 식사를 계획에 빠르게 추가해요.",
+      "personalizedLabel": "맞춤형:",
+      "personalizedText": "알레르기와 선호에 따라 식사를 필터링",
+      "tipLabel": "💡 팁:",
+      "tipText": "둘러보기 없이 빠른 건강 제안이 필요하면 랜덤 추천을 쓰세요.",
+      "title": "식사 선택기 사용법"
+    },
+    "lowerGlycemic": "혈당 영향 낮음",
+    "quickMeal": "빠른 {{slot}} 식사",
+    "regularGi": "일반 GI"
+  },
+  "mealReminders": {
+    "addReminder": "식사 알림 추가",
+    "checkAgain": "다시 확인",
+    "checking": "확인 중…",
+    "connectionDiagnostics": "연결 진단",
+    "footerBlocked": "시간을 먼저 설정하세요. 권한 부여 후 활성화돼요.",
+    "footerDefault": "최대 6개. 라벨을 눌러 이름 변경.",
+    "footerEnabled": "안정적 전송을 위해 브라우저를 열어 두세요.",
+    "footerNative": "라벨을 눌러 이름 변경. iOS 앱으로 전송돼요.",
+    "mealN": "식사 {{n}}",
+    "nativeDelivery": "iOS 네이티브 전송",
+    "saving": "저장 중…",
+    "statusBlocked": "브라우저에서 알림 차단됨",
+    "statusConnected": "알림 연결됨",
+    "statusPartial": "완전히 연결 안 됨 — 슬롯을 켜서 설정 완료",
+    "statusPending": "슬롯을 켜서 알림을 활성화",
+    "statusUnsupported": "이 브라우저는 미지원",
+    "title": "식사 알림",
+    "toUnblock": "차단 해제하려면:",
+    "toastBlockedIosDesc": "iPhone 설정 › My Perfect Meals › 알림 허용",
+    "toastBlockedTitle": "알림이 차단됨",
+    "toastBlockedWebDesc": "주소창 자물쇠에서 알림을 허용한 뒤 다시 확인을 누르세요.",
+    "toastEnableFailedTitle": "알림을 켤 수 없어요",
+    "toastNotSupportedDesc": "이 브라우저는 푸시 알림을 지원하지 않아요.",
+    "toastNotSupportedTitle": "미지원",
+    "toastPermissionDenied": "권한이 거부됐어요.",
+    "toastSaveFailed": "알림을 저장할 수 없어요",
+    "toastTryAgain": "잠시 후 다시 시도하세요.",
+    "unblockAllow": "허용",
+    "unblockLock": "🔒 자물쇠",
+    "unblockNotifications": "알림",
+    "unblockStep1After": "를 누르세요",
+    "unblockStep1Before": "주소창의",
+    "unblockStep2Before": "설정에서",
+    "unblockStep2Mid": "을",
+    "unblockStep3After": "누르기",
+    "unblockStep3Before": "아래의",
+    "unsupportedHint": "데스크톱에서 Chrome이나 Edge를 사용하세요. iOS Safari는 앱이 필요해요.",
+    "webDelivery": "웹 푸시 전송"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "시그니처 주방",
+    "optSignatureDesc": "플랫폼 안에 나만의 브랜드 주방을",
+    "optProductLabel": "제품 통합",
+    "optProductDesc": "브랜드, 제품 또는 보충제를 통합하세요",
+    "optWhiteLabelLabel": "화이트 라벨",
+    "optWhiteLabelDesc": "완전한 브랜드 플랫폼 경험",
+    "optRestaurantLabel": "레스토랑 그룹",
+    "optRestaurantDesc": "다지점 또는 프랜차이즈 파트너십",
+    "optAthleteLabel": "애슬리트 주방",
+    "optAthleteDesc": "퍼포먼스 및 스포츠 특화 요리 정체성",
+    "stepIdentity": "정체성",
+    "stepCulinary": "요리 정체성",
+    "stepPlatform": "플랫폼",
+    "stepInterest": "관심",
+    "stepSubmit": "제출",
+    "partnershipReview": "파트너십 검토",
+    "errorGeneric": "문제가 발생했습니다. 다시 시도하세요.",
+    "errorConnection": "제출할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
+    "identityHeading": "자신에 대해 알려주세요.",
+    "identitySub": "기본 정보와 연락처.",
+    "fullNameLabel": "성명",
+    "fullNamePlaceholder": "성명",
+    "brandLabel": "셰프 / 브랜드명",
+    "brandPlaceholder": "공개 요리 브랜드",
+    "emailLabel": "이메일",
+    "phoneLabel": "전화",
+    "locationLabel": "위치",
+    "locationPlaceholder": "도시, 주 / 국가",
+    "culinaryHeading": "당신의 요리 정체성.",
+    "culinarySub": "이는 플랫폼 내에서 주방이 구성되는 방식을 결정합니다.",
+    "cuisineFocusLabel": "요리 중점",
+    "cuisineFocusPlaceholder": "예: 서던, 일식, 지중해식",
+    "cookingPhilosophyLabel": "요리 철학",
+    "cookingPhilosophyPlaceholder": "음식에 대한 접근 방식을 어떻게 설명하시겠어요?",
+    "signatureStylesLabel": "시그니처 스타일",
+    "signatureStylesPlaceholder": "예: 고단백, 컴포트 푸드, 식물 중심",
+    "wellnessPhilosophyLabel": "웰니스 철학",
+    "wellnessPhilosophyPlaceholder": "건강과 영양은 요리에 어떻게 작용하나요?",
+    "platformHeading": "당신의 관객은 어디에?",
+    "platformSub": "소셜 및 웹 활동을 공유하세요. 모든 항목은 선택 사항입니다.",
+    "websiteLabel": "웹사이트",
+    "interestHeading": "무엇에 관심이 있나요?",
+    "interestSub": "해당하는 모든 항목을 선택하세요. 여러 개 선택 가능합니다.",
+    "readyHeading": "제출 준비 완료.",
+    "readySub": "저희 팀이 모든 지원을 직접 검토합니다. 영업일 기준 3~5일 내에 연락드립니다.",
+    "summaryHeading": "지원 요약",
+    "summaryName": "이름",
+    "summaryBrand": "브랜드",
+    "summaryEmail": "이메일",
+    "summaryCuisine": "요리",
+    "summaryInterest": "관심",
+    "consentText": "제출하면 My Perfect Meals가 제공된 정보를 파트너십 지원 평가에 사용하는 데 동의하는 것입니다. 정식 계약 체결 전까지 어떠한 약속도 없습니다.",
+    "submitting": "제출 중…",
+    "requestReview": "파트너십 검토 요청",
+    "successHeading": "지원이 접수되었습니다.",
+    "successSub": "저희 팀이 지원을 검토하고 영업일 기준 3~5일 내에 연락드립니다. 모든 지원을 직접 검토합니다.",
+    "contactAt": "다음으로 연락드립니다",
+    "done": "완료",
+    "back": "뒤로",
+    "next": "다음"
+  },
+  "safetyPin": {
+    "title": "보안 PIN",
+    "sessionExpired": "세션이 만료되었습니다. 로그아웃 후 다시 로그인하여 PIN을 관리하세요",
+    "statusSet": "PIN 설정됨 — 추가 보호 활성화",
+    "statusUnset": "PIN 미설정 — 추가 보호를 위해 설정하세요",
+    "changePin": "PIN 변경",
+    "removePin": "PIN 제거",
+    "setPin": "보안 PIN 설정",
+    "enterPin": "PIN 입력",
+    "confirmPin": "PIN 확인",
+    "currentPin": "현재 PIN",
+    "newPin": "새 PIN",
+    "confirmNewPin": "새 PIN 확인",
+    "removePrompt": "제거하려면 현재 PIN을 입력하세요.",
+    "fourDigits": "4자리",
+    "hidePin": "PIN 숨기기",
+    "showPin": "PIN 표시",
+    "cancel": "취소",
+    "setPinBtn": "PIN 설정",
+    "changePinBtn": "PIN 변경",
+    "removePinBtn": "PIN 제거",
+    "errorFourDigits": "PIN은 정확히 4자리여야 합니다",
+    "errorNoMatch": "PIN이 일치하지 않습니다",
+    "errorNewFourDigits": "새 PIN은 4자리여야 합니다",
+    "errorNewNoMatch": "새 PIN이 일치하지 않습니다",
+    "errorSetFailed": "PIN 설정 실패",
+    "errorSetRetry": "PIN을 설정할 수 없습니다. 다시 시도하세요.",
+    "errorChangeFailed": "PIN 변경 실패",
+    "errorChangeRetry": "PIN을 변경할 수 없습니다. 다시 시도하세요.",
+    "errorRemoveFailed": "PIN 제거 실패",
+    "errorRemoveRetry": "PIN을 제거할 수 없습니다. 다시 시도하세요.",
+    "setToastTitle": "보안 PIN 설정됨",
+    "setToastDesc": "보안 PIN이 생성되었습니다.",
+    "changeToastTitle": "PIN 변경됨",
+    "changeToastDesc": "보안 PIN이 업데이트되었습니다.",
+    "removeToastTitle": "PIN 제거됨",
+    "removeToastDesc": "보안 PIN이 제거되었습니다."
+  },
+  "mfa": {
+    "errorStartSetup": "설정을 시작할 수 없습니다. 다시 시도하세요.",
+    "errorInvalidCode": "코드가 잘못되었습니다. 다시 시도하세요.",
+    "errorDisableInvalid": "코드가 잘못되었습니다. MFA가 비활성화되지 않았습니다.",
+    "loading": "로딩 중…",
+    "enabledTitle": "2단계 인증이 활성화되었습니다",
+    "saveBackupPrompt": "이 페이지를 닫기 전에 백업 코드를 저장하세요.",
+    "backupCodesHeading": "백업 코드 — 지금 저장하세요",
+    "copied": "복사됨!",
+    "copyAllCodes": "모두 복사",
+    "backupCodesNote": "각 코드는 한 번만 사용할 수 있습니다. 안전한 곳에 보관하세요. 인증 앱에 접근할 수 없게 되면 로그인에 이 중 하나가 필요합니다.",
+    "savedBackupBtn": "백업 코드를 저장했습니다",
+    "onTitle": "2단계 인증이 켜져 있습니다",
+    "enabledOn": "{{date}}에 활성화됨",
+    "disable2fa": "2FA 비활성화",
+    "disableTitle": "2단계 인증 비활성화",
+    "disablePrompt": "확인을 위해 현재 인증 코드를 입력하세요.",
+    "cancel": "취소",
+    "disabling": "비활성화 중…",
+    "scanTitle": "인증 앱으로 스캔하세요",
+    "scanApps": "Google Authenticator, Authy, 1Password가 잘 작동합니다.",
+    "qrAlt": "인증 앱으로 이 QR 코드를 스캔하세요",
+    "manualKeyPrompt": "스캔할 수 없나요? 이 키를 수동으로 입력하세요:",
+    "addedAccountNext": "계정을 추가했습니다 — 다음",
+    "confirmTitle": "인증 코드를 확인하세요",
+    "confirmPrompt": "2FA를 활성화하려면 앱의 6자리 코드를 입력하세요.",
+    "activating": "활성화 중…",
+    "activate2fa": "2FA 활성화",
+    "back": "뒤로",
+    "defaultTitle": "2단계 인증",
+    "defaultSubtitle": "계정에 추가 보안 계층을 더하세요.",
+    "settingUp": "설정 중…",
+    "enable2fa": "2FA 활성화"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "식사가 생성되었습니다!",
+    "mealCreatedDesc": "{{name}} 준비 완료",
+    "generationFailedTitle": "생성 실패",
+    "signInTitle": "로그인하세요",
+    "signInDesc": "식사를 만들려면 로그인해야 합니다",
+    "guestLimitTitle": "게스트 한도 도달",
+    "guestLimitDesc": "계속 식사를 생성하려면 무료 계정을 만드세요",
+    "describeMealTitle": "식사를 설명해 주세요",
+    "describeMealDesc": "셰프에게 먹고 싶은 것을 알려주세요",
+    "enterAlternativeTitle": "대안을 입력하세요",
+    "enterAlternativeDesc": "대신 무엇을 원하는지 알려주세요",
+    "placeholderBreakfast": "예: '단백질 팬케이크', '과일 곁들인 달콤한 계란', '저탄수 오믈렛'",
+    "placeholderLunch": "예: '그릴드 치킨 샐러드', '고단백 랩', '지중해식 볼'",
+    "placeholderDinner": "예: '저탄수 타코', '스테이크와 채소', '연어와 밥'",
+    "placeholderDefault": "예: '가볍고 건강한 것', '고단백 식사'",
+    "title": "AI Chef로 만들기",
+    "subtitle": "{{mealType}}에 무엇을 원하는지 셰프에게 알려주세요",
+    "starchLimitTitle": "전분 탄수화물 한도 도달",
+    "starchUsedSingular": "오늘의 전분 식사를 이미 사용했습니다 ({{max}}회 중 {{used}}회).",
+    "starchUsedPlural": "오늘의 전분 식사를 이미 사용했습니다 ({{max}}회 중 {{used}}회).",
+    "youRequested": "요청하신 내용:",
+    "fibrousPrefix": "대신",
+    "fibrousCarb": "섬유질 탄수화물",
+    "fibrousSuffix": "을(를) 고르시겠어요, 아니면 셰프에게 맡기시겠어요?",
+    "fibrousPlaceholder": "예: 브로콜리, 아스파라거스, 콜리플라워...",
+    "generating": "생성 중...",
+    "useMyChoice": "내 선택 사용",
+    "or": "또는",
+    "chefsChoice": "셰프 추천",
+    "chefSubstituteHint": "셰프가 맛있는 섬유질 탄수화물로 대체합니다",
+    "inputHint": "원하는 것을 설명하면 셰프가 맞춤 식사를 만들어 드립니다",
+    "orbCheckingSafety": "안전 프로필 확인 중…",
+    "orbFinishing": "마무리 손질 중…",
+    "orbPreparing": "셰프가 식사를 준비 중…",
+    "mealSafety": "식사 안전",
+    "ingredientControl": "재료 관리",
+    "todaysStarchMeals": "오늘의 전분 식사:",
+    "starchUsedCount": "{{used}} / {{max}} 사용",
+    "generateBtn": "AI 식사 생성",
+    "stop": "중지",
+    "cancel": "취소"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "유효하지 않은 파일",
+    "invalidFileDesc": "이미지 파일을 선택하세요.",
+    "fileTooLargeTitle": "파일이 너무 큽니다",
+    "fileTooLargeDesc": "5MB 미만의 이미지를 선택하세요.",
+    "photoUpdatedTitle": "사진 업데이트됨",
+    "photoUpdatedDesc": "프로필 사진이 업데이트되었습니다.",
+    "uploadFailedTitle": "업로드 실패",
+    "uploadFailedDesc": "사진 업로드에 실패했습니다.",
+    "cameraErrorTitle": "카메라 오류",
+    "cameraErrorDesc": "카메라 또는 사진에 접근할 수 없습니다.",
+    "restoringTitle": "구매 복원 중...",
+    "restoringDesc": "활성 구독 검색 중...",
+    "restoredTitle": "구매 복원됨",
+    "restoredDesc": "구독이 성공적으로 복원되었습니다.",
+    "restoreCompleteTitle": "복원 완료",
+    "restoreCompleteDesc": "활성 구독을 찾을 수 없습니다. 오류라고 생각되면 고객지원에 문의하세요.",
+    "restoreFailedTitle": "복원 실패",
+    "restoreFailedDesc": "구매를 복원할 수 없습니다. 다시 시도하세요.",
+    "accountDeletedTitle": "계정 삭제됨",
+    "accountDeletedDesc": "계정과 모든 데이터가 영구적으로 삭제되었습니다.",
+    "deleteFailedDesc": "계정 삭제에 실패했습니다. 다시 시도하세요.",
+    "deleteAccount": "계정 삭제",
+    "deleteDialogTitle": "계정을 영구적으로 삭제하시겠어요?",
+    "deleteDialogIntro": "이 작업은 되돌릴 수 없습니다. 다음이 영구적으로 삭제됩니다:",
+    "deleteItemAccount": "계정 및 프로필 정보",
+    "deleteItemMeals": "모든 식단 및 저장된 레시피",
+    "deleteItemBiometrics": "생체 및 건강 추적 데이터",
+    "deleteItemBilling": "구독 및 결제 내역",
+    "deleting": "삭제 중...",
+    "deleteMyAccount": "내 계정 삭제"
+  },
+  "inspiration": {
+    "servingsJustMe": "나만",
+    "servings2": "2인",
+    "servings3": "3인",
+    "servingsFamily": "가족 (4인)",
+    "servingsMealPrep": "밀프렙 (6인)",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "보고. 말하고. 보내면. 당신의 것으로 만들어 드립니다.",
+    "copilotSpokenText": "Recipe Maker는 앱에서 가장 강력한 도구 중 하나입니다. 아이디어는 간단합니다. 어딘가에서 음식을 봅니다 — TikTok, Instagram 저장, 요리책, 메뉴, 또는 머릿속 상상만이라도 — 그 순간을 흘려보내는 대신 여기로 가져오면 저희가 만들어 드립니다. 아이디어를 가져오는 방법은 네 가지입니다. Choose Photo는 갤러리에서 어떤 스크린샷이나 저장된 음식 이미지든 고를 수 있습니다 — TikTok 스크린샷, Instagram 저장, Pinterest 보드, Facebook 레시피 등 기기에 있는 모든 것입니다. Camera는 카메라를 실시간으로 열어 요리책, 메뉴, 화면을 비출 수 있습니다. Speak는 친구에게 말하듯 소리 내어 음식을 설명할 수 있습니다. Type은 설명을 붙여넣거나 생각을 적을 수 있습니다. Recipe Maker가 다른 점은 이것입니다 — 레시피가 필요 없습니다. 보여주거나 설명할 수 있다면 저희가 만들 수 있습니다. 아이디어를 제출하면 Recipe Maker는 하나의 결과만 주지 않습니다. 아이디어의 완전히 맞춤화된 세 가지 버전을 동시에 만듭니다 — 같은 요리, 세 가지 해석 — 각각 당신의 매크로 목표, 알레르기, 식이 정체성, 계정의 모든 활성 건강 프로토콜을 바탕으로 구성됩니다. 세 가지를 모두 보고, 하나 또는 전부 저장할 수 있으며, 선택은 당신이 지울 때까지 대시보드에 남습니다. 앱이 자동으로 제거하지 않습니다.",
+    "hintAuthentic": "원래의 풍미와 재료를 최대한 유지합니다.",
+    "hintBalanced": "요리의 본질을 지키면서 프로필에 맞게 맞춤화합니다.",
+    "hintHealthier": "요리를 알아볼 수 있게 유지하면서 영양을 적극적으로 최적화합니다.",
+    "analysisFailed": "분석 실패",
+    "analyzeFailedMsg": "재료 분석에 실패했습니다.",
+    "imageReadError": "이미지를 읽을 수 없습니다. 다시 시도하세요.",
+    "voiceNotSupportedTitle": "음성 미지원",
+    "voiceNotSupportedDesc": "브라우저가 음성 입력을 지원하지 않습니다. 입력을 사용해 보세요.",
+    "micErrorTitle": "마이크 오류",
+    "micErrorDesc": "다시 시도하세요.",
+    "somethingWrong": "문제가 발생했습니다",
+    "createFailedMsg": "맞춤 식사 생성에 실패했습니다.",
+    "saveFailedError": "저장 실패",
+    "savedTitle": "저장됨!",
+    "savedDesc": "즐겨찾기의 Recipe Maker 저장 항목에 추가되었습니다.",
+    "saveFailedTitle": "저장 실패",
+    "scanFoodFor": "{{name}}을(를) 위한 음식 스캔",
+    "productScan": "제품 스캔",
+    "customizeMeal": "식사 맞춤 설정",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "{{name}}을(를) 위한 재료 분석",
+    "analyzeBeforeBuy": "구매 전 재료 분석",
+    "optionsSubtitle": "맞춤 버전을 생성하기 전에 조정하세요.",
+    "captureSubtitle": "어떤 식사 아이디어든 스캔하면 맞춤화해 드립니다.",
+    "choosePhoto": "사진 선택",
+    "cameraPill": "카메라",
+    "speakPill": "말하기",
+    "typePill": "입력",
+    "uploadHint": "카메라 롤이나 갤러리에서 스크린샷, 저장된 음식 사진, 이미지를 선택하세요.",
+    "chooseFromGallery": "갤러리에서 선택",
+    "galleryHint": "스크린샷, 저장된 사진, 모든 음식 이미지",
+    "cameraHint": "카메라를 레시피, 메뉴, 화면 또는 음식 사진에 향하게 하세요.",
+    "openCamera": "카메라 열기",
+    "cameraSubHint": "음식 아이디어를 실시간으로 촬영",
+    "voiceHint": "음식을 소리 내어 설명하세요 — 재료, 스타일, 기억나는 모든 것.",
+    "tapToStop": "탭하여 중지",
+    "tapToSpeak": "탭하여 말하기",
+    "nextCustomize": "다음 — 맞춤 설정 →",
+    "textHint": "식사 아이디어, 레시피 설명 또는 요리 이름을 입력하거나 붙여넣으세요.",
+    "textPlaceholder": "예: 밥, 아보카도, 랜치를 곁들인 버팔로 치킨 볼…",
+    "servingsHeading": "인분",
+    "adaptationStyleHeading": "적용 스타일",
+    "authentic": "오리지널",
+    "balanced": "균형",
+    "healthier": "더 건강하게",
+    "proteinLevelHeading": "단백질 수준",
+    "proteinStandard": "표준",
+    "proteinHigh": "고단백",
+    "proteinAthlete": "애슬리트",
+    "prepStyleHeading": "조리 스타일",
+    "prepOriginal": "원래 조리",
+    "prepEasy": "간편 조리",
+    "cuisineStyleHeading": "요리 스타일",
+    "generateMyVersion": "내 버전 생성",
+    "analyzingIngredients": "재료 분석 중…",
+    "buildingVersion": "버전 생성 중…",
+    "checkingCompanionProfile": "{{name}}의 프로필과 대조 중",
+    "checkingYourProfile": "내 프로필과 대조 중",
+    "adaptingProfile": "영양 프로필에 맞추는 중",
+    "versionsReady": "{{count}}개 버전 준비 완료",
+    "savedCount": " · {{count}}개 저장됨",
+    "deleteScan": "이 스캔 삭제",
+    "tapAnotherHint": "다른 것도 탭하여 저장하거나, 닫고 나중에 다시 오세요.",
+    "tapSelectHint": "탭하여 선택한 후 저장하세요. 언제든 다시 오세요 — 삭제할 때까지 유지됩니다.",
+    "adaptedForStrategy": "오늘의 영양 전략에 맞춤",
+    "calValue": "{{value}} kcal",
+    "proteinValue": "단백질 {{value}}g",
+    "carbsValue": "탄수화물 {{value}}g",
+    "saving": "저장 중…",
+    "saveAgain": "다시 저장",
+    "saveThisVersion": "이 버전 저장",
+    "try3More": "3개 더",
+    "viewSavedMeals": "즐겨찾기에서 저장된 식사 보기 →",
+    "personalizedReady": "맞춤 버전이 준비되었습니다.",
+    "macroCal": "kcal",
+    "macroProtein": "단백질",
+    "macroCarbs": "탄수화물",
+    "macroFat": "지방",
+    "savedCheck": "저장됨 ✓",
+    "saveToFavorites": "즐겨찾기에 저장",
+    "scanAnother": "다른 것 스캔",
+    "viewInFavorites": "즐겨찾기에서 보기 →"
+  },
+  "parentsCorner": {
+    "title": "부모 코너",
+    "yourChild": "아이",
+    "helpingBuildHabits": "{{name}}의 건강한 습관 만들기 지원",
+    "backToBeginnings": "My Perfect Beginnings로 돌아가기",
+    "startFresh": "새로 시작",
+    "startNewConversation": "새 대화 시작",
+    "clearConfirm": "이 대화를 지우고 새로 시작할까요?",
+    "clear": "지우기",
+    "cancel": "취소",
+    "dismiss": "닫기",
+    "boundaryLanguage": "가족을 위한 근거 기반 영양 안내를 드릴 수 있어요. 의료 문제는 소아과 의사나 등록 소아영양사가 항상 올바른 다음 단계입니다. 필요해 보이면 알려드릴게요.",
+    "todaysTip": "오늘의 팁",
+    "loadingConversation": "대화를 불러오는 중…",
+    "commonQuestions": "자주 묻는 질문",
+    "browseCommonQuestions": "자주 묻는 질문 보기",
+    "followUp": "추가 질문",
+    "makeItNow": "지금 만들기",
+    "thinking": "생각 중…",
+    "emptyPrompt": "위 카드를 누르거나 아래에서 질문하세요.",
+    "askAnything": "무엇이든 물어보세요",
+    "inputPlaceholder": "여기에 질문을 입력하세요…",
+    "send": "보내기",
+    "noResponse": "죄송해요, 응답을 받지 못했어요. 다시 시도해 주세요.",
+    "connectionError": "지금 약간 문제가 있어요. 연결을 확인하고 다시 시도해 주세요.",
+    "stage": {
+      "earlyInfant": "영아 초기",
+      "beginningFoods": "이유식 시작",
+      "youngToddler": "어린 유아",
+      "toddler": "유아",
+      "preschool": "미취학",
+      "earlySchoolAge": "학령 초기",
+      "growingChild": "성장기 아동"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "아기가 안 먹어요.",
+        "question": "아기가 안 먹어요. 어떻게 해야 하나요?"
+      },
+      "toddlerHatesVegetables": {
+        "label": "아이가 채소를 싫어해요.",
+        "question": "아이가 채소를 싫어해요. 어떻게 더 먹게 할까요?"
+      },
+      "lunchPacking": {
+        "label": "점심 도시락 뭐 싸지?",
+        "question": "건강하고 입맛 도는 도시락 아이디어가 있나요?"
+      },
+      "healthySnacks": {
+        "label": "방과 후 건강 간식.",
+        "question": "방과 후 건강한 간식 아이디어가 있나요?"
+      },
+      "calcium": {
+        "label": "칼슘이 충분한가요?",
+        "question": "아이가 칼슘을 충분히 먹나요? 어떻게 확인하죠?"
+      },
+      "introducingFoods": {
+        "label": "새 음식은 어떻게 시작하죠?",
+        "question": "실랑이 없이 새 음식을 어떻게 소개하죠?"
+      },
+      "youngAthlete": {
+        "label": "어린 운동선수는 뭘 먹죠?",
+        "question": "아이가 운동을 해요. 연습 전후에 뭘 먹어야 하죠?"
+      },
+      "waterIntake": {
+        "label": "물은 얼마나 필요하죠?",
+        "question": "아이는 하루에 물을 얼마나 마셔야 하나요?"
+      },
+      "pizza": {
+        "label": "아이가 피자 먹어도 되나요?",
+        "question": "아이가 피자 같은 즐거운 음식을 먹어도 되나요, 아니면 더 엄격해야 하나요?"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "체성분 기록",
+    "bodyFatPct": "체지방률 %",
+    "bodyFatPlaceholder": "예: 18.5",
+    "goalBodyFatPct": "목표 체지방률 %(선택)",
+    "goalBodyFatPlaceholder": "예: 15",
+    "scanMethod": "측정 방법",
+    "pickMethod": "방법 선택",
+    "date": "날짜",
+    "save": "저장",
+    "saving": "저장 중...",
+    "notLoggedIn": "로그인 안 됨",
+    "notLoggedInDesc": "체성분 데이터를 저장하려면 로그인하세요.",
+    "invalidBodyFat": "잘못된 체지방",
+    "invalidBodyFatDesc": "체지방률은 1%에서 70% 사이여야 합니다.",
+    "saved": "저장됨",
+    "savedDesc": "체성분이 성공적으로 기록되었습니다.",
+    "saveFailed": "저장 실패",
+    "saveFailedDesc": "데이터를 저장할 수 없습니다. 다시 시도하세요."
+  },
+  "sponsorEnded": {
+    "launchProCare": "독립 ProCare 계정 시작",
+    "openStudio": "독립 스튜디오 열기",
+    "completeVerification": "자격 인증 완료",
+    "continueTraining": "Platform Mastery 교육 계속",
+    "startOwnPractice": "내 사업 시작하기",
+    "continueAsClient": "고객으로 계속",
+    "continueAsClientDesc": "개인 회원으로 MPM 계속 사용",
+    "continueWithFree": "Free로 계속",
+    "continueWithFreeDesc": "기본 식단 생성 — 항상 무료",
+    "joinAnotherOrg": "다른 조직에 참여",
+    "joinAnotherOrgDesc": "다른 업체의 초대 수락",
+    "accessEnded": "{{business}} 후원 액세스가 종료되었습니다",
+    "accessEndedBody": "개인 계정, 식단 기록, Academy 진행 상황, 인증은 모두 그대로 있습니다. 계속할 방법을 선택하세요."
+  },
+  "dietStyleBadge": {
+    "kosher": "코셔 ✓",
+    "halal": "할랄 ✓",
+    "vegan": "비건 ✓",
+    "vegetarian": "채식 ✓",
+    "pescatarian": "페스코 ✓",
+    "mediterranean": "지중해식 ✓",
+    "paleo": "팔레오 ✓",
+    "keto": "케토 ✓",
+    "carnivore": "카니보어 ✓",
+    "dairyFree": "유제품 없음 ✓",
+    "custom": "맞춤 식단 ✓"
+  },
+  "pregnancySupport": {
+    "title": "My Perfect Pregnancy 설정",
+    "intro": "영양 안내를 맞춤화하는 데 도움이 됩니다. 정보는 비공개로 유지되며 모든 식사 제안, 식품 안전 확인, 코칭 응답에 반영됩니다.",
+    "whereAreYou": "지금 어느 단계인가요?",
+    "breastfeedingQuestion": "현재 모유 수유 중인가요?",
+    "breastfeedingHelp": "이것이 영양 방향을 정합니다. 모유 수유와 산후 회복은 우선순위가 달라 따로 다룹니다.",
+    "yesBreastfeeding": "네, 수유 중",
+    "noBreastfeeding": "아니요, 수유 안 함",
+    "breastfeedingNote": "모유 생성 영양과 함께 회복을 돕는 지원을 받게 됩니다.",
+    "postpartumNote": "전용 산후 회복 프로토콜을 받습니다 — 식이섬유, 항염 식단, 호르몬 지원, 체형 재구성. 무리한 다이어트 없음.",
+    "trackByDueDate": "출산 예정일로 추적할까요?",
+    "trackByDueDateHelp": "예정일을 입력하면 현재 주수와 삼분기가 자동 업데이트됩니다. 건너뛰고 수동으로 추적할 수도 있어요.",
+    "yesEnterDueDate": "네, 예정일 입력",
+    "skipManual": "건너뛰기 — 수동 단계만",
+    "dueDatePlaceholder": "출산 예정일 (YYYY-MM-DD)",
+    "activeSymptoms": "활성 증상이 있나요?",
+    "activeSymptomsHelp": "해당하는 것을 모두 선택하세요 — 식사 제안이 맞춰 조정됩니다.",
+    "disclaimerPart1": "My Perfect Pregnancy는 일반 영양 교육과 식사 구성 지원만 제공합니다. 이는",
+    "disclaimerNotSubstitute": "대체할 수 없습니다",
+    "disclaimerPart2": "OB/GYN, 조산사 또는 등록 영양사를. 항상 의료 제공자의 권고를 먼저 따르세요.",
+    "saveButton": "임신 설정 저장",
+    "savingButton": "저장 중…",
+    "savedButton": "✓ 저장됨!",
+    "turnOff": "임신 영양 끄기",
+    "turnOffConfirm": "임신 영양을 끌까요?",
+    "turnOffHelp": "식사와 코칭에서 임신 전용 안내가 제거됩니다. 언제든 다시 켤 수 있어요 — 평가도 질문도 없습니다.",
+    "turningOff": "끄는 중…",
+    "yesTurnOff": "네, 끄기",
+    "keepItOn": "켜 두기",
+    "stage": {
+      "tryingToConceive": {
+        "label": "임신 준비 중",
+        "desc": "임신 전 영양"
+      },
+      "trimester1": {
+        "label": "1분기",
+        "desc": "1–13주 · 엽산, 입덧 지원"
+      },
+      "trimester2": {
+        "label": "2분기",
+        "desc": "14–27주 · 단백질, 칼슘, DHA"
+      },
+      "trimester3": {
+        "label": "3분기",
+        "desc": "28–40주 · 철분, DHA, 출산 준비"
+      },
+      "breastfeeding": {
+        "label": "모유 수유",
+        "desc": "모유 생성, DHA, 요오드, 칼슘"
+      },
+      "postpartum": {
+        "label": "산후",
+        "desc": "회복, 체형 재구성, 호르몬, 근력"
+      }
+    },
+    "symptom": {
+      "nausea": "메스꺼움",
+      "heartburn": "속쓰림",
+      "constipation": "변비",
+      "fatigue": "피로",
+      "foodAversions": "음식 거부감",
+      "swelling": "부종",
+      "shortnessOfBreath": "숨참",
+      "lowAppetite": "식욕 저하"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "오늘 컨디션은 어떠세요?",
+    "noCheckinToday": "오늘 증상 체크인이 없습니다. 식사는 표준 약물 프로필을 사용 중입니다.",
+    "checkInPrompt": "체크인하여 오늘의 식사, 셰이크, 식당 추천을 조정하세요.",
+    "checkIn": "체크인",
+    "update": "업데이트",
+    "updated": "{{time}} 업데이트",
+    "escalationStatusBody": "이 증상은 의학적 평가가 필요할 수 있습니다. 의료 제공자나 케어팀에 빨리 연락하세요.",
+    "mealsAdapting": "식사가 오늘 증상에 맞춰 조정 중",
+    "updatedTapAdjustments": "{{time}} 업데이트 · 탭하여 조정 보기",
+    "noSymptomsToday": "오늘 보고된 증상 없음",
+    "updatedStandardProfile": "{{time}} 업데이트 · 표준 프로필 활성",
+    "escalationCardBody": "이 증상은 의학적 평가가 필요할 수 있습니다. 케어팀에 연락하세요.",
+    "nutritionAdjustments": "오늘의 영양 조정 ({{count}})",
+    "reason": "이유",
+    "adaptation": "조정",
+    "evidence": "근거",
+    "justNow": "방금",
+    "minutesAgo": "{{count}}분 전",
+    "hoursAgo": "{{count}}시간 전",
+    "giSymptomsHeader": "위장 증상 — 오늘 얼마나 심한가요?",
+    "otherSymptomsHeader": "기타 증상",
+    "vomitingHeader": "오늘 구토",
+    "quickQuestionsHeader": "몇 가지 빠른 질문",
+    "notifyHeader": "케어팀에 알릴까요?",
+    "notifyHelp": "선택 사항 — 오늘 누구에게 알릴지 정할 수 있어요.",
+    "updatesThroughoutDay": "이 내용은 하루 종일 업데이트됩니다.",
+    "updatesThroughoutDayBody": "나중에 나아지면 다시 체크인하세요 — 식사가 즉시 조정됩니다. 체크인은 매일 아침 초기화됩니다.",
+    "cancel": "취소",
+    "saving": "저장 중…",
+    "saveCheckIn": "체크인 저장",
+    "severity": {
+      "none": "없음",
+      "mild": "경증",
+      "moderate": "중등도",
+      "severe": "중증"
+    },
+    "symptom": {
+      "nausea": "메스꺼움",
+      "constipation": "변비",
+      "diarrhea": "설사",
+      "reflux": "속쓰림/역류",
+      "bloating": "복부 팽만",
+      "earlyFullness": "조기 포만감",
+      "foodAversions": "음식 거부감",
+      "fatigue": "피로",
+      "dizziness": "어지럼",
+      "headache": "두통"
+    },
+    "vomiting": {
+      "none": "없음",
+      "once": "1회",
+      "multiple": "2–3회",
+      "cantKeepFluids": "4회 이상 / 수분 못 지킴"
+    },
+    "q": {
+      "keepFluids": "수분을 유지할 수 있나요?",
+      "eatWithoutWorsening": "증상 악화 없이 먹을 수 있나요?",
+      "reducedUrination": "소변량이 평소보다 훨씬 적은가요?",
+      "symptomTrend": "증상 추세는 어떤가요?",
+      "appetite": "오늘 식욕은 어떤가요?"
+    },
+    "opt": {
+      "yes": "예",
+      "no": "아니요",
+      "withDifficulty": "힘겹게",
+      "partially": "부분적으로"
+    },
+    "trend": {
+      "improving": "호전",
+      "same": "동일",
+      "worsening": "악화",
+      "na": "모름"
+    },
+    "appetite": {
+      "suppressed": "식욕 없음",
+      "reduced": "감소",
+      "normal": "정상",
+      "increased": "증가"
+    },
+    "notify": {
+      "keepPrivate": "아니요, 비공개",
+      "coach": "코치에게 알림",
+      "both": "둘 다 알림"
+    }
   }
 }

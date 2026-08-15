@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 import { captureException } from "@/lib/sentry";
 import { useTranslation } from "react-i18next";
+import { computeTrialDays } from "@shared/trialDays";
 
 const RESUME_STEP_KEY = "mpm.onboarding.resumeStep";
 
@@ -152,6 +153,7 @@ export default function OnboardingV3() {
   const [saving, setSaving] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+  const [trialStartedAtFromResponse, setTrialStartedAtFromResponse] = useState<string | null>(null);
   const restoredRef = useRef(false);
 
   const [firstName, setFirstName] = useState("");
@@ -533,6 +535,9 @@ export default function OnboardingV3() {
       // Show trial welcome modal if the server confirmed a trial was stamped
       if (completionData.trialEndsAt) {
         setTrialEndsAt(completionData.trialEndsAt);
+        if (completionData.trialStartedAt) {
+          setTrialStartedAtFromResponse(completionData.trialStartedAt);
+        }
         setShowTrialModal(true);
       } else {
         setLocation("/macro-counter?from=onboarding");
@@ -1375,32 +1380,48 @@ export default function OnboardingV3() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Trial welcome modal — shown immediately after onboarding completes */}
-      {showTrialModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-6">
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-5 shadow-2xl">
-            <div className="text-5xl">🎉</div>
-            <h2 className="text-2xl font-bold text-gray-900">Your 7-Day Free Trial Has Started!</h2>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              You have full access to everything in MPM through{" "}
-              <span className="font-semibold text-gray-800">
-                {trialEndsAt
-                  ? new Date(trialEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                  : "the next 7 days"}
-              </span>
-              . No credit card required to start.
-            </p>
-            <Button
-              className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold"
-              onClick={() => {
-                setShowTrialModal(false);
-                setLocation("/macro-counter?from=onboarding");
-              }}
-            >
-              Let's Go →
-            </Button>
+      {showTrialModal && (() => {
+        // Priority for trialStartedAt:
+        //   1. Value captured directly from the completion response (avoids the
+        //      race where refreshUser() hasn't resolved yet)
+        //   2. Value from the auth context (available after refreshUser())
+        const startStr: string | null =
+          trialStartedAtFromResponse ?? ((user as any)?.trialStartedAt as string | null) ?? null;
+        const actualDays = computeTrialDays({
+          trialStartedAt: startStr,
+          trialEndsAt,
+          daysRemaining: (user as any)?.daysRemaining as number | undefined,
+        });
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-6">
+            <div className="bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 max-w-sm w-full text-center space-y-5 shadow-2xl">
+              <div className="text-5xl">🎉</div>
+              <h2 className="text-2xl font-bold text-white">
+                Your {actualDays}-Day Trial Has Started!
+              </h2>
+              <p className="text-white/60 text-sm leading-relaxed">
+                You have full access to everything in MPM through{" "}
+                <span className="font-semibold text-white">
+                  {trialEndsAt
+                    ? new Date(trialEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                    : `the next ${actualDays} days`}
+                </span>
+                . No credit card required to start.
+              </p>
+              <Button
+                className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold"
+                onClick={() => {
+                  setShowTrialModal(false);
+                  setLocation("/macro-counter?from=onboarding");
+                }}
+              >
+                Let's Go →
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] space-y-2">
         <div className="flex items-center justify-between text-xs text-white/50">

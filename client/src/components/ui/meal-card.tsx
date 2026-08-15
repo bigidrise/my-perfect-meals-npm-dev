@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
 import { Clock, Users, Zap, ChefHat } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Recipe } from "@shared/schema";
 import MedicalInfoBubble from "@/components/MedicalInfoBubble";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
@@ -21,6 +22,7 @@ interface MealCardProps {
 }
 
 export default function MealCard({ recipe, compact = false, onSelect, onViewRecipe, onSendToShoppingList, onCreateMeal, onReplace }: MealCardProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const userId = user?.id?.toString() || "";
   const [, setLocation] = useLocation();
@@ -74,9 +76,9 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
         <CardContent className={`${compact ? 'p-3' : 'p-4'} text-center`}>
           <div className="text-muted-foreground">
             <div className={`w-full ${compact ? 'h-16' : 'h-32'} bg-muted rounded-lg mb-2 flex items-center justify-center`}>
-              <span className="text-xs">No recipe</span>
+              <span className="text-xs">{t("sharedComponents.mealCard.noRecipe")}</span>
             </div>
-            <p className="text-xs">Add a meal</p>
+            <p className="text-xs">{t("sharedComponents.mealCard.addMeal")}</p>
           </div>
         </CardContent>
       </Card>
@@ -132,7 +134,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
 
         {/* Serving Size - ALWAYS DISPLAY */}
         <div className={`mb-2 ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
-          <span className="font-medium text-foreground">Serving:</span> {(recipe as any).servingSize || recipe.servings || '1 serving'}
+          <span className="font-medium text-foreground">{t("sharedComponents.mealCard.serving")}</span> {(recipe as any).servingSize || recipe.servings || '1 serving'}
         </div>
         
         {/* Nutrition Info */}
@@ -141,19 +143,19 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
             {recipe.protein && (
               <div className="text-center">
                 <div className="font-medium text-foreground">{recipe.protein}g</div>
-                <div className="text-muted-foreground">Protein</div>
+                <div className="text-muted-foreground">{t("sharedComponents.mealCard.protein")}</div>
               </div>
             )}
             {recipe.carbs && (
               <div className="text-center">
                 <div className="font-medium text-foreground">{recipe.carbs}g</div>
-                <div className="text-muted-foreground">Carbs</div>
+                <div className="text-muted-foreground">{t("sharedComponents.mealCard.carbs")}</div>
               </div>
             )}
             {recipe.fat && (
               <div className="text-center">
                 <div className="font-medium text-foreground">{recipe.fat}g</div>
-                <div className="text-muted-foreground">Fat</div>
+                <div className="text-muted-foreground">{t("sharedComponents.mealCard.fat")}</div>
               </div>
             )}
           </div>
@@ -184,7 +186,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
         {/* Full Ingredients List */}
         {!compact && recipe.ingredients && (
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-foreground mb-2">Ingredients:</h4>
+            <h4 className="text-sm font-medium text-foreground mb-2">{t("sharedComponents.mealCard.ingredients")}</h4>
             <div className="space-y-1 text-xs text-muted-foreground max-h-32 overflow-y-auto">
               {recipe.ingredients.map((ingredient, index) => (
                 <div key={index} className="flex justify-between">
@@ -199,7 +201,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
         {/* Full Cooking Instructions */}
         {!compact && recipe.instructions && (
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-foreground mb-2">Cooking Instructions:</h4>
+            <h4 className="text-sm font-medium text-foreground mb-2">{t("sharedComponents.mealCard.cookingInstructions")}</h4>
             <div className="text-xs text-muted-foreground space-y-2 max-h-40 overflow-y-auto">
               {recipe.instructions.map((instruction, index) => (
                 <div key={index} className="flex">

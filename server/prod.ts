@@ -932,6 +932,10 @@ async function initializeApp() {
     const marketingCenterRouter = (await import("./routes/marketingCenterRoutes")).default;
     app.use("/api/marketing-center", marketingCenterRouter);
 
+    // procare-invite — token-based deep-link acceptance (public GET, authenticated POST)
+    const procareInviteRouter = (await import("./routes/procareInviteRoutes")).default;
+    app.use("/api/procare-invite", procareInviteRouter);
+
     // legal-pages — privacy policy, terms-of-service rendered pages
     const legalPagesRouter = (await import("./routes/legal-pages")).default;
     app.use(legalPagesRouter);
@@ -1173,6 +1177,16 @@ async function initializeApp() {
         console.warn("⚠️ [BG] Warmup service failed to start:", bgErr);
       }
     }, 7000);
+
+    // ProCare invite token migration — adds url_token to care_invite + studio_invites
+    setTimeout(async () => {
+      try {
+        const { runProCareInviteTokenMigration } = await import("./db/migrations/runProCareInviteTokenMigration");
+        await runProCareInviteTokenMigration();
+      } catch (err: any) {
+        console.error("❌ [prod] ProCare invite token migration failed:", err.message);
+      }
+    }, 3300);
 
     // Business tables boot migration — idempotent
     setTimeout(async () => {

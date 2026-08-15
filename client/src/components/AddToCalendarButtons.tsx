@@ -1,4 +1,5 @@
 import { CalendarDays } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { MPMCalendarEvent, buildGoogleCalendarUrl, buildOutlookUrl, downloadICS } from "@/lib/calendarLinks";
 
 interface AddToCalendarButtonsProps {
@@ -7,12 +8,13 @@ interface AddToCalendarButtonsProps {
 }
 
 export default function AddToCalendarButtons({ event, accentClass = "text-white/60" }: AddToCalendarButtonsProps) {
+  const { t } = useTranslation();
   const pillClass =
     "inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 text-xs text-white/80 active:scale-[0.96] select-none";
 
   return (
     <div className="mt-2 pt-2 border-t border-white/10">
-      <p className={`text-xs mb-1.5 ${accentClass}`}>Add to calendar</p>
+      <p className={`text-xs mb-1.5 ${accentClass}`}>{t("common.addToCalendar")}</p>
       <div className="flex flex-wrap gap-1.5">
         <a
           href={buildGoogleCalendarUrl(event)}

@@ -39,7 +39,7 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
               <span className="text-sm font-medium">{backLabel ?? "Hub"}</span>
             </button>
           )}
-          <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
+          <h1 className="text-lg font-bold text-white flex-1 min-w-0 break-words leading-tight">
             {title}
           </h1>
         </div>

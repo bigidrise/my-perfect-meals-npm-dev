@@ -1,4 +1,4 @@
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 
 export type Reason = { label: string; tag?: "diet"|"portion"|"variety"|"time"|"staples"|"shopping"|"reset" };
 

@@ -1,4 +1,4 @@
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { get, put, post } from "@/lib/api";
 import { weekDatesInTZ } from "@/utils/midnight";
 

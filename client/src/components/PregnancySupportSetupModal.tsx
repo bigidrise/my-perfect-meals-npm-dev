@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiRequest } from "@/lib/apiRequest";
@@ -27,27 +28,28 @@ type Symptom =
   | "shortness_of_breath"
   | "low_appetite";
 
-const STAGE_OPTIONS: { label: string; value: Stage; emoji: string; description: string }[] = [
-  { label: "Trying to Conceive", value: "trying-to-conceive", emoji: "🌸", description: "Preconception nutrition" },
-  { label: "First Trimester", value: "trimester-1", emoji: "🌱", description: "Weeks 1–13 · Folate, nausea support" },
-  { label: "Second Trimester", value: "trimester-2", emoji: "🌿", description: "Weeks 14–27 · Protein, calcium, DHA" },
-  { label: "Third Trimester", value: "trimester-3", emoji: "🌺", description: "Weeks 28–40 · Iron, DHA, prep for birth" },
-  { label: "Breastfeeding", value: "breastfeeding", emoji: "🤱", description: "Milk production, DHA, iodine, calcium" },
-  { label: "Postpartum", value: "postpartum", emoji: "🩷", description: "Recovery, body recomposition, hormone support, strength" },
+const STAGE_OPTIONS: { labelKey: string; value: Stage; emoji: string; descriptionKey: string }[] = [
+  { labelKey: "pregnancySupport.stage.tryingToConceive.label", value: "trying-to-conceive", emoji: "🌸", descriptionKey: "pregnancySupport.stage.tryingToConceive.desc" },
+  { labelKey: "pregnancySupport.stage.trimester1.label", value: "trimester-1", emoji: "🌱", descriptionKey: "pregnancySupport.stage.trimester1.desc" },
+  { labelKey: "pregnancySupport.stage.trimester2.label", value: "trimester-2", emoji: "🌿", descriptionKey: "pregnancySupport.stage.trimester2.desc" },
+  { labelKey: "pregnancySupport.stage.trimester3.label", value: "trimester-3", emoji: "🌺", descriptionKey: "pregnancySupport.stage.trimester3.desc" },
+  { labelKey: "pregnancySupport.stage.breastfeeding.label", value: "breastfeeding", emoji: "🤱", descriptionKey: "pregnancySupport.stage.breastfeeding.desc" },
+  { labelKey: "pregnancySupport.stage.postpartum.label", value: "postpartum", emoji: "🩷", descriptionKey: "pregnancySupport.stage.postpartum.desc" },
 ];
 
-const SYMPTOM_OPTIONS: { label: string; value: Symptom; emoji: string }[] = [
-  { label: "Nausea", value: "nausea", emoji: "🤢" },
-  { label: "Heartburn", value: "heartburn", emoji: "🔥" },
-  { label: "Constipation", value: "constipation", emoji: "😣" },
-  { label: "Fatigue", value: "fatigue", emoji: "😴" },
-  { label: "Food Aversions", value: "food_aversions", emoji: "🙅" },
-  { label: "Swelling", value: "swelling", emoji: "💧" },
-  { label: "Shortness of Breath", value: "shortness_of_breath", emoji: "😮‍💨" },
-  { label: "Low Appetite", value: "low_appetite", emoji: "😐" },
+const SYMPTOM_OPTIONS: { labelKey: string; value: Symptom; emoji: string }[] = [
+  { labelKey: "pregnancySupport.symptom.nausea", value: "nausea", emoji: "🤢" },
+  { labelKey: "pregnancySupport.symptom.heartburn", value: "heartburn", emoji: "🔥" },
+  { labelKey: "pregnancySupport.symptom.constipation", value: "constipation", emoji: "😣" },
+  { labelKey: "pregnancySupport.symptom.fatigue", value: "fatigue", emoji: "😴" },
+  { labelKey: "pregnancySupport.symptom.foodAversions", value: "food_aversions", emoji: "🙅" },
+  { labelKey: "pregnancySupport.symptom.swelling", value: "swelling", emoji: "💧" },
+  { labelKey: "pregnancySupport.symptom.shortnessOfBreath", value: "shortness_of_breath", emoji: "😮‍💨" },
+  { labelKey: "pregnancySupport.symptom.lowAppetite", value: "low_appetite", emoji: "😐" },
 ];
 
 export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: PregnancySupportSetupModalProps) {
+  const { t } = useTranslation();
   const [stage, setStage] = useState<Stage | null>(null);
   const [trackingMode, setTrackingMode] = useState<"due-date" | "manual">("manual");
   const [dueDate, setDueDate] = useState("");
@@ -111,17 +113,17 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
       >
         <SheetHeader className="text-left pb-4 border-b border-white/10">
           <SheetTitle className="text-white text-xl flex items-center gap-2">
-            🩷 My Perfect Pregnancy Setup
+            🩷 {t("pregnancySupport.title")}
           </SheetTitle>
           <p className="text-white/60 text-xs leading-relaxed mt-1">
-            This helps personalize your nutrition guidance. Your information stays private and shapes every meal suggestion, food safety check, and coaching response.
+            {t("pregnancySupport.intro")}
           </p>
         </SheetHeader>
 
         <div className="py-5 space-y-6">
           {/* Stage selection */}
           <div>
-            <p className="text-pink-300 text-sm font-semibold mb-3">Where are you in your journey?</p>
+            <p className="text-pink-300 text-sm font-semibold mb-3">{t("pregnancySupport.whereAreYou")}</p>
             <div className="space-y-2">
               {STAGE_OPTIONS.map(opt => (
                 <button
@@ -139,8 +141,8 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
                 >
                   <span className="text-xl flex-shrink-0">{opt.emoji}</span>
                   <div>
-                    <p className="text-sm font-semibold">{opt.label}</p>
-                    <p className="text-xs text-white/50">{opt.description}</p>
+                    <p className="text-sm font-semibold">{t(opt.labelKey)}</p>
+                    <p className="text-xs text-white/50">{t(opt.descriptionKey)}</p>
                   </div>
                   {stage === opt.value && (
                     <span className="ml-auto text-pink-400 text-sm">✓</span>
@@ -153,32 +155,32 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
           {/* Breastfeeding question — only for postpartum stage */}
           {stage === "postpartum" && (
             <div>
-              <p className="text-pink-300 text-sm font-semibold mb-1">Are you currently breastfeeding?</p>
+              <p className="text-pink-300 text-sm font-semibold mb-1">{t("pregnancySupport.breastfeedingQuestion")}</p>
               <p className="text-white/50 text-xs mb-3">
-                This shapes your nutrition track. Breastfeeding and postpartum recovery have different priorities — we handle them separately.
+                {t("pregnancySupport.breastfeedingHelp")}
               </p>
               <div className="flex gap-2">
                 <PillButton
                   active={isBreastfeeding === true}
                   onClick={() => setIsBreastfeeding(true)}
                 >
-                  Yes, breastfeeding
+                  {t("pregnancySupport.yesBreastfeeding")}
                 </PillButton>
                 <PillButton
                   active={isBreastfeeding === false}
                   onClick={() => setIsBreastfeeding(false)}
                 >
-                  No, not breastfeeding
+                  {t("pregnancySupport.noBreastfeeding")}
                 </PillButton>
               </div>
               {isBreastfeeding && (
                 <p className="text-white/40 text-xs mt-2 leading-relaxed">
-                  You'll get milk-production nutrition plus a recovery layer for healing and rebuilding.
+                  {t("pregnancySupport.breastfeedingNote")}
                 </p>
               )}
               {!isBreastfeeding && (
                 <p className="text-white/40 text-xs mt-2 leading-relaxed">
-                  You'll get a dedicated postpartum recovery protocol — fiber, anti-inflammatory eating, hormone support, and body recomposition. No crash dieting.
+                  {t("pregnancySupport.postpartumNote")}
                 </p>
               )}
             </div>
@@ -187,22 +189,22 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
           {/* Due date — only for trimester stages */}
           {stage && ["trimester-1", "trimester-2", "trimester-3"].includes(stage) && (
             <div>
-              <p className="text-pink-300 text-sm font-semibold mb-2">Track by due date?</p>
+              <p className="text-pink-300 text-sm font-semibold mb-2">{t("pregnancySupport.trackByDueDate")}</p>
               <p className="text-white/50 text-xs mb-3">
-                When you enter your due date, your current week and trimester update automatically. You can skip this and track manually.
+                {t("pregnancySupport.trackByDueDateHelp")}
               </p>
               <div className="flex gap-2 mb-3">
                 <PillButton
                   active={trackingMode === "due-date"}
                   onClick={() => setTrackingMode("due-date")}
                 >
-                  Yes, enter due date
+                  {t("pregnancySupport.yesEnterDueDate")}
                 </PillButton>
                 <PillButton
                   active={trackingMode === "manual"}
                   onClick={() => setTrackingMode("manual")}
                 >
-                  Skip — manual stage only
+                  {t("pregnancySupport.skipManual")}
                 </PillButton>
               </div>
               {trackingMode === "due-date" && (
@@ -211,7 +213,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
                   className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-pink-400/60"
-                  placeholder="Due date (YYYY-MM-DD)"
+                  placeholder={t("pregnancySupport.dueDatePlaceholder")}
                 />
               )}
             </div>
@@ -220,9 +222,9 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
           {/* Active symptoms */}
           {stage && stage !== "trying-to-conceive" && (
             <div>
-              <p className="text-pink-300 text-sm font-semibold mb-1">Any active symptoms?</p>
+              <p className="text-pink-300 text-sm font-semibold mb-1">{t("pregnancySupport.activeSymptoms")}</p>
               <p className="text-white/50 text-xs mb-3">
-                Select all that apply — your meal suggestions will adapt to support them.
+                {t("pregnancySupport.activeSymptomsHelp")}
               </p>
               <div className="flex flex-wrap gap-2">
                 {SYMPTOM_OPTIONS.map(opt => (
@@ -231,7 +233,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
                     active={symptoms.includes(opt.value)}
                     onClick={() => toggleSymptom(opt.value)}
                   >
-                    {opt.emoji} {opt.label}
+                    {opt.emoji} {t(opt.labelKey)}
                   </PillButton>
                 ))}
               </div>
@@ -241,7 +243,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
           {/* Disclaimer */}
           <div className="bg-pink-950/20 border border-pink-500/20 rounded-xl p-3">
             <p className="text-white/60 text-xs leading-relaxed">
-              My Perfect Pregnancy provides general nutrition education and food-structure support only. It is <span className="text-white/80 font-medium">not a substitute</span> for your OB/GYN, midwife, or registered dietitian. Always follow your healthcare provider's recommendations first.
+              {t("pregnancySupport.disclaimerPart1")} <span className="text-white/80 font-medium">{t("pregnancySupport.disclaimerNotSubstitute")}</span> {t("pregnancySupport.disclaimerPart2")}
             </p>
           </div>
 
@@ -257,7 +259,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
                   : "bg-gradient-to-r from-pink-600 to-orange-600 text-white active:scale-95"
             }`}
           >
-            {saved ? "✓ Saved!" : saving ? "Saving…" : "Save My Pregnancy Setup"}
+            {saved ? t("pregnancySupport.savedButton") : saving ? t("pregnancySupport.savingButton") : t("pregnancySupport.saveButton")}
           </button>
 
           {/* Deactivate section */}
@@ -267,13 +269,13 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
                 onClick={() => setShowDeactivateConfirm(true)}
                 className="w-full py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm font-semibold active:bg-white/20 transition-colors"
               >
-                Turn off pregnancy nutrition
+                {t("pregnancySupport.turnOff")}
               </button>
             ) : (
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-                <p className="text-white/80 text-sm font-semibold">Turn off pregnancy nutrition?</p>
+                <p className="text-white/80 text-sm font-semibold">{t("pregnancySupport.turnOffConfirm")}</p>
                 <p className="text-white/50 text-xs leading-relaxed">
-                  This will remove pregnancy-specific guidance from your meals and coaching. You can turn it back on whenever you're ready — no judgment, no questions.
+                  {t("pregnancySupport.turnOffHelp")}
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -281,13 +283,13 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
                     disabled={deactivating}
                     className="flex-1 py-2.5 rounded-xl bg-white/10 text-white/80 text-xs font-semibold active:bg-white/20 transition-colors disabled:opacity-50"
                   >
-                    {deactivating ? "Turning off…" : "Yes, turn it off"}
+                    {deactivating ? t("pregnancySupport.turningOff") : t("pregnancySupport.yesTurnOff")}
                   </button>
                   <button
                     onClick={() => setShowDeactivateConfirm(false)}
                     className="flex-1 py-2.5 rounded-xl bg-pink-700/40 text-white text-xs font-semibold active:bg-pink-700/60 transition-colors"
                   >
-                    Keep it on
+                    {t("pregnancySupport.keepItOn")}
                   </button>
                 </div>
               </div>

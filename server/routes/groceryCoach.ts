@@ -9,6 +9,7 @@ import { getProductAdvisorEngine } from "../services/productAdvisor";
 import { finalizeMealCard } from "../services/mealCardFinalizer";
 import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } from "../services/savedGroceryCompliance";
 import { getMealRefinementEngine } from "../services/mealRefinementEngine";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 
 const router = express.Router();
 
@@ -338,7 +339,9 @@ ${sessionAvoidList}`;
     // Note: session rejection logic only runs for authenticated users (route is
     // auth-gated; guests receive 401 before reaching this code).
 
-    const systemPrompt = `You are a Grocery Store Coach — a real, confident nutrition coach who helps users decide exactly what to make for dinner and what to buy at the grocery store. You are NOT a recipe generator or meal builder. You are a decision-making assistant.
+    const rawLang = (req as any).authUser?.preferredLanguage || "auto";
+    const langInstruction = getLanguageInstruction(rawLang);
+    let systemPrompt = `You are a Grocery Store Coach — a real, confident nutrition coach who helps users decide exactly what to make for dinner and what to buy at the grocery store. You are NOT a recipe generator or meal builder. You are a decision-making assistant.
 
 Your mission: turn "I don't know what to eat" into "Here is exactly what to buy, how much to buy, and why it fits your goals."
 
@@ -399,6 +402,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     "cookingMethod": "string — dominant cooking method (e.g. 'stir-fry', 'baked', 'grilled', 'raw', 'slow-cooked', 'sautéed')"
   }
 }`;
+    if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
 
     const priorMessages = (conversationHistory as any[])
       .slice(-8)
@@ -736,6 +740,7 @@ router.post("/swap-ingredient", async (req, res) => {
       existingMeal,
       changeInstruction,
       generatorName: "grocery_swap",
+      preferredLanguage: (req as any).authUser?.preferredLanguage,
     });
 
     // ── Extract coachSuggestion from the updated shoppingList ─────────────

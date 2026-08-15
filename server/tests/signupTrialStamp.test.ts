@@ -303,3 +303,154 @@ describe("routes.ts source scan — trial stamped at onboarding completion", () 
     expect(handlerBlock).toContain("trialEndsAt:");
   });
 });
+
+// ─── 7. Trial welcome modal — computeTrialDays (real shared helper) ──────────
+//
+// OnboardingV3.tsx imports computeTrialDays from shared/trialDays.ts and passes
+// its return value into the modal heading. These tests exercise the exported
+// function directly so that a regression in the real implementation is caught,
+// not a local mirror copy.
+
+import { computeTrialDays } from "../../shared/trialDays";
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+describe("computeTrialDays (shared/trialDays.ts) — trial welcome modal duration", () => {
+  // ── admin-granted 30-day trial ──────────────────────────────────────────────
+
+  it("admin_grant 30-day trial: returns 30, not 7", () => {
+    const start = new Date("2025-06-01T00:00:00Z");
+    const end   = new Date(start.getTime() + THIRTY_DAYS_MS);
+    expect(computeTrialDays({
+      trialStartedAt: start.toISOString(),
+      trialEndsAt:    end.toISOString(),
+    })).toBe(30);
+  });
+
+  it("admin_grant 30-day trial: modal heading reads '30-Day Trial Has Started!'", () => {
+    const start = new Date("2025-06-01T00:00:00Z");
+    const end   = new Date(start.getTime() + THIRTY_DAYS_MS);
+    const days = computeTrialDays({
+      trialStartedAt: start.toISOString(),
+      trialEndsAt:    end.toISOString(),
+    });
+    expect(`Your ${days}-Day Trial Has Started!`).toBe("Your 30-Day Trial Has Started!");
+  });
+
+  // ── standard 7-day trial (standard_signup) ──────────────────────────────────
+
+  it("standard_signup 7-day trial: returns 7", () => {
+    const start = FIXED_NOW;
+    const end   = new Date(start.getTime() + SEVEN_DAYS_MS);
+    expect(computeTrialDays({
+      trialStartedAt: start.toISOString(),
+      trialEndsAt:    end.toISOString(),
+    })).toBe(7);
+  });
+
+  it("standard_signup 7-day trial: modal heading reads '7-Day Trial Has Started!'", () => {
+    const start = FIXED_NOW;
+    const end   = new Date(start.getTime() + SEVEN_DAYS_MS);
+    const days = computeTrialDays({
+      trialStartedAt: start.toISOString(),
+      trialEndsAt:    end.toISOString(),
+    });
+    expect(`Your ${days}-Day Trial Has Started!`).toBe("Your 7-Day Trial Has Started!");
+  });
+
+  // ── fallback: no trialStartedAt, only trialEndsAt (days-remaining-from-now) ─
+
+  it("no trialStartedAt: uses ceiling of (trialEndsAt − now)", () => {
+    const now = new Date("2025-06-15T12:00:00Z");
+    const end = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+    expect(computeTrialDays({ trialStartedAt: null, trialEndsAt: end.toISOString(), now })).toBe(5);
+  });
+
+  it("no trialStartedAt, 30 days remaining until end: returns 30 not 7", () => {
+    const now = new Date("2025-06-15T12:00:00Z");
+    const end = new Date(now.getTime() + THIRTY_DAYS_MS);
+    expect(computeTrialDays({ trialStartedAt: null, trialEndsAt: end.toISOString(), now })).toBe(30);
+  });
+
+  it("no trialStartedAt and no trialEndsAt: safe fallback is 7", () => {
+    expect(computeTrialDays({ trialStartedAt: null, trialEndsAt: null })).toBe(7);
+  });
+
+  // ── daysRemaining from server context (second priority) ─────────────────────
+
+  it("no timestamps, daysRemaining=14 from server context: returns 14", () => {
+    expect(computeTrialDays({ trialStartedAt: null, trialEndsAt: null, daysRemaining: 14 })).toBe(14);
+  });
+
+  it("start→end diff wins over daysRemaining when both are present", () => {
+    const start = new Date("2025-06-01T00:00:00Z");
+    const end   = new Date(start.getTime() + THIRTY_DAYS_MS);
+    // daysRemaining claims 5 but real window is 30 — start→end must win
+    expect(computeTrialDays({
+      trialStartedAt: start.toISOString(),
+      trialEndsAt:    end.toISOString(),
+      daysRemaining:  5,
+    })).toBe(30);
+  });
+});
+
+// ─── 8. Source scan — modal uses computeTrialDays, not hardcoded "7" ─────────
+
+describe("OnboardingV3.tsx source scan — modal heading uses computeTrialDays helper", () => {
+  const onboardingFilePath = path.resolve(__dirname, "../../client/src/pages/OnboardingV3.tsx");
+  let onboardingSource: string;
+
+  beforeAll(() => {
+    onboardingSource = fs.readFileSync(onboardingFilePath, "utf-8");
+  });
+
+  it("imports computeTrialDays from the shared helper", () => {
+    expect(onboardingSource).toContain("computeTrialDays");
+    expect(onboardingSource).toContain("trialDays");
+  });
+
+  it("modal heading interpolates actualDays, not a hardcoded number", () => {
+    const modalStart = onboardingSource.indexOf("Trial welcome modal");
+    expect(modalStart).toBeGreaterThan(0);
+    const modalBlock = onboardingSource.slice(modalStart, modalStart + 2000);
+    expect(modalBlock).toContain("{actualDays}-Day Trial Has Started");
+  });
+
+  it("modal block does not hard-wire a digit before '-Day Trial Has Started'", () => {
+    const modalStart = onboardingSource.indexOf("Trial welcome modal");
+    const modalBlock = onboardingSource.slice(modalStart, modalStart + 2000);
+    expect(modalBlock).not.toMatch(/["'`]\d+-Day Trial Has Started/);
+  });
+
+  it("actualDays is assigned by calling computeTrialDays inside the modal block", () => {
+    const modalStart = onboardingSource.indexOf("Trial welcome modal");
+    const modalBlock = onboardingSource.slice(modalStart, modalStart + 2000);
+    expect(modalBlock).toContain("computeTrialDays(");
+  });
+});
+
+describe("shared/trialDays.ts source scan — fallback and priority chain", () => {
+  const helperPath = path.resolve(__dirname, "../../shared/trialDays.ts");
+  let helperSource: string;
+
+  beforeAll(() => {
+    helperSource = fs.readFileSync(helperPath, "utf-8");
+  });
+
+  it("exports computeTrialDays as a named export", () => {
+    expect(helperSource).toContain("export function computeTrialDays");
+  });
+
+  it("safe fallback of 7 is present as the last-resort return", () => {
+    expect(helperSource).toContain("return 7");
+  });
+
+  it("priority 1 — start→end diff is the first branch", () => {
+    expect(helperSource).toContain("trialStartedAt && trialEndsAt");
+  });
+
+  it("priority 3 — end-from-now fallback is present for accounts without a start stamp", () => {
+    // The ceiling fallback computes days from now when trialStartedAt is absent
+    expect(helperSource).toContain("Math.ceil");
+  });
+});

@@ -11,12 +11,8 @@ import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 // Simple UUID v4 format check
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export interface Ingredient {
-  item: string;
-  amount: number;
-  unit: string;
-  notes?: string;
-}
+export type { Ingredient } from "@/types/meal";
+import type { Ingredient } from "@/types/meal";
 
 export interface Meal {
   id: string;

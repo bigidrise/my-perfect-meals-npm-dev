@@ -1,0 +1,3852 @@
+{
+  "en": {
+    "parentsCorner": {
+      "title": "Parent's Corner",
+      "yourChild": "your child",
+      "helpingBuildHabits": "Helping {{name}} build healthy habits",
+      "backToBeginnings": "Back to My Perfect Beginnings",
+      "startFresh": "Start fresh",
+      "startNewConversation": "Start a new conversation",
+      "clearConfirm": "Clear this conversation and start fresh?",
+      "clear": "Clear",
+      "cancel": "Cancel",
+      "dismiss": "Dismiss",
+      "boundaryLanguage": "I can share evidence-based nutrition guidance to support your family. For medical concerns, your child's pediatrician or a registered pediatric dietitian is always the right next step — I'll let you know when something sounds like it needs that conversation.",
+      "todaysTip": "Today's Tip",
+      "loadingConversation": "Loading your conversation…",
+      "commonQuestions": "Common questions",
+      "browseCommonQuestions": "Browse common questions",
+      "followUp": "Follow-up",
+      "makeItNow": "Make it now",
+      "thinking": "Thinking…",
+      "emptyPrompt": "Tap a card above or ask anything below.",
+      "askAnything": "Ask anything",
+      "inputPlaceholder": "Type your question here…",
+      "send": "Send",
+      "noResponse": "I'm sorry, I didn't get a response. Please try again.",
+      "connectionError": "I'm having a little trouble right now. Please check your connection and try again.",
+      "stage": {
+        "earlyInfant": "Early Infant",
+        "beginningFoods": "Beginning Foods",
+        "youngToddler": "Young Toddler",
+        "toddler": "Toddler",
+        "preschool": "Preschool",
+        "earlySchoolAge": "Early School Age",
+        "growingChild": "Growing Child"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "My baby won't eat.",
+          "question": "My baby won't eat. What should I do?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "My toddler hates vegetables.",
+          "question": "My toddler hates vegetables. How do I get them to eat more?"
+        },
+        "lunchPacking": {
+          "label": "What should I pack for lunch?",
+          "question": "What are some ideas for packing a healthy and appealing lunch?"
+        },
+        "healthySnacks": {
+          "label": "Healthy snacks after school.",
+          "question": "What are some healthy snack ideas for after school?"
+        },
+        "calcium": {
+          "label": "Is my child getting enough calcium?",
+          "question": "Is my child getting enough calcium? How do I make sure?"
+        },
+        "introducingFoods": {
+          "label": "How do I introduce new foods?",
+          "question": "How do I introduce new foods without it becoming a battle?"
+        },
+        "youngAthlete": {
+          "label": "What should my young athlete eat?",
+          "question": "My child plays sports. What should they eat before and after practice?"
+        },
+        "waterIntake": {
+          "label": "How much water does my child need?",
+          "question": "How much water should my child be drinking each day?"
+        },
+        "pizza": {
+          "label": "Can my child still have pizza?",
+          "question": "Can my child still have pizza and other fun foods, or should I be stricter?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Record Body Composition",
+      "bodyFatPct": "Body Fat %",
+      "bodyFatPlaceholder": "e.g. 18.5",
+      "goalBodyFatPct": "Goal Body Fat % (optional)",
+      "goalBodyFatPlaceholder": "e.g. 15",
+      "scanMethod": "Scan Method",
+      "pickMethod": "Pick a method",
+      "date": "Date",
+      "save": "Save",
+      "saving": "Saving...",
+      "notLoggedIn": "Not logged in",
+      "notLoggedInDesc": "Please log in to save your body composition data.",
+      "invalidBodyFat": "Invalid body fat",
+      "invalidBodyFatDesc": "Body fat percentage must be between 1% and 70%.",
+      "saved": "Saved",
+      "savedDesc": "Body composition recorded successfully.",
+      "saveFailed": "Save failed",
+      "saveFailedDesc": "Could not save your body composition data. Please try again."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Launch your independent ProCare account",
+      "openStudio": "Open your independent studio",
+      "completeVerification": "Complete credential verification",
+      "continueTraining": "Continue Platform Mastery training",
+      "startOwnPractice": "Start My Own Practice",
+      "continueAsClient": "Continue as a Client",
+      "continueAsClientDesc": "Keep using MPM as an individual member",
+      "continueWithFree": "Continue with Free",
+      "continueWithFreeDesc": "Basic meal generation — always free",
+      "joinAnotherOrg": "Join Another Organization",
+      "joinAnotherOrgDesc": "Accept an invite from a different business",
+      "accessEnded": "Your {{business}}-sponsored access has ended",
+      "accessEndedBody": "Your personal account, meal history, Academy progress, and certifications are all still here. Choose how you'd like to continue."
+    },
+    "dietStyleBadge": {
+      "kosher": "Kosher ✓",
+      "halal": "Halal ✓",
+      "vegan": "Vegan ✓",
+      "vegetarian": "Vegetarian ✓",
+      "pescatarian": "Pescatarian ✓",
+      "mediterranean": "Mediterranean ✓",
+      "paleo": "Paleo ✓",
+      "keto": "Keto ✓",
+      "carnivore": "Carnivore ✓",
+      "dairyFree": "Dairy-Free ✓",
+      "custom": "Custom Diet ✓"
+    },
+    "pregnancySupport": {
+      "title": "My Perfect Pregnancy Setup",
+      "intro": "This helps personalize your nutrition guidance. Your information stays private and shapes every meal suggestion, food safety check, and coaching response.",
+      "whereAreYou": "Where are you in your journey?",
+      "breastfeedingQuestion": "Are you currently breastfeeding?",
+      "breastfeedingHelp": "This shapes your nutrition track. Breastfeeding and postpartum recovery have different priorities — we handle them separately.",
+      "yesBreastfeeding": "Yes, breastfeeding",
+      "noBreastfeeding": "No, not breastfeeding",
+      "breastfeedingNote": "You'll get milk-production nutrition plus a recovery layer for healing and rebuilding.",
+      "postpartumNote": "You'll get a dedicated postpartum recovery protocol — fiber, anti-inflammatory eating, hormone support, and body recomposition. No crash dieting.",
+      "trackByDueDate": "Track by due date?",
+      "trackByDueDateHelp": "When you enter your due date, your current week and trimester update automatically. You can skip this and track manually.",
+      "yesEnterDueDate": "Yes, enter due date",
+      "skipManual": "Skip — manual stage only",
+      "dueDatePlaceholder": "Due date (YYYY-MM-DD)",
+      "activeSymptoms": "Any active symptoms?",
+      "activeSymptomsHelp": "Select all that apply — your meal suggestions will adapt to support them.",
+      "disclaimerPart1": "My Perfect Pregnancy provides general nutrition education and food-structure support only. It is",
+      "disclaimerNotSubstitute": "not a substitute",
+      "disclaimerPart2": "for your OB/GYN, midwife, or registered dietitian. Always follow your healthcare provider's recommendations first.",
+      "saveButton": "Save My Pregnancy Setup",
+      "savingButton": "Saving…",
+      "savedButton": "✓ Saved!",
+      "turnOff": "Turn off pregnancy nutrition",
+      "turnOffConfirm": "Turn off pregnancy nutrition?",
+      "turnOffHelp": "This will remove pregnancy-specific guidance from your meals and coaching. You can turn it back on whenever you're ready — no judgment, no questions.",
+      "turningOff": "Turning off…",
+      "yesTurnOff": "Yes, turn it off",
+      "keepItOn": "Keep it on",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Trying to Conceive",
+          "desc": "Preconception nutrition"
+        },
+        "trimester1": {
+          "label": "First Trimester",
+          "desc": "Weeks 1–13 · Folate, nausea support"
+        },
+        "trimester2": {
+          "label": "Second Trimester",
+          "desc": "Weeks 14–27 · Protein, calcium, DHA"
+        },
+        "trimester3": {
+          "label": "Third Trimester",
+          "desc": "Weeks 28–40 · Iron, DHA, prep for birth"
+        },
+        "breastfeeding": {
+          "label": "Breastfeeding",
+          "desc": "Milk production, DHA, iodine, calcium"
+        },
+        "postpartum": {
+          "label": "Postpartum",
+          "desc": "Recovery, body recomposition, hormone support, strength"
+        }
+      },
+      "symptom": {
+        "nausea": "Nausea",
+        "heartburn": "Heartburn",
+        "constipation": "Constipation",
+        "fatigue": "Fatigue",
+        "foodAversions": "Food Aversions",
+        "swelling": "Swelling",
+        "shortnessOfBreath": "Shortness of Breath",
+        "lowAppetite": "Low Appetite"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "How are you feeling today?",
+      "noCheckinToday": "No symptom check-in submitted today. Your meals are using your standard medication profile.",
+      "checkInPrompt": "Check in to adapt today's meals, shakes, and restaurant suggestions.",
+      "checkIn": "Check In",
+      "update": "Update",
+      "updated": "Updated {{time}}",
+      "escalationStatusBody": "These symptoms may require medical evaluation. Contact your healthcare provider or care team promptly.",
+      "mealsAdapting": "Meals adapting to today's symptoms",
+      "updatedTapAdjustments": "Updated {{time}} · Tap to see adjustments",
+      "noSymptomsToday": "No symptoms reported today",
+      "updatedStandardProfile": "Updated {{time}} · Standard medication profile active",
+      "escalationCardBody": "These symptoms may require medical evaluation. Please reach out to your care team.",
+      "nutritionAdjustments": "Today's nutrition adjustments ({{count}})",
+      "reason": "Reason",
+      "adaptation": "Adaptation",
+      "evidence": "Evidence",
+      "justNow": "just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "giSymptomsHeader": "GI Symptoms — How severe today?",
+      "otherSymptomsHeader": "Other Symptoms",
+      "vomitingHeader": "Vomiting Today",
+      "quickQuestionsHeader": "A Few Quick Questions",
+      "notifyHeader": "Would you like your care team to know?",
+      "notifyHelp": "Optional — gives you control over who is notified today.",
+      "updatesThroughoutDay": "This updates throughout the day.",
+      "updatesThroughoutDayBody": "If you feel better later, come back and check in again — your meals will adapt immediately. Your check-in resets each morning.",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "saveCheckIn": "Save Check-In",
+      "severity": {
+        "none": "None",
+        "mild": "Mild",
+        "moderate": "Moderate",
+        "severe": "Severe"
+      },
+      "symptom": {
+        "nausea": "Nausea",
+        "constipation": "Constipation",
+        "diarrhea": "Diarrhea",
+        "reflux": "Heartburn/Reflux",
+        "bloating": "Bloating",
+        "earlyFullness": "Early fullness",
+        "foodAversions": "Food aversions",
+        "fatigue": "Fatigue",
+        "dizziness": "Dizziness",
+        "headache": "Headache"
+      },
+      "vomiting": {
+        "none": "None",
+        "once": "Once",
+        "multiple": "2–3 times",
+        "cantKeepFluids": "4+ / Can't keep fluids"
+      },
+      "q": {
+        "keepFluids": "Can you keep fluids down?",
+        "eatWithoutWorsening": "Can you eat without symptoms worsening?",
+        "reducedUrination": "Is your urine output much less than usual?",
+        "symptomTrend": "How are your symptoms trending?",
+        "appetite": "How is your appetite today?"
+      },
+      "opt": {
+        "yes": "Yes",
+        "no": "No",
+        "withDifficulty": "With difficulty",
+        "partially": "Partially"
+      },
+      "trend": {
+        "improving": "Improving",
+        "same": "Same",
+        "worsening": "Worsening",
+        "na": "Not sure"
+      },
+      "appetite": {
+        "suppressed": "No appetite",
+        "reduced": "Reduced",
+        "normal": "Normal",
+        "increased": "Increased"
+      },
+      "notify": {
+        "keepPrivate": "No, keep private",
+        "coach": "Notify my coach",
+        "both": "Notify both"
+      }
+    }
+  },
+  "es": {
+    "parentsCorner": {
+      "title": "Rincón de padres",
+      "yourChild": "tu hijo",
+      "helpingBuildHabits": "Ayudando a {{name}} a crear hábitos sanos",
+      "backToBeginnings": "Volver a My Perfect Beginnings",
+      "startFresh": "Empezar de nuevo",
+      "startNewConversation": "Iniciar una nueva conversación",
+      "clearConfirm": "¿Borrar esta conversación y empezar de nuevo?",
+      "clear": "Borrar",
+      "cancel": "Cancelar",
+      "dismiss": "Descartar",
+      "boundaryLanguage": "Puedo ofrecer orientación nutricional basada en evidencia para tu familia. Para temas médicos, el pediatra de tu hijo o un dietista pediátrico titulado siempre es el paso correcto; te avisaré cuando algo requiera esa conversación.",
+      "todaysTip": "Consejo de hoy",
+      "loadingConversation": "Cargando tu conversación…",
+      "commonQuestions": "Preguntas frecuentes",
+      "browseCommonQuestions": "Ver preguntas frecuentes",
+      "followUp": "Seguimiento",
+      "makeItNow": "Prepáralo ahora",
+      "thinking": "Pensando…",
+      "emptyPrompt": "Toca una tarjeta o pregunta lo que quieras.",
+      "askAnything": "Pregunta lo que sea",
+      "inputPlaceholder": "Escribe tu pregunta aquí…",
+      "send": "Enviar",
+      "noResponse": "Lo siento, no recibí respuesta. Inténtalo de nuevo.",
+      "connectionError": "Tengo un problema ahora mismo. Revisa tu conexión e inténtalo de nuevo.",
+      "stage": {
+        "earlyInfant": "Bebé pequeño",
+        "beginningFoods": "Inicio de sólidos",
+        "youngToddler": "Niño pequeño",
+        "toddler": "Preescolar temprano",
+        "preschool": "Preescolar",
+        "earlySchoolAge": "Edad escolar temprana",
+        "growingChild": "Niño en crecimiento"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "Mi bebé no come.",
+          "question": "Mi bebé no come. ¿Qué hago?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "Mi niño odia las verduras.",
+          "question": "Mi niño odia las verduras. ¿Cómo logro que coma más?"
+        },
+        "lunchPacking": {
+          "label": "¿Qué pongo en el almuerzo?",
+          "question": "¿Qué ideas hay para un almuerzo sano y apetitoso?"
+        },
+        "healthySnacks": {
+          "label": "Meriendas sanas para la tarde.",
+          "question": "¿Qué meriendas sanas hay para después de la escuela?"
+        },
+        "calcium": {
+          "label": "¿Mi hijo recibe suficiente calcio?",
+          "question": "¿Mi hijo recibe suficiente calcio? ¿Cómo me aseguro?"
+        },
+        "introducingFoods": {
+          "label": "¿Cómo introduzco alimentos nuevos?",
+          "question": "¿Cómo introduzco alimentos nuevos sin que sea una lucha?"
+        },
+        "youngAthlete": {
+          "label": "¿Qué come mi joven deportista?",
+          "question": "Mi hijo hace deporte. ¿Qué debe comer antes y después de entrenar?"
+        },
+        "waterIntake": {
+          "label": "¿Cuánta agua necesita mi hijo?",
+          "question": "¿Cuánta agua debe beber mi hijo al día?"
+        },
+        "pizza": {
+          "label": "¿Mi hijo puede comer pizza?",
+          "question": "¿Mi hijo puede comer pizza y otros caprichos, o debo ser más estricto?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Registrar composición corporal",
+      "bodyFatPct": "% de grasa corporal",
+      "bodyFatPlaceholder": "ej. 18.5",
+      "goalBodyFatPct": "% de grasa objetivo (opcional)",
+      "goalBodyFatPlaceholder": "ej. 15",
+      "scanMethod": "Método de medición",
+      "pickMethod": "Elige un método",
+      "date": "Fecha",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "notLoggedIn": "Sin sesión iniciada",
+      "notLoggedInDesc": "Inicia sesión para guardar tus datos de composición corporal.",
+      "invalidBodyFat": "Grasa corporal no válida",
+      "invalidBodyFatDesc": "El porcentaje de grasa debe estar entre 1% y 70%.",
+      "saved": "Guardado",
+      "savedDesc": "Composición corporal registrada correctamente.",
+      "saveFailed": "Error al guardar",
+      "saveFailedDesc": "No se pudieron guardar tus datos. Inténtalo de nuevo."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Abre tu cuenta ProCare independiente",
+      "openStudio": "Abre tu estudio independiente",
+      "completeVerification": "Completa la verificación de credenciales",
+      "continueTraining": "Continúa la formación Platform Mastery",
+      "startOwnPractice": "Iniciar mi propia práctica",
+      "continueAsClient": "Continuar como cliente",
+      "continueAsClientDesc": "Sigue usando MPM como miembro individual",
+      "continueWithFree": "Continuar con Free",
+      "continueWithFreeDesc": "Generación básica de comidas, siempre gratis",
+      "joinAnotherOrg": "Unirse a otra organización",
+      "joinAnotherOrgDesc": "Acepta una invitación de otra empresa",
+      "accessEnded": "Tu acceso patrocinado por {{business}} ha terminado",
+      "accessEndedBody": "Tu cuenta personal, historial de comidas, progreso en Academy y certificaciones siguen aquí. Elige cómo quieres continuar."
+    },
+    "dietStyleBadge": {
+      "kosher": "Kosher ✓",
+      "halal": "Halal ✓",
+      "vegan": "Vegano ✓",
+      "vegetarian": "Vegetariano ✓",
+      "pescatarian": "Pescetariano ✓",
+      "mediterranean": "Mediterránea ✓",
+      "paleo": "Paleo ✓",
+      "keto": "Keto ✓",
+      "carnivore": "Carnívora ✓",
+      "dairyFree": "Sin lácteos ✓",
+      "custom": "Dieta personalizada ✓"
+    },
+    "pregnancySupport": {
+      "title": "Configuración de My Perfect Pregnancy",
+      "intro": "Esto personaliza tu orientación nutricional. Tu información es privada y adapta cada comida, control de seguridad y respuesta de coaching.",
+      "whereAreYou": "¿En qué etapa de tu camino estás?",
+      "breastfeedingQuestion": "¿Estás amamantando actualmente?",
+      "breastfeedingHelp": "Esto define tu plan nutricional. La lactancia y la recuperación posparto tienen prioridades distintas; las tratamos por separado.",
+      "yesBreastfeeding": "Sí, amamantando",
+      "noBreastfeeding": "No, no amamanto",
+      "breastfeedingNote": "Recibirás nutrición para la producción de leche más una capa de recuperación para sanar.",
+      "postpartumNote": "Recibirás un protocolo de recuperación posparto: fibra, alimentación antiinflamatoria, apoyo hormonal y recomposición corporal. Sin dietas extremas.",
+      "trackByDueDate": "¿Seguir por fecha de parto?",
+      "trackByDueDateHelp": "Al ingresar tu fecha de parto, tu semana y trimestre se actualizan solos. Puedes omitirlo y seguirlo manualmente.",
+      "yesEnterDueDate": "Sí, ingresar fecha",
+      "skipManual": "Omitir: solo etapa manual",
+      "dueDatePlaceholder": "Fecha de parto (YYYY-MM-DD)",
+      "activeSymptoms": "¿Algún síntoma activo?",
+      "activeSymptomsHelp": "Selecciona todo lo que aplique; tus comidas se adaptarán para apoyarte.",
+      "disclaimerPart1": "My Perfect Pregnancy solo brinda educación nutricional general y apoyo en la estructura de las comidas. No es",
+      "disclaimerNotSubstitute": "un sustituto",
+      "disclaimerPart2": "de tu OB/GYN, partera o dietista titulado. Sigue siempre primero las recomendaciones de tu profesional de salud.",
+      "saveButton": "Guardar mi configuración",
+      "savingButton": "Guardando…",
+      "savedButton": "✓ ¡Guardado!",
+      "turnOff": "Desactivar nutrición del embarazo",
+      "turnOffConfirm": "¿Desactivar nutrición del embarazo?",
+      "turnOffHelp": "Esto quitará la orientación de embarazo de tus comidas y coaching. Puedes reactivarla cuando quieras, sin juicios ni preguntas.",
+      "turningOff": "Desactivando…",
+      "yesTurnOff": "Sí, desactivar",
+      "keepItOn": "Mantener activa",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Buscando concebir",
+          "desc": "Nutrición preconcepción"
+        },
+        "trimester1": {
+          "label": "Primer trimestre",
+          "desc": "Semanas 1–13 · Folato, apoyo náuseas"
+        },
+        "trimester2": {
+          "label": "Segundo trimestre",
+          "desc": "Semanas 14–27 · Proteína, calcio, DHA"
+        },
+        "trimester3": {
+          "label": "Tercer trimestre",
+          "desc": "Semanas 28–40 · Hierro, DHA, preparación"
+        },
+        "breastfeeding": {
+          "label": "Lactancia",
+          "desc": "Producción de leche, DHA, yodo, calcio"
+        },
+        "postpartum": {
+          "label": "Posparto",
+          "desc": "Recuperación, recomposición, apoyo hormonal, fuerza"
+        }
+      },
+      "symptom": {
+        "nausea": "Náuseas",
+        "heartburn": "Acidez",
+        "constipation": "Estreñimiento",
+        "fatigue": "Fatiga",
+        "foodAversions": "Aversión a alimentos",
+        "swelling": "Hinchazón",
+        "shortnessOfBreath": "Falta de aire",
+        "lowAppetite": "Poco apetito"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "¿Cómo te sientes hoy?",
+      "noCheckinToday": "Hoy no has enviado un registro de síntomas. Tus comidas usan tu perfil de medicación estándar.",
+      "checkInPrompt": "Regístrate para adaptar tus comidas, batidos y sugerencias de hoy.",
+      "checkIn": "Registrar",
+      "update": "Actualizar",
+      "updated": "Actualizado {{time}}",
+      "escalationStatusBody": "Estos síntomas pueden requerir evaluación médica. Contacta pronto a tu proveedor de salud o equipo de cuidado.",
+      "mealsAdapting": "Comidas adaptándose a los síntomas de hoy",
+      "updatedTapAdjustments": "Actualizado {{time}} · Toca para ver ajustes",
+      "noSymptomsToday": "Sin síntomas reportados hoy",
+      "updatedStandardProfile": "Actualizado {{time}} · Perfil estándar activo",
+      "escalationCardBody": "Estos síntomas pueden requerir evaluación médica. Contacta a tu equipo de cuidado.",
+      "nutritionAdjustments": "Ajustes nutricionales de hoy ({{count}})",
+      "reason": "Motivo",
+      "adaptation": "Adaptación",
+      "evidence": "Evidencia",
+      "justNow": "ahora mismo",
+      "minutesAgo": "hace {{count}}m",
+      "hoursAgo": "hace {{count}}h",
+      "giSymptomsHeader": "Síntomas GI — ¿Qué gravedad hoy?",
+      "otherSymptomsHeader": "Otros síntomas",
+      "vomitingHeader": "Vómitos hoy",
+      "quickQuestionsHeader": "Unas preguntas rápidas",
+      "notifyHeader": "¿Quieres que lo sepa tu equipo de cuidado?",
+      "notifyHelp": "Opcional: tú controlas a quién se avisa hoy.",
+      "updatesThroughoutDay": "Esto se actualiza durante el día.",
+      "updatesThroughoutDayBody": "Si te sientes mejor luego, vuelve y regístrate; tus comidas se adaptarán al instante. Tu registro se reinicia cada mañana.",
+      "cancel": "Cancelar",
+      "saving": "Guardando…",
+      "saveCheckIn": "Guardar registro",
+      "severity": {
+        "none": "Ninguna",
+        "mild": "Leve",
+        "moderate": "Moderada",
+        "severe": "Grave"
+      },
+      "symptom": {
+        "nausea": "Náuseas",
+        "constipation": "Estreñimiento",
+        "diarrhea": "Diarrea",
+        "reflux": "Acidez/reflujo",
+        "bloating": "Hinchazón",
+        "earlyFullness": "Saciedad temprana",
+        "foodAversions": "Aversión a alimentos",
+        "fatigue": "Fatiga",
+        "dizziness": "Mareos",
+        "headache": "Dolor de cabeza"
+      },
+      "vomiting": {
+        "none": "Ninguno",
+        "once": "Una vez",
+        "multiple": "2–3 veces",
+        "cantKeepFluids": "4+ / Sin retener líquidos"
+      },
+      "q": {
+        "keepFluids": "¿Puedes retener líquidos?",
+        "eatWithoutWorsening": "¿Puedes comer sin empeorar los síntomas?",
+        "reducedUrination": "¿Orinas mucho menos de lo habitual?",
+        "symptomTrend": "¿Cómo evolucionan tus síntomas?",
+        "appetite": "¿Cómo está tu apetito hoy?"
+      },
+      "opt": {
+        "yes": "Sí",
+        "no": "No",
+        "withDifficulty": "Con dificultad",
+        "partially": "Parcialmente"
+      },
+      "trend": {
+        "improving": "Mejorando",
+        "same": "Igual",
+        "worsening": "Empeorando",
+        "na": "No sé"
+      },
+      "appetite": {
+        "suppressed": "Sin apetito",
+        "reduced": "Reducido",
+        "normal": "Normal",
+        "increased": "Aumentado"
+      },
+      "notify": {
+        "keepPrivate": "No, mantener privado",
+        "coach": "Avisar a mi coach",
+        "both": "Avisar a ambos"
+      }
+    }
+  },
+  "fr": {
+    "parentsCorner": {
+      "title": "Coin des parents",
+      "yourChild": "votre enfant",
+      "helpingBuildHabits": "Aider {{name}} à adopter de bonnes habitudes",
+      "backToBeginnings": "Retour à My Perfect Beginnings",
+      "startFresh": "Recommencer",
+      "startNewConversation": "Démarrer une nouvelle conversation",
+      "clearConfirm": "Effacer cette conversation et recommencer ?",
+      "clear": "Effacer",
+      "cancel": "Annuler",
+      "dismiss": "Ignorer",
+      "boundaryLanguage": "Je peux offrir des conseils nutritionnels fondés sur des preuves pour votre famille. Pour les questions médicales, le pédiatre de votre enfant ou un diététicien pédiatrique reste la bonne étape ; je vous préviendrai si un sujet le nécessite.",
+      "todaysTip": "Conseil du jour",
+      "loadingConversation": "Chargement de votre conversation…",
+      "commonQuestions": "Questions fréquentes",
+      "browseCommonQuestions": "Voir les questions fréquentes",
+      "followUp": "Suivi",
+      "makeItNow": "Préparer maintenant",
+      "thinking": "Réflexion…",
+      "emptyPrompt": "Touchez une carte ou posez une question.",
+      "askAnything": "Posez une question",
+      "inputPlaceholder": "Tapez votre question ici…",
+      "send": "Envoyer",
+      "noResponse": "Désolé, je n'ai pas eu de réponse. Réessayez.",
+      "connectionError": "J'ai un petit souci. Vérifiez votre connexion et réessayez.",
+      "stage": {
+        "earlyInfant": "Nourrisson",
+        "beginningFoods": "Début des solides",
+        "youngToddler": "Jeune tout-petit",
+        "toddler": "Tout-petit",
+        "preschool": "Maternelle",
+        "earlySchoolAge": "Début de scolarité",
+        "growingChild": "Enfant en croissance"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "Mon bébé ne mange pas.",
+          "question": "Mon bébé ne mange pas. Que faire ?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "Mon enfant déteste les légumes.",
+          "question": "Mon enfant déteste les légumes. Comment lui en faire manger plus ?"
+        },
+        "lunchPacking": {
+          "label": "Quoi mettre dans son déjeuner ?",
+          "question": "Quelles idées pour un déjeuner sain et appétissant ?"
+        },
+        "healthySnacks": {
+          "label": "Collations saines après l'école.",
+          "question": "Quelles idées de collations saines après l'école ?"
+        },
+        "calcium": {
+          "label": "Mon enfant a-t-il assez de calcium ?",
+          "question": "Mon enfant reçoit-il assez de calcium ? Comment m'en assurer ?"
+        },
+        "introducingFoods": {
+          "label": "Comment introduire de nouveaux aliments ?",
+          "question": "Comment introduire de nouveaux aliments sans que ce soit un combat ?"
+        },
+        "youngAthlete": {
+          "label": "Que doit manger mon jeune sportif ?",
+          "question": "Mon enfant fait du sport. Que manger avant et après l'entraînement ?"
+        },
+        "waterIntake": {
+          "label": "Combien d'eau pour mon enfant ?",
+          "question": "Combien d'eau mon enfant doit-il boire par jour ?"
+        },
+        "pizza": {
+          "label": "Mon enfant peut-il manger de la pizza ?",
+          "question": "Mon enfant peut-il manger de la pizza et des plaisirs, ou dois-je être plus strict ?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Enregistrer la composition corporelle",
+      "bodyFatPct": "% de masse grasse",
+      "bodyFatPlaceholder": "ex. 18.5",
+      "goalBodyFatPct": "% de masse grasse cible (facultatif)",
+      "goalBodyFatPlaceholder": "ex. 15",
+      "scanMethod": "Méthode de mesure",
+      "pickMethod": "Choisir une méthode",
+      "date": "Date",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "notLoggedIn": "Non connecté",
+      "notLoggedInDesc": "Connectez-vous pour enregistrer vos données de composition corporelle.",
+      "invalidBodyFat": "Masse grasse invalide",
+      "invalidBodyFatDesc": "Le pourcentage de masse grasse doit être entre 1 % et 70 %.",
+      "saved": "Enregistré",
+      "savedDesc": "Composition corporelle enregistrée avec succès.",
+      "saveFailed": "Échec de l'enregistrement",
+      "saveFailedDesc": "Impossible d'enregistrer vos données. Réessayez."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Lancez votre compte ProCare indépendant",
+      "openStudio": "Ouvrez votre studio indépendant",
+      "completeVerification": "Terminez la vérification des identifiants",
+      "continueTraining": "Poursuivez la formation Platform Mastery",
+      "startOwnPractice": "Lancer ma propre activité",
+      "continueAsClient": "Continuer comme client",
+      "continueAsClientDesc": "Continuez à utiliser MPM comme membre individuel",
+      "continueWithFree": "Continuer avec Free",
+      "continueWithFreeDesc": "Génération de repas basique — toujours gratuite",
+      "joinAnotherOrg": "Rejoindre une autre organisation",
+      "joinAnotherOrgDesc": "Acceptez une invitation d'une autre entreprise",
+      "accessEnded": "Votre accès parrainé par {{business}} a pris fin",
+      "accessEndedBody": "Votre compte personnel, historique de repas, progression Academy et certifications sont toujours là. Choisissez comment continuer."
+    },
+    "dietStyleBadge": {
+      "kosher": "Casher ✓",
+      "halal": "Halal ✓",
+      "vegan": "Végane ✓",
+      "vegetarian": "Végétarien ✓",
+      "pescatarian": "Pescétarien ✓",
+      "mediterranean": "Méditerranéen ✓",
+      "paleo": "Paléo ✓",
+      "keto": "Kéto ✓",
+      "carnivore": "Carnivore ✓",
+      "dairyFree": "Sans lactose ✓",
+      "custom": "Régime personnalisé ✓"
+    },
+    "pregnancySupport": {
+      "title": "Configuration My Perfect Pregnancy",
+      "intro": "Cela personnalise vos conseils nutritionnels. Vos informations restent privées et adaptent chaque repas, contrôle de sécurité et réponse de coaching.",
+      "whereAreYou": "Où en êtes-vous dans votre parcours ?",
+      "breastfeedingQuestion": "Allaitez-vous actuellement ?",
+      "breastfeedingHelp": "Cela définit votre plan nutritionnel. L'allaitement et la récupération post-partum ont des priorités différentes ; nous les gérons séparément.",
+      "yesBreastfeeding": "Oui, j'allaite",
+      "noBreastfeeding": "Non, je n'allaite pas",
+      "breastfeedingNote": "Vous aurez une nutrition pour la lactation plus un volet récupération pour guérir.",
+      "postpartumNote": "Vous aurez un protocole post-partum dédié : fibres, alimentation anti-inflammatoire, soutien hormonal et recomposition. Sans régime drastique.",
+      "trackByDueDate": "Suivre par date d'accouchement ?",
+      "trackByDueDateHelp": "En saisissant votre date d'accouchement, votre semaine et trimestre se mettent à jour automatiquement. Vous pouvez suivre manuellement.",
+      "yesEnterDueDate": "Oui, saisir la date",
+      "skipManual": "Passer — étape manuelle seulement",
+      "dueDatePlaceholder": "Date d'accouchement (YYYY-MM-DD)",
+      "activeSymptoms": "Des symptômes actifs ?",
+      "activeSymptomsHelp": "Sélectionnez tout ce qui s'applique ; vos repas s'adapteront.",
+      "disclaimerPart1": "My Perfect Pregnancy offre uniquement une éducation nutritionnelle générale et un soutien à la structure des repas. Ce n'est pas",
+      "disclaimerNotSubstitute": "un substitut",
+      "disclaimerPart2": "à votre OB/GYN, sage-femme ou diététicien. Suivez toujours d'abord les recommandations de votre professionnel de santé.",
+      "saveButton": "Enregistrer ma configuration",
+      "savingButton": "Enregistrement…",
+      "savedButton": "✓ Enregistré !",
+      "turnOff": "Désactiver la nutrition grossesse",
+      "turnOffConfirm": "Désactiver la nutrition grossesse ?",
+      "turnOffHelp": "Cela retirera les conseils grossesse de vos repas et coaching. Vous pouvez réactiver quand vous voulez, sans jugement.",
+      "turningOff": "Désactivation…",
+      "yesTurnOff": "Oui, désactiver",
+      "keepItOn": "Garder activée",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Essai de conception",
+          "desc": "Nutrition préconception"
+        },
+        "trimester1": {
+          "label": "Premier trimestre",
+          "desc": "Semaines 1–13 · Folate, nausées"
+        },
+        "trimester2": {
+          "label": "Deuxième trimestre",
+          "desc": "Semaines 14–27 · Protéines, calcium, DHA"
+        },
+        "trimester3": {
+          "label": "Troisième trimestre",
+          "desc": "Semaines 28–40 · Fer, DHA, préparation"
+        },
+        "breastfeeding": {
+          "label": "Allaitement",
+          "desc": "Lactation, DHA, iode, calcium"
+        },
+        "postpartum": {
+          "label": "Post-partum",
+          "desc": "Récupération, recomposition, hormones, force"
+        }
+      },
+      "symptom": {
+        "nausea": "Nausées",
+        "heartburn": "Brûlures d'estomac",
+        "constipation": "Constipation",
+        "fatigue": "Fatigue",
+        "foodAversions": "Aversions alimentaires",
+        "swelling": "Gonflement",
+        "shortnessOfBreath": "Essoufflement",
+        "lowAppetite": "Faible appétit"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "Comment vous sentez-vous aujourd'hui ?",
+      "noCheckinToday": "Aucun suivi des symptômes aujourd'hui. Vos repas utilisent votre profil de médication standard.",
+      "checkInPrompt": "Faites votre suivi pour adapter repas, shakes et suggestions du jour.",
+      "checkIn": "Faire le suivi",
+      "update": "Mettre à jour",
+      "updated": "Mis à jour {{time}}",
+      "escalationStatusBody": "Ces symptômes peuvent nécessiter une évaluation médicale. Contactez rapidement votre professionnel ou votre équipe de soins.",
+      "mealsAdapting": "Repas adaptés aux symptômes du jour",
+      "updatedTapAdjustments": "Mis à jour {{time}} · Touchez pour voir les ajustements",
+      "noSymptomsToday": "Aucun symptôme signalé aujourd'hui",
+      "updatedStandardProfile": "Mis à jour {{time}} · Profil standard actif",
+      "escalationCardBody": "Ces symptômes peuvent nécessiter une évaluation médicale. Contactez votre équipe de soins.",
+      "nutritionAdjustments": "Ajustements nutritionnels du jour ({{count}})",
+      "reason": "Raison",
+      "adaptation": "Adaptation",
+      "evidence": "Preuve",
+      "justNow": "à l'instant",
+      "minutesAgo": "il y a {{count}} min",
+      "hoursAgo": "il y a {{count}} h",
+      "giSymptomsHeader": "Symptômes GI — Gravité aujourd'hui ?",
+      "otherSymptomsHeader": "Autres symptômes",
+      "vomitingHeader": "Vomissements aujourd'hui",
+      "quickQuestionsHeader": "Quelques questions rapides",
+      "notifyHeader": "Souhaitez-vous informer votre équipe de soins ?",
+      "notifyHelp": "Facultatif — vous choisissez qui est prévenu aujourd'hui.",
+      "updatesThroughoutDay": "Ceci se met à jour tout au long de la journée.",
+      "updatesThroughoutDayBody": "Si vous allez mieux plus tard, revenez faire un suivi ; vos repas s'adapteront aussitôt. Votre suivi se réinitialise chaque matin.",
+      "cancel": "Annuler",
+      "saving": "Enregistrement…",
+      "saveCheckIn": "Enregistrer le suivi",
+      "severity": {
+        "none": "Aucune",
+        "mild": "Légère",
+        "moderate": "Modérée",
+        "severe": "Sévère"
+      },
+      "symptom": {
+        "nausea": "Nausées",
+        "constipation": "Constipation",
+        "diarrhea": "Diarrhée",
+        "reflux": "Brûlures/reflux",
+        "bloating": "Ballonnements",
+        "earlyFullness": "Satiété précoce",
+        "foodAversions": "Aversions alimentaires",
+        "fatigue": "Fatigue",
+        "dizziness": "Vertiges",
+        "headache": "Maux de tête"
+      },
+      "vomiting": {
+        "none": "Aucun",
+        "once": "Une fois",
+        "multiple": "2–3 fois",
+        "cantKeepFluids": "4+ / Aucun liquide retenu"
+      },
+      "q": {
+        "keepFluids": "Pouvez-vous garder les liquides ?",
+        "eatWithoutWorsening": "Pouvez-vous manger sans aggraver les symptômes ?",
+        "reducedUrination": "Urinez-vous bien moins que d'habitude ?",
+        "symptomTrend": "Comment évoluent vos symptômes ?",
+        "appetite": "Comment est votre appétit aujourd'hui ?"
+      },
+      "opt": {
+        "yes": "Oui",
+        "no": "Non",
+        "withDifficulty": "Avec difficulté",
+        "partially": "Partiellement"
+      },
+      "trend": {
+        "improving": "En amélioration",
+        "same": "Stable",
+        "worsening": "En aggravation",
+        "na": "Je ne sais pas"
+      },
+      "appetite": {
+        "suppressed": "Aucun appétit",
+        "reduced": "Réduit",
+        "normal": "Normal",
+        "increased": "Augmenté"
+      },
+      "notify": {
+        "keepPrivate": "Non, garder privé",
+        "coach": "Prévenir mon coach",
+        "both": "Prévenir les deux"
+      }
+    }
+  },
+  "de": {
+    "parentsCorner": {
+      "title": "Eltern-Ecke",
+      "yourChild": "dein Kind",
+      "helpingBuildHabits": "Hilft {{name}}, gesunde Gewohnheiten aufzubauen",
+      "backToBeginnings": "Zurück zu My Perfect Beginnings",
+      "startFresh": "Neu starten",
+      "startNewConversation": "Neue Unterhaltung starten",
+      "clearConfirm": "Diese Unterhaltung löschen und neu starten?",
+      "clear": "Löschen",
+      "cancel": "Abbrechen",
+      "dismiss": "Schließen",
+      "boundaryLanguage": "Ich gebe evidenzbasierte Ernährungstipps für deine Familie. Bei medizinischen Fragen sind der Kinderarzt oder eine Kinderdiätassistentin immer der richtige nächste Schritt – ich sage Bescheid, wenn etwas dahin gehört.",
+      "todaysTip": "Tipp des Tages",
+      "loadingConversation": "Unterhaltung wird geladen…",
+      "commonQuestions": "Häufige Fragen",
+      "browseCommonQuestions": "Häufige Fragen ansehen",
+      "followUp": "Nachfrage",
+      "makeItNow": "Jetzt zubereiten",
+      "thinking": "Denke nach…",
+      "emptyPrompt": "Tippe auf eine Karte oder frag unten.",
+      "askAnything": "Frag alles",
+      "inputPlaceholder": "Frage hier eingeben…",
+      "send": "Senden",
+      "noResponse": "Entschuldigung, keine Antwort erhalten. Bitte erneut versuchen.",
+      "connectionError": "Gerade gibt es ein Problem. Prüfe deine Verbindung und versuch es erneut.",
+      "stage": {
+        "earlyInfant": "Säugling",
+        "beginningFoods": "Beikoststart",
+        "youngToddler": "Kleines Kleinkind",
+        "toddler": "Kleinkind",
+        "preschool": "Vorschule",
+        "earlySchoolAge": "Frühes Schulalter",
+        "growingChild": "Wachsendes Kind"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "Mein Baby isst nicht.",
+          "question": "Mein Baby isst nicht. Was soll ich tun?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "Mein Kind hasst Gemüse.",
+          "question": "Mein Kind hasst Gemüse. Wie bringe ich es dazu, mehr zu essen?"
+        },
+        "lunchPacking": {
+          "label": "Was pack ich zum Mittag ein?",
+          "question": "Welche Ideen gibt es für ein gesundes, ansprechendes Mittagessen?"
+        },
+        "healthySnacks": {
+          "label": "Gesunde Snacks nach der Schule.",
+          "question": "Welche gesunden Snacks eignen sich nach der Schule?"
+        },
+        "calcium": {
+          "label": "Bekommt mein Kind genug Kalzium?",
+          "question": "Bekommt mein Kind genug Kalzium? Wie stelle ich das sicher?"
+        },
+        "introducingFoods": {
+          "label": "Wie führe ich neue Speisen ein?",
+          "question": "Wie führe ich neue Speisen ein, ohne dass es ein Kampf wird?"
+        },
+        "youngAthlete": {
+          "label": "Was isst mein junger Sportler?",
+          "question": "Mein Kind treibt Sport. Was soll es vor und nach dem Training essen?"
+        },
+        "waterIntake": {
+          "label": "Wie viel Wasser braucht mein Kind?",
+          "question": "Wie viel Wasser sollte mein Kind täglich trinken?"
+        },
+        "pizza": {
+          "label": "Darf mein Kind noch Pizza essen?",
+          "question": "Darf mein Kind noch Pizza und andere Leckereien essen, oder soll ich strenger sein?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Körperzusammensetzung erfassen",
+      "bodyFatPct": "Körperfett %",
+      "bodyFatPlaceholder": "z. B. 18.5",
+      "goalBodyFatPct": "Ziel-Körperfett % (optional)",
+      "goalBodyFatPlaceholder": "z. B. 15",
+      "scanMethod": "Messmethode",
+      "pickMethod": "Methode wählen",
+      "date": "Datum",
+      "save": "Speichern",
+      "saving": "Speichern...",
+      "notLoggedIn": "Nicht angemeldet",
+      "notLoggedInDesc": "Bitte anmelden, um deine Körperdaten zu speichern.",
+      "invalidBodyFat": "Ungültiges Körperfett",
+      "invalidBodyFatDesc": "Der Körperfettanteil muss zwischen 1 % und 70 % liegen.",
+      "saved": "Gespeichert",
+      "savedDesc": "Körperzusammensetzung erfolgreich erfasst.",
+      "saveFailed": "Speichern fehlgeschlagen",
+      "saveFailedDesc": "Deine Daten konnten nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Starte dein eigenes ProCare-Konto",
+      "openStudio": "Öffne dein eigenes Studio",
+      "completeVerification": "Nachweisprüfung abschließen",
+      "continueTraining": "Platform-Mastery-Training fortsetzen",
+      "startOwnPractice": "Eigene Praxis starten",
+      "continueAsClient": "Als Kunde fortfahren",
+      "continueAsClientDesc": "MPM weiter als Einzelmitglied nutzen",
+      "continueWithFree": "Mit Free fortfahren",
+      "continueWithFreeDesc": "Einfache Mahlzeitenerstellung – immer kostenlos",
+      "joinAnotherOrg": "Anderer Organisation beitreten",
+      "joinAnotherOrgDesc": "Einladung eines anderen Unternehmens annehmen",
+      "accessEnded": "Dein von {{business}} gesponserter Zugang ist beendet",
+      "accessEndedBody": "Dein persönliches Konto, Mahlzeitenverlauf, Academy-Fortschritt und Zertifikate sind alle noch da. Wähle, wie du fortfahren möchtest."
+    },
+    "dietStyleBadge": {
+      "kosher": "Koscher ✓",
+      "halal": "Halal ✓",
+      "vegan": "Vegan ✓",
+      "vegetarian": "Vegetarisch ✓",
+      "pescatarian": "Pescetarisch ✓",
+      "mediterranean": "Mediterran ✓",
+      "paleo": "Paleo ✓",
+      "keto": "Keto ✓",
+      "carnivore": "Karnivor ✓",
+      "dairyFree": "Milchfrei ✓",
+      "custom": "Eigene Diät ✓"
+    },
+    "pregnancySupport": {
+      "title": "My Perfect Pregnancy einrichten",
+      "intro": "Das personalisiert deine Ernährungshinweise. Deine Angaben bleiben privat und prägen jeden Vorschlag, Sicherheitscheck und jede Coaching-Antwort.",
+      "whereAreYou": "Wo stehst du auf deinem Weg?",
+      "breastfeedingQuestion": "Stillst du derzeit?",
+      "breastfeedingHelp": "Das bestimmt deinen Ernährungsweg. Stillen und Rückbildung haben unterschiedliche Prioritäten – wir behandeln sie getrennt.",
+      "yesBreastfeeding": "Ja, ich stille",
+      "noBreastfeeding": "Nein, ich stille nicht",
+      "breastfeedingNote": "Du bekommst Ernährung für die Milchbildung plus eine Erholungsebene zur Heilung.",
+      "postpartumNote": "Du bekommst ein eigenes Rückbildungsprotokoll – Ballaststoffe, entzündungshemmende Kost, Hormonstütze und Körperumbau. Keine Crash-Diät.",
+      "trackByDueDate": "Nach Geburtstermin verfolgen?",
+      "trackByDueDateHelp": "Wenn du deinen Termin eingibst, werden Woche und Trimester automatisch aktualisiert. Du kannst es auch manuell verfolgen.",
+      "yesEnterDueDate": "Ja, Termin eingeben",
+      "skipManual": "Überspringen – nur manuell",
+      "dueDatePlaceholder": "Geburtstermin (YYYY-MM-DD)",
+      "activeSymptoms": "Aktuelle Symptome?",
+      "activeSymptomsHelp": "Wähle alles Zutreffende – deine Mahlzeiten passen sich an.",
+      "disclaimerPart1": "My Perfect Pregnancy bietet nur allgemeine Ernährungsbildung und Unterstützung zur Mahlzeitenstruktur. Es ist kein",
+      "disclaimerNotSubstitute": "Ersatz",
+      "disclaimerPart2": "für deine/n OB/GYN, Hebamme oder Diätassistentin. Folge stets zuerst den Empfehlungen deiner Fachkraft.",
+      "saveButton": "Einrichtung speichern",
+      "savingButton": "Speichern…",
+      "savedButton": "✓ Gespeichert!",
+      "turnOff": "Schwangerschaftsernährung ausschalten",
+      "turnOffConfirm": "Schwangerschaftsernährung ausschalten?",
+      "turnOffHelp": "Das entfernt Schwangerschaftshinweise aus Mahlzeiten und Coaching. Du kannst es jederzeit wieder aktivieren – ohne Wertung.",
+      "turningOff": "Wird ausgeschaltet…",
+      "yesTurnOff": "Ja, ausschalten",
+      "keepItOn": "Aktiviert lassen",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Kinderwunsch",
+          "desc": "Ernährung vor der Empfängnis"
+        },
+        "trimester1": {
+          "label": "Erstes Trimester",
+          "desc": "Woche 1–13 · Folat, Übelkeit"
+        },
+        "trimester2": {
+          "label": "Zweites Trimester",
+          "desc": "Woche 14–27 · Eiweiß, Kalzium, DHA"
+        },
+        "trimester3": {
+          "label": "Drittes Trimester",
+          "desc": "Woche 28–40 · Eisen, DHA, Vorbereitung"
+        },
+        "breastfeeding": {
+          "label": "Stillen",
+          "desc": "Milchbildung, DHA, Jod, Kalzium"
+        },
+        "postpartum": {
+          "label": "Wochenbett",
+          "desc": "Erholung, Körperumbau, Hormone, Kraft"
+        }
+      },
+      "symptom": {
+        "nausea": "Übelkeit",
+        "heartburn": "Sodbrennen",
+        "constipation": "Verstopfung",
+        "fatigue": "Müdigkeit",
+        "foodAversions": "Abneigungen",
+        "swelling": "Schwellungen",
+        "shortnessOfBreath": "Atemnot",
+        "lowAppetite": "Wenig Appetit"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "Wie fühlst du dich heute?",
+      "noCheckinToday": "Heute noch kein Symptom-Check-in. Deine Mahlzeiten nutzen dein Standard-Medikationsprofil.",
+      "checkInPrompt": "Checke ein, um Mahlzeiten, Shakes und Vorschläge von heute anzupassen.",
+      "checkIn": "Einchecken",
+      "update": "Aktualisieren",
+      "updated": "Aktualisiert {{time}}",
+      "escalationStatusBody": "Diese Symptome könnten ärztliche Abklärung erfordern. Kontaktiere bald deine Fachkraft oder dein Behandlungsteam.",
+      "mealsAdapting": "Mahlzeiten passen sich den Symptomen an",
+      "updatedTapAdjustments": "Aktualisiert {{time}} · Für Anpassungen tippen",
+      "noSymptomsToday": "Heute keine Symptome gemeldet",
+      "updatedStandardProfile": "Aktualisiert {{time}} · Standardprofil aktiv",
+      "escalationCardBody": "Diese Symptome könnten ärztliche Abklärung erfordern. Kontaktiere dein Behandlungsteam.",
+      "nutritionAdjustments": "Ernährungsanpassungen heute ({{count}})",
+      "reason": "Grund",
+      "adaptation": "Anpassung",
+      "evidence": "Beleg",
+      "justNow": "gerade eben",
+      "minutesAgo": "vor {{count}} Min",
+      "hoursAgo": "vor {{count}} Std",
+      "giSymptomsHeader": "GI-Symptome – Wie stark heute?",
+      "otherSymptomsHeader": "Weitere Symptome",
+      "vomitingHeader": "Erbrechen heute",
+      "quickQuestionsHeader": "Ein paar kurze Fragen",
+      "notifyHeader": "Soll dein Behandlungsteam es wissen?",
+      "notifyHelp": "Optional – du bestimmst, wer heute informiert wird.",
+      "updatesThroughoutDay": "Das aktualisiert sich über den Tag.",
+      "updatesThroughoutDayBody": "Wenn es dir später besser geht, checke erneut ein – deine Mahlzeiten passen sich sofort an. Dein Check-in setzt sich jeden Morgen zurück.",
+      "cancel": "Abbrechen",
+      "saving": "Speichern…",
+      "saveCheckIn": "Check-in speichern",
+      "severity": {
+        "none": "Keine",
+        "mild": "Leicht",
+        "moderate": "Mäßig",
+        "severe": "Stark"
+      },
+      "symptom": {
+        "nausea": "Übelkeit",
+        "constipation": "Verstopfung",
+        "diarrhea": "Durchfall",
+        "reflux": "Sodbrennen/Reflux",
+        "bloating": "Blähungen",
+        "earlyFullness": "Frühe Sättigung",
+        "foodAversions": "Abneigungen",
+        "fatigue": "Müdigkeit",
+        "dizziness": "Schwindel",
+        "headache": "Kopfschmerzen"
+      },
+      "vomiting": {
+        "none": "Keins",
+        "once": "Einmal",
+        "multiple": "2–3 Mal",
+        "cantKeepFluids": "4+ / Keine Flüssigkeit behalten"
+      },
+      "q": {
+        "keepFluids": "Kannst du Flüssigkeit behalten?",
+        "eatWithoutWorsening": "Kannst du essen, ohne dass es schlimmer wird?",
+        "reducedUrination": "Urinierst du deutlich weniger als sonst?",
+        "symptomTrend": "Wie entwickeln sich deine Symptome?",
+        "appetite": "Wie ist dein Appetit heute?"
+      },
+      "opt": {
+        "yes": "Ja",
+        "no": "Nein",
+        "withDifficulty": "Mit Mühe",
+        "partially": "Teilweise"
+      },
+      "trend": {
+        "improving": "Besser",
+        "same": "Gleich",
+        "worsening": "Schlechter",
+        "na": "Unsicher"
+      },
+      "appetite": {
+        "suppressed": "Kein Appetit",
+        "reduced": "Reduziert",
+        "normal": "Normal",
+        "increased": "Erhöht"
+      },
+      "notify": {
+        "keepPrivate": "Nein, privat halten",
+        "coach": "Meinen Coach informieren",
+        "both": "Beide informieren"
+      }
+    }
+  },
+  "it": {
+    "parentsCorner": {
+      "title": "Angolo dei genitori",
+      "yourChild": "tuo figlio",
+      "helpingBuildHabits": "Aiuta {{name}} a creare abitudini sane",
+      "backToBeginnings": "Torna a My Perfect Beginnings",
+      "startFresh": "Ricomincia",
+      "startNewConversation": "Avvia una nuova conversazione",
+      "clearConfirm": "Cancellare questa conversazione e ricominciare?",
+      "clear": "Cancella",
+      "cancel": "Annulla",
+      "dismiss": "Ignora",
+      "boundaryLanguage": "Posso offrire consigli nutrizionali basati su prove per la tua famiglia. Per questioni mediche, il pediatra o un dietista pediatrico è sempre il passo giusto; ti avviserò quando serve quel confronto.",
+      "todaysTip": "Consiglio di oggi",
+      "loadingConversation": "Caricamento della conversazione…",
+      "commonQuestions": "Domande frequenti",
+      "browseCommonQuestions": "Vedi le domande frequenti",
+      "followUp": "Approfondimento",
+      "makeItNow": "Preparalo ora",
+      "thinking": "Sto pensando…",
+      "emptyPrompt": "Tocca una scheda o chiedi qui sotto.",
+      "askAnything": "Chiedi qualsiasi cosa",
+      "inputPlaceholder": "Scrivi qui la tua domanda…",
+      "send": "Invia",
+      "noResponse": "Spiacente, nessuna risposta. Riprova.",
+      "connectionError": "C'è un piccolo problema ora. Controlla la connessione e riprova.",
+      "stage": {
+        "earlyInfant": "Neonato",
+        "beginningFoods": "Inizio svezzamento",
+        "youngToddler": "Piccolo bimbo",
+        "toddler": "Bambino piccolo",
+        "preschool": "Prescolare",
+        "earlySchoolAge": "Prima età scolare",
+        "growingChild": "Bambino in crescita"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "Il mio bimbo non mangia.",
+          "question": "Il mio bimbo non mangia. Cosa faccio?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "Mio figlio odia le verdure.",
+          "question": "Mio figlio odia le verdure. Come gliene faccio mangiare di più?"
+        },
+        "lunchPacking": {
+          "label": "Cosa metto per pranzo?",
+          "question": "Quali idee per un pranzo sano e invitante?"
+        },
+        "healthySnacks": {
+          "label": "Spuntini sani dopo la scuola.",
+          "question": "Quali idee di spuntini sani dopo la scuola?"
+        },
+        "calcium": {
+          "label": "Mio figlio assume abbastanza calcio?",
+          "question": "Mio figlio assume abbastanza calcio? Come lo verifico?"
+        },
+        "introducingFoods": {
+          "label": "Come introduco nuovi cibi?",
+          "question": "Come introduco nuovi cibi senza che diventi una lotta?"
+        },
+        "youngAthlete": {
+          "label": "Cosa deve mangiare il mio giovane atleta?",
+          "question": "Mio figlio fa sport. Cosa mangiare prima e dopo l'allenamento?"
+        },
+        "waterIntake": {
+          "label": "Quanta acqua serve a mio figlio?",
+          "question": "Quanta acqua dovrebbe bere mio figlio al giorno?"
+        },
+        "pizza": {
+          "label": "Mio figlio può ancora mangiare la pizza?",
+          "question": "Mio figlio può ancora mangiare pizza e sfizi, o devo essere più severo?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Registra composizione corporea",
+      "bodyFatPct": "% massa grassa",
+      "bodyFatPlaceholder": "es. 18.5",
+      "goalBodyFatPct": "% massa grassa obiettivo (facoltativo)",
+      "goalBodyFatPlaceholder": "es. 15",
+      "scanMethod": "Metodo di misura",
+      "pickMethod": "Scegli un metodo",
+      "date": "Data",
+      "save": "Salva",
+      "saving": "Salvataggio...",
+      "notLoggedIn": "Non hai effettuato l'accesso",
+      "notLoggedInDesc": "Accedi per salvare i dati di composizione corporea.",
+      "invalidBodyFat": "Massa grassa non valida",
+      "invalidBodyFatDesc": "La percentuale di grasso deve essere tra 1% e 70%.",
+      "saved": "Salvato",
+      "savedDesc": "Composizione corporea registrata correttamente.",
+      "saveFailed": "Salvataggio non riuscito",
+      "saveFailedDesc": "Impossibile salvare i dati. Riprova."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Avvia il tuo account ProCare indipendente",
+      "openStudio": "Apri il tuo studio indipendente",
+      "completeVerification": "Completa la verifica delle credenziali",
+      "continueTraining": "Continua la formazione Platform Mastery",
+      "startOwnPractice": "Avvia la mia attività",
+      "continueAsClient": "Continua come cliente",
+      "continueAsClientDesc": "Continua a usare MPM come membro individuale",
+      "continueWithFree": "Continua con Free",
+      "continueWithFreeDesc": "Generazione base dei pasti — sempre gratis",
+      "joinAnotherOrg": "Unisciti a un'altra organizzazione",
+      "joinAnotherOrgDesc": "Accetta un invito da un'altra azienda",
+      "accessEnded": "Il tuo accesso sponsorizzato da {{business}} è terminato",
+      "accessEndedBody": "Account personale, cronologia pasti, progressi Academy e certificazioni sono ancora qui. Scegli come continuare."
+    },
+    "dietStyleBadge": {
+      "kosher": "Kosher ✓",
+      "halal": "Halal ✓",
+      "vegan": "Vegana ✓",
+      "vegetarian": "Vegetariana ✓",
+      "pescatarian": "Pescetariana ✓",
+      "mediterranean": "Mediterranea ✓",
+      "paleo": "Paleo ✓",
+      "keto": "Keto ✓",
+      "carnivore": "Carnivora ✓",
+      "dairyFree": "Senza latticini ✓",
+      "custom": "Dieta personalizzata ✓"
+    },
+    "pregnancySupport": {
+      "title": "Configura My Perfect Pregnancy",
+      "intro": "Questo personalizza i tuoi consigli nutrizionali. I tuoi dati restano privati e guidano ogni pasto, controllo di sicurezza e risposta di coaching.",
+      "whereAreYou": "A che punto sei nel tuo percorso?",
+      "breastfeedingQuestion": "Stai allattando al seno?",
+      "breastfeedingHelp": "Questo definisce il tuo percorso nutrizionale. Allattamento e recupero post-parto hanno priorità diverse; li gestiamo separatamente.",
+      "yesBreastfeeding": "Sì, allatto",
+      "noBreastfeeding": "No, non allatto",
+      "breastfeedingNote": "Avrai nutrizione per la produzione di latte più un livello di recupero per guarire.",
+      "postpartumNote": "Avrai un protocollo di recupero post-parto dedicato: fibre, alimentazione anti-infiammatoria, supporto ormonale e ricomposizione. Niente diete drastiche.",
+      "trackByDueDate": "Seguire per data prevista?",
+      "trackByDueDateHelp": "Inserendo la data prevista, settimana e trimestre si aggiornano da soli. Puoi saltare e seguire manualmente.",
+      "yesEnterDueDate": "Sì, inserisci la data",
+      "skipManual": "Salta — solo fase manuale",
+      "dueDatePlaceholder": "Data prevista (YYYY-MM-DD)",
+      "activeSymptoms": "Sintomi attivi?",
+      "activeSymptomsHelp": "Seleziona tutto ciò che serve; i pasti si adatteranno.",
+      "disclaimerPart1": "My Perfect Pregnancy offre solo educazione nutrizionale generale e supporto alla struttura dei pasti. Non sostituisce",
+      "disclaimerNotSubstitute": "un sostituto",
+      "disclaimerPart2": "il tuo OB/GYN, l'ostetrica o il dietista. Segui sempre prima le indicazioni del tuo professionista sanitario.",
+      "saveButton": "Salva la mia configurazione",
+      "savingButton": "Salvataggio…",
+      "savedButton": "✓ Salvato!",
+      "turnOff": "Disattiva nutrizione gravidanza",
+      "turnOffConfirm": "Disattivare la nutrizione gravidanza?",
+      "turnOffHelp": "Rimuoverà i consigli per la gravidanza da pasti e coaching. Puoi riattivarla quando vuoi, senza giudizi.",
+      "turningOff": "Disattivazione…",
+      "yesTurnOff": "Sì, disattiva",
+      "keepItOn": "Mantieni attiva",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Cerco una gravidanza",
+          "desc": "Nutrizione preconcepimento"
+        },
+        "trimester1": {
+          "label": "Primo trimestre",
+          "desc": "Settimane 1–13 · Folati, nausea"
+        },
+        "trimester2": {
+          "label": "Secondo trimestre",
+          "desc": "Settimane 14–27 · Proteine, calcio, DHA"
+        },
+        "trimester3": {
+          "label": "Terzo trimestre",
+          "desc": "Settimane 28–40 · Ferro, DHA, preparazione"
+        },
+        "breastfeeding": {
+          "label": "Allattamento",
+          "desc": "Produzione di latte, DHA, iodio, calcio"
+        },
+        "postpartum": {
+          "label": "Post-parto",
+          "desc": "Recupero, ricomposizione, ormoni, forza"
+        }
+      },
+      "symptom": {
+        "nausea": "Nausea",
+        "heartburn": "Bruciore di stomaco",
+        "constipation": "Stitichezza",
+        "fatigue": "Stanchezza",
+        "foodAversions": "Avversioni al cibo",
+        "swelling": "Gonfiore",
+        "shortnessOfBreath": "Fiato corto",
+        "lowAppetite": "Poco appetito"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "Come ti senti oggi?",
+      "noCheckinToday": "Nessun check-in dei sintomi oggi. I pasti usano il tuo profilo farmacologico standard.",
+      "checkInPrompt": "Fai il check-in per adattare pasti, shake e suggerimenti di oggi.",
+      "checkIn": "Check-in",
+      "update": "Aggiorna",
+      "updated": "Aggiornato {{time}}",
+      "escalationStatusBody": "Questi sintomi potrebbero richiedere una valutazione medica. Contatta presto il tuo medico o il team di cura.",
+      "mealsAdapting": "Pasti in adattamento ai sintomi di oggi",
+      "updatedTapAdjustments": "Aggiornato {{time}} · Tocca per vedere le modifiche",
+      "noSymptomsToday": "Nessun sintomo segnalato oggi",
+      "updatedStandardProfile": "Aggiornato {{time}} · Profilo standard attivo",
+      "escalationCardBody": "Questi sintomi potrebbero richiedere una valutazione medica. Contatta il tuo team di cura.",
+      "nutritionAdjustments": "Modifiche nutrizionali di oggi ({{count}})",
+      "reason": "Motivo",
+      "adaptation": "Adattamento",
+      "evidence": "Evidenza",
+      "justNow": "proprio ora",
+      "minutesAgo": "{{count}} min fa",
+      "hoursAgo": "{{count}} ore fa",
+      "giSymptomsHeader": "Sintomi GI — Quanto gravi oggi?",
+      "otherSymptomsHeader": "Altri sintomi",
+      "vomitingHeader": "Vomito oggi",
+      "quickQuestionsHeader": "Alcune domande veloci",
+      "notifyHeader": "Vuoi che lo sappia il tuo team di cura?",
+      "notifyHelp": "Facoltativo — decidi tu chi avvisare oggi.",
+      "updatesThroughoutDay": "Si aggiorna durante la giornata.",
+      "updatesThroughoutDayBody": "Se più tardi stai meglio, torna a fare il check-in; i pasti si adatteranno subito. Il check-in si azzera ogni mattina.",
+      "cancel": "Annulla",
+      "saving": "Salvataggio…",
+      "saveCheckIn": "Salva check-in",
+      "severity": {
+        "none": "Nessuno",
+        "mild": "Lieve",
+        "moderate": "Moderato",
+        "severe": "Grave"
+      },
+      "symptom": {
+        "nausea": "Nausea",
+        "constipation": "Stitichezza",
+        "diarrhea": "Diarrea",
+        "reflux": "Bruciore/reflusso",
+        "bloating": "Gonfiore",
+        "earlyFullness": "Sazietà precoce",
+        "foodAversions": "Avversioni al cibo",
+        "fatigue": "Stanchezza",
+        "dizziness": "Vertigini",
+        "headache": "Mal di testa"
+      },
+      "vomiting": {
+        "none": "Nessuno",
+        "once": "Una volta",
+        "multiple": "2–3 volte",
+        "cantKeepFluids": "4+ / Non trattengo liquidi"
+      },
+      "q": {
+        "keepFluids": "Riesci a trattenere i liquidi?",
+        "eatWithoutWorsening": "Riesci a mangiare senza peggiorare i sintomi?",
+        "reducedUrination": "Urini molto meno del solito?",
+        "symptomTrend": "Come stanno andando i sintomi?",
+        "appetite": "Com'è il tuo appetito oggi?"
+      },
+      "opt": {
+        "yes": "Sì",
+        "no": "No",
+        "withDifficulty": "Con difficoltà",
+        "partially": "In parte"
+      },
+      "trend": {
+        "improving": "In miglioramento",
+        "same": "Uguale",
+        "worsening": "In peggioramento",
+        "na": "Non so"
+      },
+      "appetite": {
+        "suppressed": "Nessun appetito",
+        "reduced": "Ridotto",
+        "normal": "Normale",
+        "increased": "Aumentato"
+      },
+      "notify": {
+        "keepPrivate": "No, resta privato",
+        "coach": "Avvisa il mio coach",
+        "both": "Avvisa entrambi"
+      }
+    }
+  },
+  "pt": {
+    "parentsCorner": {
+      "title": "Cantinho dos pais",
+      "yourChild": "seu filho",
+      "helpingBuildHabits": "Ajudando {{name}} a criar hábitos saudáveis",
+      "backToBeginnings": "Voltar para My Perfect Beginnings",
+      "startFresh": "Recomeçar",
+      "startNewConversation": "Iniciar nova conversa",
+      "clearConfirm": "Apagar esta conversa e recomeçar?",
+      "clear": "Apagar",
+      "cancel": "Cancelar",
+      "dismiss": "Dispensar",
+      "boundaryLanguage": "Posso oferecer orientação nutricional baseada em evidências para sua família. Para questões médicas, o pediatra ou um nutricionista pediátrico é sempre o passo certo; eu aviso quando algo precisar dessa conversa.",
+      "todaysTip": "Dica de hoje",
+      "loadingConversation": "Carregando sua conversa…",
+      "commonQuestions": "Perguntas comuns",
+      "browseCommonQuestions": "Ver perguntas comuns",
+      "followUp": "Acompanhamento",
+      "makeItNow": "Preparar agora",
+      "thinking": "Pensando…",
+      "emptyPrompt": "Toque num cartão ou pergunte abaixo.",
+      "askAnything": "Pergunte qualquer coisa",
+      "inputPlaceholder": "Digite sua pergunta aqui…",
+      "send": "Enviar",
+      "noResponse": "Desculpe, não recebi resposta. Tente de novo.",
+      "connectionError": "Estou com um probleminha agora. Verifique sua conexão e tente de novo.",
+      "stage": {
+        "earlyInfant": "Bebê pequeno",
+        "beginningFoods": "Início dos sólidos",
+        "youngToddler": "Criança pequena",
+        "toddler": "Criança",
+        "preschool": "Pré-escola",
+        "earlySchoolAge": "Início escolar",
+        "growingChild": "Criança em crescimento"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "Meu bebê não come.",
+          "question": "Meu bebê não come. O que eu faço?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "Meu filho odeia legumes.",
+          "question": "Meu filho odeia legumes. Como faço ele comer mais?"
+        },
+        "lunchPacking": {
+          "label": "O que ponho no almoço?",
+          "question": "Que ideias para um almoço saudável e gostoso?"
+        },
+        "healthySnacks": {
+          "label": "Lanches saudáveis após a escola.",
+          "question": "Que ideias de lanches saudáveis para depois da escola?"
+        },
+        "calcium": {
+          "label": "Meu filho ingere cálcio suficiente?",
+          "question": "Meu filho ingere cálcio suficiente? Como garantir?"
+        },
+        "introducingFoods": {
+          "label": "Como introduzo novos alimentos?",
+          "question": "Como introduzo novos alimentos sem virar uma briga?"
+        },
+        "youngAthlete": {
+          "label": "O que meu jovem atleta deve comer?",
+          "question": "Meu filho faz esporte. O que comer antes e depois do treino?"
+        },
+        "waterIntake": {
+          "label": "Quanta água meu filho precisa?",
+          "question": "Quanta água meu filho deve beber por dia?"
+        },
+        "pizza": {
+          "label": "Meu filho ainda pode comer pizza?",
+          "question": "Meu filho ainda pode comer pizza e outras guloseimas, ou devo ser mais rígido?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Registrar composição corporal",
+      "bodyFatPct": "% de gordura corporal",
+      "bodyFatPlaceholder": "ex. 18.5",
+      "goalBodyFatPct": "% de gordura desejada (opcional)",
+      "goalBodyFatPlaceholder": "ex. 15",
+      "scanMethod": "Método de medição",
+      "pickMethod": "Escolha um método",
+      "date": "Data",
+      "save": "Salvar",
+      "saving": "Salvando...",
+      "notLoggedIn": "Sem sessão iniciada",
+      "notLoggedInDesc": "Faça login para salvar seus dados de composição corporal.",
+      "invalidBodyFat": "Gordura corporal inválida",
+      "invalidBodyFatDesc": "O percentual de gordura deve ficar entre 1% e 70%.",
+      "saved": "Salvo",
+      "savedDesc": "Composição corporal registrada com sucesso.",
+      "saveFailed": "Falha ao salvar",
+      "saveFailedDesc": "Não foi possível salvar seus dados. Tente de novo."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Abra sua conta ProCare independente",
+      "openStudio": "Abra seu estúdio independente",
+      "completeVerification": "Conclua a verificação de credenciais",
+      "continueTraining": "Continue o treinamento Platform Mastery",
+      "startOwnPractice": "Iniciar meu próprio negócio",
+      "continueAsClient": "Continuar como cliente",
+      "continueAsClientDesc": "Continue usando o MPM como membro individual",
+      "continueWithFree": "Continuar com o Free",
+      "continueWithFreeDesc": "Geração básica de refeições — sempre grátis",
+      "joinAnotherOrg": "Entrar em outra organização",
+      "joinAnotherOrgDesc": "Aceite um convite de outra empresa",
+      "accessEnded": "Seu acesso patrocinado por {{business}} terminou",
+      "accessEndedBody": "Sua conta pessoal, histórico de refeições, progresso na Academy e certificações continuam aqui. Escolha como continuar."
+    },
+    "dietStyleBadge": {
+      "kosher": "Kosher ✓",
+      "halal": "Halal ✓",
+      "vegan": "Vegana ✓",
+      "vegetarian": "Vegetariana ✓",
+      "pescatarian": "Pescetariana ✓",
+      "mediterranean": "Mediterrânea ✓",
+      "paleo": "Paleo ✓",
+      "keto": "Keto ✓",
+      "carnivore": "Carnívora ✓",
+      "dairyFree": "Sem lactose ✓",
+      "custom": "Dieta personalizada ✓"
+    },
+    "pregnancySupport": {
+      "title": "Configurar My Perfect Pregnancy",
+      "intro": "Isto personaliza sua orientação nutricional. Seus dados ficam privados e moldam cada refeição, verificação de segurança e resposta de coaching.",
+      "whereAreYou": "Em que fase da sua jornada você está?",
+      "breastfeedingQuestion": "Você está amamentando?",
+      "breastfeedingHelp": "Isto define seu plano nutricional. Amamentação e recuperação pós-parto têm prioridades diferentes; tratamos delas separadamente.",
+      "yesBreastfeeding": "Sim, amamentando",
+      "noBreastfeeding": "Não, não amamento",
+      "breastfeedingNote": "Você terá nutrição para a produção de leite mais uma camada de recuperação para cicatrizar.",
+      "postpartumNote": "Você terá um protocolo pós-parto dedicado: fibras, alimentação anti-inflamatória, apoio hormonal e recomposição. Sem dietas radicais.",
+      "trackByDueDate": "Acompanhar pela data prevista?",
+      "trackByDueDateHelp": "Ao inserir a data prevista, sua semana e trimestre se atualizam sozinhos. Você pode pular e acompanhar manualmente.",
+      "yesEnterDueDate": "Sim, inserir data",
+      "skipManual": "Pular — só etapa manual",
+      "dueDatePlaceholder": "Data prevista (YYYY-MM-DD)",
+      "activeSymptoms": "Algum sintoma ativo?",
+      "activeSymptomsHelp": "Selecione tudo o que se aplica; suas refeições se adaptarão.",
+      "disclaimerPart1": "O My Perfect Pregnancy oferece apenas educação nutricional geral e apoio à estrutura das refeições. Não substitui",
+      "disclaimerNotSubstitute": "um substituto",
+      "disclaimerPart2": "seu OB/GYN, parteira ou nutricionista. Siga sempre primeiro as recomendações do seu profissional de saúde.",
+      "saveButton": "Salvar minha configuração",
+      "savingButton": "Salvando…",
+      "savedButton": "✓ Salvo!",
+      "turnOff": "Desativar nutrição da gravidez",
+      "turnOffConfirm": "Desativar nutrição da gravidez?",
+      "turnOffHelp": "Isto remove a orientação de gravidez das refeições e do coaching. Você pode reativar quando quiser, sem julgamentos.",
+      "turningOff": "Desativando…",
+      "yesTurnOff": "Sim, desativar",
+      "keepItOn": "Manter ativa",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Tentando engravidar",
+          "desc": "Nutrição pré-concepção"
+        },
+        "trimester1": {
+          "label": "Primeiro trimestre",
+          "desc": "Semanas 1–13 · Folato, náusea"
+        },
+        "trimester2": {
+          "label": "Segundo trimestre",
+          "desc": "Semanas 14–27 · Proteína, cálcio, DHA"
+        },
+        "trimester3": {
+          "label": "Terceiro trimestre",
+          "desc": "Semanas 28–40 · Ferro, DHA, preparo"
+        },
+        "breastfeeding": {
+          "label": "Amamentação",
+          "desc": "Produção de leite, DHA, iodo, cálcio"
+        },
+        "postpartum": {
+          "label": "Pós-parto",
+          "desc": "Recuperação, recomposição, hormônios, força"
+        }
+      },
+      "symptom": {
+        "nausea": "Náusea",
+        "heartburn": "Azia",
+        "constipation": "Prisão de ventre",
+        "fatigue": "Fadiga",
+        "foodAversions": "Aversões alimentares",
+        "swelling": "Inchaço",
+        "shortnessOfBreath": "Falta de ar",
+        "lowAppetite": "Pouco apetite"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "Como você está hoje?",
+      "noCheckinToday": "Nenhum check-in de sintomas hoje. Suas refeições usam seu perfil de medicação padrão.",
+      "checkInPrompt": "Faça o check-in para adaptar refeições, shakes e sugestões de hoje.",
+      "checkIn": "Fazer check-in",
+      "update": "Atualizar",
+      "updated": "Atualizado {{time}}",
+      "escalationStatusBody": "Estes sintomas podem exigir avaliação médica. Contate logo seu profissional ou equipe de cuidados.",
+      "mealsAdapting": "Refeições se adaptando aos sintomas de hoje",
+      "updatedTapAdjustments": "Atualizado {{time}} · Toque para ver os ajustes",
+      "noSymptomsToday": "Nenhum sintoma relatado hoje",
+      "updatedStandardProfile": "Atualizado {{time}} · Perfil padrão ativo",
+      "escalationCardBody": "Estes sintomas podem exigir avaliação médica. Contate sua equipe de cuidados.",
+      "nutritionAdjustments": "Ajustes nutricionais de hoje ({{count}})",
+      "reason": "Motivo",
+      "adaptation": "Adaptação",
+      "evidence": "Evidência",
+      "justNow": "agora mesmo",
+      "minutesAgo": "há {{count}}min",
+      "hoursAgo": "há {{count}}h",
+      "giSymptomsHeader": "Sintomas GI — Quão graves hoje?",
+      "otherSymptomsHeader": "Outros sintomas",
+      "vomitingHeader": "Vômito hoje",
+      "quickQuestionsHeader": "Algumas perguntas rápidas",
+      "notifyHeader": "Quer que sua equipe de cuidados saiba?",
+      "notifyHelp": "Opcional — você controla quem é avisado hoje.",
+      "updatesThroughoutDay": "Isto se atualiza ao longo do dia.",
+      "updatesThroughoutDayBody": "Se você melhorar depois, volte e faça o check-in; suas refeições se adaptarão na hora. Seu check-in reinicia toda manhã.",
+      "cancel": "Cancelar",
+      "saving": "Salvando…",
+      "saveCheckIn": "Salvar check-in",
+      "severity": {
+        "none": "Nenhum",
+        "mild": "Leve",
+        "moderate": "Moderado",
+        "severe": "Grave"
+      },
+      "symptom": {
+        "nausea": "Náusea",
+        "constipation": "Prisão de ventre",
+        "diarrhea": "Diarreia",
+        "reflux": "Azia/refluxo",
+        "bloating": "Inchaço",
+        "earlyFullness": "Saciedade precoce",
+        "foodAversions": "Aversões alimentares",
+        "fatigue": "Fadiga",
+        "dizziness": "Tontura",
+        "headache": "Dor de cabeça"
+      },
+      "vomiting": {
+        "none": "Nenhum",
+        "once": "Uma vez",
+        "multiple": "2–3 vezes",
+        "cantKeepFluids": "4+ / Sem reter líquidos"
+      },
+      "q": {
+        "keepFluids": "Consegue reter líquidos?",
+        "eatWithoutWorsening": "Consegue comer sem piorar os sintomas?",
+        "reducedUrination": "Está urinando bem menos que o normal?",
+        "symptomTrend": "Como estão evoluindo seus sintomas?",
+        "appetite": "Como está seu apetite hoje?"
+      },
+      "opt": {
+        "yes": "Sim",
+        "no": "Não",
+        "withDifficulty": "Com dificuldade",
+        "partially": "Parcialmente"
+      },
+      "trend": {
+        "improving": "Melhorando",
+        "same": "Igual",
+        "worsening": "Piorando",
+        "na": "Não sei"
+      },
+      "appetite": {
+        "suppressed": "Sem apetite",
+        "reduced": "Reduzido",
+        "normal": "Normal",
+        "increased": "Aumentado"
+      },
+      "notify": {
+        "keepPrivate": "Não, manter privado",
+        "coach": "Avisar meu coach",
+        "both": "Avisar ambos"
+      }
+    }
+  },
+  "zh": {
+    "parentsCorner": {
+      "title": "家长专区",
+      "yourChild": "您的孩子",
+      "helpingBuildHabits": "帮助{{name}}养成健康习惯",
+      "backToBeginnings": "返回 My Perfect Beginnings",
+      "startFresh": "重新开始",
+      "startNewConversation": "开始新对话",
+      "clearConfirm": "清除此对话并重新开始？",
+      "clear": "清除",
+      "cancel": "取消",
+      "dismiss": "关闭",
+      "boundaryLanguage": "我可以为您的家庭提供循证营养指导。若有医疗问题，孩子的儿科医生或注册儿科营养师始终是正确的下一步——需要时我会提醒您。",
+      "todaysTip": "今日贴士",
+      "loadingConversation": "正在加载您的对话…",
+      "commonQuestions": "常见问题",
+      "browseCommonQuestions": "浏览常见问题",
+      "followUp": "追问",
+      "makeItNow": "立即制作",
+      "thinking": "思考中…",
+      "emptyPrompt": "点击上方卡片，或在下方提问。",
+      "askAnything": "随便问",
+      "inputPlaceholder": "在此输入您的问题…",
+      "send": "发送",
+      "noResponse": "抱歉，未收到回复。请重试。",
+      "connectionError": "现在有点问题。请检查网络后重试。",
+      "stage": {
+        "earlyInfant": "婴儿早期",
+        "beginningFoods": "开始添加辅食",
+        "youngToddler": "低龄幼儿",
+        "toddler": "幼儿",
+        "preschool": "学龄前",
+        "earlySchoolAge": "学龄初期",
+        "growingChild": "成长中的孩子"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "宝宝不肯吃。",
+          "question": "宝宝不肯吃。我该怎么办？"
+        },
+        "toddlerHatesVegetables": {
+          "label": "孩子讨厌蔬菜。",
+          "question": "孩子讨厌蔬菜。怎样让他多吃点？"
+        },
+        "lunchPacking": {
+          "label": "午餐带什么好？",
+          "question": "有哪些健康又诱人的午餐搭配点子？"
+        },
+        "healthySnacks": {
+          "label": "放学后的健康零食。",
+          "question": "放学后有哪些健康零食点子？"
+        },
+        "calcium": {
+          "label": "孩子钙够吗？",
+          "question": "孩子摄入的钙够吗？如何确保？"
+        },
+        "introducingFoods": {
+          "label": "如何引入新食物？",
+          "question": "如何引入新食物又不变成拉锯战？"
+        },
+        "youngAthlete": {
+          "label": "小运动员该吃什么？",
+          "question": "孩子参加运动。训练前后该吃什么？"
+        },
+        "waterIntake": {
+          "label": "孩子需要喝多少水？",
+          "question": "孩子每天该喝多少水？"
+        },
+        "pizza": {
+          "label": "孩子还能吃披萨吗？",
+          "question": "孩子还能吃披萨等有趣的食物吗，还是我该更严格？"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "记录身体成分",
+      "bodyFatPct": "体脂率 %",
+      "bodyFatPlaceholder": "例如 18.5",
+      "goalBodyFatPct": "目标体脂率 %（可选）",
+      "goalBodyFatPlaceholder": "例如 15",
+      "scanMethod": "测量方法",
+      "pickMethod": "选择方法",
+      "date": "日期",
+      "save": "保存",
+      "saving": "保存中...",
+      "notLoggedIn": "未登录",
+      "notLoggedInDesc": "请登录以保存您的身体成分数据。",
+      "invalidBodyFat": "体脂无效",
+      "invalidBodyFatDesc": "体脂率必须在 1% 到 70% 之间。",
+      "saved": "已保存",
+      "savedDesc": "身体成分已成功记录。",
+      "saveFailed": "保存失败",
+      "saveFailedDesc": "无法保存您的数据。请重试。"
+    },
+    "sponsorEnded": {
+      "launchProCare": "开通您的独立 ProCare 账户",
+      "openStudio": "打开您的独立工作室",
+      "completeVerification": "完成资质验证",
+      "continueTraining": "继续 Platform Mastery 培训",
+      "startOwnPractice": "开创我自己的业务",
+      "continueAsClient": "以客户身份继续",
+      "continueAsClientDesc": "继续以个人会员使用 MPM",
+      "continueWithFree": "继续使用 Free",
+      "continueWithFreeDesc": "基础餐食生成——始终免费",
+      "joinAnotherOrg": "加入其他机构",
+      "joinAnotherOrgDesc": "接受另一家企业的邀请",
+      "accessEnded": "由 {{business}} 赞助的访问权限已结束",
+      "accessEndedBody": "您的个人账户、餐食历史、Academy 进度和证书都还在。请选择如何继续。"
+    },
+    "dietStyleBadge": {
+      "kosher": "洁食 ✓",
+      "halal": "清真 ✓",
+      "vegan": "纯素 ✓",
+      "vegetarian": "素食 ✓",
+      "pescatarian": "鱼素 ✓",
+      "mediterranean": "地中海 ✓",
+      "paleo": "原始饮食 ✓",
+      "keto": "生酮 ✓",
+      "carnivore": "肉食 ✓",
+      "dairyFree": "无乳制品 ✓",
+      "custom": "自定义饮食 ✓"
+    },
+    "pregnancySupport": {
+      "title": "My Perfect Pregnancy 设置",
+      "intro": "这有助于个性化您的营养指导。您的信息保持私密，并会影响每一次餐食建议、食品安全检查和辅导回应。",
+      "whereAreYou": "您处于旅程的哪个阶段？",
+      "breastfeedingQuestion": "您目前在母乳喂养吗？",
+      "breastfeedingHelp": "这会决定您的营养方向。母乳喂养与产后恢复的重点不同——我们分别处理。",
+      "yesBreastfeeding": "是，母乳喂养",
+      "noBreastfeeding": "否，未母乳喂养",
+      "breastfeedingNote": "您将获得促进泌乳的营养，以及一层帮助愈合与重建的恢复方案。",
+      "postpartumNote": "您将获得专门的产后恢复方案——纤维、抗炎饮食、激素支持和身体重塑。不节食。",
+      "trackByDueDate": "按预产期跟踪？",
+      "trackByDueDateHelp": "输入预产期后，当前周数和孕期会自动更新。您也可跳过并手动跟踪。",
+      "yesEnterDueDate": "是，输入预产期",
+      "skipManual": "跳过——仅手动阶段",
+      "dueDatePlaceholder": "预产期（YYYY-MM-DD）",
+      "activeSymptoms": "有活跃症状吗？",
+      "activeSymptomsHelp": "选择所有适用项——餐食建议会随之调整。",
+      "disclaimerPart1": "My Perfect Pregnancy 仅提供一般营养教育和餐食结构支持。它不能",
+      "disclaimerNotSubstitute": "替代",
+      "disclaimerPart2": "您的 OB/GYN、助产士或注册营养师。请始终优先遵从您的医疗专业人员的建议。",
+      "saveButton": "保存我的孕期设置",
+      "savingButton": "保存中…",
+      "savedButton": "✓ 已保存！",
+      "turnOff": "关闭孕期营养",
+      "turnOffConfirm": "关闭孕期营养？",
+      "turnOffHelp": "这将从您的餐食和辅导中移除孕期专属指导。您可随时重新开启——不评判、不追问。",
+      "turningOff": "正在关闭…",
+      "yesTurnOff": "是，关闭",
+      "keepItOn": "保持开启",
+      "stage": {
+        "tryingToConceive": {
+          "label": "备孕中",
+          "desc": "孕前营养"
+        },
+        "trimester1": {
+          "label": "孕早期",
+          "desc": "第 1–13 周 · 叶酸、缓解恶心"
+        },
+        "trimester2": {
+          "label": "孕中期",
+          "desc": "第 14–27 周 · 蛋白质、钙、DHA"
+        },
+        "trimester3": {
+          "label": "孕晚期",
+          "desc": "第 28–40 周 · 铁、DHA、产前准备"
+        },
+        "breastfeeding": {
+          "label": "母乳喂养",
+          "desc": "泌乳、DHA、碘、钙"
+        },
+        "postpartum": {
+          "label": "产后",
+          "desc": "恢复、身体重塑、激素支持、力量"
+        }
+      },
+      "symptom": {
+        "nausea": "恶心",
+        "heartburn": "烧心",
+        "constipation": "便秘",
+        "fatigue": "疲劳",
+        "foodAversions": "食物厌恶",
+        "swelling": "水肿",
+        "shortnessOfBreath": "气短",
+        "lowAppetite": "食欲不振"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "您今天感觉如何？",
+      "noCheckinToday": "今天还未提交症状签到。您的餐食正使用标准用药档案。",
+      "checkInPrompt": "签到以调整今天的餐食、奶昔和餐厅建议。",
+      "checkIn": "签到",
+      "update": "更新",
+      "updated": "更新于{{time}}",
+      "escalationStatusBody": "这些症状可能需要就医评估。请尽快联系您的医疗专业人员或护理团队。",
+      "mealsAdapting": "餐食正在适应今天的症状",
+      "updatedTapAdjustments": "更新于{{time}} · 点击查看调整",
+      "noSymptomsToday": "今天未报告症状",
+      "updatedStandardProfile": "更新于{{time}} · 标准用药档案启用",
+      "escalationCardBody": "这些症状可能需要就医评估。请联系您的护理团队。",
+      "nutritionAdjustments": "今日营养调整（{{count}}）",
+      "reason": "原因",
+      "adaptation": "调整",
+      "evidence": "依据",
+      "justNow": "刚刚",
+      "minutesAgo": "{{count}} 分钟前",
+      "hoursAgo": "{{count}} 小时前",
+      "giSymptomsHeader": "胃肠症状——今天有多严重？",
+      "otherSymptomsHeader": "其他症状",
+      "vomitingHeader": "今天呕吐",
+      "quickQuestionsHeader": "几个简短问题",
+      "notifyHeader": "要让护理团队知道吗？",
+      "notifyHelp": "可选——由您决定今天通知谁。",
+      "updatesThroughoutDay": "这会全天更新。",
+      "updatesThroughoutDayBody": "如果稍后好转，欢迎再次签到——餐食会立即调整。签到每天早上重置。",
+      "cancel": "取消",
+      "saving": "保存中…",
+      "saveCheckIn": "保存签到",
+      "severity": {
+        "none": "无",
+        "mild": "轻度",
+        "moderate": "中度",
+        "severe": "重度"
+      },
+      "symptom": {
+        "nausea": "恶心",
+        "constipation": "便秘",
+        "diarrhea": "腹泻",
+        "reflux": "烧心/反流",
+        "bloating": "腹胀",
+        "earlyFullness": "早饱",
+        "foodAversions": "食物厌恶",
+        "fatigue": "疲劳",
+        "dizziness": "头晕",
+        "headache": "头痛"
+      },
+      "vomiting": {
+        "none": "无",
+        "once": "一次",
+        "multiple": "2–3 次",
+        "cantKeepFluids": "4+ 次 / 无法留住液体"
+      },
+      "q": {
+        "keepFluids": "能留住液体吗？",
+        "eatWithoutWorsening": "能进食而症状不加重吗？",
+        "reducedUrination": "排尿是否明显比平时少？",
+        "symptomTrend": "您的症状趋势如何？",
+        "appetite": "您今天的食欲如何？"
+      },
+      "opt": {
+        "yes": "是",
+        "no": "否",
+        "withDifficulty": "有困难",
+        "partially": "部分"
+      },
+      "trend": {
+        "improving": "好转",
+        "same": "不变",
+        "worsening": "加重",
+        "na": "不确定"
+      },
+      "appetite": {
+        "suppressed": "无食欲",
+        "reduced": "减弱",
+        "normal": "正常",
+        "increased": "增强"
+      },
+      "notify": {
+        "keepPrivate": "否，保持私密",
+        "coach": "通知我的教练",
+        "both": "两者都通知"
+      }
+    }
+  },
+  "ja": {
+    "parentsCorner": {
+      "title": "保護者コーナー",
+      "yourChild": "お子さま",
+      "helpingBuildHabits": "{{name}}の健康習慣づくりをサポート",
+      "backToBeginnings": "My Perfect Beginnings に戻る",
+      "startFresh": "最初から",
+      "startNewConversation": "新しい会話を始める",
+      "clearConfirm": "この会話を消して最初から始めますか？",
+      "clear": "消去",
+      "cancel": "キャンセル",
+      "dismiss": "閉じる",
+      "boundaryLanguage": "ご家族のために科学的根拠に基づく栄養ガイドをお伝えします。医療上の心配ごとは、小児科医や登録小児栄養士への相談が正しい次の一歩です。必要そうなときはお知らせします。",
+      "todaysTip": "今日のヒント",
+      "loadingConversation": "会話を読み込み中…",
+      "commonQuestions": "よくある質問",
+      "browseCommonQuestions": "よくある質問を見る",
+      "followUp": "追加の質問",
+      "makeItNow": "今すぐ作る",
+      "thinking": "考え中…",
+      "emptyPrompt": "上のカードをタップするか、下で質問してください。",
+      "askAnything": "何でも質問",
+      "inputPlaceholder": "ここに質問を入力…",
+      "send": "送信",
+      "noResponse": "すみません、返答がありませんでした。もう一度お試しください。",
+      "connectionError": "今少し不具合があります。接続を確認して再度お試しください。",
+      "stage": {
+        "earlyInfant": "乳児初期",
+        "beginningFoods": "離乳食開始",
+        "youngToddler": "低年齢幼児",
+        "toddler": "幼児",
+        "preschool": "就学前",
+        "earlySchoolAge": "就学初期",
+        "growingChild": "成長期の子ども"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "赤ちゃんが食べません。",
+          "question": "赤ちゃんが食べません。どうすれば？"
+        },
+        "toddlerHatesVegetables": {
+          "label": "子どもが野菜を嫌います。",
+          "question": "子どもが野菜を嫌います。もっと食べさせるには？"
+        },
+        "lunchPacking": {
+          "label": "お弁当に何を入れる？",
+          "question": "健康で魅力的なお弁当のアイデアは？"
+        },
+        "healthySnacks": {
+          "label": "放課後の健康おやつ。",
+          "question": "放課後の健康的なおやつのアイデアは？"
+        },
+        "calcium": {
+          "label": "カルシウムは足りてる？",
+          "question": "子どものカルシウムは足りていますか？どう確認する？"
+        },
+        "introducingFoods": {
+          "label": "新しい食材の始め方は？",
+          "question": "争いにせずに新しい食材を取り入れるには？"
+        },
+        "youngAthlete": {
+          "label": "スポーツする子は何を食べる？",
+          "question": "子どもがスポーツをします。練習の前後に何を食べる？"
+        },
+        "waterIntake": {
+          "label": "必要な水分量は？",
+          "question": "子どもは1日にどれくらい水を飲むべき？"
+        },
+        "pizza": {
+          "label": "ピザを食べても大丈夫？",
+          "question": "子どもはピザなどの楽しい食べ物を食べてもいい？もっと厳しくすべき？"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "体組成を記録",
+      "bodyFatPct": "体脂肪率 %",
+      "bodyFatPlaceholder": "例 18.5",
+      "goalBodyFatPct": "目標体脂肪率 %（任意）",
+      "goalBodyFatPlaceholder": "例 15",
+      "scanMethod": "測定方法",
+      "pickMethod": "方法を選択",
+      "date": "日付",
+      "save": "保存",
+      "saving": "保存中...",
+      "notLoggedIn": "未ログイン",
+      "notLoggedInDesc": "体組成データを保存するにはログインしてください。",
+      "invalidBodyFat": "無効な体脂肪",
+      "invalidBodyFatDesc": "体脂肪率は1%〜70%の範囲で入力してください。",
+      "saved": "保存しました",
+      "savedDesc": "体組成を記録しました。",
+      "saveFailed": "保存に失敗",
+      "saveFailedDesc": "データを保存できませんでした。もう一度お試しください。"
+    },
+    "sponsorEnded": {
+      "launchProCare": "独立した ProCare アカウントを開始",
+      "openStudio": "独立スタジオを開く",
+      "completeVerification": "資格認証を完了する",
+      "continueTraining": "Platform Mastery 研修を続ける",
+      "startOwnPractice": "自分の事業を始める",
+      "continueAsClient": "クライアントとして続ける",
+      "continueAsClientDesc": "個人メンバーとして MPM を使い続ける",
+      "continueWithFree": "Free で続ける",
+      "continueWithFreeDesc": "基本的な献立生成——ずっと無料",
+      "joinAnotherOrg": "別の組織に参加",
+      "joinAnotherOrgDesc": "別の事業者からの招待を受ける",
+      "accessEnded": "{{business}} が提供していたアクセスは終了しました",
+      "accessEndedBody": "個人アカウント、食事履歴、Academy の進捗、認定はすべて残っています。続け方を選んでください。"
+    },
+    "dietStyleBadge": {
+      "kosher": "コーシャ ✓",
+      "halal": "ハラル ✓",
+      "vegan": "ヴィーガン ✓",
+      "vegetarian": "ベジタリアン ✓",
+      "pescatarian": "ペスカタリアン ✓",
+      "mediterranean": "地中海式 ✓",
+      "paleo": "パレオ ✓",
+      "keto": "ケト ✓",
+      "carnivore": "カーニボア ✓",
+      "dairyFree": "乳製品なし ✓",
+      "custom": "カスタム食事 ✓"
+    },
+    "pregnancySupport": {
+      "title": "My Perfect Pregnancy の設定",
+      "intro": "これで栄養ガイドがパーソナライズされます。情報は非公開で、各食事の提案・食品安全チェック・コーチングに反映されます。",
+      "whereAreYou": "今どの段階ですか？",
+      "breastfeedingQuestion": "現在授乳中ですか？",
+      "breastfeedingHelp": "これで栄養方針が決まります。授乳と産後回復は優先事項が異なるため、別々に扱います。",
+      "yesBreastfeeding": "はい、授乳中",
+      "noBreastfeeding": "いいえ、授乳していません",
+      "breastfeedingNote": "母乳生産のための栄養に加え、回復のためのサポートも受けられます。",
+      "postpartumNote": "専用の産後回復プロトコルを受けられます——食物繊維、抗炎症の食事、ホルモンサポート、体の再構成。無理なダイエットはしません。",
+      "trackByDueDate": "予定日で管理しますか？",
+      "trackByDueDateHelp": "予定日を入力すると、現在の週数と妊娠期が自動更新されます。スキップして手動管理も可能です。",
+      "yesEnterDueDate": "はい、予定日を入力",
+      "skipManual": "スキップ——手動段階のみ",
+      "dueDatePlaceholder": "予定日（YYYY-MM-DD）",
+      "activeSymptoms": "今ある症状は？",
+      "activeSymptomsHelp": "当てはまるものを選択——食事の提案が合わせて調整されます。",
+      "disclaimerPart1": "My Perfect Pregnancy は一般的な栄養教育と食事構成のサポートのみを提供します。これは",
+      "disclaimerNotSubstitute": "代わりにはなりません",
+      "disclaimerPart2": "あなたの OB/GYN、助産師、登録栄養士の。常にまず医療提供者の指示に従ってください。",
+      "saveButton": "妊娠設定を保存",
+      "savingButton": "保存中…",
+      "savedButton": "✓ 保存しました！",
+      "turnOff": "妊娠栄養をオフにする",
+      "turnOffConfirm": "妊娠栄養をオフにしますか？",
+      "turnOffHelp": "食事とコーチングから妊娠向けガイドを外します。いつでも再開できます——評価も質問もありません。",
+      "turningOff": "オフにしています…",
+      "yesTurnOff": "はい、オフにする",
+      "keepItOn": "オンのままにする",
+      "stage": {
+        "tryingToConceive": {
+          "label": "妊活中",
+          "desc": "妊娠前の栄養"
+        },
+        "trimester1": {
+          "label": "妊娠初期",
+          "desc": "1〜13週 · 葉酸、つわり対策"
+        },
+        "trimester2": {
+          "label": "妊娠中期",
+          "desc": "14〜27週 · タンパク質、カルシウム、DHA"
+        },
+        "trimester3": {
+          "label": "妊娠後期",
+          "desc": "28〜40週 · 鉄、DHA、出産準備"
+        },
+        "breastfeeding": {
+          "label": "授乳",
+          "desc": "母乳生産、DHA、ヨウ素、カルシウム"
+        },
+        "postpartum": {
+          "label": "産後",
+          "desc": "回復、体の再構成、ホルモン、筋力"
+        }
+      },
+      "symptom": {
+        "nausea": "吐き気",
+        "heartburn": "胸やけ",
+        "constipation": "便秘",
+        "fatigue": "疲労",
+        "foodAversions": "食べ物の嫌悪",
+        "swelling": "むくみ",
+        "shortnessOfBreath": "息切れ",
+        "lowAppetite": "食欲低下"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "今日の調子はいかがですか？",
+      "noCheckinToday": "今日はまだ症状チェックインがありません。食事は標準の服薬プロファイルを使用中です。",
+      "checkInPrompt": "チェックインして今日の食事・シェイク・レストラン提案を調整しましょう。",
+      "checkIn": "チェックイン",
+      "update": "更新",
+      "updated": "{{time}}に更新",
+      "escalationStatusBody": "これらの症状は医療評価が必要な場合があります。早めに医療提供者またはケアチームに連絡してください。",
+      "mealsAdapting": "食事が今日の症状に適応中",
+      "updatedTapAdjustments": "{{time}}に更新 · タップで調整を確認",
+      "noSymptomsToday": "今日は症状の報告なし",
+      "updatedStandardProfile": "{{time}}に更新 · 標準プロファイル有効",
+      "escalationCardBody": "これらの症状は医療評価が必要な場合があります。ケアチームに連絡してください。",
+      "nutritionAdjustments": "今日の栄養調整（{{count}}）",
+      "reason": "理由",
+      "adaptation": "調整",
+      "evidence": "根拠",
+      "justNow": "たった今",
+      "minutesAgo": "{{count}}分前",
+      "hoursAgo": "{{count}}時間前",
+      "giSymptomsHeader": "消化器症状——今日の重さは？",
+      "otherSymptomsHeader": "その他の症状",
+      "vomitingHeader": "今日の嘔吐",
+      "quickQuestionsHeader": "いくつか簡単な質問",
+      "notifyHeader": "ケアチームに知らせますか？",
+      "notifyHelp": "任意——今日誰に知らせるかを選べます。",
+      "updatesThroughoutDay": "これは一日を通して更新されます。",
+      "updatesThroughoutDayBody": "後で良くなったら、また戻ってチェックインを——食事はすぐに適応します。チェックインは毎朝リセットされます。",
+      "cancel": "キャンセル",
+      "saving": "保存中…",
+      "saveCheckIn": "チェックインを保存",
+      "severity": {
+        "none": "なし",
+        "mild": "軽度",
+        "moderate": "中等度",
+        "severe": "重度"
+      },
+      "symptom": {
+        "nausea": "吐き気",
+        "constipation": "便秘",
+        "diarrhea": "下痢",
+        "reflux": "胸やけ/逆流",
+        "bloating": "膨満感",
+        "earlyFullness": "早期満腹",
+        "foodAversions": "食べ物の嫌悪",
+        "fatigue": "疲労",
+        "dizziness": "めまい",
+        "headache": "頭痛"
+      },
+      "vomiting": {
+        "none": "なし",
+        "once": "1回",
+        "multiple": "2〜3回",
+        "cantKeepFluids": "4回以上 / 水分がとれない"
+      },
+      "q": {
+        "keepFluids": "水分をとれますか？",
+        "eatWithoutWorsening": "症状を悪化させずに食べられますか？",
+        "reducedUrination": "尿量がいつもよりかなり少ないですか？",
+        "symptomTrend": "症状の傾向は？",
+        "appetite": "今日の食欲は？"
+      },
+      "opt": {
+        "yes": "はい",
+        "no": "いいえ",
+        "withDifficulty": "やっと",
+        "partially": "一部"
+      },
+      "trend": {
+        "improving": "改善",
+        "same": "変化なし",
+        "worsening": "悪化",
+        "na": "わからない"
+      },
+      "appetite": {
+        "suppressed": "食欲なし",
+        "reduced": "低下",
+        "normal": "普通",
+        "increased": "増加"
+      },
+      "notify": {
+        "keepPrivate": "いいえ、非公開に",
+        "coach": "コーチに知らせる",
+        "both": "両方に知らせる"
+      }
+    }
+  },
+  "ko": {
+    "parentsCorner": {
+      "title": "부모 코너",
+      "yourChild": "아이",
+      "helpingBuildHabits": "{{name}}의 건강한 습관 만들기 지원",
+      "backToBeginnings": "My Perfect Beginnings로 돌아가기",
+      "startFresh": "새로 시작",
+      "startNewConversation": "새 대화 시작",
+      "clearConfirm": "이 대화를 지우고 새로 시작할까요?",
+      "clear": "지우기",
+      "cancel": "취소",
+      "dismiss": "닫기",
+      "boundaryLanguage": "가족을 위한 근거 기반 영양 안내를 드릴 수 있어요. 의료 문제는 소아과 의사나 등록 소아영양사가 항상 올바른 다음 단계입니다. 필요해 보이면 알려드릴게요.",
+      "todaysTip": "오늘의 팁",
+      "loadingConversation": "대화를 불러오는 중…",
+      "commonQuestions": "자주 묻는 질문",
+      "browseCommonQuestions": "자주 묻는 질문 보기",
+      "followUp": "추가 질문",
+      "makeItNow": "지금 만들기",
+      "thinking": "생각 중…",
+      "emptyPrompt": "위 카드를 누르거나 아래에서 질문하세요.",
+      "askAnything": "무엇이든 물어보세요",
+      "inputPlaceholder": "여기에 질문을 입력하세요…",
+      "send": "보내기",
+      "noResponse": "죄송해요, 응답을 받지 못했어요. 다시 시도해 주세요.",
+      "connectionError": "지금 약간 문제가 있어요. 연결을 확인하고 다시 시도해 주세요.",
+      "stage": {
+        "earlyInfant": "영아 초기",
+        "beginningFoods": "이유식 시작",
+        "youngToddler": "어린 유아",
+        "toddler": "유아",
+        "preschool": "미취학",
+        "earlySchoolAge": "학령 초기",
+        "growingChild": "성장기 아동"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "아기가 안 먹어요.",
+          "question": "아기가 안 먹어요. 어떻게 해야 하나요?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "아이가 채소를 싫어해요.",
+          "question": "아이가 채소를 싫어해요. 어떻게 더 먹게 할까요?"
+        },
+        "lunchPacking": {
+          "label": "점심 도시락 뭐 싸지?",
+          "question": "건강하고 입맛 도는 도시락 아이디어가 있나요?"
+        },
+        "healthySnacks": {
+          "label": "방과 후 건강 간식.",
+          "question": "방과 후 건강한 간식 아이디어가 있나요?"
+        },
+        "calcium": {
+          "label": "칼슘이 충분한가요?",
+          "question": "아이가 칼슘을 충분히 먹나요? 어떻게 확인하죠?"
+        },
+        "introducingFoods": {
+          "label": "새 음식은 어떻게 시작하죠?",
+          "question": "실랑이 없이 새 음식을 어떻게 소개하죠?"
+        },
+        "youngAthlete": {
+          "label": "어린 운동선수는 뭘 먹죠?",
+          "question": "아이가 운동을 해요. 연습 전후에 뭘 먹어야 하죠?"
+        },
+        "waterIntake": {
+          "label": "물은 얼마나 필요하죠?",
+          "question": "아이는 하루에 물을 얼마나 마셔야 하나요?"
+        },
+        "pizza": {
+          "label": "아이가 피자 먹어도 되나요?",
+          "question": "아이가 피자 같은 즐거운 음식을 먹어도 되나요, 아니면 더 엄격해야 하나요?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "체성분 기록",
+      "bodyFatPct": "체지방률 %",
+      "bodyFatPlaceholder": "예: 18.5",
+      "goalBodyFatPct": "목표 체지방률 %(선택)",
+      "goalBodyFatPlaceholder": "예: 15",
+      "scanMethod": "측정 방법",
+      "pickMethod": "방법 선택",
+      "date": "날짜",
+      "save": "저장",
+      "saving": "저장 중...",
+      "notLoggedIn": "로그인 안 됨",
+      "notLoggedInDesc": "체성분 데이터를 저장하려면 로그인하세요.",
+      "invalidBodyFat": "잘못된 체지방",
+      "invalidBodyFatDesc": "체지방률은 1%에서 70% 사이여야 합니다.",
+      "saved": "저장됨",
+      "savedDesc": "체성분이 성공적으로 기록되었습니다.",
+      "saveFailed": "저장 실패",
+      "saveFailedDesc": "데이터를 저장할 수 없습니다. 다시 시도하세요."
+    },
+    "sponsorEnded": {
+      "launchProCare": "독립 ProCare 계정 시작",
+      "openStudio": "독립 스튜디오 열기",
+      "completeVerification": "자격 인증 완료",
+      "continueTraining": "Platform Mastery 교육 계속",
+      "startOwnPractice": "내 사업 시작하기",
+      "continueAsClient": "고객으로 계속",
+      "continueAsClientDesc": "개인 회원으로 MPM 계속 사용",
+      "continueWithFree": "Free로 계속",
+      "continueWithFreeDesc": "기본 식단 생성 — 항상 무료",
+      "joinAnotherOrg": "다른 조직에 참여",
+      "joinAnotherOrgDesc": "다른 업체의 초대 수락",
+      "accessEnded": "{{business}} 후원 액세스가 종료되었습니다",
+      "accessEndedBody": "개인 계정, 식단 기록, Academy 진행 상황, 인증은 모두 그대로 있습니다. 계속할 방법을 선택하세요."
+    },
+    "dietStyleBadge": {
+      "kosher": "코셔 ✓",
+      "halal": "할랄 ✓",
+      "vegan": "비건 ✓",
+      "vegetarian": "채식 ✓",
+      "pescatarian": "페스코 ✓",
+      "mediterranean": "지중해식 ✓",
+      "paleo": "팔레오 ✓",
+      "keto": "케토 ✓",
+      "carnivore": "카니보어 ✓",
+      "dairyFree": "유제품 없음 ✓",
+      "custom": "맞춤 식단 ✓"
+    },
+    "pregnancySupport": {
+      "title": "My Perfect Pregnancy 설정",
+      "intro": "영양 안내를 맞춤화하는 데 도움이 됩니다. 정보는 비공개로 유지되며 모든 식사 제안, 식품 안전 확인, 코칭 응답에 반영됩니다.",
+      "whereAreYou": "지금 어느 단계인가요?",
+      "breastfeedingQuestion": "현재 모유 수유 중인가요?",
+      "breastfeedingHelp": "이것이 영양 방향을 정합니다. 모유 수유와 산후 회복은 우선순위가 달라 따로 다룹니다.",
+      "yesBreastfeeding": "네, 수유 중",
+      "noBreastfeeding": "아니요, 수유 안 함",
+      "breastfeedingNote": "모유 생성 영양과 함께 회복을 돕는 지원을 받게 됩니다.",
+      "postpartumNote": "전용 산후 회복 프로토콜을 받습니다 — 식이섬유, 항염 식단, 호르몬 지원, 체형 재구성. 무리한 다이어트 없음.",
+      "trackByDueDate": "출산 예정일로 추적할까요?",
+      "trackByDueDateHelp": "예정일을 입력하면 현재 주수와 삼분기가 자동 업데이트됩니다. 건너뛰고 수동으로 추적할 수도 있어요.",
+      "yesEnterDueDate": "네, 예정일 입력",
+      "skipManual": "건너뛰기 — 수동 단계만",
+      "dueDatePlaceholder": "출산 예정일 (YYYY-MM-DD)",
+      "activeSymptoms": "활성 증상이 있나요?",
+      "activeSymptomsHelp": "해당하는 것을 모두 선택하세요 — 식사 제안이 맞춰 조정됩니다.",
+      "disclaimerPart1": "My Perfect Pregnancy는 일반 영양 교육과 식사 구성 지원만 제공합니다. 이는",
+      "disclaimerNotSubstitute": "대체할 수 없습니다",
+      "disclaimerPart2": "OB/GYN, 조산사 또는 등록 영양사를. 항상 의료 제공자의 권고를 먼저 따르세요.",
+      "saveButton": "임신 설정 저장",
+      "savingButton": "저장 중…",
+      "savedButton": "✓ 저장됨!",
+      "turnOff": "임신 영양 끄기",
+      "turnOffConfirm": "임신 영양을 끌까요?",
+      "turnOffHelp": "식사와 코칭에서 임신 전용 안내가 제거됩니다. 언제든 다시 켤 수 있어요 — 평가도 질문도 없습니다.",
+      "turningOff": "끄는 중…",
+      "yesTurnOff": "네, 끄기",
+      "keepItOn": "켜 두기",
+      "stage": {
+        "tryingToConceive": {
+          "label": "임신 준비 중",
+          "desc": "임신 전 영양"
+        },
+        "trimester1": {
+          "label": "1분기",
+          "desc": "1–13주 · 엽산, 입덧 지원"
+        },
+        "trimester2": {
+          "label": "2분기",
+          "desc": "14–27주 · 단백질, 칼슘, DHA"
+        },
+        "trimester3": {
+          "label": "3분기",
+          "desc": "28–40주 · 철분, DHA, 출산 준비"
+        },
+        "breastfeeding": {
+          "label": "모유 수유",
+          "desc": "모유 생성, DHA, 요오드, 칼슘"
+        },
+        "postpartum": {
+          "label": "산후",
+          "desc": "회복, 체형 재구성, 호르몬, 근력"
+        }
+      },
+      "symptom": {
+        "nausea": "메스꺼움",
+        "heartburn": "속쓰림",
+        "constipation": "변비",
+        "fatigue": "피로",
+        "foodAversions": "음식 거부감",
+        "swelling": "부종",
+        "shortnessOfBreath": "숨참",
+        "lowAppetite": "식욕 저하"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "오늘 컨디션은 어떠세요?",
+      "noCheckinToday": "오늘 증상 체크인이 없습니다. 식사는 표준 약물 프로필을 사용 중입니다.",
+      "checkInPrompt": "체크인하여 오늘의 식사, 셰이크, 식당 추천을 조정하세요.",
+      "checkIn": "체크인",
+      "update": "업데이트",
+      "updated": "{{time}} 업데이트",
+      "escalationStatusBody": "이 증상은 의학적 평가가 필요할 수 있습니다. 의료 제공자나 케어팀에 빨리 연락하세요.",
+      "mealsAdapting": "식사가 오늘 증상에 맞춰 조정 중",
+      "updatedTapAdjustments": "{{time}} 업데이트 · 탭하여 조정 보기",
+      "noSymptomsToday": "오늘 보고된 증상 없음",
+      "updatedStandardProfile": "{{time}} 업데이트 · 표준 프로필 활성",
+      "escalationCardBody": "이 증상은 의학적 평가가 필요할 수 있습니다. 케어팀에 연락하세요.",
+      "nutritionAdjustments": "오늘의 영양 조정 ({{count}})",
+      "reason": "이유",
+      "adaptation": "조정",
+      "evidence": "근거",
+      "justNow": "방금",
+      "minutesAgo": "{{count}}분 전",
+      "hoursAgo": "{{count}}시간 전",
+      "giSymptomsHeader": "위장 증상 — 오늘 얼마나 심한가요?",
+      "otherSymptomsHeader": "기타 증상",
+      "vomitingHeader": "오늘 구토",
+      "quickQuestionsHeader": "몇 가지 빠른 질문",
+      "notifyHeader": "케어팀에 알릴까요?",
+      "notifyHelp": "선택 사항 — 오늘 누구에게 알릴지 정할 수 있어요.",
+      "updatesThroughoutDay": "이 내용은 하루 종일 업데이트됩니다.",
+      "updatesThroughoutDayBody": "나중에 나아지면 다시 체크인하세요 — 식사가 즉시 조정됩니다. 체크인은 매일 아침 초기화됩니다.",
+      "cancel": "취소",
+      "saving": "저장 중…",
+      "saveCheckIn": "체크인 저장",
+      "severity": {
+        "none": "없음",
+        "mild": "경증",
+        "moderate": "중등도",
+        "severe": "중증"
+      },
+      "symptom": {
+        "nausea": "메스꺼움",
+        "constipation": "변비",
+        "diarrhea": "설사",
+        "reflux": "속쓰림/역류",
+        "bloating": "복부 팽만",
+        "earlyFullness": "조기 포만감",
+        "foodAversions": "음식 거부감",
+        "fatigue": "피로",
+        "dizziness": "어지럼",
+        "headache": "두통"
+      },
+      "vomiting": {
+        "none": "없음",
+        "once": "1회",
+        "multiple": "2–3회",
+        "cantKeepFluids": "4회 이상 / 수분 못 지킴"
+      },
+      "q": {
+        "keepFluids": "수분을 유지할 수 있나요?",
+        "eatWithoutWorsening": "증상 악화 없이 먹을 수 있나요?",
+        "reducedUrination": "소변량이 평소보다 훨씬 적은가요?",
+        "symptomTrend": "증상 추세는 어떤가요?",
+        "appetite": "오늘 식욕은 어떤가요?"
+      },
+      "opt": {
+        "yes": "예",
+        "no": "아니요",
+        "withDifficulty": "힘겹게",
+        "partially": "부분적으로"
+      },
+      "trend": {
+        "improving": "호전",
+        "same": "동일",
+        "worsening": "악화",
+        "na": "모름"
+      },
+      "appetite": {
+        "suppressed": "식욕 없음",
+        "reduced": "감소",
+        "normal": "정상",
+        "increased": "증가"
+      },
+      "notify": {
+        "keepPrivate": "아니요, 비공개",
+        "coach": "코치에게 알림",
+        "both": "둘 다 알림"
+      }
+    }
+  },
+  "ar": {
+    "parentsCorner": {
+      "title": "ركن الوالدين",
+      "yourChild": "طفلك",
+      "helpingBuildHabits": "مساعدة {{name}} على بناء عادات صحية",
+      "backToBeginnings": "العودة إلى My Perfect Beginnings",
+      "startFresh": "ابدأ من جديد",
+      "startNewConversation": "بدء محادثة جديدة",
+      "clearConfirm": "مسح هذه المحادثة والبدء من جديد؟",
+      "clear": "مسح",
+      "cancel": "إلغاء",
+      "dismiss": "إغلاق",
+      "boundaryLanguage": "يمكنني تقديم إرشادات تغذية قائمة على الأدلة لعائلتك. للمسائل الطبية، يظل طبيب الأطفال أو أخصائي تغذية أطفال معتمد هو الخطوة الصحيحة التالية دائمًا — سأنبهك عندما يستدعي الأمر ذلك.",
+      "todaysTip": "نصيحة اليوم",
+      "loadingConversation": "جارٍ تحميل محادثتك…",
+      "commonQuestions": "أسئلة شائعة",
+      "browseCommonQuestions": "تصفّح الأسئلة الشائعة",
+      "followUp": "سؤال متابعة",
+      "makeItNow": "حضّرها الآن",
+      "thinking": "جارٍ التفكير…",
+      "emptyPrompt": "اضغط على بطاقة أعلاه أو اسأل بالأسفل.",
+      "askAnything": "اسأل أي شيء",
+      "inputPlaceholder": "اكتب سؤالك هنا…",
+      "send": "إرسال",
+      "noResponse": "عذرًا، لم أتلقَّ ردًا. حاول مرة أخرى.",
+      "connectionError": "هناك مشكلة بسيطة الآن. تحقق من اتصالك وحاول مجددًا.",
+      "stage": {
+        "earlyInfant": "رضيع مبكر",
+        "beginningFoods": "بداية الأطعمة",
+        "youngToddler": "طفل دارج صغير",
+        "toddler": "طفل دارج",
+        "preschool": "ما قبل المدرسة",
+        "earlySchoolAge": "سن مدرسي مبكر",
+        "growingChild": "طفل في مرحلة النمو"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "طفلي لا يأكل.",
+          "question": "طفلي لا يأكل. ماذا أفعل؟"
+        },
+        "toddlerHatesVegetables": {
+          "label": "طفلي يكره الخضار.",
+          "question": "طفلي يكره الخضار. كيف أجعله يأكل المزيد؟"
+        },
+        "lunchPacking": {
+          "label": "ماذا أضع في الغداء؟",
+          "question": "ما أفكار الغداء الصحي والجذاب؟"
+        },
+        "healthySnacks": {
+          "label": "وجبات خفيفة صحية بعد المدرسة.",
+          "question": "ما أفكار الوجبات الخفيفة الصحية بعد المدرسة؟"
+        },
+        "calcium": {
+          "label": "هل يحصل طفلي على كالسيوم كافٍ؟",
+          "question": "هل يحصل طفلي على كالسيوم كافٍ؟ كيف أتأكد؟"
+        },
+        "introducingFoods": {
+          "label": "كيف أُدخل أطعمة جديدة؟",
+          "question": "كيف أُدخل أطعمة جديدة دون أن يتحول الأمر إلى صراع؟"
+        },
+        "youngAthlete": {
+          "label": "ماذا يأكل رياضيّي الصغير؟",
+          "question": "طفلي يمارس الرياضة. ماذا يأكل قبل التمرين وبعده؟"
+        },
+        "waterIntake": {
+          "label": "كم يحتاج طفلي من الماء؟",
+          "question": "كم كوبًا من الماء يجب أن يشرب طفلي يوميًا؟"
+        },
+        "pizza": {
+          "label": "هل يمكن لطفلي أن يأكل البيتزا؟",
+          "question": "هل يمكن لطفلي أن يأكل البيتزا وأطعمة ممتعة أخرى، أم يجب أن أكون أكثر صرامة؟"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "تسجيل تركيب الجسم",
+      "bodyFatPct": "نسبة الدهون %",
+      "bodyFatPlaceholder": "مثال 18.5",
+      "goalBodyFatPct": "نسبة الدهون المستهدفة % (اختياري)",
+      "goalBodyFatPlaceholder": "مثال 15",
+      "scanMethod": "طريقة القياس",
+      "pickMethod": "اختر طريقة",
+      "date": "التاريخ",
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ...",
+      "notLoggedIn": "لم تسجّل الدخول",
+      "notLoggedInDesc": "سجّل الدخول لحفظ بيانات تركيب جسمك.",
+      "invalidBodyFat": "نسبة دهون غير صالحة",
+      "invalidBodyFatDesc": "يجب أن تكون نسبة الدهون بين 1% و70%.",
+      "saved": "تم الحفظ",
+      "savedDesc": "تم تسجيل تركيب الجسم بنجاح.",
+      "saveFailed": "فشل الحفظ",
+      "saveFailedDesc": "تعذّر حفظ بياناتك. حاول مرة أخرى."
+    },
+    "sponsorEnded": {
+      "launchProCare": "أطلق حساب ProCare المستقل الخاص بك",
+      "openStudio": "افتح استوديوك المستقل",
+      "completeVerification": "أكمل التحقق من الاعتماد",
+      "continueTraining": "تابع تدريب Platform Mastery",
+      "startOwnPractice": "ابدأ عملك الخاص",
+      "continueAsClient": "المتابعة كعميل",
+      "continueAsClientDesc": "استمر في استخدام MPM كعضو فردي",
+      "continueWithFree": "المتابعة مع Free",
+      "continueWithFreeDesc": "إنشاء وجبات أساسي — مجاني دائمًا",
+      "joinAnotherOrg": "الانضمام إلى مؤسسة أخرى",
+      "joinAnotherOrgDesc": "اقبل دعوة من شركة أخرى",
+      "accessEnded": "انتهى وصولك المموّل من {{business}}",
+      "accessEndedBody": "حسابك الشخصي وسجل الوجبات وتقدّم Academy والشهادات كلها لا تزال موجودة. اختر كيف تريد المتابعة."
+    },
+    "dietStyleBadge": {
+      "kosher": "كوشير ✓",
+      "halal": "حلال ✓",
+      "vegan": "نباتي صرف ✓",
+      "vegetarian": "نباتي ✓",
+      "pescatarian": "نباتي مع السمك ✓",
+      "mediterranean": "متوسطي ✓",
+      "paleo": "باليو ✓",
+      "keto": "كيتو ✓",
+      "carnivore": "لحمي ✓",
+      "dairyFree": "خالٍ من الألبان ✓",
+      "custom": "نظام مخصص ✓"
+    },
+    "pregnancySupport": {
+      "title": "إعداد My Perfect Pregnancy",
+      "intro": "هذا يخصّص إرشادات تغذيتك. تبقى معلوماتك خاصة وتشكّل كل اقتراح وجبة وفحص سلامة غذائية ورد إرشادي.",
+      "whereAreYou": "في أي مرحلة أنتِ من رحلتك؟",
+      "breastfeedingQuestion": "هل تُرضعين حاليًا؟",
+      "breastfeedingHelp": "هذا يحدد مسار تغذيتك. للإرضاع والتعافي بعد الولادة أولويات مختلفة — نتعامل معهما بشكل منفصل.",
+      "yesBreastfeeding": "نعم، أُرضع",
+      "noBreastfeeding": "لا، لا أُرضع",
+      "breastfeedingNote": "ستحصلين على تغذية لإنتاج الحليب مع طبقة تعافٍ للمساعدة على الالتئام.",
+      "postpartumNote": "ستحصلين على بروتوكول تعافٍ مخصص بعد الولادة — ألياف، تغذية مضادة للالتهاب، دعم هرموني، وإعادة تكوين الجسم. دون حميات قاسية.",
+      "trackByDueDate": "التتبع حسب موعد الولادة؟",
+      "trackByDueDateHelp": "بإدخال موعد ولادتك، يُحدَّث أسبوعك والثلث الحالي تلقائيًا. يمكنك التخطي والتتبع يدويًا.",
+      "yesEnterDueDate": "نعم، أدخِل الموعد",
+      "skipManual": "تخطٍّ — المرحلة اليدوية فقط",
+      "dueDatePlaceholder": "موعد الولادة (YYYY-MM-DD)",
+      "activeSymptoms": "هل توجد أعراض حالية؟",
+      "activeSymptomsHelp": "اختاري كل ما ينطبق — ستتكيف وجباتك تبعًا لذلك.",
+      "disclaimerPart1": "يقدّم My Perfect Pregnancy تثقيفًا غذائيًا عامًا ودعمًا لبنية الوجبات فقط. وهو ليس",
+      "disclaimerNotSubstitute": "بديلاً",
+      "disclaimerPart2": "عن طبيب النساء والولادة أو القابلة أو أخصائي التغذية المعتمد. اتبعي دائمًا توصيات مقدم الرعاية الصحية أولاً.",
+      "saveButton": "احفظي إعداد الحمل",
+      "savingButton": "جارٍ الحفظ…",
+      "savedButton": "✓ تم الحفظ!",
+      "turnOff": "إيقاف تغذية الحمل",
+      "turnOffConfirm": "إيقاف تغذية الحمل؟",
+      "turnOffHelp": "سيزيل هذا إرشادات الحمل من وجباتك وإرشادك. يمكنك إعادة تفعيله في أي وقت — دون حكم أو أسئلة.",
+      "turningOff": "جارٍ الإيقاف…",
+      "yesTurnOff": "نعم، أوقِف",
+      "keepItOn": "أبقِه مفعّلاً",
+      "stage": {
+        "tryingToConceive": {
+          "label": "محاولة الحمل",
+          "desc": "تغذية ما قبل الحمل"
+        },
+        "trimester1": {
+          "label": "الثلث الأول",
+          "desc": "الأسابيع 1–13 · فولات، غثيان"
+        },
+        "trimester2": {
+          "label": "الثلث الثاني",
+          "desc": "الأسابيع 14–27 · بروتين، كالسيوم، DHA"
+        },
+        "trimester3": {
+          "label": "الثلث الثالث",
+          "desc": "الأسابيع 28–40 · حديد، DHA، تجهيز"
+        },
+        "breastfeeding": {
+          "label": "الإرضاع",
+          "desc": "إنتاج الحليب، DHA، يود، كالسيوم"
+        },
+        "postpartum": {
+          "label": "ما بعد الولادة",
+          "desc": "تعافٍ، إعادة تكوين، هرمونات، قوة"
+        }
+      },
+      "symptom": {
+        "nausea": "غثيان",
+        "heartburn": "حرقة المعدة",
+        "constipation": "إمساك",
+        "fatigue": "إرهاق",
+        "foodAversions": "نفور من الطعام",
+        "swelling": "تورّم",
+        "shortnessOfBreath": "ضيق نفس",
+        "lowAppetite": "قلة شهية"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "كيف تشعر اليوم؟",
+      "noCheckinToday": "لا يوجد تسجيل أعراض اليوم. تستخدم وجباتك ملف دوائك القياسي.",
+      "checkInPrompt": "سجّل حالتك لتكييف وجبات ومخفوقات واقتراحات المطاعم اليوم.",
+      "checkIn": "تسجيل الحالة",
+      "update": "تحديث",
+      "updated": "حُدّث {{time}}",
+      "escalationStatusBody": "قد تتطلب هذه الأعراض تقييمًا طبيًا. تواصل قريبًا مع مقدم الرعاية أو فريق الرعاية.",
+      "mealsAdapting": "الوجبات تتكيف مع أعراض اليوم",
+      "updatedTapAdjustments": "حُدّث {{time}} · اضغط لعرض التعديلات",
+      "noSymptomsToday": "لا أعراض مسجلة اليوم",
+      "updatedStandardProfile": "حُدّث {{time}} · الملف القياسي مفعّل",
+      "escalationCardBody": "قد تتطلب هذه الأعراض تقييمًا طبيًا. تواصل مع فريق الرعاية.",
+      "nutritionAdjustments": "تعديلات التغذية اليوم ({{count}})",
+      "reason": "السبب",
+      "adaptation": "التعديل",
+      "evidence": "الدليل",
+      "justNow": "الآن",
+      "minutesAgo": "قبل {{count}} د",
+      "hoursAgo": "قبل {{count}} س",
+      "giSymptomsHeader": "أعراض الجهاز الهضمي — ما شدتها اليوم؟",
+      "otherSymptomsHeader": "أعراض أخرى",
+      "vomitingHeader": "القيء اليوم",
+      "quickQuestionsHeader": "بعض الأسئلة السريعة",
+      "notifyHeader": "هل تريد إبلاغ فريق الرعاية؟",
+      "notifyHelp": "اختياري — أنت تتحكم بمن يُبلَّغ اليوم.",
+      "updatesThroughoutDay": "يُحدَّث هذا طوال اليوم.",
+      "updatesThroughoutDayBody": "إذا شعرت بتحسن لاحقًا، سجّل حالتك مجددًا — ستتكيف وجباتك فورًا. تتم إعادة تعيين التسجيل كل صباح.",
+      "cancel": "إلغاء",
+      "saving": "جارٍ الحفظ…",
+      "saveCheckIn": "حفظ التسجيل",
+      "severity": {
+        "none": "لا شيء",
+        "mild": "خفيف",
+        "moderate": "متوسط",
+        "severe": "شديد"
+      },
+      "symptom": {
+        "nausea": "غثيان",
+        "constipation": "إمساك",
+        "diarrhea": "إسهال",
+        "reflux": "حرقة/ارتجاع",
+        "bloating": "انتفاخ",
+        "earlyFullness": "شبع مبكر",
+        "foodAversions": "نفور من الطعام",
+        "fatigue": "إرهاق",
+        "dizziness": "دوخة",
+        "headache": "صداع"
+      },
+      "vomiting": {
+        "none": "لا شيء",
+        "once": "مرة واحدة",
+        "multiple": "2–3 مرات",
+        "cantKeepFluids": "4+ / لا أحتفظ بالسوائل"
+      },
+      "q": {
+        "keepFluids": "هل تستطيع الاحتفاظ بالسوائل؟",
+        "eatWithoutWorsening": "هل تستطيع الأكل دون تفاقم الأعراض؟",
+        "reducedUrination": "هل تبوّل أقل بكثير من المعتاد؟",
+        "symptomTrend": "كيف تتجه أعراضك؟",
+        "appetite": "كيف شهيتك اليوم؟"
+      },
+      "opt": {
+        "yes": "نعم",
+        "no": "لا",
+        "withDifficulty": "بصعوبة",
+        "partially": "جزئيًا"
+      },
+      "trend": {
+        "improving": "في تحسّن",
+        "same": "كما هي",
+        "worsening": "في تفاقم",
+        "na": "غير متأكد"
+      },
+      "appetite": {
+        "suppressed": "لا شهية",
+        "reduced": "منخفضة",
+        "normal": "طبيعية",
+        "increased": "مرتفعة"
+      },
+      "notify": {
+        "keepPrivate": "لا، اجعله خاصًا",
+        "coach": "إبلاغ مدربي",
+        "both": "إبلاغ كليهما"
+      }
+    }
+  },
+  "hi": {
+    "parentsCorner": {
+      "title": "पैरेंट्स कॉर्नर",
+      "yourChild": "आपका बच्चा",
+      "helpingBuildHabits": "{{name}} को स्वस्थ आदतें बनाने में मदद",
+      "backToBeginnings": "My Perfect Beginnings पर वापस",
+      "startFresh": "नए सिरे से शुरू करें",
+      "startNewConversation": "नई बातचीत शुरू करें",
+      "clearConfirm": "यह बातचीत मिटाकर नए सिरे से शुरू करें?",
+      "clear": "मिटाएं",
+      "cancel": "रद्द करें",
+      "dismiss": "बंद करें",
+      "boundaryLanguage": "मैं आपके परिवार के लिए साक्ष्य-आधारित पोषण मार्गदर्शन दे सकता/सकती हूँ। चिकित्सा संबंधी बातों के लिए, बच्चे का बाल रोग विशेषज्ञ या पंजीकृत बाल आहार-विशेषज्ञ हमेशा सही अगला कदम है — ज़रूरत होने पर मैं बता दूँगा/दूँगी।",
+      "todaysTip": "आज की सलाह",
+      "loadingConversation": "आपकी बातचीत लोड हो रही है…",
+      "commonQuestions": "आम सवाल",
+      "browseCommonQuestions": "आम सवाल देखें",
+      "followUp": "आगे का सवाल",
+      "makeItNow": "अभी बनाएं",
+      "thinking": "सोच रहा हूँ…",
+      "emptyPrompt": "ऊपर किसी कार्ड पर टैप करें या नीचे पूछें।",
+      "askAnything": "कुछ भी पूछें",
+      "inputPlaceholder": "अपना सवाल यहाँ लिखें…",
+      "send": "भेजें",
+      "noResponse": "क्षमा करें, कोई जवाब नहीं मिला। फिर से कोशिश करें।",
+      "connectionError": "अभी थोड़ी दिक्कत है। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
+      "stage": {
+        "earlyInfant": "शुरुआती शिशु",
+        "beginningFoods": "ठोस आहार की शुरुआत",
+        "youngToddler": "छोटा बच्चा",
+        "toddler": "नन्हा बच्चा",
+        "preschool": "प्री-स्कूल",
+        "earlySchoolAge": "शुरुआती स्कूल उम्र",
+        "growingChild": "बढ़ता बच्चा"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "मेरा बच्चा नहीं खाता।",
+          "question": "मेरा बच्चा नहीं खाता। मैं क्या करूँ?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "मेरा बच्चा सब्ज़ियों से नफरत करता है।",
+          "question": "मेरा बच्चा सब्ज़ियों से नफरत करता है। उसे ज़्यादा कैसे खिलाऊँ?"
+        },
+        "lunchPacking": {
+          "label": "लंच में क्या दूँ?",
+          "question": "स्वस्थ और लुभावने लंच के कौन-से आइडिया हैं?"
+        },
+        "healthySnacks": {
+          "label": "स्कूल के बाद स्वस्थ नाश्ते।",
+          "question": "स्कूल के बाद स्वस्थ नाश्ते के कौन-से आइडिया हैं?"
+        },
+        "calcium": {
+          "label": "क्या मेरे बच्चे को पर्याप्त कैल्शियम मिलता है?",
+          "question": "क्या मेरे बच्चे को पर्याप्त कैल्शियम मिलता है? कैसे सुनिश्चित करूँ?"
+        },
+        "introducingFoods": {
+          "label": "नए खाद्य कैसे शुरू करूँ?",
+          "question": "बिना झगड़े के नए खाद्य कैसे शुरू करूँ?"
+        },
+        "youngAthlete": {
+          "label": "मेरा नन्हा एथलीट क्या खाए?",
+          "question": "मेरा बच्चा खेल खेलता है। अभ्यास से पहले और बाद में क्या खाए?"
+        },
+        "waterIntake": {
+          "label": "मेरे बच्चे को कितना पानी चाहिए?",
+          "question": "मेरे बच्चे को रोज़ कितना पानी पीना चाहिए?"
+        },
+        "pizza": {
+          "label": "क्या मेरा बच्चा अब भी पिज़्ज़ा खा सकता है?",
+          "question": "क्या मेरा बच्चा अब भी पिज़्ज़ा और मज़ेदार चीज़ें खा सकता है, या मुझे ज़्यादा सख्त होना चाहिए?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "शरीर संरचना दर्ज करें",
+      "bodyFatPct": "शरीर वसा %",
+      "bodyFatPlaceholder": "जैसे 18.5",
+      "goalBodyFatPct": "लक्ष्य शरीर वसा % (वैकल्पिक)",
+      "goalBodyFatPlaceholder": "जैसे 15",
+      "scanMethod": "मापन विधि",
+      "pickMethod": "विधि चुनें",
+      "date": "तारीख",
+      "save": "सहेजें",
+      "saving": "सहेजा जा रहा है...",
+      "notLoggedIn": "लॉग इन नहीं है",
+      "notLoggedInDesc": "अपनी शरीर संरचना डेटा सहेजने के लिए लॉग इन करें।",
+      "invalidBodyFat": "अमान्य शरीर वसा",
+      "invalidBodyFatDesc": "शरीर वसा प्रतिशत 1% और 70% के बीच होना चाहिए।",
+      "saved": "सहेजा गया",
+      "savedDesc": "शरीर संरचना सफलतापूर्वक दर्ज की गई।",
+      "saveFailed": "सहेजना विफल",
+      "saveFailedDesc": "आपका डेटा सहेजा नहीं जा सका। फिर से कोशिश करें।"
+    },
+    "sponsorEnded": {
+      "launchProCare": "अपना स्वतंत्र ProCare खाता शुरू करें",
+      "openStudio": "अपना स्वतंत्र स्टूडियो खोलें",
+      "completeVerification": "क्रेडेंशियल सत्यापन पूरा करें",
+      "continueTraining": "Platform Mastery प्रशिक्षण जारी रखें",
+      "startOwnPractice": "अपना खुद का काम शुरू करें",
+      "continueAsClient": "क्लाइंट के रूप में जारी रखें",
+      "continueAsClientDesc": "MPM को व्यक्तिगत सदस्य के रूप में उपयोग करते रहें",
+      "continueWithFree": "Free के साथ जारी रखें",
+      "continueWithFreeDesc": "बुनियादी भोजन निर्माण — हमेशा मुफ्त",
+      "joinAnotherOrg": "दूसरे संगठन से जुड़ें",
+      "joinAnotherOrgDesc": "किसी अन्य व्यवसाय का निमंत्रण स्वीकार करें",
+      "accessEnded": "{{business}} द्वारा प्रायोजित आपकी पहुँच समाप्त हो गई है",
+      "accessEndedBody": "आपका व्यक्तिगत खाता, भोजन इतिहास, Academy प्रगति और प्रमाणपत्र सब यहीं हैं। चुनें कि आप कैसे जारी रखना चाहते हैं।"
+    },
+    "dietStyleBadge": {
+      "kosher": "कोशर ✓",
+      "halal": "हलाल ✓",
+      "vegan": "वीगन ✓",
+      "vegetarian": "शाकाहारी ✓",
+      "pescatarian": "पेस्केटेरियन ✓",
+      "mediterranean": "मेडिटेरेनियन ✓",
+      "paleo": "पेलियो ✓",
+      "keto": "कीटो ✓",
+      "carnivore": "मांसाहारी ✓",
+      "dairyFree": "डेयरी-मुक्त ✓",
+      "custom": "कस्टम डाइट ✓"
+    },
+    "pregnancySupport": {
+      "title": "My Perfect Pregnancy सेटअप",
+      "intro": "यह आपके पोषण मार्गदर्शन को व्यक्तिगत बनाता है। आपकी जानकारी निजी रहती है और हर भोजन सुझाव, खाद्य-सुरक्षा जाँच और कोचिंग जवाब को आकार देती है।",
+      "whereAreYou": "आप अपनी यात्रा में कहाँ हैं?",
+      "breastfeedingQuestion": "क्या आप अभी स्तनपान करा रही हैं?",
+      "breastfeedingHelp": "यह आपके पोषण मार्ग को तय करता है। स्तनपान और प्रसवोत्तर रिकवरी की प्राथमिकताएँ अलग हैं — हम इन्हें अलग-अलग संभालते हैं।",
+      "yesBreastfeeding": "हाँ, स्तनपान",
+      "noBreastfeeding": "नहीं, स्तनपान नहीं",
+      "breastfeedingNote": "आपको दूध उत्पादन के लिए पोषण के साथ ठीक होने में मदद हेतु रिकवरी परत मिलेगी।",
+      "postpartumNote": "आपको समर्पित प्रसवोत्तर रिकवरी प्रोटोकॉल मिलेगा — फाइबर, सूजन-रोधी आहार, हार्मोन समर्थन और शरीर पुनर्संरचना। कोई क्रैश डाइट नहीं।",
+      "trackByDueDate": "नियत तिथि से ट्रैक करें?",
+      "trackByDueDateHelp": "नियत तिथि दर्ज करने पर आपका सप्ताह और तिमाही अपने आप अपडेट होंगे। आप छोड़कर मैन्युअल रूप से भी ट्रैक कर सकती हैं।",
+      "yesEnterDueDate": "हाँ, तिथि दर्ज करें",
+      "skipManual": "छोड़ें — केवल मैन्युअल चरण",
+      "dueDatePlaceholder": "नियत तिथि (YYYY-MM-DD)",
+      "activeSymptoms": "कोई सक्रिय लक्षण?",
+      "activeSymptomsHelp": "जो लागू हो सब चुनें — आपके भोजन उसी अनुसार ढलेंगे।",
+      "disclaimerPart1": "My Perfect Pregnancy केवल सामान्य पोषण शिक्षा और भोजन संरचना समर्थन देता है। यह",
+      "disclaimerNotSubstitute": "विकल्प",
+      "disclaimerPart2": "आपके OB/GYN, दाई या पंजीकृत आहार-विशेषज्ञ का नहीं है। हमेशा पहले अपने स्वास्थ्य पेशेवर की सलाह मानें।",
+      "saveButton": "मेरा गर्भावस्था सेटअप सहेजें",
+      "savingButton": "सहेजा जा रहा है…",
+      "savedButton": "✓ सहेजा गया!",
+      "turnOff": "गर्भावस्था पोषण बंद करें",
+      "turnOffConfirm": "गर्भावस्था पोषण बंद करें?",
+      "turnOffHelp": "यह आपके भोजन और कोचिंग से गर्भावस्था-विशिष्ट मार्गदर्शन हटा देगा। आप कभी भी फिर चालू कर सकती हैं — बिना किसी निर्णय या सवाल के।",
+      "turningOff": "बंद किया जा रहा है…",
+      "yesTurnOff": "हाँ, बंद करें",
+      "keepItOn": "चालू रखें",
+      "stage": {
+        "tryingToConceive": {
+          "label": "गर्भधारण की कोशिश",
+          "desc": "गर्भधारण-पूर्व पोषण"
+        },
+        "trimester1": {
+          "label": "पहली तिमाही",
+          "desc": "सप्ताह 1–13 · फोलेट, मतली"
+        },
+        "trimester2": {
+          "label": "दूसरी तिमाही",
+          "desc": "सप्ताह 14–27 · प्रोटीन, कैल्शियम, DHA"
+        },
+        "trimester3": {
+          "label": "तीसरी तिमाही",
+          "desc": "सप्ताह 28–40 · आयरन, DHA, तैयारी"
+        },
+        "breastfeeding": {
+          "label": "स्तनपान",
+          "desc": "दूध उत्पादन, DHA, आयोडीन, कैल्शियम"
+        },
+        "postpartum": {
+          "label": "प्रसवोत्तर",
+          "desc": "रिकवरी, पुनर्संरचना, हार्मोन, ताकत"
+        }
+      },
+      "symptom": {
+        "nausea": "मतली",
+        "heartburn": "सीने में जलन",
+        "constipation": "कब्ज",
+        "fatigue": "थकान",
+        "foodAversions": "भोजन से अरुचि",
+        "swelling": "सूजन",
+        "shortnessOfBreath": "साँस फूलना",
+        "lowAppetite": "कम भूख"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "आज आप कैसा महसूस कर रहे हैं?",
+      "noCheckinToday": "आज कोई लक्षण चेक-इन नहीं। आपके भोजन आपकी मानक दवा प्रोफ़ाइल का उपयोग कर रहे हैं।",
+      "checkInPrompt": "आज के भोजन, शेक और रेस्तरां सुझावों को ढालने के लिए चेक-इन करें।",
+      "checkIn": "चेक-इन",
+      "update": "अपडेट",
+      "updated": "{{time}} अपडेट किया",
+      "escalationStatusBody": "इन लक्षणों के लिए चिकित्सकीय मूल्यांकन आवश्यक हो सकता है। जल्द अपने स्वास्थ्य पेशेवर या देखभाल टीम से संपर्क करें।",
+      "mealsAdapting": "भोजन आज के लक्षणों के अनुसार ढल रहे हैं",
+      "updatedTapAdjustments": "{{time}} अपडेट किया · बदलाव देखने के लिए टैप करें",
+      "noSymptomsToday": "आज कोई लक्षण दर्ज नहीं",
+      "updatedStandardProfile": "{{time}} अपडेट किया · मानक प्रोफ़ाइल सक्रिय",
+      "escalationCardBody": "इन लक्षणों के लिए चिकित्सकीय मूल्यांकन आवश्यक हो सकता है। अपनी देखभाल टीम से संपर्क करें।",
+      "nutritionAdjustments": "आज के पोषण बदलाव ({{count}})",
+      "reason": "कारण",
+      "adaptation": "बदलाव",
+      "evidence": "प्रमाण",
+      "justNow": "अभी-अभी",
+      "minutesAgo": "{{count}} मिनट पहले",
+      "hoursAgo": "{{count}} घंटे पहले",
+      "giSymptomsHeader": "जीआई लक्षण — आज कितने गंभीर?",
+      "otherSymptomsHeader": "अन्य लक्षण",
+      "vomitingHeader": "आज उल्टी",
+      "quickQuestionsHeader": "कुछ त्वरित सवाल",
+      "notifyHeader": "क्या आपकी देखभाल टीम को बताना है?",
+      "notifyHelp": "वैकल्पिक — आज किसे सूचित करना है यह आप तय करते हैं।",
+      "updatesThroughoutDay": "यह दिन भर अपडेट होता रहता है।",
+      "updatesThroughoutDayBody": "बाद में बेहतर महसूस हो तो फिर चेक-इन करें — आपके भोजन तुरंत ढल जाएंगे। आपका चेक-इन हर सुबह रीसेट होता है।",
+      "cancel": "रद्द करें",
+      "saving": "सहेजा जा रहा है…",
+      "saveCheckIn": "चेक-इन सहेजें",
+      "severity": {
+        "none": "कोई नहीं",
+        "mild": "हल्का",
+        "moderate": "मध्यम",
+        "severe": "गंभीर"
+      },
+      "symptom": {
+        "nausea": "मतली",
+        "constipation": "कब्ज",
+        "diarrhea": "दस्त",
+        "reflux": "जलन/रिफ्लक्स",
+        "bloating": "फूलापन",
+        "earlyFullness": "जल्दी पेट भरना",
+        "foodAversions": "भोजन से अरुचि",
+        "fatigue": "थकान",
+        "dizziness": "चक्कर",
+        "headache": "सिरदर्द"
+      },
+      "vomiting": {
+        "none": "कोई नहीं",
+        "once": "एक बार",
+        "multiple": "2–3 बार",
+        "cantKeepFluids": "4+ / तरल नहीं रुकता"
+      },
+      "q": {
+        "keepFluids": "क्या आप तरल पदार्थ रोक पा रहे हैं?",
+        "eatWithoutWorsening": "क्या आप लक्षण बिगाड़े बिना खा पा रहे हैं?",
+        "reducedUrination": "क्या सामान्य से काफी कम पेशाब हो रहा है?",
+        "symptomTrend": "आपके लक्षण किस दिशा में हैं?",
+        "appetite": "आज आपकी भूख कैसी है?"
+      },
+      "opt": {
+        "yes": "हाँ",
+        "no": "नहीं",
+        "withDifficulty": "मुश्किल से",
+        "partially": "आंशिक रूप से"
+      },
+      "trend": {
+        "improving": "सुधर रहा",
+        "same": "समान",
+        "worsening": "बिगड़ रहा",
+        "na": "पता नहीं"
+      },
+      "appetite": {
+        "suppressed": "भूख नहीं",
+        "reduced": "कम",
+        "normal": "सामान्य",
+        "increased": "बढ़ी हुई"
+      },
+      "notify": {
+        "keepPrivate": "नहीं, निजी रखें",
+        "coach": "मेरे कोच को बताएं",
+        "both": "दोनों को बताएं"
+      }
+    }
+  },
+  "ru": {
+    "parentsCorner": {
+      "title": "Уголок родителей",
+      "yourChild": "вашему ребёнку",
+      "helpingBuildHabits": "Помогаем {{name}} формировать здоровые привычки",
+      "backToBeginnings": "Назад в My Perfect Beginnings",
+      "startFresh": "Начать заново",
+      "startNewConversation": "Начать новый разговор",
+      "clearConfirm": "Очистить этот разговор и начать заново?",
+      "clear": "Очистить",
+      "cancel": "Отмена",
+      "dismiss": "Закрыть",
+      "boundaryLanguage": "Я могу дать вашей семье научно обоснованные рекомендации по питанию. По медицинским вопросам педиатр ребёнка или дипломированный детский диетолог — всегда правильный следующий шаг; я подскажу, когда это нужно.",
+      "todaysTip": "Совет дня",
+      "loadingConversation": "Загрузка разговора…",
+      "commonQuestions": "Частые вопросы",
+      "browseCommonQuestions": "Посмотреть частые вопросы",
+      "followUp": "Уточнение",
+      "makeItNow": "Приготовить сейчас",
+      "thinking": "Думаю…",
+      "emptyPrompt": "Нажмите карточку выше или спросите ниже.",
+      "askAnything": "Спросите что угодно",
+      "inputPlaceholder": "Введите ваш вопрос здесь…",
+      "send": "Отправить",
+      "noResponse": "Извините, ответ не получен. Попробуйте ещё раз.",
+      "connectionError": "Сейчас небольшая проблема. Проверьте соединение и повторите.",
+      "stage": {
+        "earlyInfant": "Ранний младенец",
+        "beginningFoods": "Начало прикорма",
+        "youngToddler": "Младший малыш",
+        "toddler": "Малыш",
+        "preschool": "Дошкольник",
+        "earlySchoolAge": "Ранний школьный возраст",
+        "growingChild": "Растущий ребёнок"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "Малыш не ест.",
+          "question": "Малыш не ест. Что мне делать?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "Ребёнок ненавидит овощи.",
+          "question": "Ребёнок ненавидит овощи. Как заставить его есть больше?"
+        },
+        "lunchPacking": {
+          "label": "Что положить на обед?",
+          "question": "Какие идеи для здорового и аппетитного обеда?"
+        },
+        "healthySnacks": {
+          "label": "Здоровые перекусы после школы.",
+          "question": "Какие идеи здоровых перекусов после школы?"
+        },
+        "calcium": {
+          "label": "Хватает ли ребёнку кальция?",
+          "question": "Хватает ли ребёнку кальция? Как это обеспечить?"
+        },
+        "introducingFoods": {
+          "label": "Как вводить новые продукты?",
+          "question": "Как вводить новые продукты, не превращая это в борьбу?"
+        },
+        "youngAthlete": {
+          "label": "Что есть моему юному спортсмену?",
+          "question": "Ребёнок занимается спортом. Что есть до и после тренировки?"
+        },
+        "waterIntake": {
+          "label": "Сколько воды нужно ребёнку?",
+          "question": "Сколько воды ребёнок должен пить в день?"
+        },
+        "pizza": {
+          "label": "Можно ли ребёнку пиццу?",
+          "question": "Можно ли ребёнку пиццу и другие вкусности, или мне быть строже?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Записать состав тела",
+      "bodyFatPct": "% жира в теле",
+      "bodyFatPlaceholder": "напр. 18.5",
+      "goalBodyFatPct": "Целевой % жира (необязательно)",
+      "goalBodyFatPlaceholder": "напр. 15",
+      "scanMethod": "Метод измерения",
+      "pickMethod": "Выберите метод",
+      "date": "Дата",
+      "save": "Сохранить",
+      "saving": "Сохранение...",
+      "notLoggedIn": "Вы не вошли",
+      "notLoggedInDesc": "Войдите, чтобы сохранить данные о составе тела.",
+      "invalidBodyFat": "Недопустимый % жира",
+      "invalidBodyFatDesc": "Процент жира должен быть от 1% до 70%.",
+      "saved": "Сохранено",
+      "savedDesc": "Состав тела успешно записан.",
+      "saveFailed": "Не удалось сохранить",
+      "saveFailedDesc": "Не удалось сохранить данные. Попробуйте ещё раз."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Запустите свой независимый аккаунт ProCare",
+      "openStudio": "Откройте свою независимую студию",
+      "completeVerification": "Завершите проверку квалификации",
+      "continueTraining": "Продолжите обучение Platform Mastery",
+      "startOwnPractice": "Начать своё дело",
+      "continueAsClient": "Продолжить как клиент",
+      "continueAsClientDesc": "Продолжайте пользоваться MPM как индивидуальный участник",
+      "continueWithFree": "Продолжить с Free",
+      "continueWithFreeDesc": "Базовое создание блюд — всегда бесплатно",
+      "joinAnotherOrg": "Присоединиться к другой организации",
+      "joinAnotherOrgDesc": "Примите приглашение от другой компании",
+      "accessEnded": "Ваш доступ, спонсируемый {{business}}, завершён",
+      "accessEndedBody": "Ваш личный аккаунт, история блюд, прогресс в Academy и сертификаты — всё на месте. Выберите, как продолжить."
+    },
+    "dietStyleBadge": {
+      "kosher": "Кошер ✓",
+      "halal": "Халяль ✓",
+      "vegan": "Веган ✓",
+      "vegetarian": "Вегетарианская ✓",
+      "pescatarian": "Пескетарианская ✓",
+      "mediterranean": "Средиземноморская ✓",
+      "paleo": "Палео ✓",
+      "keto": "Кето ✓",
+      "carnivore": "Мясоедная ✓",
+      "dairyFree": "Без молочного ✓",
+      "custom": "Своя диета ✓"
+    },
+    "pregnancySupport": {
+      "title": "Настройка My Perfect Pregnancy",
+      "intro": "Это персонализирует ваши рекомендации по питанию. Ваши данные остаются конфиденциальными и формируют каждое предложение блюда, проверку безопасности и ответ коуча.",
+      "whereAreYou": "На каком этапе пути вы находитесь?",
+      "breastfeedingQuestion": "Вы сейчас кормите грудью?",
+      "breastfeedingHelp": "Это определяет ваш путь питания. У грудного вскармливания и послеродового восстановления разные приоритеты — мы разделяем их.",
+      "yesBreastfeeding": "Да, кормлю грудью",
+      "noBreastfeeding": "Нет, не кормлю",
+      "breastfeedingNote": "Вы получите питание для выработки молока плюс уровень восстановления для заживления.",
+      "postpartumNote": "Вы получите отдельный протокол послеродового восстановления — клетчатка, противовоспалительное питание, гормональная поддержка и рекомпозиция тела. Никаких жёстких диет.",
+      "trackByDueDate": "Отслеживать по сроку родов?",
+      "trackByDueDateHelp": "Если ввести срок родов, ваша неделя и триместр будут обновляться сами. Можно пропустить и отслеживать вручную.",
+      "yesEnterDueDate": "Да, ввести срок",
+      "skipManual": "Пропустить — только вручную",
+      "dueDatePlaceholder": "Срок родов (YYYY-MM-DD)",
+      "activeSymptoms": "Есть ли активные симптомы?",
+      "activeSymptomsHelp": "Выберите всё подходящее — блюда подстроятся.",
+      "disclaimerPart1": "My Perfect Pregnancy предоставляет только общее просвещение по питанию и поддержку структуры блюд. Это не",
+      "disclaimerNotSubstitute": "замена",
+      "disclaimerPart2": "вашего акушера-гинеколога (OB/GYN), акушерки или дипломированного диетолога. Всегда сначала следуйте рекомендациям вашего медицинского специалиста.",
+      "saveButton": "Сохранить настройку беременности",
+      "savingButton": "Сохранение…",
+      "savedButton": "✓ Сохранено!",
+      "turnOff": "Отключить питание при беременности",
+      "turnOffConfirm": "Отключить питание при беременности?",
+      "turnOffHelp": "Это уберёт рекомендации по беременности из блюд и коучинга. Вы можете включить снова в любой момент — без осуждения и вопросов.",
+      "turningOff": "Отключение…",
+      "yesTurnOff": "Да, отключить",
+      "keepItOn": "Оставить включённым",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Планирование беременности",
+          "desc": "Питание до зачатия"
+        },
+        "trimester1": {
+          "label": "Первый триместр",
+          "desc": "Недели 1–13 · Фолат, тошнота"
+        },
+        "trimester2": {
+          "label": "Второй триместр",
+          "desc": "Недели 14–27 · Белок, кальций, DHA"
+        },
+        "trimester3": {
+          "label": "Третий триместр",
+          "desc": "Недели 28–40 · Железо, DHA, подготовка"
+        },
+        "breastfeeding": {
+          "label": "Грудное вскармливание",
+          "desc": "Выработка молока, DHA, йод, кальций"
+        },
+        "postpartum": {
+          "label": "После родов",
+          "desc": "Восстановление, рекомпозиция, гормоны, сила"
+        }
+      },
+      "symptom": {
+        "nausea": "Тошнота",
+        "heartburn": "Изжога",
+        "constipation": "Запор",
+        "fatigue": "Усталость",
+        "foodAversions": "Отвращение к еде",
+        "swelling": "Отёки",
+        "shortnessOfBreath": "Одышка",
+        "lowAppetite": "Низкий аппетит"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "Как вы себя чувствуете сегодня?",
+      "noCheckinToday": "Сегодня нет отметки о симптомах. Ваши блюда используют стандартный профиль препарата.",
+      "checkInPrompt": "Отметьтесь, чтобы адаптировать сегодняшние блюда, шейки и предложения ресторанов.",
+      "checkIn": "Отметиться",
+      "update": "Обновить",
+      "updated": "Обновлено {{time}}",
+      "escalationStatusBody": "Эти симптомы могут требовать медицинской оценки. Свяжитесь со своим специалистом или командой ухода в ближайшее время.",
+      "mealsAdapting": "Блюда адаптируются к сегодняшним симптомам",
+      "updatedTapAdjustments": "Обновлено {{time}} · Нажмите для просмотра изменений",
+      "noSymptomsToday": "Сегодня симптомов не отмечено",
+      "updatedStandardProfile": "Обновлено {{time}} · Стандартный профиль активен",
+      "escalationCardBody": "Эти симптомы могут требовать медицинской оценки. Свяжитесь со своей командой ухода.",
+      "nutritionAdjustments": "Изменения питания сегодня ({{count}})",
+      "reason": "Причина",
+      "adaptation": "Адаптация",
+      "evidence": "Обоснование",
+      "justNow": "только что",
+      "minutesAgo": "{{count}} мин назад",
+      "hoursAgo": "{{count}} ч назад",
+      "giSymptomsHeader": "Симптомы ЖКТ — насколько сильны сегодня?",
+      "otherSymptomsHeader": "Другие симптомы",
+      "vomitingHeader": "Рвота сегодня",
+      "quickQuestionsHeader": "Несколько быстрых вопросов",
+      "notifyHeader": "Сообщить вашей команде ухода?",
+      "notifyHelp": "Необязательно — вы решаете, кого уведомить сегодня.",
+      "updatesThroughoutDay": "Это обновляется в течение дня.",
+      "updatesThroughoutDayBody": "Если позже станет легче, отметьтесь снова — блюда адаптируются сразу. Отметка сбрасывается каждое утро.",
+      "cancel": "Отмена",
+      "saving": "Сохранение…",
+      "saveCheckIn": "Сохранить отметку",
+      "severity": {
+        "none": "Нет",
+        "mild": "Лёгкая",
+        "moderate": "Умеренная",
+        "severe": "Тяжёлая"
+      },
+      "symptom": {
+        "nausea": "Тошнота",
+        "constipation": "Запор",
+        "diarrhea": "Диарея",
+        "reflux": "Изжога/рефлюкс",
+        "bloating": "Вздутие",
+        "earlyFullness": "Раннее насыщение",
+        "foodAversions": "Отвращение к еде",
+        "fatigue": "Усталость",
+        "dizziness": "Головокружение",
+        "headache": "Головная боль"
+      },
+      "vomiting": {
+        "none": "Нет",
+        "once": "Один раз",
+        "multiple": "2–3 раза",
+        "cantKeepFluids": "4+ / Не удерживаю жидкость"
+      },
+      "q": {
+        "keepFluids": "Удерживаете ли вы жидкость?",
+        "eatWithoutWorsening": "Можете ли есть без ухудшения симптомов?",
+        "reducedUrination": "Мочеиспускание намного реже обычного?",
+        "symptomTrend": "Какова динамика ваших симптомов?",
+        "appetite": "Какой у вас сегодня аппетит?"
+      },
+      "opt": {
+        "yes": "Да",
+        "no": "Нет",
+        "withDifficulty": "С трудом",
+        "partially": "Частично"
+      },
+      "trend": {
+        "improving": "Улучшается",
+        "same": "Без изменений",
+        "worsening": "Ухудшается",
+        "na": "Не уверен(а)"
+      },
+      "appetite": {
+        "suppressed": "Нет аппетита",
+        "reduced": "Снижен",
+        "normal": "Обычный",
+        "increased": "Повышен"
+      },
+      "notify": {
+        "keepPrivate": "Нет, оставить приватным",
+        "coach": "Сообщить моему коучу",
+        "both": "Сообщить обоим"
+      }
+    }
+  },
+  "vi": {
+    "parentsCorner": {
+      "title": "Góc phụ huynh",
+      "yourChild": "con bạn",
+      "helpingBuildHabits": "Giúp {{name}} xây dựng thói quen lành mạnh",
+      "backToBeginnings": "Quay lại My Perfect Beginnings",
+      "startFresh": "Bắt đầu lại",
+      "startNewConversation": "Bắt đầu cuộc trò chuyện mới",
+      "clearConfirm": "Xóa cuộc trò chuyện này và bắt đầu lại?",
+      "clear": "Xóa",
+      "cancel": "Hủy",
+      "dismiss": "Đóng",
+      "boundaryLanguage": "Tôi có thể đưa ra hướng dẫn dinh dưỡng dựa trên bằng chứng cho gia đình bạn. Với các vấn đề y tế, bác sĩ nhi khoa hoặc chuyên gia dinh dưỡng nhi đã đăng ký luôn là bước tiếp theo đúng đắn — tôi sẽ báo khi cần đến điều đó.",
+      "todaysTip": "Mẹo hôm nay",
+      "loadingConversation": "Đang tải cuộc trò chuyện…",
+      "commonQuestions": "Câu hỏi thường gặp",
+      "browseCommonQuestions": "Xem câu hỏi thường gặp",
+      "followUp": "Hỏi tiếp",
+      "makeItNow": "Làm ngay",
+      "thinking": "Đang suy nghĩ…",
+      "emptyPrompt": "Chạm vào thẻ ở trên hoặc hỏi bên dưới.",
+      "askAnything": "Hỏi bất cứ điều gì",
+      "inputPlaceholder": "Nhập câu hỏi của bạn ở đây…",
+      "send": "Gửi",
+      "noResponse": "Xin lỗi, không nhận được phản hồi. Vui lòng thử lại.",
+      "connectionError": "Hiện có chút trục trặc. Hãy kiểm tra kết nối và thử lại.",
+      "stage": {
+        "earlyInfant": "Trẻ sơ sinh sớm",
+        "beginningFoods": "Bắt đầu ăn dặm",
+        "youngToddler": "Trẻ chập chững nhỏ",
+        "toddler": "Trẻ chập chững",
+        "preschool": "Mầm non",
+        "earlySchoolAge": "Đầu tuổi đi học",
+        "growingChild": "Trẻ đang lớn"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "Bé không chịu ăn.",
+          "question": "Bé không chịu ăn. Tôi nên làm gì?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "Con tôi ghét rau.",
+          "question": "Con tôi ghét rau. Làm sao cho bé ăn nhiều hơn?"
+        },
+        "lunchPacking": {
+          "label": "Chuẩn bị bữa trưa gì?",
+          "question": "Có ý tưởng nào cho bữa trưa lành mạnh và hấp dẫn?"
+        },
+        "healthySnacks": {
+          "label": "Đồ ăn nhẹ lành mạnh sau giờ học.",
+          "question": "Có ý tưởng đồ ăn nhẹ lành mạnh nào sau giờ học?"
+        },
+        "calcium": {
+          "label": "Con tôi có đủ canxi không?",
+          "question": "Con tôi có đủ canxi không? Làm sao để đảm bảo?"
+        },
+        "introducingFoods": {
+          "label": "Giới thiệu món mới thế nào?",
+          "question": "Làm sao giới thiệu món ăn mới mà không thành cuộc chiến?"
+        },
+        "youngAthlete": {
+          "label": "Vận động viên nhí nên ăn gì?",
+          "question": "Con tôi chơi thể thao. Nên ăn gì trước và sau khi tập?"
+        },
+        "waterIntake": {
+          "label": "Con tôi cần bao nhiêu nước?",
+          "question": "Con tôi nên uống bao nhiêu nước mỗi ngày?"
+        },
+        "pizza": {
+          "label": "Con tôi vẫn ăn pizza được chứ?",
+          "question": "Con tôi vẫn ăn pizza và các món vui miệng khác được không, hay tôi nên nghiêm khắc hơn?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Ghi nhận thành phần cơ thể",
+      "bodyFatPct": "% mỡ cơ thể",
+      "bodyFatPlaceholder": "vd. 18.5",
+      "goalBodyFatPct": "% mỡ mục tiêu (tùy chọn)",
+      "goalBodyFatPlaceholder": "vd. 15",
+      "scanMethod": "Phương pháp đo",
+      "pickMethod": "Chọn phương pháp",
+      "date": "Ngày",
+      "save": "Lưu",
+      "saving": "Đang lưu...",
+      "notLoggedIn": "Chưa đăng nhập",
+      "notLoggedInDesc": "Vui lòng đăng nhập để lưu dữ liệu thành phần cơ thể.",
+      "invalidBodyFat": "Mỡ cơ thể không hợp lệ",
+      "invalidBodyFatDesc": "Tỷ lệ mỡ phải nằm trong khoảng 1% đến 70%.",
+      "saved": "Đã lưu",
+      "savedDesc": "Đã ghi nhận thành phần cơ thể thành công.",
+      "saveFailed": "Lưu thất bại",
+      "saveFailedDesc": "Không thể lưu dữ liệu của bạn. Vui lòng thử lại."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Mở tài khoản ProCare độc lập của bạn",
+      "openStudio": "Mở studio độc lập của bạn",
+      "completeVerification": "Hoàn tất xác minh chứng chỉ",
+      "continueTraining": "Tiếp tục khóa Platform Mastery",
+      "startOwnPractice": "Bắt đầu công việc của riêng tôi",
+      "continueAsClient": "Tiếp tục với tư cách khách hàng",
+      "continueAsClientDesc": "Tiếp tục dùng MPM với tư cách thành viên cá nhân",
+      "continueWithFree": "Tiếp tục với Free",
+      "continueWithFreeDesc": "Tạo bữa ăn cơ bản — luôn miễn phí",
+      "joinAnotherOrg": "Tham gia tổ chức khác",
+      "joinAnotherOrgDesc": "Chấp nhận lời mời từ doanh nghiệp khác",
+      "accessEnded": "Quyền truy cập được {{business}} tài trợ đã kết thúc",
+      "accessEndedBody": "Tài khoản cá nhân, lịch sử bữa ăn, tiến độ Academy và chứng chỉ của bạn vẫn còn đó. Hãy chọn cách tiếp tục."
+    },
+    "dietStyleBadge": {
+      "kosher": "Kosher ✓",
+      "halal": "Halal ✓",
+      "vegan": "Thuần chay ✓",
+      "vegetarian": "Chay ✓",
+      "pescatarian": "Chay ăn cá ✓",
+      "mediterranean": "Địa Trung Hải ✓",
+      "paleo": "Paleo ✓",
+      "keto": "Keto ✓",
+      "carnivore": "Ăn thịt ✓",
+      "dairyFree": "Không sữa ✓",
+      "custom": "Chế độ tùy chỉnh ✓"
+    },
+    "pregnancySupport": {
+      "title": "Thiết lập My Perfect Pregnancy",
+      "intro": "Việc này cá nhân hóa hướng dẫn dinh dưỡng của bạn. Thông tin của bạn được giữ riêng tư và định hình mọi gợi ý bữa ăn, kiểm tra an toàn thực phẩm và phản hồi huấn luyện.",
+      "whereAreYou": "Bạn đang ở giai đoạn nào?",
+      "breastfeedingQuestion": "Bạn có đang cho con bú không?",
+      "breastfeedingHelp": "Điều này quyết định lộ trình dinh dưỡng của bạn. Cho con bú và phục hồi sau sinh có ưu tiên khác nhau — chúng tôi xử lý riêng.",
+      "yesBreastfeeding": "Có, đang cho bú",
+      "noBreastfeeding": "Không, không cho bú",
+      "breastfeedingNote": "Bạn sẽ nhận dinh dưỡng cho việc tạo sữa cùng một lớp phục hồi để mau lành.",
+      "postpartumNote": "Bạn sẽ nhận phác đồ phục hồi sau sinh riêng — chất xơ, ăn chống viêm, hỗ trợ nội tiết và tái tạo cơ thể. Không ăn kiêng cực đoan.",
+      "trackByDueDate": "Theo dõi theo ngày dự sinh?",
+      "trackByDueDateHelp": "Nhập ngày dự sinh thì tuần và tam cá nguyệt sẽ tự cập nhật. Bạn cũng có thể bỏ qua và theo dõi thủ công.",
+      "yesEnterDueDate": "Có, nhập ngày dự sinh",
+      "skipManual": "Bỏ qua — chỉ theo dõi thủ công",
+      "dueDatePlaceholder": "Ngày dự sinh (YYYY-MM-DD)",
+      "activeSymptoms": "Có triệu chứng nào đang gặp?",
+      "activeSymptomsHelp": "Chọn tất cả những gì phù hợp — bữa ăn sẽ điều chỉnh theo.",
+      "disclaimerPart1": "My Perfect Pregnancy chỉ cung cấp giáo dục dinh dưỡng chung và hỗ trợ cấu trúc bữa ăn. Đây không phải là",
+      "disclaimerNotSubstitute": "sự thay thế",
+      "disclaimerPart2": "cho bác sĩ OB/GYN, nữ hộ sinh hoặc chuyên gia dinh dưỡng đã đăng ký của bạn. Luôn tuân theo khuyến nghị của chuyên gia y tế trước tiên.",
+      "saveButton": "Lưu thiết lập thai kỳ",
+      "savingButton": "Đang lưu…",
+      "savedButton": "✓ Đã lưu!",
+      "turnOff": "Tắt dinh dưỡng thai kỳ",
+      "turnOffConfirm": "Tắt dinh dưỡng thai kỳ?",
+      "turnOffHelp": "Việc này sẽ gỡ hướng dẫn dành riêng cho thai kỳ khỏi bữa ăn và huấn luyện. Bạn có thể bật lại bất cứ lúc nào — không phán xét, không thắc mắc.",
+      "turningOff": "Đang tắt…",
+      "yesTurnOff": "Có, tắt đi",
+      "keepItOn": "Giữ bật",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Đang thử thụ thai",
+          "desc": "Dinh dưỡng trước thụ thai"
+        },
+        "trimester1": {
+          "label": "Tam cá nguyệt 1",
+          "desc": "Tuần 1–13 · Folate, buồn nôn"
+        },
+        "trimester2": {
+          "label": "Tam cá nguyệt 2",
+          "desc": "Tuần 14–27 · Protein, canxi, DHA"
+        },
+        "trimester3": {
+          "label": "Tam cá nguyệt 3",
+          "desc": "Tuần 28–40 · Sắt, DHA, chuẩn bị"
+        },
+        "breastfeeding": {
+          "label": "Cho con bú",
+          "desc": "Tạo sữa, DHA, i-ốt, canxi"
+        },
+        "postpartum": {
+          "label": "Sau sinh",
+          "desc": "Phục hồi, tái tạo, nội tiết, sức mạnh"
+        }
+      },
+      "symptom": {
+        "nausea": "Buồn nôn",
+        "heartburn": "Ợ nóng",
+        "constipation": "Táo bón",
+        "fatigue": "Mệt mỏi",
+        "foodAversions": "Chán ăn một số món",
+        "swelling": "Sưng phù",
+        "shortnessOfBreath": "Khó thở",
+        "lowAppetite": "Kém ăn"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "Hôm nay bạn cảm thấy thế nào?",
+      "noCheckinToday": "Hôm nay chưa ghi nhận triệu chứng. Bữa ăn của bạn dùng hồ sơ thuốc tiêu chuẩn.",
+      "checkInPrompt": "Ghi nhận để điều chỉnh bữa ăn, sinh tố và gợi ý nhà hàng hôm nay.",
+      "checkIn": "Ghi nhận",
+      "update": "Cập nhật",
+      "updated": "Cập nhật {{time}}",
+      "escalationStatusBody": "Các triệu chứng này có thể cần được đánh giá y tế. Hãy liên hệ sớm với chuyên gia hoặc nhóm chăm sóc của bạn.",
+      "mealsAdapting": "Bữa ăn đang điều chỉnh theo triệu chứng hôm nay",
+      "updatedTapAdjustments": "Cập nhật {{time}} · Chạm để xem điều chỉnh",
+      "noSymptomsToday": "Hôm nay không ghi nhận triệu chứng",
+      "updatedStandardProfile": "Cập nhật {{time}} · Hồ sơ tiêu chuẩn đang hoạt động",
+      "escalationCardBody": "Các triệu chứng này có thể cần được đánh giá y tế. Hãy liên hệ nhóm chăm sóc của bạn.",
+      "nutritionAdjustments": "Điều chỉnh dinh dưỡng hôm nay ({{count}})",
+      "reason": "Lý do",
+      "adaptation": "Điều chỉnh",
+      "evidence": "Bằng chứng",
+      "justNow": "vừa xong",
+      "minutesAgo": "{{count}} phút trước",
+      "hoursAgo": "{{count}} giờ trước",
+      "giSymptomsHeader": "Triệu chứng tiêu hóa — hôm nay nặng đến đâu?",
+      "otherSymptomsHeader": "Triệu chứng khác",
+      "vomitingHeader": "Nôn hôm nay",
+      "quickQuestionsHeader": "Vài câu hỏi nhanh",
+      "notifyHeader": "Bạn có muốn báo nhóm chăm sóc không?",
+      "notifyHelp": "Tùy chọn — bạn quyết định hôm nay báo cho ai.",
+      "updatesThroughoutDay": "Nội dung này cập nhật suốt cả ngày.",
+      "updatesThroughoutDayBody": "Nếu sau đó bạn thấy khá hơn, hãy ghi nhận lại — bữa ăn sẽ điều chỉnh ngay. Phần ghi nhận đặt lại mỗi sáng.",
+      "cancel": "Hủy",
+      "saving": "Đang lưu…",
+      "saveCheckIn": "Lưu ghi nhận",
+      "severity": {
+        "none": "Không",
+        "mild": "Nhẹ",
+        "moderate": "Vừa",
+        "severe": "Nặng"
+      },
+      "symptom": {
+        "nausea": "Buồn nôn",
+        "constipation": "Táo bón",
+        "diarrhea": "Tiêu chảy",
+        "reflux": "Ợ nóng/trào ngược",
+        "bloating": "Đầy hơi",
+        "earlyFullness": "Mau no",
+        "foodAversions": "Chán ăn một số món",
+        "fatigue": "Mệt mỏi",
+        "dizziness": "Chóng mặt",
+        "headache": "Đau đầu"
+      },
+      "vomiting": {
+        "none": "Không",
+        "once": "Một lần",
+        "multiple": "2–3 lần",
+        "cantKeepFluids": "4+ / Không giữ được nước"
+      },
+      "q": {
+        "keepFluids": "Bạn có giữ được nước không?",
+        "eatWithoutWorsening": "Bạn có ăn được mà không nặng thêm triệu chứng không?",
+        "reducedUrination": "Bạn đi tiểu ít hơn hẳn bình thường?",
+        "symptomTrend": "Triệu chứng của bạn đang diễn biến ra sao?",
+        "appetite": "Hôm nay bạn ăn ngon miệng thế nào?"
+      },
+      "opt": {
+        "yes": "Có",
+        "no": "Không",
+        "withDifficulty": "Khó khăn",
+        "partially": "Một phần"
+      },
+      "trend": {
+        "improving": "Đang cải thiện",
+        "same": "Như cũ",
+        "worsening": "Đang nặng thêm",
+        "na": "Không chắc"
+      },
+      "appetite": {
+        "suppressed": "Không thèm ăn",
+        "reduced": "Giảm",
+        "normal": "Bình thường",
+        "increased": "Tăng"
+      },
+      "notify": {
+        "keepPrivate": "Không, giữ riêng tư",
+        "coach": "Báo huấn luyện viên của tôi",
+        "both": "Báo cả hai"
+      }
+    }
+  },
+  "tl": {
+    "parentsCorner": {
+      "title": "Sulok ng mga Magulang",
+      "yourChild": "ang anak mo",
+      "helpingBuildHabits": "Tinutulungan si {{name}} na bumuo ng malulusog na gawi",
+      "backToBeginnings": "Bumalik sa My Perfect Beginnings",
+      "startFresh": "Magsimulang muli",
+      "startNewConversation": "Magsimula ng bagong usapan",
+      "clearConfirm": "Burahin ang usapang ito at magsimulang muli?",
+      "clear": "Burahin",
+      "cancel": "Kanselahin",
+      "dismiss": "Isara",
+      "boundaryLanguage": "Makakapagbigay ako ng gabay sa nutrisyon na batay sa ebidensiya para sa pamilya mo. Para sa mga usaping medikal, ang pediatrician o rehistradong pediatric dietitian ang laging tamang susunod na hakbang — sasabihin ko kapag kailangan iyon.",
+      "todaysTip": "Tip ngayon",
+      "loadingConversation": "Kinakarga ang usapan mo…",
+      "commonQuestions": "Karaniwang tanong",
+      "browseCommonQuestions": "Tingnan ang mga karaniwang tanong",
+      "followUp": "Follow-up",
+      "makeItNow": "Gawin ngayon",
+      "thinking": "Nag-iisip…",
+      "emptyPrompt": "Pindutin ang card sa itaas o magtanong sa ibaba.",
+      "askAnything": "Magtanong ng kahit ano",
+      "inputPlaceholder": "I-type ang tanong mo rito…",
+      "send": "Ipadala",
+      "noResponse": "Paumanhin, walang natanggap na sagot. Subukang muli.",
+      "connectionError": "May maliit na problema ngayon. Suriin ang koneksyon mo at subukang muli.",
+      "stage": {
+        "earlyInfant": "Maagang sanggol",
+        "beginningFoods": "Simula ng solid",
+        "youngToddler": "Batang toddler",
+        "toddler": "Toddler",
+        "preschool": "Preschool",
+        "earlySchoolAge": "Maagang edad-eskuwela",
+        "growingChild": "Lumalaking bata"
+      },
+      "cards": {
+        "babyWontEat": {
+          "label": "Ayaw kumain ng baby ko.",
+          "question": "Ayaw kumain ng baby ko. Ano'ng gagawin ko?"
+        },
+        "toddlerHatesVegetables": {
+          "label": "Ayaw ng anak ko sa gulay.",
+          "question": "Ayaw ng anak ko sa gulay. Paano siya mapapakain ng mas marami?"
+        },
+        "lunchPacking": {
+          "label": "Anong iempake sa tanghalian?",
+          "question": "Anong mga ideya para sa masustansiya at kaakit-akit na tanghalian?"
+        },
+        "healthySnacks": {
+          "label": "Malulusog na meryenda pagkatapos ng klase.",
+          "question": "Anong mga ideya sa malusog na meryenda pagkatapos ng klase?"
+        },
+        "calcium": {
+          "label": "Sapat ba ang calcium ng anak ko?",
+          "question": "Sapat ba ang calcium ng anak ko? Paano ko masisiguro?"
+        },
+        "introducingFoods": {
+          "label": "Paano magpakilala ng bagong pagkain?",
+          "question": "Paano ko maipakikilala ang bagong pagkain nang hindi nagiging away?"
+        },
+        "youngAthlete": {
+          "label": "Anong kakainin ng batang atleta ko?",
+          "question": "Naglalaro ng sports ang anak ko. Ano'ng kakainin bago at pagkatapos ng training?"
+        },
+        "waterIntake": {
+          "label": "Gaano karaming tubig ang kailangan ng anak ko?",
+          "question": "Gaano karaming tubig dapat inumin ng anak ko araw-araw?"
+        },
+        "pizza": {
+          "label": "Puwede pa bang kumain ng pizza ang anak ko?",
+          "question": "Puwede pa bang kumain ng pizza at iba pang masasarap ang anak ko, o dapat mas maging mahigpit ako?"
+        }
+      }
+    },
+    "bodyComposition": {
+      "title": "Itala ang body composition",
+      "bodyFatPct": "% ng taba ng katawan",
+      "bodyFatPlaceholder": "hal. 18.5",
+      "goalBodyFatPct": "Target na % ng taba (opsyonal)",
+      "goalBodyFatPlaceholder": "hal. 15",
+      "scanMethod": "Paraan ng pagsukat",
+      "pickMethod": "Pumili ng paraan",
+      "date": "Petsa",
+      "save": "I-save",
+      "saving": "Sine-save...",
+      "notLoggedIn": "Hindi naka-log in",
+      "notLoggedInDesc": "Mag-log in para i-save ang datos ng body composition mo.",
+      "invalidBodyFat": "Di-wastong body fat",
+      "invalidBodyFatDesc": "Ang porsyento ng taba ay dapat nasa pagitan ng 1% at 70%.",
+      "saved": "Na-save",
+      "savedDesc": "Matagumpay na naitala ang body composition.",
+      "saveFailed": "Nabigo ang pag-save",
+      "saveFailedDesc": "Hindi ma-save ang datos mo. Subukang muli."
+    },
+    "sponsorEnded": {
+      "launchProCare": "Ilunsad ang sarili mong ProCare account",
+      "openStudio": "Buksan ang sarili mong studio",
+      "completeVerification": "Kumpletuhin ang credential verification",
+      "continueTraining": "Ipagpatuloy ang Platform Mastery training",
+      "startOwnPractice": "Simulan ang sarili kong negosyo",
+      "continueAsClient": "Magpatuloy bilang kliyente",
+      "continueAsClientDesc": "Patuloy na gamitin ang MPM bilang indibidwal na miyembro",
+      "continueWithFree": "Magpatuloy gamit ang Free",
+      "continueWithFreeDesc": "Basic na paggawa ng pagkain — laging libre",
+      "joinAnotherOrg": "Sumali sa ibang organisasyon",
+      "joinAnotherOrgDesc": "Tanggapin ang imbitasyon mula sa ibang negosyo",
+      "accessEnded": "Natapos na ang access mo na sinusuportahan ng {{business}}",
+      "accessEndedBody": "Nariyan pa rin ang personal mong account, kasaysayan ng pagkain, progreso sa Academy, at mga sertipikasyon. Piliin kung paano magpapatuloy."
+    },
+    "dietStyleBadge": {
+      "kosher": "Kosher ✓",
+      "halal": "Halal ✓",
+      "vegan": "Vegan ✓",
+      "vegetarian": "Vegetarian ✓",
+      "pescatarian": "Pescatarian ✓",
+      "mediterranean": "Mediterranean ✓",
+      "paleo": "Paleo ✓",
+      "keto": "Keto ✓",
+      "carnivore": "Carnivore ✓",
+      "dairyFree": "Walang dairy ✓",
+      "custom": "Custom na diyeta ✓"
+    },
+    "pregnancySupport": {
+      "title": "I-set up ang My Perfect Pregnancy",
+      "intro": "Pinepersonalize nito ang gabay sa nutrisyon mo. Nananatiling pribado ang impormasyon mo at humuhubog sa bawat mungkahi sa pagkain, pagsusuri sa kaligtasan ng pagkain, at tugon ng coaching.",
+      "whereAreYou": "Nasaan ka sa paglalakbay mo?",
+      "breastfeedingQuestion": "Nagpapasuso ka ba ngayon?",
+      "breastfeedingHelp": "Tinutukoy nito ang daan ng nutrisyon mo. Magkaiba ang priyoridad ng pagpapasuso at postpartum recovery — hiwalay naming hinahawakan ang mga ito.",
+      "yesBreastfeeding": "Oo, nagpapasuso",
+      "noBreastfeeding": "Hindi, hindi nagpapasuso",
+      "breastfeedingNote": "Makakatanggap ka ng nutrisyon para sa paggawa ng gatas kasama ang recovery layer para sa paggaling.",
+      "postpartumNote": "Makakatanggap ka ng nakatuong postpartum recovery protocol — fiber, anti-inflammatory na pagkain, suportang hormonal, at recomposition ng katawan. Walang crash diet.",
+      "trackByDueDate": "Subaybayan ayon sa due date?",
+      "trackByDueDateHelp": "Kapag inilagay mo ang due date, awtomatikong mag-a-update ang linggo at trimester mo. Puwede mong laktawan at manwal na subaybayan.",
+      "yesEnterDueDate": "Oo, ilagay ang due date",
+      "skipManual": "Laktawan — manwal na yugto lang",
+      "dueDatePlaceholder": "Due date (YYYY-MM-DD)",
+      "activeSymptoms": "May mga aktibong sintomas?",
+      "activeSymptomsHelp": "Piliin lahat ng naaangkop — iaangkop ang mga pagkain mo.",
+      "disclaimerPart1": "Nagbibigay ang My Perfect Pregnancy ng pangkalahatang edukasyon sa nutrisyon at suporta sa istruktura ng pagkain lamang. Hindi ito",
+      "disclaimerNotSubstitute": "kapalit",
+      "disclaimerPart2": "ng iyong OB/GYN, midwife, o rehistradong dietitian. Sundin lagi muna ang mga rekomendasyon ng iyong propesyonal sa kalusugan.",
+      "saveButton": "I-save ang setup ng pagbubuntis",
+      "savingButton": "Sine-save…",
+      "savedButton": "✓ Na-save!",
+      "turnOff": "I-off ang pregnancy nutrition",
+      "turnOffConfirm": "I-off ang pregnancy nutrition?",
+      "turnOffHelp": "Aalisin nito ang gabay na para sa pagbubuntis mula sa mga pagkain at coaching mo. Puwede mong i-on muli anumang oras — walang panghuhusga, walang tanong.",
+      "turningOff": "Ino-off…",
+      "yesTurnOff": "Oo, i-off",
+      "keepItOn": "Panatilihing naka-on",
+      "stage": {
+        "tryingToConceive": {
+          "label": "Sinusubukang magbuntis",
+          "desc": "Nutrisyon bago maglihi"
+        },
+        "trimester1": {
+          "label": "Unang trimester",
+          "desc": "Linggo 1–13 · Folate, pagduduwal"
+        },
+        "trimester2": {
+          "label": "Ikalawang trimester",
+          "desc": "Linggo 14–27 · Protina, calcium, DHA"
+        },
+        "trimester3": {
+          "label": "Ikatlong trimester",
+          "desc": "Linggo 28–40 · Iron, DHA, paghahanda"
+        },
+        "breastfeeding": {
+          "label": "Pagpapasuso",
+          "desc": "Paggawa ng gatas, DHA, iodine, calcium"
+        },
+        "postpartum": {
+          "label": "Postpartum",
+          "desc": "Pagbawi, recomposition, hormones, lakas"
+        }
+      },
+      "symptom": {
+        "nausea": "Pagduduwal",
+        "heartburn": "Heartburn",
+        "constipation": "Konstipasyon",
+        "fatigue": "Pagkapagod",
+        "foodAversions": "Pandidiri sa pagkain",
+        "swelling": "Pamamaga",
+        "shortnessOfBreath": "Hirap huminga",
+        "lowAppetite": "Mababang gana"
+      }
+    },
+    "glp1Checkin": {
+      "howFeeling": "Kumusta ang pakiramdam mo ngayon?",
+      "noCheckinToday": "Walang symptom check-in ngayon. Ginagamit ng mga pagkain mo ang standard medication profile mo.",
+      "checkInPrompt": "Mag-check in para iangkop ang mga pagkain, shake, at mungkahi ng restawran ngayon.",
+      "checkIn": "Mag-check in",
+      "update": "I-update",
+      "updated": "Na-update {{time}}",
+      "escalationStatusBody": "Maaaring kailanganin ng mga sintomas na ito ang medikal na pagsusuri. Makipag-ugnayan agad sa propesyonal o care team mo.",
+      "mealsAdapting": "Umaangkop ang mga pagkain sa sintomas ngayon",
+      "updatedTapAdjustments": "Na-update {{time}} · Pindutin para makita ang mga pagbabago",
+      "noSymptomsToday": "Walang iniulat na sintomas ngayon",
+      "updatedStandardProfile": "Na-update {{time}} · Aktibo ang standard profile",
+      "escalationCardBody": "Maaaring kailanganin ng mga sintomas na ito ang medikal na pagsusuri. Makipag-ugnayan sa care team mo.",
+      "nutritionAdjustments": "Mga pagbabago sa nutrisyon ngayon ({{count}})",
+      "reason": "Dahilan",
+      "adaptation": "Pag-angkop",
+      "evidence": "Ebidensiya",
+      "justNow": "kani-kanina lang",
+      "minutesAgo": "{{count}} min ang nakalipas",
+      "hoursAgo": "{{count}} oras ang nakalipas",
+      "giSymptomsHeader": "Mga sintomas sa GI — Gaano kalala ngayon?",
+      "otherSymptomsHeader": "Iba pang sintomas",
+      "vomitingHeader": "Pagsusuka ngayon",
+      "quickQuestionsHeader": "Ilang mabilis na tanong",
+      "notifyHeader": "Gusto mo bang malaman ng care team mo?",
+      "notifyHelp": "Opsyonal — ikaw ang magpapasya kung sino ang aabisuhan ngayon.",
+      "updatesThroughoutDay": "Nag-a-update ito sa buong araw.",
+      "updatesThroughoutDayBody": "Kung gumaan ka mamaya, mag-check in ulit — agad na aangkop ang mga pagkain mo. Nire-reset ang check-in mo tuwing umaga.",
+      "cancel": "Kanselahin",
+      "saving": "Sine-save…",
+      "saveCheckIn": "I-save ang check-in",
+      "severity": {
+        "none": "Wala",
+        "mild": "Banayad",
+        "moderate": "Katamtaman",
+        "severe": "Malubha"
+      },
+      "symptom": {
+        "nausea": "Pagduduwal",
+        "constipation": "Konstipasyon",
+        "diarrhea": "Pagtatae",
+        "reflux": "Heartburn/reflux",
+        "bloating": "Kabag",
+        "earlyFullness": "Maagang pagkabusog",
+        "foodAversions": "Pandidiri sa pagkain",
+        "fatigue": "Pagkapagod",
+        "dizziness": "Pagkahilo",
+        "headache": "Sakit ng ulo"
+      },
+      "vomiting": {
+        "none": "Wala",
+        "once": "Isang beses",
+        "multiple": "2–3 beses",
+        "cantKeepFluids": "4+ / Hindi makapagtago ng likido"
+      },
+      "q": {
+        "keepFluids": "Nakakapagtago ka ba ng likido?",
+        "eatWithoutWorsening": "Nakakakain ka ba nang hindi lumalala ang sintomas?",
+        "reducedUrination": "Mas kaunti ba nang malaki ang pag-ihi kaysa dati?",
+        "symptomTrend": "Paano ang takbo ng mga sintomas mo?",
+        "appetite": "Kumusta ang gana mo ngayon?"
+      },
+      "opt": {
+        "yes": "Oo",
+        "no": "Hindi",
+        "withDifficulty": "Nahihirapan",
+        "partially": "Bahagya"
+      },
+      "trend": {
+        "improving": "Gumagaling",
+        "same": "Pareho",
+        "worsening": "Lumalala",
+        "na": "Hindi sigurado"
+      },
+      "appetite": {
+        "suppressed": "Walang gana",
+        "reduced": "Nabawasan",
+        "normal": "Normal",
+        "increased": "Tumaas"
+      },
+      "notify": {
+        "keepPrivate": "Hindi, gawing pribado",
+        "coach": "Abisuhan ang coach ko",
+        "both": "Abisuhan pareho"
+      }
+    }
+  }
+}

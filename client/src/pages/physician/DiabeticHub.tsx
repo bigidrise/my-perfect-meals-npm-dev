@@ -277,7 +277,7 @@ export default function DiabeticHub() {
             <Activity className="h-6 w-6 text-orange-500" />
 
             {/* Title */}
-            <h1 className="text-lg font-bold text-white">{t("diabeticHub.pageTitle")}</h1>
+            <h1 className="text-lg font-bold text-white break-words leading-tight min-w-0">{t("diabeticHub.pageTitle")}</h1>
 
             <div className="flex-grow" />
 
@@ -621,7 +621,7 @@ export default function DiabeticHub() {
               <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-lg">
                 <Activity className="h-6 w-6" />
               </div>
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-white min-w-0 break-words">
                 {t("diabeticHub.bloodSugarTracker")}
               </h2>
             </div>

@@ -5,6 +5,7 @@ import { normalizeShopping } from "../services/shopping-list/builder-v2";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 
 type MealInput = any;
 
@@ -223,6 +224,9 @@ shoppingRouter.post("/parse-voice", requireAuth, async (req: any, res: any) => {
       return res.status(400).json({ error: "transcript required" });
     }
 
+    const rawLang = req.authUser?.preferredLanguage || "auto";
+    const langInstruction = getLanguageInstruction(rawLang);
+
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -231,7 +235,7 @@ shoppingRouter.post("/parse-voice", requireAuth, async (req: any, res: any) => {
       messages: [
         {
           role: "system",
-          content: `You are a shopping list parser. Extract every distinct shopping item from the user's spoken text.
+          content: `${langInstruction ? langInstruction + "\n\n" : ""}You are a shopping list parser. Extract every distinct shopping item from the user's spoken text.
 
 Return a JSON object with an "items" array. Each item has:
 - "name": the product name, capitalized naturally. Include brand names if mentioned (e.g. "Great Value Honey Roasted Peanuts", "Sprite Zero Sugar", "Kleenex").

@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
@@ -78,92 +79,89 @@ const QUESTION_CARDS = [
     id: "baby_wont_eat",
     icon: Baby,
     emoji: "🍼",
-    label: "My baby won't eat.",
-    question: "My baby won't eat. What should I do?",
+    labelKey: "parentsCorner.cards.babyWontEat.label",
+    questionKey: "parentsCorner.cards.babyWontEat.question",
     color: "from-rose-500/20 to-rose-600/10 border-rose-500/30",
   },
   {
     id: "toddler_hates_vegetables",
     icon: Carrot,
     emoji: "🥦",
-    label: "My toddler hates vegetables.",
-    question: "My toddler hates vegetables. How do I get them to eat more?",
+    labelKey: "parentsCorner.cards.toddlerHatesVegetables.label",
+    questionKey: "parentsCorner.cards.toddlerHatesVegetables.question",
     color: "from-green-500/20 to-green-600/10 border-green-500/30",
   },
   {
     id: "lunch_packing",
     icon: UtensilsCrossed,
     emoji: "🥪",
-    label: "What should I pack for lunch?",
-    question: "What are some ideas for packing a healthy and appealing lunch?",
+    labelKey: "parentsCorner.cards.lunchPacking.label",
+    questionKey: "parentsCorner.cards.lunchPacking.question",
     color: "from-amber-500/20 to-amber-600/10 border-amber-500/30",
   },
   {
     id: "healthy_snacks",
     icon: Apple,
     emoji: "🍓",
-    label: "Healthy snacks after school.",
-    question: "What are some healthy snack ideas for after school?",
+    labelKey: "parentsCorner.cards.healthySnacks.label",
+    questionKey: "parentsCorner.cards.healthySnacks.question",
     color: "from-red-500/20 to-red-600/10 border-red-500/30",
   },
   {
     id: "calcium",
     icon: Milk,
     emoji: "🥛",
-    label: "Is my child getting enough calcium?",
-    question: "Is my child getting enough calcium? How do I make sure?",
+    labelKey: "parentsCorner.cards.calcium.label",
+    questionKey: "parentsCorner.cards.calcium.question",
     color: "from-blue-400/20 to-blue-500/10 border-blue-400/30",
   },
   {
     id: "introducing_foods",
     icon: Egg,
     emoji: "🥚",
-    label: "How do I introduce new foods?",
-    question: "How do I introduce new foods without it becoming a battle?",
+    labelKey: "parentsCorner.cards.introducingFoods.label",
+    questionKey: "parentsCorner.cards.introducingFoods.question",
     color: "from-yellow-500/20 to-yellow-600/10 border-yellow-500/30",
   },
   {
     id: "young_athlete",
     icon: Zap,
     emoji: "⚽",
-    label: "What should my young athlete eat?",
-    question: "My child plays sports. What should they eat before and after practice?",
+    labelKey: "parentsCorner.cards.youngAthlete.label",
+    questionKey: "parentsCorner.cards.youngAthlete.question",
     color: "from-orange-500/20 to-orange-600/10 border-orange-500/30",
   },
   {
     id: "water_intake",
     icon: Droplets,
     emoji: "💧",
-    label: "How much water does my child need?",
-    question: "How much water should my child be drinking each day?",
+    labelKey: "parentsCorner.cards.waterIntake.label",
+    questionKey: "parentsCorner.cards.waterIntake.question",
     color: "from-cyan-500/20 to-cyan-600/10 border-cyan-500/30",
   },
   {
     id: "pizza",
     icon: Pizza,
     emoji: "🍕",
-    label: "Can my child still have pizza?",
-    question: "Can my child still have pizza and other fun foods, or should I be stricter?",
+    labelKey: "parentsCorner.cards.pizza.label",
+    questionKey: "parentsCorner.cards.pizza.question",
     color: "from-purple-500/20 to-purple-600/10 border-purple-500/30",
   },
 ];
-
-const BOUNDARY_LANGUAGE =
-  "I can share evidence-based nutrition guidance to support your family. For medical concerns, your child's pediatrician or a registered pediatric dietitian is always the right next step — I'll let you know when something sounds like it needs that conversation.";
 
 const BOUNDARY_KEY = "parents_corner_boundary_seen";
 
 // ─── Stage display label ──────────────────────────────────────────────────────
 
-function stageBadgeLabel(stage?: string): string {
+function stageBadgeLabelKey(stage?: string): string {
   const map: Record<string, string> = {
-    early_infant: "Early Infant",
-    beginning_foods: "Beginning Foods",
-    young_toddler: "Young Toddler",
-    toddler: "Toddler",
-    preschool: "Preschool",
-    early_school_age: "Early School Age",
-    growing_child: "Growing Child",
+    early_infant: "parentsCorner.stage.earlyInfant",
+    beginning_foods: "parentsCorner.stage.beginningFoods",
+    young_toddler: "parentsCorner.stage.youngToddler",
+    toddler: "parentsCorner.stage.toddler",
+    preschool: "parentsCorner.stage.preschool",
+    early_school_age: "parentsCorner.stage.earlySchoolAge",
+    growing_child: "parentsCorner.stage.growingChild",
   };
   return map[stage ?? ""] || "";
 }
@@ -171,12 +169,14 @@ function stageBadgeLabel(stage?: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ParentsCorner({ childContext = {}, onBack }: ParentsCornerProps) {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
 
   const childProfileId = childContext.id ?? null;
-  const childName = childContext.nickname || "your child";
+  const childName = childContext.nickname || t("parentsCorner.yourChild");
   const stage = childContext.developmentalStage || "toddler";
-  const stageLabel = stageBadgeLabel(stage);
+  const stageLabelKey = stageBadgeLabelKey(stage);
+  const stageLabel = stageLabelKey ? t(stageLabelKey) : "";
 
   // State
   const [messages, setMessages] = useState<Message[]>([]);
@@ -278,7 +278,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         : [];
       const assistantMsg: Message = {
         role: "assistant",
-        content: data.reply || "I'm sorry, I didn't get a response. Please try again.",
+        content: data.reply || t("parentsCorner.noResponse"),
         suggestedFollowUps: followUps.length > 0 ? followUps : undefined,
         suggestedMealActions: mealActions.length > 0 ? mealActions : undefined,
       };
@@ -290,8 +290,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         ...prev,
         {
           role: "assistant",
-          content:
-            "I'm having a little trouble right now. Please check your connection and try again.",
+          content: t("parentsCorner.connectionError"),
         },
       ]);
     } finally {
@@ -361,10 +360,10 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         <button
           onClick={handleBack}
           className="flex items-center gap-1.5 text-emerald-400 text-sm"
-          aria-label="Back to My Perfect Beginnings"
+          aria-label={t("parentsCorner.backToBeginnings")}
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to My Perfect Beginnings</span>
+          <span>{t("parentsCorner.backToBeginnings")}</span>
         </button>
       </div>
 
@@ -373,10 +372,10 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-white leading-tight">
-              Parent's Corner
+              {t("parentsCorner.title")}
             </h1>
             <p className="text-[12px] text-white mt-0.5 leading-tight">
-              Helping {childName} build healthy habits
+              {t("parentsCorner.helpingBuildHabits", { name: childName })}
               {stageLabel ? (
                 <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-teal-500/20 text-teal-300 border border-teal-500/30">
                   {stageLabel}
@@ -388,8 +387,8 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
             <button
               onClick={() => setShowStartFreshConfirm(true)}
               className="w-9 h-9 shrink-0 rounded-full bg-white/10 border border-white/15 flex items-center justify-center"
-              aria-label="Start fresh"
-              title="Start a new conversation"
+              aria-label={t("parentsCorner.startFresh")}
+              title={t("parentsCorner.startNewConversation")}
             >
               <RotateCcw className="w-4 h-4 text-white" />
             </button>
@@ -401,18 +400,18 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
       {showStartFreshConfirm && (
         <div className="mx-4 mt-3 rounded-2xl bg-white/10 border border-white/15 px-4 py-3 flex items-center gap-3">
           <p className="flex-1 text-[12.5px] text-white leading-snug">
-            Clear this conversation and start fresh?
+            {t("parentsCorner.clearConfirm")}
           </p>
           <button
             onClick={handleStartFresh}
             className="px-3 py-1.5 rounded-xl bg-rose-600/70 text-white text-[12px] font-medium"
           >
-            Clear
+            {t("parentsCorner.clear")}
           </button>
           <button
             onClick={() => setShowStartFreshConfirm(false)}
             className="text-white hover:text-white"
-            aria-label="Cancel"
+            aria-label={t("parentsCorner.cancel")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -429,13 +428,13 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
             <div className="text-teal-400 text-lg shrink-0 mt-0.5">💚</div>
             <div className="flex-1">
               <p className="text-[12.5px] text-teal-100/90 leading-relaxed">
-                {BOUNDARY_LANGUAGE}
+                {t("parentsCorner.boundaryLanguage")}
               </p>
             </div>
             <button
               onClick={dismissBoundary}
               className="shrink-0 mt-0.5 text-white hover:text-white"
-              aria-label="Dismiss"
+              aria-label={t("parentsCorner.dismiss")}
             >
               <X className="w-4 h-4" />
             </button>
@@ -448,7 +447,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
             <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wide mb-0.5">
-                Today's Tip
+                {t("parentsCorner.todaysTip")}
               </p>
               <p className="text-[12.5px] text-amber-100/90 leading-relaxed">{tip}</p>
             </div>
@@ -459,7 +458,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         {hydrating && (
           <div className="px-4 mt-5 flex items-center gap-2 text-white">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span className="text-[12px]">Loading your conversation…</span>
+            <span className="text-[12px]">{t("parentsCorner.loadingConversation")}</span>
           </div>
         )}
 
@@ -467,7 +466,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         {cardsVisible && !hydrating && (
           <div className="px-4 mt-5">
             <p className="text-[11px] text-white uppercase tracking-widest font-medium mb-3">
-              Common questions
+              {t("parentsCorner.commonQuestions")}
             </p>
             <div className="grid grid-cols-2 gap-2.5">
               {QUESTION_CARDS.map((card) => {
@@ -475,7 +474,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                 return (
                   <button
                     key={card.id}
-                    onClick={() => handleCardTap(card.question)}
+                    onClick={() => handleCardTap(t(card.questionKey))}
                     disabled={loading}
                     className={`
                       group relative flex flex-col items-start gap-1.5 rounded-2xl border
@@ -487,7 +486,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                   >
                     <span className="text-xl leading-none">{card.emoji}</span>
                     <span className="text-[12px] font-medium text-white leading-snug">
-                      {card.label}
+                      {t(card.labelKey)}
                     </span>
                   </button>
                 );
@@ -503,7 +502,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
               onClick={() => setCardsVisible(true)}
               className="text-[11.5px] text-white hover:text-white underline underline-offset-2"
             >
-              Browse common questions
+              {t("parentsCorner.browseCommonQuestions")}
             </button>
           </div>
         )}
@@ -539,7 +538,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                   msg.suggestedFollowUps.length > 0 && (
                     <div className="pl-9 flex flex-col gap-1.5">
                       <p className="text-[10.5px] text-white uppercase tracking-widest font-medium">
-                        Follow-up
+                        {t("parentsCorner.followUp")}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {msg.suggestedFollowUps.map((q, qi) => (
@@ -570,7 +569,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                   msg.suggestedMealActions.length > 0 && (
                     <div className="pl-9 flex flex-col gap-1.5 mt-0.5">
                       <p className="text-[10.5px] text-orange-300/80 uppercase tracking-widest font-medium">
-                        Make it now
+                        {t("parentsCorner.makeItNow")}
                       </p>
                       <div className="flex flex-col gap-2">
                         {msg.suggestedMealActions.map((action, ai) => (
@@ -604,7 +603,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
                 </div>
                 <div className="rounded-2xl rounded-bl-md bg-white/10 border border-white/10 px-4 py-3 flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 text-teal-400 animate-spin" />
-                  <span className="text-[12px] text-white">Thinking…</span>
+                  <span className="text-[12px] text-white">{t("parentsCorner.thinking")}</span>
                 </div>
               </div>
             )}
@@ -617,7 +616,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
         {messages.length === 0 && !cardsVisible && !hydrating && (
           <div className="px-4 mt-6 text-center">
             <p className="text-[13px] text-white">
-              Tap a card above or ask anything below.
+              {t("parentsCorner.emptyPrompt")}
             </p>
           </div>
         )}
@@ -634,7 +633,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
       >
         <div className="max-w-2xl mx-auto w-full px-4">
         <p className="text-[10.5px] text-white uppercase tracking-widest font-medium mb-2">
-          Ask anything
+          {t("parentsCorner.askAnything")}
         </p>
         <form onSubmit={handleSubmit} className="flex items-end gap-2">
           <textarea
@@ -642,7 +641,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your question here…"
+            placeholder={t("parentsCorner.inputPlaceholder")}
             rows={1}
             disabled={loading}
             className="
@@ -662,7 +661,7 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
               disabled:opacity-40 disabled:bg-white/10
               active:scale-95 transition-transform
             "
-            aria-label="Send"
+            aria-label={t("parentsCorner.send")}
           >
             {loading ? (
               <Loader2 className="w-4 h-4 text-white animate-spin" />

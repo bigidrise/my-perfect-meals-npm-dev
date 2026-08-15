@@ -67,7 +67,12 @@
     "translate": "ترجمة",
     "share": "مشاركة",
     "log": "تسجيل",
-    "logMeal": "تسجيل الوجبة"
+    "logMeal": "تسجيل الوجبة",
+    "addToCalendar": "إضافة إلى التقويم",
+    "bringBackChef": "إعادة الطاهي",
+    "comingSoon": "قريباً",
+    "withChef": "مع الطاهي",
+    "today": "اليوم:"
   },
   "language": {
     "pageTitle": "اللغة",
@@ -76,7 +81,7 @@
     "autoDesc": "يكتشف My Perfect Meals لغة جهازك ويولّد المحتوى تلقائياً.",
     "saved": "تم حفظ اللغة",
     "savedAutoDesc": "سيستخدم My Perfect Meals لغة جهازك تلقائياً.",
-    "savedLangDesc": "سيتم الآن توليد المحتوى باللغة {{language}}.",
+    "savedLangDesc": "سيتم الآن توليد المحتوى باللغة ⁨{{language}}⁩.",
     "errorSave": "تعذّر حفظ اللغة",
     "errorSaveDesc": "يرجى المحاولة مرة أخرى.",
     "footerNote": "تنقل التطبيق وقوائمه وأزراره حالياً باللغة الإنجليزية. سيتوفر التعريب الكامل للواجهة في تحديث مستقبلي."
@@ -100,7 +105,78 @@
     "founders": "المؤسسون",
     "restaurant": "مساعد المطاعم",
     "weeklyBuilder": "البنّاء الأسبوعي",
-    "mealsAwayFromHome": "وجبات خارج المنزل"
+    "mealsAwayFromHome": "وجبات خارج المنزل",
+    "academy": "الأكاديمية",
+    "antiInflammatoryBuilder": "منشئ الوجبات المضادة للالتهابات",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "تطبيق التوجيهات",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "عرض اللوحة",
+    "bodyComposition": "تكوين الجسم",
+    "businessCenter": "مركز الأعمال",
+    "chefPairings": "تنسيقات الشيف",
+    "clientDashboard": "لوحة تحكم العميل",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "استوديو المبدعين والعلامات التجارية",
+    "dailyJournal": "اليوميات والإلهام اليومي",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "مركز دعم السكري",
+    "diabetesSupport": "دعم مرضى السكري",
+    "diabeticBuilder": "منشئ وجبات السكري",
+    "diabeticHub": "مركز السكري",
+    "drinkPairings": "تنسيقات المشروبات",
+    "editProfile": "تعديل الملف الشخصي",
+    "findMeals": "العثور على وجبات",
+    "foundingPartnerProgram": "برنامج الشركاء المؤسسين",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "منشئ التغذية العامة",
+    "healthcarePartnerships": "الشراكات الصحية والسريرية",
+    "howPartnershipsWork": "كيف تعمل الشراكات",
+    "industryPartnerships": "شراكات الصناعة",
+    "kitchenNetwork": "شبكة المطبخ",
+    "mealBuilder": "منشئ الوجبات",
+    "mealBuilderExchange": "تبادل منشئ الوجبات",
+    "metabolicBuilder": "منشئ وجبات الأدوية الأيضية",
+    "metabolicHub": "مركز الأدوية الأيضية",
+    "metabolicHubBack": "المركز الأيضي",
+    "metabolicTracking": "تتبع الأدوية الأيضية",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "لوحة تحكم المنظمة",
+    "organizationSuccessCenter": "مركز نجاح المنظمة",
+    "pairingsHub": "مركز التوافقات",
+    "partnerCenter": "مركز الشركاء",
+    "partnerManagement": "إدارة الشركاء",
+    "partnerProgram": "برنامج الشركاء",
+    "partnerPrograms": "برامج الشركاء",
+    "partnerRevenueCenter": "مركز الشركاء والإيرادات",
+    "patientDashboard": "لوحة تحكم المريض",
+    "performanceBuilder": "منشئ التغذية للأداء",
+    "performanceHub": "مركز الأداء",
+    "physicianClients": "عملاء الطبيب",
+    "physicianPortal": "بوابة الطبيب",
+    "physicianWelcome": "أهلاً بك يا طبيب",
+    "planner": "المخطط",
+    "pregnancy": "حملي المثالي",
+    "proLaunchpad": "لوحة تحكم المحترفين",
+    "proPortal": "بوابة المحترفين",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "تدريب ProCare",
+    "procareWelcome": "أهلاً بك في ProCare",
+    "professionalWorkspace": "مساحة عمل المحترفين",
+    "promotions": "العروض الترويجية",
+    "reduceDrinking": "خطة تقليل الشرب",
+    "restaurantGuide": "مساعد المطاعم",
+    "signatureKitchen": "المطبخ المميز",
+    "sleepTracker": "متتبع النوم",
+    "supplementHub": "مركز المكملات الغذائية",
+    "trainerWelcome": "أهلاً بك يا مدرب",
+    "tutorialHub": "مركز الدروس التعليمية",
+    "weaningOff": "أداة الفطام التدريجي",
+    "whiteLabelSolutions": "حلول العلامة البيضاء",
+    "wineListHelper": "مساعد قائمة النبيذ"
   },
   "dashboard": {
     "professionalBadge": "احترافي",
@@ -129,7 +205,7 @@
     "savedMeals": "الوجبات المحفوظة",
     "dailyJournal": "المجلة اليومية والإلهام",
     "dailyJournalDesc": "الدافع اليومي",
-    "greeting": "مرحبًا بعودتك، {{name}}!",
+    "greeting": "مرحبًا بعودتك، ⁨{{name}}⁩!",
     "coachLearning": "يتعلم مدربك ما يناسبك.",
     "behaviorBadge": "الذكاء الاصطناعي السلوكي · تدريب واعٍ عاطفيًا",
     "hubLabel": "المركز",
@@ -183,7 +259,7 @@
     "continueCurrentPlan": "الاستمرار مع الخطة الحالية",
     "translate": "ترجمة",
     "delete": "حذف",
-    "original": "الأصل: {{text}}",
+    "original": "الأصل: ⁨{{text}}⁩",
     "stopRecording": "إيقاف التسجيل",
     "sendVoice": "إرسال رسالة صوتية",
     "sourcesOrgs": "NIH · USDA · WHO · ADA · AHA · NCI · ACOG · ATA · AND · FDA · NKF · AAP",
@@ -218,7 +294,13 @@
     "badgeClinical": "سريري",
     "badgePro": "برو",
     "badgeCurrent": "الحالي",
-    "badgeBehavioral": "ذكاء اصطناعي سلوكي™"
+    "badgeBehavioral": "ذكاء اصطناعي سلوكي™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "تخطيط الوجبات للرياضيين النخبة بإشراف مدرب للتحضير للمنافسات، وتحقيق أفضل أداء والتعافي",
+    "performanceCompTitle": "منشئ الأداء والمنافسة",
+    "plannerTitle": "المخطط",
+    "weeklyDesc": "خطط وجبات مولدة بواسطة AI للمستخدمين الذين يرغبون في تناول وجبات صحية بطريقتهم الخاصة",
+    "weeklyTitle": "منشئ وجباتي الأسبوعي"
   },
   "createDish": {
     "pageTitle": "إنشاء طبق",
@@ -242,7 +324,11 @@
     "errorMissing": "معلومة مفقودة",
     "errorDescribe": "يرجى وصف الطبق الذي تريد إنشاءه!",
     "errorFailed": "تعذّر إنشاء الطبق. يرجى المحاولة مرة أخرى.",
-    "allergyAlert": "تنبيه حساسية"
+    "allergyAlert": "تنبيه حساسية",
+    "label": "ما الطبق الذي تود إعداده؟",
+    "notes": "ملاحظات اختيارية",
+    "notesPlaceholder": "مثال: بدون ألبان، حار جداً، قليل الصوديوم، لتجهيز الوجبات...",
+    "servings": "عدد الحصص (1–12)"
   },
   "snack": {
     "pageTitle": "منشئ الوجبات الخفيفة",
@@ -309,7 +395,8 @@
     "servings": "حصص",
     "ingredientsServes": "المكونات (تكفي {{count}})",
     "noIngredients": "لم يتم توفير المكونات",
-    "noInstructions": "لم تتوفر تعليمات"
+    "noInstructions": "لم تتوفر تعليمات",
+    "couldNotUpdateFavorites": "تعذّر تحديث المفضلة. حاول مجدداً."
   },
   "shopping": {
     "pageTitle": "قائمة التسوق الذكية",
@@ -340,7 +427,29 @@
     "catPantry": "المؤن",
     "catFrozen": "المجمدات",
     "catBakery": "المخبوزات",
-    "catOther": "أخرى"
+    "catOther": "أخرى",
+    "addItemsBtn": "إضافة عناصر",
+    "addedToList": "تمت الإضافة إلى قائمة التسوق",
+    "barcodePlaceholder": "أدخل رقم الباركود...",
+    "bulkInstructions": "اكتب أو الصق عنصراً واحداً في كل سطر، أو افصل العناصر بفاصلة:",
+    "bulkPlaceholder": "حليب\nبيض\nصدر دجاج\nسبانخ\nأرز بني",
+    "bulkTitle": "إضافة عناصر متعددة",
+    "checked": "تم التحقق",
+    "chefBuy": "يقول الشيف: انطلق!",
+    "chefCaution": "يقول الشيف: تنبيه بسيط...",
+    "chefSkip": "يقول الشيف: قد ترغب في إعادة التفكير",
+    "continueToBiometrics": "المتابعة إلى القياسات الحيوية",
+    "emptyList": "قائمة التسوق الخاصة بك فارغة",
+    "emptyListHint": "الصق العناصر أو أضفها بسرعة للبدء",
+    "enterBarcode": "أدخل الباركود",
+    "items": "عناصر",
+    "itemsAddedDesc": "تمت إضافة {{count}} عناصر إلى قائمة التسوق الخاصة بك.",
+    "itemsCopied": "تم نسخ {{count}} عناصر",
+    "proLabel": "محترف",
+    "savedForReview": "تم الحفظ للمراجعة",
+    "savedForReviewDesc": "يمكنك إعادة مراجعة هذا المسح الضوئي في أي وقت من هذه الصفحة.",
+    "scannedProduct": "منتج ممسوح ضوئياً",
+    "tapView": "اضغط للعرض ←"
   },
   "restaurant": {
     "pageTitle": "مساعد المطعم",
@@ -357,7 +466,36 @@
     "errorZipDesc": "يرجى إدخال رمز بريدي صالح من 5 أرقام.",
     "errorLocationDenied": "تم رفض الوصول إلى الموقع",
     "errorLocationDesc": "يرجى تفعيل الوصول إلى الموقع في إعدادات المتصفح، أو إدخال رمزك البريدي يدوياً.",
-    "generationFailed": "فشل التوليد"
+    "generationFailed": "فشل التوليد",
+    "addressCopied": "تم نسخ العنوان",
+    "askFor": "اطلب:",
+    "cannotDetectZip": "تعذر اكتشاف رمز ZIP",
+    "cannotDetectZipDesc": "تم العثور على الموقع ولكن لم نتمكن من تحديد رمز ZIP الخاص بك. يرجى إدخاله يدوياً.",
+    "copyFailed": "فشل النسخ",
+    "copyManually": "يرجى النسخ يدوياً.",
+    "entryDesc": "أخبرني أين تأكل وما الذي تشتهيه، وسأعرض عليك أفضل الخيارات من قائمة طعامهم.",
+    "entryTitle": "مساعد المطاعم",
+    "findDishes": "اعثر على أطباق",
+    "findingDishes": "جاري العثور على أطباقك المثالية...",
+    "howToUseTitle": "كيفية استخدام مساعد المطاعم",
+    "letsFindDishes": "لنبحث عن أطباق",
+    "locationFound": "تم العثور على الموقع",
+    "pasteHint": "الصقه في خرائط Google أو Waze.",
+    "recommendedAt": "وجبات مقترحة في",
+    "scanningMenu": "جاري مسح قائمة الطعام...",
+    "searchAgain": "ابحث مرة أخرى",
+    "searchingFor": "جاري البحث في {{restaurant}} عن خيارات {{craving}}",
+    "step1": "الخطوة 1",
+    "step1Placeholder": "مثال: دجاج، سلمون، مكرونة، ستيك",
+    "step1Question": "ما هو الطبق أو نوع الطعام الذي تشتهيه؟",
+    "step2": "الخطوة 2",
+    "step2Placeholder": "مثال: Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "أين ستأكل؟ أدخل اسم المطعم.",
+    "step3": "الخطوة 3",
+    "step3Placeholder": "مثال: 30303, 90210, 10001",
+    "step3Question": "أدخل رمز ZIP الخاص بك لأتمكن من العثور على أقرب فرع.",
+    "translationFailed": "فشل الترجمة",
+    "whyHealthy": "لماذا هذا صحي:"
   },
   "upgrade": {
     "viewPlans": "عرض الخطط",
@@ -369,7 +507,23 @@
     "essentialTagline": "مجموعة أدوات بناء الوجبات الكاملة، مبنية حول ملفك الشخصي.",
     "proTagline": "منشئون موسّعون وتناول طعام واقعي، متوافق تماماً مع البروتوكول.",
     "clinicalTagline": "أدوات تغذية بجودة طبية لنتائج صحية جدية.",
-    "proPromo": "برو هي خطتنا الأكثر شعبية — افتح جميع المنشئين."
+    "proPromo": "برو هي خطتنا الأكثر شعبية — افتح جميع المنشئين.",
+    "availableOn": "متاح ضمن {{plan}}",
+    "buildersBenefit1": "Craving Creator، Beverage Creator، Dessert Creator و Sushi Creator",
+    "buildersBenefit2": "Meal Builder Exchange — بدّل بين المنشئات في أي وقت مع تطور أهدافك",
+    "buildersBenefit3": "مساعد المطاعم، My Perfect Gatherings وأدوات نمط حياة موسعة",
+    "buildersBenefit4": "خطة Essential للبدء · خيار Clinical يضيف أدوات تغذية طبية",
+    "clinicalBenefit1": "تكامل مختبرات Clinical — نتائج تحاليل دمك تشكل بروتوكولات وجباتك",
+    "clinicalBenefit2": "الوصول إلى فريق الرعاية — تواصل مع طبيب أو مدرب داخل التطبيق",
+    "clinicalBenefit3": "تغذية الأداء، التحضير للمنافسات ومنشئات الرياضيين",
+    "essentialBenefit1": "Create a Dish — وجبات بالذكاء الاصطناعي مصممة خصيصاً لبروتوكولاتك الغذائية",
+    "essentialBenefit2": "قائمة التسوق، الوجبات المحفوظة ومخطط الوجبات الأسبوعي",
+    "essentialBenefit3": "صانع الوصفات، Snack Creator و Fridge Rescue غير محدود",
+    "featurePartOf": "{{feature}} هو جزء من {{plan}}",
+    "planBadge": "خطة {{label}}",
+    "proBenefit1": "Craving Creator، Beverage Creator و Sushi Creator",
+    "proBenefit2": "مساعد المطاعم — طلب طعام مراعٍ للبروتوكول في أي مطعم",
+    "proBenefit3": "خطط تغذية My Perfect Gatherings و My Perfect Pets"
   },
   "pricing": {
     "pageTitle": "الاشتراك",
@@ -448,7 +602,10 @@
     "dietVegan": "نباتي صارم",
     "dietVegetarian": "نباتي",
     "dietPescatarian": "بيسكيتاري",
-    "dietCarnivore": "لاحم"
+    "dietCarnivore": "لاحم",
+    "back": "رجوع",
+    "next": "التالي",
+    "selectPath": "اختر مساراً من الأعلى"
   },
   "findMeals": {
     "pageTitle": "العثور على وجبات قريبة",
@@ -468,7 +625,7 @@
     "step3Desc": "سأعرض فقط المطاعم التي تتوافق مع نطاق أسعارك.",
     "findMealsBtn": "البحث عن وجبات",
     "generatingTitle": "البحث عن مطاعم قريبة...",
-    "generatingDesc": "البحث عن خيارات {{query}} بالقرب منك",
+    "generatingDesc": "البحث عن خيارات ⁨{{query}}⁩ بالقرب منك",
     "scanningNearby": "فحص المنطقة المجاورة…",
     "foundRestaurants_one": "تم العثور على {{count}} مطعم",
     "foundRestaurants_other": "تم العثور على {{count}} مطاعم",
@@ -738,7 +895,7 @@
     "trainerLock": "Trainer ProCare está disponible para entrenadores y coaches certificados.",
     "connectedHeading": "ProCare Conectado",
     "connectedDesc": "Tu proveedor puede ver y gestionar tu plan nutricional según los permisos que hayas establecido. Puedes desconectarte en cualquier momento — para reconectarte necesitarás un nuevo código de acceso de tu proveedor.",
-    "disconnectBtn": "Desconectar de {{name}}",
+    "disconnectBtn": "Desconectar de ⁨{{name}}⁩",
     "connectHeading": "Conectar con tu Proveedor",
     "connectDesc": "Usa el código de acceso de tu proveedor para vincular tu cuenta con tu entrenador, instructor o médico a través del sistema ProCare.",
     "codeLabel": "Código de Acceso del Proveedor",
@@ -746,7 +903,7 @@
     "connectBtn": "Conectar con Proveedor",
     "connectDisclaimer": "Los códigos de acceso conectan usuarios con profesionales. Las suscripciones se adquieren a través de la App Store.",
     "connectedBanner": "¡Conectado!",
-    "connectedStudio": "Ahora estás vinculado a {{studio}}. Tu entrenador puede gestionar tu plan de comidas.",
+    "connectedStudio": "Ahora estás vinculado a ⁨{{studio}}⁩. Tu entrenador puede gestionar tu plan de comidas.",
     "connectedNoStudio": "Ahora estás vinculado a tu profesional. Ellos pueden gestionar tu plan de comidas.",
     "connectedInstructions": "Tu entrenador asignará tu constructor de comidas. Vuelve a tu panel para ver las actualizaciones.",
     "chooseRole": "Elige tu rol",
@@ -756,7 +913,7 @@
     "physicianRole": "Médico / Proveedor de Salud",
     "physicianRoleDesc": "Médicos con licencia, enfermeros practicantes y proveedores de atención médica",
     "disconnectConfirm": "¿Desconectar?",
-    "disconnectDesc": "Esto eliminará tu conexión ProCare con {{name}}. Tu historial se conserva — para reconectarte necesitarás un nuevo código de acceso de tu proveedor.",
+    "disconnectDesc": "Esto eliminará tu conexión ProCare con ⁨{{name}}⁩. Tu historial se conserva — para reconectarte necesitarás un nuevo código de acceso de tu proveedor.",
     "disconnectYes": "Sí, Desconectar",
     "disconnecting": "Desconectando…",
     "errorDisconnect": "Error al desconectar. Por favor intenta de nuevo.",
@@ -810,7 +967,7 @@
     "saved": "Guardado ✓",
     "duplicate": "Duplicar",
     "loading": "Cargando tablero de comidas...",
-    "emptySlot": "Sin {{label}} aún",
+    "emptySlot": "Sin ⁨{{label}}⁩ aún",
     "emptySlotHint": "Usa 'Crear con Chef' o '+' para agregar comidas",
     "snacks": "Snacks",
     "partialDuplicate": "Duplicado parcial",
@@ -901,7 +1058,7 @@
   "whereToSubtitle": "اختر كيف تريد البدء اليوم.",
   "personalSpaceDesc": "وجباتك ومعاييرك وحياتك.",
   "checkingAccess": "جارٍ التحقق من الوصول...",
-  "manageClientsIn": "إدارة العملاء في {{name}}.",
+  "manageClientsIn": "إدارة العملاء في ⁨{{name}}⁩.",
   "yourPersonalSpace": "مساحتك الشخصية",
   "appVersion": "إصدار التطبيق",
   "upToDate": "محدَّث",
@@ -935,7 +1092,7 @@
     "hormonalMetabolicRecovery": "التعافي الأيضي",
     "coachingLine": "مصمم لمرحلة دوائك الأيضي — حصص صغيرة، بروتين أولاً، سهل الهضم.",
     "aiMealCreated": "تم إنشاء وجبة الذكاء الاصطناعي!",
-    "aiMealCreatedDesc": "تم حفظ {{name}} في {{slot}}",
+    "aiMealCreatedDesc": "تم حفظ ⁨{{name}}⁩ في {{slot}}",
     "allMealsLoggedTitle": "All Meals Logged!",
     "allMealsLoggedDesc": "تم تسجيل {{count}} وجبة بنجاح في مقاييسك الغذائية.",
     "errorLogMeals": "فشل تسجيل الوجبات. حاول مرة أخرى.",
@@ -984,12 +1141,33 @@
     "addSnackError": "فشل إضافة وجبة خفيفة. يرجى المحاولة مرة أخرى.",
     "daySavedCoach": "تم حفظ اليوم وفق أهداف المدرب",
     "mealAdded": "تمت إضافة الوجبة!",
-    "mealAddedDesc": "تمت إضافة {{name}} بنجاح",
+    "mealAddedDesc": "تمت إضافة ⁨{{name}}⁩ بنجاح",
     "noMealsDesc": "أضف بعض الوجبات إلى لوحتك أولاً.",
     "noMealsTitle": "لا توجد وجبات",
     "noSlotYet": "لا يوجد {{slot}} بعد",
     "snacks": "وجبات خفيفة",
-    "whyWeeklyPlanning": "لماذا التخطيط الأسبوعي؟"
+    "whyWeeklyPlanning": "لماذا التخطيط الأسبوعي؟",
+    "savingPlan": "جارٍ الحفظ…",
+    "savedPlan": "تم الحفظ ✓",
+    "savePlan": "حفظ الخطة",
+    "addMealsHint": "استخدم \"+\" لإضافة الوجبات",
+    "dayDuplicated": "تم تكرار اليوم",
+    "dayDuplicatedBoth": "{{thisWeek}} يوم/أيام هذا الأسبوع + {{future}} يوم/أيام في الأسابيع القادمة",
+    "dayDuplicatedDesc": "تم النسخ إلى {{count}} يوم/أيام",
+    "duplicate": "تكرار",
+    "failedToDuplicate": "فشل التكرار",
+    "nextWeek": "الأسبوع القادم",
+    "noSlotMealsYet": "لا توجد وجبات لـ {{slot}} بعد",
+    "partialDuplicate": "تكرار جزئي",
+    "partialDuplicateDesc": "تم حفظ {{count}} من {{total}} أيام.",
+    "prevWeek": "الأسبوع السابق",
+    "savedFutureWeek": "تم الحفظ في أسبوع قادم",
+    "savedFutureWeekDesc": "تم نسخ الوجبات إلى {{count}} يوم/أيام. اسحب للأمام لرؤيتها.",
+    "shoppingListDesc": "يمكنك إرسال وجبات أسبوعك بالكامل إلى قائمة التسوق! هذا يجمع كل المكونات لتسهيل التسوق. اضغط على \"إرسال الأسبوع بالكامل\" في الأسفل.",
+    "shoppingListNext": "التالي: تحقق من قائمة التسوق لمعرفة كيفية استخدامها بفعالية!",
+    "shoppingListTitle": "قائمة التسوق جاهزة",
+    "syncPending": "المزامنة معلقة",
+    "tryAgain": "يرجى المحاولة مجدداً"
   },
   "coachCorner": {
     "title": "ركن المدرب",
@@ -1302,7 +1480,7 @@
       "saveDatesFailed": "فشل حفظ التواريخ."
     },
     "toast": {
-      "invitationSent": "تم إرسال الدعوة إلى {{email}}"
+      "invitationSent": "تم إرسال الدعوة إلى ⁨{{email}}⁩"
     },
     "tour": {
       "inviteClients": "دعوة العملاء",
@@ -1387,7 +1565,7 @@
     },
     "toast": {
       "invitationAccepted": "تم قبول الدعوة!",
-      "invitationSent": "تم إرسال الدعوة إلى {{email}}",
+      "invitationSent": "تم إرسال الدعوة إلى ⁨{{email}}⁩",
       "providerConnected": "تم توصيل مقدم الرعاية بنجاح.",
       "memberApproved": "تم اعتماد العضو.",
       "accessRevoked": "تم إلغاء الوصول."
@@ -1496,7 +1674,7 @@
   "diabeticHub": {
     "a1cHint": "إذا كنت تعرف A1C الخاص بك، يمكنك إدخاله هنا. هذا يساعد في تخصيص خطتك.",
     "a1cLabel": "A1C (اختياري)",
-    "appliedPreset": "تم تطبيق {{name}}",
+    "appliedPreset": "تم تطبيق ⁨{{name}}⁩",
     "applyClinicalPreset": "تطبيق الإعداد السريري المسبق",
     "autoSettings": "تستخدم أدوات بناء الوجبات لديك هذه الإعدادات تلقائيًا.",
     "bloodSugarTracker": "متتبع سكر الدم",
@@ -1510,7 +1688,7 @@
     "copilotT2D": "وجباتك مصممة حول تقليل الكربوهيدرات المنضبط. الأنماط الثابتة بمرور الوقت هي ما يحدث فرقًا.",
     "copilotText": "يضمن هذا المركز أن كل وجبة تحصل عليها آمنة لأهدافك - حيث يتم تطبيق حدود الكربوهيدرات، وأنماط الجلوكوز، والنطاقات الآمنة تلقائيًا.",
     "dailyCarbLimit": "الحد اليومي للكربوهيدرات (جم)",
-    "defaultGuardrailsHint": "تم تطبيق الإرشادات الافتراضية لـ {{type}} - قم بالتخصيص أدناه، ثم احفظ.",
+    "defaultGuardrailsHint": "تم تطبيق الإرشادات الافتراضية لـ ⁨{{type}}⁩ - قم بالتخصيص أدناه، ثم احفظ.",
     "diabetesType": "نوع السكري",
     "enableMetabolicMed": "تفعيل الدواء الأيضي في الملف الشخصي",
     "enterReading": "أدخل القراءة...",
@@ -1663,7 +1841,7 @@
   "generalNutritionBuilder": {
     "daySavedCoach": "تم حفظ اليوم وفق أهداف المدرب",
     "mealAdded": "تمت إضافة الوجبة!",
-    "mealAddedDesc": "تمت إضافة {{name}} بنجاح",
+    "mealAddedDesc": "تمت إضافة ⁨{{name}}⁩ بنجاح",
     "noSlotYet": "لا يوجد {{slot}} بعد",
     "noSnacksYet": "لا توجد وجبات خفيفة بعد",
     "pageTitle": "أداة البناء الغذائي العام",
@@ -1684,5 +1862,1830 @@
     "tour8Desc": "يتم تمييز البروتين والكربوهيدرات بعلامات نجمية (*) لأنها أهم الأرقام التي يجب التركيز عليها عند بناء وجباتك. احصل عليها بشكل صحيح أولاً.",
     "tour8Title": "ماذا تعني العلامات النجمية",
     "tourTitle": "أداة البناء الغذائي العام"
+  },
+  "mealCard": {
+    "protein": "بروتين",
+    "carbs": "كربوهيدرات",
+    "fat": "دهون",
+    "ingredients": "المكونات:",
+    "instructions": "التعليمات:",
+    "medicalSafety": "السلامة الطبية",
+    "diabetesProtocol": "بروتوكول السكري",
+    "whyThisMealWasBuilt": "لماذا تم بناء هذه الوجبة",
+    "showLess": "عرض أقل",
+    "showAllSteps": "عرض جميع {{count}} خطوات",
+    "moreIngredients": "+ {{count}} المزيد...",
+    "loggedSuccessfully": "تم التسجيل بنجاح",
+    "failedToLog": "فشل تسجيل الماكرو. يرجى المحاولة مرة أخرى.",
+    "deleteMeal": "حذف الوجبة",
+    "removeFromBoard": "هل تريد إزالة هذه الوجبة من اللوحة؟",
+    "refineMeal": "تحسين الوجبة",
+    "showingRefined": "عرض النسخة المحسّنة",
+    "restoreOriginal": "استعادة الأصلي",
+    "competitionPrepProtocol": "🏆 تم تطبيق بروتوكول التحضير للمنافسة",
+    "athleticPerformanceProtocol": "⚡ تم تطبيق بروتوكول الأداء الرياضي",
+    "loggedDesc": "تم تسجيل ⁨{{name}}⁩ في الماكرو الخاص بك.",
+    "ingredientFallback": "مكوّن",
+    "generatedForBGL": "تم إنشاؤه لـ BGL:",
+    "relevantRange": "النطاق ذو الصلة:",
+    "weeksOut": "{{n}} أسابيع متبقية",
+    "sessionsPerWeek": "{{n}} جلسات/أسبوع",
+    "protocol_goalFatLoss": "أولوية فقدان الدهون",
+    "protocol_goalMuscleGain": "أولوية بناء العضلات",
+    "protocol_goalStrength": "أولوية القوة",
+    "protocol_goalPeak": "أولوية الأداء المتميز",
+    "protocol_athleticPerfLabel": "الأداء الرياضي — ⁨{{sport}}⁩",
+    "protocol_competitionPrepLabel": "التحضير للمنافسة — ⁨{{type}}⁩",
+    "protocol_performancePhaseFallback": "مرحلة الأداء",
+    "protocol_recoverySupportActive": "دعم التعافي نشط",
+    "protocol_sport_strength": "تدريب القوة",
+    "protocol_sport_hypertrophy": "تضخيم العضلات",
+    "protocol_sport_powerlifting": "رفع الأثقال",
+    "protocol_sport_olympic_lifting": "الرفع الأولمبي",
+    "protocol_sport_mma": "فنون القتال المختلطة",
+    "protocol_sport_boxing": "الملاكمة",
+    "protocol_sport_wrestling": "المصارعة",
+    "protocol_sport_bjj": "جوجيتسو برازيلي",
+    "protocol_sport_crossfit": "كروس فيت",
+    "protocol_sport_endurance_running": "الجري",
+    "protocol_sport_cycling": "ركوب الدراجة",
+    "protocol_sport_triathlon": "ثلاثي المسابقات",
+    "protocol_sport_tactical": "تكتيكي / عسكري",
+    "protocol_sport_general_fitness": "اللياقة العامة",
+    "protocol_sport_other": "رياضة أخرى",
+    "protocol_phase_off_season": "موسم الراحة",
+    "protocol_phase_pre_season": "ما قبل الموسم",
+    "protocol_phase_in_season": "خلال الموسم",
+    "protocol_phase_weight_cut": "مرحلة خفض الوزن",
+    "protocol_phase_recovery": "مرحلة التعافي",
+    "protocol_bullet_fat_loss_0": "هدف بروتين عالٍ (≥2 جم/كجم)",
+    "protocol_bullet_fat_loss_1": "استراتيجية العجز الكالوري",
+    "protocol_bullet_conditioning_0": "توقيت الكربوهيدرات — قبل/بعد التدريب",
+    "protocol_bullet_conditioning_1": "تعافٍ مضاد للالتهابات",
+    "protocol_bullet_peak_prep_0": "تخفيض الصوديوم نشط",
+    "protocol_bullet_peak_prep_1": "أولوية سهولة الهضم",
+    "protocol_bullet_peak_week_0": "بروتوكول الألياف المنخفضة نشط",
+    "protocol_bullet_peak_week_1": "صوديوم منخفض — التحكم في الماء",
+    "protocol_bullet_show_day_0": "بروتوكول سهولة الهضم السريع",
+    "protocol_bullet_show_day_1": "توقيت الكربوهيدرات للأداء",
+    "protocol_bullet_meet_week_0": "بروتوكول تحميل الكربوهيدرات نشط",
+    "protocol_bullet_meet_week_1": "مغذيات تعافي الجهاز العصبي",
+    "protocol_bullet_meet_day_0": "بروتوكول كربوهيدرات ما قبل المنافسة",
+    "protocol_bullet_meet_day_1": "سهولة الهضم أولاً",
+    "protocol_bullet_weight_cut_0": "تقييد الصوديوم نشط",
+    "protocol_bullet_weight_cut_1": "إدارة الكهارل",
+    "protocol_bullet_fight_week_0": "بروتوكول إدارة الماء",
+    "protocol_bullet_fight_week_1": "وجبات جاهزة لإعادة الترطيب",
+    "protocol_bullet_taper_0": "تحميل الكربوهيدرات (8-10 جم/كجم)",
+    "protocol_bullet_taper_1": "تخفيض الألياف نشط",
+    "protocol_bullet_race_day_0": "بروتوكول كربوهيدرات يوم السباق",
+    "protocol_bullet_race_day_1": "تغذية آمنة للجهاز الهضمي",
+    "protocol_bullet_post_competition_0": "إعادة التغذية للتعافي نشطة",
+    "protocol_bullet_post_competition_1": "أولوية مضاد للالتهابات",
+    "protocol_bullet_post_race_0": "تغذية التعافي ما بعد السباق",
+    "protocol_bullet_post_race_1": "زيادة السعرات الحرارية",
+    "sportFallback": "رياضة",
+    "mealFallback": "وجبة",
+    "protocol_phaselabel_fat_loss": "مرحلة حرق الدهون",
+    "protocol_phaselabel_conditioning": "مرحلة التحضير البدني",
+    "protocol_phaselabel_peak_prep": "التحضير للذروة",
+    "protocol_phaselabel_peak_week": "أسبوع الذروة",
+    "protocol_phaselabel_show_day": "يوم العرض",
+    "protocol_phaselabel_post_competition": "التعافي بعد المنافسة",
+    "protocol_phaselabel_strength_building": "بناء القوة",
+    "protocol_phaselabel_intensity_phase": "مرحلة الكثافة",
+    "protocol_phaselabel_taper": "مرحلة التخفيف",
+    "protocol_phaselabel_meet_week": "أسبوع المنافسة",
+    "protocol_phaselabel_meet_day": "يوم المنافسة",
+    "protocol_phaselabel_conditioning_combat": "معسكر التحضير البدني",
+    "protocol_phaselabel_fight_prep": "التحضير للقتال",
+    "protocol_phaselabel_weight_cut": "خفض الوزن",
+    "protocol_phaselabel_fight_week": "أسبوع القتال",
+    "protocol_phaselabel_fight_day": "يوم القتال",
+    "protocol_phaselabel_pre_season": "ما قبل الموسم",
+    "protocol_phaselabel_in_season": "خلال الموسم",
+    "protocol_phaselabel_championship_week": "أسبوع البطولة",
+    "protocol_phaselabel_match_day": "يوم المباراة",
+    "protocol_phaselabel_off_season": "خارج الموسم",
+    "protocol_phaselabel_base_conditioning": "تحضير بدني أساسي",
+    "protocol_phaselabel_event_prep": "التحضير للحدث",
+    "protocol_phaselabel_competition_week": "أسبوع المنافسة",
+    "protocol_phaselabel_competition_day": "يوم المنافسة",
+    "protocol_phaselabel_base_building": "بناء القاعدة",
+    "protocol_phaselabel_build_phase": "مرحلة البناء",
+    "protocol_phaselabel_race_prep": "التحضير للسباق",
+    "protocol_phaselabel_race_day": "يوم السباق",
+    "protocol_phaselabel_post_race": "التعافي بعد السباق",
+    "protocol_comptype_bodybuilding_show": "عرض كمال الأجسام",
+    "protocol_comptype_mens_physique": "فئة جسم الرجل",
+    "protocol_comptype_classic_physique": "جسم كلاسيكي",
+    "protocol_comptype_figure": "فيغر",
+    "protocol_comptype_bikini": "بيكيني",
+    "protocol_comptype_wellness": "ويلنس",
+    "protocol_comptype_powerlifting_meet": "منافسة رفع الأثقال",
+    "protocol_comptype_strongman_competition": "منافسة سترونغمان",
+    "protocol_comptype_olympic_weightlifting_meet": "رفع الأثقال الأولمبي",
+    "protocol_comptype_fight_camp": "معسكر القتال",
+    "protocol_comptype_wrestling_season": "موسم المصارعة",
+    "protocol_comptype_crossfit_competition": "منافسة كروس فيت",
+    "protocol_comptype_hyrox": "هايروكس",
+    "protocol_comptype_marathon": "ماراثون",
+    "protocol_comptype_triathlon_race": "ثلاثي",
+    "protocol_comptype_spartan_race": "سباق سبارتان",
+    "protocol_comptype_other": "أخرى",
+    "protocol_bullet_strength_building_0": "دعم كالوري لمرحلة البناء",
+    "protocol_bullet_strength_building_1": "وقود الحمل التدريجي",
+    "protocol_bullet_intensity_phase_0": "توقيت كربوهيدرات مكثف",
+    "protocol_bullet_intensity_phase_1": "تغذية تعافي الجهاز العصبي",
+    "protocol_bullet_conditioning_combat_0": "وجبات التحضير القتالي",
+    "protocol_bullet_conditioning_combat_1": "تركيز مضاد للالتهابات",
+    "protocol_bullet_fight_prep_0": "تغذية التحضير للقتال نشطة",
+    "protocol_bullet_fight_prep_1": "مراقبة وزن الفئة",
+    "protocol_bullet_fight_day_0": "بروتوكول وقود يوم القتال",
+    "protocol_bullet_fight_day_1": "سهولة الهضم نشطة",
+    "protocol_bullet_pre_season_0": "وقود ما قبل الموسم",
+    "protocol_bullet_pre_season_1": "دعم القاعدة القوية",
+    "protocol_bullet_in_season_0": "وجبات التعافي خلال الموسم",
+    "protocol_bullet_in_season_1": "دعم وزن المنافسة",
+    "protocol_bullet_championship_week_0": "بروتوكول ذروة البطولة",
+    "protocol_bullet_championship_week_1": "ألياف منخفضة — تغذية نظيفة",
+    "protocol_bullet_match_day_0": "بروتوكول كربوهيدرات يوم المباراة",
+    "protocol_bullet_match_day_1": "سهولة الهضم أولاً",
+    "protocol_bullet_off_season_0": "تغذية أساسية خارج الموسم",
+    "protocol_bullet_off_season_1": "تركيز التعافي نشط",
+    "protocol_bullet_base_conditioning_0": "دعم القاعدة الهوائية",
+    "protocol_bullet_base_conditioning_1": "تدوير الكربوهيدرات نشط",
+    "protocol_bullet_event_prep_0": "تغذية التحضير للحدث نشطة",
+    "protocol_bullet_event_prep_1": "توقيت الكربوهيدرات محسّن",
+    "protocol_bullet_competition_week_0": "بروتوكول أسبوع المنافسة",
+    "protocol_bullet_competition_week_1": "ألياف منخفضة نشطة",
+    "protocol_bullet_competition_day_0": "وقود يوم المنافسة",
+    "protocol_bullet_competition_day_1": "بروتوكول الهضم السريع",
+    "protocol_bullet_base_building_0": "تغذية القاعدة الهوائية",
+    "protocol_bullet_base_building_1": "بروتوكول وقود التحمل",
+    "protocol_bullet_build_phase_0": "وقود البناء التدريجي",
+    "protocol_bullet_build_phase_1": "تدوير الكربوهيدرات نشط",
+    "protocol_bullet_race_prep_0": "بروتوكول كربوهيدرات التدريب الذروة",
+    "protocol_bullet_race_prep_1": "تحسين وقود التحمل"
+  },
+  "trialStatusCard": {
+    "adminTrial": "تجربة إدارية",
+    "clinicalTrial": "تجربة سريرية",
+    "promotionalTrial": "تجربة ترويجية",
+    "freeTrial": "تجربة مجانية",
+    "clinicalUltimate": "سريري · متميز",
+    "trialEndsToday": "تنتهي تجربتك اليوم",
+    "daysLeftInTrial": "{{count}} أيام متبقية في تجربتك",
+    "daysOfDaysRemaining": "{{count}} من {{total}} يوم متبقي",
+    "accountMovesFree": "سينتقل حسابك إلى الخطة المجانية الليلة. ستبقى جميع بياناتك آمنة.",
+    "trialExpires": "تنتهي التجربة في ⁨{{date}}⁩",
+    "keepFullAccess": "احتفظ بالوصول الكامل →",
+    "tierFull": "كامل"
+  },
+  "trialBanner": {
+    "lastDayTitle": "وصولك المجاني إلى Pro ينتهي اليوم",
+    "lastDayBody": "سينتقل حسابك إلى الخطة المجانية الليلة.",
+    "lastDayDataSafe": "جميع بياناتك تظل آمنة.",
+    "lastDayUpgradeHint": "قم بالترقية في أي وقت للاحتفاظ بميزات Pro.",
+    "upgradeToPro": "الترقية إلى Pro",
+    "exploreFeatures": "استكشاف الميزات",
+    "dismiss": "إغلاق",
+    "daysLeft": "{{count}} أيام متبقية",
+    "oneDayLeft": "يوم واحد متبقي",
+    "trialCountdown": "في تجربتك — تنتهي ⁨{{tierLabel}}⁩ قريباً.",
+    "clinicalAccess": "الوصول السريري",
+    "fullAccess": "الوصول الكامل"
+  },
+  "groceryDashCard": {
+    "title": "قائمة البقالة الأسبوعية",
+    "description": "قائمة تسوق مخصصة بناءً على خطط الوجبات",
+    "itemsCompleted": "{{completed}} من {{total}} عنصر مكتمل",
+    "shoppingDone": "{{pct}}% من تسوقك مكتمل",
+    "updatedToday": "تم التحديث اليوم",
+    "recentItems": "العناصر الأخيرة",
+    "addItem": "إضافة عنصر",
+    "viewFullList": "عرض القائمة الكاملة",
+    "noItems": "قائمة البقالة فارغة. أضف عناصر من خطة وجباتك للبدء."
+  },
+  "physicianCareTeam": {
+    "availability": {
+      "available": "متاح",
+      "away": "بعيد",
+      "from": "من",
+      "offline": "غير متصل",
+      "saved": "تم الحفظ",
+      "saving": "جاري الحفظ…",
+      "title": "حالة التوافر",
+      "until": "حتى"
+    },
+    "clinic": {
+      "activePatients": "المرضى النشطون",
+      "portalButton": "فتح بوابة الطبيب",
+      "viewAndManage": "اعرض وأدر مرضاك في بوابة الطبيب."
+    },
+    "errors": {
+      "availabilityFailed": "فشل تحديث حالة التوافر.",
+      "emailRequired": "البريد الإلكتروني مطلوب.",
+      "inviteFailed": "فشل إرسال الدعوة.",
+      "loadFailed": "فشل تحميل فريق الرعاية.",
+      "saveDatesFailed": "فشل حفظ التواريخ."
+    },
+    "invite": {
+      "emailLabel": "البريد الإلكتروني للمريض",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "الدور المهني",
+      "rolePlaceholder": "اختر دوراً",
+      "sendInvite": "إرسال دعوة",
+      "title": "دعوة مريض"
+    },
+    "platform": {
+      "button": "استكشف المزايا",
+      "description": "تعرف على كيفية مساعدة المنصة لك في دعم مرضاك.",
+      "explore": "استكشف المنصة"
+    },
+    "roles": {
+      "dietitian": "أخصائي تغذية",
+      "doctor": "طبيب",
+      "np": "ممرض ممارس (NP)",
+      "nutritionist": "خبير تغذية",
+      "pa": "مساعد طبيب (PA)",
+      "rn": "RN"
+    },
+    "title": "فريق الرعاية الطبية",
+    "toast": {
+      "invitationSent": "تم إرسال الدعوة إلى {{email}}"
+    },
+    "tour": {
+      "invitePatients": "دعوة المرضى",
+      "invitePatientsDesc": "ادعُ المرضى للتواصل معك وتلقي الدعم.",
+      "physicianPortal": "استخدم بوابة الطبيب",
+      "physicianPortalDesc": "افتح بوابة الطبيب لعرض وإدارة مرضاك.",
+      "setAvailability": "حدد توافرك",
+      "setAvailabilityDesc": "أعلم مرضاك بمواعيد تواجدك أو غيابك أو كونك غير متصل."
+    },
+    "tourTitle": "فريق رعاية الطبيب"
+  },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "My Perfect Meals",
+      "features": "الميزات",
+      "howItWorks": "كيف يعمل",
+      "pricing": "الأسعار",
+      "signIn": "تسجيل الدخول"
+    },
+    "errorBoundary": {
+      "title": "حدث خطأ ما",
+      "description": "نواجه مشكلة في تحميل هذه الصفحة. يرجى التحديث والمحاولة مرة أخرى.",
+      "refresh": "تحديث الصفحة"
+    },
+    "dateSlotPicker": {
+      "placeholder": "اختر وقت الوجبة"
+    },
+    "mealSlots": {
+      "breakfast": "الإفطار",
+      "lunch": "الغداء",
+      "dinner": "العشاء",
+      "snack": "وجبة خفيفة"
+    },
+    "dailyNutritionTracker": {
+      "title": "تقدم التغذية اليومية",
+      "description": "تتبع مدخولك الغذائي اليومي",
+      "calories": "السعرات الحرارية",
+      "protein": "البروتين",
+      "carbohydrates": "الكربوهيدرات",
+      "fat": "الدهون",
+      "onTrack": "أنت على المسار الصحيح نحو أهدافك اليومية!"
+    },
+    "pagination": {
+      "label": "ترقيم الصفحات",
+      "previousPage": "الانتقال إلى الصفحة السابقة",
+      "previous": "السابق",
+      "nextPage": "الانتقال إلى الصفحة التالية",
+      "next": "التالي",
+      "morePages": "المزيد من الصفحات"
+    },
+    "mealCard": {
+      "noRecipe": "لا توجد وصفة",
+      "addMeal": "إضافة وجبة",
+      "serving": "الحصة:",
+      "ingredients": "المكونات:",
+      "cookingInstructions": "تعليمات الطهي:",
+      "protein": "البروتين",
+      "carbs": "الكربوهيدرات",
+      "fat": "الدهون"
+    },
+    "nutritionSummary": {
+      "title": "ملخص التغذية",
+      "empty": "أنشئ خطة وجبات لعرض ملخص التغذية",
+      "weeklyOverview": "نظرة عامة أسبوعية",
+      "totalCalories": "إجمالي السعرات الحرارية",
+      "dailyAverage": "المتوسط اليومي",
+      "totalProtein": "إجمالي البروتين",
+      "daysPlanned": "الأيام المخططة",
+      "dailyTargets": "الأهداف اليومية",
+      "calories": "السعرات الحرارية",
+      "protein": "البروتين",
+      "carbohydrates": "الكربوهيدرات",
+      "fat": "الدهون",
+      "targetMet": "تم تحقيق الهدف",
+      "goalProgress": "تقدم الهدف",
+      "fitnessGoal": "هدف اللياقة البدنية",
+      "activityLevel": "مستوى النشاط",
+      "dietaryPreferences": "التفضيلات الغذائية",
+      "balanceScore": "درجة التوازن",
+      "percentOfTarget": "{{n}}% من الهدف",
+      "remainingCal": "{{n}} متبقية",
+      "remainingG": "{{n}}غ متبقية"
+    },
+    "enhancedMealCard": {
+      "replace": "استبدال",
+      "replacing": "جارٍ الاستبدال...",
+      "replaceTitle": "استبدل بوصفة وجبة جديدة تمامًا",
+      "replacingTitle": "جارٍ استبدال الوجبة...",
+      "portionGuide": "دليل الحصص:",
+      "ingredients": "المكونات:",
+      "instructions": "التعليمات:",
+      "medicalSafety": "السلامة الطبية:",
+      "error": "خطأ:"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "المتبقي اليوم",
+    "protein": "البروتين",
+    "starchy": "النشوية",
+    "fibrous": "الألياف",
+    "fat": "الدهون",
+    "setMacrosPrompt": "اضبط الماكروز لديك لمعرفة ما تبقى لليوم.",
+    "saveDay": "حفظ اليوم في القياسات الحيوية",
+    "targetsUpdated": "تم تحديث الأهداف خلال اليوم",
+    "targetsUpdatedReason": "تم تحديث الأهداف خلال اليوم — {{reason}}",
+    "dismiss": "تجاهل",
+    "overLimit": "⚠ تجاوز الحد",
+    "limit": "★ الحد",
+    "coach": {
+      "title": "مدرب الماكرو",
+      "subtitle": "كيفية قراءة الأهداف المتبقية",
+      "proteinTitle": "البروتين",
+      "proteinBody": "حقّق هذا الهدف لحماية العضلات والبقاء شبعاً.",
+      "proteinBullet1": "أعطِ الأولوية للمصادر قليلة الدهن في كل وجبة.",
+      "proteinBullet2": "وزّع استهلاكك على مدار اليوم.",
+      "carbsTitle": "الكربوهيدرات",
+      "carbsBody": "زوّد تدريبك بالطاقة عبر الكربوهيدرات النشوية وأكملها بالألياف.",
+      "carbsBullet1": "الكربوهيدرات النشوية تمدّ الأداء بالطاقة.",
+      "carbsBullet2": "تساعد الألياف على الهضم والشبع.",
+      "fatTitle": "الدهون",
+      "fatBody": "حافظ على الدهون معتدلة لموازنة الطاقة والهرمونات.",
+      "fatBullet1": "اختر الدهون الصحية.",
+      "fatBullet2": "انتبه للحصص — الدهون عالية السعرات.",
+      "closingTitle": "ابقَ مرناً",
+      "closingBody": "تتكيّف الأهداف مع يومك — اقترب منها وحافظ على الاستمرارية.",
+      "infoAria": "ماذا تعني هذه الأرقام؟",
+      "info": "معلومات",
+      "starchyTitle": "الكربوهيدرات النشوية — هدفك الرئيسي",
+      "starchy1": "ابقَ عند حدّك اليومي أو دونه.",
+      "starchy2": "تجاوزه يبطئ تقدمك — هذا هو المهم.",
+      "starchy3": "أن تكون دونه أمر جيد تماماً. لا تُجبر نفسك.",
+      "flexTitle": "البروتين والألياف — ابقَ مرناً",
+      "flex1": "زيادة أو نقص بسيط لا يفسد شيئاً.",
+      "flex2": "لا تلاحق الكمال في هذين الاثنين.",
+      "fat1": "ترتفع الدهون طبيعياً حسب اختياراتك الغذائية.",
+      "fat2": "دهون الطعام ليست سبب اكتساب الدهون — لا تتوقف عندها كثيراً.",
+      "closing1": "ركّز على البقاء ضمن هدف النشويات ودع الباقي يستقر تلقائياً.",
+      "closing2": "لا تحتاج أن تكون مثالياً. تحتاج أن تكون منتظماً."
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "تم حفظ بروتوكول التحضير للمنافسة.",
+      "athleticSaved": "تم حفظ بروتوكول الأداء الرياضي.",
+      "activated": "تم تفعيل البروتوكول",
+      "errorTitle": "خطأ",
+      "errorDesc": "تعذّر الحفظ. يرجى المحاولة مرة أخرى."
+    },
+    "stepCount": "الخطوة {{current}} من {{total}}",
+    "back": "رجوع",
+    "next": "التالي",
+    "saving": "جارٍ الحفظ...",
+    "activateProtocol": "تفعيل البروتوكول",
+    "optional": "(اختياري)",
+    "track": {
+      "title": "ما الذي يصف هدفك؟",
+      "subtitle": "يستخدم كل مسار محرّك بروتوكول مختلفاً تماماً.",
+      "athleticTitle": "الأداء الرياضي",
+      "athleticDesc": "MMA، الملاكمة، المصارعة، كرة القدم، CrossFit، التحمل، التكتيكي. الهدف هو الأداء — التزود بالطاقة، الاستشفاء، التكيّف.",
+      "compTitle": "التحضير للمنافسة",
+      "compDesc": "كمال الأجسام، الفيزيك، بطولات رفع القوة، معسكر القتال، موسم المصارعة. يقود تاريخ حدثك كل مرحلة تلقائياً."
+    },
+    "goals": {
+      "title": "ما هو هدفك الأساسي؟",
+      "subtitle": "يحدد هذا أولويات الماكرو وكثافة طاقة الوجبات.",
+      "fatLoss": {
+        "label": "فقدان الدهون",
+        "desc": "اكتساب تحديد مع الحفاظ على الأداء"
+      },
+      "muscleGain": {
+        "label": "بناء العضلات",
+        "desc": "التضخم والبناء"
+      },
+      "maintenance": {
+        "label": "المحافظة",
+        "desc": "استقرار تكوين الجسم"
+      },
+      "performance": {
+        "label": "الأداء الأقصى",
+        "desc": "المخرجات والسرعة والقوة"
+      }
+    },
+    "trainingType": {
+      "title": "ما نوع التدريب الذي تمارسه؟",
+      "subtitle": "اختر رياضتك أو تخصصك الأساسي.",
+      "otherPlaceholder": "رياضة {{group}} أخرى…"
+    },
+    "trainingTypes": {
+      "strength": "القوة",
+      "hypertrophy": "التضخم",
+      "powerlifting": "رفع القوة",
+      "olympicLifting": "رفع الأثقال الأولمبي",
+      "mma": "MMA",
+      "boxing": "الملاكمة",
+      "wrestling": "المصارعة",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "الجري",
+      "cycling": "ركوب الدراجات",
+      "triathlon": "الترايثلون",
+      "tactical": "تكتيكي / عسكري",
+      "generalFitness": "اللياقة العامة"
+    },
+    "athleticGroups": {
+      "iron": "رياضات الحديد",
+      "combat": "رياضات القتال",
+      "mixed": "مختلط",
+      "endurance": "التحمل",
+      "other": "أخرى"
+    },
+    "frequency": {
+      "title": "كم مرة تتدرب؟",
+      "subtitle": "الجلسات أسبوعياً (باستثناء أيام الراحة).",
+      "twoADayQuestion": "هل تتدرب مرتين في اليوم؟",
+      "twoADayDesc": "يُفعّل إرشادات وجبات الاستشفاء بين الجلسات",
+      "yes": "نعم",
+      "no": "لا"
+    },
+    "freqs": {
+      "oneTwo": "1–2 يوم",
+      "threeFour": "3–4 أيام",
+      "fiveSix": "5–6 أيام",
+      "sevenPlus": "7+ (يومياً)"
+    },
+    "cardio": {
+      "title": "ما هو تركيز الكارديو لديك؟",
+      "subtitle": "يحدد توقيت الكربوهيدرات واحتياجات الوقود اللاهوائي.",
+      "none": {
+        "label": "بدون كارديو",
+        "desc": "تركيز خالص على القوة أو التقنية — بدون تمارين قلبية"
+      },
+      "recovery": {
+        "label": "مشي / استشفاء",
+        "desc": "حركة خفيفة فقط — مشي، تمدد، دراجة خفيفة"
+      },
+      "zone2": {
+        "label": "كارديو خفيف",
+        "desc": "وتيرة مريحة تسمح بالحديث — تبني القاعدة الهوائية"
+      },
+      "tempo": {
+        "label": "كارديو متوسط",
+        "desc": "جهد ثابت ومتحدٍ — لهاث لكنه مستدام"
+      },
+      "threshold": {
+        "label": "كارديو مكثف",
+        "desc": "جهد متواصل عالي الشدة — قرب الحد"
+      },
+      "hiit": {
+        "label": "فترات العدو السريع",
+        "desc": "اندفاعات قصيرة بأقصى جهد وراحة — جهد أقصى"
+      },
+      "mixed": {
+        "label": "كارديو مختلط",
+        "desc": "يتغير حسب الجلسة — أيام سهلة وأيام شاقة"
+      }
+    },
+    "phase": {
+      "title": "أين أنت في دورة تدريبك؟",
+      "subtitle": "تعاير مرحلتك أهداف الماكرو واختيارات الطعام."
+    },
+    "phases": {
+      "offSeason": {
+        "label": "خارج الموسم",
+        "desc": "التركيز على الحجم وبناء الأساس"
+      },
+      "preSeason": {
+        "label": "ما قبل الموسم",
+        "desc": "رفع اللياقة"
+      },
+      "inSeason": {
+        "label": "داخل الموسم",
+        "desc": "الحفاظ على الأداء"
+      },
+      "weightCut": {
+        "label": "تخفيض الوزن",
+        "desc": "عجز قصير الأمد + إعادة الترطيب"
+      },
+      "recovery": {
+        "label": "الاستشفاء",
+        "desc": "مضاد للالتهاب، أولوية للإصلاح"
+      }
+    },
+    "duration": {
+      "title": "كم تدوم جلساتك المعتادة؟",
+      "subtitle": "يُستخدم لتقدير استهلاك الجلايكوجين واحتياجات تغذية الاستشفاء."
+    },
+    "durations": {
+      "under30": {
+        "label": "أقل من 30 دقيقة",
+        "desc": "جلسة قصيرة / مساعدة"
+      },
+      "thirtySixty": {
+        "label": "30–60 دقيقة",
+        "desc": "كتلة تدريب قياسية"
+      },
+      "sixtyNinety": {
+        "label": "60–90 دقيقة",
+        "desc": "جلسة كاملة مع إحماء وتهدئة"
+      },
+      "ninetyPlus": {
+        "label": "90 دقيقة+",
+        "desc": "جلسات عالية الحجم أو متعددة التخصصات"
+      }
+    },
+    "recoveryStep": {
+      "title": "كيف حال استشفائك الآن؟",
+      "subtitle": "يتحكم استشفاؤك الحالي في توقيت البروتين وأولويات مضادات الالتهاب وكثافة السعرات."
+    },
+    "recovery": {
+      "good": {
+        "label": "جيد",
+        "desc": "نوم جيد، ألم قليل، طاقة وفيرة"
+      },
+      "average": {
+        "label": "متوسط",
+        "desc": "بعض التعب لكنه قابل للإدارة"
+      },
+      "poor": {
+        "label": "ضعيف",
+        "desc": "تعب وألم شديد ونقص نوم"
+      }
+    },
+    "adaptationStep": {
+      "title": "ما هو تركيزك الرياضي؟",
+      "subtitle": "اختر ما تتدرب من أجله — يعاير توقيت الكربوهيدرات ودعم أنظمة الطاقة وبنية الوجبات."
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "التحمل",
+        "desc": "ابنِ المحرك الهوائي — جهد أطول وقدرة تحمل أعلى"
+      },
+      "conditioning": {
+        "label": "التكييف",
+        "desc": "لياقة شاملة عبر أنظمة طاقة متعددة"
+      },
+      "speed": {
+        "label": "السرعة",
+        "desc": "عدو أسرع — تركيز على الألياف السريعة الانفجارية"
+      },
+      "power": {
+        "label": "القدرة",
+        "desc": "تحريك الثقيل بسرعة — قوة وانفجار"
+      },
+      "workCapacity": {
+        "label": "قدرة العمل",
+        "desc": "إنجاز أكثر واستشفاء أسرع — تحمّل حجم عالٍ"
+      },
+      "activeRecovery": {
+        "label": "الاستشفاء النشط",
+        "desc": "استعادة وإعادة شحن — مضاد للالتهاب، إعادة ضبط الجهاز العصبي"
+      }
+    },
+    "schedule": {
+      "title": "اضبط جدول التدريب الأسبوعي",
+      "subtitle": "تتكيّف تغذيتك تلقائياً كل يوم حسب ما تتدرب عليه. يزيح كل نوع جلسة أهداف الكربوهيدرات والسعرات والبروتين.",
+      "trainingPhase": "مرحلة التدريب",
+      "weekSchedule": "جدول الأسبوع",
+      "howItWorksTitle": "كيف يعمل",
+      "howItWorksBody": "يقرأ MPM جدولك كل صباح ويضبط أهداف الماكرو تلقائياً. تضيف أيام القدرة كربوهيدرات وتخفضها أيام الاستشفاء. لا حاجة لضبط يدوي."
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "القوة",
+        "short": "قوة",
+        "desc": "تدريب مقاومة — دعم كربوهيدرات معتدل"
+      },
+      "power": {
+        "label": "القدرة",
+        "short": "قدرة",
+        "desc": "مخرجات انفجارية — تفعيل كربوهيدرات وبروتين إضافي"
+      },
+      "endurance": {
+        "label": "التحمل",
+        "short": "تحمل",
+        "desc": "أولوية للوقود الهوائي — توافر كربوهيدرات أعلى"
+      },
+      "sportPractice": {
+        "label": "تدريب رياضي",
+        "short": "تدريب",
+        "desc": "متطلبات مختلطة — دعم كربوهيدرات معتدل"
+      },
+      "competition": {
+        "label": "المنافسة",
+        "short": "منافسة",
+        "desc": "تزود يوم المباراة — أقصى توافر كربوهيدرات"
+      },
+      "recovery": {
+        "label": "الاستشفاء",
+        "short": "استشفاء",
+        "desc": "التركيز على الإصلاح — كربوهيدرات أقل، أولوية مضادات الالتهاب"
+      },
+      "off": {
+        "label": "يوم راحة",
+        "short": "راحة",
+        "desc": "راحة كاملة — أهداف سعرات مخفّضة"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "الاستقرار",
+        "desc": "مرحلة الأساس — جودة الحركة، ثبات الجذع"
+      },
+      "strength": {
+        "label": "القوة",
+        "desc": "بناء أقصى قدرة على القوة"
+      },
+      "power": {
+        "label": "القدرة",
+        "desc": "مخرجات انفجارية — القوة مضروبة في السرعة"
+      },
+      "peaking": {
+        "label": "الذروة",
+        "desc": "صقل ما قبل المنافسة — شدة أعلى، حجم أقل"
+      },
+      "inSeason": {
+        "label": "داخل الموسم",
+        "desc": "الحفاظ على الأداء طوال جدول المباريات"
+      },
+      "offSeason": {
+        "label": "خارج الموسم",
+        "desc": "بناء الأساس والاستشفاء بين المواسم"
+      }
+    },
+    "days": {
+      "mon": "الإثنين",
+      "tue": "الثلاثاء",
+      "wed": "الأربعاء",
+      "thu": "الخميس",
+      "fri": "الجمعة",
+      "sat": "السبت",
+      "sun": "الأحد"
+    },
+    "compGroups": {
+      "physique": "الفيزيك",
+      "strength": "رياضات القوة",
+      "combat": "رياضات القتال",
+      "functional": "وظيفي / مختلط",
+      "endurance": "التحمل"
+    },
+    "compTypeStep": {
+      "title": "ما نوع المنافسة؟",
+      "subtitle": "يستخدم كل نوع منافسة جدول تحضير وبروتوكول أسبوع ذروة مختلفاً."
+    },
+    "compTypes": {
+      "bodybuilding": "كمال الأجسام",
+      "mensPhysique": "Men's Physique",
+      "classicPhysique": "Classic Physique",
+      "figure": "Figure",
+      "bikini": "Bikini",
+      "wellness": "Wellness",
+      "powerliftingMeet": "بطولة رفع القوة",
+      "strongman": "Strongman",
+      "olympicWeightlifting": "رفع الأثقال الأولمبي",
+      "fightCamp": "معسكر القتال",
+      "wrestlingSeason": "موسم المصارعة",
+      "crossfitCompetition": "منافسة CrossFit",
+      "hyrox": "Hyrox",
+      "marathon": "ماراثون",
+      "triathlon": "الترايثلون",
+      "spartanRace": "Spartan Race"
+    },
+    "eventStep": {
+      "title": "متى حدثك؟",
+      "subtitle": "يقود تاريخ حدثك كل مرحلة تلقائياً — دون تخمين.",
+      "eventDate": "تاريخ الحدث",
+      "pickDate": "اختر تاريخ الحدث",
+      "weeksOut": "{{count}} أسبوع متبقٍ",
+      "division": "الفئة",
+      "divisionPlaceholder": "مثل Open، Masters 35+، فئة 93 كجم..."
+    },
+    "weightStep": {
+      "title": "معلومات الوزن",
+      "subtitle": "اختياري — يساعد البروتوكول على تقديم إرشاد دقيق حول استراتيجية التخفيض وأهداف السعرات.",
+      "currentWeight": "الوزن الحالي",
+      "currentPlaceholder": "مثل 185 lbs، 84 كجم...",
+      "targetWeight": "الوزن / الفئة المستهدفة",
+      "targetPlaceholder": "مثل 175 lbs، فئة 83 كجم، جاهز للمسرح...",
+      "howItWorksTitle": "كيف يعمل",
+      "howItWorksBody": "يحسب MPM مرحلتك الحالية تلقائياً من تاريخ الحدث. كلما اقترب الحدث تتحول البروتوكولات. التقويم يقرر — وليس الذكاء الاصطناعي."
+    }
+  },
+  "therapeuticCard": {
+    "title": "ذكاء التغذية العلاجية",
+    "active": "نشط",
+    "last": "آخر مرة: {{date}}",
+    "intro": "أدخل الجرعة لكل عنصر نشط. الجرعة مهمة — يستخدمها النظام لتشكيل سياق بروتوكولك. اتركها فارغة إن لم تنطبق.",
+    "activeCount": "{{count}} نشط",
+    "namePlaceholder": "الاسم...",
+    "dosePlaceholder": "الجرعة",
+    "unitPlaceholder": "الوحدة",
+    "sections": {
+      "peptides": "الببتيدات",
+      "hormones": "الهرمونات",
+      "medications": "الأدوية المؤثرة على التغذية",
+      "therapies": "العلاجات",
+      "recovery": "أهداف الاستشفاء"
+    },
+    "addPeptide": "إضافة ببتيد مخصص",
+    "addHormone": "إضافة هرمون مخصص",
+    "addMedication": "إضافة دواء مخصص",
+    "therapiesHint": "اختر كل ما ينطبق على بروتوكولك الحالي.",
+    "recoveryHint": "اختر أهداف الاستشفاء الحالية.",
+    "saveProtocol": "حفظ البروتوكول",
+    "saving": "جارٍ الحفظ…",
+    "cancel": "إلغاء",
+    "footerNote": "السلامة السريرية لها الأولوية دائماً. تؤثر الاختيارات على توليد الوجبات فقط — وليست نصيحة طبية.",
+    "therapyOptions": {
+      "connectiveTissue": "استشفاء الأنسجة الضامة",
+      "gutSupport": "دعم الأمعاء",
+      "redLight": "العلاج بالضوء الأحمر",
+      "sauna": "ساونا / استشفاء حراري",
+      "cold": "العلاج بالبرد / حمام الثلج",
+      "iv": "العلاج الغذائي الوريدي"
+    },
+    "recoveryGoals": {
+      "joint": "استشفاء المفاصل",
+      "muscle": "استشفاء العضلات",
+      "sleep": "تحسين النوم",
+      "inflammation": "تقليل الالتهاب",
+      "gutHealing": "شفاء الأمعاء",
+      "stress": "استشفاء الإجهاد والكظر"
+    },
+    "toast": {
+      "savedTitle": "تم حفظ البروتوكول العلاجي",
+      "savedDesc": "تم تحديث السياق. ستحترم جميع المولّدات بروتوكولك.",
+      "errorTitle": "خطأ",
+      "errorDesc": "تعذّر الحفظ. يرجى المحاولة مرة أخرى."
+    }
+  },
+  "clinicalLabs": {
+    "title": "الفحوصات السريرية",
+    "last": "آخر مرة: {{date}}",
+    "lastSaved": "آخر حفظ: {{date}}",
+    "labDate": "تاريخ الفحص",
+    "notes": "ملاحظات",
+    "notesPlaceholder": "ملاحظات اختيارية من مقدّم الرعاية...",
+    "saveButton": "حفظ قيم الفحوصات",
+    "savedSuccess": "تم حفظ قيم الفحوصات بنجاح",
+    "normal": "طبيعي",
+    "elevated": "مرتفع",
+    "active": "نشط",
+    "menopausePanel": "لوحة انقطاع الطمث / ما حول انقطاع الطمث",
+    "status": {
+      "normal": "طبيعي",
+      "needsReview": "يحتاج مراجعة",
+      "elevated": "{{count}} مرتفعة"
+    },
+    "sections": {
+      "cardiac": "القلب والأيض",
+      "hormonal": "الهرمونات / الإجهاد والهرمونات الجنسية",
+      "liver": "لوحة الكبد",
+      "thyroid": "لوحة الغدة الدرقية",
+      "kidney": "الكلى / وظائف الكلى",
+      "inflammation": "الالتهاب والاستشفاء",
+      "oncology": "الأورام والاستشفاء"
+    },
+    "fields": {
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "triglycerides": "الدهون الثلاثية",
+      "tgHdlRatio": "نسبة TG/HDL",
+      "bloodPressure": "ضغط الدم",
+      "sys": "الانقباضي",
+      "dia": "الانبساطي",
+      "ejectionFraction": "الكسر القذفي",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "يحتاج انتباهاً",
+      "physicianGuided": "بإشراف طبيب"
+    },
+    "toast": {
+      "enterOne": "أدخل قيمة فحص واحدة على الأقل قبل الحفظ",
+      "failed": "فشل حفظ الفحوصات"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "ملاءمة ممتازة",
+      "b": "ملاءمة جيدة",
+      "c": "بعض الاعتبارات",
+      "d": "تعارضات ملحوظة"
+    },
+    "verdict": {
+      "buy": "يقول الشيف: تفضّل!",
+      "caution": "يقول الشيف: للعلم فقط...",
+      "skip": "يقول الشيف: ربما أعد التفكير"
+    },
+    "decoder": {
+      "title": "مفكّك اللغة المبسّطة",
+      "legend": "🟢 آمن عموماً · 🟡 جيد معرفته · 🔴 يتعارض مع ملفك"
+    },
+    "alignsWith": "يتوافق مع أهدافك",
+    "watchFor": "انتبه إلى",
+    "howItScores": "كيف يُقيَّم لبروتوكولاتك",
+    "howItScoresForYou": "كيف يُقيَّم بالنسبة لك",
+    "add": "إضافة",
+    "added": "تمت الإضافة",
+    "alternatives": {
+      "alsoWorthKnowing": "يستحق المعرفة أيضاً",
+      "evenBetter": "خيارات أفضل",
+      "betterOptions": "خيارات منتج أفضل لك",
+      "profileMatched": "مطابق للملف",
+      "brandedNote": "بناءً على معرفة المنتج — قد تتغير التركيبات والتوافر.",
+      "categoryNote": "إرشاد حسب الفئة بناءً على ملفك الصحي — ابحث عن هذه الخصائص على الملصقات."
+    },
+    "profileFactorsHeading": "عوامل الملف التي توجّه هذا التحليل",
+    "scoreCards": {
+      "kids": "الأطفال",
+      "adults": "البالغون",
+      "diet": "نظامك الغذائي",
+      "goal": "هدفك"
+    },
+    "barcode": {
+      "dbMatch": "تطابق قاعدة البيانات · Open Food Facts",
+      "notInDb": "غير موجود في قاعدة البيانات · تقدير الذكاء الاصطناعي",
+      "notFound": "الباركود غير موجود — تحليل بناءً على معرفة الذكاء الاصطناعي بالمنتج"
+    },
+    "tier": {
+      "quick": "تحليل سريع",
+      "verified": "تحليل ملصق مُتحقّق",
+      "full": "مستشار منتج كامل",
+      "subKnowledge": "قائم على المعرفة · لم يُمسح ملصق",
+      "subLabelScanned": "تم مسح الملصق · {{name}}",
+      "subProductUnknown": "تم مسح الملصق · منتج غير معروف",
+      "subLabel": "تم مسح الملصق",
+      "subFull": "منتج + ملصق + ملف"
+    },
+    "scanLabelUp": "امسح الملصق ↑",
+    "highestConfidence": "أعلى ثقة",
+    "whatMattersMost": "ما يهمّك أكثر",
+    "analysisProfile": {
+      "heading": "ملف التحليل الخاص بك",
+      "basedOn": "تستند هذه التوصية إلى:",
+      "deeperTitle": "تريد تخصيصاً أعمق؟",
+      "deeperBody": "أضف قيم فحوصات مثل A1C، سكر الصيام، الكوليسترول، الدهون الثلاثية، مؤشرات الكلى أو الالتهاب.",
+      "updateProfile": "تحديث الملف الصحي →",
+      "disclaimer": "تُولَّد التوصيات من تركيب المكونات والحقائق الغذائية وملفك الصحي. لا يتلقى MPM تعويضاً من مصنّعي الأغذية ولا تتأثر التوصيات أبداً بشراكات العلامات التجارية.",
+      "emptyState": "أضف أهدافاً وحالات صحية إلى ملفك للحصول على تحليل مخصص بالكامل."
+    },
+    "header": {
+      "companionScan": "مسح المنتج المرافق",
+      "intelligence": "ذكاء المكونات",
+      "notIdentified": "لم يتم تحديد المنتج",
+      "scanningFor": "جارٍ المسح لـ {{name}}",
+      "frontLabelDetected": "تم اكتشاف الملصق الأمامي",
+      "byNameAnalysis": "تحليل بالاسم",
+      "fullAnalysis": "تحليل كامل"
+    },
+    "analyzeThisProduct": "حلّل هذا المنتج",
+    "scanIngredientsLabel": "امسح ملصق المكونات / التغذية",
+    "analyzeDisclaimer": "\"حلّل هذا المنتج\" يستخدم معرفة الذكاء الاصطناعي بهذا المنتج — وليس مسحاً مباشراً للملصق. قد تتغير التركيبات. امسح لوحة المكونات للحصول على نتيجة مُتحقّقة.",
+    "analyzing": "جارٍ تحليل {{name}}…",
+    "checkingProfile": "جارٍ المقارنة بملفك الصحي",
+    "byNameBanner": {
+      "title": "تحليل سريع — ليس مسح ملصق مُتحقّق",
+      "body": "بناءً على معرفة المنتج وقت بيانات التدريب. قد تتغير التركيبات.",
+      "scanLink": "امسح الملصق للحصول على نتيجة مُتحقّقة."
+    },
+    "lowQuality": {
+      "title": "كانت جودة الصورة منخفضة",
+      "body": "أعد التصوير بحيث تظهر لوحة المكونات كاملة وواضحة ومضاءة جيداً لتحليل أدق."
+    },
+    "labelFound": {
+      "title": "تم العثور على ملصق التغذية",
+      "body": "انطق أو اكتب اسم المنتج للحصول على بدائل ذات علامات تجارية مطابقة لملفك."
+    },
+    "incomplete": {
+      "title": "التحليل غير مكتمل",
+      "lowImage": "لم تكن الصورة واضحة بما يكفي للتقييم. تأكد من ظهور لوحة المكونات كاملة ومضاءة جيداً، ثم أعد المحاولة.",
+      "needMore": "يلزم مزيد من المعلومات لإنشاء تقييم. امسح لوحة المكونات أو استخدم البحث عن المنتج."
+    },
+    "personalized": "مخصص لملفك الصحي",
+    "generalAnalysis": "تحليل عام — أضف أهدافاً صحية للحصول على نتائج مخصصة",
+    "sections": {
+      "considerations": "اعتبارات المكونات",
+      "mayNotAlign": "قد لا يتوافق مع أهدافك",
+      "worksWellFor": "مناسب لـ",
+      "familyNotes": "ملاحظات للعائلة"
+    },
+    "detectedIngredients": "المكونات المكتشفة",
+    "scanForVerified": "امسح الملصق للحصول على تحليل مُتحقّق",
+    "addNamedToList": "أضف {{name}} إلى القائمة",
+    "addToList": "أضف إلى القائمة",
+    "saveScan": "حفظ المسح",
+    "saveToGroceries": "حفظ في المشتريات",
+    "savedToGroceries": "محفوظ في المشتريات",
+    "toast": {
+      "removedTitle": "أُزيل من المشتريات",
+      "removedDesc": "تمت إزالة {{name}} من مفضلاتك.",
+      "removeFailTitle": "تعذّرت الإزالة",
+      "tryAgain": "يرجى المحاولة مرة أخرى.",
+      "alreadySaved": "محفوظ بالفعل",
+      "savedTitle": "محفوظ في المشتريات",
+      "savedDesc": "{{name}} في مفضلات مشترياتك.",
+      "saveFailTitle": "تعذّر الحفظ",
+      "addedToList": "أُضيف إلى قائمة مشترياتك"
+    }
+  },
+  "athletePicker": {
+    "added": "أُضيفت!",
+    "addedCount": "أُضيفت {{count}}",
+    "addingTo": "إضافة إلى:",
+    "categories": {
+      "eggsShakes": "بيض ومخفوقات",
+      "fish": "سمك فيليه",
+      "poultry": "دجاج وديك رومي",
+      "redmeat": "لحم أحمر"
+    },
+    "copied": "تم النسخ!",
+    "copy": "نسخ",
+    "copyMealAria": "نسخ تفاصيل الوجبة",
+    "copySessionAria": "نسخ ملخص الجلسة",
+    "done": "تم",
+    "errorShort": "خطأ",
+    "fibrousNote": "الخضار الليفية غير محدودة — النشا فقط (أرز، شوفان، بطاطس)",
+    "gotIt": "فهمت!",
+    "headerTitle": "وجبات رياضيين جاهزة — {{slot}}",
+    "hiddenCount_one": "أُخفيت {{count}} وجبة — سيتجاوز النشا {{cap}}غ",
+    "hiddenCount_other": "أُخفيت {{count}} وجبات — سيتجاوز النشا {{cap}}غ",
+    "howToAria": "كيفية استخدام باني وجبات الرياضيين",
+    "info": {
+      "intro": "وجبات جاهزة، محسّنة للأداء الرياضي وبناء العضلات.",
+      "step1Label": "اختر فئة البروتين",
+      "step1Text": "(دجاج، لحم أحمر، سمك، بيض)",
+      "step2After": "هي بروتين + خضار ليفية فقط",
+      "step2Mid": "الوجبات تحتوي أرزًا أو شوفانًا أو بطاطس.",
+      "step3Label": "اضغط أي وجبة",
+      "step3Text": "لإضافتها فورًا",
+      "step4Label": "كل الماكرو",
+      "step4Text": "محسوبة وجاهزة للتتبّع",
+      "stepsLabel": "الخطوات:",
+      "tipAfter": "الخضار الليفية دائمًا غير محدودة.",
+      "tipBefore": "في الأيام منخفضة النشا استخدم وجبات",
+      "tipLabel": "💡 نصيحة:",
+      "tipMid": "في أيام إعادة التغذية أضف وجبات",
+      "title": "كيفية استخدام باني وجبات الرياضيين"
+    },
+    "lowStarchDay": "يوم منخفض النشا",
+    "mealCopyText": "{{title}} — {{cals}} سعرة · ب {{protein}}غ · ن {{starch}}غ · د {{fat}}غ",
+    "noCoachConnection": "لا اتصال بمدرّب نشط",
+    "noteDesc": "وجبات جاهزة، محسّنة للأداء الرياضي وبناء العضلات.",
+    "noteStep1": "اختر فئة البروتين (دجاج، لحم أحمر، سمك، بيض)",
+    "noteStep2After": "هي بروتين + خضار ليفية فقط",
+    "noteStep2Before": "الوجبات الموسومة",
+    "noteStep2Mid": "تحتوي أرزًا أو شوفانًا أو بطاطس —",
+    "noteStep3": "اضغط أي وجبة لإضافتها فورًا",
+    "noteStep4": "كل الماكرو محسوبة وجاهزة للتتبّع",
+    "noteTitle": "وجبات رياضيين جاهزة",
+    "refeedDay": "يوم إعادة التغذية",
+    "selectCategory": "اختر فئة البروتين:",
+    "selectCategoryShort": "اختر الفئة",
+    "sendCoachAria": "إرسال الملخص إلى المدرّب",
+    "sendFailed": "فشل الإرسال، أعد المحاولة",
+    "sendToCoach": "إرسال إلى المدرّب",
+    "sending": "جارٍ الإرسال…",
+    "sent": "تم الإرسال!",
+    "sessionTotal": "إجمالي الجلسة:",
+    "slots": {
+      "breakfast": "فطور",
+      "dinner": "عشاء",
+      "lunch": "غداء",
+      "meal4": "وجبة 4",
+      "meal5": "وجبة 5",
+      "meal6": "وجبة 6",
+      "snacks": "وجبات خفيفة"
+    },
+    "starch": "نشا",
+    "starchAllocation": "مخصّص النشا",
+    "starchCap": "حد النشا {{cap}}غ",
+    "starchUsage": "{{used}}غ / {{cap}}غ نشا",
+    "summaryText_one": "أُضيفت {{count}} وجبة — {{cals}} سعرة · ب {{protein}}غ · ك {{carbs}}غ · د {{fat}}غ",
+    "summaryText_other": "أُضيفت {{count}} وجبات — {{cals}} سعرة · ب {{protein}}غ · ك {{carbs}}غ · د {{fat}}غ",
+    "viewChatAria": "عرض الرسالة في محادثة المدرّب",
+    "viewInChat": "عرض في المحادثة"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "شجّعني عند التعثر",
+        "label": "شجّعني"
+      },
+      "pushHard": {
+        "desc": "حاسبني بصرامة",
+        "label": "ادفعني بقوة"
+      },
+      "remind": {
+        "desc": "تذكيرات لطيفة تكفي",
+        "label": "ذكّرني فقط"
+      },
+      "selfDirected": {
+        "desc": "أحفّز نفسي بنفسي",
+        "label": "ذاتي التوجيه"
+      }
+    },
+    "back": "رجوع",
+    "challenges": {
+      "consistency": "الاستمرارية",
+      "cravings": "الاشتهاء",
+      "emotionalEating": "الأكل العاطفي",
+      "knowledge": "معرفة ما آكل",
+      "mealPrep": "تحضير الوجبات",
+      "motivation": "الحافز",
+      "socialPressure": "الضغط الاجتماعي",
+      "time": "ضيق الوقت"
+    },
+    "error": "حدث خطأ ما. حاول مرة أخرى.",
+    "lifestyle": {
+      "budgetConscious": "مهتم بالميزانية",
+      "busySchedule": "جدول مزدحم",
+      "frequentTravel": "سفر متكرر",
+      "parent": "والد/مقدّم رعاية",
+      "pickyEater": "صعب الإرضاء",
+      "shiftWorker": "عمل بنظام ورديات",
+      "socialEater": "أكل اجتماعي",
+      "stressEater": "أكل عند التوتر"
+    },
+    "loading": "جارٍ تحميل ملفك...",
+    "motivations": {
+      "athletic": "الأداء الرياضي",
+      "confidence": "الثقة بالنفس",
+      "energy": "طاقة أكثر",
+      "family": "صحة العائلة",
+      "longevity": "طول العمر",
+      "mentalClarity": "صفاء ذهني",
+      "weightLoss": "خسارة الوزن"
+    },
+    "next": "التالي",
+    "saveProfile": "حفظ الملف",
+    "savedDesc": "ملف التدريب الخاص بك جاهز.",
+    "savedTitle": "تم حفظ الملف!",
+    "saving": "جارٍ الحفظ...",
+    "steps": {
+      "accountability": {
+        "subtitle": "اختر ما يحفّزك أكثر",
+        "title": "كيف نحاسبك؟"
+      },
+      "challenges": {
+        "subtitle": "كن صادقًا؛ يساعدنا على التركيز",
+        "title": "أكبر تحدياتك؟"
+      },
+      "lifestyle": {
+        "subtitle": "اختر الكل؛ سنكيّف النصائح",
+        "title": "ما نمط حياتك؟"
+      },
+      "motivations": {
+        "subtitle": "اختر كل ما ينطبق",
+        "title": "ما الذي يحرّكك؟"
+      },
+      "style": {
+        "subtitle": "اختر أسلوب التواصل المناسب لك",
+        "title": "كيف تريد أن يتم تدريبك؟"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "مزيج من كل الأساليب",
+        "label": "متوازن"
+      },
+      "direct": {
+        "desc": "أخبرني بما أفعل دون لفّ",
+        "label": "مباشر"
+      },
+      "educational": {
+        "desc": "اشرح سبب كل خيار",
+        "label": "تعليمي"
+      },
+      "encouraging": {
+        "desc": "تعزيز إيجابي ودعم",
+        "label": "محفّز"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "كربوهيدرات",
+    "categories": {
+      "eggsShakes": "بيض ومخفوقات",
+      "fish": "سمك فيليه",
+      "poultry": "دجاج وديك رومي",
+      "redmeat": "لحم أحمر"
+    },
+    "gotIt": "فهمت!",
+    "headerAddTo": "وجبات المنافسة - إضافة إلى {{slot}}",
+    "howToAria": "كيفية استخدام باني المنافسة",
+    "info": {
+      "intro": "وجبات رياضيين جاهزة، محسّنة للكتلة الخالية والأداء.",
+      "step1Label": "اختر فئة البروتين",
+      "step1Text": "(دجاج، لحم أحمر، سمك، بيض)",
+      "step2Label": "الوجبات موسومة",
+      "step2Text": "بـ«كربوهيدرات» أو «P+V» (بروتين + خضار)",
+      "step3Label": "اضغط أي وجبة",
+      "step3Text": "لإضافتها فورًا",
+      "step4Label": "كل الماكرو",
+      "step4Text": "محسوبة وجاهزة للتتبّع",
+      "stepsLabel": "الخطوات:",
+      "tipLabel": "💡 نصيحة:",
+      "tipText": "اختر حسب أهداف الكربوهيدرات: «كربوهيدرات» للطاقة و«P+V» للأيام منخفضة الكربوهيدرات.",
+      "title": "كيفية استخدام باني المنافسة"
+    },
+    "noteDesc": "وجبات رياضيين جاهزة، محسّنة للكتلة الخالية والأداء.",
+    "noteStep1": "اختر فئة البروتين (دجاج، لحم أحمر، سمك، بيض)",
+    "noteStep2": "الوجبات موسومة بـ«كربوهيدرات» أو «P+V» (بروتين + خضار)",
+    "noteStep3": "اضغط أي وجبة لإضافتها فورًا",
+    "noteStep4": "كل الماكرو محسوبة وجاهزة للتتبّع",
+    "noteTitle": "وجبات المنافسة",
+    "selectCategory": "اختر فئة البروتين:",
+    "selectCategoryShort": "اختر الفئة"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "أكبر فرصة للتحسين",
+    "breakfastLogged": "إفطار مسجّل",
+    "caloriesOnTarget": "السعرات ضمن الهدف",
+    "consistencyScore": "درجة الالتزام",
+    "days": "أيام",
+    "dinnerLogged": "عشاء مسجّل",
+    "last7Days": "آخر 7 أيام",
+    "lastNDays": "آخر {{count}} أيام",
+    "loggedMeals": "وجبات مسجّلة",
+    "lunchLogged": "غداء مسجّل",
+    "noActivity": "لا نشاط بعد. سجّل وجبات لعرض ملخصك هنا.",
+    "noMeals": "لا وجبات مسجّلة بعد. سجّل وجباتك لعرض الملخص.",
+    "ofDays": "{{value}} من {{total}}",
+    "proteinGoalMet": "هدف البروتين",
+    "setTargets": "حدّد أهداف الماكرو لتفعيل التتبّع الكامل.",
+    "title": "ملخص النشاط الغذائي"
+  },
+  "mealPicker": {
+    "addTo": "إضافة إلى {{slot}}",
+    "cafeteria": "اقتراح عشوائي",
+    "categories": {
+      "fats": "دهون",
+      "fibrousCarbs": "كربوهيدرات ليفية",
+      "fruit": "فاكهة",
+      "proteins": "بروتينات",
+      "starchyCarbs": "كربوهيدرات نشوية"
+    },
+    "close": "إغلاق",
+    "generate": "توليد",
+    "generateCount": "توليد ({{count}})",
+    "generating": "جارٍ التوليد…",
+    "gotIt": "فهمت!",
+    "howToAria": "كيفية استخدام مُنتقي الوجبات",
+    "info": {
+      "addLabel": "اضغط للإضافة:",
+      "addText": "اضغط أي بطاقة لإضافتها فورًا إلى خانة {{slot}}",
+      "browseLabel": "تصفّح الوجبات:",
+      "browseText": "تصفّح قوالب وجباتنا المنتقاة",
+      "cafeteriaLabel": "خيار الاقتراح:",
+      "cafeteriaText": "اضغط «اقتراح عشوائي» لاقتراح سريع",
+      "intro": "طريقة سريعة لإضافة وجبات جاهزة إلى خطتك.",
+      "personalizedLabel": "مخصّص:",
+      "personalizedText": "تُفلتر الوجبات حسب الحساسية والتفضيلات",
+      "tipLabel": "💡 نصيحة:",
+      "tipText": "استخدم الاقتراح العشوائي لاقتراح صحي سريع دون تصفّح.",
+      "title": "كيفية استخدام مُنتقي الوجبات"
+    },
+    "lowerGlycemic": "تأثير سكري أقل",
+    "quickMeal": "وجبة {{slot}} سريعة",
+    "regularGi": "مؤشر عادي"
+  },
+  "mealReminders": {
+    "addReminder": "إضافة تذكير وجبة",
+    "checkAgain": "إعادة الفحص",
+    "checking": "جارٍ الفحص…",
+    "connectionDiagnostics": "تشخيص الاتصال",
+    "footerBlocked": "حدّد الأوقات الآن؛ ستُفعّل بعد منح الأذونات.",
+    "footerDefault": "حتى 6 تذكيرات. اضغط تسمية لإعادة التسمية.",
+    "footerEnabled": "أبقِ المتصفح مفتوحًا لتسليم موثوق.",
+    "footerNative": "اضغط تسمية لإعادة التسمية. تُرسل عبر تطبيق iOS.",
+    "mealN": "وجبة {{n}}",
+    "nativeDelivery": "تسليم iOS أصلي",
+    "saving": "جارٍ الحفظ…",
+    "statusBlocked": "الإشعارات محظورة في المتصفح",
+    "statusConnected": "الإشعارات متصلة",
+    "statusPartial": "غير متصل بالكامل — فعّل خانة لإتمام الإعداد",
+    "statusPending": "فعّل خانة لتشغيل الإشعارات",
+    "statusUnsupported": "غير مدعوم في هذا المتصفح",
+    "title": "تذكيرات الوجبات",
+    "toUnblock": "لإلغاء الحظر:",
+    "toastBlockedIosDesc": "إعدادات iPhone ‹ My Perfect Meals ‹ السماح بالإشعارات",
+    "toastBlockedTitle": "الإشعارات محظورة",
+    "toastBlockedWebDesc": "اسمح بالإشعارات من رمز القفل في شريط العنوان ثم اضغط إعادة الفحص.",
+    "toastEnableFailedTitle": "تعذّر تفعيل الإشعارات",
+    "toastNotSupportedDesc": "هذا المتصفح لا يدعم الإشعارات الفورية.",
+    "toastNotSupportedTitle": "غير مدعوم",
+    "toastPermissionDenied": "تم رفض الإذن.",
+    "toastSaveFailed": "تعذّر حفظ التذكيرات",
+    "toastTryAgain": "حاول بعد لحظات.",
+    "unblockAllow": "السماح",
+    "unblockLock": "🔒 القفل",
+    "unblockNotifications": "الإشعارات",
+    "unblockStep1After": "في شريط العنوان",
+    "unblockStep1Before": "اضغط على",
+    "unblockStep2Before": "اضبط",
+    "unblockStep2Mid": "على",
+    "unblockStep3After": "بالأسفل",
+    "unblockStep3Before": "اضغط",
+    "unsupportedHint": "استخدم Chrome أو Edge على الحاسوب. Safari على iOS يتطلب التطبيق.",
+    "webDelivery": "تسليم دفع عبر الويب"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "مطبخ مميّز",
+    "optSignatureDesc": "مطبخك الشخصي بعلامتك التجارية داخل المنصة",
+    "optProductLabel": "دمج المنتجات",
+    "optProductDesc": "ادمج علامتك التجارية أو منتجاتك أو مكمّلاتك",
+    "optWhiteLabelLabel": "علامة بيضاء",
+    "optWhiteLabelDesc": "تجربة منصة كاملة بعلامتك التجارية",
+    "optRestaurantLabel": "مجموعة مطاعم",
+    "optRestaurantDesc": "شراكة متعددة الفروع أو امتياز تجاري",
+    "optAthleteLabel": "مطبخ الرياضيين",
+    "optAthleteDesc": "هوية طهي للأداء والرياضة",
+    "stepIdentity": "الهوية",
+    "stepCulinary": "هوية الطهي",
+    "stepPlatform": "المنصة",
+    "stepInterest": "الاهتمام",
+    "stepSubmit": "إرسال",
+    "partnershipReview": "مراجعة الشراكة",
+    "errorGeneric": "حدث خطأ ما. حاول مرة أخرى.",
+    "errorConnection": "تعذّر الإرسال. تحقق من اتصالك وحاول مجددًا.",
+    "identityHeading": "أخبرنا عن نفسك.",
+    "identitySub": "هوية أساسية ومعلومات الاتصال.",
+    "fullNameLabel": "الاسم الكامل",
+    "fullNamePlaceholder": "اسمك الكامل",
+    "brandLabel": "الشيف / اسم العلامة التجارية",
+    "brandPlaceholder": "علامتك الطهوية العامة",
+    "emailLabel": "البريد الإلكتروني",
+    "phoneLabel": "الهاتف",
+    "locationLabel": "الموقع",
+    "locationPlaceholder": "المدينة، الولاية / البلد",
+    "culinaryHeading": "هويتك الطهوية.",
+    "culinarySub": "هذا يحدد كيفية بناء مطبخك داخل المنصة.",
+    "cuisineFocusLabel": "محور المطبخ",
+    "cuisineFocusPlaceholder": "مثل: جنوبي، ياباني، متوسطي",
+    "cookingPhilosophyLabel": "فلسفة الطهي",
+    "cookingPhilosophyPlaceholder": "كيف تصف نهجك تجاه الطعام؟",
+    "signatureStylesLabel": "الأنماط المميّزة",
+    "signatureStylesPlaceholder": "مثل: عالي البروتين، طعام مريح، نباتي أساسًا",
+    "wellnessPhilosophyLabel": "فلسفة العافية",
+    "wellnessPhilosophyPlaceholder": "كيف تؤثر الصحة والتغذية في طهيك؟",
+    "platformHeading": "أين جمهورك؟",
+    "platformSub": "شارك حضورك على الشبكات الاجتماعية والويب. كل الحقول اختيارية.",
+    "websiteLabel": "الموقع الإلكتروني",
+    "interestHeading": "ما الذي يهمّك؟",
+    "interestSub": "اختر كل ما ينطبق. يمكنك اختيار أكثر من واحد.",
+    "readyHeading": "جاهز للإرسال.",
+    "readySub": "يراجع فريقنا كل طلب شخصيًا. سنتواصل معك خلال 3–5 أيام عمل.",
+    "summaryHeading": "ملخص الطلب",
+    "summaryName": "الاسم",
+    "summaryBrand": "العلامة",
+    "summaryEmail": "البريد",
+    "summaryCuisine": "المطبخ",
+    "summaryInterest": "الاهتمام",
+    "consentText": "بالإرسال، فإنك توافق على أن تستخدم My Perfect Meals المعلومات التي قدّمتها لتقييم طلب الشراكة. لا توجد أي التزامات حتى توقيع اتفاق رسمي.",
+    "submitting": "جارٍ الإرسال…",
+    "requestReview": "طلب مراجعة الشراكة",
+    "successHeading": "تم استلام الطلب.",
+    "successSub": "سيراجع فريقنا طلبك ويتواصل معك خلال 3–5 أيام عمل. نراجع كل طلب شخصيًا.",
+    "contactAt": "سنتواصل معك عبر",
+    "done": "تم",
+    "back": "رجوع",
+    "next": "التالي"
+  },
+  "safetyPin": {
+    "title": "رمز الأمان",
+    "sessionExpired": "انتهت الجلسة — سجّل الخروج ثم الدخول مجددًا لإدارة رمزك",
+    "statusSet": "تم تعيين الرمز — الحماية الإضافية مفعّلة",
+    "statusUnset": "لا يوجد رمز — عيّن واحدًا للحماية الإضافية",
+    "changePin": "تغيير الرمز",
+    "removePin": "إزالة الرمز",
+    "setPin": "تعيين رمز الأمان",
+    "enterPin": "أدخل الرمز",
+    "confirmPin": "أكّد الرمز",
+    "currentPin": "الرمز الحالي",
+    "newPin": "الرمز الجديد",
+    "confirmNewPin": "أكّد الرمز الجديد",
+    "removePrompt": "أدخل رمزك الحالي لإزالته.",
+    "fourDigits": "4 أرقام",
+    "hidePin": "إخفاء الرمز",
+    "showPin": "إظهار الرمز",
+    "cancel": "إلغاء",
+    "setPinBtn": "تعيين الرمز",
+    "changePinBtn": "تغيير الرمز",
+    "removePinBtn": "إزالة الرمز",
+    "errorFourDigits": "يجب أن يتكون الرمز من 4 أرقام بالضبط",
+    "errorNoMatch": "الرمزان غير متطابقين",
+    "errorNewFourDigits": "يجب أن يتكون الرمز الجديد من 4 أرقام",
+    "errorNewNoMatch": "الرمزان الجديدان غير متطابقين",
+    "errorSetFailed": "فشل تعيين الرمز",
+    "errorSetRetry": "تعذّر تعيين الرمز. حاول مرة أخرى.",
+    "errorChangeFailed": "فشل تغيير الرمز",
+    "errorChangeRetry": "تعذّر تغيير الرمز. حاول مرة أخرى.",
+    "errorRemoveFailed": "فشل إزالة الرمز",
+    "errorRemoveRetry": "تعذّر إزالة الرمز. حاول مرة أخرى.",
+    "setToastTitle": "تم تعيين رمز الأمان",
+    "setToastDesc": "تم إنشاء رمز الأمان الخاص بك.",
+    "changeToastTitle": "تم تغيير الرمز",
+    "changeToastDesc": "تم تحديث رمز الأمان الخاص بك.",
+    "removeToastTitle": "تمت إزالة الرمز",
+    "removeToastDesc": "تمت إزالة رمز الأمان الخاص بك."
+  },
+  "mfa": {
+    "errorStartSetup": "تعذّر بدء الإعداد. حاول مرة أخرى.",
+    "errorInvalidCode": "رمز غير صالح. حاول مرة أخرى.",
+    "errorDisableInvalid": "رمز غير صالح. لم يتم تعطيل المصادقة الثنائية.",
+    "loading": "جارٍ التحميل…",
+    "enabledTitle": "تم تفعيل المصادقة الثنائية",
+    "saveBackupPrompt": "احفظ رموز النسخ الاحتياطي قبل إغلاق هذه الصفحة.",
+    "backupCodesHeading": "رموز النسخ الاحتياطي — احفظها الآن",
+    "copied": "تم النسخ!",
+    "copyAllCodes": "نسخ الكل",
+    "backupCodesNote": "يُستخدم كل رمز مرة واحدة فقط. احفظها في مكان آمن. إذا فقدت الوصول إلى تطبيق المصادقة، ستحتاج إلى أحدها لتسجيل الدخول.",
+    "savedBackupBtn": "لقد حفظت رموز النسخ الاحتياطي",
+    "onTitle": "المصادقة الثنائية مفعّلة",
+    "enabledOn": "مفعّلة في {{date}}",
+    "disable2fa": "تعطيل المصادقة الثنائية",
+    "disableTitle": "تعطيل المصادقة الثنائية",
+    "disablePrompt": "أدخل رمز المصادقة الحالي للتأكيد.",
+    "cancel": "إلغاء",
+    "disabling": "جارٍ التعطيل…",
+    "scanTitle": "امسح باستخدام تطبيق المصادقة",
+    "scanApps": "يعمل Google Authenticator أو Authy أو 1Password بشكل ممتاز.",
+    "qrAlt": "امسح رمز QR هذا باستخدام تطبيق المصادقة",
+    "manualKeyPrompt": "لا يمكنك المسح؟ أدخل هذا المفتاح يدويًا:",
+    "addedAccountNext": "لقد أضفت الحساب — التالي",
+    "confirmTitle": "أكّد رمز المصادقة",
+    "confirmPrompt": "أدخل الرمز المكوّن من 6 أرقام من تطبيقك لتفعيل المصادقة الثنائية.",
+    "activating": "جارٍ التفعيل…",
+    "activate2fa": "تفعيل المصادقة الثنائية",
+    "back": "رجوع",
+    "defaultTitle": "المصادقة الثنائية",
+    "defaultSubtitle": "أضف طبقة أمان ثانية لحسابك.",
+    "settingUp": "جارٍ الإعداد…",
+    "enable2fa": "تفعيل المصادقة الثنائية"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "تم إنشاء الوجبة!",
+    "mealCreatedDesc": "{{name}} جاهزة لك",
+    "generationFailedTitle": "فشل الإنشاء",
+    "signInTitle": "يرجى تسجيل الدخول",
+    "signInDesc": "يجب تسجيل الدخول لإنشاء الوجبات",
+    "guestLimitTitle": "تم بلوغ حد الضيف",
+    "guestLimitDesc": "أنشئ حسابًا مجانيًا لمواصلة إنشاء الوجبات",
+    "describeMealTitle": "يرجى وصف وجبتك",
+    "describeMealDesc": "أخبر الشيف بما تشتهيه",
+    "enterAlternativeTitle": "يرجى إدخال بديل",
+    "enterAlternativeDesc": "أخبرنا بما تفضّله بدلًا من ذلك",
+    "placeholderBreakfast": "مثل: 'فطائر البروتين'، 'بيض حلو مع فاكهة'، 'أومليت قليل الكربوهيدرات'",
+    "placeholderLunch": "مثل: 'سلطة دجاج مشوي'، 'راب عالي البروتين'، 'وعاء متوسطي'",
+    "placeholderDinner": "مثل: 'تاكو قليل الكربوهيدرات'، 'ستيك مع خضار'، 'سلمون مع أرز'",
+    "placeholderDefault": "مثل: 'شيء خفيف وصحي'، 'وجبة عالية البروتين'",
+    "title": "إنشاء مع AI Chef",
+    "subtitle": "أخبر الشيف بما تريده لـ {{mealType}}",
+    "starchLimitTitle": "تم بلوغ حد الكربوهيدرات النشوية",
+    "starchUsedSingular": "لقد استخدمت وجبتك النشوية لهذا اليوم ({{used}} من {{max}}).",
+    "starchUsedPlural": "لقد استخدمت وجباتك النشوية لهذا اليوم ({{used}} من {{max}}).",
+    "youRequested": "لقد طلبت:",
+    "fibrousPrefix": "هل تريد اختيار",
+    "fibrousCarb": "كربوهيدرات ليفية",
+    "fibrousSuffix": "بدلًا من ذلك، أم تترك الاختيار للشيف؟",
+    "fibrousPlaceholder": "مثل: بروكلي، هليون، قرنبيط...",
+    "generating": "جارٍ الإنشاء...",
+    "useMyChoice": "استخدم اختياري",
+    "or": "أو",
+    "chefsChoice": "اختيار الشيف",
+    "chefSubstituteHint": "سيستبدلها الشيف بخيار كربوهيدرات ليفية لذيذ",
+    "inputHint": "صِف ما تشتهيه وسيُنشئ الشيف وجبة مخصّصة لك",
+    "orbCheckingSafety": "جارٍ فحص ملف الأمان…",
+    "orbFinishing": "إضافة اللمسات النهائية…",
+    "orbPreparing": "الشيف يُحضّر وجبتك…",
+    "mealSafety": "سلامة الوجبة",
+    "ingredientControl": "التحكم بالمكوّنات",
+    "todaysStarchMeals": "الوجبات النشوية لهذا اليوم:",
+    "starchUsedCount": "{{used}} / {{max}} مستخدمة",
+    "generateBtn": "إنشاء وجبة بالذكاء الاصطناعي",
+    "stop": "إيقاف",
+    "cancel": "إلغاء"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "ملف غير صالح",
+    "invalidFileDesc": "يرجى اختيار ملف صورة.",
+    "fileTooLargeTitle": "الملف كبير جدًا",
+    "fileTooLargeDesc": "يرجى اختيار صورة أقل من 5 ميغابايت.",
+    "photoUpdatedTitle": "تم تحديث الصورة",
+    "photoUpdatedDesc": "تم تحديث صورة ملفك الشخصي.",
+    "uploadFailedTitle": "فشل الرفع",
+    "uploadFailedDesc": "فشل رفع الصورة.",
+    "cameraErrorTitle": "خطأ في الكاميرا",
+    "cameraErrorDesc": "تعذّر الوصول إلى الكاميرا أو الصور.",
+    "restoringTitle": "جارٍ استعادة المشتريات...",
+    "restoringDesc": "جارٍ البحث عن اشتراكات نشطة...",
+    "restoredTitle": "تمت استعادة المشتريات",
+    "restoredDesc": "تمت استعادة اشتراكك بنجاح.",
+    "restoreCompleteTitle": "اكتملت الاستعادة",
+    "restoreCompleteDesc": "لم يُعثر على اشتراك نشط. إذا كنت تعتقد أن هذا خطأ، تواصل مع الدعم.",
+    "restoreFailedTitle": "فشلت الاستعادة",
+    "restoreFailedDesc": "تعذّرت استعادة المشتريات. حاول مرة أخرى.",
+    "accountDeletedTitle": "تم حذف الحساب",
+    "accountDeletedDesc": "تم حذف حسابك وجميع البيانات نهائيًا.",
+    "deleteFailedDesc": "فشل حذف الحساب. حاول مرة أخرى.",
+    "deleteAccount": "حذف الحساب",
+    "deleteDialogTitle": "حذف الحساب نهائيًا؟",
+    "deleteDialogIntro": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف ما يلي نهائيًا:",
+    "deleteItemAccount": "حسابك ومعلومات ملفك الشخصي",
+    "deleteItemMeals": "جميع خطط الوجبات والوصفات المحفوظة",
+    "deleteItemBiometrics": "البيانات الحيوية وبيانات تتبع الصحة",
+    "deleteItemBilling": "سجل الاشتراكات والمدفوعات",
+    "deleting": "جارٍ الحذف...",
+    "deleteMyAccount": "حذف حسابي"
+  },
+  "inspiration": {
+    "servingsJustMe": "أنا فقط",
+    "servings2": "شخصان",
+    "servings3": "3 أشخاص",
+    "servingsFamily": "عائلة (4)",
+    "servingsMealPrep": "تحضير وجبات (6)",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "شاهدها. قلها. أرسلها. سنجعلها لك.",
+    "copilotSpokenText": "Recipe Maker من أقوى الأدوات في التطبيق. الفكرة بسيطة: ترى طعامًا في مكان ما — مقطع TikTok، حفظ على Instagram، كتاب طبخ، قائمة طعام، أو حتى فكرة في خيالك — وبدلًا من تفويت اللحظة، تُحضرها هنا ونبنيها لك. لديك أربع طرق لإدخال فكرتك. Choose Photo يتيح لك اختيار أي لقطة شاشة أو صورة طعام محفوظة من معرضك — لقطات TikTok، محفوظات Instagram، لوحات Pinterest، وصفات Facebook، وأي شيء موجود على جهازك. Camera يفتح الكاميرا مباشرةً لتوجّهها نحو كتاب أو قائمة أو شاشة. Speak يتيح لك وصف الوجبة بصوتك، تمامًا كما تُخبر صديقًا. Type يتيح لك لصق وصف أو كتابة ما يدور في ذهنك. وهذا ما يميّز Recipe Maker: لا تحتاج إلى الوصفة. إن استطعت عرضها أو وصفها، يمكننا إنشاؤها. بعد إرسال فكرتك، لا يمنحك Recipe Maker نتيجة واحدة. بل يبني ثلاث نسخ مخصّصة بالكامل من فكرتك في وقت واحد — الطبق نفسه، وثلاث تفسيرات — كل منها مبنية بالكامل حول أهداف الماكرو، والحساسيات، والهوية الغذائية، وكل بروتوكول صحي مفعّل في حسابك. ترى الثلاث جميعها، ويمكنك حفظ أي منها أو كلها، وتبقى اختياراتك على لوحة التحكم حتى تقرر مسحها. لا يزيلها التطبيق تلقائيًا أبدًا.",
+    "hintAuthentic": "حافظ على النكهات والمكوّنات الأصلية قدر الإمكان.",
+    "hintBalanced": "خصّص حسب ملفك مع الحفاظ على روح الطبق.",
+    "hintHealthier": "حسّن التغذية بقوة مع إبقاء الطبق قابلًا للتمييز.",
+    "analysisFailed": "فشل التحليل",
+    "analyzeFailedMsg": "فشل تحليل المكوّنات.",
+    "imageReadError": "تعذّرت قراءة الصورة. حاول مرة أخرى.",
+    "voiceNotSupportedTitle": "الصوت غير مدعوم",
+    "voiceNotSupportedDesc": "متصفحك لا يدعم الإدخال الصوتي. جرّب الكتابة بدلًا من ذلك.",
+    "micErrorTitle": "خطأ في الميكروفون",
+    "micErrorDesc": "حاول مرة أخرى.",
+    "somethingWrong": "حدث خطأ ما",
+    "createFailedMsg": "فشل إنشاء وجبتك المخصّصة.",
+    "saveFailedError": "فشل الحفظ",
+    "savedTitle": "تم الحفظ!",
+    "savedDesc": "تمت الإضافة إلى محفوظات Recipe Maker في المفضّلة.",
+    "saveFailedTitle": "فشل الحفظ",
+    "scanFoodFor": "مسح طعام لـ {{name}}",
+    "productScan": "مسح المنتج",
+    "customizeMeal": "خصّص وجبتك",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "تحليل المكوّنات لـ {{name}}",
+    "analyzeBeforeBuy": "حلّل المكوّنات قبل الشراء",
+    "optionsSubtitle": "عدّل هذه قبل أن ننشئ نسختك المخصّصة.",
+    "captureSubtitle": "امسح أي فكرة وجبة وسنخصّصها لك.",
+    "choosePhoto": "اختر صورة",
+    "cameraPill": "الكاميرا",
+    "speakPill": "تحدّث",
+    "typePill": "اكتب",
+    "uploadHint": "اختر لقطة شاشة أو صورة طعام محفوظة أو صورة من معرضك.",
+    "chooseFromGallery": "اختر من المعرض",
+    "galleryHint": "لقطات شاشة، صور محفوظة، أي صورة طعام",
+    "cameraHint": "وجّه كاميرتك نحو أي وصفة أو قائمة أو شاشة أو صورة طعام.",
+    "openCamera": "فتح الكاميرا",
+    "cameraSubHint": "التقط صورة مباشرة لأي فكرة طعام",
+    "voiceHint": "صِف الوجبة بصوتك — المكوّنات والأسلوب وأي شيء تتذكره.",
+    "tapToStop": "انقر للإيقاف",
+    "tapToSpeak": "انقر للتحدّث",
+    "nextCustomize": "التالي — تخصيص →",
+    "textHint": "اكتب أو الصق فكرة وجبة أو وصف وصفة أو اسم طبق.",
+    "textPlaceholder": "مثل: وعاء دجاج بافلو مع أرز وأفوكادو وصلصة رانش…",
+    "servingsHeading": "الحصص",
+    "adaptationStyleHeading": "أسلوب التكييف",
+    "authentic": "أصلي",
+    "balanced": "متوازن",
+    "healthier": "أكثر صحة",
+    "proteinLevelHeading": "مستوى البروتين",
+    "proteinStandard": "قياسي",
+    "proteinHigh": "عالي البروتين",
+    "proteinAthlete": "رياضي",
+    "prepStyleHeading": "أسلوب التحضير",
+    "prepOriginal": "التحضير الأصلي",
+    "prepEasy": "تحضير سهل",
+    "cuisineStyleHeading": "أسلوب المطبخ",
+    "generateMyVersion": "إنشاء نسختي",
+    "analyzingIngredients": "جارٍ تحليل المكوّنات…",
+    "buildingVersion": "جارٍ بناء نسختك…",
+    "checkingCompanionProfile": "جارٍ المقارنة بملف {{name}}",
+    "checkingYourProfile": "جارٍ المقارنة بملفك",
+    "adaptingProfile": "جارٍ التكييف مع ملفك الغذائي",
+    "versionsReady": "{{count}} نسخ جاهزة",
+    "savedCount": " · {{count}} محفوظة",
+    "deleteScan": "حذف هذا المسح",
+    "tapAnotherHint": "انقر على أخرى لحفظها أيضًا، أو أغلق وعُد لاحقًا.",
+    "tapSelectHint": "انقر على واحدة لتحديدها ثم احفظها. عُد وقتما تشاء — تبقى هنا حتى تحذفها.",
+    "adaptedForStrategy": "مكيّفة مع استراتيجية التغذية اليوم",
+    "calValue": "{{value}} سعرة",
+    "proteinValue": "{{value}} جم بروتين",
+    "carbsValue": "{{value}} جم كربوهيدرات",
+    "saving": "جارٍ الحفظ…",
+    "saveAgain": "احفظ مجددًا",
+    "saveThisVersion": "احفظ هذه النسخة",
+    "try3More": "3 أخرى",
+    "viewSavedMeals": "عرض الوجبات المحفوظة في المفضّلة →",
+    "personalizedReady": "نسختك المخصّصة جاهزة.",
+    "macroCal": "سعرة",
+    "macroProtein": "بروتين",
+    "macroCarbs": "كربوهيدرات",
+    "macroFat": "دهون",
+    "savedCheck": "تم الحفظ ✓",
+    "saveToFavorites": "احفظ في المفضّلة",
+    "scanAnother": "امسح أخرى",
+    "viewInFavorites": "عرض في المفضّلة →"
+  },
+  "parentsCorner": {
+    "title": "ركن الوالدين",
+    "yourChild": "طفلك",
+    "helpingBuildHabits": "مساعدة {{name}} على بناء عادات صحية",
+    "backToBeginnings": "العودة إلى My Perfect Beginnings",
+    "startFresh": "ابدأ من جديد",
+    "startNewConversation": "بدء محادثة جديدة",
+    "clearConfirm": "مسح هذه المحادثة والبدء من جديد؟",
+    "clear": "مسح",
+    "cancel": "إلغاء",
+    "dismiss": "إغلاق",
+    "boundaryLanguage": "يمكنني تقديم إرشادات تغذية قائمة على الأدلة لعائلتك. للمسائل الطبية، يظل طبيب الأطفال أو أخصائي تغذية أطفال معتمد هو الخطوة الصحيحة التالية دائمًا — سأنبهك عندما يستدعي الأمر ذلك.",
+    "todaysTip": "نصيحة اليوم",
+    "loadingConversation": "جارٍ تحميل محادثتك…",
+    "commonQuestions": "أسئلة شائعة",
+    "browseCommonQuestions": "تصفّح الأسئلة الشائعة",
+    "followUp": "سؤال متابعة",
+    "makeItNow": "حضّرها الآن",
+    "thinking": "جارٍ التفكير…",
+    "emptyPrompt": "اضغط على بطاقة أعلاه أو اسأل بالأسفل.",
+    "askAnything": "اسأل أي شيء",
+    "inputPlaceholder": "اكتب سؤالك هنا…",
+    "send": "إرسال",
+    "noResponse": "عذرًا، لم أتلقَّ ردًا. حاول مرة أخرى.",
+    "connectionError": "هناك مشكلة بسيطة الآن. تحقق من اتصالك وحاول مجددًا.",
+    "stage": {
+      "earlyInfant": "رضيع مبكر",
+      "beginningFoods": "بداية الأطعمة",
+      "youngToddler": "طفل دارج صغير",
+      "toddler": "طفل دارج",
+      "preschool": "ما قبل المدرسة",
+      "earlySchoolAge": "سن مدرسي مبكر",
+      "growingChild": "طفل في مرحلة النمو"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "طفلي لا يأكل.",
+        "question": "طفلي لا يأكل. ماذا أفعل؟"
+      },
+      "toddlerHatesVegetables": {
+        "label": "طفلي يكره الخضار.",
+        "question": "طفلي يكره الخضار. كيف أجعله يأكل المزيد؟"
+      },
+      "lunchPacking": {
+        "label": "ماذا أضع في الغداء؟",
+        "question": "ما أفكار الغداء الصحي والجذاب؟"
+      },
+      "healthySnacks": {
+        "label": "وجبات خفيفة صحية بعد المدرسة.",
+        "question": "ما أفكار الوجبات الخفيفة الصحية بعد المدرسة؟"
+      },
+      "calcium": {
+        "label": "هل يحصل طفلي على كالسيوم كافٍ؟",
+        "question": "هل يحصل طفلي على كالسيوم كافٍ؟ كيف أتأكد؟"
+      },
+      "introducingFoods": {
+        "label": "كيف أُدخل أطعمة جديدة؟",
+        "question": "كيف أُدخل أطعمة جديدة دون أن يتحول الأمر إلى صراع؟"
+      },
+      "youngAthlete": {
+        "label": "ماذا يأكل رياضيّي الصغير؟",
+        "question": "طفلي يمارس الرياضة. ماذا يأكل قبل التمرين وبعده؟"
+      },
+      "waterIntake": {
+        "label": "كم يحتاج طفلي من الماء؟",
+        "question": "كم كوبًا من الماء يجب أن يشرب طفلي يوميًا؟"
+      },
+      "pizza": {
+        "label": "هل يمكن لطفلي أن يأكل البيتزا؟",
+        "question": "هل يمكن لطفلي أن يأكل البيتزا وأطعمة ممتعة أخرى، أم يجب أن أكون أكثر صرامة؟"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "تسجيل تركيب الجسم",
+    "bodyFatPct": "نسبة الدهون %",
+    "bodyFatPlaceholder": "مثال 18.5",
+    "goalBodyFatPct": "نسبة الدهون المستهدفة % (اختياري)",
+    "goalBodyFatPlaceholder": "مثال 15",
+    "scanMethod": "طريقة القياس",
+    "pickMethod": "اختر طريقة",
+    "date": "التاريخ",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ...",
+    "notLoggedIn": "لم تسجّل الدخول",
+    "notLoggedInDesc": "سجّل الدخول لحفظ بيانات تركيب جسمك.",
+    "invalidBodyFat": "نسبة دهون غير صالحة",
+    "invalidBodyFatDesc": "يجب أن تكون نسبة الدهون بين 1% و70%.",
+    "saved": "تم الحفظ",
+    "savedDesc": "تم تسجيل تركيب الجسم بنجاح.",
+    "saveFailed": "فشل الحفظ",
+    "saveFailedDesc": "تعذّر حفظ بياناتك. حاول مرة أخرى."
+  },
+  "sponsorEnded": {
+    "launchProCare": "أطلق حساب ProCare المستقل الخاص بك",
+    "openStudio": "افتح استوديوك المستقل",
+    "completeVerification": "أكمل التحقق من الاعتماد",
+    "continueTraining": "تابع تدريب Platform Mastery",
+    "startOwnPractice": "ابدأ عملك الخاص",
+    "continueAsClient": "المتابعة كعميل",
+    "continueAsClientDesc": "استمر في استخدام MPM كعضو فردي",
+    "continueWithFree": "المتابعة مع Free",
+    "continueWithFreeDesc": "إنشاء وجبات أساسي — مجاني دائمًا",
+    "joinAnotherOrg": "الانضمام إلى مؤسسة أخرى",
+    "joinAnotherOrgDesc": "اقبل دعوة من شركة أخرى",
+    "accessEnded": "انتهى وصولك المموّل من {{business}}",
+    "accessEndedBody": "حسابك الشخصي وسجل الوجبات وتقدّم Academy والشهادات كلها لا تزال موجودة. اختر كيف تريد المتابعة."
+  },
+  "dietStyleBadge": {
+    "kosher": "كوشير ✓",
+    "halal": "حلال ✓",
+    "vegan": "نباتي صرف ✓",
+    "vegetarian": "نباتي ✓",
+    "pescatarian": "نباتي مع السمك ✓",
+    "mediterranean": "متوسطي ✓",
+    "paleo": "باليو ✓",
+    "keto": "كيتو ✓",
+    "carnivore": "لحمي ✓",
+    "dairyFree": "خالٍ من الألبان ✓",
+    "custom": "نظام مخصص ✓"
+  },
+  "pregnancySupport": {
+    "title": "إعداد My Perfect Pregnancy",
+    "intro": "هذا يخصّص إرشادات تغذيتك. تبقى معلوماتك خاصة وتشكّل كل اقتراح وجبة وفحص سلامة غذائية ورد إرشادي.",
+    "whereAreYou": "في أي مرحلة أنتِ من رحلتك؟",
+    "breastfeedingQuestion": "هل تُرضعين حاليًا؟",
+    "breastfeedingHelp": "هذا يحدد مسار تغذيتك. للإرضاع والتعافي بعد الولادة أولويات مختلفة — نتعامل معهما بشكل منفصل.",
+    "yesBreastfeeding": "نعم، أُرضع",
+    "noBreastfeeding": "لا، لا أُرضع",
+    "breastfeedingNote": "ستحصلين على تغذية لإنتاج الحليب مع طبقة تعافٍ للمساعدة على الالتئام.",
+    "postpartumNote": "ستحصلين على بروتوكول تعافٍ مخصص بعد الولادة — ألياف، تغذية مضادة للالتهاب، دعم هرموني، وإعادة تكوين الجسم. دون حميات قاسية.",
+    "trackByDueDate": "التتبع حسب موعد الولادة؟",
+    "trackByDueDateHelp": "بإدخال موعد ولادتك، يُحدَّث أسبوعك والثلث الحالي تلقائيًا. يمكنك التخطي والتتبع يدويًا.",
+    "yesEnterDueDate": "نعم، أدخِل الموعد",
+    "skipManual": "تخطٍّ — المرحلة اليدوية فقط",
+    "dueDatePlaceholder": "موعد الولادة (YYYY-MM-DD)",
+    "activeSymptoms": "هل توجد أعراض حالية؟",
+    "activeSymptomsHelp": "اختاري كل ما ينطبق — ستتكيف وجباتك تبعًا لذلك.",
+    "disclaimerPart1": "يقدّم My Perfect Pregnancy تثقيفًا غذائيًا عامًا ودعمًا لبنية الوجبات فقط. وهو ليس",
+    "disclaimerNotSubstitute": "بديلاً",
+    "disclaimerPart2": "عن طبيب النساء والولادة أو القابلة أو أخصائي التغذية المعتمد. اتبعي دائمًا توصيات مقدم الرعاية الصحية أولاً.",
+    "saveButton": "احفظي إعداد الحمل",
+    "savingButton": "جارٍ الحفظ…",
+    "savedButton": "✓ تم الحفظ!",
+    "turnOff": "إيقاف تغذية الحمل",
+    "turnOffConfirm": "إيقاف تغذية الحمل؟",
+    "turnOffHelp": "سيزيل هذا إرشادات الحمل من وجباتك وإرشادك. يمكنك إعادة تفعيله في أي وقت — دون حكم أو أسئلة.",
+    "turningOff": "جارٍ الإيقاف…",
+    "yesTurnOff": "نعم، أوقِف",
+    "keepItOn": "أبقِه مفعّلاً",
+    "stage": {
+      "tryingToConceive": {
+        "label": "محاولة الحمل",
+        "desc": "تغذية ما قبل الحمل"
+      },
+      "trimester1": {
+        "label": "الثلث الأول",
+        "desc": "الأسابيع 1–13 · فولات، غثيان"
+      },
+      "trimester2": {
+        "label": "الثلث الثاني",
+        "desc": "الأسابيع 14–27 · بروتين، كالسيوم، DHA"
+      },
+      "trimester3": {
+        "label": "الثلث الثالث",
+        "desc": "الأسابيع 28–40 · حديد، DHA، تجهيز"
+      },
+      "breastfeeding": {
+        "label": "الإرضاع",
+        "desc": "إنتاج الحليب، DHA، يود، كالسيوم"
+      },
+      "postpartum": {
+        "label": "ما بعد الولادة",
+        "desc": "تعافٍ، إعادة تكوين، هرمونات، قوة"
+      }
+    },
+    "symptom": {
+      "nausea": "غثيان",
+      "heartburn": "حرقة المعدة",
+      "constipation": "إمساك",
+      "fatigue": "إرهاق",
+      "foodAversions": "نفور من الطعام",
+      "swelling": "تورّم",
+      "shortnessOfBreath": "ضيق نفس",
+      "lowAppetite": "قلة شهية"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "كيف تشعر اليوم؟",
+    "noCheckinToday": "لا يوجد تسجيل أعراض اليوم. تستخدم وجباتك ملف دوائك القياسي.",
+    "checkInPrompt": "سجّل حالتك لتكييف وجبات ومخفوقات واقتراحات المطاعم اليوم.",
+    "checkIn": "تسجيل الحالة",
+    "update": "تحديث",
+    "updated": "حُدّث {{time}}",
+    "escalationStatusBody": "قد تتطلب هذه الأعراض تقييمًا طبيًا. تواصل قريبًا مع مقدم الرعاية أو فريق الرعاية.",
+    "mealsAdapting": "الوجبات تتكيف مع أعراض اليوم",
+    "updatedTapAdjustments": "حُدّث {{time}} · اضغط لعرض التعديلات",
+    "noSymptomsToday": "لا أعراض مسجلة اليوم",
+    "updatedStandardProfile": "حُدّث {{time}} · الملف القياسي مفعّل",
+    "escalationCardBody": "قد تتطلب هذه الأعراض تقييمًا طبيًا. تواصل مع فريق الرعاية.",
+    "nutritionAdjustments": "تعديلات التغذية اليوم ({{count}})",
+    "reason": "السبب",
+    "adaptation": "التعديل",
+    "evidence": "الدليل",
+    "justNow": "الآن",
+    "minutesAgo": "قبل {{count}} د",
+    "hoursAgo": "قبل {{count}} س",
+    "giSymptomsHeader": "أعراض الجهاز الهضمي — ما شدتها اليوم؟",
+    "otherSymptomsHeader": "أعراض أخرى",
+    "vomitingHeader": "القيء اليوم",
+    "quickQuestionsHeader": "بعض الأسئلة السريعة",
+    "notifyHeader": "هل تريد إبلاغ فريق الرعاية؟",
+    "notifyHelp": "اختياري — أنت تتحكم بمن يُبلَّغ اليوم.",
+    "updatesThroughoutDay": "يُحدَّث هذا طوال اليوم.",
+    "updatesThroughoutDayBody": "إذا شعرت بتحسن لاحقًا، سجّل حالتك مجددًا — ستتكيف وجباتك فورًا. تتم إعادة تعيين التسجيل كل صباح.",
+    "cancel": "إلغاء",
+    "saving": "جارٍ الحفظ…",
+    "saveCheckIn": "حفظ التسجيل",
+    "severity": {
+      "none": "لا شيء",
+      "mild": "خفيف",
+      "moderate": "متوسط",
+      "severe": "شديد"
+    },
+    "symptom": {
+      "nausea": "غثيان",
+      "constipation": "إمساك",
+      "diarrhea": "إسهال",
+      "reflux": "حرقة/ارتجاع",
+      "bloating": "انتفاخ",
+      "earlyFullness": "شبع مبكر",
+      "foodAversions": "نفور من الطعام",
+      "fatigue": "إرهاق",
+      "dizziness": "دوخة",
+      "headache": "صداع"
+    },
+    "vomiting": {
+      "none": "لا شيء",
+      "once": "مرة واحدة",
+      "multiple": "2–3 مرات",
+      "cantKeepFluids": "4+ / لا أحتفظ بالسوائل"
+    },
+    "q": {
+      "keepFluids": "هل تستطيع الاحتفاظ بالسوائل؟",
+      "eatWithoutWorsening": "هل تستطيع الأكل دون تفاقم الأعراض؟",
+      "reducedUrination": "هل تبوّل أقل بكثير من المعتاد؟",
+      "symptomTrend": "كيف تتجه أعراضك؟",
+      "appetite": "كيف شهيتك اليوم؟"
+    },
+    "opt": {
+      "yes": "نعم",
+      "no": "لا",
+      "withDifficulty": "بصعوبة",
+      "partially": "جزئيًا"
+    },
+    "trend": {
+      "improving": "في تحسّن",
+      "same": "كما هي",
+      "worsening": "في تفاقم",
+      "na": "غير متأكد"
+    },
+    "appetite": {
+      "suppressed": "لا شهية",
+      "reduced": "منخفضة",
+      "normal": "طبيعية",
+      "increased": "مرتفعة"
+    },
+    "notify": {
+      "keepPrivate": "لا، اجعله خاصًا",
+      "coach": "إبلاغ مدربي",
+      "both": "إبلاغ كليهما"
+    }
   }
 }

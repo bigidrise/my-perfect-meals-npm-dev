@@ -1,4 +1,4 @@
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { breakfastMeals, type BreakfastMeal } from "./breakfastMealsData";
 import { lunchMealsData, type LunchMeal } from "./lunchMealsData";
 import { dinnerMealsData, type DinnerMeal } from "./dinnerMealsData";

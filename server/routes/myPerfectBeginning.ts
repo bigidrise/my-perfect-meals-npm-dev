@@ -16,6 +16,7 @@ import { Router } from "express";
 import OpenAI from "openai";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { getLanguageInstruction } from "../utils/languageInstruction";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import {
@@ -860,7 +861,10 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
       // Non-fatal — doctrine text still present; signal is an enhancement
     }
 
-    const systemPrompt = buildSystemPrompt(resolvedContext, guidanceOutput) + behaviorSignalAppend;
+    const rawLang = (req as AuthenticatedRequest).authUser?.preferredLanguage || "auto";
+    const langInstruction = getLanguageInstruction(rawLang);
+    let systemPrompt = buildSystemPrompt(resolvedContext, guidanceOutput) + behaviorSignalAppend;
+    if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
 
     // Build messages array with conversation history
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [

@@ -1,0 +1,2108 @@
+{
+  "generatedAt": "2026-08-14T21:51:44.042Z",
+  "step1A_summary": {
+    "filesScanned": 690,
+    "filesUsingTranslation": 64,
+    "filesWithNoTranslation": 626,
+    "filesWithHardcodedStrings": 462,
+    "fullyUntranslatedSurfaces": 415,
+    "partiallyTranslatedSurfaces": 47,
+    "totalTCalls": 1600,
+    "totalHardcodedFindings": 7469,
+    "safeAutomation": 6505,
+    "reviewRequired": 465,
+    "clinicalSafety": 499,
+    "inSharedComponents": 2176,
+    "sharedComponentFilesAffected": 262
+  },
+  "step1B_summary": {
+    "totalFiles": 690,
+    "active": 452,
+    "conditional": 0,
+    "hiddenReserved": 31,
+    "quarantined": 6,
+    "orphanDead": 201,
+    "localizationTarget": 483,
+    "excludedFromMigration": 207
+  },
+  "deliverable1_activeBaseline": {
+    "activeFilesWithHardcodedStrings": 115,
+    "totalActiveHardcodedStrings": 1439,
+    "safeAutomation": 1198,
+    "reviewRequired": 111,
+    "clinicalSafety": 130,
+    "inSharedComponents": 1438
+  },
+  "deliverable2_sharedComponentRanking": [
+    {
+      "file": "client/src/components/MedicalSourcesInfo.tsx",
+      "findings": 281,
+      "importerCount": 7,
+      "impactScore": 2248
+    },
+    {
+      "file": "client/src/components/DevNavigator.tsx",
+      "findings": 141,
+      "importerCount": 1,
+      "impactScore": 282
+    },
+    {
+      "file": "client/src/components/biometrics/IngredientIntelligenceSheet.tsx",
+      "findings": 37,
+      "importerCount": 4,
+      "impactScore": 185
+    },
+    {
+      "file": "client/src/components/performance/PerformanceNutritionSetupForm.tsx",
+      "findings": 85,
+      "importerCount": 1,
+      "impactScore": 170
+    },
+    {
+      "file": "client/src/components/CreateWithChefModal.tsx",
+      "findings": 21,
+      "importerCount": 7,
+      "impactScore": 168
+    },
+    {
+      "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "findings": 82,
+      "importerCount": 1,
+      "impactScore": 164
+    },
+    {
+      "file": "client/src/components/DietStyleBadge.tsx",
+      "findings": 12,
+      "importerCount": 12,
+      "impactScore": 156
+    },
+    {
+      "file": "client/src/components/AddToMealPlanButton.tsx",
+      "findings": 9,
+      "importerCount": 15,
+      "impactScore": 144
+    },
+    {
+      "file": "client/src/components/ShoppingAggregateBar.tsx",
+      "findings": 10,
+      "importerCount": 10,
+      "impactScore": 110
+    },
+    {
+      "file": "client/src/components/biometrics/TherapeuticNutritionCard.tsx",
+      "findings": 54,
+      "importerCount": 1,
+      "impactScore": 108
+    },
+    {
+      "file": "client/src/components/biometrics/RemainingMacrosFooter.tsx",
+      "findings": 12,
+      "importerCount": 7,
+      "impactScore": 96
+    },
+    {
+      "file": "client/src/components/ace/CoachingProfileSetup.tsx",
+      "findings": 43,
+      "importerCount": 1,
+      "impactScore": 86
+    },
+    {
+      "file": "client/src/components/pickers/AthleteMealPickerDrawer.tsx",
+      "findings": 38,
+      "importerCount": 1,
+      "impactScore": 76
+    },
+    {
+      "file": "client/src/components/InspirationCaptureModal.tsx",
+      "findings": 17,
+      "importerCount": 3,
+      "impactScore": 68
+    },
+    {
+      "file": "client/src/components/ProfileSheet.tsx",
+      "findings": 22,
+      "importerCount": 2,
+      "impactScore": 66
+    },
+    {
+      "file": "client/src/components/kitchen/KitchenPartnerIntakeModal.tsx",
+      "findings": 33,
+      "importerCount": 1,
+      "impactScore": 66
+    },
+    {
+      "file": "client/src/components/pickers/MealPickerDrawer.tsx",
+      "findings": 11,
+      "importerCount": 5,
+      "impactScore": 66
+    },
+    {
+      "file": "client/src/components/SafetyGuardToggle.tsx",
+      "findings": 4,
+      "importerCount": 15,
+      "impactScore": 64
+    },
+    {
+      "file": "client/src/components/kitchen/ChefCoPilotWalkthrough.tsx",
+      "findings": 25,
+      "importerCount": 1,
+      "impactScore": 50
+    },
+    {
+      "file": "client/src/components/SafetyPinSettings.tsx",
+      "findings": 16,
+      "importerCount": 2,
+      "impactScore": 48
+    },
+    {
+      "file": "client/src/components/ShoppingListPreviewModal.tsx",
+      "findings": 6,
+      "importerCount": 7,
+      "impactScore": 48
+    },
+    {
+      "file": "client/src/components/pickers/CompetitionMealPickerDrawer.tsx",
+      "findings": 23,
+      "importerCount": 1,
+      "impactScore": 46
+    },
+    {
+      "file": "client/src/components/TranslateToggle.tsx",
+      "findings": 3,
+      "importerCount": 14,
+      "impactScore": 45
+    },
+    {
+      "file": "client/src/components/glp1/GLP1DailyCheckin.tsx",
+      "findings": 22,
+      "importerCount": 1,
+      "impactScore": 44
+    },
+    {
+      "file": "client/src/components/guided/QuickTourButton.tsx",
+      "findings": 2,
+      "importerCount": 21,
+      "impactScore": 44
+    }
+  ],
+  "deliverable3_localeParity": {
+    "ar": {
+      "total": 1920,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 0,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "de": {
+      "total": 1968,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 48,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "es": {
+      "total": 2104,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 184,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "fr": {
+      "total": 2104,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 184,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "hi": {
+      "total": 2104,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 184,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "it": {
+      "total": 2104,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 184,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "ja": {
+      "total": 1968,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 48,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "ko": {
+      "total": 1930,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 10,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "pt": {
+      "total": 2105,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 185,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "ru": {
+      "total": 1920,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 0,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "tl": {
+      "total": 2104,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 184,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "vi": {
+      "total": 1929,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 9,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    },
+    "zh": {
+      "total": 1920,
+      "missing": 0,
+      "missingPct": "0.0",
+      "extra": 0,
+      "emptyValues": 0,
+      "status": "✅ COMPLETE",
+      "sampleMissing": []
+    }
+  },
+  "deliverable4_clinicalInventory": {
+    "total": 130,
+    "byCategory": {
+      "diabetes_glp1": 39,
+      "medication": 12,
+      "pregnancy_pediatric": 5,
+      "allergy_safety": 18,
+      "lab_biometric": 27,
+      "general_clinical": 43
+    },
+    "topFiles": [
+      {
+        "file": "client/src/components/MedicalSourcesInfo.tsx",
+        "count": 83,
+        "samples": [
+          "Clinical Background",
+          "Commins, S.P. & Platts-Mills, T.A.E. — Tick Bites and Red Meat Allergy (PMID 22466475)",
+          "Peer-reviewed paper establishing the causal link between Lone Star tick bites and delayed IgE-mediated anaphylaxis to alpha-gal in mammalian meat. The clinical basis for treating AGS as an anaphylaxis-risk allergy, not a food preference. Current Allergy and Asthma Reports, 2013."
+        ]
+      },
+      {
+        "file": "client/src/components/DevNavigator.tsx",
+        "count": 12,
+        "samples": [
+          "Physician Welcome",
+          "Diabetic Builder",
+          "Physician Hub"
+        ]
+      },
+      {
+        "file": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "count": 7,
+        "samples": [
+          "Clinical Labs Saved",
+          "Clinical Labs Saved",
+          "Clinical Labs Saved"
+        ]
+      },
+      {
+        "file": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "count": 6,
+        "samples": [
+          "Glucose carb preferences saved",
+          "Glucose-Based Carb Choices",
+          "How Glucose-Based Food Choices Work"
+        ]
+      },
+      {
+        "file": "client/src/components/glp1/GLP1DailyCheckin.tsx",
+        "count": 3,
+        "samples": [
+          "Contact your healthcare provider",
+          "Contact your healthcare provider",
+          "Notify my physician"
+        ]
+      },
+      {
+        "file": "client/src/components/pro/ProClientFolderModal.tsx",
+        "count": 3,
+        "samples": [
+          "Active Clinical Supports",
+          "The colored dots show which clinical protocols are active for this client. A glowing dot means that protocol is shaping every meal the AI generates. Tap any dot to see exactly what it does. Dots activate from your settings, physician assignment, or automatically when lab values cross clinical thresholds.",
+          "Messages are a shared conversation — your client can read them and reply. Provider Notes are internal only and are never visible to the client. Use notes for clinical observations, progress documentation, or anything that should stay in your professional records."
+        ]
+      },
+      {
+        "file": "client/src/components/GlucoseGuardExplainerModal.tsx",
+        "count": 2,
+        "samples": [
+          "Balanced diabetic-friendly meal. Moderate, quality complex carbohydrates to maintain good control.",
+          "most recent blood glucose reading"
+        ]
+      },
+      {
+        "file": "client/src/components/SafetyGuardToggle.tsx",
+        "count": 2,
+        "samples": [
+          "Allergy protection disabled for this meal only.",
+          "Allergy Protection"
+        ]
+      },
+      {
+        "file": "client/src/components/diabetic/GLP1CompanionModal.tsx",
+        "count": 2,
+        "samples": [
+          "Active alongside your diabetic protocol",
+          "Metabolic Medication Guardrails"
+        ]
+      },
+      {
+        "file": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+        "count": 2,
+        "samples": [
+          "Suspected Insulin Resistance",
+          "Metabolic indicators suggest reduced insulin sensitivity"
+        ]
+      }
+    ],
+    "allFindings": [
+      {
+        "file": "/home/runner/workspace/client/src/components/CreateWithChefModal.tsx",
+        "relPath": "client/src/components/CreateWithChefModal.tsx",
+        "line": 247,
+        "original": "⚠️ Allergy Alert",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "createwithchefmodal.allergy_alert",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 30,
+        "original": "Physician Welcome",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.physician_welcome",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 64,
+        "original": "Diabetic Builder",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.diabetic_builder",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 86,
+        "original": "Physician Hub",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.physician_hub",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 88,
+        "original": "Diabetic Hub",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.diabetic_hub",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 89,
+        "original": "Diabetes Support",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.diabetes_support",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 103,
+        "original": "Physician Care Team",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.physician_care_team",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 112,
+        "original": "Pro Clients (Physician)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.pro_clients_physician",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 113,
+        "original": "Physician Portal",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.physician_portal",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 158,
+        "original": "Healthcare Partnerships",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.healthcare_partnerships",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 369,
+        "original": "Clients (Physician)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.clients_physician",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 370,
+        "original": "Physician Portal",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.physician_portal",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DevNavigator.tsx",
+        "relPath": "client/src/components/DevNavigator.tsx",
+        "line": 539,
+        "original": "Physician · Trainer",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "devnavigator.physician_trainer",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/DietStyleBadge.tsx",
+        "relPath": "client/src/components/DietStyleBadge.tsx",
+        "line": 23,
+        "original": "Gluten-Free ✓",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "dietstylebadge.glutenfree",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/GlucoseGuardExplainerModal.tsx",
+        "relPath": "client/src/components/GlucoseGuardExplainerModal.tsx",
+        "line": 41,
+        "original": "Balanced diabetic-friendly meal. Moderate, quality complex carbohydrates to maintain good control.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glucoseguardexplainermodal.balanced_diabeticfriendly_meal_moderate",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/GlucoseGuardExplainerModal.tsx",
+        "relPath": "client/src/components/GlucoseGuardExplainerModal.tsx",
+        "line": 207,
+        "original": "most recent blood glucose reading",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glucoseguardexplainermodal.most_recent_blood_glucose",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 84,
+        "original": "Clinical Background",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_background",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 87,
+        "original": "Commins, S.P. & Platts-Mills, T.A.E. — Tick Bites and Red Meat Allergy (PMID 22466475)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.commins_sp_plattsmills_tae",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 88,
+        "original": "Peer-reviewed paper establishing the causal link between Lone Star tick bites and delayed IgE-mediated anaphylaxis to alpha-gal in mammalian meat. The clinical basis for treating AGS as an anaphylaxis-risk allergy, not a food preference. Current Allergy and Asthma Reports, 2013.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.peerreviewed_paper_establishing_the",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 92,
+        "original": "Platts-Mills, T.A.E. et al. — Alpha-gal and Delayed Anaphylaxis (PMID 25956016)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.plattsmills_tae_et_al",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 101,
+        "original": "National Institute of Allergy and Infectious Diseases overview of AGS diagnosis, management, and dietary avoidance. The primary institutional source for the blocked-ingredient taxonomy used by the platform.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.national_institute_of_allergy",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 110,
+        "original": "American Academy of Allergy, Asthma & Immunology (AAAAI) — Alpha-gal Allergy",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_academy_of_allergy",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 111,
+        "original": "AAAAI clinical resource covering ingredient avoidance, hidden sources (gelatin capsules, certain vaccines), and management strategies for patients with confirmed AGS.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.aaaai_clinical_resource_covering",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 145,
+        "original": "FDA — Semaglutide (Ozempic / Wegovy) Prescribing Information, 2025",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.fda_semaglutide_ozempic_wegovy",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 146,
+        "original": "Official FDA prescribing information identifying nausea, vomiting, diarrhea, constipation, abdominal pain, and dyspepsia as common adverse reactions (§6.1), and documenting dehydration and acute kidney injury risk from persistent GI effects (§5.1). The basis for symptom recognition and escalation triggers.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 151,
+        "original": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 162,
+        "original": "Clinical Recommendations to Manage GI Adverse Events in GLP-1 RA Patients — Gut (BMJ), 2023",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_recommendations_to_manage",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 163,
+        "original": "Peer-reviewed consensus paper (PMID 36614945) providing clinical dietary recommendations for managing GLP-1 gastrointestinal side effects. Supports smaller meals, lower-fat foods, neutral flavors, avoidance of carbonated beverages, and protein priority for lean mass preservation.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.peerreviewed_consensus_paper_pmid",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 168,
+        "original": "Evidence-based nutrition practice guidance for metabolic medication users, including protein and fiber recommendations during appetite suppression, and hydration paired with fiber for constipation management.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.evidencebased_nutrition_practice_guidance",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 180,
+        "original": "FDA labeling for both semaglutide and tirzepatide explicitly warns that GI adverse effects can lead to dehydration and acute kidney injury. This is the primary basis for making hydration a first-class daily behavioral signal for metabolic medication users.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.fda_labeling_for_both",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 185,
+        "original": "National Institute of Diabetes and Digestive and Kidney Diseases guidance on delayed gastric emptying — a documented pharmacological effect of GLP-1 medications. Supports avoidance of raw cruciferous vegetables and high insoluble fiber foods; supports hydration emphasis and smaller, softer meals.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.national_institute_of_diabetes",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 190,
+        "original": "GI Symptom Management — Reflux &amp; Diarrhea",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 196,
+        "original": "American Gastroenterological Association (AGA) — GI Symptom Dietary Guidance",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_gastroenterological_association_aga",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 197,
+        "original": "AGA clinical dietary guidance for reflux, dyspepsia, and diarrhea management — the basis for acidic food avoidance when reflux is reported, and reduced insoluble fiber when diarrhea is active.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.aga_clinical_dietary_guidance",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 209,
+        "original": "FDA labeling explicitly states that persistent vomiting can cause dehydration and acute kidney injury requiring medical attention. This is the clinical basis for the escalation message displayed to users who report vomiting or significant difficulty staying hydrated.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.fda_labeling_explicitly_states",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 261,
+        "original": "American Diabetes Association (ADA)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 262,
+        "original": "Nutrition guidance for diabetic-friendly options",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.nutrition_guidance_for_diabeticfriendly",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 286,
+        "original": "Clinical guidelines for nutritional biomarkers including prealbumin (transthyretin) as a marker of nutritional status and acute-phase response in clinical nutrition assessment",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_guidelines_for_nutritional",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 291,
+        "original": "Reference ranges, interpretation guidance, and clinical context for common laboratory markers including metabolic panels, lipid panels, liver function, and kidney function tests",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.reference_ranges_interpretation_guidance",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 295,
+        "original": "American Heart Association (AHA) — Cholesterol & Lipid Guidelines",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_heart_association_aha",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 296,
+        "original": "Evidence-based reference ranges for LDL, HDL, total cholesterol, and triglycerides; clinical thresholds for cardiovascular risk stratification",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.evidencebased_reference_ranges_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 300,
+        "original": "American Diabetes Association (ADA) — Standards of Care",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 301,
+        "original": "Clinical reference ranges for fasting blood glucose, HbA1c, and postprandial glucose; thresholds for prediabetes and diabetes classification",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 306,
+        "original": "Clinical reference thresholds for creatinine, BUN, eGFR, and kidney disease staging used to inform renal protocol activation",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_reference_thresholds_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 316,
+        "original": "Clinical reference ranges for TSH, Free T4, Free T3, and Reverse T3 (rT3) used to support thyroid protocol detection, subtype classification (hypothyroid, hyperthyroid, Hashimoto",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_reference_ranges_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 343,
+        "original": "Clinical guidance for menopause transition, perimenopause staging, hormone reference ranges, and nutritional considerations during the reproductive-to-menopause transition",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_guidance_for_menopause",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 348,
+        "original": "Evidence-based thresholds for Total Testosterone and Free Testosterone used to inform Hormone Optimization protocol activation; clinical reference for low testosterone and nutritional support strategies",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.evidencebased_thresholds_for_total",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 352,
+        "original": "Endocrine Society — Hormone Clinical Practice Guidelines",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.endocrine_society_hormone_clinical",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 353,
+        "original": "Clinical practice guidelines for testosterone deficiency, DHEA-S reference ranges, menopause hormone thresholds, and endocrine nutrition interactions used in hormone protocol design",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 384,
+        "original": "Cancer nutrition, treatment side effects, supportive eating strategies, and patient education",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.cancer_nutrition_treatment_side",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 389,
+        "original": "Nutrition and physical activity guidance for people during and after cancer treatment",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.nutrition_and_physical_activity",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 398,
+        "original": "American Society of Clinical Oncology (ASCO)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_society_of_clinical",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 404,
+        "original": "Supportive care and oncology-related clinical guidance frameworks",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.supportive_care_and_oncologyrelated",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 423,
+        "original": "Clinical practice guidelines for hypothyroidism, Hashimoto",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 427,
+        "original": "American Association of Clinical Endocrinology (AACE)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_association_of_clinical",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 428,
+        "original": "Evidence-based clinical endocrinology guidelines including thyroid function reference ranges",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.evidencebased_clinical_endocrinology_guidelines",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 433,
+        "original": "Clinical practice guidelines for thyroid disorders, autoimmune thyroid disease, and nutrition interactions",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 500,
+        "original": "FDA Food Allergen Labeling (FALCPA)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.fda_food_allergen_labeling",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 501,
+        "original": "Major food allergen identification and labeling requirements",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.major_food_allergen_identification",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 505,
+        "original": "Food Allergy Research & Education (FARE)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.food_allergy_research_education",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 506,
+        "original": "Allergen taxonomy, cross-contamination guidance, and safe alternatives",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.allergen_taxonomy_crosscontamination_guidance",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 510,
+        "original": "American College of Allergy, Asthma & Immunology",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_college_of_allergy",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 511,
+        "original": "Clinical allergen classification and derivative identification",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_allergen_classification_and",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 515,
+        "original": "USDA FSIS Allergen Guidelines",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.usda_fsis_allergen_guidelines",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 601,
+        "original": "Tufts Cummings School of Veterinary Medicine — Clinical Nutrition Service",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.tufts_cummings_school_of",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 616,
+        "original": "AAHA Diabetes Management Guidelines for Dogs and Cats",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.aaha_diabetes_management_guidelines",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 617,
+        "original": "Evidence-based nutritional management of diabetes mellitus in dogs and cats — including species-specific differences: very low carbohydrate is the primary feline intervention; fiber-based management for dogs",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.evidencebased_nutritional_management_of",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 621,
+        "original": "AVMA — American Veterinary Medical Association",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.avma_american_veterinary_medical",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 713,
+        "original": "Clinical guidance for prenatal nutrition, gestational weight gain, nutrient requirements by trimester, and postpartum dietary recommendations",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_guidance_for_prenatal",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 718,
+        "original": "Evidence-based guidelines for high-risk pregnancy nutrition, gestational diabetes management, and fetal growth nutrition considerations",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.evidencebased_guidelines_for_highrisk",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 791,
+        "original": "FDA — Semaglutide (Ozempic / Wegovy) Prescribing Information, 2025",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.fda_semaglutide_ozempic_wegovy",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 792,
+        "original": "Official FDA prescribing information identifying nausea, vomiting, diarrhea, constipation, abdominal pain, and dyspepsia as common adverse reactions (§6.1), and documenting dehydration and acute kidney injury risk from persistent GI effects (§5.1). The basis for symptom recognition and escalation triggers.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 797,
+        "original": "Official FDA prescribing information for the GIP/GLP-1 dual agonist tirzepatide, documenting the same GI adverse reaction profile and dehydration risk. Applies to users on Mounjaro or Zepbound.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.official_fda_prescribing_information",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 808,
+        "original": "Clinical Recommendations to Manage GI Adverse Events in GLP-1 RA Patients — Gut (BMJ), 2023",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_recommendations_to_manage",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 809,
+        "original": "Peer-reviewed consensus paper (PMID 36614945) providing clinical dietary recommendations for managing GLP-1 gastrointestinal side effects. Supports smaller meals, lower-fat foods, neutral flavors, avoidance of carbonated beverages, and protein priority for lean mass preservation.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.peerreviewed_consensus_paper_pmid",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 814,
+        "original": "Evidence-based nutrition practice guidance for metabolic medication users, including protein and fiber recommendations during appetite suppression, and hydration paired with fiber for constipation management.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.evidencebased_nutrition_practice_guidance",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 826,
+        "original": "FDA labeling for both semaglutide and tirzepatide explicitly warns that GI adverse effects can lead to dehydration and acute kidney injury. This is the primary basis for making hydration a first-class daily behavioral signal for metabolic medication users.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.fda_labeling_for_both",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 831,
+        "original": "National Institute of Diabetes and Digestive and Kidney Diseases guidance on delayed gastric emptying — a documented pharmacological effect of GLP-1 medications. Supports avoidance of raw cruciferous vegetables and high insoluble fiber foods; supports hydration emphasis and smaller, softer meals.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.national_institute_of_diabetes",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 836,
+        "original": "GI Symptom Management — Reflux &amp; Diarrhea",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 842,
+        "original": "American Gastroenterological Association (AGA) — GI Symptom Dietary Guidance",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_gastroenterological_association_aga",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 843,
+        "original": "AGA clinical dietary guidance for reflux, dyspepsia, and diarrhea management — the basis for acidic food avoidance when reflux is reported, and reduced insoluble fiber when diarrhea is active.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.aga_clinical_dietary_guidance",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 855,
+        "original": "FDA labeling explicitly states that persistent vomiting can cause dehydration and acute kidney injury requiring medical attention. This is the clinical basis for the escalation message displayed to users who report vomiting or significant difficulty staying hydrated.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.fda_labeling_explicitly_states",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 882,
+        "original": "Clinical Safety",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_safety",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 883,
+        "original": "Medical Hard Limits",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.medical_hard_limits",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 900,
+        "original": "American Diabetes Association (ADA)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_diabetes_association_ada",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 901,
+        "original": "Evidence-based standards of medical care in diabetes — the clinical foundation for blood glucose management and carbohydrate guidance",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.evidencebased_standards_of_medical",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 911,
+        "original": "Clinical practice guidelines for nutrition in chronic kidney disease — potassium, phosphorus, and protein limits",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 921,
+        "original": "Clinical guidelines for thyroid disease management — medication timing, selenium, iodine, and goitrogen considerations",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_guidelines_for_thyroid",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 926,
+        "original": "Clinical practice guidelines for hormone optimization, menopause, and metabolic health — the basis for hormone-balancing nutrition",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.clinical_practice_guidelines_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 930,
+        "original": "American Society of Clinical Oncology (ASCO)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_society_of_clinical",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 931,
+        "original": "Oncology nutrition guidance — nutrient density, immune support, and symptom-aware meal planning for cancer support",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.oncology_nutrition_guidance_nutrient",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 987,
+        "original": "Prochaska, J.O. & DiClemente, C.C. — Stages and Processes of Self-Change (Journal of Consulting and Clinical Psychology, 1983, PMID 6863699)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.prochaska_jo_diclemente_cc",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 1028,
+        "original": "Norcross, J.C. et al. — In Session: Psychotherapy in Practice — Stages of Change (Journal of Clinical Psychology, 2011, PMID 21188747)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.norcross_jc_et_al",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 1064,
+        "original": "American College of Obstetricians and Gynecologists clinical guidance establishing the blocked-food list: raw or undercooked fish and shellfish (listeria, toxoplasma risk), deli meats and hot dogs unless heated to steaming (listeria risk), unpasteurized soft cheeses (listeria risk), raw or soft-boiled eggs (salmonella risk), and alcohol (no safe level established). Every blocked ingredient in the pregnancy protocol traces directly to ACOG or FDA guidance.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.american_college_of_obstetricians",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 1086,
+        "original": "Symptom-Responsive Ingredient Adjustments",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.symptomresponsive_ingredient_adjustments",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 1093,
+        "original": "ACOG clinical guidance establishing ginger, vitamin B6, and small frequent bland meals as first-line dietary interventions for nausea in pregnancy. The basis for the nausea symptom adjustments in every meal generator.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.acog_clinical_guidance_establishing",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 1162,
+        "original": "Allergen Introduction",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.allergen_introduction",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 1168,
+        "original": "NIAID — Addendum Guidelines for Prevention of Peanut Allergy in the United States (Journal of Allergy and Clinical Immunology, 2017, PMID 28065278)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.niaid_addendum_guidelines_for",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/MedicalSourcesInfo.tsx",
+        "relPath": "client/src/components/MedicalSourcesInfo.tsx",
+        "line": 1169,
+        "original": "National Institute of Allergy and Infectious Diseases clinical guidelines establishing early peanut introduction (4–6 months for high-risk infants with eczema or egg allergy) as protective against peanut allergy. The basis for the platform",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalsourcesinfo.national_institute_of_allergy",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/SafetyGuardToggle.tsx",
+        "relPath": "client/src/components/SafetyGuardToggle.tsx",
+        "line": 62,
+        "original": "Allergy protection disabled for this meal only.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "safetyguardtoggle.allergy_protection_disabled_for",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/SafetyGuardToggle.tsx",
+        "relPath": "client/src/components/SafetyGuardToggle.tsx",
+        "line": 103,
+        "original": "Allergy Protection",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "safetyguardtoggle.allergy_protection",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/ace/CoachingProfileSetup.tsx",
+        "relPath": "client/src/components/ace/CoachingProfileSetup.tsx",
+        "line": 28,
+        "original": "Medical Condition",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "coachingprofilesetup.medical_condition",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "relPath": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "line": 427,
+        "original": "Clinical Labs Saved",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicallabscard.clinical_labs_saved",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "relPath": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "line": 498,
+        "original": "Clinical Labs Saved",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicallabscard.clinical_labs_saved",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "relPath": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "line": 545,
+        "original": "Clinical Labs Saved",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicallabscard.clinical_labs_saved",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "relPath": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "line": 614,
+        "original": "Diabetes & Insulin",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicallabscard.diabetes_insulin",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "relPath": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "line": 625,
+        "original": "Fasting Glucose",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicallabscard.fasting_glucose",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "relPath": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "line": 626,
+        "original": "Fasting Insulin",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicallabscard.fasting_insulin",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "relPath": "client/src/components/biometrics/ClinicalLabsCard.tsx",
+        "line": 829,
+        "original": "Physician-guided protocol active",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicallabscard.physicianguided_protocol_active",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/biometrics/TherapeuticNutritionCard.tsx",
+        "relPath": "client/src/components/biometrics/TherapeuticNutritionCard.tsx",
+        "line": 84,
+        "original": "Semaglutide (Ozempic / Wegovy)",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "therapeuticnutritioncard.semaglutide_ozempic_wegovy",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/dashboard/TodaysPrescriptionCard.tsx",
+        "relPath": "client/src/components/dashboard/TodaysPrescriptionCard.tsx",
+        "line": 102,
+        "original": "Today's Nutrition Prescription",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "todaysprescriptioncard.todays_nutrition_prescription",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/diabetic/GLP1CompanionModal.tsx",
+        "relPath": "client/src/components/diabetic/GLP1CompanionModal.tsx",
+        "line": 38,
+        "original": "Active alongside your diabetic protocol",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glp1companionmodal.active_alongside_your_diabetic",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/diabetic/GLP1CompanionModal.tsx",
+        "relPath": "client/src/components/diabetic/GLP1CompanionModal.tsx",
+        "line": 83,
+        "original": "Metabolic Medication Guardrails",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glp1companionmodal.metabolic_medication_guardrails",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "relPath": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "line": 43,
+        "original": "Glucose carb preferences saved",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glycemicsettingsmodal.glucose_carb_preferences_saved",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "relPath": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "line": 76,
+        "original": "Glucose-Based Carb Choices",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glycemicsettingsmodal.glucosebased_carb_choices",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "relPath": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "line": 86,
+        "original": "How Glucose-Based Food Choices Work",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glycemicsettingsmodal.how_glucosebased_food_choices",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "relPath": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "line": 93,
+        "original": "When your glucose is",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glycemicsettingsmodal.when_your_glucose_is",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "relPath": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "line": 97,
+        "original": "When your glucose is",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glycemicsettingsmodal.when_your_glucose_is",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "relPath": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+        "line": 101,
+        "original": "When your glucose is",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glycemicsettingsmodal.when_your_glucose_is",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/glp1/GLP1DailyCheckin.tsx",
+        "relPath": "client/src/components/glp1/GLP1DailyCheckin.tsx",
+        "line": 191,
+        "original": "Contact your healthcare provider",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glp1dailycheckin.contact_your_healthcare_provider",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/glp1/GLP1DailyCheckin.tsx",
+        "relPath": "client/src/components/glp1/GLP1DailyCheckin.tsx",
+        "line": 339,
+        "original": "Contact your healthcare provider",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glp1dailycheckin.contact_your_healthcare_provider",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/glp1/GLP1DailyCheckin.tsx",
+        "relPath": "client/src/components/glp1/GLP1DailyCheckin.tsx",
+        "line": 533,
+        "original": "Notify my physician",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "glp1dailycheckin.notify_my_physician",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/meal/MedicalBadges.tsx",
+        "relPath": "client/src/components/meal/MedicalBadges.tsx",
+        "line": 53,
+        "original": "Show medical badges",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "medicalbadges.show_medical_badges",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/modals/TierUpgradeModal.tsx",
+        "relPath": "client/src/components/modals/TierUpgradeModal.tsx",
+        "line": 49,
+        "original": "Essential, Pro & Clinical",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "tierupgrademodal.essential_pro_clinical",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+        "relPath": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+        "line": 43,
+        "original": "Suspected Insulin Resistance",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicaladvisorydrawer.suspected_insulin_resistance",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+        "relPath": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+        "line": 44,
+        "original": "Metabolic indicators suggest reduced insulin sensitivity",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicaladvisorydrawer.metabolic_indicators_suggest_reduced",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/pro/ClinicalInterventionPanel.tsx",
+        "relPath": "client/src/components/pro/ClinicalInterventionPanel.tsx",
+        "line": 174,
+        "original": "Clinical Adjustments",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "clinicalinterventionpanel.clinical_adjustments",
+        "isSharedComponent": true,
+        "inJSX": true,
+        "inConfig": false
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+        "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+        "line": 31,
+        "original": "Active Clinical Supports",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "proclientfoldermodal.active_clinical_supports",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+        "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+        "line": 32,
+        "original": "The colored dots show which clinical protocols are active for this client. A glowing dot means that protocol is shaping every meal the AI generates. Tap any dot to see exactly what it does. Dots activate from your settings, physician assignment, or automatically when lab values cross clinical thresholds.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "proclientfoldermodal.the_colored_dots_show",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      },
+      {
+        "file": "/home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx",
+        "relPath": "client/src/components/pro/ProClientFolderModal.tsx",
+        "line": 37,
+        "original": "Messages are a shared conversation — your client can read them and reply. Provider Notes are internal only and are never visible to the client. Use notes for clinical observations, progress documentation, or anything that should stay in your professional records.",
+        "classification": "CLINICAL_SAFETY",
+        "reason": "Clinical/medical terminology — requires expert review",
+        "proposedKey": "proclientfoldermodal.messages_are_a_shared",
+        "isSharedComponent": true,
+        "inJSX": false,
+        "inConfig": true
+      }
+    ]
+  },
+  "deliverable5_validationGates": [
+    {
+      "id": "GATE_01",
+      "name": "Hardcoded string lint gate",
+      "tool": "eslint-plugin-i18next",
+      "scope": "ACTIVE surfaces that have been migrated",
+      "trigger": "pre-commit / CI",
+      "severity": "ERROR — blocks merge",
+      "status": "NOT INSTALLED",
+      "effort": "Low — npm install + .eslintrc config"
+    },
+    {
+      "id": "GATE_02",
+      "name": "Key parity check",
+      "tool": "scripts/i18n-foundation-analysis.ts (this script)",
+      "scope": "All 14 locales vs en.json baseline",
+      "trigger": "CI on every locale file change",
+      "severity": "ERROR if any ACTIVE-surface key missing from ≥1 locale",
+      "status": "LOGIC EXISTS — needs CI wiring",
+      "effort": "Low — add as CI step"
+    },
+    {
+      "id": "GATE_03",
+      "name": "Reachability classification",
+      "tool": "scripts/i18n-reachability-audit.ts",
+      "scope": "All 690 .tsx files",
+      "trigger": "Weekly or on new file added",
+      "severity": "WARN for new ORPHAN_DEAD files, ERROR for new hardcoded strings on ACTIVE",
+      "status": "SCRIPT EXISTS — needs CI wiring",
+      "effort": "Low"
+    },
+    {
+      "id": "GATE_04",
+      "name": "Pseudo-localization expansion test",
+      "tool": "Playwright — load app with expanded strings",
+      "scope": "All ACTIVE shared components",
+      "trigger": "CI on component changes",
+      "severity": "ERROR for overflow / clipping / inaccessible controls",
+      "status": "NOT BUILT",
+      "effort": "Medium — requires Playwright setup + pseudo-locale"
+    },
+    {
+      "id": "GATE_05",
+      "name": "RTL layout validation",
+      "tool": "Playwright — Arabic locale at 375px",
+      "scope": "All ACTIVE shared components + navigation",
+      "trigger": "CI on component/layout changes",
+      "severity": "ERROR for mirroring failures, missing direction-aware icons",
+      "status": "NOT BUILT",
+      "effort": "Medium"
+    },
+    {
+      "id": "GATE_06",
+      "name": "Fallback-to-English detector",
+      "tool": "Runtime detection script",
+      "scope": "All active pages at non-English locale",
+      "trigger": "E2E test run",
+      "severity": "WARN per missing key, ERROR if >5% of page strings are English fallback",
+      "status": "NOT BUILT",
+      "effort": "Medium"
+    },
+    {
+      "id": "GATE_07",
+      "name": "Clinical string change gate",
+      "tool": "Git diff checker on CLINICAL_SAFETY-tagged strings",
+      "scope": "130 clinical strings on active surfaces",
+      "trigger": "pre-commit when clinical files change",
+      "severity": "WARN — require clinical review annotation in PR",
+      "status": "NOT BUILT",
+      "effort": "Low — git diff + annotation check"
+    }
+  ],
+  "deliverable6_migrationBatches": {
+    "batchA_sharedComponents": [
+      "client/src/components/MedicalSourcesInfo.tsx",
+      "client/src/components/DevNavigator.tsx",
+      "client/src/components/biometrics/IngredientIntelligenceSheet.tsx",
+      "client/src/components/performance/PerformanceNutritionSetupForm.tsx",
+      "client/src/components/CreateWithChefModal.tsx",
+      "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "client/src/components/DietStyleBadge.tsx",
+      "client/src/components/AddToMealPlanButton.tsx",
+      "client/src/components/ShoppingAggregateBar.tsx",
+      "client/src/components/biometrics/TherapeuticNutritionCard.tsx"
+    ],
+    "batchB_highTrafficSafePages": [
+      "client/src/components/pickers/AthleteMealPickerDrawer.tsx",
+      "client/src/components/biometrics/IngredientIntelligenceSheet.tsx",
+      "client/src/components/kitchen/KitchenPartnerIntakeModal.tsx",
+      "client/src/components/pickers/CompetitionMealPickerDrawer.tsx",
+      "client/src/components/ProfileSheet.tsx",
+      "client/src/components/MealReminders.tsx",
+      "client/src/components/InspirationCaptureModal.tsx",
+      "client/src/components/SafetyPinSettings.tsx",
+      "client/src/components/my-perfect-beginning/ParentsCorner.tsx",
+      "client/src/components/macro-targeting/BodyCompositionSheet.tsx",
+      "client/src/components/MfaSetupSection.tsx",
+      "client/src/components/dashboard/ComplianceCard.tsx",
+      "client/src/components/SponsorEndedBanner.tsx",
+      "client/src/components/biometrics/RemainingMacrosFooter.tsx",
+      "client/src/components/pickers/MealPickerDrawer.tsx"
+    ],
+    "batchC_mixedPages": [
+      "client/src/components/AddToCalendarButtons.tsx",
+      "client/src/components/AlphaGalProfileModal.tsx",
+      "client/src/components/BugReportModal.tsx",
+      "client/src/components/DietGuardIntercept.tsx",
+      "client/src/components/PregnancySupportSetupModal.tsx",
+      "client/src/components/Router.tsx",
+      "client/src/components/biometrics/MacroBridgeButton.tsx",
+      "client/src/components/kitchen/ChefCoPilotWalkthrough.tsx",
+      "client/src/components/macro-targeting/MetabolicConsiderations.tsx",
+      "client/src/components/partner-center/MessagingGuide.tsx",
+      "client/src/components/pro/CheckInAlertPreferences.tsx"
+    ],
+    "batchD_clinicalFiles": [
+      "client/src/components/CreateWithChefModal.tsx",
+      "client/src/components/DevNavigator.tsx",
+      "client/src/components/DietStyleBadge.tsx",
+      "client/src/components/GlucoseGuardExplainerModal.tsx",
+      "client/src/components/MedicalSourcesInfo.tsx",
+      "client/src/components/SafetyGuardToggle.tsx",
+      "client/src/components/ace/CoachingProfileSetup.tsx",
+      "client/src/components/biometrics/ClinicalLabsCard.tsx",
+      "client/src/components/biometrics/TherapeuticNutritionCard.tsx",
+      "client/src/components/dashboard/TodaysPrescriptionCard.tsx"
+    ],
+    "sequencing": [
+      "1. Install eslint-plugin-i18next gate (GATE_01) — no app changes, just tooling",
+      "2. Run key parity sync on all 13 locales for ALREADY-TRANSLATED keys only",
+      "3. Migrate Batch A shared components (highest ROI per string fixed)",
+      "4. Wire GATE_02 key parity into CI",
+      "5. Migrate Batch B high-traffic safe pages",
+      "6. Build pseudo-localization test suite (GATE_04)",
+      "7. Build RTL validation (GATE_05)",
+      "8. Migrate Batch C mixed pages (human review required)",
+      "9. Migrate Batch D clinical strings (clinical review required)",
+      "10. Address AI locale propagation (separate track — 30+ bypass openaiSafe.ts)"
+    ]
+  }
+}

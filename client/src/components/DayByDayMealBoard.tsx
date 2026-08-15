@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { addMealsToShopping } from "@/lib/shoppingListApi";
 import { apiRequest } from "@/lib/queryClient";
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { weekDates } from "@/lib/boardApi";
 import { formatDateDisplay } from "@/utils/midnight";

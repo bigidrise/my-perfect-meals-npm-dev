@@ -63,6 +63,7 @@ import {
 } from './safetyProfileService';
 import { storage } from '../storage';
 import OpenAI from 'openai';
+import { getLanguageInstruction } from '../utils/languageInstruction';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
@@ -310,6 +311,8 @@ export interface MealGenerationRequest {
    * Loaded server-side by the route handler — never trusted from the client body.
    */
   glp1Targets?: ResolvedGLP1Targets;
+  /** User's preferred language code (BCP-47). Forwarded to downstream generators. */
+  preferredLanguage?: string;
 }
 
 export interface MealGenerationResponse {
@@ -603,7 +606,8 @@ export async function generateCravingMealUnified(
   dietaryRestrictionsOverride?: string[],
   strictMode: boolean = false,
   starchContext?: StarchContext,
-  glp1Targets?: ResolvedGLP1Targets
+  glp1Targets?: ResolvedGLP1Targets,
+  preferredLanguage?: string
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -825,7 +829,8 @@ REQUIRED STRUCTURE FOR EVERY MEAL:
         );
       }
 
-      const prompt = `You are a creative chef helping someone satisfy their food craving.
+      const cravingLangInstruction = getLanguageInstruction(preferredLanguage);
+      const prompt = `${cravingLangInstruction ? cravingLangInstruction + "\n\n" : ""}You are a creative chef helping someone satisfy their food craving.
 ${cravingDietBlock ? `\n${cravingDietBlock}\n` : ""}${glp1CravingBlock ? `\n${glp1CravingBlock}\n` : ""}${oncologyCravingBlock}${strictMode ? `\n${buildStrictModeBlock(cravingInput)}\n` : ""}${starchGuidance ? `\n${starchGuidance}\n` : ""}
 CRAVING: "${cravingInput}"
 MEAL TYPE: ${validMealType}
@@ -2250,7 +2255,8 @@ export async function generateFridgeRescueUnified(
   userId?: string,
   macroTargets?: MealGenerationRequest['macroTargets'],
   count: number = 3,
-  useFallbackOnly: boolean = false
+  useFallbackOnly: boolean = false,
+  preferredLanguage?: string
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -2392,6 +2398,7 @@ export async function generateFridgeRescueUnified(
       macroTargets,
       protocolEnvelope: fridgeEnvelope,
       builderBlock: oncologyFridgeEnhancement,
+      preferredLanguage,
     });
     
     // Convert to UnifiedMeal format + normalize ingredients to US units
@@ -2443,6 +2450,7 @@ export async function generateFridgeRescueUnified(
             protocolEnvelope: fridgeEnvelope,
             strictMode: true,
             builderBlock: oncologyFridgeEnhancement,
+            preferredLanguage,
           });
           const retryConverted: UnifiedMeal[] = retryMeals.slice(0, violatingMeals.length).map(meal => ({
             id: meal.id,
@@ -4195,7 +4203,7 @@ export async function generateMealUnified(
       const cravingInput = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true, request.starchContext, request.glp1Targets);
+      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true, request.starchContext, request.glp1Targets, request.preferredLanguage);
       break;
 
     case 'create-with-chef':
@@ -4241,7 +4249,8 @@ export async function generateMealUnified(
         request.userId,
         request.macroTargets,
         request.count || 1,
-        useFallbackOnly
+        useFallbackOnly,
+        request.preferredLanguage
       );
       break;
 

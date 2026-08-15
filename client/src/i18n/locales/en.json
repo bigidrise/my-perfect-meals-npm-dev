@@ -67,7 +67,12 @@
     "translate": "Translate",
     "share": "Share",
     "log": "Log",
-    "logMeal": "Log Meal"
+    "logMeal": "Log Meal",
+    "addToCalendar": "Add to calendar",
+    "bringBackChef": "Bring back your chef",
+    "comingSoon": "Coming Soon",
+    "withChef": "With Chef",
+    "today": "Today:"
   },
   "language": {
     "pageTitle": "Language",
@@ -458,7 +463,8 @@
     "servings": "servings",
     "ingredientsServes": "Ingredients (serves {{count}})",
     "noIngredients": "No ingredients provided",
-    "noInstructions": "No instructions provided"
+    "noInstructions": "No instructions provided",
+    "couldNotUpdateFavorites": "Could not update favorites. Try again."
   },
   "shopping": {
     "pageTitle": "Smart Grocery List",
@@ -1674,6 +1680,171 @@
       "invitationSent": "Invitation sent"
     }
   },
+  "mealCard": {
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "ingredients": "Ingredients:",
+    "instructions": "Instructions:",
+    "medicalSafety": "Medical Safety",
+    "diabetesProtocol": "Diabetes Protocol",
+    "whyThisMealWasBuilt": "Why This Meal Was Built",
+    "showLess": "Show less",
+    "showAllSteps": "Show all {{count}} steps",
+    "moreIngredients": "+ {{count}} more...",
+    "loggedSuccessfully": "Logged Successfully",
+    "failedToLog": "Failed to log macros. Please try again.",
+    "deleteMeal": "Delete meal",
+    "removeFromBoard": "Remove this meal from the board?",
+    "refineMeal": "Refine Meal",
+    "showingRefined": "Showing refined version",
+    "restoreOriginal": "Restore original",
+    "competitionPrepProtocol": "🏆 Competition Prep Protocol Applied",
+    "athleticPerformanceProtocol": "⚡ Athletic Performance Protocol Applied",
+    "loggedDesc": "{{name}} has been logged to your macros.",
+    "ingredientFallback": "Ingredient",
+    "generatedForBGL": "Generated for BGL:",
+    "relevantRange": "Relevant range:",
+    "weeksOut": "{{n}} Weeks Out",
+    "sessionsPerWeek": "{{n}} sessions/week",
+    "protocol_goalFatLoss": "Fat Loss Priority",
+    "protocol_goalMuscleGain": "Muscle Growth Priority",
+    "protocol_goalStrength": "Strength Priority",
+    "protocol_goalPeak": "Peak Performance Priority",
+    "protocol_athleticPerfLabel": "Athletic Performance — {{sport}}",
+    "protocol_competitionPrepLabel": "Competition Prep — {{type}}",
+    "protocol_performancePhaseFallback": "Performance Phase",
+    "protocol_recoverySupportActive": "Recovery Support Active",
+    "protocol_sport_strength": "Strength Training",
+    "protocol_sport_hypertrophy": "Hypertrophy",
+    "protocol_sport_powerlifting": "Powerlifting",
+    "protocol_sport_olympic_lifting": "Olympic Lifting",
+    "protocol_sport_mma": "MMA",
+    "protocol_sport_boxing": "Boxing",
+    "protocol_sport_wrestling": "Wrestling",
+    "protocol_sport_bjj": "BJJ / Grappling",
+    "protocol_sport_crossfit": "CrossFit",
+    "protocol_sport_endurance_running": "Running",
+    "protocol_sport_cycling": "Cycling",
+    "protocol_sport_triathlon": "Triathlon",
+    "protocol_sport_tactical": "Tactical / Military",
+    "protocol_sport_general_fitness": "General Fitness",
+    "protocol_sport_other": "Other Sport",
+    "protocol_phase_off_season": "Off Season",
+    "protocol_phase_pre_season": "Pre-Season",
+    "protocol_phase_in_season": "In Season",
+    "protocol_phase_weight_cut": "Weight Cut Phase",
+    "protocol_phase_recovery": "Recovery Phase",
+    "protocol_bullet_fat_loss_0": "High Protein Target (≥2g/kg)",
+    "protocol_bullet_fat_loss_1": "Caloric Deficit Strategy",
+    "protocol_bullet_conditioning_0": "Carb Timing — Pre/Post Training",
+    "protocol_bullet_conditioning_1": "Anti-Inflammatory Recovery",
+    "protocol_bullet_peak_prep_0": "Sodium Reduction Active",
+    "protocol_bullet_peak_prep_1": "Digestibility Priority",
+    "protocol_bullet_peak_week_0": "Low Fiber Protocol Active",
+    "protocol_bullet_peak_week_1": "Low Sodium — Water Control",
+    "protocol_bullet_show_day_0": "Rapid Digestibility Protocol",
+    "protocol_bullet_show_day_1": "Carb Timing for Performance",
+    "protocol_bullet_meet_week_0": "Carb Loading Protocol Active",
+    "protocol_bullet_meet_week_1": "CNS Recovery Nutrients",
+    "protocol_bullet_meet_day_0": "Pre-Meet Carb Protocol",
+    "protocol_bullet_meet_day_1": "Digestibility First",
+    "protocol_bullet_weight_cut_0": "Sodium Restriction Active",
+    "protocol_bullet_weight_cut_1": "Electrolyte Management",
+    "protocol_bullet_fight_week_0": "Water Management Protocol",
+    "protocol_bullet_fight_week_1": "Rehydration-Ready Meals",
+    "protocol_bullet_taper_0": "Carb Loading (8–10g/kg)",
+    "protocol_bullet_taper_1": "Fiber Reduction Active",
+    "protocol_bullet_race_day_0": "Race-Day Carb Protocol",
+    "protocol_bullet_race_day_1": "Gut-Safe Nutrition",
+    "protocol_bullet_post_competition_0": "Recovery Refeed Active",
+    "protocol_bullet_post_competition_1": "Anti-Inflammatory Priority",
+    "protocol_bullet_post_race_0": "Post-Race Recovery Nutrition",
+    "protocol_bullet_post_race_1": "Caloric Increase",
+    "sportFallback": "Sport",
+    "mealFallback": "Meal",
+    "protocol_phaselabel_fat_loss": "Fat Loss Phase",
+    "protocol_phaselabel_conditioning": "Conditioning Phase",
+    "protocol_phaselabel_peak_prep": "Peak Prep",
+    "protocol_phaselabel_peak_week": "Peak Week",
+    "protocol_phaselabel_show_day": "Show Day",
+    "protocol_phaselabel_post_competition": "Post-Event Recovery",
+    "protocol_phaselabel_strength_building": "Strength Building",
+    "protocol_phaselabel_intensity_phase": "Intensity Phase",
+    "protocol_phaselabel_taper": "Taper Phase",
+    "protocol_phaselabel_meet_week": "Meet Week",
+    "protocol_phaselabel_meet_day": "Meet Day",
+    "protocol_phaselabel_conditioning_combat": "Conditioning Camp",
+    "protocol_phaselabel_fight_prep": "Fight Prep",
+    "protocol_phaselabel_weight_cut": "Weight Cut",
+    "protocol_phaselabel_fight_week": "Fight Week",
+    "protocol_phaselabel_fight_day": "Fight Day",
+    "protocol_phaselabel_pre_season": "Pre-Season",
+    "protocol_phaselabel_in_season": "In-Season",
+    "protocol_phaselabel_championship_week": "Championship Week",
+    "protocol_phaselabel_match_day": "Match Day",
+    "protocol_phaselabel_off_season": "Off-Season",
+    "protocol_phaselabel_base_conditioning": "Base Conditioning",
+    "protocol_phaselabel_event_prep": "Event Prep",
+    "protocol_phaselabel_competition_week": "Competition Week",
+    "protocol_phaselabel_competition_day": "Competition Day",
+    "protocol_phaselabel_base_building": "Base Building",
+    "protocol_phaselabel_build_phase": "Build Phase",
+    "protocol_phaselabel_race_prep": "Race Prep",
+    "protocol_phaselabel_race_day": "Race Day",
+    "protocol_phaselabel_post_race": "Post-Race Recovery",
+    "protocol_comptype_bodybuilding_show": "Bodybuilding Show",
+    "protocol_comptype_mens_physique": "Men's Physique",
+    "protocol_comptype_classic_physique": "Classic Physique",
+    "protocol_comptype_figure": "Figure",
+    "protocol_comptype_bikini": "Bikini",
+    "protocol_comptype_wellness": "Wellness",
+    "protocol_comptype_powerlifting_meet": "Powerlifting Meet",
+    "protocol_comptype_strongman_competition": "Strongman",
+    "protocol_comptype_olympic_weightlifting_meet": "Olympic Weightlifting",
+    "protocol_comptype_fight_camp": "Fight Camp",
+    "protocol_comptype_wrestling_season": "Wrestling Season",
+    "protocol_comptype_crossfit_competition": "CrossFit Competition",
+    "protocol_comptype_hyrox": "Hyrox",
+    "protocol_comptype_marathon": "Marathon",
+    "protocol_comptype_triathlon_race": "Triathlon",
+    "protocol_comptype_spartan_race": "Spartan Race",
+    "protocol_comptype_other": "Other",
+    "protocol_bullet_strength_building_0": "Building Phase Caloric Support",
+    "protocol_bullet_strength_building_1": "Progressive Overload Fueling",
+    "protocol_bullet_intensity_phase_0": "Intensified Carb Timing",
+    "protocol_bullet_intensity_phase_1": "CNS Recovery Nutrition",
+    "protocol_bullet_conditioning_combat_0": "Combat Conditioning Meals",
+    "protocol_bullet_conditioning_combat_1": "Anti-Inflammatory Focus",
+    "protocol_bullet_fight_prep_0": "Fight Prep Nutrition Active",
+    "protocol_bullet_fight_prep_1": "Weight Class Awareness",
+    "protocol_bullet_fight_day_0": "Fight Day Fueling Protocol",
+    "protocol_bullet_fight_day_1": "Rapid Digestibility Active",
+    "protocol_bullet_pre_season_0": "Pre-Season Base Fueling",
+    "protocol_bullet_pre_season_1": "Strength Foundation Support",
+    "protocol_bullet_in_season_0": "In-Season Recovery Meals",
+    "protocol_bullet_in_season_1": "Competition Weight Support",
+    "protocol_bullet_championship_week_0": "Championship Peak Protocol",
+    "protocol_bullet_championship_week_1": "Low Fiber — Clean Fueling",
+    "protocol_bullet_match_day_0": "Match Day Carb Protocol",
+    "protocol_bullet_match_day_1": "Digestibility First",
+    "protocol_bullet_off_season_0": "Off-Season Base Nutrition",
+    "protocol_bullet_off_season_1": "Recovery Focus Active",
+    "protocol_bullet_base_conditioning_0": "Aerobic Base Fuel Support",
+    "protocol_bullet_base_conditioning_1": "Carb Periodization Active",
+    "protocol_bullet_event_prep_0": "Event Prep Nutrition Active",
+    "protocol_bullet_event_prep_1": "Carb Timing Optimized",
+    "protocol_bullet_competition_week_0": "Competition Week Protocol",
+    "protocol_bullet_competition_week_1": "Low Fiber Active",
+    "protocol_bullet_competition_day_0": "Competition Day Fueling",
+    "protocol_bullet_competition_day_1": "Rapid Digestibility Protocol",
+    "protocol_bullet_base_building_0": "Aerobic Base Nutrition",
+    "protocol_bullet_base_building_1": "Endurance Fueling Protocol",
+    "protocol_bullet_build_phase_0": "Progressive Build Fueling",
+    "protocol_bullet_build_phase_1": "Carb Periodization Active",
+    "protocol_bullet_race_prep_0": "Peak Training Carb Protocol",
+    "protocol_bullet_race_prep_1": "Endurance Fuel Optimization"
+  },
   "performanceCompetitionBuilder": {
     "pageTitle": "Performance & Competition Builder",
     "backLabel": "Performance Hub",
@@ -1914,5 +2085,1607 @@
     "mealAddedDesc": "{{name}} added successfully",
     "noSlotYet": "No {{slot}} yet",
     "noSnacksYet": "No snacks yet"
+  },
+  "trialStatusCard": {
+    "adminTrial": "Admin Trial",
+    "clinicalTrial": "Clinical Trial",
+    "promotionalTrial": "Promotional Trial",
+    "freeTrial": "Free Trial",
+    "clinicalUltimate": "Clinical · Ultimate",
+    "trialEndsToday": "Your trial ends today",
+    "daysLeftInTrial": "{{count}} days left in your trial",
+    "daysOfDaysRemaining": "{{count}} of {{total}} days remaining",
+    "accountMovesFree": "Your account moves to the Free plan tonight. All your data stays safe.",
+    "trialExpires": "Trial expires {{date}}",
+    "keepFullAccess": "Keep full access →",
+    "tierFull": "Full"
+  },
+  "trialBanner": {
+    "lastDayTitle": "Your complimentary Pro access ends today",
+    "lastDayBody": "Your account moves to the Free plan tonight.",
+    "lastDayDataSafe": "All your data stays safe.",
+    "lastDayUpgradeHint": "Upgrade anytime to keep Pro features.",
+    "upgradeToPro": "Upgrade to Pro",
+    "exploreFeatures": "Explore features",
+    "dismiss": "Dismiss",
+    "daysLeft": "{{count}} days left",
+    "oneDayLeft": "1 day left",
+    "trialCountdown": "in your trial — {{tierLabel}} ends soon.",
+    "clinicalAccess": "Clinical access",
+    "fullAccess": "full access"
+  },
+  "groceryDashCard": {
+    "title": "Weekly Grocery List",
+    "description": "Your personalized shopping list based on meal plans",
+    "itemsCompleted": "{{completed}} of {{total}} items completed",
+    "shoppingDone": "{{pct}}% of your shopping done",
+    "updatedToday": "Updated today",
+    "recentItems": "Recent Items",
+    "addItem": "Add Item",
+    "viewFullList": "View Full List",
+    "noItems": "Your grocery list is empty. Add items from your meal plan to get started."
+  },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "My Perfect Meals",
+      "features": "Features",
+      "howItWorks": "How It Works",
+      "pricing": "Pricing",
+      "signIn": "Sign In"
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "description": "We're having trouble loading this page. Please refresh and try again.",
+      "refresh": "Refresh Page"
+    },
+    "dateSlotPicker": {
+      "placeholder": "Select meal slot"
+    },
+    "mealSlots": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "dailyNutritionTracker": {
+      "title": "Daily Nutrition Progress",
+      "description": "Track your daily nutritional intake",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbohydrates": "Carbohydrates",
+      "fat": "Fat",
+      "onTrack": "On track with your daily goals!"
+    },
+    "pagination": {
+      "label": "pagination",
+      "previousPage": "Go to previous page",
+      "previous": "Previous",
+      "nextPage": "Go to next page",
+      "next": "Next",
+      "morePages": "More pages"
+    },
+    "mealCard": {
+      "noRecipe": "No recipe",
+      "addMeal": "Add a meal",
+      "serving": "Serving:",
+      "ingredients": "Ingredients:",
+      "cookingInstructions": "Cooking Instructions:",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat"
+    },
+    "nutritionSummary": {
+      "title": "Nutrition Summary",
+      "empty": "Generate a meal plan to see your nutrition summary",
+      "weeklyOverview": "Weekly Overview",
+      "totalCalories": "Total Calories",
+      "dailyAverage": "Daily Average",
+      "totalProtein": "Total Protein",
+      "daysPlanned": "Days Planned",
+      "dailyTargets": "Daily Targets",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbohydrates": "Carbohydrates",
+      "fat": "Fat",
+      "targetMet": "Target met",
+      "goalProgress": "Goal Progress",
+      "fitnessGoal": "Fitness Goal",
+      "activityLevel": "Activity Level",
+      "dietaryPreferences": "Dietary Preferences",
+      "balanceScore": "Balance Score",
+      "percentOfTarget": "{{n}}% of target",
+      "remainingCal": "{{n}} remaining",
+      "remainingG": "{{n}}g remaining"
+    },
+    "enhancedMealCard": {
+      "replace": "Replace",
+      "replacing": "Replacing...",
+      "replaceTitle": "Replace with a completely new meal recipe",
+      "replacingTitle": "Replacing meal...",
+      "portionGuide": "Portion Guide:",
+      "ingredients": "Ingredients:",
+      "instructions": "Instructions:",
+      "medicalSafety": "Medical Safety:",
+      "error": "Error:"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "Remaining Today",
+    "protein": "Protein",
+    "starchy": "Starchy",
+    "fibrous": "Fibrous",
+    "fat": "Fat",
+    "setMacrosPrompt": "Set your macros to see what’s left for today.",
+    "saveDay": "Save Day to Biometrics",
+    "targetsUpdated": "Targets updated mid-day",
+    "targetsUpdatedReason": "Targets updated mid-day — {{reason}}",
+    "dismiss": "Dismiss",
+    "overLimit": "⚠ over limit",
+    "limit": "★ limit",
+    "coach": {
+      "title": "Macro Coach",
+      "subtitle": "How to read your remaining targets",
+      "proteinTitle": "Protein",
+      "proteinBody": "Hit this target to protect muscle and stay full.",
+      "proteinBullet1": "Prioritize lean sources at each meal.",
+      "proteinBullet2": "Spread intake across the day.",
+      "carbsTitle": "Carbs",
+      "carbsBody": "Fuel training with starchy carbs, round out with fibrous.",
+      "carbsBullet1": "Starchy carbs power performance.",
+      "carbsBullet2": "Fibrous carbs aid digestion and fullness.",
+      "fatTitle": "Fat",
+      "fatBody": "Keep fats moderate to balance energy and hormones.",
+      "fatBullet1": "Favor healthy fats.",
+      "fatBullet2": "Watch portions — fat is calorie-dense.",
+      "closingTitle": "Stay flexible",
+      "closingBody": "Targets adapt to your day — get close and stay consistent.",
+      "infoAria": "What do these numbers mean?",
+      "info": "Info",
+      "starchyTitle": "Starchy Carbs — Your Main Target",
+      "starchy1": "Stay at or under your daily cap.",
+      "starchy2": "Going over slows your progress — this one matters.",
+      "starchy3": "Being under is completely fine. Don't force it.",
+      "flexTitle": "Protein & Fiber — Stay Flexible",
+      "flex1": "A little high or low doesn't break anything.",
+      "flex2": "Don't chase perfection on these two.",
+      "fat1": "Fat rises naturally with your food choices.",
+      "fat2": "Dietary fat is not the driver of fat gain — don't fixate on it.",
+      "closing1": "Focus on staying within your starch target and let the rest fall into place.",
+      "closing2": "You don't need to be perfect. You need to be consistent."
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "Competition prep protocol saved.",
+      "athleticSaved": "Athletic performance protocol saved.",
+      "activated": "Protocol activated",
+      "errorTitle": "Error",
+      "errorDesc": "Could not save. Please try again."
+    },
+    "stepCount": "Step {{current}} of {{total}}",
+    "back": "Back",
+    "next": "Next",
+    "saving": "Saving...",
+    "activateProtocol": "Activate Protocol",
+    "optional": "(optional)",
+    "track": {
+      "title": "What describes your goal?",
+      "subtitle": "Each track uses a completely different protocol engine.",
+      "athleticTitle": "Athletic Performance",
+      "athleticDesc": "MMA, boxing, wrestling, football, CrossFit, endurance, tactical. Goal is performance — fueling, recovery, adaptation.",
+      "compTitle": "Competition Prep",
+      "compDesc": "Bodybuilding, physique, powerlifting meet, fight camp, wrestling season. Your event date drives every phase automatically."
+    },
+    "goals": {
+      "title": "What's your primary goal?",
+      "subtitle": "This shapes macro priorities and meal energy density.",
+      "fatLoss": {
+        "label": "Fat Loss",
+        "desc": "Lean out while preserving performance"
+      },
+      "muscleGain": {
+        "label": "Muscle Gain",
+        "desc": "Hypertrophy and anabolism"
+      },
+      "maintenance": {
+        "label": "Maintenance",
+        "desc": "Body composition stability"
+      },
+      "performance": {
+        "label": "Peak Performance",
+        "desc": "Output, speed, and power"
+      }
+    },
+    "trainingType": {
+      "title": "What type of training do you do?",
+      "subtitle": "Select your primary sport or discipline.",
+      "otherPlaceholder": "Other {{group}} sport…"
+    },
+    "trainingTypes": {
+      "strength": "Strength",
+      "hypertrophy": "Hypertrophy",
+      "powerlifting": "Powerlifting",
+      "olympicLifting": "Olympic Lifting",
+      "mma": "MMA",
+      "boxing": "Boxing",
+      "wrestling": "Wrestling",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "Running",
+      "cycling": "Cycling",
+      "triathlon": "Triathlon",
+      "tactical": "Tactical / Military",
+      "generalFitness": "General Fitness"
+    },
+    "athleticGroups": {
+      "iron": "Iron Sports",
+      "combat": "Combat Sports",
+      "mixed": "Mixed",
+      "endurance": "Endurance",
+      "other": "Other"
+    },
+    "frequency": {
+      "title": "How often do you train?",
+      "subtitle": "Weekly training sessions (not counting rest days).",
+      "twoADayQuestion": "Do you train twice per day?",
+      "twoADayDesc": "Enables recovery meal guidance between sessions",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "freqs": {
+      "oneTwo": "1–2 days",
+      "threeFour": "3–4 days",
+      "fiveSix": "5–6 days",
+      "sevenPlus": "7+ (daily)"
+    },
+    "cardio": {
+      "title": "What's your cardio focus?",
+      "subtitle": "Determines carb timing and glycolytic fuel needs.",
+      "none": {
+        "label": "No Cardio",
+        "desc": "Pure strength or skill focus — no cardiovascular work"
+      },
+      "recovery": {
+        "label": "Walking / Recovery",
+        "desc": "Light movement only — walks, stretching, easy bike"
+      },
+      "zone2": {
+        "label": "Easy Cardio",
+        "desc": "Comfortable pace you can hold a conversation — builds aerobic base"
+      },
+      "tempo": {
+        "label": "Moderate Cardio",
+        "desc": "Steady, challenging effort — breathing hard but sustainable"
+      },
+      "threshold": {
+        "label": "Hard Cardio",
+        "desc": "High-intensity sustained effort — near your limit"
+      },
+      "hiit": {
+        "label": "Sprint Intervals",
+        "desc": "Short all-out bursts with rest periods — max effort"
+      },
+      "mixed": {
+        "label": "Mixed Cardio",
+        "desc": "Varies by session — some easy days, some hard days"
+      }
+    },
+    "phase": {
+      "title": "Where are you in your training cycle?",
+      "subtitle": "Your phase calibrates macro targets and food choices."
+    },
+    "phases": {
+      "offSeason": {
+        "label": "Off Season",
+        "desc": "Volume focus, build base"
+      },
+      "preSeason": {
+        "label": "Pre-Season",
+        "desc": "Conditioning ramp-up"
+      },
+      "inSeason": {
+        "label": "In Season",
+        "desc": "Performance maintenance"
+      },
+      "weightCut": {
+        "label": "Weight Cut",
+        "desc": "Short-term deficit + rehydration"
+      },
+      "recovery": {
+        "label": "Recovery",
+        "desc": "Anti-inflammatory, repair priority"
+      }
+    },
+    "duration": {
+      "title": "How long are your typical sessions?",
+      "subtitle": "Used to calculate glycogen expenditure and recovery nutrition needs."
+    },
+    "durations": {
+      "under30": {
+        "label": "Under 30 min",
+        "desc": "Short / accessory sessions"
+      },
+      "thirtySixty": {
+        "label": "30–60 min",
+        "desc": "Standard training block"
+      },
+      "sixtyNinety": {
+        "label": "60–90 min",
+        "desc": "Full session with warm-up & cool-down"
+      },
+      "ninetyPlus": {
+        "label": "90 min+",
+        "desc": "High-volume or multi-discipline sessions"
+      }
+    },
+    "recoveryStep": {
+      "title": "How is your recovery right now?",
+      "subtitle": "Your current recovery state shapes protein timing, anti-inflammatory priorities, and calorie density."
+    },
+    "recovery": {
+      "good": {
+        "label": "Good",
+        "desc": "Sleeping well, low soreness, high energy"
+      },
+      "average": {
+        "label": "Average",
+        "desc": "Some fatigue but manageable"
+      },
+      "poor": {
+        "label": "Poor",
+        "desc": "Fatigued, high soreness, sleep-deprived"
+      }
+    },
+    "adaptationStep": {
+      "title": "What's your athletic focus?",
+      "subtitle": "Pick what you're training for — this calibrates carb timing, energy system support, and meal composition."
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "Endurance",
+        "desc": "Build your aerobic engine — longer efforts, better stamina"
+      },
+      "conditioning": {
+        "label": "Conditioning",
+        "desc": "All-around fitness across multiple energy systems"
+      },
+      "speed": {
+        "label": "Speed",
+        "desc": "Sprint faster — explosive, fast-twitch training focus"
+      },
+      "power": {
+        "label": "Power",
+        "desc": "Move heavy things fast — strength meets explosiveness"
+      },
+      "workCapacity": {
+        "label": "Work Capacity",
+        "desc": "Do more, recover faster — handle high training volumes"
+      },
+      "activeRecovery": {
+        "label": "Active Recovery",
+        "desc": "Repair and recharge — anti-inflammatory, CNS reset"
+      }
+    },
+    "schedule": {
+      "title": "Set your weekly training schedule",
+      "subtitle": "Your nutrition automatically adjusts each day based on what you're training. Every session type shifts your carbohydrates, calories, and protein targets.",
+      "trainingPhase": "Training Phase",
+      "weekSchedule": "Week Schedule",
+      "howItWorksTitle": "How this works",
+      "howItWorksBody": "MPM reads your schedule every morning and automatically adjusts your macro targets. Power days add carbohydrates. Recovery days reduce them. No manual adjustments needed."
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "Strength",
+        "short": "Str",
+        "desc": "Resistance training — moderate carbohydrate support"
+      },
+      "power": {
+        "label": "Power",
+        "short": "Pwr",
+        "desc": "Explosive output — additional carbs and protein active"
+      },
+      "endurance": {
+        "label": "Endurance",
+        "short": "End",
+        "desc": "Aerobic fuel priority — elevated carbohydrate availability"
+      },
+      "sportPractice": {
+        "label": "Sport Practice",
+        "short": "Sport",
+        "desc": "Mixed demands — moderate carbohydrate support"
+      },
+      "competition": {
+        "label": "Competition",
+        "short": "Comp",
+        "desc": "Game day fueling — maximum carbohydrate availability"
+      },
+      "recovery": {
+        "label": "Recovery",
+        "short": "Rec",
+        "desc": "Repair emphasis — reduced carbs, anti-inflammatory priority"
+      },
+      "off": {
+        "label": "Rest Day",
+        "short": "Off",
+        "desc": "Complete rest — reduced caloric targets"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "Stabilization",
+        "desc": "Foundation phase — movement quality, core stability"
+      },
+      "strength": {
+        "label": "Strength",
+        "desc": "Building maximal force capacity"
+      },
+      "power": {
+        "label": "Power",
+        "desc": "Explosive output — force times velocity"
+      },
+      "peaking": {
+        "label": "Peaking",
+        "desc": "Pre-competition sharpening — intensity up, volume down"
+      },
+      "inSeason": {
+        "label": "In-Season",
+        "desc": "Maintaining performance through competition calendar"
+      },
+      "offSeason": {
+        "label": "Off-Season",
+        "desc": "Base building and recovery between seasons"
+      }
+    },
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "compGroups": {
+      "physique": "Physique",
+      "strength": "Strength Sports",
+      "combat": "Combat Sports",
+      "functional": "Functional / Mixed",
+      "endurance": "Endurance"
+    },
+    "compTypeStep": {
+      "title": "What type of competition?",
+      "subtitle": "Each competition type uses a different prep timeline and peak week protocol."
+    },
+    "compTypes": {
+      "bodybuilding": "Bodybuilding",
+      "mensPhysique": "Men's Physique",
+      "classicPhysique": "Classic Physique",
+      "figure": "Figure",
+      "bikini": "Bikini",
+      "wellness": "Wellness",
+      "powerliftingMeet": "Powerlifting Meet",
+      "strongman": "Strongman",
+      "olympicWeightlifting": "Olympic Weightlifting",
+      "fightCamp": "Fight Camp",
+      "wrestlingSeason": "Wrestling Season",
+      "crossfitCompetition": "CrossFit Competition",
+      "hyrox": "Hyrox",
+      "marathon": "Marathon",
+      "triathlon": "Triathlon",
+      "spartanRace": "Spartan Race"
+    },
+    "eventStep": {
+      "title": "When is your event?",
+      "subtitle": "Your event date drives every phase automatically — no guessing.",
+      "eventDate": "Event Date",
+      "pickDate": "Pick event date",
+      "weeksOut": "{{count}} weeks out",
+      "division": "Division",
+      "divisionPlaceholder": "e.g. Open, Masters 35+, 93kg class..."
+    },
+    "weightStep": {
+      "title": "Weight information",
+      "subtitle": "Optional — helps your protocol give precise guidance on cut strategy and calorie targets.",
+      "currentWeight": "Current Weight",
+      "currentPlaceholder": "e.g. 185 lbs, 84 kg...",
+      "targetWeight": "Target Weight / Class",
+      "targetPlaceholder": "e.g. 175 lbs, 83kg class, stage ready...",
+      "howItWorksTitle": "How this works",
+      "howItWorksBody": "MPM calculates your current phase from your event date automatically. As your event approaches, protocols shift. The calendar decides — not AI."
+    }
+  },
+  "therapeuticCard": {
+    "title": "Therapeutic Nutrition Intelligence",
+    "active": "Active",
+    "last": "Last: {{date}}",
+    "intro": "Enter your dose for anything active. Dosage matters — the system uses it to build context around your protocol. Leave blank if not applicable.",
+    "activeCount": "{{count}} active",
+    "namePlaceholder": "Name...",
+    "dosePlaceholder": "Dose",
+    "unitPlaceholder": "unit",
+    "sections": {
+      "peptides": "Peptides",
+      "hormones": "Hormones",
+      "medications": "Medications Impacting Nutrition",
+      "therapies": "Therapies",
+      "recovery": "Recovery Goals"
+    },
+    "addPeptide": "Add custom peptide",
+    "addHormone": "Add custom hormone",
+    "addMedication": "Add custom medication",
+    "therapiesHint": "Select all that apply to your current protocol.",
+    "recoveryHint": "Select your current recovery objectives.",
+    "saveProtocol": "Save Protocol",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "footerNote": "Clinical safety always takes priority. Selections inform meal generation only — not medical advice.",
+    "therapyOptions": {
+      "connectiveTissue": "Connective Tissue Recovery",
+      "gutSupport": "Gut Support",
+      "redLight": "Red Light Therapy",
+      "sauna": "Sauna / Heat Recovery",
+      "cold": "Cold Therapy / Ice Bath",
+      "iv": "IV Nutrient Therapy"
+    },
+    "recoveryGoals": {
+      "joint": "Joint Recovery",
+      "muscle": "Muscle Recovery",
+      "sleep": "Sleep Optimization",
+      "inflammation": "Inflammation Reduction",
+      "gutHealing": "Gut Healing",
+      "stress": "Stress & Adrenal Recovery"
+    },
+    "toast": {
+      "savedTitle": "Therapeutic Protocol Saved",
+      "savedDesc": "Context updated. All builders will honor your protocol.",
+      "errorTitle": "Error",
+      "errorDesc": "Could not save. Please try again."
+    }
+  },
+  "clinicalLabs": {
+    "title": "Clinical Labs",
+    "last": "Last: {{date}}",
+    "lastSaved": "Last saved: {{date}}",
+    "labDate": "Lab Date",
+    "notes": "Notes",
+    "notesPlaceholder": "Optional provider notes...",
+    "saveButton": "Save Lab Values",
+    "savedSuccess": "Lab values saved successfully",
+    "normal": "Normal",
+    "elevated": "Elevated",
+    "active": "Active",
+    "menopausePanel": "Menopause / Perimenopause Panel",
+    "status": {
+      "normal": "Normal",
+      "needsReview": "Needs review",
+      "elevated": "{{count}} elevated"
+    },
+    "sections": {
+      "cardiac": "Cardiac & Metabolic",
+      "hormonal": "Hormonal / Stress & Sex Hormones",
+      "liver": "Liver Panel",
+      "thyroid": "Thyroid Panel",
+      "kidney": "Kidney / Renal",
+      "inflammation": "Inflammation & Recovery",
+      "oncology": "Oncology & Recovery"
+    },
+    "fields": {
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "triglycerides": "Triglycerides",
+      "tgHdlRatio": "TG/HDL Ratio",
+      "bloodPressure": "Blood Pressure",
+      "sys": "Sys",
+      "dia": "Dia",
+      "ejectionFraction": "Ejection Fraction",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "Needs attention",
+      "physicianGuided": "Physician-guided"
+    },
+    "toast": {
+      "enterOne": "Enter at least one lab value before saving",
+      "failed": "Failed to save labs"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "Excellent Alignment",
+      "b": "Good Alignment",
+      "c": "Some Considerations",
+      "d": "Notable Conflicts"
+    },
+    "verdict": {
+      "buy": "Chef says: Go for it!",
+      "caution": "Chef says: Just a heads up...",
+      "skip": "Chef says: Maybe think twice"
+    },
+    "decoder": {
+      "title": "Plain English Decoder",
+      "legend": "🟢 Generally safe · 🟡 Worth knowing · 🔴 Conflicts with your profile"
+    },
+    "alignsWith": "Aligns with your goals",
+    "watchFor": "Watch for",
+    "howItScores": "How it scores for your protocols",
+    "howItScoresForYou": "How it scores for you",
+    "add": "Add",
+    "added": "Added",
+    "alternatives": {
+      "alsoWorthKnowing": "Also Worth Knowing",
+      "evenBetter": "Even Better Options",
+      "betterOptions": "Better Product Options For You",
+      "profileMatched": "Profile-matched",
+      "brandedNote": "Based on product knowledge — formulas and availability can change.",
+      "categoryNote": "Category guidance based on your health profile — look for these characteristics on labels."
+    },
+    "profileFactorsHeading": "Profile Factors Driving This Analysis",
+    "scoreCards": {
+      "kids": "Kids",
+      "adults": "Adults",
+      "diet": "Your Diet",
+      "goal": "Your Goal"
+    },
+    "barcode": {
+      "dbMatch": "Database match · Open Food Facts",
+      "notInDb": "Not in database · AI estimate",
+      "notFound": "Barcode not found — analysis based on AI product knowledge"
+    },
+    "tier": {
+      "quick": "Quick Analysis",
+      "verified": "Verified Label Analysis",
+      "full": "Full Product Advisor",
+      "subKnowledge": "Knowledge-based · No label scan",
+      "subLabelScanned": "Label scanned · {{name}}",
+      "subProductUnknown": "Label scanned · Product unknown",
+      "subLabel": "Label scanned",
+      "subFull": "Product + Label + Profile"
+    },
+    "scanLabelUp": "Scan label ↑",
+    "highestConfidence": "Highest confidence",
+    "whatMattersMost": "What Matters Most For You",
+    "analysisProfile": {
+      "heading": "Your Analysis Profile",
+      "basedOn": "This recommendation is based on:",
+      "deeperTitle": "Want deeper personalization?",
+      "deeperBody": "Add lab values such as A1C, fasting glucose, cholesterol, triglycerides, kidney markers, or inflammation markers.",
+      "updateProfile": "Update Health Profile →",
+      "disclaimer": "Recommendations are generated from ingredient composition, nutrition facts, and your health profile. MPM does not receive compensation from food manufacturers and recommendations are never influenced by brand partnerships.",
+      "emptyState": "Add health goals and conditions in your profile to get a fully personalized analysis."
+    },
+    "header": {
+      "companionScan": "Companion Product Scan",
+      "intelligence": "Ingredient Intelligence",
+      "notIdentified": "Product not identified",
+      "scanningFor": "Scanning for {{name}}",
+      "frontLabelDetected": "Front Label Detected",
+      "byNameAnalysis": "By-Name Analysis",
+      "fullAnalysis": "Full Analysis"
+    },
+    "analyzeThisProduct": "Analyze This Product",
+    "scanIngredientsLabel": "Scan Ingredients / Nutrition Label",
+    "analyzeDisclaimer": "\"Analyze This Product\" uses AI knowledge of this product — not a live label scan. Product formulas can change. Scan the ingredients panel for a verified result.",
+    "analyzing": "Analyzing {{name}}…",
+    "checkingProfile": "Checking against your health profile",
+    "byNameBanner": {
+      "title": "Quick Analysis — Not a Verified Label Scan",
+      "body": "Based on product knowledge as of training data. Product formulas can change.",
+      "scanLink": "Scan the label for a verified result."
+    },
+    "lowQuality": {
+      "title": "Image quality was low",
+      "body": "Retake with the full ingredients panel visible, in focus, and well-lit for a more accurate analysis."
+    },
+    "labelFound": {
+      "title": "Nutrition label found",
+      "body": "Say or type the product name to receive branded alternatives personalized to your profile."
+    },
+    "incomplete": {
+      "title": "Analysis incomplete",
+      "lowImage": "The image wasn't clear enough to score. Make sure the full ingredients panel is visible and well-lit, then try again.",
+      "needMore": "More information is needed to generate a grade. Try scanning the ingredients panel or use Product Lookup."
+    },
+    "personalized": "Personalized to your health profile",
+    "generalAnalysis": "General analysis — add health goals for personalized results",
+    "sections": {
+      "considerations": "Ingredient Considerations",
+      "mayNotAlign": "May Not Align With Your Goals",
+      "worksWellFor": "Works Well For",
+      "familyNotes": "Family Notes"
+    },
+    "detectedIngredients": "Detected Ingredients",
+    "scanForVerified": "Scan Label for Verified Label Analysis",
+    "addNamedToList": "Add {{name}} to List",
+    "addToList": "Add to List",
+    "saveScan": "Save Scan",
+    "saveToGroceries": "Save to Groceries",
+    "savedToGroceries": "Saved to Groceries",
+    "toast": {
+      "removedTitle": "Removed from Groceries",
+      "removedDesc": "{{name}} has been removed from your bookmarks.",
+      "removeFailTitle": "Could not remove",
+      "tryAgain": "Please try again.",
+      "alreadySaved": "Already saved",
+      "savedTitle": "Saved to Groceries",
+      "savedDesc": "{{name}} is in your grocery bookmarks.",
+      "saveFailTitle": "Could not save",
+      "addedToList": "Added to your grocery list"
+    }
+  },
+  "athletePicker": {
+    "added": "Added!",
+    "addedCount": "{{count}} added",
+    "addingTo": "Adding to:",
+    "categories": {
+      "eggsShakes": "Eggs & Shakes",
+      "fish": "Fillet Fish",
+      "poultry": "Chicken & Turkey",
+      "redmeat": "Red Meat"
+    },
+    "copied": "Copied!",
+    "copy": "Copy",
+    "copyMealAria": "Copy meal details",
+    "copySessionAria": "Copy session summary to clipboard",
+    "done": "Done",
+    "errorShort": "Error",
+    "fibrousNote": "Fibrous vegetables are unrestricted — starch only (rice, oats, potatoes)",
+    "gotIt": "got it!",
+    "headerTitle": "Premade Athlete Meals — {{slot}}",
+    "hiddenCount_one": "{{count}} meal hidden — starch would exceed {{cap}}g",
+    "hiddenCount_other": "{{count}} meals hidden — starch would exceed {{cap}}g",
+    "howToAria": "How to use Athlete Meal Builder",
+    "info": {
+      "intro": "Pre-designed meals optimized for athletic performance and muscle building.",
+      "step1Label": "Select your protein category",
+      "step1Text": "(Chicken, Red Meat, Fish, Eggs)",
+      "step2After": "is protein + fibrous vegetables only",
+      "step2Mid": "meals include rice, oats, or potatoes.",
+      "step3Label": "Click any meal",
+      "step3Text": "to add it to your board instantly",
+      "step4Label": "All macros",
+      "step4Text": "are pre-calculated and ready to track",
+      "stepsLabel": "Steps:",
+      "tipAfter": "meals. Fibrous vegetables are always unlimited.",
+      "tipBefore": "On low-starch days, use",
+      "tipLabel": "💡 Tip:",
+      "tipMid": "meals. On refeed days, add",
+      "title": "How to Use Athlete Meal Builder"
+    },
+    "lowStarchDay": "Low-Starch Day",
+    "mealCopyText": "{{title}} — {{cals}} cal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+    "noCoachConnection": "No active coach connection",
+    "noteDesc": "Pre-designed meals optimized for athletic performance and muscle building.",
+    "noteStep1": "Select your protein category (Chicken, Red Meat, Fish, Eggs)",
+    "noteStep2After": "is protein + fibrous vegetables only",
+    "noteStep2Before": "Meals tagged",
+    "noteStep2Mid": "include rice, oats, or potatoes —",
+    "noteStep3": "Click any meal to add it to your board instantly",
+    "noteStep4": "All macros are pre-calculated and ready to track",
+    "noteTitle": "Premade Athlete Meals",
+    "refeedDay": "Refeed Day",
+    "selectCategory": "Select Protein Category:",
+    "selectCategoryShort": "Select Category",
+    "sendCoachAria": "Send session summary to coach",
+    "sendFailed": "Failed to send — try again",
+    "sendToCoach": "Send to Coach",
+    "sending": "Sending…",
+    "sent": "Sent!",
+    "sessionTotal": "Session total:",
+    "slots": {
+      "breakfast": "Breakfast",
+      "dinner": "Dinner",
+      "lunch": "Lunch",
+      "meal4": "Meal 4",
+      "meal5": "Meal 5",
+      "meal6": "Meal 6",
+      "snacks": "Snacks"
+    },
+    "starch": "Starch",
+    "starchAllocation": "Starch Allocation",
+    "starchCap": "{{cap}}g starch cap",
+    "starchUsage": "{{used}}g / {{cap}}g starch",
+    "summaryText_one": "{{count}} meal added — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "summaryText_other": "{{count}} meals added — {{cals}} cal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "viewChatAria": "View message in coach chat",
+    "viewInChat": "View in Chat"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "Cheer me on when I slip",
+        "label": "Encourage Me"
+      },
+      "pushHard": {
+        "desc": "Hold me accountable strictly",
+        "label": "Push Me Hard"
+      },
+      "remind": {
+        "desc": "Gentle nudges are enough",
+        "label": "Just Remind Me"
+      },
+      "selfDirected": {
+        "desc": "I motivate myself",
+        "label": "Self-Directed"
+      }
+    },
+    "back": "Back",
+    "challenges": {
+      "consistency": "Staying Consistent",
+      "cravings": "Cravings",
+      "emotionalEating": "Emotional Eating",
+      "knowledge": "Knowing What to Eat",
+      "mealPrep": "Meal Prep",
+      "motivation": "Motivation",
+      "socialPressure": "Social Pressure",
+      "time": "Not Enough Time"
+    },
+    "error": "Something went wrong. Please try again.",
+    "lifestyle": {
+      "budgetConscious": "Budget-Conscious",
+      "busySchedule": "Busy Schedule",
+      "frequentTravel": "Frequent Travel",
+      "parent": "Parent / Caregiver",
+      "pickyEater": "Picky Eater",
+      "shiftWorker": "Shift Worker",
+      "socialEater": "Social Eater",
+      "stressEater": "Stress Eater"
+    },
+    "loading": "Loading your profile...",
+    "motivations": {
+      "athletic": "Athletic Performance",
+      "confidence": "Feel Confident",
+      "energy": "More Energy",
+      "family": "Family Health",
+      "longevity": "Longevity",
+      "mentalClarity": "Mental Clarity",
+      "weightLoss": "Weight Loss"
+    },
+    "next": "Next",
+    "saveProfile": "Save Profile",
+    "savedDesc": "Your coaching profile is ready.",
+    "savedTitle": "Profile saved!",
+    "saving": "Saving...",
+    "steps": {
+      "accountability": {
+        "subtitle": "Pick what motivates you most",
+        "title": "How should we hold you accountable?"
+      },
+      "challenges": {
+        "subtitle": "Be honest — this helps us focus on what actually matters",
+        "title": "What are your biggest challenges?"
+      },
+      "lifestyle": {
+        "subtitle": "Select all that apply — we'll tailor advice around these",
+        "title": "Which describe your lifestyle?"
+      },
+      "motivations": {
+        "subtitle": "Select all that apply",
+        "title": "What drives you?"
+      },
+      "style": {
+        "subtitle": "Choose the communication style that feels right for you",
+        "title": "How would you like to be coached?"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "Mix of all approaches",
+        "label": "Balanced"
+      },
+      "direct": {
+        "desc": "Tell me what to do — no fluff",
+        "label": "Direct"
+      },
+      "educational": {
+        "desc": "Explain the why behind every choice",
+        "label": "Educational"
+      },
+      "encouraging": {
+        "desc": "Positive reinforcement and support",
+        "label": "Encouraging"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "Carbs",
+    "categories": {
+      "eggsShakes": "Eggs & Shakes",
+      "fish": "Fillet Fish",
+      "poultry": "Chicken & Turkey",
+      "redmeat": "Red Meat"
+    },
+    "gotIt": "got it!",
+    "headerAddTo": "Competition Prep Meals - Add to {{slot}}",
+    "howToAria": "How to use Performance & Competition Builder",
+    "info": {
+      "intro": "Pre-designed athlete meals optimized for lean muscle building and performance.",
+      "step1Label": "Select your protein category",
+      "step1Text": "(Chicken, Red Meat, Fish, Eggs)",
+      "step2Label": "Meals are tagged",
+      "step2Text": "with \"Carbs\" or \"P+V\" (Protein + Veggies)",
+      "step3Label": "Click any meal",
+      "step3Text": "to add it to your board instantly",
+      "step4Label": "All macros",
+      "step4Text": "are pre-calculated and ready to track",
+      "stepsLabel": "Steps:",
+      "tipLabel": "💡 Tip:",
+      "tipText": "Choose meals based on your daily carb targets - use \"Carbs\" meals when you need energy, and \"P+V\" meals for lower-carb days!",
+      "title": "How to Use Performance & Competition Builder"
+    },
+    "noteDesc": "Pre-designed athlete meals optimized for lean muscle building and performance.",
+    "noteStep1": "Select your protein category (Chicken, Red Meat, Fish, Eggs)",
+    "noteStep2": "Meals are tagged with \"Carbs\" or \"P+V\" (Protein + Veggies)",
+    "noteStep3": "Click any meal to add it to your board instantly",
+    "noteStep4": "All macros are pre-calculated and ready to track",
+    "noteTitle": "Competition Prep Meals",
+    "selectCategory": "Select Protein Category:",
+    "selectCategoryShort": "Select Category"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "Biggest Opportunity",
+    "breakfastLogged": "Breakfast logged",
+    "caloriesOnTarget": "Calories on target",
+    "consistencyScore": "Consistency Score",
+    "days": "days",
+    "dinnerLogged": "Dinner logged",
+    "last7Days": "Last 7 days",
+    "lastNDays": "Last {{count}} days",
+    "loggedMeals": "Logged meals",
+    "lunchLogged": "Lunch logged",
+    "noActivity": "No nutrition activity recorded yet. Start logging meals to see your personalized activity summary here.",
+    "noMeals": "No meals logged yet. Start recording your meals to see your activity summary.",
+    "ofDays": "{{value}} of {{total}}",
+    "proteinGoalMet": "Protein goal met",
+    "setTargets": "Set your macro targets to activate full nutrition tracking.",
+    "title": "Nutrition Activity Summary"
+  },
+  "mealPicker": {
+    "addTo": "Add to {{slot}}",
+    "cafeteria": "Cafeteria",
+    "categories": {
+      "fats": "Fats",
+      "fibrousCarbs": "Fibrous Carbs",
+      "fruit": "Fruit",
+      "proteins": "Proteins",
+      "starchyCarbs": "Starchy Carbs"
+    },
+    "close": "Close",
+    "generate": "Generate",
+    "generateCount": "Generate ({{count}})",
+    "generating": "Generating…",
+    "gotIt": "got it!",
+    "howToAria": "How to use Meal Picker",
+    "info": {
+      "addLabel": "Click to add:",
+      "addText": "Tap any meal card to add it instantly to your {{slot}} slot",
+      "browseLabel": "Browse meals:",
+      "browseText": "Scroll through our curated meal templates",
+      "cafeteriaLabel": "Cafeteria option:",
+      "cafeteriaText": "Click \"Cafeteria\" for a quick random meal suggestion",
+      "intro": "Quick and easy way to add pre-made meals to your plan.",
+      "personalizedLabel": "Personalized:",
+      "personalizedText": "Meals are filtered based on your allergies and preferences",
+      "tipLabel": "💡 Tip:",
+      "tipText": "Use the Cafeteria button when you want a quick healthy suggestion without browsing!",
+      "title": "How to Use Meal Picker"
+    },
+    "lowerGlycemic": "Lower glycemic impact",
+    "quickMeal": "Quick {{slot}} Meal",
+    "regularGi": "Regular GI"
+  },
+  "mealReminders": {
+    "addReminder": "Add meal reminder",
+    "checkAgain": "Check again",
+    "checking": "Checking…",
+    "connectionDiagnostics": "Connection diagnostics",
+    "footerBlocked": "Set up times now — notifications will activate once permissions are granted.",
+    "footerDefault": "Up to 6 reminders. Tap a label to rename.",
+    "footerEnabled": "Keep your browser open for reliable delivery.",
+    "footerNative": "Tap a label to rename it. Reminders are delivered through the iOS app.",
+    "mealN": "Meal {{n}}",
+    "nativeDelivery": "Native iOS delivery",
+    "saving": "Saving…",
+    "statusBlocked": "Notifications blocked in browser",
+    "statusConnected": "Notifications connected",
+    "statusPartial": "Not fully connected — toggle a slot to finish setup",
+    "statusPending": "Toggle a slot to enable notifications",
+    "statusUnsupported": "Not supported by this browser",
+    "title": "Meal Reminders",
+    "toUnblock": "To unblock:",
+    "toastBlockedIosDesc": "Go to iPhone Settings › My Perfect Meals › Allow Notifications",
+    "toastBlockedTitle": "Notifications blocked",
+    "toastBlockedWebDesc": "Allow notifications via the lock icon in your address bar, then tap Check again.",
+    "toastEnableFailedTitle": "Couldn't enable notifications",
+    "toastNotSupportedDesc": "This browser doesn't support push notifications.",
+    "toastNotSupportedTitle": "Not supported",
+    "toastPermissionDenied": "Permission denied.",
+    "toastSaveFailed": "Couldn't save reminders",
+    "toastTryAgain": "Try again in a moment.",
+    "unblockAllow": "Allow",
+    "unblockLock": "🔒 lock",
+    "unblockNotifications": "Notifications",
+    "unblockStep1After": "in your browser's address bar",
+    "unblockStep1Before": "Click the",
+    "unblockStep2Before": "Set",
+    "unblockStep2Mid": "to",
+    "unblockStep3After": "below",
+    "unblockStep3Before": "Tap",
+    "unsupportedHint": "Try Chrome or Edge on desktop. Safari on iOS requires the app instead.",
+    "webDelivery": "Web push delivery"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "Signature Kitchen",
+    "optSignatureDesc": "Your personal branded kitchen inside the platform",
+    "optProductLabel": "Product Integration",
+    "optProductDesc": "Integrate your brand, products, or supplements",
+    "optWhiteLabelLabel": "White Label",
+    "optWhiteLabelDesc": "A fully branded platform experience",
+    "optRestaurantLabel": "Restaurant Group",
+    "optRestaurantDesc": "Multi-location or franchise partnership",
+    "optAthleteLabel": "Athlete Kitchen",
+    "optAthleteDesc": "Performance and sport-specific culinary identity",
+    "stepIdentity": "Identity",
+    "stepCulinary": "Culinary Identity",
+    "stepPlatform": "Platform",
+    "stepInterest": "Interest",
+    "stepSubmit": "Submit",
+    "partnershipReview": "Partnership Review",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "errorConnection": "Unable to submit. Please check your connection and try again.",
+    "identityHeading": "Tell us about yourself.",
+    "identitySub": "Basic identity and contact information.",
+    "fullNameLabel": "Full Name",
+    "fullNamePlaceholder": "Your full name",
+    "brandLabel": "Chef / Brand Name",
+    "brandPlaceholder": "Your public culinary brand",
+    "emailLabel": "Email",
+    "phoneLabel": "Phone",
+    "locationLabel": "Location",
+    "locationPlaceholder": "City, State / Country",
+    "culinaryHeading": "Your culinary identity.",
+    "culinarySub": "This shapes how your kitchen is built inside the platform.",
+    "cuisineFocusLabel": "Cuisine Focus",
+    "cuisineFocusPlaceholder": "e.g. Southern, Japanese, Mediterranean",
+    "cookingPhilosophyLabel": "Cooking Philosophy",
+    "cookingPhilosophyPlaceholder": "How would you describe your approach to food?",
+    "signatureStylesLabel": "Signature Styles",
+    "signatureStylesPlaceholder": "e.g. high-protein, comfort food, plant-forward",
+    "wellnessPhilosophyLabel": "Wellness Philosophy",
+    "wellnessPhilosophyPlaceholder": "How does health and nutrition factor into your cooking?",
+    "platformHeading": "Where is your audience?",
+    "platformSub": "Share your social and web presence. All fields optional.",
+    "websiteLabel": "Website",
+    "interestHeading": "What interests you?",
+    "interestSub": "Select all that apply. You can have more than one.",
+    "readyHeading": "Ready to submit.",
+    "readySub": "Our partnerships team reviews every application personally. You'll hear from us within 3–5 business days.",
+    "summaryHeading": "Application Summary",
+    "summaryName": "Name",
+    "summaryBrand": "Brand",
+    "summaryEmail": "Email",
+    "summaryCuisine": "Cuisine",
+    "summaryInterest": "Interest",
+    "consentText": "By submitting, you agree that My Perfect Meals may use the information you've provided to evaluate your partnership application. No commitments are made until a formal agreement is signed.",
+    "submitting": "Submitting…",
+    "requestReview": "Request Partnership Review",
+    "successHeading": "Application Received.",
+    "successSub": "Our partnerships team will review your application and reach out within 3–5 business days. We review every application personally.",
+    "contactAt": "We'll contact you at",
+    "done": "Done",
+    "back": "Back",
+    "next": "Next"
+  },
+  "safetyPin": {
+    "title": "Safety PIN",
+    "sessionExpired": "Session expired - please log out and back in to manage your PIN",
+    "statusSet": "PIN is set - extra protection enabled",
+    "statusUnset": "No PIN set - set one for extra protection",
+    "changePin": "Change PIN",
+    "removePin": "Remove PIN",
+    "setPin": "Set Safety PIN",
+    "enterPin": "Enter PIN",
+    "confirmPin": "Confirm PIN",
+    "currentPin": "Current PIN",
+    "newPin": "New PIN",
+    "confirmNewPin": "Confirm New PIN",
+    "removePrompt": "Enter your current PIN to remove it.",
+    "fourDigits": "4 digits",
+    "hidePin": "Hide PIN",
+    "showPin": "Show PIN",
+    "cancel": "Cancel",
+    "setPinBtn": "Set PIN",
+    "changePinBtn": "Change PIN",
+    "removePinBtn": "Remove PIN",
+    "errorFourDigits": "PIN must be exactly 4 digits",
+    "errorNoMatch": "PINs do not match",
+    "errorNewFourDigits": "New PIN must be exactly 4 digits",
+    "errorNewNoMatch": "New PINs do not match",
+    "errorSetFailed": "Failed to set PIN",
+    "errorSetRetry": "Could not set PIN. Please try again.",
+    "errorChangeFailed": "Failed to change PIN",
+    "errorChangeRetry": "Could not change PIN. Please try again.",
+    "errorRemoveFailed": "Failed to remove PIN",
+    "errorRemoveRetry": "Could not remove PIN. Please try again.",
+    "setToastTitle": "Safety PIN Set",
+    "setToastDesc": "Your Safety PIN has been created.",
+    "changeToastTitle": "PIN Changed",
+    "changeToastDesc": "Your Safety PIN has been updated.",
+    "removeToastTitle": "PIN Removed",
+    "removeToastDesc": "Your Safety PIN has been removed."
+  },
+  "mfa": {
+    "errorStartSetup": "Failed to start setup. Please try again.",
+    "errorInvalidCode": "Invalid code. Try again.",
+    "errorDisableInvalid": "Invalid code. MFA not disabled.",
+    "loading": "Loading…",
+    "enabledTitle": "Two-factor authentication enabled",
+    "saveBackupPrompt": "Save your backup codes before closing this page.",
+    "backupCodesHeading": "Backup Codes — save these now",
+    "copied": "Copied!",
+    "copyAllCodes": "Copy all codes",
+    "backupCodesNote": "Each code can only be used once. Store them somewhere safe. If you lose access to your authenticator app, you'll need one of these to sign in.",
+    "savedBackupBtn": "I've saved my backup codes",
+    "onTitle": "Two-factor authentication is on",
+    "enabledOn": "Enabled {{date}}",
+    "disable2fa": "Disable 2FA",
+    "disableTitle": "Disable two-factor authentication",
+    "disablePrompt": "Enter your current authenticator code to confirm.",
+    "cancel": "Cancel",
+    "disabling": "Disabling…",
+    "scanTitle": "Scan with your authenticator app",
+    "scanApps": "Google Authenticator, Authy, or 1Password work great.",
+    "qrAlt": "Scan this QR code with your authenticator app",
+    "manualKeyPrompt": "Can't scan? Enter this key manually:",
+    "addedAccountNext": "I've added the account — next",
+    "confirmTitle": "Confirm your authenticator code",
+    "confirmPrompt": "Enter the 6-digit code from your app to activate 2FA.",
+    "activating": "Activating…",
+    "activate2fa": "Activate 2FA",
+    "back": "Back",
+    "defaultTitle": "Two-factor authentication",
+    "defaultSubtitle": "Add a second layer of security to your account.",
+    "settingUp": "Setting up…",
+    "enable2fa": "Enable 2FA"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "Meal Created!",
+    "mealCreatedDesc": "{{name}} is ready for you",
+    "generationFailedTitle": "Generation Failed",
+    "signInTitle": "Please sign in",
+    "signInDesc": "You need to be signed in to create meals",
+    "guestLimitTitle": "Guest limit reached",
+    "guestLimitDesc": "Create a free account to continue generating meals",
+    "describeMealTitle": "Please describe your meal",
+    "describeMealDesc": "Tell the Chef what you're in the mood for",
+    "enterAlternativeTitle": "Please enter an alternative",
+    "enterAlternativeDesc": "Tell us what you'd like instead",
+    "placeholderBreakfast": "e.g., 'protein pancakes,' 'sweet eggs with fruit,' 'low-carb omelette'",
+    "placeholderLunch": "e.g., 'grilled chicken salad,' 'high-protein wrap,' 'Mediterranean bowl'",
+    "placeholderDinner": "e.g., 'low-carb tacos,' 'steak with vegetables,' 'salmon with rice'",
+    "placeholderDefault": "e.g., 'something light and healthy,' 'high-protein meal'",
+    "title": "Create with AI Chef",
+    "subtitle": "Tell the Chef what you want for {{mealType}}",
+    "starchLimitTitle": "Starchy Carbs Limit Reached",
+    "starchUsedSingular": "You've already used your starch meal for today ({{used}} of {{max}}).",
+    "starchUsedPlural": "You've already used your starch meals for today ({{used}} of {{max}}).",
+    "youRequested": "You requested:",
+    "fibrousPrefix": "Would you like to pick a",
+    "fibrousCarb": "fibrous carb",
+    "fibrousSuffix": "instead, or let the Chef choose for you?",
+    "fibrousPlaceholder": "e.g., broccoli, asparagus, cauliflower...",
+    "generating": "Generating...",
+    "useMyChoice": "Use My Choice",
+    "or": "or",
+    "chefsChoice": "Chef's Choice - Pick For Me",
+    "chefSubstituteHint": "Chef will substitute with a delicious fibrous carb option",
+    "inputHint": "Describe what you're craving and the Chef will create a personalized meal for you",
+    "orbCheckingSafety": "Checking safety profile…",
+    "orbFinishing": "Adding finishing touches…",
+    "orbPreparing": "Chef is preparing your meal…",
+    "mealSafety": "Meal Safety",
+    "ingredientControl": "Ingredient Control",
+    "todaysStarchMeals": "Today's Starch Meals:",
+    "starchUsedCount": "{{used}} / {{max}} used",
+    "generateBtn": "Generate AI Meal",
+    "stop": "Stop",
+    "cancel": "Cancel"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "Invalid file",
+    "invalidFileDesc": "Please select an image file.",
+    "fileTooLargeTitle": "File too large",
+    "fileTooLargeDesc": "Please select an image under 5MB.",
+    "photoUpdatedTitle": "Photo updated",
+    "photoUpdatedDesc": "Your profile photo has been updated.",
+    "uploadFailedTitle": "Upload failed",
+    "uploadFailedDesc": "Failed to upload photo.",
+    "cameraErrorTitle": "Camera error",
+    "cameraErrorDesc": "Could not access camera or photos.",
+    "restoringTitle": "Restoring Purchases...",
+    "restoringDesc": "Looking for active subscriptions...",
+    "restoredTitle": "Purchases Restored",
+    "restoredDesc": "Your subscription has been restored successfully.",
+    "restoreCompleteTitle": "Restore Complete",
+    "restoreCompleteDesc": "No active subscription found. If you believe this is an error, please contact support.",
+    "restoreFailedTitle": "Restore Failed",
+    "restoreFailedDesc": "Unable to restore purchases. Please try again.",
+    "accountDeletedTitle": "Account Deleted",
+    "accountDeletedDesc": "Your account and all data have been permanently deleted.",
+    "deleteFailedDesc": "Failed to delete account. Please try again.",
+    "deleteAccount": "Delete Account",
+    "deleteDialogTitle": "Delete Account Permanently?",
+    "deleteDialogIntro": "This action cannot be undone. This will permanently delete:",
+    "deleteItemAccount": "Your account and profile information",
+    "deleteItemMeals": "All meal plans and saved recipes",
+    "deleteItemBiometrics": "Biometrics and health tracking data",
+    "deleteItemBilling": "Subscription and payment history",
+    "deleting": "Deleting...",
+    "deleteMyAccount": "Delete My Account"
+  },
+  "inspiration": {
+    "servingsJustMe": "Just Me",
+    "servings2": "2 People",
+    "servings3": "3 People",
+    "servingsFamily": "Family (4)",
+    "servingsMealPrep": "Meal Prep (6)",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "See it. Say it. Send it. We'll make it yours.",
+    "copilotSpokenText": "Recipe Maker is one of the most powerful tools in the app. The idea is simple: you see food somewhere — a TikTok, an Instagram save, a cookbook, a menu, or even just something in your imagination — and instead of letting that moment pass, you bring it here and we build it for you. You have four ways to bring in your idea. Choose Photo lets you pick any screenshot or saved food image from your gallery — that covers TikTok screenshots, Instagram saves, Pinterest boards, Facebook recipes, anything already on your device. Camera opens your device live so you can point it at a cookbook, a menu, or a screen. Speak lets you describe the meal out loud, exactly the way you would tell a friend about it. Type lets you paste a description or write out what you have in mind. Here is what makes Recipe Maker different: you do not need the recipe. If you can show it or describe it, we can create it. Once you submit your idea, Recipe Maker does not give you one result. It builds three completely personalized versions of your idea at the same time — same dish, three different interpretations — each one fully built around your macro targets, allergies, dietary identity, and every active health protocol on your account. You see all three, you can save any or all of them, and your choices stay on the dashboard until you decide to clear them. The app never removes them automatically.",
+    "hintAuthentic": "Keep the original flavors and ingredients as close as possible.",
+    "hintBalanced": "Personalize to your profile while preserving the spirit of the dish.",
+    "hintHealthier": "Optimize aggressively for nutrition while keeping the dish recognizable.",
+    "analysisFailed": "Analysis failed",
+    "analyzeFailedMsg": "Failed to analyze ingredients.",
+    "imageReadError": "Could not read the image. Please try again.",
+    "voiceNotSupportedTitle": "Voice not supported",
+    "voiceNotSupportedDesc": "Your browser doesn't support voice input. Try typing instead.",
+    "micErrorTitle": "Microphone error",
+    "micErrorDesc": "Please try again.",
+    "somethingWrong": "Something went wrong",
+    "createFailedMsg": "Failed to create your personalized meal.",
+    "saveFailedError": "Failed to save",
+    "savedTitle": "Saved!",
+    "savedDesc": "Added to your Recipe Maker saves in Favorites.",
+    "saveFailedTitle": "Save failed",
+    "scanFoodFor": "Scan Food For {{name}}",
+    "productScan": "Product Scan",
+    "customizeMeal": "Customize Your Meal",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "Analyze ingredients for {{name}}",
+    "analyzeBeforeBuy": "Analyze ingredients before you buy",
+    "optionsSubtitle": "Adjust these before we generate your personalized version.",
+    "captureSubtitle": "Scan any meal idea and we'll personalize it for you.",
+    "choosePhoto": "Choose Photo",
+    "cameraPill": "Camera",
+    "speakPill": "Speak",
+    "typePill": "Type",
+    "uploadHint": "Pick a screenshot, saved food photo, or image from your camera roll or gallery.",
+    "chooseFromGallery": "Choose from Gallery",
+    "galleryHint": "Screenshots, saved photos, any food image",
+    "cameraHint": "Point your camera at any recipe, menu, screen, or food photo.",
+    "openCamera": "Open Camera",
+    "cameraSubHint": "Take a live photo of any food idea",
+    "voiceHint": "Describe the meal out loud — ingredients, style, anything you remember.",
+    "tapToStop": "Tap to stop",
+    "tapToSpeak": "Tap to speak",
+    "nextCustomize": "Next — Customize →",
+    "textHint": "Type or paste a meal idea, recipe description, or dish name.",
+    "textPlaceholder": "e.g. Loaded buffalo chicken bowl with rice, avocado, and ranch…",
+    "servingsHeading": "Servings",
+    "adaptationStyleHeading": "Adaptation Style",
+    "authentic": "Authentic",
+    "balanced": "Balanced",
+    "healthier": "Healthier",
+    "proteinLevelHeading": "Protein Level",
+    "proteinStandard": "Standard",
+    "proteinHigh": "High Protein",
+    "proteinAthlete": "Athlete",
+    "prepStyleHeading": "Prep Style",
+    "prepOriginal": "Original Prep",
+    "prepEasy": "Easy Prep",
+    "cuisineStyleHeading": "Cuisine Style",
+    "generateMyVersion": "Generate My Version",
+    "analyzingIngredients": "Analyzing ingredients…",
+    "buildingVersion": "Building your version…",
+    "checkingCompanionProfile": "Checking against {{name}}'s profile",
+    "checkingYourProfile": "Checking against your profile",
+    "adaptingProfile": "Adapting to your nutritional profile",
+    "versionsReady": "{{count}} versions ready",
+    "savedCount": " · {{count}} saved",
+    "deleteScan": "Delete this scan",
+    "tapAnotherHint": "Tap another to save it too, or close and come back later.",
+    "tapSelectHint": "Tap one to select, then save. Come back anytime — these stay here until you delete them.",
+    "adaptedForStrategy": "Adapted for Today's Nutrition Strategy",
+    "calValue": "{{value}} cal",
+    "proteinValue": "{{value}}g protein",
+    "carbsValue": "{{value}}g carbs",
+    "saving": "Saving…",
+    "saveAgain": "Save Again",
+    "saveThisVersion": "Save This Version",
+    "try3More": "Try 3 More",
+    "viewSavedMeals": "View saved meals in Favorites →",
+    "personalizedReady": "Your personalized version is ready.",
+    "macroCal": "Cal",
+    "macroProtein": "Protein",
+    "macroCarbs": "Carbs",
+    "macroFat": "Fat",
+    "savedCheck": "Saved ✓",
+    "saveToFavorites": "Save to Favorites",
+    "scanAnother": "Scan Another",
+    "viewInFavorites": "View in Favorites →"
+  },
+  "parentsCorner": {
+    "title": "Parent's Corner",
+    "yourChild": "your child",
+    "helpingBuildHabits": "Helping {{name}} build healthy habits",
+    "backToBeginnings": "Back to My Perfect Beginnings",
+    "startFresh": "Start fresh",
+    "startNewConversation": "Start a new conversation",
+    "clearConfirm": "Clear this conversation and start fresh?",
+    "clear": "Clear",
+    "cancel": "Cancel",
+    "dismiss": "Dismiss",
+    "boundaryLanguage": "I can share evidence-based nutrition guidance to support your family. For medical concerns, your child's pediatrician or a registered pediatric dietitian is always the right next step — I'll let you know when something sounds like it needs that conversation.",
+    "todaysTip": "Today's Tip",
+    "loadingConversation": "Loading your conversation…",
+    "commonQuestions": "Common questions",
+    "browseCommonQuestions": "Browse common questions",
+    "followUp": "Follow-up",
+    "makeItNow": "Make it now",
+    "thinking": "Thinking…",
+    "emptyPrompt": "Tap a card above or ask anything below.",
+    "askAnything": "Ask anything",
+    "inputPlaceholder": "Type your question here…",
+    "send": "Send",
+    "noResponse": "I'm sorry, I didn't get a response. Please try again.",
+    "connectionError": "I'm having a little trouble right now. Please check your connection and try again.",
+    "stage": {
+      "earlyInfant": "Early Infant",
+      "beginningFoods": "Beginning Foods",
+      "youngToddler": "Young Toddler",
+      "toddler": "Toddler",
+      "preschool": "Preschool",
+      "earlySchoolAge": "Early School Age",
+      "growingChild": "Growing Child"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "My baby won't eat.",
+        "question": "My baby won't eat. What should I do?"
+      },
+      "toddlerHatesVegetables": {
+        "label": "My toddler hates vegetables.",
+        "question": "My toddler hates vegetables. How do I get them to eat more?"
+      },
+      "lunchPacking": {
+        "label": "What should I pack for lunch?",
+        "question": "What are some ideas for packing a healthy and appealing lunch?"
+      },
+      "healthySnacks": {
+        "label": "Healthy snacks after school.",
+        "question": "What are some healthy snack ideas for after school?"
+      },
+      "calcium": {
+        "label": "Is my child getting enough calcium?",
+        "question": "Is my child getting enough calcium? How do I make sure?"
+      },
+      "introducingFoods": {
+        "label": "How do I introduce new foods?",
+        "question": "How do I introduce new foods without it becoming a battle?"
+      },
+      "youngAthlete": {
+        "label": "What should my young athlete eat?",
+        "question": "My child plays sports. What should they eat before and after practice?"
+      },
+      "waterIntake": {
+        "label": "How much water does my child need?",
+        "question": "How much water should my child be drinking each day?"
+      },
+      "pizza": {
+        "label": "Can my child still have pizza?",
+        "question": "Can my child still have pizza and other fun foods, or should I be stricter?"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "Record Body Composition",
+    "bodyFatPct": "Body Fat %",
+    "bodyFatPlaceholder": "e.g. 18.5",
+    "goalBodyFatPct": "Goal Body Fat % (optional)",
+    "goalBodyFatPlaceholder": "e.g. 15",
+    "scanMethod": "Scan Method",
+    "pickMethod": "Pick a method",
+    "date": "Date",
+    "save": "Save",
+    "saving": "Saving...",
+    "notLoggedIn": "Not logged in",
+    "notLoggedInDesc": "Please log in to save your body composition data.",
+    "invalidBodyFat": "Invalid body fat",
+    "invalidBodyFatDesc": "Body fat percentage must be between 1% and 70%.",
+    "saved": "Saved",
+    "savedDesc": "Body composition recorded successfully.",
+    "saveFailed": "Save failed",
+    "saveFailedDesc": "Could not save your body composition data. Please try again."
+  },
+  "sponsorEnded": {
+    "launchProCare": "Launch your independent ProCare account",
+    "openStudio": "Open your independent studio",
+    "completeVerification": "Complete credential verification",
+    "continueTraining": "Continue Platform Mastery training",
+    "startOwnPractice": "Start My Own Practice",
+    "continueAsClient": "Continue as a Client",
+    "continueAsClientDesc": "Keep using MPM as an individual member",
+    "continueWithFree": "Continue with Free",
+    "continueWithFreeDesc": "Basic meal generation — always free",
+    "joinAnotherOrg": "Join Another Organization",
+    "joinAnotherOrgDesc": "Accept an invite from a different business",
+    "accessEnded": "Your {{business}}-sponsored access has ended",
+    "accessEndedBody": "Your personal account, meal history, Academy progress, and certifications are all still here. Choose how you'd like to continue."
+  },
+  "dietStyleBadge": {
+    "kosher": "Kosher ✓",
+    "halal": "Halal ✓",
+    "vegan": "Vegan ✓",
+    "vegetarian": "Vegetarian ✓",
+    "pescatarian": "Pescatarian ✓",
+    "mediterranean": "Mediterranean ✓",
+    "paleo": "Paleo ✓",
+    "keto": "Keto ✓",
+    "carnivore": "Carnivore ✓",
+    "dairyFree": "Dairy-Free ✓",
+    "custom": "Custom Diet ✓"
+  },
+  "pregnancySupport": {
+    "title": "My Perfect Pregnancy Setup",
+    "intro": "This helps personalize your nutrition guidance. Your information stays private and shapes every meal suggestion, food safety check, and coaching response.",
+    "whereAreYou": "Where are you in your journey?",
+    "breastfeedingQuestion": "Are you currently breastfeeding?",
+    "breastfeedingHelp": "This shapes your nutrition track. Breastfeeding and postpartum recovery have different priorities — we handle them separately.",
+    "yesBreastfeeding": "Yes, breastfeeding",
+    "noBreastfeeding": "No, not breastfeeding",
+    "breastfeedingNote": "You'll get milk-production nutrition plus a recovery layer for healing and rebuilding.",
+    "postpartumNote": "You'll get a dedicated postpartum recovery protocol — fiber, anti-inflammatory eating, hormone support, and body recomposition. No crash dieting.",
+    "trackByDueDate": "Track by due date?",
+    "trackByDueDateHelp": "When you enter your due date, your current week and trimester update automatically. You can skip this and track manually.",
+    "yesEnterDueDate": "Yes, enter due date",
+    "skipManual": "Skip — manual stage only",
+    "dueDatePlaceholder": "Due date (YYYY-MM-DD)",
+    "activeSymptoms": "Any active symptoms?",
+    "activeSymptomsHelp": "Select all that apply — your meal suggestions will adapt to support them.",
+    "disclaimerPart1": "My Perfect Pregnancy provides general nutrition education and food-structure support only. It is",
+    "disclaimerNotSubstitute": "not a substitute",
+    "disclaimerPart2": "for your OB/GYN, midwife, or registered dietitian. Always follow your healthcare provider's recommendations first.",
+    "saveButton": "Save My Pregnancy Setup",
+    "savingButton": "Saving…",
+    "savedButton": "✓ Saved!",
+    "turnOff": "Turn off pregnancy nutrition",
+    "turnOffConfirm": "Turn off pregnancy nutrition?",
+    "turnOffHelp": "This will remove pregnancy-specific guidance from your meals and coaching. You can turn it back on whenever you're ready — no judgment, no questions.",
+    "turningOff": "Turning off…",
+    "yesTurnOff": "Yes, turn it off",
+    "keepItOn": "Keep it on",
+    "stage": {
+      "tryingToConceive": {
+        "label": "Trying to Conceive",
+        "desc": "Preconception nutrition"
+      },
+      "trimester1": {
+        "label": "First Trimester",
+        "desc": "Weeks 1–13 · Folate, nausea support"
+      },
+      "trimester2": {
+        "label": "Second Trimester",
+        "desc": "Weeks 14–27 · Protein, calcium, DHA"
+      },
+      "trimester3": {
+        "label": "Third Trimester",
+        "desc": "Weeks 28–40 · Iron, DHA, prep for birth"
+      },
+      "breastfeeding": {
+        "label": "Breastfeeding",
+        "desc": "Milk production, DHA, iodine, calcium"
+      },
+      "postpartum": {
+        "label": "Postpartum",
+        "desc": "Recovery, body recomposition, hormone support, strength"
+      }
+    },
+    "symptom": {
+      "nausea": "Nausea",
+      "heartburn": "Heartburn",
+      "constipation": "Constipation",
+      "fatigue": "Fatigue",
+      "foodAversions": "Food Aversions",
+      "swelling": "Swelling",
+      "shortnessOfBreath": "Shortness of Breath",
+      "lowAppetite": "Low Appetite"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "How are you feeling today?",
+    "noCheckinToday": "No symptom check-in submitted today. Your meals are using your standard medication profile.",
+    "checkInPrompt": "Check in to adapt today's meals, shakes, and restaurant suggestions.",
+    "checkIn": "Check In",
+    "update": "Update",
+    "updated": "Updated {{time}}",
+    "escalationStatusBody": "These symptoms may require medical evaluation. Contact your healthcare provider or care team promptly.",
+    "mealsAdapting": "Meals adapting to today's symptoms",
+    "updatedTapAdjustments": "Updated {{time}} · Tap to see adjustments",
+    "noSymptomsToday": "No symptoms reported today",
+    "updatedStandardProfile": "Updated {{time}} · Standard medication profile active",
+    "escalationCardBody": "These symptoms may require medical evaluation. Please reach out to your care team.",
+    "nutritionAdjustments": "Today's nutrition adjustments ({{count}})",
+    "reason": "Reason",
+    "adaptation": "Adaptation",
+    "evidence": "Evidence",
+    "justNow": "just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "giSymptomsHeader": "GI Symptoms — How severe today?",
+    "otherSymptomsHeader": "Other Symptoms",
+    "vomitingHeader": "Vomiting Today",
+    "quickQuestionsHeader": "A Few Quick Questions",
+    "notifyHeader": "Would you like your care team to know?",
+    "notifyHelp": "Optional — gives you control over who is notified today.",
+    "updatesThroughoutDay": "This updates throughout the day.",
+    "updatesThroughoutDayBody": "If you feel better later, come back and check in again — your meals will adapt immediately. Your check-in resets each morning.",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveCheckIn": "Save Check-In",
+    "severity": {
+      "none": "None",
+      "mild": "Mild",
+      "moderate": "Moderate",
+      "severe": "Severe"
+    },
+    "symptom": {
+      "nausea": "Nausea",
+      "constipation": "Constipation",
+      "diarrhea": "Diarrhea",
+      "reflux": "Heartburn/Reflux",
+      "bloating": "Bloating",
+      "earlyFullness": "Early fullness",
+      "foodAversions": "Food aversions",
+      "fatigue": "Fatigue",
+      "dizziness": "Dizziness",
+      "headache": "Headache"
+    },
+    "vomiting": {
+      "none": "None",
+      "once": "Once",
+      "multiple": "2–3 times",
+      "cantKeepFluids": "4+ / Can't keep fluids"
+    },
+    "q": {
+      "keepFluids": "Can you keep fluids down?",
+      "eatWithoutWorsening": "Can you eat without symptoms worsening?",
+      "reducedUrination": "Is your urine output much less than usual?",
+      "symptomTrend": "How are your symptoms trending?",
+      "appetite": "How is your appetite today?"
+    },
+    "opt": {
+      "yes": "Yes",
+      "no": "No",
+      "withDifficulty": "With difficulty",
+      "partially": "Partially"
+    },
+    "trend": {
+      "improving": "Improving",
+      "same": "Same",
+      "worsening": "Worsening",
+      "na": "Not sure"
+    },
+    "appetite": {
+      "suppressed": "No appetite",
+      "reduced": "Reduced",
+      "normal": "Normal",
+      "increased": "Increased"
+    },
+    "notify": {
+      "keepPrivate": "No, keep private",
+      "coach": "Notify my coach",
+      "both": "Notify both"
+    }
   }
 }

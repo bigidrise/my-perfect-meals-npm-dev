@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark, ShoppingCart, Check } from 'lucide-react';
 import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternative } from '@/lib/photoIngredientCapture';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -28,16 +29,16 @@ interface Props {
 }
 
 const GRADE_CONFIG = {
-  A: { color: 'text-emerald-400', bg: 'bg-emerald-500/20 border-emerald-500/40', desc: 'Excellent Alignment', glow: 'shadow-emerald-500/20' },
-  B: { color: 'text-lime-400', bg: 'bg-lime-500/20 border-lime-500/40', desc: 'Good Alignment', glow: 'shadow-lime-500/20' },
-  C: { color: 'text-amber-400', bg: 'bg-amber-500/20 border-amber-500/40', desc: 'Some Considerations', glow: 'shadow-amber-500/20' },
-  D: { color: 'text-rose-400', bg: 'bg-rose-500/20 border-rose-500/40', desc: 'Notable Conflicts', glow: 'shadow-rose-500/20' },
+  A: { color: 'text-emerald-400', bg: 'bg-emerald-500/20 border-emerald-500/40', descKey: 'ingredientSheet.grade.a', glow: 'shadow-emerald-500/20' },
+  B: { color: 'text-lime-400', bg: 'bg-lime-500/20 border-lime-500/40', descKey: 'ingredientSheet.grade.b', glow: 'shadow-lime-500/20' },
+  C: { color: 'text-amber-400', bg: 'bg-amber-500/20 border-amber-500/40', descKey: 'ingredientSheet.grade.c', glow: 'shadow-amber-500/20' },
+  D: { color: 'text-rose-400', bg: 'bg-rose-500/20 border-rose-500/40', descKey: 'ingredientSheet.grade.d', glow: 'shadow-rose-500/20' },
 };
 
 const VERDICT_CONFIG = {
-  buy: { bg: 'bg-emerald-500/15 border-emerald-500/30', color: 'text-emerald-400', label: 'Chef says: Go for it!' },
-  caution: { bg: 'bg-amber-500/15 border-amber-500/30', color: 'text-amber-400', label: 'Chef says: Just a heads up...' },
-  skip: { bg: 'bg-rose-500/15 border-rose-500/30', color: 'text-rose-400', label: 'Chef says: Maybe think twice' },
+  buy: { bg: 'bg-emerald-500/15 border-emerald-500/30', color: 'text-emerald-400', labelKey: 'ingredientSheet.verdict.buy' },
+  caution: { bg: 'bg-amber-500/15 border-amber-500/30', color: 'text-amber-400', labelKey: 'ingredientSheet.verdict.caution' },
+  skip: { bg: 'bg-rose-500/15 border-rose-500/30', color: 'text-rose-400', labelKey: 'ingredientSheet.verdict.skip' },
 };
 
 const OUTCOME_CONFIG: Record<OutcomeVerdict, { bg: string; border: string; badgeBg: string; badgeText: string; label: string }> = {
@@ -102,12 +103,13 @@ function Section({ title, items, icon }: { title: string; items: string[]; icon:
 }
 
 function IngredientDecoder({ items }: { items: IngredientScanResult['ingredientDecoder'] }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   if (!items || items.length === 0) return null;
   return (
     <div className="mb-4">
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between mb-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-white/40">🔬 Plain English Decoder</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-white/40">🔬 {t('ingredientSheet.decoder.title')}</p>
         {open ? <ChevronUp className="w-3.5 h-3.5 text-white/25" /> : <ChevronDown className="w-3.5 h-3.5 text-white/25" />}
       </button>
       <AnimatePresence>
@@ -129,7 +131,7 @@ function IngredientDecoder({ items }: { items: IngredientScanResult['ingredientD
               ))}
             </div>
             <p className="text-[10px] text-white/25 mt-2 pl-1">
-              🟢 Generally safe · 🟡 Worth knowing · 🔴 Conflicts with your profile
+              {t('ingredientSheet.decoder.legend')}
             </p>
           </motion.div>
         )}
@@ -139,6 +141,7 @@ function IngredientDecoder({ items }: { items: IngredientScanResult['ingredientD
 }
 
 function ProtocolImpactSummary({ cards }: { cards: IngredientScanResult['outcomeCards'] }) {
+  const { t } = useTranslation();
   if (!cards || cards.length === 0) return null;
   const alignsWith = cards.filter(c => c.verdict === 'supports');
   const watchFor   = cards.filter(c => c.verdict === 'conflicts' || c.verdict === 'caution');
@@ -148,7 +151,7 @@ function ProtocolImpactSummary({ cards }: { cards: IngredientScanResult['outcome
     <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4 space-y-3">
       {alignsWith.length > 0 && (
         <div>
-          <p className="text-xs font-bold text-emerald-400/80 uppercase tracking-wide mb-2">Aligns with your goals</p>
+          <p className="text-xs font-bold text-emerald-400/80 uppercase tracking-wide mb-2">{t('ingredientSheet.alignsWith')}</p>
           <ul className="space-y-1">
             {alignsWith.map(c => (
               <li key={c.protocolKey} className="flex items-center gap-2 text-sm text-white/75">
@@ -161,7 +164,7 @@ function ProtocolImpactSummary({ cards }: { cards: IngredientScanResult['outcome
       )}
       {watchFor.length > 0 && (
         <div>
-          <p className="text-xs font-bold text-amber-400/80 uppercase tracking-wide mb-2">Watch for</p>
+          <p className="text-xs font-bold text-amber-400/80 uppercase tracking-wide mb-2">{t('ingredientSheet.watchFor')}</p>
           <ul className="space-y-2">
             {watchFor.map(c => (
               <li key={c.protocolKey} className="flex items-start gap-2 text-sm">
@@ -182,10 +185,11 @@ function ProtocolImpactSummary({ cards }: { cards: IngredientScanResult['outcome
 }
 
 function OutcomeCardsGrid({ cards }: { cards: IngredientScanResult['outcomeCards'] }) {
+  const { t } = useTranslation();
   if (!cards || cards.length === 0) return null;
   return (
     <div className="mb-5">
-      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">How it scores for your protocols</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">{t('ingredientSheet.howItScores')}</p>
       <div className="grid grid-cols-2 gap-2">
         {cards.map((card) => {
           const cfg = OUTCOME_CONFIG[card.verdict];
@@ -220,12 +224,13 @@ function BetterAlternativesSection({
   verdictLevel?: string;
   onAddToList?: (name: string) => void;
 }) {
+  const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
   if (!alternatives || alternatives.length === 0) return null;
 
   const headingText = verdictLevel === 'buy'
-    ? (branded ? '🏆 Also Worth Knowing' : '🏆 Even Better Options')
-    : '🛒 Better Product Options For You';
+    ? (branded ? `🏆 ${t('ingredientSheet.alternatives.alsoWorthKnowing')}` : `🏆 ${t('ingredientSheet.alternatives.evenBetter')}`)
+    : `🛒 ${t('ingredientSheet.alternatives.betterOptions')}`;
 
   function handleAdd(name: string, i: number) {
     if (!onAddToList) return;
@@ -240,7 +245,7 @@ function BetterAlternativesSection({
         <p className="text-sm font-bold text-white/80">{headingText}</p>
         {verdictLevel !== 'buy' && (
           <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/25 rounded-full px-2 py-0.5 uppercase tracking-wide">
-            Profile-matched
+            {t('ingredientSheet.alternatives.profileMatched')}
           </span>
         )}
       </div>
@@ -259,8 +264,8 @@ function BetterAlternativesSection({
                   }`}
                 >
                   {addedIndex === i
-                    ? <><Check className="w-3 h-3" /> Added</>
-                    : <><ShoppingCart className="w-3 h-3" /> Add</>
+                    ? <><Check className="w-3 h-3" /> {t('ingredientSheet.added')}</>
+                    : <><ShoppingCart className="w-3 h-3" /> {t('ingredientSheet.add')}</>
                   }
                 </button>
               )}
@@ -285,19 +290,20 @@ function BetterAlternativesSection({
       </div>
       <p className="text-[10px] text-white/20 mt-2 pl-1">
         {branded
-          ? 'Based on product knowledge — formulas and availability can change.'
-          : 'Category guidance based on your health profile — look for these characteristics on labels.'}
+          ? t('ingredientSheet.alternatives.brandedNote')
+          : t('ingredientSheet.alternatives.categoryNote')}
       </p>
     </div>
   );
 }
 
 function ProfileFactorsSection({ factors }: { factors: string[] }) {
+  const { t } = useTranslation();
   if (!factors || factors.length === 0) return null;
   return (
     <div className="rounded-xl border border-orange-500/20 bg-orange-500/6 p-3.5 mb-4">
       <p className="text-[10px] font-bold uppercase tracking-wide text-orange-400/70 mb-2">
-        Profile Factors Driving This Analysis
+        {t('ingredientSheet.profileFactorsHeading')}
       </p>
       <div className="flex flex-wrap gap-1.5">
         {factors.map((factor, i) => (
@@ -315,22 +321,23 @@ function ProfileFactorsSection({ factors }: { factors: string[] }) {
 }
 
 function LegacyScoreCardsGrid({ scoreCards }: { scoreCards: IngredientScanResult['scoreCards'] }) {
+  const { t } = useTranslation();
   const SCORE_CARDS_META = [
-    { key: 'kids' as const, label: 'Kids', icon: '🧒' },
-    { key: 'adults' as const, label: 'Adults', icon: '🧑' },
-    { key: 'diet' as const, label: 'Your Diet', icon: '🥗' },
-    { key: 'fitnessGoal' as const, label: 'Your Goal', icon: '🎯' },
+    { key: 'kids' as const, labelKey: 'ingredientSheet.scoreCards.kids', icon: '🧒' },
+    { key: 'adults' as const, labelKey: 'ingredientSheet.scoreCards.adults', icon: '🧑' },
+    { key: 'diet' as const, labelKey: 'ingredientSheet.scoreCards.diet', icon: '🥗' },
+    { key: 'fitnessGoal' as const, labelKey: 'ingredientSheet.scoreCards.goal', icon: '🎯' },
   ];
   return (
     <div className="mb-5">
-      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">How it scores for you</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">{t('ingredientSheet.howItScoresForYou')}</p>
       <div className="grid grid-cols-2 gap-2">
-        {SCORE_CARDS_META.map(({ key, label, icon }) => {
+        {SCORE_CARDS_META.map(({ key, labelKey, icon }) => {
           const card = scoreCards[key];
           return (
             <div key={key} className={`rounded-xl border p-3 ${LEGACY_SCORE_BG[card.verdict]}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-white/60">{icon} {label}</span>
+                <span className="text-xs font-semibold text-white/60">{icon} {t(labelKey)}</span>
                 <LegacyScoreIcon verdict={card.verdict} />
               </div>
               {card.reason && (
@@ -355,12 +362,13 @@ function hasLabRelevantCondition(items: string[]): boolean {
 }
 
 function BarcodeDatabaseBadge({ resolvedFromDb, resolvedName }: { resolvedFromDb: boolean; resolvedName?: string }) {
+  const { t } = useTranslation();
   if (resolvedFromDb) {
     return (
       <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-3.5 py-2.5 mb-4 flex items-center gap-2.5">
         <span className="text-emerald-400 text-base shrink-0">✓</span>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-emerald-300">Database match · Open Food Facts</p>
+          <p className="text-xs font-bold text-emerald-300">{t('ingredientSheet.barcode.dbMatch')}</p>
           {resolvedName && (
             <p className="text-[11px] text-white/40 leading-tight truncate">{resolvedName}</p>
           )}
@@ -372,19 +380,19 @@ function BarcodeDatabaseBadge({ resolvedFromDb, resolvedName }: { resolvedFromDb
     <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 px-3.5 py-2.5 mb-4 flex items-center gap-2.5">
       <span className="text-amber-400 text-base shrink-0">≈</span>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-bold text-amber-300">Not in database · AI estimate</p>
+        <p className="text-xs font-bold text-amber-300">{t('ingredientSheet.barcode.notInDb')}</p>
         <p className="text-[11px] text-white/40 leading-tight">
-          Barcode not found — analysis based on AI product knowledge
+          {t('ingredientSheet.barcode.notFound')}
         </p>
       </div>
     </div>
   );
 }
 type AnalysisMethod = 'by_name' | 'by_label' | 'full_product_advisor';
-const TIER_CONFIG: Record<AnalysisMethod, { label: string; dot: string; border: string; bg: string; text: string }> = {
-  by_name:             { label: 'Quick Analysis',          dot: 'bg-amber-400',   border: 'border-amber-500/25',   bg: 'bg-amber-500/8',   text: 'text-amber-300' },
-  by_label:            { label: 'Verified Label Analysis', dot: 'bg-sky-400',     border: 'border-sky-500/25',     bg: 'bg-sky-500/8',     text: 'text-sky-300' },
-  full_product_advisor:{ label: 'Full Product Advisor',    dot: 'bg-emerald-400', border: 'border-emerald-500/25', bg: 'bg-emerald-500/8', text: 'text-emerald-300' },
+const TIER_CONFIG: Record<AnalysisMethod, { labelKey: string; dot: string; border: string; bg: string; text: string }> = {
+  by_name:             { labelKey: 'ingredientSheet.tier.quick',    dot: 'bg-amber-400',   border: 'border-amber-500/25',   bg: 'bg-amber-500/8',   text: 'text-amber-300' },
+  by_label:            { labelKey: 'ingredientSheet.tier.verified', dot: 'bg-sky-400',     border: 'border-sky-500/25',     bg: 'bg-sky-500/8',     text: 'text-sky-300' },
+  full_product_advisor:{ labelKey: 'ingredientSheet.tier.full',     dot: 'bg-emerald-400', border: 'border-emerald-500/25', bg: 'bg-emerald-500/8', text: 'text-emerald-300' },
 };
 
 function ConfidenceTierBadge({ method, productName, productNameMissing, onScanLabel }: {
@@ -393,30 +401,31 @@ function ConfidenceTierBadge({ method, productName, productNameMissing, onScanLa
   productNameMissing?: boolean;
   onScanLabel?: () => void;
 }) {
+  const { t } = useTranslation();
   const cfg = TIER_CONFIG[method] ?? TIER_CONFIG.by_label;
   let sublabel = '';
-  if (method === 'by_name') sublabel = 'Knowledge-based · No label scan';
-  else if (method === 'by_label' && productName) sublabel = `Label scanned · ${productName}`;
-  else if (method === 'by_label' && productNameMissing) sublabel = 'Label scanned · Product unknown';
-  else if (method === 'by_label') sublabel = 'Label scanned';
-  else sublabel = 'Product + Label + Profile';
+  if (method === 'by_name') sublabel = t('ingredientSheet.tier.subKnowledge');
+  else if (method === 'by_label' && productName) sublabel = t('ingredientSheet.tier.subLabelScanned', { name: productName });
+  else if (method === 'by_label' && productNameMissing) sublabel = t('ingredientSheet.tier.subProductUnknown');
+  else if (method === 'by_label') sublabel = t('ingredientSheet.tier.subLabel');
+  else sublabel = t('ingredientSheet.tier.subFull');
 
   return (
     <div className={`rounded-xl border ${cfg.border} ${cfg.bg} px-3.5 py-2.5 mb-4 flex items-center justify-between gap-2`}>
       <div className="flex items-center gap-2.5">
         <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
         <div>
-          <p className={`text-xs font-bold ${cfg.text}`}>{cfg.label}</p>
+          <p className={`text-xs font-bold ${cfg.text}`}>{t(cfg.labelKey)}</p>
           <p className="text-[11px] text-white/40 leading-tight">{sublabel}</p>
         </div>
       </div>
       {method === 'by_name' && onScanLabel && (
         <button onClick={onScanLabel} className="text-[11px] text-orange-400 font-semibold shrink-0 active:opacity-70 transition-opacity">
-          Scan label ↑
+          {t('ingredientSheet.scanLabelUp')}
         </button>
       )}
       {method === 'full_product_advisor' && (
-        <span className="text-[11px] text-emerald-400 font-semibold shrink-0">Highest confidence</span>
+        <span className="text-[11px] text-emerald-400 font-semibold shrink-0">{t('ingredientSheet.highestConfidence')}</span>
       )}
     </div>
   );
@@ -424,10 +433,11 @@ function ConfidenceTierBadge({ method, productName, productNameMissing, onScanLa
 
 // ── What Matters Most For You ─────────────────────────────────────────────────
 function WhatMattersMostSection({ items }: { items: string[] }) {
+  const { t } = useTranslation();
   if (!items || items.length === 0) return null;
   return (
     <div className="rounded-2xl border border-orange-500/25 bg-orange-500/6 p-4 mb-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-orange-400 mb-3">⚡ What Matters Most For You</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-orange-400 mb-3">⚡ {t('ingredientSheet.whatMattersMost')}</p>
       <ul className="space-y-2.5">
         {items.slice(0, 3).map((item, i) => (
           <li key={i} className="flex items-start gap-2.5">
@@ -441,16 +451,17 @@ function WhatMattersMostSection({ items }: { items: string[] }) {
 }
 
 function AnalysisProfileSection({ items }: { items: string[] }) {
+  const { t } = useTranslation();
   const showLabTeaser = items.length > 0 && hasLabRelevantCondition(items);
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-3">
       <p className="text-xs font-bold uppercase tracking-wide text-orange-400/80 mb-2">
-        Your Analysis Profile
+        {t('ingredientSheet.analysisProfile.heading')}
       </p>
       {items.length > 0 ? (
         <>
-          <p className="text-[11px] text-white/40 mb-2.5">This recommendation is based on:</p>
+          <p className="text-[11px] text-white/40 mb-2.5">{t('ingredientSheet.analysisProfile.basedOn')}</p>
           <div className="flex flex-wrap gap-1.5 mb-3">
             {items.map((item) => (
               <span
@@ -467,27 +478,27 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
             <div className="rounded-lg bg-orange-500/8 border border-orange-500/20 px-3 py-2.5 mb-3 flex items-start gap-2.5">
               <span className="text-orange-400 text-base leading-none mt-0.5 shrink-0">⚗️</span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-white/75 mb-0.5">Want deeper personalization?</p>
+                <p className="text-xs font-semibold text-white/75 mb-0.5">{t('ingredientSheet.analysisProfile.deeperTitle')}</p>
                 <p className="text-[11px] text-white/45 leading-snug mb-2">
-                  Add lab values such as A1C, fasting glucose, cholesterol, triglycerides, kidney markers, or inflammation markers.
+                  {t('ingredientSheet.analysisProfile.deeperBody')}
                 </p>
                 <a
                   href="/biometrics"
                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/30 rounded-full px-2.5 py-1"
                 >
-                  Update Health Profile →
+                  {t('ingredientSheet.analysisProfile.updateProfile')}
                 </a>
               </div>
             </div>
           )}
 
           <p className="text-[10px] text-white/25 leading-relaxed border-t border-white/8 pt-2.5">
-            Recommendations are generated from ingredient composition, nutrition facts, and your health profile. MPM does not receive compensation from food manufacturers and recommendations are never influenced by brand partnerships.
+            {t('ingredientSheet.analysisProfile.disclaimer')}
           </p>
         </>
       ) : (
         <p className="text-xs text-white/45 leading-relaxed">
-          Add health goals and conditions in your profile to get a fully personalized analysis.
+          {t('ingredientSheet.analysisProfile.emptyState')}
         </p>
       )}
     </div>
@@ -495,6 +506,7 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
 }
 
 export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName }: Props) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
@@ -561,11 +573,11 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
         queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
         try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
         toast({
-          title: 'Removed from Groceries',
-          description: `${activeResult.productName} has been removed from your bookmarks.`,
+          title: t('ingredientSheet.toast.removedTitle'),
+          description: t('ingredientSheet.toast.removedDesc', { name: activeResult.productName }),
         });
       } catch {
-        toast({ title: 'Could not remove', description: 'Please try again.', variant: 'destructive' });
+        toast({ title: t('ingredientSheet.toast.removeFailTitle'), description: t('ingredientSheet.toast.tryAgain'), variant: 'destructive' });
       } finally {
         setSavingGrocery(false);
       }
@@ -604,11 +616,11 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
       queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
       try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
       toast({
-        title: data?.created === false ? 'Already saved' : 'Saved to Groceries',
-        description: `${activeResult.productName} is in your grocery bookmarks.`,
+        title: data?.created === false ? t('ingredientSheet.toast.alreadySaved') : t('ingredientSheet.toast.savedTitle'),
+        description: t('ingredientSheet.toast.savedDesc', { name: activeResult.productName }),
       });
     } catch {
-      toast({ title: 'Could not save', description: 'Please try again.', variant: 'destructive' });
+      toast({ title: t('ingredientSheet.toast.saveFailTitle'), description: t('ingredientSheet.toast.tryAgain'), variant: 'destructive' });
     } finally {
       setSavingGrocery(false);
     }
@@ -617,7 +629,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
   function handleAddProduct(name: string) {
     if (!onAddProduct) return;
     onAddProduct(name);
-    toast({ title: `Added to your grocery list`, description: name });
+    toast({ title: t('ingredientSheet.toast.addedToList'), description: name });
   }
 
   const activeResult = byNameResult ?? result;
@@ -677,19 +689,19 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                 />
                 <div className="flex-1">
                   <p className="text-xs text-orange-400 font-bold uppercase tracking-wide">
-                    {companionName ? 'Companion Product Scan' : 'Ingredient Intelligence'}
+                    {companionName ? t('ingredientSheet.header.companionScan') : t('ingredientSheet.header.intelligence')}
                   </p>
                   <h2 className="text-white font-bold text-base leading-tight">
-                    {result.productName || 'Product not identified'}
+                    {result.productName || t('ingredientSheet.header.notIdentified')}
                   </h2>
                   {companionName ? (
                     <div className="mt-1 inline-flex items-center gap-1 bg-orange-600/20 border border-orange-500/30 rounded-full px-2 py-0.5">
                       <span className="text-[10px]">🐾</span>
-                      <span className="text-orange-300 text-[10px] font-semibold">Scanning for {companionName}</span>
+                      <span className="text-orange-300 text-[10px] font-semibold">{t('ingredientSheet.header.scanningFor', { name: companionName })}</span>
                     </div>
                   ) : result.productName ? (
                     <p className="text-[11px] text-white/35 mt-0.5">
-                      {showFrontLabelChoice ? 'Front Label Detected' : isByName ? 'By-Name Analysis' : 'Full Analysis'}
+                      {showFrontLabelChoice ? t('ingredientSheet.header.frontLabelDetected') : isByName ? t('ingredientSheet.header.byNameAnalysis') : t('ingredientSheet.header.fullAnalysis')}
                     </p>
                   ) : null}
                 </div>
@@ -704,7 +716,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                   {/* Product detected card */}
                   <div className="rounded-2xl border border-orange-500/30 bg-orange-500/8 p-5 text-center">
                     <div className="text-3xl mb-2">📦</div>
-                    <p className="text-[11px] text-orange-400 font-bold uppercase tracking-wide mb-1">Front Label Detected</p>
+                    <p className="text-[11px] text-orange-400 font-bold uppercase tracking-wide mb-1">{t('ingredientSheet.header.frontLabelDetected')}</p>
                     <p className="text-base font-bold text-white leading-snug">{result.productName}</p>
                   </div>
 
@@ -713,7 +725,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     onClick={handleAnalyzeByName}
                     className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-base active:scale-[0.98] transition-transform"
                   >
-                    Analyze This Product
+                    {t('ingredientSheet.analyzeThisProduct')}
                   </button>
 
                   {/* Secondary CTA */}
@@ -723,13 +735,13 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                       className="w-full p-3.5 rounded-2xl bg-white/8 border border-white/15 text-white/65 font-medium text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                     >
                       <ScanLine className="w-4 h-4" />
-                      Scan Ingredients / Nutrition Label
+                      {t('ingredientSheet.scanIngredientsLabel')}
                     </button>
                   )}
 
                   {/* Disclaimer */}
                   <p className="text-[11px] text-white/30 text-center leading-relaxed px-2 pt-1">
-                    "Analyze This Product" uses AI knowledge of this product — not a live label scan. Product formulas can change. Scan the ingredients panel for a verified result.
+                    {t('ingredientSheet.analyzeDisclaimer')}
                   </p>
                 </motion.div>
               )}
@@ -742,8 +754,8 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                 >
                   <div className="w-10 h-10 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
                   <div className="text-center">
-                    <p className="text-sm font-semibold text-white">Analyzing {result.productName}…</p>
-                    <p className="text-xs text-white/40 mt-1">Checking against your health profile</p>
+                    <p className="text-sm font-semibold text-white">{t('ingredientSheet.analyzing', { name: result.productName })}</p>
+                    <p className="text-xs text-white/40 mt-1">{t('ingredientSheet.checkingProfile')}</p>
                   </div>
                 </motion.div>
               )}
@@ -773,15 +785,15 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 p-3.5 mb-4 flex items-start gap-2.5">
                       <span className="text-base shrink-0 mt-0.5">⚠️</span>
                       <div className="flex-1">
-                        <p className="text-xs font-semibold text-amber-300 mb-0.5">Quick Analysis — Not a Verified Label Scan</p>
+                        <p className="text-xs font-semibold text-amber-300 mb-0.5">{t('ingredientSheet.byNameBanner.title')}</p>
                         <p className="text-[11px] text-white/50 leading-snug">
-                          Based on product knowledge as of training data. Product formulas can change.{' '}
+                          {t('ingredientSheet.byNameBanner.body')}{' '}
                           {onRescan && (
                             <button
                               onClick={onRescan}
                               className="text-orange-400 font-semibold underline"
                             >
-                              Scan the label for a verified result.
+                              {t('ingredientSheet.byNameBanner.scanLink')}
                             </button>
                           )}
                         </p>
@@ -794,8 +806,8 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 mb-4 flex items-start gap-2.5">
                       <span className="text-base shrink-0 mt-0.5">⚠️</span>
                       <div>
-                        <p className="text-xs font-semibold text-amber-300 mb-0.5">Image quality was low</p>
-                        <p className="text-[11px] text-white/50 leading-snug">Retake with the full ingredients panel visible, in focus, and well-lit for a more accurate analysis.</p>
+                        <p className="text-xs font-semibold text-amber-300 mb-0.5">{t('ingredientSheet.lowQuality.title')}</p>
+                        <p className="text-[11px] text-white/50 leading-snug">{t('ingredientSheet.lowQuality.body')}</p>
                       </div>
                     </div>
                   )}
@@ -805,8 +817,8 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     <div className="rounded-xl border border-sky-500/25 bg-sky-500/8 p-3.5 mb-4 flex items-start gap-2.5">
                       <span className="text-base shrink-0 mt-0.5">💡</span>
                       <div>
-                        <p className="text-xs font-semibold text-sky-300 mb-0.5">Nutrition label found</p>
-                        <p className="text-[11px] text-white/50 leading-snug">Say or type the product name to receive branded alternatives personalized to your profile.</p>
+                        <p className="text-xs font-semibold text-sky-300 mb-0.5">{t('ingredientSheet.labelFound.title')}</p>
+                        <p className="text-[11px] text-white/50 leading-snug">{t('ingredientSheet.labelFound.body')}</p>
                       </div>
                     </div>
                   )}
@@ -816,11 +828,11 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     <div className="rounded-2xl border border-white/15 bg-white/5 p-4 mb-3 flex items-start gap-3">
                       <div className="text-2xl shrink-0">🔍</div>
                       <div>
-                        <p className="font-bold text-sm text-white/80">Analysis incomplete</p>
+                        <p className="font-bold text-sm text-white/80">{t('ingredientSheet.incomplete.title')}</p>
                         <p className="text-xs text-white/45 mt-1 leading-snug">
                           {activeResult.ocrConfidenceLow
-                            ? "The image wasn't clear enough to score. Make sure the full ingredients panel is visible and well-lit, then try again."
-                            : "More information is needed to generate a grade. Try scanning the ingredients panel or use Product Lookup."}
+                            ? t('ingredientSheet.incomplete.lowImage')
+                            : t('ingredientSheet.incomplete.needMore')}
                         </p>
                       </div>
                     </div>
@@ -828,11 +840,11 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     <div className={`rounded-2xl border p-4 mb-3 flex items-center gap-4 ${grade.bg} shadow-lg ${grade.glow}`}>
                       <div className={`text-6xl font-black leading-none ${grade.color}`}>{activeResult.alignmentGrade}</div>
                       <div>
-                        <p className={`font-bold text-base ${grade.color}`}>{grade.desc}</p>
+                        <p className={`font-bold text-base ${grade.color}`}>{t(grade.descKey)}</p>
                         <p className="text-xs text-white/45 mt-0.5">
                           {activeResult.profileFactorsUsed && activeResult.profileFactorsUsed.length > 0
-                            ? 'Personalized to your health profile'
-                            : 'General analysis — add health goals for personalized results'}
+                            ? t('ingredientSheet.personalized')
+                            : t('ingredientSheet.generalAnalysis')}
                         </p>
                       </div>
                     </div>
@@ -843,7 +855,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                     <div className={`rounded-xl border p-3.5 mb-4 flex items-start gap-3 ${verdictCfg.bg}`}>
                       <img src="/icons/ChefMascotLogo.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5 border border-orange-500/30" />
                       <div>
-                        <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>{verdictCfg.label}</p>
+                        <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>{t(verdictCfg.labelKey)}</p>
                         <p className="text-sm text-white/85 leading-snug">{activeResult.verdict}</p>
                       </div>
                     </div>
@@ -884,15 +896,15 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                   <IngredientDecoder items={activeResult.ingredientDecoder ?? []} />
 
                   {/* Ingredient sections */}
-                  <Section title="Ingredient Considerations" items={activeResult.ingredientConsiderations} icon="🔍" />
-                  <Section title="May Not Align With Your Goals" items={activeResult.mayNotAlignWith} icon="⚠️" />
-                  <Section title="Works Well For" items={activeResult.betterFor} icon="✓" />
-                  <Section title="Family Notes" items={activeResult.householdNotes} icon="🏠" />
+                  <Section title={t('ingredientSheet.sections.considerations')} items={activeResult.ingredientConsiderations} icon="🔍" />
+                  <Section title={t('ingredientSheet.sections.mayNotAlign')} items={activeResult.mayNotAlignWith} icon="⚠️" />
+                  <Section title={t('ingredientSheet.sections.worksWellFor')} items={activeResult.betterFor} icon="✓" />
+                  <Section title={t('ingredientSheet.sections.familyNotes')} items={activeResult.householdNotes} icon="🏠" />
 
                   {/* Detected ingredients (collapsed) — back-label path only */}
                   {!isByName && activeResult.extractedIngredients.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">📋 Detected Ingredients</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">📋 {t('ingredientSheet.detectedIngredients')}</p>
                       <div className="rounded-xl border border-white/10 bg-black/30 p-3 max-h-24 overflow-y-auto">
                         <p className="text-xs text-white/40 leading-relaxed">
                           {activeResult.extractedIngredients.join(', ')}
@@ -908,7 +920,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                       className="w-full mt-2 mb-4 p-3.5 rounded-2xl bg-orange-600/15 border border-orange-500/30 text-orange-300 font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                     >
                       <ScanLine className="w-4 h-4" />
-                      Scan Label for Verified Label Analysis
+                      {t('ingredientSheet.scanForVerified')}
                     </button>
                   )}
 
@@ -922,7 +934,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                           className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm active:scale-[.98] transition-transform"
                         >
                           <ShoppingCart className="w-4 h-4" />
-                          Add {activeResult.productName} to List
+                          {t('ingredientSheet.addNamedToList', { name: activeResult.productName })}
                         </button>
                       )}
                       {/* Legacy fallback: no productName but onAddAnyway exists */}
@@ -933,7 +945,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                             className="w-full flex items-center justify-center gap-2 bg-orange-600 rounded-2xl py-3.5 text-white font-semibold text-sm active:scale-[.98] transition-transform"
                           >
                             <ShoppingBag className="w-4 h-4" />
-                            Add to List
+                            {t('ingredientSheet.addToList')}
                           </button>
                         </>
                       )}
@@ -943,7 +955,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                           className="w-full flex items-center justify-center gap-1.5 bg-white/8 border border-white/10 rounded-xl py-3 text-white/70 text-sm"
                         >
                           <Bookmark className="w-3.5 h-3.5" />
-                          Save Scan
+                          {t('ingredientSheet.saveScan')}
                         </button>
                       )}
                     </div>
@@ -965,7 +977,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
                           className="w-4 h-4"
                           fill={savedGroceryId ? 'currentColor' : 'none'}
                         />
-                        {savedGroceryId ? 'Saved to Groceries' : 'Save to Groceries'}
+                        {savedGroceryId ? t('ingredientSheet.savedToGroceries') : t('ingredientSheet.saveToGroceries')}
                       </button>
                     </div>
                   )}

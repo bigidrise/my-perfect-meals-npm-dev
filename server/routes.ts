@@ -126,6 +126,7 @@ import procareRoutes from "./routes/procareRoutes";
 import procareTrainingRouter from "./routes/procareTrainingRoutes";
 import clinicalInterventionsRouter from "./routes/clinicalInterventions";
 import studioRoutes from "./routes/studioRoutes";
+import procareInviteRoutes from "./routes/procareInviteRoutes";
 import onboardingProgressRoutes from "./routes/onboardingProgress";
 import foundersRoutes from "./routes/foundersRoutes";
 import physicianReportsRoutes from "./routes/physicianReports";
@@ -490,6 +491,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Meal sharing — POST /api/meals/share (auth) + GET /api/share/:token (public)
   app.use('/api/meals', mealSharesRouter);
   app.use('/api/share', mealSharesRouter);
+  // ProCare invite — GET is public (invite preview), POST requires auth (per-route)
+  // Must be mounted BEFORE any app.use("/api", requireAuth, ...) catch-all handlers
+  app.use('/api/procare-invite', procareInviteRoutes);
   app.use('/api/partner', partnerRouter);
   app.use('/api/promotions', promotionRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
@@ -1107,6 +1111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         performanceSessionContext: performanceSessionContext || undefined,
         generationContext: typeof generationContext === 'string' ? generationContext : undefined,
         glp1Targets: serverGlp1Targets,
+        preferredLanguage: (req as any).authUser?.preferredLanguage,
       });
 
       const durationMs = Date.now() - startTime;
@@ -4330,6 +4335,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onboardingMode: user.onboardingMode,
         preferredBuilder: user.preferredBuilder,
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+        trialStartedAt: user.trialStartedAt?.toISOString() ?? null,
+        trialSource: user.trialSource ?? null,
       });
     } catch (error: any) {
       console.error("Error completing onboarding:", error);

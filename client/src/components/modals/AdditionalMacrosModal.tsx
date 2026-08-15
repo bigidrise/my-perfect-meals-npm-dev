@@ -15,7 +15,7 @@ import {
   computeMacrosFromProfile,
   getProfileById,
 } from "@/lib/macroProfiles";
-import { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { v4 as uuidv4 } from "uuid";
 
 interface AdditionalMacrosModalProps {

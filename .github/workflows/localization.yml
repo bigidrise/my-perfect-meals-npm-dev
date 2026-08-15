@@ -1,0 +1,50 @@
+name: Localization Quality Gates
+
+on:
+  pull_request:
+    paths:
+      - "client/src/i18n/**"
+      - "client/src/**/*.tsx"
+      - "client/src/**/*.ts"
+      - "scripts/i18n-*.ts"
+      - "scripts/pseudo-locale-gen.ts"
+  push:
+    branches: [main]
+    paths:
+      - "client/src/i18n/**"
+
+jobs:
+  localization-gates:
+    name: "Phase 0 Localization Gates"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: GATE_02 + GATE_03 + GATE_07 + GATE_08 — Phase 0 Validate
+        run: npx tsx scripts/i18n-phase0-validate.ts --ci
+
+      - name: Generate clinical registry (verify it builds)
+        run: npx tsx scripts/i18n-clinical-registry.ts
+
+      - name: Fallback detection report
+        run: npx tsx scripts/i18n-fallback-detect.ts
+
+      - name: Upload localization reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localization-reports
+          path: docs/localization/
+          retention-days: 14

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { PickerModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import type { AthleteMeal } from "@/data/athleteMeals";
 import { getCompetitionMealsByCategory } from "@/data/competitionPremadeMeals";
 import { Target } from "lucide-react";
@@ -74,10 +75,10 @@ function convertAthleteMealToMeal(athleteMeal: AthleteMeal): Meal {
 const DEFAULT_CATEGORY = "poultry";
 
 const CATEGORY_OPTIONS = [
-  { value: "poultry", label: "🐔 Chicken & Turkey" },
-  { value: "redmeat", label: "🥩 Red Meat" },
-  { value: "fish", label: "🐟 Fillet Fish" },
-  { value: "eggs_shakes", label: "🥚 Eggs & Shakes" },
+  { value: "poultry", emoji: "🐔", labelKey: "competitionPicker.categories.poultry" },
+  { value: "redmeat", emoji: "🥩", labelKey: "competitionPicker.categories.redmeat" },
+  { value: "fish", emoji: "🐟", labelKey: "competitionPicker.categories.fish" },
+  { value: "eggs_shakes", emoji: "🥚", labelKey: "competitionPicker.categories.eggsShakes" },
 ] as const;
 
 export function CompetitionMealPickerDrawer({
@@ -91,6 +92,7 @@ export function CompetitionMealPickerDrawer({
   onClose: () => void;
   onPick: (meal: Meal) => void;
 }) {
+  const { t } = useTranslation();
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
   const [showInfoModal, setShowInfoModal] = React.useState(false);
@@ -120,11 +122,11 @@ export function CompetitionMealPickerDrawer({
       onOpenChange={(v) => !v && onClose()}
       title={
         <span className="text-2xl font-bold text-white flex items-center gap-2">
-          🏆 Competition Prep Meals - Add to {list}
+          🏆 {t("competitionPicker.headerAddTo", { slot: list })}
           <button
             onClick={() => setShowInfoModal(true)}
             className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
-            aria-label="How to use Performance & Competition Builder"
+            aria-label={t("competitionPicker.howToAria")}
           >
             ?
           </button>
@@ -135,7 +137,7 @@ export function CompetitionMealPickerDrawer({
         <div className="space-y-4">
           {/* Category Selector */}
           <div className="bg-black/30 p-4 rounded-lg border border-white/10">
-            <label className="text-white/80 text-sm mb-2 block">Select Protein Category:</label>
+            <label className="text-white/80 text-sm mb-2 block">{t("competitionPicker.selectCategory")}</label>
             <Select
               value={category}
               onValueChange={(val) =>
@@ -144,8 +146,10 @@ export function CompetitionMealPickerDrawer({
             >
               <SelectTrigger className="w-full bg-black/60 border-white/20 text-white h-10 text-sm">
                 <SelectValue>
-                  {CATEGORY_OPTIONS.find((opt) => opt.value === category)
-                    ?.label ?? "Select Category"}
+                  {(() => {
+                    const opt = CATEGORY_OPTIONS.find((o) => o.value === category);
+                    return opt ? `${opt.emoji} ${t(opt.labelKey)}` : t("competitionPicker.selectCategoryShort");
+                  })()}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="bg-zinc-900/95 border-white/20 text-white">
@@ -155,7 +159,7 @@ export function CompetitionMealPickerDrawer({
                     value={option.value}
                     className="text-white hover:bg-white/10 focus:bg-white/20 cursor-pointer"
                   >
-                    {option.label}
+                    {`${option.emoji} ${t(option.labelKey)}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -187,7 +191,7 @@ export function CompetitionMealPickerDrawer({
                   </div>
                   {am.includeCarbs ? (
                     <Badge className="bg-green-600/80 text-white text-[10px] ml-2 px-2 py-0.5 shrink-0">
-                      Carbs
+                      {t("competitionPicker.badgeCarbs")}
                     </Badge>
                   ) : (
                     <Badge className="bg-orange-600/80 text-white text-[10px] ml-2 px-2 py-0.5 shrink-0">
@@ -227,15 +231,15 @@ export function CompetitionMealPickerDrawer({
             <div className="flex items-start gap-2 mb-2">
               <Target className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-emerald-400 mb-1">Competition Prep Meals</p>
+                <p className="font-semibold text-emerald-400 mb-1">{t("competitionPicker.noteTitle")}</p>
                 <p className="text-white/80 text-xs mb-2">
-                  Pre-designed athlete meals optimized for lean muscle building and performance.
+                  {t("competitionPicker.noteDesc")}
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-xs text-white/70 ml-2">
-                  <li>Select your protein category (Chicken, Red Meat, Fish, Eggs)</li>
-                  <li>Meals are tagged with "Carbs" or "P+V" (Protein + Veggies)</li>
-                  <li>Click any meal to add it to your board instantly</li>
-                  <li>All macros are pre-calculated and ready to track</li>
+                  <li>{t("competitionPicker.noteStep1")}</li>
+                  <li>{t("competitionPicker.noteStep2")}</li>
+                  <li>{t("competitionPicker.noteStep3")}</li>
+                  <li>{t("competitionPicker.noteStep4")}</li>
                 </ul>
               </div>
             </div>
@@ -247,25 +251,25 @@ export function CompetitionMealPickerDrawer({
     {showInfoModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
         <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
-          <h3 className="text-xl font-bold text-white mb-4">How to Use Performance & Competition Builder</h3>
+          <h3 className="text-xl font-bold text-white mb-4">{t("competitionPicker.info.title")}</h3>
 
           <div className="space-y-4 text-white/90 text-sm">
-            <p>Pre-designed athlete meals optimized for lean muscle building and performance.</p>
+            <p>{t("competitionPicker.info.intro")}</p>
 
             <div>
-              <h4 className="font-semibold text-white mb-2">Steps:</h4>
+              <h4 className="font-semibold text-white mb-2">{t("competitionPicker.info.stepsLabel")}</h4>
               <ul className="space-y-2 text-white/80 text-sm">
-                <li><strong className="text-white">Select your protein category</strong> (Chicken, Red Meat, Fish, Eggs)</li>
-                <li><strong className="text-white">Meals are tagged</strong> with "Carbs" or "P+V" (Protein + Veggies)</li>
-                <li><strong className="text-white">Click any meal</strong> to add it to your board instantly</li>
-                <li><strong className="text-white">All macros</strong> are pre-calculated and ready to track</li>
+                <li><strong className="text-white">{t("competitionPicker.info.step1Label")}</strong> {t("competitionPicker.info.step1Text")}</li>
+                <li><strong className="text-white">{t("competitionPicker.info.step2Label")}</strong> {t("competitionPicker.info.step2Text")}</li>
+                <li><strong className="text-white">{t("competitionPicker.info.step3Label")}</strong> {t("competitionPicker.info.step3Text")}</li>
+                <li><strong className="text-white">{t("competitionPicker.info.step4Label")}</strong> {t("competitionPicker.info.step4Text")}</li>
               </ul>
             </div>
 
             <div className="bg-black/20 border border-white/10 rounded-lg p-3">
-              <p className="font-semibold text-white mb-1">💡 Tip:</p>
+              <p className="font-semibold text-white mb-1">{t("competitionPicker.info.tipLabel")}</p>
               <p className="text-white/70">
-                Choose meals based on your daily carb targets - use "Carbs" meals when you need energy, and "P+V" meals for lower-carb days!
+                {t("competitionPicker.info.tipText")}
               </p>
             </div>
           </div>
@@ -274,7 +278,7 @@ export function CompetitionMealPickerDrawer({
             onClick={() => setShowInfoModal(false)}
             className="mt-6 w-full bg-lime-700 hover:bg-lime-800 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            got it!
+            {t("competitionPicker.gotIt")}
           </button>
         </div>
       </div>

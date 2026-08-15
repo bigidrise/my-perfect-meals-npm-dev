@@ -67,7 +67,12 @@
     "translate": "Перевести",
     "share": "Поделиться",
     "log": "Записать",
-    "logMeal": "Записать приём пищи"
+    "logMeal": "Записать приём пищи",
+    "addToCalendar": "Добавить в календарь",
+    "bringBackChef": "Вернуть шеф-повара",
+    "comingSoon": "Скоро",
+    "withChef": "С шефом",
+    "today": "Сегодня:"
   },
   "language": {
     "pageTitle": "Язык",
@@ -100,7 +105,78 @@
     "founders": "Основатели",
     "restaurant": "Помощник ресторана",
     "weeklyBuilder": "Недельный конструктор",
-    "mealsAwayFromHome": "Питание вне дома"
+    "mealsAwayFromHome": "Питание вне дома",
+    "academy": "Академия",
+    "antiInflammatoryBuilder": "Противовоспалительный конструктор",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "Применить рекомендации",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "Вид доски",
+    "bodyComposition": "Состав тела",
+    "businessCenter": "Бизнес-центр",
+    "chefPairings": "Рекомендации от шеф-повара",
+    "clientDashboard": "Панель клиента",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Студия авторов и брендов",
+    "dailyJournal": "Дневник и вдохновение",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "Центр поддержки при диабете",
+    "diabetesSupport": "Поддержка при диабете",
+    "diabeticBuilder": "Конструктор рациона при диабете",
+    "diabeticHub": "Центр при диабете",
+    "drinkPairings": "Сочетания напитков",
+    "editProfile": "Редактировать профиль",
+    "findMeals": "Найти блюда",
+    "foundingPartnerProgram": "Программа для партнеров-основателей",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "Конструктор общего питания",
+    "healthcarePartnerships": "Партнерство в сфере здравоохранения",
+    "howPartnershipsWork": "Как работает партнерство",
+    "industryPartnerships": "Отраслевое партнерство",
+    "kitchenNetwork": "Кулинарная сеть",
+    "mealBuilder": "Конструктор блюд",
+    "mealBuilderExchange": "Обмен в конструкторе блюд",
+    "metabolicBuilder": "Конструктор метаболической терапии",
+    "metabolicHub": "Центр метаболической терапии",
+    "metabolicHubBack": "Метаболический центр",
+    "metabolicTracking": "Отслеживание метаболической терапии",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "Панель организации",
+    "organizationSuccessCenter": "Центр успеха организации",
+    "pairingsHub": "Центр сочетаний",
+    "partnerCenter": "Центр партнеров",
+    "partnerManagement": "Управление партнерами",
+    "partnerProgram": "Партнерская программа",
+    "partnerPrograms": "Партнерские программы",
+    "partnerRevenueCenter": "Центр партнеров и доходов",
+    "patientDashboard": "Панель пациента",
+    "performanceBuilder": "Конструктор спортивного питания",
+    "performanceHub": "Центр спортивного питания",
+    "physicianClients": "Клиенты врача",
+    "physicianPortal": "Портал врача",
+    "physicianWelcome": "Добро пожаловать, врач",
+    "planner": "Планировщик",
+    "pregnancy": "Моя идеальная беременность",
+    "proLaunchpad": "Панель профессионала",
+    "proPortal": "Pro Portal",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "Обучение ProCare",
+    "procareWelcome": "Добро пожаловать в ProCare",
+    "professionalWorkspace": "Рабочее пространство профессионала",
+    "promotions": "Акции",
+    "reduceDrinking": "План по снижению потребления алкоголя",
+    "restaurantGuide": "Помощник в ресторане",
+    "signatureKitchen": "Signature Kitchen",
+    "sleepTracker": "Трекер сна",
+    "supplementHub": "Центр добавок",
+    "trainerWelcome": "Добро пожаловать, тренер",
+    "tutorialHub": "Центр обучения",
+    "weaningOff": "Инструмент для отвыкания",
+    "whiteLabelSolutions": "Решения White Label",
+    "wineListHelper": "Помощник по винной карте"
   },
   "dashboard": {
     "professionalBadge": "Профессиональный",
@@ -218,7 +294,13 @@
     "badgeClinical": "Клинический",
     "badgePro": "Про",
     "badgeCurrent": "Текущий",
-    "badgeBehavioral": "Поведенческий ИИ™"
+    "badgeBehavioral": "Поведенческий ИИ™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "Планирование питания для элитных спортсменов под руководством тренера для подготовки к соревнованиям, достижения пиковой формы и восстановления",
+    "performanceCompTitle": "Конструктор планов для выступлений и соревнований",
+    "plannerTitle": "Планировщик",
+    "weeklyDesc": "AI-сгенерированные планы питания для тех, кто хочет питаться здоровой пищей по-своему",
+    "weeklyTitle": "Мой еженедельный конструктор питания"
   },
   "createDish": {
     "pageTitle": "Создать блюдо",
@@ -242,7 +324,11 @@
     "errorMissing": "Отсутствует информация",
     "errorDescribe": "Пожалуйста, опишите блюдо, которое хотите создать!",
     "errorFailed": "Не удалось создать блюдо. Пожалуйста, попробуйте снова.",
-    "allergyAlert": "Предупреждение об аллергии"
+    "allergyAlert": "Предупреждение об аллергии",
+    "label": "Какое блюдо вы хотите создать?",
+    "notes": "Дополнительные примечания",
+    "notesPlaceholder": "например: без молочных продуктов, очень острое, с низким содержанием натрия, для заготовок еды...",
+    "servings": "Порции (1–12)"
   },
   "snack": {
     "pageTitle": "Создатель закусок",
@@ -309,7 +395,8 @@
     "servings": "порции",
     "ingredientsServes": "Ингредиенты (на {{count}} порции)",
     "noIngredients": "Ингредиенты не указаны",
-    "noInstructions": "Инструкции не указаны"
+    "noInstructions": "Инструкции не указаны",
+    "couldNotUpdateFavorites": "Не удалось обновить избранное. Попробуйте снова."
   },
   "shopping": {
     "pageTitle": "Умный список покупок",
@@ -340,7 +427,29 @@
     "catPantry": "Кладовая",
     "catFrozen": "Замороженные",
     "catBakery": "Выпечка",
-    "catOther": "Прочее"
+    "catOther": "Прочее",
+    "addItemsBtn": "Добавить товары",
+    "addedToList": "Добавлено в список покупок",
+    "barcodePlaceholder": "Введите номер штрих-кода...",
+    "bulkInstructions": "Введите или вставьте по одному товару в строке, или разделите товары запятыми:",
+    "bulkPlaceholder": "молоко\nяйца\nкуриная грудка\nшпинат\nкоричневый рис",
+    "bulkTitle": "Массовое добавление товаров",
+    "checked": "отмечено",
+    "chefBuy": "Шеф говорит: берите смело!",
+    "chefCaution": "Шеф говорит: обратите внимание…",
+    "chefSkip": "Шеф говорит: стоит подумать дважды",
+    "continueToBiometrics": "Перейти к биометрии",
+    "emptyList": "Ваш список покупок пуст",
+    "emptyListHint": "Вставьте товары или воспользуйтесь быстрым добавлением",
+    "enterBarcode": "Введите штрих-код",
+    "items": "товаров",
+    "itemsAddedDesc": "Товаров добавлено в список покупок: {{count}}.",
+    "itemsCopied": "Скопировано товаров: {{count}}",
+    "proLabel": "Pro",
+    "savedForReview": "Сохранено для проверки",
+    "savedForReviewDesc": "Вы можете вернуться к этому сканированию в любое время с этой страницы.",
+    "scannedProduct": "Отсканированный товар",
+    "tapView": "Нажмите для просмотра →"
   },
   "restaurant": {
     "pageTitle": "Помощник ресторана",
@@ -357,7 +466,36 @@
     "errorZipDesc": "Пожалуйста, введите действительный 5-значный ZIP-код.",
     "errorLocationDenied": "Доступ к местоположению запрещён",
     "errorLocationDesc": "Включите доступ к местоположению в настройках браузера или введите ZIP вручную.",
-    "generationFailed": "Ошибка генерации"
+    "generationFailed": "Ошибка генерации",
+    "addressCopied": "Адрес скопирован",
+    "askFor": "Спросить:",
+    "cannotDetectZip": "Не удалось определить ZIP-код",
+    "cannotDetectZipDesc": "Местоположение найдено, но не удалось определить ваш ZIP-код. Пожалуйста, введите его вручную.",
+    "copyFailed": "Ошибка копирования",
+    "copyManually": "Пожалуйста, скопируйте вручную.",
+    "entryDesc": "Скажите, где вы едите и чего вам хочется, и я покажу лучшие варианты из их меню.",
+    "entryTitle": "Ресторанный помощник",
+    "findDishes": "Найти блюда",
+    "findingDishes": "Ищем идеальные блюда для вас...",
+    "howToUseTitle": "Как пользоваться ресторанным помощником",
+    "letsFindDishes": "Давайте найдем блюда",
+    "locationFound": "Местоположение найдено",
+    "pasteHint": "Вставьте в Maps или Waze.",
+    "recommendedAt": "Рекомендуемые блюда в",
+    "scanningMenu": "Сканируем меню...",
+    "searchAgain": "Искать снова",
+    "searchingFor": "Ищу варианты {{craving}} в {{restaurant}}",
+    "step1": "Шаг 1",
+    "step1Placeholder": "например: курица, лосось, паста, стейк",
+    "step1Question": "Какое блюдо или вид еды вы хотите?",
+    "step2": "Шаг 2",
+    "step2Placeholder": "например: Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "Где вы едите? Введите название ресторана.",
+    "step3": "Шаг 3",
+    "step3Placeholder": "например: 30303, 90210, 10001",
+    "step3Question": "Введите ваш ZIP-код, чтобы я мог найти ближайший ресторан.",
+    "translationFailed": "Ошибка перевода",
+    "whyHealthy": "Почему это полезно:"
   },
   "upgrade": {
     "viewPlans": "Посмотреть планы",
@@ -369,7 +507,23 @@
     "essentialTagline": "Полный набор инструментов для создания блюд, построенный вокруг вашего профиля.",
     "proTagline": "Расширенные создатели и реальное питание, полностью соответствующее протоколу.",
     "clinicalTagline": "Инструменты питания медицинского уровня для серьёзных результатов здоровья.",
-    "proPromo": "Про — наш самый популярный план — откройте все создатели."
+    "proPromo": "Про — наш самый популярный план — откройте все создатели.",
+    "availableOn": "Доступно в плане {{plan}}",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator и Sushi Creator",
+    "buildersBenefit2": "Конструктор блюд — меняйте настройки в любое время по мере достижения целей",
+    "buildersBenefit3": "Помощник в ресторане, My Perfect Gatherings и дополнительные инструменты для образа жизни",
+    "buildersBenefit4": "Essential для старта · Clinical для использования профессиональных инструментов питания",
+    "clinicalBenefit1": "Интеграция с лабораторией — ваши анализы крови формируют протоколы питания",
+    "clinicalBenefit2": "Доступ к команде поддержки — связь с врачом или тренером прямо в приложении",
+    "clinicalBenefit3": "Спортивное питание, подготовка к соревнованиям и конструкторы для атлетов",
+    "essentialBenefit1": "Create a Dish — блюда с AI, адаптированные под ваши протоколы питания",
+    "essentialBenefit2": "Список покупок, сохраненные блюда и еженедельный планировщик питания",
+    "essentialBenefit3": "Конструктор рецептов, Snack Creator и безлимитный Fridge Rescue",
+    "featurePartOf": "{{feature}} входит в план {{plan}}",
+    "planBadge": "План {{label}}",
+    "proBenefit1": "Craving Creator, Beverage Creator и Sushi Creator",
+    "proBenefit2": "Помощник в ресторане — заказ блюд с учетом протоколов питания в любом ресторане",
+    "proBenefit3": "Планы питания My Perfect Gatherings и My Perfect Pets"
   },
   "pricing": {
     "pageTitle": "Подписка",
@@ -448,7 +602,10 @@
     "dietVegan": "Веган",
     "dietVegetarian": "Вегетарианский",
     "dietPescatarian": "Пескетарианский",
-    "dietCarnivore": "Хищный"
+    "dietCarnivore": "Хищный",
+    "back": "Назад",
+    "next": "Далее",
+    "selectPath": "Выберите путь выше"
   },
   "findMeals": {
     "pageTitle": "Найти еду рядом",
@@ -989,7 +1146,28 @@
     "noMealsTitle": "Нет приемов пищи",
     "noSlotYet": "{{slot}} еще не добавлен",
     "snacks": "Перекусы",
-    "whyWeeklyPlanning": "Зачем нужно планирование на неделю?"
+    "whyWeeklyPlanning": "Зачем нужно планирование на неделю?",
+    "savingPlan": "Сохранение…",
+    "savedPlan": "Сохранено ✓",
+    "savePlan": "Сохранить план",
+    "addMealsHint": "Используйте «+» для добавления блюд",
+    "dayDuplicated": "День скопирован",
+    "dayDuplicatedBoth": "{{thisWeek}} день(я/ей) на этой неделе + {{future}} день(я/ей) в будущих неделях",
+    "dayDuplicatedDesc": "Скопировано в {{count}} день(я/ей)",
+    "duplicate": "Дублировать",
+    "failedToDuplicate": "Не удалось дублировать",
+    "nextWeek": "Следующая неделя",
+    "noSlotMealsYet": "Пока нет блюд для {{slot}}",
+    "partialDuplicate": "Частичное дублирование",
+    "partialDuplicateDesc": "Сохранено {{count}} из {{total}} дней.",
+    "prevWeek": "Предыдущая неделя",
+    "savedFutureWeek": "Сохранено на будущую неделю",
+    "savedFutureWeekDesc": "Блюда скопированы в {{count}} день(я/ей). Пролистайте вперед, чтобы увидеть их.",
+    "shoppingListDesc": "Вы МОЖЕТЕ отправить меню всей недели в список покупок! Это объединит все ингредиенты для удобного похода в магазин. Нажмите «Отправить всю неделю» внизу.",
+    "shoppingListNext": "Далее: Загляните в список покупок, чтобы узнать, как эффективно им пользоваться!",
+    "shoppingListTitle": "Список покупок готов",
+    "syncPending": "Ожидание синхронизации",
+    "tryAgain": "Пожалуйста, попробуйте еще раз"
   },
   "coachCorner": {
     "title": "Уголок тренера",
@@ -1578,7 +1756,7 @@
   "diabeticBuilder": {
     "backLabel": "Хаб диабета",
     "coachingLine": "Создано для удержания вас в целевом диапазоне глюкозы.",
-    "pageTitle": "Diabetic Builder",
+    "pageTitle": "Конструктор для диабетиков",
     "tour1Desc": "Нажмите кнопку + на любой карточке приема пищи, чтобы добавить диабетические рецепты.",
     "tour1Title": "Добавляйте приемы пищи",
     "tour2Desc": "Все блюда оптимизированы для стабильного сахара в крови с использованием ингредиентов с низким гликемическим индексом.",
@@ -1684,5 +1862,1830 @@
     "tour8Desc": "Белки и углеводы отмечены звездочками (*), так как это самые важные показатели для концентрации при составлении блюд. Установите их в первую очередь.",
     "tour8Title": "Что означают звездочки",
     "tourTitle": "Гид по конструктору общего питания"
+  },
+  "mealCard": {
+    "protein": "Белки",
+    "carbs": "Углеводы",
+    "fat": "Жиры",
+    "ingredients": "Ингредиенты:",
+    "instructions": "Инструкции:",
+    "medicalSafety": "Медицинская безопасность",
+    "diabetesProtocol": "Диабетический протокол",
+    "whyThisMealWasBuilt": "Почему создано это блюдо",
+    "showLess": "Свернуть",
+    "showAllSteps": "Показать все {{count}} шаги",
+    "moreIngredients": "+ ещё {{count}}...",
+    "loggedSuccessfully": "Успешно записано",
+    "failedToLog": "Не удалось записать макросы. Пожалуйста, попробуйте ещё раз.",
+    "deleteMeal": "Удалить блюдо",
+    "removeFromBoard": "Удалить это блюдо с доски?",
+    "refineMeal": "Улучшить блюдо",
+    "showingRefined": "Показывается улучшенная версия",
+    "restoreOriginal": "Восстановить оригинал",
+    "competitionPrepProtocol": "🏆 Применён протокол подготовки к соревнованию",
+    "athleticPerformanceProtocol": "⚡ Применён протокол спортивной производительности",
+    "loggedDesc": "{{name}} записано в ваши макросы.",
+    "ingredientFallback": "Ингредиент",
+    "generatedForBGL": "Создано для ГКК:",
+    "relevantRange": "Соответствующий диапазон:",
+    "weeksOut": "{{n}} нед. осталось",
+    "sessionsPerWeek": "{{n}} трен./нед.",
+    "protocol_goalFatLoss": "Приоритет: сжигание жира",
+    "protocol_goalMuscleGain": "Приоритет: набор мышц",
+    "protocol_goalStrength": "Приоритет: сила",
+    "protocol_goalPeak": "Приоритет: пиковая форма",
+    "protocol_athleticPerfLabel": "Спортивные результаты — {{sport}}",
+    "protocol_competitionPrepLabel": "Подготовка к соревнованию — {{type}}",
+    "protocol_performancePhaseFallback": "Фаза результативности",
+    "protocol_recoverySupportActive": "Поддержка восстановления активна",
+    "protocol_sport_strength": "Силовые тренировки",
+    "protocol_sport_hypertrophy": "Гипертрофия",
+    "protocol_sport_powerlifting": "Пауэрлифтинг",
+    "protocol_sport_olympic_lifting": "Тяжёлая атлетика",
+    "protocol_sport_mma": "MMA",
+    "protocol_sport_boxing": "Бокс",
+    "protocol_sport_wrestling": "Борьба",
+    "protocol_sport_bjj": "BJJ / Грэпплинг",
+    "protocol_sport_crossfit": "Кроссфит",
+    "protocol_sport_endurance_running": "Бег",
+    "protocol_sport_cycling": "Велоспорт",
+    "protocol_sport_triathlon": "Триатлон",
+    "protocol_sport_tactical": "Тактический / Военный",
+    "protocol_sport_general_fitness": "Общая физподготовка",
+    "protocol_sport_other": "Другой вид спорта",
+    "protocol_phase_off_season": "Межсезонье",
+    "protocol_phase_pre_season": "Предсезонная",
+    "protocol_phase_in_season": "Сезон",
+    "protocol_phase_weight_cut": "Фаза снижения веса",
+    "protocol_phase_recovery": "Восстановительная фаза",
+    "protocol_bullet_fat_loss_0": "Высокая цель по белку (≥2г/кг)",
+    "protocol_bullet_fat_loss_1": "Стратегия дефицита калорий",
+    "protocol_bullet_conditioning_0": "Углеводы по времени — До/После тренировки",
+    "protocol_bullet_conditioning_1": "Противовоспалительное восстановление",
+    "protocol_bullet_peak_prep_0": "Снижение натрия активно",
+    "protocol_bullet_peak_prep_1": "Приоритет усвояемости",
+    "protocol_bullet_peak_week_0": "Протокол низкого содержания клетчатки активен",
+    "protocol_bullet_peak_week_1": "Мало натрия — Контроль воды",
+    "protocol_bullet_show_day_0": "Протокол быстрой усвояемости",
+    "protocol_bullet_show_day_1": "Углеводы по времени для результата",
+    "protocol_bullet_meet_week_0": "Углеводная загрузка активна",
+    "protocol_bullet_meet_week_1": "Питание для восстановления ЦНС",
+    "protocol_bullet_meet_day_0": "Протокол углеводов перед соревнованием",
+    "protocol_bullet_meet_day_1": "Усвояемость в приоритете",
+    "protocol_bullet_weight_cut_0": "Ограничение натрия активно",
+    "protocol_bullet_weight_cut_1": "Управление электролитами",
+    "protocol_bullet_fight_week_0": "Протокол управления водой",
+    "protocol_bullet_fight_week_1": "Блюда для быстрого восстановления водного баланса",
+    "protocol_bullet_taper_0": "Углеводная загрузка (8–10г/кг)",
+    "protocol_bullet_taper_1": "Снижение клетчатки активно",
+    "protocol_bullet_race_day_0": "Углеводный протокол в день гонки",
+    "protocol_bullet_race_day_1": "Питание, щадящее кишечник",
+    "protocol_bullet_post_competition_0": "Восстановительный рефид активен",
+    "protocol_bullet_post_competition_1": "Противовоспалительный приоритет",
+    "protocol_bullet_post_race_0": "Питание для восстановления после гонки",
+    "protocol_bullet_post_race_1": "Увеличение калорий",
+    "sportFallback": "Спорт",
+    "mealFallback": "Блюдо",
+    "protocol_phaselabel_fat_loss": "Фаза сжигания жира",
+    "protocol_phaselabel_conditioning": "Фаза кондиционирования",
+    "protocol_phaselabel_peak_prep": "Подготовка к пику",
+    "protocol_phaselabel_peak_week": "Пиковая неделя",
+    "protocol_phaselabel_show_day": "День соревнований",
+    "protocol_phaselabel_post_competition": "Восстановление после соревнований",
+    "protocol_phaselabel_strength_building": "Набор силы",
+    "protocol_phaselabel_intensity_phase": "Фаза интенсивности",
+    "protocol_phaselabel_taper": "Фаза подводки",
+    "protocol_phaselabel_meet_week": "Неделя соревнований",
+    "protocol_phaselabel_meet_day": "День соревнований",
+    "protocol_phaselabel_conditioning_combat": "Лагерь кондиционирования",
+    "protocol_phaselabel_fight_prep": "Подготовка к бою",
+    "protocol_phaselabel_weight_cut": "Сгонка веса",
+    "protocol_phaselabel_fight_week": "Неделя боя",
+    "protocol_phaselabel_fight_day": "День боя",
+    "protocol_phaselabel_pre_season": "Предсезонная",
+    "protocol_phaselabel_in_season": "Сезон",
+    "protocol_phaselabel_championship_week": "Неделя чемпионата",
+    "protocol_phaselabel_match_day": "День матча",
+    "protocol_phaselabel_off_season": "Межсезонье",
+    "protocol_phaselabel_base_conditioning": "Базовое кондиционирование",
+    "protocol_phaselabel_event_prep": "Подготовка к соревнованию",
+    "protocol_phaselabel_competition_week": "Неделя соревнований",
+    "protocol_phaselabel_competition_day": "День соревнований",
+    "protocol_phaselabel_base_building": "Базовый набор",
+    "protocol_phaselabel_build_phase": "Фаза набора",
+    "protocol_phaselabel_race_prep": "Подготовка к гонке",
+    "protocol_phaselabel_race_day": "День гонки",
+    "protocol_phaselabel_post_race": "Восстановление после гонки",
+    "protocol_comptype_bodybuilding_show": "Соревнование по бодибилдингу",
+    "protocol_comptype_mens_physique": "Мужской физик",
+    "protocol_comptype_classic_physique": "Классический физик",
+    "protocol_comptype_figure": "Фигурное",
+    "protocol_comptype_bikini": "Бикини",
+    "protocol_comptype_wellness": "Велнес",
+    "protocol_comptype_powerlifting_meet": "Соревнование по пауэрлифтингу",
+    "protocol_comptype_strongman_competition": "Стронгмен",
+    "protocol_comptype_olympic_weightlifting_meet": "Тяжёлая атлетика",
+    "protocol_comptype_fight_camp": "Тренировочный лагерь",
+    "protocol_comptype_wrestling_season": "Сезон борьбы",
+    "protocol_comptype_crossfit_competition": "Соревнование CrossFit",
+    "protocol_comptype_hyrox": "Hyrox",
+    "protocol_comptype_marathon": "Марафон",
+    "protocol_comptype_triathlon_race": "Триатлон",
+    "protocol_comptype_spartan_race": "Spartan Race",
+    "protocol_comptype_other": "Другое",
+    "protocol_bullet_strength_building_0": "Калорийная поддержка фазы набора",
+    "protocol_bullet_strength_building_1": "Питание прогрессивной перегрузки",
+    "protocol_bullet_intensity_phase_0": "Усиленный тайминг углеводов",
+    "protocol_bullet_intensity_phase_1": "Питание восстановления ЦНС",
+    "protocol_bullet_conditioning_combat_0": "Питание для кондиционирования единоборств",
+    "protocol_bullet_conditioning_combat_1": "Противовоспалительный фокус",
+    "protocol_bullet_fight_prep_0": "Питание подготовки к бою активно",
+    "protocol_bullet_fight_prep_1": "Контроль весовой категории",
+    "protocol_bullet_fight_day_0": "Протокол питания в день боя",
+    "protocol_bullet_fight_day_1": "Быстрая усвояемость активна",
+    "protocol_bullet_pre_season_0": "Базовое питание предсезонной",
+    "protocol_bullet_pre_season_1": "Поддержка силовой базы",
+    "protocol_bullet_in_season_0": "Восстановительные блюда в сезоне",
+    "protocol_bullet_in_season_1": "Поддержка соревновательного веса",
+    "protocol_bullet_championship_week_0": "Пиковый протокол чемпионата",
+    "protocol_bullet_championship_week_1": "Мало клетчатки — Чистое питание",
+    "protocol_bullet_match_day_0": "Углеводный протокол в день матча",
+    "protocol_bullet_match_day_1": "Усвояемость в приоритете",
+    "protocol_bullet_off_season_0": "Базовое питание в межсезонье",
+    "protocol_bullet_off_season_1": "Фокус на восстановлении активен",
+    "protocol_bullet_base_conditioning_0": "Поддержка аэробной базы",
+    "protocol_bullet_base_conditioning_1": "Периодизация углеводов активна",
+    "protocol_bullet_event_prep_0": "Питание подготовки к соревнованию активно",
+    "protocol_bullet_event_prep_1": "Тайминг углеводов оптимизирован",
+    "protocol_bullet_competition_week_0": "Протокол недели соревнований",
+    "protocol_bullet_competition_week_1": "Мало клетчатки активно",
+    "protocol_bullet_competition_day_0": "Питание в день соревнований",
+    "protocol_bullet_competition_day_1": "Протокол быстрой усвояемости",
+    "protocol_bullet_base_building_0": "Аэробное базовое питание",
+    "protocol_bullet_base_building_1": "Протокол питания для выносливости",
+    "protocol_bullet_build_phase_0": "Питание прогрессивного набора",
+    "protocol_bullet_build_phase_1": "Периодизация углеводов активна",
+    "protocol_bullet_race_prep_0": "Углеводный протокол пиковой тренировки",
+    "protocol_bullet_race_prep_1": "Оптимизация питания для выносливости"
+  },
+  "trialStatusCard": {
+    "adminTrial": "Административный пробный период",
+    "clinicalTrial": "Клиническая пробная версия",
+    "promotionalTrial": "Акционный пробный период",
+    "freeTrial": "Бесплатный пробный период",
+    "clinicalUltimate": "Клинический · Максимальный",
+    "trialEndsToday": "Ваш пробный период заканчивается сегодня",
+    "daysLeftInTrial": "{{count}} дней осталось в пробном периоде",
+    "daysOfDaysRemaining": "{{count}} из {{total}} дней осталось",
+    "accountMovesFree": "Ваш аккаунт перейдёт на бесплатный план сегодня ночью. Все ваши данные останутся в целости.",
+    "trialExpires": "Пробный период истекает {{date}}",
+    "keepFullAccess": "Сохранить полный доступ →",
+    "tierFull": "Полный"
+  },
+  "trialBanner": {
+    "lastDayTitle": "Ваш бесплатный доступ Pro заканчивается сегодня",
+    "lastDayBody": "Ваш аккаунт перейдёт на бесплатный план сегодня ночью.",
+    "lastDayDataSafe": "Все ваши данные остаются в целости.",
+    "lastDayUpgradeHint": "Обновитесь в любое время, чтобы сохранить функции Pro.",
+    "upgradeToPro": "Перейти на Pro",
+    "exploreFeatures": "Изучить функции",
+    "dismiss": "Закрыть",
+    "daysLeft": "{{count}} дней осталось",
+    "oneDayLeft": "1 день остался",
+    "trialCountdown": "в пробном периоде — {{tierLabel}} заканчивается скоро.",
+    "clinicalAccess": "Клинический доступ",
+    "fullAccess": "полный доступ"
+  },
+  "groceryDashCard": {
+    "title": "Еженедельный список покупок",
+    "description": "Ваш персонализированный список покупок на основе планов питания",
+    "itemsCompleted": "{{completed}} из {{total}} товаров выполнено",
+    "shoppingDone": "{{pct}}% покупок выполнено",
+    "updatedToday": "Обновлено сегодня",
+    "recentItems": "Недавние товары",
+    "addItem": "Добавить товар",
+    "viewFullList": "Смотреть полный список",
+    "noItems": "Ваш список покупок пуст. Добавьте продукты из вашего плана питания."
+  },
+  "physicianCareTeam": {
+    "availability": {
+      "available": "Доступен",
+      "away": "Отошел",
+      "from": "С",
+      "offline": "Не в сети",
+      "saved": "Сохранено",
+      "saving": "Сохранение…",
+      "title": "Статус доступности",
+      "until": "До"
+    },
+    "clinic": {
+      "activePatients": "Активные пациенты",
+      "portalButton": "Открыть портал врача",
+      "viewAndManage": "Просматривайте и управляйте своими пациентами на портале врача."
+    },
+    "errors": {
+      "availabilityFailed": "Не удалось обновить статус доступности.",
+      "emailRequired": "Необходим email.",
+      "inviteFailed": "Не удалось отправить приглашение.",
+      "loadFailed": "Не удалось загрузить команду по уходу.",
+      "saveDatesFailed": "Не удалось сохранить даты."
+    },
+    "invite": {
+      "emailLabel": "Email пациента",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "Профессиональная роль",
+      "rolePlaceholder": "Выберите роль",
+      "sendInvite": "Отправить приглашение",
+      "title": "Пригласить пациента"
+    },
+    "platform": {
+      "button": "Изучить возможности",
+      "description": "Узнайте, как платформа может помочь вам в поддержке пациентов.",
+      "explore": "Изучить платформу"
+    },
+    "roles": {
+      "dietitian": "Диетолог",
+      "doctor": "Врач",
+      "np": "NP",
+      "nutritionist": "Нутрициолог",
+      "pa": "PA",
+      "rn": "RN"
+    },
+    "title": "Команда врачей",
+    "toast": {
+      "invitationSent": "Приглашение отправлено на {{email}}"
+    },
+    "tour": {
+      "invitePatients": "Приглашайте пациентов",
+      "invitePatientsDesc": "Приглашайте пациентов связаться с вами для получения поддержки.",
+      "physicianPortal": "Используйте портал врача",
+      "physicianPortalDesc": "Откройте портал врача для просмотра и управления пациентами.",
+      "setAvailability": "Установите свою доступность",
+      "setAvailabilityDesc": "Сообщите пациентам, когда вы доступны, отошли или не в сети."
+    },
+    "tourTitle": "Команда врачей"
+  },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "My Perfect Meals",
+      "features": "Возможности",
+      "howItWorks": "Как это работает",
+      "pricing": "Цены",
+      "signIn": "Войти"
+    },
+    "errorBoundary": {
+      "title": "Что-то пошло не так",
+      "description": "У нас возникли проблемы с загрузкой этой страницы. Пожалуйста, обновите и попробуйте снова.",
+      "refresh": "Обновить страницу"
+    },
+    "dateSlotPicker": {
+      "placeholder": "Выберите слот для приёма пищи"
+    },
+    "mealSlots": {
+      "breakfast": "Завтрак",
+      "lunch": "Обед",
+      "dinner": "Ужин",
+      "snack": "Перекус"
+    },
+    "dailyNutritionTracker": {
+      "title": "Ежедневный прогресс питания",
+      "description": "Отслеживайте ежедневное потребление питательных веществ",
+      "calories": "Калории",
+      "protein": "Белки",
+      "carbohydrates": "Углеводы",
+      "fat": "Жиры",
+      "onTrack": "Вы на верном пути к достижению ежедневных целей!"
+    },
+    "pagination": {
+      "label": "навигация по страницам",
+      "previousPage": "Перейти на предыдущую страницу",
+      "previous": "Назад",
+      "nextPage": "Перейти на следующую страницу",
+      "next": "Далее",
+      "morePages": "Больше страниц"
+    },
+    "mealCard": {
+      "noRecipe": "Нет рецепта",
+      "addMeal": "Добавить блюдо",
+      "serving": "Порция:",
+      "ingredients": "Ингредиенты:",
+      "cookingInstructions": "Инструкции по приготовлению:",
+      "protein": "Белки",
+      "carbs": "Углеводы",
+      "fat": "Жиры"
+    },
+    "nutritionSummary": {
+      "title": "Сводка по питанию",
+      "empty": "Создайте план питания, чтобы увидеть сводку по питанию",
+      "weeklyOverview": "Еженедельный обзор",
+      "totalCalories": "Всего калорий",
+      "dailyAverage": "Ежедневное среднее",
+      "totalProtein": "Всего белков",
+      "daysPlanned": "Запланировано дней",
+      "dailyTargets": "Ежедневные цели",
+      "calories": "Калории",
+      "protein": "Белки",
+      "carbohydrates": "Углеводы",
+      "fat": "Жиры",
+      "targetMet": "Цель достигнута",
+      "goalProgress": "Прогресс к цели",
+      "fitnessGoal": "Цель фитнеса",
+      "activityLevel": "Уровень активности",
+      "dietaryPreferences": "Пищевые предпочтения",
+      "balanceScore": "Оценка баланса",
+      "percentOfTarget": "{{n}}% от цели",
+      "remainingCal": "{{n}} осталось",
+      "remainingG": "{{n}}г осталось"
+    },
+    "enhancedMealCard": {
+      "replace": "Заменить",
+      "replacing": "Замена...",
+      "replaceTitle": "Заменить совершенно новым рецептом блюда",
+      "replacingTitle": "Блюдо заменяется...",
+      "portionGuide": "Руководство по порциям:",
+      "ingredients": "Ингредиенты:",
+      "instructions": "Инструкции:",
+      "medicalSafety": "Медицинская безопасность:",
+      "error": "Ошибка:"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "Осталось сегодня",
+    "protein": "Белки",
+    "starchy": "Крахмалистые",
+    "fibrous": "Клетчатка",
+    "fat": "Жиры",
+    "setMacrosPrompt": "Задайте свои макросы, чтобы увидеть, что осталось на сегодня.",
+    "saveDay": "Сохранить день в биометрию",
+    "targetsUpdated": "Цели обновлены в течение дня",
+    "targetsUpdatedReason": "Цели обновлены в течение дня — {{reason}}",
+    "dismiss": "Скрыть",
+    "overLimit": "⚠ превышен лимит",
+    "limit": "★ лимит",
+    "coach": {
+      "title": "Макро-коуч",
+      "subtitle": "Как читать оставшиеся цели",
+      "proteinTitle": "Белки",
+      "proteinBody": "Достигните этой цели, чтобы защитить мышцы и оставаться сытым.",
+      "proteinBullet1": "В каждом приёме пищи отдавайте предпочтение постным источникам.",
+      "proteinBullet2": "Распределяйте потребление в течение дня.",
+      "carbsTitle": "Углеводы",
+      "carbsBody": "Заряжайте тренировку крахмалистыми углеводами, дополняйте клетчаткой.",
+      "carbsBullet1": "Крахмалистые углеводы дают энергию для результата.",
+      "carbsBullet2": "Клетчатка помогает пищеварению и насыщению.",
+      "fatTitle": "Жиры",
+      "fatBody": "Держите жиры умеренными, чтобы балансировать энергию и гормоны.",
+      "fatBullet1": "Отдавайте предпочтение полезным жирам.",
+      "fatBullet2": "Следите за порциями — жиры калорийны.",
+      "closingTitle": "Оставайтесь гибкими",
+      "closingBody": "Цели подстраиваются под ваш день — приближайтесь к ним и будьте последовательны.",
+      "infoAria": "Что означают эти цифры?",
+      "info": "Инфо",
+      "starchyTitle": "Крахмалистые углеводы — ваша главная цель",
+      "starchy1": "Держитесь в пределах дневного лимита или ниже.",
+      "starchy2": "Превышение замедляет прогресс — вот что важно.",
+      "starchy3": "Быть ниже — совершенно нормально. Не заставляйте себя.",
+      "flexTitle": "Белок и клетчатка — оставайтесь гибкими",
+      "flex1": "Чуть больше или меньше ничего не испортит.",
+      "flex2": "Не гонитесь за идеалом в этих двух.",
+      "fat1": "Жиры растут естественно в зависимости от вашего выбора еды.",
+      "fat2": "Пищевые жиры не являются причиной набора жира — не зацикливайтесь на них.",
+      "closing1": "Сосредоточьтесь на соблюдении цели по крахмалу, а остальное встанет на место.",
+      "closing2": "Вам не нужно быть идеальным. Вам нужно быть последовательным."
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "Протокол подготовки к соревнованиям сохранён.",
+      "athleticSaved": "Протокол спортивной результативности сохранён.",
+      "activated": "Протокол активирован",
+      "errorTitle": "Ошибка",
+      "errorDesc": "Не удалось сохранить. Повторите попытку."
+    },
+    "stepCount": "Шаг {{current}} из {{total}}",
+    "back": "Назад",
+    "next": "Далее",
+    "saving": "Сохранение...",
+    "activateProtocol": "Активировать протокол",
+    "optional": "(необязательно)",
+    "track": {
+      "title": "Что описывает вашу цель?",
+      "subtitle": "Каждый трек использует совершенно иной движок протокола.",
+      "athleticTitle": "Спортивная результативность",
+      "athleticDesc": "ММА, бокс, борьба, футбол, CrossFit, выносливость, тактика. Цель — результат: питание, восстановление, адаптация.",
+      "compTitle": "Подготовка к соревнованиям",
+      "compDesc": "Бодибилдинг, физик, пауэрлифтинг, тренировочный лагерь, сезон борьбы. Дата вашего события автоматически управляет каждой фазой."
+    },
+    "goals": {
+      "title": "Какова ваша главная цель?",
+      "subtitle": "Это определяет приоритеты макросов и энергетическую плотность блюд.",
+      "fatLoss": {
+        "label": "Снижение жира",
+        "desc": "Стать рельефнее, сохраняя результативность"
+      },
+      "muscleGain": {
+        "label": "Набор мышц",
+        "desc": "Гипертрофия и анаболизм"
+      },
+      "maintenance": {
+        "label": "Поддержание",
+        "desc": "Стабильность состава тела"
+      },
+      "performance": {
+        "label": "Пиковая результативность",
+        "desc": "Мощность, скорость и сила"
+      }
+    },
+    "trainingType": {
+      "title": "Какой тип тренировок вы выполняете?",
+      "subtitle": "Выберите основной вид спорта или дисциплину.",
+      "otherPlaceholder": "Другой вид спорта ({{group}})…"
+    },
+    "trainingTypes": {
+      "strength": "Сила",
+      "hypertrophy": "Гипертрофия",
+      "powerlifting": "Пауэрлифтинг",
+      "olympicLifting": "Тяжёлая атлетика",
+      "mma": "ММА",
+      "boxing": "Бокс",
+      "wrestling": "Борьба",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "Бег",
+      "cycling": "Велоспорт",
+      "triathlon": "Триатлон",
+      "tactical": "Тактика / Военные",
+      "generalFitness": "Общий фитнес"
+    },
+    "athleticGroups": {
+      "iron": "Силовые виды",
+      "combat": "Единоборства",
+      "mixed": "Смешанные",
+      "endurance": "Выносливость",
+      "other": "Другое"
+    },
+    "frequency": {
+      "title": "Как часто вы тренируетесь?",
+      "subtitle": "Тренировок в неделю (без дней отдыха).",
+      "twoADayQuestion": "Вы тренируетесь дважды в день?",
+      "twoADayDesc": "Включает рекомендации по восстановительным приёмам пищи между тренировками",
+      "yes": "Да",
+      "no": "Нет"
+    },
+    "freqs": {
+      "oneTwo": "1–2 дня",
+      "threeFour": "3–4 дня",
+      "fiveSix": "5–6 дней",
+      "sevenPlus": "7+ (ежедневно)"
+    },
+    "cardio": {
+      "title": "Каков ваш фокус кардио?",
+      "subtitle": "Определяет тайминг углеводов и потребность в гликолитическом топливе.",
+      "none": {
+        "label": "Без кардио",
+        "desc": "Чистый фокус на силе или технике — без кардионагрузки"
+      },
+      "recovery": {
+        "label": "Ходьба / Восстановление",
+        "desc": "Только лёгкое движение — прогулки, растяжка, лёгкий велосипед"
+      },
+      "zone2": {
+        "label": "Лёгкое кардио",
+        "desc": "Комфортный темп, при котором можно говорить — строит аэробную базу"
+      },
+      "tempo": {
+        "label": "Умеренное кардио",
+        "desc": "Ровное, требовательное усилие — дыхание тяжёлое, но устойчивое"
+      },
+      "threshold": {
+        "label": "Интенсивное кардио",
+        "desc": "Высокоинтенсивное продолжительное усилие — на пределе"
+      },
+      "hiit": {
+        "label": "Спринтерские интервалы",
+        "desc": "Короткие рывки на максимум с отдыхом — максимальное усилие"
+      },
+      "mixed": {
+        "label": "Смешанное кардио",
+        "desc": "Меняется по тренировкам — лёгкие и тяжёлые дни"
+      }
+    },
+    "phase": {
+      "title": "На каком этапе тренировочного цикла вы находитесь?",
+      "subtitle": "Ваша фаза калибрует цели макросов и выбор продуктов."
+    },
+    "phases": {
+      "offSeason": {
+        "label": "Межсезонье",
+        "desc": "Фокус на объёме, построение базы"
+      },
+      "preSeason": {
+        "label": "Предсезонье",
+        "desc": "Наращивание кондиции"
+      },
+      "inSeason": {
+        "label": "В сезоне",
+        "desc": "Поддержание результативности"
+      },
+      "weightCut": {
+        "label": "Сгонка веса",
+        "desc": "Краткосрочный дефицит + регидратация"
+      },
+      "recovery": {
+        "label": "Восстановление",
+        "desc": "Противовоспалительный приоритет, восстановление"
+      }
+    },
+    "duration": {
+      "title": "Сколько длятся ваши типичные тренировки?",
+      "subtitle": "Используется для расчёта расхода гликогена и потребностей восстановления."
+    },
+    "durations": {
+      "under30": {
+        "label": "Менее 30 мин",
+        "desc": "Короткие / вспомогательные тренировки"
+      },
+      "thirtySixty": {
+        "label": "30–60 мин",
+        "desc": "Стандартный тренировочный блок"
+      },
+      "sixtyNinety": {
+        "label": "60–90 мин",
+        "desc": "Полная тренировка с разминкой и заминкой"
+      },
+      "ninetyPlus": {
+        "label": "90 мин+",
+        "desc": "Высокообъёмные или многодисциплинарные тренировки"
+      }
+    },
+    "recoveryStep": {
+      "title": "Как сейчас ваше восстановление?",
+      "subtitle": "Ваше текущее восстановление определяет тайминг белка, противовоспалительные приоритеты и калорийную плотность."
+    },
+    "recovery": {
+      "good": {
+        "label": "Хорошее",
+        "desc": "Хороший сон, мало крепатуры, много энергии"
+      },
+      "average": {
+        "label": "Среднее",
+        "desc": "Есть усталость, но управляемая"
+      },
+      "poor": {
+        "label": "Плохое",
+        "desc": "Усталость, сильная крепатура, недосып"
+      }
+    },
+    "adaptationStep": {
+      "title": "Каков ваш спортивный фокус?",
+      "subtitle": "Выберите, к чему готовитесь — это калибрует тайминг углеводов, поддержку энергосистем и состав блюд."
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "Выносливость",
+        "desc": "Развивайте аэробный «двигатель» — дольше усилия, лучше выносливость"
+      },
+      "conditioning": {
+        "label": "Кондиция",
+        "desc": "Всесторонняя форма по нескольким энергосистемам"
+      },
+      "speed": {
+        "label": "Скорость",
+        "desc": "Быстрее спринт — акцент на взрывных быстрых волокнах"
+      },
+      "power": {
+        "label": "Мощность",
+        "desc": "Двигать тяжёлое быстро — сила и взрывность"
+      },
+      "workCapacity": {
+        "label": "Работоспособность",
+        "desc": "Делать больше, восстанавливаться быстрее — высокие объёмы"
+      },
+      "activeRecovery": {
+        "label": "Активное восстановление",
+        "desc": "Восстановление и перезарядка — противовоспалительный сброс ЦНС"
+      }
+    },
+    "schedule": {
+      "title": "Задайте недельный тренировочный график",
+      "subtitle": "Ваше питание автоматически подстраивается каждый день под то, что вы тренируете. Каждый тип тренировки смещает цели по углеводам, калориям и белку.",
+      "trainingPhase": "Тренировочная фаза",
+      "weekSchedule": "График недели",
+      "howItWorksTitle": "Как это работает",
+      "howItWorksBody": "MPM читает ваш график каждое утро и автоматически корректирует цели макросов. В силовые дни добавляются углеводы, в дни восстановления — уменьшаются. Ручных настроек не нужно."
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "Сила",
+        "short": "Сил",
+        "desc": "Силовая тренировка — умеренная углеводная поддержка"
+      },
+      "power": {
+        "label": "Мощность",
+        "short": "Мощ",
+        "desc": "Взрывной выход — активны дополнительные углеводы и белок"
+      },
+      "endurance": {
+        "label": "Выносливость",
+        "short": "Вын",
+        "desc": "Приоритет аэробного топлива — повышенная доступность углеводов"
+      },
+      "sportPractice": {
+        "label": "Спортпрактика",
+        "short": "Спт",
+        "desc": "Смешанные требования — умеренная углеводная поддержка"
+      },
+      "competition": {
+        "label": "Соревнование",
+        "short": "Сор",
+        "desc": "Питание в день игры — максимальная доступность углеводов"
+      },
+      "recovery": {
+        "label": "Восстановление",
+        "short": "Вос",
+        "desc": "Акцент на восстановлении — меньше углеводов, противовоспалительный приоритет"
+      },
+      "off": {
+        "label": "День отдыха",
+        "short": "Отд",
+        "desc": "Полный отдых — сниженные цели по калориям"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "Стабилизация",
+        "desc": "Базовая фаза — качество движения, стабильность кора"
+      },
+      "strength": {
+        "label": "Сила",
+        "desc": "Построение максимальной силовой способности"
+      },
+      "power": {
+        "label": "Мощность",
+        "desc": "Взрывной выход — сила на скорость"
+      },
+      "peaking": {
+        "label": "Пик",
+        "desc": "Предсоревновательная шлифовка — интенсивность вверх, объём вниз"
+      },
+      "inSeason": {
+        "label": "В сезоне",
+        "desc": "Поддержание результата в течение соревновательного календаря"
+      },
+      "offSeason": {
+        "label": "Межсезонье",
+        "desc": "Построение базы и восстановление между сезонами"
+      }
+    },
+    "days": {
+      "mon": "Пн",
+      "tue": "Вт",
+      "wed": "Ср",
+      "thu": "Чт",
+      "fri": "Пт",
+      "sat": "Сб",
+      "sun": "Вс"
+    },
+    "compGroups": {
+      "physique": "Физик",
+      "strength": "Силовые виды",
+      "combat": "Единоборства",
+      "functional": "Функциональные / Смешанные",
+      "endurance": "Выносливость"
+    },
+    "compTypeStep": {
+      "title": "Какой тип соревнований?",
+      "subtitle": "Каждый тип соревнований использует свой график подготовки и протокол пиковой недели."
+    },
+    "compTypes": {
+      "bodybuilding": "Бодибилдинг",
+      "mensPhysique": "Men’s Physique",
+      "classicPhysique": "Classic Physique",
+      "figure": "Figure",
+      "bikini": "Bikini",
+      "wellness": "Wellness",
+      "powerliftingMeet": "Турнир по пауэрлифтингу",
+      "strongman": "Стронгмен",
+      "olympicWeightlifting": "Тяжёлая атлетика",
+      "fightCamp": "Тренировочный лагерь",
+      "wrestlingSeason": "Сезон борьбы",
+      "crossfitCompetition": "Соревнование по CrossFit",
+      "hyrox": "Hyrox",
+      "marathon": "Марафон",
+      "triathlon": "Триатлон",
+      "spartanRace": "Spartan Race"
+    },
+    "eventStep": {
+      "title": "Когда ваше событие?",
+      "subtitle": "Дата вашего события автоматически управляет каждой фазой — без догадок.",
+      "eventDate": "Дата события",
+      "pickDate": "Выбрать дату события",
+      "weeksOut": "через {{count}} нед.",
+      "division": "Категория",
+      "divisionPlaceholder": "напр. Open, Masters 35+, класс 93 кг..."
+    },
+    "weightStep": {
+      "title": "Информация о весе",
+      "subtitle": "Необязательно — помогает протоколу давать точные указания по стратегии сгонки и целям по калориям.",
+      "currentWeight": "Текущий вес",
+      "currentPlaceholder": "напр. 185 lbs, 84 кг...",
+      "targetWeight": "Целевой вес / класс",
+      "targetPlaceholder": "напр. 175 lbs, класс 83 кг, готов к сцене...",
+      "howItWorksTitle": "Как это работает",
+      "howItWorksBody": "MPM автоматически рассчитывает текущую фазу по дате события. По мере приближения события протоколы смещаются. Решает календарь — а не ИИ."
+    }
+  },
+  "therapeuticCard": {
+    "title": "Интеллект терапевтического питания",
+    "active": "Активно",
+    "last": "Последнее: {{date}}",
+    "intro": "Введите дозу для всего активного. Дозировка важна — система использует её для формирования контекста вашего протокола. Оставьте пустым, если неприменимо.",
+    "activeCount": "активно: {{count}}",
+    "namePlaceholder": "Название...",
+    "dosePlaceholder": "Доза",
+    "unitPlaceholder": "ед.",
+    "sections": {
+      "peptides": "Пептиды",
+      "hormones": "Гормоны",
+      "medications": "Препараты, влияющие на питание",
+      "therapies": "Терапии",
+      "recovery": "Цели восстановления"
+    },
+    "addPeptide": "Добавить свой пептид",
+    "addHormone": "Добавить свой гормон",
+    "addMedication": "Добавить свой препарат",
+    "therapiesHint": "Выберите всё, что относится к вашему текущему протоколу.",
+    "recoveryHint": "Выберите текущие цели восстановления.",
+    "saveProtocol": "Сохранить протокол",
+    "saving": "Сохранение…",
+    "cancel": "Отмена",
+    "footerNote": "Клиническая безопасность всегда в приоритете. Выбор влияет только на генерацию блюд — это не медицинская рекомендация.",
+    "therapyOptions": {
+      "connectiveTissue": "Восстановление соединительной ткани",
+      "gutSupport": "Поддержка кишечника",
+      "redLight": "Терапия красным светом",
+      "sauna": "Сауна / Тепловое восстановление",
+      "cold": "Холодовая терапия / Ледяная ванна",
+      "iv": "Внутривенная нутриентная терапия"
+    },
+    "recoveryGoals": {
+      "joint": "Восстановление суставов",
+      "muscle": "Восстановление мышц",
+      "sleep": "Оптимизация сна",
+      "inflammation": "Снижение воспаления",
+      "gutHealing": "Заживление кишечника",
+      "stress": "Восстановление от стресса и надпочечников"
+    },
+    "toast": {
+      "savedTitle": "Терапевтический протокол сохранён",
+      "savedDesc": "Контекст обновлён. Все генераторы будут учитывать ваш протокол.",
+      "errorTitle": "Ошибка",
+      "errorDesc": "Не удалось сохранить. Повторите попытку."
+    }
+  },
+  "clinicalLabs": {
+    "title": "Клинические анализы",
+    "last": "Последнее: {{date}}",
+    "lastSaved": "Последнее сохранение: {{date}}",
+    "labDate": "Дата анализа",
+    "notes": "Заметки",
+    "notesPlaceholder": "Необязательные заметки врача...",
+    "saveButton": "Сохранить значения анализов",
+    "savedSuccess": "Значения анализов успешно сохранены",
+    "normal": "Норма",
+    "elevated": "Повышено",
+    "active": "Активно",
+    "menopausePanel": "Панель менопаузы / перименопаузы",
+    "status": {
+      "normal": "Норма",
+      "needsReview": "Требует проверки",
+      "elevated": "повышено: {{count}}"
+    },
+    "sections": {
+      "cardiac": "Сердце и метаболизм",
+      "hormonal": "Гормоны / Стресс и половые гормоны",
+      "liver": "Печёночная панель",
+      "thyroid": "Панель щитовидной железы",
+      "kidney": "Почки / Ренальные",
+      "inflammation": "Воспаление и восстановление",
+      "oncology": "Онкология и восстановление"
+    },
+    "fields": {
+      "ldl": "ЛПНП",
+      "hdl": "ЛПВП",
+      "triglycerides": "Триглицериды",
+      "tgHdlRatio": "Соотношение ТГ/ЛПВП",
+      "bloodPressure": "Артериальное давление",
+      "sys": "Сист",
+      "dia": "Диаст",
+      "ejectionFraction": "Фракция выброса",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "Требует внимания",
+      "physicianGuided": "Под контролем врача"
+    },
+    "toast": {
+      "enterOne": "Введите хотя бы одно значение анализа перед сохранением",
+      "failed": "Не удалось сохранить анализы"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "Отличное соответствие",
+      "b": "Хорошее соответствие",
+      "c": "Есть нюансы",
+      "d": "Заметные конфликты"
+    },
+    "verdict": {
+      "buy": "Шеф говорит: Берите!",
+      "caution": "Шеф говорит: Просто к сведению...",
+      "skip": "Шеф говорит: Возможно, стоит подумать"
+    },
+    "decoder": {
+      "title": "Простой расшифровщик",
+      "legend": "🟢 В целом безопасно · 🟡 Стоит знать · 🔴 Конфликт с вашим профилем"
+    },
+    "alignsWith": "Соответствует вашим целям",
+    "watchFor": "Обратите внимание",
+    "howItScores": "Как это оценивается для ваших протоколов",
+    "howItScoresForYou": "Как это оценивается для вас",
+    "add": "Добавить",
+    "added": "Добавлено",
+    "alternatives": {
+      "alsoWorthKnowing": "Тоже стоит знать",
+      "evenBetter": "Ещё лучшие варианты",
+      "betterOptions": "Лучшие варианты продукта для вас",
+      "profileMatched": "Подобрано по профилю",
+      "brandedNote": "На основе знаний о продукте — составы и наличие могут меняться.",
+      "categoryNote": "Рекомендации по категории на основе вашего профиля здоровья — ищите эти характеристики на этикетках."
+    },
+    "profileFactorsHeading": "Факторы профиля, определяющие этот анализ",
+    "scoreCards": {
+      "kids": "Дети",
+      "adults": "Взрослые",
+      "diet": "Ваша диета",
+      "goal": "Ваша цель"
+    },
+    "barcode": {
+      "dbMatch": "Совпадение в базе · Open Food Facts",
+      "notInDb": "Нет в базе · Оценка ИИ",
+      "notFound": "Штрихкод не найден — анализ на основе знаний ИИ о продукте"
+    },
+    "tier": {
+      "quick": "Быстрый анализ",
+      "verified": "Проверенный анализ этикетки",
+      "full": "Полный консультант по продукту",
+      "subKnowledge": "На основе знаний · Без сканирования этикетки",
+      "subLabelScanned": "Этикетка отсканирована · {{name}}",
+      "subProductUnknown": "Этикетка отсканирована · Продукт неизвестен",
+      "subLabel": "Этикетка отсканирована",
+      "subFull": "Продукт + Этикетка + Профиль"
+    },
+    "scanLabelUp": "Сканировать этикетку ↑",
+    "highestConfidence": "Наивысшая достоверность",
+    "whatMattersMost": "Что важнее всего для вас",
+    "analysisProfile": {
+      "heading": "Ваш профиль анализа",
+      "basedOn": "Эта рекомендация основана на:",
+      "deeperTitle": "Хотите более глубокую персонализацию?",
+      "deeperBody": "Добавьте значения анализов, такие как A1C, глюкоза натощак, холестерин, триглицериды, почечные или воспалительные маркеры.",
+      "updateProfile": "Обновить профиль здоровья →",
+      "disclaimer": "Рекомендации формируются из состава ингредиентов, пищевой ценности и вашего профиля здоровья. MPM не получает вознаграждения от производителей продуктов, и рекомендации никогда не зависят от партнёрств с брендами.",
+      "emptyState": "Добавьте цели и состояния здоровья в профиль, чтобы получить полностью персонализированный анализ."
+    },
+    "header": {
+      "companionScan": "Сканирование продукта для спутника",
+      "intelligence": "Интеллект ингредиентов",
+      "notIdentified": "Продукт не определён",
+      "scanningFor": "Сканирование для {{name}}",
+      "frontLabelDetected": "Обнаружена лицевая этикетка",
+      "byNameAnalysis": "Анализ по названию",
+      "fullAnalysis": "Полный анализ"
+    },
+    "analyzeThisProduct": "Проанализировать этот продукт",
+    "scanIngredientsLabel": "Сканировать этикетку состава / пищевой ценности",
+    "analyzeDisclaimer": "«Проанализировать этот продукт» использует знания ИИ об этом продукте — не живое сканирование этикетки. Составы могут меняться. Отсканируйте панель ингредиентов для проверенного результата.",
+    "analyzing": "Анализируем {{name}}…",
+    "checkingProfile": "Сверяем с вашим профилем здоровья",
+    "byNameBanner": {
+      "title": "Быстрый анализ — не проверенное сканирование этикетки",
+      "body": "На основе знаний о продукте на момент обучающих данных. Составы могут меняться.",
+      "scanLink": "Отсканируйте этикетку для проверенного результата."
+    },
+    "lowQuality": {
+      "title": "Качество изображения было низким",
+      "body": "Переснимите так, чтобы панель ингредиентов была полностью видна, в фокусе и хорошо освещена, для более точного анализа."
+    },
+    "labelFound": {
+      "title": "Этикетка пищевой ценности найдена",
+      "body": "Произнесите или введите название продукта, чтобы получить брендовые альтернативы под ваш профиль."
+    },
+    "incomplete": {
+      "title": "Анализ не завершён",
+      "lowImage": "Изображение недостаточно чёткое для оценки. Убедитесь, что панель ингредиентов полностью видна и хорошо освещена, и повторите попытку.",
+      "needMore": "Для выставления оценки нужно больше информации. Отсканируйте панель ингредиентов или воспользуйтесь поиском продукта."
+    },
+    "personalized": "Персонализировано под ваш профиль здоровья",
+    "generalAnalysis": "Общий анализ — добавьте цели здоровья для персональных результатов",
+    "sections": {
+      "considerations": "Замечания по ингредиентам",
+      "mayNotAlign": "Может не соответствовать вашим целям",
+      "worksWellFor": "Хорошо подходит для",
+      "familyNotes": "Заметки для семьи"
+    },
+    "detectedIngredients": "Обнаруженные ингредиенты",
+    "scanForVerified": "Сканировать этикетку для проверенного анализа",
+    "addNamedToList": "Добавить {{name}} в список",
+    "addToList": "Добавить в список",
+    "saveScan": "Сохранить скан",
+    "saveToGroceries": "Сохранить в покупки",
+    "savedToGroceries": "Сохранено в покупки",
+    "toast": {
+      "removedTitle": "Удалено из покупок",
+      "removedDesc": "{{name}} удалён из ваших закладок.",
+      "removeFailTitle": "Не удалось удалить",
+      "tryAgain": "Повторите попытку.",
+      "alreadySaved": "Уже сохранено",
+      "savedTitle": "Сохранено в покупки",
+      "savedDesc": "{{name}} в ваших закладках покупок.",
+      "saveFailTitle": "Не удалось сохранить",
+      "addedToList": "Добавлено в ваш список покупок"
+    }
+  },
+  "athletePicker": {
+    "added": "Добавлено!",
+    "addedCount": "{{count}} добавлено",
+    "addingTo": "Добавление в:",
+    "categories": {
+      "eggsShakes": "Яйца и коктейли",
+      "fish": "Филе рыбы",
+      "poultry": "Курица и индейка",
+      "redmeat": "Красное мясо"
+    },
+    "copied": "Скопировано!",
+    "copy": "Копировать",
+    "copyMealAria": "Скопировать детали блюда",
+    "copySessionAria": "Скопировать сводку сессии в буфер обмена",
+    "done": "Готово",
+    "errorShort": "Ошибка",
+    "fibrousNote": "Волокнистые овощи не ограничены — только крахмал (рис, овёс, картофель)",
+    "gotIt": "понятно!",
+    "headerTitle": "Готовые блюда для спортсменов — {{slot}}",
+    "hiddenCount_one": "{{count}} блюдо скрыто — крахмал превысит {{cap}}g",
+    "hiddenCount_other": "{{count}} блюд скрыто — крахмал превысит {{cap}}g",
+    "howToAria": "Как использовать конструктор блюд для спортсменов",
+    "info": {
+      "intro": "Готовые блюда, оптимизированные для спортивных результатов и наращивания мышц.",
+      "step1Label": "Выберите категорию белка",
+      "step1Text": "(Курица, Красное мясо, Рыба, Яйца)",
+      "step2After": "это только белок + волокнистые овощи",
+      "step2Mid": "блюда включают рис, овёс или картофель.",
+      "step3Label": "Нажмите на любое блюдо",
+      "step3Text": "чтобы мгновенно добавить его на доску",
+      "step4Label": "Все макросы",
+      "step4Text": "предварительно рассчитаны и готовы к отслеживанию",
+      "stepsLabel": "Шаги:",
+      "tipAfter": "блюда. Волокнистые овощи всегда без ограничений.",
+      "tipBefore": "В дни с низким содержанием крахмала используйте",
+      "tipLabel": "💡 Совет:",
+      "tipMid": "блюда. В дни загрузки добавляйте",
+      "title": "Как использовать конструктор блюд для спортсменов"
+    },
+    "lowStarchDay": "День с низким содержанием крахмала",
+    "mealCopyText": "{{title}} — {{cals}} ккал · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+    "noCoachConnection": "Нет активного подключения к тренеру",
+    "noteDesc": "Готовые блюда, оптимизированные для спортивных результатов и наращивания мышц.",
+    "noteStep1": "Выберите категорию белка (Курица, Красное мясо, Рыба, Яйца)",
+    "noteStep2After": "это только белок + волокнистые овощи",
+    "noteStep2Before": "Блюда с меткой",
+    "noteStep2Mid": "включают рис, овёс или картофель —",
+    "noteStep3": "Нажмите на любое блюдо, чтобы мгновенно добавить его на доску",
+    "noteStep4": "Все макросы предварительно рассчитаны и готовы к отслеживанию",
+    "noteTitle": "Готовые блюда для спортсменов",
+    "refeedDay": "День загрузки",
+    "selectCategory": "Выберите категорию белка:",
+    "selectCategoryShort": "Выберите категорию",
+    "sendCoachAria": "Отправить сводку сессии тренеру",
+    "sendFailed": "Не удалось отправить — попробуйте снова",
+    "sendToCoach": "Отправить тренеру",
+    "sending": "Отправка…",
+    "sent": "Отправлено!",
+    "sessionTotal": "Итого за сессию:",
+    "slots": {
+      "breakfast": "Завтрак",
+      "dinner": "Ужин",
+      "lunch": "Обед",
+      "meal4": "Приём пищи 4",
+      "meal5": "Приём пищи 5",
+      "meal6": "Приём пищи 6",
+      "snacks": "Перекусы"
+    },
+    "starch": "Крахмал",
+    "starchAllocation": "Распределение крахмала",
+    "starchCap": "Лимит крахмала {{cap}}g",
+    "starchUsage": "{{used}}g / {{cap}}g крахмала",
+    "summaryText_one": "{{count}} приём пищи добавлен — {{cals}} ккал · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "summaryText_other": "{{count}} приёмов пищи добавлено — {{cals}} ккал · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "viewChatAria": "Посмотреть сообщение в чате с тренером",
+    "viewInChat": "Посмотреть в чате"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "Подбадривайте меня, когда я срываюсь",
+        "label": "Ободряйте меня"
+      },
+      "pushHard": {
+        "desc": "Строго держите меня подотчётным",
+        "label": "Подталкивайте меня сильно"
+      },
+      "remind": {
+        "desc": "Достаточно мягких подсказок",
+        "label": "Просто напоминайте"
+      },
+      "selfDirected": {
+        "desc": "Я мотивирую себя сам",
+        "label": "Самостоятельный"
+      }
+    },
+    "back": "Назад",
+    "challenges": {
+      "consistency": "Сохранение постоянства",
+      "cravings": "Тяга к еде",
+      "emotionalEating": "Эмоциональное переедание",
+      "knowledge": "Знание, что есть",
+      "mealPrep": "Подготовка еды",
+      "motivation": "Мотивация",
+      "socialPressure": "Социальное давление",
+      "time": "Недостаточно времени"
+    },
+    "error": "Что-то пошло не так. Пожалуйста, попробуйте ещё раз.",
+    "lifestyle": {
+      "budgetConscious": "Экономный",
+      "busySchedule": "Плотный график",
+      "frequentTravel": "Частые поездки",
+      "parent": "Родитель / опекун",
+      "pickyEater": "Привередливый в еде",
+      "shiftWorker": "Сменная работа",
+      "socialEater": "Общественное питание",
+      "stressEater": "Заедание стресса"
+    },
+    "loading": "Загрузка вашего профиля...",
+    "motivations": {
+      "athletic": "Спортивные результаты",
+      "confidence": "Чувствовать уверенность",
+      "energy": "Больше энергии",
+      "family": "Здоровье семьи",
+      "longevity": "Долголетие",
+      "mentalClarity": "Ясность ума",
+      "weightLoss": "Снижение веса"
+    },
+    "next": "Далее",
+    "saveProfile": "Сохранить профиль",
+    "savedDesc": "Ваш профиль коучинга готов.",
+    "savedTitle": "Профиль сохранён!",
+    "saving": "Сохранение...",
+    "steps": {
+      "accountability": {
+        "subtitle": "Выберите то, что мотивирует вас больше всего",
+        "title": "Как нам держать вас подотчётным?"
+      },
+      "challenges": {
+        "subtitle": "Будьте честны — это помогает нам сосредоточиться на том, что действительно важно",
+        "title": "Каковы ваши самые большие трудности?"
+      },
+      "lifestyle": {
+        "subtitle": "Выберите всё подходящее — мы адаптируем советы под это",
+        "title": "Что описывает ваш образ жизни?"
+      },
+      "motivations": {
+        "subtitle": "Выберите всё подходящее",
+        "title": "Что вами движет?"
+      },
+      "style": {
+        "subtitle": "Выберите стиль общения, который вам подходит",
+        "title": "Как бы вы хотели, чтобы вас тренировали?"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "Сочетание всех подходов",
+        "label": "Сбалансированный"
+      },
+      "direct": {
+        "desc": "Скажите мне, что делать — без лишних слов",
+        "label": "Прямой"
+      },
+      "educational": {
+        "desc": "Объясните причину каждого выбора",
+        "label": "Образовательный"
+      },
+      "encouraging": {
+        "desc": "Позитивное подкрепление и поддержка",
+        "label": "Поддерживающий"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "Углеводы",
+    "categories": {
+      "eggsShakes": "Яйца и коктейли",
+      "fish": "Филе рыбы",
+      "poultry": "Курица и индейка",
+      "redmeat": "Красное мясо"
+    },
+    "gotIt": "понятно!",
+    "headerAddTo": "Блюда для подготовки к соревнованиям - Добавить в {{slot}}",
+    "howToAria": "Как использовать конструктор производительности и соревнований",
+    "info": {
+      "intro": "Готовые блюда для спортсменов, оптимизированные для набора сухой мышечной массы и производительности.",
+      "step1Label": "Выберите категорию белка",
+      "step1Text": "(Курица, Красное мясо, Рыба, Яйца)",
+      "step2Label": "Блюда помечены",
+      "step2Text": "как «Углеводы» или «P+V» (Белок + Овощи)",
+      "step3Label": "Нажмите на любое блюдо",
+      "step3Text": "чтобы мгновенно добавить его на доску",
+      "step4Label": "Все макросы",
+      "step4Text": "предварительно рассчитаны и готовы к отслеживанию",
+      "stepsLabel": "Шаги:",
+      "tipLabel": "💡 Совет:",
+      "tipText": "Выбирайте блюда в зависимости от ваших ежедневных целей по углеводам - используйте блюда «Углеводы», когда нужна энергия, и блюда «P+V» для дней с низким содержанием углеводов!",
+      "title": "Как использовать конструктор производительности и соревнований"
+    },
+    "noteDesc": "Готовые блюда для спортсменов, оптимизированные для набора сухой мышечной массы и производительности.",
+    "noteStep1": "Выберите категорию белка (Курица, Красное мясо, Рыба, Яйца)",
+    "noteStep2": "Блюда помечены как «Углеводы» или «P+V» (Белок + Овощи)",
+    "noteStep3": "Нажмите на любое блюдо, чтобы мгновенно добавить его на доску",
+    "noteStep4": "Все макросы предварительно рассчитаны и готовы к отслеживанию",
+    "noteTitle": "Блюда для подготовки к соревнованиям",
+    "selectCategory": "Выберите категорию белка:",
+    "selectCategoryShort": "Выберите категорию"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "Наибольшая возможность",
+    "breakfastLogged": "Завтрак записан",
+    "caloriesOnTarget": "Калории в норме",
+    "consistencyScore": "Оценка постоянства",
+    "days": "дней",
+    "dinnerLogged": "Ужин записан",
+    "last7Days": "Последние 7 дней",
+    "lastNDays": "Последние {{count}} дней",
+    "loggedMeals": "Записанные приёмы пищи",
+    "lunchLogged": "Обед записан",
+    "noActivity": "Активность питания ещё не зафиксирована. Начните вести журнал приёмов пищи, чтобы увидеть здесь свою персональную сводку активности.",
+    "noMeals": "Приёмы пищи ещё не записаны. Начните записывать приёмы пищи, чтобы увидеть сводку активности.",
+    "ofDays": "{{value}} из {{total}}",
+    "proteinGoalMet": "Цель по белку достигнута",
+    "setTargets": "Установите целевые макросы, чтобы активировать полное отслеживание питания.",
+    "title": "Сводка активности питания"
+  },
+  "mealPicker": {
+    "addTo": "Добавить в {{slot}}",
+    "cafeteria": "Кафетерий",
+    "categories": {
+      "fats": "Жиры",
+      "fibrousCarbs": "Волокнистые углеводы",
+      "fruit": "Фрукты",
+      "proteins": "Белки",
+      "starchyCarbs": "Крахмалистые углеводы"
+    },
+    "close": "Закрыть",
+    "generate": "Сгенерировать",
+    "generateCount": "Сгенерировать ({{count}})",
+    "generating": "Генерация…",
+    "gotIt": "понятно!",
+    "howToAria": "Как использовать выбор блюд",
+    "info": {
+      "addLabel": "Нажмите, чтобы добавить:",
+      "addText": "Нажмите на любую карточку блюда, чтобы мгновенно добавить его в слот {{slot}}",
+      "browseLabel": "Просмотр блюд:",
+      "browseText": "Прокрутите наши подобранные шаблоны блюд",
+      "cafeteriaLabel": "Опция кафетерия:",
+      "cafeteriaText": "Нажмите «Кафетерий» для быстрого случайного предложения блюда",
+      "intro": "Быстрый и простой способ добавить готовые блюда в ваш план.",
+      "personalizedLabel": "Персонализировано:",
+      "personalizedText": "Блюда фильтруются на основе ваших аллергий и предпочтений",
+      "tipLabel": "💡 Совет:",
+      "tipText": "Используйте кнопку Кафетерий, когда хотите быстрое здоровое предложение без просмотра!",
+      "title": "Как использовать выбор блюд"
+    },
+    "lowerGlycemic": "Более низкое гликемическое влияние",
+    "quickMeal": "Быстрый приём пищи {{slot}}",
+    "regularGi": "Обычный ГИ"
+  },
+  "mealReminders": {
+    "addReminder": "Добавить напоминание о еде",
+    "checkAgain": "Проверить снова",
+    "checking": "Проверка…",
+    "connectionDiagnostics": "Диагностика соединения",
+    "footerBlocked": "Установите время сейчас — уведомления активируются, как только будут предоставлены разрешения.",
+    "footerDefault": "До 6 напоминаний. Нажмите на метку, чтобы переименовать.",
+    "footerEnabled": "Держите браузер открытым для надёжной доставки.",
+    "footerNative": "Нажмите на метку, чтобы переименовать. Напоминания доставляются через приложение iOS.",
+    "mealN": "Приём пищи {{n}}",
+    "nativeDelivery": "Нативная доставка iOS",
+    "saving": "Сохранение…",
+    "statusBlocked": "Уведомления заблокированы в браузере",
+    "statusConnected": "Уведомления подключены",
+    "statusPartial": "Не полностью подключено — переключите слот, чтобы завершить настройку",
+    "statusPending": "Переключите слот, чтобы включить уведомления",
+    "statusUnsupported": "Не поддерживается этим браузером",
+    "title": "Напоминания о еде",
+    "toUnblock": "Чтобы разблокировать:",
+    "toastBlockedIosDesc": "Перейдите в Настройки iPhone › My Perfect Meals › Разрешить уведомления",
+    "toastBlockedTitle": "Уведомления заблокированы",
+    "toastBlockedWebDesc": "Разрешите уведомления через значок замка в адресной строке, затем нажмите Проверить снова.",
+    "toastEnableFailedTitle": "Не удалось включить уведомления",
+    "toastNotSupportedDesc": "Этот браузер не поддерживает push-уведомления.",
+    "toastNotSupportedTitle": "Не поддерживается",
+    "toastPermissionDenied": "Доступ запрещён.",
+    "toastSaveFailed": "Не удалось сохранить напоминания",
+    "toastTryAgain": "Попробуйте через мгновение.",
+    "unblockAllow": "Разрешить",
+    "unblockLock": "🔒 замок",
+    "unblockNotifications": "Уведомления",
+    "unblockStep1After": "в адресной строке браузера",
+    "unblockStep1Before": "Нажмите на",
+    "unblockStep2Before": "Установите",
+    "unblockStep2Mid": "на",
+    "unblockStep3After": "ниже",
+    "unblockStep3Before": "Нажмите",
+    "unsupportedHint": "Попробуйте Chrome или Edge на компьютере. Safari на iOS требует приложение.",
+    "webDelivery": "Веб-push доставка"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "Авторская кухня",
+    "optSignatureDesc": "Ваша персональная брендовая кухня внутри платформы",
+    "optProductLabel": "Интеграция продукта",
+    "optProductDesc": "Интегрируйте свой бренд, продукты или добавки",
+    "optWhiteLabelLabel": "White Label",
+    "optWhiteLabelDesc": "Полностью брендированный опыт платформы",
+    "optRestaurantLabel": "Ресторанная группа",
+    "optRestaurantDesc": "Партнёрство с несколькими точками или франшизой",
+    "optAthleteLabel": "Кухня атлета",
+    "optAthleteDesc": "Кулинарная идентичность для результата и спорта",
+    "stepIdentity": "Личность",
+    "stepCulinary": "Кулинарная идентичность",
+    "stepPlatform": "Платформа",
+    "stepInterest": "Интерес",
+    "stepSubmit": "Отправить",
+    "partnershipReview": "Рассмотрение партнёрства",
+    "errorGeneric": "Что-то пошло не так. Повторите попытку.",
+    "errorConnection": "Не удалось отправить. Проверьте соединение и повторите попытку.",
+    "identityHeading": "Расскажите о себе.",
+    "identitySub": "Основные данные и контактная информация.",
+    "fullNameLabel": "Полное имя",
+    "fullNamePlaceholder": "Ваше полное имя",
+    "brandLabel": "Шеф / Название бренда",
+    "brandPlaceholder": "Ваш публичный кулинарный бренд",
+    "emailLabel": "Эл. почта",
+    "phoneLabel": "Телефон",
+    "locationLabel": "Местоположение",
+    "locationPlaceholder": "Город, регион / страна",
+    "culinaryHeading": "Ваша кулинарная идентичность.",
+    "culinarySub": "Это определяет, как строится ваша кухня в платформе.",
+    "cuisineFocusLabel": "Направление кухни",
+    "cuisineFocusPlaceholder": "напр. южная, японская, средиземноморская",
+    "cookingPhilosophyLabel": "Философия готовки",
+    "cookingPhilosophyPlaceholder": "Как вы описали бы свой подход к еде?",
+    "signatureStylesLabel": "Фирменные стили",
+    "signatureStylesPlaceholder": "напр. высокобелковая, комфорт-фуд, растительная",
+    "wellnessPhilosophyLabel": "Философия здоровья",
+    "wellnessPhilosophyPlaceholder": "Как здоровье и питание влияют на вашу готовку?",
+    "platformHeading": "Где ваша аудитория?",
+    "platformSub": "Поделитесь присутствием в соцсетях и в интернете. Все поля необязательны.",
+    "websiteLabel": "Веб-сайт",
+    "interestHeading": "Что вам интересно?",
+    "interestSub": "Выберите всё подходящее. Можно несколько.",
+    "readyHeading": "Готово к отправке.",
+    "readySub": "Наша команда рассматривает каждую заявку лично. Мы свяжемся с вами в течение 3–5 рабочих дней.",
+    "summaryHeading": "Сводка заявки",
+    "summaryName": "Имя",
+    "summaryBrand": "Бренд",
+    "summaryEmail": "Эл. почта",
+    "summaryCuisine": "Кухня",
+    "summaryInterest": "Интерес",
+    "consentText": "Отправляя заявку, вы соглашаетесь, что My Perfect Meals может использовать предоставленные данные для оценки вашей заявки на партнёрство. Никаких обязательств не возникает до подписания официального соглашения.",
+    "submitting": "Отправка…",
+    "requestReview": "Запросить рассмотрение партнёрства",
+    "successHeading": "Заявка получена.",
+    "successSub": "Наша команда рассмотрит вашу заявку и свяжется с вами в течение 3–5 рабочих дней. Мы рассматриваем каждую заявку лично.",
+    "contactAt": "Мы свяжемся с вами по",
+    "done": "Готово",
+    "back": "Назад",
+    "next": "Далее"
+  },
+  "safetyPin": {
+    "title": "Защитный PIN",
+    "sessionExpired": "Сессия истекла — выйдите и войдите снова, чтобы управлять PIN",
+    "statusSet": "PIN установлен — дополнительная защита включена",
+    "statusUnset": "PIN не установлен — задайте его для дополнительной защиты",
+    "changePin": "Изменить PIN",
+    "removePin": "Удалить PIN",
+    "setPin": "Задать защитный PIN",
+    "enterPin": "Введите PIN",
+    "confirmPin": "Подтвердите PIN",
+    "currentPin": "Текущий PIN",
+    "newPin": "Новый PIN",
+    "confirmNewPin": "Подтвердите новый PIN",
+    "removePrompt": "Введите текущий PIN, чтобы удалить его.",
+    "fourDigits": "4 цифры",
+    "hidePin": "Скрыть PIN",
+    "showPin": "Показать PIN",
+    "cancel": "Отмена",
+    "setPinBtn": "Задать PIN",
+    "changePinBtn": "Изменить PIN",
+    "removePinBtn": "Удалить PIN",
+    "errorFourDigits": "PIN должен состоять ровно из 4 цифр",
+    "errorNoMatch": "PIN-коды не совпадают",
+    "errorNewFourDigits": "Новый PIN должен состоять из 4 цифр",
+    "errorNewNoMatch": "Новые PIN-коды не совпадают",
+    "errorSetFailed": "Не удалось задать PIN",
+    "errorSetRetry": "Не удалось задать PIN. Повторите попытку.",
+    "errorChangeFailed": "Не удалось изменить PIN",
+    "errorChangeRetry": "Не удалось изменить PIN. Повторите попытку.",
+    "errorRemoveFailed": "Не удалось удалить PIN",
+    "errorRemoveRetry": "Не удалось удалить PIN. Повторите попытку.",
+    "setToastTitle": "Защитный PIN задан",
+    "setToastDesc": "Ваш защитный PIN создан.",
+    "changeToastTitle": "PIN изменён",
+    "changeToastDesc": "Ваш защитный PIN обновлён.",
+    "removeToastTitle": "PIN удалён",
+    "removeToastDesc": "Ваш защитный PIN удалён."
+  },
+  "mfa": {
+    "errorStartSetup": "Не удалось начать настройку. Повторите попытку.",
+    "errorInvalidCode": "Неверный код. Повторите попытку.",
+    "errorDisableInvalid": "Неверный код. MFA не отключена.",
+    "loading": "Загрузка…",
+    "enabledTitle": "Двухфакторная аутентификация включена",
+    "saveBackupPrompt": "Сохраните резервные коды перед закрытием этой страницы.",
+    "backupCodesHeading": "Резервные коды — сохраните сейчас",
+    "copied": "Скопировано!",
+    "copyAllCodes": "Копировать все",
+    "backupCodesNote": "Каждый код можно использовать лишь раз. Храните их в надёжном месте. Если вы потеряете доступ к приложению-аутентификатору, один из них понадобится для входа.",
+    "savedBackupBtn": "Я сохранил резервные коды",
+    "onTitle": "Двухфакторная аутентификация включена",
+    "enabledOn": "Включена {{date}}",
+    "disable2fa": "Отключить 2FA",
+    "disableTitle": "Отключить двухфакторную аутентификацию",
+    "disablePrompt": "Введите текущий код аутентификатора для подтверждения.",
+    "cancel": "Отмена",
+    "disabling": "Отключение…",
+    "scanTitle": "Отсканируйте приложением-аутентификатором",
+    "scanApps": "Google Authenticator, Authy или 1Password отлично подойдут.",
+    "qrAlt": "Отсканируйте этот QR-код приложением-аутентификатором",
+    "manualKeyPrompt": "Не удаётся отсканировать? Введите этот ключ вручную:",
+    "addedAccountNext": "Я добавил аккаунт — далее",
+    "confirmTitle": "Подтвердите код аутентификатора",
+    "confirmPrompt": "Введите 6-значный код из приложения, чтобы активировать 2FA.",
+    "activating": "Активация…",
+    "activate2fa": "Активировать 2FA",
+    "back": "Назад",
+    "defaultTitle": "Двухфакторная аутентификация",
+    "defaultSubtitle": "Добавьте второй уровень защиты для вашего аккаунта.",
+    "settingUp": "Настройка…",
+    "enable2fa": "Включить 2FA"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "Блюдо создано!",
+    "mealCreatedDesc": "{{name}} готово для вас",
+    "generationFailedTitle": "Ошибка генерации",
+    "signInTitle": "Войдите в аккаунт",
+    "signInDesc": "Чтобы создавать блюда, нужно войти в аккаунт",
+    "guestLimitTitle": "Достигнут лимит гостя",
+    "guestLimitDesc": "Создайте бесплатный аккаунт, чтобы продолжить генерацию блюд",
+    "describeMealTitle": "Опишите ваше блюдо",
+    "describeMealDesc": "Скажите шефу, чего вам хочется",
+    "enterAlternativeTitle": "Введите альтернативу",
+    "enterAlternativeDesc": "Скажите, что вы предпочли бы вместо этого",
+    "placeholderBreakfast": "напр. «протеиновые панкейки», «сладкие яйца с фруктами», «омлет с низким содержанием углеводов»",
+    "placeholderLunch": "напр. «салат с курицей гриль», «высокобелковый ролл», «средиземноморская боул»",
+    "placeholderDinner": "напр. «низкоуглеводные тако», «стейк с овощами», «лосось с рисом»",
+    "placeholderDefault": "напр. «что-то лёгкое и полезное», «высокобелковое блюдо»",
+    "title": "Создать с AI Chef",
+    "subtitle": "Скажите шефу, что вы хотите на {{mealType}}",
+    "starchLimitTitle": "Достигнут лимит крахмалистых углеводов",
+    "starchUsedSingular": "Вы уже использовали свой крахмалистый приём пищи на сегодня ({{used}} из {{max}}).",
+    "starchUsedPlural": "Вы уже использовали свои крахмалистые приёмы пищи на сегодня ({{used}} из {{max}}).",
+    "youRequested": "Вы запросили:",
+    "fibrousPrefix": "Хотите выбрать",
+    "fibrousCarb": "волокнистый углевод",
+    "fibrousSuffix": "вместо этого или позволить шефу выбрать за вас?",
+    "fibrousPlaceholder": "напр. брокколи, спаржа, цветная капуста...",
+    "generating": "Генерация...",
+    "useMyChoice": "Использовать мой выбор",
+    "or": "или",
+    "chefsChoice": "Выбор шефа",
+    "chefSubstituteHint": "Шеф заменит вкусным волокнистым углеводом",
+    "inputHint": "Опишите, чего вам хочется, и шеф создаст персональное блюдо для вас",
+    "orbCheckingSafety": "Проверка профиля безопасности…",
+    "orbFinishing": "Добавляем последние штрихи…",
+    "orbPreparing": "Шеф готовит ваше блюдо…",
+    "mealSafety": "Безопасность блюда",
+    "ingredientControl": "Контроль ингредиентов",
+    "todaysStarchMeals": "Крахмалистые приёмы пищи на сегодня:",
+    "starchUsedCount": "использовано {{used}} / {{max}}",
+    "generateBtn": "Сгенерировать блюдо с ИИ",
+    "stop": "Стоп",
+    "cancel": "Отмена"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "Недопустимый файл",
+    "invalidFileDesc": "Выберите файл изображения.",
+    "fileTooLargeTitle": "Файл слишком большой",
+    "fileTooLargeDesc": "Выберите изображение размером менее 5 МБ.",
+    "photoUpdatedTitle": "Фото обновлено",
+    "photoUpdatedDesc": "Ваше фото профиля обновлено.",
+    "uploadFailedTitle": "Ошибка загрузки",
+    "uploadFailedDesc": "Не удалось загрузить фото.",
+    "cameraErrorTitle": "Ошибка камеры",
+    "cameraErrorDesc": "Не удалось получить доступ к камере или фото.",
+    "restoringTitle": "Восстановление покупок...",
+    "restoringDesc": "Поиск активных подписок...",
+    "restoredTitle": "Покупки восстановлены",
+    "restoredDesc": "Ваша подписка успешно восстановлена.",
+    "restoreCompleteTitle": "Восстановление завершено",
+    "restoreCompleteDesc": "Активная подписка не найдена. Если считаете это ошибкой, обратитесь в поддержку.",
+    "restoreFailedTitle": "Ошибка восстановления",
+    "restoreFailedDesc": "Не удалось восстановить покупки. Повторите попытку.",
+    "accountDeletedTitle": "Аккаунт удалён",
+    "accountDeletedDesc": "Ваш аккаунт и все данные удалены безвозвратно.",
+    "deleteFailedDesc": "Не удалось удалить аккаунт. Повторите попытку.",
+    "deleteAccount": "Удалить аккаунт",
+    "deleteDialogTitle": "Удалить аккаунт безвозвратно?",
+    "deleteDialogIntro": "Это действие нельзя отменить. Будут безвозвратно удалены:",
+    "deleteItemAccount": "Ваш аккаунт и данные профиля",
+    "deleteItemMeals": "Все планы питания и сохранённые рецепты",
+    "deleteItemBiometrics": "Биометрические и медицинские данные",
+    "deleteItemBilling": "История подписок и платежей",
+    "deleting": "Удаление...",
+    "deleteMyAccount": "Удалить мой аккаунт"
+  },
+  "inspiration": {
+    "servingsJustMe": "Только я",
+    "servings2": "2 человека",
+    "servings3": "3 человека",
+    "servingsFamily": "Семья (4)",
+    "servingsMealPrep": "Мил-преп (6)",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "Увидьте. Скажите. Отправьте. Мы сделаем это вашим.",
+    "copilotSpokenText": "Recipe Maker — один из самых мощных инструментов приложения. Идея проста: вы где-то видите еду — в TikTok, в сохранённом посте Instagram, в кулинарной книге, в меню или даже просто в воображении — и вместо того чтобы упустить момент, вы приносите его сюда, а мы создаём его для вас. Есть четыре способа передать вашу идею. Choose Photo позволяет выбрать любой скриншот или сохранённое изображение еды из галереи — скриншоты TikTok, сохранения Instagram, доски Pinterest, рецепты Facebook, всё, что уже есть на устройстве. Camera открывает камеру в реальном времени, чтобы навести её на книгу, меню или экран. Speak позволяет описать блюдо вслух, как вы рассказали бы другу. Type позволяет вставить описание или написать то, что задумали. Вот чем Recipe Maker отличается: вам не нужен рецепт. Если вы можете показать или описать это, мы можем создать. После отправки идеи Recipe Maker не даёт один результат. Он создаёт три полностью персонализированные версии вашей идеи одновременно — одно блюдо, три интерпретации — каждая построена вокруг ваших целей по макросам, аллергий, пищевой идентичности и каждого активного протокола здоровья в вашем аккаунте. Вы видите все три, можете сохранить любую или все, и ваш выбор остаётся на панели, пока вы не решите его очистить. Приложение никогда не удаляет их автоматически.",
+    "hintAuthentic": "Максимально сохраните оригинальные вкусы и ингредиенты.",
+    "hintBalanced": "Персонализируйте под ваш профиль, сохраняя дух блюда.",
+    "hintHealthier": "Активно оптимизируйте питание, сохраняя узнаваемость блюда.",
+    "analysisFailed": "Ошибка анализа",
+    "analyzeFailedMsg": "Не удалось проанализировать ингредиенты.",
+    "imageReadError": "Не удалось прочитать изображение. Повторите попытку.",
+    "voiceNotSupportedTitle": "Голос не поддерживается",
+    "voiceNotSupportedDesc": "Ваш браузер не поддерживает голосовой ввод. Попробуйте набрать текст.",
+    "micErrorTitle": "Ошибка микрофона",
+    "micErrorDesc": "Повторите попытку.",
+    "somethingWrong": "Что-то пошло не так",
+    "createFailedMsg": "Не удалось создать ваше персональное блюдо.",
+    "saveFailedError": "Не удалось сохранить",
+    "savedTitle": "Сохранено!",
+    "savedDesc": "Добавлено в ваши сохранения Recipe Maker в «Избранном».",
+    "saveFailedTitle": "Ошибка сохранения",
+    "scanFoodFor": "Сканировать еду для {{name}}",
+    "productScan": "Сканирование продукта",
+    "customizeMeal": "Настройте ваше блюдо",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "Анализ ингредиентов для {{name}}",
+    "analyzeBeforeBuy": "Анализируйте ингредиенты перед покупкой",
+    "optionsSubtitle": "Настройте это, прежде чем мы сгенерируем вашу персональную версию.",
+    "captureSubtitle": "Отсканируйте любую идею блюда, и мы персонализируем её для вас.",
+    "choosePhoto": "Выбрать фото",
+    "cameraPill": "Камера",
+    "speakPill": "Говорить",
+    "typePill": "Печатать",
+    "uploadHint": "Выберите скриншот, сохранённое фото еды или изображение из фотоплёнки или галереи.",
+    "chooseFromGallery": "Выбрать из галереи",
+    "galleryHint": "Скриншоты, сохранённые фото, любое изображение еды",
+    "cameraHint": "Наведите камеру на любой рецепт, меню, экран или фото еды.",
+    "openCamera": "Открыть камеру",
+    "cameraSubHint": "Сделайте живое фото любой идеи еды",
+    "voiceHint": "Опишите блюдо вслух — ингредиенты, стиль, всё, что помните.",
+    "tapToStop": "Нажмите, чтобы остановить",
+    "tapToSpeak": "Нажмите, чтобы говорить",
+    "nextCustomize": "Далее — Настроить →",
+    "textHint": "Введите или вставьте идею блюда, описание рецепта или название.",
+    "textPlaceholder": "напр. Боул с курицей буффало, рисом, авокадо и соусом ранч…",
+    "servingsHeading": "Порции",
+    "adaptationStyleHeading": "Стиль адаптации",
+    "authentic": "Аутентичный",
+    "balanced": "Сбалансированный",
+    "healthier": "Полезнее",
+    "proteinLevelHeading": "Уровень белка",
+    "proteinStandard": "Стандартный",
+    "proteinHigh": "Высокобелковый",
+    "proteinAthlete": "Атлет",
+    "prepStyleHeading": "Стиль приготовления",
+    "prepOriginal": "Оригинальное приготовление",
+    "prepEasy": "Простое приготовление",
+    "cuisineStyleHeading": "Стиль кухни",
+    "generateMyVersion": "Сгенерировать мою версию",
+    "analyzingIngredients": "Анализ ингредиентов…",
+    "buildingVersion": "Создание вашей версии…",
+    "checkingCompanionProfile": "Сверка с профилем {{name}}",
+    "checkingYourProfile": "Сверка с вашим профилем",
+    "adaptingProfile": "Адаптация к вашему профилю питания",
+    "versionsReady": "{{count}} версий готово",
+    "savedCount": " · сохранено {{count}}",
+    "deleteScan": "Удалить это сканирование",
+    "tapAnotherHint": "Нажмите на другую, чтобы сохранить и её, или закройте и вернитесь позже.",
+    "tapSelectHint": "Нажмите на одну для выбора, затем сохраните. Возвращайтесь когда угодно — они хранятся, пока вы их не удалите.",
+    "adaptedForStrategy": "Адаптировано под сегодняшнюю стратегию питания",
+    "calValue": "{{value}} ккал",
+    "proteinValue": "{{value}} г белка",
+    "carbsValue": "{{value}} г углеводов",
+    "saving": "Сохранение…",
+    "saveAgain": "Сохранить снова",
+    "saveThisVersion": "Сохранить эту версию",
+    "try3More": "Ещё 3",
+    "viewSavedMeals": "Посмотреть сохранённые блюда в «Избранном» →",
+    "personalizedReady": "Ваша персональная версия готова.",
+    "macroCal": "Ккал",
+    "macroProtein": "Белок",
+    "macroCarbs": "Углеводы",
+    "macroFat": "Жиры",
+    "savedCheck": "Сохранено ✓",
+    "saveToFavorites": "В «Избранное»",
+    "scanAnother": "Сканировать другое",
+    "viewInFavorites": "Посмотреть в «Избранном» →"
+  },
+  "parentsCorner": {
+    "title": "Уголок родителей",
+    "yourChild": "вашему ребёнку",
+    "helpingBuildHabits": "Помогаем {{name}} формировать здоровые привычки",
+    "backToBeginnings": "Назад в My Perfect Beginnings",
+    "startFresh": "Начать заново",
+    "startNewConversation": "Начать новый разговор",
+    "clearConfirm": "Очистить этот разговор и начать заново?",
+    "clear": "Очистить",
+    "cancel": "Отмена",
+    "dismiss": "Закрыть",
+    "boundaryLanguage": "Я могу дать вашей семье научно обоснованные рекомендации по питанию. По медицинским вопросам педиатр ребёнка или дипломированный детский диетолог — всегда правильный следующий шаг; я подскажу, когда это нужно.",
+    "todaysTip": "Совет дня",
+    "loadingConversation": "Загрузка разговора…",
+    "commonQuestions": "Частые вопросы",
+    "browseCommonQuestions": "Посмотреть частые вопросы",
+    "followUp": "Уточнение",
+    "makeItNow": "Приготовить сейчас",
+    "thinking": "Думаю…",
+    "emptyPrompt": "Нажмите карточку выше или спросите ниже.",
+    "askAnything": "Спросите что угодно",
+    "inputPlaceholder": "Введите ваш вопрос здесь…",
+    "send": "Отправить",
+    "noResponse": "Извините, ответ не получен. Попробуйте ещё раз.",
+    "connectionError": "Сейчас небольшая проблема. Проверьте соединение и повторите.",
+    "stage": {
+      "earlyInfant": "Ранний младенец",
+      "beginningFoods": "Начало прикорма",
+      "youngToddler": "Младший малыш",
+      "toddler": "Малыш",
+      "preschool": "Дошкольник",
+      "earlySchoolAge": "Ранний школьный возраст",
+      "growingChild": "Растущий ребёнок"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "Малыш не ест.",
+        "question": "Малыш не ест. Что мне делать?"
+      },
+      "toddlerHatesVegetables": {
+        "label": "Ребёнок ненавидит овощи.",
+        "question": "Ребёнок ненавидит овощи. Как заставить его есть больше?"
+      },
+      "lunchPacking": {
+        "label": "Что положить на обед?",
+        "question": "Какие идеи для здорового и аппетитного обеда?"
+      },
+      "healthySnacks": {
+        "label": "Здоровые перекусы после школы.",
+        "question": "Какие идеи здоровых перекусов после школы?"
+      },
+      "calcium": {
+        "label": "Хватает ли ребёнку кальция?",
+        "question": "Хватает ли ребёнку кальция? Как это обеспечить?"
+      },
+      "introducingFoods": {
+        "label": "Как вводить новые продукты?",
+        "question": "Как вводить новые продукты, не превращая это в борьбу?"
+      },
+      "youngAthlete": {
+        "label": "Что есть моему юному спортсмену?",
+        "question": "Ребёнок занимается спортом. Что есть до и после тренировки?"
+      },
+      "waterIntake": {
+        "label": "Сколько воды нужно ребёнку?",
+        "question": "Сколько воды ребёнок должен пить в день?"
+      },
+      "pizza": {
+        "label": "Можно ли ребёнку пиццу?",
+        "question": "Можно ли ребёнку пиццу и другие вкусности, или мне быть строже?"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "Записать состав тела",
+    "bodyFatPct": "% жира в теле",
+    "bodyFatPlaceholder": "напр. 18.5",
+    "goalBodyFatPct": "Целевой % жира (необязательно)",
+    "goalBodyFatPlaceholder": "напр. 15",
+    "scanMethod": "Метод измерения",
+    "pickMethod": "Выберите метод",
+    "date": "Дата",
+    "save": "Сохранить",
+    "saving": "Сохранение...",
+    "notLoggedIn": "Вы не вошли",
+    "notLoggedInDesc": "Войдите, чтобы сохранить данные о составе тела.",
+    "invalidBodyFat": "Недопустимый % жира",
+    "invalidBodyFatDesc": "Процент жира должен быть от 1% до 70%.",
+    "saved": "Сохранено",
+    "savedDesc": "Состав тела успешно записан.",
+    "saveFailed": "Не удалось сохранить",
+    "saveFailedDesc": "Не удалось сохранить данные. Попробуйте ещё раз."
+  },
+  "sponsorEnded": {
+    "launchProCare": "Запустите свой независимый аккаунт ProCare",
+    "openStudio": "Откройте свою независимую студию",
+    "completeVerification": "Завершите проверку квалификации",
+    "continueTraining": "Продолжите обучение Platform Mastery",
+    "startOwnPractice": "Начать своё дело",
+    "continueAsClient": "Продолжить как клиент",
+    "continueAsClientDesc": "Продолжайте пользоваться MPM как индивидуальный участник",
+    "continueWithFree": "Продолжить с Free",
+    "continueWithFreeDesc": "Базовое создание блюд — всегда бесплатно",
+    "joinAnotherOrg": "Присоединиться к другой организации",
+    "joinAnotherOrgDesc": "Примите приглашение от другой компании",
+    "accessEnded": "Ваш доступ, спонсируемый {{business}}, завершён",
+    "accessEndedBody": "Ваш личный аккаунт, история блюд, прогресс в Academy и сертификаты — всё на месте. Выберите, как продолжить."
+  },
+  "dietStyleBadge": {
+    "kosher": "Кошер ✓",
+    "halal": "Халяль ✓",
+    "vegan": "Веган ✓",
+    "vegetarian": "Вегетарианская ✓",
+    "pescatarian": "Пескетарианская ✓",
+    "mediterranean": "Средиземноморская ✓",
+    "paleo": "Палео ✓",
+    "keto": "Кето ✓",
+    "carnivore": "Мясоедная ✓",
+    "dairyFree": "Без молочного ✓",
+    "custom": "Своя диета ✓"
+  },
+  "pregnancySupport": {
+    "title": "Настройка My Perfect Pregnancy",
+    "intro": "Это персонализирует ваши рекомендации по питанию. Ваши данные остаются конфиденциальными и формируют каждое предложение блюда, проверку безопасности и ответ коуча.",
+    "whereAreYou": "На каком этапе пути вы находитесь?",
+    "breastfeedingQuestion": "Вы сейчас кормите грудью?",
+    "breastfeedingHelp": "Это определяет ваш путь питания. У грудного вскармливания и послеродового восстановления разные приоритеты — мы разделяем их.",
+    "yesBreastfeeding": "Да, кормлю грудью",
+    "noBreastfeeding": "Нет, не кормлю",
+    "breastfeedingNote": "Вы получите питание для выработки молока плюс уровень восстановления для заживления.",
+    "postpartumNote": "Вы получите отдельный протокол послеродового восстановления — клетчатка, противовоспалительное питание, гормональная поддержка и рекомпозиция тела. Никаких жёстких диет.",
+    "trackByDueDate": "Отслеживать по сроку родов?",
+    "trackByDueDateHelp": "Если ввести срок родов, ваша неделя и триместр будут обновляться сами. Можно пропустить и отслеживать вручную.",
+    "yesEnterDueDate": "Да, ввести срок",
+    "skipManual": "Пропустить — только вручную",
+    "dueDatePlaceholder": "Срок родов (YYYY-MM-DD)",
+    "activeSymptoms": "Есть ли активные симптомы?",
+    "activeSymptomsHelp": "Выберите всё подходящее — блюда подстроятся.",
+    "disclaimerPart1": "My Perfect Pregnancy предоставляет только общее просвещение по питанию и поддержку структуры блюд. Это не",
+    "disclaimerNotSubstitute": "замена",
+    "disclaimerPart2": "вашего акушера-гинеколога (OB/GYN), акушерки или дипломированного диетолога. Всегда сначала следуйте рекомендациям вашего медицинского специалиста.",
+    "saveButton": "Сохранить настройку беременности",
+    "savingButton": "Сохранение…",
+    "savedButton": "✓ Сохранено!",
+    "turnOff": "Отключить питание при беременности",
+    "turnOffConfirm": "Отключить питание при беременности?",
+    "turnOffHelp": "Это уберёт рекомендации по беременности из блюд и коучинга. Вы можете включить снова в любой момент — без осуждения и вопросов.",
+    "turningOff": "Отключение…",
+    "yesTurnOff": "Да, отключить",
+    "keepItOn": "Оставить включённым",
+    "stage": {
+      "tryingToConceive": {
+        "label": "Планирование беременности",
+        "desc": "Питание до зачатия"
+      },
+      "trimester1": {
+        "label": "Первый триместр",
+        "desc": "Недели 1–13 · Фолат, тошнота"
+      },
+      "trimester2": {
+        "label": "Второй триместр",
+        "desc": "Недели 14–27 · Белок, кальций, DHA"
+      },
+      "trimester3": {
+        "label": "Третий триместр",
+        "desc": "Недели 28–40 · Железо, DHA, подготовка"
+      },
+      "breastfeeding": {
+        "label": "Грудное вскармливание",
+        "desc": "Выработка молока, DHA, йод, кальций"
+      },
+      "postpartum": {
+        "label": "После родов",
+        "desc": "Восстановление, рекомпозиция, гормоны, сила"
+      }
+    },
+    "symptom": {
+      "nausea": "Тошнота",
+      "heartburn": "Изжога",
+      "constipation": "Запор",
+      "fatigue": "Усталость",
+      "foodAversions": "Отвращение к еде",
+      "swelling": "Отёки",
+      "shortnessOfBreath": "Одышка",
+      "lowAppetite": "Низкий аппетит"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "Как вы себя чувствуете сегодня?",
+    "noCheckinToday": "Сегодня нет отметки о симптомах. Ваши блюда используют стандартный профиль препарата.",
+    "checkInPrompt": "Отметьтесь, чтобы адаптировать сегодняшние блюда, шейки и предложения ресторанов.",
+    "checkIn": "Отметиться",
+    "update": "Обновить",
+    "updated": "Обновлено {{time}}",
+    "escalationStatusBody": "Эти симптомы могут требовать медицинской оценки. Свяжитесь со своим специалистом или командой ухода в ближайшее время.",
+    "mealsAdapting": "Блюда адаптируются к сегодняшним симптомам",
+    "updatedTapAdjustments": "Обновлено {{time}} · Нажмите для просмотра изменений",
+    "noSymptomsToday": "Сегодня симптомов не отмечено",
+    "updatedStandardProfile": "Обновлено {{time}} · Стандартный профиль активен",
+    "escalationCardBody": "Эти симптомы могут требовать медицинской оценки. Свяжитесь со своей командой ухода.",
+    "nutritionAdjustments": "Изменения питания сегодня ({{count}})",
+    "reason": "Причина",
+    "adaptation": "Адаптация",
+    "evidence": "Обоснование",
+    "justNow": "только что",
+    "minutesAgo": "{{count}} мин назад",
+    "hoursAgo": "{{count}} ч назад",
+    "giSymptomsHeader": "Симптомы ЖКТ — насколько сильны сегодня?",
+    "otherSymptomsHeader": "Другие симптомы",
+    "vomitingHeader": "Рвота сегодня",
+    "quickQuestionsHeader": "Несколько быстрых вопросов",
+    "notifyHeader": "Сообщить вашей команде ухода?",
+    "notifyHelp": "Необязательно — вы решаете, кого уведомить сегодня.",
+    "updatesThroughoutDay": "Это обновляется в течение дня.",
+    "updatesThroughoutDayBody": "Если позже станет легче, отметьтесь снова — блюда адаптируются сразу. Отметка сбрасывается каждое утро.",
+    "cancel": "Отмена",
+    "saving": "Сохранение…",
+    "saveCheckIn": "Сохранить отметку",
+    "severity": {
+      "none": "Нет",
+      "mild": "Лёгкая",
+      "moderate": "Умеренная",
+      "severe": "Тяжёлая"
+    },
+    "symptom": {
+      "nausea": "Тошнота",
+      "constipation": "Запор",
+      "diarrhea": "Диарея",
+      "reflux": "Изжога/рефлюкс",
+      "bloating": "Вздутие",
+      "earlyFullness": "Раннее насыщение",
+      "foodAversions": "Отвращение к еде",
+      "fatigue": "Усталость",
+      "dizziness": "Головокружение",
+      "headache": "Головная боль"
+    },
+    "vomiting": {
+      "none": "Нет",
+      "once": "Один раз",
+      "multiple": "2–3 раза",
+      "cantKeepFluids": "4+ / Не удерживаю жидкость"
+    },
+    "q": {
+      "keepFluids": "Удерживаете ли вы жидкость?",
+      "eatWithoutWorsening": "Можете ли есть без ухудшения симптомов?",
+      "reducedUrination": "Мочеиспускание намного реже обычного?",
+      "symptomTrend": "Какова динамика ваших симптомов?",
+      "appetite": "Какой у вас сегодня аппетит?"
+    },
+    "opt": {
+      "yes": "Да",
+      "no": "Нет",
+      "withDifficulty": "С трудом",
+      "partially": "Частично"
+    },
+    "trend": {
+      "improving": "Улучшается",
+      "same": "Без изменений",
+      "worsening": "Ухудшается",
+      "na": "Не уверен(а)"
+    },
+    "appetite": {
+      "suppressed": "Нет аппетита",
+      "reduced": "Снижен",
+      "normal": "Обычный",
+      "increased": "Повышен"
+    },
+    "notify": {
+      "keepPrivate": "Нет, оставить приватным",
+      "coach": "Сообщить моему коучу",
+      "both": "Сообщить обоим"
+    }
   }
 }

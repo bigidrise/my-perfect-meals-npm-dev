@@ -67,7 +67,12 @@
     "translate": "Übersetzen",
     "share": "Teilen",
     "log": "Erfassen",
-    "logMeal": "Mahlzeit erfassen"
+    "logMeal": "Mahlzeit erfassen",
+    "addToCalendar": "Zum Kalender hinzufügen",
+    "bringBackChef": "Chef zurückbringen",
+    "comingSoon": "Demnächst",
+    "withChef": "Mit Chef",
+    "today": "Heute:"
   },
   "language": {
     "pageTitle": "Sprache",
@@ -100,7 +105,78 @@
     "founders": "Gründer",
     "restaurant": "Restaurant-Assistent",
     "weeklyBuilder": "Wöchentlicher Builder",
-    "mealsAwayFromHome": "Mahlzeiten außer Haus"
+    "mealsAwayFromHome": "Mahlzeiten außer Haus",
+    "academy": "Akademie",
+    "antiInflammatoryBuilder": "Anti-Entzündungs-Builder",
+    "appName": "My Perfect Meals",
+    "applyGuidance": "Anleitung anwenden",
+    "beverageCreator": "Beverage Creator",
+    "boardView": "Board-Ansicht",
+    "bodyComposition": "Körperzusammensetzung",
+    "businessCenter": "Business Center",
+    "chefPairings": "Chef-Kombinationen",
+    "clientDashboard": "Kunden-Dashboard",
+    "cravingCreator": "Craving Creator",
+    "createDish": "Create a Dish",
+    "creatorBrandStudio": "Creator & Brand Studio",
+    "dailyJournal": "Tagebuch & Inspiration",
+    "dessertCreator": "Dessert Creator",
+    "diabetesHub": "Diabetes-Zentrum",
+    "diabetesSupport": "Diabetes-Unterstützung",
+    "diabeticBuilder": "Diabetiker-Builder",
+    "diabeticHub": "Diabetiker-Zentrum",
+    "drinkPairings": "Getränkekombinationen",
+    "editProfile": "Profil bearbeiten",
+    "findMeals": "Mahlzeiten finden",
+    "foundingPartnerProgram": "Gründungspartner-Programm",
+    "fridgeRescueStudio": "Fridge Rescue Studio",
+    "gatherings": "My Perfect Gatherings",
+    "generalNutritionBuilder": "Allgemeiner Ernährungs-Builder",
+    "healthcarePartnerships": "Gesundheitswesen- & klinische Partnerschaften",
+    "howPartnershipsWork": "Wie Partnerschaften funktionieren",
+    "industryPartnerships": "Industriepartnerschaften",
+    "kitchenNetwork": "The Kitchen Network",
+    "mealBuilder": "Mahlzeiten-Builder",
+    "mealBuilderExchange": "Mahlzeiten-Builder-Austausch",
+    "metabolicBuilder": "Builder für metabolische Medikamente",
+    "metabolicHub": "Zentrum für metabolische Medikamente",
+    "metabolicHubBack": "Metabolisches Zentrum",
+    "metabolicTracking": "Tracking für metabolische Medikamente",
+    "myPerfectBeginning": "My Perfect Beginnings",
+    "myPerfectPets": "My Perfect Pets",
+    "organizationDashboard": "Organisations-Dashboard",
+    "organizationSuccessCenter": "Erfolgszentrum für Organisationen",
+    "pairingsHub": "Pairings-Hub",
+    "partnerCenter": "Partner-Center",
+    "partnerManagement": "Partnerverwaltung",
+    "partnerProgram": "Partnerprogramm",
+    "partnerPrograms": "Partnerprogramme",
+    "partnerRevenueCenter": "Partner- & Umsatz-Center",
+    "patientDashboard": "Patienten-Dashboard",
+    "performanceBuilder": "Performance Nutrition Builder",
+    "performanceHub": "Performance-Hub",
+    "physicianClients": "Ärztliche Klienten",
+    "physicianPortal": "Ärzteportal",
+    "physicianWelcome": "Willkommen beim Arzt",
+    "planner": "Planer",
+    "pregnancy": "Meine perfekte Schwangerschaft",
+    "proLaunchpad": "Professional Dashboard",
+    "proPortal": "Pro Portal",
+    "procareCertified": "ProCare Certified",
+    "procareTraining": "ProCare-Schulung",
+    "procareWelcome": "Willkommen bei ProCare",
+    "professionalWorkspace": "Arbeitsbereich für Profis",
+    "promotions": "Aktionen",
+    "reduceDrinking": "Plan zur Reduzierung des Alkoholkonsums",
+    "restaurantGuide": "Restaurant Assistant",
+    "signatureKitchen": "Signature Kitchen",
+    "sleepTracker": "Schlaftracker",
+    "supplementHub": "Supplement-Hub",
+    "trainerWelcome": "Willkommen beim Trainer",
+    "tutorialHub": "Tutorial-Hub",
+    "weaningOff": "Abgewöhnungs-Tool",
+    "whiteLabelSolutions": "White Label Solutions",
+    "wineListHelper": "Weinlisten-Assistent"
   },
   "dashboard": {
     "professionalBadge": "Professionell",
@@ -218,7 +294,13 @@
     "badgeClinical": "Klinisch",
     "badgePro": "Pro",
     "badgeCurrent": "Aktuell",
-    "badgeBehavioral": "Verhaltens-KI™"
+    "badgeBehavioral": "Verhaltens-KI™",
+    "badgeProCare": "ProCare",
+    "performanceCompDesc": "Von Coaches begleitete Elite-Sportler-Ernährungsplanung für Wettkampfvorbereitung, Höchstleistung und Erholung",
+    "performanceCompTitle": "Performance & Competition Builder",
+    "plannerTitle": "Planer",
+    "weeklyDesc": "KI-generierte Ernährungspläne für Benutzer, die sich auf ihre Weise gesünder ernähren möchten",
+    "weeklyTitle": "My Weekly Meal Builder"
   },
   "createDish": {
     "pageTitle": "Gericht erstellen",
@@ -242,7 +324,11 @@
     "errorMissing": "Fehlende Information",
     "errorDescribe": "Bitte beschreibe das Gericht, das du erstellen möchtest!",
     "errorFailed": "Gericht konnte nicht erstellt werden. Bitte versuche es erneut.",
-    "allergyAlert": "Allergie-Warnung"
+    "allergyAlert": "Allergie-Warnung",
+    "label": "Welches Gericht möchten Sie erstellen?",
+    "notes": "Optionale Notizen",
+    "notesPlaceholder": "z. B. keine Milchprodukte, extra scharf, natriumarm, für Meal Prep...",
+    "servings": "Portionen (1–12)"
   },
   "snack": {
     "pageTitle": "Snack-Ersteller",
@@ -309,7 +395,8 @@
     "servings": "Portionen",
     "ingredientsServes": "Zutaten (für {{count}})",
     "noIngredients": "Keine Zutaten angegeben",
-    "noInstructions": "Keine Anweisungen angegeben"
+    "noInstructions": "Keine Anweisungen angegeben",
+    "couldNotUpdateFavorites": "Favoriten konnten nicht aktualisiert werden. Erneut versuchen."
   },
   "shopping": {
     "pageTitle": "Intelligente Einkaufsliste",
@@ -340,7 +427,29 @@
     "catPantry": "Vorratskammer",
     "catFrozen": "Tiefkühlprodukte",
     "catBakery": "Bäckerei",
-    "catOther": "Sonstige"
+    "catOther": "Sonstige",
+    "addItemsBtn": "Artikel hinzufügen",
+    "addedToList": "Zur Einkaufsliste hinzugefügt",
+    "barcodePlaceholder": "Barcode-Nummer eingeben...",
+    "bulkInstructions": "Einen Artikel pro Zeile eingeben oder einfügen, oder mit Kommas trennen:",
+    "bulkPlaceholder": "Milch\\nEier\\nHähnchenbrust\\nSpinat\\nBrauner Reis",
+    "bulkTitle": "Mehrere Artikel hinzufügen",
+    "checked": "markiert",
+    "chefBuy": "Der Chefkoch sagt: Los geht's!",
+    "chefCaution": "Der Chefkoch sagt: Nur ein kleiner Hinweis...",
+    "chefSkip": "Der Chefkoch sagt: Vielleicht noch einmal überdenken",
+    "continueToBiometrics": "Weiter zu den Biometrie-Daten",
+    "emptyList": "Deine Einkaufsliste ist leer",
+    "emptyListHint": "Füge Artikel durch Einfügen oder Schnell-Hinzufügen hinzu",
+    "enterBarcode": "Barcode eingeben",
+    "items": "Artikel",
+    "itemsAddedDesc": "{{count}} Artikel wurden deiner Einkaufsliste hinzugefügt.",
+    "itemsCopied": "{{count}} Artikel kopiert",
+    "proLabel": "Pro",
+    "savedForReview": "Zur Überprüfung gespeichert",
+    "savedForReviewDesc": "Du kannst diesen Scan jederzeit von dieser Seite aus erneut aufrufen.",
+    "scannedProduct": "Gescanntes Produkt",
+    "tapView": "Zum Ansehen tippen →"
   },
   "restaurant": {
     "pageTitle": "Restaurant-Assistent",
@@ -357,7 +466,36 @@
     "errorZipDesc": "Bitte gib eine gültige 5-stellige PLZ ein.",
     "errorLocationDenied": "Standortzugriff verweigert",
     "errorLocationDesc": "Aktiviere den Standortzugriff in deinen Browsereinstellungen, oder gib deine PLZ manuell ein.",
-    "generationFailed": "Generierung fehlgeschlagen"
+    "generationFailed": "Generierung fehlgeschlagen",
+    "addressCopied": "Adresse kopiert",
+    "askFor": "Fragen nach:",
+    "cannotDetectZip": "Konnte ZIP Code nicht ermitteln",
+    "cannotDetectZipDesc": "Der Standort wurde gefunden, aber wir konnten Ihren ZIP Code nicht bestimmen. Bitte geben Sie ihn manuell ein.",
+    "copyFailed": "Kopieren fehlgeschlagen",
+    "copyManually": "Bitte kopieren Sie es manuell.",
+    "entryDesc": "Sagen Sie mir, wo Sie essen und worauf Sie Appetit haben, und ich zeige Ihnen die besten Optionen auf der Speisekarte.",
+    "entryTitle": "Restaurant-Assistent",
+    "findDishes": "Gerichte finden",
+    "findingDishes": "Suche nach Ihren perfekten Gerichten...",
+    "howToUseTitle": "So verwenden Sie den Restaurant-Assistenten",
+    "letsFindDishes": "Lassen Sie uns Gerichte finden",
+    "locationFound": "Standort gefunden",
+    "pasteHint": "In Maps oder Waze einfügen.",
+    "recommendedAt": "Empfohlene Mahlzeiten bei",
+    "scanningMenu": "Speisekarte wird gescannt…",
+    "searchAgain": "Erneut suchen",
+    "searchingFor": "Durchsuche {{restaurant}} nach {{craving}}-Optionen",
+    "step1": "Schritt 1",
+    "step1Placeholder": "z. B. Hähnchen, Lachs, Pasta, Steak",
+    "step1Question": "Welches Gericht oder welche Art von Essen suchen Sie?",
+    "step2": "Schritt 2",
+    "step2Placeholder": "z. B. Cheesecake Factory, P.F. Chang's, Chipotle",
+    "step2Question": "Wo essen Sie? Geben Sie den Namen des Restaurants ein.",
+    "step3": "Schritt 3",
+    "step3Placeholder": "z. B. 30303, 90210, 10001",
+    "step3Question": "Geben Sie Ihren ZIP Code ein, damit ich den nächsten Standort finden kann.",
+    "translationFailed": "Übersetzung fehlgeschlagen",
+    "whyHealthy": "Warum das gesund ist:"
   },
   "upgrade": {
     "viewPlans": "Pläne anzeigen",
@@ -369,7 +507,23 @@
     "essentialTagline": "Das komplette Mahlzeiten-Toolkit, aufgebaut um dein Profil.",
     "proTagline": "Erweiterte Ersteller und reales Essen, vollständig protokollbewusst.",
     "clinicalTagline": "Ernährungstools in medizinischer Qualität für ernsthafte Gesundheitsergebnisse.",
-    "proPromo": "Pro ist unser beliebtester Plan — schalte alle Ersteller frei."
+    "proPromo": "Pro ist unser beliebtester Plan — schalte alle Ersteller frei.",
+    "availableOn": "Verfügbar mit {{plan}}",
+    "buildersBenefit1": "Craving Creator, Beverage Creator, Dessert Creator & Sushi Creator",
+    "buildersBenefit2": "Meal Builder Exchange — wechsle die Builder jederzeit, wenn sich deine Ziele ändern",
+    "buildersBenefit3": "Restaurant Assistant, My Perfect Gatherings & erweiterte Lifestyle-Tools",
+    "buildersBenefit4": "Essential für den Einstieg · Clinical ergänzt Tools für medizinische Ernährungspläne",
+    "clinicalBenefit1": "Integration von klinischen Labordaten — deine Blutwerte bestimmen deine Ernährungsprotokolle",
+    "clinicalBenefit2": "Zugang zum Care-Team — verbinde dich per App mit einem Arzt oder Trainer",
+    "clinicalBenefit3": "Performance Nutrition, Wettkampfvorbereitung & Athlete Builders",
+    "essentialBenefit1": "Create a Dish — AI-Mahlzeiten, exakt auf deine Ernährungsprotokolle zugeschnitten",
+    "essentialBenefit2": "Einkaufsliste, gespeicherte Mahlzeiten & wöchentlicher Essensplaner",
+    "essentialBenefit3": "Recipe Maker, Snack Creator & unbegrenzter Fridge Rescue",
+    "featurePartOf": "{{feature}} ist Teil von {{plan}}",
+    "planBadge": "{{label}}-Plan",
+    "proBenefit1": "Craving Creator, Beverage Creator & Sushi Creator",
+    "proBenefit2": "Restaurant Assistant — protokollgerechte Bestellung in jedem Restaurant",
+    "proBenefit3": "My Perfect Gatherings & My Perfect Pets Ernährungspläne"
   },
   "pricing": {
     "pageTitle": "Abonnement",
@@ -448,7 +602,10 @@
     "dietVegan": "Vegan",
     "dietVegetarian": "Vegetarisch",
     "dietPescatarian": "Pescetarisch",
-    "dietCarnivore": "Karnivor"
+    "dietCarnivore": "Karnivor",
+    "back": "Zurück",
+    "next": "Weiter",
+    "selectPath": "Wählen Sie oben einen Pfad aus"
   },
   "findMeals": {
     "pageTitle": "Mahlzeiten in der Nähe finden",
@@ -917,7 +1074,7 @@
     "pageTitle": "Metabolischer Medikamenten-Builder",
     "tourTitle": "Leitfaden für den Metabolischen Medikamenten-Builder",
     "loadingBoard": "Mahlzeitentafel wird geladen...",
-    "glp1Hub": "GLP-1 Hub",
+    "glp1Hub": "GLP-1-Zentrum",
     "activeClinical": "Aktive klinische Unterstützungen:",
     "hormonalMetabolic": "Hormonal & Metabolisch:",
     "clinicalAntiInflam": "Entzündungshemmend",
@@ -989,7 +1146,28 @@
     "noMealsTitle": "Keine Mahlzeiten",
     "noSlotYet": "Noch kein {{slot}}",
     "snacks": "Snacks",
-    "whyWeeklyPlanning": "Warum Wochenplanung?"
+    "whyWeeklyPlanning": "Warum Wochenplanung?",
+    "savingPlan": "Wird gespeichert…",
+    "savedPlan": "Gespeichert ✓",
+    "savePlan": "Plan speichern",
+    "addMealsHint": "Verwenden Sie „+“, um Mahlzeiten hinzuzufügen",
+    "dayDuplicated": "Tag dupliziert",
+    "dayDuplicatedBoth": "{{thisWeek}} Tag(e) diese Woche + {{future}} Tag(e) in zukünftigen Wochen",
+    "dayDuplicatedDesc": "Kopiert auf {{count}} Tag(e)",
+    "duplicate": "Duplizieren",
+    "failedToDuplicate": "Duplizieren fehlgeschlagen",
+    "nextWeek": "Nächste Woche",
+    "noSlotMealsYet": "Noch keine Mahlzeiten für {{slot}}",
+    "partialDuplicate": "Teilweise dupliziert",
+    "partialDuplicateDesc": "{{count}} von {{total}} Tagen gespeichert.",
+    "prevWeek": "Vorherige Woche",
+    "savedFutureWeek": "In zukünftiger Woche gespeichert",
+    "savedFutureWeekDesc": "Mahlzeiten auf {{count}} Tag(e) kopiert. Wischen Sie vorwärts, um sie anzuzeigen.",
+    "shoppingListDesc": "Sie KÖNNEN Ihre gesamte Woche an die Einkaufsliste senden! Dies fasst alle Zutaten für einen einfachen Einkauf zusammen. Klicken Sie unten auf „Gesamte Woche senden“.",
+    "shoppingListNext": "Weiter: Schauen Sie sich die Einkaufsliste an, um zu erfahren, wie Sie sie effektiv nutzen können!",
+    "shoppingListTitle": "Einkaufsliste bereit",
+    "syncPending": "Synchronisierung ausstehend",
+    "tryAgain": "Bitte versuchen Sie es erneut"
   },
   "coachCorner": {
     "title": "Coaches Ecke",
@@ -1750,5 +1928,1830 @@
     "tour8Desc": "Protein und Kohlenhydrate sind mit Sternchen (*) markiert, da dies die wichtigsten Zahlen sind, auf die Sie sich beim Erstellen Ihrer Mahlzeiten konzentrieren sollten. Erledigen Sie diese zuerst.",
     "tour8Title": "Was die Sternchen bedeuten",
     "tourTitle": "Allgemeiner Ernährungs-Builder"
+  },
+  "mealCard": {
+    "protein": "Protein",
+    "carbs": "Kohlenhydrate",
+    "fat": "Fett",
+    "ingredients": "Zutaten:",
+    "instructions": "Anleitung:",
+    "medicalSafety": "Medizinische Sicherheit",
+    "diabetesProtocol": "Diabetes-Protokoll",
+    "whyThisMealWasBuilt": "Warum diese Mahlzeit erstellt wurde",
+    "showLess": "Weniger anzeigen",
+    "showAllSteps": "Alle {{count}} Schritte anzeigen",
+    "moreIngredients": "+ {{count}} mehr...",
+    "loggedSuccessfully": "Erfolgreich protokolliert",
+    "failedToLog": "Makros konnten nicht protokolliert werden. Bitte versuche es erneut.",
+    "deleteMeal": "Mahlzeit löschen",
+    "removeFromBoard": "Diese Mahlzeit vom Board entfernen?",
+    "refineMeal": "Mahlzeit verfeinern",
+    "showingRefined": "Verfeinerte Version wird angezeigt",
+    "restoreOriginal": "Original wiederherstellen",
+    "competitionPrepProtocol": "🏆 Wettkampfvorbereitungsprotokoll angewendet",
+    "athleticPerformanceProtocol": "⚡ Athletikleistungsprotokoll angewendet",
+    "loggedDesc": "{{name}} wurde in deine Makros eingetragen.",
+    "ingredientFallback": "Zutat",
+    "generatedForBGL": "Erstellt für BGL:",
+    "relevantRange": "Relevanter Bereich:",
+    "weeksOut": "{{n}} Wochen verbleibend",
+    "sessionsPerWeek": "{{n}} Einheiten/Woche",
+    "protocol_goalFatLoss": "Fettabbau-Priorität",
+    "protocol_goalMuscleGain": "Muskelaufbau-Priorität",
+    "protocol_goalStrength": "Kraft-Priorität",
+    "protocol_goalPeak": "Höchstleistungs-Priorität",
+    "protocol_athleticPerfLabel": "Athletische Leistung — {{sport}}",
+    "protocol_competitionPrepLabel": "Wettkampfvorbereitung — {{type}}",
+    "protocol_performancePhaseFallback": "Leistungsphase",
+    "protocol_recoverySupportActive": "Erholungsunterstützung aktiv",
+    "protocol_sport_strength": "Krafttraining",
+    "protocol_sport_hypertrophy": "Hypertrophie",
+    "protocol_sport_powerlifting": "Powerlifting",
+    "protocol_sport_olympic_lifting": "Olympisches Gewichtheben",
+    "protocol_sport_mma": "MMA",
+    "protocol_sport_boxing": "Boxen",
+    "protocol_sport_wrestling": "Ringen",
+    "protocol_sport_bjj": "BJJ / Grappling",
+    "protocol_sport_crossfit": "CrossFit",
+    "protocol_sport_endurance_running": "Laufen",
+    "protocol_sport_cycling": "Radfahren",
+    "protocol_sport_triathlon": "Triathlon",
+    "protocol_sport_tactical": "Taktisch / Militärisch",
+    "protocol_sport_general_fitness": "Allgemeine Fitness",
+    "protocol_sport_other": "Andere Sportart",
+    "protocol_phase_off_season": "Off-Season",
+    "protocol_phase_pre_season": "Vorsaison",
+    "protocol_phase_in_season": "Saison",
+    "protocol_phase_weight_cut": "Gewichtsklasse",
+    "protocol_phase_recovery": "Erholungsphase",
+    "protocol_bullet_fat_loss_0": "Hohes Proteinziel (≥2g/kg)",
+    "protocol_bullet_fat_loss_1": "Kaloriendefizit-Strategie",
+    "protocol_bullet_conditioning_0": "Kohlenhydrat-Timing — Vor/Nach Training",
+    "protocol_bullet_conditioning_1": "Entzündungshemmende Erholung",
+    "protocol_bullet_peak_prep_0": "Natriumreduktion aktiv",
+    "protocol_bullet_peak_prep_1": "Verdaulichkeit Priorität",
+    "protocol_bullet_peak_week_0": "Faserarmes Protokoll aktiv",
+    "protocol_bullet_peak_week_1": "Wenig Natrium — Wasserkontrolle",
+    "protocol_bullet_show_day_0": "Schnellverdaulichkeitsprotokoll",
+    "protocol_bullet_show_day_1": "Kohlenhydrat-Timing für Leistung",
+    "protocol_bullet_meet_week_0": "Kohlenhydrat-Ladung aktiv",
+    "protocol_bullet_meet_week_1": "ZNS-Erholungsnährstoffe",
+    "protocol_bullet_meet_day_0": "Wettkampf-Kohlenhydratprotokoll",
+    "protocol_bullet_meet_day_1": "Verdaulichkeit zuerst",
+    "protocol_bullet_weight_cut_0": "Natriumrestriktion aktiv",
+    "protocol_bullet_weight_cut_1": "Elektrolyt-Management",
+    "protocol_bullet_fight_week_0": "Wassermanagement-Protokoll",
+    "protocol_bullet_fight_week_1": "Rehydrierungsfertige Mahlzeiten",
+    "protocol_bullet_taper_0": "Kohlenhydrat-Ladung (8–10g/kg)",
+    "protocol_bullet_taper_1": "Faserreduktion aktiv",
+    "protocol_bullet_race_day_0": "Renntag-Kohlenhydratprotokoll",
+    "protocol_bullet_race_day_1": "Magenfreundliche Ernährung",
+    "protocol_bullet_post_competition_0": "Erholungs-Refeed aktiv",
+    "protocol_bullet_post_competition_1": "Entzündungshemmend Priorität",
+    "protocol_bullet_post_race_0": "Nachrennen-Erholungsernährung",
+    "protocol_bullet_post_race_1": "Kalorienerhöhung",
+    "sportFallback": "Sport",
+    "mealFallback": "Mahlzeit",
+    "protocol_phaselabel_fat_loss": "Fettabbauphase",
+    "protocol_phaselabel_conditioning": "Konditionierungsphase",
+    "protocol_phaselabel_peak_prep": "Peak-Vorbereitung",
+    "protocol_phaselabel_peak_week": "Peak Week",
+    "protocol_phaselabel_show_day": "Show Day",
+    "protocol_phaselabel_post_competition": "Wettkampfnachsorge",
+    "protocol_phaselabel_strength_building": "Kraftaufbau",
+    "protocol_phaselabel_intensity_phase": "Intensitätsphase",
+    "protocol_phaselabel_taper": "Tapering-Phase",
+    "protocol_phaselabel_meet_week": "Wettkampfwoche",
+    "protocol_phaselabel_meet_day": "Wettkampftag",
+    "protocol_phaselabel_conditioning_combat": "Konditionierungslager",
+    "protocol_phaselabel_fight_prep": "Kampfvorbereitung",
+    "protocol_phaselabel_weight_cut": "Gewichtsklasse",
+    "protocol_phaselabel_fight_week": "Kampfwoche",
+    "protocol_phaselabel_fight_day": "Kampftag",
+    "protocol_phaselabel_pre_season": "Vorsaison",
+    "protocol_phaselabel_in_season": "Saison",
+    "protocol_phaselabel_championship_week": "Meisterschaftswoche",
+    "protocol_phaselabel_match_day": "Spieltag",
+    "protocol_phaselabel_off_season": "Off-Season",
+    "protocol_phaselabel_base_conditioning": "Grundkonditionierung",
+    "protocol_phaselabel_event_prep": "Event-Vorbereitung",
+    "protocol_phaselabel_competition_week": "Wettkampfwoche",
+    "protocol_phaselabel_competition_day": "Wettkampftag",
+    "protocol_phaselabel_base_building": "Grundlagenaufbau",
+    "protocol_phaselabel_build_phase": "Aufbauphase",
+    "protocol_phaselabel_race_prep": "Rennvorbereitung",
+    "protocol_phaselabel_race_day": "Renntag",
+    "protocol_phaselabel_post_race": "Nachrennen-Erholung",
+    "protocol_comptype_bodybuilding_show": "Bodybuilding-Wettkampf",
+    "protocol_comptype_mens_physique": "Men's Physique",
+    "protocol_comptype_classic_physique": "Classic Physique",
+    "protocol_comptype_figure": "Figure",
+    "protocol_comptype_bikini": "Bikini",
+    "protocol_comptype_wellness": "Wellness",
+    "protocol_comptype_powerlifting_meet": "Powerlifting-Wettkampf",
+    "protocol_comptype_strongman_competition": "Strongman",
+    "protocol_comptype_olympic_weightlifting_meet": "Olympisches Gewichtheben",
+    "protocol_comptype_fight_camp": "Trainingslager",
+    "protocol_comptype_wrestling_season": "Ringer-Saison",
+    "protocol_comptype_crossfit_competition": "CrossFit-Wettkampf",
+    "protocol_comptype_hyrox": "Hyrox",
+    "protocol_comptype_marathon": "Marathon",
+    "protocol_comptype_triathlon_race": "Triathlon",
+    "protocol_comptype_spartan_race": "Spartan Race",
+    "protocol_comptype_other": "Sonstiges",
+    "protocol_bullet_strength_building_0": "Kalorienunterstützung Aufbauphase",
+    "protocol_bullet_strength_building_1": "Progressive-Overload-Ernährung",
+    "protocol_bullet_intensity_phase_0": "Intensiviertes Kohlenhydrat-Timing",
+    "protocol_bullet_intensity_phase_1": "ZNS-Erholungsernährung",
+    "protocol_bullet_conditioning_combat_0": "Kampfsport-Konditionsmahlzeiten",
+    "protocol_bullet_conditioning_combat_1": "Entzündungshemmender Fokus",
+    "protocol_bullet_fight_prep_0": "Kampfvorbereitungsernährung aktiv",
+    "protocol_bullet_fight_prep_1": "Gewichtsklassen-Bewusstsein",
+    "protocol_bullet_fight_day_0": "Kampftag-Ernährungsprotokoll",
+    "protocol_bullet_fight_day_1": "Schnelle Verdaulichkeit aktiv",
+    "protocol_bullet_pre_season_0": "Vorsaison-Grundernährung",
+    "protocol_bullet_pre_season_1": "Kraftbasis-Unterstützung",
+    "protocol_bullet_in_season_0": "Saison-Erholungsmahlzeiten",
+    "protocol_bullet_in_season_1": "Wettkampfgewicht-Unterstützung",
+    "protocol_bullet_championship_week_0": "Meisterschafts-Spitzenprogramm",
+    "protocol_bullet_championship_week_1": "Wenig Ballaststoffe — Saubere Ernährung",
+    "protocol_bullet_match_day_0": "Spieltag-Kohlenhydratprotokoll",
+    "protocol_bullet_match_day_1": "Verdaulichkeit zuerst",
+    "protocol_bullet_off_season_0": "Off-Season-Grundernährung",
+    "protocol_bullet_off_season_1": "Erholungsfokus aktiv",
+    "protocol_bullet_base_conditioning_0": "Aerobe Grundernährung",
+    "protocol_bullet_base_conditioning_1": "Kohlenhydrat-Periodisierung aktiv",
+    "protocol_bullet_event_prep_0": "Event-Vorbereitungsernährung aktiv",
+    "protocol_bullet_event_prep_1": "Kohlenhydrat-Timing optimiert",
+    "protocol_bullet_competition_week_0": "Wettkampfwochenprotokoll",
+    "protocol_bullet_competition_week_1": "Wenig Ballaststoffe aktiv",
+    "protocol_bullet_competition_day_0": "Wettkampftagernährung",
+    "protocol_bullet_competition_day_1": "Schnellverdaulichkeitsprotokoll",
+    "protocol_bullet_base_building_0": "Aerobe Grundlagenernährung",
+    "protocol_bullet_base_building_1": "Ausdauer-Ernährungsprotokoll",
+    "protocol_bullet_build_phase_0": "Progressiver Aufbau-Treibstoff",
+    "protocol_bullet_build_phase_1": "Kohlenhydrat-Periodisierung aktiv",
+    "protocol_bullet_race_prep_0": "Spitzentraining-Kohlenhydratprotokoll",
+    "protocol_bullet_race_prep_1": "Ausdauer-Treibstoff-Optimierung"
+  },
+  "trialStatusCard": {
+    "adminTrial": "Admin-Testversion",
+    "clinicalTrial": "Klinische Testversion",
+    "promotionalTrial": "Werbe-Testversion",
+    "freeTrial": "Kostenlose Testversion",
+    "clinicalUltimate": "Klinisch · Ultimate",
+    "trialEndsToday": "Dein Test endet heute",
+    "daysLeftInTrial": "Noch {{count}} Tage in deiner Testversion",
+    "daysOfDaysRemaining": "{{count}} von {{total}} Tagen verbleibend",
+    "accountMovesFree": "Dein Konto wechselt heute Nacht zum kostenlosen Plan. Alle deine Daten bleiben sicher.",
+    "trialExpires": "Testversion läuft ab am {{date}}",
+    "keepFullAccess": "Vollen Zugang behalten →",
+    "tierFull": "Vollständig"
+  },
+  "trialBanner": {
+    "lastDayTitle": "Dein kostenloser Pro-Zugang endet heute",
+    "lastDayBody": "Dein Konto wechselt heute Nacht zum kostenlosen Plan.",
+    "lastDayDataSafe": "Alle deine Daten bleiben sicher.",
+    "lastDayUpgradeHint": "Upgrade jederzeit, um Pro-Funktionen zu behalten.",
+    "upgradeToPro": "Auf Pro upgraden",
+    "exploreFeatures": "Funktionen erkunden",
+    "dismiss": "Schließen",
+    "daysLeft": "{{count}} Tage verbleibend",
+    "oneDayLeft": "1 Tag verbleibend",
+    "trialCountdown": "in deiner Testversion — {{tierLabel}} endet bald.",
+    "clinicalAccess": "Klinischer Zugang",
+    "fullAccess": "Vollzugang"
+  },
+  "groceryDashCard": {
+    "title": "Wöchentliche Einkaufsliste",
+    "description": "Deine personalisierte Einkaufsliste auf Basis deiner Mahlzeitenpläne",
+    "itemsCompleted": "{{completed}} von {{total}} Artikeln erledigt",
+    "shoppingDone": "{{pct}} % deiner Einkäufe erledigt",
+    "updatedToday": "Heute aktualisiert",
+    "recentItems": "Aktuelle Artikel",
+    "addItem": "Artikel hinzufügen",
+    "viewFullList": "Vollständige Liste anzeigen",
+    "noItems": "Ihre Einkaufsliste ist leer. Fügen Sie Artikel aus Ihrem Mahlzeitenplan hinzu."
+  },
+  "physicianCareTeam": {
+    "availability": {
+      "available": "Verfügbar",
+      "away": "Abwesend",
+      "from": "Von",
+      "offline": "Offline",
+      "saved": "Gespeichert",
+      "saving": "Speichern…",
+      "title": "Verfügbarkeitsstatus",
+      "until": "Bis"
+    },
+    "clinic": {
+      "activePatients": "Aktive Patienten",
+      "portalButton": "Arztportal öffnen",
+      "viewAndManage": "Zeigen und verwalten Sie Ihre Patienten im Arztportal."
+    },
+    "errors": {
+      "availabilityFailed": "Aktualisierung der Verfügbarkeit fehlgeschlagen.",
+      "emailRequired": "E-Mail ist erforderlich.",
+      "inviteFailed": "Senden der Einladung fehlgeschlagen.",
+      "loadFailed": "Laden des Betreuungsteams fehlgeschlagen.",
+      "saveDatesFailed": "Speichern der Daten fehlgeschlagen."
+    },
+    "invite": {
+      "emailLabel": "Patienten-E-Mail",
+      "emailPlaceholder": "patient@example.com",
+      "roleLabel": "Berufliche Rolle",
+      "rolePlaceholder": "Rolle wählen",
+      "sendInvite": "Einladung senden",
+      "title": "Patient einladen"
+    },
+    "platform": {
+      "button": "Funktionen erkunden",
+      "description": "Erfahren Sie, wie die Plattform Sie bei der Unterstützung Ihrer Patienten unterstützen kann.",
+      "explore": "Plattform erkunden"
+    },
+    "roles": {
+      "dietitian": "Ernährungsberater",
+      "doctor": "Arzt",
+      "np": "Nurse Practitioner (NP)",
+      "nutritionist": "Ernährungswissenschaftler",
+      "pa": "Physician Assistant (PA)",
+      "rn": "RN"
+    },
+    "title": "Arzt-Betreuungsteam",
+    "toast": {
+      "invitationSent": "Einladung an {{email}} gesendet"
+    },
+    "tour": {
+      "invitePatients": "Patienten einladen",
+      "invitePatientsDesc": "Laden Sie Patienten ein, sich mit Ihnen zu verbinden und Unterstützung zu erhalten.",
+      "physicianPortal": "Arztportal nutzen",
+      "physicianPortalDesc": "Öffnen Sie das Arztportal, um Ihre Patienten anzuzeigen und zu verwalten.",
+      "setAvailability": "Verfügbarkeit festlegen",
+      "setAvailabilityDesc": "Lassen Sie Patienten wissen, wann Sie verfügbar, abwesend oder offline sind."
+    },
+    "tourTitle": "Ärztliches Betreuungsteam"
+  },
+  "sharedComponents": {
+    "navigation": {
+      "appName": "My Perfect Meals",
+      "features": "Funktionen",
+      "howItWorks": "So funktioniert es",
+      "pricing": "Preise",
+      "signIn": "Anmelden"
+    },
+    "errorBoundary": {
+      "title": "Etwas ist schiefgelaufen",
+      "description": "Diese Seite kann gerade nicht geladen werden. Bitte aktualisieren Sie und versuchen Sie es erneut.",
+      "refresh": "Seite aktualisieren"
+    },
+    "dateSlotPicker": {
+      "placeholder": "Mahlzeitslot auswählen"
+    },
+    "mealSlots": {
+      "breakfast": "Frühstück",
+      "lunch": "Mittagessen",
+      "dinner": "Abendessen",
+      "snack": "Snack"
+    },
+    "dailyNutritionTracker": {
+      "title": "Täglicher Ernährungsfortschritt",
+      "description": "Verfolgen Sie Ihre tägliche Nährstoffaufnahme",
+      "calories": "Kalorien",
+      "protein": "Eiweiß",
+      "carbohydrates": "Kohlenhydrate",
+      "fat": "Fett",
+      "onTrack": "Auf dem richtigen Weg zu Ihren Tageszielen!"
+    },
+    "pagination": {
+      "label": "Seitennavigation",
+      "previousPage": "Zur vorherigen Seite",
+      "previous": "Zurück",
+      "nextPage": "Zur nächsten Seite",
+      "next": "Weiter",
+      "morePages": "Weitere Seiten"
+    },
+    "mealCard": {
+      "noRecipe": "Kein Rezept",
+      "addMeal": "Mahlzeit hinzufügen",
+      "serving": "Portion:",
+      "ingredients": "Zutaten:",
+      "cookingInstructions": "Kochanleitung:",
+      "protein": "Eiweiß",
+      "carbs": "Kohlenhydrate",
+      "fat": "Fett"
+    },
+    "nutritionSummary": {
+      "title": "Ernährungsübersicht",
+      "empty": "Erstellen Sie einen Ernährungsplan, um Ihre Nährwertübersicht zu sehen",
+      "weeklyOverview": "Wochenübersicht",
+      "totalCalories": "Gesamtkalorien",
+      "dailyAverage": "Tagesdurchschnitt",
+      "totalProtein": "Gesamteiweiß",
+      "daysPlanned": "Geplante Tage",
+      "dailyTargets": "Tagesziele",
+      "calories": "Kalorien",
+      "protein": "Eiweiß",
+      "carbohydrates": "Kohlenhydrate",
+      "fat": "Fett",
+      "targetMet": "Ziel erreicht",
+      "goalProgress": "Zielfortschritt",
+      "fitnessGoal": "Fitnessziel",
+      "activityLevel": "Aktivitätsniveau",
+      "dietaryPreferences": "Ernährungspräferenzen",
+      "balanceScore": "Gleichgewichtspunktzahl",
+      "percentOfTarget": "{{n}}% des Ziels",
+      "remainingCal": "{{n}} verbleibend",
+      "remainingG": "{{n}}g verbleibend"
+    },
+    "enhancedMealCard": {
+      "replace": "Ersetzen",
+      "replacing": "Wird ersetzt...",
+      "replaceTitle": "Durch ein völlig neues Mahlzeitrezept ersetzen",
+      "replacingTitle": "Mahlzeit wird ersetzt...",
+      "portionGuide": "Portionsleitfaden:",
+      "ingredients": "Zutaten:",
+      "instructions": "Anleitung:",
+      "medicalSafety": "Medizinische Sicherheit:",
+      "error": "Fehler:"
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "Heute übrig",
+    "protein": "Protein",
+    "starchy": "Stärke",
+    "fibrous": "Ballaststoffe",
+    "fat": "Fett",
+    "setMacrosPrompt": "Lege deine Makros fest, um zu sehen, was heute übrig ist.",
+    "saveDay": "Tag in Biometrie speichern",
+    "targetsUpdated": "Ziele mitten am Tag aktualisiert",
+    "targetsUpdatedReason": "Ziele mitten am Tag aktualisiert — {{reason}}",
+    "dismiss": "Verwerfen",
+    "overLimit": "⚠ über dem Limit",
+    "limit": "★ Limit",
+    "coach": {
+      "title": "Makro-Coach",
+      "subtitle": "So liest du deine verbleibenden Ziele",
+      "proteinTitle": "Protein",
+      "proteinBody": "Erreiche dieses Ziel, um Muskeln zu schützen und satt zu bleiben.",
+      "proteinBullet1": "Priorisiere magere Quellen bei jeder Mahlzeit.",
+      "proteinBullet2": "Verteile die Zufuhr über den Tag.",
+      "carbsTitle": "Kohlenhydrate",
+      "carbsBody": "Versorge das Training mit stärkehaltigen Kohlenhydraten, ergänze mit Ballaststoffen.",
+      "carbsBullet1": "Stärkehaltige Kohlenhydrate liefern Leistung.",
+      "carbsBullet2": "Ballaststoffe fördern Verdauung und Sättigung.",
+      "fatTitle": "Fett",
+      "fatBody": "Halte Fette moderat, um Energie und Hormone auszugleichen.",
+      "fatBullet1": "Bevorzuge gesunde Fette.",
+      "fatBullet2": "Achte auf Portionen — Fett ist kalorienreich.",
+      "closingTitle": "Bleib flexibel",
+      "closingBody": "Die Ziele passen sich deinem Tag an — komm nah heran und bleib konstant.",
+      "infoAria": "Was bedeuten diese Zahlen?",
+      "info": "Info",
+      "starchyTitle": "Stärkehaltige Kohlenhydrate — dein Hauptziel",
+      "starchy1": "Bleib bei oder unter deinem Tageslimit.",
+      "starchy2": "Es zu überschreiten bremst deinen Fortschritt — das zählt.",
+      "starchy3": "Darunter zu bleiben ist völlig in Ordnung. Erzwing es nicht.",
+      "flexTitle": "Protein & Ballaststoffe — bleib flexibel",
+      "flex1": "Etwas mehr oder weniger macht nichts kaputt.",
+      "flex2": "Jag bei diesen beiden nicht der Perfektion nach.",
+      "fat1": "Fett steigt natürlich mit deinen Lebensmittelentscheidungen.",
+      "fat2": "Nahrungsfett ist nicht der Treiber von Fettzunahme — fixier dich nicht darauf.",
+      "closing1": "Konzentrier dich darauf, dein Stärkeziel einzuhalten, und lass den Rest sich einpendeln.",
+      "closing2": "Du musst nicht perfekt sein. Du musst konstant sein."
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "Wettkampfvorbereitungsprotokoll gespeichert.",
+      "athleticSaved": "Protokoll für sportliche Leistung gespeichert.",
+      "activated": "Protokoll aktiviert",
+      "errorTitle": "Fehler",
+      "errorDesc": "Konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "stepCount": "Schritt {{current}} von {{total}}",
+    "back": "Zurück",
+    "next": "Weiter",
+    "saving": "Speichern...",
+    "activateProtocol": "Protokoll aktivieren",
+    "optional": "(optional)",
+    "track": {
+      "title": "Was beschreibt dein Ziel?",
+      "subtitle": "Jeder Weg nutzt eine völlig andere Protokoll-Engine.",
+      "athleticTitle": "Sportliche Leistung",
+      "athleticDesc": "MMA, Boxen, Ringen, Football, CrossFit, Ausdauer, taktisch. Ziel ist Leistung — Versorgung, Erholung, Anpassung.",
+      "compTitle": "Wettkampfvorbereitung",
+      "compDesc": "Bodybuilding, Physique, Powerlifting, Fight Camp, Ringsaison. Dein Wettkampftermin steuert jede Phase automatisch."
+    },
+    "goals": {
+      "title": "Was ist dein Hauptziel?",
+      "subtitle": "Dies bestimmt Makroprioritäten und Energiedichte der Mahlzeiten.",
+      "fatLoss": {
+        "label": "Fettabbau",
+        "desc": "Definieren bei erhaltener Leistung"
+      },
+      "muscleGain": {
+        "label": "Muskelaufbau",
+        "desc": "Hypertrophie und Anabolismus"
+      },
+      "maintenance": {
+        "label": "Erhaltung",
+        "desc": "Stabile Körperzusammensetzung"
+      },
+      "performance": {
+        "label": "Höchstleistung",
+        "desc": "Output, Geschwindigkeit und Kraft"
+      }
+    },
+    "trainingType": {
+      "title": "Welche Art von Training machst du?",
+      "subtitle": "Wähle deine Hauptsportart oder -disziplin.",
+      "otherPlaceholder": "Andere {{group}}-Sportart…"
+    },
+    "trainingTypes": {
+      "strength": "Kraft",
+      "hypertrophy": "Hypertrophie",
+      "powerlifting": "Powerlifting",
+      "olympicLifting": "Gewichtheben",
+      "mma": "MMA",
+      "boxing": "Boxen",
+      "wrestling": "Ringen",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "Laufen",
+      "cycling": "Radfahren",
+      "triathlon": "Triathlon",
+      "tactical": "Taktisch / Militär",
+      "generalFitness": "Allgemeine Fitness"
+    },
+    "athleticGroups": {
+      "iron": "Eisensport",
+      "combat": "Kampfsport",
+      "mixed": "Gemischt",
+      "endurance": "Ausdauer",
+      "other": "Andere"
+    },
+    "frequency": {
+      "title": "Wie oft trainierst du?",
+      "subtitle": "Wöchentliche Einheiten (ohne Ruhetage).",
+      "twoADayQuestion": "Trainierst du zweimal täglich?",
+      "twoADayDesc": "Aktiviert Empfehlungen für Erholungsmahlzeiten zwischen den Einheiten",
+      "yes": "Ja",
+      "no": "Nein"
+    },
+    "freqs": {
+      "oneTwo": "1–2 Tage",
+      "threeFour": "3–4 Tage",
+      "fiveSix": "5–6 Tage",
+      "sevenPlus": "7+ (täglich)"
+    },
+    "cardio": {
+      "title": "Was ist dein Cardio-Fokus?",
+      "subtitle": "Bestimmt das Timing der Kohlenhydrate und den glykolytischen Bedarf.",
+      "none": {
+        "label": "Kein Cardio",
+        "desc": "Reiner Kraft- oder Technikfokus — keine Herz-Kreislauf-Arbeit"
+      },
+      "recovery": {
+        "label": "Gehen / Erholung",
+        "desc": "Nur leichte Bewegung — Spaziergänge, Dehnen, lockeres Radfahren"
+      },
+      "zone2": {
+        "label": "Leichtes Cardio",
+        "desc": "Angenehmes Tempo, bei dem du reden kannst — baut aerobe Basis auf"
+      },
+      "tempo": {
+        "label": "Moderates Cardio",
+        "desc": "Stetige, fordernde Anstrengung — schweres, aber machbares Atmen"
+      },
+      "threshold": {
+        "label": "Hartes Cardio",
+        "desc": "Hochintensive Dauerbelastung — nahe an deinem Limit"
+      },
+      "hiit": {
+        "label": "Sprint-Intervalle",
+        "desc": "Kurze Vollgas-Phasen mit Pausen — maximale Anstrengung"
+      },
+      "mixed": {
+        "label": "Gemischtes Cardio",
+        "desc": "Variiert je nach Einheit — leichte und harte Tage"
+      }
+    },
+    "phase": {
+      "title": "Wo stehst du in deinem Trainingszyklus?",
+      "subtitle": "Deine Phase kalibriert Makroziele und Lebensmittelwahl."
+    },
+    "phases": {
+      "offSeason": {
+        "label": "Off Season",
+        "desc": "Volumenfokus, Basis aufbauen"
+      },
+      "preSeason": {
+        "label": "Vorsaison",
+        "desc": "Konditionsaufbau"
+      },
+      "inSeason": {
+        "label": "In der Saison",
+        "desc": "Leistungserhaltung"
+      },
+      "weightCut": {
+        "label": "Gewichtsabbau",
+        "desc": "Kurzfristiges Defizit + Rehydrierung"
+      },
+      "recovery": {
+        "label": "Erholung",
+        "desc": "Entzündungshemmend, Reparaturpriorität"
+      }
+    },
+    "duration": {
+      "title": "Wie lange dauern deine typischen Einheiten?",
+      "subtitle": "Wird zur Berechnung des Glykogenverbrauchs und Erholungsbedarfs verwendet."
+    },
+    "durations": {
+      "under30": {
+        "label": "Unter 30 Min",
+        "desc": "Kurze / Zusatzeinheiten"
+      },
+      "thirtySixty": {
+        "label": "30–60 Min",
+        "desc": "Standard-Trainingsblock"
+      },
+      "sixtyNinety": {
+        "label": "60–90 Min",
+        "desc": "Volle Einheit mit Aufwärmen & Abkühlen"
+      },
+      "ninetyPlus": {
+        "label": "90 Min+",
+        "desc": "Einheiten mit hohem Volumen oder mehreren Disziplinen"
+      }
+    },
+    "recoveryStep": {
+      "title": "Wie ist deine Erholung gerade?",
+      "subtitle": "Dein Erholungszustand prägt das Protein-Timing, entzündungshemmende Prioritäten und Kaloriendichte."
+    },
+    "recovery": {
+      "good": {
+        "label": "Gut",
+        "desc": "Guter Schlaf, wenig Muskelkater, viel Energie"
+      },
+      "average": {
+        "label": "Durchschnittlich",
+        "desc": "Etwas Müdigkeit, aber machbar"
+      },
+      "poor": {
+        "label": "Schlecht",
+        "desc": "Erschöpft, starker Muskelkater, Schlafmangel"
+      }
+    },
+    "adaptationStep": {
+      "title": "Was ist dein sportlicher Fokus?",
+      "subtitle": "Wähle, wofür du trainierst — das kalibriert Kohlenhydrat-Timing, Energiesystem-Unterstützung und Mahlzeitenzusammensetzung."
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "Ausdauer",
+        "desc": "Baue deinen aeroben Motor auf — längere Belastungen, mehr Ausdauer"
+      },
+      "conditioning": {
+        "label": "Konditionierung",
+        "desc": "Allround-Fitness über mehrere Energiesysteme"
+      },
+      "speed": {
+        "label": "Geschwindigkeit",
+        "desc": "Schneller sprinten — explosiver Fokus, schnelle Fasern"
+      },
+      "power": {
+        "label": "Kraft",
+        "desc": "Schweres schnell bewegen — Kraft trifft Explosivität"
+      },
+      "workCapacity": {
+        "label": "Arbeitskapazität",
+        "desc": "Mehr leisten, schneller erholen — hohe Trainingsvolumen bewältigen"
+      },
+      "activeRecovery": {
+        "label": "Aktive Erholung",
+        "desc": "Reparieren und aufladen — entzündungshemmend, ZNS-Reset"
+      }
+    },
+    "schedule": {
+      "title": "Lege deinen wöchentlichen Trainingsplan fest",
+      "subtitle": "Deine Ernährung passt sich täglich automatisch an dein Training an. Jeder Einheitstyp verschiebt deine Kohlenhydrat-, Kalorien- und Proteinziele.",
+      "trainingPhase": "Trainingsphase",
+      "weekSchedule": "Wochenplan",
+      "howItWorksTitle": "So funktioniert es",
+      "howItWorksBody": "MPM liest jeden Morgen deinen Plan und passt deine Makroziele automatisch an. Krafttage fügen Kohlenhydrate hinzu. Erholungstage reduzieren sie. Keine manuellen Anpassungen nötig."
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "Kraft",
+        "short": "Kra",
+        "desc": "Krafttraining — moderate Kohlenhydratunterstützung"
+      },
+      "power": {
+        "label": "Power",
+        "short": "Pwr",
+        "desc": "Explosiver Output — zusätzliche Kohlenhydrate und Protein aktiv"
+      },
+      "endurance": {
+        "label": "Ausdauer",
+        "short": "Aus",
+        "desc": "Aerobe Treibstoffpriorität — erhöhte Kohlenhydratverfügbarkeit"
+      },
+      "sportPractice": {
+        "label": "Sportpraxis",
+        "short": "Sport",
+        "desc": "Gemischte Anforderungen — moderate Kohlenhydratunterstützung"
+      },
+      "competition": {
+        "label": "Wettkampf",
+        "short": "Wett",
+        "desc": "Wettkampftag-Versorgung — maximale Kohlenhydratverfügbarkeit"
+      },
+      "recovery": {
+        "label": "Erholung",
+        "short": "Erh",
+        "desc": "Reparaturfokus — weniger Kohlenhydrate, entzündungshemmende Priorität"
+      },
+      "off": {
+        "label": "Ruhetag",
+        "short": "Off",
+        "desc": "Komplette Ruhe — reduzierte Kalorienziele"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "Stabilisierung",
+        "desc": "Basisphase — Bewegungsqualität, Rumpfstabilität"
+      },
+      "strength": {
+        "label": "Kraft",
+        "desc": "Aufbau maximaler Kraftkapazität"
+      },
+      "power": {
+        "label": "Power",
+        "desc": "Explosiver Output — Kraft mal Geschwindigkeit"
+      },
+      "peaking": {
+        "label": "Peaking",
+        "desc": "Vor-Wettkampf-Feinschliff — Intensität hoch, Volumen runter"
+      },
+      "inSeason": {
+        "label": "In der Saison",
+        "desc": "Leistung während des Wettkampfkalenders halten"
+      },
+      "offSeason": {
+        "label": "Off Season",
+        "desc": "Basisaufbau und Erholung zwischen den Saisons"
+      }
+    },
+    "days": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    },
+    "compGroups": {
+      "physique": "Physique",
+      "strength": "Kraftsport",
+      "combat": "Kampfsport",
+      "functional": "Funktional / Gemischt",
+      "endurance": "Ausdauer"
+    },
+    "compTypeStep": {
+      "title": "Welche Art von Wettkampf?",
+      "subtitle": "Jeder Wettkampftyp nutzt einen anderen Vorbereitungszeitplan und ein anderes Peak-Week-Protokoll."
+    },
+    "compTypes": {
+      "bodybuilding": "Bodybuilding",
+      "mensPhysique": "Men’s Physique",
+      "classicPhysique": "Classic Physique",
+      "figure": "Figure",
+      "bikini": "Bikini",
+      "wellness": "Wellness",
+      "powerliftingMeet": "Powerlifting-Wettkampf",
+      "strongman": "Strongman",
+      "olympicWeightlifting": "Gewichtheben",
+      "fightCamp": "Fight Camp",
+      "wrestlingSeason": "Ringsaison",
+      "crossfitCompetition": "CrossFit-Wettkampf",
+      "hyrox": "Hyrox",
+      "marathon": "Marathon",
+      "triathlon": "Triathlon",
+      "spartanRace": "Spartan Race"
+    },
+    "eventStep": {
+      "title": "Wann ist dein Wettkampf?",
+      "subtitle": "Dein Wettkampftermin steuert jede Phase automatisch — kein Raten.",
+      "eventDate": "Wettkampftermin",
+      "pickDate": "Wettkampftermin wählen",
+      "weeksOut": "in {{count}} Wochen",
+      "division": "Klasse",
+      "divisionPlaceholder": "z. B. Open, Masters 35+, 93-kg-Klasse..."
+    },
+    "weightStep": {
+      "title": "Gewichtsangaben",
+      "subtitle": "Optional — hilft deinem Protokoll, präzise Hinweise zur Cut-Strategie und zu Kalorienzielen zu geben.",
+      "currentWeight": "Aktuelles Gewicht",
+      "currentPlaceholder": "z. B. 185 lbs, 84 kg...",
+      "targetWeight": "Zielgewicht / Klasse",
+      "targetPlaceholder": "z. B. 175 lbs, 83-kg-Klasse, bühnenreif...",
+      "howItWorksTitle": "So funktioniert es",
+      "howItWorksBody": "MPM berechnet deine aktuelle Phase automatisch aus deinem Wettkampftermin. Mit näher rückendem Termin verschieben sich die Protokolle. Der Kalender entscheidet — nicht die KI."
+    }
+  },
+  "therapeuticCard": {
+    "title": "Therapeutische Ernährungsintelligenz",
+    "active": "Aktiv",
+    "last": "Zuletzt: {{date}}",
+    "intro": "Gib deine Dosis für alles Aktive ein. Die Dosis zählt — das System nutzt sie, um Kontext zu deinem Protokoll aufzubauen. Leer lassen, wenn nicht zutreffend.",
+    "activeCount": "{{count}} aktiv",
+    "namePlaceholder": "Name...",
+    "dosePlaceholder": "Dosis",
+    "unitPlaceholder": "Einheit",
+    "sections": {
+      "peptides": "Peptide",
+      "hormones": "Hormone",
+      "medications": "Medikamente mit Einfluss auf die Ernährung",
+      "therapies": "Therapien",
+      "recovery": "Erholungsziele"
+    },
+    "addPeptide": "Eigenes Peptid hinzufügen",
+    "addHormone": "Eigenes Hormon hinzufügen",
+    "addMedication": "Eigenes Medikament hinzufügen",
+    "therapiesHint": "Wähle alles, was auf dein aktuelles Protokoll zutrifft.",
+    "recoveryHint": "Wähle deine aktuellen Erholungsziele.",
+    "saveProtocol": "Protokoll speichern",
+    "saving": "Speichern…",
+    "cancel": "Abbrechen",
+    "footerNote": "Klinische Sicherheit hat immer Vorrang. Auswahlen beeinflussen nur die Mahlzeitenerstellung — keine medizinische Beratung.",
+    "therapyOptions": {
+      "connectiveTissue": "Bindegewebe-Erholung",
+      "gutSupport": "Darmunterstützung",
+      "redLight": "Rotlichttherapie",
+      "sauna": "Sauna / Wärme-Erholung",
+      "cold": "Kältetherapie / Eisbad",
+      "iv": "IV-Nährstofftherapie"
+    },
+    "recoveryGoals": {
+      "joint": "Gelenkerholung",
+      "muscle": "Muskelerholung",
+      "sleep": "Schlafoptimierung",
+      "inflammation": "Entzündungsreduktion",
+      "gutHealing": "Darmheilung",
+      "stress": "Stress- & Nebennieren-Erholung"
+    },
+    "toast": {
+      "savedTitle": "Therapeutisches Protokoll gespeichert",
+      "savedDesc": "Kontext aktualisiert. Alle Generatoren berücksichtigen dein Protokoll.",
+      "errorTitle": "Fehler",
+      "errorDesc": "Konnte nicht gespeichert werden. Bitte erneut versuchen."
+    }
+  },
+  "clinicalLabs": {
+    "title": "Klinische Laborwerte",
+    "last": "Zuletzt: {{date}}",
+    "lastSaved": "Zuletzt gespeichert: {{date}}",
+    "labDate": "Labordatum",
+    "notes": "Notizen",
+    "notesPlaceholder": "Optionale Notizen des Arztes...",
+    "saveButton": "Laborwerte speichern",
+    "savedSuccess": "Laborwerte erfolgreich gespeichert",
+    "normal": "Normal",
+    "elevated": "Erhöht",
+    "active": "Aktiv",
+    "menopausePanel": "Menopause- / Perimenopause-Panel",
+    "status": {
+      "normal": "Normal",
+      "needsReview": "Überprüfung nötig",
+      "elevated": "{{count}} erhöht"
+    },
+    "sections": {
+      "cardiac": "Herz & Stoffwechsel",
+      "hormonal": "Hormonell / Stress & Sexualhormone",
+      "liver": "Leberpanel",
+      "thyroid": "Schilddrüsenpanel",
+      "kidney": "Niere / Renal",
+      "inflammation": "Entzündung & Erholung",
+      "oncology": "Onkologie & Erholung"
+    },
+    "fields": {
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "triglycerides": "Triglyceride",
+      "tgHdlRatio": "TG/HDL-Verhältnis",
+      "bloodPressure": "Blutdruck",
+      "sys": "Sys",
+      "dia": "Dia",
+      "ejectionFraction": "Ejektionsfraktion",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "Erfordert Aufmerksamkeit",
+      "physicianGuided": "Arztgeführt"
+    },
+    "toast": {
+      "enterOne": "Gib vor dem Speichern mindestens einen Laborwert ein",
+      "failed": "Speichern der Laborwerte fehlgeschlagen"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "Ausgezeichnete Übereinstimmung",
+      "b": "Gute Übereinstimmung",
+      "c": "Einige Überlegungen",
+      "d": "Deutliche Konflikte"
+    },
+    "verdict": {
+      "buy": "Der Koch sagt: Los geht’s!",
+      "caution": "Der Koch sagt: Nur ein Hinweis...",
+      "skip": "Der Koch sagt: Vielleicht nochmal überlegen"
+    },
+    "decoder": {
+      "title": "Klartext-Entschlüssler",
+      "legend": "🟢 Allgemein sicher · 🟡 Gut zu wissen · 🔴 Konflikt mit deinem Profil"
+    },
+    "alignsWith": "Passt zu deinen Zielen",
+    "watchFor": "Achte auf",
+    "howItScores": "Wie es für deine Protokolle abschneidet",
+    "howItScoresForYou": "Wie es für dich abschneidet",
+    "add": "Hinzufügen",
+    "added": "Hinzugefügt",
+    "alternatives": {
+      "alsoWorthKnowing": "Ebenfalls wissenswert",
+      "evenBetter": "Noch bessere Optionen",
+      "betterOptions": "Bessere Produktoptionen für dich",
+      "profileMatched": "Profil-abgestimmt",
+      "brandedNote": "Basiert auf Produktwissen — Formeln und Verfügbarkeit können sich ändern.",
+      "categoryNote": "Kategorie-Hinweise auf Basis deines Gesundheitsprofils — achte auf diese Merkmale auf Etiketten."
+    },
+    "profileFactorsHeading": "Profilfaktoren, die diese Analyse bestimmen",
+    "scoreCards": {
+      "kids": "Kinder",
+      "adults": "Erwachsene",
+      "diet": "Deine Ernährung",
+      "goal": "Dein Ziel"
+    },
+    "barcode": {
+      "dbMatch": "Datenbanktreffer · Open Food Facts",
+      "notInDb": "Nicht in Datenbank · KI-Schätzung",
+      "notFound": "Barcode nicht gefunden — Analyse basiert auf KI-Produktwissen"
+    },
+    "tier": {
+      "quick": "Schnellanalyse",
+      "verified": "Verifizierte Etikettenanalyse",
+      "full": "Vollständiger Produktberater",
+      "subKnowledge": "Wissensbasiert · Kein Etikettenscan",
+      "subLabelScanned": "Etikett gescannt · {{name}}",
+      "subProductUnknown": "Etikett gescannt · Produkt unbekannt",
+      "subLabel": "Etikett gescannt",
+      "subFull": "Produkt + Etikett + Profil"
+    },
+    "scanLabelUp": "Etikett scannen ↑",
+    "highestConfidence": "Höchste Zuverlässigkeit",
+    "whatMattersMost": "Was für dich am wichtigsten ist",
+    "analysisProfile": {
+      "heading": "Dein Analyseprofil",
+      "basedOn": "Diese Empfehlung basiert auf:",
+      "deeperTitle": "Möchtest du tiefere Personalisierung?",
+      "deeperBody": "Füge Laborwerte wie A1C, Nüchternglukose, Cholesterin, Triglyceride, Nieren- oder Entzündungsmarker hinzu.",
+      "updateProfile": "Gesundheitsprofil aktualisieren →",
+      "disclaimer": "Empfehlungen werden aus der Zutatenzusammensetzung, den Nährwerten und deinem Gesundheitsprofil erstellt. MPM erhält keine Vergütung von Lebensmittelherstellern, und Empfehlungen werden nie durch Markenpartnerschaften beeinflusst.",
+      "emptyState": "Füge Gesundheitsziele und -bedingungen zu deinem Profil hinzu, um eine vollständig personalisierte Analyse zu erhalten."
+    },
+    "header": {
+      "companionScan": "Begleiter-Produktscan",
+      "intelligence": "Zutatenintelligenz",
+      "notIdentified": "Produkt nicht identifiziert",
+      "scanningFor": "Scan für {{name}}",
+      "frontLabelDetected": "Vorderetikett erkannt",
+      "byNameAnalysis": "Analyse nach Name",
+      "fullAnalysis": "Vollständige Analyse"
+    },
+    "analyzeThisProduct": "Dieses Produkt analysieren",
+    "scanIngredientsLabel": "Zutaten- / Nährwertetikett scannen",
+    "analyzeDisclaimer": "„Dieses Produkt analysieren“ nutzt KI-Wissen über dieses Produkt — kein Live-Etikettenscan. Formeln können sich ändern. Scanne das Zutatenfeld für ein verifiziertes Ergebnis.",
+    "analyzing": "Analysiere {{name}}…",
+    "checkingProfile": "Abgleich mit deinem Gesundheitsprofil",
+    "byNameBanner": {
+      "title": "Schnellanalyse — Kein verifizierter Etikettenscan",
+      "body": "Basiert auf Produktwissen aus den Trainingsdaten. Formeln können sich ändern.",
+      "scanLink": "Scanne das Etikett für ein verifiziertes Ergebnis."
+    },
+    "lowQuality": {
+      "title": "Die Bildqualität war niedrig",
+      "body": "Nimm das Foto erneut auf, mit vollständig sichtbarem, scharfem und gut beleuchtetem Zutatenfeld für eine genauere Analyse."
+    },
+    "labelFound": {
+      "title": "Nährwertetikett gefunden",
+      "body": "Sage oder tippe den Produktnamen, um auf dein Profil zugeschnittene Markenalternativen zu erhalten."
+    },
+    "incomplete": {
+      "title": "Analyse unvollständig",
+      "lowImage": "Das Bild war nicht klar genug zum Bewerten. Stelle sicher, dass das Zutatenfeld vollständig sichtbar und gut beleuchtet ist, und versuche es erneut.",
+      "needMore": "Für eine Bewertung sind mehr Informationen nötig. Scanne das Zutatenfeld oder nutze die Produktsuche."
+    },
+    "personalized": "Auf dein Gesundheitsprofil zugeschnitten",
+    "generalAnalysis": "Allgemeine Analyse — füge Gesundheitsziele für personalisierte Ergebnisse hinzu",
+    "sections": {
+      "considerations": "Zutatenüberlegungen",
+      "mayNotAlign": "Passt möglicherweise nicht zu deinen Zielen",
+      "worksWellFor": "Gut geeignet für",
+      "familyNotes": "Familiennotizen"
+    },
+    "detectedIngredients": "Erkannte Zutaten",
+    "scanForVerified": "Etikett für verifizierte Analyse scannen",
+    "addNamedToList": "{{name}} zur Liste hinzufügen",
+    "addToList": "Zur Liste hinzufügen",
+    "saveScan": "Scan speichern",
+    "saveToGroceries": "In Einkäufe speichern",
+    "savedToGroceries": "In Einkäufe gespeichert",
+    "toast": {
+      "removedTitle": "Aus Einkäufen entfernt",
+      "removedDesc": "{{name}} wurde aus deinen Lesezeichen entfernt.",
+      "removeFailTitle": "Konnte nicht entfernt werden",
+      "tryAgain": "Bitte erneut versuchen.",
+      "alreadySaved": "Bereits gespeichert",
+      "savedTitle": "In Einkäufe gespeichert",
+      "savedDesc": "{{name}} ist in deinen Einkaufs-Lesezeichen.",
+      "saveFailTitle": "Konnte nicht gespeichert werden",
+      "addedToList": "Zu deiner Einkaufsliste hinzugefügt"
+    }
+  },
+  "athletePicker": {
+    "added": "Hinzugefügt!",
+    "addedCount": "{{count}} hinzugefügt",
+    "addingTo": "Hinzufügen zu:",
+    "categories": {
+      "eggsShakes": "Eier & Shakes",
+      "fish": "Filetfisch",
+      "poultry": "Hähnchen & Pute",
+      "redmeat": "Rotes Fleisch"
+    },
+    "copied": "Kopiert!",
+    "copy": "Kopieren",
+    "copyMealAria": "Mahlzeit-Details kopieren",
+    "copySessionAria": "Sitzungszusammenfassung kopieren",
+    "done": "Fertig",
+    "errorShort": "Fehler",
+    "fibrousNote": "Faserreiches Gemüse unbegrenzt – nur Stärke (Reis, Hafer, Kartoffeln)",
+    "gotIt": "verstanden!",
+    "headerTitle": "Fertige Athletenmahlzeiten — {{slot}}",
+    "hiddenCount_one": "{{count}} Mahlzeit ausgeblendet — Stärke überschritte {{cap}}g",
+    "hiddenCount_other": "{{count}} Mahlzeiten ausgeblendet — Stärke überschritte {{cap}}g",
+    "howToAria": "Athleten-Mahlzeit-Builder verwenden",
+    "info": {
+      "intro": "Fertige Mahlzeiten, optimiert für sportliche Leistung und Muskelaufbau.",
+      "step1Label": "Wähle deine Proteinkategorie",
+      "step1Text": "(Hähnchen, rotes Fleisch, Fisch, Eier)",
+      "step2After": "ist nur Protein + faserreiches Gemüse",
+      "step2Mid": "Mahlzeiten enthalten Reis, Hafer oder Kartoffeln.",
+      "step3Label": "Tippe eine Mahlzeit",
+      "step3Text": "um sie sofort hinzuzufügen",
+      "step4Label": "Alle Makros",
+      "step4Text": "sind berechnet und tracking-bereit",
+      "stepsLabel": "Schritte:",
+      "tipAfter": "Mahlzeiten hinzu. Faserreiches Gemüse ist immer unbegrenzt.",
+      "tipBefore": "An stärkearmen Tagen nutze",
+      "tipLabel": "💡 Tipp:",
+      "tipMid": "Mahlzeiten. An Refeed-Tagen füge",
+      "title": "Athleten-Mahlzeit-Builder verwenden"
+    },
+    "lowStarchDay": "Stärkearmer Tag",
+    "mealCopyText": "{{title}} — {{cals}} kcal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+    "noCoachConnection": "Keine aktive Coach-Verbindung",
+    "noteDesc": "Fertige Mahlzeiten, optimiert für sportliche Leistung und Muskelaufbau.",
+    "noteStep1": "Wähle deine Proteinkategorie (Hähnchen, rotes Fleisch, Fisch, Eier)",
+    "noteStep2After": "ist nur Protein + faserreiches Gemüse",
+    "noteStep2Before": "Mahlzeiten mit Label",
+    "noteStep2Mid": "enthalten Reis, Hafer oder Kartoffeln –",
+    "noteStep3": "Tippe eine Mahlzeit, um sie sofort hinzuzufügen",
+    "noteStep4": "Alle Makros sind berechnet und tracking-bereit",
+    "noteTitle": "Fertige Athletenmahlzeiten",
+    "refeedDay": "Refeed-Tag",
+    "selectCategory": "Proteinkategorie wählen:",
+    "selectCategoryShort": "Kategorie wählen",
+    "sendCoachAria": "Zusammenfassung an Coach senden",
+    "sendFailed": "Senden fehlgeschlagen, erneut versuchen",
+    "sendToCoach": "An Coach senden",
+    "sending": "Sende…",
+    "sent": "Gesendet!",
+    "sessionTotal": "Sitzungssumme:",
+    "slots": {
+      "breakfast": "Frühstück",
+      "dinner": "Abendessen",
+      "lunch": "Mittag",
+      "meal4": "Mahlzeit 4",
+      "meal5": "Mahlzeit 5",
+      "meal6": "Mahlzeit 6",
+      "snacks": "Snacks"
+    },
+    "starch": "Stärke",
+    "starchAllocation": "Stärke-Zuteilung",
+    "starchCap": "Limit {{cap}}g Stärke",
+    "starchUsage": "{{used}}g / {{cap}}g Stärke",
+    "summaryText_one": "{{count}} Mahlzeit hinzugefügt — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "summaryText_other": "{{count}} Mahlzeiten hinzugefügt — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "viewChatAria": "Nachricht im Coach-Chat ansehen",
+    "viewInChat": "Im Chat ansehen"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "Feuere mich an, wenn ich schwächle",
+        "label": "Motiviere mich"
+      },
+      "pushHard": {
+        "desc": "Halte mich streng in der Spur",
+        "label": "Fordere mich"
+      },
+      "remind": {
+        "desc": "Sanfte Erinnerungen reichen",
+        "label": "Nur erinnern"
+      },
+      "selfDirected": {
+        "desc": "Ich motiviere mich selbst",
+        "label": "Eigenständig"
+      }
+    },
+    "back": "Zurück",
+    "challenges": {
+      "consistency": "Dranbleiben",
+      "cravings": "Heißhunger",
+      "emotionalEating": "Emotionales Essen",
+      "knowledge": "Wissen, was essen",
+      "mealPrep": "Meal Prep",
+      "motivation": "Motivation",
+      "socialPressure": "Sozialer Druck",
+      "time": "Zu wenig Zeit"
+    },
+    "error": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+    "lifestyle": {
+      "budgetConscious": "Budgetbewusst",
+      "busySchedule": "Voller Terminkalender",
+      "frequentTravel": "Viel unterwegs",
+      "parent": "Elternteil/Pflege",
+      "pickyEater": "Wählerisch",
+      "shiftWorker": "Schichtarbeit",
+      "socialEater": "Esse gesellig",
+      "stressEater": "Stressesser"
+    },
+    "loading": "Profil wird geladen...",
+    "motivations": {
+      "athletic": "Sportliche Leistung",
+      "confidence": "Selbstbewusst fühlen",
+      "energy": "Mehr Energie",
+      "family": "Familiengesundheit",
+      "longevity": "Langlebigkeit",
+      "mentalClarity": "Geistige Klarheit",
+      "weightLoss": "Abnehmen"
+    },
+    "next": "Weiter",
+    "saveProfile": "Profil speichern",
+    "savedDesc": "Dein Coaching-Profil ist bereit.",
+    "savedTitle": "Profil gespeichert!",
+    "saving": "Speichern...",
+    "steps": {
+      "accountability": {
+        "subtitle": "Wähle, was dich am meisten motiviert",
+        "title": "Wie halten wir dich in der Spur?"
+      },
+      "challenges": {
+        "subtitle": "Sei ehrlich – so treffen wir den Kern",
+        "title": "Deine größten Hürden?"
+      },
+      "lifestyle": {
+        "subtitle": "Wähle alles; wir passen die Tipps an",
+        "title": "Was beschreibt deinen Alltag?"
+      },
+      "motivations": {
+        "subtitle": "Wähle alles Zutreffende",
+        "title": "Was treibt dich an?"
+      },
+      "style": {
+        "subtitle": "Wähle den passenden Kommunikationsstil",
+        "title": "Wie möchtest du gecoacht werden?"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "Ein Mix aller Ansätze",
+        "label": "Ausgewogen"
+      },
+      "direct": {
+        "desc": "Sag mir klar, was zu tun ist",
+        "label": "Direkt"
+      },
+      "educational": {
+        "desc": "Erklär das Warum jeder Entscheidung",
+        "label": "Erklärend"
+      },
+      "encouraging": {
+        "desc": "Positive Verstärkung und Unterstützung",
+        "label": "Ermutigend"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "Carbs",
+    "categories": {
+      "eggsShakes": "Eier & Shakes",
+      "fish": "Filetfisch",
+      "poultry": "Hähnchen & Pute",
+      "redmeat": "Rotes Fleisch"
+    },
+    "gotIt": "verstanden!",
+    "headerAddTo": "Wettkampf-Mahlzeiten - Zu {{slot}} hinzufügen",
+    "howToAria": "Wettkampf-Builder verwenden",
+    "info": {
+      "intro": "Fertige Athletenmahlzeiten, optimiert für Magermasse und Leistung.",
+      "step1Label": "Wähle deine Proteinkategorie",
+      "step1Text": "(Hähnchen, rotes Fleisch, Fisch, Eier)",
+      "step2Label": "Mahlzeiten sind markiert",
+      "step2Text": "mit „Carbs\" oder „P+V\" (Protein + Gemüse)",
+      "step3Label": "Tippe eine Mahlzeit",
+      "step3Text": "um sie sofort hinzuzufügen",
+      "step4Label": "Alle Makros",
+      "step4Text": "sind berechnet und tracking-bereit",
+      "stepsLabel": "Schritte:",
+      "tipLabel": "💡 Tipp:",
+      "tipText": "Wähle nach deinen Carb-Zielen: „Carbs\" für Energie, „P+V\" für Low-Carb-Tage.",
+      "title": "Wettkampf-Builder verwenden"
+    },
+    "noteDesc": "Fertige Athletenmahlzeiten, optimiert für Magermasse und Leistung.",
+    "noteStep1": "Wähle deine Proteinkategorie (Hähnchen, rotes Fleisch, Fisch, Eier)",
+    "noteStep2": "Mahlzeiten sind mit „Carbs\" oder „P+V\" (Protein + Gemüse) markiert",
+    "noteStep3": "Tippe eine Mahlzeit, um sie sofort hinzuzufügen",
+    "noteStep4": "Alle Makros sind berechnet und tracking-bereit",
+    "noteTitle": "Wettkampf-Mahlzeiten",
+    "selectCategory": "Proteinkategorie wählen:",
+    "selectCategoryShort": "Kategorie wählen"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "Größtes Potenzial",
+    "breakfastLogged": "Frühstück erfasst",
+    "caloriesOnTarget": "Kalorien im Ziel",
+    "consistencyScore": "Konstanz-Score",
+    "days": "Tagen",
+    "dinnerLogged": "Abendessen erfasst",
+    "last7Days": "Letzte 7 Tage",
+    "lastNDays": "Letzte {{count}} Tage",
+    "loggedMeals": "Mahlzeiten erfasst",
+    "lunchLogged": "Mittag erfasst",
+    "noActivity": "Noch keine Aktivität. Erfasse Mahlzeiten, um hier deine Übersicht zu sehen.",
+    "noMeals": "Noch keine Mahlzeiten erfasst. Erfasse Mahlzeiten für deine Übersicht.",
+    "ofDays": "{{value}} von {{total}}",
+    "proteinGoalMet": "Proteinziel erreicht",
+    "setTargets": "Lege deine Makroziele fest, um das volle Tracking zu aktivieren.",
+    "title": "Ernährungs-Aktivität"
+  },
+  "mealPicker": {
+    "addTo": "Zu {{slot}} hinzufügen",
+    "cafeteria": "Kantine",
+    "categories": {
+      "fats": "Fette",
+      "fibrousCarbs": "Faserreiche Carbs",
+      "fruit": "Obst",
+      "proteins": "Proteine",
+      "starchyCarbs": "Stärkehaltige Carbs"
+    },
+    "close": "Schließen",
+    "generate": "Erstellen",
+    "generateCount": "Erstellen ({{count}})",
+    "generating": "Erstelle…",
+    "gotIt": "verstanden!",
+    "howToAria": "Mahlzeit-Auswahl verwenden",
+    "info": {
+      "addLabel": "Zum Hinzufügen tippen:",
+      "addText": "Tippe eine Karte, um sie sofort zu {{slot}} hinzuzufügen",
+      "browseLabel": "Durchstöbern:",
+      "browseText": "Scrolle durch unsere Mahlzeitvorlagen",
+      "cafeteriaLabel": "Kantinen-Option:",
+      "cafeteriaText": "Tippe „Kantine\" für einen schnellen Zufallsvorschlag",
+      "intro": "Schnell fertige Mahlzeiten zu deinem Plan hinzufügen.",
+      "personalizedLabel": "Personalisiert:",
+      "personalizedText": "Mahlzeiten nach Allergien und Vorlieben gefiltert",
+      "tipLabel": "💡 Tipp:",
+      "tipText": "Nutze die Kantine für einen schnellen gesunden Vorschlag ohne Suchen.",
+      "title": "Mahlzeit-Auswahl verwenden"
+    },
+    "lowerGlycemic": "Geringere glykämische Wirkung",
+    "quickMeal": "Schnelle {{slot}}-Mahlzeit",
+    "regularGi": "Normaler GI"
+  },
+  "mealReminders": {
+    "addReminder": "Erinnerung hinzufügen",
+    "checkAgain": "Erneut prüfen",
+    "checking": "Prüfe…",
+    "connectionDiagnostics": "Verbindungsdiagnose",
+    "footerBlocked": "Zeiten jetzt festlegen; aktiv nach Freigabe der Berechtigung.",
+    "footerDefault": "Bis zu 6 Erinnerungen. Tippe ein Label zum Umbenennen.",
+    "footerEnabled": "Browser offen lassen für zuverlässige Zustellung.",
+    "footerNative": "Tippe ein Label zum Umbenennen. Zustellung über die iOS-App.",
+    "mealN": "Mahlzeit {{n}}",
+    "nativeDelivery": "Native iOS-Zustellung",
+    "saving": "Speichern…",
+    "statusBlocked": "Mitteilungen im Browser blockiert",
+    "statusConnected": "Mitteilungen verbunden",
+    "statusPartial": "Nicht ganz verbunden – Slot aktivieren zum Fertigstellen",
+    "statusPending": "Slot aktivieren, um Mitteilungen einzuschalten",
+    "statusUnsupported": "Von diesem Browser nicht unterstützt",
+    "title": "Mahlzeit-Erinnerungen",
+    "toUnblock": "Zum Freischalten:",
+    "toastBlockedIosDesc": "iPhone-Einstellungen › My Perfect Meals › Mitteilungen erlauben",
+    "toastBlockedTitle": "Benachrichtigungen blockiert",
+    "toastBlockedWebDesc": "Erlaube Mitteilungen übers Schloss-Symbol, dann Erneut prüfen tippen.",
+    "toastEnableFailedTitle": "Aktivierung fehlgeschlagen",
+    "toastNotSupportedDesc": "Dieser Browser unterstützt keine Push-Mitteilungen.",
+    "toastNotSupportedTitle": "Nicht unterstützt",
+    "toastPermissionDenied": "Berechtigung verweigert.",
+    "toastSaveFailed": "Speichern fehlgeschlagen",
+    "toastTryAgain": "Gleich erneut versuchen.",
+    "unblockAllow": "Erlauben",
+    "unblockLock": "🔒 Schloss",
+    "unblockNotifications": "Mitteilungen",
+    "unblockStep1After": "in der Adressleiste",
+    "unblockStep1Before": "Tippe auf das",
+    "unblockStep2Before": "Stelle",
+    "unblockStep2Mid": "auf",
+    "unblockStep3After": "unten",
+    "unblockStep3Before": "Tippe",
+    "unsupportedHint": "Nutze Chrome oder Edge am Desktop. Safari auf iOS braucht die App.",
+    "webDelivery": "Web-Push-Zustellung"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "Signature-Küche",
+    "optSignatureDesc": "Deine persönliche Markenküche in der Plattform",
+    "optProductLabel": "Produktintegration",
+    "optProductDesc": "Integriere deine Marke, Produkte oder Supplements",
+    "optWhiteLabelLabel": "White Label",
+    "optWhiteLabelDesc": "Ein vollständig gebrandetes Plattformerlebnis",
+    "optRestaurantLabel": "Restaurantgruppe",
+    "optRestaurantDesc": "Partnerschaft mit mehreren Standorten oder Franchise",
+    "optAthleteLabel": "Athleten-Küche",
+    "optAthleteDesc": "Kulinarische Identität für Leistung und Sport",
+    "stepIdentity": "Identität",
+    "stepCulinary": "Kulinarische Identität",
+    "stepPlatform": "Plattform",
+    "stepInterest": "Interesse",
+    "stepSubmit": "Absenden",
+    "partnershipReview": "Partnerschaftsprüfung",
+    "errorGeneric": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+    "errorConnection": "Senden fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
+    "identityHeading": "Erzähl uns von dir.",
+    "identitySub": "Grundlegende Identität und Kontaktdaten.",
+    "fullNameLabel": "Vollständiger Name",
+    "fullNamePlaceholder": "Dein vollständiger Name",
+    "brandLabel": "Chef / Markenname",
+    "brandPlaceholder": "Deine öffentliche kulinarische Marke",
+    "emailLabel": "E-Mail",
+    "phoneLabel": "Telefon",
+    "locationLabel": "Standort",
+    "locationPlaceholder": "Stadt, Region / Land",
+    "culinaryHeading": "Deine kulinarische Identität.",
+    "culinarySub": "Das prägt, wie deine Küche in der Plattform aufgebaut wird.",
+    "cuisineFocusLabel": "Küchenschwerpunkt",
+    "cuisineFocusPlaceholder": "z. B. Southern, japanisch, mediterran",
+    "cookingPhilosophyLabel": "Kochphilosophie",
+    "cookingPhilosophyPlaceholder": "Wie würdest du deinen Zugang zum Essen beschreiben?",
+    "signatureStylesLabel": "Signature-Stile",
+    "signatureStylesPlaceholder": "z. B. proteinreich, Comfort Food, pflanzenbasiert",
+    "wellnessPhilosophyLabel": "Wellness-Philosophie",
+    "wellnessPhilosophyPlaceholder": "Welche Rolle spielen Gesundheit und Ernährung in deiner Küche?",
+    "platformHeading": "Wo ist dein Publikum?",
+    "platformSub": "Teile deine Social- und Web-Präsenz. Alle Felder optional.",
+    "websiteLabel": "Website",
+    "interestHeading": "Was interessiert dich?",
+    "interestSub": "Wähle alles Zutreffende. Mehrfachauswahl möglich.",
+    "readyHeading": "Bereit zum Absenden.",
+    "readySub": "Unser Team prüft jede Bewerbung persönlich. Antwort innerhalb von 3–5 Werktagen.",
+    "summaryHeading": "Bewerbungsübersicht",
+    "summaryName": "Name",
+    "summaryBrand": "Marke",
+    "summaryEmail": "E-Mail",
+    "summaryCuisine": "Küche",
+    "summaryInterest": "Interesse",
+    "consentText": "Mit dem Absenden erlaubst du My Perfect Meals, deine Angaben zur Bewertung deiner Partnerschaftsbewerbung zu nutzen. Es entstehen keine Verpflichtungen, bis eine formelle Vereinbarung unterzeichnet ist.",
+    "submitting": "Wird gesendet…",
+    "requestReview": "Partnerschaftsprüfung anfragen",
+    "successHeading": "Bewerbung erhalten.",
+    "successSub": "Unser Team prüft deine Bewerbung und meldet sich innerhalb von 3–5 Werktagen. Jede Bewerbung wird persönlich geprüft.",
+    "contactAt": "Wir kontaktieren dich unter",
+    "done": "Fertig",
+    "back": "Zurück",
+    "next": "Weiter"
+  },
+  "safetyPin": {
+    "title": "Sicherheits-PIN",
+    "sessionExpired": "Sitzung abgelaufen – melde dich ab und wieder an, um deine PIN zu verwalten",
+    "statusSet": "PIN gesetzt – zusätzlicher Schutz aktiv",
+    "statusUnset": "Keine PIN gesetzt – lege eine für zusätzlichen Schutz an",
+    "changePin": "PIN ändern",
+    "removePin": "PIN entfernen",
+    "setPin": "Sicherheits-PIN festlegen",
+    "enterPin": "PIN eingeben",
+    "confirmPin": "PIN bestätigen",
+    "currentPin": "Aktuelle PIN",
+    "newPin": "Neue PIN",
+    "confirmNewPin": "Neue PIN bestätigen",
+    "removePrompt": "Gib deine aktuelle PIN ein, um sie zu entfernen.",
+    "fourDigits": "4 Ziffern",
+    "hidePin": "PIN ausblenden",
+    "showPin": "PIN anzeigen",
+    "cancel": "Abbrechen",
+    "setPinBtn": "PIN festlegen",
+    "changePinBtn": "PIN ändern",
+    "removePinBtn": "PIN entfernen",
+    "errorFourDigits": "Die PIN muss genau 4 Ziffern haben",
+    "errorNoMatch": "Die PINs stimmen nicht überein",
+    "errorNewFourDigits": "Die neue PIN muss 4 Ziffern haben",
+    "errorNewNoMatch": "Die neuen PINs stimmen nicht überein",
+    "errorSetFailed": "PIN konnte nicht festgelegt werden",
+    "errorSetRetry": "PIN konnte nicht festgelegt werden. Bitte erneut versuchen.",
+    "errorChangeFailed": "PIN konnte nicht geändert werden",
+    "errorChangeRetry": "PIN konnte nicht geändert werden. Bitte erneut versuchen.",
+    "errorRemoveFailed": "PIN konnte nicht entfernt werden",
+    "errorRemoveRetry": "PIN konnte nicht entfernt werden. Bitte erneut versuchen.",
+    "setToastTitle": "Sicherheits-PIN festgelegt",
+    "setToastDesc": "Deine Sicherheits-PIN wurde erstellt.",
+    "changeToastTitle": "PIN geändert",
+    "changeToastDesc": "Deine Sicherheits-PIN wurde aktualisiert.",
+    "removeToastTitle": "PIN entfernt",
+    "removeToastDesc": "Deine Sicherheits-PIN wurde entfernt."
+  },
+  "mfa": {
+    "errorStartSetup": "Einrichtung konnte nicht gestartet werden. Bitte erneut versuchen.",
+    "errorInvalidCode": "Ungültiger Code. Erneut versuchen.",
+    "errorDisableInvalid": "Ungültiger Code. MFA nicht deaktiviert.",
+    "loading": "Wird geladen…",
+    "enabledTitle": "Zwei-Faktor-Authentifizierung aktiviert",
+    "saveBackupPrompt": "Speichere deine Backup-Codes, bevor du diese Seite schließt.",
+    "backupCodesHeading": "Backup-Codes – jetzt speichern",
+    "copied": "Kopiert!",
+    "copyAllCodes": "Alle kopieren",
+    "backupCodesNote": "Jeder Code ist nur einmal verwendbar. Bewahre sie sicher auf. Verlierst du den Zugriff auf deine Authenticator-App, brauchst du einen davon zum Anmelden.",
+    "savedBackupBtn": "Ich habe meine Backup-Codes gespeichert",
+    "onTitle": "Zwei-Faktor-Authentifizierung ist aktiv",
+    "enabledOn": "Aktiviert am {{date}}",
+    "disable2fa": "2FA deaktivieren",
+    "disableTitle": "Zwei-Faktor-Authentifizierung deaktivieren",
+    "disablePrompt": "Gib deinen aktuellen Authenticator-Code zur Bestätigung ein.",
+    "cancel": "Abbrechen",
+    "disabling": "Wird deaktiviert…",
+    "scanTitle": "Mit deiner Authenticator-App scannen",
+    "scanApps": "Google Authenticator, Authy oder 1Password eignen sich gut.",
+    "qrAlt": "Scanne diesen QR-Code mit deiner Authenticator-App",
+    "manualKeyPrompt": "Kannst du nicht scannen? Gib diesen Schlüssel manuell ein:",
+    "addedAccountNext": "Ich habe das Konto hinzugefügt – weiter",
+    "confirmTitle": "Bestätige deinen Authenticator-Code",
+    "confirmPrompt": "Gib den 6-stelligen Code aus deiner App ein, um 2FA zu aktivieren.",
+    "activating": "Wird aktiviert…",
+    "activate2fa": "2FA aktivieren",
+    "back": "Zurück",
+    "defaultTitle": "Zwei-Faktor-Authentifizierung",
+    "defaultSubtitle": "Füge deinem Konto eine zusätzliche Sicherheitsebene hinzu.",
+    "settingUp": "Wird eingerichtet…",
+    "enable2fa": "2FA aktivieren"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "Gericht erstellt!",
+    "mealCreatedDesc": "{{name}} ist für dich bereit",
+    "generationFailedTitle": "Erstellung fehlgeschlagen",
+    "signInTitle": "Bitte anmelden",
+    "signInDesc": "Du musst angemeldet sein, um Gerichte zu erstellen",
+    "guestLimitTitle": "Gastlimit erreicht",
+    "guestLimitDesc": "Erstelle ein kostenloses Konto, um weiter Gerichte zu generieren",
+    "describeMealTitle": "Beschreibe dein Gericht",
+    "describeMealDesc": "Sag dem Chef, worauf du Lust hast",
+    "enterAlternativeTitle": "Gib eine Alternative ein",
+    "enterAlternativeDesc": "Sag uns, was du stattdessen möchtest",
+    "placeholderBreakfast": "z. B. 'Protein-Pancakes', 'süße Eier mit Obst', 'kohlenhydratarmes Omelett'",
+    "placeholderLunch": "z. B. 'Hähnchensalat', 'proteinreicher Wrap', 'mediterrane Bowl'",
+    "placeholderDinner": "z. B. 'kohlenhydratarme Tacos', 'Steak mit Gemüse', 'Lachs mit Reis'",
+    "placeholderDefault": "z. B. 'etwas Leichtes und Gesundes', 'proteinreiches Gericht'",
+    "title": "Mit AI Chef erstellen",
+    "subtitle": "Sag dem Chef, was du für {{mealType}} möchtest",
+    "starchLimitTitle": "Limit für stärkehaltige Kohlenhydrate erreicht",
+    "starchUsedSingular": "Du hast deine Stärke-Mahlzeit für heute bereits genutzt ({{used}} von {{max}}).",
+    "starchUsedPlural": "Du hast deine Stärke-Mahlzeiten für heute bereits genutzt ({{used}} von {{max}}).",
+    "youRequested": "Du hast angefragt:",
+    "fibrousPrefix": "Möchtest du ein",
+    "fibrousCarb": "faserreiches Kohlenhydrat",
+    "fibrousSuffix": "stattdessen wählen, oder soll der Chef entscheiden?",
+    "fibrousPlaceholder": "z. B. Brokkoli, Spargel, Blumenkohl...",
+    "generating": "Wird erstellt...",
+    "useMyChoice": "Meine Auswahl verwenden",
+    "or": "oder",
+    "chefsChoice": "Wahl des Chefs",
+    "chefSubstituteHint": "Der Chef ersetzt es durch eine leckere faserreiche Option",
+    "inputHint": "Beschreibe, worauf du Lust hast, und der Chef erstellt ein personalisiertes Gericht",
+    "orbCheckingSafety": "Sicherheitsprofil wird geprüft…",
+    "orbFinishing": "Letzte Schliffe…",
+    "orbPreparing": "Der Chef bereitet dein Gericht zu…",
+    "mealSafety": "Gericht-Sicherheit",
+    "ingredientControl": "Zutatenkontrolle",
+    "todaysStarchMeals": "Heutige Stärke-Mahlzeiten:",
+    "starchUsedCount": "{{used}} / {{max}} genutzt",
+    "generateBtn": "KI-Gericht generieren",
+    "stop": "Stopp",
+    "cancel": "Abbrechen"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "Ungültige Datei",
+    "invalidFileDesc": "Bitte wähle eine Bilddatei.",
+    "fileTooLargeTitle": "Datei zu groß",
+    "fileTooLargeDesc": "Bitte wähle ein Bild unter 5 MB.",
+    "photoUpdatedTitle": "Foto aktualisiert",
+    "photoUpdatedDesc": "Dein Profilfoto wurde aktualisiert.",
+    "uploadFailedTitle": "Upload fehlgeschlagen",
+    "uploadFailedDesc": "Foto konnte nicht hochgeladen werden.",
+    "cameraErrorTitle": "Kamerafehler",
+    "cameraErrorDesc": "Zugriff auf Kamera oder Fotos nicht möglich.",
+    "restoringTitle": "Käufe werden wiederhergestellt...",
+    "restoringDesc": "Suche nach aktiven Abos...",
+    "restoredTitle": "Käufe wiederhergestellt",
+    "restoredDesc": "Dein Abo wurde erfolgreich wiederhergestellt.",
+    "restoreCompleteTitle": "Wiederherstellung abgeschlossen",
+    "restoreCompleteDesc": "Kein aktives Abo gefunden. Wenn du einen Fehler vermutest, wende dich an den Support.",
+    "restoreFailedTitle": "Wiederherstellung fehlgeschlagen",
+    "restoreFailedDesc": "Käufe konnten nicht wiederhergestellt werden. Bitte erneut versuchen.",
+    "accountDeletedTitle": "Konto gelöscht",
+    "accountDeletedDesc": "Dein Konto und alle Daten wurden dauerhaft gelöscht.",
+    "deleteFailedDesc": "Konto konnte nicht gelöscht werden. Bitte erneut versuchen.",
+    "deleteAccount": "Konto löschen",
+    "deleteDialogTitle": "Konto dauerhaft löschen?",
+    "deleteDialogIntro": "Diese Aktion kann nicht rückgängig gemacht werden. Dauerhaft gelöscht werden:",
+    "deleteItemAccount": "Dein Konto und deine Profildaten",
+    "deleteItemMeals": "Alle Essenspläne und gespeicherten Rezepte",
+    "deleteItemBiometrics": "Biometrie- und Gesundheitsdaten",
+    "deleteItemBilling": "Abo- und Zahlungsverlauf",
+    "deleting": "Wird gelöscht...",
+    "deleteMyAccount": "Mein Konto löschen"
+  },
+  "inspiration": {
+    "servingsJustMe": "Nur ich",
+    "servings2": "2 Personen",
+    "servings3": "3 Personen",
+    "servingsFamily": "Familie (4)",
+    "servingsMealPrep": "Meal Prep (6)",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "Sieh es. Sag es. Sende es. Wir machen es zu deinem.",
+    "copilotSpokenText": "Recipe Maker ist eines der stärksten Tools der App. Die Idee ist einfach: Du siehst irgendwo Essen – ein TikTok, ein Instagram-Speicher, ein Kochbuch, eine Speisekarte oder einfach eine Idee im Kopf – und statt den Moment verstreichen zu lassen, bringst du ihn hierher und wir bauen ihn für dich. Du hast vier Wege, deine Idee einzubringen. Choose Photo lässt dich einen Screenshot oder ein gespeichertes Essensbild aus deiner Galerie wählen – TikTok-Screenshots, Instagram-Speicher, Pinterest-Boards, Facebook-Rezepte, alles auf deinem Gerät. Camera öffnet deine Kamera live, um auf ein Kochbuch, eine Karte oder einen Bildschirm zu zeigen. Speak lässt dich das Gericht laut beschreiben, genau wie einem Freund. Type lässt dich eine Beschreibung einfügen oder deine Idee tippen. Das macht Recipe Maker besonders: Du brauchst das Rezept nicht. Wenn du es zeigen oder beschreiben kannst, können wir es erstellen. Nach dem Absenden gibt dir Recipe Maker nicht ein Ergebnis. Es baut drei komplett personalisierte Versionen deiner Idee gleichzeitig – gleiches Gericht, drei Interpretationen – jede voll auf deine Makroziele, Allergien, Ernährungsidentität und jedes aktive Gesundheitsprotokoll in deinem Konto abgestimmt. Du siehst alle drei, kannst eine oder alle speichern, und deine Auswahl bleibt im Dashboard, bis du sie löschst. Die App entfernt sie nie automatisch.",
+    "hintAuthentic": "Behalte die ursprünglichen Aromen und Zutaten so weit wie möglich bei.",
+    "hintBalanced": "Personalisiere nach deinem Profil und bewahre den Charakter des Gerichts.",
+    "hintHealthier": "Optimiere die Ernährung stark, halte das Gericht aber erkennbar.",
+    "analysisFailed": "Analyse fehlgeschlagen",
+    "analyzeFailedMsg": "Zutaten konnten nicht analysiert werden.",
+    "imageReadError": "Bild konnte nicht gelesen werden. Bitte erneut versuchen.",
+    "voiceNotSupportedTitle": "Sprache nicht unterstützt",
+    "voiceNotSupportedDesc": "Dein Browser unterstützt keine Spracheingabe. Versuche zu tippen.",
+    "micErrorTitle": "Mikrofonfehler",
+    "micErrorDesc": "Bitte erneut versuchen.",
+    "somethingWrong": "Etwas ist schiefgelaufen",
+    "createFailedMsg": "Dein personalisiertes Gericht konnte nicht erstellt werden.",
+    "saveFailedError": "Speichern fehlgeschlagen",
+    "savedTitle": "Gespeichert!",
+    "savedDesc": "Zu deinen Recipe-Maker-Speicherungen in Favoriten hinzugefügt.",
+    "saveFailedTitle": "Speichern fehlgeschlagen",
+    "scanFoodFor": "Essen scannen für {{name}}",
+    "productScan": "Produkt-Scan",
+    "customizeMeal": "Passe dein Gericht an",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "Zutaten für {{name}} analysieren",
+    "analyzeBeforeBuy": "Analysiere Zutaten vor dem Kauf",
+    "optionsSubtitle": "Passe dies an, bevor wir deine personalisierte Version erstellen.",
+    "captureSubtitle": "Scanne eine Essensidee und wir personalisieren sie für dich.",
+    "choosePhoto": "Foto wählen",
+    "cameraPill": "Kamera",
+    "speakPill": "Sprechen",
+    "typePill": "Tippen",
+    "uploadHint": "Wähle einen Screenshot, ein gespeichertes Essensfoto oder ein Bild aus deiner Galerie.",
+    "chooseFromGallery": "Aus Galerie wählen",
+    "galleryHint": "Screenshots, gespeicherte Fotos, jedes Essensbild",
+    "cameraHint": "Richte deine Kamera auf ein Rezept, eine Karte, einen Bildschirm oder ein Essensfoto.",
+    "openCamera": "Kamera öffnen",
+    "cameraSubHint": "Mach ein Live-Foto einer Essensidee",
+    "voiceHint": "Beschreibe das Gericht laut – Zutaten, Stil, was dir einfällt.",
+    "tapToStop": "Tippen zum Stoppen",
+    "tapToSpeak": "Tippen zum Sprechen",
+    "nextCustomize": "Weiter — Anpassen →",
+    "textHint": "Tippe oder füge eine Essensidee, Rezeptbeschreibung oder einen Gerichtnamen ein.",
+    "textPlaceholder": "z. B. Buffalo-Chicken-Bowl mit Reis, Avocado und Ranch…",
+    "servingsHeading": "Portionen",
+    "adaptationStyleHeading": "Anpassungsstil",
+    "authentic": "Authentisch",
+    "balanced": "Ausgewogen",
+    "healthier": "Gesünder",
+    "proteinLevelHeading": "Proteinstufe",
+    "proteinStandard": "Standard",
+    "proteinHigh": "Proteinreich",
+    "proteinAthlete": "Athlet",
+    "prepStyleHeading": "Zubereitungsstil",
+    "prepOriginal": "Originale Zubereitung",
+    "prepEasy": "Einfache Zubereitung",
+    "cuisineStyleHeading": "Küchenstil",
+    "generateMyVersion": "Meine Version generieren",
+    "analyzingIngredients": "Zutaten werden analysiert…",
+    "buildingVersion": "Deine Version wird erstellt…",
+    "checkingCompanionProfile": "Abgleich mit dem Profil von {{name}}",
+    "checkingYourProfile": "Abgleich mit deinem Profil",
+    "adaptingProfile": "Anpassung an dein Ernährungsprofil",
+    "versionsReady": "{{count}} Versionen bereit",
+    "savedCount": " · {{count}} gespeichert",
+    "deleteScan": "Diesen Scan löschen",
+    "tapAnotherHint": "Tippe auf eine weitere, um sie auch zu speichern, oder komm später wieder.",
+    "tapSelectHint": "Tippe auf eine zum Auswählen, dann speichern. Komm jederzeit wieder – sie bleiben, bis du sie löschst.",
+    "adaptedForStrategy": "Angepasst an die heutige Ernährungsstrategie",
+    "calValue": "{{value}} kcal",
+    "proteinValue": "{{value}} g Protein",
+    "carbsValue": "{{value}} g Kohlenhydrate",
+    "saving": "Wird gespeichert…",
+    "saveAgain": "Erneut speichern",
+    "saveThisVersion": "Diese Version speichern",
+    "try3More": "3 weitere",
+    "viewSavedMeals": "Gespeicherte Gerichte in Favoriten ansehen →",
+    "personalizedReady": "Deine personalisierte Version ist bereit.",
+    "macroCal": "Kcal",
+    "macroProtein": "Protein",
+    "macroCarbs": "Kohlenhydrate",
+    "macroFat": "Fett",
+    "savedCheck": "Gespeichert ✓",
+    "saveToFavorites": "Zu Favoriten hinzufügen",
+    "scanAnother": "Weiteres scannen",
+    "viewInFavorites": "In Favoriten ansehen →"
+  },
+  "parentsCorner": {
+    "title": "Eltern-Ecke",
+    "yourChild": "dein Kind",
+    "helpingBuildHabits": "Hilft {{name}}, gesunde Gewohnheiten aufzubauen",
+    "backToBeginnings": "Zurück zu My Perfect Beginnings",
+    "startFresh": "Neu starten",
+    "startNewConversation": "Neue Unterhaltung starten",
+    "clearConfirm": "Diese Unterhaltung löschen und neu starten?",
+    "clear": "Löschen",
+    "cancel": "Abbrechen",
+    "dismiss": "Schließen",
+    "boundaryLanguage": "Ich gebe evidenzbasierte Ernährungstipps für deine Familie. Bei medizinischen Fragen sind der Kinderarzt oder eine Kinderdiätassistentin immer der richtige nächste Schritt – ich sage Bescheid, wenn etwas dahin gehört.",
+    "todaysTip": "Tipp des Tages",
+    "loadingConversation": "Unterhaltung wird geladen…",
+    "commonQuestions": "Häufige Fragen",
+    "browseCommonQuestions": "Häufige Fragen ansehen",
+    "followUp": "Nachfrage",
+    "makeItNow": "Jetzt zubereiten",
+    "thinking": "Denke nach…",
+    "emptyPrompt": "Tippe auf eine Karte oder frag unten.",
+    "askAnything": "Frag alles",
+    "inputPlaceholder": "Frage hier eingeben…",
+    "send": "Senden",
+    "noResponse": "Entschuldigung, keine Antwort erhalten. Bitte erneut versuchen.",
+    "connectionError": "Gerade gibt es ein Problem. Prüfe deine Verbindung und versuch es erneut.",
+    "stage": {
+      "earlyInfant": "Säugling",
+      "beginningFoods": "Beikoststart",
+      "youngToddler": "Kleines Kleinkind",
+      "toddler": "Kleinkind",
+      "preschool": "Vorschule",
+      "earlySchoolAge": "Frühes Schulalter",
+      "growingChild": "Wachsendes Kind"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "Mein Baby isst nicht.",
+        "question": "Mein Baby isst nicht. Was soll ich tun?"
+      },
+      "toddlerHatesVegetables": {
+        "label": "Mein Kind hasst Gemüse.",
+        "question": "Mein Kind hasst Gemüse. Wie bringe ich es dazu, mehr zu essen?"
+      },
+      "lunchPacking": {
+        "label": "Was pack ich zum Mittag ein?",
+        "question": "Welche Ideen gibt es für ein gesundes, ansprechendes Mittagessen?"
+      },
+      "healthySnacks": {
+        "label": "Gesunde Snacks nach der Schule.",
+        "question": "Welche gesunden Snacks eignen sich nach der Schule?"
+      },
+      "calcium": {
+        "label": "Bekommt mein Kind genug Kalzium?",
+        "question": "Bekommt mein Kind genug Kalzium? Wie stelle ich das sicher?"
+      },
+      "introducingFoods": {
+        "label": "Wie führe ich neue Speisen ein?",
+        "question": "Wie führe ich neue Speisen ein, ohne dass es ein Kampf wird?"
+      },
+      "youngAthlete": {
+        "label": "Was isst mein junger Sportler?",
+        "question": "Mein Kind treibt Sport. Was soll es vor und nach dem Training essen?"
+      },
+      "waterIntake": {
+        "label": "Wie viel Wasser braucht mein Kind?",
+        "question": "Wie viel Wasser sollte mein Kind täglich trinken?"
+      },
+      "pizza": {
+        "label": "Darf mein Kind noch Pizza essen?",
+        "question": "Darf mein Kind noch Pizza und andere Leckereien essen, oder soll ich strenger sein?"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "Körperzusammensetzung erfassen",
+    "bodyFatPct": "Körperfett %",
+    "bodyFatPlaceholder": "z. B. 18.5",
+    "goalBodyFatPct": "Ziel-Körperfett % (optional)",
+    "goalBodyFatPlaceholder": "z. B. 15",
+    "scanMethod": "Messmethode",
+    "pickMethod": "Methode wählen",
+    "date": "Datum",
+    "save": "Speichern",
+    "saving": "Speichern...",
+    "notLoggedIn": "Nicht angemeldet",
+    "notLoggedInDesc": "Bitte anmelden, um deine Körperdaten zu speichern.",
+    "invalidBodyFat": "Ungültiges Körperfett",
+    "invalidBodyFatDesc": "Der Körperfettanteil muss zwischen 1 % und 70 % liegen.",
+    "saved": "Gespeichert",
+    "savedDesc": "Körperzusammensetzung erfolgreich erfasst.",
+    "saveFailed": "Speichern fehlgeschlagen",
+    "saveFailedDesc": "Deine Daten konnten nicht gespeichert werden. Bitte erneut versuchen."
+  },
+  "sponsorEnded": {
+    "launchProCare": "Starte dein eigenes ProCare-Konto",
+    "openStudio": "Öffne dein eigenes Studio",
+    "completeVerification": "Nachweisprüfung abschließen",
+    "continueTraining": "Platform-Mastery-Training fortsetzen",
+    "startOwnPractice": "Eigene Praxis starten",
+    "continueAsClient": "Als Kunde fortfahren",
+    "continueAsClientDesc": "MPM weiter als Einzelmitglied nutzen",
+    "continueWithFree": "Mit Free fortfahren",
+    "continueWithFreeDesc": "Einfache Mahlzeitenerstellung – immer kostenlos",
+    "joinAnotherOrg": "Anderer Organisation beitreten",
+    "joinAnotherOrgDesc": "Einladung eines anderen Unternehmens annehmen",
+    "accessEnded": "Dein von {{business}} gesponserter Zugang ist beendet",
+    "accessEndedBody": "Dein persönliches Konto, Mahlzeitenverlauf, Academy-Fortschritt und Zertifikate sind alle noch da. Wähle, wie du fortfahren möchtest."
+  },
+  "dietStyleBadge": {
+    "kosher": "Koscher ✓",
+    "halal": "Halal ✓",
+    "vegan": "Vegan ✓",
+    "vegetarian": "Vegetarisch ✓",
+    "pescatarian": "Pescetarisch ✓",
+    "mediterranean": "Mediterran ✓",
+    "paleo": "Paleo ✓",
+    "keto": "Keto ✓",
+    "carnivore": "Karnivor ✓",
+    "dairyFree": "Milchfrei ✓",
+    "custom": "Eigene Diät ✓"
+  },
+  "pregnancySupport": {
+    "title": "My Perfect Pregnancy einrichten",
+    "intro": "Das personalisiert deine Ernährungshinweise. Deine Angaben bleiben privat und prägen jeden Vorschlag, Sicherheitscheck und jede Coaching-Antwort.",
+    "whereAreYou": "Wo stehst du auf deinem Weg?",
+    "breastfeedingQuestion": "Stillst du derzeit?",
+    "breastfeedingHelp": "Das bestimmt deinen Ernährungsweg. Stillen und Rückbildung haben unterschiedliche Prioritäten – wir behandeln sie getrennt.",
+    "yesBreastfeeding": "Ja, ich stille",
+    "noBreastfeeding": "Nein, ich stille nicht",
+    "breastfeedingNote": "Du bekommst Ernährung für die Milchbildung plus eine Erholungsebene zur Heilung.",
+    "postpartumNote": "Du bekommst ein eigenes Rückbildungsprotokoll – Ballaststoffe, entzündungshemmende Kost, Hormonstütze und Körperumbau. Keine Crash-Diät.",
+    "trackByDueDate": "Nach Geburtstermin verfolgen?",
+    "trackByDueDateHelp": "Wenn du deinen Termin eingibst, werden Woche und Trimester automatisch aktualisiert. Du kannst es auch manuell verfolgen.",
+    "yesEnterDueDate": "Ja, Termin eingeben",
+    "skipManual": "Überspringen – nur manuell",
+    "dueDatePlaceholder": "Geburtstermin (YYYY-MM-DD)",
+    "activeSymptoms": "Aktuelle Symptome?",
+    "activeSymptomsHelp": "Wähle alles Zutreffende – deine Mahlzeiten passen sich an.",
+    "disclaimerPart1": "My Perfect Pregnancy bietet nur allgemeine Ernährungsbildung und Unterstützung zur Mahlzeitenstruktur. Es ist kein",
+    "disclaimerNotSubstitute": "Ersatz",
+    "disclaimerPart2": "für deine/n OB/GYN, Hebamme oder Diätassistentin. Folge stets zuerst den Empfehlungen deiner Fachkraft.",
+    "saveButton": "Einrichtung speichern",
+    "savingButton": "Speichern…",
+    "savedButton": "✓ Gespeichert!",
+    "turnOff": "Schwangerschaftsernährung ausschalten",
+    "turnOffConfirm": "Schwangerschaftsernährung ausschalten?",
+    "turnOffHelp": "Das entfernt Schwangerschaftshinweise aus Mahlzeiten und Coaching. Du kannst es jederzeit wieder aktivieren – ohne Wertung.",
+    "turningOff": "Wird ausgeschaltet…",
+    "yesTurnOff": "Ja, ausschalten",
+    "keepItOn": "Aktiviert lassen",
+    "stage": {
+      "tryingToConceive": {
+        "label": "Kinderwunsch",
+        "desc": "Ernährung vor der Empfängnis"
+      },
+      "trimester1": {
+        "label": "Erstes Trimester",
+        "desc": "Woche 1–13 · Folat, Übelkeit"
+      },
+      "trimester2": {
+        "label": "Zweites Trimester",
+        "desc": "Woche 14–27 · Eiweiß, Kalzium, DHA"
+      },
+      "trimester3": {
+        "label": "Drittes Trimester",
+        "desc": "Woche 28–40 · Eisen, DHA, Vorbereitung"
+      },
+      "breastfeeding": {
+        "label": "Stillen",
+        "desc": "Milchbildung, DHA, Jod, Kalzium"
+      },
+      "postpartum": {
+        "label": "Wochenbett",
+        "desc": "Erholung, Körperumbau, Hormone, Kraft"
+      }
+    },
+    "symptom": {
+      "nausea": "Übelkeit",
+      "heartburn": "Sodbrennen",
+      "constipation": "Verstopfung",
+      "fatigue": "Müdigkeit",
+      "foodAversions": "Abneigungen",
+      "swelling": "Schwellungen",
+      "shortnessOfBreath": "Atemnot",
+      "lowAppetite": "Wenig Appetit"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "Wie fühlst du dich heute?",
+    "noCheckinToday": "Heute noch kein Symptom-Check-in. Deine Mahlzeiten nutzen dein Standard-Medikationsprofil.",
+    "checkInPrompt": "Checke ein, um Mahlzeiten, Shakes und Vorschläge von heute anzupassen.",
+    "checkIn": "Einchecken",
+    "update": "Aktualisieren",
+    "updated": "Aktualisiert {{time}}",
+    "escalationStatusBody": "Diese Symptome könnten ärztliche Abklärung erfordern. Kontaktiere bald deine Fachkraft oder dein Behandlungsteam.",
+    "mealsAdapting": "Mahlzeiten passen sich den Symptomen an",
+    "updatedTapAdjustments": "Aktualisiert {{time}} · Für Anpassungen tippen",
+    "noSymptomsToday": "Heute keine Symptome gemeldet",
+    "updatedStandardProfile": "Aktualisiert {{time}} · Standardprofil aktiv",
+    "escalationCardBody": "Diese Symptome könnten ärztliche Abklärung erfordern. Kontaktiere dein Behandlungsteam.",
+    "nutritionAdjustments": "Ernährungsanpassungen heute ({{count}})",
+    "reason": "Grund",
+    "adaptation": "Anpassung",
+    "evidence": "Beleg",
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {{count}} Min",
+    "hoursAgo": "vor {{count}} Std",
+    "giSymptomsHeader": "GI-Symptome – Wie stark heute?",
+    "otherSymptomsHeader": "Weitere Symptome",
+    "vomitingHeader": "Erbrechen heute",
+    "quickQuestionsHeader": "Ein paar kurze Fragen",
+    "notifyHeader": "Soll dein Behandlungsteam es wissen?",
+    "notifyHelp": "Optional – du bestimmst, wer heute informiert wird.",
+    "updatesThroughoutDay": "Das aktualisiert sich über den Tag.",
+    "updatesThroughoutDayBody": "Wenn es dir später besser geht, checke erneut ein – deine Mahlzeiten passen sich sofort an. Dein Check-in setzt sich jeden Morgen zurück.",
+    "cancel": "Abbrechen",
+    "saving": "Speichern…",
+    "saveCheckIn": "Check-in speichern",
+    "severity": {
+      "none": "Keine",
+      "mild": "Leicht",
+      "moderate": "Mäßig",
+      "severe": "Stark"
+    },
+    "symptom": {
+      "nausea": "Übelkeit",
+      "constipation": "Verstopfung",
+      "diarrhea": "Durchfall",
+      "reflux": "Sodbrennen/Reflux",
+      "bloating": "Blähungen",
+      "earlyFullness": "Frühe Sättigung",
+      "foodAversions": "Abneigungen",
+      "fatigue": "Müdigkeit",
+      "dizziness": "Schwindel",
+      "headache": "Kopfschmerzen"
+    },
+    "vomiting": {
+      "none": "Keins",
+      "once": "Einmal",
+      "multiple": "2–3 Mal",
+      "cantKeepFluids": "4+ / Keine Flüssigkeit behalten"
+    },
+    "q": {
+      "keepFluids": "Kannst du Flüssigkeit behalten?",
+      "eatWithoutWorsening": "Kannst du essen, ohne dass es schlimmer wird?",
+      "reducedUrination": "Urinierst du deutlich weniger als sonst?",
+      "symptomTrend": "Wie entwickeln sich deine Symptome?",
+      "appetite": "Wie ist dein Appetit heute?"
+    },
+    "opt": {
+      "yes": "Ja",
+      "no": "Nein",
+      "withDifficulty": "Mit Mühe",
+      "partially": "Teilweise"
+    },
+    "trend": {
+      "improving": "Besser",
+      "same": "Gleich",
+      "worsening": "Schlechter",
+      "na": "Unsicher"
+    },
+    "appetite": {
+      "suppressed": "Kein Appetit",
+      "reduced": "Reduziert",
+      "normal": "Normal",
+      "increased": "Erhöht"
+    },
+    "notify": {
+      "keepPrivate": "Nein, privat halten",
+      "coach": "Meinen Coach informieren",
+      "both": "Beide informieren"
+    }
   }
 }
