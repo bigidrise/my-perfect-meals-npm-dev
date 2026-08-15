@@ -300,6 +300,7 @@ router.post("/:studioId/invite", async (req, res) => {
     }
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
+    const urlToken = nanoid(32);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -309,6 +310,7 @@ router.post("/:studioId/invite", async (req, res) => {
         studioId,
         email: email.toLowerCase().trim(),
         inviteCode,
+        urlToken,
         expiresAt,
       })
       .returning();
