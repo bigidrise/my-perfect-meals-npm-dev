@@ -424,9 +424,38 @@ The food should look like what a parent would actually put on a small child's pl
 Do NOT show adult-sized portions. Do NOT show elaborate restaurant plating. Do NOT show raw or hard-textured ingredients if the texture class is purée or mashed.${conditionNotes ? "\n" + conditionNotes : ""}`;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RECIPE INGREDIENT CONTRACT
+// The canonical recipe ingredient list outranks the dish name, cuisine label,
+// cultural convention, or the model's prior knowledge. Loaded dish names
+// ("Niçoise", "Cobb", "Carbonara", ...) carry strong learned associations that
+// make the image model add ingredients the recipe never included (e.g. eggs on
+// a Niçoise that has none). We enforce the contract at prompt construction:
+// the display name is presented as a LABEL ONLY, and the allow/deny list is
+// derived automatically from the actual recipe ingredients at generation time.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The allow-list includes EVERY recipe ingredient — no cap. A partial list
+// would contradict the deny clause ("any ingredient not in the required list"),
+// making canonical recipe ingredients past the cutoff appear unauthorized.
+function buildIngredientContract(mealName: string, ingredients: string[]): string {
+  const authorized = ingredients
+    .map(i => (i || "").trim())
+    .filter(Boolean)
+    .join(", ");
+
+  if (!authorized) return "";
+
+  return `
+RECIPE CONTRACT — THIS OVERRIDES THE DISH NAME:
+REQUIRED VISIBLE INGREDIENTS: ${authorized}
+UNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT depict the traditional or cultural composition of "${mealName}". The dish name is a label only — it does NOT define what appears in the image. Do NOT add ingredients commonly associated with this dish name (or its cuisine) unless they appear in the required list. The recipe contract above is the only authority on what food is visible.`;
+}
+
 function buildMealImagePrompt(mealName: string, ingredients: string[], sourceType?: ImageSourceType, pediatricContext?: PediatricImageContext): string {
-  const topIngredients = ingredients.slice(0, 5).join(", ");
   const pediatricAddendum = pediatricContext ? buildPediatricContextAddendum(pediatricContext) : "";
+  const ingredientContract = buildIngredientContract(mealName, ingredients);
+  const hasContract = ingredientContract.length > 0;
 
   // When sourceType is explicitly provided by the generator, use it as the
   // hard macro anchor. The name-based classifier refines presentation within
@@ -436,10 +465,10 @@ function buildMealImagePrompt(mealName: string, ingredients: string[], sourceTyp
     const dish = detectDishType(mealName);
 
     return `${anchor.base}
-Food: ${mealName}.
-${topIngredients ? `Made with: ${topIngredients}.` : ''}
+DISPLAY NAME: ${mealName}${hasContract ? `
+IMAGE SUBJECT: A dish composed ONLY from the authorized recipe ingredients below — not the traditional version of the named dish.` : ''}
 Presentation: ${dish.presentation}. ${dish.textureDescription}.
-
+${ingredientContract}
 ${anchor.rule}
 CRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.
 ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.
@@ -452,12 +481,13 @@ Background: clean, minimal, neutral surface, no clutter, no text, no logos, no h
   // No sourceType — fall back to full name-based classifier (legacy path)
   const dish = detectDishType(mealName);
 
-  return `A photorealistic ${dish.presentation} of ${mealName}.
+  return `A photorealistic ${dish.presentation}.
+DISPLAY NAME: ${mealName}${hasContract ? `
+IMAGE SUBJECT: A dish composed ONLY from the authorized recipe ingredients below — not the traditional version of the named dish.` : `
+The dish must clearly look like ${mealName}. Do not generate any unrelated foods.`}
 This is a finished dish, ready to eat, plated and served — ${dish.textureDescription}.
-Made with ${topIngredients || "fresh whole ingredients"}.
-
+${ingredientContract}
 CRITICAL: Show ONLY the finished, cooked, plated dish — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.
-The dish must clearly look like ${mealName}. Do not generate any unrelated foods.
 ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only — zero human presence of any kind.
 
 Style: cinematic, high-detail, natural lighting, realistic food photography.
@@ -465,6 +495,9 @@ Camera: 3/4 angle or overhead depending on dish type.
 Subject: the food dish alone, centered on a clean surface. No hands holding it, no person serving it, no lifestyle scene.
 Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans, no people, no hands.${pediatricAddendum}`;
 }
+
+// Exported for regression tests only — not part of the public generation API.
+export const __testables = { buildMealImagePrompt, buildIngredientContract };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SEMANTIC FALLBACK
@@ -509,8 +542,13 @@ export function getSemanticFallback(mealName: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // v4: sourceType is now part of the cache key — prevents drink/food cross-contamination.
-// Bump to "v5", "v6" etc. to flush all cached images after major prompt changes.
-const CACHE_VERSION = "v4";
+// v5: recipe-ingredient-contract prompt format (display name demoted to label;
+//     allow/deny list derived from recipe ingredients) — flushes all v4 prompts.
+// v6: cache key hashes ALL normalized ingredients (was top-5) so it fully
+//     represents the prompt's allow/deny contract; flushes v5 entries keyed
+//     on partial ingredient lists.
+// Bump to "v7", "v8" etc. to flush all cached images after major prompt changes.
+const CACHE_VERSION = "v6";
 
 // Map client-sent mealType values to canonical ImageSourceType strings.
 // Called by the /api/meals/generate-image endpoint when sourceType is absent.
@@ -526,9 +564,13 @@ export function normalizeMealTypeToSourceType(mealType?: string): ImageSourceTyp
 
 export function buildStableCacheKey(mealName: string, ingredients: string[], sourceType?: string, contextTag?: string): string {
   const normalizedName = mealName.toLowerCase().trim();
+  // Hash EVERY ingredient (normalized, sorted) — the prompt's allow/deny
+  // contract is derived from the full list, so the cache key must be too.
+  // Hashing only a prefix would let recipes differing in later ingredients
+  // share an image generated under a different contract.
   const normalizedIngredients = ingredients
-    .slice(0, 5)
     .map(i => i.toLowerCase().trim())
+    .filter(Boolean)
     .sort()
     .join(",");
   // sourceType is part of the key so food/beverage/snack caches never collide.
