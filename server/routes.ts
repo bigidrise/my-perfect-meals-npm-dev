@@ -5030,6 +5030,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
       let dietNotice = "";
+      // Declared here so it survives the safety block scope and reaches generation + filtering.
+      // Allergen-specific only — one authorized ingredient's enforcement is suspended per request.
+      // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
+      let _overriddenAllergens: string[] = [];
       if (userId && cravingInput) {
         const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
@@ -5058,14 +5062,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dietAdapted = true;
           dietNotice = safetyCheck.message;
         }
+        if (safetyCheck.overriddenAllergen) {
+          _overriddenAllergens = [safetyCheck.overriddenAllergen];
+          console.log(`[AllergyOverride] Request-scoped override active — allergen: ${safetyCheck.overriddenAllergen}, user: ${userId}`);
+        }
       }
-
-      // Extract the specific allergen that was authorized for override (if any).
-      // This is allergen-specific — only this one ingredient's enforcement is suspended.
-      // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
-      const _overriddenAllergens: string[] = safetyCheck?.overriddenAllergen
-        ? [safetyCheck.overriddenAllergen]
-        : [];
 
       // Validate servings (1-10)
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
