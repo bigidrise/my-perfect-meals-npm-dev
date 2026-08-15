@@ -1350,4 +1350,196 @@ describe("POST /api/grocery-coach/swap-ingredient — five-item test matrix", ()
       expect(res.body.coachSuggestion.item).toBe("Cauliflower rice");
     });
   });
+
+  // ── B.12 Clinical users — alternatives always omitted ─────────────────────
+  // For GLP-1 and diabetic users the route intentionally returns an empty
+  // alternatives array.  The NDE-scanned coachSuggestion is returned alone so
+  // we never surface unverified LLM items to clinical users.
+  describe("clinical users — alternatives array is always empty", () => {
+    // ── GLP-1 active ──────────────────────────────────────────────────────────
+    test("GLP-1 active: alternatives is [] in response", async () => {
+      mockGlp1Context = {
+        isActive: true,
+        resolvedTargets: {
+          treatmentPhase: "maintenance",
+          resolvedMealCalories: 400,
+          targetProteinGrams: 25,
+          minimumProteinFloor: 20,
+          maximumToleratedFatGrams: 10,
+        },
+      };
+
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({ coachItem: "Turkey breast", alt0Item: "Cod", alt1Item: "Tilapia" }),
+      );
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.alternatives)).toBe(true);
+      expect(res.body.alternatives).toHaveLength(0);
+    });
+
+    test("GLP-1 active: coachSuggestion is still present and non-empty", async () => {
+      mockGlp1Context = {
+        isActive: true,
+        resolvedTargets: {
+          treatmentPhase: "maintenance",
+          resolvedMealCalories: 400,
+          targetProteinGrams: 25,
+          minimumProteinFloor: 20,
+          maximumToleratedFatGrams: 10,
+        },
+      };
+
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({ coachItem: "Turkey breast", alt0Item: "Cod", alt1Item: "Tilapia" }),
+      );
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+
+      expect(res.status).toBe(200);
+      expect(res.body.coachSuggestion).toBeDefined();
+      expect(typeof res.body.coachSuggestion.item).toBe("string");
+      expect(res.body.coachSuggestion.item.length).toBeGreaterThan(0);
+    });
+
+    test("GLP-1 active: coachSuggestion passes NDE scan (shellfish blocked even for clinical user)", async () => {
+      mockGlp1Context = {
+        isActive: true,
+        resolvedTargets: {
+          treatmentPhase: "maintenance",
+          resolvedMealCalories: 400,
+          targetProteinGrams: 25,
+          minimumProteinFloor: 20,
+          maximumToleratedFatGrams: 10,
+        },
+      };
+      // Clinical user who also avoids shellfish
+      activeEnvelope = makeEnvelope({ avoidances: ["shellfish"], allergies: ["shellfish"] });
+
+      // AI returns shrimp (shellfish) as coachSuggestion — NDE must block it
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({ coachItem: "Shrimp", alt0Item: "Cod", alt1Item: "Tilapia" }),
+      );
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+
+      expect(res.status).toBe(422);
+      expect(res.body.error).toMatch(/conflicts with your active health protocol/i);
+    });
+
+    // ── Diabetic user ──────────────────────────────────────────────────────────
+    test("hasDiabetes: alternatives is [] in response", async () => {
+      activeEnvelope = makeEnvelope({ hasDiabetes: true });
+
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({
+          coachItem: "Cauliflower rice",
+          alt0Item:  "Zucchini noodles",
+          alt1Item:  "Shirataki noodles",
+        }),
+      );
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("brown rice"));
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.alternatives)).toBe(true);
+      expect(res.body.alternatives).toHaveLength(0);
+    });
+
+    test("hasDiabetes: coachSuggestion is still present and non-empty", async () => {
+      activeEnvelope = makeEnvelope({ hasDiabetes: true });
+
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({
+          coachItem: "Cauliflower rice",
+          alt0Item:  "Zucchini noodles",
+          alt1Item:  "Shirataki noodles",
+        }),
+      );
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("brown rice"));
+
+      expect(res.status).toBe(200);
+      expect(res.body.coachSuggestion).toBeDefined();
+      expect(typeof res.body.coachSuggestion.item).toBe("string");
+      expect(res.body.coachSuggestion.item.length).toBeGreaterThan(0);
+    });
+
+    test("hasDiabetes: response is a usable swap — item, quantity, unit, reason all present", async () => {
+      activeEnvelope = makeEnvelope({ hasDiabetes: true });
+
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({
+          coachItem:     "Cauliflower rice",
+          coachQuantity: "2",
+          coachUnit:     "cups",
+          coachReason:   "Very low carb, safe for blood sugar.",
+          alt0Item:      "Zucchini noodles",
+          alt1Item:      "Shirataki noodles",
+        }),
+      );
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("brown rice"));
+
+      expect(res.status).toBe(200);
+      const cs = res.body.coachSuggestion;
+      expect(typeof cs.item).toBe("string");
+      expect(typeof cs.quantity).toBe("string");
+      expect(typeof cs.unit).toBe("string");
+      expect(typeof cs.reason).toBe("string");
+      expect(cs.reason.length).toBeGreaterThan(0);
+    });
+
+    test("hasDiabetes: NDE scan still fires for coachSuggestion", async () => {
+      activeEnvelope = makeEnvelope({
+        hasDiabetes: true,
+        avoidances:  ["shellfish"],
+        allergies:   ["shellfish"],
+      });
+
+      // AI returns shrimp — NDE must block it even for diabetic users
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({ coachItem: "Shrimp", alt0Item: "Cod", alt1Item: "Cauliflower rice" }),
+      );
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("brown rice"));
+
+      expect(res.status).toBe(422);
+      expect(res.body.error).toMatch(/conflicts with your active health protocol/i);
+    });
+
+    // ── Non-clinical baseline — confirm standard users still get alternatives ─
+    test("non-clinical user: alternatives still has items (baseline check)", async () => {
+      // Reset to default non-clinical state
+      mockGlp1Context = { isActive: false, resolvedTargets: null };
+      activeEnvelope  = makeEnvelope({ hasDiabetes: false });
+
+      openAIResponseQueue.push(() =>
+        makeValidSwapResult({ coachItem: "Turkey breast", alt0Item: "Cod fillet", alt1Item: "Shrimp" }),
+      );
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+
+      expect(res.status).toBe(200);
+      expect(res.body.alternatives.length).toBeGreaterThan(0);
+    });
+  });
 });
