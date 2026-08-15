@@ -198,22 +198,7 @@ export default function LifestyleLandingPage() {
         style={{ paddingTop: isDesktop ? "0" : undefined }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
-          {/* Hero */}
-          <div className="relative h-48 rounded-xl overflow-hidden">
-            <img
-              src="/images/lifestyle-hero.png"
-              alt="Lifestyle nutrition"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4">
-              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
-                <p className="text-white/90 text-sm">
-                  {t("heroText")}
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Hero — hidden */}
 
           {/* ── Featured Kitchens — hidden from Lifestyle Hub (lives in Business Suite) ── */}
           {false && kitchensIsAdmin && <div>
