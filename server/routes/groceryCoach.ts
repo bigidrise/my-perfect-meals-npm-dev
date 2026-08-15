@@ -847,50 +847,60 @@ Respond ONLY with valid JSON — no markdown, no extra text:
     let savedOption: { item: string; quantity?: string; unit?: string; reason: string } | null = null;
     const savedItemName = swapData.savedOption?.item;
     if (savedItemName && typeof savedItemName === "string") {
-      // 1. Role-family check (non-clinical only)
-      const savedCrossRole = !isClinical && role !== "other" && !isRoleCompatible(savedItemName, role);
-      if (savedCrossRole) {
+      // 0. Membership check — the item MUST actually exist in the user's saved
+      //    products. The AI may hallucinate a savedOption that was never saved;
+      //    accepting it would surface a non-personalised suggestion as "From Your
+      //    Saved Groceries", which misleads the user.
+      const memberRow = savedRows.find(
+        (r) => r.productName?.toLowerCase().trim() === savedItemName.toLowerCase().trim(),
+      );
+      if (!memberRow) {
         console.warn(
-          `[GroceryCoach/Swap] savedOption "${savedItemName}" rejected — cross-role (expected family: ${role}).`,
+          `[GroceryCoach/Swap] savedOption "${savedItemName}" rejected — not found in user's saved products.`,
         );
       } else {
-        // 2. NDE protocol scan
-        const soScan = scanGeneratedOutput(
-          { name: savedItemName, ingredients: [{ name: savedItemName }] },
-          envelope,
-          { generatorName: "grocery_swap_saved", skipAdaptableConflicts: true },
-        );
-        if (soScan.passed) {
-          // 3. Clinical nutrition gate (fat/calorie/carb ceiling from nutritionJson)
-          let savedOk = true;
-          if (isClinical) {
-            const matchedRow = savedRows.find(
-              (r) => r.productName?.toLowerCase().trim() === savedItemName.toLowerCase().trim(),
-            );
-            if (!matchedRow?.nutritionJson) {
-              console.warn(`[GroceryCoach/Swap] savedOption "${savedItemName}" rejected — no nutritionJson for clinical user`);
-              savedOk = false;
-            } else {
-              const nut  = matchedRow.nutritionJson as Record<string, unknown>;
-              const toN  = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
-              const fat  = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
-              const kcal = toN(nut.calories ?? nut.energy ?? nut.kcal);
-              const carbs = toN(nut.carbs ?? nut.total_carbohydrates ?? nut.carbGrams);
-              if (glp1Targets) {
-                if (fat === null || fat > glp1Targets.maximumToleratedFatGrams) savedOk = false;
-                if (savedOk && kcal !== null && kcal > glp1Targets.resolvedMealCalories) savedOk = false;
-              } else if (hasDiabetes) {
-                if (carbs === null || carbs > 45) savedOk = false;
+        // 1. Role-family check (non-clinical only)
+        const savedCrossRole = !isClinical && role !== "other" && !isRoleCompatible(savedItemName, role);
+        if (savedCrossRole) {
+          console.warn(
+            `[GroceryCoach/Swap] savedOption "${savedItemName}" rejected — cross-role (expected family: ${role}).`,
+          );
+        } else {
+          // 2. NDE protocol scan
+          const soScan = scanGeneratedOutput(
+            { name: savedItemName, ingredients: [{ name: savedItemName }] },
+            envelope,
+            { generatorName: "grocery_swap_saved", skipAdaptableConflicts: true },
+          );
+          if (soScan.passed) {
+            // 3. Clinical nutrition gate (fat/calorie/carb ceiling from nutritionJson)
+            let savedOk = true;
+            if (isClinical) {
+              if (!memberRow.nutritionJson) {
+                console.warn(`[GroceryCoach/Swap] savedOption "${savedItemName}" rejected — no nutritionJson for clinical user`);
+                savedOk = false;
+              } else {
+                const nut  = memberRow.nutritionJson as Record<string, unknown>;
+                const toN  = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+                const fat  = toN(nut.fat ?? nut.total_fat ?? nut.fatGrams);
+                const kcal = toN(nut.calories ?? nut.energy ?? nut.kcal);
+                const carbs = toN(nut.carbs ?? nut.total_carbohydrates ?? nut.carbGrams);
+                if (glp1Targets) {
+                  if (fat === null || fat > glp1Targets.maximumToleratedFatGrams) savedOk = false;
+                  if (savedOk && kcal !== null && kcal > glp1Targets.resolvedMealCalories) savedOk = false;
+                } else if (hasDiabetes) {
+                  if (carbs === null || carbs > 45) savedOk = false;
+                }
               }
             }
-          }
-          if (savedOk) {
-            savedOption = {
-              item:     savedItemName,
-              quantity: swapData.savedOption?.quantity ?? "",
-              unit:     swapData.savedOption?.unit ?? "",
-              reason:   swapData.savedOption?.reason ?? "From your saved products",
-            };
+            if (savedOk) {
+              savedOption = {
+                item:     savedItemName,
+                quantity: swapData.savedOption?.quantity ?? "",
+                unit:     swapData.savedOption?.unit ?? "",
+                reason:   swapData.savedOption?.reason ?? "From your saved products",
+              };
+            }
           }
         }
       }
