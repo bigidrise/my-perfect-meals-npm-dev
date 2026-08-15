@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import type { AthleteMeal } from "@/data/athleteMeals";
 import { getCompetitionMealsByCategory } from "@/data/competitionPremadeMeals";
 import { Target } from "lucide-react";

@@ -1,6 +1,8 @@
 // Minimal client wrapper for the Meal Engine
 
-export type Ingredient = { item: string; amount: number; unit: string; notes?: string };
+export type { Ingredient } from "@/types/meal";
+import type { Ingredient } from "@/types/meal";
+
 export type Meal = {
   id: string;
   name: string;

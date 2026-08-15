@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { TEMPLATE_SETS } from "@/data/templateSets";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { cn } from "@/lib/utils";

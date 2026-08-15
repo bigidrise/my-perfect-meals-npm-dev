@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
-import { MealCard, Meal } from "@/components/MealCard";
+import { MealCard } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { getWeekBoard, saveWeekBoard, removeMealFromCurrentWeek, getCurrentWeekBoard, getWeekBoardByDate, putWeekBoard, type WeekBoard, getDayLists, setDayLists, cloneDayLists, updateMealImageInBoard, getMealImageUrl } from "@/lib/boardApi";
 import { shouldProtectExistingImage } from "@/lib/imageUrlUtils";
 import { useChefMealImage } from "@/hooks/useChefMealImage";

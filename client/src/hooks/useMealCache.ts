@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { MealData } from "@/components/MealCard";
+import type { Meal as MealData } from "@/types/meal";
 import { getWeekKey } from "@/lib/weekKey";
 
 interface CalendarDaySlot { id: string; meal: MealData; }

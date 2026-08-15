@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import {
   getAthleteMealsByCategory,
   type AthleteMeal,

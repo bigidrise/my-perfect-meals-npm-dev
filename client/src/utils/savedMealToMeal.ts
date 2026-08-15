@@ -1,4 +1,4 @@
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import type { SavedMealRow } from "@/hooks/useSavedMeals";
 import { buildDiabeticMemory } from "@/lib/diabeticMemory";
 
