@@ -255,12 +255,20 @@ const BASELINE_FILE = path.resolve("docs/localization/hardcoded-baseline.json");
 // this rescan prevents. Both scripts are read-only; they write only
 // their own JSON output files.
 console.log("  [GATE_08] Regenerating audit reports from source...");
+let rescanOk = true;
 try {
   execSync("npx tsx scripts/i18n-audit.ts", { stdio: "pipe" });
   execSync("npx tsx scripts/i18n-reachability-audit.ts", { stdio: "pipe" });
   console.log("  [GATE_08] Rescan complete — reading fresh reports.\n");
 } catch (err) {
-  warn("Audit rescan failed — GATE_08 will read the last cached reports. Run scripts/i18n-audit.ts manually to diagnose.");
+  rescanOk = false;
+  if (CI_MODE) {
+    // In CI, a failed rescan means we cannot trust any report on disk —
+    // falling back to stale cached data would silently allow regressions.
+    fail("Audit rescan failed in CI mode — cannot validate against stale cached reports. Run scripts/i18n-audit.ts locally to diagnose.");
+  } else {
+    warn("Audit rescan failed — GATE_08 will read the last cached reports. Run scripts/i18n-audit.ts manually to diagnose.");
+  }
 }
 
 if (fs.existsSync(REPORT_1A) && fs.existsSync(REPORT_1B)) {
@@ -302,6 +310,121 @@ if (fs.existsSync(REPORT_1A) && fs.existsSync(REPORT_1B)) {
   }
 } else {
   warn("Step 1A/1B audit reports not found — run scripts/i18n-audit.ts and scripts/i18n-reachability-audit.ts first");
+}
+
+// ── GATE 08b: Per-file baseline for newly-ratcheted shared components ───────
+section("GATE_08b — Per-File Baseline (client/src/components/ ratchet)");
+
+const PERFILE_BASELINE_FILE = path.resolve("docs/localization/hardcoded-baseline-perfile.json");
+
+if (!fs.existsSync(PERFILE_BASELINE_FILE)) {
+  // Missing baseline is always a hard failure: the ratchet cannot enforce
+  // anything without it, so CI must reject rather than silently pass.
+  fail("Per-file baseline missing: docs/localization/hardcoded-baseline-perfile.json — regenerate it by running scripts/i18n-audit.ts + scripts/i18n-reachability-audit.ts then executing the baseline-generation node script.");
+} else if (!rescanOk && CI_MODE) {
+  // Rescan already failed above; GATE_08b would read stale reports — skip
+  // with a note since the failure is already counted.
+  console.log("  [GATE_08b] Skipped — audit rescan failed (see GATE_08 failure above).");
+} else if (!fs.existsSync(REPORT_1A) || !fs.existsSync(REPORT_1B)) {
+  fail("Step 1A/1B audit reports not found — GATE_08b cannot run. Generate them with: npx tsx scripts/i18n-audit.ts && npx tsx scripts/i18n-reachability-audit.ts");
+} else {
+  const perFileBaseline = JSON.parse(fs.readFileSync(PERFILE_BASELINE_FILE, "utf8"));
+  const report1A = JSON.parse(fs.readFileSync(REPORT_1A, "utf8"));
+  const report1B = JSON.parse(fs.readFileSync(REPORT_1B, "utf8"));
+
+  // Build the full set of ACTIVE .tsx files in client/src/components/ from the
+  // reachability report — this is the authoritative component list, not just the
+  // files that happen to have findings.
+  const allActiveComponentFiles = new Set<string>(
+    (report1B.files ?? [])
+      .filter((f: { relPath: string; classification: string }) =>
+        f.classification === "ACTIVE" &&
+        f.relPath.startsWith("client/src/components/") &&
+        f.relPath.endsWith(".tsx")
+      )
+      .map((f: { relPath: string }) => f.relPath)
+  );
+
+  // Count hardcoded findings per ACTIVE component file from fresh audit output.
+  const currentByFile = new Map<string, number>();
+  for (const finding of (report1A.findings ?? []) as Array<{ relPath: string }>) {
+    if (!allActiveComponentFiles.has(finding.relPath)) continue;
+    currentByFile.set(finding.relPath, (currentByFile.get(finding.relPath) ?? 0) + 1);
+  }
+
+  const baselineFiles: Record<string, number> = perFileBaseline.files ?? {};
+
+  // Check every file in the baseline for regressions (baseline includes zero-count files).
+  const regressions: Array<{ file: string; baseline: number; current: number; delta: number }> = [];
+  const improved: string[] = [];
+  let stableCount = 0;
+
+  for (const [file, baselineCount] of Object.entries(baselineFiles) as Array<[string, number]>) {
+    const current = currentByFile.get(file) ?? 0;
+    const delta = current - baselineCount;
+    if (delta > 0) {
+      regressions.push({ file, baseline: baselineCount, current, delta });
+    } else if (delta < 0) {
+      improved.push(file);
+    } else {
+      stableCount++;
+    }
+  }
+
+  // Detect new ACTIVE component files that aren't in the baseline at all.
+  // This catches both zero-finding and non-zero-finding new additions — because
+  // the baseline now tracks every ACTIVE file, any file missing from it is new.
+  const newFiles: Array<{ file: string; count: number }> = [];
+  for (const file of allActiveComponentFiles) {
+    if (!(file in baselineFiles)) {
+      newFiles.push({ file, count: currentByFile.get(file) ?? 0 });
+    }
+  }
+
+  if (regressions.length > 0) {
+    regressions.sort((a, b) => b.delta - a.delta);
+    for (const r of regressions) {
+      fail(
+        `Per-file ratchet regression: ${r.file} — ${r.baseline} → ${r.current} (+${r.delta} hardcoded strings). ` +
+        `Use t() keys for new strings in this file.`
+      );
+    }
+  }
+
+  if (newFiles.length > 0) {
+    // Any ACTIVE component absent from the baseline fails CI — the contributor
+    // must either localize all strings in the new file or explicitly add it to
+    // the baseline by regenerating hardcoded-baseline-perfile.json.
+    for (const nf of newFiles) {
+      fail(
+        `New ACTIVE component not in per-file baseline: ${nf.file}` +
+        (nf.count > 0 ? ` (${nf.count} hardcoded strings)` : " (zero hardcoded strings — add to baseline)") +
+        `. Regenerate docs/localization/hardcoded-baseline-perfile.json to include this file.`
+      );
+    }
+  }
+
+  if (regressions.length === 0 && newFiles.length === 0) {
+    pass(`Per-file ratchet: ${stableCount} component files stable, ${improved.length} improved — no regressions`);
+  } else {
+    if (improved.length > 0) pass(`${improved.length} component file(s) improved vs baseline (migration progress ✓)`);
+  }
+
+  // Always surface the top-20 highest-string-count components calculated from
+  // CURRENT findings — so the list stays accurate as localization work progresses.
+  const top20Current = [...currentByFile.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20);
+
+  if (top20Current.length > 0) {
+    console.log("\n  📋 Top-20 shared components by hardcoded-string count (localization priority list):");
+    for (let i = 0; i < top20Current.length; i++) {
+      const [file, count] = top20Current[i];
+      const baselineCount = baselineFiles[file] ?? 0;
+      const trend = count < baselineCount ? ` ⬇ from ${baselineCount}` : count > baselineCount ? ` ⬆ from ${baselineCount}` : "";
+      console.log(`    ${String(i + 1).padStart(2)}. ${file.replace("client/src/components/", "")} — ${count} strings${trend}`);
+    }
+  }
 }
 
 // ── Summary ────────────────────────────────────────────────────────────────
