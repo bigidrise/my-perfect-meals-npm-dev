@@ -49,8 +49,23 @@ router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res
     }
   }
 
+  // Guard: warn when a named meal reaches generation without any ingredients.
+  // Without ingredients the prompt falls back to name-driven generation, which
+  // can depict ingredients the recipe never included. This log makes silent
+  // unprotected generations visible so they can be investigated and fixed at
+  // the call site. Callers that legitimately have no recipe (e.g. manually
+  // typed meals) are expected to appear here.
+  const normalizedIngredients = ingredients && ingredients.length > 0 ? ingredients : [];
+  if (normalizedIngredients.length === 0) {
+    console.warn(
+      `[img-contract] ⚠️ generate-image called with no ingredients — ` +
+      `name-driven fallback active (no recipe contract enforced). ` +
+      `meal="${mealName.trim()}" sourceType="${sourceType}"`
+    );
+  }
+
   try {
-    const imageUrl = await generateMealImageUnified(mealName.trim(), ingredients || [], sourceType);
+    const imageUrl = await generateMealImageUnified(mealName.trim(), normalizedIngredients, sourceType);
     return res.json({ imageUrl });
   } catch (err: any) {
     console.error(`[generate-image] failed for "${mealName}":`, err.message);

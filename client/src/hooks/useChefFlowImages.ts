@@ -7,6 +7,9 @@ export interface ChefFlowMeal {
   name?: string;
   meal?: string;
   imageUrl?: string;
+  /** Ingredient list from the meal's recipe — forwarded to the image generator
+   *  so the prompt is bound to the actual recipe rather than just the dish name. */
+  ingredients?: string[];
 }
 
 // Module-level session cache — survives SPA navigation within the same tab
@@ -154,10 +157,11 @@ export function useChefFlowImages(
             credentials: "include",
             headers: { "Content-Type": "application/json", ...getAuthHeaders() },
             body: JSON.stringify({
-            mealName,
-            mealType,
-            sourceType: mealType === "beverage" || mealType === "drink" ? "beverage" : mealType === "snack" ? "snack" : "meal",
-          }),
+              mealName,
+              mealType,
+              sourceType: mealType === "beverage" || mealType === "drink" ? "beverage" : mealType === "snack" ? "snack" : "meal",
+              ...(meal.ingredients && meal.ingredients.length > 0 ? { ingredients: meal.ingredients } : {}),
+            }),
             signal: controller.signal,
           });
           clearTimeout(timeoutId);

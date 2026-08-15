@@ -6221,12 +6221,12 @@ Provide recommendations in JSON format with the following structure:
 
       // Generate image for the recommendation
       try {
-        const { generateImage } = await import("./services/imageService");
-        const imageUrl = await generateImage({
-          name: recommendation.name,
-          description: recommendation.description || recommendation.name,
-          type: 'beverage'
-        });
+        const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+        const imageUrl = await generateMealImageUnified(
+          recommendation.name,
+          [],
+          'beverage'
+        );
 
         if (imageUrl) {
           recommendation.imageUrl = imageUrl;

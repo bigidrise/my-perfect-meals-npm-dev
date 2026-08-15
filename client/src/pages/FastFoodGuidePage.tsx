@@ -357,7 +357,12 @@ export default function FastFoodGuidePage() {
   } | null>(null);
 
   const chefFlowMeals = useMemo(
-    () => generatedMeals.map((m) => ({ id: m.id, name: m.name || m.meal, imageUrl: m.imageUrl })),
+    () => generatedMeals.map((m) => ({
+      id: m.id,
+      name: m.name || m.meal,
+      imageUrl: m.imageUrl,
+      ...(Array.isArray(m.ingredients) && m.ingredients.length > 0 ? { ingredients: m.ingredients } : {}),
+    })),
     [generatedMeals],
   );
   const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "fast-food");
