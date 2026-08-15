@@ -5195,6 +5195,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cravingInput || "something delicious",
           targetMealType || "lunch",
           protocolEnvelope.dietaryIdentity,
+          {
+            overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            storedAllergies: protocolEnvelope.allergies,
+          },
         );
         if (fallbackMeal) {
           console.log(`✅ [ProtocolEnvelope] Emergency fallback succeeded: "${fallbackMeal.name}"`);

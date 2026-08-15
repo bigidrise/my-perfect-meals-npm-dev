@@ -126,6 +126,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
     // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
     let dietAdapted = false;
     let dietNotice = "";
+    // Allergen-specific override for this request only. All other allergies remain enforced.
+    let _overriddenDessertAllergens: string[] = [];
     if (userId) {
       const inputText = [specificDessert, flavorFamily, dessertCategory].filter(Boolean).join(' ');
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "dessert-creator", {
@@ -155,6 +157,10 @@ dessertCreatorRouter.post("/", async (req, res) => {
       if (safetyCheck.result === "DIET_ADAPT") {
         dietAdapted = true;
         dietNotice = safetyCheck.message;
+      }
+      if (safetyCheck.overriddenAllergen) {
+        _overriddenDessertAllergens = [safetyCheck.overriddenAllergen];
+        console.log(`[AllergyOverride] Dessert-creator request-scoped override — allergen: ${safetyCheck.overriddenAllergen}`);
       }
     }
 
@@ -395,6 +401,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
       generatorName: 'dessert_creator',
       skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+      overriddenAllergens: _overriddenDessertAllergens.length > 0 ? _overriddenDessertAllergens : undefined,
     });
     if (!dessertScan.passed) {
       console.log(`🚫 [DESSERT] Post-gen protocol violation: ${dessertScan.message}`);
