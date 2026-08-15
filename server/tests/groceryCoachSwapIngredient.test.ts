@@ -1032,6 +1032,18 @@ describe("POST /api/grocery-coach/swap-ingredient — five-item test matrix", ()
 
     test("in-role savedOption is accepted for non-clinical user", async () => {
       // Replacing "chicken breast" (protein). Saved option is "Turkey breast" — protein family ✓.
+      // Membership check: Turkey breast must be in the user's saved rows.
+      mockDbSgRows.push({
+        id:           "sg-role-1",
+        productName:  "Turkey breast",
+        brand:        "Applegate",
+        category:     "Meat",
+        productKey:   "turkey-breast-applegate",
+        nutritionJson: { calories: 120, protein: 26, fat: 1, carbs: 0 },
+        productMeta:  null,
+        savedAt:      new Date(),
+      });
+
       openAIResponseQueue.push(() => ({
         coachSuggestion: { item: "Cod fillet",   quantity: "6", unit: "oz", reason: "Lean fish."   },
         alternatives:    [
@@ -1087,6 +1099,205 @@ describe("POST /api/grocery-coach/swap-ingredient — five-item test matrix", ()
       // Remaining ingredients must appear so the AI knows the meal context
       expect(systemPrompt).toContain("salmon fillet");
       expect(systemPrompt).toContain("quinoa");
+    });
+  });
+
+  // ── B.11 savedOption — saved grocery favorites ────────────────────────────
+  describe("savedOption — saved grocery favorites", () => {
+    // ── B.11.1  Happy path: matching saved product surfaces as savedOption ───
+    test("savedOption is non-null with correct item name and reason when a saved product matches the AI suggestion", async () => {
+      // Populate saved groceries with a product that matches what the AI returns.
+      mockDbSgRows.push({
+        id:           "sg-1",
+        productName:  "Turkey breast",
+        brand:        "Applegate",
+        category:     "Meat",
+        productKey:   "turkey-breast-applegate",
+        nutritionJson: { calories: 120, protein: 26, fat: 1, carbs: 0 },
+        productMeta:  null,
+        savedAt:      new Date(),
+      });
+
+      // AI returns savedOption pointing to that product.
+      openAIResponseQueue.push(() => ({
+        coachSuggestion: {
+          item:     "Cod fillet",
+          quantity: "6",
+          unit:     "oz",
+          reason:   "Lean white fish, fits your macro targets.",
+        },
+        alternatives: [
+          { item: "Tilapia",  quantity: "6", unit: "oz", reason: "Mild lean protein." },
+          { item: "Wild salmon", quantity: "5", unit: "oz", reason: "Rich in omega-3." },
+        ],
+        savedOption: {
+          item:     "Turkey breast",
+          quantity: "1",
+          unit:     "lb",
+          reason:   "From your saved products — a great lean swap.",
+        },
+        protocolNote: null,
+      }));
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+
+      expect(res.status).toBe(200);
+      // savedOption must be present with the correct product name
+      expect(res.body.savedOption).not.toBeNull();
+      expect(res.body.savedOption.item).toBe("Turkey breast");
+      // The reason string must be non-empty (personalisation signal)
+      expect(typeof res.body.savedOption.reason).toBe("string");
+      expect(res.body.savedOption.reason.length).toBeGreaterThan(0);
+
+      // The saved product name must have been injected into the AI prompt —
+      // this confirms data flowed from savedRows → system prompt → AI, not
+      // just from the AI's arbitrary output back through the route.
+      expect(capturedCalls[0].systemContent).toContain("Turkey breast");
+      expect(capturedCalls[0].systemContent).toContain("saved products");
+    });
+
+    // ── B.11.4  Negative: AI hallucinated a savedOption not in savedRows ──────
+    test("savedOption is null when the AI names a product that is not in the user's saved rows", async () => {
+      // savedRows is empty — user has no saved products at all.
+      // AI fabricates a savedOption that was never saved by this user.
+      openAIResponseQueue.push(() => ({
+        coachSuggestion: {
+          item:     "Cod fillet",
+          quantity: "6",
+          unit:     "oz",
+          reason:   "Lean white fish.",
+        },
+        alternatives: [
+          { item: "Tilapia",      quantity: "6", unit: "oz", reason: "Mild protein." },
+          { item: "Wild salmon",  quantity: "5", unit: "oz", reason: "Rich in omega-3." },
+        ],
+        // AI hallucinated this — "Turkey breast" is not in the user's saved rows.
+        savedOption: {
+          item:     "Turkey breast",
+          quantity: "1",
+          unit:     "lb",
+          reason:   "From your saved products.",
+        },
+        protocolNote: null,
+      }));
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+
+      expect(res.status).toBe(200);
+      // Hallucinated savedOption must be rejected — membership check failed.
+      expect(res.body.savedOption).toBeNull();
+      // Primary suggestion is unaffected.
+      expect(res.body.coachSuggestion.item).toBe("Cod fillet");
+    });
+
+    // ── B.11.2  Clinical GLP-1 fat ceiling blocks the saved product ──────────
+    test("savedOption is null for a clinical GLP-1 user when the saved product nutritionJson exceeds the fat ceiling", async () => {
+      // Activate GLP-1 with a tight fat ceiling (10 g).
+      mockGlp1Context = {
+        isActive: true,
+        resolvedTargets: {
+          treatmentPhase:             "maintenance",
+          resolvedMealCalories:        400,
+          targetProteinGrams:          25,
+          minimumProteinFloor:         20,
+          maximumToleratedFatGrams:    10,
+        },
+      };
+
+      // Saved product has 22 g fat — well above the 10 g ceiling.
+      mockDbSgRows.push({
+        id:           "sg-2",
+        productName:  "Turkey thigh",
+        brand:        "Perdue",
+        category:     "Meat",
+        productKey:   "turkey-thigh-perdue",
+        nutritionJson: { calories: 280, protein: 24, fat: 22, carbs: 0 },
+        productMeta:  null,
+        savedAt:      new Date(),
+      });
+
+      // AI returns savedOption pointing to the high-fat saved product.
+      openAIResponseQueue.push(() => ({
+        coachSuggestion: {
+          item:     "Cod fillet",
+          quantity: "6",
+          unit:     "oz",
+          reason:   "Lean white fish, GLP-1 safe.",
+        },
+        alternatives: [],
+        savedOption: {
+          item:     "Turkey thigh",
+          quantity: "1",
+          unit:     "lb",
+          reason:   "From your saved products.",
+        },
+        protocolNote: "GLP-1 fat limit applied.",
+      }));
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+
+      expect(res.status).toBe(200);
+      // Fat ceiling exceeded → savedOption must be null
+      expect(res.body.savedOption).toBeNull();
+      // Primary suggestion is still returned
+      expect(res.body.coachSuggestion.item).toBe("Cod fillet");
+    });
+
+    // ── B.11.3  NDE scan blocks the saved product ────────────────────────────
+    test("savedOption is null when the NDE scan blocks the saved item due to a protocol avoidance", async () => {
+      // User avoids shellfish.
+      activeEnvelope = makeEnvelope({ avoidances: ["shellfish"], allergies: ["shellfish"] });
+
+      // Populate saved groceries with a shellfish product.
+      mockDbSgRows.push({
+        id:           "sg-3",
+        productName:  "Shrimp",
+        brand:        "SeaPak",
+        category:     "Meat",
+        productKey:   "shrimp-seapak",
+        nutritionJson: { calories: 100, protein: 20, fat: 1, carbs: 1 },
+        productMeta:  null,
+        savedAt:      new Date(),
+      });
+
+      // AI returns a safe coachSuggestion but a shellfish savedOption.
+      openAIResponseQueue.push(() => ({
+        coachSuggestion: {
+          item:     "Turkey breast",
+          quantity: "1",
+          unit:     "lb",
+          reason:   "High protein, fits your macro targets.",
+        },
+        alternatives: [
+          { item: "Cod fillet", quantity: "6", unit: "oz", reason: "Lean white fish." },
+          { item: "Tilapia",    quantity: "6", unit: "oz", reason: "Mild protein." },
+        ],
+        savedOption: {
+          item:     "Shrimp",
+          quantity: "8",
+          unit:     "oz",
+          reason:   "From your saved products.",
+        },
+        protocolNote: null,
+      }));
+
+      const res = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+
+      expect(res.status).toBe(200);
+      // NDE scan blocks shrimp (shellfish avoidance) → savedOption must be null
+      expect(res.body.savedOption).toBeNull();
+      // Primary suggestion is safe and still returned
+      expect(res.body.coachSuggestion.item).toBe("Turkey breast");
+      // NDE scan must have been invoked (at least for coachSuggestion + savedOption)
+      expect(scanGeneratedOutputMock).toHaveBeenCalled();
     });
   });
 });
