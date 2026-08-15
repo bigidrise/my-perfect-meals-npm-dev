@@ -6,9 +6,16 @@
  * keep their own types in their respective modules.
  */
 
-import type { DietClassification } from "@/components/MealClassificationPill";
-
-export type { DietClassification };
+export interface DietClassification {
+  kosherCategory?: "meat" | "dairy" | "pareve";
+  halalFlags?: {
+    alcoholFree: boolean;
+    porkFree: boolean;
+  };
+  veganFlags?: {
+    plantBased: boolean;
+  };
+}
 
 export type Ingredient = {
   item: string;
