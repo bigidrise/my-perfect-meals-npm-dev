@@ -672,6 +672,7 @@ export default function CravingCreator() {
             title: "No compliant options found",
             description: data.message || "All generated options conflicted with your dietary protocol. Please try a different dish or adjust your craving description.",
             variant: "destructive",
+            duration: 10000,
           });
           return;
         }
