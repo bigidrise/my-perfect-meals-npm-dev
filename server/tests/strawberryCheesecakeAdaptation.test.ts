@@ -889,6 +889,193 @@ describe("allergen override phrasing mismatch — override always wins", () => {
     expect(dairyConflicts.length).toBeGreaterThan(0);
   });
 });
+
+// ── Oat cross-contamination — gluten-free guardrail coverage ─────────────────
+// Standard oats are frequently cross-contaminated with wheat. When the
+// gluten-free guardrail is active (celiac, gluten allergy, "oat sensitivity"),
+// any oat-based component (oatmeal, granola, rolled oats, oat crust) must
+// receive a certified-gluten-free-oats directive — not slip through silently.
+
+describe("oat cross-contamination — gluten-free guardrail fires on oat components", () => {
+  const gfCtx = buildGuardrailContext({ dietaryIdentity: ["gluten-free"] });
+
+  test("oatmeal dish: rolled oats component produces a certified-gluten-free-oats conflict", () => {
+    const decomposition = {
+      definingComponents: ["rolled oats", "almond milk", "cinnamon"],
+      adaptableComponents: ["honey → maple syrup", "brown sugar → monk fruit"],
+      dishForm: "hot breakfast bowl",
+    };
+    const conflicts = resolveConflicts("oatmeal", decomposition, gfCtx);
+
+    const oatConflicts = conflicts.filter(
+      c => /oat/i.test(c.component) && /gluten/i.test(c.guardrail),
+    );
+    expect(oatConflicts.length).toBeGreaterThan(0);
+    for (const c of oatConflicts) {
+      expect(c.directive).toMatch(/certified gluten.free oats/i);
+    }
+  });
+
+  test("granola dish: granola component produces a certified-gluten-free-oats conflict", () => {
+    const decomposition = {
+      definingComponents: ["granola", "coconut yogurt", "fresh berries"],
+      adaptableComponents: ["honey → date syrup"],
+      dishForm: "breakfast bowl",
+    };
+    const conflicts = resolveConflicts("granola bowl", decomposition, gfCtx);
+
+    const oatConflicts = conflicts.filter(
+      c => /granola/i.test(c.component) && /gluten/i.test(c.guardrail),
+    );
+    expect(oatConflicts.length).toBeGreaterThan(0);
+    for (const c of oatConflicts) {
+      expect(c.directive).toMatch(/certified gluten.free oats/i);
+    }
+  });
+
+  test("oat base component in a tart produces a certified-gluten-free-oats conflict", () => {
+    // Use "oat base" (not "oat crust") so the FLOUR_TRIGGERS rule ("crust") does
+    // not also fire and suppress the oat rule via the role-aware selector.
+    const decomposition = {
+      definingComponents: ["oat base", "cream cheese filling", "blueberry topping"],
+      adaptableComponents: ["cream cheese → dairy-free cream cheese"],
+      dishForm: "sliceable baked tart",
+    };
+    const conflicts = resolveConflicts("blueberry tart", decomposition, gfCtx);
+
+    const oatConflicts = conflicts.filter(
+      c => /oat/i.test(c.component) && /gluten/i.test(c.guardrail),
+    );
+    expect(oatConflicts.length).toBeGreaterThan(0);
+    for (const c of oatConflicts) {
+      expect(c.directive).toMatch(/certified gluten.free oats/i);
+    }
+  });
+
+  test("gluten-free guardrail activated from 'celiac — oat sensitivity' allergy phrasing fires oat conflict", () => {
+    const ctx = buildGuardrailContext({ allergies: ["celiac — oat sensitivity"] });
+    // The guardrail must be active for any celiac/gluten phrasing.
+    expect(ctx.guardrails.map(g => g.id)).toContain("gluten-free");
+
+    const decomposition = {
+      definingComponents: ["rolled oats", "peanut butter", "banana"],
+      adaptableComponents: ["honey → agave"],
+      dishForm: "overnight oats bowl",
+    };
+    const conflicts = resolveConflicts("overnight oats", decomposition, ctx);
+
+    const oatConflicts = conflicts.filter(
+      c => /oat/i.test(c.component) && /gluten/i.test(c.guardrail),
+    );
+    expect(oatConflicts.length).toBeGreaterThan(0);
+    for (const c of oatConflicts) {
+      expect(c.directive).toMatch(/certified gluten.free oats/i);
+    }
+  });
+
+  test("gluten-free guardrail activated from 'gluten (oats)' allergy phrasing fires oat conflict", () => {
+    const ctx = buildGuardrailContext({ allergies: ["gluten (oats)"] });
+    expect(ctx.guardrails.map(g => g.id)).toContain("gluten-free");
+
+    const decomposition = {
+      definingComponents: ["oat bran", "almond milk", "berries"],
+      adaptableComponents: ["maple syrup → stevia"],
+      dishForm: "hot cereal",
+    };
+    const conflicts = resolveConflicts("oat bran cereal", decomposition, ctx);
+
+    const oatConflicts = conflicts.filter(
+      c => /oat/i.test(c.component) && /gluten/i.test(c.guardrail),
+    );
+    expect(oatConflicts.length).toBeGreaterThan(0);
+    for (const c of oatConflicts) {
+      expect(c.directive).toMatch(/certified gluten.free oats/i);
+    }
+  });
+
+  test("gluten-free generalDirectives include an oat cross-contamination warning", () => {
+    const { GUARDRAIL_SUBSTITUTION_MAP } = require("../../shared/dishAdaptation/guardrailSubstitutionMap");
+    const gfProfile = GUARDRAIL_SUBSTITUTION_MAP["gluten-free"];
+    const combined = (gfProfile.generalDirectives ?? []).join(" ");
+    expect(combined).toMatch(/certified gluten.free|oats.*certified/i);
+  });
+
+  test("non-gluten-free user: oat component does NOT produce a certified-oats conflict", () => {
+    // Ensure the new oat rule is strictly scoped to the gluten-free guardrail
+    // and doesn't fire for unrelated contexts (e.g. diabetic-only).
+    const diabeticCtx = buildGuardrailContext({ dietaryIdentity: ["diabetic"] });
+    const decomposition = {
+      definingComponents: ["rolled oats", "berries", "almond milk"],
+      adaptableComponents: ["honey → monk fruit"],
+      dishForm: "breakfast bowl",
+    };
+    const conflicts = resolveConflicts("oatmeal", decomposition, diabeticCtx);
+    const oatGlutenConflicts = conflicts.filter(
+      c => /oat/i.test(c.component) && /certified gluten.free oats/i.test(c.directive),
+    );
+    expect(oatGlutenConflicts.length).toBe(0);
+  });
+
+  test("oat flour: both the structural flour directive AND the certified-oats directive fire", () => {
+    // "oat flour" contains "flour" (FLOUR_TRIGGERS → structural rule with functionalRole)
+    // AND "oat" (new oat rule, no functionalRole).  The per-blocked-group selector
+    // must emit both since they address different concerns.
+    const decomposition = {
+      definingComponents: ["oat flour", "baking powder", "banana"],
+      adaptableComponents: ["honey → monk fruit"],
+      dishForm: "quick bread loaf",
+    };
+    const conflicts = resolveConflicts("banana bread", decomposition, gfCtx);
+
+    const oatFlourConflicts = conflicts.filter(
+      c => /oat flour/i.test(c.component) && /gluten/i.test(c.guardrail),
+    );
+    // Must fire for at least two distinct blocked categories.
+    expect(oatFlourConflicts.length).toBeGreaterThanOrEqual(2);
+    // The structural flour directive must be present (rice/almond flour + binder note).
+    expect(oatFlourConflicts.some(c => /rice flour|almond flour/i.test(c.directive))).toBe(true);
+    // The oat cross-contamination directive must also be present.
+    expect(oatFlourConflicts.some(c => /certified gluten.free oats/i.test(c.directive))).toBe(true);
+  });
+
+  test("oat crust: both the structural crust directive AND the certified-oats directive fire", () => {
+    // "oat crust" contains "crust" (FLOUR_TRIGGERS → structural rule with functionalRole)
+    // AND "oat" (new oat rule, no functionalRole).  Both must fire independently.
+    const decomposition = {
+      definingComponents: ["oat crust", "lemon cream filling", "fresh raspberries"],
+      adaptableComponents: ["butter → coconut oil"],
+      dishForm: "sliceable tart",
+    };
+    const conflicts = resolveConflicts("lemon tart", decomposition, gfCtx);
+
+    const oatCrustConflicts = conflicts.filter(
+      c => /oat crust/i.test(c.component) && /gluten/i.test(c.guardrail),
+    );
+    expect(oatCrustConflicts.length).toBeGreaterThanOrEqual(2);
+    expect(oatCrustConflicts.some(c => /rice flour|almond flour/i.test(c.directive))).toBe(true);
+    expect(oatCrustConflicts.some(c => /certified gluten.free oats/i.test(c.directive))).toBe(true);
+  });
+
+  test("bare 'oat' allergy does NOT activate the gluten-free guardrail", () => {
+    // Safety regression: a user whose only restriction is an oat allergy must
+    // NOT receive a gluten-free guardrail — that guardrail tells them to use
+    // "certified gluten-free oats" as a substitute, which still contains oats.
+    // The gluten-free guardrail is only for gluten/wheat/celiac restrictions.
+    const ctx = buildGuardrailContext({ allergies: ["oat"] });
+    expect(ctx.guardrails.map(g => g.id)).not.toContain("gluten-free");
+  });
+
+  test("bare 'oat allergy' does NOT activate the gluten-free guardrail", () => {
+    const ctx = buildGuardrailContext({ allergies: ["oat allergy"] });
+    expect(ctx.guardrails.map(g => g.id)).not.toContain("gluten-free");
+  });
+
+  test("bare 'oat sensitivity' does NOT activate the gluten-free guardrail", () => {
+    const ctx = buildGuardrailContext({ allergies: ["oat sensitivity"] });
+    expect(ctx.guardrails.map(g => g.id)).not.toContain("gluten-free");
+  });
+});
+
 // ── Score assertions ─────────────────────────────────────────────────────────
 
 describe("strawberry cheesecake — score correctness", () => {

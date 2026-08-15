@@ -21,6 +21,7 @@ import {
   ALLERGEN_SUBSTITUTES,
   ALLERGEN_STRUCTURAL_RULES,
   type GuardrailId,
+  type SubstitutionRule,
 } from "../../../shared/dishAdaptation/guardrailSubstitutionMap";
 import type {
   ActiveGuardrail,
@@ -160,16 +161,31 @@ export function resolveConflicts(
       // Collect every rule this component triggers, then bias toward
       // role-aware rules: if any matching rule knows the ingredient's
       // structural function (binder, setter, …), it wins over generic
-      // substitutions for the same component — a functional substitute
+      // substitutions for the SAME blocked ingredient — a functional substitute
       // preserves how the dish holds together, not just its compliance.
+      //
+      // Grouping rule: preference is per blocked-ingredient category, not
+      // global.  Two rules that address different concerns (e.g. wheat flour
+      // structure AND oat cross-contamination) must BOTH fire even when one is
+      // role-aware and the other is not — suppressing the non-role-aware rule
+      // would silently drop a safety directive.
       // Build the dish context string once per component for dishContextPattern checks.
       const dishContext = `${dishName} ${decomposition.dishForm ?? ""}`.toLowerCase();
       const matching = profile.rules.filter(rule =>
         componentMatchesTriggers(c, rule.triggers) &&
         (rule.dishContextPattern == null || rule.dishContextPattern.test(dishContext)),
       );
-      const roleAware = matching.filter(rule => rule.functionalRole);
-      const selected = roleAware.length > 0 ? roleAware : matching;
+      // Group by blocked category; within each group prefer role-aware rules.
+      const blockedGroups = new Map<string, SubstitutionRule[]>();
+      for (const rule of matching) {
+        if (!blockedGroups.has(rule.blocked)) blockedGroups.set(rule.blocked, []);
+        blockedGroups.get(rule.blocked)!.push(rule);
+      }
+      const selected: SubstitutionRule[] = [];
+      for (const group of blockedGroups.values()) {
+        const roleAware = group.filter(r => r.functionalRole);
+        selected.push(...(roleAware.length > 0 ? roleAware : group));
+      }
       for (const rule of selected) {
         const dedupeKey = `${g.id}|${rule.blocked}|${c}`;
         if (seen.has(dedupeKey)) continue;
@@ -353,8 +369,13 @@ export function buildGuardrailContext(opts: {
   const activeAllergens = (opts.allergies ?? []).filter(
     a => !overridden.some(o => o.includes(a.toLowerCase()) || a.toLowerCase().includes(o)),
   );
-  // Gluten/wheat allergy activates the gluten-free substitution profile.
-  if (activeAllergens.some(a => /gluten|wheat/i.test(a))) add("gluten-free");
+  // Gluten/wheat/celiac allergy activates the gluten-free substitution profile.
+  // "celiac" always implies strict gluten-free requirements.
+  // NOTE: do NOT match "oat" alone here — a pure oat allergy must avoid oats
+  // entirely, not substitute them with certified gluten-free oats.  Phrasings
+  // that imply celiac/gluten context (e.g. "celiac — oat sensitivity",
+  // "gluten (oats)") are already caught by the "celiac" / "gluten" branches.
+  if (activeAllergens.some(a => /gluten|wheat|celiac/i.test(a))) add("gluten-free");
 
   return {
     guardrails,

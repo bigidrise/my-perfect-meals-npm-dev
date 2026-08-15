@@ -170,9 +170,16 @@ export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstituti
       { blocked: "soy sauce (contains wheat)", triggers: ["soy sauce", "soy"], substitute: "tamari or coconut aminos" },
       { blocked: "flour tortillas", triggers: TORTILLA_TRIGGERS, substitute: "corn or certified gluten-free tortillas" },
       { blocked: "wheat grain base", triggers: ["wheat", "couscous", "barley", "farro", "bulgur"], substitute: "rice or quinoa" },
+      {
+        blocked: "regular oats (cross-contaminated with gluten)",
+        triggers: ["oat", "oatmeal", "granola", "rolled oat", "oat flour", "oat bran", "oat base", "oat crust"],
+        substitute: "certified gluten-free oats",
+        note: "standard oats are frequently cross-contaminated with wheat during farming and processing; only oats explicitly labelled certified gluten-free are safe for celiac users and those with oat/gluten cross-contamination concerns",
+      },
     ],
     generalDirectives: [
       "Every paired item must be certified gluten-free; no shared gluten cooking surfaces.",
+      "Oats must be explicitly certified gluten-free — standard oats are a common cross-contamination source.",
     ],
   },
 
