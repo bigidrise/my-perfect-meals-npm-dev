@@ -8,6 +8,7 @@ import { users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
+import { sendCareTeamInvite } from "../services/emailService";
 import { pushToUser } from "../services/pushNotify";
 import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { assignBuilder, isValidBuilder, VALID_BUILDERS } from "../services/builderAssignment";
@@ -324,6 +325,20 @@ router.post("/:studioId/invite", async (req, res) => {
       invite.id,
       { email, inviteCode, note: "Invite sent - will link to client on acceptance" }
     );
+
+    // Send the invitation email — non-fatal if it fails
+    try {
+      const role = studio.type === "clinic" ? "physician" : "trainer";
+      await sendCareTeamInvite({
+        to: email.toLowerCase().trim(),
+        patientName: email.split("@")[0],
+        inviteCode,
+        role,
+        urlToken,
+      });
+    } catch (emailErr) {
+      console.error("[StudioInvite] Email send failed (non-fatal):", emailErr);
+    }
 
     res.json({ invite, studioName: studio.name });
   } catch (error) {
