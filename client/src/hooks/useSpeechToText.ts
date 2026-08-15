@@ -37,15 +37,22 @@ export function useSpeechToText() {
 
     rec.onerror = (event: any) => {
       console.log('Speech recognition error:', event.error);
+      // Update the ref immediately so onend (which may fire synchronously from
+      // abort() in some environments) sees 'error' when it checks stateRef and
+      // can correctly reset back to 'idle'.
+      stateRef.current = 'error';
+      setState('error');
       // Abort cleanly so onend fires and we don't leave a dangling session.
       try { rec.abort(); } catch (_) {}
-      setState('error');
     };
 
     rec.onend = () => {
       // Use the ref so we always read the *current* state, not the stale
       // closure value from mount time.
-      if (stateRef.current === 'listening') {
+      // Reset to idle from either 'listening' (normal end) or 'error' (abort
+      // after recognition failure) so the mic button always recovers visually
+      // without requiring a page refresh.
+      if (stateRef.current === 'listening' || stateRef.current === 'error') {
         setState('idle');
       }
     };

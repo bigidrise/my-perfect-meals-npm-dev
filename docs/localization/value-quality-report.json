@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-08-15T02:16:39.674Z",
+  "generatedAt": "2026-08-15T03:47:29.349Z",
   "baseline": {
-    "totalEnglishKeys": 3273
+    "totalEnglishKeys": 3293
   },
   "results": {
     "ar": {
       "locale": "ar",
-      "totalKeys": 3167,
+      "totalKeys": 3187,
       "identicalToEnglish": 88,
       "identicalToEnglishPct": "2.7",
       "identicalSamples": [
@@ -29,7 +29,7 @@
     },
     "de": {
       "locale": "de",
-      "totalKeys": 3215,
+      "totalKeys": 3235,
       "identicalToEnglish": 196,
       "identicalToEnglishPct": "6.0",
       "identicalSamples": [
@@ -52,9 +52,9 @@
     },
     "es": {
       "locale": "es",
-      "totalKeys": 3351,
+      "totalKeys": 3371,
       "identicalToEnglish": 130,
-      "identicalToEnglishPct": "4.0",
+      "identicalToEnglishPct": "3.9",
       "identicalSamples": [
         "common.no: \"No\"",
         "routeTitles.creatorBrandStudio: \"Creator & Brand Studio\"",
@@ -75,8 +75,8 @@
     },
     "fr": {
       "locale": "fr",
-      "totalKeys": 3351,
-      "identicalToEnglish": 176,
+      "totalKeys": 3371,
+      "identicalToEnglish": 177,
       "identicalToEnglishPct": "5.4",
       "identicalSamples": [
         "routeTitles.beverageCreator: \"Beverage Creator\"",
@@ -100,7 +100,7 @@
     },
     "hi": {
       "locale": "hi",
-      "totalKeys": 3457,
+      "totalKeys": 3477,
       "identicalToEnglish": 117,
       "identicalToEnglishPct": "3.6",
       "identicalSamples": [
@@ -123,9 +123,9 @@
     },
     "it": {
       "locale": "it",
-      "totalKeys": 3351,
+      "totalKeys": 3371,
       "identicalToEnglish": 172,
-      "identicalToEnglishPct": "5.3",
+      "identicalToEnglishPct": "5.2",
       "identicalSamples": [
         "menu.teamMPM: \"Team My Perfect Meals\"",
         "common.no: \"No\"",
@@ -146,7 +146,7 @@
     },
     "ja": {
       "locale": "ja",
-      "totalKeys": 3215,
+      "totalKeys": 3235,
       "identicalToEnglish": 85,
       "identicalToEnglishPct": "2.6",
       "identicalSamples": [
@@ -169,7 +169,7 @@
     },
     "ko": {
       "locale": "ko",
-      "totalKeys": 3177,
+      "totalKeys": 3197,
       "identicalToEnglish": 89,
       "identicalToEnglishPct": "2.7",
       "identicalSamples": [
@@ -192,7 +192,7 @@
     },
     "pt": {
       "locale": "pt",
-      "totalKeys": 3352,
+      "totalKeys": 3372,
       "identicalToEnglish": 135,
       "identicalToEnglishPct": "4.1",
       "identicalSamples": [
@@ -215,7 +215,7 @@
     },
     "ru": {
       "locale": "ru",
-      "totalKeys": 3167,
+      "totalKeys": 3187,
       "identicalToEnglish": 95,
       "identicalToEnglishPct": "2.9",
       "identicalSamples": [
@@ -238,9 +238,9 @@
     },
     "tl": {
       "locale": "tl",
-      "totalKeys": 3351,
+      "totalKeys": 3371,
       "identicalToEnglish": 403,
-      "identicalToEnglishPct": "12.3",
+      "identicalToEnglishPct": "12.2",
       "identicalSamples": [
         "menu.subscription: \"Subscription\"",
         "routeTitles.macroCalculator: \"Macro Calculator\"",
@@ -270,7 +270,7 @@
     },
     "vi": {
       "locale": "vi",
-      "totalKeys": 3176,
+      "totalKeys": 3196,
       "identicalToEnglish": 145,
       "identicalToEnglishPct": "4.4",
       "identicalSamples": [
@@ -316,7 +316,7 @@
     },
     "zh": {
       "locale": "zh",
-      "totalKeys": 3167,
+      "totalKeys": 3187,
       "identicalToEnglish": 92,
       "identicalToEnglishPct": "2.8",
       "identicalSamples": [
