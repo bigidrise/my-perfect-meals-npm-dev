@@ -663,6 +663,7 @@ export default function CravingCreator() {
             title: "We couldn't adapt that dish",
             description: data.message || "This dish can't be made compliant with your current settings. Try adjusting your request or safety settings.",
             variant: "destructive",
+            duration: 10000,
           });
           return;
         }
