@@ -211,6 +211,166 @@ describe('Smart Cart summary bar i18n — English plural forms', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Close / reopen cycle — picks are preserved across sheet open/close
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The component's `!open` effect intentionally does NOT reset pickedBrands.
+// Picks are written to localStorage (as pickedBrandsEntries) and restored when
+// the sheet reopens, so the summary bar must reflect the correct count both
+// before and after a close/reopen cycle.
+//
+// These tests simulate the session-serialisation logic that the component uses:
+//   • "save session" = record pickedBrandsEntries in a plain object
+//   • "restore session" = rebuild the Map from pickedBrandsEntries
+//   • "close" = state is unchanged (picks not cleared)
+//   • "reopen" = session is read; picks come back
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SessionSnapshot {
+  pickedBrandsEntries?: Array<[string, BrandRec]>;
+}
+
+/** Simulate saving picks to the session object (mirrors the component's save effect). */
+function saveSession(picks: Map<string, BrandRec>): SessionSnapshot {
+  return picks.size > 0 ? { pickedBrandsEntries: Array.from(picks.entries()) } : {};
+}
+
+/** Simulate restoring picks from the session object (mirrors the component's load effect). */
+function restoreSession(session: SessionSnapshot): Map<string, BrandRec> {
+  if (session.pickedBrandsEntries?.length) {
+    return new Map(session.pickedBrandsEntries);
+  }
+  return new Map();
+}
+
+describe('Smart Cart summary bar count — close / reopen cycle', () => {
+  it('bar is visible with correct count after picking 2 brands then reopening', () => {
+    const brandA = makeBrand('California Olive Ranch');
+    const brandB = makeBrand('Swanson Organic');
+
+    // Pick 2 brands (sheet open)
+    let picks = new Map<string, BrandRec>();
+    picks = togglePickedBrand(picks, 'olive oil', brandA);
+    picks = togglePickedBrand(picks, 'chicken broth', brandB);
+    expect(picks.size).toBe(2);
+    expect(barVisible(picks.size)).toBe(true);
+
+    // Close sheet — session is saved; picks are preserved (not cleared)
+    const session = saveSession(picks);
+    expect(session.pickedBrandsEntries).toHaveLength(2);
+
+    // Reopen sheet — session is restored
+    const restoredPicks = restoreSession(session);
+
+    expect(restoredPicks.size).toBe(2);
+    expect(barVisible(restoredPicks.size)).toBe(true);
+    expect(restoredPicks.has('olive oil')).toBe(true);
+    expect(restoredPicks.has('chicken broth')).toBe(true);
+  });
+
+  it('bar shows count=1 after picking 1 brand → close → reopen', () => {
+    const brand = makeBrand('Kirkland Organic EVOO');
+
+    let picks = new Map<string, BrandRec>();
+    picks = togglePickedBrand(picks, 'olive oil', brand);
+    expect(picks.size).toBe(1);
+
+    const session = saveSession(picks);
+    const restoredPicks = restoreSession(session);
+
+    expect(restoredPicks.size).toBe(1);
+    expect(barVisible(restoredPicks.size)).toBe(true);
+    expect(restoredPicks.get('olive oil')?.brand).toBe('Kirkland Organic EVOO');
+  });
+
+  it('bar is hidden when no picks were made before closing and reopening', () => {
+    // No picks at all — session has no pickedBrandsEntries
+    const picks = new Map<string, BrandRec>();
+    const session = saveSession(picks);
+
+    expect(session.pickedBrandsEntries).toBeUndefined();
+
+    const restoredPicks = restoreSession(session);
+
+    expect(restoredPicks.size).toBe(0);
+    expect(barVisible(restoredPicks.size)).toBe(false);
+  });
+
+  it('bar reflects unpick that happened before close: pick 2 → unpick 1 → close → reopen shows count=1', () => {
+    const brandA = makeBrand('California Olive Ranch');
+    const brandB = makeBrand('Swanson Organic');
+
+    let picks = new Map<string, BrandRec>();
+    picks = togglePickedBrand(picks, 'olive oil', brandA);
+    picks = togglePickedBrand(picks, 'chicken broth', brandB);
+    // Unpick one before closing
+    picks = togglePickedBrand(picks, 'olive oil', brandA);
+    expect(picks.size).toBe(1);
+
+    const session = saveSession(picks);
+    const restoredPicks = restoreSession(session);
+
+    expect(restoredPicks.size).toBe(1);
+    expect(barVisible(restoredPicks.size)).toBe(true);
+    expect(restoredPicks.has('olive oil')).toBe(false);
+    expect(restoredPicks.has('chicken broth')).toBe(true);
+  });
+
+  it('bar is hidden when all picks were cleared before closing: pick 2 → unpick both → close → reopen shows count=0', () => {
+    const brandA = makeBrand('California Olive Ranch');
+    const brandB = makeBrand('Swanson Organic');
+
+    let picks = new Map<string, BrandRec>();
+    picks = togglePickedBrand(picks, 'olive oil', brandA);
+    picks = togglePickedBrand(picks, 'chicken broth', brandB);
+    // Clear all picks before closing
+    picks = togglePickedBrand(picks, 'olive oil', brandA);
+    picks = togglePickedBrand(picks, 'chicken broth', brandB);
+    expect(picks.size).toBe(0);
+
+    const session = saveSession(picks);
+    const restoredPicks = restoreSession(session);
+
+    expect(restoredPicks.size).toBe(0);
+    expect(barVisible(restoredPicks.size)).toBe(false);
+  });
+
+  it('en: summary bar text stays correct after close/reopen with 2 picks', () => {
+    const keys = enLocale.shopping.smartCart;
+    const brandA = makeBrand('California Olive Ranch');
+    const brandB = makeBrand('Swanson Organic');
+
+    let picks = new Map<string, BrandRec>();
+    picks = togglePickedBrand(picks, 'olive oil', brandA);
+    picks = togglePickedBrand(picks, 'chicken broth', brandB);
+
+    const session = saveSession(picks);
+    const restoredPicks = restoreSession(session);
+
+    expect(restoredPicks.size).toBe(2);
+    const text = simulateT(keys, restoredPicks.size);
+    expect(text).toContain('2');
+    expect(text).not.toBe(keys['brandsSummary_one']);
+  });
+
+  it('en: summary bar text stays correct after close/reopen with 1 pick', () => {
+    const keys = enLocale.shopping.smartCart;
+    const brand = makeBrand('Swanson Organic');
+
+    let picks = new Map<string, BrandRec>();
+    picks = togglePickedBrand(picks, 'chicken broth', brand);
+
+    const session = saveSession(picks);
+    const restoredPicks = restoreSession(session);
+
+    expect(restoredPicks.size).toBe(1);
+    const text = simulateT(keys, restoredPicks.size);
+    expect(text).toBe(keys['brandsSummary_one']);
+    expect(text).toContain('1');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // i18n pluralisation — Spanish (second locale)
 // ─────────────────────────────────────────────────────────────────────────────
 
