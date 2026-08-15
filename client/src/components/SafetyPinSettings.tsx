@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 type Mode = "view" | "set" | "change" | "remove";
 
 export function SafetyPinSettings() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [hasPin, setHasPin] = useState<boolean | null>(null);
   const [authFailed, setAuthFailed] = useState(false);
@@ -55,12 +57,12 @@ export function SafetyPinSettings() {
     setError(null);
     
     if (!/^\d{4}$/.test(newPin)) {
-      setError("PIN must be exactly 4 digits");
+      setError(t("safetyPin.errorFourDigits"));
       return;
     }
     
     if (newPin !== confirmPin) {
-      setError("PINs do not match");
+      setError(t("safetyPin.errorNoMatch"));
       return;
     }
     
@@ -80,15 +82,15 @@ export function SafetyPinSettings() {
       const data = await response.json();
       
       if (!response.ok) {
-        setError(data.error || "Failed to set PIN");
+        setError(data.error || t("safetyPin.errorSetFailed"));
         return;
       }
       
-      toast({ title: "Safety PIN Set", description: "Your Safety PIN has been created." });
+      toast({ title: t("safetyPin.setToastTitle"), description: t("safetyPin.setToastDesc") });
       setHasPin(true);
       resetForm();
     } catch (err) {
-      setError("Could not set PIN. Please try again.");
+      setError(t("safetyPin.errorSetRetry"));
     } finally {
       setLoading(false);
     }
@@ -98,12 +100,12 @@ export function SafetyPinSettings() {
     setError(null);
     
     if (!/^\d{4}$/.test(newPin)) {
-      setError("New PIN must be exactly 4 digits");
+      setError(t("safetyPin.errorNewFourDigits"));
       return;
     }
     
     if (newPin !== confirmPin) {
-      setError("New PINs do not match");
+      setError(t("safetyPin.errorNewNoMatch"));
       return;
     }
     
@@ -123,14 +125,14 @@ export function SafetyPinSettings() {
       const data = await response.json();
       
       if (!response.ok) {
-        setError(data.error || "Failed to change PIN");
+        setError(data.error || t("safetyPin.errorChangeFailed"));
         return;
       }
       
-      toast({ title: "PIN Changed", description: "Your Safety PIN has been updated." });
+      toast({ title: t("safetyPin.changeToastTitle"), description: t("safetyPin.changeToastDesc") });
       resetForm();
     } catch (err) {
-      setError("Could not change PIN. Please try again.");
+      setError(t("safetyPin.errorChangeRetry"));
     } finally {
       setLoading(false);
     }
@@ -154,15 +156,15 @@ export function SafetyPinSettings() {
       const data = await response.json();
       
       if (!response.ok) {
-        setError(data.error || "Failed to remove PIN");
+        setError(data.error || t("safetyPin.errorRemoveFailed"));
         return;
       }
       
-      toast({ title: "PIN Removed", description: "Your Safety PIN has been removed." });
+      toast({ title: t("safetyPin.removeToastTitle"), description: t("safetyPin.removeToastDesc") });
       setHasPin(false);
       resetForm();
     } catch (err) {
-      setError("Could not remove PIN. Please try again.");
+      setError(t("safetyPin.errorRemoveRetry"));
     } finally {
       setLoading(false);
     }
@@ -186,9 +188,9 @@ export function SafetyPinSettings() {
               <Shield className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <h3 className="text-white font-semibold">Safety PIN</h3>
+              <h3 className="text-white font-semibold">{t("safetyPin.title")}</h3>
               <p className="text-amber-400 text-xs">
-                Session expired - please log out and back in to manage your PIN
+                {t("safetyPin.sessionExpired")}
               </p>
             </div>
           </div>
@@ -218,9 +220,9 @@ export function SafetyPinSettings() {
             <Shield className="w-5 h-5 text-green-400" />
           </div>
           <div>
-            <h3 className="text-white font-semibold">Safety PIN</h3>
+            <h3 className="text-white font-semibold">{t("safetyPin.title")}</h3>
             <p className="text-white/60 text-xs">
-              {hasPin ? "PIN is set - extra protection enabled" : "No PIN set - set one for extra protection"}
+              {hasPin ? t("safetyPin.statusSet") : t("safetyPin.statusUnset")}
             </p>
           </div>
         </div>
@@ -234,14 +236,14 @@ export function SafetyPinSettings() {
                   className="bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60"
                   onClick={() => setMode("change")}
                 >
-                  Change PIN
+                  {t("safetyPin.changePin")}
                 </Button>
                 <Button
                   size="sm"
                   className="bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60"
                   onClick={() => setMode("remove")}
                 >
-                  Remove PIN
+                  {t("safetyPin.removePin")}
                 </Button>
               </>
             ) : (
@@ -250,7 +252,7 @@ export function SafetyPinSettings() {
                 className="bg-green-600 hover:bg-green-500 text-white"
                 onClick={() => setMode("set")}
               >
-                Set Safety PIN
+                {t("safetyPin.setPin")}
               </Button>
             )}
           </div>
@@ -258,32 +260,32 @@ export function SafetyPinSettings() {
 
         {mode === "set" && (
           <div className="space-y-3">
-            <PinInput label="Enter PIN" value={newPin} onChange={setNewPin} showPin={showPin} />
-            <PinInput label="Confirm PIN" value={confirmPin} onChange={setConfirmPin} showPin={showPin} />
+            <PinInput label={t("safetyPin.enterPin")} value={newPin} onChange={setNewPin} showPin={showPin} />
+            <PinInput label={t("safetyPin.confirmPin")} value={confirmPin} onChange={setConfirmPin} showPin={showPin} />
             <ToggleShowPin showPin={showPin} setShowPin={setShowPin} />
             {error && <p className="text-red-400 text-sm">{error}</p>}
-            <FormButtons loading={loading} onSubmit={handleSetPin} onCancel={resetForm} submitLabel="Set PIN" />
+            <FormButtons loading={loading} onSubmit={handleSetPin} onCancel={resetForm} submitLabel={t("safetyPin.setPinBtn")} />
           </div>
         )}
 
         {mode === "change" && (
           <div className="space-y-3">
-            <PinInput label="Current PIN" value={currentPin} onChange={setCurrentPin} showPin={showPin} />
-            <PinInput label="New PIN" value={newPin} onChange={setNewPin} showPin={showPin} />
-            <PinInput label="Confirm New PIN" value={confirmPin} onChange={setConfirmPin} showPin={showPin} />
+            <PinInput label={t("safetyPin.currentPin")} value={currentPin} onChange={setCurrentPin} showPin={showPin} />
+            <PinInput label={t("safetyPin.newPin")} value={newPin} onChange={setNewPin} showPin={showPin} />
+            <PinInput label={t("safetyPin.confirmNewPin")} value={confirmPin} onChange={setConfirmPin} showPin={showPin} />
             <ToggleShowPin showPin={showPin} setShowPin={setShowPin} />
             {error && <p className="text-red-400 text-sm">{error}</p>}
-            <FormButtons loading={loading} onSubmit={handleChangePin} onCancel={resetForm} submitLabel="Change PIN" />
+            <FormButtons loading={loading} onSubmit={handleChangePin} onCancel={resetForm} submitLabel={t("safetyPin.changePinBtn")} />
           </div>
         )}
 
         {mode === "remove" && (
           <div className="space-y-3">
-            <p className="text-white/70 text-sm">Enter your current PIN to remove it.</p>
-            <PinInput label="Current PIN" value={currentPin} onChange={setCurrentPin} showPin={showPin} />
+            <p className="text-white/70 text-sm">{t("safetyPin.removePrompt")}</p>
+            <PinInput label={t("safetyPin.currentPin")} value={currentPin} onChange={setCurrentPin} showPin={showPin} />
             <ToggleShowPin showPin={showPin} setShowPin={setShowPin} />
             {error && <p className="text-red-400 text-sm">{error}</p>}
-            <FormButtons loading={loading} onSubmit={handleRemovePin} onCancel={resetForm} submitLabel="Remove PIN" destructive />
+            <FormButtons loading={loading} onSubmit={handleRemovePin} onCancel={resetForm} submitLabel={t("safetyPin.removePinBtn")} destructive />
           </div>
         )}
       </CardContent>
@@ -297,6 +299,7 @@ function PinInput({ label, value, onChange, showPin }: {
   onChange: (v: string) => void;
   showPin: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
       <label className="block text-sm font-medium text-white mb-1">{label}</label>
@@ -305,7 +308,7 @@ function PinInput({ label, value, onChange, showPin }: {
         inputMode="numeric"
         pattern="[0-9]*"
         maxLength={4}
-        placeholder="4 digits"
+        placeholder={t("safetyPin.fourDigits")}
         value={value}
         onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
         className="bg-black/40 border-white/20 text-white"
@@ -315,6 +318,7 @@ function PinInput({ label, value, onChange, showPin }: {
 }
 
 function ToggleShowPin({ showPin, setShowPin }: { showPin: boolean; setShowPin: (v: boolean) => void }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -322,7 +326,7 @@ function ToggleShowPin({ showPin, setShowPin }: { showPin: boolean; setShowPin: 
       className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm"
     >
       {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-      {showPin ? "Hide PIN" : "Show PIN"}
+      {showPin ? t("safetyPin.hidePin") : t("safetyPin.showPin")}
     </button>
   );
 }
@@ -334,6 +338,7 @@ function FormButtons({ loading, onSubmit, onCancel, submitLabel, destructive }: 
   submitLabel: string;
   destructive?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex gap-2 pt-2">
       <Button
@@ -342,7 +347,7 @@ function FormButtons({ loading, onSubmit, onCancel, submitLabel, destructive }: 
         onClick={onCancel}
         disabled={loading}
       >
-        <X className="w-4 h-4 mr-1" /> Cancel
+        <X className="w-4 h-4 mr-1" /> {t("safetyPin.cancel")}
       </Button>
       <Button
         size="sm"

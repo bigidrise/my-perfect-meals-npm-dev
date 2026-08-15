@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -81,22 +82,22 @@ function convertAthleteMealToMeal(athleteMeal: AthleteMeal): Meal {
 const DEFAULT_CATEGORY = "poultry";
 
 const CATEGORY_OPTIONS = [
-  { value: "poultry", label: "🐔 Chicken & Turkey" },
-  { value: "redmeat", label: "🥩 Red Meat" },
-  { value: "fish", label: "🐟 Fillet Fish" },
-  { value: "eggs_shakes", label: "🥚 Eggs & Shakes" },
+  { value: "poultry", emoji: "🐔", labelKey: "athletePicker.categories.poultry" },
+  { value: "redmeat", emoji: "🥩", labelKey: "athletePicker.categories.redmeat" },
+  { value: "fish", emoji: "🐟", labelKey: "athletePicker.categories.fish" },
+  { value: "eggs_shakes", emoji: "🥚", labelKey: "athletePicker.categories.eggsShakes" },
 ] as const;
 
 type SlotKey = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
 
-const SLOT_OPTIONS: { value: SlotKey; label: string }[] = [
-  { value: "breakfast", label: "Breakfast" },
-  { value: "lunch", label: "Lunch" },
-  { value: "dinner", label: "Dinner" },
-  { value: "snacks", label: "Snacks" },
-  { value: "meal4", label: "Meal 4" },
-  { value: "meal5", label: "Meal 5" },
-  { value: "meal6", label: "Meal 6" },
+const SLOT_OPTIONS: { value: SlotKey; labelKey: string }[] = [
+  { value: "breakfast", labelKey: "athletePicker.slots.breakfast" },
+  { value: "lunch", labelKey: "athletePicker.slots.lunch" },
+  { value: "dinner", labelKey: "athletePicker.slots.dinner" },
+  { value: "snacks", labelKey: "athletePicker.slots.snacks" },
+  { value: "meal4", labelKey: "athletePicker.slots.meal4" },
+  { value: "meal5", labelKey: "athletePicker.slots.meal5" },
+  { value: "meal6", labelKey: "athletePicker.slots.meal6" },
 ];
 
 export function AthleteMealPickerDrawer({
@@ -120,6 +121,7 @@ export function AthleteMealPickerDrawer({
   userId?: string;
   hasCoachLink?: boolean;
 }) {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const [category, setCategory] =
     React.useState<AthleteMeal["category"]>(DEFAULT_CATEGORY);
@@ -181,7 +183,13 @@ export function AthleteMealPickerDrawer({
   }, [open, list]);
 
   function buildSummaryText() {
-    return `${sessionCount} meal${sessionCount === 1 ? "" : "s"} added — ${sessionMacros.cals.toLocaleString()} cal · P ${sessionMacros.protein}g · C ${sessionMacros.carbs}g · F ${sessionMacros.fat}g`;
+    return t("athletePicker.summaryText", {
+      count: sessionCount,
+      cals: sessionMacros.cals.toLocaleString(),
+      protein: sessionMacros.protein,
+      carbs: sessionMacros.carbs,
+      fat: sessionMacros.fat,
+    });
   }
 
   function handleCopySession() {
@@ -194,7 +202,13 @@ export function AthleteMealPickerDrawer({
   function handleCopyMeal(e: React.MouseEvent, am: AthleteMeal) {
     e.stopPropagation();
     const starch = am.macros.starchyCarbs;
-    const text = `${am.title} — ${am.macros.kcal} cal · P ${am.macros.protein}g · S ${starch}g · F ${am.macros.fat}g`;
+    const text = t("athletePicker.mealCopyText", {
+      title: am.title,
+      cals: am.macros.kcal,
+      protein: am.macros.protein,
+      starch,
+      fat: am.macros.fat,
+    });
     navigator.clipboard.writeText(text).then(() => {
       setCopiedMealId(am.id);
       setTimeout(() => setCopiedMealId((prev) => prev === am.id ? null : prev), 1500);
@@ -215,7 +229,7 @@ export function AthleteMealPickerDrawer({
       setTimeout(() => setSendState("idle"), 6000);
     } catch (err: any) {
       const msg = err?.message || "Failed to send";
-      setSendError(msg.includes("No active") ? "No active coach connection" : "Failed to send — try again");
+      setSendError(msg.includes("No active") ? t("athletePicker.noCoachConnection") : t("athletePicker.sendFailed"));
       setSendState("error");
       setTimeout(() => { setSendState("idle"); setSendError(null); }, 3000);
     }
@@ -251,7 +265,8 @@ export function AthleteMealPickerDrawer({
 
   if (!open || !list) return null;
 
-  const slotLabel = SLOT_OPTIONS.find((s) => s.value === activeList)?.label ?? activeList;
+  const slotLabelKey = SLOT_OPTIONS.find((s) => s.value === activeList)?.labelKey;
+  const slotLabel = slotLabelKey ? t(slotLabelKey) : activeList;
 
   return (
     <>
@@ -264,17 +279,17 @@ export function AthleteMealPickerDrawer({
         <DialogHeader>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-              🏆 Premade Athlete Meals — {slotLabel}
+              🏆 {t("athletePicker.headerTitle", { slot: slotLabel })}
               <button
                 onClick={() => setShowInfoModal(true)}
                 className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
-                aria-label="How to use Athlete Meal Builder"
+                aria-label={t("athletePicker.howToAria")}
               >
                 ?
               </button>
               {sessionCount > 0 && (
                 <span className="bg-lime-700/80 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                  {sessionCount} added
+                  {t("athletePicker.addedCount", { count: sessionCount })}
                 </span>
               )}
             </DialogTitle>
@@ -282,12 +297,12 @@ export function AthleteMealPickerDrawer({
               onClick={onClose}
               className="shrink-0 bg-orange-600 text-white text-sm font-semibold px-4 py-1.5 rounded-xl"
             >
-              Done
+              {t("athletePicker.done")}
             </button>
           </div>
           {sessionCount > 0 && (
             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-              <span className="text-white/40 text-xs font-medium">Session total:</span>
+              <span className="text-white/40 text-xs font-medium">{t("athletePicker.sessionTotal")}</span>
               {(() => {
                 const hasTargets = liveTargets && (
                   liveTargets.calories > 0 || liveTargets.protein_g > 0 ||
@@ -345,17 +360,17 @@ export function AthleteMealPickerDrawer({
                     ? "bg-lime-700/80 text-white"
                     : "bg-white/10 text-white/70 active:bg-white/20"
                 }`}
-                aria-label="Copy session summary to clipboard"
+                aria-label={t("athletePicker.copySessionAria")}
               >
                 {copied ? (
                   <>
                     <Check className="h-3 w-3" />
-                    Copied!
+                    {t("athletePicker.copied")}
                   </>
                 ) : (
                   <>
                     <Copy className="h-3 w-3" />
-                    Copy
+                    {t("athletePicker.copy")}
                   </>
                 )}
               </button>
@@ -373,27 +388,27 @@ export function AthleteMealPickerDrawer({
                         ? "bg-orange-700/60 text-orange-100"
                         : "bg-orange-600/70 text-white active:bg-orange-600"
                     }`}
-                    aria-label="Send session summary to coach"
+                    aria-label={t("athletePicker.sendCoachAria")}
                   >
                     {sendState === "sending" ? (
                       <>
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        Sending…
+                        {t("athletePicker.sending")}
                       </>
                     ) : sendState === "sent" ? (
                       <>
                         <Check className="h-3 w-3" />
-                        Sent!
+                        {t("athletePicker.sent")}
                       </>
                     ) : sendState === "error" ? (
                       <>
                         <Send className="h-3 w-3" />
-                        {sendError ?? "Error"}
+                        {sendError ?? t("athletePicker.errorShort")}
                       </>
                     ) : (
                       <>
                         <Send className="h-3 w-3" />
-                        Send to Coach
+                        {t("athletePicker.sendToCoach")}
                       </>
                     )}
                   </button>
@@ -401,10 +416,10 @@ export function AthleteMealPickerDrawer({
                     <button
                       onClick={handleViewInChat}
                       className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-white/15 text-white active:bg-white/25 transition-all"
-                      aria-label="View message in coach chat"
+                      aria-label={t("athletePicker.viewChatAria")}
                     >
                       <MessageSquare className="h-3 w-3" />
-                      View in Chat
+                      {t("athletePicker.viewInChat")}
                     </button>
                   )}
                 </>
@@ -416,7 +431,7 @@ export function AthleteMealPickerDrawer({
         <div className="space-y-4">
           {/* Slot Switcher */}
           <div className="bg-black/30 p-3 rounded-lg border border-white/10">
-            <p className="text-white/60 text-xs mb-2 font-medium">Adding to:</p>
+            <p className="text-white/60 text-xs mb-2 font-medium">{t("athletePicker.addingTo")}</p>
             <div className="flex flex-wrap gap-2">
               {SLOT_OPTIONS.map((slot) => (
                 <button
@@ -428,7 +443,7 @@ export function AthleteMealPickerDrawer({
                       : "bg-white/10 text-white/70"
                   }`}
                 >
-                  {slot.label}
+                  {t(slot.labelKey)}
                 </button>
               ))}
             </div>
@@ -439,10 +454,10 @@ export function AthleteMealPickerDrawer({
             <div className={`p-3 rounded-xl border ${carbCycleState?.phase === "refeed" ? "bg-green-950/30 border-green-500/30" : "bg-orange-950/30 border-orange-500/30"}`}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className={`text-xs font-semibold ${carbCycleState?.phase === "refeed" ? "text-green-300" : "text-orange-300"}`}>
-                  {carbCycleState?.phase === "refeed" ? "⚡ Refeed Day" : "🔄 Low-Starch Day"} — Starch Allocation
+                  {carbCycleState?.phase === "refeed" ? `⚡ ${t("athletePicker.refeedDay")}` : `🔄 ${t("athletePicker.lowStarchDay")}`} — {t("athletePicker.starchAllocation")}
                 </span>
                 <span className="text-white/60 text-xs font-semibold">
-                  {budgetPct !== null ? `${carbsUsed}g / ${carbCap}g starch` : `${carbCap}g starch cap`}
+                  {budgetPct !== null ? t("athletePicker.starchUsage", { used: carbsUsed, cap: carbCap }) : t("athletePicker.starchCap", { cap: carbCap })}
                 </span>
               </div>
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -452,14 +467,14 @@ export function AthleteMealPickerDrawer({
                 />
               </div>
               <p className="text-white/40 text-xs mt-1.5">
-                Fibrous vegetables are unrestricted — starch only (rice, oats, potatoes)
+                {t("athletePicker.fibrousNote")}
               </p>
             </div>
           )}
 
           {/* Category Selector */}
           <div className="bg-black/30 p-4 rounded-lg border border-white/10">
-            <label className="text-white/80 text-sm mb-2 block">Select Protein Category:</label>
+            <label className="text-white/80 text-sm mb-2 block">{t("athletePicker.selectCategory")}</label>
             <Select
               value={category}
               onValueChange={(val) =>
@@ -468,8 +483,10 @@ export function AthleteMealPickerDrawer({
             >
               <SelectTrigger className="w-full bg-black/60 border-white/20 text-white h-10 text-sm">
                 <SelectValue>
-                  {CATEGORY_OPTIONS.find((opt) => opt.value === category)
-                    ?.label ?? "Select Category"}
+                  {(() => {
+                    const opt = CATEGORY_OPTIONS.find((o) => o.value === category);
+                    return opt ? `${opt.emoji} ${t(opt.labelKey)}` : t("athletePicker.selectCategoryShort");
+                  })()}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="bg-zinc-900/95 border-white/20 text-white">
@@ -479,7 +496,7 @@ export function AthleteMealPickerDrawer({
                     value={option.value}
                     className="text-white hover:bg-white/10 focus:bg-white/20 cursor-pointer"
                   >
-                    {option.label}
+                    {`${option.emoji} ${t(option.labelKey)}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -530,11 +547,11 @@ export function AthleteMealPickerDrawer({
                     <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
                       {justAdded ? (
                         <Badge className="bg-lime-600/90 text-white text-[10px] px-2 py-0.5">
-                          Added!
+                          {t("athletePicker.added")}
                         </Badge>
                       ) : am.includeCarbs ? (
                         <Badge className="bg-green-600/80 text-white text-[10px] px-2 py-0.5">
-                          Starch
+                          {t("athletePicker.starch")}
                         </Badge>
                       ) : (
                         <Badge className="bg-orange-600/80 text-white text-[10px] px-2 py-0.5">
@@ -544,14 +561,14 @@ export function AthleteMealPickerDrawer({
                       <button
                         onClick={(e) => handleCopyMeal(e, am)}
                         className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 text-white/50 hover:bg-white/20 hover:text-white/80 transition-all text-[9px] font-medium"
-                        aria-label="Copy meal details"
+                        aria-label={t("athletePicker.copyMealAria")}
                       >
                         {copiedMealId === am.id ? (
                           <Check className="h-2.5 w-2.5 text-lime-400" />
                         ) : (
                           <Copy className="h-2.5 w-2.5" />
                         )}
-                        <span>{copiedMealId === am.id ? "Copied!" : "Copy"}</span>
+                        <span>{copiedMealId === am.id ? t("athletePicker.copied") : t("athletePicker.copy")}</span>
                       </button>
                     </div>
                   </div>
@@ -583,7 +600,7 @@ export function AthleteMealPickerDrawer({
             })}
             {excludedCount > 0 && (
               <p className="text-white/30 text-xs text-center col-span-full py-1">
-                {excludedCount} meal{excludedCount === 1 ? "" : "s"} hidden — starch would exceed {carbCapSoft}g
+                {t("athletePicker.hiddenCount", { count: excludedCount, cap: carbCapSoft })}
               </p>
             )}
           </div>
@@ -593,15 +610,15 @@ export function AthleteMealPickerDrawer({
             <div className="flex items-start gap-2 mb-2">
               <Target className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-emerald-400 mb-1">Premade Athlete Meals</p>
+                <p className="font-semibold text-emerald-400 mb-1">{t("athletePicker.noteTitle")}</p>
                 <p className="text-white/80 text-xs mb-2">
-                  Pre-designed meals optimized for athletic performance and muscle building.
+                  {t("athletePicker.noteDesc")}
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-xs text-white/70 ml-2">
-                  <li>Select your protein category (Chicken, Red Meat, Fish, Eggs)</li>
-                  <li>Meals tagged <strong className="text-white">Starch</strong> include rice, oats, or potatoes — <strong className="text-white">P+V</strong> is protein + fibrous vegetables only</li>
-                  <li>Click any meal to add it to your board instantly</li>
-                  <li>All macros are pre-calculated and ready to track</li>
+                  <li>{t("athletePicker.noteStep1")}</li>
+                  <li>{t("athletePicker.noteStep2Before")} <strong className="text-white">{t("athletePicker.starch")}</strong> {t("athletePicker.noteStep2Mid")} <strong className="text-white">P+V</strong> {t("athletePicker.noteStep2After")}</li>
+                  <li>{t("athletePicker.noteStep3")}</li>
+                  <li>{t("athletePicker.noteStep4")}</li>
                 </ul>
               </div>
             </div>
@@ -613,25 +630,25 @@ export function AthleteMealPickerDrawer({
     {showInfoModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
         <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
-          <h3 className="text-xl font-bold text-white mb-4">How to Use Athlete Meal Builder</h3>
+          <h3 className="text-xl font-bold text-white mb-4">{t("athletePicker.info.title")}</h3>
 
           <div className="space-y-4 text-white/90 text-sm">
-            <p>Pre-designed meals optimized for athletic performance and muscle building.</p>
+            <p>{t("athletePicker.info.intro")}</p>
 
             <div>
-              <h4 className="font-semibold text-white mb-2">Steps:</h4>
+              <h4 className="font-semibold text-white mb-2">{t("athletePicker.info.stepsLabel")}</h4>
               <ul className="space-y-2 text-white/80 text-sm">
-                <li><strong className="text-white">Select your protein category</strong> (Chicken, Red Meat, Fish, Eggs)</li>
-                <li><strong className="text-white">Starch</strong> meals include rice, oats, or potatoes. <strong className="text-white">P+V</strong> is protein + fibrous vegetables only</li>
-                <li><strong className="text-white">Click any meal</strong> to add it to your board instantly</li>
-                <li><strong className="text-white">All macros</strong> are pre-calculated and ready to track</li>
+                <li><strong className="text-white">{t("athletePicker.info.step1Label")}</strong> {t("athletePicker.info.step1Text")}</li>
+                <li><strong className="text-white">{t("athletePicker.starch")}</strong> {t("athletePicker.info.step2Mid")} <strong className="text-white">P+V</strong> {t("athletePicker.info.step2After")}</li>
+                <li><strong className="text-white">{t("athletePicker.info.step3Label")}</strong> {t("athletePicker.info.step3Text")}</li>
+                <li><strong className="text-white">{t("athletePicker.info.step4Label")}</strong> {t("athletePicker.info.step4Text")}</li>
               </ul>
             </div>
 
             <div className="bg-black/20 border border-white/10 rounded-lg p-3">
-              <p className="font-semibold text-white mb-1">💡 Tip:</p>
+              <p className="font-semibold text-white mb-1">{t("athletePicker.info.tipLabel")}</p>
               <p className="text-white/70">
-                On low-starch days, use <strong className="text-white">P+V</strong> meals. On refeed days, add <strong className="text-white">Starch</strong> meals. Fibrous vegetables are always unlimited.
+                {t("athletePicker.info.tipBefore")} <strong className="text-white">P+V</strong> {t("athletePicker.info.tipMid")} <strong className="text-white">{t("athletePicker.starch")}</strong> {t("athletePicker.info.tipAfter")}
               </p>
             </div>
           </div>
@@ -640,7 +657,7 @@ export function AthleteMealPickerDrawer({
             onClick={() => setShowInfoModal(false)}
             className="mt-6 w-full bg-lime-700 hover:bg-lime-800 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            got it!
+            {t("athletePicker.gotIt")}
           </button>
         </div>
       </div>

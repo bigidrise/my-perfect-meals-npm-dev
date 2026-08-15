@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,6 +33,7 @@ export default function BodyCompositionSheet({
   onOpenChange,
   onSaved,
 }: BodyCompositionSheetProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [method, setMethod] = useState<ScanMethod>("DEXA");
   const [date, setDate] = useState<string>("");
@@ -66,8 +68,8 @@ export default function BodyCompositionSheet({
   const save = async () => {
     if (!userId) {
       toast({
-        title: "Not logged in",
-        description: "Please log in to save your body composition data.",
+        title: t("bodyComposition.notLoggedIn"),
+        description: t("bodyComposition.notLoggedInDesc"),
         variant: "destructive",
       });
       return;
@@ -76,8 +78,8 @@ export default function BodyCompositionSheet({
     const bf = toNumber(bodyFatPct);
     if (!isFinite(bf) || bf < 1 || bf > 70) {
       toast({
-        title: "Invalid body fat",
-        description: "Body fat percentage must be between 1% and 70%.",
+        title: t("bodyComposition.invalidBodyFat"),
+        description: t("bodyComposition.invalidBodyFatDesc"),
         variant: "destructive",
       });
       return;
@@ -101,8 +103,8 @@ export default function BodyCompositionSheet({
       });
 
       toast({
-        title: "Saved",
-        description: "Body composition recorded successfully.",
+        title: t("bodyComposition.saved"),
+        description: t("bodyComposition.savedDesc"),
       });
 
       setBodyFatPct("");
@@ -112,8 +114,8 @@ export default function BodyCompositionSheet({
       const message = err instanceof Error ? err.message : String(err);
       console.error("Error saving body composition:", message);
       toast({
-        title: "Save failed",
-        description: "Could not save your body composition data. Please try again.",
+        title: t("bodyComposition.saveFailed"),
+        description: t("bodyComposition.saveFailedDesc"),
         variant: "destructive",
       });
     } finally {
@@ -130,17 +132,17 @@ export default function BodyCompositionSheet({
         <SheetHeader className="pb-4">
           <SheetTitle className="text-white flex items-center gap-2 text-xl">
             <Scale className="h-5 w-5 text-blue-400" />
-            Record Body Composition
+            {t("bodyComposition.title")}
           </SheetTitle>
         </SheetHeader>
 
         <div className="space-y-5 pb-8">
           <div className="space-y-2">
-            <label className="text-sm text-white/85 font-medium">Body Fat %</label>
+            <label className="text-sm text-white/85 font-medium">{t("bodyComposition.bodyFatPct")}</label>
             <Input
               type="number"
               inputMode="decimal"
-              placeholder="e.g. 18.5"
+              placeholder={t("bodyComposition.bodyFatPlaceholder")}
               value={bodyFatPct}
               onChange={(e) => setBodyFatPct(e.target.value)}
               className="bg-black/40 border-white/20 text-white text-lg h-12"
@@ -148,11 +150,11 @@ export default function BodyCompositionSheet({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-white/85 font-medium">Goal Body Fat % (optional)</label>
+            <label className="text-sm text-white/85 font-medium">{t("bodyComposition.goalBodyFatPct")}</label>
             <Input
               type="number"
               inputMode="decimal"
-              placeholder="e.g. 15"
+              placeholder={t("bodyComposition.goalBodyFatPlaceholder")}
               value={goalBodyFatPct}
               onChange={(e) => setGoalBodyFatPct(e.target.value)}
               className="bg-black/40 border-white/20 text-white h-12"
@@ -160,10 +162,10 @@ export default function BodyCompositionSheet({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-white/85 font-medium">Scan Method</label>
+            <label className="text-sm text-white/85 font-medium">{t("bodyComposition.scanMethod")}</label>
             <Select value={method} onValueChange={(v: Method) => setMethod(v)}>
               <SelectTrigger className="bg-black/40 border-white/20 text-white h-12">
-                <SelectValue placeholder="Pick a method" />
+                <SelectValue placeholder={t("bodyComposition.pickMethod")} />
               </SelectTrigger>
               <SelectContent className="bg-zinc-900 text-white border border-white/20">
                 {["DEXA", "BodPod", "Calipers", "Smart Scale", "Other"].map((m) => (
@@ -176,7 +178,7 @@ export default function BodyCompositionSheet({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-white/85 font-medium">Date</label>
+            <label className="text-sm text-white/85 font-medium">{t("bodyComposition.date")}</label>
             <div className="flex items-center gap-2">
               <CalIcon className="h-4 w-4 text-white/60" />
               <Input
@@ -193,7 +195,7 @@ export default function BodyCompositionSheet({
             disabled={isSaving || !bodyFatPct}
             className="w-full h-14 text-lg font-semibold bg-green-600 hover:bg-green-700 text-white mt-4"
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? t("bodyComposition.saving") : t("bodyComposition.save")}
           </Button>
         </div>
       </SheetContent>

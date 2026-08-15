@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { Building2, X, ChevronRight, Users, User, Star, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,19 +7,19 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import type { User as UserType } from "@/lib/auth";
 
-function resolveProviderRoute(user: UserType | null): { route: string; description: string } {
-  if (!user) return { route: "/pro-portal", description: "Launch your independent ProCare account" };
+function resolveProviderRoute(user: UserType | null): { route: string; descriptionKey: string } {
+  if (!user) return { route: "/pro-portal", descriptionKey: "sponsorEnded.launchProCare" };
 
   if (user.procareTrainingCompleted && user.attestedAt) {
-    return { route: "/pro-portal", description: "Open your independent studio" };
+    return { route: "/pro-portal", descriptionKey: "sponsorEnded.openStudio" };
   }
   if (user.isProCare && user.procareTrainingCompleted && !user.attestedAt) {
-    return { route: "/pro-portal", description: "Complete credential verification" };
+    return { route: "/pro-portal", descriptionKey: "sponsorEnded.completeVerification" };
   }
   if (user.isProCare && !user.procareTrainingCompleted) {
-    return { route: "/learning", description: "Continue Platform Mastery training" };
+    return { route: "/learning", descriptionKey: "sponsorEnded.continueTraining" };
   }
-  return { route: "/pro-portal", description: "Launch your independent ProCare account" };
+  return { route: "/pro-portal", descriptionKey: "sponsorEnded.launchProCare" };
 }
 
 async function serverDismiss() {
@@ -32,6 +33,7 @@ async function serverDismiss() {
 }
 
 export function SponsorEndedBanner() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [dismissed, setDismissed] = useState(false);
@@ -49,26 +51,26 @@ export function SponsorEndedBanner() {
   const actions = [
     {
       icon: Briefcase,
-      label: "Start My Own Practice",
-      description: providerPath.description,
+      label: t("sponsorEnded.startOwnPractice"),
+      description: t(providerPath.descriptionKey),
       onClick: () => { handleDismiss(); setLocation(providerPath.route); },
     },
     {
       icon: User,
-      label: "Continue as a Client",
-      description: "Keep using MPM as an individual member",
+      label: t("sponsorEnded.continueAsClient"),
+      description: t("sponsorEnded.continueAsClientDesc"),
       onClick: () => { handleDismiss(); setLocation("/home"); },
     },
     {
       icon: Star,
-      label: "Continue with Free",
-      description: "Basic meal generation — always free",
+      label: t("sponsorEnded.continueWithFree"),
+      description: t("sponsorEnded.continueWithFreeDesc"),
       onClick: () => { handleDismiss(); setLocation("/home"); },
     },
     {
       icon: Users,
-      label: "Join Another Organization",
-      description: "Accept an invite from a different business",
+      label: t("sponsorEnded.joinAnotherOrg"),
+      description: t("sponsorEnded.joinAnotherOrgDesc"),
       onClick: () => { handleDismiss(); setLocation("/home"); },
     },
   ];
@@ -82,11 +84,10 @@ export function SponsorEndedBanner() {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">
-              Your {removal.businessName}-sponsored access has ended
+              {t("sponsorEnded.accessEnded", { business: removal.businessName })}
             </p>
             <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
-              Your personal account, meal history, Academy progress, and certifications are all still here.
-              Choose how you'd like to continue.
+              {t("sponsorEnded.accessEndedBody")}
             </p>
           </div>
         </div>

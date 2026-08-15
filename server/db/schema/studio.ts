@@ -92,6 +92,7 @@ export const studioInvites = pgTable("studio_invites", {
   studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
   inviteCode: text("invite_code").notNull().unique(),
+  urlToken: text("url_token").unique(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

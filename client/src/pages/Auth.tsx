@@ -18,6 +18,12 @@ export default function Auth() {
   // Invitation token carried from a team-member invite email.  When present this
   // signup is always business-intent; the token is auto-accepted after auth.
   const urlInvite = useMemo(() => new URLSearchParams(search).get("invite"), [search]);
+  // returnTo is set by /join/studio (and similar pages) when redirecting an
+  // unauthenticated user to login. Only same-origin paths are honoured.
+  const urlReturnTo = useMemo(() => {
+    const p = new URLSearchParams(search).get("returnTo");
+    return p && p.startsWith("/") && !p.startsWith("//") ? p : null;
+  }, [search]);
   const isIdleTimeout = useMemo(() => new URLSearchParams(search).get("reason") === "idle_timeout", [search]);
   const signupSource = useMemo(() => {
     const p = new URLSearchParams(search);
@@ -68,6 +74,14 @@ export default function Auth() {
       // Refresh session so the business membership is visible immediately
       try { await refreshUser(); } catch { /* non-fatal */ }
       setLocation("/business-dashboard");
+      return;
+    }
+
+    // If a returnTo path was preserved (e.g. /join/studio after a ProCare invite
+    // deep-link redirected an unauthenticated user to login), send them there now.
+    if (urlReturnTo) {
+      try { await refreshUser(); } catch { /* non-fatal */ }
+      setLocation(urlReturnTo);
       return;
     }
 

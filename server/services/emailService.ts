@@ -264,11 +264,13 @@ export async function sendCareTeamInvite({
   patientName,
   inviteCode,
   role,
+  urlToken,
 }: {
   to: string;
   patientName: string;
   inviteCode: string;
   role: string;
+  urlToken?: string;
 }) {
   if (!resend) {
     console.log('⚠️ Resend service not available - skipping Care Team invite email');
@@ -278,15 +280,19 @@ export async function sendCareTeamInvite({
   const isClinic = ['doctor', 'physician', 'pa', 'np', 'rn'].includes(role);
   const proLabel = isClinic ? 'doctor' : 'trainer';
   const spaceLabel = isClinic ? 'clinic' : 'studio';
+  const spaceTitle = isClinic ? 'Clinic' : 'Studio';
   const subjectLine = isClinic
-    ? "You've been invited to your doctor's ProCare clinic"
-    : "You've been invited to your trainer's ProCare studio";
+    ? "You've been invited to your doctor's My Perfect Meals ProCare Clinic"
+    : "You've been invited to your trainer's My Perfect Meals ProCare Studio";
   const bodyText = isClinic
-    ? 'ProCare is a secure system your doctor uses to support your nutrition, health goals, and care plan.'
-    : 'ProCare is the system your trainer uses to guide your nutrition, training support, and progress.';
-  const ctaText = isClinic ? 'Join ProCare Clinic' : 'Join ProCare Studio';
+    ? 'Your doctor uses My Perfect Meals ProCare to guide your nutrition, health goals, and care plan.'
+    : 'Your trainer uses My Perfect Meals ProCare to guide your nutrition, meal planning, and progress.';
 
   const APP_URL = process.env.PUBLIC_APP_URL || 'https://app.myperfectmeals.ai';
+  // Deep link carries the token so the client never has to type the code.
+  // Falls back to the app homepage if no token is available (e.g. legacy path).
+  const ctaHref = urlToken ? `${APP_URL}/join/studio?token=${urlToken}` : APP_URL;
+  const ctaText = isClinic ? 'Accept ProCare Clinic Invitation →' : 'Accept ProCare Invitation →';
 
   try {
     const { data, error } = await resend.emails.send({
@@ -297,56 +303,44 @@ export async function sendCareTeamInvite({
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #000000 0%, #F97316 50%, #000000 100%); padding: 36px 30px 30px; border-radius: 12px 12px 0 0; text-align: center;">
             <img src="${APP_URL}/icons/icon-192x192.png" alt="My Perfect Meals" style="width: 64px; height: 64px; border-radius: 16px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" />
-            <h1 style="color: white; margin: 0 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">${ctaText}</h1>
-            <p style="color: rgba(255,255,255,0.85); margin: 10px 0 22px; font-size: 15px;">Get started by clicking below:</p>
-            <a href="${APP_URL}" style="display: inline-block; background: #000000; color: #ffffff; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 50px; text-decoration: none; letter-spacing: 0.3px;">Get Started →</a>
+            <h1 style="color: white; margin: 0 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">ProCare ${spaceTitle} Invitation</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 10px 0 22px; font-size: 15px;">Your ${proLabel} has invited you to connect.</p>
+            <a href="${ctaHref}" style="display: inline-block; background: #000000; color: #ffffff; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 50px; text-decoration: none; letter-spacing: 0.3px;">${ctaText}</a>
           </div>
-          
+
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
             <p style="color: #374151; font-size: 16px; line-height: 1.6;">
               Your ${proLabel} has invited you to join their ProCare ${spaceLabel} on My Perfect Meals.
             </p>
-            
+
             <p style="color: #374151; font-size: 16px; line-height: 1.6;">
               ${bodyText}
             </p>
-            
-            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-bottom: 8px;">
-              <strong>Your Invitation Code:</strong>
+
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              <strong>Already have an account?</strong> Click the button above and sign in — your invitation will be recognized automatically.
             </p>
-            
-            <div style="background: #fff7ed; border: 2px solid #F97316; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-              <div style="font-size: 32px; font-weight: bold; color: #ea580c; letter-spacing: 4px; font-family: monospace;">
+
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              <strong>New to My Perfect Meals?</strong> Click the button above and create your account using <strong>${to}</strong>. Your invitation will connect automatically after setup.
+            </p>
+
+            <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 16px; margin: 24px 0;">
+              <p style="color: #9a3412; font-size: 13px; margin: 0 0 8px; font-weight: 600;">⚠️ Backup code — only needed if the button doesn't work</p>
+              <p style="color: #374151; font-size: 13px; margin: 0 0 10px; line-height: 1.5;">In the app: <strong>More → Connect with Access Code</strong></p>
+              <div style="font-size: 26px; font-weight: bold; color: #ea580c; letter-spacing: 4px; font-family: monospace; text-align: center; padding: 8px 0;">
                 ${inviteCode}
               </div>
             </div>
-            
-            <div style="background: #f9fafb; border-left: 4px solid #F97316; padding: 16px; margin: 20px 0; border-radius: 4px;">
-              <p style="color: #1c1c1c; font-size: 14px; margin: 0; line-height: 1.8;">
-                <strong>To accept this invitation:</strong><br><br>
-                1. <strong>Download or open My Perfect Meals</strong><br>
-                &nbsp;&nbsp;&nbsp;<a href="${APP_URL}" style="color: #ea580c;">${APP_URL}</a><br><br>
-                2. Create your account and complete setup<br><br>
-                3. Go to the <strong>More</strong> tab<br><br>
-                4. Tap <strong>Connect with Access Code</strong><br><br>
-                5. Enter your code and tap <strong>Connect</strong>
-              </p>
-            </div>
 
-            <div style="background: #fff7ed; border-left: 4px solid #F97316; padding: 14px 16px; margin: 20px 0; border-radius: 4px;">
-              <p style="color: #7c2d12; font-size: 14px; margin: 0; line-height: 1.6;">
-                <strong>⚠️ Important:</strong> To work with your ${proLabel}, you'll need to activate the <strong>ProCare (Ultimate) plan</strong> during setup.
-              </p>
-            </div>
-            
             <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
-              This invitation expires in 7 days.
+              This invitation was sent to <strong>${to}</strong>. Please use that email address when you sign in or create your account. It expires in 7 days.
             </p>
-            
+
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-            
+
             <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-bottom: 0;">
-              My Perfect Meals - Personalized Nutrition & Meal Planning
+              My Perfect Meals &middot; Personalized Nutrition &amp; Meal Planning
             </p>
           </div>
         </div>

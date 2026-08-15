@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Shield, ShieldCheck, ShieldOff, Copy, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -28,6 +29,7 @@ type Phase =
   | "disable-confirm";
 
 export function MfaSetupSection() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<MfaStatus | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [qrDataUri, setQrDataUri] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function MfaSetupSection() {
       setPhase("setup-qr");
     } catch (e: any) {
       console.error("[MFA] beginSetup failed:", e?.message, e);
-      setErr(e?.message || "Failed to start setup. Please try again.");
+      setErr(e?.message || t("mfa.errorStartSetup"));
     } finally {
       setBusy(false);
     }
@@ -82,7 +84,7 @@ export function MfaSetupSection() {
       setPhase("setup-backup");
       setStatus({ mfaEnabled: true, enrolledAt: new Date().toISOString() });
     } catch (e: any) {
-      setErr(e?.message || "Invalid code. Try again.");
+      setErr(e?.message || t("mfa.errorInvalidCode"));
     } finally {
       setBusy(false);
     }
@@ -98,7 +100,7 @@ export function MfaSetupSection() {
       setPhase("idle");
       setDisableCode("");
     } catch (e: any) {
-      setErr(e?.message || "Invalid code. MFA not disabled.");
+      setErr(e?.message || t("mfa.errorDisableInvalid"));
     } finally {
       setBusy(false);
     }
@@ -119,7 +121,7 @@ export function MfaSetupSection() {
     return (
       <div className="flex items-center gap-2 py-4 text-white/40 text-sm">
         <RefreshCw className="w-4 h-4 animate-spin" />
-        Loading…
+        {t("mfa.loading")}
       </div>
     );
   }
@@ -131,14 +133,14 @@ export function MfaSetupSection() {
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0" />
           <div>
-            <p className="font-semibold text-white">Two-factor authentication enabled</p>
-            <p className="text-xs text-white/50">Save your backup codes before closing this page.</p>
+            <p className="font-semibold text-white">{t("mfa.enabledTitle")}</p>
+            <p className="text-xs text-white/50">{t("mfa.saveBackupPrompt")}</p>
           </div>
         </div>
 
         <div className="bg-black/40 border border-white/10 rounded-xl p-4 space-y-2">
           <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide mb-3">
-            Backup Codes — save these now
+            {t("mfa.backupCodesHeading")}
           </p>
           <div className="grid grid-cols-2 gap-2">
             {backupCodes.map((c) => (
@@ -153,13 +155,12 @@ export function MfaSetupSection() {
             className="mt-3 w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 text-sm rounded-xl py-2"
           >
             {copiedBackup ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-            {copiedBackup ? "Copied!" : "Copy all codes"}
+            {copiedBackup ? t("mfa.copied") : t("mfa.copyAllCodes")}
           </button>
         </div>
 
         <p className="text-xs text-white/40">
-          Each code can only be used once. Store them somewhere safe. If you lose access to your
-          authenticator app, you'll need one of these to sign in.
+          {t("mfa.backupCodesNote")}
         </p>
 
         <button
@@ -167,7 +168,7 @@ export function MfaSetupSection() {
           onClick={() => setPhase("idle")}
           className="w-full bg-orange-600 text-white font-semibold rounded-xl py-3"
         >
-          I've saved my backup codes
+          {t("mfa.savedBackupBtn")}
         </button>
       </div>
     );
@@ -180,10 +181,10 @@ export function MfaSetupSection() {
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-green-400 shrink-0" />
           <div>
-            <p className="font-semibold text-white">Two-factor authentication is on</p>
+            <p className="font-semibold text-white">{t("mfa.onTitle")}</p>
             {status.enrolledAt && (
               <p className="text-xs text-white/40">
-                Enabled {new Date(status.enrolledAt).toLocaleDateString()}
+                {t("mfa.enabledOn", { date: new Date(status.enrolledAt).toLocaleDateString() })}
               </p>
             )}
           </div>
@@ -195,7 +196,7 @@ export function MfaSetupSection() {
           className="flex items-center gap-2 bg-white/5 border border-white/10 text-white/70 text-sm rounded-xl px-4 py-2.5"
         >
           <ShieldOff className="w-4 h-4" />
-          Disable 2FA
+          {t("mfa.disable2fa")}
         </button>
       </div>
     );
@@ -208,8 +209,8 @@ export function MfaSetupSection() {
         <div className="flex items-center gap-3">
           <ShieldOff className="w-5 h-5 text-orange-400 shrink-0" />
           <div>
-            <p className="font-semibold text-white">Disable two-factor authentication</p>
-            <p className="text-xs text-white/50">Enter your current authenticator code to confirm.</p>
+            <p className="font-semibold text-white">{t("mfa.disableTitle")}</p>
+            <p className="text-xs text-white/50">{t("mfa.disablePrompt")}</p>
           </div>
         </div>
 
@@ -237,7 +238,7 @@ export function MfaSetupSection() {
             onClick={() => { setPhase("idle"); setErr(null); setDisableCode(""); }}
             className="flex-1 bg-white/5 border border-white/10 text-white/70 text-sm rounded-xl py-3"
           >
-            Cancel
+            {t("mfa.cancel")}
           </button>
           <button
             type="button"
@@ -245,7 +246,7 @@ export function MfaSetupSection() {
             disabled={busy || !disableCode.trim()}
             className="flex-1 bg-red-700/80 disabled:opacity-50 text-white font-semibold text-sm rounded-xl py-3"
           >
-            {busy ? "Disabling…" : "Disable 2FA"}
+            {busy ? t("mfa.disabling") : t("mfa.disable2fa")}
           </button>
         </div>
       </div>
@@ -259,8 +260,8 @@ export function MfaSetupSection() {
         <div className="flex items-center gap-3">
           <Shield className="w-5 h-5 text-orange-400 shrink-0" />
           <div>
-            <p className="font-semibold text-white">Scan with your authenticator app</p>
-            <p className="text-xs text-white/50">Google Authenticator, Authy, or 1Password work great.</p>
+            <p className="font-semibold text-white">{t("mfa.scanTitle")}</p>
+            <p className="text-xs text-white/50">{t("mfa.scanApps")}</p>
           </div>
         </div>
 
@@ -268,7 +269,7 @@ export function MfaSetupSection() {
           <div className="flex justify-center">
             <img
               src={qrDataUri}
-              alt="Scan this QR code with your authenticator app"
+              alt={t("mfa.qrAlt")}
               className="w-44 h-44 rounded-xl bg-white p-2"
             />
           </div>
@@ -276,7 +277,7 @@ export function MfaSetupSection() {
 
         {secret && (
           <div className="space-y-1">
-            <p className="text-xs text-white/40">Can't scan? Enter this key manually:</p>
+            <p className="text-xs text-white/40">{t("mfa.manualKeyPrompt")}</p>
             <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-2">
               <span className="flex-1 font-mono text-xs text-white/70 break-all">{secret}</span>
               <button
@@ -295,7 +296,7 @@ export function MfaSetupSection() {
           onClick={() => { setPhase("setup-confirm"); setErr(null); }}
           className="w-full bg-orange-600 text-white font-semibold rounded-xl py-3"
         >
-          I've added the account — next
+          {t("mfa.addedAccountNext")}
         </button>
 
         <button
@@ -303,7 +304,7 @@ export function MfaSetupSection() {
           onClick={() => setPhase("idle")}
           className="w-full text-white/40 text-sm py-1"
         >
-          Cancel
+          {t("mfa.cancel")}
         </button>
       </div>
     );
@@ -316,8 +317,8 @@ export function MfaSetupSection() {
         <div className="flex items-center gap-3">
           <Shield className="w-5 h-5 text-orange-400 shrink-0" />
           <div>
-            <p className="font-semibold text-white">Confirm your authenticator code</p>
-            <p className="text-xs text-white/50">Enter the 6-digit code from your app to activate 2FA.</p>
+            <p className="font-semibold text-white">{t("mfa.confirmTitle")}</p>
+            <p className="text-xs text-white/50">{t("mfa.confirmPrompt")}</p>
           </div>
         </div>
 
@@ -346,7 +347,7 @@ export function MfaSetupSection() {
           disabled={busy || !confirmCode.trim()}
           className="w-full bg-orange-600 disabled:opacity-50 text-white font-semibold rounded-xl py-3"
         >
-          {busy ? "Activating…" : "Activate 2FA"}
+          {busy ? t("mfa.activating") : t("mfa.activate2fa")}
         </button>
 
         <button
@@ -354,7 +355,7 @@ export function MfaSetupSection() {
           onClick={() => { setPhase("setup-qr"); setErr(null); }}
           className="w-full text-white/40 text-sm py-1"
         >
-          Back
+          {t("mfa.back")}
         </button>
       </div>
     );
@@ -366,8 +367,8 @@ export function MfaSetupSection() {
       <div className="flex items-center gap-3">
         <Shield className="w-5 h-5 text-white/40 shrink-0" />
         <div>
-          <p className="font-semibold text-white">Two-factor authentication</p>
-          <p className="text-xs text-white/40">Add a second layer of security to your account.</p>
+          <p className="font-semibold text-white">{t("mfa.defaultTitle")}</p>
+          <p className="text-xs text-white/40">{t("mfa.defaultSubtitle")}</p>
         </div>
       </div>
 
@@ -385,7 +386,7 @@ export function MfaSetupSection() {
         className="flex items-center gap-2 bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl px-4 py-2.5"
       >
         <Shield className="w-4 h-4" />
-        {busy ? "Setting up…" : "Enable 2FA"}
+        {busy ? t("mfa.settingUp") : t("mfa.enable2fa")}
       </button>
     </div>
   );

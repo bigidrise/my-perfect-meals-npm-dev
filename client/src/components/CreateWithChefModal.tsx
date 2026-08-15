@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import BreathingOrb from "@/components/BreathingOrb";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -75,6 +76,7 @@ export function CreateWithChefModal({
   generationContext,
   proClientId,
 }: CreateWithChefModalProps) {
+  const { t } = useTranslation();
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -236,8 +238,8 @@ export function CreateWithChefModal({
       // ───────────────────────────────────────────────────────────────────────
 
       toast({
-        title: "Meal Created!",
-        description: `${finalMeal.name} is ready for you`,
+        title: t("createWithChef.mealCreatedTitle"),
+        description: t("createWithChef.mealCreatedDesc", { name: finalMeal.name }),
       });
       onMealGenerated(finalMeal, mealType);
       onOpenChange(false);
@@ -250,7 +252,7 @@ export function CreateWithChefModal({
         });
       } else {
         toast({
-          title: "Generation Failed",
+          title: t("createWithChef.generationFailedTitle"),
           description: error,
           variant: "destructive",
         });
@@ -261,8 +263,8 @@ export function CreateWithChefModal({
   const handleGenerate = async () => {
     if (!userId) {
       toast({
-        title: "Please sign in",
-        description: "You need to be signed in to create meals",
+        title: t("createWithChef.signInTitle"),
+        description: t("createWithChef.signInDesc"),
         variant: "destructive",
       });
       return;
@@ -270,8 +272,8 @@ export function CreateWithChefModal({
     
     if (isGuest && !canGuestGenerate()) {
       toast({
-        title: "Guest limit reached",
-        description: "Create a free account to continue generating meals",
+        title: t("createWithChef.guestLimitTitle"),
+        description: t("createWithChef.guestLimitDesc"),
         variant: "destructive",
       });
       return;
@@ -279,8 +281,8 @@ export function CreateWithChefModal({
     
     if (!description.trim()) {
       toast({
-        title: "Please describe your meal",
-        description: "Tell the Chef what you're in the mood for",
+        title: t("createWithChef.describeMealTitle"),
+        description: t("createWithChef.describeMealDesc"),
         variant: "destructive",
       });
       return;
@@ -409,8 +411,8 @@ export function CreateWithChefModal({
   const handleUseAlternative = async () => {
     if (!alternativeInput.trim()) {
       toast({
-        title: "Please enter an alternative",
-        description: "Tell us what you'd like instead",
+        title: t("createWithChef.enterAlternativeTitle"),
+        description: t("createWithChef.enterAlternativeDesc"),
         variant: "destructive",
       });
       return;
@@ -442,13 +444,13 @@ export function CreateWithChefModal({
   const getPlaceholder = () => {
     switch (mealType) {
       case "breakfast":
-        return "e.g., 'protein pancakes,' 'sweet eggs with fruit,' 'low-carb omelette'";
+        return t("createWithChef.placeholderBreakfast");
       case "lunch":
-        return "e.g., 'grilled chicken salad,' 'high-protein wrap,' 'Mediterranean bowl'";
+        return t("createWithChef.placeholderLunch");
       case "dinner":
-        return "e.g., 'low-carb tacos,' 'steak with vegetables,' 'salmon with rice'";
+        return t("createWithChef.placeholderDinner");
       default:
-        return "e.g., 'something light and healthy,' 'high-protein meal'";
+        return t("createWithChef.placeholderDefault");
     }
   };
 
@@ -458,10 +460,10 @@ export function CreateWithChefModal({
     <UniversalDialog rawLayout open={open} onOpenChange={onOpenChange} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-semibold">
-            Create with AI Chef
+            {t("createWithChef.title")}
           </DialogTitle>
           <DialogDescription className="text-white/60">
-            Tell the Chef what you want for {mealType}
+            {t("createWithChef.subtitle", { mealType })}
           </DialogDescription>
         </DialogHeader>
 
@@ -476,16 +478,18 @@ export function CreateWithChefModal({
                 
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-orange-400 mb-2">
-                    Starchy Carbs Limit Reached
+                    {t("createWithChef.starchLimitTitle")}
                   </h4>
                   
                   <p className="text-orange-200/90 text-sm mb-3">
-                    You've already used your starch meal{starchStatus.maxSlots > 1 ? 's' : ''} for today ({starchStatus.slotsUsed} of {starchStatus.maxSlots}).
+                    {starchStatus.maxSlots > 1
+                      ? t("createWithChef.starchUsedPlural", { used: starchStatus.slotsUsed, max: starchStatus.maxSlots })
+                      : t("createWithChef.starchUsedSingular", { used: starchStatus.slotsUsed, max: starchStatus.maxSlots })}
                   </p>
                   
                   {starchMatchedTerms.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-white/60 text-xs mb-1.5">You requested:</p>
+                      <p className="text-white/60 text-xs mb-1.5">{t("createWithChef.youRequested")}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {starchMatchedTerms.map((term, i) => (
                           <span 
@@ -500,13 +504,13 @@ export function CreateWithChefModal({
                   )}
                   
                   <p className="text-white/80 text-sm mb-4">
-                    Would you like to pick a <span className="text-green-400 font-medium">fibrous carb</span> instead, or let the Chef choose for you?
+                    {t("createWithChef.fibrousPrefix")} <span className="text-green-400 font-medium">{t("createWithChef.fibrousCarb")}</span> {t("createWithChef.fibrousSuffix")}
                   </p>
                   
                   {/* Option 1: User picks their own fibrous carb */}
                   <div className="mb-3">
                     <Input
-                      placeholder="e.g., broccoli, asparagus, cauliflower..."
+                      placeholder={t("createWithChef.fibrousPlaceholder")}
                       value={alternativeInput}
                       onChange={(e) => setAlternativeInput(e.target.value)}
                       disabled={isProcessing}
@@ -523,16 +527,16 @@ export function CreateWithChefModal({
                       className="w-full bg-green-600 hover:bg-green-700 text-white"
                     >
                       {isProcessing ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t("createWithChef.generating")}</>
                       ) : (
-                        <>Use My Choice</>
+                        <>{t("createWithChef.useMyChoice")}</>
                       )}
                     </Button>
                   </div>
                   
                   <div className="flex items-center gap-2 my-3">
                     <div className="flex-1 h-px bg-white/20"></div>
-                    <span className="text-white/40 text-xs">or</span>
+                    <span className="text-white/40 text-xs">{t("createWithChef.or")}</span>
                     <div className="flex-1 h-px bg-white/20"></div>
                   </div>
                   
@@ -544,14 +548,14 @@ export function CreateWithChefModal({
                     className="w-full bg-black/40 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
                   >
                     {isProcessing ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t("createWithChef.generating")}</>
                     ) : (
-                      <>Chef's Choice - Pick For Me</>
+                      <>{t("createWithChef.chefsChoice")}</>
                     )}
                   </Button>
                   
                   <p className="text-white/50 text-xs mt-2 text-center">
-                    Chef will substitute with a delicious fibrous carb option
+                    {t("createWithChef.chefSubstituteHint")}
                   </p>
                 </div>
               </div>
@@ -573,8 +577,7 @@ export function CreateWithChefModal({
                   }}
                 />
                 <p className="text-xs text-white/40 mt-2">
-                  Describe what you're craving and the Chef will create a
-                  personalized meal for you
+                  {t("createWithChef.inputHint")}
                 </p>
               </div>
 
@@ -609,7 +612,7 @@ export function CreateWithChefModal({
 
               {isProcessing && (
                 <div className="flex justify-center">
-                  <BreathingOrb label={safetyChecking ? "Checking safety profile…" : finalizing ? "Adding finishing touches…" : "Chef is preparing your meal…"} />
+                  <BreathingOrb label={safetyChecking ? t("createWithChef.orbCheckingSafety") : finalizing ? t("createWithChef.orbFinishing") : t("createWithChef.orbPreparing")} />
                 </div>
               )}
 
@@ -617,7 +620,7 @@ export function CreateWithChefModal({
 
               {/* Meal Safety Section */}
               <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+                <span className="text-xs text-white/60 block mb-2">{t("createWithChef.mealSafety")}</span>
                 <SafetyGuardToggle
                   safetyEnabled={safetyEnabled}
                   onSafetyChange={handleSafetyOverride}
@@ -635,7 +638,7 @@ export function CreateWithChefModal({
 
               {/* Ingredient Control */}
               <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
-                <span className="text-xs text-white/60 block mb-2">Ingredient Control</span>
+                <span className="text-xs text-white/60 block mb-2">{t("createWithChef.ingredientControl")}</span>
                 <KeepItSimpleToggle
                   keepItSimple={strictMode}
                   onToggle={setStrictMode}
@@ -647,9 +650,9 @@ export function CreateWithChefModal({
               {starchContext && (
                 <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Today's Starch Meals:</span>
+                    <span className="text-white/60">{t("createWithChef.todaysStarchMeals")}</span>
                     <span className={`font-medium ${starchStatus.isExhausted ? 'text-orange-400' : 'text-green-400'}`}>
-                      {starchStatus.slotsUsed} / {starchStatus.maxSlots} used
+                      {t("createWithChef.starchUsedCount", { used: starchStatus.slotsUsed, max: starchStatus.maxSlots })}
                     </span>
                   </div>
                 </div>
@@ -662,7 +665,7 @@ export function CreateWithChefModal({
                     onClick={handleGenerate}
                     disabled={!description.trim()}
                   >
-                    Generate AI Meal
+                    {t("createWithChef.generateBtn")}
                   </Button>
                 )}
                 <Button
@@ -670,7 +673,7 @@ export function CreateWithChefModal({
                   className="flex-3 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
                   onClick={() => onOpenChange(false)}
                 >
-                  {isProcessing ? "Stop" : "Cancel"}
+                  {isProcessing ? t("createWithChef.stop") : t("createWithChef.cancel")}
                 </Button>
               </div>
             </>

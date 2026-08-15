@@ -5,6 +5,7 @@
 // On submit: POST /api/kitchens/partner-inquiry (email sent server-side via Resend).
 
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, ChevronLeft, ChevronRight, ChefHat, Globe, Sparkles,
@@ -19,12 +20,12 @@ type PartnershipType =
   | "restaurant_group"
   | "athlete_kitchen";
 
-const PARTNERSHIP_OPTIONS: { value: PartnershipType; label: string; desc: string }[] = [
-  { value: "signature_kitchen",   label: "Signature Kitchen",    desc: "Your personal branded kitchen inside the platform" },
-  { value: "product_integration", label: "Product Integration",  desc: "Integrate your brand, products, or supplements" },
-  { value: "white_label",         label: "White Label",          desc: "A fully branded platform experience" },
-  { value: "restaurant_group",    label: "Restaurant Group",     desc: "Multi-location or franchise partnership" },
-  { value: "athlete_kitchen",     label: "Athlete Kitchen",      desc: "Performance and sport-specific culinary identity" },
+const PARTNERSHIP_OPTIONS: { value: PartnershipType; labelKey: string; descKey: string }[] = [
+  { value: "signature_kitchen",   labelKey: "kitchenPartner.optSignatureLabel",   descKey: "kitchenPartner.optSignatureDesc" },
+  { value: "product_integration", labelKey: "kitchenPartner.optProductLabel",     descKey: "kitchenPartner.optProductDesc" },
+  { value: "white_label",         labelKey: "kitchenPartner.optWhiteLabelLabel",  descKey: "kitchenPartner.optWhiteLabelDesc" },
+  { value: "restaurant_group",    labelKey: "kitchenPartner.optRestaurantLabel",  descKey: "kitchenPartner.optRestaurantDesc" },
+  { value: "athlete_kitchen",     labelKey: "kitchenPartner.optAthleteLabel",     descKey: "kitchenPartner.optAthleteDesc" },
 ];
 
 type FormData = {
@@ -59,11 +60,11 @@ type Props = {
 type SubmitState = "idle" | "submitting" | "success" | "error";
 
 const STEPS = [
-  { label: "Identity",         eyebrow: "01 of 05" },
-  { label: "Culinary Identity",eyebrow: "02 of 05" },
-  { label: "Platform",         eyebrow: "03 of 05" },
-  { label: "Interest",         eyebrow: "04 of 05" },
-  { label: "Submit",           eyebrow: "05 of 05" },
+  { labelKey: "kitchenPartner.stepIdentity",  eyebrow: "01 of 05" },
+  { labelKey: "kitchenPartner.stepCulinary",  eyebrow: "02 of 05" },
+  { labelKey: "kitchenPartner.stepPlatform",  eyebrow: "03 of 05" },
+  { labelKey: "kitchenPartner.stepInterest",  eyebrow: "04 of 05" },
+  { labelKey: "kitchenPartner.stepSubmit",    eyebrow: "05 of 05" },
 ];
 
 function Field({
@@ -123,6 +124,7 @@ function Textarea({
 }
 
 export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
+  const { t } = useTranslation();
   const [step, setStep]         = useState(0);
   const [form, setForm]         = useState<FormData>(EMPTY);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
@@ -179,11 +181,11 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
         setSubmitState("success");
       } else {
         const d = await res.json().catch(() => ({}));
-        setErrorMsg(d.message || "Something went wrong. Please try again.");
+        setErrorMsg(d.message || t("kitchenPartner.errorGeneric"));
         setSubmitState("error");
       }
     } catch {
-      setErrorMsg("Unable to submit. Please check your connection and try again.");
+      setErrorMsg(t("kitchenPartner.errorConnection"));
       setSubmitState("error");
     }
   }
@@ -232,9 +234,9 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
             <div className="flex-shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.35em] text-orange-500/90">
-                  Partnership Review
+                  {t("kitchenPartner.partnershipReview")}
                 </p>
-                <p className="text-[11px] text-white/70 mt-0.5">{STEPS[step].eyebrow} — {STEPS[step].label}</p>
+                <p className="text-[11px] text-white/70 mt-0.5">{STEPS[step].eyebrow} — {t(STEPS[step].labelKey)}</p>
               </div>
               <button type="button" onClick={handleClose}
                 className="p-1.5 rounded-full bg-white/8 text-white/40 active:scale-95 transition-transform">
@@ -255,14 +257,14 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                   {step === 0 && (
                     <>
                       <div className="space-y-1 mb-5">
-                        <h2 className="text-xl font-bold text-white">Tell us about yourself.</h2>
-                        <p className="text-xs text-white/70 leading-relaxed">Basic identity and contact information.</p>
+                        <h2 className="text-xl font-bold text-white">{t("kitchenPartner.identityHeading")}</h2>
+                        <p className="text-xs text-white/70 leading-relaxed">{t("kitchenPartner.identitySub")}</p>
                       </div>
-                      <Field label="Full Name" value={form.fullName} onChange={set("fullName")} placeholder="Your full name" required />
-                      <Field label="Chef / Brand Name" value={form.chefBrandName} onChange={set("chefBrandName")} placeholder="Your public culinary brand" />
-                      <Field label="Email" value={form.email} onChange={set("email")} type="email" placeholder="you@yourdomain.com" required />
-                      <Field label="Phone" value={form.phone} onChange={set("phone")} type="tel" placeholder="+1 (000) 000-0000" />
-                      <Field label="Location" value={form.location} onChange={set("location")} placeholder="City, State / Country" />
+                      <Field label={t("kitchenPartner.fullNameLabel")} value={form.fullName} onChange={set("fullName")} placeholder={t("kitchenPartner.fullNamePlaceholder")} required />
+                      <Field label={t("kitchenPartner.brandLabel")} value={form.chefBrandName} onChange={set("chefBrandName")} placeholder={t("kitchenPartner.brandPlaceholder")} />
+                      <Field label={t("kitchenPartner.emailLabel")} value={form.email} onChange={set("email")} type="email" placeholder="you@yourdomain.com" required />
+                      <Field label={t("kitchenPartner.phoneLabel")} value={form.phone} onChange={set("phone")} type="tel" placeholder="+1 (000) 000-0000" />
+                      <Field label={t("kitchenPartner.locationLabel")} value={form.location} onChange={set("location")} placeholder={t("kitchenPartner.locationPlaceholder")} />
                     </>
                   )}
 
@@ -270,16 +272,16 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                   {step === 1 && (
                     <>
                       <div className="space-y-1 mb-5">
-                        <h2 className="text-xl font-bold text-white">Your culinary identity.</h2>
-                        <p className="text-xs text-white/70 leading-relaxed">This shapes how your kitchen is built inside the platform.</p>
+                        <h2 className="text-xl font-bold text-white">{t("kitchenPartner.culinaryHeading")}</h2>
+                        <p className="text-xs text-white/70 leading-relaxed">{t("kitchenPartner.culinarySub")}</p>
                       </div>
-                      <Field label="Cuisine Focus" value={form.cuisineFocus} onChange={set("cuisineFocus")} placeholder="e.g. Southern, Japanese, Mediterranean" />
-                      <Textarea label="Cooking Philosophy" value={form.cookingPhilosophy} onChange={set("cookingPhilosophy")}
-                        placeholder="How would you describe your approach to food?" rows={3} />
-                      <Field label="Signature Styles" value={form.signatureStyles} onChange={set("signatureStyles")}
-                        placeholder="e.g. high-protein, comfort food, plant-forward" />
-                      <Textarea label="Wellness Philosophy" value={form.wellnessPhilosophy} onChange={set("wellnessPhilosophy")}
-                        placeholder="How does health and nutrition factor into your cooking?" rows={2} />
+                      <Field label={t("kitchenPartner.cuisineFocusLabel")} value={form.cuisineFocus} onChange={set("cuisineFocus")} placeholder={t("kitchenPartner.cuisineFocusPlaceholder")} />
+                      <Textarea label={t("kitchenPartner.cookingPhilosophyLabel")} value={form.cookingPhilosophy} onChange={set("cookingPhilosophy")}
+                        placeholder={t("kitchenPartner.cookingPhilosophyPlaceholder")} rows={3} />
+                      <Field label={t("kitchenPartner.signatureStylesLabel")} value={form.signatureStyles} onChange={set("signatureStyles")}
+                        placeholder={t("kitchenPartner.signatureStylesPlaceholder")} />
+                      <Textarea label={t("kitchenPartner.wellnessPhilosophyLabel")} value={form.wellnessPhilosophy} onChange={set("wellnessPhilosophy")}
+                        placeholder={t("kitchenPartner.wellnessPhilosophyPlaceholder")} rows={2} />
                     </>
                   )}
 
@@ -287,8 +289,8 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                   {step === 2 && (
                     <>
                       <div className="space-y-1 mb-5">
-                        <h2 className="text-xl font-bold text-white">Where is your audience?</h2>
-                        <p className="text-xs text-white/70 leading-relaxed">Share your social and web presence. All fields optional.</p>
+                        <h2 className="text-xl font-bold text-white">{t("kitchenPartner.platformHeading")}</h2>
+                        <p className="text-xs text-white/70 leading-relaxed">{t("kitchenPartner.platformSub")}</p>
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80 flex items-center gap-1.5">
@@ -323,7 +325,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[11px] font-semibold uppercase tracking-widest text-white/80 flex items-center gap-1.5">
-                          <Globe className="h-3 w-3" /> Website
+                          <Globe className="h-3 w-3" /> {t("kitchenPartner.websiteLabel")}
                         </label>
                         <input type="url" value={form.website} onChange={e => set("website")(e.target.value)}
                           placeholder="https://yourwebsite.com"
@@ -339,8 +341,8 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                   {step === 3 && (
                     <>
                       <div className="space-y-1 mb-5">
-                        <h2 className="text-xl font-bold text-white">What interests you?</h2>
-                        <p className="text-xs text-white/70 leading-relaxed">Select all that apply. You can have more than one.</p>
+                        <h2 className="text-xl font-bold text-white">{t("kitchenPartner.interestHeading")}</h2>
+                        <p className="text-xs text-white/70 leading-relaxed">{t("kitchenPartner.interestSub")}</p>
                       </div>
                       <div className="space-y-2.5">
                         {PARTNERSHIP_OPTIONS.map(opt => {
@@ -358,9 +360,9 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                               </div>
                               <div>
                                 <p className="text-sm font-semibold" style={{ color: selected ? "#fb923c" : "rgba(255,255,255,0.75)" }}>
-                                  {opt.label}
+                                  {t(opt.labelKey)}
                                 </p>
-                                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.75)" }}>{opt.desc}</p>
+                                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.75)" }}>{t(opt.descKey)}</p>
                               </div>
                             </button>
                           );
@@ -373,30 +375,30 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                   {step === 4 && submitState !== "success" && (
                     <>
                       <div className="space-y-1 mb-5">
-                        <h2 className="text-xl font-bold text-white">Ready to submit.</h2>
+                        <h2 className="text-xl font-bold text-white">{t("kitchenPartner.readyHeading")}</h2>
                         <p className="text-xs text-white/70 leading-relaxed">
-                          Our partnerships team reviews every application personally. You'll hear from us within 3–5 business days.
+                          {t("kitchenPartner.readySub")}
                         </p>
                       </div>
 
                       {/* Summary */}
                       <div className="rounded-xl p-4 space-y-2" style={{ background: "#ffffff06", border: "1px solid #ffffff10" }}>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/65">Application Summary</p>
-                        {form.fullName && <SummaryRow label="Name" value={form.fullName} />}
-                        {form.chefBrandName && <SummaryRow label="Brand" value={form.chefBrandName} />}
-                        {form.email && <SummaryRow label="Email" value={form.email} />}
-                        {form.cuisineFocus && <SummaryRow label="Cuisine" value={form.cuisineFocus} />}
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/65">{t("kitchenPartner.summaryHeading")}</p>
+                        {form.fullName && <SummaryRow label={t("kitchenPartner.summaryName")} value={form.fullName} />}
+                        {form.chefBrandName && <SummaryRow label={t("kitchenPartner.summaryBrand")} value={form.chefBrandName} />}
+                        {form.email && <SummaryRow label={t("kitchenPartner.summaryEmail")} value={form.email} />}
+                        {form.cuisineFocus && <SummaryRow label={t("kitchenPartner.summaryCuisine")} value={form.cuisineFocus} />}
                         {form.partnershipTypes.length > 0 && (
                           <SummaryRow
-                            label="Interest"
-                            value={PARTNERSHIP_OPTIONS.filter(o => form.partnershipTypes.includes(o.value)).map(o => o.label).join(", ")}
+                            label={t("kitchenPartner.summaryInterest")}
+                            value={PARTNERSHIP_OPTIONS.filter(o => form.partnershipTypes.includes(o.value)).map(o => t(o.labelKey)).join(", ")}
                           />
                         )}
                       </div>
 
                       <div className="rounded-xl p-4" style={{ background: "#ea580c0d", border: "1px solid #ea580c22" }}>
                         <p className="text-xs text-white/70 leading-relaxed">
-                          By submitting, you agree that My Perfect Meals may use the information you've provided to evaluate your partnership application. No commitments are made until a formal agreement is signed.
+                          {t("kitchenPartner.consentText")}
                         </p>
                       </div>
 
@@ -408,9 +410,9 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                         className="w-full py-4 rounded-2xl text-white font-bold text-sm transition-transform active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg"
                         style={{ background: "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)", boxShadow: "0 8px 24px #ea580c30" }}>
                         {submitState === "submitting" ? (
-                          <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
+                          <><Loader2 className="h-4 w-4 animate-spin" /> {t("kitchenPartner.submitting")}</>
                         ) : (
-                          <><Wand2 className="h-4 w-4" /> Request Partnership Review</>
+                          <><Wand2 className="h-4 w-4" /> {t("kitchenPartner.requestReview")}</>
                         )}
                       </button>
                     </>
@@ -425,20 +427,20 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                         <CheckCircle2 className="h-8 w-8 text-orange-400" />
                       </div>
                       <div className="space-y-2">
-                        <h2 className="text-xl font-bold text-white">Application Received.</h2>
+                        <h2 className="text-xl font-bold text-white">{t("kitchenPartner.successHeading")}</h2>
                         <p className="text-sm text-white/80 leading-relaxed max-w-xs">
-                          Our partnerships team will review your application and reach out within 3–5 business days. We review every application personally.
+                          {t("kitchenPartner.successSub")}
                         </p>
                       </div>
                       <div className="rounded-xl px-5 py-3" style={{ background: "#ea580c0d", border: "1px solid #ea580c22" }}>
                         <p className="text-xs text-orange-400/70">
-                          We'll contact you at <span className="font-semibold text-orange-300">{form.email}</span>
+                          {t("kitchenPartner.contactAt")} <span className="font-semibold text-orange-300">{form.email}</span>
                         </p>
                       </div>
                       <button type="button" onClick={handleClose}
                         className="px-8 py-3 rounded-xl text-white font-medium text-sm"
                         style={{ backgroundColor: "#ffffff0f", border: "1px solid #ffffff18" }}>
-                        Done
+                        {t("kitchenPartner.done")}
                       </button>
                     </motion.div>
                   )}
@@ -453,7 +455,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all active:scale-95 disabled:opacity-20"
                   style={{ backgroundColor: "#ffffff0f", color: "rgba(255,255,255,0.65)" }}>
                   <ChevronLeft className="h-4 w-4" />
-                  Back
+                  {t("kitchenPartner.back")}
                 </button>
 
                 {/* Step dots */}
@@ -474,7 +476,7 @@ export default function KitchenPartnerIntakeModal({ isOpen, onClose }: Props) {
                   <button type="button" onClick={goNext} disabled={!canAdvance()}
                     className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold transition-all active:scale-95 disabled:opacity-30"
                     style={{ backgroundColor: canAdvance() ? "#ea580c" : "#ffffff15", color: "#fff" }}>
-                    Next
+                    {t("kitchenPartner.next")}
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 )}

@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
@@ -63,6 +64,7 @@ export function RemainingMacrosFooter({
   prescriptionChangeReason,
   isLoading = false,
 }: RemainingMacrosFooterProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const effectiveUserId = userId ?? user?.id ?? "";
   const todayMacros = useTodayMacros(effectiveUserId);
@@ -159,11 +161,16 @@ export function RemainingMacrosFooter({
         <div className={`${innerClass} px-4 py-3`}>
           <div className="flex items-center justify-center mb-2">
             <span className="text-white/70 text-xs font-medium uppercase tracking-wide">
-              Remaining Today
+              {t("remainingMacros.remainingToday")}
             </span>
           </div>
           <div className="grid gap-2 grid-cols-4">
-            {["Protein", "Starchy", "Fibrous", "Fat"].map((label) => (
+            {[
+              t("remainingMacros.protein"),
+              t("remainingMacros.starchy"),
+              t("remainingMacros.fibrous"),
+              t("remainingMacros.fat"),
+            ].map((label) => (
               <div key={label} className="flex flex-col items-center rounded-lg px-1.5 py-1.5 bg-black/20">
                 <div className="text-[10px] uppercase tracking-wide mb-0.5 text-white/50">{label}</div>
                 <div className="animate-pulse h-6 w-10 rounded bg-white/10 mb-1" />
@@ -184,7 +191,7 @@ export function RemainingMacrosFooter({
         <div className={`${innerClass} px-4 py-3`}>
           <div className="flex items-center justify-center gap-2 text-white/60 text-sm">
             <Flame className="w-4 h-4" />
-            <span>Set your macros in the Macro Calculator to see remaining</span>
+            <span>{t("remainingMacros.setMacrosPrompt")}</span>
           </div>
         </div>
       </div>
@@ -204,7 +211,7 @@ export function RemainingMacrosFooter({
               }}
               className="w-full mb-3 py-2.5 bg-gradient-to-r from-zinc-900 to-zinc-900 hover:from-zinc-900 hover:to-zinc-900 text-white text-sm font-semibold rounded-xl transition-all active:scale-[0.98] shadow-lg border-2 border-zinc-700/90"
             >
-              Save Day to Biometrics
+              {t("remainingMacros.saveDay")}
             </button>
           )}
 
@@ -213,12 +220,12 @@ export function RemainingMacrosFooter({
               <RefreshCw className="w-3 h-3 text-amber-400 shrink-0" />
               <span className="text-amber-300 text-xs flex-1">
                 {prescriptionChangeReason
-                  ? `Your targets were updated today (${prescriptionChangeReason})`
-                  : "Your nutrition targets were updated today"}
+                  ? t("remainingMacros.targetsUpdatedReason", { reason: prescriptionChangeReason })
+                  : t("remainingMacros.targetsUpdated")}
               </span>
               <button
                 onClick={dismissBanner}
-                aria-label="Dismiss"
+                aria-label={t("remainingMacros.dismiss")}
                 className="text-amber-400/60 hover:text-amber-300 transition-colors p-0.5 shrink-0"
               >
                 <X className="w-3 h-3" />
@@ -228,7 +235,7 @@ export function RemainingMacrosFooter({
 
           <div className="flex items-center justify-center mb-2 gap-1.5">
             <span className="text-white/70 text-xs font-medium uppercase tracking-wide">
-              Remaining Today
+              {t("remainingMacros.remainingToday")}
             </span>
             <MacroCoachSheet />
           </div>
@@ -236,7 +243,7 @@ export function RemainingMacrosFooter({
           {/* 4-column layout: Protein, Starchy, Fibrous, Fat - NO CALORIES per product doctrine */}
           <div className="grid gap-2 grid-cols-4">
             <MacroCell
-              label="Protein"
+              label={t("remainingMacros.protein")}
               remaining={remaining.protein}
               target={targets.protein_g}
               consumed={consumed.protein}
@@ -244,7 +251,7 @@ export function RemainingMacrosFooter({
               suffix="g"
             />
             <MacroCell
-              label="Starchy"
+              label={t("remainingMacros.starchy")}
               remaining={remaining.starchyCarbs}
               target={targets.starchyCarbs_g ?? 0}
               consumed={consumed.starchyCarbs}
@@ -253,7 +260,7 @@ export function RemainingMacrosFooter({
               isKeyMacro
             />
             <MacroCell
-              label="Fibrous"
+              label={t("remainingMacros.fibrous")}
               remaining={remaining.fibrousCarbs}
               target={targets.fibrousCarbs_g ?? 0}
               consumed={consumed.fibrousCarbs}
@@ -261,7 +268,7 @@ export function RemainingMacrosFooter({
               suffix="g"
             />
             <MacroCell
-              label="Fat"
+              label={t("remainingMacros.fat")}
               remaining={remaining.fat}
               target={targets.fat_g}
               consumed={consumed.fat}
@@ -294,6 +301,7 @@ function MacroCell({
   suffix = "",
   isKeyMacro = false,
 }: MacroCellProps) {
+  const { t } = useTranslation();
   const color = MPM_MACRO_COLORS[colorState];
   const isOver = consumed > target && target > 0;
   const percentage = target > 0 ? Math.min(100, (consumed / target) * 100) : 0;
@@ -321,7 +329,7 @@ function MacroCell({
       </div>
       {isKeyMacro && (
         <div className={`text-[9px] font-bold uppercase tracking-wider mt-1 ${isOver ? "text-red-400" : "text-amber-500/80"}`}>
-          {isOver ? "⚠ over limit" : "★ limit"}
+          {isOver ? t("remainingMacros.overLimit") : t("remainingMacros.limit")}
         </div>
       )}
     </div>
@@ -329,10 +337,11 @@ function MacroCell({
 }
 
 function MacroCoachSheet() {
+  const { t } = useTranslation();
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <PillButton aria-label="What do these numbers mean?">Info</PillButton>
+        <PillButton aria-label={t("remainingMacros.coach.infoAria")}>{t("remainingMacros.coach.info")}</PillButton>
       </SheetTrigger>
       <SheetContent
         side="bottom"
@@ -340,10 +349,10 @@ function MacroCoachSheet() {
       >
         <SheetHeader className="text-left pt-6 pb-5 border-b border-white/10">
           <SheetTitle className="text-white text-lg font-bold">
-            Your Daily Targets, Simplified
+            {t("remainingMacros.coach.title")}
           </SheetTitle>
           <p className="text-white/60 text-sm leading-relaxed mt-1">
-            Remaining Today shows what you have left to hit your daily targets — by nutrient, not just total carbs.
+            {t("remainingMacros.coach.subtitle")}
           </p>
         </SheetHeader>
 
@@ -351,43 +360,43 @@ function MacroCoachSheet() {
           <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">🟡</span>
-              <span className="text-amber-400 font-semibold text-sm">Starchy Carbs — Your Main Target</span>
+              <span className="text-amber-400 font-semibold text-sm">{t("remainingMacros.coach.starchyTitle")}</span>
             </div>
             <ul className="text-white/75 text-sm space-y-1 leading-relaxed pl-1">
-              <li>Stay at or under your daily cap.</li>
-              <li>Going over slows your progress — this one matters.</li>
-              <li>Being under is completely fine. Don't force it.</li>
+              <li>{t("remainingMacros.coach.starchy1")}</li>
+              <li>{t("remainingMacros.coach.starchy2")}</li>
+              <li>{t("remainingMacros.coach.starchy3")}</li>
             </ul>
           </div>
 
           <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">🟢</span>
-              <span className="text-emerald-400 font-semibold text-sm">Protein & Fiber — Stay Flexible</span>
+              <span className="text-emerald-400 font-semibold text-sm">{t("remainingMacros.coach.flexTitle")}</span>
             </div>
             <ul className="text-white/75 text-sm space-y-1 leading-relaxed pl-1">
-              <li>A little high or low doesn't break anything.</li>
-              <li>Don't chase perfection on these two.</li>
+              <li>{t("remainingMacros.coach.flex1")}</li>
+              <li>{t("remainingMacros.coach.flex2")}</li>
             </ul>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">⚪</span>
-              <span className="text-white/80 font-semibold text-sm">Fat — Background Player</span>
+              <span className="text-white/80 font-semibold text-sm">{t("remainingMacros.coach.fatTitle")}</span>
             </div>
             <ul className="text-white/75 text-sm space-y-1 leading-relaxed pl-1">
-              <li>Fat rises naturally with your food choices.</li>
-              <li>Dietary fat is not the driver of fat gain — don't fixate on it.</li>
+              <li>{t("remainingMacros.coach.fat1")}</li>
+              <li>{t("remainingMacros.coach.fat2")}</li>
             </ul>
           </div>
 
           <div className="bg-zinc-900 rounded-2xl p-4 text-center space-y-2">
             <p className="text-white/90 text-sm font-medium leading-relaxed">
-              Focus on staying within your starch target and let the rest fall into place.
+              {t("remainingMacros.coach.closing1")}
             </p>
             <p className="text-white/40 text-xs">
-              You don't need to be perfect. You need to be consistent.
+              {t("remainingMacros.coach.closing2")}
             </p>
           </div>
         </div>

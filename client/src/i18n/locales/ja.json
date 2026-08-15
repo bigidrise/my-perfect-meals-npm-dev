@@ -2262,6 +2262,1496 @@
       "percentOfTarget": "目標の{{n}}%",
       "remainingCal": "{{n}} 残り",
       "remainingG": "{{n}}g 残り"
+    },
+    "enhancedMealCard": {
+      "replace": "置き換え",
+      "replacing": "置き換え中...",
+      "replaceTitle": "全く新しい食事レシピに置き換える",
+      "replacingTitle": "食事を置き換え中...",
+      "portionGuide": "ポーションガイド：",
+      "ingredients": "材料：",
+      "instructions": "手順：",
+      "medicalSafety": "医療安全性：",
+      "error": "エラー："
+    }
+  },
+  "remainingMacros": {
+    "remainingToday": "本日の残り",
+    "protein": "タンパク質",
+    "starchy": "でんぷん質",
+    "fibrous": "食物繊維",
+    "fat": "脂質",
+    "setMacrosPrompt": "マクロを設定して本日の残りを確認しましょう。",
+    "saveDay": "当日をバイオメトリクスに保存",
+    "targetsUpdated": "日中に目標を更新しました",
+    "targetsUpdatedReason": "日中に目標を更新しました — {{reason}}",
+    "dismiss": "閉じる",
+    "overLimit": "⚠ 上限超過",
+    "limit": "★ 上限",
+    "coach": {
+      "title": "マクロコーチ",
+      "subtitle": "残り目標の読み方",
+      "proteinTitle": "タンパク質",
+      "proteinBody": "この目標を達成して筋肉を守り、満腹感を保ちましょう。",
+      "proteinBullet1": "毎食、赤身の供給源を優先。",
+      "proteinBullet2": "摂取を一日に分散。",
+      "carbsTitle": "炭水化物",
+      "carbsBody": "でんぷん質でトレーニングを燃料補給し、食物繊維で補う。",
+      "carbsBullet1": "でんぷん質はパフォーマンスの燃料。",
+      "carbsBullet2": "食物繊維は消化と満腹感を助ける。",
+      "fatTitle": "脂質",
+      "fatBody": "脂質は適度に保ち、エネルギーとホルモンのバランスを取る。",
+      "fatBullet1": "良質な脂質を選ぶ。",
+      "fatBullet2": "分量に注意 — 脂質は高カロリー。",
+      "closingTitle": "柔軟に",
+      "closingBody": "目標は一日に合わせて調整されます — 近づけて一貫性を保ちましょう。",
+      "infoAria": "これらの数値の意味は？",
+      "info": "情報",
+      "starchyTitle": "でんぷん質の炭水化物 — 主な目標",
+      "starchy1": "1日の上限以内に収めましょう。",
+      "starchy2": "超えると進捗が遅れます — これは重要です。",
+      "starchy3": "下回るのはまったく問題ありません。無理をしないで。",
+      "flexTitle": "タンパク質と食物繊維 — 柔軟に",
+      "flex1": "少し多くても少なくても問題ありません。",
+      "flex2": "この2つで完璧を求めないで。",
+      "fat1": "脂質は食べ物の選択によって自然に増えます。",
+      "fat2": "食事の脂質は体脂肪増加の主因ではありません — こだわりすぎないで。",
+      "closing1": "でんぷんの目標内に収めることに集中すれば、あとは自然と整います。",
+      "closing2": "完璧である必要はありません。一貫していることが大切です。"
+    }
+  },
+  "performanceSetup": {
+    "toast": {
+      "compSaved": "大会準備プロトコルを保存しました。",
+      "athleticSaved": "アスリートパフォーマンスプロトコルを保存しました。",
+      "activated": "プロトコルを有効化しました",
+      "errorTitle": "エラー",
+      "errorDesc": "保存できませんでした。もう一度お試しください。"
+    },
+    "stepCount": "ステップ {{current}} / {{total}}",
+    "back": "戻る",
+    "next": "次へ",
+    "saving": "保存中...",
+    "activateProtocol": "プロトコルを有効化",
+    "optional": "（任意）",
+    "track": {
+      "title": "あなたの目標はどれですか？",
+      "subtitle": "各トラックはまったく異なるプロトコルエンジンを使用します。",
+      "athleticTitle": "アスリートパフォーマンス",
+      "athleticDesc": "MMA、ボクシング、レスリング、フットボール、CrossFit、持久系、戦術系。目標はパフォーマンス — 燃料補給、回復、適応。",
+      "compTitle": "大会準備",
+      "compDesc": "ボディビル、フィジーク、パワーリフティング大会、ファイトキャンプ、レスリングシーズン。大会日が各フェーズを自動で駆動します。"
+    },
+    "goals": {
+      "title": "主な目標は何ですか？",
+      "subtitle": "これがマクロの優先順位と食事のエネルギー密度を決めます。",
+      "fatLoss": {
+        "label": "減量",
+        "desc": "パフォーマンスを保ちながら絞る"
+      },
+      "muscleGain": {
+        "label": "筋肥大",
+        "desc": "肥大と同化作用"
+      },
+      "maintenance": {
+        "label": "維持",
+        "desc": "体組成の安定"
+      },
+      "performance": {
+        "label": "最大パフォーマンス",
+        "desc": "出力、スピード、パワー"
+      }
+    },
+    "trainingType": {
+      "title": "どんなトレーニングをしていますか？",
+      "subtitle": "主なスポーツまたは種目を選択してください。",
+      "otherPlaceholder": "その他の{{group}}スポーツ…"
+    },
+    "trainingTypes": {
+      "strength": "筋力",
+      "hypertrophy": "筋肥大",
+      "powerlifting": "パワーリフティング",
+      "olympicLifting": "ウエイトリフティング",
+      "mma": "MMA",
+      "boxing": "ボクシング",
+      "wrestling": "レスリング",
+      "bjj": "BJJ",
+      "crossfit": "CrossFit",
+      "running": "ランニング",
+      "cycling": "サイクリング",
+      "triathlon": "トライアスロン",
+      "tactical": "戦術 / 軍事",
+      "generalFitness": "一般フィットネス"
+    },
+    "athleticGroups": {
+      "iron": "アイアンスポーツ",
+      "combat": "格闘技",
+      "mixed": "ミックス",
+      "endurance": "持久系",
+      "other": "その他"
+    },
+    "frequency": {
+      "title": "どのくらいの頻度でトレーニングしますか？",
+      "subtitle": "週あたりのセッション数（休息日を除く）。",
+      "twoADayQuestion": "1日に2回トレーニングしますか？",
+      "twoADayDesc": "セッション間の回復食ガイダンスを有効化",
+      "yes": "はい",
+      "no": "いいえ"
+    },
+    "freqs": {
+      "oneTwo": "1〜2日",
+      "threeFour": "3〜4日",
+      "fiveSix": "5〜6日",
+      "sevenPlus": "7日以上（毎日）"
+    },
+    "cardio": {
+      "title": "有酸素の重点は何ですか？",
+      "subtitle": "炭水化物のタイミングと解糖系燃料の必要量を決めます。",
+      "none": {
+        "label": "有酸素なし",
+        "desc": "筋力または技術に専念 — 心血管運動なし"
+      },
+      "recovery": {
+        "label": "ウォーキング / 回復",
+        "desc": "軽い動きのみ — 散歩、ストレッチ、軽いバイク"
+      },
+      "zone2": {
+        "label": "イージー有酸素",
+        "desc": "会話できる快適なペース — 有酸素の土台を作る"
+      },
+      "tempo": {
+        "label": "中強度有酸素",
+        "desc": "安定して挑戦的な努力 — 息は上がるが持続可能"
+      },
+      "threshold": {
+        "label": "高強度有酸素",
+        "desc": "高強度の持続的努力 — 限界近く"
+      },
+      "hiit": {
+        "label": "スプリントインターバル",
+        "desc": "短い全力ダッシュと休息 — 最大努力"
+      },
+      "mixed": {
+        "label": "ミックス有酸素",
+        "desc": "セッションにより変化 — 楽な日もきつい日もある"
+      }
+    },
+    "phase": {
+      "title": "トレーニングサイクルのどこにいますか？",
+      "subtitle": "あなたのフェーズがマクロ目標と食品選択を調整します。"
+    },
+    "phases": {
+      "offSeason": {
+        "label": "オフシーズン",
+        "desc": "ボリューム重視、土台作り"
+      },
+      "preSeason": {
+        "label": "プレシーズン",
+        "desc": "コンディション向上"
+      },
+      "inSeason": {
+        "label": "シーズン中",
+        "desc": "パフォーマンス維持"
+      },
+      "weightCut": {
+        "label": "減量（計量調整）",
+        "desc": "短期の不足 + リハイドレーション"
+      },
+      "recovery": {
+        "label": "回復",
+        "desc": "抗炎症、修復優先"
+      }
+    },
+    "duration": {
+      "title": "典型的なセッション時間はどのくらいですか？",
+      "subtitle": "グリコーゲン消費と回復栄養の必要量の計算に使用します。"
+    },
+    "durations": {
+      "under30": {
+        "label": "30分未満",
+        "desc": "短時間 / 補助セッション"
+      },
+      "thirtySixty": {
+        "label": "30〜60分",
+        "desc": "標準トレーニングブロック"
+      },
+      "sixtyNinety": {
+        "label": "60〜90分",
+        "desc": "ウォームアップとクールダウンを含む完全セッション"
+      },
+      "ninetyPlus": {
+        "label": "90分以上",
+        "desc": "高ボリュームまたは複数種目のセッション"
+      }
+    },
+    "recoveryStep": {
+      "title": "今の回復状態はどうですか？",
+      "subtitle": "現在の回復状態がタンパク質のタイミング、抗炎症の優先度、カロリー密度を左右します。"
+    },
+    "recovery": {
+      "good": {
+        "label": "良好",
+        "desc": "よく眠れ、筋肉痛少なく、エネルギー十分"
+      },
+      "average": {
+        "label": "普通",
+        "desc": "多少の疲労はあるが管理可能"
+      },
+      "poor": {
+        "label": "不良",
+        "desc": "疲労、強い筋肉痛、睡眠不足"
+      }
+    },
+    "adaptationStep": {
+      "title": "あなたの運動の重点は何ですか？",
+      "subtitle": "何のために鍛えるか選択 — 炭水化物のタイミング、エネルギー系のサポート、食事構成を調整します。"
+    },
+    "adaptation": {
+      "endurance": {
+        "label": "持久力",
+        "desc": "有酸素エンジンを作る — より長い努力、より高いスタミナ"
+      },
+      "conditioning": {
+        "label": "コンディショニング",
+        "desc": "複数のエネルギー系にわたる総合的な体力"
+      },
+      "speed": {
+        "label": "スピード",
+        "desc": "より速く走る — 爆発的な速筋トレーニング重視"
+      },
+      "power": {
+        "label": "パワー",
+        "desc": "重いものを速く動かす — 筋力と爆発力"
+      },
+      "workCapacity": {
+        "label": "ワークキャパシティ",
+        "desc": "より多くこなし、より速く回復 — 高いトレーニング量に対応"
+      },
+      "activeRecovery": {
+        "label": "アクティブリカバリー",
+        "desc": "修復と充電 — 抗炎症、中枢神経リセット"
+      }
+    },
+    "schedule": {
+      "title": "週間トレーニングスケジュールを設定",
+      "subtitle": "栄養は毎日トレーニング内容に応じて自動調整されます。各セッションタイプが炭水化物、カロリー、タンパク質の目標を変えます。",
+      "trainingPhase": "トレーニングフェーズ",
+      "weekSchedule": "週間スケジュール",
+      "howItWorksTitle": "仕組み",
+      "howItWorksBody": "MPM は毎朝スケジュールを読み取り、マクロ目標を自動調整します。パワー日は炭水化物を追加し、回復日は減らします。手動調整は不要です。"
+    },
+    "sessionTypes": {
+      "strength": {
+        "label": "筋力",
+        "short": "筋",
+        "desc": "レジスタンストレーニング — 中程度の炭水化物サポート"
+      },
+      "power": {
+        "label": "パワー",
+        "short": "力",
+        "desc": "爆発的な出力 — 追加の炭水化物とタンパク質が有効"
+      },
+      "endurance": {
+        "label": "持久力",
+        "short": "持",
+        "desc": "有酸素燃料を優先 — 炭水化物の利用可能性を高める"
+      },
+      "sportPractice": {
+        "label": "競技練習",
+        "short": "練",
+        "desc": "混合的な要求 — 中程度の炭水化物サポート"
+      },
+      "competition": {
+        "label": "試合",
+        "short": "試",
+        "desc": "試合当日の燃料補給 — 最大の炭水化物利用可能性"
+      },
+      "recovery": {
+        "label": "回復",
+        "short": "回",
+        "desc": "修復重視 — 炭水化物を減らし抗炎症を優先"
+      },
+      "off": {
+        "label": "休息日",
+        "short": "休",
+        "desc": "完全休養 — カロリー目標を下げる"
+      }
+    },
+    "apnPhases": {
+      "stabilization": {
+        "label": "安定化",
+        "desc": "土台フェーズ — 動作の質、体幹の安定"
+      },
+      "strength": {
+        "label": "筋力",
+        "desc": "最大筋力の構築"
+      },
+      "power": {
+        "label": "パワー",
+        "desc": "爆発的な出力 — 力 × 速度"
+      },
+      "peaking": {
+        "label": "ピーキング",
+        "desc": "試合前の調整 — 強度上昇、量減少"
+      },
+      "inSeason": {
+        "label": "シーズン中",
+        "desc": "試合カレンダーを通じてパフォーマンスを維持"
+      },
+      "offSeason": {
+        "label": "オフシーズン",
+        "desc": "シーズン間の土台作りと回復"
+      }
+    },
+    "days": {
+      "mon": "月",
+      "tue": "火",
+      "wed": "水",
+      "thu": "木",
+      "fri": "金",
+      "sat": "土",
+      "sun": "日"
+    },
+    "compGroups": {
+      "physique": "フィジーク",
+      "strength": "筋力系スポーツ",
+      "combat": "格闘技",
+      "functional": "ファンクショナル / ミックス",
+      "endurance": "持久系"
+    },
+    "compTypeStep": {
+      "title": "どのタイプの大会ですか？",
+      "subtitle": "大会タイプごとに準備のタイムラインとピークウィークのプロトコルが異なります。"
+    },
+    "compTypes": {
+      "bodybuilding": "ボディビル",
+      "mensPhysique": "メンズフィジーク",
+      "classicPhysique": "クラシックフィジーク",
+      "figure": "フィギュア",
+      "bikini": "ビキニ",
+      "wellness": "ウェルネス",
+      "powerliftingMeet": "パワーリフティング大会",
+      "strongman": "ストロングマン",
+      "olympicWeightlifting": "ウエイトリフティング",
+      "fightCamp": "ファイトキャンプ",
+      "wrestlingSeason": "レスリングシーズン",
+      "crossfitCompetition": "CrossFit 大会",
+      "hyrox": "Hyrox",
+      "marathon": "マラソン",
+      "triathlon": "トライアスロン",
+      "spartanRace": "スパルタンレース"
+    },
+    "eventStep": {
+      "title": "大会はいつですか？",
+      "subtitle": "大会日が各フェーズを自動で駆動します — 推測不要。",
+      "eventDate": "大会日",
+      "pickDate": "大会日を選択",
+      "weeksOut": "あと {{count}} 週",
+      "division": "階級",
+      "divisionPlaceholder": "例：オープン、マスターズ35+、93kg級..."
+    },
+    "weightStep": {
+      "title": "体重情報",
+      "subtitle": "任意 — 減量戦略とカロリー目標について正確なガイダンスに役立ちます。",
+      "currentWeight": "現在の体重",
+      "currentPlaceholder": "例：185 lbs、84 kg...",
+      "targetWeight": "目標体重 / 階級",
+      "targetPlaceholder": "例：175 lbs、83kg級、ステージ仕上がり...",
+      "howItWorksTitle": "仕組み",
+      "howItWorksBody": "MPM は大会日から現在のフェーズを自動計算します。大会が近づくにつれてプロトコルが変化します。決めるのはカレンダー — AI ではありません。"
+    }
+  },
+  "therapeuticCard": {
+    "title": "治療的栄養インテリジェンス",
+    "active": "有効",
+    "last": "前回：{{date}}",
+    "intro": "有効なものすべてに用量を入力してください。用量は重要です — システムがプロトコルの文脈構築に使用します。該当しない場合は空欄に。",
+    "activeCount": "{{count}} 件有効",
+    "namePlaceholder": "名称...",
+    "dosePlaceholder": "用量",
+    "unitPlaceholder": "単位",
+    "sections": {
+      "peptides": "ペプチド",
+      "hormones": "ホルモン",
+      "medications": "栄養に影響する薬剤",
+      "therapies": "療法",
+      "recovery": "回復目標"
+    },
+    "addPeptide": "カスタムペプチドを追加",
+    "addHormone": "カスタムホルモンを追加",
+    "addMedication": "カスタム薬剤を追加",
+    "therapiesHint": "現在のプロトコルに該当するものをすべて選択してください。",
+    "recoveryHint": "現在の回復目標を選択してください。",
+    "saveProtocol": "プロトコルを保存",
+    "saving": "保存中…",
+    "cancel": "キャンセル",
+    "footerNote": "臨床上の安全が常に優先されます。選択は食事生成にのみ反映され — 医療アドバイスではありません。",
+    "therapyOptions": {
+      "connectiveTissue": "結合組織の回復",
+      "gutSupport": "腸のサポート",
+      "redLight": "赤色光療法",
+      "sauna": "サウナ / 温熱回復",
+      "cold": "寒冷療法 / 氷浴",
+      "iv": "点滴栄養療法"
+    },
+    "recoveryGoals": {
+      "joint": "関節の回復",
+      "muscle": "筋肉の回復",
+      "sleep": "睡眠の最適化",
+      "inflammation": "炎症の軽減",
+      "gutHealing": "腸の修復",
+      "stress": "ストレスと副腎の回復"
+    },
+    "toast": {
+      "savedTitle": "治療プロトコルを保存しました",
+      "savedDesc": "文脈を更新しました。すべてのジェネレーターがあなたのプロトコルを尊重します。",
+      "errorTitle": "エラー",
+      "errorDesc": "保存できませんでした。もう一度お試しください。"
+    }
+  },
+  "clinicalLabs": {
+    "title": "臨床検査",
+    "last": "前回：{{date}}",
+    "lastSaved": "最終保存：{{date}}",
+    "labDate": "検査日",
+    "notes": "メモ",
+    "notesPlaceholder": "任意の医療者メモ...",
+    "saveButton": "検査値を保存",
+    "savedSuccess": "検査値を保存しました",
+    "normal": "正常",
+    "elevated": "高値",
+    "active": "有効",
+    "menopausePanel": "更年期 / 閉経周辺期パネル",
+    "status": {
+      "normal": "正常",
+      "needsReview": "要確認",
+      "elevated": "{{count}} 件が高値"
+    },
+    "sections": {
+      "cardiac": "心臓・代謝",
+      "hormonal": "ホルモン / ストレスと性ホルモン",
+      "liver": "肝機能パネル",
+      "thyroid": "甲状腺パネル",
+      "kidney": "腎臓 / 腎機能",
+      "inflammation": "炎症と回復",
+      "oncology": "腫瘍と回復"
+    },
+    "fields": {
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "triglycerides": "中性脂肪",
+      "tgHdlRatio": "TG/HDL 比",
+      "bloodPressure": "血圧",
+      "sys": "収縮期",
+      "dia": "拡張期",
+      "ejectionFraction": "駆出率",
+      "a1c": "A1C"
+    },
+    "oncology": {
+      "needsAttention": "要注意",
+      "physicianGuided": "医師指導"
+    },
+    "toast": {
+      "enterOne": "保存前に少なくとも1つの検査値を入力してください",
+      "failed": "検査の保存に失敗しました"
+    }
+  },
+  "ingredientSheet": {
+    "grade": {
+      "a": "非常に適合",
+      "b": "良好な適合",
+      "c": "いくつかの検討点",
+      "d": "顕著な不一致"
+    },
+    "verdict": {
+      "buy": "シェフのひと言：どうぞ！",
+      "caution": "シェフのひと言：念のため...",
+      "skip": "シェフのひと言：一度考え直しては"
+    },
+    "decoder": {
+      "title": "やさしい言葉のデコーダー",
+      "legend": "🟢 概ね安全 · 🟡 知っておくと良い · 🔴 あなたのプロフィールと不一致"
+    },
+    "alignsWith": "あなたの目標に合致",
+    "watchFor": "注意点",
+    "howItScores": "あなたのプロトコルでの評価",
+    "howItScoresForYou": "あなたにとっての評価",
+    "add": "追加",
+    "added": "追加済み",
+    "alternatives": {
+      "alsoWorthKnowing": "こちらも参考に",
+      "evenBetter": "さらに良い選択肢",
+      "betterOptions": "あなたに適した製品の選択肢",
+      "profileMatched": "プロフィール適合",
+      "brandedNote": "製品知識に基づく — 配合や入手性は変わることがあります。",
+      "categoryNote": "あなたの健康プロフィールに基づくカテゴリ指針 — ラベルでこれらの特徴を探してください。"
+    },
+    "profileFactorsHeading": "この分析を導くプロフィール要因",
+    "scoreCards": {
+      "kids": "子ども",
+      "adults": "大人",
+      "diet": "あなたの食事",
+      "goal": "あなたの目標"
+    },
+    "barcode": {
+      "dbMatch": "データベース一致 · Open Food Facts",
+      "notInDb": "データベースにありません · AI 推定",
+      "notFound": "バーコードが見つかりません — AI の製品知識に基づく分析"
+    },
+    "tier": {
+      "quick": "クイック分析",
+      "verified": "検証済みラベル分析",
+      "full": "完全製品アドバイザー",
+      "subKnowledge": "知識ベース · ラベル未スキャン",
+      "subLabelScanned": "ラベルスキャン済み · {{name}}",
+      "subProductUnknown": "ラベルスキャン済み · 製品不明",
+      "subLabel": "ラベルスキャン済み",
+      "subFull": "製品 + ラベル + プロフィール"
+    },
+    "scanLabelUp": "ラベルをスキャン ↑",
+    "highestConfidence": "最高の信頼度",
+    "whatMattersMost": "あなたに最も重要なこと",
+    "analysisProfile": {
+      "heading": "あなたの分析プロフィール",
+      "basedOn": "この推奨は以下に基づきます：",
+      "deeperTitle": "より深いパーソナライズをご希望ですか？",
+      "deeperBody": "A1C、空腹時血糖、コレステロール、中性脂肪、腎臓や炎症マーカーなどの検査値を追加してください。",
+      "updateProfile": "健康プロフィールを更新 →",
+      "disclaimer": "推奨は成分構成、栄養成分、あなたの健康プロフィールから生成されます。MPM は食品メーカーから報酬を受け取らず、推奨がブランド提携に影響されることは決してありません。",
+      "emptyState": "プロフィールに健康目標と状態を追加すると、完全にパーソナライズされた分析が得られます。"
+    },
+    "header": {
+      "companionScan": "コンパニオン製品スキャン",
+      "intelligence": "成分インテリジェンス",
+      "notIdentified": "製品を特定できません",
+      "scanningFor": "{{name}} のスキャン中",
+      "frontLabelDetected": "前面ラベルを検出",
+      "byNameAnalysis": "名称による分析",
+      "fullAnalysis": "完全分析"
+    },
+    "analyzeThisProduct": "この製品を分析",
+    "scanIngredientsLabel": "成分 / 栄養ラベルをスキャン",
+    "analyzeDisclaimer": "「この製品を分析」はこの製品に関する AI の知識を使用します — ライブのラベルスキャンではありません。配合は変わることがあります。検証済みの結果には成分表をスキャンしてください。",
+    "analyzing": "{{name}} を分析中…",
+    "checkingProfile": "あなたの健康プロフィールと照合中",
+    "byNameBanner": {
+      "title": "クイック分析 — 検証済みラベルスキャンではありません",
+      "body": "学習データ時点の製品知識に基づきます。配合は変わることがあります。",
+      "scanLink": "検証済みの結果にはラベルをスキャンしてください。"
+    },
+    "lowQuality": {
+      "title": "画像の品質が低めでした",
+      "body": "より正確な分析のため、成分表全体が見え、ピントが合い、明るい状態で撮り直してください。"
+    },
+    "labelFound": {
+      "title": "栄養ラベルが見つかりました",
+      "body": "製品名を話すか入力すると、あなたのプロフィールに合わせたブランドの代替品が得られます。"
+    },
+    "incomplete": {
+      "title": "分析が不完全です",
+      "lowImage": "画像が採点に十分な鮮明さではありませんでした。成分表全体が見え、明るいことを確認して再試行してください。",
+      "needMore": "評価の生成にはより多くの情報が必要です。成分表をスキャンするか、製品検索をご利用ください。"
+    },
+    "personalized": "あなたの健康プロフィールにパーソナライズ",
+    "generalAnalysis": "一般分析 — 健康目標を追加するとパーソナライズされた結果に",
+    "sections": {
+      "considerations": "成分の検討点",
+      "mayNotAlign": "あなたの目標に合わない可能性",
+      "worksWellFor": "適している対象",
+      "familyNotes": "家族向けメモ"
+    },
+    "detectedIngredients": "検出された成分",
+    "scanForVerified": "検証済み分析のためラベルをスキャン",
+    "addNamedToList": "{{name}} をリストに追加",
+    "addToList": "リストに追加",
+    "saveScan": "スキャンを保存",
+    "saveToGroceries": "買い物リストに保存",
+    "savedToGroceries": "買い物リストに保存済み",
+    "toast": {
+      "removedTitle": "買い物リストから削除",
+      "removedDesc": "{{name}} をお気に入りから削除しました。",
+      "removeFailTitle": "削除できませんでした",
+      "tryAgain": "もう一度お試しください。",
+      "alreadySaved": "保存済み",
+      "savedTitle": "買い物リストに保存",
+      "savedDesc": "{{name}} は買い物のお気に入りにあります。",
+      "saveFailTitle": "保存できませんでした",
+      "addedToList": "買い物リストに追加しました"
+    }
+  },
+  "athletePicker": {
+    "added": "追加済み！",
+    "addedCount": "{{count}}件追加",
+    "addingTo": "追加先：",
+    "categories": {
+      "eggsShakes": "卵・シェイク",
+      "fish": "切り身魚",
+      "poultry": "鶏肉・七面鳥",
+      "redmeat": "赤身肉"
+    },
+    "copied": "コピー済み！",
+    "copy": "コピー",
+    "copyMealAria": "食事の詳細をコピー",
+    "copySessionAria": "セッション概要をコピー",
+    "done": "完了",
+    "errorShort": "エラー",
+    "fibrousNote": "食物繊維野菜は無制限—でんぷんのみ（米、オーツ、いも）",
+    "gotIt": "了解！",
+    "headerTitle": "既製アスリート食 — {{slot}}",
+    "hiddenCount_one": "{{count}}食非表示—でんぷんが{{cap}}gを超えます",
+    "hiddenCount_other": "{{count}}食非表示—でんぷんが{{cap}}gを超えます",
+    "howToAria": "アスリート食ビルダーの使い方",
+    "info": {
+      "intro": "競技パフォーマンスと筋肥大に最適化した既製食。",
+      "step1Label": "タンパク質カテゴリを選択",
+      "step1Text": "（鶏、赤身、魚、卵）",
+      "step2After": "はタンパク質＋食物繊維野菜のみ",
+      "step2Mid": "の食事は米・オーツ・いもを含む。",
+      "step3Label": "食事をタップ",
+      "step3Text": "してすぐボードに追加",
+      "step4Label": "マクロ",
+      "step4Text": "は計算済みで追跡可能",
+      "stepsLabel": "手順：",
+      "tipAfter": "食を追加。食物繊維野菜は常に無制限。",
+      "tipBefore": "低でんぷん日は",
+      "tipLabel": "💡 ヒント：",
+      "tipMid": "食を。リフィード日は",
+      "title": "アスリート食ビルダーの使い方"
+    },
+    "lowStarchDay": "低でんぷん日",
+    "mealCopyText": "{{title}} — {{cals}} kcal · P {{protein}}g · S {{starch}}g · F {{fat}}g",
+    "noCoachConnection": "有効なコーチ接続なし",
+    "noteDesc": "競技パフォーマンスと筋肥大に最適化した既製食。",
+    "noteStep1": "タンパク質カテゴリを選択（鶏、赤身、魚、卵）",
+    "noteStep2After": "はタンパク質＋食物繊維野菜のみ",
+    "noteStep2Before": "表示が",
+    "noteStep2Mid": "の食事は米・オーツ・いもを含む—",
+    "noteStep3": "食事をタップしてすぐボードに追加",
+    "noteStep4": "マクロは計算済みで追跡可能",
+    "noteTitle": "既製アスリート食",
+    "refeedDay": "リフィード日",
+    "selectCategory": "タンパク質カテゴリを選択：",
+    "selectCategoryShort": "カテゴリを選択",
+    "sendCoachAria": "概要をコーチに送信",
+    "sendFailed": "送信失敗、再試行を",
+    "sendToCoach": "コーチに送信",
+    "sending": "送信中…",
+    "sent": "送信済み！",
+    "sessionTotal": "セッション合計：",
+    "slots": {
+      "breakfast": "朝食",
+      "dinner": "夕食",
+      "lunch": "昼食",
+      "meal4": "食事4",
+      "meal5": "食事5",
+      "meal6": "食事6",
+      "snacks": "間食"
+    },
+    "starch": "でんぷん",
+    "starchAllocation": "でんぷん配分",
+    "starchCap": "でんぷん上限 {{cap}}g",
+    "starchUsage": "{{used}}g / {{cap}}g でんぷん",
+    "summaryText_one": "{{count}}食追加 — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "summaryText_other": "{{count}}食追加 — {{cals}} kcal · P {{protein}}g · C {{carbs}}g · F {{fat}}g",
+    "viewChatAria": "コーチチャットでメッセージを見る",
+    "viewInChat": "チャットで見る"
+  },
+  "coachingSetup": {
+    "accountability": {
+      "encourage": {
+        "desc": "くじけたら励まして",
+        "label": "応援して"
+      },
+      "pushHard": {
+        "desc": "厳しく目標を管理して",
+        "label": "厳しく"
+      },
+      "remind": {
+        "desc": "軽い通知で十分",
+        "label": "リマインドだけ"
+      },
+      "selfDirected": {
+        "desc": "自分で自分をやる気にする",
+        "label": "自主的"
+      }
+    },
+    "back": "戻る",
+    "challenges": {
+      "consistency": "継続する",
+      "cravings": "食欲",
+      "emotionalEating": "感情的な食事",
+      "knowledge": "何を食べるか",
+      "mealPrep": "作り置き",
+      "motivation": "モチベ",
+      "socialPressure": "周囲の影響",
+      "time": "時間不足"
+    },
+    "error": "問題が発生しました。もう一度お試しください。",
+    "lifestyle": {
+      "budgetConscious": "予算重視",
+      "busySchedule": "多忙な予定",
+      "frequentTravel": "よく出張",
+      "parent": "親・介護者",
+      "pickyEater": "好き嫌い",
+      "shiftWorker": "シフト勤務",
+      "socialEater": "外食が多い",
+      "stressEater": "ストレス食い"
+    },
+    "loading": "プロフィールを読み込み中…",
+    "motivations": {
+      "athletic": "競技パフォーマンス",
+      "confidence": "自信を持つ",
+      "energy": "活力アップ",
+      "family": "家族の健康",
+      "longevity": "長寿",
+      "mentalClarity": "頭の明晰さ",
+      "weightLoss": "減量"
+    },
+    "next": "次へ",
+    "saveProfile": "プロフィールを保存",
+    "savedDesc": "コーチングプロフィールの準備完了。",
+    "savedTitle": "保存しました！",
+    "saving": "保存中…",
+    "steps": {
+      "accountability": {
+        "subtitle": "一番やる気が出る方法を選んで",
+        "title": "どう管理する？"
+      },
+      "challenges": {
+        "subtitle": "正直に。重要な点に集中できます",
+        "title": "最大の課題は？"
+      },
+      "lifestyle": {
+        "subtitle": "全て選択。助言を最適化します",
+        "title": "生活スタイルは？"
+      },
+      "motivations": {
+        "subtitle": "当てはまるものを全て選択",
+        "title": "あなたの原動力は？"
+      },
+      "style": {
+        "subtitle": "しっくりくる伝え方を選んで",
+        "title": "どんな指導が良い？"
+      }
+    },
+    "styles": {
+      "balanced": {
+        "desc": "すべての方法をミックス",
+        "label": "バランス"
+      },
+      "direct": {
+        "desc": "やるべきことを率直に教えて",
+        "label": "ストレート"
+      },
+      "educational": {
+        "desc": "選択の理由を説明して",
+        "label": "解説"
+      },
+      "encouraging": {
+        "desc": "前向きな声かけとサポート",
+        "label": "励まし"
+      }
+    }
+  },
+  "competitionPicker": {
+    "badgeCarbs": "糖質",
+    "categories": {
+      "eggsShakes": "卵・シェイク",
+      "fish": "切り身魚",
+      "poultry": "鶏肉・七面鳥",
+      "redmeat": "赤身肉"
+    },
+    "gotIt": "了解！",
+    "headerAddTo": "大会準備食 - {{slot}}に追加",
+    "howToAria": "パフォーマンス＆大会ビルダーの使い方",
+    "info": {
+      "intro": "除脂肪と成果に最適化した既製アスリート食。",
+      "step1Label": "タンパク質カテゴリを選択",
+      "step1Text": "（鶏、赤身、魚、卵）",
+      "step2Label": "食事は表示",
+      "step2Text": "「糖質」か「P+V」（タンパク質＋野菜）",
+      "step3Label": "食事をタップ",
+      "step3Text": "してすぐボードに追加",
+      "step4Label": "マクロ",
+      "step4Text": "は計算済みで追跡可能",
+      "stepsLabel": "手順：",
+      "tipLabel": "💡 ヒント：",
+      "tipText": "糖質目標に合わせて選択：エネルギーには「糖質」、低糖質日は「P+V」。",
+      "title": "パフォーマンス＆大会ビルダーの使い方"
+    },
+    "noteDesc": "除脂肪と成果に最適化した既製アスリート食。",
+    "noteStep1": "タンパク質カテゴリを選択（鶏、赤身、魚、卵）",
+    "noteStep2": "食事は「糖質」か「P+V」（タンパク質＋野菜）で表示",
+    "noteStep3": "食事をタップしてすぐボードに追加",
+    "noteStep4": "マクロは計算済みで追跡可能",
+    "noteTitle": "大会準備食",
+    "selectCategory": "タンパク質カテゴリを選択：",
+    "selectCategoryShort": "カテゴリを選択"
+  },
+  "complianceCard": {
+    "biggestOpportunity": "最大の改善点",
+    "breakfastLogged": "朝食記録",
+    "caloriesOnTarget": "カロリー達成",
+    "consistencyScore": "継続スコア",
+    "days": "日",
+    "dinnerLogged": "夕食記録",
+    "last7Days": "過去7日間",
+    "lastNDays": "過去{{count}}日間",
+    "loggedMeals": "食事記録",
+    "lunchLogged": "昼食記録",
+    "noActivity": "まだ記録がありません。食事を記録すると概要が表示されます。",
+    "noMeals": "食事の記録がありません。記録すると概要が表示されます。",
+    "ofDays": "{{value}} / {{total}}",
+    "proteinGoalMet": "タンパク質達成",
+    "setTargets": "マクロ目標を設定すると完全な追跡が有効になります。",
+    "title": "栄養アクティビティ概要"
+  },
+  "mealPicker": {
+    "addTo": "{{slot}}に追加",
+    "cafeteria": "おまかせ",
+    "categories": {
+      "fats": "脂質",
+      "fibrousCarbs": "食物繊維糖質",
+      "fruit": "果物",
+      "proteins": "タンパク質",
+      "starchyCarbs": "でんぷん質糖質"
+    },
+    "close": "閉じる",
+    "generate": "生成",
+    "generateCount": "生成（{{count}}）",
+    "generating": "生成中…",
+    "gotIt": "了解！",
+    "howToAria": "食事ピッカーの使い方",
+    "info": {
+      "addLabel": "タップで追加：",
+      "addText": "カードをタップして{{slot}}枠にすぐ追加",
+      "browseLabel": "食事を見る：",
+      "browseText": "厳選した食事テンプレを閲覧",
+      "cafeteriaLabel": "おまかせ：",
+      "cafeteriaText": "「おまかせ」で手早くランダム提案",
+      "intro": "できあいの食事をプランに手早く追加。",
+      "personalizedLabel": "パーソナライズ：",
+      "personalizedText": "アレルギーと好みで食事を絞り込み",
+      "tipLabel": "💡 ヒント：",
+      "tipText": "探さず手早く健康的な提案が欲しい時はおまかせを。",
+      "title": "食事ピッカーの使い方"
+    },
+    "lowerGlycemic": "血糖への影響が低め",
+    "quickMeal": "クイック{{slot}}",
+    "regularGi": "通常GI"
+  },
+  "mealReminders": {
+    "addReminder": "リマインダーを追加",
+    "checkAgain": "再確認",
+    "checking": "確認中…",
+    "connectionDiagnostics": "接続診断",
+    "footerBlocked": "時間を設定しましょう。権限付与後に有効化されます。",
+    "footerDefault": "最大6件。ラベルをタップで名称変更。",
+    "footerEnabled": "確実な配信のためブラウザを開いたままに。",
+    "footerNative": "ラベルをタップで名称変更。iOSアプリで配信されます。",
+    "mealN": "食事{{n}}",
+    "nativeDelivery": "iOSネイティブ配信",
+    "saving": "保存中…",
+    "statusBlocked": "ブラウザで通知がブロック中",
+    "statusConnected": "通知が接続済み",
+    "statusPartial": "未完了—枠をオンにして設定を完了",
+    "statusPending": "枠をオンにして通知を有効化",
+    "statusUnsupported": "このブラウザは非対応",
+    "title": "食事リマインダー",
+    "toUnblock": "解除するには：",
+    "toastBlockedIosDesc": "iPhone設定 › My Perfect Meals › 通知を許可",
+    "toastBlockedTitle": "通知がブロック中",
+    "toastBlockedWebDesc": "アドレスバーの鍵アイコンから通知を許可し、再確認をタップ。",
+    "toastEnableFailedTitle": "通知を有効にできません",
+    "toastNotSupportedDesc": "このブラウザはプッシュ通知に対応していません。",
+    "toastNotSupportedTitle": "非対応",
+    "toastPermissionDenied": "権限が拒否されました。",
+    "toastSaveFailed": "リマインダーを保存できません",
+    "toastTryAgain": "少し待って再試行してください。",
+    "unblockAllow": "許可",
+    "unblockLock": "🔒 鍵",
+    "unblockNotifications": "通知",
+    "unblockStep1After": "をタップ",
+    "unblockStep1Before": "アドレスバーの",
+    "unblockStep2Before": "設定で",
+    "unblockStep2Mid": "を",
+    "unblockStep3After": "をタップ",
+    "unblockStep3Before": "下の",
+    "unsupportedHint": "デスクトップのChromeかEdgeを使用。iOSのSafariはアプリが必要です。",
+    "webDelivery": "Webプッシュ配信"
+  },
+  "kitchenPartner": {
+    "optSignatureLabel": "シグネチャーキッチン",
+    "optSignatureDesc": "プラットフォーム内にあなた専用のブランドキッチンを",
+    "optProductLabel": "製品統合",
+    "optProductDesc": "あなたのブランド・製品・サプリを統合",
+    "optWhiteLabelLabel": "ホワイトラベル",
+    "optWhiteLabelDesc": "完全ブランド化されたプラットフォーム体験",
+    "optRestaurantLabel": "レストラングループ",
+    "optRestaurantDesc": "複数店舗またはフランチャイズの提携",
+    "optAthleteLabel": "アスリートキッチン",
+    "optAthleteDesc": "パフォーマンスと競技に特化した料理アイデンティティ",
+    "stepIdentity": "アイデンティティ",
+    "stepCulinary": "料理のアイデンティティ",
+    "stepPlatform": "プラットフォーム",
+    "stepInterest": "関心",
+    "stepSubmit": "送信",
+    "partnershipReview": "提携審査",
+    "errorGeneric": "問題が発生しました。もう一度お試しください。",
+    "errorConnection": "送信できませんでした。接続を確認して再試行してください。",
+    "identityHeading": "あなたについて教えてください。",
+    "identitySub": "基本情報と連絡先。",
+    "fullNameLabel": "氏名",
+    "fullNamePlaceholder": "あなたの氏名",
+    "brandLabel": "シェフ / ブランド名",
+    "brandPlaceholder": "公開する料理ブランド",
+    "emailLabel": "メール",
+    "phoneLabel": "電話",
+    "locationLabel": "所在地",
+    "locationPlaceholder": "市区町村、都道府県 / 国",
+    "culinaryHeading": "あなたの料理のアイデンティティ。",
+    "culinarySub": "これがプラットフォーム内でのキッチン構築を決めます。",
+    "cuisineFocusLabel": "料理の重点",
+    "cuisineFocusPlaceholder": "例：南部料理、和食、地中海料理",
+    "cookingPhilosophyLabel": "料理哲学",
+    "cookingPhilosophyPlaceholder": "食への向き合い方をどう表現しますか？",
+    "signatureStylesLabel": "シグネチャースタイル",
+    "signatureStylesPlaceholder": "例：高タンパク、コンフォートフード、植物中心",
+    "wellnessPhilosophyLabel": "ウェルネス哲学",
+    "wellnessPhilosophyPlaceholder": "健康と栄養は料理にどう関わりますか？",
+    "platformHeading": "あなたの観客はどこに？",
+    "platformSub": "SNSやウェブでの活動を共有してください。すべて任意です。",
+    "websiteLabel": "ウェブサイト",
+    "interestHeading": "何に関心がありますか？",
+    "interestSub": "該当するものをすべて選択してください。複数選択可。",
+    "readyHeading": "送信の準備完了。",
+    "readySub": "当チームがすべての応募を個別に審査します。3〜5営業日以内にご連絡します。",
+    "summaryHeading": "応募概要",
+    "summaryName": "名前",
+    "summaryBrand": "ブランド",
+    "summaryEmail": "メール",
+    "summaryCuisine": "料理",
+    "summaryInterest": "関心",
+    "consentText": "送信することで、My Perfect Meals が提供された情報を提携審査に利用することに同意したことになります。正式な契約が締結されるまで、いかなる約束もありません。",
+    "submitting": "送信中…",
+    "requestReview": "提携審査を申請",
+    "successHeading": "応募を受け付けました。",
+    "successSub": "当チームが応募を審査し、3〜5営業日以内にご連絡します。すべての応募を個別に審査しています。",
+    "contactAt": "こちらにご連絡します",
+    "done": "完了",
+    "back": "戻る",
+    "next": "次へ"
+  },
+  "safetyPin": {
+    "title": "セーフティPIN",
+    "sessionExpired": "セッションが期限切れです。ログアウトして再ログインし、PINを管理してください",
+    "statusSet": "PIN設定済み — 追加保護が有効です",
+    "statusUnset": "PIN未設定 — 追加保護のために設定しましょう",
+    "changePin": "PINを変更",
+    "removePin": "PINを削除",
+    "setPin": "セーフティPINを設定",
+    "enterPin": "PINを入力",
+    "confirmPin": "PINを確認",
+    "currentPin": "現在のPIN",
+    "newPin": "新しいPIN",
+    "confirmNewPin": "新しいPINを確認",
+    "removePrompt": "削除するには現在のPINを入力してください。",
+    "fourDigits": "4桁",
+    "hidePin": "PINを隠す",
+    "showPin": "PINを表示",
+    "cancel": "キャンセル",
+    "setPinBtn": "PINを設定",
+    "changePinBtn": "PINを変更",
+    "removePinBtn": "PINを削除",
+    "errorFourDigits": "PINはちょうど4桁である必要があります",
+    "errorNoMatch": "PINが一致しません",
+    "errorNewFourDigits": "新しいPINは4桁である必要があります",
+    "errorNewNoMatch": "新しいPINが一致しません",
+    "errorSetFailed": "PINの設定に失敗しました",
+    "errorSetRetry": "PINを設定できませんでした。もう一度お試しください。",
+    "errorChangeFailed": "PINの変更に失敗しました",
+    "errorChangeRetry": "PINを変更できませんでした。もう一度お試しください。",
+    "errorRemoveFailed": "PINの削除に失敗しました",
+    "errorRemoveRetry": "PINを削除できませんでした。もう一度お試しください。",
+    "setToastTitle": "セーフティPINを設定しました",
+    "setToastDesc": "セーフティPINを作成しました。",
+    "changeToastTitle": "PINを変更しました",
+    "changeToastDesc": "セーフティPINを更新しました。",
+    "removeToastTitle": "PINを削除しました",
+    "removeToastDesc": "セーフティPINを削除しました。"
+  },
+  "mfa": {
+    "errorStartSetup": "設定を開始できませんでした。もう一度お試しください。",
+    "errorInvalidCode": "コードが無効です。もう一度お試しください。",
+    "errorDisableInvalid": "コードが無効です。MFAは無効化されていません。",
+    "loading": "読み込み中…",
+    "enabledTitle": "二段階認証が有効になりました",
+    "saveBackupPrompt": "このページを閉じる前にバックアップコードを保存してください。",
+    "backupCodesHeading": "バックアップコード — 今すぐ保存",
+    "copied": "コピーしました！",
+    "copyAllCodes": "すべてコピー",
+    "backupCodesNote": "各コードは一度しか使用できません。安全な場所に保管してください。認証アプリにアクセスできなくなった場合、ログインにこのうち1つが必要です。",
+    "savedBackupBtn": "バックアップコードを保存しました",
+    "onTitle": "二段階認証は有効です",
+    "enabledOn": "{{date}} に有効化",
+    "disable2fa": "2FAを無効化",
+    "disableTitle": "二段階認証を無効化",
+    "disablePrompt": "確認のため現在の認証コードを入力してください。",
+    "cancel": "キャンセル",
+    "disabling": "無効化中…",
+    "scanTitle": "認証アプリでスキャン",
+    "scanApps": "Google Authenticator、Authy、1Password が最適です。",
+    "qrAlt": "このQRコードを認証アプリでスキャン",
+    "manualKeyPrompt": "スキャンできませんか？このキーを手動で入力してください：",
+    "addedAccountNext": "アカウントを追加しました — 次へ",
+    "confirmTitle": "認証コードを確認",
+    "confirmPrompt": "2FAを有効にするにはアプリの6桁コードを入力してください。",
+    "activating": "有効化中…",
+    "activate2fa": "2FAを有効化",
+    "back": "戻る",
+    "defaultTitle": "二段階認証",
+    "defaultSubtitle": "アカウントに追加のセキュリティ層を加えます。",
+    "settingUp": "設定中…",
+    "enable2fa": "2FAを有効化"
+  },
+  "createWithChef": {
+    "mealCreatedTitle": "食事が作成されました！",
+    "mealCreatedDesc": "{{name}} の準備ができました",
+    "generationFailedTitle": "生成に失敗しました",
+    "signInTitle": "サインインしてください",
+    "signInDesc": "食事を作成するにはサインインが必要です",
+    "guestLimitTitle": "ゲスト上限に達しました",
+    "guestLimitDesc": "無料アカウントを作成して食事の生成を続けましょう",
+    "describeMealTitle": "食事を説明してください",
+    "describeMealDesc": "シェフに食べたいものを伝えましょう",
+    "enterAlternativeTitle": "代替案を入力してください",
+    "enterAlternativeDesc": "代わりに何がよいか教えてください",
+    "placeholderBreakfast": "例：「プロテインパンケーキ」「フルーツ入り甘い卵」「低糖質オムレツ」",
+    "placeholderLunch": "例：「グリルチキンサラダ」「高タンパクラップ」「地中海ボウル」",
+    "placeholderDinner": "例：「低糖質タコス」「ステーキと野菜」「サーモンとご飯」",
+    "placeholderDefault": "例：「軽くて健康的なもの」「高タンパクの食事」",
+    "title": "AI Chef で作成",
+    "subtitle": "{{mealType}} に何が食べたいかシェフに伝えましょう",
+    "starchLimitTitle": "でんぷん質の糖質が上限に達しました",
+    "starchUsedSingular": "本日のでんぷん食はすでに使用済みです（{{max}}回中{{used}}回）。",
+    "starchUsedPlural": "本日のでんぷん食はすでに使用済みです（{{max}}回中{{used}}回）。",
+    "youRequested": "あなたのリクエスト：",
+    "fibrousPrefix": "代わりに",
+    "fibrousCarb": "食物繊維の糖質",
+    "fibrousSuffix": "を選びますか、それともシェフに任せますか？",
+    "fibrousPlaceholder": "例：ブロッコリー、アスパラガス、カリフラワー…",
+    "generating": "生成中…",
+    "useMyChoice": "自分の選択を使う",
+    "or": "または",
+    "chefsChoice": "シェフのおすすめ",
+    "chefSubstituteHint": "シェフがおいしい食物繊維の糖質に置き換えます",
+    "inputHint": "食べたいものを説明すると、シェフがあなた専用の食事を作成します",
+    "orbCheckingSafety": "安全プロフィールを確認中…",
+    "orbFinishing": "仕上げ中…",
+    "orbPreparing": "シェフが食事を準備中…",
+    "mealSafety": "食事の安全性",
+    "ingredientControl": "食材のコントロール",
+    "todaysStarchMeals": "本日のでんぷん食：",
+    "starchUsedCount": "{{used}} / {{max}} 使用済み",
+    "generateBtn": "AI食事を生成",
+    "stop": "停止",
+    "cancel": "キャンセル"
+  },
+  "profileSheet": {
+    "invalidFileTitle": "無効なファイル",
+    "invalidFileDesc": "画像ファイルを選択してください。",
+    "fileTooLargeTitle": "ファイルが大きすぎます",
+    "fileTooLargeDesc": "5MB未満の画像を選択してください。",
+    "photoUpdatedTitle": "写真を更新しました",
+    "photoUpdatedDesc": "プロフィール写真を更新しました。",
+    "uploadFailedTitle": "アップロード失敗",
+    "uploadFailedDesc": "写真のアップロードに失敗しました。",
+    "cameraErrorTitle": "カメラエラー",
+    "cameraErrorDesc": "カメラまたは写真にアクセスできませんでした。",
+    "restoringTitle": "購入を復元中…",
+    "restoringDesc": "有効なサブスクリプションを検索中…",
+    "restoredTitle": "購入を復元しました",
+    "restoredDesc": "サブスクリプションを正常に復元しました。",
+    "restoreCompleteTitle": "復元完了",
+    "restoreCompleteDesc": "有効なサブスクリプションが見つかりませんでした。誤りだと思われる場合はサポートにお問い合わせください。",
+    "restoreFailedTitle": "復元失敗",
+    "restoreFailedDesc": "購入を復元できませんでした。もう一度お試しください。",
+    "accountDeletedTitle": "アカウントを削除しました",
+    "accountDeletedDesc": "アカウントとすべてのデータが完全に削除されました。",
+    "deleteFailedDesc": "アカウントの削除に失敗しました。もう一度お試しください。",
+    "deleteAccount": "アカウントを削除",
+    "deleteDialogTitle": "アカウントを完全に削除しますか？",
+    "deleteDialogIntro": "この操作は取り消せません。以下が完全に削除されます：",
+    "deleteItemAccount": "アカウントとプロフィール情報",
+    "deleteItemMeals": "すべての食事プランと保存済みレシピ",
+    "deleteItemBiometrics": "生体データと健康記録データ",
+    "deleteItemBilling": "サブスクリプションと支払い履歴",
+    "deleting": "削除中…",
+    "deleteMyAccount": "アカウントを削除"
+  },
+  "inspiration": {
+    "servingsJustMe": "自分だけ",
+    "servings2": "2人",
+    "servings3": "3人",
+    "servingsFamily": "家族（4人）",
+    "servingsMealPrep": "作り置き（6人）",
+    "copilotTitle": "Recipe Maker",
+    "copilotDescription": "見つけて。伝えて。送って。あなたのものにします。",
+    "copilotSpokenText": "Recipe Maker はアプリで最も強力なツールの一つです。考え方はシンプルです。どこかで食べ物を見かける——TikTok、Instagramの保存、料理本、メニュー、あるいは頭の中のイメージ——その瞬間を逃さず、ここに持ち込めば私たちが作ります。アイデアを持ち込む方法は4つあります。Choose Photo はギャラリーから任意のスクリーンショットや保存済みの食べ物画像を選べます——TikTokのスクショ、Instagramの保存、Pinterestのボード、Facebookのレシピなど、端末にあるものすべてです。Camera はカメラをライブで起動し、料理本、メニュー、画面に向けられます。Speak は友人に話すように声で食事を説明できます。Type は説明を貼り付けたり、思いつきを書けます。Recipe Maker が違うのはここです——レシピは不要です。見せるか説明できれば、私たちが作れます。アイデアを送ると、Recipe Maker は1つの結果だけを返しません。あなたのアイデアを完全にパーソナライズした3つのバージョンを同時に作ります——同じ料理、3つの解釈——それぞれがあなたのマクロ目標、アレルギー、食のアイデンティティ、アカウント上で有効なすべての健康プロトコルに基づいています。3つすべてを見て、どれでも、あるいはすべて保存でき、選択はあなたが消すまでダッシュボードに残ります。アプリが自動で削除することはありません。",
+    "hintAuthentic": "元の風味と食材をできるだけ保ちます。",
+    "hintBalanced": "料理の本質を保ちつつあなたのプロフィールに合わせます。",
+    "hintHealthier": "料理が分かる範囲で栄養を積極的に最適化します。",
+    "analysisFailed": "分析に失敗しました",
+    "analyzeFailedMsg": "食材の分析に失敗しました。",
+    "imageReadError": "画像を読み取れませんでした。もう一度お試しください。",
+    "voiceNotSupportedTitle": "音声は非対応です",
+    "voiceNotSupportedDesc": "お使いのブラウザは音声入力に対応していません。入力をお試しください。",
+    "micErrorTitle": "マイクエラー",
+    "micErrorDesc": "もう一度お試しください。",
+    "somethingWrong": "問題が発生しました",
+    "createFailedMsg": "パーソナライズされた食事の作成に失敗しました。",
+    "saveFailedError": "保存に失敗しました",
+    "savedTitle": "保存しました！",
+    "savedDesc": "お気に入りの Recipe Maker 保存に追加しました。",
+    "saveFailedTitle": "保存失敗",
+    "scanFoodFor": "{{name}} の食べ物をスキャン",
+    "productScan": "製品スキャン",
+    "customizeMeal": "食事をカスタマイズ",
+    "recipeMaker": "Recipe Maker",
+    "analyzeForCompanion": "{{name}} の食材を分析",
+    "analyzeBeforeBuy": "購入前に食材を分析",
+    "optionsSubtitle": "パーソナライズ版を生成する前にこれらを調整してください。",
+    "captureSubtitle": "どんな食事のアイデアもスキャンして、あなた向けにパーソナライズします。",
+    "choosePhoto": "写真を選択",
+    "cameraPill": "カメラ",
+    "speakPill": "話す",
+    "typePill": "入力",
+    "uploadHint": "カメラロールやギャラリーからスクショ、保存済みの食べ物写真、画像を選んでください。",
+    "chooseFromGallery": "ギャラリーから選択",
+    "galleryHint": "スクショ、保存済み写真、あらゆる食べ物画像",
+    "cameraHint": "カメラをレシピ、メニュー、画面、食べ物の写真に向けてください。",
+    "openCamera": "カメラを開く",
+    "cameraSubHint": "食べ物のアイデアをその場で撮影",
+    "voiceHint": "食事を声で説明してください——食材、スタイル、覚えていること何でも。",
+    "tapToStop": "タップで停止",
+    "tapToSpeak": "タップで話す",
+    "nextCustomize": "次へ — カスタマイズ →",
+    "textHint": "食事のアイデア、レシピの説明、料理名を入力または貼り付けてください。",
+    "textPlaceholder": "例：バッファローチキンボウル（ご飯、アボカド、ランチ添え）…",
+    "servingsHeading": "人数",
+    "adaptationStyleHeading": "アレンジスタイル",
+    "authentic": "オーセンティック",
+    "balanced": "バランス",
+    "healthier": "よりヘルシー",
+    "proteinLevelHeading": "タンパク質レベル",
+    "proteinStandard": "標準",
+    "proteinHigh": "高タンパク",
+    "proteinAthlete": "アスリート",
+    "prepStyleHeading": "調理スタイル",
+    "prepOriginal": "元の調理",
+    "prepEasy": "簡単調理",
+    "cuisineStyleHeading": "料理スタイル",
+    "generateMyVersion": "自分のバージョンを生成",
+    "analyzingIngredients": "食材を分析中…",
+    "buildingVersion": "あなたのバージョンを作成中…",
+    "checkingCompanionProfile": "{{name}} のプロフィールと照合中",
+    "checkingYourProfile": "あなたのプロフィールと照合中",
+    "adaptingProfile": "あなたの栄養プロフィールに適応中",
+    "versionsReady": "{{count}} バージョン準備完了",
+    "savedCount": " · {{count}} 件保存済み",
+    "deleteScan": "このスキャンを削除",
+    "tapAnotherHint": "別のものもタップで保存できます。閉じて後で戻ってもOKです。",
+    "tapSelectHint": "タップで選択して保存。いつでも戻れます——削除するまで残ります。",
+    "adaptedForStrategy": "今日の栄養戦略に適応",
+    "calValue": "{{value}} kcal",
+    "proteinValue": "タンパク質 {{value}}g",
+    "carbsValue": "炭水化物 {{value}}g",
+    "saving": "保存中…",
+    "saveAgain": "もう一度保存",
+    "saveThisVersion": "このバージョンを保存",
+    "try3More": "さらに3つ",
+    "viewSavedMeals": "お気に入りで保存した食事を見る →",
+    "personalizedReady": "あなたのパーソナライズ版の準備ができました。",
+    "macroCal": "kcal",
+    "macroProtein": "タンパク質",
+    "macroCarbs": "炭水化物",
+    "macroFat": "脂質",
+    "savedCheck": "保存済み ✓",
+    "saveToFavorites": "お気に入りに保存",
+    "scanAnother": "別のものをスキャン",
+    "viewInFavorites": "お気に入りで見る →"
+  },
+  "parentsCorner": {
+    "title": "保護者コーナー",
+    "yourChild": "お子さま",
+    "helpingBuildHabits": "{{name}}の健康習慣づくりをサポート",
+    "backToBeginnings": "My Perfect Beginnings に戻る",
+    "startFresh": "最初から",
+    "startNewConversation": "新しい会話を始める",
+    "clearConfirm": "この会話を消して最初から始めますか？",
+    "clear": "消去",
+    "cancel": "キャンセル",
+    "dismiss": "閉じる",
+    "boundaryLanguage": "ご家族のために科学的根拠に基づく栄養ガイドをお伝えします。医療上の心配ごとは、小児科医や登録小児栄養士への相談が正しい次の一歩です。必要そうなときはお知らせします。",
+    "todaysTip": "今日のヒント",
+    "loadingConversation": "会話を読み込み中…",
+    "commonQuestions": "よくある質問",
+    "browseCommonQuestions": "よくある質問を見る",
+    "followUp": "追加の質問",
+    "makeItNow": "今すぐ作る",
+    "thinking": "考え中…",
+    "emptyPrompt": "上のカードをタップするか、下で質問してください。",
+    "askAnything": "何でも質問",
+    "inputPlaceholder": "ここに質問を入力…",
+    "send": "送信",
+    "noResponse": "すみません、返答がありませんでした。もう一度お試しください。",
+    "connectionError": "今少し不具合があります。接続を確認して再度お試しください。",
+    "stage": {
+      "earlyInfant": "乳児初期",
+      "beginningFoods": "離乳食開始",
+      "youngToddler": "低年齢幼児",
+      "toddler": "幼児",
+      "preschool": "就学前",
+      "earlySchoolAge": "就学初期",
+      "growingChild": "成長期の子ども"
+    },
+    "cards": {
+      "babyWontEat": {
+        "label": "赤ちゃんが食べません。",
+        "question": "赤ちゃんが食べません。どうすれば？"
+      },
+      "toddlerHatesVegetables": {
+        "label": "子どもが野菜を嫌います。",
+        "question": "子どもが野菜を嫌います。もっと食べさせるには？"
+      },
+      "lunchPacking": {
+        "label": "お弁当に何を入れる？",
+        "question": "健康で魅力的なお弁当のアイデアは？"
+      },
+      "healthySnacks": {
+        "label": "放課後の健康おやつ。",
+        "question": "放課後の健康的なおやつのアイデアは？"
+      },
+      "calcium": {
+        "label": "カルシウムは足りてる？",
+        "question": "子どものカルシウムは足りていますか？どう確認する？"
+      },
+      "introducingFoods": {
+        "label": "新しい食材の始め方は？",
+        "question": "争いにせずに新しい食材を取り入れるには？"
+      },
+      "youngAthlete": {
+        "label": "スポーツする子は何を食べる？",
+        "question": "子どもがスポーツをします。練習の前後に何を食べる？"
+      },
+      "waterIntake": {
+        "label": "必要な水分量は？",
+        "question": "子どもは1日にどれくらい水を飲むべき？"
+      },
+      "pizza": {
+        "label": "ピザを食べても大丈夫？",
+        "question": "子どもはピザなどの楽しい食べ物を食べてもいい？もっと厳しくすべき？"
+      }
+    }
+  },
+  "bodyComposition": {
+    "title": "体組成を記録",
+    "bodyFatPct": "体脂肪率 %",
+    "bodyFatPlaceholder": "例 18.5",
+    "goalBodyFatPct": "目標体脂肪率 %（任意）",
+    "goalBodyFatPlaceholder": "例 15",
+    "scanMethod": "測定方法",
+    "pickMethod": "方法を選択",
+    "date": "日付",
+    "save": "保存",
+    "saving": "保存中...",
+    "notLoggedIn": "未ログイン",
+    "notLoggedInDesc": "体組成データを保存するにはログインしてください。",
+    "invalidBodyFat": "無効な体脂肪",
+    "invalidBodyFatDesc": "体脂肪率は1%〜70%の範囲で入力してください。",
+    "saved": "保存しました",
+    "savedDesc": "体組成を記録しました。",
+    "saveFailed": "保存に失敗",
+    "saveFailedDesc": "データを保存できませんでした。もう一度お試しください。"
+  },
+  "sponsorEnded": {
+    "launchProCare": "独立した ProCare アカウントを開始",
+    "openStudio": "独立スタジオを開く",
+    "completeVerification": "資格認証を完了する",
+    "continueTraining": "Platform Mastery 研修を続ける",
+    "startOwnPractice": "自分の事業を始める",
+    "continueAsClient": "クライアントとして続ける",
+    "continueAsClientDesc": "個人メンバーとして MPM を使い続ける",
+    "continueWithFree": "Free で続ける",
+    "continueWithFreeDesc": "基本的な献立生成——ずっと無料",
+    "joinAnotherOrg": "別の組織に参加",
+    "joinAnotherOrgDesc": "別の事業者からの招待を受ける",
+    "accessEnded": "{{business}} が提供していたアクセスは終了しました",
+    "accessEndedBody": "個人アカウント、食事履歴、Academy の進捗、認定はすべて残っています。続け方を選んでください。"
+  },
+  "dietStyleBadge": {
+    "kosher": "コーシャ ✓",
+    "halal": "ハラル ✓",
+    "vegan": "ヴィーガン ✓",
+    "vegetarian": "ベジタリアン ✓",
+    "pescatarian": "ペスカタリアン ✓",
+    "mediterranean": "地中海式 ✓",
+    "paleo": "パレオ ✓",
+    "keto": "ケト ✓",
+    "carnivore": "カーニボア ✓",
+    "dairyFree": "乳製品なし ✓",
+    "custom": "カスタム食事 ✓"
+  },
+  "pregnancySupport": {
+    "title": "My Perfect Pregnancy の設定",
+    "intro": "これで栄養ガイドがパーソナライズされます。情報は非公開で、各食事の提案・食品安全チェック・コーチングに反映されます。",
+    "whereAreYou": "今どの段階ですか？",
+    "breastfeedingQuestion": "現在授乳中ですか？",
+    "breastfeedingHelp": "これで栄養方針が決まります。授乳と産後回復は優先事項が異なるため、別々に扱います。",
+    "yesBreastfeeding": "はい、授乳中",
+    "noBreastfeeding": "いいえ、授乳していません",
+    "breastfeedingNote": "母乳生産のための栄養に加え、回復のためのサポートも受けられます。",
+    "postpartumNote": "専用の産後回復プロトコルを受けられます——食物繊維、抗炎症の食事、ホルモンサポート、体の再構成。無理なダイエットはしません。",
+    "trackByDueDate": "予定日で管理しますか？",
+    "trackByDueDateHelp": "予定日を入力すると、現在の週数と妊娠期が自動更新されます。スキップして手動管理も可能です。",
+    "yesEnterDueDate": "はい、予定日を入力",
+    "skipManual": "スキップ——手動段階のみ",
+    "dueDatePlaceholder": "予定日（YYYY-MM-DD）",
+    "activeSymptoms": "今ある症状は？",
+    "activeSymptomsHelp": "当てはまるものを選択——食事の提案が合わせて調整されます。",
+    "disclaimerPart1": "My Perfect Pregnancy は一般的な栄養教育と食事構成のサポートのみを提供します。これは",
+    "disclaimerNotSubstitute": "代わりにはなりません",
+    "disclaimerPart2": "あなたの OB/GYN、助産師、登録栄養士の。常にまず医療提供者の指示に従ってください。",
+    "saveButton": "妊娠設定を保存",
+    "savingButton": "保存中…",
+    "savedButton": "✓ 保存しました！",
+    "turnOff": "妊娠栄養をオフにする",
+    "turnOffConfirm": "妊娠栄養をオフにしますか？",
+    "turnOffHelp": "食事とコーチングから妊娠向けガイドを外します。いつでも再開できます——評価も質問もありません。",
+    "turningOff": "オフにしています…",
+    "yesTurnOff": "はい、オフにする",
+    "keepItOn": "オンのままにする",
+    "stage": {
+      "tryingToConceive": {
+        "label": "妊活中",
+        "desc": "妊娠前の栄養"
+      },
+      "trimester1": {
+        "label": "妊娠初期",
+        "desc": "1〜13週 · 葉酸、つわり対策"
+      },
+      "trimester2": {
+        "label": "妊娠中期",
+        "desc": "14〜27週 · タンパク質、カルシウム、DHA"
+      },
+      "trimester3": {
+        "label": "妊娠後期",
+        "desc": "28〜40週 · 鉄、DHA、出産準備"
+      },
+      "breastfeeding": {
+        "label": "授乳",
+        "desc": "母乳生産、DHA、ヨウ素、カルシウム"
+      },
+      "postpartum": {
+        "label": "産後",
+        "desc": "回復、体の再構成、ホルモン、筋力"
+      }
+    },
+    "symptom": {
+      "nausea": "吐き気",
+      "heartburn": "胸やけ",
+      "constipation": "便秘",
+      "fatigue": "疲労",
+      "foodAversions": "食べ物の嫌悪",
+      "swelling": "むくみ",
+      "shortnessOfBreath": "息切れ",
+      "lowAppetite": "食欲低下"
+    }
+  },
+  "glp1Checkin": {
+    "howFeeling": "今日の調子はいかがですか？",
+    "noCheckinToday": "今日はまだ症状チェックインがありません。食事は標準の服薬プロファイルを使用中です。",
+    "checkInPrompt": "チェックインして今日の食事・シェイク・レストラン提案を調整しましょう。",
+    "checkIn": "チェックイン",
+    "update": "更新",
+    "updated": "{{time}}に更新",
+    "escalationStatusBody": "これらの症状は医療評価が必要な場合があります。早めに医療提供者またはケアチームに連絡してください。",
+    "mealsAdapting": "食事が今日の症状に適応中",
+    "updatedTapAdjustments": "{{time}}に更新 · タップで調整を確認",
+    "noSymptomsToday": "今日は症状の報告なし",
+    "updatedStandardProfile": "{{time}}に更新 · 標準プロファイル有効",
+    "escalationCardBody": "これらの症状は医療評価が必要な場合があります。ケアチームに連絡してください。",
+    "nutritionAdjustments": "今日の栄養調整（{{count}}）",
+    "reason": "理由",
+    "adaptation": "調整",
+    "evidence": "根拠",
+    "justNow": "たった今",
+    "minutesAgo": "{{count}}分前",
+    "hoursAgo": "{{count}}時間前",
+    "giSymptomsHeader": "消化器症状——今日の重さは？",
+    "otherSymptomsHeader": "その他の症状",
+    "vomitingHeader": "今日の嘔吐",
+    "quickQuestionsHeader": "いくつか簡単な質問",
+    "notifyHeader": "ケアチームに知らせますか？",
+    "notifyHelp": "任意——今日誰に知らせるかを選べます。",
+    "updatesThroughoutDay": "これは一日を通して更新されます。",
+    "updatesThroughoutDayBody": "後で良くなったら、また戻ってチェックインを——食事はすぐに適応します。チェックインは毎朝リセットされます。",
+    "cancel": "キャンセル",
+    "saving": "保存中…",
+    "saveCheckIn": "チェックインを保存",
+    "severity": {
+      "none": "なし",
+      "mild": "軽度",
+      "moderate": "中等度",
+      "severe": "重度"
+    },
+    "symptom": {
+      "nausea": "吐き気",
+      "constipation": "便秘",
+      "diarrhea": "下痢",
+      "reflux": "胸やけ/逆流",
+      "bloating": "膨満感",
+      "earlyFullness": "早期満腹",
+      "foodAversions": "食べ物の嫌悪",
+      "fatigue": "疲労",
+      "dizziness": "めまい",
+      "headache": "頭痛"
+    },
+    "vomiting": {
+      "none": "なし",
+      "once": "1回",
+      "multiple": "2〜3回",
+      "cantKeepFluids": "4回以上 / 水分がとれない"
+    },
+    "q": {
+      "keepFluids": "水分をとれますか？",
+      "eatWithoutWorsening": "症状を悪化させずに食べられますか？",
+      "reducedUrination": "尿量がいつもよりかなり少ないですか？",
+      "symptomTrend": "症状の傾向は？",
+      "appetite": "今日の食欲は？"
+    },
+    "opt": {
+      "yes": "はい",
+      "no": "いいえ",
+      "withDifficulty": "やっと",
+      "partially": "一部"
+    },
+    "trend": {
+      "improving": "改善",
+      "same": "変化なし",
+      "worsening": "悪化",
+      "na": "わからない"
+    },
+    "appetite": {
+      "suppressed": "食欲なし",
+      "reduced": "低下",
+      "normal": "普通",
+      "increased": "増加"
+    },
+    "notify": {
+      "keepPrivate": "いいえ、非公開に",
+      "coach": "コーチに知らせる",
+      "both": "両方に知らせる"
     }
   }
 }
