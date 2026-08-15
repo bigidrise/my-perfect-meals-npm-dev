@@ -1811,10 +1811,20 @@ async function initializeApp() {
       // ── Post-migration guard: verify correlation_id column is actually present ──
       // If the migration silently failed or was rolled back, fail loudly here rather
       // than letting logSafetyOverride produce a 500 at runtime.
+      //
+      // IMPORTANT: this block runs inside a deferred setTimeout callback, so any
+      // thrown error would become an unhandled rejection that is only logged — the
+      // server would keep serving a broken safety surface. We therefore catch the
+      // guard error explicitly and call process.exit(1) to make the failure fatal.
       {
         const { db: dbGuard } = await import("./db");
         const { assertCorrelationIdColumn } = await import("./db/migrations/assertCorrelationIdColumn");
-        await assertCorrelationIdColumn(dbGuard as any);
+        try {
+          await assertCorrelationIdColumn(dbGuard as any);
+        } catch (guardErr: any) {
+          console.error("🚨 [FATAL] Startup guard failed — shutting down:", guardErr.message);
+          process.exit(1);
+        }
       }
 
       // ── Inline migrations for columns that the guard will assert ────────────
