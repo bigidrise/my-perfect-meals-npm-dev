@@ -6,7 +6,7 @@ import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
-import { SafetyMode, validateAndConsumeOverrideToken, logSafetyOverride } from "./safetyPinService";
+import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
   safetyMode?: SafetyMode;
@@ -447,16 +447,20 @@ export async function enforceSafetyProfile(
   if (allergyMatches.length > 0) {
     // Check for authenticated override with valid one-time token
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
-      const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
+      // Atomically claim the token — moves it to reserved so any concurrent
+      // request with the same token is rejected before the audit insert begins.
+      const tokenData = claimOverrideToken(overrideToken, userId);
 
       if (tokenData) {
         // Audit insert must succeed before the override is authorized.
-        // If it fails, rethrow so the route returns a 500 — no generation proceeds
-        // without an audit record.
+        // On success, commit (permanently delete). On failure, roll back so
+        // the token is restored and the user can retry without re-entering PIN.
         try {
           await logSafetyOverride(userId, userText, tokenData.allergen, builderId, undefined, correlationId);
+          commitOverrideToken(overrideToken);
         } catch (auditErr) {
-          console.error(`[SafetyGuard] AUDIT INSERT FAILED for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`, auditErr);
+          rollbackOverrideToken(overrideToken);
+          console.error(`[SafetyGuard] AUDIT INSERT FAILED for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId} — token rolled back for retry`, auditErr);
           throw auditErr;
         }
         console.log(`[SafetyGuard] Authenticated override used for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`);
@@ -495,16 +499,19 @@ export async function enforceSafetyProfile(
 
   if (ambiguousDishes.length > 0) {
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
-      const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
+      // Atomically claim the token — moves it to reserved so any concurrent
+      // request with the same token is rejected before the audit insert begins.
+      const tokenData = claimOverrideToken(overrideToken, userId);
 
       if (tokenData) {
-        // Audit insert must succeed before the override is authorized.
-        // If it fails, rethrow so the route returns a 500 — no generation proceeds
-        // without an audit record.
+        // On success, commit (permanently delete). On failure, roll back so
+        // the token is restored and the user can retry without re-entering PIN.
         try {
           await logSafetyOverride(userId, userText, tokenData.allergen, builderId, undefined, correlationId);
+          commitOverrideToken(overrideToken);
         } catch (auditErr) {
-          console.error(`[SafetyGuard] AUDIT INSERT FAILED (ambiguous path) for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`, auditErr);
+          rollbackOverrideToken(overrideToken);
+          console.error(`[SafetyGuard] AUDIT INSERT FAILED (ambiguous path) for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId} — token rolled back for retry`, auditErr);
           throw auditErr;
         }
         console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`);
