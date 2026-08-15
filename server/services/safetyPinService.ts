@@ -27,6 +27,10 @@ interface RateLimitData {
 }
 
 const activeOverrideTokens: Record<string, TokenData> = {};
+// Tokens that have been claimed by a request but not yet committed or rolled back.
+// A claimed token is removed from activeOverrideTokens, so a concurrent request
+// that arrives while the audit insert is in flight will see no token and be rejected.
+const reservedOverrideTokens: Record<string, TokenData> = {};
 const activeAllergyEditTokens: Record<string, AllergyEditTokenData> = {};
 const pinRateLimits: Record<string, RateLimitData> = {};
 
@@ -35,6 +39,13 @@ setInterval(() => {
   Object.keys(activeOverrideTokens).forEach((token) => {
     if (activeOverrideTokens[token].expiresAt < now) {
       delete activeOverrideTokens[token];
+    }
+  });
+  // Reserved tokens that were never committed or rolled back (e.g. server crashed
+  // mid-insert) should also be reaped once they expire.
+  Object.keys(reservedOverrideTokens).forEach((token) => {
+    if (reservedOverrideTokens[token].expiresAt < now) {
+      delete reservedOverrideTokens[token];
     }
   });
   Object.keys(activeAllergyEditTokens).forEach((token) => {
@@ -242,14 +253,31 @@ export async function verifyPinAndIssueOverrideToken(
   return { success: true, overrideToken };
 }
 
-export function validateAndConsumeOverrideToken(
+/**
+ * Atomically claim an override token for a single use.
+ *
+ * The token is immediately moved from activeOverrideTokens to
+ * reservedOverrideTokens so any concurrent request that arrives while the
+ * audit insert is in flight sees no active token and is rejected. This
+ * preserves the one-time-token guarantee even under parallel requests.
+ *
+ * Returns the token data on success, or null if the token is invalid,
+ * expired, belongs to a different user, or has already been claimed by
+ * another concurrent request.
+ *
+ * After calling this:
+ * - On audit success  → call commitOverrideToken(token) to permanently delete it.
+ * - On audit failure  → call rollbackOverrideToken(token) to restore it so the
+ *                       user can retry without re-entering their PIN.
+ */
+export function claimOverrideToken(
   token: string,
   userId: string
 ): OverrideTokenData | null {
   const data = activeOverrideTokens[token];
-  
+
   if (!data) {
-    return null;
+    return null; // unknown, already claimed, or already committed
   }
 
   if (data.userId !== userId) {
@@ -261,13 +289,55 @@ export function validateAndConsumeOverrideToken(
     return null;
   }
 
+  // Atomically move to reserved — any concurrent claimant now sees nothing.
+  reservedOverrideTokens[token] = data;
   delete activeOverrideTokens[token];
-  
+
   return {
     userId: data.userId,
     allergen: data.allergen,
     mealRequest: data.mealRequest
   };
+}
+
+/**
+ * Permanently delete a claimed token after the audit insert has committed.
+ * Must only be called after logSafetyOverride has succeeded.
+ */
+export function commitOverrideToken(token: string): void {
+  delete reservedOverrideTokens[token];
+}
+
+/**
+ * Restore a claimed token to the active pool after an audit insert failure,
+ * allowing the user to retry without re-entering their PIN.
+ * Must only be called from within a catch block after claimOverrideToken.
+ */
+export function rollbackOverrideToken(token: string): void {
+  const data = reservedOverrideTokens[token];
+  if (data) {
+    // Only restore if the token hasn't expired while the insert was in flight.
+    if (data.expiresAt >= Date.now()) {
+      activeOverrideTokens[token] = data;
+    }
+    delete reservedOverrideTokens[token];
+  }
+}
+
+/**
+ * @deprecated Use claimOverrideToken + commitOverrideToken (and
+ * rollbackOverrideToken on failure) so the token survives an audit insert
+ * failure and concurrent requests cannot both authorize with the same token.
+ */
+export function validateAndConsumeOverrideToken(
+  token: string,
+  userId: string
+): OverrideTokenData | null {
+  const data = claimOverrideToken(token, userId);
+  if (data) {
+    commitOverrideToken(token);
+  }
+  return data;
 }
 
 export async function logSafetyOverride(
