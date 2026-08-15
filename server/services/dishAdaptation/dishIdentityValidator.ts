@@ -239,11 +239,17 @@ export function validateDishIdentity(
   // with cheesecake-inspired layers…"). This check scans the first 80 chars
   // of the description for foreign form families.
   //
-  // Suppression rule: if a foreign form keyword is immediately preceded by a
-  // container/vessel signal ("in a bowl", "into a glass", "with a cup"), it is
-  // a preparation or serving note — not the food's own format — and is ignored.
-  // This prevents false positives from descriptions like "Serve each slice in
-  // a bowl with strawberries" or "Mix filling in a large bowl."
+  // Suppression rule 1 — container/vessel signal: if a foreign form keyword
+  // is immediately preceded by "in a bowl", "into a glass", "with a cup", etc.,
+  // it is a preparation or serving note — not the food's own format — and is
+  // ignored. Prevents false positives like "Serve each slice in a bowl."
+  //
+  // Suppression rule 2 — ingredient-modifier suffix: if a foreign form keyword
+  // is immediately followed by a culinary modifier noun ("sauce", "powder",
+  // "paste", …), the keyword is acting as an adjective describing an ingredient
+  // (e.g. "chili sauce", "chili powder", "soup dumplings") rather than
+  // declaring the dish's format. Prevents false positives from dishes whose
+  // defining ingredients carry a form-family word.
   if (!formMismatch && formCheckActive && meal.description) {
     const lead = meal.description.slice(0, 80).toLowerCase();
     const leadFamilies = detectFormFamilies(lead);
@@ -254,6 +260,16 @@ export function validateDishIdentity(
         "using a ", "with a ", "with an ",
         "inside a ", "inside an ", "from a ",
       ];
+      // Words that, when immediately following a form keyword, signal it is
+      // modifying an ingredient rather than declaring the dish's own format.
+      // Keep this list to unambiguous culinary descriptor/ingredient suffixes;
+      // do NOT add food categories or dish names here.
+      const INGREDIENT_MODIFIER_SUFFIXES = new Set([
+        "sauce", "powder", "paste", "flakes", "seasoning", "marinade",
+        "spice", "spices", "rub", "oil", "extract", "base", "stock",
+        "broth", "dumpling", "dumplings", "noodle", "noodles", "pepper",
+        "peppers",
+      ]);
       // Families whose keywords double as common preparation verbs ("bake", "gratin")
       // are skipped in the description check to prevent false positives from
       // instructions like "Bake until set." They remain active for the name check.
@@ -263,12 +279,30 @@ export function validateDishIdentity(
       const normLead = ` ${lead.replace(/[^a-z0-9]+/g, " ")} `;
       const genuineForms = foreignInLead.filter(family => {
         if (DESCRIPTION_SKIP_FAMILIES.has(family)) return false;
+        // A family is genuine only when at least one keyword occurrence in the
+        // lead is not individually suppressed. We iterate ALL occurrences of
+        // each keyword so that an earlier suppressed occurrence (e.g. "chili
+        // powder") cannot mask a later genuine one (e.g. "hearty chili with").
         return FORM_FAMILIES[family].some(keyword => {
           const normKeyword = keyword.replace(/[^a-z0-9]+/g, " ");
-          const idx = normLead.indexOf(` ${normKeyword} `);
-          if (idx < 0) return false;
-          const before = normLead.slice(Math.max(0, idx - 25), idx + 1);
-          return !CONTAINER_SIGNALS.some(s => before.includes(s));
+          const searchToken = ` ${normKeyword} `;
+          let searchFrom = 0;
+          while (true) {
+            const idx = normLead.indexOf(searchToken, searchFrom);
+            if (idx < 0) break;
+            // Suppression rule 1: container/vessel signal before the keyword.
+            const before = normLead.slice(Math.max(0, idx - 25), idx + 1);
+            const suppressedByContainer = CONTAINER_SIGNALS.some(s => before.includes(s));
+            // Suppression rule 2: ingredient-modifier suffix immediately after.
+            const afterStart = idx + 1 + normKeyword.length + 1;
+            const firstWordAfter = normLead.slice(afterStart).split(" ")[0];
+            const suppressedByModifier = !!(firstWordAfter && INGREDIENT_MODIFIER_SUFFIXES.has(firstWordAfter));
+            if (!suppressedByContainer && !suppressedByModifier) {
+              return true; // genuine occurrence found
+            }
+            searchFrom = idx + searchToken.length;
+          }
+          return false; // all occurrences suppressed
         });
       });
       if (genuineForms.length > 0) {
