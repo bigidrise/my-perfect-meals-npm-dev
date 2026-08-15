@@ -286,3 +286,161 @@ describe("applySwapToShoppingList — Use This confirmation contract", () => {
     expect(result).toEqual([]);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clinical users — "Use This" works when alternatives is empty
+//
+// When the server returns alternatives: [] (GLP-1 / diabetic safety gate),
+// the swap overlay must still allow the user to:
+//   1. Select the coachSuggestion as the only option.
+//   2. Tap "Use This" — which calls applySwapToShoppingList with that selection.
+//   3. Get a correctly-mutated shopping list.
+//
+// The UI renders "Use This" whenever swapSelected is non-null, regardless of
+// how many alternatives exist. These tests confirm that the pure commit
+// function (the downstream effect of tapping "Use This") behaves correctly in
+// the empty-alternatives scenario.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("applySwapToShoppingList — Use This works when alternatives is empty (clinical users)", () => {
+
+  // A representative shopping list that might belong to a GLP-1 or diabetic user.
+  const CLINICAL_LIST: Item[] = [
+    makeItem({ item: "Chicken breast",  quantity: "6",  unit: "oz",   category: "Meat"            }),
+    makeItem({ item: "Brown rice",      quantity: "0.5",unit: "cup",  category: "Grains & Packaged"}),
+    makeItem({ item: "Broccoli",        quantity: "1",  unit: "head", category: "Produce"         }),
+    makeItem({ item: "Olive oil",       quantity: "1",  unit: "tsp",  category: "Pantry"          }),
+  ];
+
+  // Simulates what the server returns for a GLP-1 / diabetic user:
+  //   { coachSuggestion: {...}, alternatives: [], savedOption: null, protocolNote: "..." }
+  function makeClinicalSwapResult(coachItem: string, qty: string, unit: string) {
+    return {
+      coachSuggestion: { item: coachItem, quantity: qty, unit, reason: "Clinical-safe replacement." },
+      alternatives:    [] as Array<{ item: string; quantity: string; unit: string; reason: string }>,
+      savedOption:     null,
+      protocolNote:    "Alternatives hidden: clinical fat/carb compliance cannot be verified without nutrition data.",
+    };
+  }
+
+  // ── 1. GLP-1 scenario — brown rice → cauliflower rice ────────────────────
+  test("GLP-1 scenario: Use This with only coachSuggestion replaces the target correctly", () => {
+    const swapResult = makeClinicalSwapResult("Cauliflower rice", "1", "cup");
+
+    // User sees overlay with alternatives: [] — taps coachSuggestion, then "Use This".
+    const swapSelected = swapResult.coachSuggestion;
+    expect(swapResult.alternatives).toHaveLength(0);
+
+    const updated = applySwapToShoppingList(
+      CLINICAL_LIST,
+      { item: "Brown rice", category: "Grains & Packaged" },
+      swapSelected,
+    );
+
+    // Brown rice must be replaced with Cauliflower rice
+    const replaced = updated.find((r) => r.category === "Grains & Packaged")!;
+    expect(replaced.item).toBe("Cauliflower rice");
+    expect(replaced.quantity).toBe("1");
+    expect(replaced.unit).toBe("cup");
+  });
+
+  // ── 2. Diabetic scenario — olive oil → cooking spray ─────────────────────
+  test("diabetic scenario: Use This with only coachSuggestion replaces the target correctly", () => {
+    const swapResult = makeClinicalSwapResult("Cooking spray", "1", "can");
+
+    const swapSelected = swapResult.coachSuggestion;
+    expect(swapResult.alternatives).toHaveLength(0);
+
+    const updated = applySwapToShoppingList(
+      CLINICAL_LIST,
+      { item: "Olive oil", category: "Pantry" },
+      swapSelected,
+    );
+
+    const replaced = updated.find((r) => r.category === "Pantry")!;
+    expect(replaced.item).toBe("Cooking spray");
+  });
+
+  // ── 3. All other items in the list remain unchanged ───────────────────────
+  test("non-targeted items are untouched when alternatives is empty and coachSuggestion is confirmed", () => {
+    const swapResult = makeClinicalSwapResult("Cauliflower rice", "1", "cup");
+    const swapSelected = swapResult.coachSuggestion;
+
+    const updated = applySwapToShoppingList(
+      CLINICAL_LIST,
+      { item: "Brown rice", category: "Grains & Packaged" },
+      swapSelected,
+    );
+
+    // Chicken breast — unchanged
+    const chicken = updated.find((r) => r.item === "Chicken breast")!;
+    expect(chicken).toBeDefined();
+    expect(chicken.quantity).toBe("6");
+    expect(chicken.unit).toBe("oz");
+
+    // Broccoli — unchanged
+    const broccoli = updated.find((r) => r.item === "Broccoli")!;
+    expect(broccoli).toBeDefined();
+    expect(broccoli.quantity).toBe("1");
+
+    // Olive oil — unchanged
+    const oil = updated.find((r) => r.item === "Olive oil")!;
+    expect(oil).toBeDefined();
+    expect(oil.unit).toBe("tsp");
+  });
+
+  // ── 4. "Use This" is enabled iff swapSelected is non-null (state contract) ─
+  // The button is disabled when swapSelected === null and enabled otherwise.
+  // This test exercises the state machine: even with alternatives: [], the user
+  // CAN select coachSuggestion, making swapSelected non-null and enabling "Use This".
+  test("swapSelected set to coachSuggestion enables Use This — empty alternatives does not prevent it", () => {
+    const swapResult = makeClinicalSwapResult("Turkey breast", "6", "oz");
+
+    // Before selection: swapSelected is null → button disabled
+    let swapSelected: typeof swapResult.coachSuggestion | null = null;
+    expect(swapSelected).toBeNull(); // "Use This" would be disabled
+
+    // User taps the coachSuggestion card (the only option shown)
+    swapSelected = swapResult.coachSuggestion;
+    expect(swapSelected).not.toBeNull(); // "Use This" is now enabled
+
+    // Confirming the swap produces the correct result
+    const updated = applySwapToShoppingList(
+      CLINICAL_LIST,
+      { item: "Chicken breast", category: "Meat" },
+      swapSelected,
+    );
+    expect(updated.find((r) => r.item === "Turkey breast")).toBeDefined();
+    expect(updated.find((r) => r.item === "Chicken breast")).toBeUndefined();
+  });
+
+  // ── 5. protocolNote is present in the clinical swap result ────────────────
+  test("clinical swap result carries a non-null protocolNote explaining why alternatives are hidden", () => {
+    const swapResult = makeClinicalSwapResult("Cauliflower rice", "1", "cup");
+    expect(swapResult.protocolNote).not.toBeNull();
+    expect(typeof swapResult.protocolNote).toBe("string");
+    expect((swapResult.protocolNote as string).length).toBeGreaterThan(0);
+  });
+
+  // ── 6. GLP-1 and diabetic — applySwapToShoppingList is idempotent ────────
+  test("applying Use This twice with the same selection yields the same result as applying it once", () => {
+    const swapResult = makeClinicalSwapResult("Cauliflower rice", "1", "cup");
+    const swapSelected = swapResult.coachSuggestion;
+
+    const firstPass = applySwapToShoppingList(
+      CLINICAL_LIST,
+      { item: "Brown rice", category: "Grains & Packaged" },
+      swapSelected,
+    );
+
+    // Applying the same swap to the already-updated list should be a no-op
+    // (target "Brown rice" no longer exists — returns list unchanged).
+    const secondPass = applySwapToShoppingList(
+      firstPass,
+      { item: "Brown rice", category: "Grains & Packaged" },
+      swapSelected,
+    );
+
+    expect(secondPass.map((r) => r.item)).toEqual(firstPass.map((r) => r.item));
+  });
+});

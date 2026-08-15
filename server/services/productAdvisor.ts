@@ -12,7 +12,7 @@
  */
 
 import { openai } from "../utils/openaiSafe";
-import { loadUserProtocolEnvelope } from "./protocolEnvelope";
+import { buildGroceryCoachContext, type GroceryCoachContext } from "./groceryCoachContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +41,57 @@ export interface CartRecommendationResult {
   store?: string;
 }
 
+// ─── Swap (Replace) selection types ───────────────────────────────────────────
+// Mode 3 — Replace: "Swap ONE item in an existing meal for something in-role."
+// The Replace surface keeps its own intent/constraints (nutritional-role lock,
+// meal context, variety requirement) — those are passed here as PARAMETERS so
+// the brand/product selection logic lives in ONE engine shared with Find a
+// Product and meal-driven Smart Cart. Never rebuild this as a separate prompt.
+
+export interface SwapSuggestion {
+  item: string;
+  quantity?: string;
+  unit?: string;
+  reason: string;
+}
+
+export interface SwapSelectionResult {
+  coachSuggestion?: SwapSuggestion;
+  alternatives?: SwapSuggestion[];
+  savedOption?: SwapSuggestion | null;
+  protocolNote?: string | null;
+}
+
+/** Replace-specific intent/constraints — parameters, not a new prompt. */
+export interface SwapSelectionParams {
+  ingredientToReplace: string;
+  /** Human label of the locked nutritional role (e.g. "lean protein source"). */
+  roleLabel: string;
+  /** Secondary role hint derived from the shopping-list category, if any. */
+  categoryHint?: string | null;
+  mealName?: string;
+  mealDescription?: string;
+  remainingIngredients?: string[];
+  /** Free-text replacement the user asked for, if any. */
+  userRequest?: string;
+  /** Optional language instruction prepended to the system prompt. */
+  languageInstruction?: string;
+}
+
+/**
+ * Shared personalization for swap selection. Built from
+ * buildGroceryCoachContext() — the single personalization source for all
+ * Grocery Coach product surfaces (Find a Product, Replace, meal-driven cart).
+ */
+export interface SwapPersonalizationContext {
+  protocolContext: string;
+  macroContext: string;
+  savedGroceriesBlock: string;
+  savedProductNames: string[];
+  glp1ConstraintBlock: string;
+  diabeticConstraintBlock: string;
+}
+
 // ─── Brand Knowledge Provider (abstraction layer) ─────────────────────────────
 // Today: GPT-4o. Tomorrow: Open Food Facts, USDA, retail APIs — nothing above changes.
 
@@ -50,6 +101,11 @@ export interface BrandKnowledgeProvider {
     protocolContext: string,
     store?: string,
   ): Promise<CartRecommendationResult>;
+
+  getSwapRecommendation(
+    params: SwapSelectionParams,
+    context: SwapPersonalizationContext,
+  ): Promise<SwapSelectionResult>;
 }
 
 // ─── GPT-4o Brand Knowledge Provider ─────────────────────────────────────────
@@ -124,6 +180,84 @@ ${ingredients.map((i, n) => `${n + 1}. ${i}`).join("\n")}`;
       store,
     };
   }
+
+  async getSwapRecommendation(
+    params: SwapSelectionParams,
+    context: SwapPersonalizationContext,
+  ): Promise<SwapSelectionResult> {
+    const {
+      ingredientToReplace, roleLabel, categoryHint,
+      mealName, mealDescription, remainingIngredients, userRequest,
+      languageInstruction,
+    } = params;
+
+    const remainingNote =
+      remainingIngredients && remainingIngredients.length > 0
+        ? `Other items already in the grocery list for this meal: ${remainingIngredients.join(", ")}.`
+        : "";
+
+    const userRequestNote = userRequest
+      ? `The user specifically wants: "${userRequest}" — use this as coachSuggestion if it is safe, stays in-role, and meets all constraints. Otherwise suggest the closest compliant in-role option and note the reason in protocolNote.`
+      : "";
+
+    const systemPrompt = `You are a Grocery Store Coach. The user wants to replace one grocery item while keeping their meal intact.
+
+MEAL: "${mealName || "current meal"}"${mealDescription ? ` — ${mealDescription}` : ""}
+ITEM TO REPLACE: "${ingredientToReplace}"
+${remainingNote}
+
+NUTRITIONAL ROLE LOCK: "${ingredientToReplace}" is a ${roleLabel}.${categoryHint ? ` The item's grocery category confirms it is a ${categoryHint} — use this as a tiebreaker when the role is ambiguous.` : ""} ALL three suggestions (coachSuggestion + both alternatives) MUST stay within this exact nutritional role. Do not cross roles — no swapping a protein for a starch, a fat for a vegetable, etc. If the user's request would cross a role boundary or violate a clinical constraint, return the best in-role compliant alternative instead.
+
+USER HEALTH PROFILE:
+${context.protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
+${context.glp1ConstraintBlock}${context.diabeticConstraintBlock}${context.macroContext ? `\n${context.macroContext}\n` : ""}${context.savedGroceriesBlock ? `\n${context.savedGroceriesBlock}\n` : ""}${
+  context.savedProductNames.length > 0
+    ? `\nUser's saved products (use one as savedOption if it fits the role and ALL constraints): ${context.savedProductNames.join(", ")}\n`
+    : ""
+}${userRequestNote ? `\n${userRequestNote}\n` : ""}
+VARIETY REQUIREMENT: coachSuggestion and the two alternatives must be GENUINELY DIFFERENT choices — different ingredients, not cosmetic variations. For example, if replacing a chicken breast: give turkey, shrimp, and cod — not "organic chicken breast", "grilled chicken", "thin-sliced chicken". Give choices a user would clearly perceive as meaningfully different options.
+
+RULES:
+- All items must be real grocery-store purchases with realistic quantities (e.g. "2 lbs", "1 bunch", "1 can").
+- If a specific branded product is the right pick, name a REAL, nationally available brand (stocked at Walmart, Target, Costco, Whole Foods, or major grocery chains) — the same brand standard used across all product advice in this app.
+- Never suggest "${ingredientToReplace}" itself or any trivial variation of it.
+- Never suggest items that conflict with allergies, avoidances, or clinical constraints.
+- savedOption must come ONLY from the user's saved products list above (null if none qualify or list is empty).
+- protocolNote: 1 sentence if a clinical constraint directly shaped the picks, otherwise null.
+
+Respond ONLY with valid JSON — no markdown, no extra text:
+{
+  "coachSuggestion": { "item": "string", "quantity": "string", "unit": "string", "reason": "string — 1 sentence why this fits this meal and this user's goals" },
+  "alternatives": [
+    { "item": "string", "quantity": "string", "unit": "string", "reason": "string — 1 sentence" },
+    { "item": "string", "quantity": "string", "unit": "string", "reason": "string — 1 sentence" }
+  ],
+  "savedOption": { "item": "string", "quantity": "string", "unit": "string", "reason": "string — mention it is from their saved products" } | null,
+  "protocolNote": "string" | null
+}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: languageInstruction ? `${languageInstruction}\n\n${systemPrompt}` : systemPrompt,
+        },
+        {
+          role: "user",
+          content: userRequest
+            ? `Replace "${ingredientToReplace}" — I was thinking of "${userRequest}".`
+            : `What should I replace "${ingredientToReplace}" with?`,
+        },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 600,
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    return JSON.parse(raw) as SwapSelectionResult;
+  }
 }
 
 // ─── Product Advisor Engine ───────────────────────────────────────────────────
@@ -136,56 +270,59 @@ export class ProductAdvisorEngine {
     ingredients: string[],
     store?: string,
   ): Promise<CartRecommendationResult> {
-    const envelope = await loadUserProtocolEnvelope(userId);
-
-    const contextParts: string[] = [];
-
-    if (envelope) {
-      if ((envelope as any).dietaryIdentity?.primary) {
-        contextParts.push(`Dietary identity: ${(envelope as any).dietaryIdentity.primary}`);
-      } else if ((envelope as any).dietaryIdentity?.length) {
-        contextParts.push(`Dietary identity: ${(envelope as any).dietaryIdentity.join(", ")}`);
-      }
-
-      const allergies = (envelope as any).allergies?.hardBlocked
-        ?? (envelope as any).allergies ?? [];
-      if (allergies.length) {
-        contextParts.push(`Allergies / hard stops: ${allergies.join(", ")}`);
-      }
-
-      const conditions = (envelope as any).medicalHardLimits?.conditions
-        ?? (envelope as any).medicalHardLimits ?? [];
-      if (conditions.length) {
-        contextParts.push(`Medical conditions: ${conditions.join(", ")}`);
-      }
-
-      const avoidances = (envelope as any).avoidances?.foods
-        ?? (envelope as any).avoidances ?? [];
-      if (avoidances.length) {
-        contextParts.push(`Foods user avoids: ${(avoidances as string[]).slice(0, 8).join(", ")}`);
-      }
-
-      const fitnessGoal = (envelope as any).preferences?.fitnessGoal
-        ?? (envelope as any).fitnessGoal;
-      if (fitnessGoal) {
-        contextParts.push(`Fitness goal: ${fitnessGoal}`);
-      }
-
-      const guidanceBlocks: string[] = (envelope as any).conditionGuidanceBlocks ?? [];
-      if (guidanceBlocks.length) {
-        contextParts.push(
-          "=== CLINICAL PROTOCOLS — ENFORCE IN ALL RECOMMENDATIONS ===\n" +
-          guidanceBlocks.join("\n\n"),
-        );
-      }
-    }
-
-    const protocolContext = contextParts.length
-      ? contextParts.join("\n")
-      : "No specific dietary or medical constraints on file — apply general healthy eating principles.";
+    // buildGroceryCoachContext is the SHARED personalization source for all
+    // Grocery Coach product surfaces (Find a Product, Replace, meal-driven
+    // Smart Cart) — never rebuild protocol context from the raw envelope here.
+    const ctx = await buildGroceryCoachContext(userId);
+    const protocolContext = buildProtocolContextString(ctx);
 
     return this.provider.getCartRecommendations(ingredients, protocolContext, store);
   }
+
+  /**
+   * Mode 3 — Replace: swap ONE grocery item while keeping the meal intact.
+   * The caller supplies the already-built GroceryCoachContext (avoids a second
+   * DB round-trip) plus the Replace-specific intent/constraints as parameters.
+   */
+  async buildSwapRecommendation(
+    ctx: GroceryCoachContext,
+    params: SwapSelectionParams,
+  ): Promise<SwapSelectionResult> {
+    return this.provider.getSwapRecommendation(params, buildSwapPersonalization(ctx));
+  }
+}
+
+/** Personalization string shared by cart-style advice, from the shared context. */
+function buildProtocolContextString(ctx: GroceryCoachContext): string {
+  const parts: string[] = [];
+  if (ctx.protocolContext) parts.push(ctx.protocolContext);
+  if (ctx.glp1RecommendationBlock) parts.push(ctx.glp1RecommendationBlock);
+  if (ctx.macroContext) parts.push(ctx.macroContext);
+  if (ctx.savedGroceriesBlock) parts.push(ctx.savedGroceriesBlock);
+  return parts.length
+    ? parts.join("\n")
+    : "No specific dietary or medical constraints on file — apply general healthy eating principles.";
+}
+
+/** Derive the swap personalization block set from the shared context. */
+export function buildSwapPersonalization(ctx: GroceryCoachContext): SwapPersonalizationContext {
+  const glp1ConstraintBlock = ctx.glp1Targets
+    ? `GLP-1 CONSTRAINT: All suggestions MUST have ≤${ctx.glp1Targets.maximumToleratedFatGrams}g fat per serving and ≤${ctx.glp1Targets.resolvedMealCalories} kcal. No fatty meats, oils, full-fat dairy, fried items, or avocado.\n`
+    : "";
+  const diabeticConstraintBlock = ctx.hasDiabetes
+    ? `DIABETIC CONSTRAINT: All suggestions MUST be low-carb. No bread, rice, pasta, potatoes, corn, or sugary sauces. Prefer non-starchy vegetables, lean proteins, or legumes.\n`
+    : "";
+
+  return {
+    protocolContext: ctx.protocolContext,
+    macroContext: ctx.macroContext,
+    savedGroceriesBlock: ctx.savedGroceriesBlock,
+    savedProductNames: ctx.savedRows
+      .map((r) => r.productName)
+      .filter((n): n is string => Boolean(n)),
+    glp1ConstraintBlock,
+    diabeticConstraintBlock,
+  };
 }
 
 // ─── Singleton ────────────────────────────────────────────────────────────────
