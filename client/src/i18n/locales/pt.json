@@ -449,7 +449,29 @@
     "savedForReview": "Salvo para revisão",
     "savedForReviewDesc": "Você pode rever este scan a qualquer momento nesta página.",
     "scannedProduct": "Produto escaneado",
-    "tapView": "Toque para ver →"
+    "tapView": "Toque para ver →",
+    "findProduct": {
+      "tabBuildMeal": "Criar uma refeição",
+      "tabFindProduct": "Encontrar um produto",
+      "inputLabel": "O que você está procurando comprar?",
+      "inputPlaceholder": "ex.: molho de espaguete, barras de proteína, leite…",
+      "voiceStart": "Fale seu pedido",
+      "voiceStop": "Parar de ouvir",
+      "voiceUnsupported": "A entrada de voz não é compatível com este dispositivo",
+      "searching": "Encontrando os melhores produtos para você…",
+      "resultsFor": "Melhores opções para “{{query}}”",
+      "usualPick": "Sua escolha habitual",
+      "alternatives": "Alternativas",
+      "save": "Salvar",
+      "saved": "Salvo ✓",
+      "saving": "Salvando…",
+      "addToList": "Adicionar à lista de compras",
+      "added": "Adicionado!",
+      "compareAnother": "Comparar outro",
+      "errorGeneric": "Não foi possível obter recomendações de produtos agora. Tente novamente.",
+      "noResults": "Nenhuma recomendação de marca para esse item — tente um produto embalado mais específico.",
+      "avoid": "Evitar"
+    }
   },
   "restaurant": {
     "pageTitle": "Assistente de Restaurante",

@@ -5,7 +5,7 @@ import { users, userSavedGroceryItems } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
-import { getProductAdvisorEngine } from "../services/productAdvisor";
+import { getProductAdvisorEngine, ClinicalContextUnavailableError } from "../services/productAdvisor";
 import { finalizeMealCard } from "../services/mealCardFinalizer";
 import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } from "../services/savedGroceryCompliance";
 import { getLanguageInstruction } from "../utils/languageInstruction";
@@ -617,6 +617,9 @@ router.post("/product-advisor", async (req, res) => {
 
     return res.json(result);
   } catch (err: any) {
+    if (err instanceof ClinicalContextUnavailableError) {
+      return res.status(503).json({ error: err.message, retryable: true });
+    }
     console.error("[ProductAdvisor] Error:", err?.message);
     return res.status(500).json({ error: "Product advisor unavailable. Please try again." });
   }

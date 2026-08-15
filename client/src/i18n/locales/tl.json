@@ -449,7 +449,29 @@
     "savedForReview": "Naka-save para suriin",
     "savedForReviewDesc": "Maaari mong balikan ang scan na ito anumang oras mula sa pahinang ito.",
     "scannedProduct": "Na-scan na Produkto",
-    "tapView": "I-tap para tingnan →"
+    "tapView": "I-tap para tingnan →",
+    "findProduct": {
+      "tabBuildMeal": "Gumawa ng Pagkain",
+      "tabFindProduct": "Maghanap ng Produkto",
+      "inputLabel": "Ano ang binibili mo?",
+      "inputPlaceholder": "hal. spaghetti sauce, protein bars, gatas…",
+      "voiceStart": "Sabihin ang iyong hiling",
+      "voiceStop": "Itigil ang pakikinig",
+      "voiceUnsupported": "Hindi suportado ang voice input sa device na ito",
+      "searching": "Hinahanap ang pinakamahusay na mga produkto para sa iyo…",
+      "resultsFor": "Pinakamahusay na pagpipilian para sa “{{query}}”",
+      "usualPick": "Ang karaniwan mong pinipili",
+      "alternatives": "Mga alternatibo",
+      "save": "I-save",
+      "saved": "Na-save ✓",
+      "saving": "Sine-save…",
+      "addToList": "Idagdag sa Listahan ng Bibilhin",
+      "added": "Naidagdag!",
+      "compareAnother": "Ikumpara ang Iba",
+      "errorGeneric": "Hindi makuha ang payo sa produkto ngayon. Pakisubukang muli.",
+      "noResults": "Walang payo sa brand para sa item na iyan — subukan ang mas tiyak na nakapaketeng produkto.",
+      "avoid": "Iwasan"
+    }
   },
   "restaurant": {
     "pageTitle": "Katulong sa Restaurant",

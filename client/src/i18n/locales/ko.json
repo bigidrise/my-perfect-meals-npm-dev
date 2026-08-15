@@ -449,7 +449,29 @@
     "savedForReview": "검토를 위해 저장됨",
     "savedForReviewDesc": "이 페이지에서 언제든지 스캔 내용을 다시 확인할 수 있습니다.",
     "scannedProduct": "스캔된 제품",
-    "tapView": "탭하여 보기 →"
+    "tapView": "탭하여 보기 →",
+    "findProduct": {
+      "tabBuildMeal": "식사 만들기",
+      "tabFindProduct": "제품 찾기",
+      "inputLabel": "무엇을 사려고 하시나요?",
+      "inputPlaceholder": "예: 스파게티 소스, 단백질 바, 우유…",
+      "voiceStart": "음성으로 말하기",
+      "voiceStop": "듣기 중지",
+      "voiceUnsupported": "이 기기에서는 음성 입력이 지원되지 않습니다",
+      "searching": "가장 알맞은 제품을 찾는 중…",
+      "resultsFor": "“{{query}}”에 대한 추천",
+      "usualPick": "평소 즐겨 찾는 제품",
+      "alternatives": "대안",
+      "save": "저장",
+      "saved": "저장됨 ✓",
+      "saving": "저장 중…",
+      "addToList": "쇼핑 목록에 추가",
+      "added": "추가됨!",
+      "compareAnother": "다른 제품 비교",
+      "errorGeneric": "지금은 제품 추천을 가져올 수 없습니다. 다시 시도해 주세요.",
+      "noResults": "해당 품목에 대한 브랜드 추천이 없습니다. 더 구체적인 포장 제품으로 시도해 보세요.",
+      "avoid": "피하기"
+    }
   },
   "restaurant": {
     "pageTitle": "레스토랑 어시스턴트",
