@@ -1,0 +1,272 @@
+/**
+ * Guardrail Substitution Map — Phase 2 of the Dish Adaptation Layer.
+ *
+ * Structured substitution data EXTRACTED from the existing guardrail prompt
+ * builders and safety modules. This file does not invent substitutions — every
+ * rule cites the source file it was extracted from. The prompt builders remain
+ * the authority on what is blocked; this map exposes the same knowledge as
+ * typed data so the Dish Adaptation Layer can cross-reference dish components
+ * against it without parsing prompt text.
+ *
+ * Sources:
+ *  - server/services/guardrails/prompt/diabeticPromptBuilder.ts (MANDATORY SUBSTITUTIONS blocks)
+ *  - server/services/guardrails/prompt/glp1PromptBuilder.ts + rules/glp1Rules.ts
+ *  - server/services/guardrails/prompt/kidneyDiseasePromptBuilder.ts (BANNED/USE groups)
+ *  - server/services/guardrails/prompt/oncologySupportPromptBuilder.ts (upgrade/fresh-over-preserved rules)
+ *  - server/services/guardrails/prompt/antiInflammatoryPromptBuilder.ts (red-meat default rule)
+ *  - server/services/allergyGuardrails.ts (getSafeSubstitute + per-diet substitution maps)
+ *  - server/services/protocolEnvelope.ts (gluten-free pairing guidance: tamari/coconut aminos)
+ *  - server/services/unifiedMealPipeline.ts (kosher-meat dairy guard)
+ */
+
+export type GuardrailId =
+  | "diabetic"
+  | "lower-sugar"
+  | "glp1"
+  | "gluten-free"
+  | "kidney-disease"
+  | "oncology-support"
+  | "anti-inflammatory"
+  | "vegan"
+  | "vegetarian"
+  | "pescatarian"
+  | "kosher-meat";
+
+export interface SubstitutionRule {
+  /** The blocked component/ingredient concept, e.g. "white rice". */
+  blocked: string;
+  /**
+   * Lowercase trigger terms matched against a dish's adaptable/defining
+   * components (substring match, both directions).
+   */
+  triggers: string[];
+  /** The compliant substitute, phrased for direct prompt injection. */
+  substitute: string;
+  /** Optional preparation note. */
+  note?: string;
+}
+
+export interface GuardrailSubstitutionProfile {
+  id: GuardrailId;
+  /** Human-readable label used in ConflictResolution.guardrail strings. */
+  label: string;
+  /** File(s) this data was extracted from. */
+  source: string;
+  rules: SubstitutionRule[];
+  /**
+   * Non-component-specific directives (portion, preparation) that always apply
+   * when this guardrail is active. Injected into the adaptation block.
+   */
+  generalDirectives?: string[];
+}
+
+// Shared trigger vocabularies (matching only — not dish tables)
+const RICE_TRIGGERS = ["rice"];
+const PASTA_TRIGGERS = ["pasta", "noodle", "spaghetti", "macaroni", "penne", "fettuccine", "linguine", "lasagna sheet", "lasagne sheet", "pasta sheet"];
+const TORTILLA_TRIGGERS = ["tortilla", "wrap", "taco shell"];
+const POTATO_TRIGGERS = ["potato", "mash", "fries", "hash brown"];
+const SUGAR_TRIGGERS = ["sugar", "sweetener", "sweet", "syrup", "honey", "glaze", "caramel", "frosting", "icing"];
+const FLOUR_TRIGGERS = ["flour", "roux", "breading", "batter", "crust", "dough", "bread", "bun", "biscuit", "pastry"];
+const CREAM_TRIGGERS = ["cream", "creamy", "butter sauce", "cheese sauce", "alfredo", "full-fat", "heavy dairy"];
+const FRIED_TRIGGERS = ["fried", "deep-fry", "deep fried", "frying", "breaded", "battered"];
+const SODIUM_TRIGGERS = ["sodium", "salt", "soy sauce", "brine", "cured", "seasoning level"];
+
+export const GUARDRAIL_SUBSTITUTION_MAP: Record<GuardrailId, GuardrailSubstitutionProfile> = {
+  // ── Extracted from diabeticPromptBuilder.ts lines 70–74 (elevated) and
+  //    102–107 (in-range) MANDATORY SUBSTITUTIONS, plus snack builder 155–169.
+  diabetic: {
+    id: "diabetic",
+    label: "diabetic",
+    source: "server/services/guardrails/prompt/diabeticPromptBuilder.ts",
+    rules: [
+      { blocked: "white rice / any rice", triggers: RICE_TRIGGERS, substitute: "cauliflower rice" },
+      { blocked: "regular pasta", triggers: PASTA_TRIGGERS, substitute: "zucchini noodles or chickpea pasta", note: "for layered pasta dishes use zucchini or eggplant sheets" },
+      { blocked: "flour tortillas", triggers: TORTILLA_TRIGGERS, substitute: "low-carb tortillas (or lettuce wraps)" },
+      { blocked: "potatoes", triggers: POTATO_TRIGGERS, substitute: "cauliflower mash" },
+      { blocked: "sugar / sweet sauces", triggers: SUGAR_TRIGGERS, substitute: "sugar-free sauces and sweeteners" },
+      { blocked: "white flour products", triggers: FLOUR_TRIGGERS, substitute: "almond flour or other low-GI flour base" },
+    ],
+    generalDirectives: [
+      "Controlled carbohydrates (20–35g, low-GI sources only). High fiber, moderate lean protein.",
+    ],
+  },
+
+  // ── Sugar-reduction subset of the diabetic builder (same source: the
+  //    "Sugar-free sauces and sweeteners" mandate + snack craving translations).
+  "lower-sugar": {
+    id: "lower-sugar",
+    label: "lower-sugar",
+    source: "server/services/guardrails/prompt/diabeticPromptBuilder.ts (sugar rules subset)",
+    rules: [
+      { blocked: "sugar / honey / maple syrup", triggers: SUGAR_TRIGGERS, substitute: "sugar-free sweeteners; reduce total sweetener quantity" },
+      { blocked: "sweetened yogurt", triggers: ["sweetened yogurt", "flavored yogurt"], substitute: "plain Greek yogurt with fresh berries" },
+      { blocked: "milk chocolate", triggers: ["chocolate"], substitute: "dark chocolate (70%+ cacao, small portion)" },
+    ],
+  },
+
+  // ── Extracted from glp1PromptBuilder.ts (meal-type guidelines, constraint
+  //    overlay), glp1Rules.ts cooking methods, and the GLP-1 hard-constraint
+  //    block in unifiedMealPipeline.ts (portion + starch rules).
+  glp1: {
+    id: "glp1",
+    label: "GLP-1",
+    source: "server/services/guardrails/prompt/glp1PromptBuilder.ts + rules/glp1Rules.ts + unifiedMealPipeline.ts GLP-1 overlay",
+    rules: [
+      { blocked: "large starch base (rice, pasta, bread, potato)", triggers: [...RICE_TRIGGERS, ...PASTA_TRIGGERS, ...POTATO_TRIGGERS, "bread", "starch"], substitute: "a small controlled portion (≤ ¼ cup / 2 oz) of the starch, or a cauliflower/high-protein alternative base; non-starchy vegetables as volume" },
+      { blocked: "cream / butter / heavy cheese sauces", triggers: CREAM_TRIGGERS, substitute: "a reduced-fat version of the same sauce (light cheese, Greek yogurt base, minimal oil)" },
+      { blocked: "fried or breaded preparation", triggers: FRIED_TRIGGERS, substitute: "baked, grilled, steamed, poached, or sautéed with minimal oil" },
+    ],
+    generalDirectives: [
+      "Portions SMALL to MODERATE (1–1.5 cups total plate volume). Lean protein must anchor the meal.",
+      "Fat is the primary nausea trigger — keep preparation low-fat throughout.",
+    ],
+  },
+
+  // ── Extracted from allergyGuardrails.ts getSafeSubstitute (gluten/wheat
+  //    entries), diabeticPromptBuilder chickpea-pasta substitution, and
+  //    protocolEnvelope.ts gluten-free pairing guidance (tamari/coconut aminos).
+  "gluten-free": {
+    id: "gluten-free",
+    label: "gluten allergy",
+    source: "server/services/allergyGuardrails.ts + server/services/protocolEnvelope.ts gluten-free guidance",
+    rules: [
+      { blocked: "wheat pasta", triggers: PASTA_TRIGGERS, substitute: "certified gluten-free pasta (rice, chickpea, or lentil pasta)" },
+      { blocked: "wheat flour / bread / breading", triggers: FLOUR_TRIGGERS, substitute: "rice flour or almond flour (gluten-free bread/breading)" },
+      { blocked: "soy sauce (contains wheat)", triggers: ["soy sauce", "soy"], substitute: "tamari or coconut aminos" },
+      { blocked: "flour tortillas", triggers: TORTILLA_TRIGGERS, substitute: "corn or certified gluten-free tortillas" },
+      { blocked: "wheat grain base", triggers: ["wheat", "couscous", "barley", "farro", "bulgur"], substitute: "rice or quinoa" },
+    ],
+    generalDirectives: [
+      "Every paired item must be certified gluten-free; no shared gluten cooking surfaces.",
+    ],
+  },
+
+  // ── Extracted verbatim from kidneyDiseasePromptBuilder.ts BANNED/USE
+  //    groups (lines 41–51) and snack replacement groups (80–84).
+  "kidney-disease": {
+    id: "kidney-disease",
+    label: "kidney disease (CKD)",
+    source: "server/services/guardrails/prompt/kidneyDiseasePromptBuilder.ts",
+    rules: [
+      { blocked: "high-potassium produce (bananas, oranges, avocados, potatoes, dried fruit)", triggers: [...POTATO_TRIGGERS, "banana", "orange", "avocado", "dried fruit", "tomato sauce"], substitute: "apples, berries, grapes, peaches, cauliflower, cabbage, green beans, bell peppers, cucumber" },
+      { blocked: "beans / lentils / nuts / seeds", triggers: ["bean", "lentil", "nut", "seed", "legume"], substitute: "egg whites or a small portion of white fish or chicken" },
+      { blocked: "dairy products", triggers: ["dairy", "milk", "cheese", "yogurt"], substitute: "low-phosphorus alternatives (per CKD protocol — egg whites, fresh produce)" },
+      { blocked: "whole grain bread / bran", triggers: ["whole grain", "bran", "whole wheat"], substitute: "white rice, white bread, regular pasta, or cream of wheat" },
+      { blocked: "added salt / salt substitutes", triggers: SODIUM_TRIGGERS, substitute: "fresh herbs, garlic, lemon, or vinegar" },
+    ],
+  },
+
+  // ── Extracted from oncologySupportPromptBuilder.ts lines 152–157 and
+  //    216–220, plus the oncology transformation rule in unifiedMealPipeline.ts.
+  "oncology-support": {
+    id: "oncology-support",
+    label: "cancer support protocol",
+    source: "server/services/guardrails/prompt/oncologySupportPromptBuilder.ts + unifiedMealPipeline.ts oncology overlay",
+    rules: [
+      { blocked: "heavily processed fats (lard, margarine, shortening)", triggers: ["lard", "margarine", "shortening", "hydrogenated"], substitute: "olive oil, avocado oil, or small amounts of butter" },
+      { blocked: "refined white carbs as primary starch", triggers: ["white bread", "white pasta", "white rice", "bread", "pasta"], substitute: "whole grain, sprouted grain, sweet potato, or legume-based pasta" },
+      { blocked: "preserved / smoked / cured proteins", triggers: ["smoked", "cured", "deli", "bacon", "sausage", "ham", "processed meat"], substitute: "the fresh version of the same protein" },
+      { blocked: "added sugars (maple, honey, agave, glazes)", triggers: SUGAR_TRIGGERS, substitute: "citrus, herb, or spice-based rubs and marinades (no sugar glazes)" },
+    ],
+    generalDirectives: [
+      "Every plate must include a fiber anchor and a vegetable, plus a therapeutic booster (garlic, turmeric, ginger, lemon, or fresh herbs).",
+    ],
+  },
+
+  // ── Extracted from antiInflammatoryPromptBuilder.ts lines 24–26.
+  "anti-inflammatory": {
+    id: "anti-inflammatory",
+    label: "anti-inflammatory",
+    source: "server/services/guardrails/prompt/antiInflammatoryPromptBuilder.ts",
+    rules: [
+      { blocked: "unspecified fatty red-meat cut", triggers: ["beef", "steak", "lamb", "pork", "red meat"], substitute: "a lean cut (sirloin, tenderloin, eye of round, flank, or filet mignon), 4–6 oz", note: "if the user explicitly named a cut, keep it — optimize preparation instead" },
+    ],
+    generalDirectives: [
+      "If a requested ingredient conflicts with this protocol, include it — but optimize preparation, portion, and pairing to reduce inflammatory impact.",
+    ],
+  },
+
+  // ── Extracted from allergyGuardrails.ts VEGAN_SUBSTITUTION_MAP /
+  //    getSafeSubstitute entries.
+  vegan: {
+    id: "vegan",
+    label: "vegan",
+    source: "server/services/allergyGuardrails.ts VEGAN_SUBSTITUTION_MAP",
+    rules: [
+      { blocked: "dairy (milk, cheese, butter, cream, yogurt)", triggers: ["milk", "cheese", "butter", "cream", "yogurt", "dairy"], substitute: "oat/almond milk, vegan cheese or nutritional yeast, vegan butter or coconut oil, coconut cream, coconut yogurt" },
+      { blocked: "eggs", triggers: ["egg"], substitute: "flax eggs or silken tofu" },
+      { blocked: "meat / poultry / seafood", triggers: ["beef", "pork", "chicken", "fish", "shrimp", "seafood", "meat", "protein/seafood"], substitute: "tofu, tempeh, seitan, jackfruit, or portobello mushrooms" },
+      { blocked: "gelatin", triggers: ["gelatin"], substitute: "agar-agar" },
+      { blocked: "animal stock", triggers: ["stock", "broth"], substitute: "vegetable broth" },
+      { blocked: "mayonnaise / worcestershire", triggers: ["mayonnaise", "mayo", "worcestershire"], substitute: "vegan mayonnaise / vegan worcestershire sauce" },
+    ],
+  },
+
+  // ── Extracted from allergyGuardrails.ts VEGETARIAN_SUBSTITUTION_MAP.
+  vegetarian: {
+    id: "vegetarian",
+    label: "vegetarian",
+    source: "server/services/allergyGuardrails.ts VEGETARIAN_SUBSTITUTION_MAP",
+    rules: [
+      { blocked: "meat / poultry / seafood", triggers: ["beef", "pork", "chicken", "fish", "shrimp", "seafood", "meat", "protein/seafood"], substitute: "tofu, tempeh, eggs, legumes, or dairy-based protein" },
+      { blocked: "animal stock / bone broth", triggers: ["stock", "broth"], substitute: "vegetable broth" },
+      { blocked: "gelatin / lard / tallow", triggers: ["gelatin", "lard", "tallow", "suet"], substitute: "agar-agar / plant-based shortening / coconut oil" },
+      { blocked: "fish sauce / anchovies", triggers: ["fish sauce", "anchov"], substitute: "soy sauce / capers" },
+    ],
+  },
+
+  // ── Extracted from allergyGuardrails.ts PESCATARIAN_SUBSTITUTION_MAP.
+  pescatarian: {
+    id: "pescatarian",
+    label: "pescatarian",
+    source: "server/services/allergyGuardrails.ts PESCATARIAN_SUBSTITUTION_MAP",
+    rules: [
+      { blocked: "meat / poultry", triggers: ["beef", "pork", "chicken", "meat"], substitute: "seafood or plant-based protein" },
+      { blocked: "meat stock / bone broth", triggers: ["chicken stock", "beef stock", "bone broth", "chicken broth", "beef broth"], substitute: "vegetable broth" },
+      { blocked: "lard / tallow / suet", triggers: ["lard", "tallow", "suet"], substitute: "olive oil / coconut oil / plant-based shortening" },
+    ],
+  },
+
+  // ── Extracted from the kosher meat guard in unifiedMealPipeline.ts
+  //    (generateSingleCompliantFallback meatDairyGuard).
+  "kosher-meat": {
+    id: "kosher-meat",
+    label: "kosher (meat meal)",
+    source: "server/services/unifiedMealPipeline.ts meatDairyGuard",
+    rules: [
+      { blocked: "dairy in a meat meal (butter, cream, cheese, milk, yogurt)", triggers: ["butter", "cream", "cheese", "milk", "yogurt", "dairy", "ghee"], substitute: "olive oil or avocado oil for fat; reduced meat stock, pureed vegetables, or tahini for creaminess" },
+    ],
+    generalDirectives: [
+      "Every single ingredient must be dairy-free. No exceptions.",
+    ],
+  },
+};
+
+/** Allergen → substitution rule, extracted from allergyGuardrails.ts getSafeSubstitute. */
+export const ALLERGEN_SUBSTITUTES: Record<string, string> = {
+  shrimp: "chicken or tofu",
+  shellfish: "chicken, mushrooms, or hearts of palm",
+  crab: "jackfruit or hearts of palm",
+  lobster: "mushrooms or cauliflower",
+  scallop: "king oyster mushrooms",
+  fish: "chicken or tempeh",
+  egg: "flax egg or silken tofu",
+  eggs: "flax eggs or silken tofu",
+  milk: "oat milk or almond milk",
+  dairy: "oat milk, coconut cream, or vegan cheese",
+  cheese: "nutritional yeast or vegan cheese",
+  butter: "coconut oil or vegan butter",
+  peanut: "sunflower seed butter",
+  peanuts: "sunflower seeds",
+  "tree nut": "pumpkin or sunflower seeds",
+  almond: "pumpkin seeds",
+  walnut: "sunflower seeds",
+  gluten: "rice flour or almond flour",
+  wheat: "rice or quinoa",
+  soy: "coconut aminos or hemp seeds",
+  sesame: "sunflower seeds",
+};
+
+export function getGuardrailProfile(id: GuardrailId): GuardrailSubstitutionProfile {
+  return GUARDRAIL_SUBSTITUTION_MAP[id];
+}
