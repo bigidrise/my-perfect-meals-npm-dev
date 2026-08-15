@@ -51,7 +51,7 @@ function tokenMatches(token: string, haystackTokens: Set<string>, haystackText: 
   if (stem.length >= 4) {
     const maxMatchLen = Math.ceil(token.length * 1.2);
     const wordPattern = new RegExp(`\\b${stem}[a-z]*`, "gi");
-    const matched = haystackText.match(wordPattern) ?? [];
+    const matched: string[] = haystackText.match(wordPattern) ?? [];
     if (matched.some(w => w.length <= maxMatchLen)) return true;
   }
   return false;
