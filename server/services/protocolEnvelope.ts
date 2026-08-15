@@ -2186,19 +2186,31 @@ export function scanGeneratedOutput(
     instructions?: string | string[];
   },
   envelope: UserProtocolEnvelope,
-  context?: { generatorName?: string; skipAdaptableConflicts?: boolean }
+  context?: { generatorName?: string; skipAdaptableConflicts?: boolean; overriddenAllergens?: string[] }
 ): ProtocolScanResult {
   const generatorName = context?.generatorName || "unknown_generator";
   const mealText = extractMealTextForScan(meal);
   const instructionsText = extractInstructionsText(meal);
 
   // ── Ingredient-level scan ─────────────────────────────────────────────────
-  const ingredientViolations = scanForHiddenDietaryViolations(
+  const rawIngredientViolations = scanForHiddenDietaryViolations(
     mealText,
     envelope.dietaryIdentity,
     envelope.avoidances,
     { skipMeatDairyCombinationCheck: context?.skipAdaptableConflicts === true }
   );
+
+  // ── Allergen override filter — suppress violations for explicitly authorized allergens only.
+  // All other allergies, dietary restrictions, medical rules, and protocol constraints remain active.
+  const ingredientViolations = context?.overriddenAllergens?.length
+    ? rawIngredientViolations.filter(v => {
+        const termLower = v.term.toLowerCase();
+        return !context.overriddenAllergens!.some(oa => {
+          const oaLower = oa.toLowerCase();
+          return termLower.includes(oaLower) || oaLower.includes(termLower);
+        });
+      })
+    : rawIngredientViolations;
 
   // ── Instruction-level scan ────────────────────────────────────────────────
   const instructionViolations = scanInstructionsForViolations(
@@ -2291,7 +2303,7 @@ export function filterMealsByProtocol<T extends {
 }>(
   meals: T[],
   envelope: UserProtocolEnvelope,
-  context?: { generatorName?: string; skipAdaptableConflicts?: boolean }
+  context?: { generatorName?: string; skipAdaptableConflicts?: boolean; overriddenAllergens?: string[] }
 ): T[] {
   return meals.filter(meal => {
     const result = scanGeneratedOutput(meal, envelope, context);

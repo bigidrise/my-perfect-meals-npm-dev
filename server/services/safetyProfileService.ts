@@ -22,6 +22,10 @@ export interface SafetyAssessment {
   ambiguousTerms: string[];
   message: string;
   suggestion?: string;
+  /** The specific allergen the user was authenticated to override, if any.
+   *  Only present when result === "SAFE" and an override token was consumed.
+   *  All other allergy/protocol rules remain fully active for this request. */
+  overriddenAllergen?: string;
 }
 
 export interface SafetyProfile {
@@ -448,7 +452,8 @@ export async function enforceSafetyProfile(
           blockedTerms: [],
           blockedCategories: [],
           ambiguousTerms: [],
-          message: "Allergen override authorized with Safety PIN - proceeding with user consent"
+          message: "Allergen override authorized with Safety PIN - proceeding with user consent",
+          overriddenAllergen: tokenData.allergen,
         };
       } else {
         console.log(`[SafetyGuard] Invalid/expired override token for user ${userId}`);
@@ -486,7 +491,8 @@ export async function enforceSafetyProfile(
           blockedTerms: [],
           blockedCategories: [],
           ambiguousTerms: [],
-          message: "Ambiguous dish override authorized with Safety PIN - proceeding with user consent"
+          message: "Ambiguous dish override authorized with Safety PIN - proceeding with user consent",
+          overriddenAllergen: tokenData.allergen,
         };
       } else {
         console.log(`[SafetyGuard] Invalid/expired override token for AMBIGUOUS check, user ${userId}`);

@@ -5060,6 +5060,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Extract the specific allergen that was authorized for override (if any).
+      // This is allergen-specific — only this one ingredient's enforcement is suspended.
+      // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
+      const _overriddenAllergens: string[] = safetyCheck?.overriddenAllergen
+        ? [safetyCheck.overriddenAllergen]
+        : [];
+
       // Validate servings (1-10)
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
 
@@ -5157,6 +5164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (generationMode === 'recipe' ? 'recipe' : 'meal'),
         (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
         _cravingGlp1Targets,
+        _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
       );
 
       if (!mealOptions || mealOptions.length === 0) {
@@ -5171,6 +5179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
         generatorName: "craving_creator",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+        overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
       });
 
       if (cleanOptions.length === 0 && mealOptions.length > 0) {
