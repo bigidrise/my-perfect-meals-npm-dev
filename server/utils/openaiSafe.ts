@@ -86,7 +86,7 @@ export async function genImage(prompt: string, size: "1024x1024" | "1024x1536" |
 }
 
 // Fast image generation for card previews — gpt-image-1 at 1024×1024.
-// Does NOT touch imageService.ts or the permanent storage path.
+// Does NOT touch the permanent storage path.
 export async function genImageFast(prompt: string): Promise<string | undefined> {
   if (process.env.DISABLE_IMAGE_GEN === "true") return undefined;
   const ac = new AbortController();

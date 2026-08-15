@@ -1,6 +1,4 @@
 // server/services/holidayFeastService.ts
-// DO NOT call generateImage() from imageService directly.
-// Use generateMealImageUnified only.
 import OpenAI from "openai";
 import { generateMealImageUnified } from "./mealImageGenerator";
 
@@ -219,8 +217,6 @@ Respond with this exact JSON structure:
   for (const dish of feast) {
     if (dish.imagePrompt) {
       console.log(`🎨 Generating image for: ${dish.name}`);
-      // DO NOT call image generation directly.
-      // Use generateMealImageUnified only.
       (dish as any).imageUrl = await generateMealImageUnified(
         dish.name,
         (dish as any).ingredients || [],
