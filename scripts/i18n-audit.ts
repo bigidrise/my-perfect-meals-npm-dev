@@ -438,7 +438,7 @@ async function main() {
     topSharedComponentsByFindingCount: topShared,
     topUntranslatedPageFiles: topPages,
     fullyUntranslatedFiles: fullyUntranslated,
-    findings: findings.slice(0, 2000), // cap to keep JSON manageable
+    findings: findings, // no cap — GATE_08 must see ALL findings or ratchet is blind to late-scanned files
     totalFindingsBeforeCap: findings.length,
     aiWrapperNote: "openaiSafe.ts is not universal — ~30+ routes bypass it. Language injection requires separate per-route audit before implementation.",
   };

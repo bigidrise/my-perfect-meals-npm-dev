@@ -1,5 +1,5 @@
 {
-  "activeHardcodedStrings": 1975,
+  "activeHardcodedStrings": 7002,
   "generatedAt": "2026-08-14T00:00:00.000Z",
-  "note": "Baseline updated after task-1046 extended the library-convention ratchet from components/ui/ to all of components/. UNKNOWN_REVIEW dropped from 170 to 25; 145 shared feature components (biometrics/, pro/, ace/, glp1/, mealCreatorSteps/, shopping/, and 120+ top-level components) are now ACTIVE and covered by the ratchet. Previous baseline was 1446 (only 487 ACTIVE files); this 1975 count is the accurate scope from which the ratchet now runs."
+  "note": "Baseline regenerated after two compounding fixes. (1) Task-1046 extended the library-convention ratchet from components/ui/ to all of components/ — UNKNOWN_REVIEW dropped from 170 to 25; 145 shared feature components now ACTIVE. (2) Task-1048 removed the slice(0,2000) cap from i18n-audit.ts that was silently hiding findings beyond position 2000 in the report, preventing GATE_08 from seeing them. Previous baselines were both wrong: 1446 (capped, pre-1046) and 1975 (capped, post-1046). This 7002 figure is the first accurate uncapped baseline with full coverage. End-to-end verification (task-1048): injected hardcoded string into pagination.tsx → GATE_08 failed +1; reverted → passed. Ratchet is correctly enforced for all ACTIVE surfaces."
 }

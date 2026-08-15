@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-08-14T23:33:10.360Z",
+  "generatedAt": "2026-08-15T00:05:24.728Z",
   "baseline": {
-    "totalEnglishKeys": 1984
+    "totalEnglishKeys": 1990
   },
   "results": {
     "ar": {
       "locale": "ar",
-      "totalKeys": 1984,
+      "totalKeys": 1990,
       "identicalToEnglish": 41,
       "identicalToEnglishPct": "2.1",
       "identicalSamples": [
@@ -29,7 +29,7 @@
     },
     "de": {
       "locale": "de",
-      "totalKeys": 2032,
+      "totalKeys": 2038,
       "identicalToEnglish": 112,
       "identicalToEnglishPct": "5.6",
       "identicalSamples": [
@@ -52,7 +52,7 @@
     },
     "es": {
       "locale": "es",
-      "totalKeys": 2168,
+      "totalKeys": 2174,
       "identicalToEnglish": 64,
       "identicalToEnglishPct": "3.2",
       "identicalSamples": [
@@ -75,7 +75,7 @@
     },
     "fr": {
       "locale": "fr",
-      "totalKeys": 2168,
+      "totalKeys": 2174,
       "identicalToEnglish": 88,
       "identicalToEnglishPct": "4.4",
       "identicalSamples": [
@@ -98,7 +98,7 @@
     },
     "hi": {
       "locale": "hi",
-      "totalKeys": 2168,
+      "totalKeys": 2174,
       "identicalToEnglish": 72,
       "identicalToEnglishPct": "3.6",
       "identicalSamples": [
@@ -121,7 +121,7 @@
     },
     "it": {
       "locale": "it",
-      "totalKeys": 2168,
+      "totalKeys": 2174,
       "identicalToEnglish": 92,
       "identicalToEnglishPct": "4.6",
       "identicalSamples": [
@@ -144,7 +144,7 @@
     },
     "ja": {
       "locale": "ja",
-      "totalKeys": 2032,
+      "totalKeys": 2038,
       "identicalToEnglish": 45,
       "identicalToEnglishPct": "2.3",
       "identicalSamples": [
@@ -167,7 +167,7 @@
     },
     "ko": {
       "locale": "ko",
-      "totalKeys": 1994,
+      "totalKeys": 2000,
       "identicalToEnglish": 49,
       "identicalToEnglishPct": "2.5",
       "identicalSamples": [
@@ -190,7 +190,7 @@
     },
     "pt": {
       "locale": "pt",
-      "totalKeys": 2169,
+      "totalKeys": 2175,
       "identicalToEnglish": 68,
       "identicalToEnglishPct": "3.4",
       "identicalSamples": [
@@ -213,7 +213,7 @@
     },
     "ru": {
       "locale": "ru",
-      "totalKeys": 1984,
+      "totalKeys": 1990,
       "identicalToEnglish": 49,
       "identicalToEnglishPct": "2.5",
       "identicalSamples": [
@@ -236,7 +236,7 @@
     },
     "tl": {
       "locale": "tl",
-      "totalKeys": 2168,
+      "totalKeys": 2174,
       "identicalToEnglish": 228,
       "identicalToEnglishPct": "11.5",
       "identicalSamples": [
@@ -259,7 +259,7 @@
     },
     "vi": {
       "locale": "vi",
-      "totalKeys": 1993,
+      "totalKeys": 1999,
       "identicalToEnglish": 81,
       "identicalToEnglishPct": "4.1",
       "identicalSamples": [
@@ -282,12 +282,12 @@
     },
     "xq": {
       "locale": "xq",
-      "totalKeys": 1925,
+      "totalKeys": 1931,
       "identicalToEnglish": 0,
       "identicalToEnglishPct": "0.0",
       "identicalSamples": [],
       "emptyValues": 0,
-      "placeholderValues": 1919,
+      "placeholderValues": 1925,
       "interpolationMismatches": 0,
       "interpolationMismatchSamples": [],
       "pluralizationMismatches": 0,
@@ -299,7 +299,7 @@
     },
     "zh": {
       "locale": "zh",
-      "totalKeys": 1984,
+      "totalKeys": 1990,
       "identicalToEnglish": 52,
       "identicalToEnglishPct": "2.6",
       "identicalSamples": [
