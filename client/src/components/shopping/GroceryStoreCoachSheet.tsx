@@ -625,6 +625,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         .map((s) => s.item) ?? [];
       const data = await post<SwapResult>("/api/grocery-coach/swap-ingredient", {
         ingredientToReplace: item.item,
+        itemCategory: item.category,
         mealName: result?.meal?.name,
         mealDescription: result?.meal?.description,
         remainingIngredients: remaining,
