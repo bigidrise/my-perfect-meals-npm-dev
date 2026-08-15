@@ -2,11 +2,11 @@ import React from "react";
 import { ConfirmationModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import { Meal } from "@/lib/mealEngineApi";
+import { EngineMeal } from "@/lib/mealEngineApi";
 
 interface MealReplacementModalProps {
   open: boolean;
-  meal: Meal | null;
+  meal: EngineMeal | null;
   onClose: () => void;
   onReplace: () => void;
   isLoading?: boolean;

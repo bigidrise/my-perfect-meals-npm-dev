@@ -1,37 +1,11 @@
 import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, Clock } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 
-const sectionMeta: Record<string, { title: string; description: string; eta: string }> = {
-  affiliate: {
-    title: "Affiliate Opportunities",
-    description: "The affiliate program and certification are being finalized. Once launched, you'll be able to earn commissions, access marketing assets, and track your referrals — all inside My Perfect Meals.",
-    eta: "Launching with Affiliate Certification",
-  },
-  academy: {
-    title: "Business Success Academy",
-    description: "A full curriculum for building and scaling your nutrition coaching business using the My Perfect Meals platform. Courses, assessments, and credentials — coming soon.",
-    eta: "Launching with Platform Certification",
-  },
-  industry: {
-    title: "Industry & Strategic Partnerships",
-    description: "We partner with supplement companies, nutrition brands, fitness organizations, certification bodies, and software platforms to build meaningful integrations and co-branded opportunities. If your organization serves the nutrition or wellness space, we'd love to connect.",
-    eta: "Contact us to explore a strategic partnership",
-  },
-  "white-label": {
-    title: "White Label Opportunities",
-    description: "Interested in licensing the My Perfect Meals platform for your organization or brand? We'd love to talk. White label partnerships are handled personally — reach out below.",
-    eta: "Contact us to start a conversation",
-  },
-  partnerships: {
-    title: "Healthcare & Clinical Partnerships",
-    description: "We work with physicians, registered dietitians, clinics, hospitals, and patient-care organizations to integrate My Perfect Meals into clinical and care workflows.",
-    eta: "Contact us to explore clinical partnership options",
-  },
-};
-
 export default function BusinessCenterSection() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [matchAffiliate] = useRoute("/business-center/affiliate");
   const [matchAcademy] = useRoute("/business-center/academy");
@@ -42,13 +16,15 @@ export default function BusinessCenterSection() {
   const sectionKey = matchAffiliate ? "affiliate"
     : matchAcademy ? "academy"
     : matchIndustry ? "industry"
-    : matchWhiteLabel ? "white-label"
+    : matchWhiteLabel ? "whiteLabel"
     : matchPartnerships ? "partnerships"
     : null;
 
-  const meta = sectionKey ? sectionMeta[sectionKey] : null;
+  if (!sectionKey) return null;
 
-  if (!meta) return null;
+  const title = t(`businessCenterSection.${sectionKey}.title`);
+  const description = t(`businessCenterSection.${sectionKey}.description`);
+  const eta = t(`businessCenterSection.${sectionKey}.eta`);
 
   return (
     <motion.div
@@ -68,9 +44,9 @@ export default function BusinessCenterSection() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Business Suite
+            {t("businessCenterSection.backBtn")}
           </button>
-          <h1 className="text-lg font-bold text-white truncate">{meta.title}</h1>
+          <h1 className="text-lg font-bold text-white truncate">{title}</h1>
         </div>
       </div>
 
@@ -89,11 +65,11 @@ export default function BusinessCenterSection() {
             <Clock className="h-8 w-8 text-orange-400" />
           </div>
           <div className="space-y-3">
-            <h2 className="text-xl font-bold text-white">{meta.title}</h2>
-            <p className="text-sm text-gray-300 leading-relaxed">{meta.description}</p>
+            <h2 className="text-xl font-bold text-white">{title}</h2>
+            <p className="text-sm text-gray-300 leading-relaxed">{description}</p>
           </div>
           <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl px-4 py-3">
-            <p className="text-xs text-orange-400 font-medium">{meta.eta}</p>
+            <p className="text-xs text-orange-400 font-medium">{eta}</p>
           </div>
         </motion.div>
       </div>

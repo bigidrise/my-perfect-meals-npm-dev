@@ -1581,7 +1581,15 @@
       "step3Desc": "Your training is complete. Activate your professional studio and start working with clients.",
       "step3Phase2Title": "Phase 2: Advanced Tools",
       "step3Phase2Desc": "Unlock advanced clinical and coaching tools for deeper client support.",
-      "step3Button": "Activate studio"
+      "step3Button": "Activate studio",
+      "personalProfileStep": "Set up your personal nutrition profile",
+      "firstMealPlan": "Generate your first AI-powered meal plan",
+      "learningItems": {
+        "clientMgmt": "Managing clients and care plans",
+        "questionnaires": "Professional questionnaires",
+        "communication": "Studio and client communication",
+        "revenue": "Building recurring revenue"
+      }
     },
     "launchpad": {
       "certifiedBadge": "Certified",
@@ -1590,7 +1598,52 @@
       "enterStudio": "Enter Studio",
       "quickLinks": "Quick links",
       "resumeCertification": "Resume certification",
-      "resumePhase2": "Resume Phase 2"
+      "resumePhase2": "Resume Phase 2",
+      "gridCards": {
+        "clientStudio": {
+          "label": "Client Studio",
+          "sub": "Manage clients & meal plans"
+        },
+        "businessCenter": {
+          "label": "Business Center",
+          "sub": "Affiliate, Academy, Partners"
+        },
+        "certifications": {
+          "label": "Certifications",
+          "sub": "View & expand your training"
+        },
+        "affiliateProgram": {
+          "label": "Affiliate Program",
+          "sub": "Earn 25% per referral"
+        }
+      },
+      "quickLink": {
+        "questionnaires": "Questionnaires",
+        "businessCenter": "Business Center",
+        "certifications": "My Certifications",
+        "affiliate": "Affiliate Dashboard"
+      },
+      "stepRow": {
+        "personalProfile": {
+          "label": "Personal Profile",
+          "sub": "Experience MPM as a user"
+        },
+        "phase1": {
+          "label": "Phase 1 — Platform Fundamentals",
+          "sub": "Master every platform feature"
+        },
+        "phase2": {
+          "label": "Phase 2 — Business & ProCare Success",
+          "sub": "Build and grow your practice"
+        }
+      },
+      "personalProfileSetup": "Personal Profile Setup",
+      "phase1Label": "Phase 1 — Platform Fundamentals",
+      "welcomeBack": "Welcome back",
+      "percentComplete": "{{pct}}% Complete",
+      "stepOf": "Step {{completed}} of {{total}}",
+      "current": "Current",
+      "backToBC": "Business Center"
     },
     "welcome": {
       "back": "Back",
@@ -1602,7 +1655,56 @@
       "completeUnlock": "Complete to unlock",
       "continueButton": "Continue",
       "phase2Label": "Phase 2",
-      "progress": "Progress"
+      "progress": "Progress",
+      "sections": {
+        "overview": {
+          "title": "Welcome to ProCare",
+          "subtitle": "Your role on the platform",
+          "highlight": "ProCare is a tool that extends your practice — not a substitute for your clinical training.",
+          "b1": "ProCare gives you a dedicated workspace to manage clients, build personalized meal plans, and monitor progress — all within My Perfect Meals.",
+          "b2": "As a ProCare professional, you operate within a structured hierarchy: medical requirements always take precedence, followed by dietary identity, cultural preference, and behavioral preference.",
+          "b3": "You are responsible for the guidance you provide. The platform amplifies your expertise — it does not replace your professional judgment.",
+          "b4": "Your clients will see meal plans, dietary tracking, and AI-generated dishes tailored to the protocols you set. Your job is to set those protocols accurately and update them as the client needs evolve."
+        },
+        "clients": {
+          "title": "Client Management",
+          "subtitle": "Onboarding and ongoing care",
+          "highlight": "Keep client profiles current. Stale protocols lead to misaligned AI-generated meals.",
+          "b1": "Clients are added to your roster from the Studio. You can invite them by email, assign meal builders, and configure their dietary profile from your ProCare dashboard.",
+          "b2": "Each client has an individual protocol card where you set their calorie and macro targets, dietary restrictions, clinical mode (if applicable), and cuisine preferences.",
+          "b3": "Meal boards let you pre-build or approve meals for your clients. Clients can view and log approved meals directly in their app.",
+          "b4": "Use the messaging feature to communicate with clients inside the platform. Tablet notes give you a private space to document client progress and observations.",
+          "b5": "Client data — including biometrics, meal logs, and progress notes — is only visible to you and the client. It is never shared with other professionals or third parties."
+        },
+        "safety": {
+          "title": "Safety & Protocol Guardrails",
+          "subtitle": "How the platform protects your clients",
+          "highlight": "When in doubt, err on the side of the more restrictive setting. Clients can always request more flexibility in a follow-up session.",
+          "b1": "The 4-Layer Constraint Hierarchy governs all AI meal generation: (1) Medical requirements are absolute. (2) Dietary identity is enforced. (3) Cultural and cuisine preferences shape output. (4) Behavioral preferences are applied last.",
+          "b2": "Macro values are never invented by the AI. If a macro is unknown, it is left as null — not estimated or filled in.",
+          "b3": "Clinically sensitive modes — such as Oncology Support and Anti-Inflammatory protocols — enforce hard ingredient restrictions at the generation level. These cannot be disabled by the client.",
+          "b4": "Heat, spice, and texture preferences can be overridden by clinical safety rules when a medical condition makes certain inputs unsafe.",
+          "b5": "If you assign a clinical protocol, ensure you have the professional basis to do so. Physician-level protocols require physician-role access."
+        },
+        "standards": {
+          "title": "Professional Standards",
+          "subtitle": "Ethics, accountability, and best practices",
+          "highlight": "Your professional reputation is the most important asset in your ProCare practice. The platform reflects you.",
+          "b1": "You attested at sign-up to the accuracy of your professional credentials. Misrepresentation of credentials is grounds for immediate removal from the platform.",
+          "b2": "Never use ProCare to diagnose, treat, or cure a medical condition. Nutritional guidance is supportive, not curative.",
+          "b3": "Maintain accurate, up-to-date client profiles. Document changes when a client's medical situation, goals, or dietary identity shifts.",
+          "b4": "Respect client autonomy. ProCare allows you to recommend and restrict, but clients retain the right to make their own dietary decisions outside of clinically enforced guardrails.",
+          "b5": "If you suspect a client is in a medical crisis, instruct them to contact emergency services immediately. The platform is not a crisis intervention tool."
+        },
+        "complete": {
+          "title": "You're Ready",
+          "subtitle": "Final acknowledgment",
+          "highlight": "Welcome to ProCare. Your clients are counting on you.",
+          "b1": "You've reviewed the core ProCare operating principles, client management workflow, safety guardrails, and professional standards.",
+          "b2": "By completing this training, you acknowledge that you understand your responsibilities as a ProCare professional and will use the platform in accordance with these principles.",
+          "b3": "Your Studio will unlock immediately after you complete this training. You can begin adding clients, building meal plans, and configuring client protocols right away."
+        }
+      }
     },
     "rewards": {
       "back": "Back",
@@ -1626,7 +1728,25 @@
       "nextStepsTitle": "Your next steps",
       "subtitle": "You have completed ProCare certification and unlocked full access to your professional studio.",
       "title": "Certification Complete",
-      "unlockedTitle": "Studio Unlocked"
+      "unlockedTitle": "Studio Unlocked",
+      "features": {
+        "studio": "Professional Studio",
+        "clientMgmt": "Client Management",
+        "carePlans": "Care Plans",
+        "questionnaires": "Professional Questionnaires",
+        "businessCenter": "Business Center",
+        "affiliateResources": "Affiliate Resources",
+        "marketing": "Marketing Materials",
+        "education": "Continuing Education"
+      },
+      "nextStep": {
+        "profile": "Complete your professional profile",
+        "firstClient": "Create your first client",
+        "inviteClient": "Invite your first client to the platform",
+        "mealPlan": "Build your first meal plan",
+        "affiliate": "Set up your affiliate account to earn commissions",
+        "businessCenter": "Explore the Business Center"
+      }
     }
   },
   "businessDashboard": {
@@ -3686,6 +3806,85 @@
       "keepPrivate": "No, keep private",
       "coach": "Notify my coach",
       "both": "Notify both"
+    }
+  },
+
+  "joinStudio": {
+    "appName": "My Perfect Meals",
+    "loading": "Loading your invitation…",
+    "joining": "Connecting you to the studio…",
+    "inviteTitle": "ProCare Invitation",
+    "invitedBySuffix": " has invited you to join their ProCare {{spaceLabel}}.",
+    "inviteAddress": "This invitation was sent to",
+    "inviteAddressSuffix": "Make sure you’re signed in with that account.",
+    "joinButton": "Join {{spaceLabel}}",
+    "joinDisclaimer": "Once connected, your {{roleLabel}} can guide your nutrition and progress through the platform.",
+    "successTitle": "You’re Connected!",
+    "successBody": "You’ve successfully joined {{studioName}}. Your trainer can now work with you through the platform.",
+    "goToApp": "Go to My Perfect Meals",
+    "wrongAccountTitle": "Wrong Account",
+    "wrongAccountAddress": "This invitation was sent to",
+    "wrongAccountDiffAccount": "You’re currently signed in with a different account.",
+    "wrongAccountHint": "Sign out and sign in with the correct email address, then click the invitation link again.",
+    "backToApp": "Back to App",
+    "expiredTitle": "Invitation Expired",
+    "expiredBody": "This invitation has expired. Ask your trainer to send a new one — it only takes a moment.",
+    "backupCodeHint": "You can also enter your backup code manually:",
+    "backupCodePath": "More → Connect with Access Code",
+    "alreadyConnectedTitle": "Already Connected",
+    "alreadyConnectedBody": "This invitation has already been used. If you’re not seeing your trainer’s studio, try refreshing the app.",
+    "subscriptionRequiredTitle": "Subscription Required",
+    "subscriptionRequiredBody": "Connecting with a ProCare provider requires a Clinical (Ultimate) subscription.",
+    "viewPlans": "View Plans",
+    "trainerNotSubscribedTitle": "Trainer Not Subscribed",
+    "trainerNotSubscribedBody": "Your trainer’s ProCare subscription is not currently active. Let them know and ask them to re-invite you once it’s resolved.",
+    "errorTitle": "Something Went Wrong",
+    "errorFallback": "Please try again.",
+    "errorNoToken": "No invitation token found. Please use the link from your invitation email.",
+    "errorNotFound": "This invitation was not found. It may have expired or already been used.",
+    "errorLoadDetails": "Could not load invitation details. Please try again.",
+    "errorLoadDetailsNetwork": "Could not load invitation details. Please check your connection and try again.",
+    "errorConnectionIssue": "Connection error. Please check your connection and try again.",
+    "errorGenericFallback": "Something went wrong. Please try again."
+  },
+  "businessCenterSection": {
+    "backBtn": "Business Suite",
+    "affiliate": {
+      "title": "Affiliate Opportunities",
+      "description": "The affiliate program and certification are being finalized. Once launched, you'll be able to earn commissions, access marketing assets, and track your referrals — all inside My Perfect Meals.",
+      "eta": "Launching with Affiliate Certification"
+    },
+    "academy": {
+      "title": "Business Success Academy",
+      "description": "A full curriculum for building and scaling your nutrition coaching business using the My Perfect Meals platform. Courses, assessments, and credentials — coming soon.",
+      "eta": "Launching with Platform Certification"
+    },
+    "industry": {
+      "title": "Industry & Strategic Partnerships",
+      "description": "We partner with supplement companies, nutrition brands, fitness organizations, certification bodies, and software platforms to build meaningful integrations and co-branded opportunities.",
+      "eta": "Contact us to explore a strategic partnership"
+    },
+    "whiteLabel": {
+      "title": "White Label Opportunities",
+      "description": "Interested in licensing the My Perfect Meals platform for your organization or brand? We would love to talk. White label partnerships are handled personally — reach out below.",
+      "eta": "Contact us to start a conversation"
+    },
+    "partnerships": {
+      "title": "Healthcare & Clinical Partnerships",
+      "description": "We work with physicians, registered dietitians, clinics, hospitals, and patient-care organizations to integrate My Perfect Meals into clinical and care workflows.",
+      "eta": "Contact us to explore clinical partnership options"
+    }
+  },
+  "procareInfo": {
+    "title": "ProCare Coaching",
+    "back": "Back",
+    "backToPlans": "Back to Plans",
+    "description": "Sometimes the hardest part of nutrition is knowing what decision to make in the moment. ProCare connects you with a professional coach inside the My Perfect Meals system.",
+    "bullets": {
+      "messaging": "Direct messaging with your coach",
+      "guidance": "Structured decision guidance",
+      "macros": "Help adjusting meals and macros",
+      "support": "Support when real life gets complicated"
     }
   }
 }

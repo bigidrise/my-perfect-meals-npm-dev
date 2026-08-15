@@ -1640,7 +1640,15 @@
       "step3Desc": "आपका प्रशिक्षण पूरा हो गया है। अपना प्रोफेशनल स्टूडियो सक्रिय करें और क्लाइंट्स के साथ काम करना शुरू करें।",
       "step3Phase2Title": "चरण 2: एडवांस्ड टूल्स",
       "step3Phase2Desc": "गहन क्लाइंट सहायता के लिए एडवांस्ड क्लिनिकल और कोचिंग टूल अनलॉक करें।",
-      "step3Button": "स्टूडियो सक्रिय करें"
+      "step3Button": "स्टूडियो सक्रिय करें",
+      "personalProfileStep": "अपनी व्यक्तिगत पोषण प्रोफ़ाइल सेट करें",
+      "firstMealPlan": "अपना पहला AI-संचालित मील प्लान जेनरेट करें",
+      "learningItems": {
+        "clientMgmt": "क्लाइंट और देखभाल योजनाओं का प्रबंधन",
+        "questionnaires": "पेशेवर प्रश्नावली",
+        "communication": "स्टूडियो और क्लाइंट संचार",
+        "revenue": "आवर्ती राजस्व बनाना"
+      }
     },
     "launchpad": {
       "certifiedBadge": "प्रमाणित",
@@ -1649,7 +1657,52 @@
       "enterStudio": "स्टूडियो में प्रवेश करें",
       "quickLinks": "क्विक लिंक्स",
       "resumeCertification": "प्रमाणन फिर से शुरू करें",
-      "resumePhase2": "चरण 2 फिर से शुरू करें"
+      "resumePhase2": "चरण 2 फिर से शुरू करें",
+      "gridCards": {
+        "clientStudio": {
+          "label": "क्लाइंट स्टूडियो",
+          "sub": "क्लाइंट और मील प्लान प्रबंधित करें"
+        },
+        "businessCenter": {
+          "label": "बिज़नेस सेंटर",
+          "sub": "एफिलिएट, अकादमी, पार्टनर"
+        },
+        "certifications": {
+          "label": "सर्टिफिकेशन",
+          "sub": "अपना प्रशिक्षण देखें और बढ़ाएं"
+        },
+        "affiliateProgram": {
+          "label": "एफिलिएट प्रोग्राम",
+          "sub": "प्रति रेफरल 25% कमाएं"
+        }
+      },
+      "quickLink": {
+        "questionnaires": "प्रश्नावली",
+        "businessCenter": "बिज़नेस सेंटर",
+        "certifications": "मेरे सर्टिफिकेशन",
+        "affiliate": "एफिलिएट डैशबोर्ड"
+      },
+      "stepRow": {
+        "personalProfile": {
+          "label": "व्यक्तिगत प्रोफ़ाइल",
+          "sub": "MPM को एक उपयोगकर्ता के रूप में अनुभव करें"
+        },
+        "phase1": {
+          "label": "चरण 1 — प्लेटफ़ॉर्म मूल बातें",
+          "sub": "हर प्लेटफ़ॉर्म फ़ीचर में महारत हासिल करें"
+        },
+        "phase2": {
+          "label": "चरण 2 — बिज़नेस और ProCare सफलता",
+          "sub": "अपनी प्रैक्टिस बनाएं और बढ़ाएं"
+        }
+      },
+      "personalProfileSetup": "व्यक्तिगत प्रोफ़ाइल सेटअप",
+      "phase1Label": "चरण 1 — प्लेटफ़ॉर्म मूल बातें",
+      "welcomeBack": "वापस स्वागत है",
+      "percentComplete": "{{pct}}% पूर्ण",
+      "stepOf": "चरण {{completed}} / {{total}}",
+      "current": "वर्तमान",
+      "backToBC": "बिज़नेस सेंटर"
     },
     "welcome": {
       "back": "वापस",
@@ -1661,7 +1714,56 @@
       "completeUnlock": "अनलॉक करने के लिए पूरा करें",
       "continueButton": "जारी रखें",
       "phase2Label": "चरण 2",
-      "progress": "प्रगति"
+      "progress": "प्रगति",
+      "sections": {
+        "overview": {
+          "title": "ProCare में आपका स्वागत है",
+          "subtitle": "प्लेटफ़ॉर्म पर आपकी भूमिका",
+          "highlight": "ProCare एक ऐसा टूल है जो आपकी प्रैक्टिस को बढ़ाता है — आपके क्लिनिकल प्रशिक्षण का विकल्प नहीं।",
+          "b1": "ProCare आपको क्लाइंट प्रबंधित करने, व्यक्तिगत मील प्लान बनाने और प्रगति की निगरानी करने के लिए एक समर्पित कार्यक्षेत्र देता है।",
+          "b2": "एक ProCare पेशेवर के रूप में, आप एक संरचित श्रेणी के भीतर काम करते हैं: चिकित्सा आवश्यकताएं हमेशा प्राथमिकता लेती हैं।",
+          "b3": "आप जो मार्गदर्शन प्रदान करते हैं उसके लिए आप जिम्मेदार हैं। प्लेटफ़ॉर्म आपकी विशेषज्ञता को बढ़ाता है।",
+          "b4": "आपके क्लाइंट आपके द्वारा निर्धारित प्रोटोकॉल के अनुसार मील प्लान और AI-जेनरेटेड व्यंजन देखेंगे।"
+        },
+        "clients": {
+          "title": "क्लाइंट प्रबंधन",
+          "subtitle": "ऑनबोर्डिंग और निरंतर देखभाल",
+          "highlight": "क्लाइंट प्रोफ़ाइल को अद्यतन रखें। पुराने प्रोटोकॉल से AI-जेनरेटेड भोजन में गड़बड़ी आती है।",
+          "b1": "क्लाइंट को स्टूडियो से आपकी सूची में जोड़ा जाता है। आप उन्हें ईमेल से आमंत्रित कर सकते हैं।",
+          "b2": "प्रत्येक क्लाइंट के पास एक व्यक्तिगत प्रोटोकॉल कार्ड होता है जहां आप उनके लक्ष्य निर्धारित करते हैं।",
+          "b3": "मील बोर्ड आपको अपने क्लाइंट के लिए पहले से भोजन बनाने या अनुमोदित करने देते हैं।",
+          "b4": "प्लेटफ़ॉर्म के अंदर क्लाइंट के साथ संवाद करने के लिए मैसेजिंग फ़ीचर का उपयोग करें।",
+          "b5": "क्लाइंट डेटा — बायोमेट्रिक्स, मील लॉग और प्रगति नोट सहित — केवल आपको और क्लाइंट को दिखता है।"
+        },
+        "safety": {
+          "title": "सुरक्षा और प्रोटोकॉल गार्डरेल",
+          "subtitle": "प्लेटफ़ॉर्म आपके क्लाइंट की कैसे रक्षा करता है",
+          "highlight": "संदेह होने पर, अधिक प्रतिबंधात्मक सेटिंग की ओर जाएं। क्लाइंट अनुवर्ती सत्र में अधिक लचीलेपन का अनुरोध कर सकते हैं।",
+          "b1": "4-परत बाधा श्रेणी सभी AI मील जेनरेशन को नियंत्रित करती है।",
+          "b2": "मैक्रो मान AI द्वारा कभी नहीं बनाए जाते। यदि कोई मैक्रो अज्ञात है, तो इसे null छोड़ दिया जाता है।",
+          "b3": "क्लिनिकल संवेदनशील मोड जेनरेशन स्तर पर कड़े सामग्री प्रतिबंध लागू करते हैं।",
+          "b4": "गर्मी, मसाला और बनावट की प्राथमिकताओं को क्लिनिकल सुरक्षा नियमों द्वारा ओवरराइड किया जा सकता है।",
+          "b5": "यदि आप क्लिनिकल प्रोटोकॉल असाइन करते हैं, तो सुनिश्चित करें कि आपके पास इसके लिए पेशेवर आधार है।"
+        },
+        "standards": {
+          "title": "पेशेवर मानक",
+          "subtitle": "नैतिकता, जवाबदेही और सर्वोत्तम प्रथाएं",
+          "highlight": "आपकी पेशेवर प्रतिष्ठा आपकी ProCare प्रैक्टिस में सबसे महत्वपूर्ण संपत्ति है।",
+          "b1": "आपने साइन-अप पर अपनी पेशेवर साख की सटीकता का प्रमाण दिया।",
+          "b2": "किसी चिकित्सा स्थिति का निदान, उपचार या इलाज करने के लिए ProCare का कभी उपयोग न करें।",
+          "b3": "सटीक, अद्यतन क्लाइंट प्रोफ़ाइल बनाए रखें।",
+          "b4": "क्लाइंट की स्वायत्तता का सम्मान करें।",
+          "b5": "यदि आपको संदेह है कि कोई क्लाइंट चिकित्सा संकट में है, तो उन्हें तुरंत आपातकालीन सेवाओं से संपर्क करने का निर्देश दें।"
+        },
+        "complete": {
+          "title": "आप तैयार हैं",
+          "subtitle": "अंतिम स्वीकृति",
+          "highlight": "ProCare में आपका स्वागत है। आपके क्लाइंट आप पर भरोसा कर रहे हैं।",
+          "b1": "आपने ProCare के मुख्य संचालन सिद्धांत, क्लाइंट प्रबंधन वर्कफ़्लो, सुरक्षा गार्डरेल और पेशेवर मानकों की समीक्षा की है।",
+          "b2": "इस प्रशिक्षण को पूरा करके, आप स्वीकार करते हैं कि आप एक ProCare पेशेवर के रूप में अपनी जिम्मेदारियों को समझते हैं।",
+          "b3": "इस प्रशिक्षण को पूरा करने के तुरंत बाद आपका स्टूडियो अनलॉक हो जाएगा।"
+        }
+      }
     },
     "rewards": {
       "back": "वापस",
@@ -1685,7 +1787,25 @@
       "nextStepsTitle": "आपके अगले कदम",
       "subtitle": "आपने ProCare प्रमाणन पूरा कर लिया है और अपने प्रोफेशनल स्टूडियो तक पूर्ण पहुंच अनलॉक कर ली है।",
       "title": "प्रमाणन पूरा हुआ",
-      "unlockedTitle": "स्टूडियो अनलॉक हो गया"
+      "unlockedTitle": "स्टूडियो अनलॉक हो गया",
+      "features": {
+        "studio": "प्रोफेशनल स्टूडियो",
+        "clientMgmt": "क्लाइंट प्रबंधन",
+        "carePlans": "देखभाल योजनाएं",
+        "questionnaires": "पेशेवर प्रश्नावली",
+        "businessCenter": "बिज़नेस सेंटर",
+        "affiliateResources": "एफिलिएट संसाधन",
+        "marketing": "मार्केटिंग सामग्री",
+        "education": "सतत शिक्षा"
+      },
+      "nextStep": {
+        "profile": "अपनी पेशेवर प्रोफ़ाइल पूरी करें",
+        "firstClient": "अपना पहला क्लाइंट बनाएं",
+        "inviteClient": "अपने पहले क्लाइंट को प्लेटफ़ॉर्म पर आमंत्रित करें",
+        "mealPlan": "अपना पहला मील प्लान बनाएं",
+        "affiliate": "कमीशन कमाने के लिए अपना एफिलिएट अकाउंट सेट करें",
+        "businessCenter": "बिज़नेस सेंटर एक्सप्लोर करें"
+      }
     }
   },
   "trainerCareTeam": {
@@ -3597,7 +3717,7 @@
     "scanFoodFor": "{{name}} के लिए भोजन स्कैन करें",
     "productScan": "उत्पाद स्कैन",
     "customizeMeal": "अपने भोजन को अनुकूलित करें",
-    "recipeMaker": "Recipe Maker",
+    "recipeMaker": "रेसिपी मेकर",
     "analyzeForCompanion": "{{name}} के लिए सामग्री का विश्लेषण करें",
     "analyzeBeforeBuy": "खरीदने से पहले सामग्री का विश्लेषण करें",
     "optionsSubtitle": "आपका वैयक्तिकृत संस्करण जनरेट करने से पहले इन्हें समायोजित करें।",
@@ -3932,6 +4052,85 @@
       "keepPrivate": "नहीं, निजी रखें",
       "coach": "मेरे कोच को बताएं",
       "both": "दोनों को बताएं"
+    }
+  },
+
+  "joinStudio": {
+    "appName": "My Perfect Meals",
+    "loading": "Loading your invitation…",
+    "joining": "Connecting you to the studio…",
+    "inviteTitle": "ProCare Invitation",
+    "invitedBySuffix": " has invited you to join their ProCare {{spaceLabel}}.",
+    "inviteAddress": "This invitation was sent to",
+    "inviteAddressSuffix": "Make sure you’re signed in with that account.",
+    "joinButton": "Join {{spaceLabel}}",
+    "joinDisclaimer": "Once connected, your {{roleLabel}} can guide your nutrition and progress through the platform.",
+    "successTitle": "You’re Connected!",
+    "successBody": "You’ve successfully joined {{studioName}}. Your trainer can now work with you through the platform.",
+    "goToApp": "Go to My Perfect Meals",
+    "wrongAccountTitle": "Wrong Account",
+    "wrongAccountAddress": "This invitation was sent to",
+    "wrongAccountDiffAccount": "You’re currently signed in with a different account.",
+    "wrongAccountHint": "Sign out and sign in with the correct email address, then click the invitation link again.",
+    "backToApp": "Back to App",
+    "expiredTitle": "Invitation Expired",
+    "expiredBody": "This invitation has expired. Ask your trainer to send a new one — it only takes a moment.",
+    "backupCodeHint": "You can also enter your backup code manually:",
+    "backupCodePath": "More → Connect with Access Code",
+    "alreadyConnectedTitle": "Already Connected",
+    "alreadyConnectedBody": "This invitation has already been used. If you’re not seeing your trainer’s studio, try refreshing the app.",
+    "subscriptionRequiredTitle": "Subscription Required",
+    "subscriptionRequiredBody": "Connecting with a ProCare provider requires a Clinical (Ultimate) subscription.",
+    "viewPlans": "View Plans",
+    "trainerNotSubscribedTitle": "Trainer Not Subscribed",
+    "trainerNotSubscribedBody": "Your trainer’s ProCare subscription is not currently active. Let them know and ask them to re-invite you once it’s resolved.",
+    "errorTitle": "Something Went Wrong",
+    "errorFallback": "Please try again.",
+    "errorNoToken": "No invitation token found. Please use the link from your invitation email.",
+    "errorNotFound": "This invitation was not found. It may have expired or already been used.",
+    "errorLoadDetails": "Could not load invitation details. Please try again.",
+    "errorLoadDetailsNetwork": "Could not load invitation details. Please check your connection and try again.",
+    "errorConnectionIssue": "Connection error. Please check your connection and try again.",
+    "errorGenericFallback": "Something went wrong. Please try again."
+  },
+  "businessCenterSection": {
+    "backBtn": "बिज़नेस सूट",
+    "affiliate": {
+      "title": "एफिलिएट अवसर",
+      "description": "एफिलिएट प्रोग्राम और सर्टिफिकेशन को अंतिम रूप दिया जा रहा है। लॉन्च होने के बाद, आप कमीशन कमा सकते हैं, मार्केटिंग एसेट एक्सेस कर सकते हैं, और अपने रेफरल ट्रैक कर सकते हैं।",
+      "eta": "एफिलिएट सर्टिफिकेशन के साथ लॉन्च हो रहा है"
+    },
+    "academy": {
+      "title": "बिज़नेस सक्सेस अकादमी",
+      "description": "My Perfect Meals प्लेटफ़ॉर्म का उपयोग करके अपने न्यूट्रिशन कोचिंग बिज़नेस को बनाने और बढ़ाने के लिए एक पूर्ण पाठ्यक्रम। कोर्स, मूल्यांकन और क्रेडेंशियल — जल्द आ रहे हैं।",
+      "eta": "प्लेटफ़ॉर्म सर्टिफिकेशन के साथ लॉन्च हो रहा है"
+    },
+    "industry": {
+      "title": "उद्योग और रणनीतिक साझेदारी",
+      "description": "हम सप्लीमेंट कंपनियों, न्यूट्रिशन ब्रांड, फिटनेस संगठनों और सॉफ्टवेयर प्लेटफ़ॉर्म के साथ मिलकर सार्थक इंटीग्रेशन बनाते हैं।",
+      "eta": "रणनीतिक साझेदारी के लिए हमसे संपर्क करें"
+    },
+    "whiteLabel": {
+      "title": "व्हाइट लेबल अवसर",
+      "description": "अपने संगठन या ब्रांड के लिए My Perfect Meals प्लेटफ़ॉर्म लाइसेंस करने में रुचि है? हम बात करना पसंद करेंगे।",
+      "eta": "बातचीत शुरू करने के लिए संपर्क करें"
+    },
+    "partnerships": {
+      "title": "स्वास्थ्य सेवा और क्लिनिकल साझेदारी",
+      "description": "हम चिकित्सकों, पंजीकृत आहार विशेषज्ञों, क्लीनिकों, अस्पतालों और रोगी-देखभाल संगठनों के साथ काम करते हैं।",
+      "eta": "क्लिनिकल साझेदारी के लिए हमसे संपर्क करें"
+    }
+  },
+  "procareInfo": {
+    "title": "प्रोकेयर कोचिंग",
+    "back": "वापस",
+    "backToPlans": "योजनाओं पर वापस",
+    "description": "कभी-कभी पोषण का सबसे कठिन हिस्सा यह जानना होता है कि उस समय कौन सा निर्णय लेना है। ProCare आपको My Perfect Meals सिस्टम के अंदर एक पेशेवर कोच से जोड़ता है।",
+    "bullets": {
+      "messaging": "आपके कोच के साथ सीधे संदेश",
+      "guidance": "संरचित निर्णय मार्गदर्शन",
+      "macros": "भोजन और मैक्रो समायोजित करने में मदद",
+      "support": "जब असली जिंदगी जटिल हो जाए तो सहायता"
     }
   }
 }

@@ -8,6 +8,7 @@ import { users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logClientActivity, logClientActivityForStudioMember } from "../services/activityLog";
+import { sendCareTeamInvite } from "../services/emailService";
 import { pushToUser } from "../services/pushNotify";
 import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { assignBuilder, isValidBuilder, VALID_BUILDERS } from "../services/builderAssignment";
@@ -300,6 +301,7 @@ router.post("/:studioId/invite", async (req, res) => {
     }
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
+    const urlToken = nanoid(32);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -309,6 +311,7 @@ router.post("/:studioId/invite", async (req, res) => {
         studioId,
         email: email.toLowerCase().trim(),
         inviteCode,
+        urlToken,
         expiresAt,
       })
       .returning();
@@ -323,6 +326,20 @@ router.post("/:studioId/invite", async (req, res) => {
       { email, inviteCode, note: "Invite sent - will link to client on acceptance" }
     );
 
+    // Send the invitation email — non-fatal if it fails
+    try {
+      const role = studio.type === "clinic" ? "physician" : "trainer";
+      await sendCareTeamInvite({
+        to: email.toLowerCase().trim(),
+        patientName: email.split("@")[0],
+        inviteCode,
+        role,
+        urlToken,
+      });
+    } catch (emailErr) {
+      console.error("[StudioInvite] Email send failed (non-fatal):", emailErr);
+    }
+
     res.json({ invite, studioName: studio.name });
   } catch (error) {
     console.error("Error creating invite:", error);
@@ -334,16 +351,20 @@ router.post("/connect", async (req, res) => {
   try {
     const userId = await getUserId(req);
     if (!userId) return res.status(401).json({ error: "Authentication required" });
-    const { code } = req.body;
+    const { code, token } = req.body;
 
-    if (!code) {
-      return res.status(400).json({ error: "Code is required" });
+    if (!code && !token) {
+      return res.status(400).json({ error: "code or token is required" });
     }
 
     const [invite] = await db
       .select()
       .from(studioInvites)
-      .where(eq(studioInvites.inviteCode, code));
+      .where(
+        token
+          ? eq(studioInvites.urlToken, token)
+          : eq(studioInvites.inviteCode, code)
+      );
 
     if (!invite) {
       return res.status(404).json({ error: "Invalid invite code" });
