@@ -48,6 +48,60 @@ function tokenMatches(token: string, haystackTokens: Set<string>, haystackText: 
   return false;
 }
 
+// ── Physical-form families ───────────────────────────────────────────────────
+// A dish that keeps its name but arrives in a different physical format
+// (cheesecake → parfait, stew → soup, sandwich → bowl) is NOT the requested
+// dish. Families are mutually exclusive presentation formats; keywords are
+// matched on word boundaries.
+const FORM_FAMILIES: Record<string, string[]> = {
+  "baked-cake": ["cake", "cheesecake", "pie", "tart", "torte", "crust", "brownie", "brownies"],
+  "layered-cup": ["parfait", "parfaits", "trifle", "verrine"],
+  "mousse-pudding": ["mousse", "pudding", "custard", "flan", "panna cotta"],
+  "frozen": ["sorbet", "popsicle", "popsicles", "ice cream", "nice cream", "frozen yogurt"],
+  "drink": ["smoothie", "shake", "milkshake", "juice", "latte", "drinkable"],
+  "bites": ["bites", "balls", "truffles", "bars", "poppers"],
+  "bowl": ["bowl", "bowls"],
+  "soup": ["soup", "broth", "bisque", "chowder", "brothy"],
+  "stew": ["stew", "braise", "braised", "gumbo", "goulash", "chili"],
+  "sandwich": ["sandwich", "burger", "sub", "hoagie", "panini", "sliders", "bread"],
+  "wrap": ["wrap", "wraps", "burrito", "roll-up", "rollup"],
+  "salad": ["salad"],
+  "casserole": ["casserole", "gratin", "bake"],
+};
+
+function normalizeFormText(text: string): string {
+  return ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
+}
+
+function detectFormFamilies(text: string): Set<string> {
+  const t = normalizeFormText(text);
+  const found = new Set<string>();
+  for (const [family, keywords] of Object.entries(FORM_FAMILIES)) {
+    if (keywords.some(k => t.includes(` ${k} `))) found.add(family);
+  }
+  return found;
+}
+
+/**
+ * Primary form family of a free-form description: the family whose keyword
+ * appears EARLIEST in the text. Free-form dishForm strings often mention
+ * structural descriptors of other families ("stew/broth-based" mentions
+ * "broth"; "sandwich on bread" mentions "bread") — those must not become
+ * independently allowed presentation formats, or a stew could legally arrive
+ * as a soup. The leading word names the actual format.
+ */
+function detectPrimaryFormFamily(text: string): string | null {
+  const t = normalizeFormText(text);
+  let best: { family: string; index: number } | null = null;
+  for (const [family, keywords] of Object.entries(FORM_FAMILIES)) {
+    for (const k of keywords) {
+      const idx = t.indexOf(` ${k} `);
+      if (idx >= 0 && (!best || idx < best.index)) best = { family, index: idx };
+    }
+  }
+  return best?.family ?? null;
+}
+
 function mealFullText(meal: GeneratedMealLike): string {
   const ingredients = (meal.ingredients ?? [])
     .map(i => (typeof i === "string" ? i : `${i?.name ?? ""} ${i?.item ?? ""}`))
@@ -109,15 +163,44 @@ export function validateDishIdentity(
     componentScore = matchedComponents / defining.length;
   }
 
-  // ── 3. Catastrophic-deviation check ────────────────────────────────────
+  // ── 3. Physical-form check ─────────────────────────────────────────────
+  // A model that cannot solve a constraint can escape by converting the dish
+  // into a different physical format while keeping the name ("Strawberry
+  // Cheesecake Parfait"). Allowed form families come from the requested dish
+  // name plus the DAL's dishForm; the generated meal's form is read from its
+  // NAME only (descriptions/instructions legitimately mention bowls, breads,
+  // etc.). Any name-level form family outside the allowed set is a mismatch.
+  // Allowed families: union from the requested dish NAME (legitimate hybrids
+  // like "chicken soup bowl" keep both), plus at most ONE primary family from
+  // the free-form dishForm — never every family whose descriptor it mentions.
+  const dishForm = directive?.dishForm;
+  const allowedForms = detectFormFamilies(requestedDish);
+  if (dishForm) {
+    const primary = detectPrimaryFormFamily(dishForm);
+    if (primary) allowedForms.add(primary);
+  }
+  let formMismatch = false;
+  if (allowedForms.size > 0) {
+    const generatedForms = detectFormFamilies(mealName);
+    const foreign = Array.from(generatedForms).filter(f => !allowedForms.has(f));
+    if (foreign.length > 0) {
+      formMismatch = true;
+      failures.push(
+        `form mismatch: "${requestedDish}" must be ${dishForm ?? `a ${Array.from(allowedForms).join("/")} format`}, ` +
+        `but the generated meal "${meal.name ?? "(unnamed)"}" is a different format (${foreign.join(", ")})`,
+      );
+    }
+  }
+
+  // ── 4. Catastrophic-deviation check ────────────────────────────────────
   // Completely wrong culinary result: the name bears no relation to the
   // requested dish AND the defining components are essentially absent.
   // With no directive (no decomposition available), require the dish name to
   // also be absent from the full meal text before calling it catastrophic.
   const nameInBody = dishTokens.some(t => tokenMatches(t, fullTextTokens, fullText));
-  const catastrophicDeviation = defining.length > 0
+  const catastrophicDeviation = formMismatch || (defining.length > 0
     ? nameScore === 0 && componentScore < 0.34
-    : nameScore === 0 && !nameInBody;
+    : nameScore === 0 && !nameInBody);
 
   if (catastrophicDeviation) {
     failures.push(
@@ -134,5 +217,5 @@ export function validateDishIdentity(
   // defining components are clearly present.
   const passed = !catastrophicDeviation && (nameScore > 0 ? score >= 0.5 : componentScore >= 0.67);
 
-  return { passed, score, failures, catastrophicDeviation };
+  return { passed, score, failures, catastrophicDeviation, dishForm, formMismatch };
 }

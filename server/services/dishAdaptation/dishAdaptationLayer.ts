@@ -42,6 +42,8 @@ function getOpenAI(): OpenAI {
 interface DishDecomposition {
   definingComponents: string[];
   adaptableComponents: string[];
+  /** Physical structure / presentation format, e.g. "sliceable baked cake with crust". */
+  dishForm?: string;
 }
 
 // Cache stores the decomposition + resolved conflicts (context-independent core).
@@ -80,11 +82,13 @@ async function decomposeDish(requestedDish: string): Promise<DishDecomposition |
   const prompt = `You are a culinary analyst. For the dish "${requestedDish}", identify:
 1. The 3-5 components that define its identity (changing these makes it a different dish)
 2. The 3-5 components that can be adapted without losing the dish identity
+3. The physical form and presentation format of the dish — the structure that makes it this dish and not another (e.g. "sliceable baked cake with crust", "stew/broth-based", "sandwich on bread", "layered parfait in a glass")
 
 Return JSON only:
 {
   "definingComponents": ["..."],
-  "adaptableComponents": ["..."]
+  "adaptableComponents": ["..."],
+  "dishForm": "..."
 }`;
 
   try {
@@ -106,7 +110,10 @@ Return JSON only:
       ? parsed.adaptableComponents.filter((c: unknown) => typeof c === "string").slice(0, 5)
       : [];
     if (defining.length === 0) return null;
-    return { definingComponents: defining, adaptableComponents: adaptable };
+    const dishForm = typeof parsed.dishForm === "string" && parsed.dishForm.trim().length > 0
+      ? parsed.dishForm.trim().slice(0, 200)
+      : undefined;
+    return { definingComponents: defining, adaptableComponents: adaptable, dishForm };
   } catch (err) {
     console.warn(`[DAL] Dish decomposition failed for "${requestedDish}":`, err);
     return null;
@@ -206,8 +213,14 @@ export function renderAdaptationBlock(
     `DISH IDENTITY — DO NOT CHANGE THE DISH:`,
     `The user has asked for: ${upperDish}`,
     `Defining components (must be preserved): ${decomposition.definingComponents.join("; ")}.`,
-    `You are adapting ${dishName} — not replacing it.`,
   ];
+  if (decomposition.dishForm) {
+    lines.push(
+      `Physical form (must be preserved): ${decomposition.dishForm}. ` +
+      `Do NOT convert the dish into a different format (e.g. parfait, bowl, mousse, smoothie, soup, bites) — keep this exact form.`,
+    );
+  }
+  lines.push(`You are adapting ${dishName} — not replacing it.`);
 
   if (conflicts.length > 0) {
     lines.push(``, `REQUIRED ADAPTATIONS for this user's profile:`);
@@ -342,6 +355,7 @@ export async function getDishAdaptationDirective(
     identityAnchor: `This IS ${dishName}. Do not change the dish.`,
     definingComponents: core.decomposition.definingComponents,
     adaptableComponents: core.decomposition.adaptableComponents,
+    dishForm: core.decomposition.dishForm,
     conflicts: core.conflicts,
     adaptationBlock: renderAdaptationBlock(
       dishName,

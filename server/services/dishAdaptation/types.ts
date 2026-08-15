@@ -39,6 +39,12 @@ export interface DishAdaptationDirective {
   identityAnchor: string;
   definingComponents: string[];
   adaptableComponents: string[];
+  /**
+   * Physical structure / presentation format of the dish, e.g.
+   * "sliceable baked cake with crust", "stew/broth-based", "sandwich on bread".
+   * Empty/undefined when decomposition could not determine it.
+   */
+  dishForm?: string;
   conflicts: ConflictResolution[];
   /** The full text block injected into the generation prompt. */
   adaptationBlock: string;
@@ -51,4 +57,8 @@ export interface DishIdentityResult {
   failures: string[];
   /** true = completely different dish — must never be returned to the user. */
   catastrophicDeviation: boolean;
+  /** Requested physical form the meal was validated against (when known). */
+  dishForm?: string;
+  /** true = generated meal arrived in a different physical format (e.g. cheesecake → parfait). */
+  formMismatch: boolean;
 }
