@@ -660,6 +660,27 @@ router.post("/swap-ingredient", async (req, res) => {
     const role      = classifyNutritionalRole(ingredientToReplace);
     const roleLabel = nutritionalRoleLabel(role);
 
+    // ── Category-based role hint for unrecognised items (role === "other") ────
+    // The shopping-list category (sent by the client) acts as a secondary signal
+    // so the AI doesn't cross food roles on brand-name / novel items like
+    // "Impossible Burger patty" (Meat → protein), "Banza pasta" (Grains → carb),
+    // or "Siggis skyr" (Dairy & Eggs → dairy).
+    const categoryToRoleHint = (cat: string | undefined): string | null => {
+      if (!cat) return null;
+      switch (cat.trim()) {
+        case "Meat":              return "protein source (meat, poultry, seafood, or equivalent)";
+        case "Plant Proteins":    return "plant-based protein source (tofu, tempeh, legumes, or equivalent)";
+        case "Produce":           return "fresh produce item (vegetable or fruit)";
+        case "Dairy & Eggs":      return "dairy or egg product";
+        case "Grains & Packaged": return "grain, starch, or packaged carbohydrate";
+        case "Pantry":            return "pantry staple (oil, nut butter, condiment, or dry good)";
+        case "Frozen":            return "frozen grocery item that fills the same meal role";
+        case "Bakery":            return "baked good or grain-based carbohydrate (bread, roll, wrap, or equivalent)";
+        default:                  return null;
+      }
+    };
+    const categoryHint = role === "other" ? categoryToRoleHint(itemCategory as string | undefined) : null;
+
     // ── Clinical constraint blocks ────────────────────────────────────────────
     const glp1ConstraintBlock = glp1Targets
       ? `GLP-1 CONSTRAINT: All suggestions MUST have ≤${glp1Targets.maximumToleratedFatGrams}g fat per serving and ≤${glp1Targets.resolvedMealCalories} kcal. No fatty meats, oils, full-fat dairy, fried items, or avocado.\n`
@@ -688,7 +709,7 @@ MEAL: "${mealName || "current meal"}"${mealDescription ? ` — ${mealDescription
 ITEM TO REPLACE: "${ingredientToReplace}"
 ${remainingNote}
 
-NUTRITIONAL ROLE LOCK: "${ingredientToReplace}" is a ${roleLabel}. ALL three suggestions (coachSuggestion + both alternatives) MUST stay within this exact nutritional role. Do not cross roles — no swapping a protein for a starch, a fat for a vegetable, etc. If the user's request would cross a role boundary or violate a clinical constraint, return the best in-role compliant alternative instead.
+NUTRITIONAL ROLE LOCK: "${ingredientToReplace}" is a ${roleLabel}.${categoryHint ? ` The item's grocery category confirms it is a ${categoryHint} — use this as a tiebreaker when the role is ambiguous.` : ""} ALL three suggestions (coachSuggestion + both alternatives) MUST stay within this exact nutritional role. Do not cross roles — no swapping a protein for a starch, a fat for a vegetable, etc. If the user's request would cross a role boundary or violate a clinical constraint, return the best in-role compliant alternative instead.
 
 USER HEALTH PROFILE:
 ${swapProtocolCtx || "No dietary restrictions on file — apply general healthy eating principles."}
