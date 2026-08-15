@@ -295,6 +295,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
+        onOpenChange(true); // active session restored — bring the sheet back up
 
         if (session.productAdvice?.advice?.length) {
           // Verify the saved advice still covers the same ingredients as the
