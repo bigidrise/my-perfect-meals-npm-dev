@@ -794,6 +794,19 @@ router.post("/generate-image", async (req: Request, res: Response) => {
   const { mealName, mealType = "dinner", ingredients = [] } = req.body || {};
   if (!mealName) return res.status(400).json({ imageUrl: null, error: "mealName required" });
 
+  // Guard: warn when a named meal reaches generation without any ingredients.
+  // Without ingredients the prompt falls back to name-driven generation, which
+  // can depict ingredients the recipe never included. This log makes silent
+  // unprotected generations visible so they can be investigated and fixed at
+  // the call site.
+  if (!ingredients || ingredients.length === 0) {
+    console.warn(
+      `[img-contract] ⚠️ gatherings/generate-image called with no ingredients — ` +
+      `name-driven fallback active (no recipe contract enforced). ` +
+      `meal="${mealName}" mealType="${mealType}"`
+    );
+  }
+
   try {
     const imageUrl = await generateMealImageUnified(mealName, ingredients, mealType);
     return res.json({ imageUrl });

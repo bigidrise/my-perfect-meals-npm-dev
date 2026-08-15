@@ -44,9 +44,23 @@ export async function generateRecipeImage(recipeName: string): Promise<string | 
 // removal happens in a later cleanup task once smoke tests pass.
 export async function generateImage(options: ImageGenerationOptions): Promise<string | null> {
   try {
+    // Guard: warn when a named meal reaches generation without any ingredients.
+    // Without ingredients the prompt falls back to name-driven generation, which
+    // can depict ingredients the recipe never included. This log makes silent
+    // unprotected generations visible so they can be investigated and fixed at
+    // the call site.
+    const ingredients = options.ingredients ?? [];
+    if (ingredients.length === 0) {
+      console.warn(
+        `[img-contract] ⚠️ imageService.generateImage (deprecated wrapper) called with no ingredients — ` +
+        `name-driven fallback active (no recipe contract enforced). ` +
+        `name="${options.name}" type="${options.type ?? "meal"}"`
+      );
+    }
+
     const { generateMealImageUnified } = await import("./mealImageGenerator");
     const sourceType = options.type === "beverage" ? "beverage" : "meal";
-    return await generateMealImageUnified(options.name, options.ingredients ?? [], sourceType);
+    return await generateMealImageUnified(options.name, ingredients, sourceType);
   } catch (error) {
     console.error(`❌ [imageService.generateImage deprecated wrapper] failed for ${options.name}:`, error);
     return null;
