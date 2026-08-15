@@ -1817,6 +1817,72 @@ async function initializeApp() {
         await assertCorrelationIdColumn(dbGuard as any);
       }
 
+      // ── Inline migrations for columns that the guard will assert ────────────
+      // schemaMigPromise above is raced against a 6-second timeout and may
+      // still be running in the background when we reach this point. Running
+      // the five critical ALTERs here (fully awaited, with retries) guarantees
+      // they are committed before assertColumnsExist fires, even when
+      // schemaMigPromise is slow or has not yet reached these statements.
+      // All statements are idempotent (IF NOT EXISTS).
+      await withBootRetry("Critical column pre-flight migrations", async () => {
+        const { db: dbPre } = await import("./db");
+        const { sql: sqlPre } = await import("drizzle-orm");
+        // Phase 2 ProCare Studio gate
+        await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
+        // Performance Hub macro resolver
+        await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
+        // i18n routing
+        await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
+        // Clinical context screening gate
+        await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
+        // Diabetic builder save flow
+        await dbPre.execute(sqlPre`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
+        console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
+      });
+
+      // ── Extended column guard: critical columns added by recent migrations ──
+      // Any column listed here gates an important runtime flow. A descriptive
+      // error thrown here surfaces migration failures immediately at boot
+      // rather than as cryptic 500s or silent data loss at runtime.
+      // NOTE: every column listed here MUST be migrated in the preflight block
+      // above so this assertion never races with its own migration.
+      {
+        const { db: dbColGuard } = await import("./db");
+        const { assertColumnsExist } = await import("./bootstrap/assertColumnsExist");
+        await assertColumnsExist(dbColGuard, [
+          {
+            table: "safety_override_audit_logs",
+            column: "correlation_id",
+            hint: "Safety PIN overrides will fail at runtime (logSafetyOverride writes this column)",
+          },
+          {
+            table: "users",
+            column: "procare_training_completed",
+            hint: "Phase 2 ProCare Studio gate — professionals without this column always fail the training check",
+          },
+          {
+            table: "saved_meals",
+            column: "saved_from_diabetic_builder",
+            hint: "Diabetic builder save flow — meal saves will 500 if this column is absent",
+          },
+          {
+            table: "users",
+            column: "performance_mode_enabled",
+            hint: "Performance Hub macro resolver — missing column causes incorrect macro targets for athletes",
+          },
+          {
+            table: "users",
+            column: "preferred_language",
+            hint: "i18n routing — missing column falls back to English for all users silently",
+          },
+          {
+            table: "users",
+            column: "clinical_context_response",
+            hint: "Clinical context screening gate — missing column bypasses medication/hormone screening",
+          },
+        ]);
+      }
+
       // Universal Meal Refinement — original_meal_snapshot column (Stage 1)
       setTimeout(async () => {
         try {
