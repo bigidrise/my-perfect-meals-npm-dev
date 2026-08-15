@@ -77,7 +77,11 @@ export async function autoAcceptPendingInvites(
         and(
           eq(careInvite.email, normalizedEmail),
           eq(careInvite.accepted, false),
-          gt(careInvite.expiresAt, new Date())
+          gt(careInvite.expiresAt, new Date()),
+          // Token-bearing invites require explicit acceptance on /join/studio.
+          // Auto-accepting them at login would silently connect the client
+          // before they ever see the confirmation screen.
+          isNull(careInvite.urlToken)
         )
       )
       .orderBy(desc(careInvite.createdAt));
@@ -164,7 +168,9 @@ export async function autoAcceptPendingInvites(
         and(
           eq(studioInvites.email, normalizedEmail),
           isNull(studioInvites.acceptedAt),
-          gt(studioInvites.expiresAt, new Date())
+          gt(studioInvites.expiresAt, new Date()),
+          // Token-bearing invites require explicit acceptance on /join/studio.
+          isNull(studioInvites.urlToken)
         )
       )
       .orderBy(desc(studioInvites.createdAt));

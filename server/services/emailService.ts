@@ -326,8 +326,8 @@ export async function sendCareTeamInvite({
             </p>
 
             <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 16px; margin: 24px 0;">
-              <p style="color: #9a3412; font-size: 13px; margin: 0 0 8px; font-weight: 600;">⚠️ Backup code — only needed if the button doesn't work</p>
-              <p style="color: #374151; font-size: 13px; margin: 0 0 10px; line-height: 1.5;">In the app: <strong>More → Connect with Access Code</strong></p>
+              <p style="color: #9a3412; font-size: 13px; margin: 0 0 8px; font-weight: 600;">📋 Backup access code</p>
+              <p style="color: #374151; font-size: 13px; margin: 0 0 10px; line-height: 1.5;">Copy and paste this code into the <strong>Connect with Your Provider</strong> section on the <strong>More</strong> page of the app.</p>
               <div style="font-size: 26px; font-weight: bold; color: #ea580c; letter-spacing: 4px; font-family: monospace; text-align: center; padding: 8px 0;">
                 ${inviteCode}
               </div>
