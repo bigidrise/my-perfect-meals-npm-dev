@@ -33,7 +33,7 @@ import { LruTtlCache } from "./dishAdaptationCache";
 
 export type { DishAdaptationDirective, GuardrailContext, CallContext } from "./types";
 
-// ── OpenAI (lazy singleton, same pattern as unifiedMealPipeline) ────────────
+// ── Allergen key normalizer ───────────────────────────────────────────────────
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -198,8 +198,12 @@ export function resolveConflicts(
   for (const allergen of ctx.activeAllergens ?? []) {
     const a = allergen.toLowerCase();
     if (overridden.some(o => o.includes(a) || a.includes(o))) continue;
-    const substitute = ALLERGEN_SUBSTITUTES[a];
-    const structuralRules = ALLERGEN_STRUCTURAL_RULES[a] ?? [];
+    // Normalize the raw allergen string (e.g. "dairy (milk)", "cow's milk",
+    // "egg whites") to the canonical key used in the lookup tables.  Falls back
+    // to the raw form so already-canonical keys ("dairy", "egg") still work.
+    const canonicalKey = normalizeAllergenKey(a) ?? a;
+    const substitute = ALLERGEN_SUBSTITUTES[canonicalKey];
+    const structuralRules = ALLERGEN_STRUCTURAL_RULES[canonicalKey] ?? [];
     if (!substitute && structuralRules.length === 0) continue;
     for (const { c } of allComponents) {
       // Role-aware structural rules win over the generic allergen substitute —
@@ -210,7 +214,7 @@ export function resolveConflicts(
       );
       if (matchingStructural.length > 0) {
         for (const rule of matchingStructural) {
-          const dedupeKey = `allergy|${a}|${rule.blocked}|${c}`;
+          const dedupeKey = `allergy|${canonicalKey}|${rule.blocked}|${c}`;
           if (seen.has(dedupeKey)) continue;
           seen.add(dedupeKey);
           const roleReq = rule.functionalRole && rule.roleRequirement
@@ -227,8 +231,10 @@ export function resolveConflicts(
         continue;
       }
       if (!substitute) continue;
-      if (!c.toLowerCase().includes(a)) continue;
-      const dedupeKey = `allergy|${a}|${c}`;
+      // Component-match check uses the canonical key so that a component
+      // containing "dairy" is matched when the raw allergen was "dairy (milk)".
+      if (!c.toLowerCase().includes(canonicalKey)) continue;
+      const dedupeKey = `allergy|${canonicalKey}|${c}`;
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
       conflicts.push({
@@ -407,4 +413,70 @@ export async function getDishAdaptationDirective(
       callContext,
     ),
   };
+}
+
+/**
+ * Map a free-text allergen string (e.g. "dairy (milk)", "cow's milk",
+ * "egg whites") to the canonical key used in ALLERGEN_SUBSTITUTES and
+ * ALLERGEN_STRUCTURAL_RULES via bidirectional substring matching.
+ *
+ * The approach mirrors the overridden-allergen comparison already used in
+ * resolveConflicts (line ~185): `o.includes(a) || a.includes(o)`.  We
+ * apply that same logic against every known canonical key and return the
+ * longest (most specific) match so "dairy" beats "milk" when both appear
+ * in a phrase like "dairy (milk)".
+ *
+ * Returns undefined when no canonical key matches (treated the same as an
+ * unknown allergen — ALLERGEN_SUBSTITUTES lookup returns undefined and
+ * ALLERGEN_STRUCTURAL_RULES lookup returns []).
+ */
+/**
+ * Structural-equivalence aliases: when a substring match resolves to a key
+ * that has NO structural rules, check this map first — the phrase may still
+ * carry structural significance under a different canonical key.
+ *
+ * Example: "milk" has a generic substitute but no binder/setter rules;
+ * "dairy" does.  A user who writes "cow's milk" means the same allergy, so
+ * we promote the match to "dairy" so the cheesecake filling gets the correct
+ * structural guidance.
+ *
+ * Add entries here only when the two keys share the same structural context
+ * (i.e. removing one ingredient removes the same functional role as the other).
+ */
+const STRUCTURAL_EQUIVALENTS: Record<string, string> = {
+  milk: "dairy", // milk allergy ≡ dairy allergy from a binder/setter perspective
+};
+
+export function normalizeAllergenKey(allergen: string): string | undefined {
+  // Collapse punctuation/parens/apostrophes to spaces so "dairy (milk)"
+  // and "cow's milk" become plain token sequences.
+  const a = allergen.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  // Gather every canonical key defined across both lookup tables.
+  const canonicalKeys = Array.from(
+    new Set([
+      ...Object.keys(ALLERGEN_STRUCTURAL_RULES),
+      ...Object.keys(ALLERGEN_SUBSTITUTES),
+    ]),
+  );
+  // Exact match (fast path — catches already-canonical inputs like "dairy").
+  if (canonicalKeys.includes(a)) return a;
+  // Bidirectional substring match.
+  const matches = canonicalKeys.filter(k => a.includes(k) || k.includes(a));
+  if (matches.length === 0) return undefined;
+  // Prefer keys that have structural rules (binder/setter guidance) — a
+  // phrase like "dairy (milk)" matches both "dairy" and "milk" but only
+  // "dairy" carries functional role guidance.  Similarly, "whole eggs"
+  // matches both "egg" and "eggs" but only "egg" has structural rules.
+  const structuralMatches = matches.filter(
+    k => (ALLERGEN_STRUCTURAL_RULES[k]?.length ?? 0) > 0,
+  );
+  if (structuralMatches.length > 0) {
+    // Among structural candidates, return the longest (most specific).
+    return structuralMatches.sort((x, y) => y.length - x.length)[0];
+  }
+  // No structural match found — return the longest plain match, but first
+  // check whether a structural-equivalence alias can promote it (e.g. "milk"
+  // → "dairy" so that "cow's milk" still gets the cheesecake setter guidance).
+  const longestMatch = matches.sort((x, y) => y.length - x.length)[0];
+  return STRUCTURAL_EQUIVALENTS[longestMatch] ?? longestMatch;
 }
