@@ -225,6 +225,21 @@ export function applySwapToShoppingList(
       : s,
   );
 }
+
+/**
+ * Resolves the display name for one shopping-list item.
+ * When the user has picked a brand for that ingredient, the brand name is
+ * returned; otherwise the original generic ingredient name is returned.
+ *
+ * @internal exported for unit tests
+ */
+export function resolveItemName(
+  itemName: string,
+  pickedBrands: Map<string, { brand: string }>,
+): string {
+  const pick = pickedBrands.get(itemName.toLowerCase());
+  return pick ? pick.brand : itemName;
+}
 const GRADE_COLOR: Record<string, string> = {
   A: "rgba(16,185,129,0.9)",
   B: "rgba(251,191,36,0.9)",
@@ -246,6 +261,7 @@ function groupByCategory(items: ShoppingListItem[]): Record<string, ShoppingList
   return groups;
 }
 
+// hint: Logic changed on both sides. Requires understanding intent of each change.
 export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -299,6 +315,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const [productPhase, setProductPhase] = useState<ProductPhase>("idle");
   const [productQuery, setProductQuery] = useState("");
   const [productSearch, setProductSearch] = useState<ProductSearchSession | null>(null);
+  // Tracks which PRODUCT_SESSION_KEY the current in-memory `productSearch` was loaded/created under.
+  // The persist effect checks this before writing so a mid-transition render can never write
+  // user A's productSearch under user B's key (mirrors the resultOwnerKey pattern for meals).
+  const [productSearchOwnerKey, setProductSearchOwnerKey] = useState<string | null>(null);
   const [productError, setProductError] = useState<string | null>(null);
   const [productAddedKeys, setProductAddedKeys] = useState<Set<string>>(new Set());
   const speech = useSpeechToText();
@@ -337,6 +357,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setPreRefinedResult(null);
     setConversation([]);
     setProductAdvice(null); // clear prior user's advice alongside result/conversation
+    setPickedBrands(new Map()); // ← always clear picks; only restored below when this user's payload has entries
     setPhase("idle");
     try {
       const raw = localStorage.getItem(SESSION_KEY);
@@ -346,6 +367,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         preRefinedResult?: CoachResult;
         conversation?: ConversationMessage[];
         productAdvice?: ProductAdviceResult;
+        pickedBrandsEntries?: Array<[string, BrandRecommendation]>;
         savedAt?: number;
       };
       // Expire after 24 h
@@ -356,6 +378,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (session.result) {
         setResult(session.result);
         if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
+        if (session.pickedBrandsEntries?.length) {
+          setPickedBrands(new Map(session.pickedBrandsEntries));
+        }
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
 
@@ -392,11 +417,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           preRefinedResult: preRefinedResult ?? undefined,
           conversation,
           productAdvice: productAdvice ?? undefined,
+          pickedBrandsEntries: pickedBrands.size > 0 ? Array.from(pickedBrands.entries()) : undefined,
           savedAt: Date.now(),
         }));
       } catch {}
     }
-  }, [result, preRefinedResult, conversation, productAdvice, SESSION_KEY, resultOwnerKey]);
+  }, [result, preRefinedResult, conversation, productAdvice, pickedBrands, SESSION_KEY, resultOwnerKey]);
 
   useEffect(() => {
     if (!open) {
@@ -411,7 +437,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setMealCard(null);
       // productAdvice preserved intentionally — Smart Cart repopulates on reopen.
       setAdvisorLoading(false);
-      setPickedBrands(new Map());
+      // pickedBrands intentionally preserved — picks survive sheet close/reopen
+      // within the same session (persisted in localStorage alongside the result).
       setSavedProductKeys(new Set());
       setSavingKey(null);
       setShowSavedOnly(false);
@@ -445,7 +472,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [phase]);
 
   // Restore Find-a-Product session (same 24h pattern as meal results).
+  // productSearchOwnerKey is cleared FIRST so the persist effect below sees a mismatch
+  // (null !== PRODUCT_SESSION_KEY) in the same render cycle and refuses to write the
+  // prior account's productSearch under the new user's key.
   useEffect(() => {
+    setProductSearchOwnerKey(null); // ← clear before state so persist effect detects transition
     setProductSearch(null);
     setProductQuery("");
     setProductError(null);
@@ -461,19 +492,22 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       }
       if (session.advice?.advice?.length && session.query) {
         setProductSearch(session);
+        setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // result now belongs to this user's key
         setProductPhase("result");
       }
     } catch {}
   }, [PRODUCT_SESSION_KEY]);
 
-  // Persist Find-a-Product session across navigation.
+  // Persist Find-a-Product session — ONLY when the result belongs to the current user's key.
+  // If productSearchOwnerKey !== PRODUCT_SESSION_KEY we are mid-transition; writing would
+  // persist a prior account's data under the new user's storage key.
   useEffect(() => {
-    if (productSearch) {
+    if (productSearch && productSearchOwnerKey === PRODUCT_SESSION_KEY) {
       try {
         localStorage.setItem(PRODUCT_SESSION_KEY, JSON.stringify(productSearch));
       } catch {}
     }
-  }, [productSearch, PRODUCT_SESSION_KEY]);
+  }, [productSearch, PRODUCT_SESSION_KEY, productSearchOwnerKey]);
 
   // Mirror live speech transcript into the product input while listening.
   useEffect(() => {
@@ -509,6 +543,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       if (data?.error) throw new Error(data.error);
       if (data?.advice?.length) {
         setProductSearch({ query, advice: data as ProductAdviceResult, savedAt: Date.now() });
+        setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // stamp ownership so persist effect may write
         setProductPhase("result");
       } else {
         setProductError(t("findProduct.noResults"));
@@ -524,11 +559,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setProductError(serverMsg ?? t("findProduct.errorGeneric"));
       setProductPhase("idle");
     }
-  }, [productQuery, speech, t]);
+  }, [productQuery, speech, t, PRODUCT_SESSION_KEY]);
 
   const handleCompareAnother = useCallback(() => {
     try { localStorage.removeItem(PRODUCT_SESSION_KEY); } catch {}
     setProductSearch(null);
+    setProductSearchOwnerKey(null); // clear ownership so persist effect doesn't write stale data
     setProductQuery("");
     setProductError(null);
     setProductAddedKeys(new Set());
@@ -706,17 +742,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [SESSION_KEY]);
 
   const handlePickBrand = useCallback((ingredient: string, brand: BrandRecommendation) => {
-    setPickedBrands((prev) => {
-      const next = new Map(prev);
-      const key = ingredient.toLowerCase();
-      // Toggle off if the same brand is tapped again
-      if (next.get(key)?.brand === brand.brand) {
-        next.delete(key);
-      } else {
-        next.set(key, brand);
-      }
-      return next;
-    });
+    setPickedBrands((prev) => togglePickedBrand(prev, ingredient, brand));
   }, []);
 
   const handleAddToList = useCallback(() => {
@@ -724,15 +750,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     const mealName = result.meal?.name || "Grocery Coach";
     // Build list — wherever the user picked a brand, substitute it for the generic.
     const toItems = (arr: Array<{ item: string; quantity: string; unit: string }>): UniversalIngredient[] =>
-      arr.map((s) => {
-        const pick = pickedBrands.get(s.item.toLowerCase());
-        return {
-          name: pick ? pick.brand : s.item,
-          quantity: parseFloat(s.quantity) || 1,
-          unit: s.unit || "",
-          sourceMeals: [mealName],
-        };
-      });
+      arr.map((s) => ({
+        name: resolveItemName(s.item, pickedBrands),
+        quantity: parseFloat(s.quantity) || 1,
+        unit: s.unit || "",
+        sourceMeals: [mealName],
+      }));
     const allItems = [
       ...toItems(result.shoppingList),
       ...toItems(result.ownedIngredients ?? []),
@@ -822,6 +845,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       };
     });
     setResultOwnerKey(SESSION_KEY); // result still belongs to this user's session
+    // Clear any brand pick for the swapped-out ingredient so the summary bar
+    // count stays accurate and hides when no active picks remain.
+    setPickedBrands((prev) => applySwapToPickedBrands(prev, swapTarget.item));
     const replaced = swapTarget.item;
     const chosen = swapSelected.item;
     setSwapTarget(null);
@@ -1625,10 +1651,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
                   {/* Picked-brand summary — shown when the user has selected ≥1 brand */}
                   {pickedBrands.size > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                    <div data-testid="picked-brands-summary" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
                       <CheckCircle2 style={{ width: 14, height: 14, color: "#34d399", flexShrink: 0 }} />
                       <span style={{ color: "#34d399", fontSize: 12, fontWeight: 600 }}>
-                        {pickedBrands.size} brand{pickedBrands.size !== 1 ? "s" : ""} selected — tap "Add All" to include {pickedBrands.size !== 1 ? "them" : "it"} in your list
+                        {t("smartCart.brandsSummary", { count: pickedBrands.size })}
                       </span>
                     </div>
                   )}
@@ -2020,6 +2046,7 @@ export function SmartCartAdviceBody({
   pickedBrands,
   onPick,
 }: SmartCartAdviceBodyProps) {
+  const { t } = useTranslation("shopping");
   const hasSavedItems = advice.some((a) =>
     a.recommended.some((b) => savedProductKeys.has(computeClientProductKey(b.brand, a.ingredient)))
   );
@@ -2110,7 +2137,7 @@ export function SmartCartAdviceBody({
                           onClick={() => onPick(a.ingredient, brand)}
                           style={{ minWidth: 72 }}
                         >
-                          {isPicked ? "✓ Picked" : "Pick"}
+                          {isPicked ? t("smartCart.picked") : t("smartCart.pick")}
                         </PillButton>
                       );
                     })()}
@@ -2165,4 +2192,49 @@ interface SmartCartAdviceBodyProps {
   onSave: (ingredient: string, category: string, brand: BrandRecommendation) => void;
   pickedBrands: Map<string, BrandRecommendation>;
   onPick: (ingredient: string, brand: BrandRecommendation) => void;
+}
+
+/**
+ * Pure helper that removes the brand pick for a swapped-out ingredient.
+ *
+ * When the user accepts a swap via "Use This", the old ingredient name is no
+ * longer in the shopping list. Its key in pickedBrands must be removed so the
+ * summary bar count reflects only active picks and can hide when the count
+ * reaches zero.
+ *
+ * Returns the same Map instance when the key was not present (no allocation).
+ *
+ * @internal exported for unit tests
+ */
+export function applySwapToPickedBrands<T>(
+  pickedBrands: Map<string, T>,
+  swappedOutItem: string,
+): Map<string, T> {
+  const key = swappedOutItem.toLowerCase();
+  if (!pickedBrands.has(key)) return pickedBrands;
+  const next = new Map(pickedBrands);
+  next.delete(key);
+  return next;
+}
+
+/**
+ * Pure reducer for the pickedBrands Map.
+ * Tapping the same brand a second time removes the pick (toggle-off).
+ * Tapping a different brand replaces the existing pick.
+ *
+ * @internal exported for unit tests
+ */
+export function togglePickedBrand<T extends { brand: string }>(
+  prev: Map<string, T>,
+  ingredient: string,
+  brand: T,
+): Map<string, T> {
+  const next = new Map(prev);
+  const key = ingredient.toLowerCase();
+  if (next.get(key)?.brand === brand.brand) {
+    next.delete(key);
+  } else {
+    next.set(key, brand);
+  }
+  return next;
 }

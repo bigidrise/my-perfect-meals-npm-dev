@@ -2635,6 +2635,7 @@ async function generateBeverageFromDescription(
   starchContext?: StarchContext,
   remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
   glp1Targets?: ResolvedGLP1Targets,
+  preferredLanguage?: string,
 ): Promise<MealGenerationResponse> {
   console.log(`🍹 [CREATE-WITH-CHEF/BEVERAGE] "${beverageCategory}" intent detected — routing to beverage pipeline`);
 
@@ -2679,7 +2680,12 @@ async function generateBeverageFromDescription(
       : '',
   ].filter(Boolean).join('\n\n');
 
-  const prompt = `You are a professional beverage chef inside the My Perfect Meals system.
+  // Language instruction — same pattern as all other unified-pipeline paths.
+  // Prepended to the prompt so the AI generates the beverage name, description,
+  // ingredient names, and instructions in the user's preferred language.
+  const beverageLangInstruction = getLanguageInstruction(preferredLanguage);
+
+  const prompt = `${beverageLangInstruction ? beverageLangInstruction + "\n\n" : ""}You are a professional beverage chef inside the My Perfect Meals system.
 Generate a complete, structured ${beverageCategory} recipe.
 ${protocolBlock ? `\n${protocolBlock}\n` : ''}
 CRITICAL: The output MUST be a DRINK/BEVERAGE. Never generate solid food, meals, eggs, chicken, rice, or any non-drinkable item.
@@ -2823,7 +2829,8 @@ export async function generateFromDescriptionUnified(
     fibrousCarbs_g?: number;
   },
   generationContext?: string,
-  glp1Targets?: ResolvedGLP1Targets
+  glp1Targets?: ResolvedGLP1Targets,
+  preferredLanguage?: string
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -2848,9 +2855,10 @@ export async function generateFromDescriptionUnified(
       userId,
       dietType,
       mealType,
-      starchContext,   // server-authoritative starch constraints (forceStarch already cleared above)
-      remainingMacros, // server-authoritative macro budget
-      glp1Targets,     // patient-specific clinical targets for post-gen validation
+      starchContext,       // server-authoritative starch constraints (forceStarch already cleared above)
+      remainingMacros,     // server-authoritative macro budget
+      glp1Targets,         // patient-specific clinical targets for post-gen validation
+      preferredLanguage,   // language instruction so beverage name/description are in user's language
     );
   }
 
@@ -3135,7 +3143,12 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt });
     }
-    messages.push({ role: 'user', content: prompt });
+    // Language instruction — mirrors the craving path (line 832): if the user has selected a
+    // non-English preferredLanguage, prepend the MANDATORY language requirement so the AI
+    // generates meal names, descriptions, and instructions in the user's language.
+    const chefLangInstruction = getLanguageInstruction(preferredLanguage);
+    const chefPrompt = chefLangInstruction ? `${chefLangInstruction}\n\n${prompt}` : prompt;
+    messages.push({ role: 'user', content: chefPrompt });
 
     // Pre-build a relaxed prompt for BeachBody — strips remaining macro ceilings so the AI
     // isn't trapped in an impossible constraint on the final retry attempt.
@@ -3145,7 +3158,8 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       const relaxedGuardrail = applyGuardrails(basePrompt, 'beachbody', validMealType, dietPhase as any, undefined);
       relaxedMessages = [];
       if (systemPrompt) relaxedMessages.push({ role: 'system', content: systemPrompt });
-      relaxedMessages.push({ role: 'user', content: relaxedGuardrail.modifiedPrompt });
+      const relaxedChefPrompt = chefLangInstruction ? `${chefLangInstruction}\n\n${relaxedGuardrail.modifiedPrompt}` : relaxedGuardrail.modifiedPrompt;
+      relaxedMessages.push({ role: 'user', content: relaxedChefPrompt });
     }
 
     const MAX_REGENERATION_ATTEMPTS = 2;
@@ -3683,7 +3697,8 @@ export async function generateSnackFromCravingUnified(
   dietType?: DietType,
   strictMode: boolean = false,
   explicitOverride?: ExplicitOverride | null,
-  glp1Targets?: ResolvedGLP1Targets
+  glp1Targets?: ResolvedGLP1Targets,
+  preferredLanguage?: string
 ): Promise<MealGenerationResponse> {
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
@@ -3823,7 +3838,12 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt });
     }
-    messages.push({ role: 'user', content: prompt });
+    // Language instruction — same pattern as craving and create-with-chef paths: if the user
+    // has selected a non-English preferredLanguage, prepend the MANDATORY language requirement
+    // so the snack description and ingredient names are generated in the user's language.
+    const snackLangInstruction = getLanguageInstruction(preferredLanguage);
+    const snackPrompt = snackLangInstruction ? `${snackLangInstruction}\n\n${prompt}` : prompt;
+    messages.push({ role: 'user', content: snackPrompt });
 
     const SNACK_MAX_REGENERATION_ATTEMPTS = 2;
     let finalSnackData: any = null;
@@ -4227,6 +4247,7 @@ export async function generateMealUnified(
         request.performanceSessionContext,
         request.generationContext,
         request.glp1Targets,
+        request.preferredLanguage,
       );
       break;
 
@@ -4234,7 +4255,7 @@ export async function generateMealUnified(
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage);
       break;
 
     case 'fridge-rescue':

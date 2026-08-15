@@ -2,7 +2,7 @@
   "_meta": {
     "description": "Clinical translation review manifest. Every protected clinical string must have an APPROVED entry here (matching the locale file value exactly) before it may ship in this locale. Enforced by GATE_07 in scripts/i18n-phase0-validate.ts.",
     "locale": "es",
-    "generatedAt": "2026-08-14T22:58:12.602Z",
+    "generatedAt": "2026-08-14T23:05:58.958Z",
     "registryTotal": 118,
     "governanceRule": "Any change to these strings in any locale file requires a [clinical-translation] PR annotation and clinical reviewer sign-off."
   },

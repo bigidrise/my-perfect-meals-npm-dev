@@ -111,7 +111,7 @@ export default function JoinStudio() {
 
       switch (data.error) {
         case "EMAIL_MISMATCH":
-          setState({ kind: "email_mismatch", maskedEmail: data.maskedEmail ?? "another address" });
+          setState({ kind: "email_mismatch", maskedEmail: data.maskedEmail ?? t("joinStudio.anotherAddress") });
           break;
         case "EXPIRED":
           setState({ kind: "expired" });
@@ -126,7 +126,7 @@ export default function JoinStudio() {
           setState({ kind: "coach_not_subscribed" });
           break;
         default:
-          setState({ kind: "error", message: data.message ?? t("joinStudio.errorGenericFallback") });
+          setState({ kind: "error", message: t("joinStudio.errorGenericFallback") });
       }
     } catch {
       setState({ kind: "error", message: t("joinStudio.errorConnectionIssue") });
@@ -191,8 +191,8 @@ function InviteBody({
 
   if (state.kind === "preview") {
     const { metadata } = state;
-    const spaceLabel = metadata.studioType === "clinic" ? "Clinic" : "Studio";
-    const roleLabel = metadata.studioType === "clinic" ? "doctor" : "trainer";
+    const spaceLabel = t(metadata.studioType === "clinic" ? "joinStudio.labelClinic" : "joinStudio.labelStudio");
+    const roleLabel = t(metadata.studioType === "clinic" ? "joinStudio.roleDoctor" : "joinStudio.roleTrainer");
     return (
       <div className="flex flex-col gap-5 pt-2">
         {/* Invite card */}
@@ -326,12 +326,13 @@ function InviteBody({
     );
   }
 
-  // Generic error
+  // Generic error — state is exhausted to { kind: "error"; message: string } here
+  if (state.kind !== "error") return null;
   return (
     <div className="flex flex-col items-center gap-4 py-6 text-center">
       <AlertTriangle className="w-12 h-12 text-red-400" />
       <h2 className="text-lg font-bold text-white">{t("joinStudio.errorTitle")}</h2>
-      <p className="text-gray-300 text-sm">{(state as any).message ?? t("joinStudio.errorFallback")}</p>
+      <p className="text-gray-300 text-sm">{state.message}</p>
       <p className="text-gray-400 text-xs">
         {t("joinStudio.backupCodeHint")} <strong>{t("joinStudio.backupCodePath")}</strong>
       </p>
