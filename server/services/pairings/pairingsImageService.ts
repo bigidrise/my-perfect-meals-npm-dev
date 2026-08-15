@@ -1,17 +1,22 @@
-import { generateImage } from "../imageService";
+import { generateMealImageUnified } from "../mealImageGenerator";
 import { log } from "../../vite";
 
+// Drink pairing images are inherently name-driven — no recipe exists for a pairing
+// suggestion, so no ingredient contract can be enforced. This is an accepted
+// no-recipe exception: we call generateMealImageUnified directly with sourceType
+// "beverage" and an empty ingredient list, which returns a semantic beverage
+// fallback image without triggering the [img-contract] deprecation warning.
 export async function generatePairingImage(
   foodContext: string,
   drinkName: string,
   category: string
 ): Promise<string | null> {
   try {
-    const imageUrl = await generateImage({
-      name: `${drinkName} paired with ${foodContext}`,
-      description: buildPairingDescription(foodContext, drinkName, category),
-      type: "beverage",
-    });
+    const imageUrl = await generateMealImageUnified(
+      `${drinkName} paired with ${foodContext}`,
+      [], // no recipe — name-driven beverage image; accepted no-recipe exception
+      "beverage"
+    );
 
     if (imageUrl) {
       log(`[PairingsImage] Generated image for ${drinkName}`, "info");
@@ -24,18 +29,6 @@ export async function generatePairingImage(
   }
 }
 
-function buildPairingDescription(foodContext: string, drinkName: string, category: string): string {
-  if (category === "wine") {
-    return `elegant wine glass of ${drinkName} with rich color, fine dining presentation alongside ${foodContext}, dark moody background, shallow depth of field`;
-  }
-  if (category === "beer") {
-    return `craft beer glass of ${drinkName} with foam head, gastropub presentation alongside ${foodContext}, dark moody background, shallow depth of field`;
-  }
-  if (category === "spirits") {
-    return `premium spirits glass of ${drinkName}, cocktail bar ambiance alongside ${foodContext}, dark moody background, shallow depth of field`;
-  }
-  return `elegant beverage presentation of ${drinkName} alongside ${foodContext}, dark moody background, shallow depth of field`;
-}
 
 export async function generatePairingImages(
   pairings: Array<{ name: string; category: string }>,
