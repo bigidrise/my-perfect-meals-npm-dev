@@ -1272,7 +1272,9 @@ export default function MacroCounter() {
     if (!user?.id || user.id.startsWith("guest-")) return;
     try {
       const heightVal = Math.round(cm);
-      const weightVal = Math.round(kg * 2.205);
+      // users.weight is stored in kg (canonical schema unit).
+      // Send kg directly — do NOT convert to lbs here.
+      const weightVal = Math.round(kg);
       await fetch(apiUrl("/api/users/profile"), {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
