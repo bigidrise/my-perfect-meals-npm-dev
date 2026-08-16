@@ -842,7 +842,7 @@ export default function CravingCreator() {
           <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              {t("title")}
+              {t("heading")}
             </h1>
 
             <div className="flex-grow" />

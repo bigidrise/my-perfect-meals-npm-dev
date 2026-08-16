@@ -53,14 +53,17 @@ ${ingredients.map(i => `- ${i}`).join("\n")}
 
 The recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.
 
-QUESTION (answer this and nothing else): Does this image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?
+QUESTION (answer this and nothing else): Does this image FAIL on either of the following checks?
+
+CHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?
+CHECK B — Wrong dish entirely: Does the image depict a completely different dish category than "${mealName}"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.
 
 Respond with exactly one line:
 PASS
 or
-FAIL: <the specific offending ingredient you can see, e.g. "hard-boiled egg visible">
+FAIL: <specific reason — e.g. "hard-boiled egg visible" or "image shows a green salad, not a cheesecake">
 
-Only report MAJOR, clearly identifiable ingredients (proteins, eggs, cheese, nuts, shellfish, bacon, etc.). Ignore garnish ambiguity, sauces you cannot identify, and lighting artifacts. If you are not confident an offender is present, answer PASS.`;
+Only report MAJOR, clearly identifiable ingredients for Check A. For Check B, only fail if the dish category is unmistakably wrong. If you are not confident a violation is present, answer PASS.`;
 }
 
 /** Parse the model's one-line answer into a verdict. Exported for tests. */
@@ -152,10 +155,37 @@ export async function validateImageAgainstRecipe(
  * detected offender and reasserts the recipe contract over tradition.
  */
 export function buildRetryExclusionAddendum(mealName: string, failReason: string): string {
+  // Infer the broad dish category from the meal name for a positive target instruction.
+  // This prevents the retry from generating a random unrelated food (e.g., salad for cheesecake)
+  // when the exclusion prompt removes the model's only positive visual anchor.
+  const lower = mealName.toLowerCase();
+  let positiveTarget = `a clearly recognizable plated dish of "${mealName}"`;
+  if (/cheesecake|cake|tart|torte|soufflé|soufflé|crumble|brownie|pudding|mousse|flan|tiramisu|panna cotta|gelato|ice cream|sorbet|macaroon|macaron|profiterole|eclair|creme brulee/i.test(lower)) {
+    positiveTarget = `a clearly recognizable dessert — specifically "${mealName}" with its characteristic structure (e.g., for cheesecake: a creamy filling on a crust or in a glass, topped with strawberry or fruit)`;
+  } else if (/smoothie|shake|milkshake|juice|latte|coffee|tea|cocktail|mocktail|beverage|drink|lemonade|soda/i.test(lower)) {
+    positiveTarget = `a clearly recognizable drink — specifically "${mealName}" in a glass or cup`;
+  } else if (/soup|stew|chowder|bisque|broth/i.test(lower)) {
+    positiveTarget = `a clearly recognizable bowl of soup — specifically "${mealName}"`;
+  } else if (/salad/i.test(lower)) {
+    positiveTarget = `a clearly recognizable salad — specifically "${mealName}"`;
+  } else if (/sandwich|burger|wrap|taco|burrito|hot dog/i.test(lower)) {
+    positiveTarget = `a clearly recognizable handheld item — specifically "${mealName}"`;
+  } else if (/pizza/i.test(lower)) {
+    positiveTarget = `a clearly recognizable pizza — specifically "${mealName}"`;
+  } else if (/pasta|noodle|spaghetti|fettuccine|penne|linguine|ramen|pho/i.test(lower)) {
+    positiveTarget = `a clearly recognizable pasta or noodle dish — specifically "${mealName}"`;
+  }
+
   return `
 
-ABSOLUTE EXCLUSION (previous attempt violated the recipe): ${failReason}.
-Exclude that ingredient entirely — it must not appear anywhere in the image.
-Do NOT depict the traditional composition of "${mealName}". Cultural convention does not apply here.
-Follow ONLY the recipe contract ingredients listed above. Nothing else may be visible.`;
+CORRECTION FOR PREVIOUS ATTEMPT — the previous image violated the recipe.
+VIOLATION DETECTED: ${failReason}.
+
+POSITIVE TARGET (this is what the image MUST show):
+Generate ${positiveTarget}.
+The image must be unmistakably recognizable as this dish — not a salad, not a bowl of raw ingredients, not an unrelated food.
+
+NEGATIVE CONSTRAINT: The specific violation from the previous attempt (${failReason}) must not appear.
+Follow ONLY the recipe contract ingredients listed above. Nothing else may be visible.
+If it is impossible to depict "${mealName}" without the excluded element, use the closest visually appropriate substitute from the recipe contract.`;
 }
