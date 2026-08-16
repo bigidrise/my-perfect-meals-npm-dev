@@ -233,7 +233,7 @@ export default function CravingCreator() {
   const quickTour = useQuickTour("craving-creator");
   const [useOnboarding, setUseOnboarding] = useState(true); // ENFORCED: Always use onboarding for medical safety
   const [cravingInput, setCravingInput] = useState("");
-  const [dishFailureAlert, setDishFailureAlert] = useState<{ show: boolean; message: string }>({ show: false, message: "" });
+  const [dishFailureAlert, setDishFailureAlert] = useState<{ show: boolean; message: string; suggestedActions?: string[] }>({ show: false, message: "" });
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [savedMeals, setSavedMeals] = useState(new Set<string>());
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
@@ -654,6 +654,21 @@ export default function CravingCreator() {
       setSafetyEnabled(true);
       clearSafetyAlert();
 
+      // ── Typed "unable to generate" response ───────────────────────────────
+      // Server returns HTTP 422 + { status: "unable_to_generate", reasonCode,
+      // message, suggestedActions } when the variety engine could not satisfy
+      // the request. Show an actionable alert instead of a blank card or toast.
+      if (data.status === "unable_to_generate") {
+        stopProgressTicker();
+        setIsGenerating(false);
+        setDishFailureAlert({
+          show: true,
+          message: data.message || "We couldn't generate options for this request. Please try adjusting your description.",
+          suggestedActions: Array.isArray(data.suggestedActions) ? data.suggestedActions : [],
+        });
+        return;
+      }
+
       if (!response.ok) {
         stopProgressTicker();
         setIsGenerating(false);
@@ -677,6 +692,18 @@ export default function CravingCreator() {
           return;
         }
         throw new Error(data.message || "Failed to generate meal");
+      }
+
+      // Guard: if meals array is empty despite a 200 response, treat as generation failure
+      if (data.meals && Array.isArray(data.meals) && data.meals.length === 0) {
+        stopProgressTicker();
+        setIsGenerating(false);
+        setDishFailureAlert({
+          show: true,
+          message: "No options were returned for this request. Try rephrasing your craving or adjusting your dietary settings.",
+          suggestedActions: ["Try a different description", "Simplify your request", "Check your dietary restrictions"],
+        });
+        return;
       }
       // 🎲 Multi-option response from variety engine — show selection panel
       if (data.meals && Array.isArray(data.meals) && data.meals.length > 0) {
@@ -1296,6 +1323,16 @@ export default function CravingCreator() {
                           {dishFailureAlert.message}
                         </p>
                       </div>
+                      {dishFailureAlert.suggestedActions && dishFailureAlert.suggestedActions.length > 0 && (
+                        <ul className="pl-1 space-y-1">
+                          {dishFailureAlert.suggestedActions.map((action, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-xs text-orange-100/80">
+                              <span className="shrink-0 mt-px text-orange-400">→</span>
+                              {action}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleGenerateMeal()}

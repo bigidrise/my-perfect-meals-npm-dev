@@ -5214,7 +5214,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       if (!mealOptions || mealOptions.length === 0) {
-        throw new Error("Variety engine returned no options");
+        const hasGlp1    = _cravingGlp1Targets != null;
+        const hasAllergy = (protocolEnvelope.allergies || []).length > 0;
+        const hasDiet    = bodyDietRestrictions.length > 0;
+        const reasonCode = hasGlp1 ? "constraint_conflict" : "empty_variety_output";
+        const suggestedActions: string[] = [
+          `Try rephrasing — for example "light ${rawCravingInput || "dish"}" or adding a cooking style`,
+          hasDiet    ? `Temporarily removing your ${bodyDietRestrictions[0]} filter may open more options` : "Add more detail: cuisine style, cooking method, or specific ingredients",
+          hasAllergy ? "Check your allergy settings for any restrictions that might conflict with this dish" : "Try a simpler, more familiar dish name",
+        ];
+        console.warn(`[CravingCreator] Variety engine returned 0 options — returning typed failure (${reasonCode})`);
+        return res.status(422).json({
+          status: "unable_to_generate",
+          reasonCode,
+          message: `We couldn't find any ${rawCravingInput ? `"${rawCravingInput}"` : ""} options that meet your current settings.${hasGlp1 ? " Your GLP‑1 targets may be significantly limiting what can be generated." : ""} Try adjusting your request or simplifying your description.`,
+          suggestedActions,
+        });
       }
 
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
@@ -5418,7 +5433,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("❌ Craving creator error:", error);
-      res.status(500).json({ message: error.message });
+      // Classify known transient failures into a typed response the client can act on.
+      // Unknown / truly unexpected errors still surface a reasonCode so the UI can
+      // display something useful instead of a blank card or raw stack trace.
+      const msg: string = error?.message || "";
+      const reasonCode =
+        msg.includes("json") || msg.includes("parse") || msg.includes("JSON")
+          ? "json_parse_failure"
+          : msg.includes("model") || msg.includes("refusal") || msg.includes("sorry")
+          ? "model_refusal"
+          : "generation_error";
+      return res.status(422).json({
+        status: "unable_to_generate",
+        reasonCode,
+        message: "Something went wrong while generating your meal options. Please try again — if the problem persists, try simplifying your request.",
+        suggestedActions: [
+          "Try again — the issue may be temporary",
+          "Simplify your request (e.g. just 'chicken stir fry' instead of a detailed description)",
+          "Adjust your dietary settings if they may be creating an impossible combination",
+        ],
+      });
     }
   });
 
