@@ -897,20 +897,21 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
 
   const recipeSignature = currentSignature;
 
-  // ── FOREGROUND S3 PERSIST ────────────────────────────────────────────────
-  // Upload to S3 synchronously before returning so the client always receives
-  // a small, persistent S3 URL — never a base64 blob. This is critical for
-  // localStorage persistence across navigation (base64 is ~2MB and silently
-  // fails the localStorage quota write, losing the image on next page load).
+  // ── FOREGROUND OBJECT STORAGE PERSIST ───────────────────────────────────
+  // Upload to Object Storage synchronously before returning so the client
+  // always receives a small, persistent /public-objects/ URL — never a
+  // base64 blob. This is critical for localStorage persistence across
+  // navigation (base64 is ~2MB and silently fails the localStorage quota
+  // write, losing the image on next page load).
   console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-START | +${Date.now()-_t0}ms`);
   try {
     const ingestionResult = await ingestImageToPermanentStorage(imageUrl, mealName);
     if (ingestionResult.success && ingestionResult.permanentUrl) {
-      const s3Url = ingestionResult.permanentUrl;
+      const permanentUrl = ingestionResult.permanentUrl;
       try {
         const cacheRow = {
           cacheKey,
-          imageUrl: s3Url,
+          imageUrl: permanentUrl,
           mealName,
           promptUsed: finalPrompt,
           validationStatus: validation.verdict,
@@ -925,14 +926,14 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
             target: mealImageCache.cacheKey,
             set: { ...cacheRow },
           });
-        console.log(`✅ S3 URL cached in DB for: ${mealName} +${Date.now()-_t0}ms`);
+        console.log(`✅ Object Storage URL cached in DB for: ${mealName} +${Date.now()-_t0}ms`);
       } catch (dbErr) {
         console.warn(`⚠️ DB write failed for "${mealName}":`, dbErr);
       }
-      memCache.set(cacheKey, { url: s3Url, validationStatus: validation.verdict, recipeSignature });
-      console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-DONE (permanent) | url=${s3Url.substring(0, 60)} | +${Date.now()-_t0}ms`);
+      memCache.set(cacheKey, { url: permanentUrl, validationStatus: validation.verdict, recipeSignature });
+      console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-DONE (permanent) | url=${permanentUrl.substring(0, 60)} | +${Date.now()-_t0}ms`);
       return {
-        url: s3Url,
+        url: permanentUrl,
         prompt: finalPrompt,
         templateRef: request.templateRef,
         hash: cacheKey,
@@ -945,7 +946,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-THREW | msg=${uploadErr.message?.substring(0, 80)} | meal="${mealName}"`);
   }
 
-  // Both S3 and GCS failed — image is EPHEMERAL (base64 in memCache only).
+  // Object Storage upload failed — image is EPHEMERAL (base64 in memCache only).
   // WARNING: On server restart or memCache eviction, the next request for this
   // meal will call DALL-E again and may return a different image.
   if (imageUrl.startsWith('data:')) {
