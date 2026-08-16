@@ -71,6 +71,7 @@ Return ONLY valid JSON with the exact same structure and all keys intact.`;
       ],
       temperature: 0.3,
       max_tokens: 1000,
+      response_format: { type: "json_object" },
     });
 
     const translatedText = response.choices[0]?.message?.content?.trim() || "";

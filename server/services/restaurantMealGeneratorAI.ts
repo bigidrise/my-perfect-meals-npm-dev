@@ -519,10 +519,11 @@ CARB CLASSIFICATION RULES (CRITICAL):
 - Both are measured in grams
 - Vegetables ARE carbs (fibrous) - never return 0 for fibrousCarbs if vegetables are present
 
-Return ONLY a JSON array of 3 meals with this exact structure:
-[
-  {
-    "name": "Specific menu item name matching this restaurant's language",
+Return ONLY a JSON object with this exact structure (the meals array MUST be wrapped in an object):
+{
+  "meals": [
+    {
+      "name": "Specific menu item name matching this restaurant's language",
     "description": "Brief description of the dish",
     "calories": 450,
     "protein": 35,
@@ -539,8 +540,9 @@ Return ONLY a JSON array of 3 meals with this exact structure:
       "swap": ["fries → side salad", "white rice → brown rice"]
     },
     "medicalWaiterScript": "Only populate if the user has medical conditions. Write the exact phrase the user should say to the server — first person, 1-2 sentences, e.g.: 'I have diabetes. Could I get this grilled with no sweet sauces and swap the rice for extra vegetables?' Leave as empty string if no medical conditions."
-  }
-]
+    }
+  ]
+}
 
 Make the meals sound like something you would genuinely see on the menu at ${restaurantName}. A person should be able to walk in and order this out loud.`;
 
@@ -570,6 +572,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
       ],
       temperature: 0.7,
       max_tokens: 1800, // Increased to accommodate medicalWaiterScript per meal
+      response_format: { type: "json_object" },
     });
 
     const responseText = completion.choices[0]?.message?.content?.trim();
@@ -588,7 +591,9 @@ Make the meals sound like something you would genuinely see on the menu at ${res
         .replace(/```\n?/g, '')
         .trim();
       
-      aiMeals = JSON.parse(cleanedResponse);
+      const _parsed = JSON.parse(cleanedResponse);
+      // Support both the new {"meals": [...]} wrapper and legacy bare array
+      aiMeals = Array.isArray(_parsed) ? _parsed : (_parsed.meals ?? []);
     } catch (parseError) {
       console.error('❌ Failed to parse AI response:', parseError);
       console.error('Response text:', responseText);
@@ -667,6 +672,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
             messages: [{ role: "user", content: fixPrompt }],
             temperature: 0.9,
             max_tokens: 400,
+            response_format: { type: "json_object" },
           });
           const fixText = fixCompletion.choices[0]?.message?.content?.trim()
             ?.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
@@ -863,6 +869,7 @@ Return ONLY a single JSON object (not an array):
             messages: [{ role: 'user', content: retryPrompt }],
             temperature: 0.5,
             max_tokens: 600,
+            response_format: { type: "json_object" },
           });
           const retryText = retryCompletion.choices[0]?.message?.content?.trim()
             ?.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();

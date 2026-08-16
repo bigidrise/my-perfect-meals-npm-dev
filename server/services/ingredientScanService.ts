@@ -499,9 +499,11 @@ Do NOT invent or guess ingredients. If the ingredients text is partially obscure
     ],
     max_tokens: 700,
     temperature: 0.1,
+    response_format: { type: "json_object" },
   });
 
   const content = response.choices[0]?.message?.content ?? '{}';
+  // response_format: json_object guarantees valid JSON at root; regex fallback kept for safety
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 

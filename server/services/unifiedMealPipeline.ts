@@ -1294,7 +1294,9 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
   if (dishFamily.length > 3 && !nameAndDesc.includes(simpleDishFamily)) {
     // Allow very close synonyms before rejecting
     const synonymMap: Record<string, string[]> = {
-      cheesecake: ['cheesecake', 'cheese cake', 'no-bake', 'cashew cream', 'cream cheese'],
+      // 'cashew cream' and 'cream cheese' removed — too broad; a cashew cheese spread or cream-cheese dip is NOT a cheesecake.
+      // Only terms that unambiguously identify a cheesecake-format dessert are allowed.
+      cheesecake: ['cheesecake', 'cheese cake', 'no-bake cheesecake', 'cheesecake parfait', 'cheesecake mousse', 'cheesecake bar', 'cheesecake cup'],
       smoothie: ['smoothie', 'shake', 'blend'],
       steak: ['steak', 'beef', 'sirloin', 'ribeye'],
       burger: ['burger', 'patty', 'smash'],
@@ -1315,6 +1317,9 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
   
   return true;
 }
+
+// Exported for unit testing — do not use in application code outside this module
+export const __varietyTestables = { validateVarietyOption };
 
 // ── Kosher category intent detection ─────────────────────────────────────────
 // Reads the user's craving text to determine which kosher category they are
