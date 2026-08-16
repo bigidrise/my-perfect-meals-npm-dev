@@ -47,13 +47,47 @@ router.post('/ingest', requireAuth, async (req, res) => {
       };
     });
 
-    if (rows.length > 0) {
-      await db.insert(biometricSample).values(rows);
-    }
+    // Waist circumference: upsert by calendar day to prevent duplicate rows
+    // from accumulating when the user saves multiple times from MacroCalculator.
+    // All other metric types insert normally (wearables send de-duplicated data).
+    const otherRows = rows.filter(r => r.type !== 'waist_circumference');
+    const waistRows = rows.filter(r => r.type === 'waist_circumference');
+    let insertedCount = 0;
+    let updatedCount  = 0;
 
-    logAudit({ actor: String(userId), action: "WRITE", resourceType: "biometric_sample", table: "biometric_sample", route: req.path, ip: getClientIp(req as any), meta: { count: rows.length, types: [...new Set(filteredSamples.map(s => s.type))].join(",") } });
+    await db.transaction(async (tx) => {
+      if (otherRows.length > 0) {
+        await tx.insert(biometricSample).values(otherRows);
+        insertedCount += otherRows.length;
+      }
+      for (const row of waistRows) {
+        const dayKey   = row.startTime.toISOString().slice(0, 10);
+        const dayStart = new Date(`${dayKey}T00:00:00Z`);
+        const dayEnd   = new Date(`${dayKey}T23:59:59Z`);
+        const [existing] = await tx.select({ id: biometricSample.id })
+          .from(biometricSample)
+          .where(and(
+            eq(biometricSample.userId, row.userId),
+            eq(biometricSample.type, 'waist_circumference'),
+            gte(biometricSample.startTime, dayStart),
+            lte(biometricSample.startTime, dayEnd),
+          ));
+        if (existing) {
+          await tx.update(biometricSample)
+            .set({ value: row.value, unit: row.unit, startTime: row.startTime, endTime: row.endTime })
+            .where(eq(biometricSample.id, existing.id));
+          updatedCount++;
+        } else {
+          await tx.insert(biometricSample).values(row);
+          insertedCount++;
+        }
+      }
+    });
+
+    logAudit({ actor: String(userId), action: "WRITE", resourceType: "biometric_sample", table: "biometric_sample", route: req.path, ip: getClientIp(req as any), meta: { count: insertedCount + updatedCount, inserted: insertedCount, updated: updatedCount, types: Array.from(new Set(filteredSamples.map(s => s.type))).join(",") } });
     res.status(201).json({ 
-      inserted: rows.length,
+      inserted: insertedCount,
+      updated: updatedCount,
       filtered: body.samples.length - filteredSamples.length,
       message: 'Biometric data ingested successfully'
     });
@@ -391,6 +425,145 @@ router.get('/weight', requireAuth, async (req, res) => {
   }
 });
 
+// ── Reusable metric-history endpoint ─────────────────────────────────────────
+// GET /api/biometrics/history?metric=weight|waist_circumference|body_fat_percentage&range=7d|30d|90d|180d|365d
+// Groups by local day (latest per day), normalises to display units, returns newest-first.
+router.get('/history', requireAuth, async (req, res) => {
+  try {
+    const userId = getAuthUserId(req);
+    const metric = String(req.query.metric ?? 'weight');
+    const range  = String(req.query.range  ?? '90d');
+
+    const allowed = ['weight', 'waist_circumference', 'body_fat_percentage'];
+    if (!allowed.includes(metric)) {
+      return res.status(400).json({ error: `metric must be one of: ${allowed.join(', ')}` });
+    }
+
+    const daysMatch = range.match(/^(\d+)d$/);
+    const days = daysMatch ? parseInt(daysMatch[1], 10) : 90;
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - days);
+
+    // DB-level filter — never load all rows and slice in JS
+    const samples = await db.select().from(biometricSample).where(
+      and(
+        eq(biometricSample.userId, userId as any),
+        eq(biometricSample.type, metric),
+        gte(biometricSample.startTime, fromDate),
+      )
+    ).orderBy(desc(biometricSample.startTime));
+
+    // One entry per calendar day — take the latest for that day (already sorted desc)
+    const byDay = new Map<string, typeof samples[0]>();
+    for (const s of samples) {
+      const day = s.startTime.toISOString().slice(0, 10);
+      if (!byDay.has(day)) byDay.set(day, s);
+    }
+
+    const history = Array.from(byDay.entries())
+      .sort(([a], [b]) => b.localeCompare(a)) // newest first
+      .map(([date, s]) => {
+        let displayValue = s.value;
+        let displayUnit  = s.unit;
+        if (s.type === 'weight') {
+          displayValue = s.unit === 'kg' ? parseFloat((s.value * 2.20462).toFixed(1)) : s.value;
+          displayUnit  = 'lb';
+        } else if (s.type === 'waist_circumference') {
+          displayValue = s.unit === 'cm' ? parseFloat((s.value / 2.54).toFixed(1)) : s.value;
+          displayUnit  = 'in';
+        }
+        return { id: s.id, date, value: displayValue, unit: displayUnit, measuredAt: s.startTime.toISOString() };
+      });
+
+    const latest   = history[0] ?? null;
+    const earliest = history[history.length - 1] ?? null;
+    const change   = latest && earliest && history.length > 1
+      ? parseFloat((latest.value - earliest.value).toFixed(1))
+      : null;
+
+    return res.json({ metric, range, history, latest, earliest, change, count: history.length });
+  } catch (err: any) {
+    console.error('[biometrics/history] error:', err);
+    return res.status(500).json({ error: 'Failed to fetch metric history', detail: err?.message });
+  }
+});
+
+// ── Measurement-only log ──────────────────────────────────────────────────────
+// POST /api/biometrics/measurement
+// Writes to biometric_sample with same-day upsert.
+// Does NOT update users.weight — keeps measurement history separate from the
+// macro-prescription baseline, per the advisor's tracking-vs-prescription rule.
+router.post('/measurement', requireAuth, async (req, res) => {
+  try {
+    const userId = getAuthUserId(req);
+    const { metric, value, unit, localDate } = req.body;
+
+    const allowedMetrics = ['weight', 'waist_circumference'];
+    if (!allowedMetrics.includes(metric)) {
+      return res.status(400).json({ error: 'metric must be weight or waist_circumference' });
+    }
+    if (!value || !unit) {
+      return res.status(400).json({ error: 'value and unit required' });
+    }
+
+    let dayKey: string;
+    let measurementDate: Date;
+    if (localDate && /^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+      dayKey = localDate;
+      measurementDate = new Date(`${localDate}T12:00:00Z`);
+    } else {
+      measurementDate = new Date();
+      dayKey = measurementDate.toISOString().slice(0, 10);
+    }
+
+    // Normalise to canonical storage units (kg for weight, cm for waist)
+    let storedValue = Number(value);
+    let storedUnit  = String(unit);
+    if (metric === 'waist_circumference') {
+      storedValue = normalizeWaistToCm(storedValue, storedUnit);
+      storedUnit  = 'cm';
+    }
+
+    const dayStart = new Date(`${dayKey}T00:00:00Z`);
+    const dayEnd   = new Date(`${dayKey}T23:59:59Z`);
+
+    const result = await db.transaction(async (tx) => {
+      const existing = await tx.select().from(biometricSample).where(
+        and(
+          eq(biometricSample.userId, userId as any),
+          eq(biometricSample.type, metric),
+          gte(biometricSample.startTime, dayStart),
+          lte(biometricSample.startTime, dayEnd),
+        )
+      );
+
+      if (existing.length > 0) {
+        await tx.update(biometricSample)
+          .set({ value: storedValue, unit: storedUnit, startTime: measurementDate, endTime: measurementDate })
+          .where(eq(biometricSample.id, existing[0].id));
+        return { id: existing[0].id, updated: true, created: false };
+      } else {
+        const [inserted] = await tx.insert(biometricSample).values({
+          userId: userId as any,
+          provider: 'manual',
+          type: metric,
+          value: storedValue,
+          unit: storedUnit,
+          startTime: measurementDate,
+          endTime: measurementDate,
+        }).returning();
+        return { id: inserted.id, updated: false, created: true };
+      }
+    });
+
+    logAudit({ actor: String(userId), action: "WRITE", resourceType: "biometric_measurement", table: "biometric_sample", resourceId: result.id, route: req.path, ip: getClientIp(req as any), meta: { metric, unit, updated: result.updated } });
+    return res.json({ ok: true, ...result, measuredAt: measurementDate.toISOString() });
+  } catch (err: any) {
+    console.error('[biometrics/measurement] error:', err);
+    return res.status(500).json({ error: 'Failed to save measurement', detail: err?.message });
+  }
+});
+
 router.post('/analyze-photo', requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const { image, text } = req.body;
@@ -452,6 +625,7 @@ Be realistic with portion sizes shown. If you cannot identify food, return zeros
         messages,
         max_tokens: 300,
         temperature: 0.3,
+        response_format: { type: "json_object" },
       });
 
       const content = response.choices[0]?.message?.content ?? '{}';

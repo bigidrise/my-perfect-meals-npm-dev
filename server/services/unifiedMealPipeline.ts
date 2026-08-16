@@ -1294,7 +1294,9 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
   if (dishFamily.length > 3 && !nameAndDesc.includes(simpleDishFamily)) {
     // Allow very close synonyms before rejecting
     const synonymMap: Record<string, string[]> = {
-      cheesecake: ['cheesecake', 'cheese cake', 'no-bake', 'cashew cream', 'cream cheese'],
+      // 'cashew cream' and 'cream cheese' removed — too broad; a cashew cheese spread or cream-cheese dip is NOT a cheesecake.
+      // Only terms that unambiguously identify a cheesecake-format dessert are allowed.
+      cheesecake: ['cheesecake', 'cheese cake', 'no-bake cheesecake', 'cheesecake parfait', 'cheesecake mousse', 'cheesecake bar', 'cheesecake cup'],
       smoothie: ['smoothie', 'shake', 'blend'],
       steak: ['steak', 'beef', 'sirloin', 'ribeye'],
       burger: ['burger', 'patty', 'smash'],
@@ -1315,6 +1317,9 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
   
   return true;
 }
+
+// Exported for unit testing — do not use in application code outside this module
+export const __varietyTestables = { validateVarietyOption };
 
 // ── Kosher category intent detection ─────────────────────────────────────────
 // Reads the user's craving text to determine which kosher category they are
@@ -1559,6 +1564,15 @@ DISH COMPOSITION RULE: If a known or named cultural dish is being generated, pre
 STRICT DISH EXECUTION RULE: When a known cultural dish is being generated (e.g., Firfir, Doro Wat, Pho, Rendang, Injera-based dish), generate it exactly as it is traditionally prepared. Do NOT modify it, reinterpret it, "enhance" it, or create a variation of it. Do NOT add new primary ingredients, create a wrap version, bowl version, or "twist." If the output deviates from the traditional form in any way — REJECT it and rebuild the dish exactly as it is known. Creativity is NOT permitted when executing a named traditional dish. Do NOT describe known cultural dishes using modern nutrition language — words like "healthy", "balanced", "nutritious", "light", "clean", or "twist" are BANNED when describing a named traditional dish. Present the dish as it is traditionally understood, not as a nutrition-app product. Do NOT assign Western meal-time labels (breakfast, lunch, dinner) to a dish unless that label is culturally accurate for how the dish is actually eaten in its cuisine of origin. Many traditional dishes are not meal-time-specific — do not force them into a Western eating structure.
 
 CUISINE BOUNDARY RULE: All ingredients, dishes, and preparations must originate from or be commonly used within ${cuisine} cuisine. Do NOT combine elements from different cuisines (e.g., Egyptian ful medames with Ethiopian injera, Japanese miso with Indian roti). Do NOT introduce globally common dishes unless they are also genuinely part of ${cuisine} cuisine specifically. If any component does not belong to the selected cuisine — REJECT and rebuild using only ingredients and preparations authentic to ${cuisine}.
+
+DISH IDENTITY PRESERVATION RULE (highest priority — overrides all cuisine rules above):
+If the user has explicitly requested a named dish format (e.g., cheesecake, tacos, pizza, sushi, soup, burger, pasta, stir-fry, curry, smoothie, milkshake), PRESERVE that dish format without exception.
+Cultural grounding adapts the ingredients, flavors, spices, and techniques WITHIN that dish — it does NOT replace the dish with a different category or format.
+- A cheesecake request → produce cheesecake variations (perhaps using ricotta, labne, goat cheese, or local dairy — but still cheesecake in structure: creamy filling on a crust or as a mousse)
+- A taco request → produce tacos, not rice bowls or flatbreads
+- A smoothie request → produce smoothies, not salads or grain bowls
+The dish identity is set by the user's request. Cuisine preference is the lens through which the dish is interpreted — NOT permission to replace the dish with something else.
+If a named dish format is genuinely incompatible with the cuisine AND with the user's dietary constraints, adapt the closest culturally equivalent dessert/snack/meal within the same dish category rather than switching to an unrelated format.
 
 SERVING CONTEXT RULE: Meals must reflect how they are traditionally served and consumed in ${cuisine} cuisine. If a dish is typically served with a specific base or delivery medium, that element MUST be included — Doro Wat requires injera, sushi requires rice, tacos require tortillas. Do NOT reinterpret meals as generic "main + sides" if the cuisine does not follow that plating structure. Prefer authentic serving formats: shared platters, layered dishes, wrapped preparations, or communal formats as appropriate. If the serving structure is incomplete or wrong, reject and rebuild.
 
@@ -2073,6 +2087,7 @@ export async function generateCravingMealOptions(
       messages: [{ role: "user", content: dalBlock + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: 2500,
+      response_format: { type: "json_object" },
     });
     const content = response.choices[0]?.message?.content;
     if (!content) throw new Error("Empty AI response from variety engine");
