@@ -1336,7 +1336,7 @@ export default function MyBiometrics() {
   }, []); // Fetch once on mount
 
   // ── Body stat tab + log-weight input ────────────────────────────────────────
-  const [bodyStatTab, setBodyStatTab] = useState<"weight" | "waist">("weight");
+  const [bodyStatTab, setBodyStatTab] = useState<"weight" | "waist" | "bodyfat">("weight");
   const [logWeightInput, setLogWeightInput] = useState("");
   const [logWeightSaving, setLogWeightSaving] = useState(false);
 
@@ -1608,6 +1608,35 @@ export default function MyBiometrics() {
     if (filled.length < 2) return null;
     return parseFloat((filled[filled.length - 1].metricAvg - filled[0].metricAvg).toFixed(1));
   }, [activeWaistData]);
+
+  // ── Body fat time-series (from body composition entries) ──────────────────
+  const bodyFatRawPoints = useMemo(
+    () =>
+      bodyCompHistory.map((e) => ({
+        date: e.recordedAt.slice(0, 10),
+        value: parseFloat(e.currentBodyFatPct),
+      })),
+    [bodyCompHistory],
+  );
+  const bodyFat7days = useMemo(() => buildMetricSeries(bodyFatRawPoints, 7),   [bodyFatRawPoints]);
+  const bodyFat1mo   = useMemo(() => buildMetricSeries(bodyFatRawPoints, 30),  [bodyFatRawPoints]);
+  const bodyFat3mo   = useMemo(() => buildMetricSeries(bodyFatRawPoints, 90),  [bodyFatRawPoints]);
+  const bodyFat6mo   = useMemo(() => buildMetricSeries(bodyFatRawPoints, 180), [bodyFatRawPoints]);
+  const bodyFat12mo  = useMemo(() => buildMetricSeries(bodyFatRawPoints, 365), [bodyFatRawPoints]);
+
+  const activeBodyFatData = useMemo(() => {
+    if (weightView === "7") return bodyFat7days;
+    if (weightView === "1") return bodyFat1mo;
+    if (weightView === "3") return bodyFat3mo;
+    if (weightView === "6") return bodyFat6mo;
+    return bodyFat12mo;
+  }, [weightView, bodyFat7days, bodyFat1mo, bodyFat3mo, bodyFat6mo, bodyFat12mo]);
+
+  const bodyFatPeriodChange = useMemo(() => {
+    const filled = activeBodyFatData.filter((r) => r.metricAvg > 0);
+    if (filled.length < 2) return null;
+    return parseFloat((filled[filled.length - 1].metricAvg - filled[0].metricAvg).toFixed(1));
+  }, [activeBodyFatData]);
 
   // ------- export CSV -------
   const exportCSV = () => {
@@ -2292,17 +2321,23 @@ export default function MyBiometrics() {
           <CardContent>
             {/* Metric tabs */}
             <div className="flex gap-1 bg-black/30 p-1 rounded-lg mb-4 w-fit">
-              {(["weight", "waist"] as const).map((tab) => (
+              {(
+                [
+                  { id: "weight",  label: "Weight"    },
+                  { id: "waist",   label: "Waist"     },
+                  { id: "bodyfat", label: "Body Fat"  },
+                ] as const
+              ).map(({ id, label }) => (
                 <button
-                  key={tab}
-                  onClick={() => setBodyStatTab(tab)}
-                  className={`px-4 py-1.5 rounded text-sm font-medium transition capitalize ${
-                    bodyStatTab === tab
+                  key={id}
+                  onClick={() => setBodyStatTab(id)}
+                  className={`px-4 py-1.5 rounded text-sm font-medium transition ${
+                    bodyStatTab === id
                       ? "bg-white/20 text-white"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
-                  {tab === "weight" ? "Weight" : "Waist"}
+                  {label}
                 </button>
               ))}
             </div>
@@ -2481,6 +2516,92 @@ export default function MyBiometrics() {
                   <div className="grid grid-cols-2 gap-3 text-sm mt-4">
                     {latestWaist && <Summary label="Waist" value={`${latestWaist}"`} />}
                     {whr && <Summary label="Waist/Height" value={whr} />}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── Body Fat tab ── */}
+            {bodyStatTab === "bodyfat" && (
+              <>
+                {/* Current value + period delta */}
+                <div className="flex items-baseline gap-3 mb-1">
+                  <span className="text-2xl font-bold text-white">
+                    {bodyCompLatest
+                      ? `${parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%`
+                      : "—"}
+                  </span>
+                  {bodyFatPeriodChange !== null && (
+                    <span className={`text-sm ${bodyFatPeriodChange < 0 ? "text-emerald-400" : bodyFatPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
+                      {bodyFatPeriodChange > 0 ? "+" : ""}{bodyFatPeriodChange}% this period
+                    </span>
+                  )}
+                </div>
+                {bodyCompLatest?.recordedAt && (
+                  <div className="text-xs text-white/40 mb-3">
+                    Last recorded: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}
+                  </div>
+                )}
+                {/* Chart */}
+                {bodyFatRawPoints.length > 0 ? (
+                  <div style={{ width: "100%", height: 200 }} className="mt-2">
+                    <ResponsiveContainer>
+                      <LineChart data={activeBodyFatData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10, fill: "#fff" }}
+                          tickFormatter={(v: string) => {
+                            const d = new Date(v + "T12:00:00");
+                            return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                          }}
+                        />
+                        <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} unit="%" />
+                        <Tooltip
+                          contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
+                          labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
+                          formatter={(v: any) => [`${v}%`, "Body Fat"]}
+                        />
+                        <Line type="monotone" dataKey="metricAvg" stroke="#a78bfa" dot={true} name="Body Fat (%)" connectNulls={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-white/40 text-sm gap-2">
+                    <span>No body fat data yet.</span>
+                    <span className="text-xs text-center">Log a body composition scan in the Body Composition section below.</span>
+                  </div>
+                )}
+                <div className="mt-3">
+                  <ReadOnlyNote>
+                    Body fat is logged in the{" "}
+                    <button
+                      onClick={() => {
+                        document.getElementById("biometrics-body-comp-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="underline text-white/80"
+                    >
+                      Body Composition
+                    </button>{" "}
+                    section below. Each scan method (DEXA, BIA, calipers, etc.) is stored separately.
+                  </ReadOnlyNote>
+                </div>
+                {/* Summary */}
+                {bodyCompLatest && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mt-4">
+                    <Summary
+                      label="Body Fat"
+                      value={`${parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%`}
+                    />
+                    {bodyCompLatest.goalBodyFatPct && parseFloat(bodyCompLatest.goalBodyFatPct) > 0 && (
+                      <Summary
+                        label="Goal"
+                        value={`${parseFloat(bodyCompLatest.goalBodyFatPct).toFixed(1)}%`}
+                      />
+                    )}
+                    {bodyCompLatest.scanMethod && (
+                      <Summary label="Method" value={bodyCompLatest.scanMethod} />
+                    )}
                   </div>
                 )}
               </>
