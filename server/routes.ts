@@ -3680,7 +3680,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { parseWeightToKg } = await import("./lib/weightUnit");
         const parsed = parseWeightToKg(weight, weightUnit);
         if (!parsed.ok) {
-          return res.status(parsed.status).json({ error: parsed.error, code: parsed.code });
+          const { status, error, code } = parsed as { ok: false; status: number; error: string; code: string };
+          return res.status(status).json({ error, code });
         }
         updateData.weight = parsed.weightKg;
       }
