@@ -10,6 +10,7 @@ import {
   type UserProtocolEnvelope,
 } from "./protocolEnvelope";
 import { generateMealImageUnified } from "./mealImageGenerator";
+import { processMealImageForSave } from "./imageLifecycle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -250,12 +251,30 @@ Write cooking instructions.`,
   // ── 8. Clinical provenance metadata ────────────────────────────────────────
   const clinicalProvenance = buildClinicalProvenance(envelope);
 
-  // Sanitize: never write a raw base64 blob into JSONB — it bloats the row to
-  // ~2 MB and the favorites endpoint strips it anyway (data: URLs are unsafe).
-  // Store null here; the migration script will back-fill a permanent URL later.
-  if (imageUrl?.startsWith("data:")) {
-    console.warn(`[MealCardFinalizer] base64 imageUrl detected — storing null to avoid JSONB bloat (meal: "${meal.name}")`);
-    imageUrl = null;
+  // ── Permanent-image rule ──────────────────────────────────────────────────
+  // processMealImageForSave enforces the canonical media lifecycle:
+  //   • base64 data URIs → uploaded to Object Storage (never written to Postgres)
+  //   • temporary CDN URLs (DALL-E oaidalleapiprodscus, etc.) → uploaded and replaced
+  //   • already-permanent /public-objects/ URLs → passed through
+  //   • upload failure → imageUrl set to null (not the ephemeral URL)
+  let finalMediaAssetId: string | null = null;
+  if (imageUrl) {
+    try {
+      const imgResult = await processMealImageForSave(imageUrl, meal.name);
+      if (imgResult.imagePending && !imgResult.imageUrl) {
+        console.warn(
+          `[MealCardFinalizer] Image processing pending/failed for "${meal.name}" — saving with null imageUrl. mediaAssetId: ${imgResult.mediaAssetId}`
+        );
+      }
+      imageUrl = imgResult.imageUrl;
+      finalMediaAssetId = imgResult.mediaAssetId;
+    } catch (imgErr) {
+      console.error(
+        `[MealCardFinalizer] processMealImageForSave threw for "${meal.name}" — saving with null imageUrl:`,
+        imgErr
+      );
+      imageUrl = null;
+    }
   }
 
   // ── 9. Compose mealData blob ───────────────────────────────────────────────
@@ -309,6 +328,7 @@ Write cooking instructions.`,
         sourceType,
         signatureHash: hash,
         mealData,
+        ...(finalMediaAssetId ? { mediaAssetId: finalMediaAssetId } : {}),
       })
       .returning({ id: savedMealsTable.id });
     savedId = row.id;
