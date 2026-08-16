@@ -26,12 +26,17 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 // URL TYPE HELPERS — enforce hard boundaries on what enters the cache
 // ─────────────────────────────────────────────────────────────────────────────
-const S3_BUCKET = process.env.S3_BUCKET_NAME || 'my-perfect-meals-images';
 
-function isS3Url(url: string): boolean {
-  return url.startsWith(`https://${S3_BUCKET}.s3.`) ||
-    url.includes('amazonaws.com') ||
-    url.startsWith('/public-objects/');
+/**
+ * Returns true ONLY for URLs on the active object-storage path (/public-objects/).
+ *
+ * Intentionally excludes all amazonaws.com URLs — the old `my-perfect-meals-images`
+ * bucket returns 403 and would be served as "permanent" without this guard.
+ * Any non-/public-objects/ URL (including amazonaws.com) is treated as a stale
+ * temp URL and evicted so the cache re-generates a fresh image.
+ */
+function isPermanentUrl(url: string): boolean {
+  return url.startsWith('/public-objects/');
 }
 
 const TEMP_PATTERNS = ['oaidalleapiprodscus', 'blob.core.windows.net', 'openai.com'];
@@ -735,7 +740,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       console.warn(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE EVICT (unvalidated or signature mismatch) | status=${memHit.validationStatus} | meal="${mealName}"`);
       memCache.delete(cacheKey);
     } else {
-      const urlType = memHit.url.startsWith('data:') ? 'base64-ephemeral' : isS3Url(memHit.url) ? 'permanent' : 'unknown';
+      const urlType = memHit.url.startsWith('data:') ? 'base64-ephemeral' : isPermanentUrl(memHit.url) ? 'permanent' : 'unknown';
       console.log(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE HIT | urlType=${urlType} | meal="${mealName}" | +${Date.now()-_t0}ms`);
       return {
         url: memHit.url,
@@ -769,7 +774,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         try {
           await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
         } catch {}
-      } else if (isS3Url(dbRow.imageUrl)) {
+      } else if (isPermanentUrl(dbRow.imageUrl)) {
         console.log(`[IMG-LIFECYCLE:${traceId}] DB-CACHE HIT (permanent, validated) | meal="${mealName}" | +${Date.now()-_t0}ms`);
         memCache.set(cacheKey, { url: dbRow.imageUrl, validationStatus: dbRow.validationStatus, recipeSignature: dbRow.recipeSignature });
         return {
