@@ -49,7 +49,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     displayFeatures: [
       "Everything in Free",
       "Create a Dish — AI meal generator built around your full nutritional profile",
-      "Recipe Scan — Import any recipe from a photo, text, or image description and instantly rebuild it around your dietary needs, nutrition goals, and active protocols.",
+      "Recipe Maker — Import any recipe from a photo, text, or image description and instantly rebuild it around your dietary needs, nutrition goals, and active protocols.",
       "Smart Scan — Analyze ingredients, detect safety concerns, explain food quality, and recommend healthier alternatives based on your nutrition profile.",
       "Master Shopping List & Grocery Organization",
       "Saved Meals & Favorites — save any AI-generated meal to your personal collection",
@@ -150,7 +150,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
 export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
   basic: [
     "Create a Dish (AI meal generator)",
-    "Recipe Scan — Import any recipe from a photo, text, or image description and instantly rebuild it around your dietary needs, nutrition goals, and active protocols.",
+    "Recipe Maker — Import any recipe from a photo, text, or image description and instantly rebuild it around your dietary needs, nutrition goals, and active protocols.",
     "Smart Scan — Analyze ingredients, detect safety concerns, explain food quality, and recommend healthier alternatives based on your nutrition profile.",
     "Copilot Voice Guidance",
     "Multi-Language Voice Input & Translation",
