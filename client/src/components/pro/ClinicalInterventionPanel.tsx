@@ -262,7 +262,7 @@ export default function ClinicalInterventionPanel({ clientUserId }: Props) {
           {/* Footer note */}
           <p className="mt-4 text-xs text-white/30 leading-relaxed">
             Selections save immediately and change what this patient receives across all meal builders,
-            restaurant guides, recipe scan, and shopping lists — no additional steps required.
+            restaurant guides, Recipe Maker, and shopping lists — no additional steps required.
           </p>
         </div>
       )}
