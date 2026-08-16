@@ -482,7 +482,12 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
     "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
     "lentils", "edamame", "soy beans",
     // Fruit juice and sugary drinks
-    "fruit juice", "orange juice", "apple juice", "soda", "sweetened beverage"
+    "fruit juice", "orange juice", "apple juice", "soda", "sweetened beverage",
+    // High-carb whole fruits (not keto-compatible — too high in natural sugar)
+    // Note: low-sugar berries (strawberries, blueberries, raspberries, blackberries) are keto-allowed
+    "banana", "bananas", "mango", "mangos", "mango chunks", "pineapple", "pineapple chunks",
+    "grapes", "grape juice", "dates", "medjool dates", "dried dates", "lychee",
+    "watermelon", "cantaloupe"
   ],
 
   paleo: [
@@ -744,7 +749,29 @@ export function resolveDietCategoryStrategy(
     coachingBlock: '',
   };
 
-  if (!diet) return base;
+  if (!diet) {
+    // Procedural dietary identities (kosher, halal) are not in DIET_PRIORITY because
+    // they're religious/procedural constraints rather than macro-diet profiles.
+    // Handle their category-level coaching needs here.
+    const normalized = (restrictions || []).map(r => r.trim().toLowerCase());
+    const isKosher = normalized.some(r => r === "kosher" || r === "kosher-halal");
+    const isHalal  = normalized.some(r => r === "halal"  || r === "kosher-halal");
+
+    if ((isKosher || isHalal) && (category === "cocktail" || category === "mocktail")) {
+      const identity = isKosher ? "kosher" : "halal";
+      const coachingBlock = isKosher
+        ? `COCKTAIL GUIDANCE FOR KOSHER:\n- Only use spirits that are kosher-certified. Most commercial vodka, gin, and tequila require certification — use explicitly kosher-certified brands.\n- Wine, champagne, prosecco, and sake MUST be kosher-certified (mevushal is safest). If certification cannot be guaranteed, omit entirely and use sparkling water or soda water as the base.\n- Beer must be kosher-certified.\n- Mixers, syrups, and juices must also be kosher-certified or clearly pareve.\n- Do NOT mix any dairy-based mixer (cream, milk) with a meat-adjacent spirit garnish.\n- If in doubt about any ingredient's certification, substitute with a clearly kosher-safe alternative.`
+        : `COCKTAIL GUIDANCE FOR HALAL:\n- No wine, beer, sake, or spirits — alcohol is forbidden.\n- Generate a sophisticated mocktail instead using sparkling water, fresh citrus, herbs, non-alcoholic bitters, or halal-certified kombucha.\n- No vanilla extract (alcohol-based) — use vanilla powder or vanilla bean.\n- Do NOT present this as a cocktail with alcohol removed; present it as a complete, intentional non-alcoholic drink.`;
+      return {
+        conflictLevel: 'caution',
+        effectiveCategory: isHalal ? 'mocktail' : category,
+        requestedCategory: category,
+        coachingBlock,
+      };
+    }
+
+    return base;
+  }
 
   // Redirect: category is fundamentally incompatible — generate different category silently
   const redirectTarget = DIET_REDIRECT_MAP[diet]?.[category];
@@ -1447,6 +1474,14 @@ const KOSHER_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
   { term: "anchovy paste",   reason: "Anchovy paste — may violate meat/fish separation in kosher cooking" },
   { term: "rennet",          reason: "Rennet in cheese must be kosher-certified" },
   { term: "mono and diglycerides", reason: "Mono and diglycerides may be animal-derived — kosher certification required" },
+  // Alcoholic beverages — require kosher certification (most wine and beer is not certified)
+  { term: "wine",          reason: "Wine must be kosher-certified (mevushal or certified) — most commercial wine is not" },
+  { term: "red wine",      reason: "Red wine must be kosher-certified — most commercial red wine is not" },
+  { term: "white wine",    reason: "White wine must be kosher-certified — most commercial white wine is not" },
+  { term: "beer",          reason: "Beer must be kosher-certified — verify kosher status before use" },
+  { term: "sake",          reason: "Sake must be kosher-certified — most sake is not" },
+  { term: "champagne",     reason: "Champagne must be kosher-certified — most commercial champagne is not" },
+  { term: "prosecco",      reason: "Prosecco must be kosher-certified — most commercial prosecco is not" },
 ];
 
 /**
