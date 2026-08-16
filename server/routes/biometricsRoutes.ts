@@ -452,6 +452,7 @@ Be realistic with portion sizes shown. If you cannot identify food, return zeros
         messages,
         max_tokens: 300,
         temperature: 0.3,
+        response_format: { type: "json_object" },
       });
 
       const content = response.choices[0]?.message?.content ?? '{}';
