@@ -47,13 +47,47 @@ router.post('/ingest', requireAuth, async (req, res) => {
       };
     });
 
-    if (rows.length > 0) {
-      await db.insert(biometricSample).values(rows);
-    }
+    // Waist circumference: upsert by calendar day to prevent duplicate rows
+    // from accumulating when the user saves multiple times from MacroCalculator.
+    // All other metric types insert normally (wearables send de-duplicated data).
+    const otherRows = rows.filter(r => r.type !== 'waist_circumference');
+    const waistRows = rows.filter(r => r.type === 'waist_circumference');
+    let insertedCount = 0;
+    let updatedCount  = 0;
 
-    logAudit({ actor: String(userId), action: "WRITE", resourceType: "biometric_sample", table: "biometric_sample", route: req.path, ip: getClientIp(req as any), meta: { count: rows.length, types: [...new Set(filteredSamples.map(s => s.type))].join(",") } });
+    await db.transaction(async (tx) => {
+      if (otherRows.length > 0) {
+        await tx.insert(biometricSample).values(otherRows);
+        insertedCount += otherRows.length;
+      }
+      for (const row of waistRows) {
+        const dayKey   = row.startTime.toISOString().slice(0, 10);
+        const dayStart = new Date(`${dayKey}T00:00:00Z`);
+        const dayEnd   = new Date(`${dayKey}T23:59:59Z`);
+        const [existing] = await tx.select({ id: biometricSample.id })
+          .from(biometricSample)
+          .where(and(
+            eq(biometricSample.userId, row.userId),
+            eq(biometricSample.type, 'waist_circumference'),
+            gte(biometricSample.startTime, dayStart),
+            lte(biometricSample.startTime, dayEnd),
+          ));
+        if (existing) {
+          await tx.update(biometricSample)
+            .set({ value: row.value, unit: row.unit, startTime: row.startTime, endTime: row.endTime })
+            .where(eq(biometricSample.id, existing.id));
+          updatedCount++;
+        } else {
+          await tx.insert(biometricSample).values(row);
+          insertedCount++;
+        }
+      }
+    });
+
+    logAudit({ actor: String(userId), action: "WRITE", resourceType: "biometric_sample", table: "biometric_sample", route: req.path, ip: getClientIp(req as any), meta: { count: insertedCount + updatedCount, inserted: insertedCount, updated: updatedCount, types: Array.from(new Set(filteredSamples.map(s => s.type))).join(",") } });
     res.status(201).json({ 
-      inserted: rows.length,
+      inserted: insertedCount,
+      updated: updatedCount,
       filtered: body.samples.length - filteredSamples.length,
       message: 'Biometric data ingested successfully'
     });
