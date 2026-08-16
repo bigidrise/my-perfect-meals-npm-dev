@@ -2073,6 +2073,7 @@ export async function generateCravingMealOptions(
       messages: [{ role: "user", content: dalBlock + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: 2500,
+      response_format: { type: "json_object" },
     });
     const content = response.choices[0]?.message?.content;
     if (!content) throw new Error("Empty AI response from variety engine");
