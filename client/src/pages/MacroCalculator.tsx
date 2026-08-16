@@ -3982,37 +3982,52 @@ export default function MacroCounter() {
                         <Button
                           data-testid="macro-sync-weight-button"
                           id="sync-weight-button"
-                          onClick={() => {
+                          disabled={syncingWeight}
+                          onClick={async () => {
                             const weight =
                               units === "imperial" ? weightLbs : weightKg;
                             if (!weight || weight <= 0) {
                               toast({
                                 title: "Enter weight first",
                                 description:
-                                  "Please enter a valid weight before syncing.",
+                                  "Please enter a valid weight before saving.",
                                 variant: "destructive",
                               });
                               return;
                             }
-                            localStorage.setItem(
-                              "pending-weight-sync",
-                              JSON.stringify({
-                                weight,
-                                units,
-                                timestamp: Date.now(),
-                              }),
-                            );
-                            toast({
-                              title: "✓ Weight ready to sync",
-                              description:
-                                "Go to My Biometrics to save it to your history.",
-                            });
-                            advance("sync-weight");
+                            setSyncingWeight(true);
+                            try {
+                              const localDate = new Date().toLocaleDateString("en-CA");
+                              const res = await fetch(apiUrl("/api/biometrics/weight"), {
+                                method: "POST",
+                                credentials: "include",
+                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                                body: JSON.stringify({
+                                  value: weight,
+                                  unit: units === "imperial" ? "lb" : "kg",
+                                  localDate,
+                                }),
+                              });
+                              if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+                              toast({
+                                title: "Weight saved to biometrics",
+                                description: "Your progress is being tracked.",
+                              });
+                              advance("sync-weight");
+                            } catch {
+                              toast({
+                                title: "Couldn't save weight",
+                                description: "Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setSyncingWeight(false);
+                            }
                           }}
                           className="w-full bg-lime-700 border-2 border-lime-300 text-white hover:bg-lime-800 hover:border-lime-300 font-semibold mt-4"
                         >
                           <Scale className="h-4 w-4 mr-2" />
-                          Save Weight To Biometrics
+                          {syncingWeight ? "Saving…" : "Save Weight To Biometrics"}
                         </Button>
                       )}
                     </div>
