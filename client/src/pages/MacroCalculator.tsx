@@ -1287,6 +1287,22 @@ export default function MacroCounter() {
           fitnessGoal: goal,
         }),
       });
+
+      // Also write a biometric_sample row so weight history on the Biometrics page
+      // stays in sync with every Macro Calculator save. The endpoint deduplicates
+      // by user + date, so saving multiple times on the same day is safe.
+      if (weightVal > 0) {
+        await fetch(apiUrl("/api/biometrics/weight"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({ value: weightVal, unit: "kg" }),
+        }).catch((err) => {
+          // Non-fatal — profile was saved; history write failure shouldn't block the user.
+          console.warn("saveBiometricsToProfile: biometric_sample write failed:", err);
+        });
+      }
+
       await refreshUser();
     } catch (err) {
       console.error("Failed to save biometrics to profile:", err);
