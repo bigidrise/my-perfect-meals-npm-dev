@@ -110,7 +110,12 @@ interface WeightRow {
   id: string;
   date: string;
   weight: number;
-  waist?: number;
+}
+interface WaistRow {
+  id: string;
+  date: string;
+  value: number; // always in inches
+  unit: string;
 }
 
 // utils
@@ -1330,128 +1335,95 @@ export default function MyBiometrics() {
     fetchWeightHistory();
   }, []); // Fetch once on mount
 
-  // Check for pending weight sync from MacroCounter
-  const [pendingWeightSync, setPendingWeightSync] = useState<{
-    weight: number;
-    units: string;
-    timestamp: number;
-  } | null>(() => {
-    try {
-      const raw = localStorage.getItem("pending-weight-sync");
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch {}
-    return null;
-  });
+  // ── Body stat tab + log-weight input ────────────────────────────────────────
+  const [bodyStatTab, setBodyStatTab] = useState<"weight" | "waist">("weight");
+  const [logWeightInput, setLogWeightInput] = useState("");
+  const [logWeightSaving, setLogWeightSaving] = useState(false);
 
-  const [weightLbs, setWeightLbs] = useState("");
-  const [waistIn, setWaistIn] = useState("");
+  // ── Waist history (server) ────────────────────────────────────────────────
+  const [waistHistory, setWaistHistory] = useState<WaistRow[]>([]);
+  const [waistLoaded, setWaistLoaded] = useState(false);
 
-  // Pre-fill weight if pending sync exists
   useEffect(() => {
-    if (pendingWeightSync && !weightLbs) {
-      // Convert to lbs if needed
-      const weightInLbs =
-        pendingWeightSync.units === "imperial"
-          ? pendingWeightSync.weight
-          : Math.round(pendingWeightSync.weight * 2.20462);
-      setWeightLbs(String(weightInLbs));
-    }
-  }, [pendingWeightSync]);
+    const fetchWaistHistory = async () => {
+      try {
+        const res = await fetch(
+          apiUrl("/api/biometrics/history?metric=waist_circumference&range=365d"),
+          { credentials: "include", headers: getAuthHeaders() },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.history)) {
+            setWaistHistory(data.history as WaistRow[]);
+          }
+        }
+      } catch {
+        // fallback: stay with empty — no localStorage migration needed
+      } finally {
+        setWaistLoaded(true);
+      }
+    };
+    fetchWaistHistory();
+  }, []);
 
-  const saveWeight = async () => {
-    const w = weightLbs.trim() ? Number(weightLbs) : undefined;
-    const wst = waistIn.trim() ? Number(waistIn) : undefined;
-    if (!w) return;
-
+  // ── Log Today's Weight (measurement only — does NOT update prescription) ──
+  const logTodayWeight = async () => {
+    const w = Number(logWeightInput.trim());
+    if (!w || w <= 0) return;
+    setLogWeightSaving(true);
     try {
-      // Save to database - use local date string to avoid timezone issues
-      const localDate = today; // YYYY-MM-DD in user's local timezone
-      const response = await fetch(apiUrl("/api/biometrics/weight"), {
+      const localDate = new Date().toLocaleDateString("en-CA");
+      const res = await fetch(apiUrl("/api/biometrics/measurement"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          value: w,
-          unit: "lb",
-          localDate,
-        }),
+        body: JSON.stringify({ metric: "weight", value: w, unit: "lb", localDate }),
       });
+      if (!res.ok) throw new Error("Save failed");
 
-      if (!response.ok) {
-        throw new Error("Failed to save weight");
-      }
-
-      const savedData = await response.json();
-
-      // Update local state with saved data
-      const row: WeightRow = {
-        id: savedData.id || crypto.randomUUID(),
-        date: today,
-        weight: w,
-        waist: wst,
-      };
-      setWeightHistory((prev) => [row, ...prev].slice(0, 365));
-      setWeightLbs("");
-      setWaistIn("");
-
-      // Clear pending sync after saving (but don't redirect - let user confirm save)
-      if (pendingWeightSync) {
-        localStorage.removeItem("pending-weight-sync");
-        setPendingWeightSync(null);
-      }
-
-      // Refresh weight history from database to show the update
-      try {
-        const refreshResponse = await fetch(
-          apiUrl("/api/biometrics/weight?range=365d"),
-          { credentials: "include", headers: getAuthHeaders() },
-        );
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-          if (refreshData.history && refreshData.history.length > 0) {
-            const dbWeights: WeightRow[] = refreshData.history.map(
-              (h: any) => ({
-                id: h.id,
-                date: h.date,
-                weight:
-                  h.unit === "kg" ? Math.round(h.weight * 2.20462) : h.weight,
-                waist: undefined,
-              }),
-            );
-            setWeightHistory(dbWeights);
-          }
-        }
-      } catch (refreshErr) {
-        console.log("Failed to refresh weight history:", refreshErr);
-      }
-
-      toast({
-        title: "✓ Weight saved",
-        description: "Your weight has been saved successfully.",
+      // Optimistic update: replace today's entry if exists, otherwise prepend
+      const row: WeightRow = { id: crypto.randomUUID(), date: localDate, weight: w };
+      setWeightHistory((prev) => {
+        const filtered = prev.filter((r) => r.date !== localDate);
+        return [row, ...filtered].slice(0, 365);
       });
+      setLogWeightInput("");
+      toast({ title: "✓ Weight logged", description: "Your progress has been recorded." });
 
       const returnTo = sessionStorage.getItem("biometrics:returnTo");
       if (returnTo) {
         sessionStorage.removeItem("biometrics:returnTo");
         setTimeout(() => setLocation(returnTo), 900);
       }
-    } catch (error) {
-      console.error("Error saving weight:", error);
-      toast({
-        title: "Error saving weight",
-        description: "Failed to save weight. Please try again.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Couldn't save weight", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setLogWeightSaving(false);
     }
   };
 
   const latestWeight = useMemo(() => weightHistory[0]?.weight, [weightHistory]);
-  const latestWaist = useMemo(
-    () => weightHistory.find((r) => r.waist)?.waist,
-    [weightHistory],
-  );
+
+  // Waist comes from server history, not from the weight rows (old localStorage pattern removed)
+  const latestWaist     = useMemo(() => waistHistory[0]?.value,                    [waistHistory]);
+  const latestWaistDate = useMemo(() => waistHistory[0]?.date,                     [waistHistory]);
+
+  // Review-macros nudge: appears when the entered log weight differs from the
+  // prescription baseline by ≥ 3 lb.  Reads MacroCalculator localStorage settings.
+  const reviewMacrosNudge = useMemo<string | null>(() => {
+    const w = Number(logWeightInput.trim());
+    if (!w || w <= 0) return null;
+    try {
+      const settings = JSON.parse(localStorage.getItem("mpm_macro_settings") || "{}");
+      const baseline = settings.weightLbs;
+      if (!baseline) return null;
+      const diff = Math.round(Math.abs(w - baseline));
+      if (diff < 3) return null;
+      return `${diff} lb ${w < baseline ? "below" : "above"} your Macro Calculator weight`;
+    } catch {
+      return null;
+    }
+  }, [logWeightInput]);
 
   const bmi = useMemo(() => {
     if (!latestWeight || !body.heightIn) return undefined;
@@ -1583,6 +1555,60 @@ export default function MyBiometrics() {
     return out;
   }, [weightHistory]);
 
+  // ── Waist time-series (mirrors weight pattern, values in inches) ─────────────
+  const buildMetricSeries = (
+    history: { date: string; value: number }[],
+    dayCount: number,
+  ): { date: string; metricAvg: number }[] => {
+    const byDay = new Map<string, number[]>();
+    for (const r of history) {
+      const key = r.date.slice(0, 10);
+      if (!byDay.has(key)) byDay.set(key, []);
+      byDay.get(key)!.push(r.value);
+    }
+    const out: { date: string; metricAvg: number }[] = [];
+    for (let i = dayCount - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const vals = byDay.get(key);
+      const avg  = vals?.length
+        ? parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1))
+        : 0;
+      out.push({ date: key, metricAvg: avg });
+    }
+    return out;
+  };
+
+  const waist7days = useMemo(() => buildMetricSeries(waistHistory, 7),   [waistHistory]);
+  const waist1mo   = useMemo(() => buildMetricSeries(waistHistory, 30),  [waistHistory]);
+  const waist3mo   = useMemo(() => buildMetricSeries(waistHistory, 90),  [waistHistory]);
+  const waist6mo   = useMemo(() => buildMetricSeries(waistHistory, 180), [waistHistory]);
+  const waist12mo  = useMemo(() => buildMetricSeries(waistHistory, 365), [waistHistory]);
+
+  const activeWaistData = useMemo(() => {
+    if (weightView === "7") return waist7days;
+    if (weightView === "1") return waist1mo;
+    if (weightView === "3") return waist3mo;
+    if (weightView === "6") return waist6mo;
+    return waist12mo;
+  }, [weightView, waist7days, waist1mo, waist3mo, waist6mo, waist12mo]);
+
+  // Period change labels for each tab
+  const weightPeriodChange = useMemo(() => {
+    const series = weightView === "7" ? weight7days : weightView === "1" ? weight1mo
+      : weightView === "3" ? weight3mo : weightView === "6" ? weight6mo : weight12mo;
+    const filled = series.filter((r) => r.weightAvg > 0);
+    if (filled.length < 2) return null;
+    return parseFloat((filled[filled.length - 1].weightAvg - filled[0].weightAvg).toFixed(1));
+  }, [weightView, weight7days, weight1mo, weight3mo, weight6mo, weight12mo]);
+
+  const waistPeriodChange = useMemo(() => {
+    const filled = activeWaistData.filter((r) => r.metricAvg > 0);
+    if (filled.length < 2) return null;
+    return parseFloat((filled[filled.length - 1].metricAvg - filled[0].metricAvg).toFixed(1));
+  }, [activeWaistData]);
+
   // ------- export CSV -------
   const exportCSV = () => {
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -1604,12 +1630,12 @@ export default function MyBiometrics() {
     }
     out.push("");
     // Weight history
-    out.push("Section,Date,Weight(lb),Waist(in)");
+    out.push("Section,Date,Weight(lb)");
     const weightRows = [...weightHistory].sort((a, b) =>
       a.date.localeCompare(b.date),
     );
     for (const r of weightRows)
-      out.push(["Weight", r.date, r.weight, r.waist ?? ""].map(esc).join(","));
+      out.push(["Weight", r.date, r.weight].map(esc).join(","));
     out.push("");
     // Body snapshot (latest values)
     out.push(
@@ -2255,7 +2281,7 @@ export default function MyBiometrics() {
         {/* Macro Consistency Timeline - replaces standalone Calories chart */}
         <MacroConsistencyTimeline macroRows={macroRows} />
 
-        {/* BODY with weight history */}
+        {/* BODY STATS — tabbed: Weight | Waist */}
         <Card id="biometrics-weight-section" className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
@@ -2264,108 +2290,201 @@ export default function MyBiometrics() {
             <MonthViewToggle value={weightView} onChange={setWeightView} />
           </CardHeader>
           <CardContent>
-            <div
-              data-testid="biometrics-weight-input"
-              className="grid grid-cols-2 gap-3 mb-3"
-            >
-              <div>
-                <div className="text-xs text-white/70">Weight (lb)</div>
-                <Input
-                  inputMode="decimal"
-                  className="bg-black/20 border-white/20 text-white"
-                  value={weightLbs}
-                  onChange={(e) => setWeightLbs(e.target.value)}
-                  data-testid="input-weight"
-                />
-              </div>
-              <div>
-                <div className="text-xs text-white/70">Waist (in)</div>
-                <Input
-                  inputMode="decimal"
-                  className="bg-black/20 border-white/20 text-white"
-                  value={waistIn}
-                  onChange={(e) => setWaistIn(e.target.value)}
-                  data-testid="input-waist"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mb-2">
-              <PillButton
-                id="save-weight-button"
-                data-testid="biometrics-save-weight-button"
-                data-walkthrough="save-weight"
-                onClick={saveWeight}
-                className="!bg-lime-500/20 !border-lime-400 hover:!bg-lime-500/30"
-              >
-                Save
-              </PillButton>
-              <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">Weight</span>
-            </div>
-            <ReadOnlyNote>
-              Track your weight progress here over time. Your weight data
-              automatically syncs with the <strong>Macro Calculator</strong>.
-            </ReadOnlyNote>
-            <div style={{ width: "100%", height: 220 }} className="mt-2">
-              <ResponsiveContainer>
-                <LineChart
-                  data={
-                    weightView === "7"
-                      ? weight7days
-                      : weightView === "1"
-                        ? weight1mo
-                        : weightView === "3"
-                          ? weight3mo
-                          : weightView === "6"
-                            ? weight6mo
-                            : weight12mo
-                  }
+            {/* Metric tabs */}
+            <div className="flex gap-1 bg-black/30 p-1 rounded-lg mb-4 w-fit">
+              {(["weight", "waist"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setBodyStatTab(tab)}
+                  className={`px-4 py-1.5 rounded text-sm font-medium transition capitalize ${
+                    bodyStatTab === tab
+                      ? "bg-white/20 text-white"
+                      : "text-white/60 hover:text-white"
+                  }`}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: "#fff" }}
-                    tickFormatter={(v: string) => {
-                      const d = new Date(v + "T12:00:00");
-                      return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-                    }}
-                  />
-                  <YAxis tick={{ fontSize: 10, fill: "#fff" }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "rgba(0,0,0,0.9)",
-                      border: "1px solid #333",
-                      color: "#fff",
-                      borderRadius: 8,
-                    }}
-                    labelFormatter={(l) =>
-                      new Date(l + "T12:00:00").toLocaleDateString()
-                    }
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="weightAvg"
-                    stroke="#10b981"
-                    dot={false}
-                    name="Weight (lb)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                  {tab === "weight" ? "Weight" : "Waist"}
+                </button>
+              ))}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mt-4">
-              {latestWeight && (
-                <Summary
-                  label="Weight"
-                  value={convertWeightLbsDisplay(latestWeight, (user as any)?.measurementSystem ?? "imperial")}
-                />
-              )}
-              {latestWaist && (
-                <Summary label="Waist" value={`${latestWaist}"`} />
-              )}
-              {bmi && bmiCategory && (
-                <Summary label="BMI*" value={`${bmi} — ${bmiCategory.label}`} sub="*Height from settings" categoryColor={bmiCategory.color} />
-              )}
-              {whr && <Summary label="Waist/Height" value={whr} />}
-            </div>
+
+            {/* ── Weight tab ── */}
+            {bodyStatTab === "weight" && (
+              <>
+                {/* Current value + period delta */}
+                <div className="flex items-baseline gap-3 mb-1">
+                  <span className="text-2xl font-bold text-white">
+                    {latestWeight
+                      ? convertWeightLbsDisplay(latestWeight, (user as any)?.measurementSystem ?? "imperial")
+                      : "—"}
+                  </span>
+                  {weightPeriodChange !== null && (
+                    <span className={`text-sm ${weightPeriodChange < 0 ? "text-emerald-400" : weightPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
+                      {weightPeriodChange > 0 ? "+" : ""}{weightPeriodChange} lb this period
+                    </span>
+                  )}
+                </div>
+                {/* Chart */}
+                <div style={{ width: "100%", height: 200 }} className="mt-2">
+                  <ResponsiveContainer>
+                    <LineChart
+                      data={
+                        weightView === "7" ? weight7days
+                          : weightView === "1" ? weight1mo
+                          : weightView === "3" ? weight3mo
+                          : weightView === "6" ? weight6mo
+                          : weight12mo
+                      }
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 10, fill: "#fff" }}
+                        tickFormatter={(v: string) => {
+                          const d = new Date(v + "T12:00:00");
+                          return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                        }}
+                      />
+                      <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} />
+                      <Tooltip
+                        contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
+                        labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
+                        formatter={(v: any) => [`${v} lb`, "Weight"]}
+                      />
+                      <Line type="monotone" dataKey="weightAvg" stroke="#10b981" dot={false} name="Weight (lb)" connectNulls={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Log Today's Weight — measurement only, does NOT change macros */}
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <div className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">
+                    Log Today's Weight
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      inputMode="decimal"
+                      placeholder="lbs"
+                      className="bg-black/20 border-white/20 text-white w-28"
+                      value={logWeightInput}
+                      onChange={(e) => setLogWeightInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && logTodayWeight()}
+                      data-testid="input-log-weight"
+                    />
+                    <PillButton
+                      id="save-weight-button"
+                      data-testid="biometrics-save-weight-button"
+                      data-walkthrough="save-weight"
+                      onClick={logTodayWeight}
+                      disabled={logWeightSaving || !logWeightInput.trim()}
+                      className="!bg-lime-500/20 !border-lime-400 hover:!bg-lime-500/30 disabled:opacity-40"
+                    >
+                      {logWeightSaving ? "Saving…" : "Save"}
+                    </PillButton>
+                  </div>
+                  {/* Review-macros nudge */}
+                  {reviewMacrosNudge && (
+                    <button
+                      onClick={() => setLocation("/macro-calculator")}
+                      className="mt-2 w-full text-left text-xs px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-400/30 text-orange-300 hover:bg-orange-500/20 transition"
+                    >
+                      ↗ {reviewMacrosNudge} — <span className="underline">Review Macros →</span>
+                    </button>
+                  )}
+                  <div className="mt-2">
+                    <ReadOnlyNote>
+                      Logging here tracks your progress without changing your macro prescription.
+                      To update your macros, go to the{" "}
+                      <button onClick={() => setLocation("/macro-calculator")} className="underline text-white/80">
+                        Macro Calculator
+                      </button>.
+                    </ReadOnlyNote>
+                  </div>
+                </div>
+
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mt-4">
+                  {latestWeight && (
+                    <Summary
+                      label="Weight"
+                      value={convertWeightLbsDisplay(latestWeight, (user as any)?.measurementSystem ?? "imperial")}
+                    />
+                  )}
+                  {bmi && bmiCategory && (
+                    <Summary label="BMI*" value={`${bmi} — ${bmiCategory.label}`} sub="*Height from settings" categoryColor={bmiCategory.color} />
+                  )}
+                  {whr && <Summary label="Waist/Height" value={whr} />}
+                </div>
+              </>
+            )}
+
+            {/* ── Waist tab ── */}
+            {bodyStatTab === "waist" && (
+              <>
+                {/* Current value + period delta */}
+                <div className="flex items-baseline gap-3 mb-1">
+                  <span className="text-2xl font-bold text-white">
+                    {latestWaist ? `${latestWaist}"` : "—"}
+                  </span>
+                  {waistPeriodChange !== null && (
+                    <span className={`text-sm ${waistPeriodChange < 0 ? "text-emerald-400" : waistPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
+                      {waistPeriodChange > 0 ? "+" : ""}{waistPeriodChange}" this period
+                    </span>
+                  )}
+                </div>
+                {latestWaistDate && (
+                  <div className="text-xs text-white/40 mb-3">
+                    Last recorded: {new Date(latestWaistDate + "T12:00:00").toLocaleDateString()}
+                  </div>
+                )}
+                {/* Chart */}
+                {waistLoaded && waistHistory.length > 0 ? (
+                  <div style={{ width: "100%", height: 200 }} className="mt-2">
+                    <ResponsiveContainer>
+                      <LineChart data={activeWaistData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10, fill: "#fff" }}
+                          tickFormatter={(v: string) => {
+                            const d = new Date(v + "T12:00:00");
+                            return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                          }}
+                        />
+                        <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} />
+                        <Tooltip
+                          contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
+                          labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
+                          formatter={(v: any) => [`${v}"`, "Waist"]}
+                        />
+                        <Line type="monotone" dataKey="metricAvg" stroke="#f97316" dot={false} name='Waist (in)' connectNulls={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : waistLoaded ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-white/40 text-sm gap-2">
+                    <span>No waist data yet.</span>
+                    <span className="text-xs text-center">Waist measurements are saved automatically when you use the Macro Calculator.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-8 text-white/40 text-sm">Loading…</div>
+                )}
+                <div className="mt-3">
+                  <ReadOnlyNote>
+                    Waist is saved automatically when you update your stats in the{" "}
+                    <button onClick={() => setLocation("/macro-calculator")} className="underline text-white/80">
+                      Macro Calculator
+                    </button>.
+                  </ReadOnlyNote>
+                </div>
+                {/* Summary */}
+                {(latestWaist || whr) && (
+                  <div className="grid grid-cols-2 gap-3 text-sm mt-4">
+                    {latestWaist && <Summary label="Waist" value={`${latestWaist}"`} />}
+                    {whr && <Summary label="Waist/Height" value={whr} />}
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
