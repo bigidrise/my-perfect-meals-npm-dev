@@ -1560,6 +1560,15 @@ STRICT DISH EXECUTION RULE: When a known cultural dish is being generated (e.g.,
 
 CUISINE BOUNDARY RULE: All ingredients, dishes, and preparations must originate from or be commonly used within ${cuisine} cuisine. Do NOT combine elements from different cuisines (e.g., Egyptian ful medames with Ethiopian injera, Japanese miso with Indian roti). Do NOT introduce globally common dishes unless they are also genuinely part of ${cuisine} cuisine specifically. If any component does not belong to the selected cuisine — REJECT and rebuild using only ingredients and preparations authentic to ${cuisine}.
 
+DISH IDENTITY PRESERVATION RULE (highest priority — overrides all cuisine rules above):
+If the user has explicitly requested a named dish format (e.g., cheesecake, tacos, pizza, sushi, soup, burger, pasta, stir-fry, curry, smoothie, milkshake), PRESERVE that dish format without exception.
+Cultural grounding adapts the ingredients, flavors, spices, and techniques WITHIN that dish — it does NOT replace the dish with a different category or format.
+- A cheesecake request → produce cheesecake variations (perhaps using ricotta, labne, goat cheese, or local dairy — but still cheesecake in structure: creamy filling on a crust or as a mousse)
+- A taco request → produce tacos, not rice bowls or flatbreads
+- A smoothie request → produce smoothies, not salads or grain bowls
+The dish identity is set by the user's request. Cuisine preference is the lens through which the dish is interpreted — NOT permission to replace the dish with something else.
+If a named dish format is genuinely incompatible with the cuisine AND with the user's dietary constraints, adapt the closest culturally equivalent dessert/snack/meal within the same dish category rather than switching to an unrelated format.
+
 SERVING CONTEXT RULE: Meals must reflect how they are traditionally served and consumed in ${cuisine} cuisine. If a dish is typically served with a specific base or delivery medium, that element MUST be included — Doro Wat requires injera, sushi requires rice, tacos require tortillas. Do NOT reinterpret meals as generic "main + sides" if the cuisine does not follow that plating structure. Prefer authentic serving formats: shared platters, layered dishes, wrapped preparations, or communal formats as appropriate. If the serving structure is incomplete or wrong, reject and rebuild.
 
 DISH NAMING COMMITMENT RULE: When the generated meal clearly corresponds to a known or widely recognized dish within ${cuisine} cuisine, use the authentic dish name. Optionally include a short English descriptor in parentheses if helpful (e.g., "Gỏi Gà (Vietnamese Chicken Salad)", "Doro Wat (Ethiopian Chicken Stew) with Injera"). Do NOT default to generic descriptive names like "Herb Salad", "Flatbread Plate", or "Fish Rice Meal" when a specific dish identity is apparent. Commit to the real name. NEVER use hedging qualifiers such as "inspired", "style", "influenced", or "based" (e.g., "Ethiopian-Inspired Stew" is WRONG — if it is Doro Wat, name it Doro Wat).
