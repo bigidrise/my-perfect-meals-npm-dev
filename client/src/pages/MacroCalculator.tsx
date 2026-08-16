@@ -1272,8 +1272,8 @@ export default function MacroCounter() {
     if (!user?.id || user.id.startsWith("guest-")) return;
     try {
       const heightVal = Math.round(cm);
-      // users.weight is stored in kg (canonical schema unit).
-      // Send kg directly — do NOT convert to lbs here.
+      // users.weight is stored in kg. Always send kg with explicit weightUnit so
+      // the profile endpoint never silently stores a lbs value in the kg column.
       const weightVal = Math.round(kg);
       await fetch(apiUrl("/api/users/profile"), {
         method: "PUT",
@@ -1282,6 +1282,7 @@ export default function MacroCounter() {
           age,
           height: heightVal,
           weight: weightVal,
+          weightUnit: "kg",
           activityLevel: activity,
           fitnessGoal: goal,
         }),
