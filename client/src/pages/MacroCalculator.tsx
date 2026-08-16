@@ -1251,61 +1251,54 @@ export default function MacroCounter() {
 
   const saveWaistToBiometrics = async () => {
     if (!user?.id || user.id.startsWith("guest-")) return;
-    try {
-      const wUnit = units === "imperial" ? "in" : "cm";
-      const wVal = units === "imperial" ? waistIn : waistCm;
-      if (!wVal || wVal <= 0) return;
-      await fetch(apiUrl("/api/biometrics/ingest"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          samples: [{ type: "waist_circumference", value: wVal, unit: wUnit }],
-        }),
-      });
-    } catch (err) {
-      console.error("Failed to save waist to biometrics:", err);
-    }
+    const wUnit = units === "imperial" ? "in" : "cm";
+    const wVal = units === "imperial" ? waistIn : waistCm;
+    if (!wVal || wVal <= 0) return;
+    const res = await fetch(apiUrl("/api/biometrics/ingest"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({
+        samples: [{ type: "waist_circumference", value: wVal, unit: wUnit }],
+      }),
+    });
+    if (!res.ok) throw new Error(`Waist save returned ${res.status}`);
   };
 
   const saveBiometricsToProfile = async () => {
     if (!user?.id || user.id.startsWith("guest-")) return;
-    try {
-      const heightVal = Math.round(cm);
-      // users.weight is stored in kg. Always send kg with explicit weightUnit so
-      // the profile endpoint never silently stores a lbs value in the kg column.
-      const weightVal = Math.round(kg);
-      await fetch(apiUrl("/api/users/profile"), {
-        method: "PUT",
+    const heightVal = Math.round(cm);
+    // users.weight is stored in kg. Always send kg with explicit weightUnit so
+    // the profile endpoint never silently stores a lbs value in the kg column.
+    const weightVal = Math.round(kg);
+    const profileRes = await fetch(apiUrl("/api/users/profile"), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({
+        age,
+        height: heightVal,
+        weight: weightVal,
+        weightUnit: "kg",
+        activityLevel: activity,
+        fitnessGoal: goal,
+      }),
+    });
+    if (!profileRes.ok) throw new Error(`Profile save returned ${profileRes.status}`);
+
+    // Also write a biometric_sample row so weight history on the Biometrics page
+    // stays in sync with every Macro Calculator save. The endpoint deduplicates
+    // by user + local date (not UTC) to handle midnight-timezone edge cases.
+    if (weightVal > 0) {
+      // en-CA locale produces YYYY-MM-DD in the user's local timezone — avoids
+      // UTC date boundary mismatches near midnight for non-UTC users.
+      const localDate = new Date().toLocaleDateString("en-CA");
+      const weightRes = await fetch(apiUrl("/api/biometrics/weight"), {
+        method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          age,
-          height: heightVal,
-          weight: weightVal,
-          weightUnit: "kg",
-          activityLevel: activity,
-          fitnessGoal: goal,
-        }),
+        credentials: "include",
+        body: JSON.stringify({ value: weightVal, unit: "kg", localDate }),
       });
-
-      // Also write a biometric_sample row so weight history on the Biometrics page
-      // stays in sync with every Macro Calculator save. The endpoint deduplicates
-      // by user + date, so saving multiple times on the same day is safe.
-      if (weightVal > 0) {
-        await fetch(apiUrl("/api/biometrics/weight"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
-          body: JSON.stringify({ value: weightVal, unit: "kg" }),
-        }).catch((err) => {
-          // Non-fatal — profile was saved; history write failure shouldn't block the user.
-          console.warn("saveBiometricsToProfile: biometric_sample write failed:", err);
-        });
-      }
-
-      await refreshUser();
-    } catch (err) {
-      console.error("Failed to save biometrics to profile:", err);
+      if (!weightRes.ok) throw new Error(`Weight history save returned ${weightRes.status}`);
     }
   };
 
@@ -1380,92 +1373,140 @@ export default function MacroCounter() {
 
   const saveEstimatedBodyFat = async () => {
     if (!user?.id || user.id.startsWith("guest-") || !estimatedBodyFat) return;
+    let existingGoalBF: number | null = null;
     try {
-      let existingGoalBF: number | null = null;
-      try {
-        const latest = await apiRequest(`/api/users/${user.id}/body-composition/latest`);
-        if (latest?.source === "trainer" || latest?.source === "physician") return;
-        if (latest?.entry?.goalBodyFatPct) {
-          existingGoalBF = parseFloat(latest.entry.goalBodyFatPct);
-        }
-      } catch {
-        // Network failure — proceed with existingGoalBF = null
+      const latest = await apiRequest(`/api/users/${user.id}/body-composition/latest`);
+      if (latest?.source === "trainer" || latest?.source === "physician") return;
+      if (latest?.entry?.goalBodyFatPct) {
+        existingGoalBF = parseFloat(latest.entry.goalBodyFatPct);
       }
+    } catch {
+      // Network failure fetching existing goal — proceed with null
+    }
+    await apiRequest(`/api/users/${user.id}/body-composition`, {
+      method: "POST",
+      body: JSON.stringify({
+        currentBodyFatPct: estimatedBodyFat,
+        goalBodyFatPct: existingGoalBF,
+        scanMethod: "Other",
+        source: "client",
+        recordedAt: new Date().toISOString(),
+      }),
+    });
+  };
 
-      await apiRequest(`/api/users/${user.id}/body-composition`, {
-        method: "POST",
-        body: JSON.stringify({
-          currentBodyFatPct: estimatedBodyFat,
-          goalBodyFatPct: existingGoalBF,
-          scanMethod: "Other",
-          source: "client",
-          recordedAt: new Date().toISOString(),
-        }),
+  // ── Shared helpers ───────────────────────────────────────────────────────────
+
+  /** Build a macro-targets object from the current computed results + advisory deltas. */
+  const buildMacroTargetsFromResults = () => {
+    const adjustedProtein = Math.max(0, results!.macros.protein.g + advisoryDeltas.protein);
+    const adjustedCarbs   = Math.max(0, results!.macros.carbs.g   + advisoryDeltas.carbs);
+    const adjustedFat     = Math.max(0, results!.macros.fat.g     + advisoryDeltas.fat);
+    const fibrousCarbs_g  = results!.macros.carbs.fibrous;
+    const starchyCarbs_g  = Math.max(0, adjustedCarbs - fibrousCarbs_g);
+    const vegetableCupsPerMeal = (results!.macros as any).vegetableCupsPerMeal ?? 3;
+    const vegetableCupsPerDay  = (results!.macros as any).vegetableCupsPerDay  ?? (mealsPerDay * 3);
+    // Cast needed: local CutIntensity/CutStyle declarations shadow the imported ones,
+    // creating a nominal mismatch even though the shapes are identical at runtime.
+    return {
+      calories: results!.target,
+      protein_g: adjustedProtein,
+      carbs_g: adjustedCarbs,
+      fat_g: adjustedFat,
+      starchyCarbs_g,
+      fibrousCarbs_g,
+      starchStrategy,
+      cutIntensity,
+      cutStyle,
+      starchyCarbCap_g,
+      allowZeroStarchyOnLowDay,
+      fibrousCarbSafetyCap_g,
+      strictMode,
+      mealsPerDay,
+      vegetableCupsPerMeal,
+      vegetableCupsPerDay,
+    } as Parameters<typeof setMacroTargets>[0];
+  };
+
+  /**
+   * Single shared save operation for every "save/update" button on this page.
+   *
+   * Contract:
+   *   1. Macro targets are saved first — throws on failure, shows error toast, stops.
+   *   2. Biometric writes (weight, waist, body fat) run in parallel via Promise.allSettled
+   *      so one failure never blocks the others.
+   *   3. Navigation (if any) happens only after all writes complete.
+   *   4. The user sees a success toast when everything saved, or a partial-failure
+   *      toast naming what was missed — never a silent half-save.
+   */
+  const performMacroAndBiometricsSave = async (
+    targets: Parameters<typeof setMacroTargets>[0],
+    options?: { successTitle?: string; onComplete?: () => void },
+  ): Promise<void> => {
+    // Step 1: Macro prescription — fatal; stop if this fails.
+    await setMacroTargets(targets, user?.id);
+
+    // Step 2: Starch preferences — non-blocking ancillary write.
+    if (user?.id && !user.id.startsWith("guest-")) {
+      apiRequest("/api/prescription/starch-preferences", {
+        method: "PATCH",
+        body: JSON.stringify({ defaultStarchMealsPerDay, starchDistributionStrategy }),
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      }).catch((err) =>
+        console.error("[MacroCalculator] Failed to save starch preferences:", err),
+      );
+    }
+
+    // Step 3: All biometric writes in parallel — collect results, don't short-circuit.
+    const [weightResult, waistResult, bodyFatResult] = await Promise.allSettled([
+      saveBiometricsToProfile(),
+      saveWaistToBiometrics(),
+      saveEstimatedBodyFat(),
+    ]);
+
+    // Step 4: Dispatch event, refresh auth user, mark clean.
+    window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+    await refreshUser();
+    setIsDirty(false);
+
+    // Step 5: Navigate / complete callback only after all writes finish.
+    options?.onComplete?.();
+
+    // Step 6: Report — full success or named partial failures.
+    const failures: string[] = [];
+    if (weightResult.status === "rejected") failures.push("weight");
+    if (waistResult.status  === "rejected") failures.push("waist");
+    if (bodyFatResult.status === "rejected") failures.push("body fat");
+
+    if (failures.length > 0) {
+      console.warn("[MacroCalculator] Partial save — biometric failures:", failures);
+      toast({
+        title: `${options?.successTitle ?? "Macros saved"} — some stats didn't update`,
+        description: `Macros saved. Could not update: ${failures.join(", ")}. Try saving again or visit the Biometrics page.`,
+        duration: 8000,
       });
-    } catch (err) {
-      console.error("Failed to save estimated body fat:", err);
+    } else {
+      toast({
+        title: options?.successTitle ?? "Macros & Stats Saved",
+        description: "Your macro targets and body stats have been updated.",
+      });
     }
   };
+
+  // ── Button handlers ──────────────────────────────────────────────────────────
 
   const handleQuickSave = async () => {
     if (!results || !isCalcInputValid || isSaving) return;
     setIsSaving(true);
     try {
-      const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
-      const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-      const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
-      const fibrousCarbs_g = results.macros.carbs.fibrous;
-      const starchyCarbs_g = Math.max(0, adjustedCarbs - fibrousCarbs_g);
-      const vegetableCupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
-      const vegetableCupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
-      await setMacroTargets(
-        {
-          calories: results.target,
-          protein_g: adjustedProtein,
-          carbs_g: adjustedCarbs,
-          fat_g: adjustedFat,
-          starchyCarbs_g,
-          fibrousCarbs_g,
-          starchStrategy,
-          cutIntensity,
-          cutStyle,
-          starchyCarbCap_g,
-          allowZeroStarchyOnLowDay,
-          fibrousCarbSafetyCap_g,
-          strictMode,
-          mealsPerDay,
-          vegetableCupsPerMeal,
-          vegetableCupsPerDay,
-        },
-        user?.id,
-      );
-      // Persist starch meal count and distribution strategy to the server.
-      // These are the authoritative source — not localStorage, not inferred from ratios.
-      if (user?.id && !user.id.startsWith("guest-")) {
-        try {
-          await apiRequest("/api/prescription/starch-preferences", {
-            method: "PATCH",
-            body: JSON.stringify({ defaultStarchMealsPerDay, starchDistributionStrategy }),
-            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          });
-        } catch (err) {
-          console.error("[MacroCalculator] Failed to save starch preferences (non-fatal):", err);
-        }
-      }
-      window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
-      saveBiometricsToProfile().catch(() => {});
-      saveWaistToBiometrics().catch(() => {});
-      saveEstimatedBodyFat().catch(() => {});
-      setIsDirty(false);
-      toast({
-        title: "Macro Targets Updated",
-        description: "Your daily macro targets have been recalculated and saved.",
+      await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
+        successTitle: "Macros & Stats Updated",
       });
     } catch (error) {
       console.error("Failed to update macro targets:", error);
       toast({
         title: "Update Failed",
-        description: "Failed to update your macro targets. Please try again.",
+        description: "Failed to save your macro targets. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -3355,82 +3396,25 @@ export default function MacroCounter() {
                       onClick={async () => {
                         setIsSaving(true);
                         try {
-                          const adjustedProtein = Math.max(
-                            0,
-                            results.macros.protein.g + advisoryDeltas.protein,
-                          );
-                          const adjustedCarbs = Math.max(
-                            0,
-                            results.macros.carbs.g + advisoryDeltas.carbs,
-                          );
-                          const adjustedFat = Math.max(
-                            0,
-                            results.macros.fat.g + advisoryDeltas.fat,
-                          );
-                          const fibrousCarbs_g = results.macros.carbs.fibrous;
-                          const starchyCarbs_g = Math.max(0, adjustedCarbs - fibrousCarbs_g);
-                          const vegetableCupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
-                          const vegetableCupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
-
-                          await setMacroTargets(
-                            {
-                              calories: results.target,
-                              protein_g: adjustedProtein,
-                              carbs_g: adjustedCarbs,
-                              fat_g: adjustedFat,
-                              starchyCarbs_g,
-                              fibrousCarbs_g,
-                              starchStrategy,
-                              cutIntensity,
-                              cutStyle,
-                              starchyCarbCap_g,
-                              allowZeroStarchyOnLowDay,
-                              fibrousCarbSafetyCap_g,
-                              strictMode,
-                              mealsPerDay,
-                              vegetableCupsPerMeal,
-                              vegetableCupsPerDay,
-                            },
-                            user?.id,
-                          );
-
-                          window.dispatchEvent(
-                            new CustomEvent("mpm:targetsUpdated"),
-                          );
-
-                          if (isGuestMode()) {
-                            markMacrosCompleted();
-                          }
-
-                          const assignedBuilder =
-                            getAssignedBuilderFromStorage();
-
+                          if (isGuestMode()) markMacrosCompleted();
+                          const assignedBuilder = getAssignedBuilderFromStorage();
                           advanceGuided("done");
                           try { sessionStorage.removeItem("macro_guided_step"); } catch {}
-
-                          if (hasActivePaidSubscription(user)) {
-                            toast({
-                              title: "Macro Targets Set!",
-                              description: `Heading to ${assignedBuilder.name} to build your meals.`,
-                            });
-                            setLocation(assignedBuilder.path);
-                          } else {
-                            toast({
-                              title: "Macro Targets Saved!",
-                              description: "Your targets are set. Upgrade to start building personalized meals.",
-                            });
-                            setLocation("/dashboard");
-                          }
-
-                          saveBiometricsToProfile().catch(() => {});
-                          saveWaistToBiometrics().catch(() => {});
-                          saveEstimatedBodyFat().catch(() => {});
+                          await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
+                            successTitle: "Macros & Stats Saved",
+                            onComplete: () => {
+                              if (hasActivePaidSubscription(user)) {
+                                setLocation(assignedBuilder.path);
+                              } else {
+                                setLocation("/dashboard");
+                              }
+                            },
+                          });
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
                             title: "Save Failed",
-                            description:
-                              "Failed to save your macro targets. Please try again.",
+                            description: "Failed to save your macro targets. Please try again.",
                             variant: "destructive",
                           });
                         } finally {
@@ -3440,7 +3424,7 @@ export default function MacroCounter() {
                       className="w-full py-4 bg-lime-600  border border-lime-300 text-white font-semibold text-lg rounded-xl"
                     >
                       <ChefHat className="h-5 w-5 mr-2" />
-                      {isSaving ? "Saving..." : "Save & Go to Meal Builder"}
+                      {isSaving ? "Saving..." : "Save Macros & Stats"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -4330,71 +4314,16 @@ export default function MacroCounter() {
                       onClick={async () => {
                         advance("calc");
                         setIsSaving(true);
-
                         try {
-                          const adjustedProtein = Math.max(
-                            0,
-                            results.macros.protein.g + advisoryDeltas.protein,
-                          );
-                          const adjustedCarbs = Math.max(
-                            0,
-                            results.macros.carbs.g + advisoryDeltas.carbs,
-                          );
-                          const adjustedFat = Math.max(
-                            0,
-                            results.macros.fat.g + advisoryDeltas.fat,
-                          );
-                          const fibrousCarbs_g_s3 = results.macros.carbs.fibrous;
-                          const starchyCarbs_g_s3 = Math.max(0, adjustedCarbs - fibrousCarbs_g_s3);
-                          const vegetableCupsPerMeal_s3 = (results.macros as any).vegetableCupsPerMeal ?? 3;
-                          const vegetableCupsPerDay_s3 = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
-
-                          await setMacroTargets(
-                            {
-                              calories: results.target,
-                              protein_g: adjustedProtein,
-                              carbs_g: adjustedCarbs,
-                              fat_g: adjustedFat,
-                              starchyCarbs_g: starchyCarbs_g_s3,
-                              fibrousCarbs_g: fibrousCarbs_g_s3,
-                              starchStrategy,
-                              cutIntensity,
-                              cutStyle,
-                              starchyCarbCap_g,
-                              allowZeroStarchyOnLowDay,
-                              fibrousCarbSafetyCap_g,
-                              strictMode,
-                              mealsPerDay,
-                              vegetableCupsPerMeal: vegetableCupsPerMeal_s3,
-                              vegetableCupsPerDay: vegetableCupsPerDay_s3,
-                            },
-                            user?.id,
-                          );
-
-                          // Keep this so Biometrics screen updates if they go there later
-                          window.dispatchEvent(
-                            new CustomEvent("mpm:targetsUpdated"),
-                          );
-
-                          // Guest mode: Mark macros completed to unlock Weekly Meal Builder
-                          if (isGuestMode()) {
-                            markMacrosCompleted();
-                          }
-
-                          saveBiometricsToProfile().catch(() => {});
-                          saveWaistToBiometrics().catch(() => {});
-                          saveEstimatedBodyFat().catch(() => {});
-
-                          toast({
-                            title: "Macro Targets Saved",
-                            description: "Your biometrics have been updated.",
+                          if (isGuestMode()) markMacrosCompleted();
+                          await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
+                            successTitle: "Macros & Stats Saved",
                           });
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
                             title: "Save Failed",
-                            description:
-                              "Failed to save your macro targets. Please try again.",
+                            description: "Failed to save your macro targets. Please try again.",
                             variant: "destructive",
                           });
                         } finally {
@@ -4405,7 +4334,7 @@ export default function MacroCounter() {
                       className="w-full bg-lime-600 border-2 border-lime-400 text-white text-lg font-semibold mt-4"
                     >
                       <Target className="h-4 w-4 mr-2" />
-                      {isSaving ? "Saving..." : "1st Step → Save to Biometrics"}
+                      {isSaving ? "Saving..." : "Save Macros & Body Stats"}
                     </Button>
 
                     {/* Primary CTA: Use These Macros → Build Meals */}
@@ -4413,96 +4342,29 @@ export default function MacroCounter() {
                       data-testid="macro-build-meals-button"
                       disabled={!isCalcInputValid || isSaving}
                       onClick={async () => {
-                        const interactedEvent = new CustomEvent(
-                          "walkthrough:event",
-                          {
-                            detail: {
-                              testId: "macro-calculator-interacted",
-                              event: "interacted",
-                            },
-                          },
-                        );
-                        window.dispatchEvent(interactedEvent);
-
+                        window.dispatchEvent(new CustomEvent("walkthrough:event", {
+                          detail: { testId: "macro-calculator-interacted", event: "interacted" },
+                        }));
                         advance("calc");
                         setIsSaving(true);
-
                         try {
-                          const adjustedProtein = Math.max(
-                            0,
-                            results.macros.protein.g + advisoryDeltas.protein,
-                          );
-                          const adjustedCarbs = Math.max(
-                            0,
-                            results.macros.carbs.g + advisoryDeltas.carbs,
-                          );
-                          const adjustedFat = Math.max(
-                            0,
-                            results.macros.fat.g + advisoryDeltas.fat,
-                          );
-                          const fibrousCarbs_g_s4 = results.macros.carbs.fibrous;
-                          const starchyCarbs_g_s4 = Math.max(0, adjustedCarbs - fibrousCarbs_g_s4);
-                          const vegetableCupsPerMeal_s4 = (results.macros as any).vegetableCupsPerMeal ?? 3;
-                          const vegetableCupsPerDay_s4 = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
-
-                          await setMacroTargets(
-                            {
-                              calories: results.target,
-                              protein_g: adjustedProtein,
-                              carbs_g: adjustedCarbs,
-                              fat_g: adjustedFat,
-                              starchyCarbs_g: starchyCarbs_g_s4,
-                              fibrousCarbs_g: fibrousCarbs_g_s4,
-                              starchStrategy,
-                              cutIntensity,
-                              cutStyle,
-                              starchyCarbCap_g,
-                              allowZeroStarchyOnLowDay,
-                              fibrousCarbSafetyCap_g,
-                              strictMode,
-                              mealsPerDay,
-                              vegetableCupsPerMeal: vegetableCupsPerMeal_s4,
-                              vegetableCupsPerDay: vegetableCupsPerDay_s4,
+                          if (isGuestMode()) markMacrosCompleted();
+                          const assignedBuilder = getAssignedBuilderFromStorage();
+                          await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
+                            successTitle: "Macros & Stats Saved",
+                            onComplete: () => {
+                              if (hasActivePaidSubscription(user)) {
+                                setLocation(assignedBuilder.path);
+                              } else {
+                                setLocation("/dashboard");
+                              }
                             },
-                            user?.id,
-                          );
-
-                          // Dispatch event for real-time refresh on Biometrics/other pages
-                          window.dispatchEvent(
-                            new CustomEvent("mpm:targetsUpdated"),
-                          );
-
-                          // Guest mode: Mark macros completed to unlock Weekly Meal Builder
-                          if (isGuestMode()) {
-                            markMacrosCompleted();
-                          }
-
-                          const assignedBuilder =
-                            getAssignedBuilderFromStorage();
-
-                          if (hasActivePaidSubscription(user)) {
-                            toast({
-                              title: "Macro Targets Set!",
-                              description: `Heading to ${assignedBuilder.name} to build your meals.`,
-                            });
-                            setLocation(assignedBuilder.path);
-                          } else {
-                            toast({
-                              title: "Macro Targets Saved!",
-                              description: "Your targets are set. Upgrade to start building personalized meals.",
-                            });
-                            setLocation("/dashboard");
-                          }
-
-                          saveBiometricsToProfile().catch(() => {});
-                          saveWaistToBiometrics().catch(() => {});
-                          saveEstimatedBodyFat().catch(() => {});
+                          });
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
                             title: "Save Failed",
-                            description:
-                              "Failed to save your macro targets. Please try again.",
+                            description: "Failed to save your macro targets. Please try again.",
                             variant: "destructive",
                           });
                         } finally {
