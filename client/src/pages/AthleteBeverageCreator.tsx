@@ -190,9 +190,9 @@ export default function AthleteBeverageCreator() {
       const saved = localStorage.getItem("mpm_athlete_beverage_result");
       if (!saved) return null;
       const parsed = JSON.parse(saved);
-      // Strip server-computed diet fields — they can go stale if user settings change
-      const { dietClassification: _dc, complianceSection: _cs, ...rest } = parsed;
-      return rest;
+      // Restore including dietClassification so the badge shows on page return.
+      // The badge is display-only; enforcement always re-runs on next generation.
+      return parsed;
     } catch {
       return null;
     }

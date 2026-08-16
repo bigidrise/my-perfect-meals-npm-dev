@@ -610,6 +610,22 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         overriddenAllergens: _overriddenBeverageAllergens.length > 0 ? _overriddenBeverageAllergens : undefined,
       });
 
+      // ── Layer 2b: Keto carb-total gate ────────────────────────────────────
+      // Ingredient-name scanning alone cannot catch a drink where every ingredient
+      // is individually "allowed" but the total carbs are non-keto. After the
+      // ingredient scan passes, verify the generated nutrition total.
+      // Threshold: 15g carbs per serving — lenient enough for berries + coconut
+      // but catches real violations like a 60g carb "keto" athletic drink.
+      if (beverageScan.passed && activeRestrictions.includes("keto") && !userDietOverride) {
+        const generatedCarbs = Number(meal.nutrition?.carbs ?? 0);
+        const KETO_BEVERAGE_CARB_CEILING = 15;
+        if (generatedCarbs > KETO_BEVERAGE_CARB_CEILING) {
+          const carbMsg = `Generated beverage has ${generatedCarbs}g carbs — exceeds the keto limit of ${KETO_BEVERAGE_CARB_CEILING}g per serving. Regenerate using lower-carb ingredients (avoid high-sugar fruit, coconut water in large amounts, sweetened bases).`;
+          console.log(`🚫 [BEVERAGE] Keto carb ceiling exceeded (attempt ${attempt}): ${generatedCarbs}g carbs`);
+          beverageScan = { passed: false, message: carbMsg, violations: [], instructionViolations: [] } as any;
+        }
+      }
+
       if (!beverageScan.passed) {
         console.log(`🚫 [BEVERAGE] Protocol violation (attempt ${attempt}): ${beverageScan.message}`);
         beverageValidation = null;
