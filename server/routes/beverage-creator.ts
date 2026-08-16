@@ -247,8 +247,11 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const effectiveCategory = inferredCategory ?? dietCategoryStrategy.effectiveCategory;
     const categoryLabel = CATEGORY_LABELS[effectiveCategory] || effectiveCategory;
     const flavorLabel = FLAVOR_LABELS[flavorFamily] || flavorFamily;
-    const dietaryRules = Array.isArray(dietaryPreferences) && dietaryPreferences.length > 0
-      ? dietaryPreferences.map((d: string) => d.replace(/-/g, " ")).join(", ")
+    // INVARIANT: dietary identity always comes from the stored profile (activeRestrictions).
+    // Body-supplied dietaryPreferences are already merged into activeRestrictions above.
+    // Never allow "none specified" when the user has a stored dietary identity.
+    const dietaryRules = activeRestrictions.length > 0
+      ? activeRestrictions.map((d: string) => d.replace(/-/g, " ")).join(", ")
       : "none specified";
 
     const categorySpecificRules = (() => {
@@ -502,9 +505,10 @@ Return JSON ONLY, following this exact schema:
 }
 
 CRITERIA:
-${hasCustomDesc ? `- User's custom beverage idea: "${customBeverageDescription}" (this takes FULL priority)
+${hasCustomDesc ? `- User's custom beverage idea: "${customBeverageDescription}" (this defines the drink concept and performance goals)
 - Classified drink type: ${categoryLabel} — apply ALL ${categoryLabel}-specific rules below strictly
-- 🚨 MANDATORY: Generate a ${categoryLabel} ONLY. This is a DRINK. Never return eggs, solid food, snacks, meals, or baked goods.` : `- Beverage CATEGORY: "${categoryLabel}" (this defines the drink type)
+- 🚨 MANDATORY: Generate a ${categoryLabel} ONLY. This is a DRINK. Never return eggs, solid food, snacks, meals, or baked goods.${activeRestrictions.length > 0 ? `
+- ⚠️ DIETARY IDENTITY CONSTRAINT (NON-NEGOTIABLE — takes precedence over macro targets above): All ingredients MUST comply with: ${dietaryRules}. Performance goals and macro targets are aspirational — adapt them to fit the dietary identity; do not violate the identity to hit a number. For example, a keto user's "carbs 40–80g" target means: achieve the best possible fueling with keto-compliant ingredients, not that keto rules are suspended.` : ""}` : `- Beverage CATEGORY: "${categoryLabel}" (this defines the drink type)
 - Flavor FAMILY: "${flavorLabel}" (this defines the main taste direction)
 - Specific drink requested: "${specificDrink || "Create your own unique version"}"`}
 - Dietary requirements: "${dietaryRules}"
