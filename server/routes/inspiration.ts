@@ -319,6 +319,20 @@ router.post(
         )
         .limit(1);
 
+      // Enforce the permanent-image rule: never persist an ephemeral OpenAI URL.
+      // processMealImageForSave uploads to Object Storage and returns a /public-objects/
+      // URL, or null if upload fails. Either way, a temporary CDN URL is never stored.
+      const rawImageUrl: string | null = mealData?.imageUrl ?? null;
+      let permanentImageUrl: string | null = rawImageUrl;
+      if (rawImageUrl) {
+        const { imageUrl: processed } = await processMealImageForSave(rawImageUrl, title);
+        permanentImageUrl = processed;
+      }
+      const safeMealData =
+        permanentImageUrl !== rawImageUrl
+          ? { ...mealData, imageUrl: permanentImageUrl }
+          : mealData;
+
       let savedId: string;
       if (existing.length > 0) {
         savedId = existing[0].id;
@@ -330,7 +344,7 @@ router.post(
             title,
             sourceType: "my-inspiration",
             signatureHash: hash,
-            mealData,
+            mealData: safeMealData,
           })
           .returning();
         savedId = row.id;

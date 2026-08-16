@@ -999,7 +999,8 @@ export default function MacroCounter() {
       if (mapped) setGoal(mapped);
     }
 
-    // height is stored in cm, weight in lbs
+    // height is stored in cm; weight is stored in kg (schema canonical — write path in
+    // POST /api/biometrics/weight always converts lb→kg before storing).
     if (user.height && user.height > 0) {
       setHeightCm(user.height);
       const totalIn = Math.round(user.height / 2.54);
@@ -1008,8 +1009,14 @@ export default function MacroCounter() {
     }
 
     if (user.weight && user.weight > 0) {
-      setWeightLbs(user.weight);
-      setWeightKg(Math.round((user.weight / 2.205) * 10) / 10);
+      // users.weight is KG. Derive the lbs display value from it so the
+      // syncWeight step (which always posts lbs) round-trips cleanly:
+      //   stored kg → read as kg → weightLbs = kg × 2.20462
+      //   sync: POST /api/biometrics/weight { value: weightLbs, unit: "lb" }
+      //   server: Math.round(weightLbs / 2.20462) → same kg → no decay
+      const storedKg = user.weight;
+      setWeightKg(Math.round(storedKg * 10) / 10);
+      setWeightLbs(Math.round(storedKg * 2.20462));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -1265,7 +1272,9 @@ export default function MacroCounter() {
     if (!user?.id || user.id.startsWith("guest-")) return;
     try {
       const heightVal = Math.round(cm);
-      const weightVal = Math.round(kg * 2.205);
+      // users.weight is stored in kg. Always send kg with explicit weightUnit so
+      // the profile endpoint never silently stores a lbs value in the kg column.
+      const weightVal = Math.round(kg);
       await fetch(apiUrl("/api/users/profile"), {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -1273,6 +1282,7 @@ export default function MacroCounter() {
           age,
           height: heightVal,
           weight: weightVal,
+          weightUnit: "kg",
           activityLevel: activity,
           fitnessGoal: goal,
         }),

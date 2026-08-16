@@ -3631,6 +3631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         age,
         height,
         weight,
+        weightUnit,
         activityLevel,
         fitnessGoal,
         dietaryRestrictions,
@@ -3672,7 +3673,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (age !== undefined) updateData.age = age;
       if (height !== undefined) updateData.height = height;
-      if (weight !== undefined) updateData.weight = weight;
+      if (weight !== undefined) {
+        // users.weight is ALWAYS stored in kg.
+        // parseWeightToKg() requires an explicit weightUnit — no silent unit
+        // assumptions that could corrupt the column with a raw lbs value.
+        const { parseWeightToKg } = await import("./lib/weightUnit");
+        const parsed = parseWeightToKg(weight, weightUnit);
+        if (!parsed.ok) {
+          const { status, error, code } = parsed as { ok: false; status: number; error: string; code: string };
+          return res.status(status).json({ error, code });
+        }
+        updateData.weight = parsed.weightKg;
+      }
       if (activityLevel !== undefined) updateData.activityLevel = activityLevel;
       if (fitnessGoal !== undefined) updateData.fitnessGoal = fitnessGoal;
       if (dietaryRestrictions !== undefined) updateData.dietaryRestrictions = dietaryRestrictions;
