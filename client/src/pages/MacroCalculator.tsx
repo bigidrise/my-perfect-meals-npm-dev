@@ -999,7 +999,8 @@ export default function MacroCounter() {
       if (mapped) setGoal(mapped);
     }
 
-    // height is stored in cm, weight in lbs
+    // height is stored in cm; weight is stored in kg (schema canonical — write path in
+    // POST /api/biometrics/weight always converts lb→kg before storing).
     if (user.height && user.height > 0) {
       setHeightCm(user.height);
       const totalIn = Math.round(user.height / 2.54);
@@ -1008,8 +1009,14 @@ export default function MacroCounter() {
     }
 
     if (user.weight && user.weight > 0) {
-      setWeightLbs(user.weight);
-      setWeightKg(Math.round((user.weight / 2.205) * 10) / 10);
+      // users.weight is KG. Derive the lbs display value from it so the
+      // syncWeight step (which always posts lbs) round-trips cleanly:
+      //   stored kg → read as kg → weightLbs = kg × 2.20462
+      //   sync: POST /api/biometrics/weight { value: weightLbs, unit: "lb" }
+      //   server: Math.round(weightLbs / 2.20462) → same kg → no decay
+      const storedKg = user.weight;
+      setWeightKg(Math.round(storedKg * 10) / 10);
+      setWeightLbs(Math.round(storedKg * 2.20462));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
