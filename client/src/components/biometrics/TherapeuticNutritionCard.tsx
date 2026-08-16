@@ -226,37 +226,62 @@ function CustomDoseRow({
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
+  const isWeekly = row.unit?.endsWith("/week");
+
   return (
-    <div className="flex items-center gap-1.5 pt-1 border-t border-white/10">
-      <Input
-        type="text"
-        value={row.label}
-        placeholder={t("therapeuticCard.namePlaceholder")}
-        onChange={(e) => onLabelChange(e.target.value)}
-        className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-xs h-8 w-28 shrink-0"
-      />
-      <Input
-        type="number"
-        inputMode="decimal"
-        step="any"
-        value={row.dose}
-        placeholder={t("therapeuticCard.dosePlaceholder")}
-        onChange={(e) => onDoseChange(e.target.value)}
-        className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-sm h-8 flex-1 min-w-0"
-      />
-      <Input
-        type="text"
-        value={row.unit}
-        placeholder={t("therapeuticCard.unitPlaceholder")}
-        onChange={(e) => onUnitChange(e.target.value)}
-        className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-xs h-8 w-16 shrink-0"
-      />
-      <button
-        onClick={onRemove}
-        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/5 text-white/30 active:bg-white/20 active:text-white/70"
-      >
-        <X className="w-3 h-3" />
-      </button>
+    <div className="flex flex-col gap-1.5 pt-1 border-t border-white/10">
+      {/* Row 1: name · dose · mg · remove */}
+      <div className="flex items-center gap-1.5">
+        <Input
+          type="text"
+          value={row.label}
+          placeholder={t("therapeuticCard.namePlaceholder")}
+          onChange={(e) => onLabelChange(e.target.value)}
+          className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-xs h-8 w-28 shrink-0"
+        />
+        <Input
+          type="number"
+          inputMode="decimal"
+          step="any"
+          value={row.dose}
+          placeholder={t("therapeuticCard.dosePlaceholder")}
+          onChange={(e) => onDoseChange(e.target.value)}
+          className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-sm h-8 flex-1 min-w-0"
+        />
+        <span className="text-[10px] text-white/35 shrink-0 select-none">mg</span>
+        <button
+          onClick={onRemove}
+          className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/5 text-white/30 active:bg-white/20 active:text-white/70"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+      {/* Row 2: Day / Week pill toggle */}
+      <div className="flex items-center gap-2 pb-0.5">
+        <div className="flex items-center bg-white/[0.07] rounded-full p-[2px] gap-[2px]">
+          <button
+            onClick={() => onUnitChange("mg/day")}
+            className={`px-3 py-0.5 text-[10px] font-semibold rounded-full transition-all duration-150 ${
+              !isWeekly
+                ? "bg-white/20 text-white"
+                : "text-white/35 hover:text-white/55"
+            }`}
+          >
+            Day
+          </button>
+          <button
+            onClick={() => onUnitChange("mg/week")}
+            className={`px-3 py-0.5 text-[10px] font-semibold rounded-full transition-all duration-150 ${
+              isWeekly
+                ? "bg-white/20 text-white"
+                : "text-white/35 hover:text-white/55"
+            }`}
+          >
+            Week
+          </button>
+        </div>
+        <span className="text-[9px] text-white/25 select-none">per</span>
+      </div>
     </div>
   );
 }
