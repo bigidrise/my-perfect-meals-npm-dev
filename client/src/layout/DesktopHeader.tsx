@@ -112,11 +112,8 @@ const ROUTE_KEY_MAP: Record<string, string> = {
 type PlanBadgeVariant = "free" | "paid" | "professional";
 interface PlanBadgeInfo { text: string; variant: PlanBadgeVariant }
 
-function getPlanLabel(user: { planLookupKey?: string | null; accessTier?: string; isProCare?: boolean; isTester?: boolean } | null | undefined): PlanBadgeInfo {
+function getPlanLabel(user: { planLookupKey?: string | null; accessTier?: string } | null | undefined): PlanBadgeInfo {
   if (!user) return { text: "freeBadge", variant: "free" };
-
-  // ProCare users (clinicians, trainers, business accounts) always show Professional
-  if (user.isProCare) return { text: "professionalBadge", variant: "professional" };
 
   const key = (user.planLookupKey ?? "").toLowerCase();
   if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
@@ -128,10 +125,7 @@ function getPlanLabel(user: { planLookupKey?: string | null; accessTier?: string
     case "basic":    return { text: "essentialBadge", variant: "paid" };
     case "premium":  return { text: "proBadge",       variant: "paid" };
     case "ultimate": return { text: "clinicalBadge",  variant: "paid" };
-    // Testers get full access — show Clinical rather than Free
-    default: return user.isTester
-      ? { text: "clinicalBadge", variant: "paid" }
-      : { text: "freeBadge",     variant: "free" };
+    default:         return { text: "freeBadge",      variant: "free" };
   }
 }
 
