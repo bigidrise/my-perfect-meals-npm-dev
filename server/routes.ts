@@ -8328,7 +8328,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   });
 
   // Mount body composition routes (body fat tracking)
-  app.use("/api", requireAuth, bodyCompositionRoutes);
+  // requireAuth is applied per-route inside bodyComposition.ts — not here.
+  app.use("/api", bodyCompositionRoutes);
 
   // Add meal boards routes
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;
