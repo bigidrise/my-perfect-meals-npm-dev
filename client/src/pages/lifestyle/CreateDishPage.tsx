@@ -640,9 +640,9 @@ export default function CreateDishPage() {
         transition={{ duration: 0.6 }}
         className="min-h-screen pb-safe-nav"
         style={{
-          backgroundImage: "linear-gradient(rgba(10,4,0,0.40), rgba(10,4,0,0.36)), url('/images/chef-copilot-bg.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center 15%",
+          backgroundImage: "url('/images/chef-create-dish-bg.png')",
+          backgroundSize: "250px 250px",
+          backgroundRepeat: "repeat",
         }}
       >
         <MobileHeaderGuard>

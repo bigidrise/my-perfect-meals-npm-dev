@@ -766,6 +766,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userDietOverride,
         performanceSessionContext,
         generationContext,
+        dietOverride,
+        servings: reqServings = 1,
       } = req.body;
 
       // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
@@ -1113,6 +1115,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         glp1Targets: serverGlp1Targets,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         correlationId: (req as any).id,
+        // Temporary diet override — replaces profile diet for one generation.
+        // Source priority: explicit dietOverride field > dietType query param.
+        // Using dietType as the source means the existing Create a Dish UI (which sends
+        // dietType but not dietOverride) automatically benefits from override semantics.
+        // Allergies, medical, and procedural rules come from the protocol envelope unchanged.
+        dietaryRestrictionsOverride: (() => {
+          const src =
+            (dietOverride && typeof dietOverride === 'string' && dietOverride.trim())
+              ? dietOverride.trim()
+              : (effectiveDietType && typeof effectiveDietType === 'string')
+                ? effectiveDietType
+                : null;
+          if (src) {
+            console.log(`🔀 [CHEF] dietaryRestrictionsOverride: ["${src}"] (source: ${dietOverride ? 'dietOverride' : 'dietType'})`);
+            return [src];
+          }
+          return undefined;
+        })(),
+        servings: Math.max(1, Math.min(10, parseInt(String(reqServings)) || 1)),
       });
 
       const durationMs = Date.now() - startTime;
