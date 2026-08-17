@@ -66,8 +66,8 @@ function MacroTargetSyncMount() {
 }
 
 function UpdateBannerMount() {
-  const { hasUpdate, releaseNotes } = useUpdateState();
-  return <UpdateBanner show={hasUpdate} releaseNotes={releaseNotes} />;
+  const { hasUpdate, releaseNotes, releaseId } = useUpdateState();
+  return <UpdateBanner show={hasUpdate} releaseNotes={releaseNotes} releaseId={releaseId} />;
 }
 
 export default function App() {
