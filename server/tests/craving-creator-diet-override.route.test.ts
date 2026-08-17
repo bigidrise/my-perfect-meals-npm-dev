@@ -192,6 +192,12 @@ import {
   filterMealsByProtocol,
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
+import {
+  buildGuardrailContext,
+  getDishAdaptationDirective,
+  _setDecompositionForTest,
+  _clearDalCache,
+} from "../services/dishAdaptation/dishAdaptationLayer";
 
 // ── Source paths for structural tests ────────────────────────────────────────
 const ROUTES_SRC = fs.readFileSync(
@@ -238,7 +244,6 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
   });
 
   it("generateCravingMealOptions is called with bodyDietRestrictions (the resolved diet)", () => {
-    // Line 5248: generateCravingMealOptions(..., bodyDietRestrictions, ...)
     // bodyDietRestrictions is built from _resolvedPrimaryDiet so the override reaches the LLM.
     expect(ROUTES_SRC).toContain("bodyDietRestrictions");
     // Must be assigned from _resolvedPrimaryDiet
@@ -644,5 +649,136 @@ describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not veg
     expect(arg1Pos).toBeLessThan(arg2Pos);
     expect(arg2Pos).toBeLessThan(arg3Pos);
     expect(arg3Pos).toBeLessThan(optionsPos);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// D. DAL GUARDRAIL CONTEXT — keto override prevents vegan restrictions from
+//    entering the Dish Adaptation Layer for a vegan-profile user
+//
+// The route builds _dalGuardrailCtx via buildGuardrailContext({ dietaryIdentity:
+// _dalDietIdentity }) where _dalDietIdentity = _resolvedPrimaryDiet when an
+// override is active (routes.ts line 5201-5203). This section verifies:
+//
+//   1. buildGuardrailContext with ["keto"] does NOT produce a vegan guardrail —
+//      so the DAL never sees a vegan restriction when the user chose keto.
+//
+//   2. _dalDietIdentity in routes.ts source uses _resolvedPrimaryDiet (the keto
+//      override) rather than the vegan envelope when _resolvedPrimaryDiet.length > 0.
+//
+//   3. getDishAdaptationDirective (with a pre-seeded decomposition so no live LLM
+//      call is needed) returns a directive whose adaptationBlock does NOT contain
+//      vegan conflict markers for keto-legal ingredients (cream cheese, eggs, butter).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A keto Strawberry Cake decomposition seeded into the DAL cache for tests.
+ * definingComponents lists the identity-critical parts of the dish.
+ * adaptableComponents lists ingredients a guardrail could substitute.
+ * Includes keto-legal / vegan-illegal items so we can assert no vegan conflict
+ * is emitted when the context carries ["keto"] only.
+ */
+const KETO_CAKE_DECOMPOSITION = {
+  definingComponents: ["almond-flour sponge", "cream cheese frosting", "strawberry layer"],
+  adaptableComponents: ["cream cheese", "eggs", "butter", "erythritol"],
+  dishForm: "sliceable baked layer cake",
+};
+
+describe("D. DAL guardrail context — keto override suppresses vegan restrictions", () => {
+
+  beforeEach(() => {
+    _clearDalCache();
+  });
+
+  it("buildGuardrailContext with dietaryIdentity=['keto'] does NOT add a vegan guardrail", () => {
+    // This mirrors the route logic at line 5204-5209 when _resolvedPrimaryDiet = ["keto"].
+    // The GuardrailContext.guardrails must contain no entry with id === "vegan".
+    const ctx = buildGuardrailContext({ dietaryIdentity: ["keto"] });
+    const guardrailIds = ctx.guardrails.map(g => g.id);
+    expect(guardrailIds).not.toContain("vegan");
+  });
+
+  it("buildGuardrailContext with dietaryIdentity=['vegan'] DOES add a vegan guardrail (sanity check)", () => {
+    // Sanity check: the inverse must hold — if we pass ['vegan'], a vegan
+    // guardrail IS present. This confirms the absence above is not a gap in
+    // buildGuardrailContext itself but the correct result of passing ["keto"].
+    const ctx = buildGuardrailContext({ dietaryIdentity: ["vegan"] });
+    const guardrailIds = ctx.guardrails.map(g => g.id);
+    expect(guardrailIds).toContain("vegan");
+  });
+
+  it("routes.ts _dalDietIdentity uses _resolvedPrimaryDiet when it has length > 0 (structural pin)", () => {
+    // routes.ts line 5201-5203 must read:
+    //   const _dalDietIdentity = _resolvedPrimaryDiet.length > 0
+    //     ? _resolvedPrimaryDiet
+    //     : [...protocolEnvelope.dietaryIdentity, ...]
+    // Without this, the DAL always receives the vegan envelope identity regardless
+    // of whether a keto override was requested.
+    const dalBlock = ROUTES_SRC.slice(
+      ROUTES_SRC.indexOf("_dalDietIdentity"),
+      ROUTES_SRC.indexOf("_dalDietIdentity") + 400,
+    );
+    expect(dalBlock).toContain("_resolvedPrimaryDiet.length > 0");
+    expect(dalBlock).toContain("? _resolvedPrimaryDiet");
+    // The vegan envelope identity is only used as the ELSE branch
+    expect(dalBlock).toContain("protocolEnvelope.dietaryIdentity");
+  });
+
+  it("getDishAdaptationDirective with keto context produces no vegan conflict markers for cream cheese", async () => {
+    // Pre-seed the DAL decomposition cache so no live LLM call is made.
+    _setDecompositionForTest("strawberry cake", KETO_CAKE_DECOMPOSITION);
+
+    const ketoCtx = buildGuardrailContext({ dietaryIdentity: ["keto"] });
+    const directive = await getDishAdaptationDirective("Strawberry Cake", ketoCtx, "first_pass");
+
+    expect(directive).not.toBeNull();
+    // The adaptationBlock must not contain a vegan restriction on cream cheese.
+    // If the context mistakenly carried ["vegan"], resolveConflicts would emit a
+    // "vegan: no dairy / cream cheese" conflict with a directive to swap cream cheese
+    // for a plant-based alternative.
+    expect(directive!.adaptationBlock).not.toMatch(/vegan.*cream cheese|cream cheese.*vegan/i);
+    expect(directive!.adaptationBlock).not.toMatch(/vegan.*egg|egg.*vegan/i);
+    expect(directive!.adaptationBlock).not.toMatch(/vegan.*butter|butter.*vegan/i);
+  });
+
+  it("getDishAdaptationDirective with keto context: conflicts array has no vegan guardrail label", async () => {
+    _setDecompositionForTest("strawberry cake", KETO_CAKE_DECOMPOSITION);
+
+    const ketoCtx = buildGuardrailContext({ dietaryIdentity: ["keto"] });
+    const directive = await getDishAdaptationDirective("Strawberry Cake", ketoCtx, "first_pass");
+
+    expect(directive).not.toBeNull();
+    // No conflict should have a guardrail label mentioning "vegan".
+    const veganConflicts = directive!.conflicts.filter(c =>
+      /vegan/i.test(c.guardrail)
+    );
+    expect(veganConflicts).toHaveLength(0);
+  });
+
+  it("getDishAdaptationDirective with vegan context DOES flag cream cheese (sanity check)", async () => {
+    // Sanity: when the vegan context is passed, cream cheese IS flagged as a conflict.
+    // This proves the absence in the keto-context test above is a real guardrail
+    // suppression, not a gap in resolveConflicts.
+    _setDecompositionForTest("strawberry cake", KETO_CAKE_DECOMPOSITION);
+
+    const veganCtx = buildGuardrailContext({ dietaryIdentity: ["vegan"] });
+    const directive = await getDishAdaptationDirective("Strawberry Cake", veganCtx, "first_pass");
+
+    expect(directive).not.toBeNull();
+    // At least one conflict must reference a vegan guardrail.
+    const veganConflicts = directive!.conflicts.filter(c =>
+      /vegan/i.test(c.guardrail)
+    );
+    expect(veganConflicts.length).toBeGreaterThan(0);
+  });
+
+  it("_dalGuardrailCtx.guardrails is empty when dietaryIdentity=['keto'] and no allergies", () => {
+    // keto is not a medical guardrail in the DAL substitution map — the DAL only
+    // activates guardrails for diets with explicit substitution profiles (diabetic,
+    // gluten-free, vegan, vegetarian, etc.). A plain keto context produces no active
+    // guardrails, so no conflicts are generated and no restrictions reach the LLM.
+    const ctx = buildGuardrailContext({ dietaryIdentity: ["keto"] });
+    // Must have no guardrails — no vegan, no gluten-free, no diabetic, nothing.
+    expect(ctx.guardrails).toHaveLength(0);
   });
 });
