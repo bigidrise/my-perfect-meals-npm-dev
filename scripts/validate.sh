@@ -147,7 +147,7 @@ fi
 BARE_API_AUTH=$(grep -rn \
   'app\.use([[:space:]]*["\x27]/api["\x27][[:space:]]*,[[:space:]]*requireAuth' \
   server/routes.ts server/prod.ts 2>/dev/null \
-  | grep -v '^\s*//' \
+  | grep -v '^[^:]*:[0-9]*:[[:space:]]*//' \
   || true)
 if [ -n "$BARE_API_AUTH" ]; then
   fail "Bare /api requireAuth mount found — this blocks login. Apply requireAuth per-route inside the router instead:"
