@@ -21,8 +21,143 @@
  * Run: npx jest server/tests/diet-override-regression.test.ts
  */
 
+// ─── Craving-path integration: captured OpenAI call storage ──────────────────
+// Declared before jest.mock so the factory closure captures by reference.
+const capturedCravingCalls: Array<{ messages: any[]; prompt: string }> = [];
+
+// ── Mock LLM response — 3 keto Strawberry Cake options ───────────────────────
+// cream cheese, eggs, butter are keto-legal but vegan-illegal.
+// If the pipeline still injected vegan restrictions, the real model would refuse them.
+const KETO_CRAVING_VARIETY_RESPONSE = JSON.stringify([
+  {
+    name: "Keto Strawberry Cream Cake",
+    description: "Almond-flour sponge with cream-cheese frosting.",
+    category: "dessert",
+    calories: 280, protein: 8, fat: 22, starchyCarbs: 3, fibrousCarbs: 2,
+    cookingTime: "35 minutes", difficulty: "Medium",
+    ingredients: [
+      { name: "almond flour",       quantity: "1",   unit: "cup"   },
+      { name: "cream cheese",       quantity: "4",   unit: "oz"    },
+      { name: "eggs",               quantity: "2 large", unit: ""  },
+      { name: "erythritol",         quantity: "3",   unit: "tbsp"  },
+      { name: "fresh strawberries", quantity: "1/2", unit: "cup"   },
+      { name: "butter",             quantity: "2",   unit: "tbsp"  },
+      { name: "vanilla extract",    quantity: "1",   unit: "tsp"   },
+    ],
+    instructions: "Mix dry. Fold in wet. Bake 22 min. Cool and frost.",
+    macros: { calories: 280, protein: 8, fat: 22, carbs: 5 },
+  },
+  {
+    name: "Keto Strawberry Cheesecake Cup",
+    description: "No-bake cream cheese cups with a pecan crust.",
+    category: "dessert",
+    calories: 260, protein: 7, fat: 21, starchyCarbs: 2, fibrousCarbs: 2,
+    cookingTime: "15 minutes", difficulty: "Easy",
+    ingredients: [
+      { name: "cream cheese",       quantity: "6",   unit: "oz"    },
+      { name: "pecans",             quantity: "1/4", unit: "cup"   },
+      { name: "heavy cream",        quantity: "2",   unit: "tbsp"  },
+      { name: "erythritol",         quantity: "2",   unit: "tbsp"  },
+      { name: "fresh strawberries", quantity: "1/4", unit: "cup"   },
+    ],
+    instructions: "Press pecans into cups. Whip cream cheese. Fill. Chill.",
+    macros: { calories: 260, protein: 7, fat: 21, carbs: 4 },
+  },
+  {
+    name: "Keto Strawberry Butter Cake",
+    description: "Dense butter cake with strawberry coulis.",
+    category: "dessert",
+    calories: 300, protein: 6, fat: 26, starchyCarbs: 3, fibrousCarbs: 1,
+    cookingTime: "40 minutes", difficulty: "Medium",
+    ingredients: [
+      { name: "almond flour",  quantity: "3/4", unit: "cup"   },
+      { name: "butter",        quantity: "4",   unit: "tbsp"  },
+      { name: "eggs",          quantity: "3 large", unit: "" },
+      { name: "erythritol",    quantity: "4",   unit: "tbsp"  },
+      { name: "strawberries",  quantity: "1/2", unit: "cup"   },
+      { name: "heavy cream",   quantity: "2",   unit: "tbsp"  },
+    ],
+    instructions: "Cream butter. Beat in eggs. Mix dry. Bake 30 min.",
+    macros: { calories: 300, protein: 6, fat: 26, carbs: 4 },
+  },
+]);
+
+// ── Mock: openai ──────────────────────────────────────────────────────────────
+jest.mock("openai", () => {
+  const mockCreate = jest.fn().mockImplementation(async (params: any) => {
+    const allMessages = params.messages ?? [];
+    const userMsg = allMessages.find((m: any) => m.role === "user");
+    capturedCravingCalls.push({
+      messages: allMessages,
+      prompt: userMsg?.content ?? "",
+    });
+    return { choices: [{ message: { content: KETO_CRAVING_VARIETY_RESPONSE } }] };
+  });
+  const MockOpenAI = jest.fn().mockImplementation(() => ({
+    chat: { completions: { create: mockCreate } },
+  }));
+  return { __esModule: true, default: MockOpenAI };
+});
+
+// ── Mock: ../db ───────────────────────────────────────────────────────────────
+// Return a vegan user to prove the override supersedes the stored profile diet.
+const VEGAN_DB_USER_REGRESSION = {
+  id: "test-regression-vegan-001",
+  dietaryRestrictions: ["vegan"],   // stored profile diet — must be superseded by keto override
+  allergies: [],
+  healthConditions: [],
+  dislikedFoods: [],
+  avoidedFoods: [],
+  specialtyCondition: null,
+  specialtyConditions: [],
+  oncologySupportContext: null,
+  thyroidSupportContext: null,
+  measurementSystem: "imperial",
+  diabeticContext: null,
+  renalContext: null,
+  performanceModeEnabled: false,
+};
+jest.mock("../db", () => {
+  const chain: any = {
+    from:  jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockResolvedValue([VEGAN_DB_USER_REGRESSION]),
+  };
+  return { db: { select: jest.fn().mockReturnValue(chain) } };
+});
+
+// ── Mock: ../storage ──────────────────────────────────────────────────────────
+jest.mock("../storage", () => ({ storage: {} }));
+
+// ── Mock: mealImageGenerator ──────────────────────────────────────────────────
+jest.mock("../services/mealImageGenerator", () => ({
+  generateMealImageUnified: jest.fn().mockResolvedValue(null),
+}));
+
+// ── Mock: mealCachePersistent ─────────────────────────────────────────────────
+jest.mock("../services/mealCachePersistent", () => ({
+  getCachedMeals:            jest.fn().mockResolvedValue(null),
+  cacheMeals:                jest.fn().mockResolvedValue(undefined),
+  getCachedVarietyMeals:     jest.fn().mockResolvedValue(null),
+  cacheVarietyMeals:         jest.fn().mockResolvedValue(undefined),
+}));
+
+// ── Mock: coaching activityEvents ─────────────────────────────────────────────
+jest.mock("../services/coaching/activityEvents", () => ({
+  emitActivityEvent: jest.fn().mockResolvedValue(undefined),
+}));
+
+// ── Mock: macroAuditLogger ────────────────────────────────────────────────────
+jest.mock("../utils/macroAuditLogger", () => ({
+  macroAudit:       jest.fn(),
+  macroAuditPrompt: jest.fn(),
+  macroAuditCache:  jest.fn(),
+}));
+
 import { resolveEffectiveDiet } from "../services/resolveEffectiveDiet";
 import { isRecipeSensitiveDish } from "../services/dishEngineRouter";
+import { generateCravingMealOptions } from "../services/unifiedMealPipeline";
+import { filterMealsByProtocol, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 // ─── resolveEffectiveDiet unit tests ─────────────────────────────────────────
 
@@ -428,5 +563,190 @@ describe("chef path — Strawberry Cake: vegan profile + keto override (regressi
     expect(result1).toEqual(["keto"]);
     // Profile array must not have been mutated between calls
     expect(profileDiet).toEqual(["vegan"]);
+  });
+});
+
+// ─── Craving path — generateCravingMealOptions: Vegan profile + Keto override ─
+//
+// These tests call the REAL generateCravingMealOptions() (the function the route
+// invokes) with a mocked vegan DB user and keto dietaryRestrictionsOverride.
+// The captured OpenAI prompt is asserted to contain KETO and NOT VEGAN.
+// filterMealsByProtocol() is exercised with the vegan envelope (must block keto
+// meals) and with the keto-override envelope (must pass them through).
+//
+// Root cause: the original union-merge bug was at unifiedMealPipeline.ts line 1928.
+// This describe block is the craving-path peer of the chef-path block above.
+
+beforeEach(() => {
+  capturedCravingCalls.length = 0;
+});
+
+// ─── B. Integration: generateCravingMealOptions called with keto override ─────
+
+describe("craving path — generateCravingMealOptions: vegan profile + keto override (regression: Task 1284)", () => {
+
+  it("returns a non-empty meal array — keto override prevents vegan profile from blocking generation", async () => {
+    // The mocked DB returns dietaryRestrictions: ["vegan"].
+    // dietaryRestrictionsOverride: ["keto"] must replace it — not merge.
+    // If the old Set-union bug were present, the prompt would say USER DIET: VEGAN
+    // and the mock would still return the KETO response, but a real model would refuse
+    // cream cheese and eggs. Here we confirm the function succeeds end-to-end.
+    const results = await generateCravingMealOptions(
+      "Strawberry Cake",             // cravingInput
+      "dinner",                      // mealType
+      "test-regression-vegan-001",   // userId — triggers DB lookup returning vegan profile
+      ["keto"],                      // dietaryRestrictionsOverride — replaces stored vegan
+      [],                            // excludeMeals
+      false,                         // strictMode
+      "meal",                        // generationMode
+    );
+    expect(results).toBeDefined();
+    expect(Array.isArray(results)).toBe(true);
+    expect(results.length).toBeGreaterThan(0);
+  });
+
+  it("OpenAI was invoked — the pipeline reached LLM generation, not a cache/error short-circuit", async () => {
+    await generateCravingMealOptions(
+      "Strawberry Cake", "dinner", "test-regression-vegan-001", ["keto"],
+      [], false, "meal",
+    );
+    expect(capturedCravingCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("OpenAI prompt contains USER DIET: KETO — the override diet governs generation", async () => {
+    // buildDietPromptBlock(["keto"]) in allergyGuardrails.ts generates:
+    //   "CRITICAL DIETARY RULE: This user strictly follows a KETO diet."
+    // The variety-engine prompt wraps it as:
+    //   "USER DIET: KETO — ALL 3 options must comply fully."
+    //
+    // If the old Set-union merge bug were present (["vegan","keto"] merged diet),
+    // buildDietPromptBlock would take the first element ("vegan") → "USER DIET: VEGAN".
+    await generateCravingMealOptions(
+      "Strawberry Cake", "dinner", "test-regression-vegan-001", ["keto"],
+      [], false, "meal",
+    );
+    const prompt = capturedCravingCalls[0]?.prompt ?? "";
+    expect(prompt.length).toBeGreaterThan(0);
+    expect(prompt).toMatch(/USER DIET: KETO/i);
+  });
+
+  it("OpenAI prompt does NOT contain vegan diet instructions — stored profile was replaced, not merged", async () => {
+    await generateCravingMealOptions(
+      "Strawberry Cake", "dinner", "test-regression-vegan-001", ["keto"],
+      [], false, "meal",
+    );
+    const prompt = capturedCravingCalls[0]?.prompt ?? "";
+    // Primary vegan diet rule must be absent
+    expect(prompt).not.toMatch(/USER DIET: VEGAN/i);
+    // The vegan compliance rule block must also be absent
+    expect(prompt).not.toMatch(/strictly follows a VEGAN diet/i);
+  });
+
+  it("OpenAI prompt contains KETO TONE RULE — confirms buildDietPromptBlock ran with keto", async () => {
+    // allergyGuardrails.ts injects a keto-specific tone rule only when the diet is keto.
+    // Its presence proves the pipeline used keto and not vegan after the override.
+    await generateCravingMealOptions(
+      "Strawberry Cake", "dinner", "test-regression-vegan-001", ["keto"],
+      [], false, "meal",
+    );
+    const prompt = capturedCravingCalls[0]?.prompt ?? "";
+    expect(prompt).toMatch(/KETO TONE RULE/i);
+  });
+
+  it("returned meals include keto-legal/vegan-illegal ingredients — no vegan compliance block applied", async () => {
+    // cream cheese, eggs, and butter are in the mock response. If the pipeline had
+    // applied vegan validation after generation, it would have rejected these.
+    const results = await generateCravingMealOptions(
+      "Strawberry Cake", "dinner", "test-regression-vegan-001", ["keto"],
+      [], false, "meal",
+    );
+    const allIngredients = results.flatMap(m =>
+      (m.ingredients ?? []).map((ing: any) =>
+        typeof ing === "string" ? ing : (ing.name ?? ing.item ?? "")
+      )
+    );
+    const hasKetoLegalVeganIllegal = allIngredients.some(name =>
+      /cream cheese|eggs?|butter|heavy cream/i.test(name)
+    );
+    expect(hasKetoLegalVeganIllegal).toBe(true);
+  });
+});
+
+// ─── C. Functional: filterMealsByProtocol — vegan envelope vs keto-override envelope ─
+
+/** Keto meal that is vegan-illegal (cream cheese + eggs) */
+const KETO_CAKE_MEAL_REGRESSION = {
+  name: "Keto Strawberry Cream Cake",
+  description: "Almond-flour cake with cream cheese frosting.",
+  ingredients: [
+    { name: "almond flour",  quantity: "1",      unit: "cup"   },
+    { name: "cream cheese",  quantity: "4",      unit: "oz"    },
+    { name: "eggs",          quantity: "2",      unit: "large" },
+    { name: "butter",        quantity: "2",      unit: "tbsp"  },
+    { name: "erythritol",    quantity: "3",      unit: "tbsp"  },
+    { name: "strawberries",  quantity: "1/2",    unit: "cup"   },
+  ],
+  instructions: "Bake at 350°F for 22 minutes.",
+};
+
+const VEGAN_PROTOCOL_ENVELOPE_REGRESSION = {
+  ...buildGuestEnvelope(),
+  dietaryIdentity: ["vegan"],
+};
+
+const KETO_OVERRIDE_ENVELOPE_REGRESSION = {
+  ...VEGAN_PROTOCOL_ENVELOPE_REGRESSION,
+  dietaryIdentity: ["keto"],
+};
+
+describe("craving path — filterMealsByProtocol: vegan vs keto-override envelope (regression: Task 1284)", () => {
+
+  it("vegan envelope BLOCKS the keto cake — cream cheese and eggs are vegan-illegal", () => {
+    // This is the second site of the original bug: without the _filterEnvelope fix,
+    // the vegan envelope would strip all keto meals that survived generation.
+    const passed = filterMealsByProtocol([KETO_CAKE_MEAL_REGRESSION], VEGAN_PROTOCOL_ENVELOPE_REGRESSION, {
+      generatorName: "craving_creator",
+    });
+    expect(passed.length).toBe(0); // blocked — dairy is vegan-illegal
+  });
+
+  it("keto-override envelope PASSES the keto cake — no dairy restriction in keto", () => {
+    // routes.ts _filterEnvelope: { ...protocolEnvelope, dietaryIdentity: ["keto"] }
+    // This shallow spread ensures only dietaryIdentity changes — allergies/avoidances inherit.
+    const passed = filterMealsByProtocol([KETO_CAKE_MEAL_REGRESSION], KETO_OVERRIDE_ENVELOPE_REGRESSION, {
+      generatorName: "craving_creator",
+    });
+    expect(passed.length).toBe(1);
+    expect(passed[0].name).toBe("Keto Strawberry Cream Cake");
+  });
+
+  it("keto-override envelope preserves allergies and avoidances from the vegan profile", () => {
+    // The override is a SHALLOW SPREAD — it changes only dietaryIdentity.
+    // All other safety fields are inherited unchanged from the vegan profile.
+    expect(KETO_OVERRIDE_ENVELOPE_REGRESSION.allergies).toEqual(VEGAN_PROTOCOL_ENVELOPE_REGRESSION.allergies);
+    expect(KETO_OVERRIDE_ENVELOPE_REGRESSION.avoidances).toEqual(VEGAN_PROTOCOL_ENVELOPE_REGRESSION.avoidances);
+    expect(KETO_OVERRIDE_ENVELOPE_REGRESSION.medicalConditions).toEqual(VEGAN_PROTOCOL_ENVELOPE_REGRESSION.medicalConditions);
+    // Only diet identity changes
+    expect(KETO_OVERRIDE_ENVELOPE_REGRESSION.dietaryIdentity).toEqual(["keto"]);
+    expect(KETO_OVERRIDE_ENVELOPE_REGRESSION.dietaryIdentity).not.toContain("vegan");
+  });
+
+  it("multiple keto meals all pass the keto-override envelope", () => {
+    const meals = [
+      KETO_CAKE_MEAL_REGRESSION,
+      {
+        ...KETO_CAKE_MEAL_REGRESSION,
+        name: "Keto Cream Cheese Pancakes",
+        ingredients: [
+          { name: "cream cheese", quantity: "4",      unit: "oz"    },
+          { name: "eggs",         quantity: "2",      unit: "large" },
+          { name: "erythritol",   quantity: "1",      unit: "tbsp"  },
+        ],
+      },
+    ];
+    const passed = filterMealsByProtocol(meals, KETO_OVERRIDE_ENVELOPE_REGRESSION, {
+      generatorName: "craving_creator",
+    });
+    expect(passed.length).toBe(2);
   });
 });
