@@ -192,6 +192,12 @@ import {
   filterMealsByProtocol,
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
+import {
+  buildGuardrailContext,
+  getDishAdaptationDirective,
+  _setDecompositionForTest,
+  _clearDalCache,
+} from "../services/dishAdaptation/dishAdaptationLayer";
 
 // ── Source paths for structural tests ────────────────────────────────────────
 const ROUTES_SRC = fs.readFileSync(
@@ -238,7 +244,6 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
   });
 
   it("generateCravingMealOptions is called with bodyDietRestrictions (the resolved diet)", () => {
-    // Line 5248: generateCravingMealOptions(..., bodyDietRestrictions, ...)
     // bodyDietRestrictions is built from _resolvedPrimaryDiet so the override reaches the LLM.
     expect(ROUTES_SRC).toContain("bodyDietRestrictions");
     // Must be assigned from _resolvedPrimaryDiet
@@ -493,5 +498,287 @@ describe("C. Functional — filterMealsByProtocol: vegan vs keto-override envelo
       generatorName: "craving_creator",
     });
     expect(passed.length).toBe(2);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// E. EMERGENCY FALLBACK — _fallbackDietIdentity must use keto when override active
+//
+// Covers routes.ts lines 5307-5323: when filterMealsByProtocol removes ALL
+// generated options, the route calls generateSingleCompliantFallback with
+// _fallbackDietIdentity. This section proves the ternary branch ORDER in the
+// source is correct (TRUE = _resolvedPrimaryDiet, FALSE = vegan profile) and
+// that _fallbackDietIdentity is the 3rd positional argument at the call site.
+//
+// All structural tests use character-position ordering so an inverted ternary
+// or reordered arguments would cause the tests to fail, not silently pass.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Three keto meals identical to what generateCravingMealOptions would return. */
+const THREE_KETO_MEALS = [
+  KETO_CAKE_MEAL,
+  {
+    name: "Keto Strawberry Cheesecake Cup",
+    description: "No-bake cream cheese cups with a pecan crust.",
+    ingredients: [
+      { name: "cream cheese",       quantity: "6",   unit: "oz"    },
+      { name: "pecans",             quantity: "1/4", unit: "cup"   },
+      { name: "heavy cream",        quantity: "2",   unit: "tbsp"  },
+      { name: "erythritol",         quantity: "2",   unit: "tbsp"  },
+      { name: "fresh strawberries", quantity: "1/4", unit: "cup"   },
+    ],
+    instructions: "Press pecans into cups. Whip cream cheese. Fill. Chill.",
+  },
+  {
+    name: "Keto Strawberry Butter Cake",
+    description: "Dense butter cake with strawberry coulis and whipped cream.",
+    ingredients: [
+      { name: "almond flour",  quantity: "3/4", unit: "cup"  },
+      { name: "butter",        quantity: "4",   unit: "tbsp" },
+      { name: "eggs",          quantity: "3",   unit: "large"},
+      { name: "erythritol",    quantity: "4",   unit: "tbsp" },
+      { name: "strawberries",  quantity: "1/2", unit: "cup"  },
+      { name: "heavy cream",   quantity: "2",   unit: "tbsp" },
+    ],
+    instructions: "Cream butter. Beat in eggs. Bake 30 min.",
+  },
+];
+
+describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not vegan", () => {
+
+  it("E1: vegan envelope blocks ALL 3 keto meals — confirming the condition that triggers the fallback path", () => {
+    // Proves routes.ts line 5307: `if (cleanOptions.length === 0 && mealOptions.length > 0)`
+    // All 3 options contain cream cheese / eggs / butter — vegan-illegal. A vegan
+    // envelope (the un-fixed path) rejects all of them, activating the emergency fallback.
+    const passed = filterMealsByProtocol(THREE_KETO_MEALS, VEGAN_PROTOCOL_ENVELOPE, {
+      generatorName: "craving_creator",
+    });
+    expect(passed.length).toBe(0);           // all 3 blocked
+    expect(THREE_KETO_MEALS.length).toBe(3); // mealOptions.length > 0 confirmed
+  });
+
+  it("E2: TRUE branch of _fallbackDietIdentity ternary is _resolvedPrimaryDiet — inverted ternary fails this test", () => {
+    // Extracts the assignment block from routes.ts and verifies character-position ordering:
+    //   const _fallbackDietIdentity = _overrideDietActive
+    //     ? _resolvedPrimaryDiet              ← TRUE branch  (must come BEFORE the colon)
+    //     : protocolEnvelope.dietaryIdentity  ← FALSE branch (must come AFTER the colon)
+    //
+    // An inverted ternary `_overrideDietActive ? protocolEnvelope.dietaryIdentity : _resolvedPrimaryDiet`
+    // would put protocolEnvelope.dietaryIdentity before the colon — falseBranchPos < colonPos — failing.
+    const assignmentStart = ROUTES_SRC.indexOf("const _fallbackDietIdentity = _overrideDietActive");
+    expect(assignmentStart).toBeGreaterThan(-1); // the assignment must exist
+
+    // Capture enough of the assignment to cover the full ternary (≤ 300 chars)
+    const ternaryBlock = ROUTES_SRC.slice(assignmentStart, assignmentStart + 300);
+
+    const questionMarkIdx = ternaryBlock.indexOf("?");
+    // The ternary colon appears on its own line with leading whitespace: find ": proto"
+    // Both branches are plain identifiers — the colon is the first : that precedes "protocolEnvelope"
+    const colonIdx = ternaryBlock.indexOf(": protocolEnvelope.dietaryIdentity");
+
+    expect(questionMarkIdx).toBeGreaterThan(-1);
+    expect(colonIdx).toBeGreaterThan(questionMarkIdx);
+
+    const trueBranchPos  = ternaryBlock.indexOf("_resolvedPrimaryDiet", questionMarkIdx);
+    const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonIdx);
+
+    // TRUE branch: _resolvedPrimaryDiet must appear after ? and before the ternary colon
+    expect(trueBranchPos).toBeGreaterThan(questionMarkIdx);
+    expect(trueBranchPos).toBeLessThan(colonIdx);
+
+    // FALSE branch: protocolEnvelope.dietaryIdentity must appear at/after the ternary colon
+    expect(falseBranchPos).toBeGreaterThanOrEqual(colonIdx);
+
+    // Extra guard: protocolEnvelope.dietaryIdentity must NOT appear in the TRUE branch
+    const veganBeforeColon = ternaryBlock.slice(questionMarkIdx, colonIdx).indexOf("protocolEnvelope.dietaryIdentity");
+    expect(veganBeforeColon).toBe(-1);
+  });
+
+  it("E3: _fallbackDietIdentity assignment uses _overrideDietActive — same flag as _filterEnvelope (no independent condition)", () => {
+    // If someone adds a new override path and updates _overrideDietActive but
+    // forgets to update a hypothetical separate fallback condition, both would
+    // diverge. Using the same variable keeps them in sync automatically.
+    //
+    // Character-position ordering check: _overrideDietActive must appear BEFORE
+    // both branch values (it is the condition, not a branch value).
+    const assignmentStart = ROUTES_SRC.indexOf("const _fallbackDietIdentity = _overrideDietActive");
+    const ternaryBlock = ROUTES_SRC.slice(assignmentStart, assignmentStart + 300);
+
+    const conditionPos   = ternaryBlock.indexOf("_overrideDietActive");
+    const questionPos    = ternaryBlock.indexOf("?");
+    const colonPos       = ternaryBlock.indexOf(": protocolEnvelope.dietaryIdentity");
+    const trueBranchPos  = ternaryBlock.indexOf("_resolvedPrimaryDiet", questionPos);
+    const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonPos);
+
+    // Condition appears first, then ?, then TRUE branch (_resolvedPrimaryDiet), then :, then FALSE branch
+    expect(conditionPos).toBeGreaterThan(-1);
+    expect(conditionPos).toBeLessThan(questionPos);
+    expect(questionPos).toBeLessThan(trueBranchPos);
+    expect(trueBranchPos).toBeLessThan(colonPos);
+    expect(colonPos).toBeLessThan(falseBranchPos);
+  });
+
+  it("E4: _fallbackDietIdentity is the 3rd positional argument to generateSingleCompliantFallback — after cravingInput and targetMealType", () => {
+    // Parses the call site (routes.ts ~line 5320) and verifies argument ORDER by
+    // character position. Reordering the arguments would move _fallbackDietIdentity
+    // before targetMealType, failing the toBeLessThan assertion.
+    //
+    //   generateSingleCompliantFallback(
+    //     cravingInput || ...,    ← arg 1
+    //     targetMealType || ...,  ← arg 2
+    //     _fallbackDietIdentity,  ← arg 3 (the diet identity — must be here)
+    //     { ... options }         ← arg 4
+    //   )
+    const callSiteStart = ROUTES_SRC.indexOf("const fallbackMeal = await generateSingleCompliantFallback(");
+    expect(callSiteStart).toBeGreaterThan(-1);
+
+    const callBlock = ROUTES_SRC.slice(callSiteStart, callSiteStart + 500);
+
+    const arg1Pos = callBlock.indexOf("cravingInput");          // arg 1
+    const arg2Pos = callBlock.indexOf("targetMealType");         // arg 2
+    const arg3Pos = callBlock.indexOf("_fallbackDietIdentity");  // arg 3
+    // arg 4+ is the options object — the overriddenAllergens key appears inside it
+    const optionsPos = callBlock.indexOf("overriddenAllergens");
+
+    expect(arg1Pos).toBeGreaterThan(-1);
+    expect(arg2Pos).toBeGreaterThan(-1);
+    expect(arg3Pos).toBeGreaterThan(-1);
+    expect(optionsPos).toBeGreaterThan(-1);
+
+    // Positional order: arg1 < arg2 < arg3 < options object
+    expect(arg1Pos).toBeLessThan(arg2Pos);
+    expect(arg2Pos).toBeLessThan(arg3Pos);
+    expect(arg3Pos).toBeLessThan(optionsPos);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// D. DAL GUARDRAIL CONTEXT — keto override prevents vegan restrictions from
+//    entering the Dish Adaptation Layer for a vegan-profile user
+//
+// The route builds _dalGuardrailCtx via buildGuardrailContext({ dietaryIdentity:
+// _dalDietIdentity }) where _dalDietIdentity = _resolvedPrimaryDiet when an
+// override is active (routes.ts line 5201-5203). This section verifies:
+//
+//   1. buildGuardrailContext with ["keto"] does NOT produce a vegan guardrail —
+//      so the DAL never sees a vegan restriction when the user chose keto.
+//
+//   2. _dalDietIdentity in routes.ts source uses _resolvedPrimaryDiet (the keto
+//      override) rather than the vegan envelope when _resolvedPrimaryDiet.length > 0.
+//
+//   3. getDishAdaptationDirective (with a pre-seeded decomposition so no live LLM
+//      call is needed) returns a directive whose adaptationBlock does NOT contain
+//      vegan conflict markers for keto-legal ingredients (cream cheese, eggs, butter).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A keto Strawberry Cake decomposition seeded into the DAL cache for tests.
+ * definingComponents lists the identity-critical parts of the dish.
+ * adaptableComponents lists ingredients a guardrail could substitute.
+ * Includes keto-legal / vegan-illegal items so we can assert no vegan conflict
+ * is emitted when the context carries ["keto"] only.
+ */
+const KETO_CAKE_DECOMPOSITION = {
+  definingComponents: ["almond-flour sponge", "cream cheese frosting", "strawberry layer"],
+  adaptableComponents: ["cream cheese", "eggs", "butter", "erythritol"],
+  dishForm: "sliceable baked layer cake",
+};
+
+describe("D. DAL guardrail context — keto override suppresses vegan restrictions", () => {
+
+  beforeEach(() => {
+    _clearDalCache();
+  });
+
+  it("buildGuardrailContext with dietaryIdentity=['keto'] does NOT add a vegan guardrail", () => {
+    // This mirrors the route logic at line 5204-5209 when _resolvedPrimaryDiet = ["keto"].
+    // The GuardrailContext.guardrails must contain no entry with id === "vegan".
+    const ctx = buildGuardrailContext({ dietaryIdentity: ["keto"] });
+    const guardrailIds = ctx.guardrails.map(g => g.id);
+    expect(guardrailIds).not.toContain("vegan");
+  });
+
+  it("buildGuardrailContext with dietaryIdentity=['vegan'] DOES add a vegan guardrail (sanity check)", () => {
+    // Sanity check: the inverse must hold — if we pass ['vegan'], a vegan
+    // guardrail IS present. This confirms the absence above is not a gap in
+    // buildGuardrailContext itself but the correct result of passing ["keto"].
+    const ctx = buildGuardrailContext({ dietaryIdentity: ["vegan"] });
+    const guardrailIds = ctx.guardrails.map(g => g.id);
+    expect(guardrailIds).toContain("vegan");
+  });
+
+  it("routes.ts _dalDietIdentity uses _resolvedPrimaryDiet when it has length > 0 (structural pin)", () => {
+    // routes.ts line 5201-5203 must read:
+    //   const _dalDietIdentity = _resolvedPrimaryDiet.length > 0
+    //     ? _resolvedPrimaryDiet
+    //     : [...protocolEnvelope.dietaryIdentity, ...]
+    // Without this, the DAL always receives the vegan envelope identity regardless
+    // of whether a keto override was requested.
+    const dalBlock = ROUTES_SRC.slice(
+      ROUTES_SRC.indexOf("_dalDietIdentity"),
+      ROUTES_SRC.indexOf("_dalDietIdentity") + 400,
+    );
+    expect(dalBlock).toContain("_resolvedPrimaryDiet.length > 0");
+    expect(dalBlock).toContain("? _resolvedPrimaryDiet");
+    // The vegan envelope identity is only used as the ELSE branch
+    expect(dalBlock).toContain("protocolEnvelope.dietaryIdentity");
+  });
+
+  it("getDishAdaptationDirective with keto context produces no vegan conflict markers for cream cheese", async () => {
+    // Pre-seed the DAL decomposition cache so no live LLM call is made.
+    _setDecompositionForTest("strawberry cake", KETO_CAKE_DECOMPOSITION);
+
+    const ketoCtx = buildGuardrailContext({ dietaryIdentity: ["keto"] });
+    const directive = await getDishAdaptationDirective("Strawberry Cake", ketoCtx, "first_pass");
+
+    expect(directive).not.toBeNull();
+    // The adaptationBlock must not contain a vegan restriction on cream cheese.
+    // If the context mistakenly carried ["vegan"], resolveConflicts would emit a
+    // "vegan: no dairy / cream cheese" conflict with a directive to swap cream cheese
+    // for a plant-based alternative.
+    expect(directive!.adaptationBlock).not.toMatch(/vegan.*cream cheese|cream cheese.*vegan/i);
+    expect(directive!.adaptationBlock).not.toMatch(/vegan.*egg|egg.*vegan/i);
+    expect(directive!.adaptationBlock).not.toMatch(/vegan.*butter|butter.*vegan/i);
+  });
+
+  it("getDishAdaptationDirective with keto context: conflicts array has no vegan guardrail label", async () => {
+    _setDecompositionForTest("strawberry cake", KETO_CAKE_DECOMPOSITION);
+
+    const ketoCtx = buildGuardrailContext({ dietaryIdentity: ["keto"] });
+    const directive = await getDishAdaptationDirective("Strawberry Cake", ketoCtx, "first_pass");
+
+    expect(directive).not.toBeNull();
+    // No conflict should have a guardrail label mentioning "vegan".
+    const veganConflicts = directive!.conflicts.filter(c =>
+      /vegan/i.test(c.guardrail)
+    );
+    expect(veganConflicts).toHaveLength(0);
+  });
+
+  it("getDishAdaptationDirective with vegan context DOES flag cream cheese (sanity check)", async () => {
+    // Sanity: when the vegan context is passed, cream cheese IS flagged as a conflict.
+    // This proves the absence in the keto-context test above is a real guardrail
+    // suppression, not a gap in resolveConflicts.
+    _setDecompositionForTest("strawberry cake", KETO_CAKE_DECOMPOSITION);
+
+    const veganCtx = buildGuardrailContext({ dietaryIdentity: ["vegan"] });
+    const directive = await getDishAdaptationDirective("Strawberry Cake", veganCtx, "first_pass");
+
+    expect(directive).not.toBeNull();
+    // At least one conflict must reference a vegan guardrail.
+    const veganConflicts = directive!.conflicts.filter(c =>
+      /vegan/i.test(c.guardrail)
+    );
+    expect(veganConflicts.length).toBeGreaterThan(0);
+  });
+
+  it("_dalGuardrailCtx.guardrails is empty when dietaryIdentity=['keto'] and no allergies", () => {
+    // keto is not a medical guardrail in the DAL substitution map — the DAL only
+    // activates guardrails for diets with explicit substitution profiles (diabetic,
+    // gluten-free, vegan, vegetarian, etc.). A plain keto context produces no active
+    // guardrails, so no conflicts are generated and no restrictions reach the LLM.
+    const ctx = buildGuardrailContext({ dietaryIdentity: ["keto"] });
+    // Must have no guardrails — no vegan, no gluten-free, no diabetic, nothing.
+    expect(ctx.guardrails).toHaveLength(0);
   });
 });

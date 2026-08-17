@@ -64,7 +64,7 @@ interface Meal {
 }
 
 interface SafetyOptions {
-  safetyMode?: 'STRICT' | 'CUSTOM' | 'CUSTOM_AUTHENTICATED';
+  safetyMode?: 'STRICT' | 'CUSTOM' | 'CUSTOM_AUTHENTICATED' | 'ALLERGEN_ADAPT';
   overrideToken?: string;
 }
 

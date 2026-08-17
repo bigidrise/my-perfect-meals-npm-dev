@@ -1,3 +1,4 @@
+- [Allergy Adaptation Decision Layer](allergy-adaptation-layer.md) — 3-phase system: conflict classification (adaptable vs identity-collapse) + AllergyConflictModal (no-PIN safe path) + post-adaptation allergen scan; "ALLERGEN_ADAPT" safetyMode bypasses pre-check.
 - [Dish Adaptation Layer](dish-adaptation-layer.md) — never silently substitute a dish; substitution map is extracted from prompt builders (update in lockstep); LRU-cached decomposition; catastrophic-only filtering.
 - [GATE_08 localization ratchet workflow](i18n-gate08-workflow.md) — regenerate both audit reports before validating; baseline updated manually; empty CJK segment keys fail GATE_03; scratch-file merge pattern for parallel migration.
 - [ProCare Invite Token Flow](procare-invite-token-flow.md) — url_token on care_invite+studio_invites; canonical service; /join/studio page; public GET must mount before any app.use("/api", requireAuth) catch-all in routes.ts.

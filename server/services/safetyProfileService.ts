@@ -5,7 +5,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
 import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
@@ -30,6 +30,13 @@ export interface SafetyAssessment {
   overriddenAllergen?: string;
   /** Request correlation ID echoed back from the audit row so callers can log it at the point of use */
   correlationId?: string;
+  /**
+   * Conflict classification for BLOCKED allergy results.
+   * conflict_adaptable  — allergen is incidental; a safe version can be made.
+   * conflict_identity_collapse — allergen IS the dish; adaptation changes its identity.
+   * Only present when result === "BLOCKED" and the block is allergy-driven.
+   */
+  allergyConflict?: AllergyConflict;
 }
 
 export interface SafetyProfile {
@@ -490,7 +497,8 @@ export async function enforceSafetyProfile(
       blockedCategories: allergyCategories,
       ambiguousTerms: [],
       message: `🚨 Safety Alert: Your request includes "${primaryTerm}" which conflicts with ${primaryCategory}. For your safety, this meal cannot be generated.`,
-      suggestion: `Try requesting with ${substitute} instead.`
+      suggestion: `Try requesting with ${substitute} instead.`,
+      allergyConflict: classifyAllergyConflict(userText, allergyMatches, allergyCategories) ?? undefined,
     };
   }
 
@@ -598,7 +606,8 @@ export function enforceSafetyProfileSync(
       blockedCategories: allergyCategories,
       ambiguousTerms: [],
       message: `🚨 Safety Alert: Your request includes "${primaryTerm}" which conflicts with ${primaryCategory}. For your safety, this meal cannot be generated.`,
-      suggestion: `Try requesting with ${substitute} instead.`
+      suggestion: `Try requesting with ${substitute} instead.`,
+      allergyConflict: classifyAllergyConflict(userText, allergyMatches, allergyCategories) ?? undefined,
     };
   }
 

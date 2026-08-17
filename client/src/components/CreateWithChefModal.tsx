@@ -28,6 +28,8 @@ import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
 import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import type { AllergyConflictPayload } from "@/hooks/useSafetyGuardPrecheck";
+import { AllergyConflictModal } from "@/components/AllergyConflictModal";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { DietGuardIntercept } from "@/components/DietGuardIntercept";
 import { detectStarchyIngredients, hasExplicitStarchRequest } from "@/utils/ingredientClassifier";
@@ -125,8 +127,13 @@ export function CreateWithChefModal({
     clearAlert: clearSafetyAlert,
     setOverrideToken,
     overrideToken,
-    hasActiveOverride
+    hasActiveOverride,
+    allergyConflictPayload,
+    restoreBlockedAlert,
   } = useSafetyGuardPrecheck();
+  // Allergen conflict modal state — set when safety preflight returns a conflict payload
+  const [allergyConflict, setAllergyConflict] = useState<AllergyConflictPayload | null>(null);
+  const allergenSafeModeRef = useRef(false);
   
   // Calculate starch slot availability from context
   const starchStatus = useMemo(() => {
@@ -183,6 +190,9 @@ export function CreateWithChefModal({
     const userDietOverride = continueAnywayRef.current;
     continueAnywayRef.current = false;
 
+    const isAllergenAdaptMode = allergenSafeModeRef.current;
+    allergenSafeModeRef.current = false;
+
     const meal = await generateMeal(
       mealDescription,
       mealType,
@@ -190,8 +200,10 @@ export function CreateWithChefModal({
       dietPhase,
       effectiveStarchContext,
       {
-        safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
-        overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
+        safetyMode: isAllergenAdaptMode
+          ? "ALLERGEN_ADAPT"
+          : (!safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT"),
+        overrideToken: !safetyEnabled && !isAllergenAdaptMode ? overrideToken || undefined : undefined,
       },
       strictMode,
       explicitOverride,
@@ -345,6 +357,13 @@ export function CreateWithChefModal({
     }
 
     const isSafe = await checkSafety(description.trim(), `create-with-chef-${mealType}`);
+
+    if (!isSafe && allergyConflictPayload.current) {
+      // Allergen conflict — show modal instead of SafetyGuardBanner
+      setAllergyConflict(allergyConflictPayload.current);
+      allergyConflictPayload.current = null;
+      return;
+    }
     
     if (isSafe) {
       await executeGeneration(description.trim());
@@ -457,6 +476,7 @@ export function CreateWithChefModal({
   const isProcessing = generating || safetyChecking || finalizing;
 
   return (
+    <>
     <UniversalDialog rawLayout open={open} onOpenChange={onOpenChange} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-semibold">
@@ -680,5 +700,25 @@ export function CreateWithChefModal({
           )}
         </div>
     </UniversalDialog>
+
+    {/* Allergy Conflict Modal — shown instead of SafetyGuardBanner when an
+        allergyConflict is detected. Offers "Make it safe", "Make original" (PIN),
+        or "Cancel". */}
+    <AllergyConflictModal
+      conflict={allergyConflict}
+      onMakeSafe={() => {
+        setAllergyConflict(null);
+        allergenSafeModeRef.current = true;
+        executeGeneration(description.trim());
+      }}
+      onMakeOriginal={() => {
+        setAllergyConflict(null);
+        restoreBlockedAlert(); // restores SafetyGuardBanner with PIN button
+      }}
+      onCancel={() => {
+        setAllergyConflict(null);
+      }}
+    />
+    </>
   );
 }
