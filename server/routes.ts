@@ -8365,10 +8365,14 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
   app.use("/api/pro/training", requireAuth, procareTrainingRouter);
-  app.use("/api", requireAuth, clinicalInterventionsRouter);
+  // requireAuth is applied per-route inside clinicalInterventionsRouter —
+  // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
+  app.use("/api", clinicalInterventionsRouter);
   app.use("/api/studios", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
-  app.use("/api", requireAuth, cycleProtocolRoutes);
+  // requireAuth is applied per-route inside cycleProtocolRoutes —
+  // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
+  app.use("/api", cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;
   app.use("/api/legal", legalRoutes);
 

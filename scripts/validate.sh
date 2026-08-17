@@ -140,6 +140,22 @@ if [ "$AUTH_VIOLATIONS" -eq 0 ]; then
   pass "No raw fetch() calls to auth-protected routes"
 fi
 
+# Guard: bare /api + requireAuth mount pattern
+# app.use("/api", requireAuth, ...) intercepts EVERY /api/* request, including
+# the login endpoint. requireAuth must be applied per-route inside the router,
+# not at the bare /api prefix. Specific sub-paths like /api/something are fine.
+BARE_API_AUTH=$(grep -rn \
+  'app\.use([[:space:]]*["\x27]/api["\x27][[:space:]]*,[[:space:]]*requireAuth' \
+  server/routes.ts server/prod.ts 2>/dev/null \
+  | grep -v '^\s*//' \
+  || true)
+if [ -n "$BARE_API_AUTH" ]; then
+  fail "Bare /api requireAuth mount found — this blocks login. Apply requireAuth per-route inside the router instead:"
+  echo "$BARE_API_AUTH" | head -5 | sed 's/^/    /'
+else
+  pass "No bare /api requireAuth mount pattern found"
+fi
+
 # ──────────────────────────────────────────────────
 header "Step 4 of 6: Translation Quality"
 echo "  Running i18n value quality scan..."
