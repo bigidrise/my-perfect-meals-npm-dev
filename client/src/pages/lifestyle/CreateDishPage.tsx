@@ -306,6 +306,9 @@ export default function CreateDishPage() {
   // Allergen conflict modal state — set when safety preflight returns conflict_adaptable/collapse
   const [allergyConflict, setAllergyConflict] = useState<AllergyConflictPayload | null>(null);
   const allergenSafeModeRef = useRef(false);
+  // Captures the actual allergens from AllergyConflictModal so SafetyGuardToggle
+  // can send the correct allergen name to the PIN endpoint (not the generic placeholder).
+  const pendingOverrideAllergensRef = useRef<string[]>([]);
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
@@ -919,6 +922,7 @@ export default function CreateDishPage() {
                       safetyEnabled={safetyEnabled}
                       onSafetyChange={handleSafetyOverride}
                       disabled={isGenerating}
+                      allergenContext={pendingOverrideAllergensRef.current.length > 0 ? pendingOverrideAllergensRef.current : undefined}
                     />
                     <GlucoseGuardToggle disabled={isGenerating} />
                   </div>
@@ -1602,6 +1606,9 @@ export default function CreateDishPage() {
           handleGenerateDish(true /* skipPreflight */);
         }}
         onMakeOriginal={() => {
+          // Snapshot allergens before clearing state — SafetyGuardToggle needs them
+          // to issue the override token for the correct allergen (e.g. "shellfish").
+          pendingOverrideAllergensRef.current = allergyConflict?.allergens ?? [];
           setAllergyConflict(null);
           restoreBlockedAlert(); // restores SafetyGuardBanner with PIN button
         }}

@@ -135,6 +135,9 @@ export function CreateWithChefModal({
   // Allergen conflict modal state — set when safety preflight returns a conflict payload
   const [allergyConflict, setAllergyConflict] = useState<AllergyConflictPayload | null>(null);
   const allergenSafeModeRef = useRef(false);
+  // Captures the actual allergens from AllergyConflictModal so SafetyGuardToggle
+  // can send the correct allergen name to the PIN endpoint (not the generic placeholder).
+  const pendingOverrideAllergensRef = useRef<string[]>([]);
   
   // Calculate starch slot availability from context
   const starchStatus = useMemo(() => {
@@ -654,6 +657,7 @@ export function CreateWithChefModal({
                   safetyEnabled={safetyEnabled}
                   onSafetyChange={handleSafetyOverride}
                   disabled={isProcessing}
+                  allergenContext={pendingOverrideAllergensRef.current.length > 0 ? pendingOverrideAllergensRef.current : undefined}
                 />
                 <GlucoseGuardToggle disabled={isProcessing} />
                 {starchContext && starchStatus.isExhausted && (
@@ -721,6 +725,9 @@ export function CreateWithChefModal({
         executeGeneration(description.trim());
       }}
       onMakeOriginal={() => {
+        // Snapshot allergens before clearing state — SafetyGuardToggle needs them
+        // to issue the override token for the correct allergen (e.g. "shellfish").
+        pendingOverrideAllergensRef.current = allergyConflict?.allergens ?? [];
         setAllergyConflict(null);
         restoreBlockedAlert(); // restores SafetyGuardBanner with PIN button
       }}

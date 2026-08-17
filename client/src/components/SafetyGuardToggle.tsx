@@ -8,12 +8,15 @@ interface SafetyGuardToggleProps {
   safetyEnabled: boolean;
   onSafetyChange: (enabled: boolean, overrideToken?: string) => void;
   disabled?: boolean;
+  /** The specific allergen(s) the user is overriding — passed from AllergyConflictModal so the token carries the real allergen name, not a generic placeholder. */
+  allergenContext?: string[];
 }
 
 export function SafetyGuardToggle({
   safetyEnabled,
   onSafetyChange,
   disabled = false,
+  allergenContext,
 }: SafetyGuardToggleProps) {
   const [showPinEntry, setShowPinEntry] = useState(false);
   const [pin, setPin] = useState("");
@@ -48,12 +51,23 @@ export function SafetyGuardToggle({
     setError(null);
 
     try {
+      // Use the specific allergen from AllergyConflictModal if available so the
+      // override token carries "shellfish" (etc.) rather than the generic placeholder.
+      // This is what lets scanGeneratedOutput suppress the right violations later.
+      const allergenForToken =
+        allergenContext && allergenContext.length > 0
+          ? allergenContext[0]
+          : "user-override";
+
       const data = await apiRequest("/api/safety-pin/verify-override", {
         method: "POST",
         body: JSON.stringify({
           pin,
-          allergen: "user-override",
-          mealRequest: "Safety override requested",
+          allergen: allergenForToken,
+          mealRequest:
+            allergenContext && allergenContext.length > 0
+              ? `Safety override requested for: ${allergenContext.join(", ")}`
+              : "Safety override requested",
         }),
       });
 
