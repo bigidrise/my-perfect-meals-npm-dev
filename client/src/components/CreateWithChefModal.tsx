@@ -32,6 +32,7 @@ import type { AllergyConflictPayload } from "@/hooks/useSafetyGuardPrecheck";
 import { AllergyConflictModal } from "@/components/AllergyConflictModal";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { DietGuardIntercept } from "@/components/DietGuardIntercept";
+import type { DietGuardDecision } from "@/hooks/useDietGuardPrecheck";
 import { detectStarchyIngredients, hasExplicitStarchRequest } from "@/utils/ingredientClassifier";
 import type { DiversityContext } from "@/lib/diversityContext";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
@@ -419,7 +420,7 @@ export function CreateWithChefModal({
   // Handle diet guard decision:
   // "continue_anyway" — user proceeds with their original request, soft override active
   // "let_chef_adapt" — bypass diet check and generate with protocol-aware adaptation
-  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt" | "continue_anyway") => {
+  const handleDietDecision = async (decision: DietGuardDecision) => {
     if (decision === "pick_something_else") {
       setDietDecision("pick_something_else");
       clearDietAlert();

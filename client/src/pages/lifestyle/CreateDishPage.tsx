@@ -86,6 +86,8 @@ interface MealData {
   protein: number;
   carbs: number;
   fat: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
   nutrition?: {
     calories?: number;
     protein?: number;
@@ -94,6 +96,8 @@ interface MealData {
     protein_g?: number;
     carbs_g?: number;
     fat_g?: number;
+    starchyCarbs?: number;
+    fibrousCarbs?: number;
   };
   instructions: string;
   cookingInstructions?: string[];

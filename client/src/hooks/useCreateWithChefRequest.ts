@@ -61,6 +61,7 @@ interface Meal {
   };
   medicalBadges?: string[];
   substitutionNotes?: string[];
+  dietClassification?: string | null;
 }
 
 interface SafetyOptions {
