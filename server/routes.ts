@@ -5014,7 +5014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug } = req.body;
 
       // Adaptation block is built AFTER user is fetched (so we know their actual diet).
       // Start with the raw input — the safety check at line 3441 runs on clean input.
@@ -5104,6 +5104,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Resolve effective primary dietary identity (early — used by DAL + generator) ─
+      // builder dietOverride REPLACES profile diet (replacement, not merge).
+      // Allergies, medical, specialty, and religious rules are enforced separately
+      // by the protocol envelope — they are never affected by this resolver.
+      const _resolvedPrimaryDiet: string[] = (() => {
+        if (dietOverride && typeof dietOverride === "string" && dietOverride.trim()) {
+          console.log(`🔀 [CRAVING] Diet override: "${dietOverride.trim()}" replaces profile diet`);
+          return [dietOverride.trim()];
+        }
+        if (dietaryRestrictions) {
+          return (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean);
+        }
+        return [];
+      })();
+
       // ── Build diet-aware adaptation / override block ──────────────────────
       // NOW we know the user's actual diet — build the right block, never
       // cross-contaminating carnivore with pareve, vegan with meat, etc.
@@ -5155,11 +5170,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // adaptation directives injected into generation. LRU-cached by
       // dish + guardrail IDs — repeated requests make no extra LLM call.
       const { getDishAdaptationDirective, buildGuardrailContext } = await import("./services/dishAdaptation/dishAdaptationLayer");
+      // When a builder diet override is active, use it as the sole dietary identity
+      // in the guardrail context so a vegan profile doesn't reject a keto meal the
+      // user explicitly requested. Without override, merge envelope + profile as before.
+      const _dalDietIdentity = _resolvedPrimaryDiet.length > 0
+        ? _resolvedPrimaryDiet
+        : [...protocolEnvelope.dietaryIdentity, ...((user?.dietaryRestrictions as string[]) || [])];
       const _dalGuardrailCtx = buildGuardrailContext({
-        dietaryIdentity: [
-          ...protocolEnvelope.dietaryIdentity,
-          ...((user?.dietaryRestrictions as string[]) || []),
-        ],
+        dietaryIdentity: _dalDietIdentity,
         glp1Active: !!_cravingGlp1Targets,
         allergies: protocolEnvelope.allergies,
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -5175,9 +5193,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn("⚠️ [DAL] Directive build failed — generation proceeds unenriched:", dalErr);
       }
 
-      const bodyDietRestrictions = dietaryRestrictions
-        ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
-        : [];
+      // _resolvedPrimaryDiet already incorporates the override (computed after user load).
+      const bodyDietRestrictions = _resolvedPrimaryDiet.slice();
 
       // ── Route-level oncology injection ────────────────────────────────────
       // The variety engine does its own DB query for specialtyCondition, but the

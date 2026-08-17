@@ -616,6 +616,10 @@ export default function CravingCreator() {
           dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
             ? dietOverrideValue
             : (selectedDiet || dietaryRestrictions),
+          // Explicit signal: this is a REPLACEMENT of the profile diet, not a merge.
+          // The server uses this to prevent the profile's vegan/keto from conflicting
+          // with the user's temporary builder selection.
+          dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
           userId: userId,
           servings: servings,
           sweetenerPreferences,

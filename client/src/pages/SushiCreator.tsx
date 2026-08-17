@@ -127,6 +127,7 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "sushiCreator.cache.v1";
@@ -396,6 +397,7 @@ export default function SushiCreator() {
 
   // 🔥 SIMPLIFIED: Use same pattern as Fridge Rescue (working system)
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -526,6 +528,7 @@ export default function SushiCreator() {
     setIsGenerating(true);
 
     try {
+      setGenerationFailure(HIDDEN_FAILURE);
       const url = apiUrl("/api/meals/craving-creator");
       console.log("📡 Fetching:", url);
       const response = await fetch(url, {
@@ -539,6 +542,7 @@ export default function SushiCreator() {
           dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
             ? dietOverrideValue
             : (selectedDiet || dietaryRestrictions),
+          dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
           userId: userId,
           servings: servings,
           sweetenerPreferences,
@@ -660,11 +664,14 @@ export default function SushiCreator() {
           variant: "warning",
         });
       } else {
-        toast({
-          title: "⚠️ ALLERGY ALERT",
-          description:
-            "SafetyGuard™ detected a potential concern. Try a different meal or adjust your request.",
-          variant: "warning",
+        // Generic technical errors must NOT be labeled as allergy alerts.
+        setGenerationFailure({
+          show: true,
+          message: "Something went wrong creating your sushi. Please try again.",
+          suggestedActions: [
+            "Try Again — we'll generate a fresh version",
+            "Describe the roll or style differently",
+          ],
         });
       }
     } finally {
@@ -1154,6 +1161,16 @@ export default function SushiCreator() {
                         ? "Checking Safety..."
                         : "Create My Sushi"}
                     </GlassButton>
+                  )}
+
+                  {generationFailure.show && (
+                    <GenerationFailureBanner
+                      message={generationFailure.message}
+                      suggestedActions={generationFailure.suggestedActions}
+                      onRetry={() => handleGenerateMeal()}
+                      onDismiss={() => setGenerationFailure(HIDDEN_FAILURE)}
+                      isRetrying={isGenerating}
+                    />
                   )}
                 </CardContent>
               </Card>
