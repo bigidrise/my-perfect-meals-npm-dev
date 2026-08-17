@@ -564,7 +564,7 @@ export default function CreateDishPage() {
           strictMode: keepItSimple,
           dietAdaptOverride,
           userDietOverride,
-          safetyMode: allergenSafeModeRef.current ? "ALLERGEN_ADAPT" : (safetyEnabled ? "STRICT" : "DISABLED"),
+          safetyMode: allergenSafeModeRef.current ? "ALLERGEN_ADAPT" : (overrideToken ? "CUSTOM_AUTHENTICATED" : (safetyEnabled ? "STRICT" : "DISABLED")),
           ...(overrideToken ? { overrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
