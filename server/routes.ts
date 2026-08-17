@@ -5284,7 +5284,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // envelope so the filter does NOT re-reject keto meals because the envelope
       // still says the profile is vegan. Allergies, medical, avoidances, procedural
       // rules are never changed — only the primary diet identity is swapped.
-      const _filterEnvelope = (_resolvedPrimaryDiet.length > 0 && dietOverride)
+      //
+      // CreateDishPage sends `dietaryRestrictions: "keto"` (not `dietOverride`) when
+      // the diet-override toggle is on, so the condition must also trigger on
+      // dietaryRestrictions — not just the explicit dietOverride body field.
+      const _overrideDietActive = _resolvedPrimaryDiet.length > 0 && (dietOverride || dietaryRestrictions);
+      const _filterEnvelope = _overrideDietActive
         ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet }
         : protocolEnvelope;
       const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
@@ -5308,7 +5313,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch { /* proceed unenriched */ }
         // When a diet override is active, the fallback must also target the override
         // diet — not the profile's stored diet. Same replacement semantics as generation.
-        const _fallbackDietIdentity = (_resolvedPrimaryDiet.length > 0 && dietOverride)
+        // Use _overrideDietActive (already computed) so this stays in sync with _filterEnvelope.
+        const _fallbackDietIdentity = _overrideDietActive
           ? _resolvedPrimaryDiet
           : protocolEnvelope.dietaryIdentity;
         const fallbackMeal = await generateSingleCompliantFallback(

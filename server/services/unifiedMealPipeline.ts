@@ -2985,12 +2985,6 @@ export async function generateFromDescriptionUnified(
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
       : buildGuestEnvelope();
 
-    const chefProtocolBlock = enforceBeforeGenerate(chefEnvelope, {
-      generatorName: 'create_with_chef',
-      actorId: userId ?? undefined,
-    }).combined;
-
-    // Use envelope's dietaryIdentity for vegan/vegetarian/pescatarian compliance loop
     // Temporary diet override replaces the profile diet for this generation.
     // Hard restrictions (allergies, medical, procedural rules) always come from chefEnvelope unchanged.
     const chefDietRestrictions: string[] = (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0)
@@ -2999,6 +2993,20 @@ export async function generateFromDescriptionUnified(
     if (dietaryRestrictionsOverride?.length) {
       console.log(`🔀 [CREATE-WITH-CHEF] Diet override: [${dietaryRestrictionsOverride.join(', ')}] replaces profile diet [${chefEnvelope.dietaryIdentity.join(', ')}]`);
     }
+
+    // Build the protocol block from the EFFECTIVE diet identity — not the raw profile envelope.
+    // Without this, a vegan-profile + keto-override request emits a "vegan diet" instruction
+    // block into the LLM prompt even though post-gen validation uses keto.
+    // Only dietaryIdentity is substituted; allergies, medical, avoidances, and procedural
+    // rules are preserved unchanged from the original chefEnvelope.
+    const _effectiveChefEnvelope = (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0)
+      ? { ...chefEnvelope, dietaryIdentity: dietaryRestrictionsOverride }
+      : chefEnvelope;
+    const chefProtocolBlock = enforceBeforeGenerate(_effectiveChefEnvelope, {
+      generatorName: 'create_with_chef',
+      actorId: userId ?? undefined,
+    }).combined;
+
     const descMeasurementSystem: MeasurementSystem = chefEnvelope.measurementSystem ?? "imperial";
     if (chefProtocolBlock) {
       console.log(`🥗 [CREATE-WITH-CHEF] Protocol enforcement active: ${chefDietRestrictions.join('|') || 'guest'}`);
@@ -3511,7 +3519,11 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       }
 
       // ── Post-gen protocol scan ────────────────────────────────────────────
-      const chefScan = scanGeneratedOutput(tempMeal, chefEnvelope, {
+      // Use _effectiveChefEnvelope (same as the prompt block) so keto-override
+      // requests are scanned against keto rules — not the raw vegan profile.
+      // Without this, cream cheese in a keto meal triggers a vegan violation
+      // and causes a pointless retry loop when diet override is active.
+      const chefScan = scanGeneratedOutput(tempMeal, _effectiveChefEnvelope, {
         generatorName: 'create_with_chef',
       });
       if (!chefScan.passed) {
