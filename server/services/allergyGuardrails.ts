@@ -1254,6 +1254,35 @@ export function classifyAllergyConflict(
 }
 
 /**
+ * ADAPTABLE DISH-NAME TERMS
+ * Terms in ALLERGEN_EXPANSION that are pure dish names — cultural dish labels
+ * whose word carries no allergen ingredient by itself. They exist so the
+ * PRE-generation check can flag "gumbo" / "pad thai" requests and show the
+ * AllergyConflictModal. But in ALLERGEN_ADAPT mode the user has explicitly
+ * asked for a safe version of that dish, and identity preservation requires
+ * keeping the name — so the POST-adaptation scan must not condemn a
+ * shellfish-free gumbo just for being called "gumbo".
+ *
+ * STRICT INCLUSION RULES — a term may ONLY be listed here if:
+ *   1. It does not embed an allergen ingredient word (so "shrimp scampi",
+ *      "clam chowder", "peanut noodles", "african peanut soup", "peanut stew"
+ *      are excluded — their ingredient word still matches independently, and
+ *      an adapted dish must be renamed to drop the allergen word).
+ *   2. It is not itself an allergen-bearing preparation or a foreign-language
+ *      ingredient word (so "frangipane" [almond filling], "amaretti" [almond
+ *      cookies], "marzipan", "gambas" [prawns], "scampi" [langoustines],
+ *      "surimi" [fish paste] are excluded).
+ */
+export const ADAPTABLE_DISH_NAME_TERMS = new Set<string>([
+  // shellfish dishes
+  "paella", "cioppino", "bouillabaisse", "gumbo", "jambalaya", "bisque",
+  "ceviche", "fra diavolo", "tom yum", "laksa",
+  // peanut dishes
+  "satay", "pad thai", "kung pao", "kung pao chicken", "gado gado",
+  "dan dan noodles", "massaman curry", "indonesian satay",
+]);
+
+/**
  * Expand a list of allergen category names into the full set of forbidden terms.
  * Used by the post-adaptation allergen scan to verify the generated output is safe.
  */
@@ -1269,6 +1298,31 @@ export function buildForbiddenTermsFromAllergens(allergens: string[]): string[] 
     }
   }
   return Array.from(new Set(terms));
+}
+
+/**
+ * Compute the forbidden terms exempt from the ALLERGEN_ADAPT post-scan for a
+ * specific request. A term is exempt ONLY when BOTH hold:
+ *   1. It is a pure dish-name label (ADAPTABLE_DISH_NAME_TERMS) — never an
+ *      ingredient, derivative, or allergen-bearing preparation; AND
+ *   2. It appears (word-bounded) in the dish the user actually requested.
+ *
+ * This means requesting "gumbo" exempts only the word "gumbo"; every
+ * ingredient/derivative term (shrimp, crab, shellfish stock, ...) is still
+ * scanned across the meal name, ingredients, instructions, and description.
+ * A request for "shrimp gumbo" exempts only "gumbo" — "shrimp" can never be
+ * exempted because it is not a dish-name term.
+ */
+export function getRequestedDishExemptTerms(
+  requestedDish: string,
+  allergens: string[],
+): string[] {
+  const dish = (requestedDish || "").toLowerCase().trim();
+  if (!dish) return [];
+  return buildForbiddenTermsFromAllergens(allergens).filter((term) => {
+    if (!ADAPTABLE_DISH_NAME_TERMS.has(term.toLowerCase())) return false;
+    return new RegExp(`\\b${escapeRegex(term)}\\b`, "i").test(dish);
+  });
 }
 
 /**
@@ -1838,4 +1892,80 @@ export function scanForHiddenDietaryViolations(
   }
 
   return violations;
+}
+
+export interface AllergenScanMeal {
+  name?: string;
+  ingredients?: Array<string | { name?: string }>;
+  /** Accepts a string or an array of instruction steps — both are scanned. */
+  instructions?: string | string[];
+  description?: string;
+}
+
+export interface AllergenScanResult<T extends AllergenScanMeal> {
+  /** Meals that passed — no forbidden terms found in any field. */
+  safe: T[];
+  /** Meals that failed — at least one forbidden term was found. */
+  unsafe: T[];
+  /** Every forbidden term that was matched across all failing meals. */
+  violations: Set<string>;
+}
+
+/**
+ * Post-generation allergen scan used by the Phase 3 ALLERGEN_ADAPT block in routes.ts.
+ *
+ * Concatenates name + ingredients + instructions + description into a single text
+ * per meal and checks for any term from buildForbiddenTermsFromAllergens(). Meals
+ * that match are excluded and their matched terms are collected for the retry clause.
+ *
+ * Pass `exemptTerms` to skip specific terms that should not trigger a block — for
+ * example, the bare dish-name word that the adaptation intentionally keeps in the
+ * meal title (handled by getRequestedDishExemptTerms in routes.ts).
+ *
+ * This is the canonical implementation — routes.ts delegates here so tests can
+ * cover the exact same logic path without duplicating it.
+ */
+export function scanMealsForAllergenViolations<T extends AllergenScanMeal>(
+  meals: T[],
+  allergens: string[],
+  exemptTerms?: Set<string>,
+): AllergenScanResult<T> {
+  const allForbiddenTerms = buildForbiddenTermsFromAllergens(allergens);
+  const forbiddenTerms = exemptTerms
+    ? allForbiddenTerms.filter(t => !exemptTerms.has(t.toLowerCase()))
+    : allForbiddenTerms;
+  const forbiddenRegexes = forbiddenTerms.map(
+    t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+  );
+
+  const violations = new Set<string>();
+  const safe: T[] = [];
+  const unsafe: T[] = [];
+
+  for (const meal of meals) {
+    const ingredientText = (meal.ingredients || [])
+      .map(i => (typeof i === "string" ? i : (i?.name || "")))
+      .join(" ");
+
+    const instructionsText = Array.isArray(meal.instructions)
+      ? meal.instructions.join(" ")
+      : (meal.instructions || "");
+
+    const mealText = [
+      meal.name || "",
+      ingredientText,
+      instructionsText,
+      meal.description || "",
+    ].join(" ");
+
+    const hits = forbiddenTerms.filter((_, idx) => forbiddenRegexes[idx].test(mealText));
+    if (hits.length > 0) {
+      hits.forEach(v => violations.add(v));
+      unsafe.push(meal);
+    } else {
+      safe.push(meal);
+    }
+  }
+
+  return { safe, unsafe, violations };
 }
