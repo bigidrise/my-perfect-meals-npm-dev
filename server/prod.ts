@@ -850,8 +850,11 @@ async function initializeApp() {
     app.use("/api/biometrics", biometricsRoutes);
 
     // Body composition — body fat history and entries
+    // requireAuth is applied per-route inside bodyComposition.ts; do NOT add it
+    // here at the /api prefix — that would block the login route and all other
+    // public /api endpoints that load before auth is established.
     const bodyCompositionRoutes = (await import("./routes/bodyComposition")).default;
-    app.use("/api", requireAuth, bodyCompositionRoutes);
+    app.use("/api", bodyCompositionRoutes);
 
     // Daily Nutrition Prescription — shared resolver for all builders
     const prescriptionRoutes = (await import("./routes/prescriptionRoutes")).default;
