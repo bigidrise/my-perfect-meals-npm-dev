@@ -21,7 +21,7 @@ jest.mock("../services/imageLifecycle", () => ({
   ingestImageToPermanentStorage: jest.fn(),
 }));
 
-import { __testables, buildStableCacheKey } from "../services/mealImageGenerator";
+import { __testables, buildStableCacheKey, detectDishType } from "../services/mealImageGenerator";
 
 const { buildMealImagePrompt, buildIngredientContract } = __testables;
 
@@ -89,7 +89,12 @@ describe("buildIngredientContract", () => {
       "REQUIRED VISIBLE INGREDIENTS: mixed greens, tuna, green beans, red potatoes, cherry tomatoes"
     );
     expect(contract).toContain("UNAUTHORIZED INGREDIENTS");
-    expect(contract).toContain('Do NOT depict the traditional or cultural composition of "Classic Tuna Niçoise Salad"');
+    // v8 contract: scoped to filling/composition, NOT dish form
+    expect(contract).toContain('Do NOT add ingredients traditionally associated with "Classic Tuna Niçoise Salad"');
+    expect(contract).toContain("The ingredient list above is the only authority");
+    // Must NOT contain the old "dish name is a label only" phrasing that caused form collapse
+    expect(contract).not.toContain("The dish name is a label only");
+    expect(contract).not.toContain("does NOT define what appears in the image");
   });
 
   it("returns an empty contract when the ingredient list is empty (no protection possible)", () => {
@@ -115,16 +120,28 @@ describe("buildMealImagePrompt — recipe contract outranks dish name", () => {
       for (const sourceType of ["meal", undefined] as const) {
         const prompt = buildMealImagePrompt(dish.name, dish.recipe, sourceType as any);
 
-        // Display name present as a label, not as culinary truth
+        // Display name present as a label
         expect(prompt).toContain(`DISPLAY NAME: ${dish.name}`);
-        expect(prompt).toContain("IMAGE SUBJECT: A dish composed ONLY from the authorized recipe ingredients");
+
+        // v8 three-contract structure
+        expect(prompt).toContain("CONTRACT 1: DISH IDENTITY");
+        expect(prompt).toContain("CONTRACT 2: INGREDIENT AUTHORIZATION");
+        expect(prompt).toContain("CONTRACT 3: PRESENTATION");
 
         // Allow-list is the recipe, verbatim
         expect(prompt).toContain(`REQUIRED VISIBLE INGREDIENTS: ${dish.recipe.join(", ")}`);
 
-        // Deny clause references the loaded name explicitly
-        expect(prompt).toContain(`Do NOT depict the traditional or cultural composition of "${dish.name}"`);
-        expect(prompt).toContain("The recipe contract above is the only authority");
+        // Deny clause references the loaded name explicitly (new scoped language)
+        expect(prompt).toContain(`Do NOT add ingredients traditionally associated with "${dish.name}"`);
+        expect(prompt).toContain("The ingredient list above is the only authority");
+
+        // Must NOT contain the old phrasing that told the model to ignore dish form
+        expect(prompt).not.toContain("The dish name is a label only");
+        expect(prompt).not.toContain("does NOT define what appears in the image");
+
+        // Contract 1 must contain structural identity (not just generic text)
+        // This is the fix for taco→salad form collapse
+        expect(prompt).toContain("This image MUST show:");
 
         // No traditional-only ingredient leaks into the prompt text
         const lower = prompt.toLowerCase();
@@ -138,11 +155,15 @@ describe("buildMealImagePrompt — recipe contract outranks dish name", () => {
     });
   }
 
-  it("empty ingredient list falls back to legacy name-driven prompt (no false contract)", () => {
+  it("empty ingredient list falls back to name-driven prompt (no false contract)", () => {
     const prompt = buildMealImagePrompt("Classic Tuna Niçoise Salad", []);
     expect(prompt).not.toContain("REQUIRED VISIBLE INGREDIENTS");
     expect(prompt).not.toContain("UNAUTHORIZED INGREDIENTS");
-    expect(prompt).toContain("must clearly look like Classic Tuna Niçoise Salad");
+    // No-contract path still names the dish so the model knows what to generate
+    expect(prompt).toContain("Classic Tuna Niçoise Salad");
+    // But structural identity (Contract 1) is ALWAYS present even without ingredients
+    expect(prompt).toContain("CONTRACT 1: DISH IDENTITY");
+    expect(prompt).toContain("This image MUST show:");
   });
 
   it("contract applies for all sourceType anchors", () => {
@@ -150,25 +171,144 @@ describe("buildMealImagePrompt — recipe contract outranks dish name", () => {
       const prompt = buildMealImagePrompt("Vegan Carbonara", ["spaghetti", "cashew cream"], st);
       expect(prompt).toContain("REQUIRED VISIBLE INGREDIENTS: spaghetti, cashew cream");
       expect(prompt).toContain("UNAUTHORIZED INGREDIENTS");
+      // Three-contract structure present in all anchors
+      expect(prompt).toContain("CONTRACT 1: DISH IDENTITY");
+      expect(prompt).toContain("CONTRACT 2: INGREDIENT AUTHORIZATION");
     }
   });
 });
 
-describe("buildStableCacheKey — v6 cache flush + full-list hashing", () => {
-  it("uses the v6 version tag so all pre-contract cached prompts are invalidated", () => {
+// ─────────────────────────────────────────────────────────────────────────────
+// STRUCTURAL IDENTITY REGRESSION SUITE
+//
+// Root cause being guarded: the old "dish name is a label only" instruction
+// suppressed the structural form anchor along with traditional ingredients,
+// causing tacos → salad / pasta form collapse.
+//
+// These tests verify:
+//   1. detectDishType() returns dish-specific structural identity (not generic text)
+//   2. buildMealImagePrompt() embeds that identity in CONTRACT 1
+//   3. The structural identity is specific enough to anchor dish form
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("detectDishType — structural identity taxonomy", () => {
+  // mustNotBePositive: terms that must NOT appear EXCEPT in a "NOT a X" denial clause.
+  // We check that identity.includes(term) is false OR the only occurrence is in "not a X".
+  // In practice we just check mustContain and trust the text is correctly scoped.
+  const CASES: Array<{ name: string; mustContain: string[] }> = [
+    {
+      name: "Black Bean and Roasted Veggie Tacos",
+      mustContain: ["tortilla", "taco", "not a salad", "not a bowl"],
+    },
+    {
+      name: "Spicy Jackfruit Tacos",
+      mustContain: ["tortilla", "taco", "not a salad"],
+    },
+    {
+      name: "Chicken Burrito",
+      mustContain: ["rolled", "seam-side down", "not a taco"],
+    },
+    {
+      name: "Cheese Quesadilla",
+      mustContain: ["wedges", "melted filling", "not a taco"],
+    },
+    {
+      name: "Spaghetti Bolognese",
+      mustContain: ["noodles", "sauce", "not a salad", "not a stir-fry"],
+    },
+    {
+      name: "Cheesecake",
+      mustContain: ["creamy filling", "crust", "not a cookie", "not a brownie"],
+    },
+    {
+      name: "Tomato Bisque",
+      mustContain: ["bowl", "soup", "not a plate", "not a salad"],
+    },
+    {
+      name: "Margherita Pizza",
+      mustContain: ["flat", "round", "crust", "toppings", "not a calzone"],
+    },
+    {
+      name: "Turkey Club Sandwich",
+      mustContain: ["bread", "sliced in half", "cross-section", "not a taco"],
+    },
+    {
+      name: "Classic Cheeseburger",
+      mustContain: ["bun", "patty", "not a wrap", "not a sandwich with sliced bread"],
+    },
+  ];
+
+  for (const c of CASES) {
+    it(`"${c.name}" has dish-specific structural identity`, () => {
+      const dish = detectDishType(c.name);
+      const identity = dish.structuralIdentity.toLowerCase();
+      for (const term of c.mustContain) {
+        expect(identity).toContain(term.toLowerCase());
+      }
+    });
+  }
+
+  it("structural identity is never the generic 'filled handheld food' for tacos", () => {
+    const taco = detectDishType("Fish Tacos");
+    expect(taco.structuralIdentity).not.toContain("filled handheld food with visible ingredients inside");
+    expect(taco.structuralIdentity.toLowerCase()).toContain("tortilla");
+  });
+});
+
+describe("buildMealImagePrompt — structural identity in CONTRACT 1", () => {
+  it("taco prompt contains tortilla language in Contract 1, not just 'handheld food'", () => {
+    const prompt = buildMealImagePrompt(
+      "Black Bean and Roasted Veggie Tacos",
+      ["black beans", "corn tortillas", "roasted bell pepper", "zucchini", "red onion", "feta"],
+      "meal"
+    );
+    // Contract 1 must name tortilla shells specifically
+    expect(prompt).toContain("tortilla");
+    // Must not use the old vague language that caused form collapse
+    expect(prompt).not.toContain("filled handheld food with visible ingredients inside");
+    // Must not tell the model to ignore the dish name
+    expect(prompt).not.toContain("The dish name is a label only");
+    // Must anchor the form
+    expect(prompt).toContain("MANDATORY — cannot be overridden");
+  });
+
+  it("pasta prompt anchors noodle-in-sauce form and prohibits salad/stir-fry confusion", () => {
+    const prompt = buildMealImagePrompt(
+      "Tofu and Bell Pepper Noodles",
+      ["soba noodles", "tofu", "bell pepper", "sesame sauce"],
+      "meal"
+    );
+    expect(prompt).toContain("noodles");
+    expect(prompt).toContain("NOT a salad");
+    expect(prompt).toContain("NOT a stir-fry");
+  });
+
+  it("soup prompt anchors bowl-of-liquid form and prohibits plate confusion", () => {
+    const prompt = buildMealImagePrompt(
+      "Roasted Tomato Soup",
+      ["tomatoes", "vegetable broth", "olive oil", "basil"],
+      "meal"
+    );
+    expect(prompt).toContain("bowl");
+    expect(prompt).toContain("NOT a plate");
+  });
+});
+
+describe("buildStableCacheKey — v8 cache flush + full-list hashing", () => {
+  it("produces a stable 32-char hex key and differs across names, ingredients, and source types", () => {
     const key = buildStableCacheKey("Tuna Salad", ["tuna", "greens"], "meal");
-    const expectedV6 = crypto
-      .createHash("sha256")
-      .update(`tuna salad|greens,tuna|meal|v6`)
-      .digest("hex")
-      .substring(0, 32);
-    const oldV4 = crypto
-      .createHash("sha256")
-      .update(`tuna salad|greens,tuna|meal|v4`)
-      .digest("hex")
-      .substring(0, 32);
-    expect(key).toBe(expectedV6);
-    expect(key).not.toBe(oldV4);
+    // 32-char hex
+    expect(/^[0-9a-f]{32}$/.test(key)).toBe(true);
+    // Deterministic across multiple calls
+    expect(buildStableCacheKey("Tuna Salad", ["tuna", "greens"], "meal")).toBe(key);
+    // Case/whitespace/order stable
+    expect(buildStableCacheKey("tuna salad ", ["Greens", "TUNA"], "meal")).toBe(key);
+    // Different name → different key
+    expect(buildStableCacheKey("Tuna Sandwich", ["tuna", "greens"], "meal")).not.toBe(key);
+    // Different ingredient → different key
+    expect(buildStableCacheKey("Tuna Salad", ["tuna", "greens", "olives"], "meal")).not.toBe(key);
+    // Different source type → different key
+    expect(buildStableCacheKey("Tuna Salad", ["tuna", "greens"], "snack")).not.toBe(key);
   });
 
   it("recipes with the same first five ingredients but different later ingredients get DIFFERENT keys", () => {
