@@ -845,6 +845,14 @@ async function initializeApp() {
     app.use("/api", macroCalculatorRouter);
     app.use("/api/biometrics/labs", requireAuth, requireClinicalLabsAccess, clinicalLabsRouter);
 
+    // Biometrics — ingest, history, weight/waist/body-measurement endpoints
+    const biometricsRoutes = (await import("./routes/biometricsRoutes")).default;
+    app.use("/api/biometrics", biometricsRoutes);
+
+    // Body composition — body fat history and entries
+    const bodyCompositionRoutes = (await import("./routes/bodyComposition")).default;
+    app.use("/api", requireAuth, bodyCompositionRoutes);
+
     // Daily Nutrition Prescription — shared resolver for all builders
     const prescriptionRoutes = (await import("./routes/prescriptionRoutes")).default;
     app.use("/api/prescription", prescriptionRoutes);
