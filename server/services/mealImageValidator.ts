@@ -45,7 +45,11 @@ export function computeRecipeSignature(ingredients: string[]): string {
  * The single narrow question sent to the vision model. Kept exported so the
  * regression suite can assert the contract framing.
  */
-export function buildValidationPrompt(mealName: string, ingredients: string[]): string {
+export function buildValidationPrompt(mealName: string, ingredients: string[], structuralIdentity?: string): string {
+  const checkC = structuralIdentity
+    ? `\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: ${structuralIdentity}\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n`
+    : '';
+
   return `You are a recipe-fidelity inspector for food photography.
 
 RECIPE CONTRACT for "${mealName}":
@@ -53,17 +57,16 @@ ${ingredients.map(i => `- ${i}`).join("\n")}
 
 The recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.
 
-QUESTION (answer this and nothing else): Does this image FAIL on either of the following checks?
+QUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?
 
 CHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?
-CHECK B — Wrong dish entirely: Does the image depict a completely different dish category than "${mealName}"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.
-
+CHECK B — Wrong dish category: Does the image depict a completely different dish category than "${mealName}"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.${checkC}
 Respond with exactly one line:
 PASS
 or
-FAIL: <specific reason — e.g. "hard-boiled egg visible" or "image shows a green salad, not a cheesecake">
+FAIL: <specific reason — e.g. "hard-boiled egg visible" or "image shows a green salad, not assembled tacos" or "pasta served as a stir-fry bowl">
 
-Only report MAJOR, clearly identifiable ingredients for Check A. For Check B, only fail if the dish category is unmistakably wrong. If you are not confident a violation is present, answer PASS.`;
+Only report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.`;
 }
 
 /** Parse the model's one-line answer into a verdict. Exported for tests. */
@@ -120,7 +123,7 @@ export async function validateImageAgainstRecipe(
   imageUrl: string,
   mealName: string,
   ingredients: string[],
-  opts?: { visionCaller?: VisionCaller; timeoutMs?: number }
+  opts?: { visionCaller?: VisionCaller; timeoutMs?: number; structuralIdentity?: string }
 ): Promise<ValidationResult> {
   const cleanIngredients = ingredients.map(i => (i || "").trim()).filter(Boolean);
   if (cleanIngredients.length === 0) {
@@ -128,7 +131,7 @@ export async function validateImageAgainstRecipe(
     return { verdict: "SKIPPED", reason: "no ingredients provided", model: VALIDATION_MODEL };
   }
 
-  const prompt = buildValidationPrompt(mealName, cleanIngredients);
+  const prompt = buildValidationPrompt(mealName, cleanIngredients, opts?.structuralIdentity);
   const caller = opts?.visionCaller ?? defaultVisionCaller;
   const timeoutMs = opts?.timeoutMs ?? 20000;
 
@@ -154,10 +157,9 @@ export async function validateImageAgainstRecipe(
  * Build the strengthened retry prompt after a FAIL — names the specific
  * detected offender and reasserts the recipe contract over tradition.
  */
-export function buildRetryExclusionAddendum(mealName: string, failReason: string): string {
-  // Infer the broad dish category from the meal name for a positive target instruction.
-  // This prevents the retry from generating a random unrelated food (e.g., salad for cheesecake)
-  // when the exclusion prompt removes the model's only positive visual anchor.
+export function buildRetryExclusionAddendum(mealName: string, failReason: string, structuralIdentity?: string): string {
+  // Infer the specific dish form for a positive target instruction.
+  // This prevents the retry from generating a random unrelated food.
   const lower = mealName.toLowerCase();
   let positiveTarget = `a clearly recognizable plated dish of "${mealName}"`;
   if (/cheesecake|cake|tart|torte|soufflé|soufflé|crumble|brownie|pudding|mousse|flan|tiramisu|panna cotta|gelato|ice cream|sorbet|macaroon|macaron|profiterole|eclair|creme brulee/i.test(lower)) {
@@ -168,13 +170,23 @@ export function buildRetryExclusionAddendum(mealName: string, failReason: string
     positiveTarget = `a clearly recognizable bowl of soup — specifically "${mealName}"`;
   } else if (/salad/i.test(lower)) {
     positiveTarget = `a clearly recognizable salad — specifically "${mealName}"`;
-  } else if (/sandwich|burger|wrap|taco|burrito|hot dog/i.test(lower)) {
+  } else if (/\btaco(s)?\b/i.test(lower)) {
+    positiveTarget = `two or three clearly recognizable assembled tacos with visible tortilla shells folded around filling — specifically "${mealName}"`;
+  } else if (/burrito/i.test(lower)) {
+    positiveTarget = `a clearly recognizable rolled burrito with a flour tortilla sealed around the filling — specifically "${mealName}"`;
+  } else if (/quesadilla/i.test(lower)) {
+    positiveTarget = `a clearly recognizable flat quesadilla cut into wedges with visible melted filling — specifically "${mealName}"`;
+  } else if (/sandwich|burger|wrap|hot dog/i.test(lower)) {
     positiveTarget = `a clearly recognizable handheld item — specifically "${mealName}"`;
   } else if (/pizza/i.test(lower)) {
     positiveTarget = `a clearly recognizable pizza — specifically "${mealName}"`;
   } else if (/pasta|noodle|spaghetti|fettuccine|penne|linguine|ramen|pho/i.test(lower)) {
-    positiveTarget = `a clearly recognizable pasta or noodle dish — specifically "${mealName}"`;
+    positiveTarget = `a clearly recognizable pasta or noodle dish with noodles coated in sauce — specifically "${mealName}"`;
   }
+
+  const structuralRequirement = structuralIdentity
+    ? `\nSTRUCTURAL REQUIREMENT — this image MUST show:\n${structuralIdentity}\nThis structural form cannot be relaxed regardless of the filling ingredients.\n`
+    : '';
 
   return `
 
@@ -182,7 +194,7 @@ CORRECTION FOR PREVIOUS ATTEMPT — the previous image violated the recipe.
 VIOLATION DETECTED: ${failReason}.
 
 POSITIVE TARGET (this is what the image MUST show):
-Generate ${positiveTarget}.
+Generate ${positiveTarget}.${structuralRequirement}
 The image must be unmistakably recognizable as this dish — not a salad, not a bowl of raw ingredients, not an unrelated food.
 
 NEGATIVE CONSTRAINT: The specific violation from the previous attempt (${failReason}) must not appear.
