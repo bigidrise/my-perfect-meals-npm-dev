@@ -1249,11 +1249,12 @@ export default function MacroCounter() {
     kg > 0 &&
     !!activity;
 
-  const saveWaistToBiometrics = async () => {
-    if (!user?.id || user.id.startsWith("guest-")) return;
+  const saveWaistToBiometrics = async (): Promise<"saved" | "skipped_no_data"> => {
+    if (!user?.id || user.id.startsWith("guest-")) return "skipped_no_data";
     const wUnit = units === "imperial" ? "in" : "cm";
     const wVal = units === "imperial" ? waistIn : waistCm;
-    if (!wVal || wVal <= 0) return;
+    // No waist entered yet — skip silently; caller does not treat this as a failure.
+    if (!wVal || wVal <= 0) return "skipped_no_data";
     const res = await fetch(apiUrl("/api/biometrics/ingest"), {
       method: "POST",
       credentials: "include",
@@ -1263,6 +1264,7 @@ export default function MacroCounter() {
       }),
     });
     if (!res.ok) throw new Error(`Waist save returned ${res.status}`);
+    return "saved";
   };
 
   const saveBiometricsToProfile = async () => {
@@ -1371,12 +1373,14 @@ export default function MacroCounter() {
     return estimateBodyFatHybrid({ weightKg: kg, heightCm: cm, waistCm: waistCmVal, age, sex });
   }, [kg, cm, waistIn, waistCm, age, sex, units]);
 
-  const saveEstimatedBodyFat = async () => {
-    if (!user?.id || user.id.startsWith("guest-") || !estimatedBodyFat) return;
+  const saveEstimatedBodyFat = async (): Promise<"saved" | "skipped_no_data" | "skipped_clinical"> => {
+    // No estimate computable (waist not entered) — skip silently.
+    if (!user?.id || user.id.startsWith("guest-") || !estimatedBodyFat) return "skipped_no_data";
     let existingGoalBF: number | null = null;
     try {
       const latest = await apiRequest(`/api/users/${user.id}/body-composition/latest`);
-      if (latest?.source === "trainer" || latest?.source === "physician") return;
+      // A professional measurement is on file — don't overwrite with an AI estimate.
+      if (latest?.source === "trainer" || latest?.source === "physician") return "skipped_clinical";
       if (latest?.entry?.goalBodyFatPct) {
         existingGoalBF = parseFloat(latest.entry.goalBodyFatPct);
       }
@@ -1393,6 +1397,7 @@ export default function MacroCounter() {
         recordedAt: new Date().toISOString(),
       }),
     });
+    return "saved";
   };
 
   // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -1472,11 +1477,17 @@ export default function MacroCounter() {
     // Step 5: Navigate / complete callback only after all writes finish.
     options?.onComplete?.();
 
-    // Step 6: Report — full success or named partial failures.
+    // Step 6: Report — distinguish real HTTP failures from intentional skips.
+    //   "rejected"         → network/server error   → named in failure toast
+    //   "skipped_no_data"  → user hasn't entered waist/body-fat yet → silent (correct UX)
+    //   "skipped_clinical" → professional measurement on file → informational note
     const failures: string[] = [];
     if (weightResult.status === "rejected") failures.push("weight");
     if (waistResult.status  === "rejected") failures.push("waist");
     if (bodyFatResult.status === "rejected") failures.push("body fat");
+
+    const bodyFatClinicalSkip =
+      bodyFatResult.status === "fulfilled" && bodyFatResult.value === "skipped_clinical";
 
     if (failures.length > 0) {
       console.warn("[MacroCalculator] Partial save — biometric failures:", failures);
@@ -1484,6 +1495,12 @@ export default function MacroCounter() {
         title: `${options?.successTitle ?? "Macros saved"} — some stats didn't update`,
         description: `Macros saved. Could not update: ${failures.join(", ")}. Try saving again or visit the Biometrics page.`,
         duration: 8000,
+      });
+    } else if (bodyFatClinicalSkip) {
+      toast({
+        title: options?.successTitle ?? "Macros & Stats Saved",
+        description: "Macro targets and body measurements updated. Body-fat estimate was not applied — a professional measurement is already on file.",
+        duration: 6000,
       });
     } else {
       toast({

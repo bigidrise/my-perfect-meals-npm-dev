@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { bodyFatEntries } from "../db/schema/bodyComposition";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte, lt } from "drizzle-orm";
 import { createBodyFatSchema, updateBodyFatSchema } from "../../shared/bodyCompositionSchema";
 
 const router = Router();
@@ -84,22 +84,71 @@ router.get("/users/:userId/body-composition/history", async (req, res) => {
 });
 
 // POST /api/users/:userId/body-composition
-// Create a new body fat entry
+// Create a new body fat entry — upserts same-day client estimates to prevent
+// duplicate rows from accumulating each time the Macro Calculator saves.
 router.post("/users/:userId/body-composition", async (req, res) => {
   try {
     const { userId } = req.params;
     const data = createBodyFatSchema.parse(req.body);
 
-    const [entry] = await db.insert(bodyFatEntries).values({
-      userId,
-      currentBodyFatPct: data.currentBodyFatPct.toString(),
-      goalBodyFatPct: data.goalBodyFatPct?.toString() ?? null,
-      scanMethod: data.scanMethod,
-      source: data.source || "client",
-      createdById: data.createdById || null,
-      notes: data.notes || null,
-      recordedAt: new Date(data.recordedAt),
-    }).returning();
+    const source = data.source || "client";
+    let entry;
+
+    if (source === "client") {
+      // Dedup: one client-estimated row per calendar day. If a row already
+      // exists for today, update it instead of inserting a new one.
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfDay   = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+      const [existing] = await db
+        .select({ id: bodyFatEntries.id })
+        .from(bodyFatEntries)
+        .where(
+          and(
+            eq(bodyFatEntries.userId, userId),
+            eq(bodyFatEntries.source, "client"),
+            gte(bodyFatEntries.recordedAt, startOfDay),
+            lt(bodyFatEntries.recordedAt, endOfDay),
+          ),
+        )
+        .limit(1);
+
+      if (existing) {
+        [entry] = await db
+          .update(bodyFatEntries)
+          .set({
+            currentBodyFatPct: data.currentBodyFatPct.toString(),
+            goalBodyFatPct: data.goalBodyFatPct?.toString() ?? null,
+            recordedAt: new Date(data.recordedAt),
+          })
+          .where(eq(bodyFatEntries.id, existing.id))
+          .returning();
+      } else {
+        [entry] = await db.insert(bodyFatEntries).values({
+          userId,
+          currentBodyFatPct: data.currentBodyFatPct.toString(),
+          goalBodyFatPct: data.goalBodyFatPct?.toString() ?? null,
+          scanMethod: data.scanMethod,
+          source,
+          createdById: data.createdById || null,
+          notes: data.notes || null,
+          recordedAt: new Date(data.recordedAt),
+        }).returning();
+      }
+    } else {
+      // Trainer / physician entries always insert — never dedup clinical data.
+      [entry] = await db.insert(bodyFatEntries).values({
+        userId,
+        currentBodyFatPct: data.currentBodyFatPct.toString(),
+        goalBodyFatPct: data.goalBodyFatPct?.toString() ?? null,
+        scanMethod: data.scanMethod,
+        source,
+        createdById: data.createdById || null,
+        notes: data.notes || null,
+        recordedAt: new Date(data.recordedAt),
+      }).returning();
+    }
 
     res.json(entry);
   } catch (error) {

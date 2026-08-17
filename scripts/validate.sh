@@ -141,7 +141,7 @@ if [ "$AUTH_VIOLATIONS" -eq 0 ]; then
 fi
 
 # ──────────────────────────────────────────────────
-header "Step 4 of 5: Translation Quality"
+header "Step 4 of 6: Translation Quality"
 echo "  Running i18n value quality scan..."
 echo "    • Gate A: {{variable}} interpolation mismatches (hard fail — runtime bugs)"
 echo "    • Gate B: identical-to-English values  (warn >15%, hard fail >40% per locale)"
@@ -183,7 +183,49 @@ fi
 rm -f "$I18N_LOG"
 
 # ──────────────────────────────────────────────────
-header "Step 5 of 5: Server Startup Verification"
+header "Step 5 of 6: Route Parity — dev vs prod"
+echo "  Checking that every API route in server/routes.ts is also mounted in server/prod.ts ..."
+echo "  (Routes missing from prod.ts cause silent 404s in production only)"
+echo ""
+
+# Extract specific /api/* mount paths from each server file.
+# Matches: app.use("/api/something"  or  app.use(\`/api/something\`
+extract_routes() {
+  grep -oP "app\.use\([\"\`']/api/[^\"\`' ,)]+" "$1" 2>/dev/null \
+    | sed "s/app\.use([\"\`']//" \
+    | sort -u
+}
+
+DEV_ROUTES=$(extract_routes "server/routes.ts")
+PROD_ROUTES=$(extract_routes "server/prod.ts")
+
+PARITY_MISSING=()
+while IFS= read -r path; do
+  [ -z "$path" ] && continue
+  # Skip bare /api — too generic to diff meaningfully
+  [ "$path" = "/api" ] && continue
+  if ! echo "$PROD_ROUTES" | grep -qF "$path"; then
+    PARITY_MISSING+=("$path")
+  fi
+done <<< "$DEV_ROUTES"
+
+if [ "${#PARITY_MISSING[@]}" -eq 0 ]; then
+  pass "Route parity: all dev routes are present in prod.ts"
+else
+  # Warn rather than hard-fail: prod.ts intentionally omits some dev-only routes
+  # and covers others via generic app.use("/api", router) mounts. Review the list
+  # manually and add an explicit mount if any recently added route is missing.
+  warn "Route parity: ${#PARITY_MISSING[@]} route path(s) in routes.ts have no matching explicit mount in prod.ts:"
+  for missing_path in "${PARITY_MISSING[@]}"; do
+    echo -e "${YELLOW}      $missing_path${NC}"
+  done
+  echo ""
+  echo -e "${YELLOW}  Review list above. If any are newly added routes, add them to server/prod.ts.${NC}"
+  echo ""
+fi
+
+# ──────────────────────────────────────────────────
+header "Step 6 of 6: Server Startup Verification"
 echo "  Starting server in background to verify clean boot..."
 echo ""
 
