@@ -256,7 +256,15 @@ export function CreateWithChefModal({
       onMealGenerated(finalMeal, mealType);
       onOpenChange(false);
     } else if (error) {
-      if (isAllergyRelatedError(error)) {
+      // Typed allergen adaptation failure — must not fall through to the generic allergy handler
+      if (error.includes("allergen_adaptation_failed") || error.includes("Couldn't create a fully safe version")) {
+        toast({
+          title: "Couldn't create a fully safe version",
+          description: "We couldn't make an allergen-free version that passed your allergy protection checks. Your protection is still fully active. Try a different dish or use your Safety PIN to make the original.",
+          variant: "warning",
+          duration: 12000,
+        });
+      } else if (isAllergyRelatedError(error)) {
         toast({
           title: "⚠️ Allergy Alert",
           description: error,

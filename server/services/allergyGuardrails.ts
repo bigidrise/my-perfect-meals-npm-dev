@@ -1272,6 +1272,60 @@ export function buildForbiddenTermsFromAllergens(allergens: string[]): string[] 
 }
 
 /**
+ * Build an explicit allergen constraint block for injection into generation prompts
+ * when running in ALLERGEN_ADAPT mode.
+ *
+ * Without this, the LLM receives no allergen-specific instruction and generates
+ * the dish traditionally (e.g. gumbo with shellfish stock), causing Phase 3 to
+ * kill every option. This block names the prohibited categories, lists all their
+ * derivative terms, and instructs the model to preserve dish identity by
+ * replacing the allergen's functional role — not just deleting the ingredient.
+ *
+ * @param allergens  - User's allergen category names (e.g. ["shellfish"])
+ * @param dishName   - The requested dish name (e.g. "gumbo") for identity framing
+ */
+export function buildAllergenAdaptPromptBlock(allergens: string[], dishName?: string): string {
+  if (allergens.length === 0) return "";
+
+  const lines: string[] = [
+    `[ALLERGY ADAPTATION — ACTIVE SAFETY CONSTRAINT]`,
+    `The following allergens are PROHIBITED. You must not use any form of these ingredients,`,
+    `including stocks, broths, pastes, sauces, or preparations derived from them.`,
+  ];
+
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key];
+    const derivativeTerms = expanded
+      ? Array.from(new Set(expanded)).slice(0, 20).join(", ")
+      : allergen;
+    lines.push(`PROHIBITED ALLERGEN — ${allergen.toUpperCase()}: ${derivativeTerms}`);
+  }
+
+  if (dishName && dishName.trim()) {
+    const dish = dishName.trim();
+    const allergenNames = allergens.join(" and ");
+    lines.push(
+      ``,
+      `DISH IDENTITY REQUIREMENT: The requested dish is "${dish}". Preserve the dish's`,
+      `structural identity (base, aromatics, cooking technique, flavor profile) while`,
+      `replacing ${allergenNames} with a safe, compliant protein or component that serves`,
+      `the same functional role. Do NOT rename the dish. Do NOT add any form of ${allergenNames}.`,
+      `A ${allergenNames}-free version of "${dish}" is what is required.`,
+    );
+  }
+
+  lines.push(
+    ``,
+    `HARD RULE: Every ingredient, stock, broth, sauce, and preparation in this recipe`,
+    `must be completely free of the prohibited allergens listed above.`,
+    `[END ALLERGY ADAPTATION CONSTRAINT]`,
+  );
+
+  return lines.join("\n");
+}
+
+/**
  * Log safety enforcement for auditing
  */
 export function logSafetyEnforcement(
