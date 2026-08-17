@@ -57,24 +57,24 @@ export function AllergyConflictModal({
 
   return (
     <Dialog open={!!conflict} onOpenChange={(open) => { if (!open) onCancel(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-gray-950 border border-gray-800 text-white">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <DialogTitle className="text-base">Allergy Conflict Detected</DialogTitle>
+            <AlertTriangle className="h-5 w-5 text-amber-400" />
+            <DialogTitle className="text-base text-white">Allergy Protection Alert</DialogTitle>
           </div>
-          <DialogDescription className="text-sm leading-relaxed">
+          <DialogDescription className="text-sm leading-relaxed text-gray-400">
             {isIdentityCollapse ? (
               <>
-                <strong className="text-foreground capitalize">{dishLabel}</strong> is
-                built around <strong className="text-foreground">{allergenLabel}</strong>,
+                <strong className="text-white capitalize">{dishLabel}</strong> is
+                built around <strong className="text-white">{allergenLabel}</strong>,
                 which conflicts with your allergy profile. Removing it would fundamentally
                 change what this dish is.
               </>
             ) : (
               <>
-                <strong className="text-foreground capitalize">{dishLabel}</strong>{" "}
-                traditionally contains <strong className="text-foreground">{allergenLabel}</strong>,
+                <strong className="text-white capitalize">{dishLabel}</strong>{" "}
+                traditionally contains <strong className="text-white">{allergenLabel}</strong>,
                 which is on your allergy profile. Chef can adapt it to be safe for you, or
                 you can override with your Safety PIN to make the original.
               </>
@@ -101,14 +101,14 @@ export function AllergyConflictModal({
           <Button
             onClick={onMakeOriginal}
             variant="outline"
-            className="w-full justify-start gap-3 border-amber-300 hover:bg-amber-50"
+            className="w-full justify-start gap-3 bg-transparent border-amber-500/60 text-white hover:bg-amber-900/30 hover:border-amber-400"
           >
-            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
+            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" />
             <span className="text-left">
               <span className="font-semibold block">
                 {isIdentityCollapse ? "Make the original (Safety PIN)" : "Make the original"}
               </span>
-              <span className="text-xs text-muted-foreground font-normal">
+              <span className="text-xs text-gray-400 font-normal">
                 Override with your Safety PIN — consume at your own risk
               </span>
             </span>
@@ -117,7 +117,7 @@ export function AllergyConflictModal({
           <Button
             onClick={onCancel}
             variant="ghost"
-            className="w-full gap-2 text-muted-foreground"
+            className="w-full gap-2 text-gray-500 hover:text-gray-300 hover:bg-gray-800"
           >
             <X className="h-4 w-4" />
             Cancel
