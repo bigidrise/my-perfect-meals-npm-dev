@@ -4888,7 +4888,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Meal Planning Feature Routes
-  // Craving Creator endpoints for WMC2 adapter
+  // ⚠️ LEGACY — /api/craving-creator/generate is a WMC2 adapter stub.
+  // Active client pages call /api/meals/craving-creator (line ~5015) instead.
+  // This path ignores dietOverride and always uses user?.dietaryRestrictions.
+  // Do NOT add new callers; route for eventual removal when WMC2 is retired.
   app.post("/api/craving-creator/generate", async (req, res) => {
     try {
       const { userId, courseStyle, craving, mealType, servings = 1, includeImage = false, variation = 0, safetyMode, overrideToken } = req.body;
@@ -4939,6 +4942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ⚠️ LEGACY — same as /generate above. No active client caller.
   app.post("/api/craving-creator/regenerate", async (req, res) => {
     try {
       const { userId, courseStyle, includeImage = true } = req.body;
@@ -8870,6 +8874,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: gatheringsRouterShared } = await import("./routes/gatherings");
   app.use("/api/gatherings", requireAuth, requireProAccess, gatheringsRouterShared);
 
+  // ⚠️ LEGACY router — mounts /api/craving-creator/{generate,log,...}.
+  // No active client page calls these paths; all UI uses /api/meals/craving-creator.
+  // Does NOT implement the dietOverride replacement contract (uses profile diet only).
+  // Guarded by requireAuth + requireProAccess. Keep until WMC2 adapter is retired.
   const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
   app.use("/api/craving-creator", requireAuth, requireProAccess, cravingCreatorRouterShared);
 
