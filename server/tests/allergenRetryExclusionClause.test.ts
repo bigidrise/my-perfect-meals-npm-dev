@@ -604,6 +604,178 @@ describe("Phase 3 allergen scan — violations in instructions or description (n
     expect(violationArray.some(v => v.toLowerCase().includes("lobster"))).toBe(true);
   });
 });
+
+// ── Suite 7: dish-level hard-block terms caught for peanut allergy ────────────
+
+describe("Phase 3 scan — peanut dish-level block terms (satay, pad thai, kung pao, etc.)", () => {
+  it("flags a meal named 'Satay' even when all listed ingredients are peanut-free", () => {
+    const meals = [
+      {
+        name: "Satay",
+        ingredients: ["chicken breast", "lemongrass", "turmeric", "coconut milk", "lime"],
+        instructions: "Marinate chicken in spices and grill on skewers.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanuts"]);
+    // Satay is a dish-level hard-block for peanut allergy — must be excluded regardless of ingredients
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("satay"))).toBe(true);
+  });
+
+  it("flags a meal named 'Pad Thai' even when all listed ingredients are peanut-free", () => {
+    const meals = [
+      {
+        name: "Pad Thai",
+        ingredients: ["rice noodles", "tofu", "bean sprouts", "green onion", "lime", "tamarind"],
+        instructions: "Stir-fry noodles with tofu, sprouts, and tamarind sauce.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanuts"]);
+    // Pad Thai is a dish-level hard-block for peanut allergy
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("pad thai"))).toBe(true);
+  });
+
+  it("flags a meal named 'Kung Pao Chicken' even when all listed ingredients are peanut-free", () => {
+    const meals = [
+      {
+        name: "Kung Pao Chicken",
+        ingredients: ["chicken breast", "bell peppers", "dried chili", "soy sauce", "rice vinegar"],
+        instructions: "Stir-fry chicken with peppers and chili in a wok.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanuts"]);
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("kung pao"))).toBe(true);
+  });
+
+  it("flags a meal named 'Gado Gado' even when all listed ingredients are peanut-free", () => {
+    const meals = [
+      {
+        name: "Gado Gado",
+        ingredients: ["tempeh", "green beans", "cabbage", "cucumber", "boiled egg"],
+        instructions: "Arrange vegetables and tempeh, top with dressing.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanuts"]);
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("gado gado"))).toBe(true);
+  });
+
+  it("flags a meal named 'Dan Dan Noodles' even when all listed ingredients are peanut-free", () => {
+    const meals = [
+      {
+        name: "Dan Dan Noodles",
+        ingredients: ["wheat noodles", "ground pork", "soy sauce", "chili oil", "sesame paste"],
+        instructions: "Cook noodles and top with spiced pork and sauce.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanuts"]);
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("dan dan"))).toBe(true);
+  });
+
+  it("flags a meal named 'Massaman Curry' even when all listed ingredients are peanut-free", () => {
+    const meals = [
+      {
+        name: "Massaman Curry",
+        ingredients: ["chicken thighs", "potatoes", "coconut milk", "massaman paste", "bay leaves"],
+        instructions: "Simmer chicken and potatoes in coconut milk with curry paste.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanuts"]);
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("massaman"))).toBe(true);
+  });
+
+  it("includes 'satay' in the retry exclusion clause when the meal name triggered the block", () => {
+    const meals = [
+      {
+        name: "Satay",
+        ingredients: ["chicken breast", "lemongrass", "turmeric", "coconut milk"],
+        instructions: "Grill on skewers.",
+      },
+    ];
+    const { violations } = runPhase3Scan(meals, ["peanuts"]);
+    const clause = buildRetryExclusionClause(violations);
+    expect(clause).toContain("ALLERGEN RETRY");
+    expect(clause).toContain("satay");
+  });
+
+  it("includes 'pad thai' in the retry exclusion clause when the meal name triggered the block", () => {
+    const meals = [
+      {
+        name: "Pad Thai",
+        ingredients: ["rice noodles", "tofu", "bean sprouts", "lime", "tamarind"],
+        instructions: "Stir-fry noodles with tofu.",
+      },
+    ];
+    const { violations } = runPhase3Scan(meals, ["peanuts"]);
+    const clause = buildRetryExclusionClause(violations);
+    expect(clause).toContain("ALLERGEN RETRY");
+    expect(clause).toContain("pad thai");
+  });
+
+  it("passes a clean Thai-inspired dish that shares no peanut dish-level block names", () => {
+    const meals = [
+      {
+        name: "Thai Basil Chicken",
+        ingredients: ["chicken breast", "thai basil", "garlic", "soy sauce", "fish sauce", "jasmine rice"],
+        instructions: "Stir-fry chicken with garlic and basil, serve over rice.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanuts"]);
+    // Should pass — no peanut ingredient or dish-level block term
+    expect(safe).toHaveLength(1);
+    expect(violations.size).toBe(0);
+  });
+
+  it("keeps a clean alternative while blocking the peanut dish-level-named option", () => {
+    const meals = [
+      {
+        name: "Satay",
+        ingredients: ["chicken", "lemongrass", "turmeric", "coconut milk"],
+        instructions: "Grill on skewers.",
+      },
+      {
+        name: "Lemongrass Grilled Chicken",
+        ingredients: ["chicken thighs", "lemongrass", "garlic", "lime juice", "sesame oil"],
+        instructions: "Marinate and grill chicken.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanuts"]);
+    expect(safe).toHaveLength(1);
+    expect(safe[0].name).toBe("Lemongrass Grilled Chicken");
+    expect(violations.size).toBeGreaterThan(0);
+  });
+
+  it("flags satay via the 'peanut' alias as well as 'peanuts'", () => {
+    const meals = [
+      {
+        name: "Chicken Satay",
+        ingredients: ["chicken", "turmeric", "coriander", "lime"],
+        instructions: "Skewer and grill chicken.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["peanut"]);
+    expect(safe).toHaveLength(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("satay"))).toBe(true);
+  });
+});
+
 // ── Suite 5: end-to-end scan → clause → response integration ──────────────────
 
 describe("End-to-end: scan → retry clause → 422 response", () => {
