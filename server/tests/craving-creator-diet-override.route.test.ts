@@ -495,3 +495,154 @@ describe("C. Functional — filterMealsByProtocol: vegan vs keto-override envelo
     expect(passed.length).toBe(2);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// E. EMERGENCY FALLBACK — _fallbackDietIdentity must use keto when override active
+//
+// Covers routes.ts lines 5307-5323: when filterMealsByProtocol removes ALL
+// generated options, the route calls generateSingleCompliantFallback with
+// _fallbackDietIdentity. This section proves the ternary branch ORDER in the
+// source is correct (TRUE = _resolvedPrimaryDiet, FALSE = vegan profile) and
+// that _fallbackDietIdentity is the 3rd positional argument at the call site.
+//
+// All structural tests use character-position ordering so an inverted ternary
+// or reordered arguments would cause the tests to fail, not silently pass.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Three keto meals identical to what generateCravingMealOptions would return. */
+const THREE_KETO_MEALS = [
+  KETO_CAKE_MEAL,
+  {
+    name: "Keto Strawberry Cheesecake Cup",
+    description: "No-bake cream cheese cups with a pecan crust.",
+    ingredients: [
+      { name: "cream cheese",       quantity: "6",   unit: "oz"    },
+      { name: "pecans",             quantity: "1/4", unit: "cup"   },
+      { name: "heavy cream",        quantity: "2",   unit: "tbsp"  },
+      { name: "erythritol",         quantity: "2",   unit: "tbsp"  },
+      { name: "fresh strawberries", quantity: "1/4", unit: "cup"   },
+    ],
+    instructions: "Press pecans into cups. Whip cream cheese. Fill. Chill.",
+  },
+  {
+    name: "Keto Strawberry Butter Cake",
+    description: "Dense butter cake with strawberry coulis and whipped cream.",
+    ingredients: [
+      { name: "almond flour",  quantity: "3/4", unit: "cup"  },
+      { name: "butter",        quantity: "4",   unit: "tbsp" },
+      { name: "eggs",          quantity: "3",   unit: "large"},
+      { name: "erythritol",    quantity: "4",   unit: "tbsp" },
+      { name: "strawberries",  quantity: "1/2", unit: "cup"  },
+      { name: "heavy cream",   quantity: "2",   unit: "tbsp" },
+    ],
+    instructions: "Cream butter. Beat in eggs. Bake 30 min.",
+  },
+];
+
+describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not vegan", () => {
+
+  it("E1: vegan envelope blocks ALL 3 keto meals — confirming the condition that triggers the fallback path", () => {
+    // Proves routes.ts line 5307: `if (cleanOptions.length === 0 && mealOptions.length > 0)`
+    // All 3 options contain cream cheese / eggs / butter — vegan-illegal. A vegan
+    // envelope (the un-fixed path) rejects all of them, activating the emergency fallback.
+    const passed = filterMealsByProtocol(THREE_KETO_MEALS, VEGAN_PROTOCOL_ENVELOPE, {
+      generatorName: "craving_creator",
+    });
+    expect(passed.length).toBe(0);           // all 3 blocked
+    expect(THREE_KETO_MEALS.length).toBe(3); // mealOptions.length > 0 confirmed
+  });
+
+  it("E2: TRUE branch of _fallbackDietIdentity ternary is _resolvedPrimaryDiet — inverted ternary fails this test", () => {
+    // Extracts the assignment block from routes.ts and verifies character-position ordering:
+    //   const _fallbackDietIdentity = _overrideDietActive
+    //     ? _resolvedPrimaryDiet              ← TRUE branch  (must come BEFORE the colon)
+    //     : protocolEnvelope.dietaryIdentity  ← FALSE branch (must come AFTER the colon)
+    //
+    // An inverted ternary `_overrideDietActive ? protocolEnvelope.dietaryIdentity : _resolvedPrimaryDiet`
+    // would put protocolEnvelope.dietaryIdentity before the colon — falseBranchPos < colonPos — failing.
+    const assignmentStart = ROUTES_SRC.indexOf("const _fallbackDietIdentity = _overrideDietActive");
+    expect(assignmentStart).toBeGreaterThan(-1); // the assignment must exist
+
+    // Capture enough of the assignment to cover the full ternary (≤ 300 chars)
+    const ternaryBlock = ROUTES_SRC.slice(assignmentStart, assignmentStart + 300);
+
+    const questionMarkIdx = ternaryBlock.indexOf("?");
+    // The ternary colon appears on its own line with leading whitespace: find ": proto"
+    // Both branches are plain identifiers — the colon is the first : that precedes "protocolEnvelope"
+    const colonIdx = ternaryBlock.indexOf(": protocolEnvelope.dietaryIdentity");
+
+    expect(questionMarkIdx).toBeGreaterThan(-1);
+    expect(colonIdx).toBeGreaterThan(questionMarkIdx);
+
+    const trueBranchPos  = ternaryBlock.indexOf("_resolvedPrimaryDiet", questionMarkIdx);
+    const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonIdx);
+
+    // TRUE branch: _resolvedPrimaryDiet must appear after ? and before the ternary colon
+    expect(trueBranchPos).toBeGreaterThan(questionMarkIdx);
+    expect(trueBranchPos).toBeLessThan(colonIdx);
+
+    // FALSE branch: protocolEnvelope.dietaryIdentity must appear at/after the ternary colon
+    expect(falseBranchPos).toBeGreaterThanOrEqual(colonIdx);
+
+    // Extra guard: protocolEnvelope.dietaryIdentity must NOT appear in the TRUE branch
+    const veganBeforeColon = ternaryBlock.slice(questionMarkIdx, colonIdx).indexOf("protocolEnvelope.dietaryIdentity");
+    expect(veganBeforeColon).toBe(-1);
+  });
+
+  it("E3: _fallbackDietIdentity assignment uses _overrideDietActive — same flag as _filterEnvelope (no independent condition)", () => {
+    // If someone adds a new override path and updates _overrideDietActive but
+    // forgets to update a hypothetical separate fallback condition, both would
+    // diverge. Using the same variable keeps them in sync automatically.
+    //
+    // Character-position ordering check: _overrideDietActive must appear BEFORE
+    // both branch values (it is the condition, not a branch value).
+    const assignmentStart = ROUTES_SRC.indexOf("const _fallbackDietIdentity = _overrideDietActive");
+    const ternaryBlock = ROUTES_SRC.slice(assignmentStart, assignmentStart + 300);
+
+    const conditionPos   = ternaryBlock.indexOf("_overrideDietActive");
+    const questionPos    = ternaryBlock.indexOf("?");
+    const colonPos       = ternaryBlock.indexOf(": protocolEnvelope.dietaryIdentity");
+    const trueBranchPos  = ternaryBlock.indexOf("_resolvedPrimaryDiet", questionPos);
+    const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonPos);
+
+    // Condition appears first, then ?, then TRUE branch (_resolvedPrimaryDiet), then :, then FALSE branch
+    expect(conditionPos).toBeGreaterThan(-1);
+    expect(conditionPos).toBeLessThan(questionPos);
+    expect(questionPos).toBeLessThan(trueBranchPos);
+    expect(trueBranchPos).toBeLessThan(colonPos);
+    expect(colonPos).toBeLessThan(falseBranchPos);
+  });
+
+  it("E4: _fallbackDietIdentity is the 3rd positional argument to generateSingleCompliantFallback — after cravingInput and targetMealType", () => {
+    // Parses the call site (routes.ts ~line 5320) and verifies argument ORDER by
+    // character position. Reordering the arguments would move _fallbackDietIdentity
+    // before targetMealType, failing the toBeLessThan assertion.
+    //
+    //   generateSingleCompliantFallback(
+    //     cravingInput || ...,    ← arg 1
+    //     targetMealType || ...,  ← arg 2
+    //     _fallbackDietIdentity,  ← arg 3 (the diet identity — must be here)
+    //     { ... options }         ← arg 4
+    //   )
+    const callSiteStart = ROUTES_SRC.indexOf("const fallbackMeal = await generateSingleCompliantFallback(");
+    expect(callSiteStart).toBeGreaterThan(-1);
+
+    const callBlock = ROUTES_SRC.slice(callSiteStart, callSiteStart + 500);
+
+    const arg1Pos = callBlock.indexOf("cravingInput");          // arg 1
+    const arg2Pos = callBlock.indexOf("targetMealType");         // arg 2
+    const arg3Pos = callBlock.indexOf("_fallbackDietIdentity");  // arg 3
+    // arg 4+ is the options object — the overriddenAllergens key appears inside it
+    const optionsPos = callBlock.indexOf("overriddenAllergens");
+
+    expect(arg1Pos).toBeGreaterThan(-1);
+    expect(arg2Pos).toBeGreaterThan(-1);
+    expect(arg3Pos).toBeGreaterThan(-1);
+    expect(optionsPos).toBeGreaterThan(-1);
+
+    // Positional order: arg1 < arg2 < arg3 < options object
+    expect(arg1Pos).toBeLessThan(arg2Pos);
+    expect(arg2Pos).toBeLessThan(arg3Pos);
+    expect(arg3Pos).toBeLessThan(optionsPos);
+  });
+});
