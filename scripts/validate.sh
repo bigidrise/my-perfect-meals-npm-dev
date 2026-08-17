@@ -360,6 +360,23 @@ if [ -z "$PORT_PID" ] || [ "$DEV_SERVER_RESTARTED" = true ]; then
       pass "Server started cleanly — /api/health responded with 200"
       pass "No critical error patterns in startup log"
     fi
+
+    # ── Auth login + session integration tests ──────────────────────────────
+    # Runs against the live test server to catch route-mounting regressions
+    # (the production incident where POST /api/auth/login returned 401 for all users).
+    echo ""
+    echo -e "  ${CYAN}Running auth login/session integration tests...${NC}"
+    AUTH_TEST_OUT=$(mktemp /tmp/mpm-auth-test-XXXXXX.log)
+    if npx tsx scripts/test-auth-integration.ts --base-url http://localhost:5000 >"$AUTH_TEST_OUT" 2>&1; then
+      # Print the test output (it shows individual pass/fail lines)
+      cat "$AUTH_TEST_OUT" | sed 's/^/  /'
+      pass "Auth login/session integration tests — all checks passed"
+    else
+      cat "$AUTH_TEST_OUT" | sed 's/^/  /'
+      fail "Auth login/session integration tests — one or more checks failed (see above)"
+    fi
+    rm -f "$AUTH_TEST_OUT"
+
   elif [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
     fail "Server did not respond to /api/health within ${MAX_WAIT}s — startup may have hung"
     echo ""
