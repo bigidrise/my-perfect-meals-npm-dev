@@ -157,7 +157,7 @@ jest.mock("../utils/macroAuditLogger", () => ({
 import { resolveEffectiveDiet } from "../services/resolveEffectiveDiet";
 import { isRecipeSensitiveDish } from "../services/dishEngineRouter";
 import { generateCravingMealOptions } from "../services/unifiedMealPipeline";
-import { filterMealsByProtocol, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules } from "../services/protocolEnvelope";
 
 // ─── resolveEffectiveDiet unit tests ─────────────────────────────────────────
 
@@ -748,5 +748,196 @@ describe("craving path — filterMealsByProtocol: vegan vs keto-override envelop
       generatorName: "craving_creator",
     });
     expect(passed.length).toBe(2);
+  });
+});
+
+// ─── filterMealsByProtocol — post-generation filter boundary ─────────────────
+//
+// The second half of the original bug: filterMealsByProtocol() used the raw
+// protocol envelope (dietaryIdentity: ["vegan"]) even when a keto override was
+// active. Keto meals with dairy/eggs that survived generation were silently
+// stripped by the vegan envelope's dairy/egg rules.
+//
+// The fix in routes.ts builds a _filterEnvelope that substitutes BOTH
+// dietaryIdentity and procedural rules for the override diet. All other fields
+// (allergies, avoidances, medical conditions) are inherited:
+//
+//   const _filterEnvelope = _overrideDietActive
+//     ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet,
+//                              procedural: deriveProcedureRules(_resolvedPrimaryDiet) }
+//     : protocolEnvelope;
+//
+// These tests verify the filtering boundary directly by calling
+// filterMealsByProtocol() with both the raw vegan envelope and the keto-
+// override envelope, asserting the correct pass/block behaviour for each.
+//
+// Why procedural must also be derived for the override diet:
+//   scanForHiddenDietaryViolations() has explicit ingredient-level scans for
+//   vegan, vegetarian, kosher, and halal only. For keto, enforcement comes from
+//   the instruction-level scanner (scanInstructionsForViolations), which reads
+//   procedural.forbiddenInstructions populated by deriveProcedureRules(["keto"]).
+//   Without also swapping procedural, keto instruction violations (e.g. "add
+//   flour", "add sugar") would not be caught at the filter boundary.
+
+/** A keto-compliant meal that is vegan-illegal (cream cheese + eggs + butter). */
+const KETO_COMPLIANT_MEAL = {
+  name: "Keto Strawberry Cream Cake",
+  description: "Almond-flour sponge with cream-cheese frosting and fresh strawberries.",
+  ingredients: [
+    { name: "almond flour",       quantity: "1",   unit: "cup" },
+    { name: "cream cheese",       quantity: "4",   unit: "oz" },
+    { name: "eggs",               quantity: "2",   unit: "large" },
+    { name: "butter",             quantity: "2",   unit: "tbsp" },
+    { name: "erythritol",         quantity: "3",   unit: "tbsp" },
+    { name: "fresh strawberries", quantity: "1/2", unit: "cup" },
+    { name: "vanilla extract",    quantity: "1",   unit: "tsp" },
+  ],
+  instructions: "Mix almond flour with erythritol. Fold in eggs and melted butter. Bake 22 min. Frost with cream cheese.",
+};
+
+/**
+ * A vegan-style strawberry cake that is keto-illegal.
+ *
+ * Uses wheat flour and cane sugar — both on the keto forbidden ingredient list.
+ * Instructions explicitly contain "add flour" and "add sugar", which are in
+ * the keto procedural.forbiddenInstructions list returned by
+ * deriveProcedureRules(["keto"]). This lets the instruction-level scanner
+ * block the meal when the keto-override envelope is used.
+ */
+const VEGAN_HIGH_CARB_MEAL = {
+  name: "Vegan Strawberry Sponge Cake",
+  description: "Light sponge made with wheat flour, white sugar, and flax eggs.",
+  ingredients: [
+    { name: "all-purpose flour",  quantity: "2",   unit: "cups" },
+    { name: "cane sugar",         quantity: "1",   unit: "cup" },
+    { name: "oat milk",           quantity: "1",   unit: "cup" },
+    { name: "ground flaxseed",    quantity: "2",   unit: "tbsp" },
+    { name: "coconut oil",        quantity: "3",   unit: "tbsp" },
+    { name: "fresh strawberries", quantity: "1",   unit: "cup" },
+    { name: "vanilla extract",    quantity: "1",   unit: "tsp" },
+  ],
+  // Instructions include keto forbidden phrases: "add flour" and "add sugar"
+  // (these match the forbiddenInstructions array from deriveProcedureRules(["keto"]))
+  instructions: "Add flour to a mixing bowl and combine with baking powder. Add sugar and whisk thoroughly. Pour in oat milk with flax egg. Fold wet into dry. Bake 30 min.",
+};
+
+/**
+ * Vegan protocol envelope — mirrors what loadUserProtocolEnvelope returns
+ * for a user with dietaryIdentity: ["vegan"].
+ *
+ * Procedural rules are explicitly derived for vegan so the instruction-level
+ * scanner enforces vegan forbidden instructions (e.g. "add butter").
+ */
+const VEGAN_ENVELOPE = {
+  ...buildGuestEnvelope(),
+  dietaryIdentity: ["vegan"],
+  procedural: deriveProcedureRules(["vegan"]),
+};
+
+/**
+ * Keto-override envelope — exactly mirrors what _filterEnvelope becomes in
+ * routes.ts when the override is active:
+ *
+ *   { ...protocolEnvelope,
+ *     dietaryIdentity: _resolvedPrimaryDiet,
+ *     procedural:      deriveProcedureRules(_resolvedPrimaryDiet) }
+ *
+ * dietaryIdentity is replaced so the vegan ingredient scan no longer fires.
+ * procedural is re-derived for keto so the instruction scanner catches keto
+ * forbidden phrases ("add flour", "add sugar", etc.) in high-carb meals.
+ * All other fields (allergies, avoidances, medical limits) are inherited
+ * unchanged from the vegan profile — confirming the fix is a safe shallow spread.
+ */
+const KETO_OVERRIDE_ENVELOPE = {
+  ...VEGAN_ENVELOPE,
+  dietaryIdentity: ["keto"],
+  procedural: deriveProcedureRules(["keto"]),
+};
+
+describe("filterMealsByProtocol — vegan profile + keto override (post-generation filter boundary)", () => {
+
+  // Test 1: Raw vegan envelope blocks the keto meal
+  it("vegan envelope BLOCKS a keto-compliant meal (cream cheese + eggs are vegan-illegal)", () => {
+    // This reproduces the original bug: filterMealsByProtocol used protocolEnvelope
+    // (dietaryIdentity: ["vegan"]) which treated dairy and eggs as violations.
+    // Keto meals generated after the union-merge fix were still stripped here.
+    const passed = filterMealsByProtocol([KETO_COMPLIANT_MEAL], VEGAN_ENVELOPE, {
+      generatorName: "diet_override_regression",
+    });
+    // cream cheese + eggs are vegan-illegal → meal must be removed
+    expect(passed.length).toBe(0);
+  });
+
+  // Test 2: Keto-override envelope passes the keto meal (the fix)
+  it("keto-override envelope PASSES a keto-compliant meal (dairy and eggs are keto-legal)", () => {
+    // The fix: routes.ts builds _filterEnvelope = { ...protocolEnvelope, dietaryIdentity: ["keto"],
+    // procedural: deriveProcedureRules(["keto"]) } when a diet override is active.
+    // scanGeneratedOutput now enforces keto rules, not vegan rules — cream cheese and eggs accepted.
+    const passed = filterMealsByProtocol([KETO_COMPLIANT_MEAL], KETO_OVERRIDE_ENVELOPE, {
+      generatorName: "diet_override_regression",
+    });
+    expect(passed.length).toBe(1);
+    expect(passed[0].name).toBe("Keto Strawberry Cream Cake");
+  });
+
+  // Test 3: Keto-override envelope removes a vegan (high-carb) meal
+  it("keto-override envelope REMOVES a vegan high-carb meal (instruction scan catches 'add flour' / 'add sugar')", () => {
+    // When the user selects keto, high-carb vegan meals must not pass through.
+    // The keto procedural rules list "add flour" and "add sugar" as forbidden
+    // instructions. VEGAN_HIGH_CARB_MEAL's instructions explicitly include both
+    // phrases, so the instruction-level scanner removes it.
+    const passed = filterMealsByProtocol([VEGAN_HIGH_CARB_MEAL], KETO_OVERRIDE_ENVELOPE, {
+      generatorName: "diet_override_regression",
+    });
+    // "add flour" and "add sugar" in instructions → blocked by keto procedural rules
+    expect(passed.length).toBe(0);
+  });
+
+  // Test 4: Envelope spread — safety fields inherited; diet identity and procedural change
+  it("override envelope inherits allergies, avoidances, and medical limits unchanged from the vegan profile", () => {
+    // Confirms the fix is a safe shallow spread, not a wholesale replacement.
+    // Non-diet safety fields MUST stay intact across the override.
+    // Only dietaryIdentity and procedural (the diet-derived enforcement rules) change.
+    expect(KETO_OVERRIDE_ENVELOPE.allergies).toEqual(VEGAN_ENVELOPE.allergies);
+    expect(KETO_OVERRIDE_ENVELOPE.avoidances).toEqual(VEGAN_ENVELOPE.avoidances);
+    expect(KETO_OVERRIDE_ENVELOPE.medicalHardLimits).toEqual(VEGAN_ENVELOPE.medicalHardLimits);
+    // dietaryIdentity is replaced with the override diet
+    expect(KETO_OVERRIDE_ENVELOPE.dietaryIdentity).toEqual(["keto"]);
+    expect(KETO_OVERRIDE_ENVELOPE.dietaryIdentity).not.toContain("vegan");
+    // procedural is re-derived for keto (not inherited from vegan)
+    expect(KETO_OVERRIDE_ENVELOPE.procedural).toEqual(deriveProcedureRules(["keto"]));
+    expect(KETO_OVERRIDE_ENVELOPE.procedural).not.toEqual(VEGAN_ENVELOPE.procedural);
+  });
+
+  // Test 5: Multiple keto meals all survive the override envelope
+  it("multiple keto-compliant meals all pass the override envelope — not just the first", () => {
+    const ketoMeal2 = {
+      ...KETO_COMPLIANT_MEAL,
+      name: "Keto Cream Cheese Pancakes",
+      ingredients: [
+        { name: "cream cheese",  quantity: "4",   unit: "oz" },
+        { name: "eggs",          quantity: "2",   unit: "large" },
+        { name: "erythritol",    quantity: "1",   unit: "tbsp" },
+        { name: "almond flour",  quantity: "1/4", unit: "cup" },
+      ],
+      instructions: "Blend cream cheese with eggs and erythritol until smooth. Cook on low heat 2 min per side.",
+    };
+    const passed = filterMealsByProtocol(
+      [KETO_COMPLIANT_MEAL, ketoMeal2],
+      KETO_OVERRIDE_ENVELOPE,
+      { generatorName: "diet_override_regression" },
+    );
+    expect(passed.length).toBe(2);
+  });
+
+  // Test 6: Mixed array — keto meal passes, vegan high-carb meal is removed
+  it("mixed array: keto-compliant meal passes and vegan high-carb meal is removed in the same filter call", () => {
+    const passed = filterMealsByProtocol(
+      [KETO_COMPLIANT_MEAL, VEGAN_HIGH_CARB_MEAL],
+      KETO_OVERRIDE_ENVELOPE,
+      { generatorName: "diet_override_regression" },
+    );
+    expect(passed.length).toBe(1);
+    expect(passed[0].name).toBe("Keto Strawberry Cream Cake");
   });
 });

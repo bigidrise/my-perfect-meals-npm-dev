@@ -47,7 +47,7 @@ import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } from "./services/allergyGuardrails";
 import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle, deriveProcedureRules } from "./services/protocolEnvelope";
 import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEngine";
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
@@ -5290,7 +5290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // dietaryRestrictions — not just the explicit dietOverride body field.
       const _overrideDietActive = _resolvedPrimaryDiet.length > 0 && (dietOverride || dietaryRestrictions);
       const _filterEnvelope = _overrideDietActive
-        ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet }
+        ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet, procedural: deriveProcedureRules(_resolvedPrimaryDiet) }
         : protocolEnvelope;
       const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
       const cleanOptions = filterMealsByProtocol(mealOptions, _filterEnvelope, {
