@@ -2187,7 +2187,19 @@ export function scanGeneratedOutput(
     instructions?: string | string[];
   },
   envelope: UserProtocolEnvelope,
-  context?: { generatorName?: string; skipAdaptableConflicts?: boolean; overriddenAllergens?: string[] }
+  context?: {
+    generatorName?: string;
+    skipAdaptableConflicts?: boolean;
+    overriddenAllergens?: string[];
+    /**
+     * ALLERGEN_ADAPT dish-name exemption — lowercase pure dish-name terms
+     * (from getRequestedDishExemptTerms) that must NOT count as violations.
+     * Only ever contains cultural dish labels the user explicitly requested
+     * ("gumbo", "pad thai") — never ingredient or derivative terms, so
+     * shrimp/crab/shellfish-stock detection remains fully active.
+     */
+    exemptDishNameTerms?: Set<string>;
+  }
 ): ProtocolScanResult {
   const generatorName = context?.generatorName || "unknown_generator";
   const mealText = extractMealTextForScan(meal);
@@ -2203,7 +2215,7 @@ export function scanGeneratedOutput(
 
   // ── Allergen override filter — suppress violations for explicitly authorized allergens only.
   // All other allergies, dietary restrictions, medical rules, and protocol constraints remain active.
-  const ingredientViolations = context?.overriddenAllergens?.length
+  let ingredientViolations = context?.overriddenAllergens?.length
     ? rawIngredientViolations.filter(v => {
         const termLower = v.term.toLowerCase();
         return !context.overriddenAllergens!.some(oa => {
@@ -2212,6 +2224,24 @@ export function scanGeneratedOutput(
         });
       })
     : rawIngredientViolations;
+
+  // ── ALLERGEN_ADAPT dish-name exemption ────────────────────────────────────
+  // When the user picked "Make it safe for me" for a named dish, the adapted
+  // meal intentionally keeps the dish's own name ("gumbo"). That pure
+  // dish-name term must not condemn the meal here — otherwise the universal
+  // filter strips every adapted option before the Phase 3 scan can serve it.
+  // Exact term match only: ingredient/derivative violations are unaffected.
+  if (context?.exemptDishNameTerms?.size) {
+    ingredientViolations = ingredientViolations.filter(v => {
+      if (context.exemptDishNameTerms!.has(v.term.toLowerCase())) {
+        console.log(
+          `[ProtocolEnvelope:${generatorName}] "${meal.name}" — violation term "${v.term}" exempted (ALLERGEN_ADAPT requested-dish name)`
+        );
+        return false;
+      }
+      return true;
+    });
+  }
 
   // ── Instruction-level scan ────────────────────────────────────────────────
   const instructionViolations = scanInstructionsForViolations(
@@ -2308,6 +2338,8 @@ export function filterMealsByProtocol<T extends {
     generatorName?: string;
     skipAdaptableConflicts?: boolean;
     overriddenAllergens?: string[];
+    /** See scanGeneratedOutput — ALLERGEN_ADAPT requested-dish-name exemption. */
+    exemptDishNameTerms?: Set<string>;
     /**
      * Dish Adaptation Layer — when the surface received a named dish, the
      * dish identity validator runs alongside the protocol scan. Meals with a
