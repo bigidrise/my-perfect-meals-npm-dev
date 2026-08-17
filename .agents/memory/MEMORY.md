@@ -1,4 +1,5 @@
 - [ALLERGEN_ADAPT dish-name exemption](allergen-adapt-dish-name-exemption.md) — post-scan must exempt the requested dish's own name (curated allowlist + word-bounded request match) or adaptation always fails.
+- [Universal allergen scan in scanGeneratedOutput](universal-allergen-scan.md) — envelope.allergies now scanned against ALLERGEN_EXPANSION at every surface; matches Phase 3 raw-text semantics (no plant-milk masking), so dairy allergy can flag plant milks.
 - [Allergy Adaptation Decision Layer](allergy-adaptation-layer.md) — 3-phase system: conflict classification (adaptable vs identity-collapse) + AllergyConflictModal (no-PIN safe path) + post-adaptation allergen scan; "ALLERGEN_ADAPT" safetyMode bypasses pre-check.
 - [Dish Adaptation Layer](dish-adaptation-layer.md) — never silently substitute a dish; substitution map is extracted from prompt builders (update in lockstep); LRU-cached decomposition; catastrophic-only filtering.
 - [GATE_08 localization ratchet workflow](i18n-gate08-workflow.md) — regenerate both audit reports before validating; baseline updated manually; empty CJK segment keys fail GATE_03; scratch-file merge pattern for parallel migration.

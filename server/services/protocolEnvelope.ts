@@ -40,6 +40,7 @@ import {
   AVOIDANCE_EXPANSION,
   RESTRICTION_EXPANSION,
   scanForHiddenDietaryViolations,
+  ALLERGEN_EXPANSION,
   classifyKosherMealCategory,
   normalizeForDietaryScan,
   type HiddenViolation,
@@ -2212,6 +2213,36 @@ export function scanGeneratedOutput(
     envelope.avoidances,
     { skipMeatDairyCombinationCheck: context?.skipAdaptableConflicts === true }
   );
+
+  // ── Allergen derivative scan (universal) ─────────────────────────────────
+  // Scan envelope.allergies against ALLERGEN_EXPANSION so allergen leaks are
+  // caught at every surface that calls scanGeneratedOutput — not only in the
+  // Phase 3 ALLERGEN_ADAPT scan. Matching mirrors scanMealsForAllergenViolations:
+  // word-bounded, case-insensitive, against the raw meal text (name +
+  // ingredients + instructions + description). Allergens the user explicitly
+  // overrode are excluded entirely (their derivative terms are authorized).
+  const overriddenLower = (context?.overriddenAllergens || []).map(a => a.toLowerCase());
+  const effectiveAllergies = envelope.allergies.filter(a => {
+    const aLower = a.toLowerCase();
+    return !overriddenLower.some(oa => aLower.includes(oa) || oa.includes(aLower));
+  });
+  for (const allergen of effectiveAllergies) {
+    const key = allergen.trim().toLowerCase();
+    if (!key) continue;
+    const expanded = ALLERGEN_EXPANSION[key] || [key];
+    for (const term of expanded) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(mealText)) {
+        if (!rawIngredientViolations.find(v => v.term.toLowerCase() === term.toLowerCase())) {
+          rawIngredientViolations.push({
+            term,
+            category: `allergy:${key}`,
+            reason: `"${term}" is a derivative of the user's "${allergen}" allergy (absolute medical hard stop)`,
+          });
+        }
+      }
+    }
+  }
 
   // ── Allergen override filter — suppress violations for explicitly authorized allergens only.
   // All other allergies, dietary restrictions, medical rules, and protocol constraints remain active.
