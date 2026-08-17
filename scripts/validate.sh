@@ -140,6 +140,22 @@ if [ "$AUTH_VIOLATIONS" -eq 0 ]; then
   pass "No raw fetch() calls to auth-protected routes"
 fi
 
+# Guard: bare /api + requireAuth mount pattern
+# app.use("/api", requireAuth, ...) intercepts EVERY /api/* request, including
+# the login endpoint. requireAuth must be applied per-route inside the router,
+# not at the bare /api prefix. Specific sub-paths like /api/something are fine.
+BARE_API_AUTH=$(grep -rn \
+  'app\.use([[:space:]]*["\x27]/api["\x27][[:space:]]*,[[:space:]]*requireAuth' \
+  server/routes.ts server/prod.ts 2>/dev/null \
+  | grep -v '^[^:]*:[0-9]*:[[:space:]]*//' \
+  || true)
+if [ -n "$BARE_API_AUTH" ]; then
+  fail "Bare /api requireAuth mount found — this blocks login. Apply requireAuth per-route inside the router instead:"
+  echo "$BARE_API_AUTH" | head -5 | sed 's/^/    /'
+else
+  pass "No bare /api requireAuth mount pattern found"
+fi
+
 # ──────────────────────────────────────────────────
 header "Step 4 of 6: Translation Quality"
 echo "  Running i18n value quality scan..."
@@ -344,6 +360,23 @@ if [ -z "$PORT_PID" ] || [ "$DEV_SERVER_RESTARTED" = true ]; then
       pass "Server started cleanly — /api/health responded with 200"
       pass "No critical error patterns in startup log"
     fi
+
+    # ── Auth login + session integration tests ──────────────────────────────
+    # Runs against the live test server to catch route-mounting regressions
+    # (the production incident where POST /api/auth/login returned 401 for all users).
+    echo ""
+    echo -e "  ${CYAN}Running auth login/session integration tests...${NC}"
+    AUTH_TEST_OUT=$(mktemp /tmp/mpm-auth-test-XXXXXX.log)
+    if npx tsx scripts/test-auth-integration.ts --base-url http://localhost:5000 >"$AUTH_TEST_OUT" 2>&1; then
+      # Print the test output (it shows individual pass/fail lines)
+      cat "$AUTH_TEST_OUT" | sed 's/^/  /'
+      pass "Auth login/session integration tests — all checks passed"
+    else
+      cat "$AUTH_TEST_OUT" | sed 's/^/  /'
+      fail "Auth login/session integration tests — one or more checks failed (see above)"
+    fi
+    rm -f "$AUTH_TEST_OUT"
+
   elif [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
     fail "Server did not respond to /api/health within ${MAX_WAIT}s — startup may have hung"
     echo ""

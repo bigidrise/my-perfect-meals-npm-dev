@@ -89,6 +89,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -206,6 +207,7 @@ const FridgeRescuePage = () => {
   const [preRefinedMealsByIndex, setPreRefinedMealsByIndex] = useState<Record<number, MealData>>({});
   const { loadingImages, hydrateImages } = useMealImages(setMeals, { mealType: "dinner" });
   const [isLoading, setIsLoading] = useState(false);
+  const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
   const [servings, setServings] = useState(2);
   const [quotaInfo, setQuotaInfo] = useState<{ remaining: number; limit: number; used: number; resetAt: string } | null>(null);
   const [dailyLimitHit, setDailyLimitHit] = useState(false);
@@ -584,11 +586,13 @@ const FridgeRescuePage = () => {
           duration: 10000,
         });
       } else {
-        toast({
-          title: "Generation Failed",
-          description: "Failed to generate meals. Please try again.",
-          variant: "destructive",
-          duration: 10000,
+        setGenerationFailure({
+          show: true,
+          message: "Something went wrong generating your meal ideas. Please try again.",
+          suggestedActions: [
+            "Try Again — we'll scan your ingredients fresh",
+            "Check your ingredient list for any unusual items",
+          ],
         });
       }
     } finally {
@@ -1085,6 +1089,16 @@ const FridgeRescuePage = () => {
                       {t("generateBtn")}
                     </div>
                   </button>
+                )}
+
+                {generationFailure.show && (
+                  <GenerationFailureBanner
+                    message={generationFailure.message}
+                    suggestedActions={generationFailure.suggestedActions}
+                    onRetry={() => handleGenerateMeals()}
+                    onDismiss={() => setGenerationFailure(HIDDEN_FAILURE)}
+                    isRetrying={isLoading}
+                  />
                 )}
               </div>
             </div>

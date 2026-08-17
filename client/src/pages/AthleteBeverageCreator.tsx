@@ -57,6 +57,7 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 
 const PERFORMANCE_GOALS = [
   { value: "pre-workout-energy", label: "Pre-Workout Energy" },
@@ -199,6 +200,7 @@ export default function AthleteBeverageCreator() {
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -328,6 +330,7 @@ export default function AthleteBeverageCreator() {
     });
 
     try {
+      setGenerationFailure(HIDDEN_FAILURE);
       console.log("🍹 [BEVERAGE] Calling API...");
       const res = await fetch(apiUrl("/api/meals/beverage-creator"), {
         method: "POST",
@@ -357,8 +360,11 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
             return `${performanceContext} ${baseDescription}`.trim();
           })(),
           servingSize,
+          // dietOverride signals a REPLACEMENT of the profile primary diet.
+          // It is sent separately so the server can distinguish it from the form's
+          // additional preference fields (which merge, not replace).
+          dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
           dietaryPreferences: [
-            ...(dietOverrideEnabled && dietOverrideValue ? [dietOverrideValue] : []),
             ...(dietaryPreference && dietaryPreference !== "none"
               ? [dietaryPreference]
               : []),
@@ -438,10 +444,13 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
           variant: "warning",
         });
       } else {
-        toast({
-          title: "Generation Failed",
-          description: "Please try again.",
-          variant: "destructive",
+        setGenerationFailure({
+          show: true,
+          message: "Something went wrong creating your performance drink. Please try again.",
+          suggestedActions: [
+            "Try Again — we'll generate a fresh version",
+            "Adjust the drink type or performance goal",
+          ],
         });
       }
     } finally {
@@ -751,6 +760,16 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                 >
                   Create My Drink
                 </GlassButton>
+              )}
+
+              {generationFailure.show && (
+                <GenerationFailureBanner
+                  message={generationFailure.message}
+                  suggestedActions={generationFailure.suggestedActions}
+                  onRetry={() => handleGenerateBeverage()}
+                  onDismiss={() => setGenerationFailure(HIDDEN_FAILURE)}
+                  isRetrying={isGenerating}
+                />
               )}
             </CardContent>
           </Card>

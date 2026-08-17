@@ -11,6 +11,7 @@
  * Used by: AI Meal Creator, AI Premades, Fridge Rescue
  */
 
+import { isRecipeSensitiveDish } from './dishEngineRouter';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
@@ -320,6 +321,11 @@ export interface MealGenerationRequest {
    * originating HTTP request.
    */
   correlationId?: string;
+  /** Temporary dietary identity override — replaces the profile diet for one generation.
+   *  Allergies, medical conditions, and procedural protections are never affected. */
+  dietaryRestrictionsOverride?: string[];
+  /** Requested serving count — passed to the recipe generator for accurate ingredient scaling. */
+  servings?: number;
 }
 
 export interface MealGenerationResponse {
@@ -650,10 +656,13 @@ export async function generateCravingMealUnified(
       console.warn("[CRAVING] Could not fetch dietary restrictions:", err);
     }
   }
-  // Supplement with client-provided override (for UI diet selectors or guest flows)
+  // Supplement with client-provided override (for UI diet selectors or guest flows).
+  // REPLACEMENT semantics: the override replaces the profile diet for this generation —
+  // never merges with it, because merging vegan + keto produces a conflicting constraint
+  // that makes generation fail or produce incoherent results.
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
-    const merged = new Set([...cravingDietRestrictions, ...dietaryRestrictionsOverride]);
-    cravingDietRestrictions = Array.from(merged);
+    cravingDietRestrictions = [...dietaryRestrictionsOverride];
+    console.log(`🔀 [CRAVING] Diet override replaces profile diet — effective: [${cravingDietRestrictions.join(", ")}]`);
   }
   cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
   // Kosher category intent: inject DAIRY/MEAT/PAREVE block so the AI
@@ -1759,32 +1768,154 @@ MEAL TYPE context: ${validMealType}
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
 }
 
-/** Deterministic post-generation sanity check for unrealistic ingredient quantities.
- *  Returns true if quantities look sane, false if a re-generation should be triggered. */
-function checkIngredientSanity(options: any[], servings: number = 1): boolean {
+/** Dish-class-aware post-generation sanity check for unrealistic ingredient quantities.
+ *  Thresholds are calibrated to realistic culinary ratios — not arbitrary upper bounds.
+ *  Returns true if quantities look sane, false if a re-generation should be triggered.
+ *  @param options  Array of meal option objects (each has .ingredients[])
+ *  @param servings Requested serving count — thresholds scale with it
+ *  @param description Dish description — used to detect dish class (baked, confection, etc.) */
+function checkIngredientSanity(options: any[], servings: number = 1, description?: string): boolean {
   const s = Math.max(1, servings);
+
+  // Dish-class detection — calibrates thresholds to realistic culinary ratios
+  const desc = (description || '').toLowerCase();
+  const isBaked = /\b(cake|cookie|cookies|bread|loaf|muffin|muffins|brownie|brownies|pastry|cupcake|cupcakes|scone|scones|biscuit|biscuits|pancake|pancakes|waffle|waffles|tart|pie|danish|croissant)\b/.test(desc);
+  const isConfection = /\b(truffle|fudge|candy|caramel|toffee|praline|nougat)\b/.test(desc);
+  const isBakedOrConfection = isBaked || isConfection;
+
   for (const opt of options) {
     for (const ing of (opt.ingredients || [])) {
       const name = (ing.name || '').toLowerCase();
+      const unit = (ing.unit || '').toLowerCase();
       const qty = parseFloat(ing.quantity) || 0;
       if (!qty) continue;
-      // Eggs — more than 4 per serving is suspicious (most recipes: 2-3 eggs regardless of servings)
+      const isCup = unit === 'cup' || unit === 'cups';
+
+      // Eggs
       if (name.includes('egg') && !name.includes('eggplant') && !name.includes('noodle')) {
         if (qty > Math.max(6, 4 * s)) {
           console.warn(`[RECIPE SANITY] Unrealistic eggs: ${qty} for ${s} serving(s) in "${opt.name}"`);
           return false;
         }
       }
-      // Flour — more than 4 cups per single serving is suspicious
-      if (name.includes('flour') && (ing.unit || '').toLowerCase() === 'cup') {
-        if (qty > Math.max(8, 4 * s)) {
-          console.warn(`[RECIPE SANITY] Unrealistic flour: ${qty} cups for ${s} serving(s) in "${opt.name}"`);
+
+      // Flour — baked goods: ≤1.5 cups/serving; standard: ≤4 cups/serving
+      if (name.includes('flour') && isCup) {
+        const flourLimit = isBakedOrConfection ? Math.max(1.5, 1.5 * s) : Math.max(8, 4 * s);
+        if (qty > flourLimit) {
+          console.warn(`[RECIPE SANITY] Unrealistic flour: ${qty} cups for ${s} serving(s) in "${opt.name}" (class: ${isBakedOrConfection ? 'baked' : 'standard'})`);
+          return false;
+        }
+      }
+
+      // Added fats in cups — baked: ≤0.5 cup total (≤0.25/serving); standard: ≤1 cup total
+      const isFat = /\b(oil|butter|coconut oil|ghee|shortening|lard|margarine)\b/.test(name);
+      if (isFat && isCup) {
+        const fatLimit = isBakedOrConfection ? Math.max(0.5, 0.25 * s) : Math.max(1.0, 0.5 * s);
+        if (qty > fatLimit) {
+          console.warn(`[RECIPE SANITY] Unrealistic fat: ${qty} cups "${ing.name}" for ${s} serving(s) in "${opt.name}" (class: ${isBakedOrConfection ? 'baked' : 'standard'})`);
+          return false;
+        }
+      }
+
+      // Added sugars in cups — ≤0.25 cup/serving regardless of dish class
+      const isSugar = /\b(sugar|coconut sugar|brown sugar|cane sugar)\b/.test(name);
+      if (isSugar && isCup) {
+        const sugarLimit = Math.max(0.5, 0.25 * s);
+        if (qty > sugarLimit) {
+          console.warn(`[RECIPE SANITY] Unrealistic sugar: ${qty} cups "${ing.name}" for ${s} serving(s) in "${opt.name}"`);
+          return false;
+        }
+      }
+
+      // Heavy liquids in cups (coconut cream, heavy cream) — ≤0.5 cup/serving
+      const isHeavyLiquid = /\b(coconut cream|heavy cream|condensed milk|evaporated milk)\b/.test(name);
+      if (isHeavyLiquid && isCup) {
+        const liquidLimit = Math.max(1.0, 0.5 * s);
+        if (qty > liquidLimit) {
+          console.warn(`[RECIPE SANITY] Unrealistic heavy liquid: ${qty} cups "${ing.name}" for ${s} serving(s) in "${opt.name}"`);
           return false;
         }
       }
     }
   }
   return true;
+}
+
+/** Rough per-serving calorie estimate from ingredient list.
+ *  Used ONLY as a plausibility gate — not as a nutrition calculator.
+ *  Catches catastrophic AI-reported vs. ingredient-implied calorie mismatches.
+ *  Accuracy is intentionally approximate; tolerances are loose enough to allow
+ *  cooking-loss variance while catching order-of-magnitude failures. */
+function estimateCaloriesFromIngredients(ingredients: any[], servings: number = 1): number {
+  const s = Math.max(1, servings);
+
+  // qty + unit → approximate grams
+  const toGrams = (qty: number, unit: string, name: string): number => {
+    const u = unit.toLowerCase().trim();
+    const n = name.toLowerCase();
+    if (u === 'cup' || u === 'cups') {
+      if (n.includes('flour') && !n.includes('almond')) return qty * 125;
+      if (n.includes('almond flour') || n.includes('almond meal')) return qty * 96;
+      if (n.includes('sugar') || n.includes('sweetener')) return qty * 200;
+      if (n.includes('oil') || n.includes('butter') || n.includes('ghee') || n.includes('shortening')) return qty * 218;
+      if (n.includes('cream') || n.includes('milk') || n.includes('water') || n.includes('juice')) return qty * 240;
+      return qty * 150; // default solid
+    }
+    if (u === 'tbsp' || u === 'tablespoon' || u === 'tablespoons') return qty * 14;
+    if (u === 'tsp' || u === 'teaspoon' || u === 'teaspoons') return qty * 5;
+    if (u === 'oz' || u === 'ounce' || u === 'ounces') return qty * 28;
+    if (u === 'lb' || u === 'pound' || u === 'pounds') return qty * 454;
+    if (u === 'g' || u === 'gram' || u === 'grams') return qty;
+    if (u === 'kg') return qty * 1000;
+    if (u === 'ml' || u === 'milliliter' || u === 'milliliters') return qty;
+    return qty; // fallback: assume grams
+  };
+
+  // kcal per 100g by ingredient category
+  const kcalPer100g = (name: string): number => {
+    const n = name.toLowerCase();
+    if (/\b(oil|coconut oil|vegetable oil|olive oil|avocado oil|canola)\b/.test(n)) return 884;
+    if (/\b(butter|ghee|shortening|lard|margarine)\b/.test(n)) return 720;
+    if (/\b(almond flour|almond meal)\b/.test(n)) return 580;
+    if (/\b(coconut flour)\b/.test(n)) return 440;
+    if (/\b(flour|all.purpose|whole.wheat|wheat flour)\b/.test(n)) return 360;
+    if (/\b(sugar|brown sugar|cane sugar|coconut sugar)\b/.test(n)) return 400;
+    if (/\b(honey|maple syrup|agave)\b/.test(n)) return 300;
+    if (/\b(heavy cream|whipping cream)\b/.test(n)) return 345;
+    if (/\b(coconut cream)\b/.test(n)) return 230;
+    if (/\b(coconut milk)\b/.test(n)) return 150;
+    if (/\b(cream cheese)\b/.test(n)) return 350;
+    if (/\b(cheese|cheddar|parmesan|mozzarella|feta|gouda)\b/.test(n)) return 380;
+    if (/\b(chocolate|cocoa butter|cacao)\b/.test(n) && !/powder/.test(n)) return 550;
+    if (/\b(cocoa powder|cacao powder)\b/.test(n)) return 230;
+    if (/\b(peanut butter|almond butter|nut butter|tahini)\b/.test(n)) return 590;
+    if (/\b(almond|cashew|walnut|pecan|macadamia|pistachio|pine nut)\b/.test(n)) return 600;
+    if (/\b(oat|oats|rolled oat|granola)\b/.test(n)) return 380;
+    if (/\b(rice|quinoa|couscous)\b/.test(n)) return 130;
+    if (/\b(pasta|noodle|spaghetti|penne|fettuccine)\b/.test(n)) return 140;
+    if (/\b(bread|tortilla|cracker|pita)\b/.test(n)) return 265;
+    if (/\b(potato|sweet potato|yam)\b/.test(n)) return 85;
+    if (/\b(chicken|turkey|beef|pork|lamb|fish|salmon|tuna|shrimp|cod)\b/.test(n)) return 165;
+    if (/\b(egg)\b/.test(n) && !/eggplant/.test(n)) return 155;
+    if (/\b(milk|yogurt|kefir|buttermilk)\b/.test(n)) return 60;
+    if (/\b(fruit|apple|banana|mango|berry|strawberry|blueberry|raspberry|cherry)\b/.test(n)) return 55;
+    if (/\b(avocado)\b/.test(n)) return 160;
+    if (/\b(bean|lentil|chickpea|legume)\b/.test(n)) return 110;
+    if (/\b(tofu|tempeh)\b/.test(n)) return 120;
+    if (/\b(vegetable|broccoli|spinach|kale|carrot|onion|pepper|tomato|zucchini|mushroom|cucumber|lettuce|celery|cauliflower|asparagus)\b/.test(n)) return 25;
+    return 80; // default: moderate density
+  };
+
+  let totalKcal = 0;
+  for (const ing of ingredients) {
+    const qty = parseFloat(ing.quantity) || 0;
+    if (!qty || !ing.name) continue;
+    const grams = toGrams(qty, ing.unit || '', ing.name);
+    totalKcal += (grams / 100) * kcalPer100g(ing.name);
+  }
+
+  return totalKcal / s; // per-serving estimate
 }
 
 /** Parse raw AI content into options array */
@@ -1831,7 +1962,7 @@ export async function generateCravingMealOptions(
   dietaryRestrictionsOverride?: string[],
   excludeMeals?: string[],
   strictMode: boolean = false,
-  generationMode: 'meal' | 'recipe' = 'meal',
+  generationMode: 'meal' | 'recipe' | 'auto' = 'auto',
   cuisineOverride?: string,
   glp1Targets?: ResolvedGLP1Targets,
   overriddenAllergens?: string[],
@@ -1938,8 +2069,13 @@ export async function generateCravingMealOptions(
     }
   }
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
-    const merged = new Set([...dietRestrictions, ...dietaryRestrictionsOverride]);
-    dietRestrictions = Array.from(merged);
+    // REPLACEMENT semantics: the override is a builder-level diet selection that
+    // REPLACES the profile diet for this one generation. A vegan profile + keto
+    // override must generate keto — not a conflicting vegan+keto mix.
+    // Hard restrictions (allergies, medical, specialty) are enforced separately
+    // via the protocol envelope and are never affected by this replacement.
+    dietRestrictions = [...dietaryRestrictionsOverride];
+    console.log(`🔀 [VARIETY ENGINE] Diet override replaces profile diet — effective: [${dietRestrictions.join(", ")}]`);
   }
   let dietBlock = buildDietPromptBlock(dietRestrictions);
   // Kosher category intent: inject DAIRY/MEAT/PAREVE block so the AI
@@ -2057,9 +2193,15 @@ export async function generateCravingMealOptions(
 
   const openai = getOpenAI();
 
-  const isRecipeMode = generationMode === 'recipe';
+  // Auto-routing: detect culinary-ratio-sensitive dishes automatically.
+  // 'auto' (default) → check the dish name and pick the right engine.
+  // 'recipe' → force culinary-ratio engine (for pro/debug use).
+  // 'meal' → force nutrition-first engine.
+  const isRecipeMode = generationMode === 'recipe'
+    || (generationMode === 'auto' && isRecipeSensitiveDish(cravingInput));
   if (isRecipeMode) {
-    console.log(`🍳 [RECIPE MODE] Using culinary-ratio prompt for "${cravingInput}"`);
+    const trigger = generationMode === 'recipe' ? 'explicit' : 'auto-detected';
+    console.log(`🍳 [RECIPE MODE] Using culinary-ratio prompt for "${cravingInput}" (${trigger})`);
   }
 
   const cuisineGroundingBlock = cuisineOverride && cuisineOverride.trim()
@@ -2103,7 +2245,7 @@ export async function generateCravingMealOptions(
   }
 
   // Recipe Mode: post-generation sanity check for unrealistic ingredient quantities
-  if (isRecipeMode && !checkIngredientSanity(rawOptions)) {
+  if (isRecipeMode && !checkIngredientSanity(rawOptions, 1, cravingInput)) {
     console.warn("[RECIPE MODE] Sanity check failed — regenerating with stricter culinary constraints");
     try {
       rawOptions = await attempt(true);
@@ -2896,9 +3038,12 @@ export async function generateFromDescriptionUnified(
   },
   generationContext?: string,
   glp1Targets?: ResolvedGLP1Targets,
-  preferredLanguage?: string
+  preferredLanguage?: string,
+  dietaryRestrictionsOverride?: string[],
+  servings?: number,
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
+  const requestedServings = Math.max(1, Math.min(10, Math.round(servings ?? 1)));
 
   // ── Starch enforcement — applied BEFORE any pipeline early returns ───────
   // The server budget resolver (routes.ts) patches starchContext with
@@ -2943,7 +3088,13 @@ export async function generateFromDescriptionUnified(
   // Get starch placement decision
   const starchPlacement = determineStarchPlacement(validMealType, starchContext);
   const starchGuidance = buildStarchGuidance(validMealType, starchContext);
-  const vegetableStrategyGuidance = (!strictMode && nutritionStrategy) ? buildVegetableStrategyPrompt(nutritionStrategy) : '';
+  // Gate: recipe-sensitive dishes (cakes, bread, pasta, confections) must not receive
+  // vegetable strategy injection — spinach does not belong in strawberry cake.
+  const isRecipeModeDish = isRecipeSensitiveDish(description);
+  const vegetableStrategyGuidance = (!strictMode && nutritionStrategy && !isRecipeModeDish) ? buildVegetableStrategyPrompt(nutritionStrategy) : '';
+  if (isRecipeModeDish && nutritionStrategy && !strictMode) {
+    console.log(`🚫 [VegStrategy] Suppressed for recipe-sensitive dish: "${description.slice(0, 50)}"`);
+  }
   
   console.log(`👨‍🍳 Create With Chef: Generating meal from description: "${description}" for ${validMealType}${dietType ? ` (diet: ${dietType})` : ''} | Starch: ${starchPlacement.shouldIncludeStarch ? 'YES' : 'NO'} (${starchPlacement.reason})${vegetableStrategyGuidance ? ' | 🥦 VegStrategy: ON' : ''}`);
   
@@ -2989,7 +3140,14 @@ export async function generateFromDescriptionUnified(
     }).combined;
 
     // Use envelope's dietaryIdentity for vegan/vegetarian/pescatarian compliance loop
-    const chefDietRestrictions: string[] = chefEnvelope.dietaryIdentity;
+    // Temporary diet override replaces the profile diet for this generation.
+    // Hard restrictions (allergies, medical, procedural rules) always come from chefEnvelope unchanged.
+    const chefDietRestrictions: string[] = (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0)
+      ? dietaryRestrictionsOverride
+      : chefEnvelope.dietaryIdentity;
+    if (dietaryRestrictionsOverride?.length) {
+      console.log(`🔀 [CREATE-WITH-CHEF] Diet override: [${dietaryRestrictionsOverride.join(', ')}] replaces profile diet [${chefEnvelope.dietaryIdentity.join(', ')}]`);
+    }
     const descMeasurementSystem: MeasurementSystem = chefEnvelope.measurementSystem ?? "imperial";
     if (chefProtocolBlock) {
       console.log(`🥗 [CREATE-WITH-CHEF] Protocol enforcement active: ${chefDietRestrictions.join('|') || 'guest'}`);
@@ -3077,7 +3235,7 @@ export async function generateFromDescriptionUnified(
 
     let basePrompt = `You are a professional chef creating a personalized meal recipe.
 ${chefProtocolBlock ? `\n${chefProtocolBlock}\n` : ""}${oncologyPromptSection ? `\n${oncologyPromptSection}\n` : ""}${oncologyTransformationRule}${behavioralMemorySection ? `\n${behavioralMemorySection}\n` : ""}
-TASK: Create a complete ${validMealType} recipe based on this request: "${description}"
+TASK: Create a complete ${validMealType} recipe for ${requestedServings} serving(s) based on this request: "${description}"
 
 REQUIREMENTS:
 - Create a delicious, well-balanced meal that matches the user's description
@@ -3106,7 +3264,7 @@ FORMAT: Return as JSON object:
     {"name": "olive oil", "quantity": "1", "unit": "tbsp"}
   ],
   "instructions": "Detailed step-by-step cooking instructions as a single paragraph with numbered steps",
-  "calories": number (realistic estimate 300-700),
+  "calories": number (per-serving calories — total recipe = this × ${requestedServings}),
   "protein": number (grams),
   "starchyCarbs": number (grams from starches: rice, pasta, bread, potatoes, grains),
   "fibrousCarbs": number (grams from vegetables and fibrous sources),
@@ -3292,6 +3450,62 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         medicalBadges: [],
         source: 'ai'
       };
+
+      // ── Ingredient quantity sanity (dish-class-aware) ─────────────────────
+      // Catches catastrophic quantities (2 cups oil for a 2-serving cake) before
+      // dietary validation. One retry with an explicit correction hint.
+      if (!checkIngredientSanity([mealData], requestedServings, description)) {
+        if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+          lastFixHint =
+            `INGREDIENT QUANTITY ERROR: The recipe has unrealistic quantities for ${requestedServings} serving(s). ` +
+            `For baked goods, oil/fat must not exceed ½ cup total, sugar ½ cup total, ` +
+            `and flour ~1.5 cups per serving. Scale all ingredients to realistic culinary ratios ` +
+            `for exactly ${requestedServings} serving(s).`;
+          console.warn(`[CHEF SANITY] Ingredient sanity failed — attempt ${attemptCount} — regenerating`);
+          continue;
+        }
+        console.error(`[CHEF SANITY] Sanity unresolvable after ${attemptCount} attempts — serving as-is`);
+      }
+
+      // ── Nutrition plausibility gate ───────────────────────────────────────
+      // Compares LLM-reported calories against an ingredient-derived estimate.
+      // Catches catastrophic disconnects (LLM reports 800 kcal, ingredients imply 8,000+).
+      // Estimator is approximate — thresholds catch order-of-magnitude failures, not rounding.
+      {
+        const estPerServing = estimateCaloriesFromIngredients(tempMeal.ingredients, requestedServings);
+        const repPerServing = tempMeal.calories;
+        const ratio = estPerServing > 0 ? repPerServing / estPerServing : 1;
+        const LOW = 0.35;   // reported < 35% of estimate → catastrophic under-reporting
+        const HIGH = 2.5;   // reported > 250% of estimate → suspicious over-reporting
+        const plausible = ratio >= LOW && ratio <= HIGH;
+
+        console.log(
+          `[NUTRITION PLAUSIBILITY] reported=${repPerServing} kcal/serving | ` +
+          `estimated=${Math.round(estPerServing)} kcal/serving | ratio=${ratio.toFixed(2)} | ` +
+          `servings=${requestedServings} | outcome=${plausible ? 'PASS' : 'FAIL'}`
+        );
+
+        if (!plausible && attemptCount < MAX_REGENERATION_ATTEMPTS) {
+          const dir = ratio < LOW ? 'under-reported' : 'over-reported';
+          lastFixHint =
+            `NUTRITION MISMATCH: Recipe reports ${repPerServing} kcal/serving but ingredient quantities ` +
+            `imply approximately ${Math.round(estPerServing)} kcal/serving (ratio ${ratio.toFixed(2)} — ${dir}). ` +
+            (ratio < LOW
+              ? `High-calorie ingredients (oil, butter, flour, sugar, cream) produce far more calories than reported. ` +
+                `Either reduce quantities to match ~${repPerServing} kcal/serving, or correct the reported calories to reflect the actual ingredients.`
+              : `Reported calories exceed what the ingredient quantities could plausibly contain. ` +
+                `Ensure ingredient amounts match the stated calorie level.`) +
+            ` For ${requestedServings} serving(s), total recipe calories should be ~${repPerServing * requestedServings} kcal.`;
+          console.warn(`[NUTRITION PLAUSIBILITY] ${dir} — ratio=${ratio.toFixed(2)} — attempt ${attemptCount} — regenerating`);
+          continue;
+        }
+        if (!plausible) {
+          console.error(
+            `[NUTRITION PLAUSIBILITY] Mismatch unresolvable after ${attemptCount} attempts — ` +
+            `reported=${repPerServing} est=${Math.round(estPerServing)} ratio=${ratio.toFixed(2)} — serving as-is`
+          );
+        }
+      }
 
       if (effectiveHubType && hubCoupling?.guardrails) {
         const hubValidation = validateMealForHub(tempMeal, effectiveHubType, hubCoupling.guardrails);
@@ -4314,6 +4528,8 @@ export async function generateMealUnified(
         request.generationContext,
         request.glp1Targets,
         request.preferredLanguage,
+        request.dietaryRestrictionsOverride,
+        request.servings,
       );
       break;
 

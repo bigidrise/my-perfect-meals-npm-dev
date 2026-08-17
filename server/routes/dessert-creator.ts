@@ -104,6 +104,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
       cakeStyle,
       cakeType,
       dietaryPreferences,
+      dietOverride,           // builder hub diet override — replaces profile primary diet
       userId,
       safetyMode,
       overrideToken,
@@ -245,9 +246,20 @@ dessertCreatorRouter.post("/", async (req, res) => {
     const flavorLabel = FLAVOR_LABELS[flavorFamily] || flavorFamily;
     const cakeStyleLabel = cakeStyle ? CAKE_STYLE_LABELS[cakeStyle] || cakeStyle : null;
     const cakeTypeLabel = cakeType ? CAKE_TYPE_LABELS[cakeType] || cakeType : null;
-    const dietaryRules = Array.isArray(dietaryPreferences) && dietaryPreferences.length > 0
-      ? dietaryPreferences.map(d => d.replace(/-/g, " ")).join(", ")
-      : "none specified";
+    // ── Builder diet override — REPLACES profile primary diet for this generation ──
+    // Precedence: explicit dietOverride > dietaryPreferences (form picker) > profile diet.
+    // Hard restrictions (allergies, medical, specialty, religious) remain enforced
+    // through the protocol envelope regardless of this override.
+    const { resolveEffectiveDiet } = await import("../services/resolveEffectiveDiet");
+    const _effectiveDiet = resolveEffectiveDiet(dietOverride, userDietaryRestrictions);
+    const dietaryRules = _effectiveDiet.length > 0
+      ? _effectiveDiet.map((d: string) => d.replace(/-/g, " ")).join(", ")
+      : Array.isArray(dietaryPreferences) && dietaryPreferences.length > 0
+        ? dietaryPreferences.map((d: string) => d.replace(/-/g, " ")).join(", ")
+        : "none specified";
+    if (dietOverride) {
+      console.log(`🔀 [DESSERT] Diet override: "${dietOverride}" → dietaryRules="${dietaryRules}"`);
+    }
 
     const isWeddingCake = cakeType === "wedding-cake";
     const isNakedCake = cakeStyle === "naked" || cakeStyle === "semi-naked";

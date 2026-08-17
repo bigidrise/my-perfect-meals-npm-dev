@@ -59,6 +59,7 @@ import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -170,6 +171,7 @@ export default function BeverageCreator() {
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [beverageImageLoading, setBeverageImageLoading] = useState(false);
+  const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -369,6 +371,7 @@ export default function BeverageCreator() {
     });
 
     try {
+      setGenerationFailure(HIDDEN_FAILURE);
       console.log("🍹 [BEVERAGE] Calling API...");
       const res = await fetch(apiUrl("/api/meals/beverage-creator"), {
         method: "POST",
@@ -465,10 +468,13 @@ export default function BeverageCreator() {
           variant: "warning",
         });
       } else {
-        toast({
-          title: "Generation Failed",
-          description: "Please try again.",
-          variant: "destructive",
+        setGenerationFailure({
+          show: true,
+          message: "Something went wrong creating your drink. Please try again.",
+          suggestedActions: [
+            "Try Again — we'll generate a fresh version",
+            "Adjust the beverage category or describe the drink differently",
+          ],
         });
       }
     } finally {
@@ -759,6 +765,16 @@ export default function BeverageCreator() {
                 >
                   Create My Drink
                 </GlassButton>
+              )}
+
+              {generationFailure.show && (
+                <GenerationFailureBanner
+                  message={generationFailure.message}
+                  suggestedActions={generationFailure.suggestedActions}
+                  onRetry={() => handleGenerateBeverage()}
+                  onDismiss={() => setGenerationFailure(HIDDEN_FAILURE)}
+                  isRetrying={isGenerating}
+                />
               )}
             </CardContent>
           </Card>

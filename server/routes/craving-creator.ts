@@ -1,4 +1,15 @@
-// --- NEW: server/routes/craving-creator.ts ---
+// ⚠️  LEGACY ROUTER — mounted at /api/craving-creator (not /api/meals/craving-creator).
+//
+// Status: NO active client page calls this path. All UI surfaces use the active
+// endpoint at server/routes.ts ~5015 (/api/meals/craving-creator), which implements
+// the full diet-override replacement contract introduced in Aug 2026.
+//
+// This router handles the old WMC2 adapter paths (/generate, /log) and always uses
+// user?.dietaryRestrictions directly — it does NOT respect dietOverride.
+// Protected by requireAuth + requireProAccess so it is not publicly reachable.
+//
+// Action: do not add new callers. Mark for removal when WMC2 adapter is retired.
+// --- (original file header preserved below) ---
 import express from "express";
 import { z } from "zod";
 import { db } from "../db";

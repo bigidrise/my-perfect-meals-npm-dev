@@ -4,12 +4,13 @@ import { db } from "../db";
 import { bodyFatEntries } from "../db/schema/bodyComposition";
 import { eq, and, desc, gte, lt } from "drizzle-orm";
 import { createBodyFatSchema, updateBodyFatSchema } from "../../shared/bodyCompositionSchema";
+import { requireAuth } from "../middleware/requireAuth";
 
 const router = Router();
 
 // GET /api/users/:userId/body-composition/latest
 // Returns the latest effective body fat entry with precedence: trainer/physician > client
-router.get("/users/:userId/body-composition/latest", async (req, res) => {
+router.get("/users/:userId/body-composition/latest", requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -65,7 +66,7 @@ router.get("/users/:userId/body-composition/latest", async (req, res) => {
 
 // GET /api/users/:userId/body-composition/history
 // Returns all body fat entries for the user
-router.get("/users/:userId/body-composition/history", async (req, res) => {
+router.get("/users/:userId/body-composition/history", requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
     const { limit = "20" } = req.query;
@@ -86,7 +87,7 @@ router.get("/users/:userId/body-composition/history", async (req, res) => {
 // POST /api/users/:userId/body-composition
 // Create a new body fat entry — upserts same-day client estimates to prevent
 // duplicate rows from accumulating each time the Macro Calculator saves.
-router.post("/users/:userId/body-composition", async (req, res) => {
+router.post("/users/:userId/body-composition", requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
     const data = createBodyFatSchema.parse(req.body);
@@ -163,7 +164,7 @@ router.post("/users/:userId/body-composition", async (req, res) => {
 
 // PUT /api/users/:userId/body-composition/:entryId
 // Update an existing body fat entry
-router.put("/users/:userId/body-composition/:entryId", async (req, res) => {
+router.put("/users/:userId/body-composition/:entryId", requireAuth, async (req, res) => {
   try {
     const { userId, entryId } = req.params;
     const data = updateBodyFatSchema.parse(req.body);
@@ -206,7 +207,7 @@ router.put("/users/:userId/body-composition/:entryId", async (req, res) => {
 
 // DELETE /api/users/:userId/body-composition/:entryId
 // Delete a body fat entry
-router.delete("/users/:userId/body-composition/:entryId", async (req, res) => {
+router.delete("/users/:userId/body-composition/:entryId", requireAuth, async (req, res) => {
   try {
     const { userId, entryId } = req.params;
 
@@ -230,7 +231,7 @@ router.delete("/users/:userId/body-composition/:entryId", async (req, res) => {
 
 // PATCH /api/users/:userId/body-composition/goal
 // Update only the goalBodyFatPct on the latest client entry (or create a minimal entry)
-router.patch("/users/:userId/body-composition/goal", async (req, res) => {
+router.patch("/users/:userId/body-composition/goal", requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
     const schema = z.object({ goalBodyFatPct: z.number().min(3).max(60) });
@@ -272,7 +273,7 @@ router.patch("/users/:userId/body-composition/goal", async (req, res) => {
 
 // GET /api/pro/clients/:clientId/body-composition
 // Get client's latest body fat (for trainer/physician dashboard)
-router.get("/pro/clients/:clientId/body-composition", async (req, res) => {
+router.get("/pro/clients/:clientId/body-composition", requireAuth, async (req, res) => {
   try {
     const { clientId } = req.params;
 
@@ -291,7 +292,7 @@ router.get("/pro/clients/:clientId/body-composition", async (req, res) => {
 
 // POST /api/pro/clients/:clientId/body-composition
 // Trainer/physician sets client's body fat (creates override entry)
-router.post("/pro/clients/:clientId/body-composition", async (req, res) => {
+router.post("/pro/clients/:clientId/body-composition", requireAuth, async (req, res) => {
   try {
     const { clientId } = req.params;
     const data = createBodyFatSchema.parse(req.body);

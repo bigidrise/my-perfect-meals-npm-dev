@@ -766,6 +766,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userDietOverride,
         performanceSessionContext,
         generationContext,
+        dietOverride,
+        servings: reqServings = 1,
       } = req.body;
 
       // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
@@ -1113,6 +1115,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         glp1Targets: serverGlp1Targets,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         correlationId: (req as any).id,
+        // Temporary diet override — replaces profile diet for one generation.
+        // Source priority: explicit dietOverride field > dietType query param.
+        // Using dietType as the source means the existing Create a Dish UI (which sends
+        // dietType but not dietOverride) automatically benefits from override semantics.
+        // Allergies, medical, and procedural rules come from the protocol envelope unchanged.
+        dietaryRestrictionsOverride: (() => {
+          const src =
+            (dietOverride && typeof dietOverride === 'string' && dietOverride.trim())
+              ? dietOverride.trim()
+              : (effectiveDietType && typeof effectiveDietType === 'string')
+                ? effectiveDietType
+                : null;
+          if (src) {
+            console.log(`🔀 [CHEF] dietaryRestrictionsOverride: ["${src}"] (source: ${dietOverride ? 'dietOverride' : 'dietType'})`);
+            return [src];
+          }
+          return undefined;
+        })(),
+        servings: Math.max(1, Math.min(10, parseInt(String(reqServings)) || 1)),
       });
 
       const durationMs = Date.now() - startTime;
@@ -4888,7 +4909,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Meal Planning Feature Routes
-  // Craving Creator endpoints for WMC2 adapter
+  // ⚠️ LEGACY — /api/craving-creator/generate is a WMC2 adapter stub.
+  // Active client pages call /api/meals/craving-creator (line ~5015) instead.
+  // This path ignores dietOverride and always uses user?.dietaryRestrictions.
+  // Do NOT add new callers; route for eventual removal when WMC2 is retired.
   app.post("/api/craving-creator/generate", async (req, res) => {
     try {
       const { userId, courseStyle, craving, mealType, servings = 1, includeImage = false, variation = 0, safetyMode, overrideToken } = req.body;
@@ -4939,6 +4963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ⚠️ LEGACY — same as /generate above. No active client caller.
   app.post("/api/craving-creator/regenerate", async (req, res) => {
     try {
       const { userId, courseStyle, includeImage = true } = req.body;
@@ -5014,7 +5039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug } = req.body;
 
       // Adaptation block is built AFTER user is fetched (so we know their actual diet).
       // Start with the raw input — the safety check at line 3441 runs on clean input.
@@ -5104,6 +5129,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Resolve effective primary dietary identity (early — used by DAL + generator) ─
+      // builder dietOverride REPLACES profile diet (replacement, not merge).
+      // Allergies, medical, specialty, and religious rules are enforced separately
+      // by the protocol envelope — they are never affected by this resolver.
+      const _resolvedPrimaryDiet: string[] = (() => {
+        if (dietOverride && typeof dietOverride === "string" && dietOverride.trim()) {
+          console.log(`🔀 [CRAVING] Diet override: "${dietOverride.trim()}" replaces profile diet`);
+          return [dietOverride.trim()];
+        }
+        if (dietaryRestrictions) {
+          return (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean);
+        }
+        return [];
+      })();
+
       // ── Build diet-aware adaptation / override block ──────────────────────
       // NOW we know the user's actual diet — build the right block, never
       // cross-contaminating carnivore with pareve, vegan with meat, etc.
@@ -5155,11 +5195,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // adaptation directives injected into generation. LRU-cached by
       // dish + guardrail IDs — repeated requests make no extra LLM call.
       const { getDishAdaptationDirective, buildGuardrailContext } = await import("./services/dishAdaptation/dishAdaptationLayer");
+      // When a builder diet override is active, use it as the sole dietary identity
+      // in the guardrail context so a vegan profile doesn't reject a keto meal the
+      // user explicitly requested. Without override, merge envelope + profile as before.
+      const _dalDietIdentity = _resolvedPrimaryDiet.length > 0
+        ? _resolvedPrimaryDiet
+        : [...protocolEnvelope.dietaryIdentity, ...((user?.dietaryRestrictions as string[]) || [])];
       const _dalGuardrailCtx = buildGuardrailContext({
-        dietaryIdentity: [
-          ...protocolEnvelope.dietaryIdentity,
-          ...((user?.dietaryRestrictions as string[]) || []),
-        ],
+        dietaryIdentity: _dalDietIdentity,
         glp1Active: !!_cravingGlp1Targets,
         allergies: protocolEnvelope.allergies,
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -5175,9 +5218,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn("⚠️ [DAL] Directive build failed — generation proceeds unenriched:", dalErr);
       }
 
-      const bodyDietRestrictions = dietaryRestrictions
-        ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
-        : [];
+      // _resolvedPrimaryDiet already incorporates the override (computed after user load).
+      const bodyDietRestrictions = _resolvedPrimaryDiet.slice();
 
       // ── Route-level oncology injection ────────────────────────────────────
       // The variety engine does its own DB query for specialtyCondition, but the
@@ -5237,8 +5279,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // user's dietary identity, avoidances, or procedural rules after generation.
       // This is the universal safety net — covers ingredients, hidden terms,
       // combination violations, AND forbidden instruction phrases.
+      //
+      // When a builder diet override is active, we substitute dietaryIdentity in the
+      // envelope so the filter does NOT re-reject keto meals because the envelope
+      // still says the profile is vegan. Allergies, medical, avoidances, procedural
+      // rules are never changed — only the primary diet identity is swapped.
+      const _filterEnvelope = (_resolvedPrimaryDiet.length > 0 && dietOverride)
+        ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet }
+        : protocolEnvelope;
       const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
-      const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
+      const cleanOptions = filterMealsByProtocol(mealOptions, _filterEnvelope, {
         generatorName: "craving_creator",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -5256,10 +5306,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           _fallbackDirective = await getDishAdaptationDirective(rawCravingInput || "", _dalGuardrailCtx, "fallback");
         } catch { /* proceed unenriched */ }
+        // When a diet override is active, the fallback must also target the override
+        // diet — not the profile's stored diet. Same replacement semantics as generation.
+        const _fallbackDietIdentity = (_resolvedPrimaryDiet.length > 0 && dietOverride)
+          ? _resolvedPrimaryDiet
+          : protocolEnvelope.dietaryIdentity;
         const fallbackMeal = await generateSingleCompliantFallback(
           cravingInput || "something delicious",
           targetMealType || "lunch",
-          protocolEnvelope.dietaryIdentity,
+          _fallbackDietIdentity,
           {
             overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
             storedAllergies: protocolEnvelope.allergies,
@@ -8328,7 +8383,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   });
 
   // Mount body composition routes (body fat tracking)
-  app.use("/api", requireAuth, bodyCompositionRoutes);
+  // requireAuth is applied per-route inside bodyComposition.ts — not here.
+  app.use("/api", bodyCompositionRoutes);
 
   // Add meal boards routes
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;
@@ -8364,10 +8420,14 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
   app.use("/api/pro/training", requireAuth, procareTrainingRouter);
-  app.use("/api", requireAuth, clinicalInterventionsRouter);
+  // requireAuth is applied per-route inside clinicalInterventionsRouter —
+  // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
+  app.use("/api", clinicalInterventionsRouter);
   app.use("/api/studios", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
-  app.use("/api", requireAuth, cycleProtocolRoutes);
+  // requireAuth is applied per-route inside cycleProtocolRoutes —
+  // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
+  app.use("/api", cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;
   app.use("/api/legal", legalRoutes);
 
@@ -8848,6 +8908,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: gatheringsRouterShared } = await import("./routes/gatherings");
   app.use("/api/gatherings", requireAuth, requireProAccess, gatheringsRouterShared);
 
+  // ⚠️ LEGACY router — mounts /api/craving-creator/{generate,log,...}.
+  // No active client page calls these paths; all UI uses /api/meals/craving-creator.
+  // Does NOT implement the dietOverride replacement contract (uses profile diet only).
+  // Guarded by requireAuth + requireProAccess. Keep until WMC2 adapter is retired.
   const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
   app.use("/api/craving-creator", requireAuth, requireProAccess, cravingCreatorRouterShared);
 
