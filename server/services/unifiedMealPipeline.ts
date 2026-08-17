@@ -11,6 +11,7 @@
  * Used by: AI Meal Creator, AI Premades, Fridge Rescue
  */
 
+import { isRecipeSensitiveDish } from './dishEngineRouter';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
@@ -650,10 +651,13 @@ export async function generateCravingMealUnified(
       console.warn("[CRAVING] Could not fetch dietary restrictions:", err);
     }
   }
-  // Supplement with client-provided override (for UI diet selectors or guest flows)
+  // Supplement with client-provided override (for UI diet selectors or guest flows).
+  // REPLACEMENT semantics: the override replaces the profile diet for this generation —
+  // never merges with it, because merging vegan + keto produces a conflicting constraint
+  // that makes generation fail or produce incoherent results.
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
-    const merged = new Set([...cravingDietRestrictions, ...dietaryRestrictionsOverride]);
-    cravingDietRestrictions = Array.from(merged);
+    cravingDietRestrictions = [...dietaryRestrictionsOverride];
+    console.log(`🔀 [CRAVING] Diet override replaces profile diet — effective: [${cravingDietRestrictions.join(", ")}]`);
   }
   cravingDietBlock = buildDietPromptBlock(cravingDietRestrictions);
   // Kosher category intent: inject DAIRY/MEAT/PAREVE block so the AI
@@ -1831,7 +1835,7 @@ export async function generateCravingMealOptions(
   dietaryRestrictionsOverride?: string[],
   excludeMeals?: string[],
   strictMode: boolean = false,
-  generationMode: 'meal' | 'recipe' = 'meal',
+  generationMode: 'meal' | 'recipe' | 'auto' = 'auto',
   cuisineOverride?: string,
   glp1Targets?: ResolvedGLP1Targets,
   overriddenAllergens?: string[],
@@ -1938,8 +1942,13 @@ export async function generateCravingMealOptions(
     }
   }
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
-    const merged = new Set([...dietRestrictions, ...dietaryRestrictionsOverride]);
-    dietRestrictions = Array.from(merged);
+    // REPLACEMENT semantics: the override is a builder-level diet selection that
+    // REPLACES the profile diet for this one generation. A vegan profile + keto
+    // override must generate keto — not a conflicting vegan+keto mix.
+    // Hard restrictions (allergies, medical, specialty) are enforced separately
+    // via the protocol envelope and are never affected by this replacement.
+    dietRestrictions = [...dietaryRestrictionsOverride];
+    console.log(`🔀 [VARIETY ENGINE] Diet override replaces profile diet — effective: [${dietRestrictions.join(", ")}]`);
   }
   let dietBlock = buildDietPromptBlock(dietRestrictions);
   // Kosher category intent: inject DAIRY/MEAT/PAREVE block so the AI
@@ -2057,9 +2066,15 @@ export async function generateCravingMealOptions(
 
   const openai = getOpenAI();
 
-  const isRecipeMode = generationMode === 'recipe';
+  // Auto-routing: detect culinary-ratio-sensitive dishes automatically.
+  // 'auto' (default) → check the dish name and pick the right engine.
+  // 'recipe' → force culinary-ratio engine (for pro/debug use).
+  // 'meal' → force nutrition-first engine.
+  const isRecipeMode = generationMode === 'recipe'
+    || (generationMode === 'auto' && isRecipeSensitiveDish(cravingInput));
   if (isRecipeMode) {
-    console.log(`🍳 [RECIPE MODE] Using culinary-ratio prompt for "${cravingInput}"`);
+    const trigger = generationMode === 'recipe' ? 'explicit' : 'auto-detected';
+    console.log(`🍳 [RECIPE MODE] Using culinary-ratio prompt for "${cravingInput}" (${trigger})`);
   }
 
   const cuisineGroundingBlock = cuisineOverride && cuisineOverride.trim()

@@ -5258,8 +5258,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // user's dietary identity, avoidances, or procedural rules after generation.
       // This is the universal safety net — covers ingredients, hidden terms,
       // combination violations, AND forbidden instruction phrases.
+      //
+      // When a builder diet override is active, we substitute dietaryIdentity in the
+      // envelope so the filter does NOT re-reject keto meals because the envelope
+      // still says the profile is vegan. Allergies, medical, avoidances, procedural
+      // rules are never changed — only the primary diet identity is swapped.
+      const _filterEnvelope = (_resolvedPrimaryDiet.length > 0 && dietOverride)
+        ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet }
+        : protocolEnvelope;
       const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
-      const cleanOptions = filterMealsByProtocol(mealOptions, protocolEnvelope, {
+      const cleanOptions = filterMealsByProtocol(mealOptions, _filterEnvelope, {
         generatorName: "craving_creator",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -5277,10 +5285,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           _fallbackDirective = await getDishAdaptationDirective(rawCravingInput || "", _dalGuardrailCtx, "fallback");
         } catch { /* proceed unenriched */ }
+        // When a diet override is active, the fallback must also target the override
+        // diet — not the profile's stored diet. Same replacement semantics as generation.
+        const _fallbackDietIdentity = (_resolvedPrimaryDiet.length > 0 && dietOverride)
+          ? _resolvedPrimaryDiet
+          : protocolEnvelope.dietaryIdentity;
         const fallbackMeal = await generateSingleCompliantFallback(
           cravingInput || "something delicious",
           targetMealType || "lunch",
-          protocolEnvelope.dietaryIdentity,
+          _fallbackDietIdentity,
           {
             overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
             storedAllergies: protocolEnvelope.allergies,

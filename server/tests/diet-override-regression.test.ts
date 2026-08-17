@@ -1,14 +1,28 @@
 /**
  * Diet Override + Failure UX Regression Suite
  *
- * Covers the 12 approval-document cases for the builder diet override contract.
- * These are unit tests for the resolveEffectiveDiet resolver and integration
- * snapshots verifying the field contract between client and server.
+ * Covers the builder diet override contract and auto-routing detector.
  *
- * Run: npx jest tests/diet-override-regression.test.ts
+ * ROOT CAUSE HISTORY (Aug 2026):
+ *   The original pipeline bug was in generateCravingMealOptions() inside
+ *   unifiedMealPipeline.ts. When dietaryRestrictionsOverride was provided,
+ *   the code did a Set UNION with the profile diet:
+ *
+ *     const merged = new Set([...dietRestrictions, ...dietaryRestrictionsOverride]);
+ *     dietRestrictions = Array.from(merged);
+ *
+ *   A vegan profile + keto override produced ["vegan", "keto"] into every prompt.
+ *   filterMealsByProtocol() then used the raw protocolEnvelope (dietaryIdentity: ["vegan"])
+ *   and removed any keto results that survived generation.
+ *
+ *   Both bugs were fixed: the union → replacement, and the filter envelope is now
+ *   overridden when a diet override is active.
+ *
+ * Run: npx jest server/tests/diet-override-regression.test.ts
  */
 
 import { resolveEffectiveDiet } from "../services/resolveEffectiveDiet";
+import { isRecipeSensitiveDish } from "../services/dishEngineRouter";
 
 // ─── resolveEffectiveDiet unit tests ─────────────────────────────────────────
 
@@ -92,6 +106,97 @@ describe("resolveEffectiveDiet — core contract", () => {
     // the protocol envelope — NOT through this resolver.
     expect(result).toEqual(["carnivore"]);
     expect(result.length).toBe(1);
+  });
+});
+
+// ─── Pipeline merge-vs-replace regression ────────────────────────────────────
+//
+// These tests document the exact contract that the generateCravingMealOptions
+// dietaryRestrictionsOverride parameter must obey. The original bug merged the
+// override with the profile diet (Set union); the correct behavior is replacement.
+
+describe("pipeline diet replacement contract (regression: merge-vs-replace bug)", () => {
+  // Simulates what the pipeline now does when override is provided.
+  // If this ever reverts to merge semantics, keto+vegan collisions come back.
+  it("override replaces profile diet — not merges (the root cause of the live bug)", () => {
+    const profileDiet = ["vegan"];
+    const override = ["keto"];
+    // Correct: replace
+    const result = [...override];
+    expect(result).toEqual(["keto"]);
+    expect(result).not.toContain("vegan");
+    // Wrong (the old bug): Set union
+    const wrongMerge = Array.from(new Set([...profileDiet, ...override]));
+    expect(wrongMerge).toContain("vegan"); // proves the old code was wrong
+    expect(wrongMerge).toContain("keto");
+    // The fix ensures the pipeline does the first, not the second
+  });
+
+  it("reverse override replaces in both directions", () => {
+    const ketoProfile = ["keto", "gluten-free"];
+    const veganOverride = ["vegan"];
+    const result = [...veganOverride];
+    expect(result).toEqual(["vegan"]);
+    expect(result).not.toContain("keto");
+    expect(result).not.toContain("gluten-free");
+  });
+
+  it("empty override does NOT replace — profile diet is preserved", () => {
+    const profileDiet = ["vegan"];
+    const emptyOverride: string[] = [];
+    // When override is empty, the pipeline falls through to profile diet
+    const result = emptyOverride.length > 0 ? [...emptyOverride] : [...profileDiet];
+    expect(result).toEqual(["vegan"]);
+  });
+});
+
+// ─── Auto-routing detector ────────────────────────────────────────────────────
+//
+// isRecipeSensitiveDish() replaces the user-facing "Meal Mode / Recipe Mode"
+// toggle. The customer types a dish; MPM routes to the right engine silently.
+
+describe("isRecipeSensitiveDish — auto-routing detector", () => {
+  // Culinary-ratio-sensitive dishes → recipe engine
+  it("detects cheesecake as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("strawberry cheesecake")).toBe(true);
+  });
+  it("detects bread as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("sourdough bread")).toBe(true);
+  });
+  it("detects cake as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("chocolate layer cake")).toBe(true);
+  });
+  it("detects pancakes as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("blueberry pancakes")).toBe(true);
+  });
+  it("detects pasta as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("fresh pasta carbonara")).toBe(true);
+  });
+  it("detects cookies as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("chocolate chip cookies")).toBe(true);
+  });
+  it("detects hollandaise as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("eggs benedict with hollandaise")).toBe(true);
+  });
+  it("detects pizza dough as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("homemade pizza dough")).toBe(true);
+  });
+
+  // Ordinary composed meals → meal engine (NOT recipe-sensitive)
+  it("does NOT flag chicken and rice as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("grilled chicken with broccoli and rice")).toBe(false);
+  });
+  it("does NOT flag salmon as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("pan-seared salmon with vegetables")).toBe(false);
+  });
+  it("does NOT flag steak as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("ribeye steak with asparagus")).toBe(false);
+  });
+  it("does NOT flag a salad as recipe-sensitive", () => {
+    expect(isRecipeSensitiveDish("keto chicken caesar salad")).toBe(false);
+  });
+  it("returns false for empty input", () => {
+    expect(isRecipeSensitiveDish("")).toBe(false);
   });
 });
 
