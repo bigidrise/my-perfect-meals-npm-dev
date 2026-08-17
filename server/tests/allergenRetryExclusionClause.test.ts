@@ -375,6 +375,119 @@ describe("Client toast handler — uses structured allergen and dish names", () 
   });
 });
 
+// ── Suite 6: dish-level hard-block terms caught even with clean ingredients ────
+
+describe("Phase 3 scan — dish-level block terms (paella, gumbo, bisque)", () => {
+  it("flags a meal named 'Paella' even when all listed ingredients are shellfish-free", () => {
+    const meals = [
+      {
+        name: "Paella",
+        ingredients: ["rice", "saffron", "chicken breast", "bell peppers", "olive oil"],
+        instructions: "Cook rice with saffron and chicken in a paella pan.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    // Paella is a dish-level hard-block — must be excluded regardless of ingredients
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("paella"))).toBe(true);
+  });
+
+  it("flags a meal named 'Gumbo' even when all listed ingredients are shellfish-free", () => {
+    const meals = [
+      {
+        name: "Gumbo",
+        ingredients: ["andouille sausage", "okra", "chicken thighs", "onion", "celery"],
+        instructions: "Make a roux, add vegetables and sausage, simmer until thickened.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    // Gumbo is a dish-level hard-block
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("gumbo"))).toBe(true);
+  });
+
+  it("flags a meal named 'Bisque' even when all listed ingredients are shellfish-free", () => {
+    const meals = [
+      {
+        name: "Bisque",
+        ingredients: ["cream", "tomatoes", "celery", "onion", "vegetable broth"],
+        instructions: "Blend tomatoes and cream into a smooth bisque.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    // Bisque is a dish-level hard-block
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("bisque"))).toBe(true);
+  });
+
+  it("includes 'paella' in the retry exclusion clause when the meal name triggered the block", () => {
+    const meals = [
+      {
+        name: "Paella",
+        ingredients: ["rice", "saffron", "chicken breast", "bell peppers"],
+        instructions: "Traditional paella pan preparation.",
+      },
+    ];
+    const { violations } = runPhase3Scan(meals, ["shellfish"]);
+    const clause = buildRetryExclusionClause(violations);
+    expect(clause).toContain("ALLERGEN RETRY");
+    expect(clause).toContain("paella");
+  });
+
+  it("includes 'gumbo' in the retry exclusion clause when the meal name triggered the block", () => {
+    const meals = [
+      {
+        name: "Gumbo",
+        ingredients: ["andouille sausage", "okra", "chicken thighs", "onion"],
+        instructions: "Classic Louisiana gumbo without shellfish.",
+      },
+    ];
+    const { violations } = runPhase3Scan(meals, ["shellfish"]);
+    const clause = buildRetryExclusionClause(violations);
+    expect(clause).toContain("ALLERGEN RETRY");
+    expect(clause).toContain("gumbo");
+  });
+
+  it("passes a clean chicken-and-rice dish that shares no dish-level block names", () => {
+    const meals = [
+      {
+        name: "Saffron Chicken Rice",
+        ingredients: ["rice", "saffron", "chicken breast", "bell peppers", "olive oil"],
+        instructions: "Cook rice with saffron and chicken.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    // Should pass — no shellfish ingredient or dish-level term
+    expect(safe).toHaveLength(1);
+    expect(violations.size).toBe(0);
+  });
+
+  it("keeps a clean alternative while blocking the dish-level-named option", () => {
+    const meals = [
+      {
+        name: "Paella",
+        ingredients: ["rice", "saffron", "chicken", "peas"],
+        instructions: "Cook in paella pan.",
+      },
+      {
+        name: "Lemon Herb Chicken with Rice",
+        ingredients: ["chicken breast", "lemon", "rice", "fresh herbs"],
+        instructions: "Pan-sear chicken, serve over rice.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    expect(safe).toHaveLength(1);
+    expect(safe[0].name).toBe("Lemon Herb Chicken with Rice");
+    expect(violations.size).toBeGreaterThan(0);
+  });
+});
+
 // ── Suite 5: end-to-end scan → clause → response integration ──────────────────
 
 describe("End-to-end: scan → retry clause → 422 response", () => {
