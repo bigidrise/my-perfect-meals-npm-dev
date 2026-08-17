@@ -5408,8 +5408,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // sauce, shellfish broth). Scan each option and exclude any that leaked.
       if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
         try {
-          const { buildForbiddenTermsFromAllergens } = await import("./services/allergyGuardrails");
-          const forbiddenTerms = buildForbiddenTermsFromAllergens(protocolEnvelope.allergies);
+          const { buildForbiddenTermsFromAllergens, getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
+          // Requested-dish exemption: adaptation intentionally keeps the dish's
+          // name ("gumbo", "pad thai"), so the pure dish-name term matching the
+          // user's request is exempt from the scan. Every ingredient/derivative
+          // term remains scanned across name, ingredients, instructions, and
+          // description — see getRequestedDishExemptTerms for the strict rules.
+          const _adaptExemptTerms = new Set(
+            getRequestedDishExemptTerms(rawCravingInput || "", protocolEnvelope.allergies).map(t => t.toLowerCase())
+          );
+          const forbiddenTerms = buildForbiddenTermsFromAllergens(protocolEnvelope.allergies)
+            .filter(t => !_adaptExemptTerms.has(t.toLowerCase()));
           const forbiddenRegexes = forbiddenTerms.map(
             t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
           );

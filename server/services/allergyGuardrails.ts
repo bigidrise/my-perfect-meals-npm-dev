@@ -1254,6 +1254,35 @@ export function classifyAllergyConflict(
 }
 
 /**
+ * ADAPTABLE DISH-NAME TERMS
+ * Terms in ALLERGEN_EXPANSION that are pure dish names — cultural dish labels
+ * whose word carries no allergen ingredient by itself. They exist so the
+ * PRE-generation check can flag "gumbo" / "pad thai" requests and show the
+ * AllergyConflictModal. But in ALLERGEN_ADAPT mode the user has explicitly
+ * asked for a safe version of that dish, and identity preservation requires
+ * keeping the name — so the POST-adaptation scan must not condemn a
+ * shellfish-free gumbo just for being called "gumbo".
+ *
+ * STRICT INCLUSION RULES — a term may ONLY be listed here if:
+ *   1. It does not embed an allergen ingredient word (so "shrimp scampi",
+ *      "clam chowder", "peanut noodles", "african peanut soup", "peanut stew"
+ *      are excluded — their ingredient word still matches independently, and
+ *      an adapted dish must be renamed to drop the allergen word).
+ *   2. It is not itself an allergen-bearing preparation or a foreign-language
+ *      ingredient word (so "frangipane" [almond filling], "amaretti" [almond
+ *      cookies], "marzipan", "gambas" [prawns], "scampi" [langoustines],
+ *      "surimi" [fish paste] are excluded).
+ */
+export const ADAPTABLE_DISH_NAME_TERMS = new Set<string>([
+  // shellfish dishes
+  "paella", "cioppino", "bouillabaisse", "gumbo", "jambalaya", "bisque",
+  "ceviche", "fra diavolo", "tom yum", "laksa",
+  // peanut dishes
+  "satay", "pad thai", "kung pao", "kung pao chicken", "gado gado",
+  "dan dan noodles", "massaman curry", "indonesian satay",
+]);
+
+/**
  * Expand a list of allergen category names into the full set of forbidden terms.
  * Used by the post-adaptation allergen scan to verify the generated output is safe.
  */
@@ -1269,6 +1298,31 @@ export function buildForbiddenTermsFromAllergens(allergens: string[]): string[] 
     }
   }
   return Array.from(new Set(terms));
+}
+
+/**
+ * Compute the forbidden terms exempt from the ALLERGEN_ADAPT post-scan for a
+ * specific request. A term is exempt ONLY when BOTH hold:
+ *   1. It is a pure dish-name label (ADAPTABLE_DISH_NAME_TERMS) — never an
+ *      ingredient, derivative, or allergen-bearing preparation; AND
+ *   2. It appears (word-bounded) in the dish the user actually requested.
+ *
+ * This means requesting "gumbo" exempts only the word "gumbo"; every
+ * ingredient/derivative term (shrimp, crab, shellfish stock, ...) is still
+ * scanned across the meal name, ingredients, instructions, and description.
+ * A request for "shrimp gumbo" exempts only "gumbo" — "shrimp" can never be
+ * exempted because it is not a dish-name term.
+ */
+export function getRequestedDishExemptTerms(
+  requestedDish: string,
+  allergens: string[],
+): string[] {
+  const dish = (requestedDish || "").toLowerCase().trim();
+  if (!dish) return [];
+  return buildForbiddenTermsFromAllergens(allergens).filter((term) => {
+    if (!ADAPTABLE_DISH_NAME_TERMS.has(term.toLowerCase())) return false;
+    return new RegExp(`\\b${escapeRegex(term)}\\b`, "i").test(dish);
+  });
 }
 
 /**
