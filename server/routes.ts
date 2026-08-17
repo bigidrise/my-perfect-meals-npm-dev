@@ -4224,7 +4224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           blockedCategories: safetyCheck.blockedCategories,
           ambiguousTerms: safetyCheck.ambiguousTerms,
           message: safetyCheck.message,
-          suggestion: safetyCheck.suggestion
+          suggestion: safetyCheck.suggestion,
+          allergyConflict: safetyCheck.allergyConflict ?? null,
         });
       }
       
@@ -4248,7 +4249,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           blockedCategories: safetyCheck.blockedCategories,
           ambiguousTerms: safetyCheck.ambiguousTerms,
           message: safetyCheck.message,
-          suggestion: safetyCheck.suggestion
+          suggestion: safetyCheck.suggestion,
+          allergyConflict: safetyCheck.allergyConflict ?? null,
         });
       }
       
@@ -5076,7 +5078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Allergen-specific only — one authorized ingredient's enforcement is suspended per request.
       // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
       let _overriddenAllergens: string[] = [];
-      if (userId && cravingInput) {
+      if (userId && cravingInput && safetyMode !== "ALLERGEN_ADAPT") {
         const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
@@ -5089,7 +5091,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: safetyCheck.message,
             safetyBlocked: true,
             blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
+            suggestion: safetyCheck.suggestion,
+            allergyConflict: safetyCheck.allergyConflict ?? null,
           });
         }
         if (safetyCheck.result === "AMBIGUOUS") {
@@ -5109,6 +5112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           _overriddenAllergens = [safetyCheck.overriddenAllergen];
           console.log(`[AllergyOverride] Request-scoped override active — allergen: ${safetyCheck.overriddenAllergen}, user: ${userId}, correlationId: ${safetyCheck.correlationId}`);
         }
+      } else if (safetyMode === "ALLERGEN_ADAPT") {
+        console.log(`[AllergenAdapt] Allergen pre-check skipped for user ${userId} — DAL adaptation mode active`);
       }
 
       // Validate servings (1-10)
@@ -5376,6 +5381,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let scannedOptions = cleanOptions;
+
+      // ── Phase 3: Post-adaptation allergen scan (ALLERGEN_ADAPT mode only) ────
+      // When the user chose "Make it safe for me", the DAL adapted the dish but
+      // the LLM may still include hidden allergen derivatives (shrimp paste, fish
+      // sauce, shellfish broth). Scan each option and exclude any that leaked.
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { buildForbiddenTermsFromAllergens } = await import("./services/allergyGuardrails");
+          const forbiddenTerms = buildForbiddenTermsFromAllergens(protocolEnvelope.allergies);
+          const forbiddenRegexes = forbiddenTerms.map(
+            t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+          );
+          const safeAdaptedOptions = scannedOptions.filter(meal => {
+            const mealText = [
+              meal.name || '',
+              (meal.ingredients || []).map((i: any) => typeof i === 'string' ? i : (i?.name || '')).join(' '),
+              meal.instructions || '',
+              meal.description || '',
+            ].join(' ');
+            const violations = forbiddenTerms.filter((_, idx) => forbiddenRegexes[idx].test(mealText));
+            if (violations.length > 0) {
+              console.warn(`⚠️ [ALLERGEN-ADAPT SCAN] "${meal.name}" has hidden allergen traces: ${violations.slice(0, 3).join(', ')} — excluded`);
+              return false;
+            }
+            return true;
+          });
+          if (safeAdaptedOptions.length === 0 && scannedOptions.length > 0) {
+            console.error(`❌ [ALLERGEN-ADAPT SCAN] All adapted options contain allergen traces — returning error`);
+            return res.status(422).json({
+              status: "unable_to_generate",
+              reasonCode: "allergen_adapt_failed",
+              message: `We couldn't create a fully safe version — allergen traces were found in all generated options. This dish may be too closely tied to your allergen. Try a different dish, or use your Safety PIN to make the original.`,
+              suggestedActions: [
+                "Try a dish that can be adapted more easily (e.g., replace shellfish with chicken or sausage)",
+                "Use your Safety PIN to make the original and consume at your own risk",
+              ],
+            });
+          }
+          if (safeAdaptedOptions.length < scannedOptions.length) {
+            console.log(`[ALLERGEN-ADAPT SCAN] Filtered ${scannedOptions.length - safeAdaptedOptions.length} unsafe option(s) — serving ${safeAdaptedOptions.length} safe adapted option(s)`);
+            scannedOptions = safeAdaptedOptions;
+          }
+        } catch (scanErr) {
+          console.error('[ALLERGEN-ADAPT SCAN] Scan error (non-fatal):', scanErr);
+        }
+      }
 
       // Creator System 2-pass transformation — applied AFTER all safety/protocol filters.
       // If kitchenSlug is provided, the kitchen config takes priority over the user's own active system.

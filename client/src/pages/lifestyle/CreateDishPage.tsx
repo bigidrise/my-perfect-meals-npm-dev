@@ -48,6 +48,8 @@ import {
 } from "@/components/DietGuardIntercept";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import type { AllergyConflictPayload } from "@/hooks/useSafetyGuardPrecheck";
+import { AllergyConflictModal } from "@/components/AllergyConflictModal";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -293,8 +295,13 @@ export default function CreateDishPage() {
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    allergyConflictPayload,
+    restoreBlockedAlert,
   } = useSafetyGuardPrecheck();
   const [safetyEnabled, setSafetyEnabled] = useState(true);
+  // Allergen conflict modal state — set when safety preflight returns conflict_adaptable/collapse
+  const [allergyConflict, setAllergyConflict] = useState<AllergyConflictPayload | null>(null);
+  const allergenSafeModeRef = useRef(false);
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
@@ -506,6 +513,12 @@ export default function CreateDishPage() {
     if (!skipPreflight && !hasActiveOverride) {
       const isSafe = await checkSafety(prompt, "create-dish");
       if (!isSafe) {
+        // When the block carries an allergyConflict, show AllergyConflictModal
+        // instead of SafetyGuardBanner so the user can choose their path.
+        if (allergyConflictPayload.current) {
+          setAllergyConflict(allergyConflictPayload.current);
+          allergyConflictPayload.current = null;
+        }
         return;
       }
     }
@@ -547,7 +560,7 @@ export default function CreateDishPage() {
           strictMode: keepItSimple,
           dietAdaptOverride,
           userDietOverride,
-          safetyMode: safetyEnabled ? "STRICT" : "DISABLED",
+          safetyMode: allergenSafeModeRef.current ? "ALLERGEN_ADAPT" : (safetyEnabled ? "STRICT" : "DISABLED"),
           ...(overrideToken ? { overrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
@@ -629,6 +642,7 @@ export default function CreateDishPage() {
       }
     } finally {
       setIsGenerating(false);
+      allergenSafeModeRef.current = false;
     }
   };
 
@@ -1551,6 +1565,26 @@ export default function CreateDishPage() {
           />
         )}
       </motion.div>
+
+      {/* Allergy Conflict Modal — shown instead of SafetyGuardBanner when an
+          adaptable allergyConflict is detected. Offers three paths:
+          "Make it safe for me" (DAL adapt, no PIN), "Make the original" (PIN),
+          and "Cancel". */}
+      <AllergyConflictModal
+        conflict={allergyConflict}
+        onMakeSafe={() => {
+          setAllergyConflict(null);
+          allergenSafeModeRef.current = true;
+          handleGenerateDish(true /* skipPreflight */);
+        }}
+        onMakeOriginal={() => {
+          setAllergyConflict(null);
+          restoreBlockedAlert(); // restores SafetyGuardBanner with PIN button
+        }}
+        onCancel={() => {
+          setAllergyConflict(null);
+        }}
+      />
     </PhaseGate>
   );
 }

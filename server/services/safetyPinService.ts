@@ -100,7 +100,7 @@ export function _resetTokenStoreForTesting(): void {
   for (const k of Object.keys(activeAllergyEditTokens)) delete activeAllergyEditTokens[k];
 }
 
-export type SafetyMode = "STRICT" | "CUSTOM" | "CUSTOM_AUTHENTICATED";
+export type SafetyMode = "STRICT" | "CUSTOM" | "CUSTOM_AUTHENTICATED" | "ALLERGEN_ADAPT";
 
 export interface PinSetResult {
   success: boolean;

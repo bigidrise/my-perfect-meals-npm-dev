@@ -1180,6 +1180,97 @@ export function getSafeSubstitute(blockedIngredient: string): string {
   return substitutes[key] || "a suitable alternative";
 }
 
+// ── Allergy Conflict Classification ──────────────────────────────────────────
+/**
+ * Dish names where the allergen is traditional but incidental — the dish can
+ * exist without it, and adaptation preserves dish identity.
+ * A shellfish-free gumbo is still gumbo. A nut-free kung pao is still kung pao.
+ */
+export const ALLERGEN_DISH_EXPANSIONS = new Set<string>([
+  // shellfish dishes — allergen traditional but not defining
+  "paella", "cioppino", "bouillabaisse", "gumbo", "jambalaya", "fra diavolo",
+  "frutti di mare", "gambas", "laksa", "bisque", "tom yum", "seafood boil",
+  // peanut dishes — can be safely swapped
+  "satay", "kung pao", "kung pao chicken", "gado gado", "massaman curry",
+  "dan dan noodles", "african peanut soup", "peanut stew", "indonesian satay",
+  // dairy dishes — plant subs preserve the dish
+  "alfredo", "bechamel", "cream sauce",
+]);
+
+/**
+ * Dish names where the allergen IS the defining ingredient.
+ * Removing it changes what the dish fundamentally is.
+ */
+export const IDENTITY_COLLAPSE_DISH_TERMS = new Set<string>([
+  // shellfish — allergen is the entire dish
+  "shrimp cocktail", "crab cake", "crab cakes", "lobster roll", "clam chowder",
+  "oysters rockefeller", "shrimp scampi", "scampi", "coconut shrimp",
+  "popcorn shrimp", "tempura shrimp", "shrimp tempura",
+  "shrimp fried rice", "pad thai with shrimp",
+  // eggs — allergen IS the dish
+  "deviled eggs", "egg salad", "eggs benedict",
+]);
+
+export type AllergyConflictType = "conflict_adaptable" | "conflict_identity_collapse";
+
+export interface AllergyConflict {
+  type: AllergyConflictType;
+  /** Human-readable allergen category names e.g. ["shellfish"] */
+  allergens: string[];
+  /** Exact terms that triggered the block e.g. ["gumbo"] */
+  matchedTerms: string[];
+  /** The user's original request text */
+  dishName: string;
+}
+
+/**
+ * Given a blocked request, classify whether the conflict is adaptable
+ * (safe version can be made while preserving dish identity) or identity-collapse
+ * (the allergen IS the dish — removing it changes what was requested).
+ *
+ * Defaults to conflict_adaptable when uncertain — the post-adaptation allergen
+ * scan is the safety net that catches any failure to adapt completely.
+ */
+export function classifyAllergyConflict(
+  requestText: string,
+  violations: string[],
+  allergenCategories: string[],
+): AllergyConflict | null {
+  if (violations.length === 0) return null;
+
+  const violationsLower = violations.map((v) => v.toLowerCase());
+
+  // Identity collapse: the allergen IS the dish identity
+  const isIdentityCollapse = violationsLower.some((v) =>
+    IDENTITY_COLLAPSE_DISH_TERMS.has(v),
+  );
+
+  return {
+    type: isIdentityCollapse ? "conflict_identity_collapse" : "conflict_adaptable",
+    allergens: allergenCategories,
+    matchedTerms: violations,
+    dishName: requestText.trim(),
+  };
+}
+
+/**
+ * Expand a list of allergen category names into the full set of forbidden terms.
+ * Used by the post-adaptation allergen scan to verify the generated output is safe.
+ */
+export function buildForbiddenTermsFromAllergens(allergens: string[]): string[] {
+  const terms: string[] = [];
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key];
+    if (expanded) {
+      terms.push(...expanded);
+    } else {
+      terms.push(allergen);
+    }
+  }
+  return Array.from(new Set(terms));
+}
+
 /**
  * Log safety enforcement for auditing
  */
