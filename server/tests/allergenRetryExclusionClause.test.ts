@@ -461,6 +461,66 @@ describe("Phase 3 scan — dish-level block terms (paella, gumbo, bisque)", () =
     expect(safe[0].name).toBe("Lemon Herb Chicken with Rice");
     expect(violations.size).toBeGreaterThan(0);
   });
+
+  it("flags a meal named 'Cioppino' even when all listed ingredients are shellfish-free", () => {
+    const meals = [
+      {
+        name: "Cioppino",
+        ingredients: ["tomatoes", "white wine", "garlic", "fennel", "fish stock", "olive oil"],
+        instructions: "Simmer tomatoes, white wine, and fennel in fish stock to make cioppino broth.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    // Cioppino is a dish-level hard-block — must be excluded regardless of ingredients
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("cioppino"))).toBe(true);
+  });
+
+  it("flags a meal named 'Jambalaya' even when all listed ingredients are shellfish-free", () => {
+    const meals = [
+      {
+        name: "Jambalaya",
+        ingredients: ["andouille sausage", "chicken thighs", "long grain rice", "onion", "celery", "bell pepper"],
+        instructions: "Cook jambalaya with sausage, chicken, and rice — no shellfish.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    // Jambalaya is a dish-level hard-block
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("jambalaya"))).toBe(true);
+  });
+
+  it("includes 'cioppino' in the retry exclusion clause when the meal name triggered the block", () => {
+    const meals = [
+      {
+        name: "Cioppino",
+        ingredients: ["tomatoes", "white wine", "garlic", "fennel", "olive oil"],
+        instructions: "A classic San Francisco seafood stew.",
+      },
+    ];
+    const { violations } = runPhase3Scan(meals, ["shellfish"]);
+    const clause = buildRetryExclusionClause(violations);
+    expect(clause).toContain("ALLERGEN RETRY");
+    expect(clause).toContain("cioppino");
+  });
+
+  it("includes 'jambalaya' in the retry exclusion clause when the meal name triggered the block", () => {
+    const meals = [
+      {
+        name: "Jambalaya",
+        ingredients: ["andouille sausage", "chicken thighs", "long grain rice", "onion"],
+        instructions: "Classic Louisiana jambalaya without seafood.",
+      },
+    ];
+    const { violations } = runPhase3Scan(meals, ["shellfish"]);
+    const clause = buildRetryExclusionClause(violations);
+    expect(clause).toContain("ALLERGEN RETRY");
+    expect(clause).toContain("jambalaya");
+  });
 });
 
 // ── Suite 5-A: violations buried in instructions or description only ───────────
