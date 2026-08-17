@@ -2245,15 +2245,34 @@ export function scanGeneratedOutput(
   }
 
   // ── Allergen override filter — suppress violations for explicitly authorized allergens only.
-  // All other allergies, dietary restrictions, medical rules, and protocol constraints remain active.
+  // Detection uses ALLERGEN_EXPANSION; override suppression must use the same expansion so that
+  // authorizing "shellfish" covers shrimp, crab, lobster, gumbo, etc. — every term the scanner
+  // uses to detect shellfish. Unrelated allergens (peanuts, dairy) are never affected.
+  // This symmetry was missing April 15 – August 15 2026, causing valid PIN overrides to be
+  // accepted but still produce no meal (the downstream filter used category-name substring
+  // matching, which never matched specific species or dish-block terms).
   let ingredientViolations = context?.overriddenAllergens?.length
-    ? rawIngredientViolations.filter(v => {
-        const termLower = v.term.toLowerCase();
-        return !context.overriddenAllergens!.some(oa => {
-          const oaLower = oa.toLowerCase();
-          return termLower.includes(oaLower) || oaLower.includes(termLower);
+    ? (() => {
+        // Expand each authorized allergen category through ALLERGEN_EXPANSION — the same
+        // table the scanner uses for detection — so the suppression covers exactly the
+        // terms that would have triggered a violation.
+        const suppressSet = new Set<string>();
+        for (const oa of overriddenLower) {
+          suppressSet.add(oa);
+          const expanded = ALLERGEN_EXPANSION[oa];
+          if (expanded) {
+            expanded.forEach(t => suppressSet.add(t.toLowerCase()));
+          }
+        }
+        return rawIngredientViolations.filter(v => {
+          const termLower = v.term.toLowerCase();
+          // Suppress if the term is in the authorized expansion, or is a compound
+          // phrase containing an authorized term (e.g. "shellfish stock" ⊇ "shellfish").
+          return !Array.from(suppressSet).some(
+            st => termLower === st || termLower.includes(st) || st.includes(termLower)
+          );
         });
-      })
+      })()
     : rawIngredientViolations;
 
   // ── ALLERGEN_ADAPT dish-name exemption ────────────────────────────────────
