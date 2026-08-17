@@ -544,9 +544,20 @@ export default function DessertCreator() {
           className="max-w-2xl mx-auto px-4 pb-32"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/craving-creator-landing")}
+              aria-label="Back to Craving Creator Hub"
+              className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Craving Creator Hub</span>
+            </button>
+          )}
           {!isDesktop && (
             <button
               onClick={() => setLocation("/craving-creator-landing")}
+              aria-label="Back to Craving Creator Hub"
               className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
