@@ -20,41 +20,16 @@
  * Run: npx jest server/tests/allergenRetryExclusionClause.test.ts --runInBand
  */
 
-import { buildForbiddenTermsFromAllergens } from "../services/allergyGuardrails";
+import { buildForbiddenTermsFromAllergens, scanMealsForAllergenViolations } from "../services/allergyGuardrails";
 
-// ── Helpers extracted verbatim from the Phase 3 block in routes.ts ─────────────
-
-/**
- * Mirrors the scan logic in routes.ts Phase 3 block.
- * Returns { safe: meal[], violations: Set<string> }
- */
+// ── Thin wrapper so existing test suites keep their { safe, violations } API ───
+// This delegates entirely to the real exported function — no reimplementation.
 function runPhase3Scan(
   meals: Array<{ name: string; ingredients: string[]; instructions?: string; description?: string }>,
   allergens: string[],
 ): { safe: typeof meals; violations: Set<string> } {
-  const forbiddenTerms = buildForbiddenTermsFromAllergens(allergens);
-  const forbiddenRegexes = forbiddenTerms.map(
-    t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
-  );
-  const violations = new Set<string>();
-
-  const safe = meals.filter(meal => {
-    const mealText = [
-      meal.name || "",
-      meal.ingredients.join(" "),
-      meal.instructions || "",
-      meal.description || "",
-    ].join(" ");
-
-    const hit = forbiddenTerms.filter((_, idx) => forbiddenRegexes[idx].test(mealText));
-    if (hit.length > 0) {
-      hit.forEach(v => violations.add(v));
-      return false;
-    }
-    return true;
-  });
-
-  return { safe, violations };
+  const result = scanMealsForAllergenViolations(meals, allergens);
+  return { safe: result.safe, violations: result.violations };
 }
 
 /**
@@ -488,6 +463,87 @@ describe("Phase 3 scan — dish-level block terms (paella, gumbo, bisque)", () =
   });
 });
 
+// ── Suite 5-A: violations buried in instructions or description only ───────────
+
+describe("Phase 3 allergen scan — violations in instructions or description (not ingredients)", () => {
+  it("flags a meal whose ingredient list is clean but whose instructions contain a forbidden term", () => {
+    // Ingredients contain no shellfish terms — the leak is only in the cooking step.
+    const meals = [
+      {
+        name: "Pan-Seared Chicken",
+        ingredients: ["chicken breast", "butter", "garlic", "parsley"],
+        instructions: "Deglaze with shellfish stock and reduce until the sauce coats a spoon.",
+        description: "",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("shellfish"))).toBe(true);
+  });
+
+  it("flags a meal whose ingredient list is clean but whose description contains a hidden allergen derivative", () => {
+    // Ingredients are shellfish-free; the allergen mention is only in the description.
+    const meals = [
+      {
+        name: "Banh Mi Sandwich",
+        ingredients: ["baguette", "pork belly", "daikon", "carrots", "jalapeño", "cilantro"],
+        instructions: "Assemble sandwich with pickled vegetables and seasoned pork.",
+        description: "Traditionally made with shrimp paste mixed into the pork marinade for umami depth.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    expect(safe).toHaveLength(0);
+    expect(violations.size).toBeGreaterThan(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("shrimp"))).toBe(true);
+  });
+
+  it("passes a meal that is clean in all four fields", () => {
+    const meals = [
+      {
+        name: "Grilled Chicken",
+        ingredients: ["chicken breast", "olive oil", "lemon", "rosemary"],
+        instructions: "Grill chicken over medium heat until internal temperature reaches 165°F.",
+        description: "A simple herb-marinated grilled chicken with lemon and rosemary.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    expect(safe).toHaveLength(1);
+    expect(violations.size).toBe(0);
+  });
+
+  it("flags when instructions-only violation is present while description and ingredients are clean", () => {
+    const meals = [
+      {
+        name: "Risotto",
+        ingredients: ["arborio rice", "white wine", "parmesan", "butter", "onion"],
+        instructions: "Finish the risotto with a ladleful of prawn bisque for richness.",
+        description: "Classic northern Italian risotto.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    expect(safe).toHaveLength(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("prawn") || v.toLowerCase().includes("shrimp"))).toBe(true);
+  });
+
+  it("flags when description-only violation is present while instructions and ingredients are clean", () => {
+    const meals = [
+      {
+        name: "Corn Chowder",
+        ingredients: ["corn", "potato", "cream", "celery", "onion", "butter"],
+        instructions: "Simmer vegetables in cream until tender, then blend half the soup.",
+        description: "A creamy corn chowder — the original recipe uses lobster broth, but this version keeps ingredients plant-based.",
+      },
+    ];
+    const { safe, violations } = runPhase3Scan(meals, ["shellfish"]);
+    expect(safe).toHaveLength(0);
+    const violationArray = Array.from(violations);
+    expect(violationArray.some(v => v.toLowerCase().includes("lobster"))).toBe(true);
+  });
+});
 // ── Suite 5: end-to-end scan → clause → response integration ──────────────────
 
 describe("End-to-end: scan → retry clause → 422 response", () => {

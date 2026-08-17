@@ -5417,28 +5417,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const _adaptExemptTerms = new Set(
             getRequestedDishExemptTerms(rawCravingInput || "", protocolEnvelope.allergies).map(t => t.toLowerCase())
           );
+          // First-pass scan — delegates to the canonical exported function so tests
+          // cover exactly this code path (no reimplementation in test files).
+          const firstPassResult = scanMealsForAllergenViolations(scannedOptions, protocolEnvelope.allergies, _adaptExemptTerms);
+          const safeAdaptedOptions = firstPassResult.safe;
+          const _allDetectedViolations = firstPassResult.violations;
+          firstPassResult.unsafe.forEach(meal => {
+            const sample = Array.from(_allDetectedViolations).slice(0, 3).join(', ');
+            console.warn(`⚠️ [ALLERGEN-ADAPT SCAN] "${meal.name}" has hidden allergen traces: ${sample} — excluded`);
+          });
+          // Re-derive forbiddenTerms (with exemptions applied) for the retry scan below.
           const forbiddenTerms = buildForbiddenTermsFromAllergens(protocolEnvelope.allergies)
             .filter(t => !_adaptExemptTerms.has(t.toLowerCase()));
           const forbiddenRegexes = forbiddenTerms.map(
             t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
           );
-          // Collect all detected violations while filtering — needed for the targeted retry.
-          const _allDetectedViolations = new Set<string>();
-          const safeAdaptedOptions = scannedOptions.filter(meal => {
-            const mealText = [
-              meal.name || '',
-              (meal.ingredients || []).map((i: any) => typeof i === 'string' ? i : (i?.name || '')).join(' '),
-              meal.instructions || '',
-              meal.description || '',
-            ].join(' ');
-            const violations = forbiddenTerms.filter((_, idx) => forbiddenRegexes[idx].test(mealText));
-            if (violations.length > 0) {
-              violations.forEach(v => _allDetectedViolations.add(v));
-              console.warn(`⚠️ [ALLERGEN-ADAPT SCAN] "${meal.name}" has hidden allergen traces: ${violations.slice(0, 3).join(', ')} — excluded`);
-              return false;
-            }
-            return true;
-          });
 
           if (safeAdaptedOptions.length === 0 && scannedOptions.length > 0) {
             // ── Intelligent retry: use the specific detected violation terms as explicit

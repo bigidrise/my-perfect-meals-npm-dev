@@ -1893,3 +1893,79 @@ export function scanForHiddenDietaryViolations(
 
   return violations;
 }
+
+export interface AllergenScanMeal {
+  name?: string;
+  ingredients?: Array<string | { name?: string }>;
+  /** Accepts a string or an array of instruction steps — both are scanned. */
+  instructions?: string | string[];
+  description?: string;
+}
+
+export interface AllergenScanResult<T extends AllergenScanMeal> {
+  /** Meals that passed — no forbidden terms found in any field. */
+  safe: T[];
+  /** Meals that failed — at least one forbidden term was found. */
+  unsafe: T[];
+  /** Every forbidden term that was matched across all failing meals. */
+  violations: Set<string>;
+}
+
+/**
+ * Post-generation allergen scan used by the Phase 3 ALLERGEN_ADAPT block in routes.ts.
+ *
+ * Concatenates name + ingredients + instructions + description into a single text
+ * per meal and checks for any term from buildForbiddenTermsFromAllergens(). Meals
+ * that match are excluded and their matched terms are collected for the retry clause.
+ *
+ * Pass `exemptTerms` to skip specific terms that should not trigger a block — for
+ * example, the bare dish-name word that the adaptation intentionally keeps in the
+ * meal title (handled by getRequestedDishExemptTerms in routes.ts).
+ *
+ * This is the canonical implementation — routes.ts delegates here so tests can
+ * cover the exact same logic path without duplicating it.
+ */
+export function scanMealsForAllergenViolations<T extends AllergenScanMeal>(
+  meals: T[],
+  allergens: string[],
+  exemptTerms?: Set<string>,
+): AllergenScanResult<T> {
+  const allForbiddenTerms = buildForbiddenTermsFromAllergens(allergens);
+  const forbiddenTerms = exemptTerms
+    ? allForbiddenTerms.filter(t => !exemptTerms.has(t.toLowerCase()))
+    : allForbiddenTerms;
+  const forbiddenRegexes = forbiddenTerms.map(
+    t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+  );
+
+  const violations = new Set<string>();
+  const safe: T[] = [];
+  const unsafe: T[] = [];
+
+  for (const meal of meals) {
+    const ingredientText = (meal.ingredients || [])
+      .map(i => (typeof i === "string" ? i : (i?.name || "")))
+      .join(" ");
+
+    const instructionsText = Array.isArray(meal.instructions)
+      ? meal.instructions.join(" ")
+      : (meal.instructions || "");
+
+    const mealText = [
+      meal.name || "",
+      ingredientText,
+      instructionsText,
+      meal.description || "",
+    ].join(" ");
+
+    const hits = forbiddenTerms.filter((_, idx) => forbiddenRegexes[idx].test(mealText));
+    if (hits.length > 0) {
+      hits.forEach(v => violations.add(v));
+      unsafe.push(meal);
+    } else {
+      safe.push(meal);
+    }
+  }
+
+  return { safe, unsafe, violations };
+}
