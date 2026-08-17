@@ -242,166 +242,133 @@ fi
 
 # ──────────────────────────────────────────────────
 header "Step 6 of 6: Server Startup Verification"
-echo "  Starting server in background to verify clean boot..."
+echo "  Starting an isolated test server (separate port) to verify clean boot..."
+echo "  The existing dev server on port 5000 is never touched."
 echo ""
 
 # When running as a git pre-push hook (GIT_DIR is set by git), skip the boot
-# test. Killing the dev server from inside a git hook disconnects the Replit
-# shell session mid-push. Steps 1-3 already gate code quality; the boot test
-# is redundant here because it passed in the most recent standalone validate run.
-# When running as a git pre-push hook (GIT_DIR is set by git), skip the boot
-# test entirely. Killing the dev server from inside a git hook disconnects the
-# Replit shell session mid-push. Steps 1–3 already gate code quality; the boot
-# test is redundant here because it passed in the most recent standalone run.
+# test. Steps 1–5 already gate code quality; the boot test is redundant here
+# because it passed in the most recent standalone validate run.
 if [ -n "$GIT_DIR" ]; then
   echo -e "${CYAN}  ℹ️  Running as git hook — boot test skipped to preserve session stability.${NC}"
   echo -e "${CYAN}     Run 'npm run validate' standalone to include the full boot test.${NC}"
   echo ""
 else
 
-# Detect port 5000 occupancy before starting the test server.
-# - If it's our own MPM dev server (tsx server/index.ts): stop it temporarily,
-#   run the boot test, then restart it automatically.
-# - If it's something else: skip Step 4 with a warning (not a hard fail).
-PORT_PID=$(lsof -ti:5000 2>/dev/null | head -1 || true)
-DEV_SERVER_RESTARTED=false
+# ── Snapshot the pre-existing dev server state ─────────────────────────────
+# We record the PID now. After the test, we confirm it's still alive.
+# This is the regression check: validation must never kill the workspace server.
+PRE_VALIDATE_DEV_PID=$(lsof -ti:5000 2>/dev/null | head -1 || true)
 
-if [ -n "$PORT_PID" ]; then
-  PORT_CMD=$(ps -p "$PORT_PID" -o args= 2>/dev/null || true)
-  if echo "$PORT_CMD" | grep -q "server/index.ts"; then
-    echo -e "${YELLOW}  MPM dev server detected on port 5000 (PID $PORT_PID) — pausing it for test...${NC}"
-    # Check for active (ESTABLISHED) connections before killing.
-    # This warns the developer that in-flight requests may be interrupted,
-    # which is why the shutdown could be slow or produce connection errors.
-    ACTIVE_CONNS=$(ss -tn state established '( dport = :5000 or sport = :5000 )' 2>/dev/null | tail -n +2 | wc -l | tr -d ' ')
-    if [ "${ACTIVE_CONNS:-0}" -gt 0 ] 2>/dev/null; then
-      SHUTDOWN_ACTIVE_CONNS=$ACTIVE_CONNS
-      echo -e "${YELLOW}  ⚠️  Warning: ${ACTIVE_CONNS} active connection(s) detected on port 5000.${NC}"
-      echo -e "${YELLOW}     The server is currently handling requests. Shutdown may be slow${NC}"
-      echo -e "${YELLOW}     and any in-flight requests will be interrupted.${NC}"
-    fi
-    kill "$PORT_PID" 2>/dev/null || true
-    # Poll up to 10s for the port to free after SIGTERM
-    PORT_FREED=false
-    for _i in 1 2 3 4 5 6 7 8 9 10; do
-      sleep 1
-      if ! lsof -ti:5000 >/dev/null 2>&1; then
-        PORT_FREED=true
+# ── Find a free port for the isolated test server ──────────────────────────
+# Scans 5090–5190 for a port not currently in use. Falls back to 5099.
+VALIDATE_PORT=$(python3 -c "
+import socket
+for p in range(5090, 5190):
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(('', p))
+        s.close()
+        print(p)
         break
-      fi
-    done
-    # If port is still bound, escalate to SIGKILL
-    if [ "$PORT_FREED" = false ]; then
-      REMAINING_PID=$(lsof -ti:5000 2>/dev/null | head -1 || true)
-      if [ -n "$REMAINING_PID" ]; then
-        echo -e "${YELLOW}  Port 5000 still occupied after 10s — sending SIGKILL to PID $REMAINING_PID...${NC}"
-        kill -9 "$REMAINING_PID" 2>/dev/null || true
-        sleep 1
-        if lsof -ti:5000 >/dev/null 2>&1; then
-          warn "Port 5000 could not be freed even after SIGKILL — skipping boot test"
-          PORT_FREED=false
-        else
-          echo -e "${YELLOW}  Process forcefully killed. Port 5000 is now free.${NC}"
-          PORT_FREED=true
-        fi
-      fi
-    fi
-    if [ "$PORT_FREED" = true ]; then
-      DEV_SERVER_RESTARTED=true
-    fi
-  else
-    warn "Port 5000 is occupied by a non-MPM process (PID $PORT_PID: ${PORT_CMD:0:80}) — skipping boot test"
-    echo -e "${YELLOW}  Stop that process and re-run validate to include the boot test.${NC}"
+    except OSError:
+        pass
+" 2>/dev/null || echo "5099")
+
+echo -e "  Using isolated test port: ${CYAN}${VALIDATE_PORT}${NC}"
+echo ""
+
+TMPLOG=$(mktemp /tmp/mpm-validate-XXXXXX.log)
+PORT=$VALIDATE_PORT NODE_ENV=development tsx server/index.ts >"$TMPLOG" 2>&1 &
+SERVER_PID=$!
+
+# Poll /api/health on VALIDATE_PORT for up to 25 seconds
+MAX_WAIT=25
+ELAPSED=0
+STARTED=false
+
+while [ $ELAPSED -lt $MAX_WAIT ]; do
+  if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+    fail "Server process crashed during startup"
     echo ""
-  fi
-fi
-
-if [ -z "$PORT_PID" ] || [ "$DEV_SERVER_RESTARTED" = true ]; then
-  TMPLOG=$(mktemp /tmp/mpm-validate-XXXXXX.log)
-  NODE_ENV=development tsx server/index.ts >"$TMPLOG" 2>&1 &
-  SERVER_PID=$!
-
-  # Poll /api/health for up to 20 seconds
-  MAX_WAIT=20
-  ELAPSED=0
-  STARTED=false
-
-  while [ $ELAPSED -lt $MAX_WAIT ]; do
-    if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-      fail "Server process crashed during startup"
-      echo ""
-      echo -e "${RED}  Server output (last 25 lines):${NC}"
-      tail -25 "$TMPLOG" | sed 's/^/    /'
-      echo ""
-      rm -f "$TMPLOG"
-      SERVER_PID=""
-      break
-    fi
-
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
-      http://localhost:5000/api/health 2>/dev/null || echo "000")
-
-    if [ "$HTTP_STATUS" = "200" ]; then
-      STARTED=true
-      break
-    fi
-
-    sleep 1
-    ELAPSED=$((ELAPSED + 1))
-  done
-
-  if [ "$STARTED" = true ]; then
-    # Hard fail on critical crash patterns — these indicate a broken startup
-    if grep -qiE "uncaughtException|UnhandledPromiseRejection|FATAL|Cannot find module|MODULE_NOT_FOUND|SyntaxError:" "$TMPLOG" 2>/dev/null; then
-      fail "Server started but startup log contains critical error patterns:"
-      grep -iE "uncaughtException|UnhandledPromiseRejection|FATAL|Cannot find module|MODULE_NOT_FOUND|SyntaxError:" \
-        "$TMPLOG" | head -8 | sed 's/^/    /'
-    else
-      pass "Server started cleanly — /api/health responded with 200"
-      pass "No critical error patterns in startup log"
-    fi
-
-    # ── Auth login + session integration tests ──────────────────────────────
-    # Runs against the live test server to catch route-mounting regressions
-    # (the production incident where POST /api/auth/login returned 401 for all users).
+    echo -e "${RED}  Server output (last 25 lines):${NC}"
+    tail -25 "$TMPLOG" | sed 's/^/    /'
     echo ""
-    echo -e "  ${CYAN}Running auth login/session integration tests...${NC}"
-    AUTH_TEST_OUT=$(mktemp /tmp/mpm-auth-test-XXXXXX.log)
-    if npx tsx scripts/test-auth-integration.ts --base-url http://localhost:5000 >"$AUTH_TEST_OUT" 2>&1; then
-      # Print the test output (it shows individual pass/fail lines)
-      cat "$AUTH_TEST_OUT" | sed 's/^/  /'
-      pass "Auth login/session integration tests — all checks passed"
-    else
-      cat "$AUTH_TEST_OUT" | sed 's/^/  /'
-      fail "Auth login/session integration tests — one or more checks failed (see above)"
-    fi
-    rm -f "$AUTH_TEST_OUT"
-
-  elif [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
-    fail "Server did not respond to /api/health within ${MAX_WAIT}s — startup may have hung"
-    echo ""
-    echo -e "${YELLOW}  Server output (last 20 lines):${NC}"
-    tail -20 "$TMPLOG" | sed 's/^/    /'
-  fi
-
-  rm -f "$TMPLOG"
-
-  if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
-    kill "$SERVER_PID" 2>/dev/null || true
+    rm -f "$TMPLOG"
     SERVER_PID=""
+    break
   fi
 
-  # If we paused the MPM dev server to free the port, restart it now.
-  if [ "$DEV_SERVER_RESTARTED" = true ]; then
-    echo ""
-    echo -e "${CYAN}  Restarting MPM dev server...${NC}"
-    NODE_ENV=development tsx server/index.ts >/dev/null 2>&1 &
-    disown
-    echo -e "${GREEN}  MPM dev server restarted in background.${NC}"
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 \
+    "http://localhost:${VALIDATE_PORT}/api/health" 2>/dev/null || echo "000")
+
+  if [ "$HTTP_STATUS" = "200" ]; then
+    STARTED=true
+    break
   fi
+
+  sleep 1
+  ELAPSED=$((ELAPSED + 1))
+done
+
+if [ "$STARTED" = true ]; then
+  # Hard fail on critical crash patterns in the startup log
+  if grep -qiE "uncaughtException|UnhandledPromiseRejection|FATAL|Cannot find module|MODULE_NOT_FOUND|SyntaxError:" "$TMPLOG" 2>/dev/null; then
+    fail "Server started but startup log contains critical error patterns:"
+    grep -iE "uncaughtException|UnhandledPromiseRejection|FATAL|Cannot find module|MODULE_NOT_FOUND|SyntaxError:" \
+      "$TMPLOG" | head -8 | sed 's/^/    /'
+  else
+    pass "Server started cleanly — /api/health responded with 200 on port ${VALIDATE_PORT}"
+    pass "No critical error patterns in startup log"
+  fi
+
+  # ── Auth login + session integration tests ────────────────────────────────
+  # Runs against the isolated test server to catch route-mounting regressions.
+  echo ""
+  echo -e "  ${CYAN}Running auth login/session integration tests...${NC}"
+  AUTH_TEST_OUT=$(mktemp /tmp/mpm-auth-test-XXXXXX.log)
+  if npx tsx scripts/test-auth-integration.ts --base-url "http://localhost:${VALIDATE_PORT}" >"$AUTH_TEST_OUT" 2>&1; then
+    cat "$AUTH_TEST_OUT" | sed 's/^/  /'
+    pass "Auth login/session integration tests — all checks passed"
+  else
+    cat "$AUTH_TEST_OUT" | sed 's/^/  /'
+    fail "Auth login/session integration tests — one or more checks failed (see above)"
+  fi
+  rm -f "$AUTH_TEST_OUT"
+
+elif [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
+  fail "Server did not respond to /api/health within ${MAX_WAIT}s on port ${VALIDATE_PORT} — startup may have hung"
+  echo ""
+  echo -e "${YELLOW}  Server output (last 20 lines):${NC}"
+  tail -20 "$TMPLOG" | sed 's/^/    /'
 fi
 
-fi  # end of: if [ -z "$GIT_DIR" ] ... else ... fi  (git-hook boot-test guard)
+rm -f "$TMPLOG"
+
+# ── Shut down ONLY the isolated test server ───────────────────────────────
+if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
+  kill "$SERVER_PID" 2>/dev/null || true
+  wait "$SERVER_PID" 2>/dev/null || true
+  SERVER_PID=""
+fi
+
+# ── Regression check: dev server on port 5000 must still be alive ─────────
+# Validation must NEVER kill the workspace server. If it was running before,
+# it must still be running now. A failure here is a bug in the validate script.
+if [ -n "$PRE_VALIDATE_DEV_PID" ]; then
+  if kill -0 "$PRE_VALIDATE_DEV_PID" 2>/dev/null; then
+    pass "Dev server integrity: port 5000 process (PID $PRE_VALIDATE_DEV_PID) still running — workspace undisturbed"
+  else
+    fail "Dev server integrity: port 5000 process was killed during validation — this is a validate.sh bug"
+    echo -e "${RED}  The workspace dev server should never be stopped by validation.${NC}"
+    echo -e "${RED}  Check validate.sh for any lsof/kill calls targeting port 5000.${NC}"
+  fi
+else
+  echo -e "${CYAN}  ℹ️  No dev server was running on port 5000 before validation — nothing to check.${NC}"
+fi
+
+fi  # end of: if [ -n "$GIT_DIR" ] ... else ... fi  (git-hook boot-test guard)
 
 # ──────────────────────────────────────────────────
 echo ""
