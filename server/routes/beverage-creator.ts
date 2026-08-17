@@ -112,6 +112,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       skipPalate,
       dietAdaptOverride,
       userDietOverride,
+      dietOverride,          // builder hub diet override — replaces profile primary diet
       cultureOverride: _cultureOverride,
       cuisineOverride: _cuisineOverride,
     } = req.body ?? {};
@@ -189,8 +190,15 @@ beverageCreatorRouter.post("/", async (req, res) => {
       coachingBlock: '',
     };
 
-    // Use envelope's dietaryIdentity for cocktail-vs-mocktail redirect intelligence
+    // ── Builder diet override — REPLACES profile primary diet for this generation ──
+    // Hard restrictions (allergies, medical, specialty, religious) remain enforced
+    // by the protocol envelope and safety layer regardless of this override.
+    // The override does NOT modify the saved profile.
     let activeRestrictions: string[] = beverageEnvelope.dietaryIdentity;
+    if (dietOverride && typeof dietOverride === "string" && dietOverride.trim()) {
+      activeRestrictions = [dietOverride.trim()];
+      console.log(`🔀 [BEVERAGE] Diet override active: "${dietOverride.trim()}" replaces profile diet [${beverageEnvelope.dietaryIdentity.join(",")}]`);
+    }
     let beverageMeasurementSystem: MeasurementSystem = "imperial";
 
     if (userId && userId !== "1") {

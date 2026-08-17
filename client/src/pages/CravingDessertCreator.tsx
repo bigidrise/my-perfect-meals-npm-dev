@@ -60,6 +60,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -204,6 +205,7 @@ export default function DessertCreator() {
   const continueAnywayRef = useRef(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [dessertImageLoading, setDessertImageLoading] = useState(false);
+  const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -389,6 +391,7 @@ export default function DessertCreator() {
     });
 
     try {
+      setGenerationFailure(HIDDEN_FAILURE);
       console.log("🍨 [DESSERT] Calling API...");
       const res = await fetch(apiUrl("/api/meals/dessert-creator"), {
         method: "POST",
@@ -420,7 +423,9 @@ export default function DessertCreator() {
           userDietOverride,
           cookMethod: cookMethod || undefined,
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
-          ...(dietOverrideEnabled && dietOverrideValue ? { dietAdaptOverride: true, userDietOverride: dietOverrideValue } : {}),
+          // dietOverride replaces the profile primary diet for this generation only.
+          // Using the correct field name — old dietAdaptOverride/userDietOverride were ignored by the server.
+          ...(dietOverrideEnabled && dietOverrideValue ? { dietOverride: dietOverrideValue } : {}),
         }),
       });
 
@@ -491,10 +496,13 @@ export default function DessertCreator() {
           variant: "warning",
         });
       } else {
-        toast({
-          title: "Generation Failed",
-          description: "Please try again.",
-          variant: "destructive",
+        setGenerationFailure({
+          show: true,
+          message: "Something went wrong creating your dessert. Please try again.",
+          suggestedActions: [
+            "Try Again — we'll generate a fresh version",
+            "Simplify the description or adjust the dessert category",
+          ],
         });
       }
     } finally {
@@ -930,6 +938,16 @@ export default function DessertCreator() {
                 >
                   Create My Dessert
                 </GlassButton>
+              )}
+
+              {generationFailure.show && (
+                <GenerationFailureBanner
+                  message={generationFailure.message}
+                  suggestedActions={generationFailure.suggestedActions}
+                  onRetry={() => handleGenerateDessert()}
+                  onDismiss={() => setGenerationFailure(HIDDEN_FAILURE)}
+                  isRetrying={isGenerating}
+                />
               )}
             </CardContent>
           </Card>
