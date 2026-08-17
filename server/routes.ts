@@ -5318,10 +5318,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet, procedural: deriveProcedureRules(_resolvedPrimaryDiet) }
         : protocolEnvelope;
       const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
+      // ── ALLERGEN_ADAPT requested-dish exemption (computed once, used by BOTH
+      // the universal protocol filter below AND the Phase 3 scan) ─────────────
+      // Without threading this into filterMealsByProtocol, a shellfish-free
+      // gumbo is stripped for its own name before Phase 3 ever sees it, and the
+      // retry dies the same way — producing a spurious allergen_adaptation_failed.
+      let _adaptExemptTerms: Set<string> | undefined;
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
+          const terms = getRequestedDishExemptTerms(rawCravingInput || "", protocolEnvelope.allergies).map(t => t.toLowerCase());
+          if (terms.length > 0) {
+            _adaptExemptTerms = new Set(terms);
+            console.log(`[AllergenAdapt] Requested-dish exemption active for protocol filter + Phase 3 scan: ${terms.join(", ")}`);
+          }
+        } catch (exErr) {
+          console.warn("[AllergenAdapt] Failed to compute requested-dish exemption:", exErr);
+        }
+      }
       const cleanOptions = filterMealsByProtocol(mealOptions, _filterEnvelope, {
         generatorName: "craving_creator",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+        exemptDishNameTerms: _adaptExemptTerms,
         dishIdentity: {
           requestedDish: rawCravingInput || "",
           directive: _dishDirective,
@@ -5408,15 +5427,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // sauce, shellfish broth). Scan each option and exclude any that leaked.
       if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
         try {
-          const { buildForbiddenTermsFromAllergens, getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
+          const { buildForbiddenTermsFromAllergens, scanMealsForAllergenViolations } = await import("./services/allergyGuardrails");
           // Requested-dish exemption: adaptation intentionally keeps the dish's
           // name ("gumbo", "pad thai"), so the pure dish-name term matching the
           // user's request is exempt from the scan. Every ingredient/derivative
           // term remains scanned across name, ingredients, instructions, and
           // description — see getRequestedDishExemptTerms for the strict rules.
-          const _adaptExemptTerms = new Set(
-            getRequestedDishExemptTerms(rawCravingInput || "", protocolEnvelope.allergies).map(t => t.toLowerCase())
-          );
+          // (_adaptExemptTerms was computed once above, before the universal
+          //  protocol filter, and is shared with filterMealsByProtocol.)
           // First-pass scan — delegates to the canonical exported function so tests
           // cover exactly this code path (no reimplementation in test files).
           const firstPassResult = scanMealsForAllergenViolations(scannedOptions, protocolEnvelope.allergies, _adaptExemptTerms);
@@ -5428,7 +5446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           // Re-derive forbiddenTerms (with exemptions applied) for the retry scan below.
           const forbiddenTerms = buildForbiddenTermsFromAllergens(protocolEnvelope.allergies)
-            .filter(t => !_adaptExemptTerms.has(t.toLowerCase()));
+            .filter(t => !_adaptExemptTerms?.has(t.toLowerCase()));
           const forbiddenRegexes = forbiddenTerms.map(
             t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
           );
