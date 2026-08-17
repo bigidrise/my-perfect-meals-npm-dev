@@ -570,6 +570,26 @@ export default function CreateDishPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // ── Typed allergen adaptation failure ──────────────────────────────────
+        // This response must NEVER reach the generic allergy error handler.
+        // It has its own structured fields and requires a workflow-specific message.
+        if (data.reasonCode === "allergen_adaptation_failed") {
+          const dish = data.requestedDish ? `"${data.requestedDish}"` : "this dish";
+          const allergenLabel = Array.isArray(data.allergens)
+            ? data.allergens.join(" and ")
+            : (data.allergens || "your allergen");
+          const retried = data.retryAttempted ? " (we tried twice)" : "";
+          stopProgressTicker();
+          setIsGenerating(false);
+          allergenSafeModeRef.current = false;
+          toast({
+            title: "Couldn't create a fully safe version",
+            description: `We couldn't make a ${allergenLabel}-free version of ${dish} that passed your allergy protection${retried}. Your protection is still fully active. Try a different dish, or use your Safety PIN to make the original.`,
+            variant: "warning",
+            duration: 12000,
+          });
+          return;
+        }
         throw new Error(data.message || "Failed to generate meal");
       }
 

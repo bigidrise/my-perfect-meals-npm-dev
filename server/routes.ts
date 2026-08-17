@@ -5246,6 +5246,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? req.body.excludeMeals.slice(0, 5)
         : [];
 
+      // ── ALLERGEN_ADAPT: inject explicit allergen constraint into generation prompt ─
+      // The pre-generation safety check is skipped in ALLERGEN_ADAPT mode, but the
+      // LLM must still receive explicit, named allergen prohibitions with all derivatives.
+      // Without this the model generates the dish traditionally (e.g. gumbo with shellfish
+      // stock) and Phase 3 correctly kills every option. This block names the prohibited
+      // categories, lists all derivative terms, and instructs the model to preserve dish
+      // identity by replacing the allergen's functional role rather than just deleting it.
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
+          const allergenBlock = buildAllergenAdaptPromptBlock(protocolEnvelope.allergies, rawCravingInput || "");
+          if (allergenBlock) {
+            cravingInput = `${cravingInput}\n${allergenBlock}`;
+            console.log(`[AllergenAdapt] Injected allergen constraint — allergens: ${protocolEnvelope.allergies.join(", ")}`);
+          }
+        } catch (blockErr) {
+          console.warn("[AllergenAdapt] Failed to build allergen constraint block:", blockErr);
+        }
+      }
+
       const mealOptions = await generateCravingMealOptions(
         cravingInput || "something delicious",
         targetMealType || "lunch",
@@ -5393,6 +5413,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const forbiddenRegexes = forbiddenTerms.map(
             t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
           );
+          // Collect all detected violations while filtering — needed for the targeted retry.
+          const _allDetectedViolations = new Set<string>();
           const safeAdaptedOptions = scannedOptions.filter(meal => {
             const mealText = [
               meal.name || '',
@@ -5402,24 +5424,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ].join(' ');
             const violations = forbiddenTerms.filter((_, idx) => forbiddenRegexes[idx].test(mealText));
             if (violations.length > 0) {
+              violations.forEach(v => _allDetectedViolations.add(v));
               console.warn(`⚠️ [ALLERGEN-ADAPT SCAN] "${meal.name}" has hidden allergen traces: ${violations.slice(0, 3).join(', ')} — excluded`);
               return false;
             }
             return true;
           });
+
           if (safeAdaptedOptions.length === 0 && scannedOptions.length > 0) {
-            console.error(`❌ [ALLERGEN-ADAPT SCAN] All adapted options contain allergen traces — returning error`);
-            return res.status(422).json({
-              status: "unable_to_generate",
-              reasonCode: "allergen_adapt_failed",
-              message: `We couldn't create a fully safe version — allergen traces were found in all generated options. This dish may be too closely tied to your allergen. Try a different dish, or use your Safety PIN to make the original.`,
-              suggestedActions: [
-                "Try a dish that can be adapted more easily (e.g., replace shellfish with chicken or sausage)",
-                "Use your Safety PIN to make the original and consume at your own risk",
-              ],
-            });
-          }
-          if (safeAdaptedOptions.length < scannedOptions.length) {
+            // ── Intelligent retry: use the specific detected violation terms as explicit
+            // exclusions so the LLM cannot repeat the same mistake. One retry only.
+            const detectedViolationList = Array.from(_allDetectedViolations).slice(0, 12);
+            console.log(`[AllergenAdapt] First-pass all failed — detected: ${detectedViolationList.join(", ")}. Attempting targeted retry.`);
+            let retrySucceeded = false;
+            try {
+              const retryExclusionClause = detectedViolationList.length > 0
+                ? ` [ALLERGEN RETRY — previous attempt leaked these terms, which MUST NOT appear in any ingredient, stock, broth, sauce, or preparation: ${detectedViolationList.join(", ")}. Remove ALL of them completely.]`
+                : ` [ALLERGEN RETRY — regenerate with no allergen derivatives whatsoever.]`;
+              const retryInput = `${cravingInput}${retryExclusionClause}`;
+              const retryOptions = await generateCravingMealOptions(
+                retryInput,
+                targetMealType || "lunch",
+                userId,
+                bodyDietRestrictions,
+                excludeMeals,
+                strictMode === true,
+                (generationMode === 'recipe' ? 'recipe' : 'meal'),
+                (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+                _cravingGlp1Targets,
+                _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+                _dishDirective,
+              );
+              if (retryOptions && retryOptions.length > 0) {
+                const retrySafe = retryOptions.filter(meal => {
+                  const mealText = [
+                    meal.name || '',
+                    (meal.ingredients || []).map((i: any) => typeof i === 'string' ? i : (i?.name || '')).join(' '),
+                    meal.instructions || '',
+                    meal.description || '',
+                  ].join(' ');
+                  return forbiddenTerms.every((_, idx) => !forbiddenRegexes[idx].test(mealText));
+                });
+                if (retrySafe.length > 0) {
+                  console.log(`[AllergenAdapt] Targeted retry succeeded — ${retrySafe.length} safe option(s) produced`);
+                  scannedOptions = retrySafe;
+                  retrySucceeded = true;
+                } else {
+                  console.error(`❌ [ALLERGEN-ADAPT SCAN] Targeted retry also failed — allergen traces still present`);
+                }
+              }
+            } catch (retryErr) {
+              console.error(`❌ [ALLERGEN-ADAPT SCAN] Retry generation error:`, retryErr);
+            }
+
+            if (!retrySucceeded) {
+              // Both attempts failed. Return a typed, structured error — never the generic allergy handler.
+              const _requestedDish = rawCravingInput || "";
+              const _allergenNames = protocolEnvelope.allergies;
+              console.error(`❌ [ALLERGEN-ADAPT SCAN] Both attempts failed for "${_requestedDish}" — returning typed adaptation failure`);
+              return res.status(422).json({
+                status: "unable_to_generate",
+                reasonCode: "allergen_adaptation_failed",
+                requestedDish: _requestedDish,
+                allergens: _allergenNames,
+                detectedTerms: detectedViolationList,
+                retryAttempted: true,
+                originalWithPinAvailable: true,
+                message: `We couldn't create a ${_allergenNames.join(" and ")}-free version of "${_requestedDish}" that passed your allergy protection checks (two attempts made). Your allergy protection is still fully active.`,
+                suggestedActions: [
+                  `Try a variation that adapts more cleanly — for example, a ${_allergenNames.join(" and ")}-free version of a related dish`,
+                  `Use your Safety PIN to make the original preparation if you are certain it is safe for you`,
+                ],
+              });
+            }
+          } else if (safeAdaptedOptions.length < scannedOptions.length) {
             console.log(`[ALLERGEN-ADAPT SCAN] Filtered ${scannedOptions.length - safeAdaptedOptions.length} unsafe option(s) — serving ${safeAdaptedOptions.length} safe adapted option(s)`);
             scannedOptions = safeAdaptedOptions;
           }
