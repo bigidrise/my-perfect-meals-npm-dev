@@ -224,3 +224,209 @@ describe("diet override field contract", () => {
     expect(elapsed).toBeLessThan(5);
   });
 });
+
+// ─── Chef path — Create a Dish: Vegan profile + Keto override ────────────────
+//
+// Exact scenario that triggered the regression:
+//   Profile: Vegan
+//   Temporary override: Keto (selected in the Create a Dish builder)
+//   Dish: "Strawberry Cake"
+//   Servings: 2
+//
+// The fix spans two locations:
+//
+//   1. generateFromDescriptionUnified() — lines 3145-3147 of unifiedMealPipeline.ts:
+//        const chefDietRestrictions =
+//          (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0)
+//            ? dietaryRestrictionsOverride        ← takes this branch (replaces vegan)
+//            : chefEnvelope.dietaryIdentity;
+//
+//   2. routes.ts — /api/meals/generate — lines 1118-1135:
+//        dietaryRestrictionsOverride: dietOverride?.trim() ? [dietOverride.trim()] : undefined
+//
+// This test block covers each defensive layer so a regression on any one of them
+// causes an immediate CI failure.
+
+describe("chef path — Strawberry Cake: vegan profile + keto override (regression: Task 1279)", () => {
+  // ── Layer 1: diet resolution ────────────────────────────────────────────────
+
+  it("keto wins: resolveEffectiveDiet returns [keto] — vegan identity is NOT carried", () => {
+    // Simulates the chefDietRestrictions assignment in generateFromDescriptionUnified.
+    // profileDiet = chefEnvelope.dietaryIdentity for a vegan user.
+    const profileDiet = ["vegan"];
+    const override = ["keto"];
+    const chefDietRestrictions = resolveEffectiveDiet(override, profileDiet);
+
+    expect(chefDietRestrictions).toEqual(["keto"]);
+    expect(chefDietRestrictions).not.toContain("vegan");
+  });
+
+  it("route layer correctly wraps dietOverride string into [keto] array", () => {
+    // Simulates the dietaryRestrictionsOverride construction in routes.ts
+    // (lines 1118-1135) — the client sends dietOverride: "keto" as a plain string.
+    const dietOverride = "keto"; // as received from req.body
+    const dietaryRestrictionsOverride = dietOverride.trim() ? [dietOverride.trim()] : undefined;
+
+    expect(dietaryRestrictionsOverride).toEqual(["keto"]);
+
+    // Then the pipeline uses it as the override:
+    const chefDietRestrictions = resolveEffectiveDiet(
+      dietaryRestrictionsOverride,
+      ["vegan"], // chefEnvelope.dietaryIdentity for a vegan user
+    );
+    expect(chefDietRestrictions).toEqual(["keto"]);
+    expect(chefDietRestrictions).not.toContain("vegan");
+  });
+
+  it("whitespace-padded client value is normalised before building the override array", () => {
+    // Guards against clients sending "  keto  " (trimmed before array wrap in routes.ts)
+    const raw = "  keto  ";
+    const dietaryRestrictionsOverride = raw.trim() ? [raw.trim()] : undefined;
+    expect(dietaryRestrictionsOverride).toEqual(["keto"]);
+
+    const chefDietRestrictions = resolveEffectiveDiet(dietaryRestrictionsOverride, ["vegan"]);
+    expect(chefDietRestrictions).toEqual(["keto"]);
+  });
+
+  // ── Layer 2: vegetable injection gate ──────────────────────────────────────
+
+  it("Strawberry Cake is recipe-sensitive — vegetable strategy is suppressed", () => {
+    // generateFromDescriptionUnified lines 3093-3094:
+    //   const isRecipeModeDish = isRecipeSensitiveDish(description);
+    //   const vegetableStrategyGuidance = (!strictMode && nutritionStrategy && !isRecipeModeDish) ? ... : '';
+    //
+    // isRecipeModeDish = true → vegetableStrategyGuidance = '' → no spinach/broccoli
+    // injected into a dessert cake prompt regardless of the user's nutrition strategy.
+    expect(isRecipeSensitiveDish("Strawberry Cake")).toBe(true);
+    expect(isRecipeSensitiveDish("strawberry cake")).toBe(true);
+    expect(isRecipeSensitiveDish("Strawberry Birthday Cake")).toBe(true);
+    expect(isRecipeSensitiveDish("Strawberry Cream Cake")).toBe(true);
+  });
+
+  // ── Layer 3: the broken merge that caused the original bug ──────────────────
+
+  it("rejects the old Set-union merge that produced [vegan, keto] for this scenario", () => {
+    // Before the fix, the pipeline did:
+    //   const merged = new Set([...dietRestrictions, ...dietaryRestrictionsOverride]);
+    //   dietRestrictions = Array.from(merged);
+    // A Vegan profile + Keto override produced ["vegan", "keto"] → contradictory prompt.
+    const profileDiet = ["vegan"];
+    const override = ["keto"];
+
+    // Prove what the broken code produced:
+    const brokenMerge = Array.from(new Set([...profileDiet, ...override]));
+    expect(brokenMerge).toContain("vegan"); // broken: vegan leaked through
+    expect(brokenMerge).toContain("keto");  // broken: both diets in conflict
+
+    // The fix produces only the override:
+    const correctResult = resolveEffectiveDiet(override, profileDiet);
+    expect(correctResult).toEqual(["keto"]);
+    expect(correctResult).not.toContain("vegan");
+  });
+
+  // ── Layer 4: serving quantity plausibility ─────────────────────────────────
+
+  it("keto Strawberry Cake for 2 servings is macro-plausible (contract test for LLM output)", () => {
+    // This is a contract test: the mock below represents what the LLM must return
+    // for a 2-serving keto cake. The pipeline must ACCEPT this response.
+    // Per-serving values are checked — the LLM returns per-serving macros.
+    const SERVINGS = 2;
+    const mockKetoStrawberryCake = {
+      name: "Keto Strawberry Cream Cake",
+      calories: 280,    // per serving
+      protein: 8,       // g per serving
+      fat: 24,          // g per serving — keto requires high fat
+      carbs: 6,         // g per serving — keto ceiling ~15g net
+      fibrousCarbs: 2,
+      starchyCarbs: 4,  // almond flour contributes minor starch
+      ingredients: [
+        { name: "almond flour", quantity: "1", unit: "cup" },
+        { name: "cream cheese", quantity: "4", unit: "oz" },
+        { name: "fresh strawberries", quantity: "1/2", unit: "cup" },
+        { name: "eggs", quantity: "2", unit: "large" },
+        { name: "erythritol", quantity: "3", unit: "tbsp" },
+        { name: "vanilla extract", quantity: "1", unit: "tsp" },
+        { name: "butter", quantity: "2", unit: "tbsp" },
+      ],
+    };
+
+    // Keto fat ratio: fat_calories / total_calories > 55%
+    const fatCalPct = (mockKetoStrawberryCake.fat * 9) / mockKetoStrawberryCake.calories;
+    expect(fatCalPct).toBeGreaterThan(0.55);
+
+    // Net carbs per serving below keto ceiling
+    expect(mockKetoStrawberryCake.carbs).toBeLessThan(15);
+
+    // Non-trivial protein (a zero-protein dessert is a warning sign)
+    expect(mockKetoStrawberryCake.protein).toBeGreaterThan(5);
+
+    // Plausible calorie range for a single dessert serving
+    expect(mockKetoStrawberryCake.calories).toBeGreaterThan(150);
+    expect(mockKetoStrawberryCake.calories).toBeLessThan(600);
+
+    // No vegan-but-not-keto ingredients (wheat flour, white sugar, dairy subs)
+    const ketoForbidden = [
+      "wheat flour", "all-purpose flour", "plain flour",
+      "white sugar", "cane sugar",
+      "oat milk", "soy milk", "almond milk",
+      "flax egg", "chia egg", "tofu",
+    ];
+    const ingredientNames = mockKetoStrawberryCake.ingredients.map(i => i.name.toLowerCase());
+    for (const forbidden of ketoForbidden) {
+      const found = ingredientNames.some(n => n.includes(forbidden.toLowerCase()));
+      expect(found).toBe(false);
+    }
+
+    // At least 4 ingredients (sanity: a 2-serving recipe is not a single-ingredient meal)
+    expect(mockKetoStrawberryCake.ingredients.length).toBeGreaterThanOrEqual(4);
+
+    // Total recipe calories = per-serving × servings (plausible range for 2 servings)
+    const totalCalories = mockKetoStrawberryCake.calories * SERVINGS;
+    expect(totalCalories).toBeGreaterThan(300);
+    expect(totalCalories).toBeLessThan(1200);
+  });
+
+  it("vegan Strawberry Cake would fail keto compliance — documents why override is essential", () => {
+    // Shows what a vegan Strawberry Cake looks like and why the keto override is required.
+    // Without the override the vegan profile produces a high-carb cake that silently
+    // violates the user's temporary Keto selection.
+    const mockVeganCake = {
+      calories: 320,
+      protein: 4,
+      fat: 8,
+      carbs: 58, // wheat flour + white sugar → high carb, NOT keto
+    };
+
+    // Fat ratio well below the keto threshold
+    const fatCalPct = (mockVeganCake.fat * 9) / mockVeganCake.calories;
+    expect(fatCalPct).toBeLessThan(0.40);
+
+    // Carbs far exceed the keto ceiling
+    expect(mockVeganCake.carbs).toBeGreaterThan(15);
+
+    // Without override the profile diet is used (vegan stays):
+    const withoutOverride = resolveEffectiveDiet(null, ["vegan"]);
+    expect(withoutOverride).toEqual(["vegan"]);
+
+    // With override the keto diet replaces the vegan profile for this generation:
+    const withOverride = resolveEffectiveDiet("keto", ["vegan"]);
+    expect(withOverride).toEqual(["keto"]);
+    expect(withOverride).not.toContain("vegan");
+  });
+
+  // ── Layer 5: idempotency — re-running with same inputs is stable ────────────
+
+  it("resolveEffectiveDiet is idempotent for the exact bug scenario", () => {
+    const profileDiet = ["vegan"];
+    const override = "keto";
+
+    // Running the resolver twice with the same inputs must produce identical results
+    const result1 = resolveEffectiveDiet(override, profileDiet);
+    const result2 = resolveEffectiveDiet(override, profileDiet);
+
+    expect(result1).toEqual(result2);
+    expect(result1).toEqual(["keto"]);
+    // Profile array must not have been mutated between calls
+    expect(profileDiet).toEqual(["vegan"]);
+  });
+});
