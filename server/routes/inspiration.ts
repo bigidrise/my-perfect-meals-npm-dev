@@ -77,6 +77,7 @@ router.post(
         proteinPriority = "standard",
         prepStyle = "any",
         excludedOptionNames,
+        skipImages = false,
       } = req.body;
 
       if (!inputType || (!content && !imageBase64)) {
@@ -165,6 +166,7 @@ router.post(
             ...(Array.isArray(excludedOptionNames) && excludedOptionNames.length > 0
               ? { excludeMeals: excludedOptionNames.slice(0, 5) }
               : {}),
+            ...(skipImages ? { skipImage: true } : {}),
           }),
         }
       );
@@ -185,26 +187,31 @@ router.post(
       }
 
       // Step 4 — Generate meal images server-side in parallel for all options.
-      // All options get a real imageUrl before returning — no shimmer on first load.
-      const imageResults = await Promise.allSettled(
-        allMeals.map(async (meal: any) => {
-          const mealTitle = (meal.name || "My Personalized Meal").trim();
-          const ingredientNames: string[] = ((meal.ingredients ?? []) as any[])
-            .map((i: any) => i.name || i.item || "")
-            .filter(Boolean);
-          try {
-            return await generateMealImageUnified(mealTitle, ingredientNames, "meal");
-          } catch {
-            return null;
-          }
-        })
-      );
+      // Skipped when skipImages=true (e.g. "Try 3 More") so the client receives
+      // text cards immediately (~15s faster); images can be requested separately.
+      let imageResults: PromiseSettledResult<string | null>[] = [];
+      if (!skipImages) {
+        imageResults = await Promise.allSettled(
+          allMeals.map(async (meal: any) => {
+            const mealTitle = (meal.name || "My Personalized Meal").trim();
+            const ingredientNames: string[] = ((meal.ingredients ?? []) as any[])
+              .map((i: any) => i.name || i.item || "")
+              .filter(Boolean);
+            try {
+              return await generateMealImageUnified(mealTitle, ingredientNames, "meal");
+            } catch {
+              return null;
+            }
+          })
+        );
+      }
 
       // Build options array — each option gets its imageUrl and inspiration metadata
       const mealOptions: any[] = allMeals.map((meal: any, i: number) => {
         const mealTitle = (meal.name || "My Personalized Meal").trim();
-        const imageUrl =
-          imageResults[i].status === "fulfilled"
+        const imageUrl = skipImages
+          ? null
+          : imageResults[i]?.status === "fulfilled"
             ? (imageResults[i] as PromiseFulfilledResult<string | null>).value
             : null;
         return {
