@@ -327,6 +327,16 @@ export interface MealGenerationRequest {
   dietaryRestrictionsOverride?: string[];
   /** Requested serving count — passed to the recipe generator for accurate ingredient scaling. */
   servings?: number;
+  /**
+   * Allergen category/categories authorised by a Safety PIN override for this
+   * single generation. When set, scanGeneratedOutput suppresses violations for
+   * the listed allergen(s) and their derivatives (via ALLERGEN_EXPANSION).
+   * Populated by the route handler after a successful CUSTOM_AUTHENTICATED
+   * override token validation — never trusted from the client body.
+   *
+   * All other clinical, dietary, and allergy protections remain active.
+   */
+  overriddenAllergens?: string[];
 }
 
 export interface MealGenerationResponse {
@@ -2892,6 +2902,7 @@ export async function generateFromDescriptionUnified(
   preferredLanguage?: string,
   dietaryRestrictionsOverride?: string[],
   servings?: number,
+  overriddenAllergens?: string[],
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   const requestedServings = Math.max(1, Math.min(10, Math.round(servings ?? 1)));
@@ -3525,6 +3536,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       // and causes a pointless retry loop when diet override is active.
       const chefScan = scanGeneratedOutput(tempMeal, _effectiveChefEnvelope, {
         generatorName: 'create_with_chef',
+        overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
       });
       if (!chefScan.passed) {
         console.log(`🚫 [CREATE-WITH-CHEF] Post-gen protocol violation (attempt ${attemptCount}): ${chefScan.message}`);
@@ -3841,7 +3853,8 @@ export async function generateSnackFromCravingUnified(
   strictMode: boolean = false,
   explicitOverride?: ExplicitOverride | null,
   glp1Targets?: ResolvedGLP1Targets,
-  preferredLanguage?: string
+  preferredLanguage?: string,
+  overriddenAllergens?: string[],
 ): Promise<MealGenerationResponse> {
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
@@ -4173,6 +4186,7 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       // ── Post-gen protocol scan ────────────────────────────────────────────
       const snackScan = scanGeneratedOutput(tempSnack, snackEnvelope, {
         generatorName: 'snack_creator',
+        overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
       });
       if (!snackScan.passed) {
         console.log(`🚫 [SNACK] Post-gen protocol violation (attempt ${snackAttemptCount}): ${snackScan.message}`);
@@ -4393,6 +4407,7 @@ export async function generateMealUnified(
         request.preferredLanguage,
         request.dietaryRestrictionsOverride,
         request.servings,
+        request.overriddenAllergens,
       );
       break;
 
@@ -4400,7 +4415,7 @@ export async function generateMealUnified(
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage, request.overriddenAllergens);
       break;
 
     case 'fridge-rescue':
