@@ -47,6 +47,10 @@ REPORT_FILE="/tmp/mpm-validate-report-${REPORT_TIMESTAMP}.txt"
 cleanup() {
   if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
     kill "$SERVER_PID" 2>/dev/null || true
+    sleep 0.5
+    # tsx spawns a child Node.js process that survives killing the wrapper.
+    # Kill everything still holding the test port to catch all descendants.
+    [ -n "$VALIDATE_PORT" ] && lsof -ti:"$VALIDATE_PORT" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
     wait "$SERVER_PID" 2>/dev/null || true
   fi
 }
@@ -246,10 +250,12 @@ echo "  Starting an isolated test server (separate port) to verify clean boot...
 echo "  The existing dev server on port 5000 is never touched."
 echo ""
 
-# When running as a git pre-push hook (GIT_DIR is set by git), skip the boot
-# test. Steps 1–5 already gate code quality; the boot test is redundant here
-# because it passed in the most recent standalone validate run.
-if [ -n "$GIT_DIR" ]; then
+# When running as a git pre-push hook (MPM_IS_HOOK=1 is exported by the hook
+# script), skip the server boot test. git does not export GIT_DIR to hook
+# processes, so we use our own flag instead. Steps 1–5 already gate code
+# quality; the boot test is redundant here because it passed in the most recent
+# standalone validate run.
+if [ -n "$MPM_IS_HOOK" ]; then
   echo -e "${CYAN}  ℹ️  Running as git hook — boot test skipped to preserve session stability.${NC}"
   echo -e "${CYAN}     Run 'npm run validate' standalone to include the full boot test.${NC}"
   echo ""
@@ -347,8 +353,12 @@ fi
 rm -f "$TMPLOG"
 
 # ── Shut down ONLY the isolated test server ───────────────────────────────
+# Signal the tsx wrapper, then port-sweep to catch the Node.js child process
+# that tsx spawns and that plain `kill $SERVER_PID` leaves behind.
 if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
   kill "$SERVER_PID" 2>/dev/null || true
+  sleep 0.5
+  lsof -ti:"$VALIDATE_PORT" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
   wait "$SERVER_PID" 2>/dev/null || true
   SERVER_PID=""
 fi
@@ -368,7 +378,7 @@ else
   echo -e "${CYAN}  ℹ️  No dev server was running on port 5000 before validation — nothing to check.${NC}"
 fi
 
-fi  # end of: if [ -n "$GIT_DIR" ] ... else ... fi  (git-hook boot-test guard)
+fi  # end of: if [ -n "$MPM_IS_HOOK" ] ... else ... fi  (git-hook boot-test guard)
 
 # ──────────────────────────────────────────────────
 echo ""

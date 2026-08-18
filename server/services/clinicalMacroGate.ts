@@ -90,6 +90,30 @@ export function validateClinicalMacros(
   return { passed: true };
 }
 
+/**
+ * Determine whether the clinical adaptation retry path should be active for a
+ * generation request.
+ *
+ * IMPORTANT: activation is driven primarily by the server-authoritative
+ * `clinicalGenerationContext` (resolved from the user's profile by the chef
+ * budget resolver in routes.ts) — NOT by the client-selected dietType. A
+ * profile-confirmed diabetic using any builder diet type is clinically gated
+ * by the route, so the generator must adapt for them regardless of what diet
+ * the client selected. Client dietType and server glp1Targets are honored as
+ * additional activation sources.
+ */
+export function isClinicalAdaptationActive(
+  clinicalGenerationContext: string | undefined,
+  dietType: string | null | undefined,
+  hasGlp1Targets: boolean,
+): { active: boolean; diabeticActive: boolean; glp1Active: boolean } {
+  const diabeticActive =
+    clinicalGenerationContext === "diabetic" || dietType === "diabetic";
+  const glp1Active =
+    clinicalGenerationContext === "glp1" || dietType === "glp1" || hasGlp1Targets;
+  return { active: diabeticActive || glp1Active, diabeticActive, glp1Active };
+}
+
 /** Convert a raw value to a finite number, or return null for null/undefined/NaN/Infinity. */
 function toFiniteNumber(raw: unknown): number | null {
   if (raw == null) return null;

@@ -1134,6 +1134,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         performanceSessionContext: performanceSessionContext || undefined,
         generationContext: typeof generationContext === 'string' ? generationContext : undefined,
         glp1Targets: serverGlp1Targets,
+        // Server-authoritative clinical context from the budget resolver —
+        // activates the clinical adaptation retry path in the generator for
+        // profile-confirmed diabetic/GLP-1 users regardless of client dietType.
+        clinicalGenerationContext: budgetGenerationContext,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         correlationId: (req as any).id,
         // Temporary diet override — replaces profile diet for one generation.
@@ -1203,10 +1207,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
               `context=${budgetGenerationContext} type=${type} ` +
               `carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
             );
-            return res.status(503).json({
+            // Graceful degradation: the gate is correct to block the meal, but
+            // the user asked for a dish that should be adapted, not rejected.
+            // 422 (not 503) — this is a constraint outcome, not a server fault.
+            const requestedDishRaw =
+              typeof effectiveInput === 'string'
+                ? effectiveInput.trim()
+                : Array.isArray(effectiveInput)
+                  ? effectiveInput.join(', ').trim()
+                  : '';
+            const dishLabel =
+              requestedDishRaw && requestedDishRaw.length <= 60
+                ? `"${requestedDishRaw}"`
+                : 'this dish';
+            return res.status(422).json({
               success: false,
-              error:   "Generated meal could not be verified against clinical nutrition limits. Please try again.",
+              error:
+                `We couldn't adapt ${dishLabel} to fit your clinical nutrition targets for this meal slot. ` +
+                `Try a different dish, or adjust the meal timing so more of your daily budget is available.`,
               source:  "clinical_ceiling_violation",
+              degraded: true,
+              gateReason,
             });
           }
         }
