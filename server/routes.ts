@@ -5284,7 +5284,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const excludeMeals: string[] = Array.isArray(req.body.excludeMeals)
-        ? req.body.excludeMeals.slice(0, 5)
+        ? req.body.excludeMeals
+            .filter((e: unknown): e is string => typeof e === 'string' && e.trim().length > 0)
+            .slice(0, 9)  // allow up to 3 rounds × 3 cards
         : [];
 
       // ── ALLERGEN_ADAPT: inject explicit allergen constraint into generation prompt ─
