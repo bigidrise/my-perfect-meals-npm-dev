@@ -199,7 +199,15 @@ router.post(
       const allMeals = rawMeals.slice(0, 3);
 
       if (allMeals.length === 0) {
-        throw new Error("No meal returned from generator");
+        // craving-creator returned 200 with no meals — this happens when the
+        // BGL/protocol gate correctly eliminated every generated option.  It is
+        // not a crash.  Surface it as a typed constraint_conflict so the client
+        // can show a "no compliant options" message and leave existing cards intact.
+        return res.status(422).json({
+          error: "We created additional versions of this recipe, but none met today's nutrition requirements.",
+          reasonCode: "constraint_conflict",
+          suggestedActions: [],
+        });
       }
 
       // Step 4 — Generate meal images server-side in parallel for all options.
