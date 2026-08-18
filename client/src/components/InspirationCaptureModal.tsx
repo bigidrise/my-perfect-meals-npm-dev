@@ -62,6 +62,74 @@ function resizeImageToBase64(file: File, maxPx = 900): Promise<string> {
   });
 }
 
+// ── Exported for unit-testing — resolves the request body that handleTryMore
+// sends to /api/inspiration/capture from the current capture + result state.
+// Returns null when the guard fires (no image and no usable description).
+export interface TryMoreContext {
+  mode: string;
+  capturedBase64: string | null;
+  capturedText: string;
+  result: { extractedDescription?: string; options?: any[] } | null;
+  servings: number;
+  healthMode: string;
+  proteinPriority: string;
+  prepStyle: string;
+  cuisineOverrideEnabled: boolean;
+  cuisineOverrideValue: string;
+}
+
+export function resolveTryMoreRequestBody(
+  ctx: TryMoreContext,
+): Record<string, any> | null {
+  const {
+    mode,
+    capturedBase64,
+    capturedText,
+    result,
+    servings,
+    healthMode,
+    proteinPriority,
+    prepStyle,
+    cuisineOverrideEnabled,
+    cuisineOverrideValue,
+  } = ctx;
+
+  const hasImage = (mode === "camera" || mode === "upload") && !!capturedBase64;
+  const effectiveContent: string =
+    capturedText ||
+    (result?.extractedDescription ?? "") ||
+    "";
+  const effectiveMode: string = hasImage ? mode : "text";
+
+  if (!hasImage && !effectiveContent) return null;
+
+  const currentNames: string[] = ((result?.options ?? []) as any[])
+    .map((opt: any) => (opt.name || opt.title || "").trim())
+    .filter(Boolean);
+
+  const body: Record<string, any> = {
+    inputType: effectiveMode,
+    servings,
+    healthMode,
+    proteinPriority,
+    prepStyle,
+    skipImages: true,
+    ...(cuisineOverrideEnabled && cuisineOverrideValue
+      ? { cuisineOverride: cuisineOverrideValue }
+      : {}),
+    ...(currentNames.length > 0 ? { excludedOptionNames: currentNames } : {}),
+  };
+
+  if (hasImage) {
+    body.imageBase64 = capturedBase64;
+    body.content = "";
+  } else {
+    body.content = effectiveContent;
+  }
+
+  return body;
+}
+
 const SERVINGS_OPTIONS: { value: number; labelKey: string }[] = [
   { value: 1, labelKey: "inspiration.servingsJustMe" },
   { value: 2, labelKey: "inspiration.servings2" },
@@ -435,12 +503,6 @@ export default function InspirationCaptureModal({
 
   // Regenerate 3 new options locked to the same captured input (same dish, new variations)
   const handleTryMore = useCallback(async () => {
-    // Capture the names of the currently visible options so the variety engine
-    // can exclude them and return genuinely new alternatives.
-    const currentNames: string[] = ((result?.options ?? []) as any[])
-      .map((opt: any) => (opt.name || opt.title || "").trim())
-      .filter(Boolean);
-
     // Keep the existing cards visible — only replace them once new ones arrive.
     setIsRegenerating(true);
     try {
@@ -449,17 +511,24 @@ export default function InspirationCaptureModal({
       // session.  When cards come from a localStorage restore those fields are at
       // their defaults ("upload", null, "").  Fall back to the extractedDescription
       // that the server embeds in every result so Try 3 More always has content.
-      const hasImage = (mode === "camera" || mode === "upload") && !!capturedBase64;
-      const effectiveContent = capturedText
-        || (result?.extractedDescription as string | undefined)
-        || "";
-      const effectiveMode: string = hasImage ? mode : "text";
+      const body = resolveTryMoreRequestBody({
+        mode,
+        capturedBase64,
+        capturedText,
+        result,
+        servings,
+        healthMode,
+        proteinPriority,
+        prepStyle,
+        cuisineOverrideEnabled,
+        cuisineOverrideValue,
+      });
 
       // Guard: if there is no image and no usable text description, we cannot
       // send a meaningful request.  Show a clear message so the user knows
       // what to do instead of hitting the server with a blank content field
       // and getting a generic error.
-      if (!hasImage && !effectiveContent) {
+      if (!body) {
         toast({
           title: t("inspiration.tryMoreNoContentTitle", "Re-enter your request"),
           description: t(
@@ -472,24 +541,6 @@ export default function InspirationCaptureModal({
         return;
       }
 
-      const body: any = {
-        inputType: effectiveMode,
-        servings,
-        healthMode,
-        proteinPriority,
-        prepStyle,
-        skipImages: true,   // skip DALL-E for regeneration — saves ~15s; cards show text first
-        ...(cuisineOverrideEnabled && cuisineOverrideValue
-          ? { cuisineOverride: cuisineOverrideValue }
-          : {}),
-        ...(currentNames.length > 0 ? { excludedOptionNames: currentNames } : {}),
-      };
-      if (hasImage) {
-        body.imageBase64 = capturedBase64;
-        body.content = "";
-      } else {
-        body.content = effectiveContent;
-      }
       const res = await fetch(apiUrl("/api/inspiration/capture"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
