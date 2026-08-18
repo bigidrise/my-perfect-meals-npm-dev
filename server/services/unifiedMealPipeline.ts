@@ -1972,6 +1972,11 @@ export async function generateCravingMealOptions(
    *  injected into every generation attempt so the model adapts the requested
    *  dish instead of replacing it. Built via getDishAdaptationDirective(). */
   dishDirective?: import("./dishAdaptation/types").DishAdaptationDirective | null,
+  /** When true (Try 3 More / skipImages path), use gpt-4o-mini + fewer tokens
+   *  for a faster response. Image URLs are already skipped by the caller; this
+   *  trims the text-generation cost too. Quality is still adequate for variety
+   *  cards since the initial capture already anchored the dish concept. */
+  fastMode: boolean = false,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -1983,6 +1988,9 @@ export async function generateCravingMealOptions(
   let allergyBlock = '';
   let avoidanceBlock = '';
   let proceduralBlock = '';
+  // Medical/specialty protocol block — BGL guidance, cardiac, thyroid, anti-inflammatory,
+  // and all other conditionGuidanceBlocks. Populated from the protocol envelope below.
+  let specialtyMedicalBlock = '';
   // Oncology fields fetched from DB — declared outside try so they're in scope for the overlay check below
   let _varietySpecialtyCondition: string | null = null;
   let _varietySpecialtyConditions: string[] = [];
@@ -2049,10 +2057,16 @@ export async function generateCravingMealOptions(
       console.warn("[VARIETY ENGINE] Could not fetch user profile:", err);
     }
 
-    // ── Procedural enforcement block (instruction-level compliance) ──────────
-    // Load the full protocol envelope and extract the procedural layer.
-    // This adds preparation, equipment, and forbidden-instruction rules to
-    // the prompt — so the AI is constrained at the instruction level too.
+    // ── Protocol enforcement block (medical + specialty + procedural) ─────────
+    // Load the full protocol envelope and extract:
+    //   • medicalHardLimits — BGL guidance, cardiac, thyroid, anti-inflammatory,
+    //     and every other specialty-condition block (conditionGuidanceBlocks).
+    //     This is the layer the Create-with-Chef path includes but the variety
+    //     engine previously omitted, causing specialty conditions to be silently
+    //     ignored by Recipe Maker.
+    //   • procedural — preparation, equipment, and forbidden-instruction rules.
+    // Both are injected into every generation attempt so Recipe Maker is
+    // governed by the same complete Nutrition Life Plan as all other builders.
     try {
       const envelope = await loadUserProtocolEnvelope(userId);
       if (envelope) {
@@ -2061,13 +2075,21 @@ export async function generateCravingMealOptions(
           generatorName: 'craving_creator',
           actorId: userId,
         });
+        if (promptBlock.layers.medicalHardLimits) {
+          specialtyMedicalBlock = promptBlock.layers.medicalHardLimits;
+          console.log(
+            `[VARIETY ENGINE] Medical/specialty protocol active for user ${userId}` +
+            (envelope.diabeticGlucoseState ? ` | BGL state: ${envelope.diabeticGlucoseState}` : '') +
+            (envelope.conditionGuidanceBlocks?.length ? ` | ${envelope.conditionGuidanceBlocks.length} specialty condition(s)` : ''),
+          );
+        }
         if (promptBlock.layers.procedural) {
           proceduralBlock = promptBlock.layers.procedural;
           console.log(`[VARIETY ENGINE] Procedural enforcement active for user ${userId} (${envelope.dietaryIdentity.join(', ')})`);
         }
       }
     } catch (err) {
-      console.warn("[VARIETY ENGINE] Could not load protocol envelope for procedural block:", err);
+      console.warn("[VARIETY ENGINE] Could not load protocol envelope for protocol block:", err);
     }
   }
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
@@ -2239,10 +2261,14 @@ export async function generateCravingMealOptions(
     // prepended so every attempt adapts the dish rather than replacing it.
     const dalBlock = dishDirective?.adaptationBlock ? dishDirective.adaptationBlock + '\n\n' : '';
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: dalBlock + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      // fastMode (Try 3 More / skipImages path): use gpt-4o-mini — it's ~3x
+      // faster and still produces solid variety-card suggestions. The initial
+      // image-scan already anchored the dish concept, so full gpt-4o quality
+      // isn't needed for subsequent swipes.
+      model: fastMode ? "gpt-4o-mini" : "gpt-4o",
+      messages: [{ role: "user", content: dalBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
-      max_tokens: 2500,
+      max_tokens: fastMode ? 1500 : 2500,
       response_format: { type: "json_object" },
     });
     const content = response.choices[0]?.message?.content;

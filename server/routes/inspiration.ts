@@ -77,6 +77,7 @@ router.post(
         proteinPriority = "standard",
         prepStyle = "any",
         excludedOptionNames,
+        skipImages = false,
       } = req.body;
 
       if (!inputType || (!content && !imageBase64)) {
@@ -159,6 +160,7 @@ router.post(
             servings: validatedServings,
             strictMode: healthMode === "healthier",
             generationMode: "meal",
+            ...(skipImages ? { skipImages: true } : {}),
             ...(cuisineOverride && typeof cuisineOverride === "string" && cuisineOverride.trim()
               ? { cultureOverride: cuisineOverride.trim() }
               : {}),
