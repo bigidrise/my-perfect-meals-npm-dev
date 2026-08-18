@@ -3235,6 +3235,7 @@
     "nativeDelivery": "Native iOS delivery",
     "saving": "Saving…",
     "statusBlocked": "Notifications blocked in browser",
+    "statusBlockedIos": "Notifications blocked — open Settings to allow",
     "statusConnected": "Notifications connected",
     "statusPartial": "Not fully connected — toggle a slot to finish setup",
     "statusPending": "Toggle a slot to enable notifications",

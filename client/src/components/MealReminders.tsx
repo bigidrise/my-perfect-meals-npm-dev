@@ -359,7 +359,7 @@ export default function MealReminders() {
             <>
               <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
               <span className="text-red-400 text-xs font-medium" data-testid="ios-permission-label">
-                {t("mealReminders.statusBlocked")}
+                {t("mealReminders.statusBlockedIos")}
               </span>
             </>
           )}

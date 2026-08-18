@@ -95,7 +95,7 @@ async function renderComponent() {
 
 // i18n key values produced by the mock for the two badge states
 const LABEL_GRANTED = 'statusConnected';
-const LABEL_DENIED  = 'statusBlocked';
+const LABEL_DENIED  = 'statusBlockedIos';
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
