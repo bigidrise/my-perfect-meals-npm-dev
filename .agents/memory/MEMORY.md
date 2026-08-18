@@ -72,3 +72,4 @@
 - [Meal image recipe-fidelity gate](meal-image-validation-gate.md) — GPT-4o vision check gates cache entry; FAIL twice → semantic fallback, cache nothing; SKIPPED still caches but is audited.
 - [Meal image ingredient contract](meal-image-ingredient-contract.md) — dish name is label only; allow/deny list from full recipe; cache key must hash all ingredients + version bump on prompt changes.
 - [Canonical Media Asset Architecture — Step 4](media-asset-architecture.md) — media_assets table, paginated /api/saved-meals, lifecycle gates on familyRecipes+mealShares, Object Storage API casts, Jest ESM stub pattern for tests.
+- [prod.ts early SPA fallback intercepts /public-objects/](prod-spa-fallback-intercepts-public-objects.md) — SPA fallback must exclude /public-objects/ or image URLs return HTML in production; dev is immune because routes register first there.
