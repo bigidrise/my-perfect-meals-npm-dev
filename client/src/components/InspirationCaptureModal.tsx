@@ -222,6 +222,10 @@ export default function InspirationCaptureModal({
   const [savedIndices, setSavedIndices] = useState<number[]>([]);
   // True while "Try 3 More" is fetching new options — keeps old cards visible during the wait
   const [isRegenerating, setIsRegenerating] = useState(false);
+  // Set when Try 3 More returns a constraint_conflict (not a real error) so we
+  // can show a calm inline note rather than a red toast, while keeping the
+  // existing cards on screen unchanged.
+  const [tryMoreConstraintMsg, setTryMoreConstraintMsg] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -505,6 +509,7 @@ export default function InspirationCaptureModal({
   const handleTryMore = useCallback(async () => {
     // Keep the existing cards visible — only replace them once new ones arrive.
     setIsRegenerating(true);
+    setTryMoreConstraintMsg(null);
     try {
       // Reconstruct generation context — the local capture state (capturedText /
       // capturedBase64 / mode) is only populated when the user generated in this
@@ -547,7 +552,26 @@ export default function InspirationCaptureModal({
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t("inspiration.somethingWrong"));
+      if (!res.ok) {
+        // Two distinct non-ok outcomes — keep them separate in the UI:
+        //
+        // constraint_conflict: the system worked correctly and determined no
+        //   additional options exist that meet today's nutrition requirements.
+        //   Show a calm inline note below the existing cards — no red toast,
+        //   no "failed" language, existing cards stay visible and usable.
+        //
+        // everything else: a real technical failure (network, timeout, server
+        //   crash, OpenAI error).  Show a toast so the user knows to retry.
+        if (data.reasonCode === "constraint_conflict") {
+          setTryMoreConstraintMsg(
+            data.error ||
+            t("inspiration.noAdditionalOptionsDesc",
+              "We created additional versions of this recipe, but none met today's nutrition requirements. Your current options are still available.")
+          );
+          return;
+        }
+        throw new Error(data.error || t("inspiration.somethingWrong"));
+      }
 
       // New results are ready — swap them in atomically.
       setResult(data);
@@ -567,10 +591,11 @@ export default function InspirationCaptureModal({
         try { localStorage.setItem("mpm.recipe.lastScan", JSON.stringify(persistable)); } catch {}
       }
     } catch (err: any) {
-      // Generation failed — keep the original three cards and surface the error.
+      // Real technical failure (network, server crash, OpenAI error).
+      // Keep existing cards — only swap when new ones actually arrive.
       toast({
-        title: t("inspiration.somethingWrong"),
-        description: err.message || t("inspiration.createFailedMsg"),
+        title: t("inspiration.tryMoreFailedTitle", "We couldn't create new options right now"),
+        description: t("inspiration.tryMoreFailedDesc", "Your current recipes haven't been changed. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -1119,6 +1144,22 @@ export default function InspirationCaptureModal({
                       )}
                     </button>
                   </div>
+                  {/* Constraint note — shown when Try 3 More found no compliant options.
+                      Not an error: the system worked correctly and rejected non-compliant
+                      variants.  Calm, no red colour, existing cards remain actionable. */}
+                  {tryMoreConstraintMsg && (
+                    <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 flex gap-2.5 items-start">
+                      <span className="text-white/40 shrink-0 mt-0.5 text-base leading-none">ℹ</span>
+                      <div className="space-y-0.5">
+                        <div className="text-white/70 font-semibold text-xs">
+                          {t("inspiration.noAdditionalOptionsTitle", "No additional options fit your plan right now")}
+                        </div>
+                        <div className="text-white/50 text-xs leading-relaxed">
+                          {tryMoreConstraintMsg}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {savedIndices.length > 0 && (
                     <button
                       onClick={() => { onOpenChange(false); setLocation("/saved-meals"); }}

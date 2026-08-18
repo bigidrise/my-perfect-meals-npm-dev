@@ -5430,6 +5430,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `${_bglGatedOptions.length} remain`,
           );
         }
+        // BGL gate eliminated every option — this is a clinical constraint outcome,
+        // not a generation failure.  Return a typed 422 so the inspiration route and
+        // the client can surface a "no compliant options" message without treating
+        // it as a crash.  Running the fallback here would be wrong: any single-
+        // option fallback would also exceed the same carb ceiling.
+        if (_bglGatedOptions.length === 0 && mealOptions.length > 0) {
+          return res.status(422).json({
+            error: "We created additional versions of this recipe, but none met today's nutrition requirements.",
+            reasonCode: "constraint_conflict",
+            suggestedActions: [],
+          });
+        }
       }
 
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
