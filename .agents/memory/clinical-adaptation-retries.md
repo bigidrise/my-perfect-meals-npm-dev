@@ -7,4 +7,4 @@ description: Clinical (diabetic/GLP-1) generator behavior must key off server-re
 
 **Why:** The route gate fires for profile-confirmed diabetic/GLP-1 users on EVERY builder, regardless of the diet the client sends. If generator adaptation only checks client dietType, a diabetic user with a non-diabetic builder gets no adaptation retries and hits the gate rejection — exactly the mismatch a code review rejected.
 
-**How to apply:** Thread the resolver's generationContext into MealGenerationRequest (`clinicalGenerationContext`) and use `isClinicalAdaptationActive()` in `clinicalMacroGate.ts` as the single activation helper. Keep the route gate fail-closed as the final safeguard; its rejection response is a graceful 422 with the dish name, not a 503.
+**How to apply:** Activate generator-side clinical behavior from the same server-resolved signal the post-gen clinical gate uses (single shared activation helper), never from client dietType alone. Keep the route gate fail-closed as the final safeguard with a graceful constraint-outcome response.

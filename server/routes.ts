@@ -58,8 +58,7 @@ import {
   removeUserPin, 
   verifyPinAndIssueOverrideToken,
   createAllergyEditToken,
-  validateAllergyEditToken,
-  peekOverrideTokenAllergen
+  validateAllergyEditToken
 } from "./services/safetyPinService";
 // Shopping list import removed - will be implemented per ChatGPT specifications
 import avatarChatRouter from "./routes/avatarChat";
@@ -840,25 +839,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Uses effectiveUserId — never the untrusted body userId — so a tampered ID
       // cannot bypass the authenticated user's allergy/religious constraints.
       //
-      // Allergen peek: before the token is atomically consumed by enforceSafetyProfile
-      // inside runEnforcement, we capture which allergen the PIN authorised. This is
-      // a non-destructive read — the token is still claimed normally by enforcement.
-      // The allergen string is then passed to generateMealUnified so scanGeneratedOutput
-      // can suppress post-generation violations for that one allergen via ALLERGEN_EXPANSION.
+      // Request-scoped allergen override: populated ONLY from the enforcement
+      // result after the override token has been validated, one-time claimed,
+      // and audited by enforceSafetyProfile inside runEnforcement. Never
+      // pre-populated from an unclaimed token — a valid token whose request
+      // triggers no allergy conflict is not consumed and must NOT suppress
+      // post-generation scanning.
       let _unifiedOverriddenAllergens: string[] = [];
-      if (
-        effectiveUserId &&
-        safetyMode === "CUSTOM_AUTHENTICATED" &&
-        overrideToken &&
-        typeof overrideToken === "string"
-      ) {
-        const peekedAllergen = peekOverrideTokenAllergen(overrideToken, effectiveUserId);
-        if (peekedAllergen) {
-          _unifiedOverriddenAllergens = [peekedAllergen];
-          console.log(`[AllergyOverride/Unified] Pre-enforcement peek — allergen: ${peekedAllergen}, user: ${effectiveUserId}`);
-        }
-      }
-
       if (effectiveUserId && input) {
         const inputText = Array.isArray(input) ? input.join(' ') : input;
         const enforcement = await runEnforcement({
@@ -872,6 +859,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const routeResponse = toRouteResponse(enforcement);
         if (routeResponse.blocked || routeResponse.reviewRequired) {
           return res.status(400).json({ source: 'error', ...routeResponse.errorPayload });
+        }
+        // Sole authorization source: the enforcement result exposes the
+        // allergen only after the token was validated, one-time claimed,
+        // and audited.
+        if (enforcement.overriddenAllergen) {
+          _unifiedOverriddenAllergens = [enforcement.overriddenAllergen];
+          console.log(`[AllergyOverride] Request-scoped override active on /api/meals/generate \u2014 allergen: ${enforcement.overriddenAllergen}, user: ${effectiveUserId}`);
         }
       }
 
