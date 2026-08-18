@@ -174,7 +174,18 @@ router.post(
       if (!cravingRes.ok) {
         const errData = await cravingRes.json().catch(() => ({}));
         console.error("[inspiration] craving-creator call failed:", errData);
-        throw new Error((errData as any).error || "Generation failed");
+        // Surface the craving-creator's user-facing message (constraint_conflict,
+        // safety_block, etc.) instead of swallowing it into a generic 500.
+        const userMessage: string =
+          (errData as any).message ||
+          (errData as any).error ||
+          "We couldn't create a meal for this request. Try a different dish or adjust your settings.";
+        const reasonCode: string | undefined = (errData as any).reasonCode;
+        return res.status(422).json({
+          error: userMessage,
+          reasonCode,
+          suggestedActions: (errData as any).suggestedActions ?? [],
+        });
       }
 
       const cravingData: any = await cravingRes.json();
