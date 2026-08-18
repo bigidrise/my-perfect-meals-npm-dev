@@ -9,6 +9,8 @@
  *   2. overriddenAllergens excludes the overridden allergen's derivatives.
  *   3. exemptDishNameTerms still exempts the requested dish's own name while
  *      derivative terms remain blocked.
+ *   4. Plant milks (almond milk, oat milk) must NOT trigger a dairy/milk allergy.
+ *   5. Plant milks (almond milk) MUST still trigger a tree-nut allergy.
  *
  * Pure unit tests — db is mocked; no network.
  *
@@ -19,7 +21,7 @@ jest.mock("../db", () => ({ db: {} }));
 jest.mock("../storage", () => ({ storage: {} }));
 
 import { scanGeneratedOutput, buildGuestEnvelope } from "../services/protocolEnvelope";
-import { getRequestedDishExemptTerms } from "../services/allergyGuardrails";
+import { getRequestedDishExemptTerms, scanMealsForAllergenViolations } from "../services/allergyGuardrails";
 
 function envelopeWithAllergies(allergies: string[]) {
   return { ...buildGuestEnvelope(), allergies } as any;
@@ -134,5 +136,236 @@ describe("scanGeneratedOutput — allergen derivative scan from envelope.allergi
         exemptDishNameTerms: exemptSet,
       }).passed,
     ).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plant-milk false-positive prevention
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Allergen override — category-aware suppression regression tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("allergen override — category-aware suppression", () => {
+  const realDairyMeal = {
+    name: "Cream Sauce Pasta",
+    description: "Pasta in heavy cream sauce.",
+    ingredients: [
+      { name: "pasta" },
+      { name: "heavy cream" },
+      { name: "butter" },
+      { name: "parmesan" },
+    ],
+    instructions: "Melt butter, add heavy cream, toss with pasta.",
+  };
+
+  test("overriding lactose intolerance does NOT suppress a dairy-allergy violation", () => {
+    // User has BOTH dairy AND lactose intolerance; they override only lactose intolerance.
+    // The dairy allergy must still block the meal.
+    const envelope = {
+      ...buildGuestEnvelope(),
+      allergies: ["dairy", "lactose intolerance"],
+    } as any;
+    const result = scanGeneratedOutput(realDairyMeal, envelope, {
+      generatorName: "test",
+      overriddenAllergens: ["lactose intolerance"],
+    });
+    expect(result.passed).toBe(false);
+    // At least one dairy-derived violation must survive
+    expect(
+      result.violations.some(v =>
+        ["cream", "heavy cream", "butter", "parmesan", "dairy", "milk"].includes(v.term.toLowerCase()),
+      ),
+    ).toBe(true);
+  });
+
+  test("overriding shellfish suppresses shellfish violations only", () => {
+    const shrimpMeal = {
+      name: "Shrimp Stir Fry",
+      description: "Quick stir fry.",
+      ingredients: [{ name: "shrimp" }, { name: "garlic" }],
+      instructions: "Stir fry shrimp and garlic.",
+    };
+    const envelope = {
+      ...buildGuestEnvelope(),
+      allergies: ["shellfish", "dairy"],
+    } as any;
+    // Override shellfish but keep dairy active
+    const result = scanGeneratedOutput(shrimpMeal, envelope, {
+      generatorName: "test",
+      overriddenAllergens: ["shellfish"],
+    });
+    // Shellfish/shrimp is suppressed — no shellfish violation
+    expect(
+      result.violations.some(v => v.category === "allergy:shellfish"),
+    ).toBe(false);
+    // No dairy ingredients in this meal — passes overall
+    expect(result.passed).toBe(true);
+  });
+
+  test("overriding shellfish does NOT suppress dairy violations in the same meal", () => {
+    const mixedMeal = {
+      name: "Shrimp Cream Pasta",
+      description: "Creamy shrimp pasta.",
+      ingredients: [
+        { name: "shrimp" },
+        { name: "heavy cream" },
+        { name: "butter" },
+      ],
+      instructions: "Cook shrimp with heavy cream and butter.",
+    };
+    const envelope = {
+      ...buildGuestEnvelope(),
+      allergies: ["shellfish", "dairy"],
+    } as any;
+    const result = scanGeneratedOutput(mixedMeal, envelope, {
+      generatorName: "test",
+      overriddenAllergens: ["shellfish"],
+    });
+    // Shellfish violations suppressed — dairy violations must survive
+    expect(result.passed).toBe(false);
+    expect(
+      result.violations.some(v => v.category === "allergy:dairy"),
+    ).toBe(true);
+    expect(
+      result.violations.every(v => v.category !== "allergy:shellfish"),
+    ).toBe(true);
+  });
+});
+
+describe("plant-milk masking — dairy allergy must not block almond/oat milk", () => {
+  const almondMilkMeal = {
+    name: "Banana Oat Smoothie",
+    description: "A plant-based smoothie.",
+    ingredients: [
+      { name: "banana" },
+      { name: "almond milk" },
+      { name: "oats" },
+    ],
+    instructions: "Blend almond milk with banana and oats until smooth.",
+  };
+
+  const oatMilkMeal = {
+    name: "Oat Milk Latte",
+    description: "A coffee drink made with oat milk.",
+    ingredients: [
+      { name: "espresso" },
+      { name: "oat milk" },
+    ],
+    instructions: "Steam oat milk and pour over espresso.",
+  };
+
+  const realDairyMeal = {
+    name: "Cream Pasta",
+    description: "A classic cream sauce pasta.",
+    ingredients: [
+      { name: "pasta" },
+      { name: "heavy cream" },
+      { name: "butter" },
+      { name: "parmesan" },
+    ],
+    instructions: "Melt butter in a pan, add cream and parmesan.",
+  };
+
+  test("scanGeneratedOutput: almond milk does NOT trigger dairy allergy", () => {
+    const result = scanGeneratedOutput(
+      almondMilkMeal,
+      envelopeWithAllergies(["dairy"]),
+      { generatorName: "test" },
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  test("scanGeneratedOutput: oat milk does NOT trigger dairy allergy", () => {
+    const result = scanGeneratedOutput(
+      oatMilkMeal,
+      envelopeWithAllergies(["dairy"]),
+      { generatorName: "test" },
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  test("scanGeneratedOutput: almond milk does NOT trigger milk allergy key", () => {
+    const result = scanGeneratedOutput(
+      almondMilkMeal,
+      envelopeWithAllergies(["milk"]),
+      { generatorName: "test" },
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  test("scanGeneratedOutput: real dairy ingredients still fail for dairy allergy", () => {
+    const result = scanGeneratedOutput(
+      realDairyMeal,
+      envelopeWithAllergies(["dairy"]),
+      { generatorName: "test" },
+    );
+    expect(result.passed).toBe(false);
+  });
+
+  test("scanGeneratedOutput: almond milk DOES trigger tree-nut allergy", () => {
+    // "tree nuts" is the canonical ALLERGEN_EXPANSION key (includes "almond milk" term)
+    const result = scanGeneratedOutput(
+      almondMilkMeal,
+      envelopeWithAllergies(["tree nuts"]),
+      { generatorName: "test" },
+    );
+    expect(result.passed).toBe(false);
+    // The "almond" or "almond milk" term should be reported
+    expect(
+      result.violations.some(v =>
+        v.term.toLowerCase().includes("almond"),
+      ),
+    ).toBe(true);
+  });
+
+  test("scanMealsForAllergenViolations: almond milk does NOT trigger dairy allergy", () => {
+    const { safe, unsafe } = scanMealsForAllergenViolations(
+      [almondMilkMeal],
+      ["dairy"],
+    );
+    expect(safe).toHaveLength(1);
+    expect(unsafe).toHaveLength(0);
+  });
+
+  test("scanMealsForAllergenViolations: oat milk does NOT trigger dairy allergy", () => {
+    const { safe, unsafe } = scanMealsForAllergenViolations(
+      [oatMilkMeal],
+      ["dairy"],
+    );
+    expect(safe).toHaveLength(1);
+    expect(unsafe).toHaveLength(0);
+  });
+
+  test("scanMealsForAllergenViolations: real dairy meal fails for dairy allergy", () => {
+    const { safe, unsafe } = scanMealsForAllergenViolations(
+      [realDairyMeal],
+      ["dairy"],
+    );
+    expect(safe).toHaveLength(0);
+    expect(unsafe).toHaveLength(1);
+  });
+
+  test("scanMealsForAllergenViolations: almond milk DOES fail for tree-nut allergy", () => {
+    // "tree nuts" is the canonical ALLERGEN_EXPANSION key that includes "almond milk"
+    const { safe, unsafe, violations } = scanMealsForAllergenViolations(
+      [almondMilkMeal],
+      ["tree nuts"],
+    );
+    expect(safe).toHaveLength(0);
+    expect(unsafe).toHaveLength(1);
+    expect(
+      Array.from(violations).some(v => v.toLowerCase().includes("almond")),
+    ).toBe(true);
+  });
+
+  test("scanMealsForAllergenViolations: mixed bag — dairy-safe plant-milk meal passes, real-dairy meal fails", () => {
+    const { safe, unsafe } = scanMealsForAllergenViolations(
+      [almondMilkMeal, oatMilkMeal, realDairyMeal],
+      ["dairy"],
+    );
+    expect(safe).toHaveLength(2);
+    expect(unsafe).toHaveLength(1);
   });
 });
