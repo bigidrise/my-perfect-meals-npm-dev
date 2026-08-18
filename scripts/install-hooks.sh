@@ -13,11 +13,16 @@ cat > "$HOOKS_DIR/pre-push" << 'EOF'
 #!/bin/bash
 # MPM pre-push hook — installed by scripts/install-hooks.sh
 # Runs npm run validate before every push. Aborts the push on failure.
+# Steps 1–5 (TypeScript, file integrity, auth routes, i18n, route parity) run
+# on every push. Step 6 (server boot + auth integration tests) is skipped here
+# because git does not export GIT_DIR to hook processes; we use MPM_IS_HOOK
+# instead so validate.sh can detect the hook context reliably.
 
 echo ""
 echo "🔍 Running MPM pre-push validation..."
 echo ""
 
+export MPM_IS_HOOK=1
 npm run validate
 EXIT_CODE=$?
 
