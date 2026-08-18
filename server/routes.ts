@@ -1170,14 +1170,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ceilings, covering every builder type (snack-creator, craving,
       // fridge-rescue, premade, create-with-chef).
       //
-      // Gate is driven by budgetGenerationContext (not clinicalNotes) so it
-      // fires even when the user's remaining macros are already below the nominal
-      // per-meal ceiling (e.g. 20 g carbs left for a diabetic user) and no clamp
-      // note was emitted. Null / non-finite macro values fail safely for clinical
-      // users: unknown nutrition cannot be cleared as safe.
+      // Gate context merges budgetGenerationContext (DB-confirmed clinical users)
+      // with effectiveDietType (Diabetic Builder users whose DB prescription is
+      // not yet flagged "clinical" but who deliberately chose diabetic mode).
+      // This mirrors isClinicalAdaptationActive() semantics exactly — both the
+      // generator and the gate now agree on what "diabetic active" means.
+      //
+      // Diabetic carb ceiling: min(remainingMacros.carbs, 35g) — ensures the
+      // 35g per-meal hard cap applies even when the budget resolver did not clamp
+      // (i.e. when the user's remaining carbs are already above 35g because no
+      // clinical ceiling was applied on the budget side for this user).
+      //
+      // Null / non-finite macro values fail safely for clinical users: unknown
+      // nutrition cannot be cleared as safe.
       if (result.success && effectiveRemainingMacros) {
         const { validateClinicalMacros } = await import("./services/clinicalMacroGate");
-        const carbCeiling = effectiveRemainingMacros.carbs;
+
+        // Prefer the DB-confirmed context; fall back to effectiveDietType so
+        // Diabetic Builder users are always gated even without a clinical prescription.
+        const gateContext: string =
+          (budgetGenerationContext && budgetGenerationContext !== "standard")
+            ? budgetGenerationContext
+            : (effectiveDietType ?? "standard");
+
+        // For diabetic: enforce 35g hard ceiling regardless of remaining budget.
+        // computeNextMealBudget only clamps when generationContext === "diabetic"
+        // at the DB level; Diabetic Builder users may have a larger remaining carb
+        // budget (e.g. 130g) if their prescription isn't DB-flagged as clinical.
+        const DIABETIC_HARD_CAB_CAP = 35;
+        const isDiabeticGate = gateContext === "diabetic";
+        const carbCeiling = isDiabeticGate
+          ? Math.min(effectiveRemainingMacros.carbs, DIABETIC_HARD_CAB_CAP)
+          : effectiveRemainingMacros.carbs;
         const fatCeiling  = effectiveRemainingMacros.fat;
 
         const mealsToValidate: any[] = [
@@ -1185,43 +1209,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...(result.meals ?? []),
         ];
 
-        for (const meal of mealsToValidate) {
-          const gateResult = validateClinicalMacros(
-            budgetGenerationContext,
-            carbCeiling,
-            fatCeiling,
-            meal?.carbs,
-            meal?.fat,
-          );
+        // ── Filter variety, reject single ───────────────────────────────────
+        // For variety generation (result.meals): remove non-compliant options
+        // and continue with whatever passes. Only return 422 when every option
+        // fails — identical semantics to the GLP-1 post-gen filter path.
+        //
+        // For single-meal generation (result.meal): a failure means there is
+        // nothing compliant to return → 422 immediately.
+        const requestedDishRaw =
+          typeof effectiveInput === 'string'
+            ? effectiveInput.trim()
+            : Array.isArray(effectiveInput)
+              ? effectiveInput.join(', ').trim()
+              : '';
+        const dishLabel =
+          requestedDishRaw && requestedDishRaw.length <= 60
+            ? `"${requestedDishRaw}"`
+            : 'this dish';
 
-          if (gateResult.passed === false) {
-            const gateReason: string = gateResult.reason;
-            console.error(
-              `[ClinicalGate] Rejected: reason=${gateReason} ` +
-              `context=${budgetGenerationContext} type=${type} ` +
-              `carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
+        if (result.meals && result.meals.length > 0) {
+          // Variety path — filter
+          const beforeCount = result.meals.length;
+          result.meals = result.meals.filter((meal: any) => {
+            const gr = validateClinicalMacros(gateContext, carbCeiling, fatCeiling, meal?.carbs, meal?.fat);
+            if (!gr.passed) {
+              console.warn(
+                `[ClinicalGate] Filtered out "${meal?.name}" — reason=${gr.reason} ` +
+                `context=${gateContext} carbCeiling=${carbCeiling} fatCeiling=${fatCeiling} ` +
+                `meal.carbs=${meal?.carbs} meal.fat=${meal?.fat}`,
+              );
+            }
+            return gr.passed;
+          });
+          if (result.meals.length < beforeCount) {
+            console.log(
+              `[ClinicalGate] ${beforeCount - result.meals.length}/${beforeCount} variety option(s) ` +
+              `filtered for context=${gateContext}. ${result.meals.length} remain.`,
             );
-            // Graceful degradation: the gate is correct to block the meal, but
-            // the user asked for a dish that should be adapted, not rejected.
-            // 422 (not 503) — this is a constraint outcome, not a server fault.
-            const requestedDishRaw =
-              typeof effectiveInput === 'string'
-                ? effectiveInput.trim()
-                : Array.isArray(effectiveInput)
-                  ? effectiveInput.join(', ').trim()
-                  : '';
-            const dishLabel =
-              requestedDishRaw && requestedDishRaw.length <= 60
-                ? `"${requestedDishRaw}"`
-                : 'this dish';
+          }
+          if (result.meals.length === 0) {
+            console.error(`[ClinicalGate] All variety options eliminated — context=${gateContext}`);
             return res.status(422).json({
               success: false,
               error:
                 `We couldn't adapt ${dishLabel} to fit your clinical nutrition targets for this meal slot. ` +
                 `Try a different dish, or adjust the meal timing so more of your daily budget is available.`,
-              source:  "clinical_ceiling_violation",
+              source:   "clinical_ceiling_violation",
               degraded: true,
-              gateReason,
+              gateReason: `all_${gateContext}_options_eliminated`,
+            });
+          }
+        } else if (result.meal) {
+          // Single-meal path — reject on first failure
+          const gr = validateClinicalMacros(gateContext, carbCeiling, fatCeiling, result.meal?.carbs, result.meal?.fat);
+          if (!gr.passed) {
+            console.error(
+              `[ClinicalGate] Rejected: reason=${gr.reason} ` +
+              `context=${gateContext} carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
+            );
+            return res.status(422).json({
+              success: false,
+              error:
+                `We couldn't adapt ${dishLabel} to fit your clinical nutrition targets for this meal slot. ` +
+                `Try a different dish, or adjust the meal timing so more of your daily budget is available.`,
+              source:   "clinical_ceiling_violation",
+              degraded: true,
+              gateReason: gr.reason,
             });
           }
         }
