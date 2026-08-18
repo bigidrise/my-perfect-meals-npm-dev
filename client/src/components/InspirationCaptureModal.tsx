@@ -455,6 +455,23 @@ export default function InspirationCaptureModal({
         || "";
       const effectiveMode: string = hasImage ? mode : "text";
 
+      // Guard: if there is no image and no usable text description, we cannot
+      // send a meaningful request.  Show a clear message so the user knows
+      // what to do instead of hitting the server with a blank content field
+      // and getting a generic error.
+      if (!hasImage && !effectiveContent) {
+        toast({
+          title: t("inspiration.tryMoreNoContentTitle", "Re-enter your request"),
+          description: t(
+            "inspiration.tryMoreNoContentDesc",
+            "Re-enter your original request to try again."
+          ),
+          variant: "destructive",
+        });
+        setIsRegenerating(false);
+        return;
+      }
+
       const body: any = {
         inputType: effectiveMode,
         servings,
