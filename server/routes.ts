@@ -5162,6 +5162,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // ── BGL-aware diabetic carb gate (Recipe Maker / craving-creator) ──────
+      // When the user is diabetic, filter out options whose carb count exceeds
+      // the glucose-state-aware ceiling. Uses the same thresholds as
+      // diabeticValidator so the Diabetic Hub and Recipe Maker enforce the same
+      // clinical rules (high-risk BGL 300 → 15g ceiling, not a flat 35g).
+      //
+      // Low/low-normal glucose: ceiling is RELAXED (user needs carbs) — options
+      // are passed through regardless of carb count.
+      // No glucose reading: falls back to the standard 35g diabetic cap.
+      // Non-diabetic users: gate is bypassed entirely.
+      let _bglGatedOptions = [...mealOptions];
+      if (protocolEnvelope.hasDiabetes && mealOptions.length > 0) {
+        const _bglState = protocolEnvelope.diabeticGlucoseState;
+        const _bglCarbCeiling =
+          _bglState === "high-risk" ? 15
+          : _bglState === "elevated" ? 25
+          : _bglState === "low"      ? 45  // hypoglycemia — needs carbs, ceiling relaxed
+          : 35;                            // low-normal, in-range, or no reading: 35g cap
+        const BGL_CARB_TOLERANCE = 10;    // match diabeticValidator rounding tolerance
+        _bglGatedOptions = mealOptions.filter((m: any) => {
+          const carbs = m.carbs ?? m.nutrition?.carbs ?? null;
+          // Low/low-normal: don't filter down — pass all
+          if (_bglState === "low" || _bglState === "low-normal") return true;
+          // Unknown carbs at elevated/high-risk: fail-closed
+          if (carbs == null) return false;
+          return Number(carbs) <= _bglCarbCeiling + BGL_CARB_TOLERANCE;
+        });
+        if (_bglGatedOptions.length < mealOptions.length) {
+          console.warn(
+            `🩸 [BGL Gate/CravingCreator] ${mealOptions.length - _bglGatedOptions.length} option(s) ` +
+            `exceeded ${_bglCarbCeiling}g carb ceiling (glucoseState=${_bglState ?? "none"}) — ` +
+            `${_bglGatedOptions.length} remain`,
+          );
+        }
+      }
+
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
       // Uses the protocol envelope to filter any options that still violated the
       // user's dietary identity, avoidances, or procedural rules after generation.
@@ -5199,7 +5235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.warn("[AllergenAdapt] Failed to compute requested-dish exemption:", exErr);
         }
       }
-      const cleanOptions = filterMealsByProtocol(mealOptions, _filterEnvelope, {
+      const cleanOptions = filterMealsByProtocol(_bglGatedOptions, _filterEnvelope, {
         generatorName: "craving_creator",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -5211,7 +5247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      if (cleanOptions.length === 0 && mealOptions.length > 0) {
+      if (cleanOptions.length === 0 && _bglGatedOptions.length > 0) {
         console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
         // Fallback directive carries MORE explicit dish-identity language, not less.
         let _fallbackDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
@@ -5278,8 +5314,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      if (cleanOptions.length < mealOptions.length) {
-        console.log(`⚠️ [ProtocolEnvelope] Removed ${mealOptions.length - cleanOptions.length} violating option(s) — serving ${cleanOptions.length} clean option(s)`);
+      if (cleanOptions.length < _bglGatedOptions.length) {
+        console.log(`⚠️ [ProtocolEnvelope] Removed ${_bglGatedOptions.length - cleanOptions.length} violating option(s) — serving ${cleanOptions.length} clean option(s)`);
       }
 
       let scannedOptions = cleanOptions;
