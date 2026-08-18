@@ -7,7 +7,7 @@ import { sendEmail } from "./emailService";
 import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
-import { ObjectStorageService, objectStorageClient } from "./objectStorage";
+import { ObjectStorageService, objectStorageClient, StorageUnavailableError, inferContentType } from "./objectStorage";
 import { processMealImageForSave } from "./services/imageLifecycle";
 import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -395,43 +395,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/ai/reduce-drinking-plan", reduceDrinkingPlanRouter);
 
   // Public Object Storage - Serves meal images for Hybrid Meal Engine
+  // Reads use @replit/object-storage — the SAME SDK as the write path — so a
+  // GCS credential-sidecar failure can no longer break reads while writes work.
+  // Status contract: 404 = object missing (non-retryable), 503 = storage error (retryable).
   app.get("/public-objects/*", async (req, res) => {
     const filePath = (req.params as Record<string, string>)[0] || "";
+    const startedAt = Date.now();
+    let bytes = 0;
+
+    const logAccess = (httpStatus: number, extra?: Record<string, unknown>) => {
+      console.log(
+        JSON.stringify({
+          event: "public_object_access",
+          objectPath: filePath,
+          httpStatus,
+          bytes,
+          durationMs: Date.now() - startedAt,
+          ...extra,
+        }),
+      );
+    };
+
     try {
       const objectStorageService = new ObjectStorageService();
-
-      // New-format URLs embed the bucket ID directly in the path:
-      //   replit-objstore-<uuid>/meal-images/<filename>
-      // Serve these directly without going through PUBLIC_OBJECT_SEARCH_PATHS.
-      if (filePath.startsWith("replit-objstore-")) {
-        const slashIdx = filePath.indexOf("/");
-        if (slashIdx !== -1) {
-          const bucketName = filePath.slice(0, slashIdx);
-          const objectName = filePath.slice(slashIdx + 1);
-          const file = objectStorageClient.bucket(bucketName).file(objectName);
-          const [exists] = await file.exists();
-          if (!exists) {
-            return res.status(404).json({ error: "File not found" });
-          }
-          return objectStorageService.downloadObject(file, res);
-        }
-      }
-
-      // Legacy-format URLs: search across PUBLIC_OBJECT_SEARCH_PATHS buckets.
-      const file = await objectStorageService.searchPublicObject(filePath);
-      if (!file) {
+      const resolved = await objectStorageService.resolvePublicObjectPath(filePath);
+      if (!resolved) {
+        logAccess(404);
         return res.status(404).json({ error: "File not found" });
       }
-      objectStorageService.downloadObject(file, res);
+
+      res.set({
+        "Content-Type": inferContentType(resolved.objectName),
+        "Cache-Control": "public, max-age=3600",
+      });
+
+      const stream = objectStorageService.streamResolvedObject(
+        resolved.bucketId,
+        resolved.objectName,
+      );
+      stream.on("data", (chunk: Buffer) => {
+        bytes += chunk.length;
+      });
+      stream.on("error", (err: Error) => {
+        logAccess(res.headersSent ? 200 : 503, { streamError: err.message });
+        if (!res.headersSent) {
+          res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
+        } else {
+          res.destroy();
+        }
+      });
+      res.on("finish", () => logAccess(res.statusCode));
+      stream.pipe(res);
     } catch (error: any) {
+      if (error instanceof StorageUnavailableError) {
+        logAccess(503, { error: error.message });
+        return res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
+      }
       if (error.message?.includes("PUBLIC_OBJECT_SEARCH_PATHS not set")) {
+        logAccess(503, { error: "PUBLIC_OBJECT_SEARCH_PATHS not set" });
         return res.status(503).json({ 
           error: "Object storage not configured",
           hint: "Create a bucket in Object Storage and set PUBLIC_OBJECT_SEARCH_PATHS env var"
         });
       }
-      console.error("Error searching for public object:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      console.error("Error serving public object:", error);
+      logAccess(503, { error: error.message });
+      return res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
     }
   });
 

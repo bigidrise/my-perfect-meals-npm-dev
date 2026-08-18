@@ -1,6 +1,8 @@
 // server/objectStorage.ts
 // Replit Object Storage integration for permanent file storage
 import { Storage, File } from "@google-cloud/storage";
+import { Client as ReplitStorageClient } from "@replit/object-storage";
+import type { Readable } from "stream";
 import { Response } from "express";
 import { randomUUID } from "crypto";
 import {
@@ -38,6 +40,43 @@ export class ObjectNotFoundError extends Error {
     this.name = "ObjectNotFoundError";
     Object.setPrototypeOf(this, ObjectNotFoundError.prototype);
   }
+}
+
+// Storage backend unavailable / errored (retryable) — distinct from a missing object.
+export class StorageUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StorageUnavailableError";
+    Object.setPrototypeOf(this, StorageUnavailableError.prototype);
+  }
+}
+
+// ── Replit Object Storage clients (same SDK as the write path) ────────────────
+// One client per bucket ID; a bucketId of "" means the default (active) bucket.
+const replitClients = new Map<string, ReplitStorageClient>();
+function getReplitClient(bucketId?: string): ReplitStorageClient {
+  const key = bucketId || "";
+  let client = replitClients.get(key);
+  if (!client) {
+    client = bucketId ? new ReplitStorageClient({ bucketId }) : new ReplitStorageClient();
+    replitClients.set(key, client);
+  }
+  return client;
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  avif: "image/avif",
+};
+
+export function inferContentType(objectName: string): string {
+  const ext = objectName.split(".").pop()?.toLowerCase() || "";
+  return CONTENT_TYPES[ext] || "application/octet-stream";
 }
 
 // The object storage service is used to interact with the object storage service.
@@ -94,6 +133,71 @@ export class ObjectStorageService {
     }
 
     return null;
+  }
+
+  // Resolves a /public-objects/* file path to { bucketId, objectName }.
+  // Supports both new-format paths (bucket ID embedded: replit-objstore-<uuid>/...)
+  // and legacy paths (searched across PUBLIC_OBJECT_SEARCH_PATHS).
+  // Returns null when the object does not exist; throws StorageUnavailableError
+  // when the storage backend cannot be reached.
+  async resolvePublicObjectPath(
+    filePath: string,
+  ): Promise<{ bucketId: string | undefined; objectName: string } | null> {
+    // New-format: bucket ID embedded directly in the path
+    if (filePath.startsWith("replit-objstore-")) {
+      const slashIdx = filePath.indexOf("/");
+      if (slashIdx === -1) return null;
+      const bucketId = filePath.slice(0, slashIdx);
+      const objectName = filePath.slice(slashIdx + 1);
+      const existsResult = await getReplitClient(bucketId).exists(objectName);
+      if (!existsResult.ok) {
+        throw new StorageUnavailableError(
+          `Object storage exists() failed: ${existsResult.error?.message ?? "unknown error"}`,
+        );
+      }
+      return existsResult.value ? { bucketId, objectName } : null;
+    }
+
+    // Legacy-format: search across PUBLIC_OBJECT_SEARCH_PATHS buckets.
+    // A single bucket erroring must not abort the search of the other paths;
+    // only surface a storage error if nothing was found AND an error occurred.
+    let firstError: string | null = null;
+    for (const searchPath of this.getPublicObjectSearchPaths()) {
+      const fullPath = `${searchPath}/${filePath}`;
+      const { bucketName, objectName } = parseObjectPath(fullPath);
+      const existsResult = await getReplitClient(bucketName).exists(objectName);
+      if (!existsResult.ok) {
+        firstError ??= existsResult.error?.message ?? "unknown error";
+        continue;
+      }
+      if (existsResult.value) {
+        return { bucketId: bucketName, objectName };
+      }
+    }
+    if (firstError) {
+      throw new StorageUnavailableError(`Object storage exists() failed: ${firstError}`);
+    }
+    return null;
+  }
+
+  // Opens a Readable stream for the given object path using the Replit SDK
+  // (same SDK as the write path). objectPath format: "<bucketId>/<objectName>"
+  // or a bare objectName for the default bucket. Errors are emitted on the stream.
+  downloadAsStream(objectPath: string): Readable {
+    if (objectPath.startsWith("replit-objstore-")) {
+      const slashIdx = objectPath.indexOf("/");
+      if (slashIdx !== -1) {
+        const bucketId = objectPath.slice(0, slashIdx);
+        const objectName = objectPath.slice(slashIdx + 1);
+        return getReplitClient(bucketId).downloadAsStream(objectName);
+      }
+    }
+    return getReplitClient().downloadAsStream(objectPath);
+  }
+
+  // Streams a resolved object (from resolvePublicObjectPath) directly.
+  streamResolvedObject(bucketId: string | undefined, objectName: string): Readable {
+    return getReplitClient(bucketId).downloadAsStream(objectName);
   }
 
   // Downloads an object to the response.

@@ -19,6 +19,8 @@ Example: `/public-objects/replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b/m
 
 **Route fix:** `/public-objects/` handler in routes.ts now fast-paths any URL starting with `replit-objstore-` by parsing bucket+object directly from the URL path, bypassing the `PUBLIC_OBJECT_SEARCH_PATHS` prepend. Legacy search-path behavior is preserved for other URLs.
 
+**Reads unified on Replit SDK (Aug 2026):** `/public-objects/*` now serves via `@replit/object-storage` (same SDK as writes) — `resolvePublicObjectPath()` + `downloadAsStream()` in `objectStorage.ts`. Status contract: 404 = missing, 503 = storage error (retryable); every request emits a JSON `public_object_access` log (objectPath, httpStatus, bytes, durationMs). Note: the Replit SDK client can ONLY access buckets attached to this repl — pointing `ClientOptions.bucketId` at the old disconnected bucket (e02a723e, still in PUBLIC_OBJECT_SEARCH_PATHS) errors with a heimdall permission denial, so legacy-format URLs 503 until that env var is updated to the active bucket.
+
 **Env vars:** `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR` still reference the OLD bucket — they were NOT auto-updated by Replit when the new bucket was created. These matter for the legacy search-path and private-object paths, but NOT for new-format URLs. Updating them is Step 4 scope.
 
 **S3 is still broken:** HTTP 403 (IAM policy). Not fixed. Fallback to Object Storage is the production path until S3 is repaired.
