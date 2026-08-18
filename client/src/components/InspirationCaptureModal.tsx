@@ -461,6 +461,7 @@ export default function InspirationCaptureModal({
         healthMode,
         proteinPriority,
         prepStyle,
+        skipImages: true,   // skip DALL-E for regeneration — saves ~15s; cards show text first
         ...(cuisineOverrideEnabled && cuisineOverrideValue
           ? { cuisineOverride: cuisineOverrideValue }
           : {}),
