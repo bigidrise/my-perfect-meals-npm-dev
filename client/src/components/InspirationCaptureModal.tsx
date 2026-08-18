@@ -444,8 +444,19 @@ export default function InspirationCaptureModal({
     // Keep the existing cards visible — only replace them once new ones arrive.
     setIsRegenerating(true);
     try {
+      // Reconstruct generation context — the local capture state (capturedText /
+      // capturedBase64 / mode) is only populated when the user generated in this
+      // session.  When cards come from a localStorage restore those fields are at
+      // their defaults ("upload", null, "").  Fall back to the extractedDescription
+      // that the server embeds in every result so Try 3 More always has content.
+      const hasImage = (mode === "camera" || mode === "upload") && !!capturedBase64;
+      const effectiveContent = capturedText
+        || (result?.extractedDescription as string | undefined)
+        || "";
+      const effectiveMode: string = hasImage ? mode : "text";
+
       const body: any = {
-        inputType: mode,
+        inputType: effectiveMode,
         servings,
         healthMode,
         proteinPriority,
@@ -455,11 +466,11 @@ export default function InspirationCaptureModal({
           : {}),
         ...(currentNames.length > 0 ? { excludedOptionNames: currentNames } : {}),
       };
-      if (mode === "camera" || mode === "upload") {
+      if (hasImage) {
         body.imageBase64 = capturedBase64;
         body.content = "";
       } else {
-        body.content = capturedText;
+        body.content = effectiveContent;
       }
       const res = await fetch(apiUrl("/api/inspiration/capture"), {
         method: "POST",
