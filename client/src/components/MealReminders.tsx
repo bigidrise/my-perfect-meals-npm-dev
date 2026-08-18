@@ -180,6 +180,9 @@ export default function MealReminders() {
           setWebPermission(getWebPushPermission());
           const result = await checkWebPushPipeline();
           setPipeline(result);
+          // Re-read permission after the async pipeline check so the status
+          // badge never lags behind a state change that occurred during the await.
+          setWebPermission(getWebPushPermission());
         }
       } catch (e) {
         console.error('[MealReminders] ✗ init error:', e);
