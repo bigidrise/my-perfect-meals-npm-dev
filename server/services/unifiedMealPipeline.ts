@@ -1433,8 +1433,54 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
   return true;
 }
 
+/**
+ * Normalise a meal name for exclusion comparison.
+ * Strips punctuation, collapses whitespace, and lowercases so that
+ * "Herb-Roasted Chicken Thighs" and "Herb Roasted Chicken Thighs" are treated
+ * as the same name (same meal re-served under minor title variation).
+ *
+ * @internal Exported for unit testing only.
+ */
+export function normalizeForExclusion(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')  // punctuation → space
+    .replace(/\s+/g, ' ')           // collapse multiple spaces
+    .trim();
+}
+
+/**
+ * Filter variety options whose normalised name matches any excluded meal name.
+ *
+ * Safety guarantees:
+ * - Non-string / null / empty entries in `excludeMeals` are silently ignored
+ *   so a malformed client payload never causes a runtime crash.
+ * - Comparison is normalised (see normalizeForExclusion) so minor punctuation
+ *   or spacing differences ("Herb-Roasted …" vs "Herb Roasted …") are treated
+ *   as the same meal.
+ *
+ * @internal Exported for unit testing only.
+ */
+export function filterExcludedMealNames(
+  options: Array<{ name?: string; [key: string]: any }>,
+  excludeMeals: string[]
+): Array<{ name?: string; [key: string]: any }> {
+  if (!excludeMeals || excludeMeals.length === 0) return options;
+  // Validate each entry — only non-empty strings are considered
+  const safeExcluded = excludeMeals.filter(
+    (e): e is string => typeof e === 'string' && e.trim().length > 0
+  );
+  if (safeExcluded.length === 0) return options;
+  const excludedNorm = safeExcluded.map(normalizeForExclusion);
+  return options.filter(opt => {
+    const optNorm = normalizeForExclusion(opt.name ?? '');
+    return !excludedNorm.some(ex => optNorm === ex);
+  });
+}
+
 // Exported for unit testing — do not use in application code outside this module
-export const __varietyTestables = { validateVarietyOption };
+export const __varietyTestables = { validateVarietyOption, filterExcludedMealNames, normalizeForExclusion };
 
 // ── Kosher category intent detection ─────────────────────────────────────────
 // Reads the user's craving text to determine which kosher category they are
@@ -2250,7 +2296,51 @@ export async function generateCravingMealOptions(
     }
   }
 
-  let finalOptions = rawOptions.slice(0, 3);
+  // ── Excluded-name filter (Try 3 More guarantee) ──────────────────────────
+  // Applied BEFORE slicing to 3 so the full raw pool is available for selection.
+  // Primary enforcement is the ANTI-REPETITION clause in the prompt; this is the
+  // code-level guarantee that an AI that ignores it still never re-serves a meal.
+  // Normalised comparison (see normalizeForExclusion) catches minor renames like
+  // "Herb-Roasted Chicken Thighs" re-served as "Herb Roasted Chicken Thighs".
+  let rawFiltered = (excludeMeals && excludeMeals.length > 0)
+    ? filterExcludedMealNames(rawOptions, excludeMeals)
+    : rawOptions;
+
+  if (excludeMeals && excludeMeals.length > 0 && rawFiltered.length < rawOptions.length) {
+    console.warn(
+      `[VARIETY ENGINE] ${rawOptions.length - rawFiltered.length} raw option(s) matched ` +
+      `excludeMeals — ${rawFiltered.length} remain`
+    );
+  }
+
+  // If the exclusion filter reduced the pool below 3, do one bounded retry to
+  // attempt to fill the missing slots.  Best-effort: if the retry also returns
+  // excluded names or fails, the surviving options (1-2) are returned as-is.
+  // The caller (route) returns a 422 only when rawFiltered is entirely empty.
+  if (excludeMeals && excludeMeals.length > 0 && rawFiltered.length < 3) {
+    const missing = 3 - rawFiltered.length;
+    console.warn(`[VARIETY ENGINE] excludeMeals: only ${rawFiltered.length}/3 options survive — retrying to fill ${missing} slot(s)`);
+    try {
+      const retryRaw = await attempt(false);
+      const retryFiltered = filterExcludedMealNames(retryRaw, excludeMeals);
+      for (const opt of retryFiltered) {
+        if (rawFiltered.length >= 3) break;
+        // De-duplicate against already accepted options
+        const optNorm = normalizeForExclusion(opt.name ?? '');
+        const isDupe = rawFiltered.some(
+          (o: any) => normalizeForExclusion(o.name ?? '') === optNorm
+        );
+        if (!isDupe) rawFiltered.push(opt);
+      }
+      console.log(
+        `[VARIETY ENGINE] excludeMeals refill: ${rawFiltered.length} options after retry`
+      );
+    } catch (retryErr) {
+      console.warn('[VARIETY ENGINE] excludeMeals refill retry failed — serving partial result:', retryErr);
+    }
+  }
+
+  let finalOptions = rawFiltered.slice(0, 3);
 
   // ── Oncology post-generation filter ──────────────────────────────────────
   // Second line of defense: after all retries, scan each variety card for
