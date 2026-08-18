@@ -76,6 +76,7 @@ router.post(
         healthMode = "balanced",
         proteinPriority = "standard",
         prepStyle = "any",
+        excludedOptionNames,
       } = req.body;
 
       if (!inputType || (!content && !imageBase64)) {
@@ -160,6 +161,9 @@ router.post(
             generationMode: "meal",
             ...(cuisineOverride && typeof cuisineOverride === "string" && cuisineOverride.trim()
               ? { cultureOverride: cuisineOverride.trim() }
+              : {}),
+            ...(Array.isArray(excludedOptionNames) && excludedOptionNames.length > 0
+              ? { excludeMeals: excludedOptionNames.slice(0, 5) }
               : {}),
           }),
         }
@@ -322,10 +326,23 @@ router.post(
       // Enforce the permanent-image rule: never persist an ephemeral OpenAI URL.
       // processMealImageForSave uploads to Object Storage and returns a /public-objects/
       // URL, or null if upload fails. Either way, a temporary CDN URL is never stored.
+      //
+      // Guard: strip base64 data URIs before the lifecycle gate — client-side
+      // localStorage may cache meals with raw base64 before the permanent URL is
+      // available.  Passing base64 to processMealImageForSave triggers a
+      // lifecycle_violation ERROR log.  Null it out here so the meal saves with
+      // no image rather than producing a false-alarm error.
       const rawImageUrl: string | null = mealData?.imageUrl ?? null;
-      let permanentImageUrl: string | null = rawImageUrl;
-      if (rawImageUrl) {
-        const { imageUrl: processed } = await processMealImageForSave(rawImageUrl, title);
+      const sanitisedImageUrl: string | null =
+        rawImageUrl?.startsWith("data:") ? null : rawImageUrl;
+      if (rawImageUrl && !sanitisedImageUrl) {
+        console.warn(
+          `[inspiration/save] Stripped base64 imageUrl from client payload for "${title}" — client sent stale localStorage data`,
+        );
+      }
+      let permanentImageUrl: string | null = sanitisedImageUrl;
+      if (sanitisedImageUrl) {
+        const { imageUrl: processed } = await processMealImageForSave(sanitisedImageUrl, title);
         permanentImageUrl = processed;
       }
       const safeMealData =

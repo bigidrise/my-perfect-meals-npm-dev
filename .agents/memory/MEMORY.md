@@ -1,5 +1,7 @@
+// hint: Logic changed on both sides. Requires understanding intent of each change.
 - [Clinical adaptation retry activation](clinical-adaptation-retries.md) — generator-side diabetic/GLP-1 behavior must key off server-resolved clinicalGenerationContext, never client dietType alone.
 - [ALLERGEN_ADAPT dish-name exemption](allergen-adapt-dish-name-exemption.md) — post-scan must exempt the requested dish's own name (curated allowlist + word-bounded request match) or adaptation always fails.
+- [Allergen override exact-key matching](allergen-override-exact-match.md) — PIN overrides must match allergies via allergenKeysMatch (canonical key + alias map), never substring; "fish" must not unlock "shellfish".
 - [Universal allergen scan in scanGeneratedOutput](universal-allergen-scan.md) — envelope.allergies now scanned against ALLERGEN_EXPANSION at every surface; matches Phase 3 raw-text semantics (no plant-milk masking), so dairy allergy can flag plant milks.
 - [Allergy Adaptation Decision Layer](allergy-adaptation-layer.md) — 3-phase system: conflict classification (adaptable vs identity-collapse) + AllergyConflictModal (no-PIN safe path) + post-adaptation allergen scan; "ALLERGEN_ADAPT" safetyMode bypasses pre-check.
 - [Dish Adaptation Layer](dish-adaptation-layer.md) — never silently substitute a dish; substitution map is extracted from prompt builders (update in lockstep); LRU-cached decomposition; catastrophic-only filtering.
@@ -72,3 +74,5 @@
 - [Meal image recipe-fidelity gate](meal-image-validation-gate.md) — GPT-4o vision check gates cache entry; FAIL twice → semantic fallback, cache nothing; SKIPPED still caches but is audited.
 - [Meal image ingredient contract](meal-image-ingredient-contract.md) — dish name is label only; allow/deny list from full recipe; cache key must hash all ingredients + version bump on prompt changes.
 - [Canonical Media Asset Architecture — Step 4](media-asset-architecture.md) — media_assets table, paginated /api/saved-meals, lifecycle gates on familyRecipes+mealShares, Object Storage API casts, Jest ESM stub pattern for tests.
+- [prod.ts early SPA fallback intercepts /public-objects/](prod-spa-fallback-intercepts-public-objects.md) — SPA fallback must exclude /public-objects/ or image URLs return HTML in production; dev is immune because routes register first there.
+- [Override propagation invariant](override-propagation-pattern.md) — a PIN allergen override must reach every post-gen scan (incl. cached results and sub-generators) or the meal is re-blocked after a valid PIN.

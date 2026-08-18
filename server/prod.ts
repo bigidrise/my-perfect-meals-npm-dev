@@ -146,11 +146,22 @@ if (fs.existsSync(clientDistEarly)) {
   // SPA fallback for all non-API GET routes — catches /sushi-creator, /lifestyle/*, etc.
   // Uses app.use() (middleware, not a named route) to avoid breaking Express route audits
   // that call .startsWith() on route paths — RegExp paths don't support .startsWith().
+  //
+  // EXCLUDED non-API GET paths (must NOT be sent index.html — each serves binary or
+  // non-SPA content registered later via registerRoutes / registerObjectStorageRoutes):
+  //
+  //   /public-objects/*  — object-storage signed-URL downloads (images, user uploads)
+  //   /objects/*         — generic object-storage file serving (GET /objects/:objectPath(*))
+  //                        registered by registerObjectStorageRoutes(); returns binary blobs.
+  //
+  // When adding a new non-API GET route that returns binary data (PDF, image, CSV, etc.)
+  // you MUST add an exclusion here or production will silently serve index.html instead.
   app.use((req, res, next) => {
     if (
       req.method === "GET" &&
       !req.path.startsWith("/api") &&
-      !req.path.startsWith("/public-objects/")
+      !req.path.startsWith("/public-objects/") &&
+      !req.path.startsWith("/objects/")
     ) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       return res.sendFile(path.join(clientDistEarly, "index.html"));
