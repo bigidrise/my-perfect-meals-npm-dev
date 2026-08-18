@@ -1232,7 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const beforeCount = result.meals.length;
           result.meals = result.meals.filter((meal: any) => {
             const gr = validateClinicalMacros(gateContext, carbCeiling, fatCeiling, meal?.carbs, meal?.fat);
-            if (!gr.passed) {
+            if (gr.passed === false) {
               console.warn(
                 `[ClinicalGate] Filtered out "${meal?.name}" — reason=${gr.reason} ` +
                 `context=${gateContext} carbCeiling=${carbCeiling} fatCeiling=${fatCeiling} ` +
@@ -1262,7 +1262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else if (result.meal) {
           // Single-meal path — reject on first failure
           const gr = validateClinicalMacros(gateContext, carbCeiling, fatCeiling, result.meal?.carbs, result.meal?.fat);
-          if (!gr.passed) {
+          if (gr.passed === false) {
             console.error(
               `[ClinicalGate] Rejected: reason=${gr.reason} ` +
               `context=${gateContext} carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
