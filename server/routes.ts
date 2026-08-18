@@ -5135,7 +5135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug, skipImages } = req.body;
 
       // Adaptation block is built AFTER user is fetched (so we know their actual diet).
       // Start with the raw input — the safety check at line 3441 runs on clean input.
@@ -5374,6 +5374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _cravingGlp1Targets,
         _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
         _dishDirective,
+        skipImages === true,   // fastMode — gpt-4o-mini + 1500 tokens on Try 3 More path
       );
 
       if (!mealOptions || mealOptions.length === 0) {
@@ -5606,6 +5607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 _cravingGlp1Targets,
                 _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
                 _dishDirective,
+                skipImages === true,
               );
               if (retryOptions && retryOptions.length > 0) {
                 const retrySafe = retryOptions.filter(meal => {
@@ -5741,7 +5743,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // All images are generated concurrently — no sequential spinner per card.
       // Callers using useMealImages already guard on meal.imageUrl and will skip the
       // secondary client-side fetch automatically when imageUrl is present here.
-      const imagedOptions = await (async () => {
+      //
+      // skipImages=true: caller (Try 3 More / inspiration route) has already
+      // indicated it doesn't need images in this response — skip the pipeline
+      // entirely to shave ~2-3 s off the round-trip.
+      const imagedOptions = skipImages === true ? formattedOptions : await (async () => {
         try {
           const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import('./services/mealImageGenerator');
           const sourceType = normalizeMealTypeToSourceType(targetMealType || 'meal');
