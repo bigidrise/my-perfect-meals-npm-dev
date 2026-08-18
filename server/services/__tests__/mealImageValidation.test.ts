@@ -168,8 +168,61 @@ async function run() {
   {
     const a = buildRetryExclusionAddendum("Salade Niçoise", "hard-boiled egg visible");
     assert(a.includes("hard-boiled egg visible"), "names the specific detected offender");
-    assert(a.includes('Do NOT depict the traditional composition of "Salade Niçoise"'), "forbids traditional composition of the dish");
-    assert(a.includes("ONLY the recipe contract"), "reasserts recipe contract");
+    assert(a.includes("CORRECTION FOR PREVIOUS ATTEMPT"), "includes correction context header");
+    assert(a.includes("Follow ONLY the recipe contract ingredients"), "reasserts ingredient-only authority");
+  }
+
+  // ── 6b. Retry addendum — structural identity ─────────────────────────────
+  console.log("\n6b. Retry addendum carries structural identity when provided");
+  {
+    const structId = "two or three assembled tacos with tortilla shells";
+    const a = buildRetryExclusionAddendum("Black Bean Tacos", "image shows a salad bowl", structId);
+    assert(a.includes("image shows a salad bowl"), "names the specific form violation");
+    assert(a.includes("tortilla shells"), "structural requirement included in retry");
+    assert(a.includes("STRUCTURAL REQUIREMENT"), "structural requirement header present");
+    assert(a.includes("cannot be relaxed"), "structural requirement is non-negotiable");
+    // Taco-specific positive target
+    assert(a.includes("assembled tacos") || a.includes("tortilla shells"), "taco positive target is specific");
+  }
+
+  // ── 6c. Check C in buildValidationPrompt ─────────────────────────────────
+  console.log("\n6c. buildValidationPrompt — Check C for structural form validation");
+  {
+    const structId = "two or three assembled tacos — soft or hard tortilla shells folded around the filling";
+    const p = buildValidationPrompt("Black Bean Tacos", ["black beans", "corn tortillas", "bell pepper"], structId);
+    assert(p.includes("CHECK C"), "Check C present when structural identity provided");
+    assert(p.includes("Wrong dish form"), "Check C header is 'Wrong dish form'");
+    assert(p.includes("tortilla shells"), "structural identity text appears in Check C");
+    assert(p.includes("CHECK A"), "Check A still present");
+    assert(p.includes("CHECK B"), "Check B still present");
+    // Validator without structural identity should NOT have Check C
+    const pNoStruct = buildValidationPrompt("Cobb Salad", ["chicken", "avocado"]);
+    assert(!pNoStruct.includes("CHECK C"), "Check C absent when no structural identity provided");
+  }
+
+  // ── 6d. Check C — structural violation scripted test ──────────────────────
+  console.log("\n6d. Check C — structural form violation detected via scripted vision");
+  {
+    // Simulated vision model: reports the form is wrong (salad instead of tacos)
+    // even though the authorized ingredients appear in the image
+    const formViolationVision: VisionCaller = async (_url, prompt) => {
+      // Check C is in the prompt, so the model can catch form violations
+      if (prompt.includes("CHECK C") && prompt.includes("tortilla")) {
+        return "FAIL: image shows a salad bowl, not assembled tacos";
+      }
+      return "PASS";
+    };
+    const result = await validateImageAgainstRecipe(
+      "https://example.com/salad-of-taco-ingredients.png",
+      "Black Bean Tacos",
+      ["black beans", "corn tortillas", "bell pepper", "onion", "salsa"],
+      {
+        visionCaller: formViolationVision,
+        structuralIdentity: "two or three assembled tacos — tortilla shells folded around the filling",
+      }
+    );
+    assert(result.verdict === "FAIL", "structural form violation → FAIL");
+    assert((result.reason ?? "").includes("salad bowl"), "reason names the structural violation");
   }
 
   // ── 7. Recipe signature ────────────────────────────────────────────────────

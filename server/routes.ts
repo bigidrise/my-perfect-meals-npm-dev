@@ -47,7 +47,7 @@ import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
 import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } from "./services/allergyGuardrails";
 import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle } from "./services/protocolEnvelope";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle, deriveProcedureRules } from "./services/protocolEnvelope";
 import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEngine";
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
@@ -58,7 +58,8 @@ import {
   removeUserPin, 
   verifyPinAndIssueOverrideToken,
   createAllergyEditToken,
-  validateAllergyEditToken
+  validateAllergyEditToken,
+  peekOverrideTokenAllergen
 } from "./services/safetyPinService";
 // Shopping list import removed - will be implemented per ChatGPT specifications
 import avatarChatRouter from "./routes/avatarChat";
@@ -838,6 +839,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       // Uses effectiveUserId — never the untrusted body userId — so a tampered ID
       // cannot bypass the authenticated user's allergy/religious constraints.
+      //
+      // Allergen peek: before the token is atomically consumed by enforceSafetyProfile
+      // inside runEnforcement, we capture which allergen the PIN authorised. This is
+      // a non-destructive read — the token is still claimed normally by enforcement.
+      // The allergen string is then passed to generateMealUnified so scanGeneratedOutput
+      // can suppress post-generation violations for that one allergen via ALLERGEN_EXPANSION.
+      let _unifiedOverriddenAllergens: string[] = [];
+      if (
+        effectiveUserId &&
+        safetyMode === "CUSTOM_AUTHENTICATED" &&
+        overrideToken &&
+        typeof overrideToken === "string"
+      ) {
+        const peekedAllergen = peekOverrideTokenAllergen(overrideToken, effectiveUserId);
+        if (peekedAllergen) {
+          _unifiedOverriddenAllergens = [peekedAllergen];
+          console.log(`[AllergyOverride/Unified] Pre-enforcement peek — allergen: ${peekedAllergen}, user: ${effectiveUserId}`);
+        }
+      }
+
       if (effectiveUserId && input) {
         const inputText = Array.isArray(input) ? input.join(' ') : input;
         const enforcement = await runEnforcement({
@@ -1113,6 +1134,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         performanceSessionContext: performanceSessionContext || undefined,
         generationContext: typeof generationContext === 'string' ? generationContext : undefined,
         glp1Targets: serverGlp1Targets,
+        // Server-authoritative clinical context from the budget resolver —
+        // activates the clinical adaptation retry path in the generator for
+        // profile-confirmed diabetic/GLP-1 users regardless of client dietType.
+        clinicalGenerationContext: budgetGenerationContext,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         correlationId: (req as any).id,
         // Temporary diet override — replaces profile diet for one generation.
@@ -1134,6 +1159,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return undefined;
         })(),
         servings: Math.max(1, Math.min(10, parseInt(String(reqServings)) || 1)),
+        // Allergen(s) authorised by a Safety PIN override. Populated above from the
+        // override token before it is consumed by runEnforcement. Causes
+        // scanGeneratedOutput to suppress post-gen violations for these allergens
+        // (and their derivatives via ALLERGEN_EXPANSION) for this single generation.
+        overriddenAllergens: _unifiedOverriddenAllergens.length ? _unifiedOverriddenAllergens : undefined,
       });
 
       const durationMs = Date.now() - startTime;
@@ -1177,10 +1207,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
               `context=${budgetGenerationContext} type=${type} ` +
               `carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
             );
-            return res.status(503).json({
+            // Graceful degradation: the gate is correct to block the meal, but
+            // the user asked for a dish that should be adapted, not rejected.
+            // 422 (not 503) — this is a constraint outcome, not a server fault.
+            const requestedDishRaw =
+              typeof effectiveInput === 'string'
+                ? effectiveInput.trim()
+                : Array.isArray(effectiveInput)
+                  ? effectiveInput.join(', ').trim()
+                  : '';
+            const dishLabel =
+              requestedDishRaw && requestedDishRaw.length <= 60
+                ? `"${requestedDishRaw}"`
+                : 'this dish';
+            return res.status(422).json({
               success: false,
-              error:   "Generated meal could not be verified against clinical nutrition limits. Please try again.",
+              error:
+                `We couldn't adapt ${dishLabel} to fit your clinical nutrition targets for this meal slot. ` +
+                `Try a different dish, or adjust the meal timing so more of your daily budget is available.`,
               source:  "clinical_ceiling_violation",
+              degraded: true,
+              gateReason,
             });
           }
         }
@@ -4224,7 +4271,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           blockedCategories: safetyCheck.blockedCategories,
           ambiguousTerms: safetyCheck.ambiguousTerms,
           message: safetyCheck.message,
-          suggestion: safetyCheck.suggestion
+          suggestion: safetyCheck.suggestion,
+          allergyConflict: safetyCheck.allergyConflict ?? null,
         });
       }
       
@@ -4248,7 +4296,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           blockedCategories: safetyCheck.blockedCategories,
           ambiguousTerms: safetyCheck.ambiguousTerms,
           message: safetyCheck.message,
-          suggestion: safetyCheck.suggestion
+          suggestion: safetyCheck.suggestion,
+          allergyConflict: safetyCheck.allergyConflict ?? null,
         });
       }
       
@@ -5076,7 +5125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Allergen-specific only — one authorized ingredient's enforcement is suspended per request.
       // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
       let _overriddenAllergens: string[] = [];
-      if (userId && cravingInput) {
+      if (userId && cravingInput && safetyMode !== "ALLERGEN_ADAPT") {
         const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
@@ -5089,7 +5138,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: safetyCheck.message,
             safetyBlocked: true,
             blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
+            suggestion: safetyCheck.suggestion,
+            allergyConflict: safetyCheck.allergyConflict ?? null,
           });
         }
         if (safetyCheck.result === "AMBIGUOUS") {
@@ -5109,6 +5159,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           _overriddenAllergens = [safetyCheck.overriddenAllergen];
           console.log(`[AllergyOverride] Request-scoped override active — allergen: ${safetyCheck.overriddenAllergen}, user: ${userId}, correlationId: ${safetyCheck.correlationId}`);
         }
+      } else if (safetyMode === "ALLERGEN_ADAPT") {
+        console.log(`[AllergenAdapt] Allergen pre-check skipped for user ${userId} — DAL adaptation mode active`);
       }
 
       // Validate servings (1-10)
@@ -5241,6 +5293,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? req.body.excludeMeals.slice(0, 5)
         : [];
 
+      // ── ALLERGEN_ADAPT: inject explicit allergen constraint into generation prompt ─
+      // The pre-generation safety check is skipped in ALLERGEN_ADAPT mode, but the
+      // LLM must still receive explicit, named allergen prohibitions with all derivatives.
+      // Without this the model generates the dish traditionally (e.g. gumbo with shellfish
+      // stock) and Phase 3 correctly kills every option. This block names the prohibited
+      // categories, lists all derivative terms, and instructs the model to preserve dish
+      // identity by replacing the allergen's functional role rather than just deleting it.
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
+          const allergenBlock = buildAllergenAdaptPromptBlock(protocolEnvelope.allergies, rawCravingInput || "");
+          if (allergenBlock) {
+            cravingInput = `${cravingInput}\n${allergenBlock}`;
+            console.log(`[AllergenAdapt] Injected allergen constraint — allergens: ${protocolEnvelope.allergies.join(", ")}`);
+          }
+        } catch (blockErr) {
+          console.warn("[AllergenAdapt] Failed to build allergen constraint block:", blockErr);
+        }
+      }
+
       const mealOptions = await generateCravingMealOptions(
         cravingInput || "something delicious",
         targetMealType || "lunch",
@@ -5290,13 +5362,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // dietaryRestrictions — not just the explicit dietOverride body field.
       const _overrideDietActive = _resolvedPrimaryDiet.length > 0 && (dietOverride || dietaryRestrictions);
       const _filterEnvelope = _overrideDietActive
-        ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet }
+        ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet, procedural: deriveProcedureRules(_resolvedPrimaryDiet) }
         : protocolEnvelope;
       const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
+      // ── ALLERGEN_ADAPT requested-dish exemption (computed once, used by BOTH
+      // the universal protocol filter below AND the Phase 3 scan) ─────────────
+      // Without threading this into filterMealsByProtocol, a shellfish-free
+      // gumbo is stripped for its own name before Phase 3 ever sees it, and the
+      // retry dies the same way — producing a spurious allergen_adaptation_failed.
+      let _adaptExemptTerms: Set<string> | undefined;
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
+          const terms = getRequestedDishExemptTerms(rawCravingInput || "", protocolEnvelope.allergies).map(t => t.toLowerCase());
+          if (terms.length > 0) {
+            _adaptExemptTerms = new Set(terms);
+            console.log(`[AllergenAdapt] Requested-dish exemption active for protocol filter + Phase 3 scan: ${terms.join(", ")}`);
+          }
+        } catch (exErr) {
+          console.warn("[AllergenAdapt] Failed to compute requested-dish exemption:", exErr);
+        }
+      }
       const cleanOptions = filterMealsByProtocol(mealOptions, _filterEnvelope, {
         generatorName: "craving_creator",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+        exemptDishNameTerms: _adaptExemptTerms,
         dishIdentity: {
           requestedDish: rawCravingInput || "",
           directive: _dishDirective,
@@ -5376,6 +5467,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let scannedOptions = cleanOptions;
+
+      // ── Phase 3: Post-adaptation allergen scan (ALLERGEN_ADAPT mode only) ────
+      // When the user chose "Make it safe for me", the DAL adapted the dish but
+      // the LLM may still include hidden allergen derivatives (shrimp paste, fish
+      // sauce, shellfish broth). Scan each option and exclude any that leaked.
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { buildForbiddenTermsFromAllergens, scanMealsForAllergenViolations } = await import("./services/allergyGuardrails");
+          // Requested-dish exemption: adaptation intentionally keeps the dish's
+          // name ("gumbo", "pad thai"), so the pure dish-name term matching the
+          // user's request is exempt from the scan. Every ingredient/derivative
+          // term remains scanned across name, ingredients, instructions, and
+          // description — see getRequestedDishExemptTerms for the strict rules.
+          // (_adaptExemptTerms was computed once above, before the universal
+          //  protocol filter, and is shared with filterMealsByProtocol.)
+          // First-pass scan — delegates to the canonical exported function so tests
+          // cover exactly this code path (no reimplementation in test files).
+          const firstPassResult = scanMealsForAllergenViolations(scannedOptions, protocolEnvelope.allergies, _adaptExemptTerms);
+          const safeAdaptedOptions = firstPassResult.safe;
+          const _allDetectedViolations = firstPassResult.violations;
+          firstPassResult.unsafe.forEach(meal => {
+            const sample = Array.from(_allDetectedViolations).slice(0, 3).join(', ');
+            console.warn(`⚠️ [ALLERGEN-ADAPT SCAN] "${meal.name}" has hidden allergen traces: ${sample} — excluded`);
+          });
+          // Re-derive forbiddenTerms (with exemptions applied) for the retry scan below.
+          const forbiddenTerms = buildForbiddenTermsFromAllergens(protocolEnvelope.allergies)
+            .filter(t => !_adaptExemptTerms?.has(t.toLowerCase()));
+          const forbiddenRegexes = forbiddenTerms.map(
+            t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+          );
+
+          if (safeAdaptedOptions.length === 0 && scannedOptions.length > 0) {
+            // ── Intelligent retry: use the specific detected violation terms as explicit
+            // exclusions so the LLM cannot repeat the same mistake. One retry only.
+            const detectedViolationList = Array.from(_allDetectedViolations).slice(0, 12);
+            console.log(`[AllergenAdapt] First-pass all failed — detected: ${detectedViolationList.join(", ")}. Attempting targeted retry.`);
+            let retrySucceeded = false;
+            try {
+              const retryExclusionClause = detectedViolationList.length > 0
+                ? ` [ALLERGEN RETRY — previous attempt leaked these terms, which MUST NOT appear in any ingredient, stock, broth, sauce, or preparation: ${detectedViolationList.join(", ")}. Remove ALL of them completely.]`
+                : ` [ALLERGEN RETRY — regenerate with no allergen derivatives whatsoever.]`;
+              const retryInput = `${cravingInput}${retryExclusionClause}`;
+              const retryOptions = await generateCravingMealOptions(
+                retryInput,
+                targetMealType || "lunch",
+                userId,
+                bodyDietRestrictions,
+                excludeMeals,
+                strictMode === true,
+                (generationMode === 'recipe' ? 'recipe' : 'meal'),
+                (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+                _cravingGlp1Targets,
+                _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+                _dishDirective,
+              );
+              if (retryOptions && retryOptions.length > 0) {
+                const retrySafe = retryOptions.filter(meal => {
+                  const mealText = [
+                    meal.name || '',
+                    (meal.ingredients || []).map((i: any) => typeof i === 'string' ? i : (i?.name || '')).join(' '),
+                    meal.instructions || '',
+                    meal.description || '',
+                  ].join(' ');
+                  return forbiddenTerms.every((_, idx) => !forbiddenRegexes[idx].test(mealText));
+                });
+                if (retrySafe.length > 0) {
+                  console.log(`[AllergenAdapt] Targeted retry succeeded — ${retrySafe.length} safe option(s) produced`);
+                  scannedOptions = retrySafe;
+                  retrySucceeded = true;
+                } else {
+                  console.error(`❌ [ALLERGEN-ADAPT SCAN] Targeted retry also failed — allergen traces still present`);
+                }
+              }
+            } catch (retryErr) {
+              console.error(`❌ [ALLERGEN-ADAPT SCAN] Retry generation error:`, retryErr);
+            }
+
+            if (!retrySucceeded) {
+              // Both attempts failed. Return a typed, structured error — never the generic allergy handler.
+              const _requestedDish = rawCravingInput || "";
+              const _allergenNames = protocolEnvelope.allergies;
+              console.error(`❌ [ALLERGEN-ADAPT SCAN] Both attempts failed for "${_requestedDish}" — returning typed adaptation failure`);
+              return res.status(422).json({
+                status: "unable_to_generate",
+                reasonCode: "allergen_adaptation_failed",
+                requestedDish: _requestedDish,
+                allergens: _allergenNames,
+                detectedTerms: detectedViolationList,
+                retryAttempted: true,
+                originalWithPinAvailable: true,
+                message: `We couldn't create a ${_allergenNames.join(" and ")}-free version of "${_requestedDish}" that passed your allergy protection checks (two attempts made). Your allergy protection is still fully active.`,
+                suggestedActions: [
+                  `Try a variation that adapts more cleanly — for example, a ${_allergenNames.join(" and ")}-free version of a related dish`,
+                  `Use your Safety PIN to make the original preparation if you are certain it is safe for you`,
+                ],
+              });
+            }
+          } else if (safeAdaptedOptions.length < scannedOptions.length) {
+            console.log(`[ALLERGEN-ADAPT SCAN] Filtered ${scannedOptions.length - safeAdaptedOptions.length} unsafe option(s) — serving ${safeAdaptedOptions.length} safe adapted option(s)`);
+            scannedOptions = safeAdaptedOptions;
+          }
+        } catch (scanErr) {
+          console.error('[ALLERGEN-ADAPT SCAN] Scan error (non-fatal):', scanErr);
+        }
+      }
 
       // Creator System 2-pass transformation — applied AFTER all safety/protocol filters.
       // If kitchenSlug is provided, the kitchen config takes priority over the user's own active system.

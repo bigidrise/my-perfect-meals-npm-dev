@@ -48,6 +48,8 @@ import {
 } from "@/components/DietGuardIntercept";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import type { AllergyConflictPayload } from "@/hooks/useSafetyGuardPrecheck";
+import { AllergyConflictModal } from "@/components/AllergyConflictModal";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -84,6 +86,8 @@ interface MealData {
   protein: number;
   carbs: number;
   fat: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
   nutrition?: {
     calories?: number;
     protein?: number;
@@ -92,6 +96,8 @@ interface MealData {
     protein_g?: number;
     carbs_g?: number;
     fat_g?: number;
+    starchyCarbs?: number;
+    fibrousCarbs?: number;
   };
   instructions: string;
   cookingInstructions?: string[];
@@ -293,8 +299,16 @@ export default function CreateDishPage() {
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    allergyConflictPayload,
+    restoreBlockedAlert,
   } = useSafetyGuardPrecheck();
   const [safetyEnabled, setSafetyEnabled] = useState(true);
+  // Allergen conflict modal state — set when safety preflight returns conflict_adaptable/collapse
+  const [allergyConflict, setAllergyConflict] = useState<AllergyConflictPayload | null>(null);
+  const allergenSafeModeRef = useRef(false);
+  // Captures the actual allergens from AllergyConflictModal so SafetyGuardToggle
+  // can send the correct allergen name to the PIN endpoint (not the generic placeholder).
+  const pendingOverrideAllergensRef = useRef<string[]>([]);
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
@@ -506,6 +520,12 @@ export default function CreateDishPage() {
     if (!skipPreflight && !hasActiveOverride) {
       const isSafe = await checkSafety(prompt, "create-dish");
       if (!isSafe) {
+        // When the block carries an allergyConflict, show AllergyConflictModal
+        // instead of SafetyGuardBanner so the user can choose their path.
+        if (allergyConflictPayload.current) {
+          setAllergyConflict(allergyConflictPayload.current);
+          allergyConflictPayload.current = null;
+        }
         return;
       }
     }
@@ -547,7 +567,7 @@ export default function CreateDishPage() {
           strictMode: keepItSimple,
           dietAdaptOverride,
           userDietOverride,
-          safetyMode: safetyEnabled ? "STRICT" : "DISABLED",
+          safetyMode: allergenSafeModeRef.current ? "ALLERGEN_ADAPT" : (overrideToken ? "CUSTOM_AUTHENTICATED" : (safetyEnabled ? "STRICT" : "DISABLED")),
           ...(overrideToken ? { overrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
@@ -557,6 +577,26 @@ export default function CreateDishPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // ── Typed allergen adaptation failure ──────────────────────────────────
+        // This response must NEVER reach the generic allergy error handler.
+        // It has its own structured fields and requires a workflow-specific message.
+        if (data.reasonCode === "allergen_adaptation_failed") {
+          const dish = data.requestedDish ? `"${data.requestedDish}"` : "this dish";
+          const allergenLabel = Array.isArray(data.allergens)
+            ? data.allergens.join(" and ")
+            : (data.allergens || "your allergen");
+          const retried = data.retryAttempted ? " (we tried twice)" : "";
+          stopProgressTicker();
+          setIsGenerating(false);
+          allergenSafeModeRef.current = false;
+          toast({
+            title: "Couldn't create a fully safe version",
+            description: `We couldn't make a ${allergenLabel}-free version of ${dish} that passed your allergy protection${retried}. Your protection is still fully active. Try a different dish, or use your Safety PIN to make the original.`,
+            variant: "warning",
+            duration: 12000,
+          });
+          return;
+        }
         throw new Error(data.message || "Failed to generate meal");
       }
 
@@ -629,6 +669,7 @@ export default function CreateDishPage() {
       }
     } finally {
       setIsGenerating(false);
+      allergenSafeModeRef.current = false;
     }
   };
 
@@ -881,6 +922,7 @@ export default function CreateDishPage() {
                       safetyEnabled={safetyEnabled}
                       onSafetyChange={handleSafetyOverride}
                       disabled={isGenerating}
+                      allergenContext={pendingOverrideAllergensRef.current.length > 0 ? pendingOverrideAllergensRef.current : undefined}
                     />
                     <GlucoseGuardToggle disabled={isGenerating} />
                   </div>
@@ -1551,6 +1593,29 @@ export default function CreateDishPage() {
           />
         )}
       </motion.div>
+
+      {/* Allergy Conflict Modal — shown instead of SafetyGuardBanner when an
+          adaptable allergyConflict is detected. Offers three paths:
+          "Make it safe for me" (DAL adapt, no PIN), "Make the original" (PIN),
+          and "Cancel". */}
+      <AllergyConflictModal
+        conflict={allergyConflict}
+        onMakeSafe={() => {
+          setAllergyConflict(null);
+          allergenSafeModeRef.current = true;
+          handleGenerateDish(true /* skipPreflight */);
+        }}
+        onMakeOriginal={() => {
+          // Snapshot allergens before clearing state — SafetyGuardToggle needs them
+          // to issue the override token for the correct allergen (e.g. "shellfish").
+          pendingOverrideAllergensRef.current = allergyConflict?.allergens ?? [];
+          setAllergyConflict(null);
+          restoreBlockedAlert(); // restores SafetyGuardBanner with PIN button
+        }}
+        onCancel={() => {
+          setAllergyConflict(null);
+        }}
+      />
     </PhaseGate>
   );
 }

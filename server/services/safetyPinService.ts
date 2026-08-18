@@ -100,7 +100,7 @@ export function _resetTokenStoreForTesting(): void {
   for (const k of Object.keys(activeAllergyEditTokens)) delete activeAllergyEditTokens[k];
 }
 
-export type SafetyMode = "STRICT" | "CUSTOM" | "CUSTOM_AUTHENTICATED";
+export type SafetyMode = "STRICT" | "CUSTOM" | "CUSTOM_AUTHENTICATED" | "ALLERGEN_ADAPT";
 
 export interface PinSetResult {
   success: boolean;
@@ -262,6 +262,31 @@ export async function verifyPinAndIssueOverrideToken(
   };
 
   return { success: true, overrideToken };
+}
+
+/**
+ * Non-consuming peek at an active override token — returns the allergen string
+ * stored in the token WITHOUT claiming or expiring it.
+ *
+ * Use this when you need to know WHICH allergen a token authorises before the
+ * token is consumed by enforceSafetyProfile / runEnforcement. The token remains
+ * fully active and will be claimed normally by the enforcement layer.
+ *
+ * Returns undefined when the token is unknown, expired, or belongs to a
+ * different user.
+ */
+export function peekOverrideTokenAllergen(
+  token: string,
+  userId: string,
+): string | undefined {
+  const data = activeOverrideTokens[token];
+  if (!data) return undefined;
+  if (data.userId !== userId) return undefined;
+  if (data.expiresAt < Date.now()) {
+    delete activeOverrideTokens[token];
+    return undefined;
+  }
+  return data.allergen;
 }
 
 /**

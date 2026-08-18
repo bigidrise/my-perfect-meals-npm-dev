@@ -18,6 +18,44 @@ export interface SafetyGuardrails {
 const normalize = (s: string) => s.trim().toLowerCase();
 
 /**
+ * ALLERGEN KEY CLASSIFICATION SETS
+ *
+ * Used by the masking-aware allergen scan to decide which text normalization
+ * applies when checking a term:
+ *
+ *   DAIRY_ALLERGEN_KEYS  — plant-milk masking applies (scanning "milk" for a dairy
+ *                          allergy must not flag "almond milk", "oat milk", etc.)
+ *   NUT_ALLERGEN_KEYS    — plant-milk AND nut-butter masking must NOT apply because
+ *                          "almond milk" IS a real nut-allergy violation (almond term),
+ *                          and "almond butter" IS a real nut-allergy violation.
+ *
+ * Any allergen key not in either set gets nut-butter masking for its "butter" terms.
+ */
+export const DAIRY_ALLERGEN_KEYS = new Set([
+  "dairy", "milk", "lactose", "lactose intolerance", "lactose_intolerance",
+]);
+
+export const NUT_ALLERGEN_KEYS = new Set([
+  // Keys that appear in ALLERGEN_EXPANSION
+  "tree nuts", "tree nut",
+  "nuts", "nut",
+  "peanuts", "peanut",
+  // Variant spellings users may enter (not in expansion map, but mapped via fallback)
+  "tree-nut", "tree_nut", "treenut",
+  // Individual nut names as potential user-entered allergen keys
+  "almond", "almonds",
+  "cashew", "cashews",
+  "walnut", "walnuts",
+  "hazelnut", "hazelnuts",
+  "pistachio", "pistachios",
+  "macadamia",
+  "pecan", "pecans",
+  "brazil nut",
+  "pine nut",
+  "chestnut",
+]);
+
+/**
  * PLANT MILK SAFE LIST
  * These compound phrases are NOT dairy and must not be blocked by the bare "milk" term.
  * Each prefix (e.g. "almond") may still be blocked by its OWN allergen category
@@ -1180,6 +1218,205 @@ export function getSafeSubstitute(blockedIngredient: string): string {
   return substitutes[key] || "a suitable alternative";
 }
 
+// ── Allergy Conflict Classification ──────────────────────────────────────────
+/**
+ * Dish names where the allergen is traditional but incidental — the dish can
+ * exist without it, and adaptation preserves dish identity.
+ * A shellfish-free gumbo is still gumbo. A nut-free kung pao is still kung pao.
+ */
+export const ALLERGEN_DISH_EXPANSIONS = new Set<string>([
+  // shellfish dishes — allergen traditional but not defining
+  "paella", "cioppino", "bouillabaisse", "gumbo", "jambalaya", "fra diavolo",
+  "frutti di mare", "gambas", "laksa", "bisque", "tom yum", "seafood boil",
+  // peanut dishes — can be safely swapped
+  "satay", "kung pao", "kung pao chicken", "gado gado", "massaman curry",
+  "dan dan noodles", "african peanut soup", "peanut stew", "indonesian satay",
+  // dairy dishes — plant subs preserve the dish
+  "alfredo", "bechamel", "cream sauce",
+]);
+
+/**
+ * Dish names where the allergen IS the defining ingredient.
+ * Removing it changes what the dish fundamentally is.
+ */
+export const IDENTITY_COLLAPSE_DISH_TERMS = new Set<string>([
+  // shellfish — allergen is the entire dish
+  "shrimp cocktail", "crab cake", "crab cakes", "lobster roll", "clam chowder",
+  "oysters rockefeller", "shrimp scampi", "scampi", "coconut shrimp",
+  "popcorn shrimp", "tempura shrimp", "shrimp tempura",
+  "shrimp fried rice", "pad thai with shrimp",
+  // eggs — allergen IS the dish
+  "deviled eggs", "egg salad", "eggs benedict",
+]);
+
+export type AllergyConflictType = "conflict_adaptable" | "conflict_identity_collapse";
+
+export interface AllergyConflict {
+  type: AllergyConflictType;
+  /** Human-readable allergen category names e.g. ["shellfish"] */
+  allergens: string[];
+  /** Exact terms that triggered the block e.g. ["gumbo"] */
+  matchedTerms: string[];
+  /** The user's original request text */
+  dishName: string;
+}
+
+/**
+ * Given a blocked request, classify whether the conflict is adaptable
+ * (safe version can be made while preserving dish identity) or identity-collapse
+ * (the allergen IS the dish — removing it changes what was requested).
+ *
+ * Defaults to conflict_adaptable when uncertain — the post-adaptation allergen
+ * scan is the safety net that catches any failure to adapt completely.
+ */
+export function classifyAllergyConflict(
+  requestText: string,
+  violations: string[],
+  allergenCategories: string[],
+): AllergyConflict | null {
+  if (violations.length === 0) return null;
+
+  const violationsLower = violations.map((v) => v.toLowerCase());
+
+  // Identity collapse: the allergen IS the dish identity
+  const isIdentityCollapse = violationsLower.some((v) =>
+    IDENTITY_COLLAPSE_DISH_TERMS.has(v),
+  );
+
+  return {
+    type: isIdentityCollapse ? "conflict_identity_collapse" : "conflict_adaptable",
+    allergens: allergenCategories,
+    matchedTerms: violations,
+    dishName: requestText.trim(),
+  };
+}
+
+/**
+ * ADAPTABLE DISH-NAME TERMS
+ * Terms in ALLERGEN_EXPANSION that are pure dish names — cultural dish labels
+ * whose word carries no allergen ingredient by itself. They exist so the
+ * PRE-generation check can flag "gumbo" / "pad thai" requests and show the
+ * AllergyConflictModal. But in ALLERGEN_ADAPT mode the user has explicitly
+ * asked for a safe version of that dish, and identity preservation requires
+ * keeping the name — so the POST-adaptation scan must not condemn a
+ * shellfish-free gumbo just for being called "gumbo".
+ *
+ * STRICT INCLUSION RULES — a term may ONLY be listed here if:
+ *   1. It does not embed an allergen ingredient word (so "shrimp scampi",
+ *      "clam chowder", "peanut noodles", "african peanut soup", "peanut stew"
+ *      are excluded — their ingredient word still matches independently, and
+ *      an adapted dish must be renamed to drop the allergen word).
+ *   2. It is not itself an allergen-bearing preparation or a foreign-language
+ *      ingredient word (so "frangipane" [almond filling], "amaretti" [almond
+ *      cookies], "marzipan", "gambas" [prawns], "scampi" [langoustines],
+ *      "surimi" [fish paste] are excluded).
+ */
+export const ADAPTABLE_DISH_NAME_TERMS = new Set<string>([
+  // shellfish dishes
+  "paella", "cioppino", "bouillabaisse", "gumbo", "jambalaya", "bisque",
+  "ceviche", "fra diavolo", "tom yum", "laksa",
+  // peanut dishes
+  "satay", "pad thai", "kung pao", "kung pao chicken", "gado gado",
+  "dan dan noodles", "massaman curry", "indonesian satay",
+]);
+
+/**
+ * Expand a list of allergen category names into the full set of forbidden terms.
+ * Used by the post-adaptation allergen scan to verify the generated output is safe.
+ */
+export function buildForbiddenTermsFromAllergens(allergens: string[]): string[] {
+  const terms: string[] = [];
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key];
+    if (expanded) {
+      terms.push(...expanded);
+    } else {
+      terms.push(allergen);
+    }
+  }
+  return Array.from(new Set(terms));
+}
+
+/**
+ * Compute the forbidden terms exempt from the ALLERGEN_ADAPT post-scan for a
+ * specific request. A term is exempt ONLY when BOTH hold:
+ *   1. It is a pure dish-name label (ADAPTABLE_DISH_NAME_TERMS) — never an
+ *      ingredient, derivative, or allergen-bearing preparation; AND
+ *   2. It appears (word-bounded) in the dish the user actually requested.
+ *
+ * This means requesting "gumbo" exempts only the word "gumbo"; every
+ * ingredient/derivative term (shrimp, crab, shellfish stock, ...) is still
+ * scanned across the meal name, ingredients, instructions, and description.
+ * A request for "shrimp gumbo" exempts only "gumbo" — "shrimp" can never be
+ * exempted because it is not a dish-name term.
+ */
+export function getRequestedDishExemptTerms(
+  requestedDish: string,
+  allergens: string[],
+): string[] {
+  const dish = (requestedDish || "").toLowerCase().trim();
+  if (!dish) return [];
+  return buildForbiddenTermsFromAllergens(allergens).filter((term) => {
+    if (!ADAPTABLE_DISH_NAME_TERMS.has(term.toLowerCase())) return false;
+    return new RegExp(`\\b${escapeRegex(term)}\\b`, "i").test(dish);
+  });
+}
+
+/**
+ * Build an explicit allergen constraint block for injection into generation prompts
+ * when running in ALLERGEN_ADAPT mode.
+ *
+ * Without this, the LLM receives no allergen-specific instruction and generates
+ * the dish traditionally (e.g. gumbo with shellfish stock), causing Phase 3 to
+ * kill every option. This block names the prohibited categories, lists all their
+ * derivative terms, and instructs the model to preserve dish identity by
+ * replacing the allergen's functional role — not just deleting the ingredient.
+ *
+ * @param allergens  - User's allergen category names (e.g. ["shellfish"])
+ * @param dishName   - The requested dish name (e.g. "gumbo") for identity framing
+ */
+export function buildAllergenAdaptPromptBlock(allergens: string[], dishName?: string): string {
+  if (allergens.length === 0) return "";
+
+  const lines: string[] = [
+    `[ALLERGY ADAPTATION — ACTIVE SAFETY CONSTRAINT]`,
+    `The following allergens are PROHIBITED. You must not use any form of these ingredients,`,
+    `including stocks, broths, pastes, sauces, or preparations derived from them.`,
+  ];
+
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key];
+    const derivativeTerms = expanded
+      ? Array.from(new Set(expanded)).slice(0, 20).join(", ")
+      : allergen;
+    lines.push(`PROHIBITED ALLERGEN — ${allergen.toUpperCase()}: ${derivativeTerms}`);
+  }
+
+  if (dishName && dishName.trim()) {
+    const dish = dishName.trim();
+    const allergenNames = allergens.join(" and ");
+    lines.push(
+      ``,
+      `DISH IDENTITY REQUIREMENT: The requested dish is "${dish}". Preserve the dish's`,
+      `structural identity (base, aromatics, cooking technique, flavor profile) while`,
+      `replacing ${allergenNames} with a safe, compliant protein or component that serves`,
+      `the same functional role. Do NOT rename the dish. Do NOT add any form of ${allergenNames}.`,
+      `A ${allergenNames}-free version of "${dish}" is what is required.`,
+    );
+  }
+
+  lines.push(
+    ``,
+    `HARD RULE: Every ingredient, stock, broth, sauce, and preparation in this recipe`,
+    `must be completely free of the prohibited allergens listed above.`,
+    `[END ALLERGY ADAPTATION CONSTRAINT]`,
+  );
+
+  return lines.join("\n");
+}
+
 /**
  * Log safety enforcement for auditing
  */
@@ -1693,4 +1930,126 @@ export function scanForHiddenDietaryViolations(
   }
 
   return violations;
+}
+
+export interface AllergenScanMeal {
+  name?: string;
+  ingredients?: Array<string | { name?: string }>;
+  /** Accepts a string or an array of instruction steps — both are scanned. */
+  instructions?: string | string[];
+  description?: string;
+}
+
+export interface AllergenScanResult<T extends AllergenScanMeal> {
+  /** Meals that passed — no forbidden terms found in any field. */
+  safe: T[];
+  /** Meals that failed — at least one forbidden term was found. */
+  unsafe: T[];
+  /** Every forbidden term that was matched across all failing meals. */
+  violations: Set<string>;
+}
+
+/**
+ * Post-generation allergen scan used by the Phase 3 ALLERGEN_ADAPT block in routes.ts.
+ *
+ * Concatenates name + ingredients + instructions + description into a single text
+ * per meal and checks for any term from buildForbiddenTermsFromAllergens(). Meals
+ * that match are excluded and their matched terms are collected for the retry clause.
+ *
+ * Pass `exemptTerms` to skip specific terms that should not trigger a block — for
+ * example, the bare dish-name word that the adaptation intentionally keeps in the
+ * meal title (handled by getRequestedDishExemptTerms in routes.ts).
+ *
+ * This is the canonical implementation — routes.ts delegates here so tests can
+ * cover the exact same logic path without duplicating it.
+ */
+export function scanMealsForAllergenViolations<T extends AllergenScanMeal>(
+  meals: T[],
+  allergens: string[],
+  exemptTerms?: Set<string>,
+): AllergenScanResult<T> {
+  // Build per-allergen term lists so we can apply selective masking per allergen key.
+  // This preserves the allergen-key context that buildForbiddenTermsFromAllergens loses
+  // when it flattens everything into one list.
+  type AllergenEntry = { key: string; terms: string[]; regexes: RegExp[] };
+  const allergenEntries: AllergenEntry[] = [];
+  const seenTerms = new Set<string>(); // deduplicate across allergen keys
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key] ? [...ALLERGEN_EXPANSION[key]] : [allergen];
+    const terms = expanded.filter(t => {
+      const tl = t.toLowerCase();
+      if (exemptTerms?.has(tl)) return false;
+      if (seenTerms.has(`${key}::${tl}`)) return false;
+      seenTerms.add(`${key}::${tl}`);
+      return true;
+    });
+    allergenEntries.push({
+      key,
+      terms,
+      regexes: terms.map(
+        t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+      ),
+    });
+  }
+
+  const violations = new Set<string>();
+  const safe: T[] = [];
+  const unsafe: T[] = [];
+
+  for (const meal of meals) {
+    const ingredientText = (meal.ingredients || [])
+      .map(i => (typeof i === "string" ? i : (i?.name || "")))
+      .join(" ");
+
+    const instructionsText = Array.isArray(meal.instructions)
+      ? meal.instructions.join(" ")
+      : (meal.instructions || "");
+
+    const rawMealText = [
+      meal.name || "",
+      ingredientText,
+      instructionsText,
+      meal.description || "",
+    ].join(" ").toLowerCase();
+
+    // Pre-compute masked variants once per meal.
+    const plantMilkMasked = maskPlantMilks(rawMealText);
+    const nutButterMasked = maskNutButters(rawMealText);
+
+    const hits: string[] = [];
+    for (const { key, terms, regexes } of allergenEntries) {
+      const isDairyKey = DAIRY_ALLERGEN_KEYS.has(key);
+      const isNutKey   = NUT_ALLERGEN_KEYS.has(key);
+      for (let i = 0; i < terms.length; i++) {
+        const term = terms[i];
+        const termLower = term.toLowerCase();
+        // Select the appropriate text surface for this allergen key + term:
+        //   • Dairy key + any milk-bearing term → use plant-milk-masked text so
+        //     "almond milk" / "oat milk" don't trigger the dairy "milk" term.
+        //   • Non-nut key + "butter" term        → use nut-butter-masked text so
+        //     "almond butter" doesn't trigger a non-nut "butter" term.
+        //   • Nut key                            → always use raw text; "almond milk"
+        //     and "almond butter" ARE real violations for tree-nut/peanut allergy.
+        let textToScan = rawMealText;
+        if (!isNutKey && isDairyKey) {
+          textToScan = plantMilkMasked;
+        } else if (!isNutKey && termLower === "butter") {
+          textToScan = nutButterMasked;
+        }
+        if (regexes[i].test(textToScan)) {
+          hits.push(term);
+        }
+      }
+    }
+
+    if (hits.length > 0) {
+      hits.forEach(v => violations.add(v));
+      unsafe.push(meal);
+    } else {
+      safe.push(meal);
+    }
+  }
+
+  return { safe, unsafe, violations };
 }

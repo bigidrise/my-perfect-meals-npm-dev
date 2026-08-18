@@ -61,10 +61,11 @@ interface Meal {
   };
   medicalBadges?: string[];
   substitutionNotes?: string[];
+  dietClassification?: string | null;
 }
 
 interface SafetyOptions {
-  safetyMode?: 'STRICT' | 'CUSTOM' | 'CUSTOM_AUTHENTICATED';
+  safetyMode?: 'STRICT' | 'CUSTOM' | 'CUSTOM_AUTHENTICATED' | 'ALLERGEN_ADAPT';
   overrideToken?: string;
 }
 
