@@ -331,11 +331,26 @@ router.post('/log', requireAuth, async (req: any, res) => {
     const input = logMealSchema.parse(req.body);
     const userId = req.user?.id || "1";
 
-    // Ingest temp image URL to permanent storage before saving
+    // Ingest temp image URL to permanent storage before saving.
+    // Guard: strip base64 data URIs before the lifecycle gate — client-side
+    // localStorage may cache meals with raw base64 before the permanent URL is
+    // available.  Passing base64 to processMealImageForSave triggers a
+    // lifecycle_violation ERROR log.  Null it out here so the meal saves with
+    // no image rather than producing a false-alarm error (the permanent URL is
+    // already stored on the server; the client is just sending a stale cache).
+    const rawInputImageUrl = input.recipePayload.imageUrl ?? null;
+    const sanitisedInputImageUrl =
+      rawInputImageUrl?.startsWith("data:") ? null : rawInputImageUrl;
+    if (rawInputImageUrl && !sanitisedInputImageUrl) {
+      console.warn(
+        `[craving-creator/log] Stripped base64 imageUrl from client payload for "${input.recipePayload.title}" — client sent stale localStorage data`,
+      );
+    }
+
     let persistedImageUrl: string | null = null;
     try {
       const imgResult = await processMealImageForSave(
-        input.recipePayload.imageUrl,
+        sanitisedInputImageUrl,
         input.recipePayload.title
       );
       persistedImageUrl = imgResult.imageUrl;
