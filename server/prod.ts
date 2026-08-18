@@ -871,6 +871,10 @@ async function initializeApp() {
     // Bug Reports — authenticated in-app diagnostic submission
     const bugReportsRoutes = (await import("./routes/bugReports")).default;
     app.use("/api/bug-reports", bugReportsRoutes);
+
+    // Safety — PIN management + preflight allergy/safety check (AllergyConflictModal)
+    const safetyRoutes = (await import("./routes/safetyRoutes")).default;
+    app.use("/api", safetyRoutes);
     app.use(
       "/api/translate",
       requireAuth,
