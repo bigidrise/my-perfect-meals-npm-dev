@@ -18,6 +18,44 @@ export interface SafetyGuardrails {
 const normalize = (s: string) => s.trim().toLowerCase();
 
 /**
+ * ALLERGEN KEY CLASSIFICATION SETS
+ *
+ * Used by the masking-aware allergen scan to decide which text normalization
+ * applies when checking a term:
+ *
+ *   DAIRY_ALLERGEN_KEYS  — plant-milk masking applies (scanning "milk" for a dairy
+ *                          allergy must not flag "almond milk", "oat milk", etc.)
+ *   NUT_ALLERGEN_KEYS    — plant-milk AND nut-butter masking must NOT apply because
+ *                          "almond milk" IS a real nut-allergy violation (almond term),
+ *                          and "almond butter" IS a real nut-allergy violation.
+ *
+ * Any allergen key not in either set gets nut-butter masking for its "butter" terms.
+ */
+export const DAIRY_ALLERGEN_KEYS = new Set([
+  "dairy", "milk", "lactose", "lactose intolerance", "lactose_intolerance",
+]);
+
+export const NUT_ALLERGEN_KEYS = new Set([
+  // Keys that appear in ALLERGEN_EXPANSION
+  "tree nuts", "tree nut",
+  "nuts", "nut",
+  "peanuts", "peanut",
+  // Variant spellings users may enter (not in expansion map, but mapped via fallback)
+  "tree-nut", "tree_nut", "treenut",
+  // Individual nut names as potential user-entered allergen keys
+  "almond", "almonds",
+  "cashew", "cashews",
+  "walnut", "walnuts",
+  "hazelnut", "hazelnuts",
+  "pistachio", "pistachios",
+  "macadamia",
+  "pecan", "pecans",
+  "brazil nut",
+  "pine nut",
+  "chestnut",
+]);
+
+/**
  * PLANT MILK SAFE LIST
  * These compound phrases are NOT dairy and must not be blocked by the bare "milk" term.
  * Each prefix (e.g. "almond") may still be blocked by its OWN allergen category
@@ -1930,13 +1968,30 @@ export function scanMealsForAllergenViolations<T extends AllergenScanMeal>(
   allergens: string[],
   exemptTerms?: Set<string>,
 ): AllergenScanResult<T> {
-  const allForbiddenTerms = buildForbiddenTermsFromAllergens(allergens);
-  const forbiddenTerms = exemptTerms
-    ? allForbiddenTerms.filter(t => !exemptTerms.has(t.toLowerCase()))
-    : allForbiddenTerms;
-  const forbiddenRegexes = forbiddenTerms.map(
-    t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
-  );
+  // Build per-allergen term lists so we can apply selective masking per allergen key.
+  // This preserves the allergen-key context that buildForbiddenTermsFromAllergens loses
+  // when it flattens everything into one list.
+  type AllergenEntry = { key: string; terms: string[]; regexes: RegExp[] };
+  const allergenEntries: AllergenEntry[] = [];
+  const seenTerms = new Set<string>(); // deduplicate across allergen keys
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key] ? [...ALLERGEN_EXPANSION[key]] : [allergen];
+    const terms = expanded.filter(t => {
+      const tl = t.toLowerCase();
+      if (exemptTerms?.has(tl)) return false;
+      if (seenTerms.has(`${key}::${tl}`)) return false;
+      seenTerms.add(`${key}::${tl}`);
+      return true;
+    });
+    allergenEntries.push({
+      key,
+      terms,
+      regexes: terms.map(
+        t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+      ),
+    });
+  }
 
   const violations = new Set<string>();
   const safe: T[] = [];
@@ -1951,14 +2006,43 @@ export function scanMealsForAllergenViolations<T extends AllergenScanMeal>(
       ? meal.instructions.join(" ")
       : (meal.instructions || "");
 
-    const mealText = [
+    const rawMealText = [
       meal.name || "",
       ingredientText,
       instructionsText,
       meal.description || "",
-    ].join(" ");
+    ].join(" ").toLowerCase();
 
-    const hits = forbiddenTerms.filter((_, idx) => forbiddenRegexes[idx].test(mealText));
+    // Pre-compute masked variants once per meal.
+    const plantMilkMasked = maskPlantMilks(rawMealText);
+    const nutButterMasked = maskNutButters(rawMealText);
+
+    const hits: string[] = [];
+    for (const { key, terms, regexes } of allergenEntries) {
+      const isDairyKey = DAIRY_ALLERGEN_KEYS.has(key);
+      const isNutKey   = NUT_ALLERGEN_KEYS.has(key);
+      for (let i = 0; i < terms.length; i++) {
+        const term = terms[i];
+        const termLower = term.toLowerCase();
+        // Select the appropriate text surface for this allergen key + term:
+        //   • Dairy key + any milk-bearing term → use plant-milk-masked text so
+        //     "almond milk" / "oat milk" don't trigger the dairy "milk" term.
+        //   • Non-nut key + "butter" term        → use nut-butter-masked text so
+        //     "almond butter" doesn't trigger a non-nut "butter" term.
+        //   • Nut key                            → always use raw text; "almond milk"
+        //     and "almond butter" ARE real violations for tree-nut/peanut allergy.
+        let textToScan = rawMealText;
+        if (!isNutKey && isDairyKey) {
+          textToScan = plantMilkMasked;
+        } else if (!isNutKey && termLower === "butter") {
+          textToScan = nutButterMasked;
+        }
+        if (regexes[i].test(textToScan)) {
+          hits.push(term);
+        }
+      }
+    }
+
     if (hits.length > 0) {
       hits.forEach(v => violations.add(v));
       unsafe.push(meal);
