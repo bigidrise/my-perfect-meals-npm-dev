@@ -585,6 +585,15 @@ export default function SushiCreator() {
         if (data.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${data.message}`);
         }
+        if (data.reasonCode === "constraint_conflict") {
+          setIsGenerating(false);
+          toast({
+            title: "No options fit your current plan",
+            description: data.message || "Your health protocol eliminated all generated options. Try a lower-carb dish, or adjust your glucose settings.",
+            duration: 8000,
+          });
+          return;
+        }
         throw new Error(data.message || "Failed to generate meal");
       }
       // 🎲 Multi-option response from variety engine — show selection panel

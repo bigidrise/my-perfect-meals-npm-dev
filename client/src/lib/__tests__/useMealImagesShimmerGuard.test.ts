@@ -277,7 +277,67 @@ describe("useMealImages.ts — filter guard source assertion", () => {
   });
 });
 
-// ── 7. Source-code: banner slot disappears when no image and not loading ──────
+// ── 7. Loading-to-error path — banner collapses when fetch rejects ────────────
+//
+// When fetch() throws (network failure, non-OK response parsed as error, etc.)
+// the catch block in hydrateImages is a no-op and the finally block sets
+// loadingImages[id] = false.  Two invariants must hold:
+//   A. loadingImages[id] is falsy after the rejection — the shimmer disappears.
+//   B. setMeals is NOT called with an imageUrl — no broken image slot appears.
+
+describe("useMealImages — loading-to-error: banner collapses on fetch rejection", () => {
+  it("sets loadingImages[id] to false (falsy) after a rejected fetch", async () => {
+    // Simulate a network-level failure (fetch rejects entirely)
+    global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
+
+    const meals: TestMeal[] = [makeMeal("err-1", null)];
+    const setMeals = jest.fn();
+
+    const { result } = renderHook(() => useMealImages(setMeals));
+
+    await act(async () => {
+      await result.current.hydrateImages(meals);
+    });
+
+    // After the rejection the finally block must have fired and cleared the flag
+    expect(result.current.loadingImages["err-1"]).toBeFalsy();
+  });
+
+  it("does NOT write imageUrl to the meal when the fetch rejects", async () => {
+    // Simulate a fetch that rejects — no imageUrl must be forwarded to setMeals
+    global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
+
+    const meals: TestMeal[] = [makeMeal("err-2", null)];
+
+    // Track every setMeals call to verify imageUrl is never written
+    const imageUrlsWritten: Array<string | null | undefined> = [];
+    let currentMeals = [...meals];
+    const setMeals = jest.fn((updater: any) => {
+      if (typeof updater === "function") {
+        const next = updater(currentMeals);
+        next.forEach((m: TestMeal) => {
+          if (m.id === "err-2") imageUrlsWritten.push(m.imageUrl);
+        });
+        currentMeals = next;
+      }
+    });
+
+    const { result } = renderHook(() => useMealImages(setMeals));
+
+    await act(async () => {
+      await result.current.hydrateImages(meals);
+    });
+
+    // setMeals may not have been called at all (preferred), or if called the
+    // imageUrl for the errored meal must remain null/undefined — never a URL string.
+    const anyBrokenUrl = imageUrlsWritten.some(
+      (url) => typeof url === "string" && url.length > 0
+    );
+    expect(anyBrokenUrl).toBe(false);
+  });
+});
+
+// ── 8. Source-code: banner slot disappears when no image and not loading ──────
 //
 // When loadingImages[opt.id] is falsy AND opt.imageUrl is null/undefined,
 // neither branch of the || is truthy so the outer wrapper evaluates to false

@@ -439,6 +439,16 @@ export default function ChefsKitchenPage() {
           });
           return;
         }
+        if (errorData?.reasonCode === "constraint_conflict") {
+          setGenerationProgress(0);
+          setIsGeneratingMeal(false);
+          toast({
+            title: "No options fit your current plan",
+            description: errorData.message || "Your health protocol eliminated all generated options. Try a lower-carb dish, or adjust your glucose settings.",
+            duration: 8000,
+          });
+          return;
+        }
         const errText = errorData ? JSON.stringify(errorData) : `${response.status}`;
         throw new Error(`Failed to generate meal: ${errText}`);
       }
