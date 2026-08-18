@@ -110,11 +110,11 @@ export function SafetyGuardToggle({
   return (
     <div className="relative">
       <div className="flex items-center gap-2">
-        {/* Branded Label */}
+        {/* Label */}
         <div className="flex items-center gap-1.5">
           <Shield className="w-3.5 h-3.5 text-green-400" />
           <span className="text-xs text-white/70 font-medium">
-            SafetyGuard <span className="text-white/50">—</span> <span className="text-green-400/80">Allergy Protection</span>
+            <span className="text-green-400/80">Allergy Protection</span>
           </span>
         </div>
         
@@ -123,9 +123,9 @@ export function SafetyGuardToggle({
           disabled={disabled}
           onClick={handleToggleClick}
           active={safetyEnabled}
-          aria-label={safetyEnabled ? "Safety On - Click to disable" : "Safety Off - Click to enable"}
+          aria-label={safetyEnabled ? "Allergy Protection active — click to override with PIN" : "Allergy Protection overridden — click to re-enable"}
         >
-          {safetyEnabled ? "On" : "Off"}
+          {safetyEnabled ? "Override Allergy Protection" : "Protection Overridden"}
         </PillButton>
       </div>
 
@@ -135,7 +135,7 @@ export function SafetyGuardToggle({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-orange-400" />
-                <h3 className="text-lg font-semibold text-white">SafetyGuard Override</h3>
+                <h3 className="text-lg font-semibold text-white">Override Allergy Protection</h3>
               </div>
               <button
                 onClick={() => setShowPinEntry(false)}
