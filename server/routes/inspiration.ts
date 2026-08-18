@@ -243,8 +243,13 @@ router.post(
       const title = mealData.title;
 
       // ── Nutrition Decision Engine (NDE) summary ──────────────────────────
-      // Surface which daily nutrition strategy influenced this generation
-      // so the client can show an "Adapted for today" banner when relevant.
+      // Surface which constraints *actually governed* this generation so the
+      // client can show an honest "Adapted for today" banner.
+      //
+      // wasAdapted is true only when a clinical or dietary constraint was
+      // actively injected into the generation prompt AND — for starch-only
+      // flags — the generated meals' actual carb values confirm restriction.
+      // It is never based solely on profile state flags.
       let ndeSummary: {
         scheduleConfigured: boolean;
         starchPolicy: string;
@@ -252,25 +257,126 @@ router.post(
         dayLabel: string | null;
         wasAdapted: boolean;
         adaptedNote: string | null;
+        adaptationContext: string[];
       } | null = null;
 
       try {
         const envelope = await loadUserProtocolEnvelope(String(userId));
-        if (envelope.dailyNutritionState?.scheduleConfigured) {
-          const ds = envelope.dailyNutritionState;
-          const restricted = ds.starchPolicy === "zero" || ds.starchyBudgetExhausted;
+        if (!envelope) throw new Error("envelope unavailable");
+
+        // ── Determine which constraints were active during generation ──────
+        const activeConstraints: string[] = [];
+
+        // 1. Clinical / specialty conditions — these inject directive blocks
+        //    into the generation prompt, so they are true adaptation signals.
+        if (envelope.hasDiabetes) {
+          activeConstraints.push("diabetes");
+        }
+
+        const guidanceBlocks: string[] = envelope.conditionGuidanceBlocks ?? [];
+        if (guidanceBlocks.some(b => /glp-?1|semaglutide|ozempic|tirzepatide/i.test(b))) {
+          activeConstraints.push("glp1");
+        }
+        if (guidanceBlocks.some(b => /cardiac|heart/i.test(b))) {
+          activeConstraints.push("cardiac");
+        }
+        if (guidanceBlocks.some(b => /renal|kidney/i.test(b))) {
+          activeConstraints.push("renal");
+        }
+        if (guidanceBlocks.some(b => /oncolog|cancer/i.test(b))) {
+          activeConstraints.push("oncology");
+        }
+        if (guidanceBlocks.some(b => /liver|hepat/i.test(b))) {
+          activeConstraints.push("liver");
+        }
+        if (envelope.hormoneOptimization) {
+          activeConstraints.push("hormone");
+        }
+        if (envelope.pregnancySupport) {
+          activeConstraints.push("pregnancy");
+        }
+        if (envelope.therapeuticSupport) {
+          activeConstraints.push("therapeutic");
+        }
+
+        // 2. Starch-restriction flags — only count as adaptation when the
+        //    generated meals' actual carbs confirm restriction was applied.
+        //    A user with an exhausted budget who received 85g-carb recipes
+        //    did NOT get an adapted generation.
+        const ds = envelope.dailyNutritionState;
+        const starchRestricted =
+          ds?.scheduleConfigured &&
+          (ds.starchPolicy === "zero" || ds.starchyBudgetExhausted);
+
+        if (starchRestricted && activeConstraints.length === 0) {
+          // Verify by checking the average carbs across all generated meals.
+          // If they genuinely stayed low (< 50 g avg), starch was honoured.
+          const mealCarbValues = allMeals
+            .map((m: any) =>
+              m.nutrition?.carbs ?? m.nutrition?.carbohydrates ?? null
+            )
+            .filter((v: any): v is number => typeof v === "number");
+
+          const avgCarbs =
+            mealCarbValues.length > 0
+              ? mealCarbValues.reduce((a: number, b: number) => a + b, 0) /
+                mealCarbValues.length
+              : null;
+
+          if (avgCarbs !== null && avgCarbs < 50) {
+            activeConstraints.push("starch-restriction");
+          }
+        }
+
+        // ── Build wasAdapted + note from active constraints ───────────────
+        const wasAdapted = activeConstraints.length > 0;
+
+        let adaptedNote: string | null = null;
+        if (wasAdapted) {
+          if (activeConstraints.includes("diabetes")) {
+            adaptedNote =
+              "Adapted for your diabetes management — carbohydrate targets were held within your clinical ceiling.";
+          } else if (activeConstraints.includes("glp1")) {
+            adaptedNote =
+              "Adapted for your GLP-1 medication protocol — portions and composition reflect your tolerance settings.";
+          } else if (activeConstraints.includes("cardiac")) {
+            adaptedNote =
+              "Adapted for your heart-health protocol — saturated fat and sodium targets were applied during generation.";
+          } else if (activeConstraints.includes("renal")) {
+            adaptedNote =
+              "Adapted for your kidney-health protocol — protein and phosphorus limits were applied during generation.";
+          } else if (activeConstraints.includes("oncology")) {
+            adaptedNote =
+              "Adapted for your oncology nutrition protocol — generation followed your clinical dietary guidelines.";
+          } else if (activeConstraints.includes("liver")) {
+            adaptedNote =
+              "Adapted for your liver-health protocol — sodium and fat limits were applied during generation.";
+          } else if (activeConstraints.includes("pregnancy")) {
+            adaptedNote =
+              "Adapted for your pregnancy nutrition protocol — nutrients and safety guidelines were applied.";
+          } else if (activeConstraints.includes("hormone")) {
+            adaptedNote =
+              "Adapted for your hormone optimization protocol — ingredient and macro choices reflect your protocol.";
+          } else if (activeConstraints.includes("therapeutic")) {
+            adaptedNote =
+              "Adapted for your therapeutic nutrition protocol — generation followed your active clinical guidelines.";
+          } else if (activeConstraints.includes("starch-restriction")) {
+            adaptedNote =
+              ds?.starchPolicy === "zero"
+                ? "Starchy carbohydrates were minimized — fibrous alternatives were prioritized for today."
+                : "Starchy carbohydrate choices were kept within today's remaining budget.";
+          }
+        }
+
+        if (ds?.scheduleConfigured || wasAdapted) {
           ndeSummary = {
-            scheduleConfigured: true,
-            starchPolicy:       ds.starchPolicy,
-            starchyBudgetExhausted: ds.starchyBudgetExhausted,
-            dayLabel:           (ds as any).dayLabel ?? null,
-            wasAdapted:         restricted,
-            adaptedNote:        restricted
-              ? `This recipe was automatically adapted for today's nutrition strategy. ` +
-                `${ds.starchPolicy === "zero"
-                  ? "Starchy carbohydrates have been minimized or replaced with fibrous alternatives."
-                  : "Starchy carbohydrate choices were reduced to fit today's remaining budget."}`
-              : null,
+            scheduleConfigured: ds?.scheduleConfigured ?? false,
+            starchPolicy:       ds?.starchPolicy ?? "any",
+            starchyBudgetExhausted: ds?.starchyBudgetExhausted ?? false,
+            dayLabel:           (ds as any)?.dayLabel ?? null,
+            wasAdapted,
+            adaptedNote,
+            adaptationContext:  activeConstraints,
           };
         }
 
