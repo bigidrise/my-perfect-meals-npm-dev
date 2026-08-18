@@ -77,6 +77,7 @@ import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnack
 import { generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
+import { isClinicalAdaptationActive } from './clinicalMacroGate';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IMAGE PERSISTENCE HELPER — DEPRECATED THIN WRAPPER
@@ -250,35 +251,50 @@ export interface ExplicitOverride {
 
 export interface MealGenerationRequest {
   type: 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef' | 'snack-creator';
+
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
   input: string | string[]; // craving text, meal description, or ingredient list
+
   userId?: string;
+
   macroTargets?: {
     protein_g?: number;
     fibrous_carbs_g?: number;
     starchy_carbs_g?: number;
     fat_g?: number;
   };
+
   count?: number; // number of meals to generate (default 1)
+
   dietType?: DietType; // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
+
   dietPhase?: string; // Phase for phase-aware builders (e.g. BeachBody: 'lean' | 'carb-control' | 'maintenance' | 'sculpt')
   /**
    * Remaining macro budget for today. When provided, the AI generates
    * within these values — not the baseline daily targets.
    * Used by BeachBody (and future builders) for real-time budget awareness.
    */
+
   remainingMacros?: {
     protein?: number;
     carbs?: number;
     fat?: number;
     calories?: number;
   };
+
   starchContext?: StarchContext; // Starch Game Plan context for intelligent carb distribution
+
   diversityContext?: { usedBases: Record<string, number>; usedTypes: Record<string, number> } | null; // Meal diversity tracking
+
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
+
   safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
+
   strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
+
   skipImage?: boolean; // Skip DALL-E generation — client handles image async via /api/meals/generate-image
+
   explicitOverride?: ExplicitOverride | null; // User confirmed override for a builder guardrail conflict
   /**
    * Controls how remainingMacros is presented to the AI.
@@ -286,6 +302,7 @@ export interface MealGenerationRequest {
    * - lifestyle: guidance only (General Nutrition, Weekly)
    * - hybrid: strong aim with small deviation allowed (Performance)
    */
+
   builderMode?: BuilderMode;
   /**
    * Today's performance session context — injected into the prompt so the AI
@@ -293,6 +310,7 @@ export interface MealGenerationRequest {
    * (strength, endurance, recovery, competition, off, etc.).
    * Only used when dietType === 'beachbody' and the builder is performance-context-aware.
    */
+
   performanceSessionContext?: {
     sessionType: string;
     sessionLabel: string;
@@ -305,6 +323,7 @@ export interface MealGenerationRequest {
    * high-carb fuelling guidance; "rest_day" injects recovery guidance.
    * Only used when performanceSessionContext is absent.
    */
+
   generationContext?: string;
   /**
    * Patient-specific GLP-1 resolved targets from the canonical context resolver.
@@ -312,8 +331,10 @@ export interface MealGenerationRequest {
    * protein/fat/calorie constraints instead of static 400 kcal / 12 g fat defaults.
    * Loaded server-side by the route handler — never trusted from the client body.
    */
+
   glp1Targets?: ResolvedGLP1Targets;
   /** User's preferred language code (BCP-47). Forwarded to downstream generators. */
+
   preferredLanguage?: string;
   /**
    * Express request correlation ID (set by the request-id middleware).
@@ -321,12 +342,23 @@ export interface MealGenerationRequest {
    * rows written during batch/unified generation are traceable back to the
    * originating HTTP request.
    */
+
   correlationId?: string;
   /** Temporary dietary identity override — replaces the profile diet for one generation.
    *  Allergies, medical conditions, and procedural protections are never affected. */
+
   dietaryRestrictionsOverride?: string[];
   /** Requested serving count — passed to the recipe generator for accurate ingredient scaling. */
+
   servings?: number;
+  /**
+   * Server-authoritative clinical generation context from the chef budget
+   * resolver ("diabetic" | "glp1" | "standard"). Drives the clinical
+   * adaptation retry path independently of the client-selected dietType, so a
+   * profile-confirmed diabetic gets adaptation retries even when the builder
+   * sends no diet type. Never trusted from the client body.
+   */
+  clinicalGenerationContext?: string;
   /**
    * Allergen category/categories authorised by a Safety PIN override for this
    * single generation. When set, scanGeneratedOutput suppresses violations for
@@ -336,6 +368,7 @@ export interface MealGenerationRequest {
    *
    * All other clinical, dietary, and allergy protections remain active.
    */
+
   overriddenAllergens?: string[];
 }
 
@@ -2902,6 +2935,7 @@ export async function generateFromDescriptionUnified(
   preferredLanguage?: string,
   dietaryRestrictionsOverride?: string[],
   servings?: number,
+  clinicalGenerationContext?: string,
   overriddenAllergens?: string[],
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
@@ -3256,7 +3290,22 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       relaxedMessages.push({ role: 'user', content: relaxedChefPrompt });
     }
 
-    const MAX_REGENERATION_ATTEMPTS = 2;
+    // Clinical adaptation contexts (diabetic carb ceiling / GLP-1 fat ceiling)
+    // get extra attempts: naturally carb/fat-heavy dishes (gumbo, paella, pasta)
+    // often need more than two passes to be adapted into the clinical envelope,
+    // and the post-gen clinical gate in routes.ts hard-rejects non-compliant
+    // results. The final attempt also receives a targeted adaptation pass below.
+    //
+    // Activation is driven by the SERVER-AUTHORITATIVE clinicalGenerationContext
+    // (from the chef budget resolver) — not just client dietType — so a
+    // profile-confirmed diabetic gets adaptation retries regardless of which
+    // builder diet the client selected.
+    const {
+      active: clinicalAdaptationActive,
+      diabeticActive: diabeticClinicalActive,
+      glp1Active: glp1ClinicalActive,
+    } = isClinicalAdaptationActive(clinicalGenerationContext, dietType, !!glp1Targets);
+    const MAX_REGENERATION_ATTEMPTS = clinicalAdaptationActive ? 4 : 2;
     let finalMealData: any = null;
     let attemptCount = 0;
     let lastFixHint: string | null = null;
@@ -3283,6 +3332,37 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       } else if (lastFixHint) {
         currentMessages.push({ role: 'user', content: `IMPORTANT CORRECTION REQUIRED: ${lastFixHint}` });
         console.log(`🔄 Regeneration attempt ${attemptCount} with fix hint`);
+      }
+
+      // ── Targeted clinical adaptation pass (diabetic / GLP-1, final attempt) ──
+      // Instead of failing on carb/fat-heavy dishes, explicitly instruct the AI
+      // to ADAPT the requested dish: strip the ceiling-violating components
+      // (roux, heavy fat, white rice/pasta base) while preserving the dish's
+      // identity, flavors, and protein.
+      if (clinicalAdaptationActive && isLastAttempt && attemptCount > 1) {
+        const ceilingLines: string[] = [];
+        if (diabeticClinicalActive && remainingMacros?.carbs != null) {
+          ceilingLines.push(`- Total carbohydrates MUST be ≤ ${remainingMacros.carbs}g for this meal (hard clinical ceiling).`);
+        }
+        if (glp1Targets) {
+          ceilingLines.push(`- Total fat MUST be ≤ ${glp1Targets.maximumToleratedFatGrams}g, calories ~${glp1Targets.resolvedMealCalories} kcal (hard clinical ceiling).`);
+        } else if (glp1ClinicalActive && remainingMacros?.fat != null) {
+          ceilingLines.push(`- Total fat MUST be ≤ ${remainingMacros.fat}g for this meal (hard clinical ceiling).`);
+        }
+        currentMessages.push({
+          role: 'user',
+          content:
+            `CLINICAL ADAPTATION PASS — FINAL ATTEMPT. The previous versions of this dish exceeded the user's clinical nutrition limits. ` +
+            `Do NOT reject or replace the dish — ADAPT it so it fits the limits while keeping its identity and flavors:\n` +
+            ceilingLines.join('\n') + '\n' +
+            `Adaptation techniques (apply aggressively):\n` +
+            `- Replace white rice / pasta / bread bases with cauliflower rice, zucchini noodles, or extra non-starchy vegetables\n` +
+            `- Eliminate or drastically reduce roux, butter, cream, heavy oils, and fried components; use broth-based or dry-heat techniques\n` +
+            `- Shrink starchy and fatty portions; keep lean protein and non-starchy vegetables as the bulk of the meal\n` +
+            `- Name the dish honestly as an adapted version (e.g. "Cauliflower-Rice Chicken Gumbo")\n` +
+            `The reported macros MUST honestly reflect the final ingredients and MUST fit within the ceilings above.`,
+        });
+        console.log(`🏥 [ClinicalAdapt] Final-attempt adaptation pass injected (dietType=${dietType}, glp1=${!!glp1Targets})`);
       }
 
       const response = await openai.chat.completions.create({
@@ -3458,6 +3538,39 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
           console.log(
             `✅ [GLP-1] Macro compliance verified: ` +
             `${tempMeal.calories}kcal / ${tempMeal.fat}g fat / ${tempMeal.protein}g prot`
+          );
+        }
+      }
+
+      // ── Diabetic carb ceiling enforcement (in-loop) ───────────────────────
+      // Mirrors the route-level clinical macro gate (clinicalMacroGate.ts) so
+      // carb-heavy dishes get adapted DURING generation instead of being
+      // hard-rejected by the gate after the loop returns. Same 10g tolerance.
+      if (diabeticClinicalActive && remainingMacros?.carbs != null) {
+        const DIABETIC_CARB_TOLERANCE = 10; // matches clinicalMacroGate CARB_TOLERANCE
+        const carbCeiling = remainingMacros.carbs;
+        const mealCarbs =
+          typeof tempMeal.carbs === 'number' && isFinite(tempMeal.carbs) ? tempMeal.carbs : null;
+        if (mealCarbs === null || mealCarbs > carbCeiling + DIABETIC_CARB_TOLERANCE) {
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint =
+              mealCarbs === null
+                ? `MISSING NUTRITION DATA: You must report accurate total carbohydrates for this meal. ` +
+                  `Regenerate with complete, honest macros. Total carbs MUST be ≤ ${carbCeiling}g.`
+                : `DIABETIC CARB CEILING VIOLATION: This meal contains ${mealCarbs}g total carbs but the ` +
+                  `clinical maximum for this meal is ${carbCeiling}g. ADAPT the dish — do not abandon it: ` +
+                  `replace white rice/pasta/bread bases with cauliflower rice or zucchini noodles, remove ` +
+                  `roux and sugary sauces, shrink starchy portions, and bulk with non-starchy vegetables. ` +
+                  `Keep the dish's identity and protein. Total carbs MUST be ≤ ${carbCeiling}g.`;
+            console.warn(
+              `🩸 [DIABETIC CARB GATE] ${mealCarbs === null ? 'unknown carbs' : `${mealCarbs}g > ${carbCeiling}g ceiling`} ` +
+              `(attempt ${attemptCount}) — regenerating with adaptation hint`
+            );
+            continue;
+          }
+          console.error(
+            `❌ [DIABETIC CARB GATE] Carb ceiling unresolvable after ${attemptCount} attempts ` +
+            `(${mealCarbs ?? 'unknown'}g vs ${carbCeiling}g) — route clinical gate will decide`
           );
         }
       }
@@ -4407,6 +4520,7 @@ export async function generateMealUnified(
         request.preferredLanguage,
         request.dietaryRestrictionsOverride,
         request.servings,
+        request.clinicalGenerationContext,
         request.overriddenAllergens,
       );
       break;

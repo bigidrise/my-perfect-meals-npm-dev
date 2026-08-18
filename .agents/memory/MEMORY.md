@@ -1,3 +1,4 @@
+- [Clinical adaptation retry activation](clinical-adaptation-retries.md) — generator-side diabetic/GLP-1 behavior must key off server-resolved clinicalGenerationContext, never client dietType alone.
 - [ALLERGEN_ADAPT dish-name exemption](allergen-adapt-dish-name-exemption.md) — post-scan must exempt the requested dish's own name (curated allowlist + word-bounded request match) or adaptation always fails.
 - [Universal allergen scan in scanGeneratedOutput](universal-allergen-scan.md) — envelope.allergies now scanned against ALLERGEN_EXPANSION at every surface; matches Phase 3 raw-text semantics (no plant-milk masking), so dairy allergy can flag plant milks.
 - [Allergy Adaptation Decision Layer](allergy-adaptation-layer.md) — 3-phase system: conflict classification (adaptable vs identity-collapse) + AllergyConflictModal (no-PIN safe path) + post-adaptation allergen scan; "ALLERGEN_ADAPT" safetyMode bypasses pre-check.
