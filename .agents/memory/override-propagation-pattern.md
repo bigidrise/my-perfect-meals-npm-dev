@@ -1,24 +1,10 @@
 ---
-name: Override propagation pattern — /api/meals/generate
-description: How a Safety PIN override token must flow from runEnforcement all the way through to scanGeneratedOutput in the unified pipeline.
+name: Override propagation invariant — meal generation
+description: A Safety PIN allergen override must survive from pre-gen enforcement to every post-gen scan, or the scan re-blocks the meal the PIN just authorized.
 ---
 
-## The pattern
+**Rule:** Whatever authorizes an allergen override before generation must hand the authorized allergen(s) to every post-generation safety scan for that same request. Any new builder/generator branch added to the unified pipeline must accept and thread `overriddenAllergens` to its post-gen scan — cached results and inline sub-generators (beverages, snacks, fridge) included.
 
-`EnforcementResult` does not carry `overriddenAllergen`. The allergen lives in the in-memory token store in `safetyPinService.ts`. The token is atomically claimed (and deleted) by `enforceSafetyProfile` inside `runEnforcement` — so it cannot be read after enforcement completes.
+**Why:** Pre-gen enforcement and post-gen scanning are separate layers. If the override is validated but dropped between them, the post-gen scan re-blocks the meal on the exact allergen the user's PIN authorized — the user sees a failure after a successful PIN entry. This shipped as a real bug and was rejected twice in review for branches that were missed.
 
-**Fix: peek before enforcement.**
-
-Call `peekOverrideTokenAllergen(token, userId)` (non-consuming read) before `runEnforcement`. Store the result as `_unifiedOverriddenAllergens`. Pass it to `generateMealUnified` as `overriddenAllergens`. The pipeline threads it to `scanGeneratedOutput` in both the create-with-chef and snack-creator builders.
-
-**Why:** Without the peek, the allergen is consumed by enforcement and is unavailable for post-generation suppression. The pre-gen check passes but the post-gen scan re-blocks the same allergen the PIN just authorized.
-
-**How to apply:** Any new builder type added to `generateMealUnified` must also receive `overriddenAllergens` and pass it to its `scanGeneratedOutput` call.
-
-## Files touched
-- `server/services/safetyPinService.ts` — `peekOverrideTokenAllergen()` export
-- `server/routes.ts` — peek before `runEnforcement`, pass to `generateMealUnified`
-- `server/services/unifiedMealPipeline.ts` — `overriddenAllergens` on `MealGenerationRequest`, threaded to `generateFromDescriptionUnified` and `generateSnackFromCravingUnified`
-
-## Compare with craving-creator
-The craving-creator route uses `enforceSafetyProfile` directly (not `runEnforcement`) and reads `safetyCheck.overriddenAllergen` from the result. That path works differently — no peek needed. The unified `/api/meals/generate` route uses `runEnforcement`, which is why the peek pattern is required there.
+**How to apply:** When adding a generation branch or cache-return path, ask "which scan runs on this output, and does it receive the request's override context?" Matching must be exact canonical-key (see allergen-override-exact-match.md), never substring.

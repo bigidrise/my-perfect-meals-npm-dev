@@ -127,6 +127,14 @@ export interface EnforcementResult {
 
   /** Convenience: first hard block, or undefined if ALLOW */
   primaryBlock?: EnforcementBlock;
+
+  /**
+   * Set when a valid Safety PIN override token authorized a specific allergen
+   * for this request. Routes must thread this to the generation pipeline as
+   * overriddenAllergens so post-generation scanning does not re-block the
+   * meal on the allergen the user just authorized.
+   */
+  overriddenAllergen?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -464,7 +472,14 @@ export async function runEnforcement(request: EnforcementRequest): Promise<Enfor
     `✅ [EnforcementGateway] ALLOW — user=${request.userId} builder=${request.builderType} phase=${request.phase} auditId=${auditId}`
   );
 
-  return buildResult("ALLOW", blocks, warnings, auditId, request);
+  const allowResult = buildResult("ALLOW", blocks, warnings, auditId, request);
+  if (safetyAssessment.overriddenAllergen) {
+    allowResult.overriddenAllergen = safetyAssessment.overriddenAllergen;
+    console.log(
+      `🔓 [EnforcementGateway] PIN override active — allergen "${safetyAssessment.overriddenAllergen}" authorized for this request (user=${request.userId}, auditId=${auditId})`
+    );
+  }
+  return allowResult;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -13,7 +13,7 @@
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope } from './protocolEnvelope';
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
@@ -51,6 +51,7 @@ import {
   RESTRICTION_EXPANSION,
   AVOIDANCE_EXPANSION,
   getSafeSubstitute,
+  allergenKeysMatch,
 } from './allergyGuardrails';
 import { validateDietaryRestriction, type DietaryMode } from './guardrails/validators/dietaryRestrictionValidator';
 import { db } from '../db';
@@ -358,6 +359,7 @@ export interface MealGenerationRequest {
    * profile-confirmed diabetic gets adaptation retries even when the builder
    * sends no diet type. Never trusted from the client body.
    */
+
   clinicalGenerationContext?: string;
   /**
    * Allergen category/categories authorised by a Safety PIN override for this
@@ -657,6 +659,66 @@ function normalizeMedicalBadges(badges: any[]): Array<{ id: string; label: strin
  * NOTE: This is Craving Creator - DO NOT MODIFY per user directive
  */
 export async function generateCravingMealUnified(
+  cravingInput: string,
+  mealType: string,
+  userId?: string,
+  dietaryRestrictionsOverride?: string[],
+  strictMode: boolean = false,
+  starchContext?: StarchContext,
+  glp1Targets?: ResolvedGLP1Targets,
+  preferredLanguage?: string,
+  /** Allergens authorized by a valid Safety PIN override for this request only. */
+  overriddenAllergens?: string[],
+): Promise<MealGenerationResponse> {
+  const result = await generateCravingMealUnifiedInternal(
+    cravingInput, mealType, userId, dietaryRestrictionsOverride,
+    strictMode, starchContext, glp1Targets, preferredLanguage,
+  );
+
+  // ── Post-generation/cache protocol scan (full envelope + PIN override) ────
+  // Applied to EVERY successful result — cache hits, template matches, and
+  // fresh AI generations alike — so cached/template meals are re-validated
+  // against the user's CURRENT full protocol. The overriddenAllergens context
+  // suppresses only the exact allergen(s) a valid Safety PIN authorized
+  // (exact canonical-key matching inside scanGeneratedOutput); every other
+  // allergy, dietary rule, and avoidance stays enforced.
+  if (result.success && userId) {
+    const _cravingEnvelope =
+      (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope();
+    const _scanCtx = {
+      generatorName: 'craving_unified',
+      overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
+    };
+    if (result.meal) {
+      const _scan = scanGeneratedOutput(result.meal, _cravingEnvelope, _scanCtx);
+      if (!_scan.passed) {
+        console.error(`🚫 [CRAVING/Unified] Post-scan FAILED for "${result.meal.name}" — ${_scan.message}`);
+        return {
+          success: false,
+          source: 'error',
+          error: _scan.message || 'Generated meal did not pass your dietary safety requirements. Please try again.',
+        };
+      }
+    }
+    if (result.meals?.length) {
+      const _kept = filterMealsByProtocol(result.meals, _cravingEnvelope, _scanCtx);
+      if (_kept.length === 0) {
+        return {
+          success: false,
+          source: 'error',
+          error: 'Generated meals did not pass your dietary safety requirements. Please try again.',
+        };
+      }
+      result.meals = _kept;
+      if (result.meal && !_kept.some(m => m.name === result.meal!.name)) {
+        result.meal = _kept[0];
+      }
+    }
+  }
+  return result;
+}
+
+async function generateCravingMealUnifiedInternal(
   cravingInput: string,
   mealType: string,
   userId?: string,
@@ -2302,9 +2364,10 @@ export async function generateSingleCompliantFallback(
 
   // Build an allergy block that respects any authenticated override for this request.
   // Without this the fallback would silently re-block an ingredient the user unlocked.
-  const overridden = (options?.overriddenAllergens ?? []).map(a => a.toLowerCase());
+  // Exact canonical-key matching only — never substring ("fish" ≠ "shellfish").
+  const overridden = options?.overriddenAllergens ?? [];
   const enforcedAllergies = (options?.storedAllergies ?? []).filter(
-    a => !overridden.some(o => o.includes(a.toLowerCase()) || a.toLowerCase().includes(o))
+    a => !overridden.some(o => allergenKeysMatch(a, o))
   );
   const allergyBlock = enforcedAllergies.length > 0
     ? `ALLERGEN BLOCK — This user has confirmed allergies to: ${enforcedAllergies.join(', ')}. Do NOT include these ingredients or any derivative/hidden form in the meal.`
@@ -2358,7 +2421,9 @@ export async function generateFridgeRescueUnified(
   macroTargets?: MealGenerationRequest['macroTargets'],
   count: number = 3,
   useFallbackOnly: boolean = false,
-  preferredLanguage?: string
+  preferredLanguage?: string,
+  /** Allergens authorized by a valid Safety PIN override for this request only. */
+  overriddenAllergens?: string[]
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
 
@@ -2394,7 +2459,25 @@ export async function generateFridgeRescueUnified(
     mealType: validMealType,
     primaryDiet: fridgePrimaryDiet
   });
-  
+
+  // ── Load protocol envelope (same pattern as create-with-chef / craving / snack) ─
+  // Loaded BEFORE the cache check so cached meals are also post-scanned against
+  // the user's CURRENT full protocol (allergies may have changed since caching).
+  const _rawFridgeEnvelope = userId
+    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    : buildGuestEnvelope();
+
+  // Post-generation safety scan applied to every meal this function returns —
+  // cached or freshly generated. Scans against the FULL (unfiltered) envelope;
+  // the overriddenAllergens context suppresses only the exact allergen(s) a
+  // valid Safety PIN authorized (exact canonical-key matching inside
+  // scanGeneratedOutput). All other allergies and protocol rules stay enforced.
+  const _fridgeScanMeals = (meals: UnifiedMeal[], label: string): UnifiedMeal[] =>
+    filterMealsByProtocol(meals, _rawFridgeEnvelope, {
+      generatorName: `fridge_rescue_${label}`,
+      overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
+    });
+
   if (!isOncologyFridge) {
     const cached = await getCachedMeals(signature);
     if (cached && cached.meals.length >= count) {
@@ -2403,13 +2486,17 @@ export async function generateFridgeRescueUnified(
         m.ingredients && Array.isArray(m.ingredients) && m.ingredients.length > 0
       );
       if (hasValidData) {
-        console.log(`🚀 Cache hit for fridge rescue: ${fridgeItems.join(', ')} (source: ${cached.source})`);
-        return {
-          success: true,
-          meals: cached.meals.slice(0, count),
-          meal: cached.meals[0],
-          source: cached.meals[0].source === 'ai' ? 'ai' : 'catalog'
-        };
+        const _scannedCached = _fridgeScanMeals(cached.meals.slice(0, count), 'cache');
+        if (_scannedCached.length >= count) {
+          console.log(`🚀 Cache hit for fridge rescue: ${fridgeItems.join(', ')} (source: ${cached.source})`);
+          return {
+            success: true,
+            meals: _scannedCached,
+            meal: _scannedCached[0],
+            source: _scannedCached[0].source === 'ai' ? 'ai' : 'catalog'
+          };
+        }
+        console.log(`🚫 [FRIDGE/Unified] Cached meals failed the protocol scan (${_scannedCached.length}/${count} passed) — regenerating fresh.`);
       } else {
         console.log(`⚠️ Cache has stale entries without imageUrl/ingredients - regenerating: ${fridgeItems.join(', ')}`);
       }
@@ -2421,12 +2508,21 @@ export async function generateFridgeRescueUnified(
   // Step 2: Use the REAL Fridge Rescue generator (OpenAI-powered, proven stable)
   // This is the same system that works perfectly on Fridge Rescue page
   console.log(`🧊 Unified Pipeline: Using Fridge Rescue AI generator for: ${fridgeItems.join(', ')}`);
-
-  // ── Load protocol envelope (same pattern as create-with-chef / craving / snack) ─
-  // Passes diet identity, medical rules, and cuisine preferences into the AI prompt.
-  const fridgeEnvelope = userId
-    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-    : buildGuestEnvelope();
+  // PIN allergen override — exclude only the exactly-matching authorized
+  // allergen(s) (exact canonical-key matching via allergenKeysMatch — never
+  // substring) so the generator's prompt block does not forbid the ingredient
+  // the user just unlocked. All other allergies remain fully enforced.
+  const fridgeEnvelope = (overriddenAllergens?.length ?? 0) > 0
+    ? {
+        ..._rawFridgeEnvelope,
+        allergies: _rawFridgeEnvelope.allergies.filter(
+          a => !overriddenAllergens!.some(oa => allergenKeysMatch(a, oa))
+        ),
+      }
+    : _rawFridgeEnvelope;
+  if (overriddenAllergens?.length) {
+    console.log(`🔓 [FRIDGE/Unified] PIN allergen override active — [${overriddenAllergens.join(', ')}] excluded from enforcement envelope; all other allergies enforced`);
+  }
   if (fridgeEnvelope.dietaryIdentity.length > 0) {
     console.log(`🔒 [FRIDGE/Unified] Envelope loaded: identity=[${fridgeEnvelope.dietaryIdentity.join(',')}]`);
   }
@@ -2612,13 +2708,24 @@ export async function generateFridgeRescueUnified(
       }
     }
 
+    // ── Post-generation safety scan (full envelope + PIN override context) ──
+    const _scannedResultMeals = _fridgeScanMeals(resultMeals, 'generated');
+    if (_scannedResultMeals.length === 0) {
+      console.error(`🚫 [FRIDGE/Unified] All ${resultMeals.length} generated meals failed the post-generation protocol scan.`);
+      return {
+        success: false,
+        source: 'error',
+        error: 'Generated meals did not pass your dietary safety requirements. Please try again.',
+      };
+    }
+
     // Cache the results for future use (only cache clean meals)
-    await cacheMeals(signature, resultMeals, validMealType, 'ai');
+    await cacheMeals(signature, _scannedResultMeals, validMealType, 'ai');
     
     return {
       success: true,
-      meals: resultMeals,
-      meal: resultMeals[0],
+      meals: _scannedResultMeals,
+      meal: _scannedResultMeals[0],
       source: 'ai'
     };
   } catch (error) {
@@ -2645,11 +2752,24 @@ export async function generateFridgeRescueUnified(
       medicalBadges: [],
       source: 'fallback' as const
     };
-    
+
+    // ── Post-scan the deterministic fallback too (full envelope + override) ──
+    // The resilience path must never bypass safety: a fallback template can
+    // contain a non-overridden allergen, avoidance, or dietary violation.
+    const _scannedFallback = _fridgeScanMeals([fallbackMeal], 'fallback');
+    if (_scannedFallback.length === 0) {
+      console.error(`🚫 [FRIDGE/Unified] Deterministic fallback "${fallbackMeal.name}" failed the protocol scan — returning safe failure.`);
+      return {
+        success: false,
+        source: 'error',
+        error: 'We could not generate a meal that meets your dietary safety requirements right now. Please try again.',
+      };
+    }
+
     return {
       success: true,
-      meals: [fallbackMeal],
-      meal: fallbackMeal,
+      meals: _scannedFallback,
+      meal: _scannedFallback[0],
       source: 'fallback'
     };
   }
@@ -2738,13 +2858,30 @@ async function generateBeverageFromDescription(
   remainingMacros?: { protein?: number; carbs?: number; fat?: number; calories?: number },
   glp1Targets?: ResolvedGLP1Targets,
   preferredLanguage?: string,
+  /** Allergens authorized by a valid Safety PIN override for this request only. */
+  overriddenAllergens?: string[],
 ): Promise<MealGenerationResponse> {
   console.log(`🍹 [CREATE-WITH-CHEF/BEVERAGE] "${beverageCategory}" intent detected — routing to beverage pipeline`);
 
   const envelope = userId
     ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
     : buildGuestEnvelope();
-  const protocolBlock = enforceBeforeGenerate(envelope, { generatorName: 'create_with_chef_beverage' }).combined;
+  // PIN allergen override — exclude only the exactly-matching authorized
+  // allergen(s) from the PROMPT envelope (exact canonical-key matching via
+  // allergenKeysMatch — never substring). The post-gen scan below still runs
+  // against the FULL envelope with overriddenAllergens context.
+  const _bevPromptEnvelope = (overriddenAllergens?.length ?? 0) > 0
+    ? {
+        ...envelope,
+        allergies: envelope.allergies.filter(
+          a => !overriddenAllergens!.some(oa => allergenKeysMatch(a, oa))
+        ),
+      }
+    : envelope;
+  if (overriddenAllergens?.length) {
+    console.log(`🔓 [CREATE-WITH-CHEF/BEVERAGE] PIN allergen override active — [${overriddenAllergens.join(', ')}] excluded from prompt block; all other allergies enforced`);
+  }
+  const protocolBlock = enforceBeforeGenerate(_bevPromptEnvelope, { generatorName: 'create_with_chef_beverage' }).combined;
 
   const CATEGORY_RULES: Record<string, string> = {
     'smoothie': '- Prioritize whole fruits and natural sweetness\n- Include a liquid base (milk, juice, water, coconut water)\n- Blend until smooth; suggest add-ins (chia seeds, flax, protein powder)',
@@ -2864,6 +3001,23 @@ GENERATION RULES:
 
   console.log(`✅ [CREATE-WITH-CHEF/BEVERAGE] Generated: ${unifiedMeal.name}`);
 
+  // ── Post-generation protocol scan (full envelope + PIN override context) ──
+  // Runs against the FULL envelope; overriddenAllergens suppresses only the
+  // exact allergen(s) a valid Safety PIN authorized. All other allergies,
+  // dietary rules, and avoidances remain enforced.
+  const _bevScan = scanGeneratedOutput(unifiedMeal, envelope, {
+    generatorName: 'create_with_chef_beverage',
+    overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
+  });
+  if (!_bevScan.passed) {
+    console.error(`🚫 [CREATE-WITH-CHEF/BEVERAGE] Post-gen protocol scan FAILED — ${_bevScan.message}`);
+    return {
+      success: false,
+      source: 'error',
+      error: _bevScan.message || 'Generated beverage did not pass your dietary safety requirements. Please try again.',
+    };
+  }
+
   // ── GLP-1 post-generation macro validation ───────────────────────────────
   // Prompt-level guidance alone is not sufficient for clinical enforcement.
   // Validate the generated beverage against the patient's resolved fat ceiling,
@@ -2936,6 +3090,8 @@ export async function generateFromDescriptionUnified(
   dietaryRestrictionsOverride?: string[],
   servings?: number,
   clinicalGenerationContext?: string,
+  /** Allergens authorized by a valid Safety PIN override for this request only.
+   *  Excluded from the allergy prompt block and from post-gen re-blocking. */
   overriddenAllergens?: string[],
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
@@ -2966,6 +3122,7 @@ export async function generateFromDescriptionUnified(
       remainingMacros,     // server-authoritative macro budget
       glp1Targets,         // patient-specific clinical targets for post-gen validation
       preferredLanguage,   // language instruction so beverage name/description are in user's language
+      overriddenAllergens, // Safety-PIN-authorized allergen(s) for this request only
     );
   }
 
@@ -3047,7 +3204,25 @@ export async function generateFromDescriptionUnified(
     const _effectiveChefEnvelope = (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0)
       ? { ...chefEnvelope, dietaryIdentity: dietaryRestrictionsOverride }
       : chefEnvelope;
-    const chefProtocolBlock = enforceBeforeGenerate(_effectiveChefEnvelope, {
+    // PIN allergen override — remove the explicitly authorized allergen(s) from
+    // the PROMPT envelope only, so the LLM is not instructed to exclude the
+    // ingredient the user just unlocked. The post-gen scan still runs against
+    // the full envelope with overriddenAllergens context, which suppresses only
+    // the authorized allergen's derivatives — all other allergies stay enforced.
+    // Exact canonical-key matching only (allergenKeysMatch) — never substring:
+    // a "fish" override must not strip the distinct "shellfish" allergy.
+    const _chefPromptEnvelope = (overriddenAllergens?.length ?? 0) > 0
+      ? {
+          ..._effectiveChefEnvelope,
+          allergies: _effectiveChefEnvelope.allergies.filter(
+            a => !overriddenAllergens!.some(oa => allergenKeysMatch(a, oa))
+          ),
+        }
+      : _effectiveChefEnvelope;
+    if (overriddenAllergens?.length) {
+      console.log(`🔓 [CREATE-WITH-CHEF] PIN allergen override active — [${overriddenAllergens!.join(', ')}] excluded from prompt block; all other allergies enforced`);
+    }
+    const chefProtocolBlock = enforceBeforeGenerate(_chefPromptEnvelope, {
       generatorName: 'create_with_chef',
       actorId: userId ?? undefined,
     }).combined;
@@ -3943,7 +4118,25 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       // Hard guarantee: unverified fallbacks are never vegan/veg/pesc compliant
       dietaryComplianceVerified: CHEF_DIET_VALIDATION_REQUIRED.includes(chefFallbackPrimaryDiet) ? false : undefined,
     };
-    
+
+    // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
+    // The resilience path must never bypass safety enforcement.
+    const _chefFallbackEnvelope = userId
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+    const _chefFallbackScan = scanGeneratedOutput(fallbackMeal, _chefFallbackEnvelope, {
+      generatorName: 'create_with_chef_fallback',
+      overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
+    });
+    if (!_chefFallbackScan.passed) {
+      console.error(`🚫 [CREATE-WITH-CHEF] Deterministic fallback "${fallbackMeal.name}" failed the protocol scan — returning safe failure.`);
+      return {
+        success: false,
+        source: 'error',
+        error: 'We could not generate a meal that meets your dietary safety requirements right now. Please try again.',
+      };
+    }
+
     return {
       success: true,
       meal: fallbackMeal,
@@ -3952,7 +4145,6 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     };
   }
 }
-
 /**
  * Generate a snack from a craving description (Snack Creator)
  * Uses craving-to-healthy transformation logic with full meal card output
@@ -3967,7 +4159,8 @@ export async function generateSnackFromCravingUnified(
   explicitOverride?: ExplicitOverride | null,
   glp1Targets?: ResolvedGLP1Targets,
   preferredLanguage?: string,
-  overriddenAllergens?: string[],
+  /** Allergens authorized by a valid Safety PIN override for this request only. */
+  overriddenAllergens?: string[]
 ): Promise<MealGenerationResponse> {
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
@@ -4002,7 +4195,22 @@ export async function generateSnackFromCravingUnified(
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
       : buildGuestEnvelope();
 
-    const snackProtocolBlock = enforceBeforeGenerate(snackEnvelope, {
+    // PIN allergen override — exclude only the exactly-matching authorized
+    // allergen(s) from the PROMPT envelope (exact canonical-key matching via
+    // allergenKeysMatch — never substring). Post-gen scan still runs against
+    // the full envelope with overriddenAllergens context.
+    const _snackPromptEnvelope = (overriddenAllergens?.length ?? 0) > 0
+      ? {
+          ...snackEnvelope,
+          allergies: snackEnvelope.allergies.filter(
+            a => !overriddenAllergens!.some(oa => allergenKeysMatch(a, oa))
+          ),
+        }
+      : snackEnvelope;
+    if (overriddenAllergens?.length) {
+      console.log(`🔓 [SNACK] PIN allergen override active — [${overriddenAllergens.join(', ')}] excluded from prompt block; all other allergies enforced`);
+    }
+    const snackProtocolBlock = enforceBeforeGenerate(_snackPromptEnvelope, {
       generatorName: 'snack_creator',
     }).combined;
 
@@ -4433,7 +4641,25 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
       // Hard guarantee: unverified fallbacks are never vegan/veg/pesc compliant
       dietaryComplianceVerified: snackFallbackPrimaryDiet && SNACK_DIET_VALIDATION_REQUIRED.includes(snackFallbackPrimaryDiet) ? false : undefined,
     };
-    
+
+    // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
+    // The resilience path must never bypass safety enforcement.
+    const _snackFallbackEnvelope = userId
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+    const _snackFallbackScan = scanGeneratedOutput(fallbackSnack, _snackFallbackEnvelope, {
+      generatorName: 'snack_creator_fallback',
+      overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
+    });
+    if (!_snackFallbackScan.passed) {
+      console.error(`🚫 [SNACK] Deterministic fallback "${fallbackSnack.name}" failed the protocol scan — returning safe failure.`);
+      return {
+        success: false,
+        source: 'error',
+        error: 'We could not generate a snack that meets your dietary safety requirements right now. Please try again.',
+      };
+    }
+
     return {
       success: true,
       meal: fallbackSnack,
@@ -4493,7 +4719,7 @@ export async function generateMealUnified(
       const cravingInput = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true, request.starchContext, request.glp1Targets, request.preferredLanguage);
+      result = await generateCravingMealUnified(cravingInput, request.mealType, request.userId, undefined, request.strictMode === true, request.starchContext, request.glp1Targets, request.preferredLanguage, request.overriddenAllergens);
       break;
 
     case 'create-with-chef':
@@ -4545,7 +4771,8 @@ export async function generateMealUnified(
         request.macroTargets,
         request.count || 1,
         useFallbackOnly,
-        request.preferredLanguage
+        request.preferredLanguage,
+        request.overriddenAllergens
       );
       break;
 

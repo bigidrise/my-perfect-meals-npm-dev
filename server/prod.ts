@@ -147,7 +147,11 @@ if (fs.existsSync(clientDistEarly)) {
   // Uses app.use() (middleware, not a named route) to avoid breaking Express route audits
   // that call .startsWith() on route paths — RegExp paths don't support .startsWith().
   app.use((req, res, next) => {
-    if (req.method === "GET" && !req.path.startsWith("/api")) {
+    if (
+      req.method === "GET" &&
+      !req.path.startsWith("/api") &&
+      !req.path.startsWith("/public-objects/")
+    ) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       return res.sendFile(path.join(clientDistEarly, "index.html"));
     }

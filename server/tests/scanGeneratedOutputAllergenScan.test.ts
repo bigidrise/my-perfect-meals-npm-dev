@@ -232,6 +232,86 @@ describe("allergen override — category-aware suppression", () => {
       result.violations.every(v => v.category !== "allergy:shellfish"),
     ).toBe(true);
   });
+  test("overriding fish does NOT suppress the distinct shellfish allergy (no substring matching)", () => {
+    // "fish" is a substring of "shellfish" — a fish override must never unlock shellfish.
+    const shrimpMeal2 = {
+      name: "Shrimp Stir Fry",
+      description: "Quick stir fry.",
+      ingredients: [{ name: "shrimp" }, { name: "garlic" }],
+      instructions: "Stir fry shrimp and garlic.",
+    };
+    const envelope = {
+      ...buildGuestEnvelope(),
+      allergies: ["fish", "shellfish"],
+    } as any;
+    const result = scanGeneratedOutput(shrimpMeal2, envelope, {
+      generatorName: "test",
+      overriddenAllergens: ["fish"],
+    });
+    expect(result.passed).toBe(false);
+    expect(result.violations.some(v => v.category === "allergy:shellfish")).toBe(true);
+
+    // And the fish override DOES suppress actual fish violations
+    const salmonMeal = {
+      name: "Grilled Salmon",
+      description: "Simple grilled fillet.",
+      ingredients: [{ name: "salmon" }, { name: "lemon" }],
+      instructions: "Grill the salmon.",
+    };
+    const result2 = scanGeneratedOutput(salmonMeal, envelope, {
+      generatorName: "test",
+      overriddenAllergens: ["fish"],
+    });
+    expect(result2.violations.some(v => v.category === "allergy:fish")).toBe(false);
+    expect(result2.passed).toBe(true);
+  });
+
+  test("overriding shellfish does NOT suppress the distinct fish allergy", () => {
+    const salmonMeal = {
+      name: "Grilled Salmon",
+      description: "Simple grilled fillet.",
+      ingredients: [{ name: "salmon" }, { name: "lemon" }],
+      instructions: "Grill the salmon.",
+    };
+    const envelope = {
+      ...buildGuestEnvelope(),
+      allergies: ["fish", "shellfish"],
+    } as any;
+    const result = scanGeneratedOutput(salmonMeal, envelope, {
+      generatorName: "test",
+      overriddenAllergens: ["shellfish"],
+    });
+    expect(result.passed).toBe(false);
+    expect(result.violations.some(v => v.category === "allergy:fish")).toBe(true);
+  });
+
+  test("dish adaptation guardrail context: fish override does NOT drop the shellfish allergy", () => {
+    const { buildGuardrailContext } = require("../services/dishAdaptation/dishAdaptationLayer");
+    const ctx = buildGuardrailContext({
+      allergies: ["fish", "shellfish"],
+      overriddenAllergens: ["fish"],
+    });
+    expect(ctx.activeAllergens).toContain("shellfish");
+    expect(ctx.activeAllergens).not.toContain("fish");
+
+    const ctx2 = buildGuardrailContext({
+      allergies: ["fish", "shellfish"],
+      overriddenAllergens: ["shellfish"],
+    });
+    expect(ctx2.activeAllergens).toContain("fish");
+    expect(ctx2.activeAllergens).not.toContain("shellfish");
+  });
+
+  test("allergenKeysMatch: exact/alias matches only", () => {
+    const { allergenKeysMatch } = require("../services/allergyGuardrails");
+    expect(allergenKeysMatch("fish", "shellfish")).toBe(false);
+    expect(allergenKeysMatch("shellfish", "fish")).toBe(false);
+    expect(allergenKeysMatch("lactose intolerance", "dairy")).toBe(false);
+    expect(allergenKeysMatch("shellfish", "Shellfish")).toBe(true);
+    expect(allergenKeysMatch("peanut", "peanuts")).toBe(true);
+    expect(allergenKeysMatch("milk", "dairy")).toBe(true);
+    expect(allergenKeysMatch("tree nut", "tree nuts")).toBe(true);
+  });
 });
 
 describe("plant-milk masking — dairy allergy must not block almond/oat milk", () => {
@@ -367,5 +447,117 @@ describe("plant-milk masking — dairy allergy must not block almond/oat milk", 
     );
     expect(safe).toHaveLength(2);
     expect(unsafe).toHaveLength(1);
+  });
+});
+
+// ── filterMealsByProtocol — PIN override on batch paths (fridge cache/generated) ──
+// The fridge-rescue/premade branch (cached AND freshly generated meals) and any
+// other batch path filter meals through filterMealsByProtocol. A valid Safety
+// PIN override must suppress ONLY the exact authorized allergen; other
+// allergies remain enforced, and fish must never unlock shellfish.
+import { filterMealsByProtocol } from "../services/protocolEnvelope";
+
+describe("filterMealsByProtocol — overriddenAllergens (fridge cache + generated paths)", () => {
+  const shrimpFriedRice = {
+    name: "Shrimp Fried Rice",
+    description: "Fried rice with shrimp.",
+    ingredients: [{ name: "shrimp" }, { name: "rice" }, { name: "egg-free seasoning" }],
+    instructions: "Fry everything.",
+  };
+  const chickenFriedRice = {
+    name: "Chicken Fried Rice",
+    description: "Fried rice with chicken.",
+    ingredients: [{ name: "chicken breast" }, { name: "rice" }],
+    instructions: "Fry everything.",
+  };
+  const butterNoodles = {
+    name: "Butter Noodles",
+    description: "Noodles with butter.",
+    ingredients: [{ name: "noodles" }, { name: "butter" }],
+    instructions: "Boil and toss.",
+  };
+
+  test("without override, shellfish meal is filtered out", () => {
+    const kept = filterMealsByProtocol(
+      [shrimpFriedRice, chickenFriedRice],
+      envelopeWithAllergies(["shellfish"]),
+      { generatorName: "fridge_rescue_cache" },
+    );
+    expect(kept.map(m => m.name)).toEqual(["Chicken Fried Rice"]);
+  });
+
+  test("shellfish override keeps the shrimp meal but still blocks dairy", () => {
+    const kept = filterMealsByProtocol(
+      [shrimpFriedRice, chickenFriedRice, butterNoodles],
+      envelopeWithAllergies(["shellfish", "dairy"]),
+      { generatorName: "fridge_rescue_generated", overriddenAllergens: ["shellfish"] },
+    );
+    expect(kept.map(m => m.name).sort()).toEqual(["Chicken Fried Rice", "Shrimp Fried Rice"]);
+  });
+
+  test("fish override does NOT unlock shellfish (exact-key matching)", () => {
+    const kept = filterMealsByProtocol(
+      [shrimpFriedRice, chickenFriedRice],
+      envelopeWithAllergies(["shellfish"]),
+      { generatorName: "fridge_rescue_cache", overriddenAllergens: ["fish"] },
+    );
+    expect(kept.map(m => m.name)).toEqual(["Chicken Fried Rice"]);
+  });
+
+  test("shellfish override does NOT unlock fish", () => {
+    const salmonBowl = {
+      name: "Salmon Bowl",
+      description: "Rice bowl with salmon.",
+      ingredients: [{ name: "salmon" }, { name: "rice" }],
+      instructions: "Assemble.",
+    };
+    const kept = filterMealsByProtocol(
+      [salmonBowl, chickenFriedRice],
+      envelopeWithAllergies(["fish"]),
+      { generatorName: "fridge_rescue_cache", overriddenAllergens: ["shellfish"] },
+    );
+    expect(kept.map(m => m.name)).toEqual(["Chicken Fried Rice"]);
+  });
+});
+
+// ── PIN override never suppresses independent avoidances / dietary rules ─────
+describe("scanGeneratedOutput — override does not relax avoidances", () => {
+  test("shellfish override still blocks shrimp via an independent seafood avoidance", () => {
+    const envelope = {
+      ...envelopeWithAllergies(["shellfish"]),
+      avoidances: ["seafood"],
+    };
+    const result = scanGeneratedOutput(shrimpMeal, envelope, {
+      generatorName: "test",
+      overriddenAllergens: ["shellfish"],
+    });
+    expect(result.passed).toBe(false);
+    expect(result.violations.every(v => !v.category.startsWith("allergy:"))).toBe(true);
+  });
+
+  test("fish override does not suppress seafood-avoidance fish terms", () => {
+    const salmonMeal = {
+      name: "Salmon Bowl",
+      description: "Rice bowl with salmon.",
+      ingredients: [{ name: "salmon" }, { name: "rice" }],
+      instructions: "Assemble.",
+    };
+    const envelope = {
+      ...envelopeWithAllergies(["fish"]),
+      avoidances: ["seafood"],
+    };
+    const result = scanGeneratedOutput(salmonMeal, envelope, {
+      generatorName: "test",
+      overriddenAllergens: ["fish"],
+    });
+    expect(result.passed).toBe(false);
+  });
+
+  test("shellfish override with no other constraints still passes (control)", () => {
+    const result = scanGeneratedOutput(shrimpMeal, envelopeWithAllergies(["shellfish"]), {
+      generatorName: "test",
+      overriddenAllergens: ["shellfish"],
+    });
+    expect(result.passed).toBe(true);
   });
 });

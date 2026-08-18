@@ -190,6 +190,57 @@ export const AVOIDANCE_EXPANSION: Record<string, string[]> = {
  * Maps user-selected allergies to ALL related ingredients that must be blocked
  * This is the single source of truth for allergen blocking
  */
+// ─────────────────────────────────────────────────────────────────────────────
+// ALLERGEN KEY MATCHING — exact canonical matching for override authorization.
+//
+// A Safety-PIN allergen override authorizes ONE allergen category. Matching an
+// override against a stored allergy must NEVER use substring logic ("fish" is a
+// substring of "shellfish" — a fish override must not unlock shellfish). Instead:
+//   1. Normalize (lowercase, trim, hyphens/underscores → single spaces)
+//   2. Map deliberate aliases that denote the SAME allergy (milk ↔ dairy,
+//      singular/plural variants, alpha-gal spellings)
+//   3. Compare for exact equality (plus strict singular/plural equivalence)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Aliases that genuinely denote the same allergy category — nothing else. */
+const ALLERGEN_KEY_ALIASES: Record<string, string> = {
+  milk: "dairy",                    // "milk allergy" IS a dairy allergy (distinct from lactose intolerance)
+  "shell fish": "shellfish",
+  "tree nut": "tree nuts",
+  treenut: "tree nuts",
+  treenuts: "tree nuts",
+  peanut: "peanuts",
+  egg: "eggs",
+  "alpha gal": "alpha-gal",
+  "alpha gal syndrome": "alpha-gal",
+  "alpha-gal syndrome": "alpha-gal",
+};
+
+/** Normalize an allergen label to its canonical category key. */
+export function canonicalAllergenKey(raw: string): string {
+  const k = (raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+  const aliased = ALLERGEN_KEY_ALIASES[k] ?? k;
+  // Restore canonical hyphenation where the expansion table uses it
+  return aliased === "alpha gal" ? "alpha-gal" : aliased;
+}
+
+/**
+ * True only when two allergen labels denote the SAME allergy category.
+ * Exact canonical equality plus strict singular/plural equivalence
+ * ("peanut" ↔ "peanuts"). Never substring-based: "fish" ≠ "shellfish".
+ */
+export function allergenKeysMatch(a: string, b: string): boolean {
+  const ca = canonicalAllergenKey(a);
+  const cb = canonicalAllergenKey(b);
+  if (!ca || !cb) return false;
+  if (ca === cb) return true;
+  return ca + "s" === cb || cb + "s" === ca;
+}
+
 export const ALLERGEN_EXPANSION: Record<string, string[]> = {
   // Shellfish - CRITICAL: Must block all crustaceans and mollusks + dishes that typically contain them
   shellfish: [

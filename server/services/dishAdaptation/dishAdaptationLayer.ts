@@ -23,6 +23,7 @@ import {
   type GuardrailId,
   type SubstitutionRule,
 } from "../../../shared/dishAdaptation/guardrailSubstitutionMap";
+import { allergenKeysMatch } from "../allergyGuardrails";
 import type {
   ActiveGuardrail,
   CallContext,
@@ -322,10 +323,11 @@ export function resolveConflicts(
   // Active (non-overridden) allergens with known substitutes that collide
   // with dish components. Overridden allergens are deliberately NOT added —
   // the user has authenticated permission to include them.
-  const overridden = (ctx.overriddenAllergens ?? []).map(a => a.toLowerCase());
+  const overridden = ctx.overriddenAllergens ?? [];
   for (const allergen of ctx.activeAllergens ?? []) {
     const a = allergen.toLowerCase();
-    if (overridden.some(o => o.includes(a) || a.includes(o))) continue;
+    // Exact canonical-key matching only — never substring ("fish" ≠ "shellfish").
+    if (overridden.some(o => allergenKeysMatch(allergen, o))) continue;
     // Normalize the raw allergen string (e.g. "dairy (milk)", "cow's milk",
     // "egg whites") to the canonical key used in the lookup tables.  Falls back
     // to the raw form so already-canonical keys ("dairy", "egg") still work.
@@ -484,9 +486,10 @@ export function buildGuardrailContext(opts: {
   if (opts.glp1Active) add("glp1");
   if (opts.kosherCategory === "meat" && identity.some(d => d.includes("kosher"))) add("kosher-meat");
 
-  const overridden = (opts.overriddenAllergens ?? []).map(a => a.toLowerCase());
+  // Exact canonical-key matching only — never substring ("fish" ≠ "shellfish").
+  const overridden = opts.overriddenAllergens ?? [];
   const activeAllergens = (opts.allergies ?? []).filter(
-    a => !overridden.some(o => o.includes(a.toLowerCase()) || a.toLowerCase().includes(o)),
+    a => !overridden.some(o => allergenKeysMatch(a, o)),
   );
   // Gluten/wheat/celiac allergy activates the gluten-free substitution profile.
   // "celiac" always implies strict gluten-free requirements.

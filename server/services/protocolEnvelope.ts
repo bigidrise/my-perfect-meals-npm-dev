@@ -41,6 +41,7 @@ import {
   RESTRICTION_EXPANSION,
   scanForHiddenDietaryViolations,
   ALLERGEN_EXPANSION,
+  allergenKeysMatch,
   classifyKosherMealCategory,
   normalizeForDietaryScan,
   type HiddenViolation,
@@ -2235,11 +2236,13 @@ export function scanGeneratedOutput(
   const mealTextPlantMilkMasked = maskPlantMilks(mealTextLower);
   const mealTextNutButterMasked = maskNutButters(mealTextLower);
 
+  // Exact canonical-key matching only (allergenKeysMatch) — substring matching
+  // was a safety bug: a "fish" override must never unlock the distinct
+  // "shellfish" allergy just because one label contains the other.
   const overriddenLower = (context?.overriddenAllergens || []).map(a => a.toLowerCase());
-  const effectiveAllergies = envelope.allergies.filter(a => {
-    const aLower = a.toLowerCase();
-    return !overriddenLower.some(oa => aLower.includes(oa) || oa.includes(aLower));
-  });
+  const effectiveAllergies = envelope.allergies.filter(
+    a => !(context?.overriddenAllergens || []).some(oa => allergenKeysMatch(a, oa))
+  );
   for (const allergen of effectiveAllergies) {
     const key = allergen.trim().toLowerCase();
     if (!key) continue;
@@ -2279,35 +2282,24 @@ export function scanGeneratedOutput(
   // e.g. overriding "lactose intolerance" must never suppress violations produced
   // by the "dairy" allergen key, even though both share "milk" as a forbidden term.
   //
-  // Non-allergen violations (dietary identity, avoidance scans) use expansion-based
-  // suppression so that overriding "shellfish" still clears any shrimp/crab hits
-  // that arrived from the dietary-avoidance path.
+  // Non-allergen violations (dietary identity, avoidance scans) are NEVER
+  // suppressed by an allergen PIN override. A PIN authorizes exactly one
+  // allergy constraint — an independent "seafood" avoidance or a dietary
+  // identity rule that also forbids shrimp must remain fully enforced even
+  // when the shellfish allergy itself was overridden.
   let ingredientViolations = context?.overriddenAllergens?.length
-    ? (() => {
-        // Expansion set for non-allergen (dietary) violations only.
-        const dietarySuppress = new Set<string>();
-        for (const oa of overriddenLower) {
-          dietarySuppress.add(oa);
-          const expanded = ALLERGEN_EXPANSION[oa];
-          if (expanded) expanded.forEach(t => dietarySuppress.add(t.toLowerCase()));
+    ? rawIngredientViolations.filter(v => {
+        // ── Allergen-loop violations: category-aware, no cross-allergen suppression ──
+        if (v.category.startsWith("allergy:")) {
+          const allergenKey = v.category.slice("allergy:".length);
+          // Suppress only when the violation's allergen key exactly matches an
+          // explicitly overridden allergen category (canonical-key match — never
+          // substring: a "fish" override must not suppress "shellfish" violations).
+          return !overriddenLower.some(oa => allergenKeysMatch(allergenKey, oa));
         }
-        return rawIngredientViolations.filter(v => {
-          // ── Allergen-loop violations: category-aware, no cross-allergen suppression ──
-          if (v.category.startsWith("allergy:")) {
-            const allergenKey = v.category.slice("allergy:".length);
-            // Suppress only when the violation's allergen key name-overlaps with an
-            // explicitly overridden allergen (e.g. "shellfish" ↔ "shellfish").
-            return !overriddenLower.some(
-              oa => allergenKey === oa || allergenKey.includes(oa) || oa.includes(allergenKey)
-            );
-          }
-          // ── Dietary / avoidance violations: expansion-based suppression ──
-          const termLower = v.term.toLowerCase();
-          return !Array.from(dietarySuppress).some(
-            st => termLower === st || termLower.includes(st) || st.includes(termLower)
-          );
-        });
-      })()
+        // ── Dietary / avoidance violations: always enforced ──
+        return true;
+      })
     : rawIngredientViolations;
 
   // ── ALLERGEN_ADAPT dish-name exemption ────────────────────────────────────
