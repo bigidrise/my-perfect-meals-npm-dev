@@ -1972,6 +1972,11 @@ export async function generateCravingMealOptions(
    *  injected into every generation attempt so the model adapts the requested
    *  dish instead of replacing it. Built via getDishAdaptationDirective(). */
   dishDirective?: import("./dishAdaptation/types").DishAdaptationDirective | null,
+  /** When true (Try 3 More / skipImages path), use gpt-4o-mini + fewer tokens
+   *  for a faster response. Image URLs are already skipped by the caller; this
+   *  trims the text-generation cost too. Quality is still adequate for variety
+   *  cards since the initial capture already anchored the dish concept. */
+  fastMode: boolean = false,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -2256,10 +2261,14 @@ export async function generateCravingMealOptions(
     // prepended so every attempt adapts the dish rather than replacing it.
     const dalBlock = dishDirective?.adaptationBlock ? dishDirective.adaptationBlock + '\n\n' : '';
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      // fastMode (Try 3 More / skipImages path): use gpt-4o-mini — it's ~3x
+      // faster and still produces solid variety-card suggestions. The initial
+      // image-scan already anchored the dish concept, so full gpt-4o quality
+      // isn't needed for subsequent swipes.
+      model: fastMode ? "gpt-4o-mini" : "gpt-4o",
       messages: [{ role: "user", content: dalBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
-      max_tokens: 2500,
+      max_tokens: fastMode ? 1500 : 2500,
       response_format: { type: "json_object" },
     });
     const content = response.choices[0]?.message?.content;
