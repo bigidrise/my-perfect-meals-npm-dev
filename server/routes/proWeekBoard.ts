@@ -121,6 +121,19 @@ async function processAllMealImagesForSave(
       if (meal.imageUrl) {
         try {
           const mealName = meal.title || meal.name || 'Meal';
+          // Guard: strip base64 data URIs before the lifecycle gate — client-side
+          // localStorage may cache meals with raw base64 before the permanent URL
+          // is available.  Null it out here so the meal saves with no image rather
+          // than producing a lifecycle_violation ERROR log.
+          const rawProMealImageUrl: string = meal.imageUrl;
+          if (rawProMealImageUrl.startsWith("data:")) {
+            console.warn(
+              `[proWeekBoard/processAllMealImagesForSave] Stripped base64 imageUrl for "${mealName}" — client sent stale localStorage data`,
+            );
+            meal.imageUrl = undefined;
+            imagesPending++;
+            continue;
+          }
           const result = await processMealImageForSave(meal.imageUrl, mealName);
           if (result.ingestionAttempted && result.imageUrl) {
             meal.imageUrl = result.imageUrl;
