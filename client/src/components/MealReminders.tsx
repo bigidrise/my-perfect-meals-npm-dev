@@ -203,11 +203,16 @@ export default function MealReminders() {
     return cleanup;
   }, [isNative]);
 
-  // Re-check on tab focus (user may have changed browser settings)
+  // Re-check on tab focus (user may have changed browser/system settings)
   useEffect(() => {
-    if (isNative) return;
     function onVisible() {
-      if (document.visibilityState === "visible") runPipelineCheck();
+      if (document.visibilityState !== "visible") return;
+      if (isNative) {
+        // User may have changed iOS notification permission in Settings
+        checkNotificationPermission().then(setiOSPermission);
+      } else {
+        runPipelineCheck();
+      }
     }
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
