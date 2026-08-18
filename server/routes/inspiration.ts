@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import OpenAI from "openai";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { computeNdeSummary } from "./inspiration-nde-helper";
 import { computeAlphaGalBadge } from "../services/medicalBadges";
 import { processMealImageForSave } from "../services/imageLifecycle";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
@@ -198,7 +199,15 @@ router.post(
       const allMeals = rawMeals.slice(0, 3);
 
       if (allMeals.length === 0) {
-        throw new Error("No meal returned from generator");
+        // craving-creator returned 200 with no meals — this happens when the
+        // BGL/protocol gate correctly eliminated every generated option.  It is
+        // not a crash.  Surface it as a typed constraint_conflict so the client
+        // can show a "no compliant options" message and leave existing cards intact.
+        return res.status(422).json({
+          error: "We created additional versions of this recipe, but none met today's nutrition requirements.",
+          reasonCode: "constraint_conflict",
+          suggestedActions: [],
+        });
       }
 
       // Step 4 — Generate meal images server-side in parallel for all options.
@@ -243,36 +252,20 @@ router.post(
       const title = mealData.title;
 
       // ── Nutrition Decision Engine (NDE) summary ──────────────────────────
-      // Surface which daily nutrition strategy influenced this generation
-      // so the client can show an "Adapted for today" banner when relevant.
-      let ndeSummary: {
-        scheduleConfigured: boolean;
-        starchPolicy: string;
-        starchyBudgetExhausted: boolean;
-        dayLabel: string | null;
-        wasAdapted: boolean;
-        adaptedNote: string | null;
-      } | null = null;
+      // Surface which constraints *actually governed* this generation so the
+      // client can show an honest "Adapted for today" banner.
+      //
+      // wasAdapted is true only when a clinical or dietary constraint was
+      // actively injected into the generation prompt AND — for starch-only
+      // flags — the generated meals' actual carb values confirm restriction.
+      // It is never based solely on profile state flags.
+      let ndeSummary: import("./inspiration-nde-helper").NdeSummary | null = null;
 
       try {
         const envelope = await loadUserProtocolEnvelope(String(userId));
-        if (envelope.dailyNutritionState?.scheduleConfigured) {
-          const ds = envelope.dailyNutritionState;
-          const restricted = ds.starchPolicy === "zero" || ds.starchyBudgetExhausted;
-          ndeSummary = {
-            scheduleConfigured: true,
-            starchPolicy:       ds.starchPolicy,
-            starchyBudgetExhausted: ds.starchyBudgetExhausted,
-            dayLabel:           (ds as any).dayLabel ?? null,
-            wasAdapted:         restricted,
-            adaptedNote:        restricted
-              ? `This recipe was automatically adapted for today's nutrition strategy. ` +
-                `${ds.starchPolicy === "zero"
-                  ? "Starchy carbohydrates have been minimized or replaced with fibrous alternatives."
-                  : "Starchy carbohydrate choices were reduced to fit today's remaining budget."}`
-              : null,
-          };
-        }
+        if (!envelope) throw new Error("envelope unavailable");
+
+        ndeSummary = computeNdeSummary(envelope, allMeals);
 
         // Alpha-gal badge — server-evaluated per option so the client never
         // independently decides what is or isn't safe for this condition.
