@@ -152,6 +152,8 @@ export default function InspirationCaptureModal({
   const [isSaving, setIsSaving] = useState(false);
   // Tracks which option indices have been saved — multiple saves from the same scan are allowed
   const [savedIndices, setSavedIndices] = useState<number[]>([]);
+  // True while "Try 3 More" is fetching new options — keeps old cards visible during the wait
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -432,12 +434,83 @@ export default function InspirationCaptureModal({
   }, [result, selectedOptionIndex, toast]);
 
   // Regenerate 3 new options locked to the same captured input (same dish, new variations)
-  const handleTryMore = useCallback(() => {
-    setResult(null);
-    setSelectedOptionIndex(0);
-    setSavedIndices([]);
-    generate();
-  }, [generate]);
+  const handleTryMore = useCallback(async () => {
+    // Capture the names of the currently visible options so the variety engine
+    // can exclude them and return genuinely new alternatives.
+    const currentNames: string[] = ((result?.options ?? []) as any[])
+      .map((opt: any) => (opt.name || opt.title || "").trim())
+      .filter(Boolean);
+
+    // Keep the existing cards visible — only replace them once new ones arrive.
+    setIsRegenerating(true);
+    try {
+      const body: any = {
+        inputType: mode,
+        servings,
+        healthMode,
+        proteinPriority,
+        prepStyle,
+        ...(cuisineOverrideEnabled && cuisineOverrideValue
+          ? { cuisineOverride: cuisineOverrideValue }
+          : {}),
+        ...(currentNames.length > 0 ? { excludedOptionNames: currentNames } : {}),
+      };
+      if (mode === "camera" || mode === "upload") {
+        body.imageBase64 = capturedBase64;
+        body.content = "";
+      } else {
+        body.content = capturedText;
+      }
+      const res = await fetch(apiUrl("/api/inspiration/capture"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("inspiration.somethingWrong"));
+
+      // New results are ready — swap them in atomically.
+      setResult(data);
+      setSelectedOptionIndex(0);
+      setSavedIndices([]);
+      if (destination === "recipe") {
+        const stripBase64 = (meal: any) => {
+          if (!meal) return meal;
+          const url = meal.imageUrl ?? "";
+          return url.startsWith("data:") ? { ...meal, imageUrl: null } : meal;
+        };
+        const persistable = {
+          ...data,
+          mealData: stripBase64(data.mealData),
+          options: Array.isArray(data.options) ? data.options.map(stripBase64) : data.options,
+        };
+        try { localStorage.setItem("mpm.recipe.lastScan", JSON.stringify(persistable)); } catch {}
+      }
+    } catch (err: any) {
+      // Generation failed — keep the original three cards and surface the error.
+      toast({
+        title: t("inspiration.somethingWrong"),
+        description: err.message || t("inspiration.createFailedMsg"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [
+    result,
+    mode,
+    capturedBase64,
+    capturedText,
+    servings,
+    healthMode,
+    proteinPriority,
+    prepStyle,
+    cuisineOverrideEnabled,
+    cuisineOverrideValue,
+    destination,
+    t,
+    toast,
+  ]);
 
   // Explicitly clear the saved scan — only the user can do this, never automatic
   const clearScan = useCallback(() => {
@@ -855,7 +928,7 @@ export default function InspirationCaptureModal({
                 )}
 
                 {/* Option cards */}
-                <div className="space-y-2">
+                <div className={`space-y-2 transition-opacity duration-200 ${isRegenerating ? "opacity-40 pointer-events-none" : ""}`}>
                   {options.map((opt: any, i: number) => (
                     <button
                       key={i}
@@ -953,9 +1026,17 @@ export default function InspirationCaptureModal({
                     </button>
                     <button
                       onClick={handleTryMore}
-                      className="px-4 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95"
+                      disabled={isRegenerating}
+                      className="px-4 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white font-semibold text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      {t("inspiration.try3More")}
+                      {isRegenerating ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          {t("inspiration.creating3More")}
+                        </>
+                      ) : (
+                        t("inspiration.try3More")
+                      )}
                     </button>
                   </div>
                   {savedIndices.length > 0 && (

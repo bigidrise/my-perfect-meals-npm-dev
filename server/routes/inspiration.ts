@@ -76,6 +76,7 @@ router.post(
         healthMode = "balanced",
         proteinPriority = "standard",
         prepStyle = "any",
+        excludedOptionNames,
       } = req.body;
 
       if (!inputType || (!content && !imageBase64)) {
@@ -160,6 +161,9 @@ router.post(
             generationMode: "meal",
             ...(cuisineOverride && typeof cuisineOverride === "string" && cuisineOverride.trim()
               ? { cultureOverride: cuisineOverride.trim() }
+              : {}),
+            ...(Array.isArray(excludedOptionNames) && excludedOptionNames.length > 0
+              ? { excludeMeals: excludedOptionNames.slice(0, 5) }
               : {}),
           }),
         }

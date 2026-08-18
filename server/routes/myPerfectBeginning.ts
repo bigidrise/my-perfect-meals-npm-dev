@@ -1122,10 +1122,22 @@ router.post('/generated-meals', requireAuth, async (req, res) => {
     // Attempt to persist ephemeral images (base64 / DALL-E temp URLs) to permanent
     // storage before saving to DB. If S3 + GCS both fail, safeImageUrl is null —
     // the restore path will re-generate the image rather than storing a broken link.
+    // Guard: strip base64 data URIs before the lifecycle gate — client-side
+    // localStorage may cache meals with raw base64 before the permanent URL is
+    // available.  Passing base64 to processMealImageForSave triggers a
+    // lifecycle_violation ERROR log.  Null it out here so the meal saves with
+    // no image rather than producing a false-alarm error.
     const recipeName = (typeof safeRecipeData === 'object' && safeRecipeData?.recipeName)
       ? String(safeRecipeData.recipeName)
       : 'meal';
-    const { imageUrl: safeImageUrl } = await processMealImageForSave(imageUrl ?? null, recipeName);
+    const rawMpbImageUrl = imageUrl ?? null;
+    const sanitisedMpbImageUrl = rawMpbImageUrl?.startsWith("data:") ? null : rawMpbImageUrl;
+    if (rawMpbImageUrl && !sanitisedMpbImageUrl) {
+      console.warn(
+        `[myPerfectBeginning/generated-meals] Stripped base64 imageUrl from client payload for "${recipeName}" — client sent stale localStorage data`,
+      );
+    }
+    const { imageUrl: safeImageUrl } = await processMealImageForSave(sanitisedMpbImageUrl, recipeName);
 
     const result = await db.execute(sql`
       INSERT INTO mpb_generated_meals (user_id, child_profile_id, recipe_data, image_url, selected_option_name)

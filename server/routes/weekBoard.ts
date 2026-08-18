@@ -296,8 +296,23 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
     
     const processed = await Promise.all(meals.map(async (meal) => {
       if (!meal?.imageUrl) return meal;
-      
-      const result = await processMealImageForSave(meal.imageUrl, meal.title || meal.name || 'Meal');
+
+      // Guard: strip base64 data URIs before the lifecycle gate — client-side
+      // localStorage may cache meals with raw base64 before the permanent URL
+      // is available.  Null it out here so the meal saves with no image rather
+      // than producing a lifecycle_violation ERROR log.
+      const rawMealImageUrl: string = meal.imageUrl;
+      const sanitisedMealImageUrl = rawMealImageUrl.startsWith("data:")
+        ? null
+        : rawMealImageUrl;
+      if (!sanitisedMealImageUrl) {
+        console.warn(
+          `[weekBoard/processAllMealImagesForSave] Stripped base64 imageUrl for "${meal.title || meal.name || 'Meal'}" — client sent stale localStorage data`,
+        );
+        return { ...meal, imageUrl: null };
+      }
+
+      const result = await processMealImageForSave(sanitisedMealImageUrl, meal.title || meal.name || 'Meal');
       
       if (result.ingestionAttempted) {
         imagesProcessed++;
