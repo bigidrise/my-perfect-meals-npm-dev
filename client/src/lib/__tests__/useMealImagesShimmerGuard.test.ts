@@ -276,3 +276,43 @@ describe("useMealImages.ts — filter guard source assertion", () => {
     expect(src).toContain("mealsNeedingImages.forEach");
   });
 });
+
+// ── 7. Source-code: banner slot disappears when no image and not loading ──────
+//
+// When loadingImages[opt.id] is falsy AND opt.imageUrl is null/undefined,
+// neither branch of the || is truthy so the outer wrapper evaluates to false
+// and the banner div is never mounted — no blank grey gap appears.
+//
+// This assertion pins the exact OR expression so any refactor that makes the
+// condition always-truthy (e.g. replacing it with `true` or adding a default)
+// fails the test immediately.
+
+describe("InspirationCaptureModal.tsx — banner slot suppression when no image and not loading", () => {
+  it("outer banner condition is `(loadingImages[opt.id] || !!opt.imageUrl)` so the slot renders only when loading or image-ready — never on a clean card", () => {
+    const src = fs.readFileSync(MODAL_SRC, "utf-8");
+
+    // The outer wrapper must use the OR expression exactly as written.
+    // When both operands are falsy (not loading + no imageUrl), the entire
+    // banner div is skipped — preventing a blank grey gap from appearing
+    // on freshly rendered cards before any fetch has started.
+    expect(src).toContain("(loadingImages[opt.id] || !!opt.imageUrl)");
+  });
+
+  it("the outer banner wrapper is the parent of both the shimmer AND the CardImage so suppressing it removes the full slot", () => {
+    const src = fs.readFileSync(MODAL_SRC, "utf-8");
+
+    // The wrapping condition must sit immediately above `animate-pulse` and
+    // `CardImage` — i.e. both children live inside the gated div.
+    // We verify by checking the three tokens appear in the correct order:
+    //   1. the outer OR condition
+    //   2. the shimmer class
+    //   3. the CardImage component
+    const outerIdx = src.indexOf("(loadingImages[opt.id] || !!opt.imageUrl)");
+    const shimmerIdx = src.indexOf("animate-pulse", outerIdx);
+    const cardImageIdx = src.indexOf("<CardImage", outerIdx);
+
+    expect(outerIdx).toBeGreaterThan(-1);
+    expect(shimmerIdx).toBeGreaterThan(outerIdx);
+    expect(cardImageIdx).toBeGreaterThan(outerIdx);
+  });
+});
