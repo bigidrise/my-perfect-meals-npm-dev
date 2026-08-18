@@ -207,10 +207,10 @@ export async function checkWebPushPipeline(): Promise<PipelineDiagnostic> {
   // Step 2 — Permission
   const perm = Notification.permission;
   steps.push({
-    label: 'Notifications allowed',
+    label: 'Notification permission',
     ok: perm === 'granted',
-    detail: perm === 'denied' ? 'Blocked — use the lock icon in your address bar to allow' :
-            perm === 'default' ? 'Not yet asked — toggle a slot to enable' : undefined,
+    detail: perm === 'denied' ? 'Denied — open browser site settings to allow' :
+            perm === 'default' ? 'Not yet asked — toggle a slot to enable' : 'Granted',
   });
   if (perm !== 'granted') return { steps, ready: false };
 
