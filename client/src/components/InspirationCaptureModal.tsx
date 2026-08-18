@@ -144,6 +144,18 @@ function normalizeOptions(opts: any[]): any[] {
 }
 
 /**
+ * Assign a stable client-side `id` to the single-result mealData so
+ * useMealImages can key by it for shimmer tracking.
+ */
+function normalizeSingleMeal(meal: any): any {
+  if (!meal) return meal;
+  return {
+    ...meal,
+    id: meal.id || `insp-single-${(meal.name || meal.title || "meal").replace(/\s+/g, "-").toLowerCase()}`,
+  };
+}
+
+/**
  * Small wrapper that fades in a single card image once the browser has loaded
  * the src.  Keeps its own `revealed` state so each card is independent.
  */
@@ -191,14 +203,18 @@ export default function InspirationCaptureModal({
       const saved = localStorage.getItem("mpm.recipe.lastScan");
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Ensure restored options have stable ids and hydrate any missing images
+        // Ensure restored options/mealData have stable ids and hydrate any missing images
         const normalizedParsed = Array.isArray(parsed.options)
           ? { ...parsed, options: normalizeOptions(parsed.options) }
-          : parsed;
+          : parsed.mealData
+            ? { ...parsed, mealData: normalizeSingleMeal(parsed.mealData) }
+            : parsed;
         setResult(normalizedParsed);
         setPhase("preview");
         if (Array.isArray(normalizedParsed.options)) {
           hydrateImages(normalizedParsed.options);
+        } else if (normalizedParsed.mealData && !normalizedParsed.mealData.imageUrl) {
+          hydrateSingleImage([normalizedParsed.mealData]);
         }
       }
     } catch {}
@@ -283,6 +299,24 @@ export default function InspirationCaptureModal({
     concurrency: 3,
     mealType: "dinner",
   });
+
+  // ── Single-result image hydration ──
+  // Routes imageUrl updates into result.mealData (not result.options) so the
+  // single-option fallback path gets the same shimmer + fade-in treatment.
+  const setSingleMeal = useCallback(
+    (updater: React.SetStateAction<any[]>) => {
+      setResult((prev: any) => {
+        if (!prev?.mealData) return prev;
+        const prevArr: any[] = [prev.mealData];
+        const newArr =
+          typeof updater === "function" ? updater(prevArr) : updater;
+        return { ...prev, mealData: newArr[0] ?? prev.mealData };
+      });
+    },
+    []
+  );
+  const { loadingImages: singleImageLoading, hydrateImages: hydrateSingleImage } =
+    useMealImages(setSingleMeal, { mealType: "dinner" });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -498,12 +532,16 @@ export default function InspirationCaptureModal({
       // Normalize options to have stable ids before setting state and hydrating
       const normalizedData = Array.isArray(data.options)
         ? { ...data, options: normalizeOptions(data.options) }
-        : data;
+        : data.mealData
+          ? { ...data, mealData: normalizeSingleMeal(data.mealData) }
+          : data;
       setResult(normalizedData);
       setPhase("preview");
       // Lazily fetch images for any options the server returned without one
       if (Array.isArray(normalizedData.options)) {
         hydrateImages(normalizedData.options);
+      } else if (normalizedData.mealData && !normalizedData.mealData.imageUrl) {
+        hydrateSingleImage([normalizedData.mealData]);
       }
       if (destination === "recipe") {
         // Strip base64 imageUrls before persisting — they're ephemeral and often blow past
@@ -537,6 +575,7 @@ export default function InspirationCaptureModal({
     cuisineOverrideEnabled,
     cuisineOverrideValue,
     hydrateImages,
+    hydrateSingleImage,
     destination,
   ]);
 
@@ -1277,13 +1316,22 @@ export default function InspirationCaptureModal({
                     </div>
                   )}
 
-                  {mealData.imageUrl && (
-                    <div className="rounded-xl overflow-hidden h-44">
-                      <MealImageSlot
-                        imageUrl={mealData.imageUrl}
-                        mealName={mealData.title || mealData.name || "Recipe Maker"}
-                        className="w-full h-full object-cover"
-                      />
+                  {/* Use whichever loading map has an entry for this meal:
+                       - loadingImages   when mealData comes from options[0] (1-item array path)
+                       - singleImageLoading when mealData comes from result.mealData (legacy path) */}
+                  {(mealData.imageUrl || loadingImages[mealData.id] || singleImageLoading[mealData.id]) && (
+                    <div className="rounded-xl overflow-hidden h-44 relative bg-white/5">
+                      {/* Shimmer shown while image is loading */}
+                      {(loadingImages[mealData.id] || singleImageLoading[mealData.id]) && !mealData.imageUrl && (
+                        <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-white/5 via-white/10 to-white/5" />
+                      )}
+                      {mealData.imageUrl && (
+                        <MealImageSlot
+                          imageUrl={mealData.imageUrl}
+                          mealName={mealData.title || mealData.name || "Recipe Maker"}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                   )}
 
