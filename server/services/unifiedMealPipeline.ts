@@ -1433,8 +1433,54 @@ function validateVarietyOption(opt: any, category: string, dishFamily: string, d
   return true;
 }
 
+/**
+ * Normalise a meal name for exclusion comparison.
+ * Strips punctuation, collapses whitespace, and lowercases so that
+ * "Herb-Roasted Chicken Thighs" and "Herb Roasted Chicken Thighs" are treated
+ * as the same name (same meal re-served under minor title variation).
+ *
+ * @internal Exported for unit testing only.
+ */
+export function normalizeForExclusion(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')  // punctuation → space
+    .replace(/\s+/g, ' ')           // collapse multiple spaces
+    .trim();
+}
+
+/**
+ * Filter variety options whose normalised name matches any excluded meal name.
+ *
+ * Safety guarantees:
+ * - Non-string / null / empty entries in `excludeMeals` are silently ignored
+ *   so a malformed client payload never causes a runtime crash.
+ * - Comparison is normalised (see normalizeForExclusion) so minor punctuation
+ *   or spacing differences ("Herb-Roasted …" vs "Herb Roasted …") are treated
+ *   as the same meal.
+ *
+ * @internal Exported for unit testing only.
+ */
+export function filterExcludedMealNames(
+  options: Array<{ name?: string; [key: string]: any }>,
+  excludeMeals: string[]
+): Array<{ name?: string; [key: string]: any }> {
+  if (!excludeMeals || excludeMeals.length === 0) return options;
+  // Validate each entry — only non-empty strings are considered
+  const safeExcluded = excludeMeals.filter(
+    (e): e is string => typeof e === 'string' && e.trim().length > 0
+  );
+  if (safeExcluded.length === 0) return options;
+  const excludedNorm = safeExcluded.map(normalizeForExclusion);
+  return options.filter(opt => {
+    const optNorm = normalizeForExclusion(opt.name ?? '');
+    return !excludedNorm.some(ex => optNorm === ex);
+  });
+}
+
 // Exported for unit testing — do not use in application code outside this module
-export const __varietyTestables = { validateVarietyOption };
+export const __varietyTestables = { validateVarietyOption, filterExcludedMealNames, normalizeForExclusion };
 
 // ── Kosher category intent detection ─────────────────────────────────────────
 // Reads the user's craving text to determine which kosher category they are
@@ -2134,6 +2180,18 @@ export async function generateCravingMealOptions(
       ``,
       `STARCH RULE: Starchy sides (rice, pasta, bread, potato) are OPTIONAL and must appear as`,
       `controlled portions (≤ ¼ cup / 2 oz). Non-starchy vegetables are PREFERRED as volume.`,
+      ``,
+      `CONCEPT TRANSFORMATION RULE (critical):`,
+      `If the requested dish CANNOT naturally achieve ≥${t.targetProteinGrams}g protein and ≤${t.maximumToleratedFatGrams}g fat`,
+      `in its traditional form (e.g. apple pie, cream pie, pasta carbonara, cheesecake),`,
+      `you MUST transform the CONCEPT — not just swap one ingredient.`,
+      `Preserve the FLAVOR PROFILE. Rebuild the dish around a protein anchor.`,
+      `Correct transformation examples:`,
+      `  • "Apple Pie" → "Spiced Apple Protein Bowl" (Greek yogurt base, cinnamon apples, almond crumble)`,
+      `  • "Chocolate Cream Pie" → "Chocolate Protein Mousse Cup" (cottage cheese, cocoa, protein powder)`,
+      `  • "Pasta Carbonara" → "Zucchini Carbonara with Turkey & Egg White Sauce"`,
+      `  • "Cheesecake" → "Lemon Protein Cheesecake Cups" (cottage cheese, protein powder, lemon zest)`,
+      `Name the dish to reflect the transformation — never name it after the original if it isn't that dish.`,
       `═══════════════════════════════════════════════════════════════════`,
     ].join('\n');
     dietBlock += glp1PromptBlock;
@@ -2250,7 +2308,51 @@ export async function generateCravingMealOptions(
     }
   }
 
-  let finalOptions = rawOptions.slice(0, 3);
+  // ── Excluded-name filter (Try 3 More guarantee) ──────────────────────────
+  // Applied BEFORE slicing to 3 so the full raw pool is available for selection.
+  // Primary enforcement is the ANTI-REPETITION clause in the prompt; this is the
+  // code-level guarantee that an AI that ignores it still never re-serves a meal.
+  // Normalised comparison (see normalizeForExclusion) catches minor renames like
+  // "Herb-Roasted Chicken Thighs" re-served as "Herb Roasted Chicken Thighs".
+  let rawFiltered = (excludeMeals && excludeMeals.length > 0)
+    ? filterExcludedMealNames(rawOptions, excludeMeals)
+    : rawOptions;
+
+  if (excludeMeals && excludeMeals.length > 0 && rawFiltered.length < rawOptions.length) {
+    console.warn(
+      `[VARIETY ENGINE] ${rawOptions.length - rawFiltered.length} raw option(s) matched ` +
+      `excludeMeals — ${rawFiltered.length} remain`
+    );
+  }
+
+  // If the exclusion filter reduced the pool below 3, do one bounded retry to
+  // attempt to fill the missing slots.  Best-effort: if the retry also returns
+  // excluded names or fails, the surviving options (1-2) are returned as-is.
+  // The caller (route) returns a 422 only when rawFiltered is entirely empty.
+  if (excludeMeals && excludeMeals.length > 0 && rawFiltered.length < 3) {
+    const missing = 3 - rawFiltered.length;
+    console.warn(`[VARIETY ENGINE] excludeMeals: only ${rawFiltered.length}/3 options survive — retrying to fill ${missing} slot(s)`);
+    try {
+      const retryRaw = await attempt(false);
+      const retryFiltered = filterExcludedMealNames(retryRaw, excludeMeals);
+      for (const opt of retryFiltered) {
+        if (rawFiltered.length >= 3) break;
+        // De-duplicate against already accepted options
+        const optNorm = normalizeForExclusion(opt.name ?? '');
+        const isDupe = rawFiltered.some(
+          (o: any) => normalizeForExclusion(o.name ?? '') === optNorm
+        );
+        if (!isDupe) rawFiltered.push(opt);
+      }
+      console.log(
+        `[VARIETY ENGINE] excludeMeals refill: ${rawFiltered.length} options after retry`
+      );
+    } catch (retryErr) {
+      console.warn('[VARIETY ENGINE] excludeMeals refill retry failed — serving partial result:', retryErr);
+    }
+  }
+
+  let finalOptions = rawFiltered.slice(0, 3);
 
   // ── Oncology post-generation filter ──────────────────────────────────────
   // Second line of defense: after all retries, scan each variety card for
@@ -2307,6 +2409,64 @@ export async function generateCravingMealOptions(
       });
       if (finalOptions.length < beforeCount) {
         console.log(`💊 [VARIETY ENGINE] ${beforeCount - finalOptions.length} option(s) excluded by GLP-1 post-validation`);
+      }
+
+      // ── GLP-1 concept-transformation retry ───────────────────────────────
+      // When ALL options fail post-validation the normal dish concept is
+      // fundamentally incompatible with the targets (e.g. apple pie at 15g fat
+      // ceiling / 80g protein).  Rather than surfacing a hard error, retry once
+      // with an explicit CONCEPT TRANSFORMATION hint so the AI rebuilds around
+      // the flavor profile instead of the dish structure.
+      if (finalOptions.length === 0 && beforeCount > 0) {
+        console.warn(`💊 [VARIETY ENGINE] All options eliminated by GLP-1 — attempting concept-transformation retry`);
+        try {
+          const transformHint = [
+            `CRITICAL — CONCEPT TRANSFORMATION REQUIRED:`,
+            `Every previous option failed GLP-1 compliance. The traditional form of this dish`,
+            `cannot meet ≥${glp1Targets!.targetProteinGrams}g protein / ≤${glp1Targets!.maximumToleratedFatGrams}g fat.`,
+            ``,
+            `You MUST transform the concept — keep the flavor profile, rebuild around a protein anchor:`,
+            `  • Desserts/pastries → protein bowl, mousse, or yogurt parfait with the same spices/fruit`,
+            `  • Cream sauces → cottage cheese or silken-tofu base with the same aromatics`,
+            `  • Buttery crusts → almond crumble topping or eliminated entirely`,
+            `  • Sugary fillings → fresh/roasted fruit sweetened only with cinnamon or vanilla`,
+            ``,
+            `The dish NAME must reflect the transformation (e.g. "Spiced Apple Protein Bowl",`,
+            `"Chocolate Protein Mousse Cup") — not the original dish name.`,
+            `Every option MUST have ≥${glp1Targets!.targetProteinGrams}g protein and ≤${glp1Targets!.maximumToleratedFatGrams}g fat. No exceptions.`,
+          ].join('\n');
+
+          const retryRaw = await attempt(true, transformHint);
+          const { validateMealForDiet: validateForRetry } = await import("./guardrails/index");
+          const isSnackRetry = validMealType === "snack";
+          const retryValid = retryRaw.slice(0, 3).filter((opt: any) => {
+            try {
+              const ingList = ((opt as any).ingredients || []).map((i: any) => ({
+                name: typeof i === "string" ? i : (i?.name ?? i?.item ?? ""),
+                quantity: typeof i === "string" ? undefined : (i?.quantity ?? (i?.amount ? String(i.amount) : undefined)),
+                unit: typeof i === "string" ? undefined : i?.unit,
+              }));
+              const macros = {
+                calories: (opt as any).calories ?? (opt as any).nutrition?.calories,
+                protein:  (opt as any).protein  ?? (opt as any).nutrition?.protein,
+                fat:      (opt as any).fat      ?? (opt as any).nutrition?.fat,
+                carbs:    (opt as any).carbs    ?? (opt as any).nutrition?.carbs,
+              };
+              const vr = validateForRetry(
+                { name: (opt as any).name, ingredients: ingList, macros },
+                "glp1", undefined, isSnackRetry, glp1Targets!,
+              );
+              if (!vr.isValid) {
+                console.warn(`💊 [VARIETY ENGINE/Transform] Still failing "${(opt as any).name}":`, vr.violations);
+              }
+              return vr.isValid;
+            } catch { return false; }
+          });
+          console.log(`💊 [VARIETY ENGINE] Concept-transformation retry: ${retryValid.length}/3 options passed GLP-1`);
+          if (retryValid.length > 0) finalOptions = retryValid;
+        } catch (transformErr) {
+          console.warn("💊 [VARIETY ENGINE] Concept-transformation retry failed:", transformErr);
+        }
       }
     } catch (err) {
       // Fail closed: module load error — clear all options rather than serving unvalidated meals.
