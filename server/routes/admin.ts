@@ -1,17 +1,41 @@
 import { Router } from "express";
 import { db, pool } from "../db";
-import { users } from "@shared/schema";
+import { emailIdentityReviews, users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
 import { userCertifications, waitlistRecoveryEvents, waitlistNotifyRunLogs } from "../db/schema/certifications";
 import { eq, ilike, or, desc, notLike, and, isNull, isNotNull, sql, min, max } from "drizzle-orm";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { sendMarketingCoachingEnrollmentEmail } from "../services/emailService";
 import { requireEmailService } from "../middleware/requireEmailService";
+import {
+  findEmailIdentityCandidates,
+  normalizeEmailIdentity,
+  resolveEmailIdentityForUser,
+} from "../services/emailIdentityService";
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
 const S3_URL_PREFIX = `https://${S3_BUCKET}.s3.`;
 
 const router = Router();
+
+// Every account mutation below starts from a verified primary key. In
+// particular, never convert an admin search result's email back into a target.
+router.param("userId", (req, res, next, userId) => {
+  void db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+    .then(([targetUser]) => {
+      if (!targetUser) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+      (req as any).targetUser = targetUser;
+      next();
+    })
+    .catch((err) => next(err));
+});
 
 const SAFE_USER_FIELDS = {
   id: users.id,
@@ -70,6 +94,85 @@ router.get("/users/search", async (req, res) => {
     console.error("[admin] user search error:", err);
     return res.status(500).json({ error: "Search failed" });
   }
+});
+
+// Lists only existing case-variant groups. It is deliberately read-only:
+// administrators must identify one account by ID before any remediation action.
+router.get("/email-identity-conflicts", async (_req, res) => {
+  try {
+    const result = await db.execute(sql`
+      SELECT
+        LOWER(email) AS normalized_email,
+        json_agg(
+          json_build_object('id', id, 'email', email, 'createdAt', created_at)
+          ORDER BY created_at ASC, id ASC
+        ) AS accounts
+      FROM users
+      GROUP BY LOWER(email)
+      HAVING COUNT(*) > 1
+      ORDER BY LOWER(email)
+    `);
+    return res.json({ conflicts: result.rows });
+  } catch (err) {
+    console.error("[admin] email identity conflict lookup error:", err);
+    return res.status(500).json({ error: "Failed to load email identity conflicts" });
+  }
+});
+
+router.post("/email-identity-conflicts/:userId/review", async (req, res) => {
+  const targetUser = (req as any).targetUser as { id: string; email: string };
+  const actor = (req as AuthenticatedRequest).authUser;
+  const resolution = String(req.body?.resolution || "");
+  const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 1000) : null;
+  if (!["confirmed_separate", "contacted_for_remediation"].includes(resolution)) {
+    return res.status(400).json({ error: "Resolution must confirm separate accounts or record remediation contact." });
+  }
+
+  const identity = await resolveEmailIdentityForUser(targetUser.id);
+  if (identity.candidates.length < 2) {
+    return res.status(409).json({ error: "This user is not part of an unresolved email identity conflict." });
+  }
+
+  await db.insert(emailIdentityReviews).values({
+    normalizedEmail: identity.normalizedEmail,
+    subjectUserId: targetUser.id,
+    reviewedByUserId: actor.id,
+    resolution,
+    note,
+  });
+  console.log(`[admin] email identity review: userId=${targetUser.id} by admin=${actor.email} resolution=${resolution}`);
+  return res.json({ ok: true });
+});
+
+router.post("/email-identity-conflicts/:userId/change-email", async (req, res) => {
+  const targetUser = (req as any).targetUser as { id: string; email: string };
+  const actor = (req as AuthenticatedRequest).authUser;
+  const replacementEmail = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replacementEmail)) {
+    return res.status(400).json({ error: "Enter a valid replacement email address." });
+  }
+  if (req.body?.acknowledgement !== "CHANGE_EMAIL_FOR_VERIFIED_USER") {
+    return res.status(400).json({ error: "Explicit acknowledgement is required before changing a verified account email." });
+  }
+
+  const normalizedReplacement = normalizeEmailIdentity(replacementEmail);
+  const conflicts = await findEmailIdentityCandidates(normalizedReplacement);
+  if (conflicts.some((candidate) => candidate.id !== targetUser.id)) {
+    return res.status(409).json({ error: "That email address is already assigned to another account." });
+  }
+
+  await db.update(users)
+    .set({ email: normalizedReplacement })
+    .where(eq(users.id, targetUser.id));
+  await db.insert(emailIdentityReviews).values({
+    normalizedEmail: normalizeEmailIdentity(targetUser.email),
+    subjectUserId: targetUser.id,
+    reviewedByUserId: actor.id,
+    resolution: "email_changed_for_verified_user",
+    note: `Changed to ${normalizedReplacement}`,
+  });
+  console.log(`[admin] email identity remediation: userId=${targetUser.id} by admin=${actor.email}`);
+  return res.json({ ok: true, userId: targetUser.id, email: normalizedReplacement });
 });
 
 router.get("/users/:userId", async (req, res) => {

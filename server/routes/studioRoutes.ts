@@ -16,6 +16,11 @@ import { checkLegalAcceptance } from "../services/legalCheck";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 import { logAudit, getClientIp } from "../lib/auditLog";
+import {
+  findEmailIdentityCandidates,
+  normalizeEmailIdentity,
+  resolveEmailIdentityForUser,
+} from "../services/emailIdentityService";
 
 const router = Router();
 
@@ -290,6 +295,12 @@ router.post("/:studioId/invite", async (req, res) => {
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
+    const emailCandidates = await findEmailIdentityCandidates(String(email));
+    if (emailCandidates.length > 1) {
+      return res.status(409).json({
+        error: "This email address belongs to multiple legacy accounts. Ask an administrator to resolve the account identity before sending an invitation.",
+      });
+    }
 
     const [studio] = await db
       .select()
@@ -370,24 +381,22 @@ router.post("/connect", async (req, res) => {
       return res.status(404).json({ error: "Invalid invite code" });
     }
 
-    // ── Email-binding check (urlToken path only) ──────────────────────────────
-    // Anyone who obtains a forwarded or leaked email link could otherwise
-    // connect their own account to the invited clinic/studio. Verify the
-    // authenticated user's email matches the address the invite was sent to.
-    // The inviteCode path is lower-risk (manually typed); the urlToken path is
-    // embedded in a personalised email and must be strictly email-bound.
-    if (token) {
-      const [userRow] = await db
-        .select({ email: users.email })
-        .from(users)
-        .where(eq(users.id, userId));
-      const userEmail = (userRow?.email ?? "").toLowerCase().trim();
-      const inviteEmail = invite.email.toLowerCase().trim();
-      if (!userEmail || userEmail !== inviteEmail) {
-        return res.status(403).json({
-          error: "This invitation was sent to a different email address. Please sign in with the account that received the invitation.",
-        });
-      }
+    // Codes and email links are both account-bound. A code is not safe to
+    // redeem merely because it was manually typed or forwarded.
+    const identity = await resolveEmailIdentityForUser(userId);
+    if (identity.candidates.length > 1) {
+      return res.status(409).json({
+        error: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+        message: "This email address is linked to multiple legacy accounts. An administrator must review the account before this invitation can be accepted.",
+      });
+    }
+    if (
+      identity.status !== "unique" ||
+      normalizeEmailIdentity(identity.user.email) !== normalizeEmailIdentity(invite.email)
+    ) {
+      return res.status(403).json({
+        error: "This invitation was sent to a different email address. Please sign in with the account that received the invitation.",
+      });
     }
 
     if (new Date() > invite.expiresAt) {

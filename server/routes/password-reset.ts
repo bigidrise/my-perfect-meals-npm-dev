@@ -7,6 +7,7 @@ import { users } from "@shared/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { sendPasswordResetEmail } from "../services/emailService";
 import { requireEmailService } from "../middleware/requireEmailService";
+import { resolveEmailIdentityForEmail } from "../services/emailIdentityService";
 
 const router = Router();
 
@@ -26,13 +27,10 @@ const resetPasswordSchema = z.object({
 router.post("/api/auth/forgot-password", requireEmailService, async (req, res) => {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
-    const normalizedEmail = email.toLowerCase().trim();
-
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, normalizedEmail))
-      .limit(1);
+    const identity = await resolveEmailIdentityForEmail(email);
+    const [user] = identity.status === "unique" || identity.status === "legacy_exact"
+      ? await db.select().from(users).where(eq(users.id, identity.user.id)).limit(1)
+      : [];
 
     if (user) {
       const resetToken = crypto.randomBytes(32).toString("hex");
@@ -45,7 +43,7 @@ router.post("/api/auth/forgot-password", requireEmailService, async (req, res) =
           resetTokenHash: tokenHash,
           resetTokenExpires: expiresAt,
         })
-        .where(eq(users.email, normalizedEmail));
+        .where(eq(users.id, user.id));
 
       const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
       const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:5000";

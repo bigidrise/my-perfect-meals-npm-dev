@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import {
   updateUserSubscription,
   cancelUserSubscription,
+  resolveSubscriptionUser,
 } from "../services/subscriptionService";
 import { clientLinks } from "../db/schema/procare";
 import { deactivateProCareClient } from "../services/procareActivation";
@@ -306,23 +307,15 @@ router.post("/", async (req, res) => {
           break;
         }
 
-        // Find the user and check if access was previously revoked
-        const [user] = await db
-          .select({ id: users.id, planLookupKey: users.planLookupKey, subscriptionStatus: users.subscriptionStatus })
-          .from(users)
-          .where(eq(users.stripeCustomerId, customerId))
-          .limit(1);
-
+        const user = await resolveSubscriptionUser(customerId, subscriptionId);
         if (!user) {
-          console.warn(`[webhook] invoice.payment_succeeded — no user found for customer ${customerId}`);
+          console.warn(`[webhook] invoice.payment_succeeded — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
 
-        // Only act if access appears revoked (e.g. after a previous invoice.payment_failed)
         if (user.subscriptionStatus === "cancelled" || !user.planLookupKey) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const lookupKey = extractLookupKey(subscription);
-
           if (lookupKey && (subscription.status === "active" || subscription.status === "trialing")) {
             await updateUserSubscription({
               userId: user.id,
@@ -331,24 +324,6 @@ router.post("/", async (req, res) => {
               stripeSubscriptionId: subscriptionId,
             });
             console.log(`✅ [webhook] invoice.payment_succeeded — access restored for user ${user.id} → ${lookupKey}`);
-
-            // CONVENTION NOTE — business membership reactivation:
-            // This handler currently restores access only on the `users` table
-            // (planLookupKey, accessTier) via updateUserSubscription.  It does NOT
-            // auto-reactivate a businessMembers row that was previously set to
-            // status="removed" by the owner or an automated cleanup job.
-            //
-            // If a future change adds logic to flip a businessMembers row back to
-            // status="active" here (e.g. to auto-restore a lapsed-then-renewed
-            // business member), that code MUST also call:
-            //
-            //   await clearRemovalNotice(db, userId, businessId);
-            //
-            // which is defined in server/routes/businessRoutes.ts.  Failure to do
-            // so will leave the stale removal-notice banner visible to the
-            // reactivated member.  The same rule applies to any other webhook
-            // event handler (customer.subscription.updated, etc.) that may one
-            // day write status="active" to businessMembers.
           }
         } else {
           console.log(`[webhook] invoice.payment_succeeded — user ${user.id} already active, no action needed`);
@@ -360,9 +335,9 @@ router.post("/", async (req, res) => {
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
+        const subscriptionId = (invoice as any).subscription as string | null;
 
-        await cancelUserSubscription(customerId);
-
+        await cancelUserSubscription(customerId, subscriptionId);
         console.warn(`⚠️ [webhook] invoice.payment_failed — access revoked for customer ${customerId}`);
         break;
       }
@@ -372,27 +347,22 @@ router.post("/", async (req, res) => {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
         const cancelledLookupKey = extractLookupKey(subscription);
+        const affectedUser = await resolveSubscriptionUser(customerId, subscription.id);
+        if (!affectedUser) {
+          console.warn(`[webhook] customer.subscription.deleted — ambiguous or missing owner for customer ${customerId}`);
+          break;
+        }
 
-        // Look up user BEFORE cancelUserSubscription wipes planLookupKey
-        const [affectedUser] = await db
-          .select({ id: users.id, planLookupKey: users.planLookupKey, isProCare: users.isProCare })
-          .from(users)
-          .where(eq(users.stripeCustomerId, customerId))
-          .limit(1);
-
-        await cancelUserSubscription(customerId);
+        await cancelUserSubscription(customerId, subscription.id);
         console.log(`⚠️ [webhook] customer.subscription.deleted — access revoked for customer ${customerId}`);
 
-        if (affectedUser) {
-          const planKey = cancelledLookupKey ?? affectedUser.planLookupKey ?? "";
-
-          if (CLINICAL_PLAN_KEYS.includes(planKey) && affectedUser.isProCare) {
-            console.log(`🔌 [webhook] Clinical cancelled — terminating ProCare client relationships for user ${affectedUser.id}`);
-            await terminateProCareRelationships(affectedUser.id, "client");
-          } else if (isProCarePlanKey(planKey)) {
-            console.log(`🔌 [webhook] ProCare cancelled — terminating all coach relationships for user ${affectedUser.id}`);
-            await terminateProCareRelationships(affectedUser.id, "coach");
-          }
+        const planKey = cancelledLookupKey ?? affectedUser.planLookupKey ?? "";
+        if (CLINICAL_PLAN_KEYS.includes(planKey) && affectedUser.isProCare) {
+          console.log(`🔌 [webhook] Clinical cancelled — terminating ProCare client relationships for user ${affectedUser.id}`);
+          await terminateProCareRelationships(affectedUser.id, "client");
+        } else if (isProCarePlanKey(planKey)) {
+          console.log(`🔌 [webhook] ProCare cancelled — terminating all coach relationships for user ${affectedUser.id}`);
+          await terminateProCareRelationships(affectedUser.id, "coach");
         }
         break;
       }
@@ -408,14 +378,9 @@ router.post("/", async (req, res) => {
           break;
         }
 
-        const [user] = await db
-          .select({ id: users.id })
-          .from(users)
-          .where(eq(users.stripeCustomerId, customerId))
-          .limit(1);
-
+        const user = await resolveSubscriptionUser(customerId, subscription.id);
         if (!user) {
-          console.warn(`[webhook] customer.subscription.updated — no user for customer ${customerId}`);
+          console.warn(`[webhook] customer.subscription.updated — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
 
@@ -428,7 +393,6 @@ router.post("/", async (req, res) => {
           });
           console.log(`✅ [webhook] customer.subscription.updated — user ${user.id} → ${lookupKey} (${subscription.status})`);
 
-          // Sync seat count for business subscriptions when quantity changes
           if (lookupKey === "clinical_business_monthly") {
             try {
               const { businesses } = await import("../db/schema/business");
@@ -445,7 +409,7 @@ router.post("/", async (req, res) => {
             }
           }
         } else if (subscription.status === "canceled" || subscription.status === "unpaid") {
-          await cancelUserSubscription(customerId);
+          await cancelUserSubscription(customerId, subscription.id);
           console.log(`⚠️ [webhook] customer.subscription.updated — user ${user.id} revoked (status: ${subscription.status})`);
         } else {
           console.log(`[webhook] customer.subscription.updated — user ${user.id} status ${subscription.status}, no action`);

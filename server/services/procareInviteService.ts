@@ -18,9 +18,9 @@ import { activateProCareClient, ActivationError } from "./procareActivation";
 import { checkLegalAcceptance } from "./legalCheck";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { providerHasProCareStudioAccess } from "./procareProviderAccess";
+import { resolveEmailIdentityForUser } from "./emailIdentityService";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
 export interface InviteResolution {
   source: "care_invite" | "studio_invite";
   inviteId: string;
@@ -56,6 +56,7 @@ export type AcceptError =
   | { code: "EXPIRED" }
   | { code: "ALREADY_ACCEPTED" }
   | { code: "EMAIL_MISMATCH"; maskedEmail: string }
+  | { code: "EMAIL_IDENTITY_REVIEW_REQUIRED" }
   | { code: "CLINICAL_REQUIRED" }
   | { code: "COACH_NOT_SUBSCRIBED" }
   | { code: "LEGAL_REQUIRED"; missing: string[]; flow: string }
@@ -194,6 +195,10 @@ export async function acceptInviteByToken(
     .from(users)
     .where(eq(users.id, userId));
   const userEmail = currentUser?.email ?? "";
+  const identity = await resolveEmailIdentityForUser(userId);
+  if (identity.candidates.length > 1) {
+    return { ok: false, error: { code: "EMAIL_IDENTITY_REVIEW_REQUIRED" } };
+  }
   const normalizedInvited = r.invitedEmail.trim().toLowerCase();
   const normalizedUser = userEmail.trim().toLowerCase();
   if (normalizedInvited !== normalizedUser) {

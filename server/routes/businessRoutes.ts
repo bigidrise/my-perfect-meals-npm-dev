@@ -9,6 +9,11 @@ import { requireAuth } from "../middleware/requireAuth";
 import { requireProAccess } from "../middleware/requireProAccess";
 import { requireProOrOrgAdmin } from "../middleware/requireProOrOrgAdmin";
 import { sendBusinessInviteEmail } from "../services/emailService";
+import {
+  normalizeEmailIdentity,
+  resolveEmailIdentityForEmail,
+  resolveEmailIdentityForUser,
+} from "../services/emailIdentityService";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -327,6 +332,13 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       return res.status(403).json({ error: "No business account found." });
     }
     const { business } = resolved;
+    const invitationIdentity = await resolveEmailIdentityForEmail(email);
+    if (invitationIdentity.candidates.length > 1) {
+      return res.status(409).json({
+        error: "This email address belongs to multiple legacy accounts. Ask an administrator to resolve the account identity before sending an invitation.",
+        code: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+      });
+    }
 
     if (business.status !== "active") {
       return res.status(403).json({ error: "Business subscription is not active." });
@@ -392,11 +404,9 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     // For team members only: block if already an active member
     if (!isClient) {
-      const [existingUser] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.email, email.toLowerCase()))
-        .limit(1);
+      const existingUser = invitationIdentity.status === "unique"
+        ? invitationIdentity.user
+        : null;
 
       if (existingUser) {
         const [existingMember] = await db
@@ -883,13 +893,17 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     // The invitation is tied to a specific email. Verify the authenticated user's
     // email matches before doing anything else — prevents one person from redeeming
     // an invitation meant for another.
-    const [acceptingUser] = await db
-      .select({ email: users.email })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (!acceptingUser || acceptingUser.email?.toLowerCase() !== invite.email.toLowerCase()) {
+    const acceptingIdentity = await resolveEmailIdentityForUser(userId);
+    if (acceptingIdentity.candidates.length > 1) {
+      return res.status(409).json({
+        error: "This email address is linked to multiple legacy accounts. An administrator must review the account before this invitation can be accepted.",
+        code: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+      });
+    }
+    if (
+      acceptingIdentity.status !== "unique" ||
+      normalizeEmailIdentity(acceptingIdentity.user.email) !== normalizeEmailIdentity(invite.email)
+    ) {
       return res.status(403).json({
         error: "This invitation was sent to a different email address. Please log in with the email that received the invitation.",
         code: "EMAIL_MISMATCH",

@@ -6,6 +6,7 @@ import { eq, and, isNull, gt, desc } from "drizzle-orm";
 import { logClientActivity } from "./activityLog";
 import { activateProCareClient, ActivationError } from "./procareActivation";
 import { checkLegalAcceptance } from "./legalCheck";
+import { resolveEmailIdentityForUser } from "./emailIdentityService";
 
 export interface StudioMembershipInfo {
   studioId: string;
@@ -63,6 +64,11 @@ export async function autoAcceptPendingInvites(
 ): Promise<AutoAcceptResult> {
   try {
     const normalizedEmail = email.toLowerCase().trim();
+    const identity = await resolveEmailIdentityForUser(userId);
+    if (identity.candidates.length > 1) {
+      console.warn(`⚠️ [InviteAutoAccept] Skipping invite auto-accept for ambiguous email identity on user ${userId}`);
+      return { accepted: false };
+    }
 
     const existingMembership = await lookupExistingMembership(userId);
     if (existingMembership) {
