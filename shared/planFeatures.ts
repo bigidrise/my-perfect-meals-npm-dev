@@ -309,6 +309,8 @@ export const PROCARE_ENTITLEMENTS: Entitlement[] = ["procare", "care_team", "lab
  * Rule: certification completion is NOT a substitute for subscription entitlement.
  */
 export const PROCARE_PLAN_KEYS: ReadonlySet<string> = new Set([
+  // Clinical Business includes the ProCare Studio for its professional owner.
+  "clinical_business_monthly",
   // Full canonical keys
   "mpm_procare_monthly",
   "mpm_procare_trainer_5",
