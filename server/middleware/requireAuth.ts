@@ -43,6 +43,8 @@ export interface AuthenticatedUser {
   planLookupKey: string | null;
   selectedMealBuilder: string | null;
   isAdmin: boolean;
+  /** Trusted DB marker for permanent internal/founder access. */
+  isFounder: boolean;
   isTester: boolean;
   isSandbox: boolean;
   accessTier: AccessTier;
@@ -56,6 +58,8 @@ export interface AuthenticatedUser {
    */
   sponsoredByBusinessId: string | null;
   sponsoredByBusinessName: string | null;
+  /** Clinical-role authorization derived from an active business membership. */
+  sponsoredProCareAccess: boolean;
   preferredLanguage: string;
 }
 
@@ -63,7 +67,7 @@ export interface AuthenticatedRequest extends Request {
   authUser: AuthenticatedUser;
 }
 
-function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessId" | "sponsoredByBusinessName"> {
+function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessId" | "sponsoredByBusinessName" | "sponsoredProCareAccess"> {
   const now = new Date();
   const accessTier = resolveAccessTier(user, now);
 
@@ -78,6 +82,7 @@ function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessI
     planLookupKey: user.planLookupKey || null,
     selectedMealBuilder: user.selectedMealBuilder || null,
     isAdmin: user.isAdmin || false,
+    isFounder: user.isFounder || false,
     isTester: user.isTester || false,
     isSandbox: user.isSandbox || false,
     accessTier,
@@ -114,6 +119,7 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
       accessTier,
       sponsoredByBusinessId: effective.sponsoredByBusinessId,
       sponsoredByBusinessName: effective.sponsoredByBusinessName,
+      sponsoredProCareAccess: effective.sponsoredProCareAccess,
     };
   } catch (err) {
     console.error("[requireAuth] effectiveAccess computation failed, falling back to raw plan:", err);
@@ -121,6 +127,7 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
       ...base,
       sponsoredByBusinessId: null,
       sponsoredByBusinessName: null,
+      sponsoredProCareAccess: false,
     };
   }
 }
