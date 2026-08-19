@@ -411,7 +411,10 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       throw new Error("No content received from OpenAI (shape unsupported)");
     }
 
-    const content = text;
+    const content = text ?? (argsJson ? JSON.stringify(argsJson) : null);
+    if (!content) {
+      throw new Error("No parseable content received from OpenAI");
+    }
 
     if (process.env.NODE_ENV !== "production") {
       console.log("🤖 OpenAI fridge rescue response received, parsing...");
@@ -430,7 +433,8 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       console.log("🔍 Extracted JSON string:", jsonString);
       responseData = JSON.parse(jsonString);
     } catch (err) {
-      console.error("❌ Failed to parse OpenAI JSON:", err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("❌ Failed to parse OpenAI JSON:", message);
       throw new Error("Invalid OpenAI format");
     }
 
@@ -481,6 +485,9 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       const aiStarchyCarbs = meal.starchyCarbs ?? null;
       const aiFibrousCarbs = meal.fibrousCarbs ?? null;
       const totalCarbs = resolveAICarbsStrict(meal);
+      if (totalCarbs === null) {
+        throw new Error(`Fridge rescue meal "${meal.name ?? index + 1}" is missing carbohydrate data`);
+      }
       
       // Use AI values if provided, otherwise derive from ingredients
       let starchyCarbs: number;

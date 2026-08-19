@@ -411,10 +411,11 @@ export const useShoppingListStore = create<ShoppingListStore>()(
         });
 
         // Server sync — assign serverId back so future deletes work
-        if (created) {
-          const localId = created.id;
+        const createdItem = created as ShoppingListItem | null;
+        if (createdItem) {
+          const localId = createdItem.id;
           const genAtPost = get()._clearGen;
-          serverPost([created]).then((serverItems) => {
+          serverPost([createdItem]).then((serverItems) => {
             const serverRow = serverItems[0];
             if (!serverRow?.id) return;
             // If clearAll() fired while we were posting, delete what just landed on the server

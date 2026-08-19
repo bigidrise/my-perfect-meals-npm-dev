@@ -1,5 +1,6 @@
 import type { User } from "@shared/schema";
 import { convertStructuredIngredients } from "../utils/unitConverter";
+import { generateMealImageUnified } from "./mealImageGenerator";
 
 interface TestosteroneMealOptions {
   testosteroneLevel: number;
@@ -123,7 +124,6 @@ export async function generateTestosteroneSupportMeals(options: TestosteroneMeal
         "Vitamin D from eggs supports testosterone levels"
       ],
       medicalBadges: generateMedicalBadges(user, "high-protein-low-carb"),
-      imageUrl: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400"
     },
     
     // Zinc-rich lunch
@@ -162,7 +162,6 @@ export async function generateTestosteroneSupportMeals(options: TestosteroneMeal
         "Complex carbs support energy for testosterone synthesis"
       ],
       medicalBadges: generateMedicalBadges(user, "heart-healthy-high-protein"),
-      imageUrl: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400"
     },
 
     // Omega-3 rich dinner
@@ -201,7 +200,6 @@ export async function generateTestosteroneSupportMeals(options: TestosteroneMeal
         "Brussels sprouts help metabolize excess estrogen"
       ],
       medicalBadges: generateMedicalBadges(user, "heart-healthy-anti-inflammatory"),
-      imageUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400"
     },
 
     // Testosterone-boosting snack
@@ -238,9 +236,24 @@ export async function generateTestosteroneSupportMeals(options: TestosteroneMeal
         "Healthy fats support overall hormone production"
       ],
       medicalBadges: generateMedicalBadges(user, "antioxidant-rich"),
-      imageUrl: "https://images.unsplash.com/photo-1599599810694-57a2ca91f4af?w=400"
     }
   ];
+
+  // Generate actual AI images for every meal via the canonical pipeline.
+  // Replaces all previously hardcoded Unsplash URLs.
+  await Promise.all(
+    meals.map(async (meal) => {
+      try {
+        const ingredientNames = (meal.ingredients as Array<{ name: string }>).map((i) => i.name);
+        const url = await generateMealImageUnified(meal.name, ingredientNames, "meal");
+        if (url && url.startsWith("/public-objects/")) {
+          meal.imageUrl = url;
+        }
+      } catch {
+        // generation failed — imageUrl stays undefined, client shows neutral unavailable state
+      }
+    })
+  );
 
   return {
     meals,

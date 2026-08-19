@@ -1,6 +1,6 @@
 // client/src/components/MealCard.tsx
 import * as React from "react";
-import { getMealFallbackImage } from "@/lib/mealFallbackImage";
+// getMealFallbackImage removed in Phase 1 — image failures show neutral placeholder, never another food
 import { BarChart3, Loader2, Wand2, RotateCcw } from "lucide-react";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
@@ -34,7 +34,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Meal type is canonical at @/types/meal — re-exported here for backward compat
 export type { Meal } from "@/types/meal";
 
-type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
+type Slot =
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+  | "snacks"
+  | "meal4"
+  | "meal5"
+  | "meal6";
 
 // Explicit static mapping — unknown/future phases safely return no bullets rather than raw i18n keys.
 const COMP_PHASE_BULLET_KEYS: Partial<Record<string, [string, string]>> = {
@@ -221,6 +228,8 @@ export function MealCard({
   const hasStarchyFibrous = carbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0;
 
   const onDelete = () => { if (confirm(t("removeFromBoard"))) onUpdated(null); };
+  const macroMealSlot =
+    slot === "meal4" || slot === "meal5" || slot === "meal6" ? "dinner" : slot;
 
   const handleLogMacros = async () => {
     try {
@@ -296,9 +305,10 @@ export function MealCard({
                 alt={title}
                 className={`w-full h-48 object-cover transition-opacity duration-300 ${imageRevealed ? "opacity-100" : "opacity-0"}`}
                 onLoad={() => setImageRevealed(true)}
-                onError={(e) => {
-                  e.currentTarget.src = getMealFallbackImage(title);
-                  setImageRevealed(true);
+                onError={() => {
+                  // Phase 1: never substitute another food on failure — hide the broken image.
+                  // The shimmer/dark background below remains visible as a neutral state.
+                  setImageRevealed(false);
                 }}
               />
             </>
@@ -588,7 +598,7 @@ export function MealCard({
                 fat: fat || 0,
                 calories: kcal || 0,
                 dateISO: date,
-                mealSlot: slot,
+                mealSlot: macroMealSlot,
                 servings: meal.servings || 1,
               }}
               label={t("addToMacros", { defaultValue: "Add to Macros", ns: "savedMeals" })}

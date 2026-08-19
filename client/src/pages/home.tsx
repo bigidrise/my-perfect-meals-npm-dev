@@ -287,33 +287,27 @@ export default function Home() {
                       <div className="space-y-4">
                         <div>
                           <div className="text-xs font-medium text-muted-foreground uppercase mb-2">Breakfast</div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=150" 
-                            alt="Greek yogurt with berries" 
-                            className="w-full h-20 object-cover rounded-lg mb-2"
-                          />
+                          <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center bg-orange-950/30 border border-orange-800/20">
+                            <span className="text-orange-400/50 text-xs">Preview</span>
+                          </div>
                           <div className="text-sm font-medium text-foreground">Greek Yogurt Bowl</div>
                           <div className="text-xs text-muted-foreground">385 cal</div>
                         </div>
                         
                         <div>
                           <div className="text-xs font-medium text-muted-foreground uppercase mb-2">Lunch</div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=150" 
-                            alt="Quinoa salad with chicken" 
-                            className="w-full h-20 object-cover rounded-lg mb-2"
-                          />
+                          <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center bg-orange-950/30 border border-orange-800/20">
+                            <span className="text-orange-400/50 text-xs">Preview</span>
+                          </div>
                           <div className="text-sm font-medium text-foreground">Quinoa Power Bowl</div>
                           <div className="text-xs text-muted-foreground">645 cal</div>
                         </div>
                         
                         <div>
                           <div className="text-xs font-medium text-muted-foreground uppercase mb-2">Dinner</div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1467003909585-2f8a72700288?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=150" 
-                            alt="Grilled salmon with vegetables" 
-                            className="w-full h-20 object-cover rounded-lg mb-2"
-                          />
+                          <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center bg-orange-950/30 border border-orange-800/20">
+                            <span className="text-orange-400/50 text-xs">Preview</span>
+                          </div>
                           <div className="text-sm font-medium text-foreground">Salmon & Vegetables</div>
                           <div className="text-xs text-muted-foreground">520 cal</div>
                         </div>
@@ -556,11 +550,9 @@ export default function Home() {
                             </div>
                             <span className="text-sm font-medium text-foreground">385 cal</span>
                           </div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=120" 
-                            alt="Greek yogurt breakfast bowl" 
-                            className="w-full h-20 object-cover rounded-lg mb-2"
-                          />
+                          <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center bg-orange-950/30 border border-orange-800/20">
+                            <span className="text-orange-400/50 text-xs">Preview</span>
+                          </div>
                           <p className="text-sm font-medium text-foreground">Greek Yogurt with Berries</p>
                           <div className="flex items-center justify-between mt-2">
                             <Button size="sm" variant="ghost" className="text-xs text-primary">View Recipe</Button>

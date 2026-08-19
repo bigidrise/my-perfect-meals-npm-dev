@@ -2,49 +2,16 @@ import { useState } from "react";
 
 export type ImageSourceType = "beverage" | "dessert" | "snack" | "sushi" | "meal";
 
-// Stock photo fallbacks — only used when a real generated image URL itself fails to load.
-// Never shown as a primary placeholder.
-const FALLBACK_POOLS: Record<ImageSourceType, string[]> = {
-  beverage: [
-    "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1570598912132-0ba1dc952b7d?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1534353436294-0dbd4bdac845?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1546171753-97d7676e4602?w=800&h=600&fit=crop&auto=format",
-  ],
-  dessert: [
-    "https://images.unsplash.com/photo-1551024505-b52f4da00f8c?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=800&h=600&fit=crop&auto=format",
-  ],
-  snack: [
-    "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1562802378-063ec186a863?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=800&h=600&fit=crop&auto=format",
-  ],
-  sushi: [
-    "https://images.unsplash.com/photo-1559410545-0bdcd187e0a6?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=800&h=600&fit=crop&auto=format",
-  ],
-  meal: [
-    "https://images.unsplash.com/photo-1546793665-c74683f339c1?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=800&h=600&fit=crop&auto=format",
-  ],
+// Phase 1: FALLBACK_POOLS and hashFallback() have been removed.
+// An image delivery failure must never silently become another food.
+// Failed images show a neutral branded "unavailable" state instead.
+
+const TYPE_LABELS: Record<ImageSourceType, string> = {
+  beverage: "Beverage Preview",
+  dessert: "Dessert Preview",
+  snack: "Snack Preview",
+  sushi: "Dish Preview",
+  meal: "Meal Preview",
 };
 
 function detectTypeFromName(name: string): ImageSourceType {
@@ -56,21 +23,37 @@ function detectTypeFromName(name: string): ImageSourceType {
   return "meal";
 }
 
-function hashFallback(name: string, pool: string[]): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) {
-    h = (Math.imul(31, h) + name.charCodeAt(i)) | 0;
-  }
-  return pool[Math.abs(h) % pool.length];
+/** Neutral branded placeholder shown when image generation or delivery failed. */
+function UnavailablePlaceholder({
+  label,
+  height,
+  className,
+}: {
+  label: string;
+  height: string;
+  className: string;
+}) {
+  return (
+    <div className={`mb-6 rounded-lg overflow-hidden ${className}`}>
+      <div
+        className={`w-full ${height} flex flex-col items-center justify-center gap-3`}
+        style={{ background: "linear-gradient(135deg, #1a0a00 0%, #7c2d0e 50%, #1a0a00 100%)" }}
+      >
+        <div className="w-12 h-12 rounded-full bg-orange-600/20 border border-orange-500/40 flex items-center justify-center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
+        <div className="text-center">
+          <p className="text-orange-300 text-sm font-medium">{label}</p>
+          <p className="text-white/40 text-xs mt-0.5">Image unavailable</p>
+        </div>
+      </div>
+    </div>
+  );
 }
-
-const TYPE_LABELS: Record<ImageSourceType, string> = {
-  beverage: "Beverage Preview",
-  dessert: "Dessert Preview",
-  snack: "Snack Preview",
-  sushi: "Dish Preview",
-  meal: "Meal Preview",
-};
 
 interface MealImageSlotProps {
   imageUrl?: string | null;
@@ -78,6 +61,7 @@ interface MealImageSlotProps {
   sourceType?: ImageSourceType;
   isLoading?: boolean;
   height?: string;
+  /** @deprecated No longer used. Kept for interface compat only — ignored. */
   fallbackSrc?: string;
   className?: string;
 }
@@ -88,15 +72,13 @@ export function MealImageSlot({
   sourceType,
   isLoading = false,
   height = "h-64",
-  fallbackSrc,
   className = "",
 }: MealImageSlotProps) {
   const [revealed, setRevealed] = useState(false);
-  const [errored, setErrored] = useState(false);
+  // true = image load failed; show neutral unavailable state, never another food
+  const [failed, setFailed] = useState(false);
 
   const resolvedType = sourceType ?? detectTypeFromName(mealName);
-  const pool = FALLBACK_POOLS[resolvedType];
-  const resolvedFallback = fallbackSrc || hashFallback(mealName, pool);
   const label = TYPE_LABELS[resolvedType];
 
   // Shimmer while actively loading
@@ -122,33 +104,17 @@ export function MealImageSlot({
     );
   }
 
-  // Branded placeholder when no image URL came back (generation failed/timed out)
-  if (!imageUrl && !errored) {
-    return (
-      <div className={`mb-6 rounded-lg overflow-hidden ${className}`}>
-        <div
-          className={`w-full ${height} flex flex-col items-center justify-center gap-3`}
-          style={{ background: "linear-gradient(135deg, #1a0a00 0%, #7c2d0e 50%, #1a0a00 100%)" }}
-        >
-          <div className="w-12 h-12 rounded-full bg-orange-600/20 border border-orange-500/40 flex items-center justify-center">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-          </div>
-          <div className="text-center">
-            <p className="text-orange-300 text-sm font-medium">{label}</p>
-            <p className="text-white/40 text-xs mt-0.5">Image preview unavailable</p>
-          </div>
-        </div>
-      </div>
-    );
+  // No image URL — generation failed or not yet completed
+  if (!imageUrl) {
+    return <UnavailablePlaceholder label={label} height={height} className={className} />;
   }
 
-  // Real generated image (or stock photo fallback if the generated URL itself errors)
-  const src = errored ? resolvedFallback : imageUrl!;
+  // Delivery failed — image URL existed but could not be loaded
+  if (failed) {
+    return <UnavailablePlaceholder label={label} height={height} className={className} />;
+  }
 
+  // Successful path: render the actual generated image
   return (
     <div className={`mb-6 rounded-lg overflow-hidden relative ${className}`}>
       {!revealed && (
@@ -158,15 +124,15 @@ export function MealImageSlot({
         />
       )}
       <img
-        src={src}
+        src={imageUrl}
         alt={mealName}
         className={`w-full ${height} object-cover transition-opacity duration-300 ${revealed ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setRevealed(true)}
         onError={() => {
-          if (!errored) {
-            setErrored(true);
-            setRevealed(true);
-          }
+          // Delivery failed: show neutral unavailable state.
+          // NEVER substitute another food photograph.
+          setFailed(true);
+          setRevealed(false);
         }}
       />
     </div>

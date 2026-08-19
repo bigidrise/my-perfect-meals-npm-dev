@@ -3,13 +3,32 @@ import { db } from "../db";
 import { users, mealPlanRuns } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { normalizeToWeeklyPlanner, type GenerationMeta } from "../services/normalizeWeeklyPlan";
 import { weeklyMealPlanningServiceA } from "../services/weeklyMealPlanningServiceA";
 import { weeklyMealPlanningServiceB } from "../services/weeklyMealPlanningServiceB";
 import { simpleMealPlanning } from "../services/simpleMealPlanning";
 import { weeklyMealPlanningServiceC } from "../services/weeklyMealPlanningServiceC";
 
 const router = Router();
+type MealPlanGeneratorResult = {
+  plan: unknown;
+  meta: Record<string, unknown>;
+};
+
+function extractMeals(plan: unknown): unknown[] {
+  if (Array.isArray(plan)) {
+    return plan.flat();
+  }
+
+  if (!plan || typeof plan !== "object") {
+    return [];
+  }
+
+  const candidate = plan as { days?: unknown; meals?: unknown };
+  if (Array.isArray(candidate.days)) {
+    return candidate.days.flat();
+  }
+  return Array.isArray(candidate.meals) ? candidate.meals : [];
+}
 
 // Request schema for meal plan generation
 const generateMealPlanSchema = z.object({
@@ -54,7 +73,8 @@ router.post("/api/meal-plans/generate", async (req, res) => {
     const params = { weeks, mealsPerDay, snacksPerDay, targets, diet, medicalFlags, userId };
 
     // Select service based on planning mode (not variant)
-    let plan, meta;
+    let plan: unknown;
+    let meta: Record<string, unknown>;
     if (planningMode === "CAFETERIA") {
       ({ plan, meta } = await generateCafeteriaGoalBasedPlan(params));
     } else if (chosen === "A") {
@@ -106,9 +126,7 @@ router.post("/api/meal-plans/generate", async (req, res) => {
     }
 
     // Convert plan to meals array for frontend compatibility
-    let meals = Array.isArray(plan) ? plan.flat() : 
-                plan?.days ? plan.days.flat() : 
-                plan?.meals ? plan.meals : [];
+    let meals = extractMeals(plan);
 
     // Fallback if template pool was empty
     const weekKey = req.body.weekKey || "2025-W01";
@@ -143,9 +161,9 @@ router.post("/api/meal-plans/generate", async (req, res) => {
 });
 
 // Option A: Curated Templates Service (Fast Simple Version)
-async function generateCuratedTemplatePlan(params: any) {
+async function generateCuratedTemplatePlan(params: any): Promise<MealPlanGeneratorResult> {
   const result = await simpleMealPlanning.generate(params);
-  if (!result.success) {
+  if (!result.success || !result.stats) {
     throw new Error(result.message || "Failed to generate meal plan");
   }
   return { 
@@ -159,9 +177,9 @@ async function generateCuratedTemplatePlan(params: any) {
 }
 
 // Option B: Dynamic AI Service (Fast Simple Version)
-async function generateDynamicAIPlan(params: any) {
+async function generateDynamicAIPlan(params: any): Promise<MealPlanGeneratorResult> {
   const result = await simpleMealPlanning.generate(params);
-  if (!result.success) {
+  if (!result.success || !result.stats) {
     throw new Error(result.message || "Failed to generate meal plan");
   }
   return { 
@@ -175,9 +193,9 @@ async function generateDynamicAIPlan(params: any) {
 }
 
 // Option C: Cafeteria Goal-Based Service
-async function generateCafeteriaGoalBasedPlan(params: any) {
+async function generateCafeteriaGoalBasedPlan(params: any): Promise<MealPlanGeneratorResult> {
   const { plan, meta } = await weeklyMealPlanningServiceC.generate(params);
-  return { plan, meta };
+  return { plan, meta: meta as Record<string, unknown> };
 }
 
 function getDayName(dayIndex: number): string {

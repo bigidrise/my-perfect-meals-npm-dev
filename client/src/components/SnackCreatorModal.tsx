@@ -13,7 +13,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
-import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
+import {
+  useDietGuardPrecheck,
+  type DietGuardDecision,
+} from "@/hooks/useDietGuardPrecheck";
 import { DietGuardIntercept } from "@/components/DietGuardIntercept";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
@@ -240,7 +243,9 @@ export function SnackCreatorModal({
     }
   };
 
-  const handleDietDecision = async (decision: "pick_something_else" | "let_chef_adapt" | "continue_anyway") => {
+  const handleDietDecision = async (decision: DietGuardDecision) => {
+    if (decision === "pending") return;
+
     if (decision === "pick_something_else") {
       setDietDecision("pick_something_else");
       clearDietAlert();

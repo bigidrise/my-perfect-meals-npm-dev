@@ -1,4 +1,5 @@
 import type { User } from "@shared/schema";
+import { generateMealImageUnified } from "./mealImageGenerator";
 
 interface PregnancyMealOptions {
   trimester: number;
@@ -127,7 +128,6 @@ export async function generatePregnancyMealPlan(options: PregnancyMealOptions): 
           "Calcium supports early bone development"
         ],
         medicalBadges: generatePregnancyBadges(user, "folate-rich", trimester),
-        imageUrl: "https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=400"
       },
       {
         id: "pregnancy-t1-snack",
@@ -166,7 +166,6 @@ export async function generatePregnancyMealPlan(options: PregnancyMealOptions): 
           "Potassium from banana supports muscle function"
         ],
         medicalBadges: generatePregnancyBadges(user, "anti-nausea", trimester),
-        imageUrl: "https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400"
       }
     );
   }
@@ -213,7 +212,6 @@ export async function generatePregnancyMealPlan(options: PregnancyMealOptions): 
           "Healthy fats support brain development"
         ],
         medicalBadges: generatePregnancyBadges(user, "high-protein", trimester),
-        imageUrl: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400"
       },
       {
         id: "pregnancy-t2-dinner",
@@ -253,7 +251,6 @@ export async function generatePregnancyMealPlan(options: PregnancyMealOptions): 
           "Omega-3s reduce inflammation"
         ],
         medicalBadges: generatePregnancyBadges(user, "dha-rich", trimester),
-        imageUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400"
       }
     );
   }
@@ -299,7 +296,6 @@ export async function generatePregnancyMealPlan(options: PregnancyMealOptions): 
           "Healthy fats support final brain development"
         ],
         medicalBadges: generatePregnancyBadges(user, "iron-rich", trimester),
-        imageUrl: "https://images.unsplash.com/photo-1571167855111-dfe565eea8e4?w=400"
       },
       {
         id: "pregnancy-t3-snack",
@@ -339,10 +335,26 @@ export async function generatePregnancyMealPlan(options: PregnancyMealOptions): 
           "Healthy fats prepare for breastfeeding"
         ],
         medicalBadges: generatePregnancyBadges(user, "brain-development", trimester),
-        imageUrl: "https://images.unsplash.com/photo-1571197119374-5d89c4d84c1b?w=400"
       }
     );
   }
+
+  // Generate actual AI images for every meal via the canonical pipeline.
+  // Replaces all previously hardcoded Unsplash URLs.
+  // If generation fails for any meal, imageUrl remains undefined — client shows neutral placeholder.
+  await Promise.all(
+    meals.map(async (meal) => {
+      try {
+        const ingredientNames = meal.ingredients.map((i) => i.name);
+        const url = await generateMealImageUnified(meal.name, ingredientNames, "meal");
+        if (url && url.startsWith("/public-objects/")) {
+          meal.imageUrl = url;
+        }
+      } catch {
+        // generation failed — imageUrl stays undefined, client shows neutral unavailable state
+      }
+    })
+  );
 
   return {
     meals,
