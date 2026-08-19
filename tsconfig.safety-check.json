@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "client/src/components/BirthdayGreeting.tsx",
+    "client/src/components/MealCard.tsx",
+    "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
+    "client/src/types/meal.ts",
+    "server/storage.ts"
+  ],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
+}

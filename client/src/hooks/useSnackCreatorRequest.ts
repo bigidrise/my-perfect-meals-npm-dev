@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import type { DietClassification } from "@/types/meal";
 
 export type DietType = 
   | 'anti-inflammatory'
@@ -37,6 +38,7 @@ interface Snack {
     fibrousCarbs?: number;
   };
   medicalBadges?: string[];
+  dietClassification?: DietClassification | null;
 }
 
 export interface ExplicitOverride {

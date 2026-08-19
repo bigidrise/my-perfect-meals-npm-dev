@@ -8,7 +8,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
 
   // Recipe methods
   getRecipes(filters?: { dietaryRestrictions?: string[], mealType?: string, tags?: string[] }): Promise<Recipe[]>;
@@ -80,16 +80,27 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+
   private recipes: Map<string, Recipe>;
+
   private mealPlans: Map<string, MealPlan>;
+
   private mealLogs: Map<string, MealLog>;
+
   private shoppingLists: Map<string, ShoppingList>;
+
   private mealReminders: Map<string, MealReminder>;
+
   private mentalHealthConversations: Map<string, MentalHealthConversation>;
+
   private glycemicSettings: Map<string, UserGlycemicSettings>;
+
   private shoppingListItems: Map<string, any>;
+
   private pushSubscriptions: Map<string, any>;
+
   private physicianReports: Map<string, any>;
+
   private glucoseLogs: Map<string, GlucoseLog>;
 
   constructor() {
@@ -147,15 +158,19 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
-    
+
+    const { role, ...otherUpdates } = updates;
+    if (role !== undefined && !isUserRole(role)) {
+      throw new Error(`Invalid user role: ${role}`);
+    }
+
     const updatedUser: User = {
       ...user,
-      ...updates,
-      // Preserve the database enum contract when callers omit the field.
-      role: updates.role ?? user.role,
+      ...otherUpdates,
+      ...(role === undefined ? {} : { role }),
     };
     this.users.set(id, updatedUser);
     return updatedUser;
@@ -849,3 +864,9 @@ export class MemStorage implements IStorage {
 }
 
 export const storage = new MemStorage();
+
+type UserRole = NonNullable<User["role"]>;
+
+function isUserRole(value: unknown): value is UserRole {
+  return value === "admin" || value === "coach" || value === "client";
+}

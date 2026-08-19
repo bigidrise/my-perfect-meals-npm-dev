@@ -33,7 +33,7 @@ export type Meal = {
   description?: string;
   servings?: number;
   ingredients?: any[];
-  instructions?: any[];
+  instructions?: any[] | string;
   nutrition?: {
     calories: number;
     protein: number;

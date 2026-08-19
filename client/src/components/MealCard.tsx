@@ -34,7 +34,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Meal type is canonical at @/types/meal — re-exported here for backward compat
 export type { Meal } from "@/types/meal";
 
-type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
+type Slot =
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+  | "snacks"
+  | "meal4"
+  | "meal5"
+  | "meal6";
 
 // Explicit static mapping — unknown/future phases safely return no bullets rather than raw i18n keys.
 const COMP_PHASE_BULLET_KEYS: Partial<Record<string, [string, string]>> = {
@@ -221,6 +228,8 @@ export function MealCard({
   const hasStarchyFibrous = carbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0;
 
   const onDelete = () => { if (confirm(t("removeFromBoard"))) onUpdated(null); };
+  const macroMealSlot =
+    slot === "meal4" || slot === "meal5" || slot === "meal6" ? "dinner" : slot;
 
   const handleLogMacros = async () => {
     try {
@@ -588,7 +597,7 @@ export function MealCard({
                 fat: fat || 0,
                 calories: kcal || 0,
                 dateISO: date,
-                mealSlot: slot,
+                mealSlot: macroMealSlot,
                 servings: meal.servings || 1,
               }}
               label={t("addToMacros", { defaultValue: "Add to Macros", ns: "savedMeals" })}

@@ -109,6 +109,10 @@ export interface User {
 
   healthConditions?: string[];
 
+  labDrivenConditions?: string[];
+
+  physicianLocked?: boolean;
+
   preferredBuilder?: string | null;
 
   flavorPreference?: string | null;

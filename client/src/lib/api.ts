@@ -234,21 +234,27 @@ export async function addMealToMacros({
   // classifier the server pipeline uses.
   const existingStarchy = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
   const existingFibrous = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
+  const nutrition = meal.nutrition ?? {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  };
   const hasSplit = typeof existingStarchy === "number" && typeof existingFibrous === "number"
     && (existingStarchy > 0 || existingFibrous > 0);
 
   const { starchyCarbs, fibrousCarbs } = hasSplit
     ? { starchyCarbs: existingStarchy!, fibrousCarbs: existingFibrous! }
-    : deriveSplitCarbs(meal.ingredients ?? [], meal.nutrition.carbs);
+    : deriveSplitCarbs(meal.ingredients ?? [], nutrition.carbs);
 
   const logEntry = {
     mealId: meal.id,
     loggedAt: new Date().toISOString(),
     mealType: slot || "lunch",
-    kcal: meal.nutrition.calories,
-    protein: meal.nutrition.protein,
-    carbs: meal.nutrition.carbs,
-    fat: meal.nutrition.fat,
+    kcal: nutrition.calories,
+    protein: nutrition.protein,
+    carbs: nutrition.carbs,
+    fat: nutrition.fat,
     starchyCarbs,
     fibrousCarbs,
     source: "weekly-meal-board",
