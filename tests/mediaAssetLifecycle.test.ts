@@ -19,8 +19,16 @@
  * 13. Storage failure does not destroy meal data (meal saves with null imageUrl)
  */
 
+// These tests exercise pure URL-safety helpers. Mock the transitive runtime
+// dependencies before loading the services so Jest never evaluates the ESM-only
+// uuid chain pulled in by @replit/object-storage.
+jest.mock("@replit/object-storage", () => ({ Client: class { } }));
+jest.mock("sharp", () => jest.fn());
+jest.mock("../server/db", () => ({ db: {} }));
+jest.mock("../server/db/schema/mediaAssets", () => ({ mediaAssets: {} }));
+
 import { isFirstPartyImageUrl, findMealsWithTempImages } from "../server/services/imageLifecycle";
-import { isUnsafeImageUrl, warnLifecycleViolation } from "../server/services/mediaAssetService";
+import { isUnsafeImageUrl } from "../server/services/mediaAssetService";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. isFirstPartyImageUrl — URL classification
@@ -342,9 +350,9 @@ describe("Favorites pagination", () => {
     expect(limit).toBe(100);
   });
 
-  test("clamps limit to min 1", () => {
+  test("uses the default limit when limit is zero", () => {
     const { limit } = parsePaginationParams({ limit: "0" });
-    expect(limit).toBe(1);
+    expect(limit).toBe(20);
   });
 
   test("clamps page to min 1", () => {

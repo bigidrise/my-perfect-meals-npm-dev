@@ -3,7 +3,7 @@ import type { Config } from "jest";
 const config: Config = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/server/tests", "<rootDir>/client/src/lib/__tests__"],
+  roots: ["<rootDir>/server/tests", "<rootDir>/client/src/lib/__tests__", "<rootDir>/tests"],
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   moduleNameMapper: {
     // Sentry uses `import.meta.env` which Jest cannot parse; redirect all
