@@ -180,6 +180,9 @@ export default function MealReminders() {
           setWebPermission(getWebPushPermission());
           const result = await checkWebPushPipeline();
           setPipeline(result);
+          // Re-read permission after the async pipeline check so the status
+          // badge never lags behind a state change that occurred during the await.
+          setWebPermission(getWebPushPermission());
         }
       } catch (e) {
         console.error('[MealReminders] ✗ init error:', e);
@@ -200,11 +203,16 @@ export default function MealReminders() {
     return cleanup;
   }, [isNative]);
 
-  // Re-check on tab focus (user may have changed browser settings)
+  // Re-check on tab focus (user may have changed browser/system settings)
   useEffect(() => {
-    if (isNative) return;
     function onVisible() {
-      if (document.visibilityState === "visible") runPipelineCheck();
+      if (document.visibilityState !== "visible") return;
+      if (isNative) {
+        // User may have changed iOS notification permission in Settings
+        checkNotificationPermission().then(setiOSPermission);
+      } else {
+        runPipelineCheck();
+      }
     }
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
@@ -336,6 +344,27 @@ export default function MealReminders() {
           {isNative ? t("mealReminders.nativeDelivery") : t("mealReminders.webDelivery")}
         </span>
       </div>
+
+      {/* ── iOS permission status badge ── */}
+      {isNative && (
+        <div className="flex items-center gap-2" data-testid="ios-permission-status">
+          {iOSPermission ? (
+            <>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span className="text-emerald-400 text-xs font-medium" data-testid="ios-permission-label">
+                {t("mealReminders.statusConnected")}
+              </span>
+            </>
+          ) : (
+            <>
+              <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+              <span className="text-red-400 text-xs font-medium" data-testid="ios-permission-label">
+                {t("mealReminders.statusBlockedIos")}
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Simple user-facing status ── */}
       {!isNative && (
