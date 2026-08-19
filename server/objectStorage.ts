@@ -51,6 +51,12 @@ export class StorageUnavailableError extends Error {
   }
 }
 
+// The old disconnected bucket that still appears in legacy env vars.
+// Any search path or bucket ID referencing it is silently remapped to the active bucket.
+const LEGACY_DISCONNECTED_BUCKET = "replit-objstore-e02a723e-40e9-4d89-9c0e-05adfa185d2d";
+// The current active bucket for this repl.
+export const ACTIVE_BUCKET_ID = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
+
 // ── Replit Object Storage clients (same SDK as the write path) ────────────────
 // One client per bucket ID; a bucketId of "" means the default (active) bucket.
 const replitClients = new Map<string, ReplitStorageClient>();
@@ -84,21 +90,34 @@ export class ObjectStorageService {
   constructor() {}
 
   // Gets the public object search paths.
+  // Remaps the legacy disconnected bucket to the active bucket automatically,
+  // and falls back to the active bucket when the env var is missing or invalid.
   getPublicObjectSearchPaths(): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
-    const paths = Array.from(
-      new Set(
-        pathsStr
-          .split(",")
-          .map((path) => path.trim())
-          .filter((path) => path.length > 0)
-      )
-    );
+    const raw = pathsStr
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+      // Replace old disconnected bucket ID with the current active one.
+      .map((p) => p.replace(LEGACY_DISCONNECTED_BUCKET, ACTIVE_BUCKET_ID))
+      // Drop any entry whose first path segment is not a Replit Object Storage
+      // bucket ID (format: replit-objstore-<uuid>).  A leading "/" is stripped
+      // first so both "/replit-objstore-…" and "replit-objstore-…" forms pass.
+      .filter((p) => {
+        const firstSegment = p.replace(/^\//, "").split("/")[0];
+        return firstSegment.startsWith("replit-objstore-");
+      });
+
+    const paths = Array.from(new Set(raw));
+
+    // If no valid paths remain (env var unset, empty, or contained only invalid
+    // values such as accidentally-entered passwords), fall back to the active bucket.
     if (paths.length === 0) {
-      throw new Error(
-        "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
-          "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths)."
+      console.warn(
+        "[objectStorage] PUBLIC_OBJECT_SEARCH_PATHS missing or invalid — " +
+          `falling back to active bucket: ${ACTIVE_BUCKET_ID}/public`
       );
+      return [`/${ACTIVE_BUCKET_ID}/public`];
     }
     return paths;
   }
@@ -143,11 +162,14 @@ export class ObjectStorageService {
   async resolvePublicObjectPath(
     filePath: string,
   ): Promise<{ bucketId: string | undefined; objectName: string } | null> {
-    // New-format: bucket ID embedded directly in the path
+    // New-format: bucket ID embedded directly in the path.
+    // If the embedded bucket is the old disconnected one, remap to the active bucket
+    // so URLs that were generated before the bucket migration still resolve correctly.
     if (filePath.startsWith("replit-objstore-")) {
       const slashIdx = filePath.indexOf("/");
       if (slashIdx === -1) return null;
-      const bucketId = filePath.slice(0, slashIdx);
+      const rawBucketId = filePath.slice(0, slashIdx);
+      const bucketId = rawBucketId === LEGACY_DISCONNECTED_BUCKET ? ACTIVE_BUCKET_ID : rawBucketId;
       const objectName = filePath.slice(slashIdx + 1);
       const existsResult = await getReplitClient(bucketId).exists(objectName);
       if (!existsResult.ok) {
@@ -187,7 +209,8 @@ export class ObjectStorageService {
     if (objectPath.startsWith("replit-objstore-")) {
       const slashIdx = objectPath.indexOf("/");
       if (slashIdx !== -1) {
-        const bucketId = objectPath.slice(0, slashIdx);
+        const rawBucketId = objectPath.slice(0, slashIdx);
+        const bucketId = rawBucketId === LEGACY_DISCONNECTED_BUCKET ? ACTIVE_BUCKET_ID : rawBucketId;
         const objectName = objectPath.slice(slashIdx + 1);
         return getReplitClient(bucketId).downloadAsStream(objectName);
       }
