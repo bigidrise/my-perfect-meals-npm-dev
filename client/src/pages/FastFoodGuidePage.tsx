@@ -1047,21 +1047,26 @@ export default function FastFoodGuidePage() {
                     )}
                   </div>
                   <div className="grid gap-4">
-                    {generatedMeals.map((meal, index) => (
-                      <div
-                        data-wt="rg-restaurant-card"
-                        key={meal.id || index}
-                      >
-                        <AwayFromHomeMealCard
-                          recommendation={fromLegacyRecommendation(
-                            meal,
-                            restaurantInfo,
-                            "fast_food_guide",
-                            chefFlowImages[chefFlowMealId(meal, "fast-food")] || meal.imageUrl
-                          )}
-                        />
-                      </div>
-                    ))}
+                    {generatedMeals.map((meal, index) => {
+                      const imageKey = chefFlowMealId(meal, "fast-food");
+                      const mealImage = chefFlowImages[imageKey] || meal.imageUrl;
+                      return (
+                        <div
+                          data-wt="rg-restaurant-card"
+                          key={meal.id || index}
+                        >
+                          <AwayFromHomeMealCard
+                            recommendation={fromLegacyRecommendation(
+                              meal,
+                              restaurantInfo,
+                              "fast_food_guide",
+                              mealImage,
+                            )}
+                            imageLoading={!mealImage && !chefFlowFailed.has(imageKey)}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </CardContent>

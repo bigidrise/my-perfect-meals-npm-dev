@@ -1100,6 +1100,7 @@ export default function RestaurantGuidePage() {
                       const displayMeal = translation ? translation.data : meal;
                       const imageKey = chefFlowMealId(meal, "restaurant");
                       const mealImage = chefFlowImages[imageKey] || meal.imageUrl;
+                      const mealImagePending = !mealImage && !chefFlowFailed.has(imageKey);
                       const TRANSLATE_LANGUAGES = [
                         { code: "es", label: "Spanish" },
                         { code: "fr", label: "French" },
@@ -1122,16 +1123,15 @@ export default function RestaurantGuidePage() {
                           className="overflow-hidden shadow-lg hover:shadow-orange-500/50 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-black/40 backdrop-blur-lg border border-white/20"
                         >
                           <div className="md:grid md:grid-cols-3">
-                            {mealImage && (
-                              <div className="relative h-48 md:h-full">
-                                <ChefFlowImage
-                                  src={mealImage}
-                                  alt={displayMeal.name || displayMeal.meal || "Meal"}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className={`p-4 ${mealImage ? "md:col-span-2" : "md:col-span-3"}`}>
+                            <div className="relative h-48 md:h-full">
+                              <ChefFlowImage
+                                src={mealImage}
+                                alt={displayMeal.name || displayMeal.meal || "Meal"}
+                                className="w-full h-full object-cover"
+                                isLoading={mealImagePending}
+                              />
+                            </div>
+                            <div className="p-4 md:col-span-2">
                               <div className="flex items-start justify-between mb-2">
                                 <h3 className="text-lg font-semibold text-white">
                                   {displayMeal.name || displayMeal.meal}

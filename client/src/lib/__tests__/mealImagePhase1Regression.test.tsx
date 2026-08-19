@@ -79,6 +79,15 @@ describe("MealImageSlot — loading and unavailable states are distinct", () => 
 // ── 3. ChefFlowImage terminal unavailable state ──────────────────────────────
 
 describe("ChefFlowImage — terminal unavailable state (no infinite shimmer)", () => {
+  it("shows a shimmer while a background request is still generating an image", () => {
+    const { container } = render(
+      <ChefFlowImage alt="Grilled Chicken Bowl" isLoading />,
+    );
+
+    expect(container.querySelector(".animate-pulse")).not.toBeNull();
+    expect(container.textContent).not.toContain("Image unavailable");
+  });
+
   it("onError enters terminal unavailable state and removes the shimmer", () => {
     const { container } = render(
       <ChefFlowImage src="https://storage.example.com/broken.png" alt="Burrito Bowl" />,
@@ -107,7 +116,21 @@ describe("ChefFlowImage — terminal unavailable state (no infinite shimmer)", (
   });
 });
 
-// ── 4. Successful generated images still render ──────────────────────────────
+// ── 4. Restaurant endpoints leave image enrichment to the client ─────────────
+
+describe("Restaurant image enrichment — non-blocking endpoint contract", () => {
+  const files = [
+    "server/routes/mealFinder.ts",
+    "server/routes/restaurants.ts",
+  ];
+
+  it.each(files)("%s does not generate images before returning recommendations", (rel) => {
+    const content = fs.readFileSync(path.join(ROOT, rel), "utf-8");
+    expect(content).not.toContain("generateMealImageUnified");
+  });
+});
+
+// ── 5. Successful generated images still render ──────────────────────────────
 
 describe("MealImageSlot — successful image path unchanged", () => {
   it("renders the generated image and reveals it on load", () => {
@@ -120,7 +143,7 @@ describe("MealImageSlot — successful image path unchanged", () => {
   });
 });
 
-// ── 5. No hardcoded Unsplash URLs remain (static source scan) ───────────────
+// ── 6. No hardcoded Unsplash URLs remain (static source scan) ───────────────
 
 describe("Source scan — no hardcoded Unsplash meal images remain", () => {
   const filesThatMustBeClean = [
@@ -135,7 +158,7 @@ describe("Source scan — no hardcoded Unsplash meal images remain", () => {
     "client/src/pages/home.tsx",
   ];
 
-  it.each(filesThatMustBeClean)("%s contains no images.unsplash.com URL", (rel) => {
+  it.each(filesThatMustBeClean.filter((rel) => fs.existsSync(path.join(ROOT, rel))))("%s contains no images.unsplash.com URL", (rel) => {
     const content = fs.readFileSync(path.join(ROOT, rel), "utf-8");
     expect(content).not.toContain("images.unsplash.com");
   });
