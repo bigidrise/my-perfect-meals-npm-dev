@@ -4,24 +4,17 @@ import { useState } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
 import { X, Plus, RefreshCw } from "lucide-react";
-import MealCard from "@/components/MealCard";
+import { MealCard } from "@/components/MealCard";
 import TrashButton from "@/components/ui/TrashButton";
 import { useToast } from "@/hooks/use-toast";
+import {
+  fromMealCardMeal,
+  getMealCardSlot,
+  toMealCardMeal,
+  type PickerMealCardData,
+} from "@/lib/pickerMealCardAdapter";
 
-type Ingredient = { name: string; amount: string };
-export type FixedMeal = {
-  name: string; 
-  description?: string; 
-  imageUrl?: string;
-  ingredients: Ingredient[]; 
-  instructions: string[];
-  calories?: number; 
-  protein?: number; 
-  carbs?: number; 
-  fats?: number;
-  labels?: string[]; 
-  badges: string[];
-};
+export type FixedMeal = PickerMealCardData;
 
 export default function FixedMenuPicker({ 
   open, 
@@ -78,6 +71,7 @@ export default function FixedMenuPicker({
       const m = data.meal || data;
       
       const norm: FixedMeal = {
+        id: String(m?.id ?? m?.mealId ?? `picker-${Date.now()}-${Math.random().toString(36).slice(2)}`),
         name: String(m?.name ?? m?.title ?? "Chef's Choice"),
         description: m?.description ?? m?.summary ?? undefined,
         imageUrl: m?.imageUrl ?? m?.imageURL ?? m?.image ?? undefined,
@@ -171,16 +165,20 @@ export default function FixedMenuPicker({
             {items.map((m, idx) => (
               <div key={idx} className="relative">
                 <MealCard 
-                  item={{ 
-                    ...m, 
-                    slot: "meal" as const, 
-                    label: slotLabel, 
-                    time: "", 
-                    dayIndex: 0,
-                    order: idx + 1,
-                    badges: m.badges ?? [] 
-                  }} 
-                  cravingCreatorHref="#" 
+                  date="board"
+                  slot={getMealCardSlot(slotLabel)}
+                  meal={toMealCardMeal(m)}
+                  onUpdated={(updatedMeal) => {
+                    if (updatedMeal === null) {
+                      removeMeal(idx);
+                      return;
+                    }
+
+                    setItems((currentItems) => currentItems.map((item, itemIndex) => {
+                      if (itemIndex !== idx) return item;
+                      return fromMealCardMeal(updatedMeal, item);
+                    }));
+                  }}
                 />
                 <div className="absolute top-2 right-2">
                   <TrashButton
