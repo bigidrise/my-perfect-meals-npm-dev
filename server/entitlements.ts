@@ -1,45 +1,34 @@
 import {
   type Entitlement,
-  type PlanTier,
-  PLAN_FEATURES,
   LOOKUP_KEY_TO_TIER,
   PROCARE_ENTITLEMENTS,
   getEntitlementsForTier,
   getTierForLookupKey,
+  isProCarePlanKey,
 } from "../shared/planFeatures";
 
 export type { Entitlement };
 
-export type PlanKey =
-  | "mpm_free"
-  | "mpm_basic_monthly"
-  | "mpm_upgrade_monthly"
-  | "mpm_upgrade_beta_monthly"
-  | "mpm_ultimate_monthly"
-  | "mpm_family_base_monthly"
-  | "mpm_family_premium"
-  | "mpm_family_all_upgrade_monthly"
-  | "mpm_family_all_premium_monthly"
-  | "mpm_family_all_ultimate_monthly"
-  | "mpm_procare_monthly";
+export type PlanKey = string;
 
-export const PLAN_ENTITLEMENTS: Record<PlanKey, Entitlement[]> = {
-  mpm_free: getEntitlementsForTier("free"),
-  mpm_basic_monthly: getEntitlementsForTier("basic"),
-  mpm_upgrade_monthly: getEntitlementsForTier("premium"),
-  mpm_upgrade_beta_monthly: getEntitlementsForTier("premium"),
-  mpm_ultimate_monthly: getEntitlementsForTier("ultimate"),
-  mpm_family_base_monthly: getEntitlementsForTier("basic"),
-  mpm_family_premium: getEntitlementsForTier("premium"),
-  mpm_family_all_upgrade_monthly: getEntitlementsForTier("premium"),
-  mpm_family_all_premium_monthly: getEntitlementsForTier("premium"),
-  mpm_family_all_ultimate_monthly: getEntitlementsForTier("ultimate"),
-  mpm_procare_monthly: [...PROCARE_ENTITLEMENTS],
-};
+/**
+ * All checkout and webhook entitlement writes derive from shared plan policy.
+ * This prevents product-specific maps from drifting away from Studio access.
+ */
+export function getEntitlementsForPlan(planKey: PlanKey | null | undefined): Entitlement[] {
+  if (!planKey || !Object.prototype.hasOwnProperty.call(LOOKUP_KEY_TO_TIER, planKey)) {
+    return [];
+  }
 
-export function getEntitlementsForPlan(planKey: PlanKey): Entitlement[] {
-  return PLAN_ENTITLEMENTS[planKey] || [];
+  const tierEntitlements = getEntitlementsForTier(getTierForLookupKey(planKey));
+  return isProCarePlanKey(planKey)
+    ? [...new Set([...tierEntitlements, ...PROCARE_ENTITLEMENTS])]
+    : tierEntitlements;
 }
+
+export const PLAN_ENTITLEMENTS: Record<string, Entitlement[]> = Object.fromEntries(
+  Object.keys(LOOKUP_KEY_TO_TIER).map((planKey) => [planKey, getEntitlementsForPlan(planKey)])
+);
 
 export function userHasEntitlement(
   entitlements: Entitlement[] | undefined,

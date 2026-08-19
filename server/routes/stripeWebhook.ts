@@ -10,6 +10,7 @@ import {
 import { clientLinks } from "../db/schema/procare";
 import { deactivateProCareClient } from "../services/procareActivation";
 import type { LookupKey } from "../../client/src/data/planSkus";
+import { isProCarePlanKey } from "@shared/planFeatures";
 
 const router = Router();
 
@@ -33,10 +34,6 @@ function extractLookupKey(subscription: Stripe.Subscription): string | null {
 }
 
 const CLINICAL_PLAN_KEYS = ["mpm_ultimate", "mpm_ultimate_monthly", "mpm_ultimate_plan_2999"];
-const PROCARE_PLAN_KEYS = [
-  "mpm_procare_monthly", "mpm_trainer_5", "mpm_trainer_10",
-  "mpm_trainer_25", "mpm_trainer_50", "mpm_physician_50", "mpm_physician_150",
-];
 
 /**
  * Terminates all active ProCare relationships when a subscription is cancelled.
@@ -392,7 +389,7 @@ router.post("/", async (req, res) => {
           if (CLINICAL_PLAN_KEYS.includes(planKey) && affectedUser.isProCare) {
             console.log(`🔌 [webhook] Clinical cancelled — terminating ProCare client relationships for user ${affectedUser.id}`);
             await terminateProCareRelationships(affectedUser.id, "client");
-          } else if (PROCARE_PLAN_KEYS.includes(planKey)) {
+          } else if (isProCarePlanKey(planKey)) {
             console.log(`🔌 [webhook] ProCare cancelled — terminating all coach relationships for user ${affectedUser.id}`);
             await terminateProCareRelationships(affectedUser.id, "coach");
           }

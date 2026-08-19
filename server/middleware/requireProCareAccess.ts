@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./requireAuth";
-import { isProCarePlanKey } from "@shared/planFeatures";
+import { canAccessProCareStudio } from "@shared/planFeatures";
 
 /**
  * requireProCareAccess — gates routes that require an active ProCare subscription.
@@ -32,10 +32,25 @@ export function requireProCareAccess(
     return;
   }
 
-  // Pre-launch mode: billing not enforced → everyone passes
-  if (!BILLING_ENFORCED) return next();
+  const {
+    accessTier,
+    planLookupKey,
+    sponsoredByBusinessId,
+    sponsoredProCareAccess,
+    isFounder,
+  } = authReq.authUser;
 
-  const { accessTier, planLookupKey } = authReq.authUser;
+  if (canAccessProCareStudio({
+    billingEnforced: BILLING_ENFORCED,
+    accessTier,
+    planLookupKey,
+    sponsoredByBusinessId,
+    sponsoredProCareAccess,
+    isInternalAccount: isFounder,
+  })) {
+    next();
+    return;
+  }
 
   if (accessTier !== "PAID_FULL") {
     res.status(403).json({
@@ -45,12 +60,6 @@ export function requireProCareAccess(
     });
     return;
   }
-
-  // Internal / founder account (PAID_FULL with no Stripe plan) — grant access
-  if (!planLookupKey) return next();
-
-  // Explicit ProCare plan check — Clinical/ultimate alone is NOT sufficient
-  if (isProCarePlanKey(planLookupKey)) return next();
 
   res.status(403).json({
     error: "ProCare Studio requires an active ProCare subscription. Your current plan does not include ProCare access.",

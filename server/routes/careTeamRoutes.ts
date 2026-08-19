@@ -10,6 +10,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
+import { providerHasProCareStudioAccess } from "../services/procareProviderAccess";
 
 const router = Router();
 
@@ -141,20 +142,25 @@ router.post("/connect", requireAuth, async (req, res) => {
 
     const proUserId = invite ? invite.userId : accessCodeRow!.proUserId;
 
-    // Fetch pro's role + subscription only.
+    // Resolve provider access from their effective plan. A sponsored Clinical
+    // Business professional has no personal ProCare plan key, so reading only
+    // users.planLookupKey would incorrectly reject a valid provider.
     // Client Clinical access is resolved from req.authUser (via buildAuthUserWithEffectiveAccess).
     const [pro] = await db
-      .select({ professionalRole: users.professionalRole, planLookupKey: users.planLookupKey })
+      .select({
+        id: users.id,
+        professionalRole: users.professionalRole,
+        planLookupKey: users.planLookupKey,
+        personalPlanLookupKey: users.personalPlanLookupKey,
+        isFounder: users.isFounder,
+        isSandbox: users.isSandbox,
+        isTester: users.isTester,
+        trialEndsAt: users.trialEndsAt,
+      })
       .from(users)
       .where(eq(users.id, proUserId));
 
     // ── Subscription gates ────────────────────────────────────────────────────
-    const PROCARE_PLAN_KEYS = [
-      "mpm_procare_monthly", "mpm_trainer_5", "mpm_trainer_10",
-      "mpm_trainer_25", "mpm_trainer_50", "mpm_physician_50", "mpm_physician_150",
-      "clinical_business_monthly",
-    ];
-
     // Client Clinical check — use effective access already resolved by requireAuth.
     // req.authUser.planLookupKey reflects computeEffectiveAccess(): it correctly
     // represents Clinical Business seats, org-sponsored access, and personal plans.
@@ -171,7 +177,7 @@ router.post("/connect", requireAuth, async (req, res) => {
       });
     }
 
-    if (!PROCARE_PLAN_KEYS.includes(pro?.planLookupKey ?? "")) {
+    if (!pro || !(await providerHasProCareStudioAccess(pro))) {
       console.log(`🔒 [CareTeam Connect] Blocked — coach ${proUserId} lacks active ProCare subscription`);
       return res.status(403).json({
         error: "COACH_NOT_SUBSCRIBED",

@@ -28,7 +28,7 @@ import { requireProCareAccess } from "./middleware/requireProCareAccess";
 import { requireMonetizationAccess } from "./middleware/requireMonetizationAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
 import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
-import { getTierForLookupKey, getEntitlementsForTier, isProCarePlanKey, TRIAL_UNLOCKS_TIER } from "@shared/planFeatures";
+import { getTierForLookupKey, getEntitlementsForTier, canAccessProCareStudio, TRIAL_UNLOCKS_TIER } from "@shared/planFeatures";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
 import { companionProfileImages } from "./db/schema/companionProfiles";
@@ -3339,13 +3339,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attestedAt: user.attestedAt?.toISOString() || null,
         entitlements: mergedEntitlements,
         // ── Explicit server-side entitlement flags ─────────────────────────
-        proCareEligible: (() => {
-          if (process.env.BILLING_ENFORCED !== "true") return true;
-          if (authReq.authUser.accessTier !== "PAID_FULL") return false;
-          if (!user.planLookupKey) return true;
-          const dbEnt: string[] = (user.entitlements as string[]) || [];
-          return isProCarePlanKey(user.planLookupKey) || dbEnt.includes("procare");
-        })(),
+        // Use the same effective plan and policy as requireProCareAccess.
+        // Never trust a stale DB entitlement here: it can make the UI claim
+        // Studio access while the route correctly returns 403.
+        proCareEligible: canAccessProCareStudio({
+          billingEnforced: process.env.BILLING_ENFORCED === "true",
+          accessTier: authReq.authUser.accessTier,
+          planLookupKey: authReq.authUser.planLookupKey,
+          sponsoredByBusinessId: authReq.authUser.sponsoredByBusinessId,
+          sponsoredProCareAccess: authReq.authUser.sponsoredProCareAccess,
+          isInternalAccount: authReq.authUser.isFounder,
+        }),
         monetizationEligible: (() => {
           if (process.env.BILLING_ENFORCED !== "true") return true;
           if (authReq.authUser.accessTier !== "PAID_FULL") return false;

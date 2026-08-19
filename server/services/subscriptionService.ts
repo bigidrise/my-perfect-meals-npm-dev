@@ -2,15 +2,14 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import type { LookupKey } from "../../client/src/data/planSkus";
-import { getTierForLookupKey, getEntitlementsForTier } from "../../shared/planFeatures";
+import { getEntitlementsForPlan } from "../entitlements";
 
 /**
  * Derive the entitlements array for any plan lookup key.
  * Uses the shared tier mapping so iOS plans and Stripe plans are both covered.
  */
-function entitlementsForKey(lookupKey: string): string[] {
-  const tier = getTierForLookupKey(lookupKey);
-  return getEntitlementsForTier(tier) as string[];
+export function entitlementsForSubscriptionLookupKey(lookupKey: string): string[] {
+  return getEntitlementsForPlan(lookupKey);
 }
 
 export async function updateUserSubscription(opts: {
@@ -21,7 +20,7 @@ export async function updateUserSubscription(opts: {
 }) {
   const { userId, lookupKey, stripeCustomerId, stripeSubscriptionId } = opts;
 
-  const entitlements = entitlementsForKey(lookupKey);
+  const entitlements = entitlementsForSubscriptionLookupKey(lookupKey);
 
   const updateFields: Record<string, unknown> = {
     planLookupKey: lookupKey,
