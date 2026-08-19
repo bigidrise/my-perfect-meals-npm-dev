@@ -199,6 +199,23 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
 
 export type PlanLookupKey =
   | "mpm_free"
+  // Current storefront keys
+  | "mpm_basic"
+  | "mpm_premium"
+  | "mpm_ultimate"
+  | "mpm_family_base"
+  | "mpm_family_ultimate"
+  | "mpm_trainer_5"
+  | "mpm_trainer_10"
+  | "mpm_trainer_25"
+  | "mpm_trainer_50"
+  | "mpm_physician_50"
+  | "mpm_physician_150"
+  | "mpm_guidance"
+  | "signature_kitchen_starter_monthly"
+  | "signature_kitchen_pro_monthly"
+  | "signature_kitchen_partner_monthly"
+  | "clinical_business_monthly"
   | "mpm_basic_monthly"
   | "mpm_upgrade_monthly"
   | "mpm_upgrade_beta_monthly"
@@ -215,7 +232,36 @@ export type PlanLookupKey =
   | "mpm_procare_trainer_10"
   | "mpm_procare_trainer_25"
   | "mpm_procare_trainer_50"
-  | "mpm_procare_trainer_150";
+  | "mpm_procare_trainer_150"
+  // Legacy Stripe metadata keys that may still be attached to active plans.
+  | "mpm_basic_plan_999"
+  | "mpm_premium_plan_1999"
+  | "mpm_ultimate_plan_2999"
+  | "mpm_contributor"
+  | "mpm_special_access";
+
+/**
+ * Lookup keys accepted by Stripe checkout. This intentionally excludes legacy,
+ * internal, and entitlement-only plan keys that do not have a Stripe price.
+ */
+export type CheckoutLookupKey =
+  | "mpm_basic"
+  | "mpm_premium"
+  | "mpm_ultimate"
+  | "mpm_family_base"
+  | "mpm_family_premium"
+  | "mpm_family_ultimate"
+  | "mpm_trainer_5"
+  | "mpm_trainer_10"
+  | "mpm_trainer_25"
+  | "mpm_trainer_50"
+  | "mpm_physician_50"
+  | "mpm_physician_150"
+  | "mpm_guidance"
+  | "signature_kitchen_starter_monthly"
+  | "signature_kitchen_pro_monthly"
+  | "signature_kitchen_partner_monthly"
+  | "clinical_business_monthly";
 
 export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_free: "free",

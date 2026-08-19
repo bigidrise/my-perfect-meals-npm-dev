@@ -27,8 +27,10 @@ export function useCoachingProfile() {
   return useQuery<CoachingProfileData | null>({
     queryKey: QUERY_KEY,
     queryFn: async () => {
-      const data = await apiRequest("GET", "/api/ace/profile");
-      return (data as any).profile ?? null;
+      const data = await apiRequest<{ profile?: CoachingProfileData | null }>(
+        "/api/ace/profile",
+      );
+      return data.profile ?? null;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -39,8 +41,14 @@ export function useSaveCoachingProfile() {
 
   return useMutation({
     mutationFn: async (payload: CoachingProfilePayload) => {
-      const data = await apiRequest("POST", "/api/ace/profile", payload);
-      return (data as any).profile as CoachingProfileData;
+      const data = await apiRequest<{ profile: CoachingProfileData }>(
+        "/api/ace/profile",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+      return data.profile;
     },
     onSuccess: (profile) => {
       queryClient.setQueryData(QUERY_KEY, profile);
