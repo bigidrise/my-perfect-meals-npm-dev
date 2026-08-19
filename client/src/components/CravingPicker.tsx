@@ -106,7 +106,8 @@ export default function CravingPicker({
       
       setMeal(normalized);
     } catch (e: any) {
-      setError(e.message || "Failed to generate meal");
+      const detail = e?.message ? ` ${e.message}` : "";
+      setError(`Meal generation failed.${detail} Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -149,7 +150,7 @@ export default function CravingPicker({
                     Generating...
                   </>
                 ) : (
-                  <>Generate {slotLabel} Option</>
+                  <>{error ? "Try Again" : `Generate ${slotLabel} Option`}</>
                 )}
               </Button>
               {error && (

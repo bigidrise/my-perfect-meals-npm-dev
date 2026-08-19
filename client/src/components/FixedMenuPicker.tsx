@@ -102,7 +102,8 @@ export default function FixedMenuPicker({
       
       setItems(prev => [...prev, norm]);
     } catch (e: any) {
-      setError(e.message || "Failed to generate meal");
+      const detail = e?.message ? ` ${e.message}` : "";
+      setError(`Meal generation failed.${detail} Please try again.`);
     } finally { 
       setLoading(false); 
     }
@@ -152,7 +153,7 @@ export default function FixedMenuPicker({
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Meal
+                  {error ? "Try Again" : "Add Meal"}
                 </>
               )}
             </Button>
