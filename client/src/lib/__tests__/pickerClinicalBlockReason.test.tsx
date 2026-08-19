@@ -13,6 +13,7 @@
 // unrelated data fetching and clinical rendering dependencies.
 jest.mock("@/components/MealCard", () => ({
   __esModule: true,
+  MealCard: () => null,
   default: () => null,
 }));
 
