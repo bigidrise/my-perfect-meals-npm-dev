@@ -612,7 +612,7 @@ export default function DiabeticMenuBuilder() {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
@@ -620,7 +620,7 @@ export default function DiabeticMenuBuilder() {
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) {
     try {
       const state: CachedAIMeals = {
@@ -829,7 +829,7 @@ export default function DiabeticMenuBuilder() {
   const handleChefMealGenerated = useCallback(
     async (
       generatedMeal: any,
-      slot: "breakfast" | "lunch" | "dinner" | "snacks",
+      slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
     ) => {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
@@ -911,7 +911,7 @@ export default function DiabeticMenuBuilder() {
     const r = nutritionState.remaining;
     return {
       protein:  r.protein,
-      carbs:    r.totalCarbs,
+      carbs:    r.carbs,
       fat:      r.fat,
       calories: r.calories,
     };
@@ -1398,8 +1398,8 @@ export default function DiabeticMenuBuilder() {
                         <GlobalMealActionBar
                           slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                           onCreateWithAI={() => {
-                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
-                            setAiMealModalOpen(true);
+                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
+                            setCreateWithChefOpen(true);
                           }}
                           onCreateWithChef={() => {
                             setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");

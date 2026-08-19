@@ -164,8 +164,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const proClientId = proParams?.id;
   // In standalone mode, use current user's ID; in procare mode, use route clientId
   const clientId =
-    mode === "procare" ? routeClientId : routeClientId || user?.id || undefined;
-  const effectiveUserId = clientId ?? user?.id;
+    mode === "procare" ? routeClientId : routeClientId || user?.id || null;
+  const effectiveUserId = clientId ?? undefined;
 
   // Safety check: redirect only if procare mode without clientId
   useEffect(() => {
@@ -201,7 +201,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     source,
     refresh: refreshBoard,
     primeCache,
-  } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
+  } = useWeeklyBoard(effectiveUserId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
 
   const nutritionBudget = useNutritionBudget(clientId || user?.id || "");
 
@@ -215,7 +215,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
-      userId: clientId,
+      userId: effectiveUserId,
       builderId: 'performance-competition-builder',
       weekStartISO,
     },
@@ -620,7 +620,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
           namespace: BUILDER_NS.PERFORMANCE_COMPETITION,
-          cacheUserId: proClientId || clientId,
+          cacheUserId: proClientId || effectiveUserId,
         });
 
         if (result.currentWeekBoard) {
@@ -687,11 +687,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
         setBoard(updatedBoard);
         if (!transformedMeal.imageUrl) {
-          fetchImageForMeal({
-            id: transformedMeal.id,
-            name: transformedMeal.name ?? transformedMeal.title ?? "Meal",
-            ingredients: transformedMeal.ingredients,
-          }, slot, (mealId, imageUrl) => {
+          fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
               const currentImg = getMealImageUrl(prev, mealId);
@@ -770,6 +766,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           });
         }
 
+        setSnackCreatorOpen(false);
       } catch (error) {
         console.error("Failed to add snack:", error);
         toast({
@@ -865,15 +862,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       return;
     }
 
-    if (!clientId) {
-      toast({
-        title: t("performanceCompetitionBuilder.cannotSetMacros"),
-        description: t("performanceCompetitionBuilder.missingClient"),
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Save macros to localStorage with "anon" user (default biometrics key)
     setMacroTargets({
       calories: coachMacroTargets.calories,
@@ -882,11 +870,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       fat_g: coachMacroTargets.fat,
     }); // Use default "anon" user instead of clientId
 
-    // Link the current user to this clientId for ProCare integration
-    linkUserToClient("anon", clientId);
-
-    // Save clientId for "Came From" dropdown routing
-    saveLastPerformanceClientId(clientId);
+    if (effectiveUserId) {
+      linkUserToClient("anon", effectiveUserId);
+      saveLastPerformanceClientId(effectiveUserId);
+    }
 
     toast({
       title: t("performanceCompetitionBuilder.macrosSetTitle"),
@@ -896,7 +883,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     setLocation(
       "/my-biometrics?from=performance-competition-builder&view=macros",
     );
-  }, [coachMacroTargets, clientId, toast, setLocation]);
+  }, [coachMacroTargets, effectiveUserId, toast, setLocation]);
 
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
@@ -1453,7 +1440,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           {/* Daily Targets Card */}
           <div className="col-span-full">
             <DailyTargetsCard
-              userId={clientId}
+              userId={effectiveUserId}
               showQuickAddButton={false}
               targetsOverride={effectiveTargets}
               isLoading={nutritionStateLoading}
@@ -1508,7 +1495,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
                 fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
-              const dayAlreadyLocked = isDayLocked(activeDayISO, clientId);
+              const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
               
               if (proClientId) return null;
               return (
@@ -1533,7 +1520,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         targets,
                         consumed,
                         slots,
-                      }, clientId);
+                      }, effectiveUserId);
                       
                       if (result.alreadyLocked) {
                         toast({

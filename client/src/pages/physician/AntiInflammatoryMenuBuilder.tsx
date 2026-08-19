@@ -103,7 +103,7 @@ import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
 import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 import { proStore } from "@/lib/proData";
 import { classifyMeal } from "@/utils/starchMealClassifier";
-import type { DietType, StarchContext } from "@/hooks/useCreateWithChefRequest";
+import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
 import {
   Dialog,
@@ -506,16 +506,6 @@ export default function AntiInflammatoryMenuBuilder() {
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<"breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6">("breakfast");
-
-  const chefDietType: DietType =
-    clinicalMode === "liver-support" ? "liver-support" : "anti-inflammatory";
-
-  const premadeMealType =
-    premadePickerSlot === "breakfast" ||
-    premadePickerSlot === "lunch" ||
-    premadePickerSlot === "dinner"
-      ? premadePickerSlot
-      : "dinner";
 
   // DailyNutritionState — the single server authority for macro targets, consumed, and remaining.
   // Board meals are "planned" (not yet logged); consumption comes from macro_logs server-side.
@@ -1587,8 +1577,8 @@ export default function AntiInflammatoryMenuBuilder() {
                           <GlobalMealActionBar
                             slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                             onCreateWithAI={() => {
-                              setPremadePickerSlot(key);
-                              setPremadePickerOpen(true);
+                              setCreateWithChefSlot(key);
+                              setCreateWithChefOpen(true);
                             }}
                             onCreateWithChef={() => {
                               setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
@@ -1930,8 +1920,8 @@ export default function AntiInflammatoryMenuBuilder() {
         <MealPremadePicker
           open={premadePickerOpen}
           onClose={() => setPremadePickerOpen(false)}
-          mealType={premadeMealType}
-          dietType={chefDietType}
+          mealType={premadePickerSlot}
+          dietType={clinicalMode}
           onMealSelect={handlePremadeSelect}
         />
 
@@ -1941,7 +1931,7 @@ export default function AntiInflammatoryMenuBuilder() {
           onOpenChange={setCreateWithChefOpen}
           mealType={createWithChefSlot}
           onMealGenerated={handleChefMealGenerated}
-          dietType={chefDietType}
+          dietType={clinicalMode}
           starchContext={starchContext}
           remainingMacros={remainingMacrosForChef}
           builderMode="targeted"
@@ -1954,7 +1944,7 @@ export default function AntiInflammatoryMenuBuilder() {
           open={snackCreatorOpen}
           onOpenChange={setSnackCreatorOpen}
           onSnackGenerated={handleSnackSelect}
-          dietType={chefDietType}
+          dietType={clinicalMode}
           starchContext={starchContext}
         />
 

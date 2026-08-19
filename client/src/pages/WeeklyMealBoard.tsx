@@ -857,7 +857,7 @@ export default function WeeklyMealBoard() {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
@@ -865,7 +865,7 @@ export default function WeeklyMealBoard() {
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) {
     try {
       const state: CachedAIMeals = {
@@ -1033,7 +1033,6 @@ export default function WeeklyMealBoard() {
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
-
 
 
   const profile = useOnboardingProfile();
@@ -1271,7 +1270,6 @@ export default function WeeklyMealBoard() {
     setPickerList(list);
     setPickerOpen(true);
   }
-
 
 
   const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]> = [

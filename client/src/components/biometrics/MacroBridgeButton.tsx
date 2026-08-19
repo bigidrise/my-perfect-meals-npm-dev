@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import {
+  normalizeBoardSlotForMacroLog,
+  type BoardMealSlot,
+} from "@/lib/mealSlots";
 import { canLogMealToMacros, markMealLogged } from "@/lib/macroLogGuard";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { Check, Loader2 } from "lucide-react";
@@ -13,7 +17,7 @@ export type MacroSource = {
   fat: number;
   calories?: number;
   dateISO?: string;
-  mealSlot?: "breakfast" | "lunch" | "dinner" | "snacks" | null;
+  mealSlot?: BoardMealSlot | null;
   servings?: number;
 };
 
@@ -60,7 +64,7 @@ export default function MacroBridgeButton({
       const { post } = await import("@/lib/api");
       await post("/api/macros/log", {
         loggedAt: meal.dateISO ? `${meal.dateISO}T12:00:00.000Z` : new Date().toISOString(),
-        mealType: meal.mealSlot ?? "snack",
+        mealType: normalizeBoardSlotForMacroLog(meal.mealSlot),
         kcal: cal,
         protein: p,
         carbs: c,

@@ -529,7 +529,7 @@ export default function GLP1MealBuilder() {
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
   const [tourStep, setTourStep] = useState<
-    "breakfast" | "lunch" | "dinner" | "complete"
+    "breakfast" | "lunch" | "dinner" | "snacks" | "complete"
   >("breakfast");
 
   // Daily Totals Info state (appears after first meal is created)
@@ -542,7 +542,7 @@ export default function GLP1MealBuilder() {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
@@ -550,7 +550,7 @@ export default function GLP1MealBuilder() {
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) {
     try {
       const state: CachedAIMeals = {
@@ -739,7 +739,10 @@ export default function GLP1MealBuilder() {
 
 
   const handleChefMealGenerated = useCallback(
-    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (
+      generatedMeal: any,
+      slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+    ) => {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
@@ -815,7 +818,7 @@ export default function GLP1MealBuilder() {
     const r = nutritionState.remaining;
     return {
       protein:  r.protein,
-      carbs:    r.totalCarbs,
+      carbs:    r.carbs,
       fat:      r.fat,
       calories: r.calories,
     };
@@ -1297,8 +1300,8 @@ export default function GLP1MealBuilder() {
                         <GlobalMealActionBar
                           slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                           onCreateWithAI={() => {
-                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
-                            setAiMealModalOpen(true);
+                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
+                            setCreateWithChefOpen(true);
                           }}
                           onCreateWithChef={() => {
                             setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");

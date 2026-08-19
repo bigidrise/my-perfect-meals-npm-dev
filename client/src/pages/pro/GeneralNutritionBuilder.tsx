@@ -476,12 +476,16 @@ export default function WeeklyMealBoard() {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
   // Save AI meals to localStorage
-  function saveAIMealsCache(meals: Meal[], dayISO: string, slot: "breakfast" | "lunch" | "dinner" | "snacks") {
+  function saveAIMealsCache(
+    meals: Meal[],
+    dayISO: string,
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+  ) {
     try {
       const state: CachedAIMeals = {
         meals,
@@ -1308,14 +1312,11 @@ export default function WeeklyMealBoard() {
                   prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
                   prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                   onSaveDay={async () => {
-                    // Use the same server-prescription targets the footer displays —
-                    // not the localStorage cache, which can be absent or stale.
-                    if (!prescription || nutritionStateLoading) return;
                     const targets = {
-                      calories:  prescription.caloriesTarget || 0,
-                      protein_g: prescription.proteinTarget  || 0,
-                      carbs_g:   prescription.carbsTarget    || 0,
-                      fat_g:     prescription.fatTarget      || 0,
+                      calories: prescription?.caloriesTarget ?? 0,
+                      protein_g: prescription?.proteinTarget ?? 0,
+                      carbs_g: prescription?.carbsTarget ?? 0,
+                      fat_g: prescription?.fatTarget ?? 0,
                     };
                     const result = await lockDay({
                       dateISO: activeDayISO,
