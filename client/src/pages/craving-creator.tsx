@@ -709,6 +709,14 @@ export default function CravingCreator() {
           });
           return;
         }
+        if (data.reasonCode === "constraint_conflict") {
+          toast({
+            title: "No options fit your current plan",
+            description: data.message || "Your health protocol eliminated all generated options. Try a lower-carb dish, or adjust your glucose settings.",
+            duration: 8000,
+          });
+          return;
+        }
         throw new Error(data.message || "Failed to generate meal");
       }
 
