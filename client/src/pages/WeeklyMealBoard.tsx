@@ -626,7 +626,10 @@ export default function WeeklyMealBoard() {
   // Handler for Create With Chef meal selection (replaces AI Premades)
   // NOTE: slot is passed from the modal to avoid stale state issues
   const handleCreateWithChefSelect = useCallback(
-    async (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (
+      meal: any,
+      slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+    ) => {
       if (!board) return;
 
       // Guard: Check if day is locked before allowing edits
@@ -1475,8 +1478,8 @@ export default function WeeklyMealBoard() {
                           slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                           onCreateWithAI={() => {
                             if (checkLockedDay(activeDayISO)) return;
-                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
-                            setAiMealModalOpen(true);
+                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
+                            setCreateWithChefOpen(true);
                           }}
                           onCreateWithChef={() => {
                             if (checkLockedDay(activeDayISO)) return;

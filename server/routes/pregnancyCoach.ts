@@ -242,9 +242,8 @@ router.delete("/conversation", async (req, res) => {
 router.post("/ask", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-
-    const history = await getConversation(userId);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const history = await getConversation(userId);
 
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: "Message required" });
@@ -572,9 +571,8 @@ You MUST respond with a JSON object:
 router.post("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-
-    const history = await getConversation(userId);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const history = await getConversation(userId);
     const {
       stage,
       dueDate,
@@ -644,9 +642,8 @@ router.post("/setup", async (req, res) => {
 router.delete("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
-
-    const history = await getConversation(userId);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const history = await getConversation(userId);
     const [currentUser] = await db
       .select({ specialtyConditions: users.specialtyConditions })
       .from(users)

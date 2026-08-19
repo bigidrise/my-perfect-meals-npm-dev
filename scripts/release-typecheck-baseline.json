@@ -1,0 +1,6 @@
+{
+  "description": "Reviewed strict root TypeScript diagnostic fingerprint. Release validation fails on any unreviewed change to this legacy-error set.",
+  "command": "node_modules/.bin/tsc --pretty false --incremental false --project tsconfig.json",
+  "diagnosticCount": 206,
+  "diagnosticsSha256": "5ec5fefeb4f486dfad9194e5fc0990d295ab7bc31b25a98662e5b410bf15adb8"
+}

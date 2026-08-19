@@ -164,7 +164,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const proClientId = proParams?.id;
   // In standalone mode, use current user's ID; in procare mode, use route clientId
   const clientId =
-    mode === "procare" ? routeClientId : routeClientId || user?.id || null;
+    mode === "procare" ? routeClientId : routeClientId || user?.id || undefined;
+  const effectiveUserId = clientId ?? user?.id;
 
   // Safety check: redirect only if procare mode without clientId
   useEffect(() => {
@@ -433,7 +434,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
@@ -441,7 +442,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) {
     try {
       const state: CachedAIMeals = {
@@ -646,7 +647,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
 
   const handleChefMealGenerated = useCallback(
-    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (
+      generatedMeal: any,
+      slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+    ) => {
       if (!activeDayISO) return;
 
       const transformedMeal: Meal = {
@@ -683,7 +687,11 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
         setBoard(updatedBoard);
         if (!transformedMeal.imageUrl) {
-          fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+          fetchImageForMeal({
+            id: transformedMeal.id,
+            name: transformedMeal.name ?? transformedMeal.title ?? "Meal",
+            ingredients: transformedMeal.ingredients,
+          }, slot, (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
               const currentImg = getMealImageUrl(prev, mealId);
@@ -762,7 +770,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           });
         }
 
-        setSnackPickerOpen(false);
       } catch (error) {
         console.error("Failed to add snack:", error);
         toast({
@@ -853,6 +860,15 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       toast({
         title: t("performanceCompetitionBuilder.cannotSetMacros"),
         description: t("performanceCompetitionBuilder.setMacrosFirst"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!clientId) {
+      toast({
+        title: t("performanceCompetitionBuilder.cannotSetMacros"),
+        description: t("performanceCompetitionBuilder.missingClient"),
         variant: "destructive",
       });
       return;
@@ -1115,17 +1131,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6"
                           }
                           onCreateWithAI={() => {
-                            setAiMealSlot(
-                              key as
-                                | "breakfast"
-                                | "lunch"
-                                | "dinner"
-                                | "snacks"
-                                | "meal4"
-                                | "meal5"
-                                | "meal6",
+                            setCreateWithChefSlot(
+                              key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                             );
-                            setAiMealModalOpen(true);
+                            setCreateWithChefOpen(true);
                           }}
                           onCreateWithChef={() => {
                             setCreateWithChefSlot(
@@ -1330,10 +1339,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           variant="ghost"
                           className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
                           onClick={() => {
-                            setAiMealSlot(
-                              key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+                            setCreateWithChefSlot(
+                              key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                             );
-                            setAiMealModalOpen(true);
+                            setCreateWithChefOpen(true);
                           }}
                         >
                           <Sparkles className="h-3 w-3" />

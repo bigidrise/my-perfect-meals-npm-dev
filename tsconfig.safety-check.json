@@ -3,9 +3,13 @@
   "include": [
     "client/src/components/BirthdayGreeting.tsx",
     "client/src/components/MealCard.tsx",
+    "client/src/pages/WeeklyMealBoard.tsx",
+    "client/src/pages/pro/PerformanceCompetitionBuilder.tsx",
+    "client/src/pages/pro/GeneralNutritionBuilder.tsx",
     "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
     "client/src/types/meal.ts",
-    "server/storage.ts"
+    "server/storage.ts",
+    "server/routes/pregnancyCoach.ts"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }
