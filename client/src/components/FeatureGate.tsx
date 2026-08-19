@@ -30,7 +30,7 @@ export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
     mpm_basic_monthly: "Essential",
     mpm_upgrade_monthly: "Pro",
     mpm_ultimate_monthly: "Clinical",
-    mpm_procare_monthly: "ProCare",
+    mpm_trainer_5: "ProCare",
   };
 
   const handleUpgrade = async () => {

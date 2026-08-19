@@ -1,21 +1,11 @@
-export type LookupKey =
-  | "mpm_basic"
-  | "mpm_premium"
-  | "mpm_ultimate"
-  | "mpm_family_base"
-  | "mpm_family_premium"
-  | "mpm_family_ultimate"
-  | "mpm_trainer_5"
-  | "mpm_trainer_10"
-  | "mpm_trainer_25"
-  | "mpm_trainer_50"
-  | "mpm_physician_50"
-  | "mpm_physician_150"
-  | "mpm_guidance"
-  | "signature_kitchen_starter_monthly"
-  | "signature_kitchen_pro_monthly"
-  | "signature_kitchen_partner_monthly"
-  | "clinical_business_monthly";
+import type { CheckoutLookupKey } from "@shared/planFeatures";
+
+/**
+ * @deprecated Use CheckoutLookupKey from shared/planFeatures for new code.
+ * This alias keeps existing storefront and StoreKit imports on the shared
+ * checkout contract rather than a stale duplicate union.
+ */
+export type LookupKey = CheckoutLookupKey;
 
 export type BillingCycle = "monthly";
 

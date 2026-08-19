@@ -5,6 +5,10 @@ import type { DietClassification } from "@/types/meal";
 export type DietType = 
   | 'anti-inflammatory'
   | 'liver-support'
+  | 'liver-disease'
+  | 'kidney-disease'
+  | 'heart-failure'
+  | 'oncology-support'
   | 'diabetic'
   | 'glp1'
   | 'beachbody'

@@ -3,21 +3,20 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useVoiceContext } from '@/context/VoiceContext';
-
-declare global {
-  interface Window {
-    SpeechRecognition?: any;
-    webkitSpeechRecognition?: any;
-  }
-}
+import {
+  getSpeechRecognitionConstructor,
+  type BrowserSpeechRecognition,
+  type SpeechRecognitionErrorEvent,
+  type SpeechRecognitionResultEvent,
+} from '@/lib/speechRecognition';
 
 export const VoiceInputHandler = () => {
   const { setTranscript, setIsListening, setIsProcessing, setError } = useVoiceContext();
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const [wakeWordHeard, setWakeWordHeard] = useState(false);
 
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = getSpeechRecognitionConstructor();
     if (!SpeechRecognition) {
       setError('Speech Recognition not supported');
       return;
@@ -38,7 +37,7 @@ export const VoiceInputHandler = () => {
       recognition.start(); // auto-restart
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('[VoiceError]', event);
       // Don't show errors for common mobile/browser issues
       if (event.error !== 'no-speech' && event.error !== 'audio-capture' && event.error !== 'aborted') {
@@ -46,7 +45,7 @@ export const VoiceInputHandler = () => {
       }
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionResultEvent) => {
       const raw = event.results[event.resultIndex][0].transcript.toLowerCase().trim();
       console.log('[Voice Raw Transcript]:', raw);
 

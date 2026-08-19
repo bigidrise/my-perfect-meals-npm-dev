@@ -67,6 +67,7 @@ import { getRolling14Days } from "@/utils/dateRange";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { useQueryClient } from "@tanstack/react-query";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -201,6 +202,7 @@ export default function BeachBodyMealBoard() {
   const { toast } = useToast();
   const quickTour = useQuickTour("beach-body-meal-board");
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   // Body fat-based starch slot adjustment
   const bodyFatAdjustment = useBodyFatStarchAdjustment("beach_body");
@@ -642,14 +644,14 @@ export default function BeachBodyMealBoard() {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) {
     try {
       const state: CachedAIMeals = {
@@ -813,7 +815,10 @@ export default function BeachBodyMealBoard() {
 
 
   const handleChefMealGenerated = useCallback(
-    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (
+      generatedMeal: any,
+      slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+    ) => {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
@@ -1033,7 +1038,7 @@ export default function BeachBodyMealBoard() {
     const r = nutritionState.remaining;
     return {
       protein:  r.protein,
-      carbs:    r.totalCarbs,
+      carbs:    r.carbs,
       fat:      r.fat,
       calories: r.calories,
     };
@@ -1602,7 +1607,7 @@ export default function BeachBodyMealBoard() {
               lists.map(([key, label]) => (
                 <section
                   key={key}
-                  data-meal-id={key === "snacks" ? "snack1" : key}
+                  data-meal-id={key}
                   className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4"
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -1611,7 +1616,7 @@ export default function BeachBodyMealBoard() {
                     </h2>
                     <div className="flex gap-2">
                       {/* AI Meal Creator button - hidden by feature flag for launch */}
-                      {FEATURES.showCreateWithAI && key !== "snacks" && (
+                      {FEATURES.showCreateWithAI && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -1630,13 +1635,6 @@ export default function BeachBodyMealBoard() {
                           <Sparkles className="h-3 w-3" />
                           Create with AI
                         </Button>
-                      )}
-
-                      {/* Snack Creator for snacks slot only */}
-                      {key === "snacks" && (
-                        <SnackCreatorButton
-                          onClick={() => setSnackCreatorOpen(true)}
-                        />
                       )}
 
                       <AddOwnMealButton slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"} onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)} onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }} variant="icon" />

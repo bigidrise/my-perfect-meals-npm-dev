@@ -24,7 +24,7 @@
 
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ChefHat, MapPin, Star, Info, ShoppingBag, Utensils, Languages, RotateCcw, Loader2 } from "lucide-react";
+import { ChefHat, MapPin, Star, Info, ShoppingBag, Languages, RotateCcw, Loader2 } from "lucide-react";
 import type {
   AwayFromHomeRecommendation,
   NutritionDataStatus,
@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
+import { ChefFlowImage } from "@/components/ChefFlowImage";
 
 // ── Translation types ─────────────────────────────────────────────────────────
 
@@ -149,6 +150,8 @@ function DisclosureRow({ status }: { status: NutritionDataStatus }) {
 
 interface AwayFromHomeMealCardProps {
   recommendation: AwayFromHomeRecommendation;
+  /** True while the page enriches this recommendation with a generated image. */
+  imageLoading?: boolean;
   /** Optionally suppress actions (e.g., inside a preview or loading state). */
   actionsDisabled?: boolean;
   /** When true, only Log to Macros is available — Add to Meal Plan is hidden. */
@@ -158,6 +161,7 @@ interface AwayFromHomeMealCardProps {
 
 export default function AwayFromHomeMealCard({
   recommendation: rec,
+  imageLoading = false,
   actionsDisabled = false,
   logOnly = false,
   className,
@@ -333,17 +337,12 @@ export default function AwayFromHomeMealCard({
         {/* ── Meal name + description ───────────────────────────────── */}
         <div className="px-4 pt-3">
           <div className="flex items-start gap-2">
-            {meal.imageUrl ? (
-              <img
-                src={meal.imageUrl}
-                alt={meal.name}
-                className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-xl bg-orange-900/30 flex items-center justify-center shrink-0">
-                <Utensils className="w-6 h-6 text-orange-400/50" />
-              </div>
-            )}
+            <ChefFlowImage
+              src={meal.imageUrl}
+              alt={meal.name}
+              isLoading={imageLoading}
+              className="w-16 h-16 rounded-xl shrink-0 border border-white/10"
+            />
             <div className="min-w-0">
               <p className="font-semibold text-white leading-snug">{displayName}</p>
               {displayDescription && (

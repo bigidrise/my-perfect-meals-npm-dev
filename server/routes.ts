@@ -10,6 +10,12 @@ import { storage } from "./storage";
 import { ObjectStorageService, objectStorageClient, StorageUnavailableError, inferContentType } from "./objectStorage";
 import { processMealImageForSave } from "./services/imageLifecycle";
 import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
+import {
+  decideImageDeliveryRecovery,
+  publicObjectPathFromUrl,
+  publicObjectUrlForKey,
+  type DeliveryProbe,
+} from "./services/imageDeliveryRecovery";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
@@ -33,7 +39,7 @@ import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
 import { companionProfileImages } from "./db/schema/companionProfiles";
 import { db } from "./db";
-import { and, eq, gte, lte, desc, sql, inArray, isNull } from "drizzle-orm";
+import { and, eq, gte, lte, desc, sql, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { reminderService } from "./reminderService";
 import { generateMealPlan } from "./ai-service";
@@ -461,6 +467,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error serving public object:", error);
       logAccess(503, { error: error.message });
       return res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
+    }
+  });
+
+  // Report a browser-side delivery failure for a permanent meal image.
+  //
+  // Browser <img> errors do not expose HTTP status. Probe the same Object
+  // Storage path server-side so 503s receive one controlled retry while a 404
+  // can reuse an existing media variant before the asset is marked unavailable.
+  // This endpoint intentionally NEVER generates an image — recovery must not
+  // spend on DALL-E while an authoritative stored variant may still exist.
+  app.post("/api/media/image-delivery-recovery", requireAuth, async (req, res) => {
+    const parsed = z.object({ imageUrl: z.string().min(1).max(2_048) }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "A first-party image URL is required" });
+    }
+
+    const failedUrl = parsed.data.imageUrl;
+    const failedPath = publicObjectPathFromUrl(failedUrl);
+    if (!failedPath) {
+      return res.status(400).json({ error: "Only first-party Object Storage URLs can be recovered" });
+    }
+
+    const objectStorage = new ObjectStorageService();
+    const probe = async (url: string): Promise<DeliveryProbe> => {
+      const objectPath = publicObjectPathFromUrl(url);
+      if (!objectPath) return "missing";
+      try {
+        return (await objectStorage.resolvePublicObjectPath(objectPath)) ? "available" : "missing";
+      } catch (error) {
+        if (error instanceof StorageUnavailableError) return "unavailable";
+        console.error("[image-delivery-recovery] Object Storage probe failed:", error);
+        return "unavailable";
+      }
+    };
+
+    try {
+      const failedProbe = await probe(failedUrl);
+      if (failedProbe !== "missing") {
+        const decision = decideImageDeliveryRecovery({ failedUrl, failedProbe });
+        return res.json({ ...decision, retryAfterMs: 1_000 });
+      }
+
+      // Look for a canonical asset record. Legacy URLs without a media_assets
+      // record can still be rendered, but cannot safely be regenerated here.
+      const [asset] = await db
+        .select({
+          id: mediaAssetsTable.id,
+          thumbnailUrl: mediaAssetsTable.thumbnailUrl,
+          displayUrl: mediaAssetsTable.displayUrl,
+          originalObjectKey: mediaAssetsTable.originalObjectKey,
+        })
+        .from(mediaAssetsTable)
+        .where(or(
+          eq(mediaAssetsTable.thumbnailUrl, failedUrl),
+          eq(mediaAssetsTable.displayUrl, failedUrl),
+        ))
+        .limit(1);
+
+      const candidates = asset
+        ? [
+            asset.thumbnailUrl,
+            asset.displayUrl,
+            publicObjectUrlForKey(failedUrl, asset.originalObjectKey),
+          ].filter((url): url is string => Boolean(url && url !== failedUrl))
+        : [];
+
+      let alternate: { url: string; probe: DeliveryProbe } | null = null;
+      for (const candidate of candidates) {
+        const candidateProbe = await probe(candidate);
+        alternate = { url: candidate, probe: candidateProbe };
+        if (candidateProbe !== "missing") break;
+      }
+
+      const decision = decideImageDeliveryRecovery({ failedUrl, failedProbe, alternate });
+      if (decision.status === "recovered" && asset) {
+        const replacement = decision.imageUrl;
+        await db.update(mediaAssetsTable).set({
+          ...(asset.thumbnailUrl === failedUrl ? { thumbnailUrl: replacement } : {}),
+          ...(asset.displayUrl === failedUrl ? { displayUrl: replacement } : {}),
+          updatedAt: new Date(),
+        }).where(eq(mediaAssetsTable.id, asset.id));
+      }
+
+      if (decision.status === "unavailable" && decision.reason === "missing" && asset) {
+        // Do not keep serving the confirmed-missing URL on later reloads.
+        // A separate authoritative-generation flow can re-create this asset
+        // with the actual recipe contract; this delivery endpoint never does.
+        await db.update(mediaAssetsTable).set({
+          status: "failed",
+          thumbnailUrl: asset.thumbnailUrl === failedUrl ? null : asset.thumbnailUrl,
+          displayUrl: asset.displayUrl === failedUrl ? null : asset.displayUrl,
+          processingError: "delivery_missing",
+          retryCount: sql`COALESCE(${mediaAssetsTable.retryCount}, 0) + 1`,
+          nextRetryAt: new Date(Date.now() + 5 * 60 * 1000),
+          updatedAt: new Date(),
+        }).where(eq(mediaAssetsTable.id, asset.id));
+      }
+
+      console.log(JSON.stringify({
+        event: "meal_image_delivery_recovery",
+        outcome: decision.status,
+        reason: decision.status === "unavailable" ? decision.reason : undefined,
+        hadAlternate: Boolean(alternate),
+      }));
+      return res.json({ ...decision, retryAfterMs: decision.status === "retry" ? 1_000 : undefined });
+    } catch (error) {
+      console.error("[image-delivery-recovery] Failed to evaluate image delivery:", error);
+      // A diagnostic endpoint must never turn a broken image into a retry loop.
+      return res.status(503).json({ error: "Image recovery check temporarily unavailable", retryable: true });
     }
   });
 
@@ -9009,8 +9124,17 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       const legacyImg = (md?.imageUrl as string | undefined) ?? null;
       const isSafe = legacyImg && !legacyImg.startsWith("data:") && !legacyImg.includes("oaidalleapiprodscus");
 
-      const thumbnailUrl = row.assetThumbnailUrl ?? (isSafe ? legacyImg : null);
-      const displayUrl   = row.assetDisplayUrl   ?? (isSafe ? legacyImg : null);
+      // A canonical asset marked failed has a confirmed delivery problem. Do
+      // not fall back to its stale JSON URL on the next refresh or the browser
+      // will keep attempting the same known-broken object forever.
+      const hasCanonicalAsset = Boolean(row.mediaAssetId);
+      const assetReady = row.assetStatus === "ready";
+      const thumbnailUrl = hasCanonicalAsset
+        ? (assetReady ? row.assetThumbnailUrl : null)
+        : (isSafe ? legacyImg : null);
+      const displayUrl = hasCanonicalAsset
+        ? (assetReady ? row.assetDisplayUrl : null)
+        : (isSafe ? legacyImg : null);
 
       return res.json({
         ...row,
@@ -9150,9 +9274,15 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         //   1. media_assets.thumbnail_url (canonical lifecycle, resized variant)
         //   2. mealData.imageUrl if first-party permanent (legacy — no lifecycle record yet)
         //   3. null (base64 and expired DALL-E URLs are blocked here — Step 2 defense-in-depth)
-        let effectiveThumbnailUrl: string | null = r.assetThumbnailUrl ?? null;
-        let effectiveDisplayUrl: string | null   = r.assetDisplayUrl   ?? null;
-        if (!effectiveThumbnailUrl) {
+        const hasCanonicalAsset = Boolean(r.mediaAssetId);
+        const assetReady = r.assetStatus === "ready";
+        let effectiveThumbnailUrl: string | null = hasCanonicalAsset && assetReady
+          ? (r.assetThumbnailUrl ?? null)
+          : null;
+        let effectiveDisplayUrl: string | null = hasCanonicalAsset && assetReady
+          ? (r.assetDisplayUrl ?? null)
+          : null;
+        if (!hasCanonicalAsset && !effectiveThumbnailUrl) {
           const rawImg = md?.imageUrl as string | undefined;
           if (rawImg && !rawImg.startsWith("data:") && !rawImg.includes("oaidalleapiprodscus")) {
             effectiveThumbnailUrl = rawImg;

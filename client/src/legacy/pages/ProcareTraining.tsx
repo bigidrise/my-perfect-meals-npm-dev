@@ -449,7 +449,7 @@ export default function ProcareTraining() {
   const handleCompleteTraining = async () => {
     setCompleting(true);
     try {
-      await apiRequest("POST", "/api/pro/training/complete");
+      await apiRequest("/api/pro/training/complete", { method: "POST" });
       await refreshUser();
       localStorage.removeItem(STORAGE_KEY);
       setLocation("/pro-launchpad");

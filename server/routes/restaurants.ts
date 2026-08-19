@@ -12,7 +12,6 @@ import { eq, desc } from "drizzle-orm";
 import { getActiveNutritionContext } from "../services/nutritionContext/getActiveNutritionContext";
 import { scoreRestaurantsForDiet, buildDietQuery } from "../services/restaurantScorer";
 import { zipToCoordinates } from "../services/zipToCoordsService";
-import { processMealImageForSave } from "../services/imageLifecycle";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { restaurantEngine, officialJsonProvider } from "../services/away-from-home/ProviderRegistry";
 import { findBrandBySlug, getAllBrands } from "../services/away-from-home/BrandRegistry";
@@ -344,44 +343,18 @@ router.post("/guide", async (req, res) => {
     const generationTime = Date.now() - generationStart;
     console.log(`✅ [Guide] ${recommendations.length} recommendations in ${generationTime}ms`);
 
-    // ── Unified Image Pipeline: attach permanent imageUrls before responding ────
-    // Generate images for all recommendations in parallel so the client receives
-    // complete cards — no shimmer, no indefinite loading state.
-    // Restaurant guide text generation already takes 5-10 s; parallel DALL-E
-    // calls add ~12 s total (not serial) — acceptable for this surface.
-    let recommendationsWithImages: typeof recommendations = recommendations;
-    if (recommendations.length > 0) {
-      try {
-        const { generateMealImageUnified } = await import('../services/mealImageGenerator');
-        recommendationsWithImages = await Promise.all(
-          recommendations.map(async (rec: any) => {
-            if (!rec.name || rec.imageUrl) return rec;
-            try {
-              const ingredients = (rec.ingredients ?? [])
-                .map((i: any) => i.name || i.item || '')
-                .filter(Boolean);
-              const imageUrl = await generateMealImageUnified(rec.name, ingredients, 'meal');
-              return imageUrl ? { ...rec, imageUrl } : rec;
-            } catch {
-              return rec; // image failure non-fatal
-            }
-          })
-        );
-        console.log(`🖼️ [Guide] Images attached to ${recommendationsWithImages.length} recommendations`);
-      } catch {
-        // Image pipeline failure — respond without images rather than failing the whole guide
-      }
-    }
-    // ─────────────────────────────────────────────────────────────────────────────
+    // Images are intentionally not generated in this request. The client renders
+    // recommendation cards immediately, then requests each image independently so
+    // a slow or failed image can never delay restaurant guidance.
 
     // ── GLP-1 post-gen meal filtering (verified-menu branch) ─────────────────
     // Filter any recommendation whose fat or calorie estimate exceeds the
     // patient-specific ceiling — verified menu items carry calorie/fat fields.
-    let verifiedFiltered: typeof recommendationsWithImages = recommendationsWithImages;
+    let verifiedFiltered: typeof recommendations = recommendations;
     if (guideGlp1Ctx.isActive && guideGlp1Ctx.resolvedTargets) {
       const t = guideGlp1Ctx.resolvedTargets;
-      const beforeLen = recommendationsWithImages.length;
-      verifiedFiltered = recommendationsWithImages.filter((rec: any) => {
+      const beforeLen = recommendations.length;
+      verifiedFiltered = recommendations.filter((rec: any) => {
         const fat = Number(rec.fat ?? rec.fatGrams);
         const cal = Number(rec.calories);
         if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {

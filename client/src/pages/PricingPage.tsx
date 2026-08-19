@@ -152,11 +152,12 @@ export default function PricingPage() {
   }
 
   if (isIosNativeShell()) {
-    const iosSubscriptionPlans = IOS_PRODUCTS.map((p) => p.internalSku);
-
     const planKey = user?.planLookupKey || "";
     const hasIosSubscription =
-      !!planKey && iosSubscriptionPlans.includes(planKey);
+      !!planKey &&
+      IOS_PRODUCTS.some((product) =>
+        product.planLookupKeys.some((sku) => sku === planKey),
+      );
 
     return (
       <motion.div
@@ -252,8 +253,10 @@ export default function PricingPage() {
             {IOS_PRODUCTS.map((product) => {
               const displayPrice = `$${product.price.toFixed(2)}/mo`;
               const isPurchasing = purchasingProduct === product.productId;
-              const isPremium = product.internalSku === "mpm_premium_monthly";
-              const isCurrentPlan = planKey === product.internalSku;
+              const isPremium = product.internalSku === "mpm_premium";
+              const isCurrentPlan = product.planLookupKeys.some(
+                (sku) => sku === planKey,
+              );
 
               return (
                 <div
@@ -285,9 +288,9 @@ export default function PricingPage() {
                   <ul className="text-white/70 text-xs space-y-1.5 mb-4">
                     {(
                       IOS_DISPLAY_FEATURES[
-                        product.internalSku === "mpm_basic_monthly"
+                        product.internalSku === "mpm_basic"
                           ? "basic"
-                          : product.internalSku === "mpm_premium_monthly"
+                          : product.internalSku === "mpm_premium"
                             ? "premium"
                             : "ultimate"
                       ] || []
@@ -507,14 +510,14 @@ export default function PricingPage() {
     }
   };
 
-  const handleSelectPlan = async (sku: string) => {
+  const handleSelectPlan = async (sku: LookupKey) => {
     if (!user || user.id.startsWith("guest-")) {
       sessionStorage.setItem("mpm_pending_plan", sku);
       setLocation("/welcome");
       return;
     }
     try {
-      await startCheckout(sku as any, { context: "pricing_page" });
+      await startCheckout(sku, { context: "pricing_page" });
     } catch (error) {
       if ((error as any)?.code === IOS_BLOCK_ERROR) {
         toast({ ...IOS_PAYMENT_MESSAGE, variant: "default" });
@@ -703,7 +706,7 @@ export default function PricingPage() {
                 <Card
                   key={plan.sku}
                   className={`relative h-full bg-black/30 backdrop-blur-lg text-white shadow-xl ${
-                    plan.sku === "mpm_premium_monthly"
+                    plan.sku === "mpm_premium"
                       ? "border-2 border-orange-400/60 ring-2 ring-orange-400/40"
                       : "border border-white/15"
                   }`}

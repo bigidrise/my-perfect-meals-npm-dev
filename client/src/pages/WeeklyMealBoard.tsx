@@ -626,7 +626,10 @@ export default function WeeklyMealBoard() {
   // Handler for Create With Chef meal selection (replaces AI Premades)
   // NOTE: slot is passed from the modal to avoid stale state issues
   const handleCreateWithChefSelect = useCallback(
-    async (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (
+      meal: any,
+      slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+    ) => {
       if (!board) return;
 
       // Guard: Check if day is locked before allowing edits
@@ -854,7 +857,7 @@ export default function WeeklyMealBoard() {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
@@ -862,7 +865,7 @@ export default function WeeklyMealBoard() {
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) {
     try {
       const state: CachedAIMeals = {
@@ -1030,7 +1033,6 @@ export default function WeeklyMealBoard() {
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
-
 
 
   const profile = useOnboardingProfile();
@@ -1270,7 +1272,6 @@ export default function WeeklyMealBoard() {
   }
 
 
-
   const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]> = [
     ["breakfast", "Meal 1"],
     ["lunch", "Meal 2"],
@@ -1475,8 +1476,8 @@ export default function WeeklyMealBoard() {
                           slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                           onCreateWithAI={() => {
                             if (checkLockedDay(activeDayISO)) return;
-                            setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
-                            setAiMealModalOpen(true);
+                            setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
+                            setCreateWithChefOpen(true);
                           }}
                           onCreateWithChef={() => {
                             if (checkLockedDay(activeDayISO)) return;

@@ -5,6 +5,12 @@ interface ChefFlowImageProps {
   src?: string;
   alt: string;
   className?: string;
+  /**
+   * True while a caller is enriching a card with a background image request.
+   * This is deliberately separate from `src`: no URL yet can mean either
+   * "still generating" or the terminal "unavailable" state.
+   */
+  isLoading?: boolean;
 }
 
 /**
@@ -18,7 +24,7 @@ interface ChefFlowImageProps {
  *
  * Full component consolidation into MealImageSlot happens in Phase 4.
  */
-export function ChefFlowImage({ src, alt, className }: ChefFlowImageProps) {
+export function ChefFlowImage({ src, alt, className, isLoading = false }: ChefFlowImageProps) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -28,10 +34,11 @@ export function ChefFlowImage({ src, alt, className }: ChefFlowImageProps) {
     setFailed(false);
   }, [src]);
 
-  const isLoading = !loadedSrc && !failed && !!src;
+  const isImageLoading = !loadedSrc && !failed && !!src;
+  const showShimmer = !failed && (isLoading || isImageLoading);
 
   // Terminal unavailable state — delivery failed, image cannot be shown
-  if (failed || (!src && !loadedSrc)) {
+  if (failed || (!src && !loadedSrc && !isLoading)) {
     return (
       <div
         className={cn(
@@ -60,8 +67,11 @@ export function ChefFlowImage({ src, alt, className }: ChefFlowImageProps) {
       )}
     >
       {/* Shimmer — shown only while actively loading */}
-      {isLoading && (
-        <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-white/5 via-white/10 to-white/5" />
+      {showShimmer && (
+        <div
+          className="absolute inset-0 animate-pulse bg-gradient-to-r from-white/5 via-white/10 to-white/5"
+          aria-label="Generating image"
+        />
       )}
 
       {/* Image — starts hidden, fades in on successful load */}

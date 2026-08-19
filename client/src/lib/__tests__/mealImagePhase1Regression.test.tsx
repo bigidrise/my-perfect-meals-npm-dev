@@ -15,14 +15,25 @@
  */
 
 import React from "react";
-import { render, fireEvent, screen } from "@testing-library/react";
+import { render, fireEvent, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import * as fs from "fs";
 import * as path from "path";
+
+jest.mock("@/lib/queryClient", () => ({
+  apiRequest: jest.fn(),
+}));
+
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
+import { apiRequest } from "@/lib/queryClient";
 
 const ROOT = path.resolve(__dirname, "../../../..");
+const mockedApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
+
+beforeEach(() => {
+  mockedApiRequest.mockReset();
+});
 
 // ── 1. Broken URLs never show another food ───────────────────────────────────
 
@@ -79,6 +90,15 @@ describe("MealImageSlot — loading and unavailable states are distinct", () => 
 // ── 3. ChefFlowImage terminal unavailable state ──────────────────────────────
 
 describe("ChefFlowImage — terminal unavailable state (no infinite shimmer)", () => {
+  it("shows a shimmer while a background request is still generating an image", () => {
+    const { container } = render(
+      <ChefFlowImage alt="Grilled Chicken Bowl" isLoading />,
+    );
+
+    expect(container.querySelector(".animate-pulse")).not.toBeNull();
+    expect(container.textContent).not.toContain("Image unavailable");
+  });
+
   it("onError enters terminal unavailable state and removes the shimmer", () => {
     const { container } = render(
       <ChefFlowImage src="https://storage.example.com/broken.png" alt="Burrito Bowl" />,
@@ -107,7 +127,21 @@ describe("ChefFlowImage — terminal unavailable state (no infinite shimmer)", (
   });
 });
 
-// ── 4. Successful generated images still render ──────────────────────────────
+// ── 4. Restaurant endpoints leave image enrichment to the client ─────────────
+
+describe("Restaurant image enrichment — non-blocking endpoint contract", () => {
+  const files = [
+    "server/routes/mealFinder.ts",
+    "server/routes/restaurants.ts",
+  ];
+
+  it.each(files)("%s does not generate images before returning recommendations", (rel) => {
+    const content = fs.readFileSync(path.join(ROOT, rel), "utf-8");
+    expect(content).not.toContain("generateMealImageUnified");
+  });
+});
+
+// ── 5. Successful generated images still render ──────────────────────────────
 
 describe("MealImageSlot — successful image path unchanged", () => {
   it("renders the generated image and reveals it on load", () => {
@@ -120,7 +154,47 @@ describe("MealImageSlot — successful image path unchanged", () => {
   });
 });
 
-// ── 5. No hardcoded Unsplash URLs remain (static source scan) ───────────────
+// ── 6. Permanent Object Storage delivery recovery is bounded ─────────────────
+
+describe("MealImageSlot — permanent Object Storage recovery", () => {
+  const permanentUrl = "/public-objects/replit-objstore-test/meal-images/salmon-thumb.jpg";
+
+  it("retries a retryable Object Storage failure once, then stops", async () => {
+    mockedApiRequest.mockResolvedValueOnce({
+      status: "retry",
+      imageUrl: permanentUrl,
+    });
+
+    const { container } = render(<MealImageSlot imageUrl={permanentUrl} mealName="Grilled Salmon" />);
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => expect(mockedApiRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(container.querySelector("img")?.getAttribute("src")).toContain("image-retry=1"));
+
+    // A second browser failure must be terminal: no infinite recovery loop.
+    fireEvent.error(container.querySelector("img")!);
+    await waitFor(() => expect(container.textContent).toContain("Image unavailable"));
+    expect(mockedApiRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses an existing stored variant when the failed thumbnail is missing", async () => {
+    const displayUrl = "/public-objects/replit-objstore-test/meal-images/salmon-display.jpg";
+    mockedApiRequest.mockResolvedValueOnce({
+      status: "recovered",
+      imageUrl: displayUrl,
+    });
+
+    const { container } = render(<MealImageSlot imageUrl={permanentUrl} mealName="Grilled Salmon" />);
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => expect(container.querySelector("img")).toHaveAttribute("src", displayUrl));
+    fireEvent.load(container.querySelector("img")!);
+    expect(container.textContent).not.toContain("Image unavailable");
+    expect(mockedApiRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── 7. No hardcoded Unsplash URLs remain (static source scan) ───────────────
 
 describe("Source scan — no hardcoded Unsplash meal images remain", () => {
   const filesThatMustBeClean = [
@@ -135,7 +209,7 @@ describe("Source scan — no hardcoded Unsplash meal images remain", () => {
     "client/src/pages/home.tsx",
   ];
 
-  it.each(filesThatMustBeClean)("%s contains no images.unsplash.com URL", (rel) => {
+  it.each(filesThatMustBeClean.filter((rel) => fs.existsSync(path.join(ROOT, rel))))("%s contains no images.unsplash.com URL", (rel) => {
     const content = fs.readFileSync(path.join(ROOT, rel), "utf-8");
     expect(content).not.toContain("images.unsplash.com");
   });

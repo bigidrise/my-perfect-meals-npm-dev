@@ -6,6 +6,10 @@ import type { DiversityContext } from "@/lib/diversityContext";
 export type DietType = 
   | 'anti-inflammatory'
   | 'liver-support'
+  | 'liver-disease'
+  | 'kidney-disease'
+  | 'heart-failure'
+  | 'oncology-support'
   | 'diabetic'
   | 'glp1'
   | 'beachbody'

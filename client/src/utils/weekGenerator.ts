@@ -219,7 +219,10 @@ export function generateWeekFromOnboarding(
       breakfast: [],
       lunch: [],
       dinner: [],
-      snacks: []
+      snacks: [],
+      meal4: [],
+      meal5: [],
+      meal6: [],
     },
     days: {},
     meta: {
@@ -269,7 +272,7 @@ export function generateWeekFromOnboarding(
       servings: 1,
       ingredients: (template.ingredients || []).map(ing => ({
         item: ing.name,
-        amount: `${ing.amount} ${ing.unit}`
+        amount: `${ing.quantity} ${ing.unit ?? ""}`.trim()
       })),
       instructions: template.instructions || [],
       nutrition: template.nutritionPerServing,
@@ -280,7 +283,10 @@ export function generateWeekFromOnboarding(
       breakfast: breakfast.map(convertToMeal),
       lunch: lunch.map(convertToMeal),
       dinner: dinner.map(convertToMeal),
-      snacks: snacks.map(convertToMeal)
+      snacks: snacks.map(convertToMeal),
+      meal4: [],
+      meal5: [],
+      meal6: [],
     };
   }
   
@@ -343,7 +349,7 @@ export function regenerateDay(
     servings: 1,
     ingredients: (template.ingredients || []).map(ing => ({
       item: ing.name,
-      amount: `${ing.amount} ${ing.unit}`
+      amount: `${ing.quantity} ${ing.unit ?? ""}`.trim()
     })),
     instructions: template.instructions || [],
     nutrition: template.nutritionPerServing,
@@ -355,7 +361,10 @@ export function regenerateDay(
     breakfast: breakfast.map(convertToMeal),
     lunch: lunch.map(convertToMeal),
     dinner: dinner.map(convertToMeal),
-    snacks: snacks.map(convertToMeal)
+    snacks: snacks.map(convertToMeal),
+    meal4: [],
+    meal5: [],
+    meal6: [],
   };
   
   return updatedBoard;
@@ -407,7 +416,7 @@ export function swapMeal(
       servings: 1,
       ingredients: (template.ingredients || []).map(ing => ({
         item: ing.name,
-        amount: `${ing.amount} ${ing.unit}`
+        amount: `${ing.quantity} ${ing.unit ?? ""}`.trim()
       })),
       instructions: template.instructions || [],
       nutrition: template.nutritionPerServing,
@@ -415,7 +424,17 @@ export function swapMeal(
     });
     
     if (!updatedBoard.days) updatedBoard.days = {};
-    if (!updatedBoard.days[dateISO]) updatedBoard.days[dateISO] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+    if (!updatedBoard.days[dateISO]) {
+      updatedBoard.days[dateISO] = {
+        breakfast: [],
+        lunch: [],
+        dinner: [],
+        snacks: [],
+        meal4: [],
+        meal5: [],
+        meal6: [],
+      };
+    }
     
     if (slot === 'snack') {
       updatedBoard.days[dateISO].snacks = newTemplates.map(convertToMeal);

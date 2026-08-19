@@ -8,7 +8,7 @@ import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Home } from "lucide-react";
+import { Clock, Home } from "lucide-react";
 import { useLocation } from "wouter";
 import { breakfastMeals } from "@/data/breakfastMealsData";
 import { lunchMealsData } from "@/data/lunchMealsData";
@@ -50,6 +50,20 @@ export type PresetMeal = {
   };
 };
 
+const TEMPLATE_KEYS = ["classic", "light", "highProtein"] as const;
+type TemplateKey = (typeof TEMPLATE_KEYS)[number];
+
+function isTemplateKey(value: string): value is TemplateKey {
+  return TEMPLATE_KEYS.some((key) => key === value);
+}
+
+function resolveTemplateKey(meal: PresetMeal, value: string | null): TemplateKey {
+  if (!value) return "classic";
+  if (isTemplateKey(value)) return value;
+
+  return TEMPLATE_KEYS.find((key) => meal.templates[key].slug === value) ?? "classic";
+}
+
 function round1(n: number) { return Math.round(n * 10) / 10; }
 function scaleIngredients(baseServings: number, targetServings: number, items: Ingredient[]): Ingredient[] {
   if (!baseServings || baseServings === targetServings) return items;
@@ -63,7 +77,7 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
     const [open, setOpen] = useState(false);
     const [servings, setServings] = useState<number>(2);
     const [activeMealId, setActiveMealId] = useState<string | null>(null);
-    const [activeTemplateSlug, setActiveTemplateSlug] = useState<string | null>(null);
+    const [activeTemplateKey, setActiveTemplateKey] = useState<TemplateKey | null>(null);
     const [editMode, setEditMode] = useState(false);
     const [editedIngredients, setEditedIngredients] = useState<Ingredient[]>([]);
     const [editedInstructions, setEditedInstructions] = useState<string[]>([]);
@@ -78,8 +92,7 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
         const m = meals.find((x) => x.id === mid);
         if (m) {
           setActiveMealId(m.id);
-          const template = tpl && Object.values(m.templates).some(t => t.slug === tpl) ? tpl : "classic";
-          setActiveTemplateSlug(template);
+          setActiveTemplateKey(resolveTemplateKey(m, tpl));
           setServings(m.baseServings);
           setOpen(true);
         }
@@ -89,10 +102,9 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
 
     const activeMeal = useMemo(() => meals.find((m) => m.id === activeMealId) || null, [activeMealId]);
     const activeTemplate = useMemo(() => {
-      if (!activeMeal || !activeTemplateSlug) return null;
-      const templateKey = activeTemplateSlug as keyof typeof activeMeal.templates;
-      return activeMeal.templates[templateKey] || null;
-    }, [activeMeal, activeTemplateSlug]);
+      if (!activeMeal || !activeTemplateKey) return null;
+      return activeMeal.templates[activeTemplateKey];
+    }, [activeMeal, activeTemplateKey]);
     const scaledIngredients = useMemo(() => {
       if (!activeMeal || !activeTemplate) return [];
       const ingredients = editMode ? editedIngredients : activeTemplate.ingredients;
@@ -116,28 +128,29 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
     const mealEvaluation = useMemo(() => {
       if (!activeTemplate) return null;
 
-      // Estimate nutrition for current meal (these would come from a nutrition database)
-      const mockNutrition = {
-        protein: activeTemplate.slug === 'highProtein' ? 45 : 
-                activeTemplate.slug === 'light' ? 30 : 35,
-        carbs: activeTemplate.slug === 'light' ? 15 : 
-               activeTemplate.slug === 'highProtein' ? 20 : 25
-      };
+      if (!activeMeal || !activeTemplate.nutrition) return null;
+      const servingFactor =
+        (servings || activeMeal.baseServings) / activeMeal.baseServings;
 
-      return evaluateMealAgainstTargets(mockNutrition, nutritionTargets);
-    }, [activeTemplate, nutritionTargets]);
+      return evaluateMealAgainstTargets(
+        {
+          protein: activeTemplate.nutrition.protein * servingFactor,
+          carbs: activeTemplate.nutrition.carbs * servingFactor,
+        },
+        nutritionTargets,
+      );
+    }, [activeMeal, activeTemplate, nutritionTargets, servings]);
 
-    const openMeal = (id: string, slug?: string) => {
+    const openMeal = (id: string, templateKey: TemplateKey = "classic") => {
       const m = meals.find((x) => x.id === id);
       if (!m) return;
       setActiveMealId(id);
-      const templateSlug = slug || "classic";
-      setActiveTemplateSlug(templateSlug);
+      setActiveTemplateKey(templateKey);
       setServings(m.baseServings);
       setEditMode(false);
 
       // Initialize edit state
-      const template = m.templates[templateSlug as keyof typeof m.templates];
+      const template = m.templates[templateKey];
       setEditedIngredients([...template.ingredients]);
       setEditedInstructions([...template.instructions]);
       setOpen(true);
@@ -247,7 +260,7 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
 
                     <div className="flex items-center gap-2 text-white/60 text-sm mb-3">
                       <Clock className="h-4 w-4" />
-                      <span>{meal.prepTime || "15-20 minutes"}</span>
+                      <span>{meal.templates.classic.prepTime || "15-20 minutes"}</span>
                     </div>
 
                     {/* Medical Safety Badges */}
@@ -255,9 +268,9 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
                       const userProfile = getUserMedicalProfile(1);
                       const mealForBadges = {
                         name: meal.name,
-                        ingredients: meal.ingredients || [],
+                        ingredients: meal.templates.classic.ingredients,
                         description: meal.description,
-                        nutrition: meal.nutrition
+                        nutrition: meal.templates.classic.nutrition
                       };
                       const medicalBadges = generateMedicalBadges(mealForBadges, userProfile);
                       const badgeItems = medicalBadges.map(b => ({
@@ -275,13 +288,15 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
 
                     <div className="text-white/80 text-sm">
                       <strong>Nutrition per serving:</strong><br />
-                      {meal.nutrition?.calories}cal • {meal.nutrition?.protein}g protein • {meal.nutrition?.carbs}g carbs
+                      {meal.templates.classic.nutrition?.calories}cal • {meal.templates.classic.nutrition?.protein}g protein • {meal.templates.classic.nutrition?.carbs}g carbs
                     </div>
                   </CardContent>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-white/80 mb-2">Choose a Template:</h4>
-                    {Object.entries(meal.templates).map(([key, template]) => (
+                    {TEMPLATE_KEYS.map((key) => {
+                      const template = meal.templates[key];
+                      return (
                       <Button 
                         key={key} 
                         variant="outline" 
@@ -300,7 +315,8 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
                           </div>
                         </div>
                       </Button>
-                    ))}
+                      );
+                    })}
                   </div>
                   <Button 
                     className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium" 

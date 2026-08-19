@@ -9,13 +9,20 @@ const IngredientSchema = z.object({
   unit: z.string().optional(),
 }).passthrough();
 
+// The board API historically accepted a newline-delimited instruction string.
+// Normalize it while validating so every board consumer receives renderable steps.
+const InstructionsSchema = z.preprocess(
+  (value) => (typeof value === "string" ? [value] : value),
+  z.array(z.string()).optional(),
+);
+
 // Meal schema with all fields - extended to support Create With Chef and Fridge Rescue data
 export const MealSchema = z.object({
   id: z.string(),
   title: z.string().optional(),
   servings: z.number().optional(),
   ingredients: z.array(IngredientSchema).optional(),
-  instructions: z.union([z.string(), z.array(z.string())]).optional(),
+  instructions: InstructionsSchema,
   nutrition: z.object({
     calories: z.number(),
     protein: z.number(),

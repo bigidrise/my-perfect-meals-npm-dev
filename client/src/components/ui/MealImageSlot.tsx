@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 export type ImageSourceType = "beverage" | "dessert" | "snack" | "sushi" | "meal";
 
@@ -77,12 +78,66 @@ export function MealImageSlot({
   const [revealed, setRevealed] = useState(false);
   // true = image load failed; show neutral unavailable state, never another food
   const [failed, setFailed] = useState(false);
+  const [activeImageUrl, setActiveImageUrl] = useState(imageUrl ?? null);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [recoveryAttempted, setRecoveryAttempted] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   const resolvedType = sourceType ?? detectTypeFromName(mealName);
   const label = TYPE_LABELS[resolvedType];
 
+  // A new image URL is a new delivery attempt. Reset the bounded recovery state.
+  useEffect(() => {
+    setActiveImageUrl(imageUrl ?? null);
+    setRevealed(false);
+    setFailed(false);
+    setIsRecovering(false);
+    setRecoveryAttempted(false);
+    setRetryNonce(0);
+  }, [imageUrl]);
+
+  const reportPermanentDeliveryFailure = async () => {
+    if (
+      !activeImageUrl?.startsWith("/public-objects/") ||
+      recoveryAttempted
+    ) {
+      setFailed(true);
+      return;
+    }
+
+    setRecoveryAttempted(true);
+    setIsRecovering(true);
+    try {
+      const result = await apiRequest<{
+        status: "retry" | "recovered" | "unavailable";
+        imageUrl?: string;
+      }>("/api/media/image-delivery-recovery", {
+        method: "POST",
+        body: JSON.stringify({ imageUrl: activeImageUrl }),
+      });
+
+      if (result.status === "recovered" && result.imageUrl) {
+        setActiveImageUrl(result.imageUrl);
+        setRetryNonce(0);
+        return;
+      }
+      if (result.status === "retry" && result.imageUrl) {
+        setActiveImageUrl(result.imageUrl);
+        setRetryNonce((nonce) => nonce + 1);
+        return;
+      }
+      setFailed(true);
+    } catch {
+      // The recovery check itself is unavailable. Stay honest rather than
+      // leaving an infinite loading state or retrying unboundedly.
+      setFailed(true);
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
   // Shimmer while actively loading
-  if (isLoading) {
+  if (isLoading || isRecovering) {
     return (
       <div className={`mb-6 rounded-lg overflow-hidden ${className}`}>
         <div
@@ -98,14 +153,16 @@ export function MealImageSlot({
             }}
           />
           <div className="w-8 h-8 rounded-full border-2 border-orange-400 border-t-transparent animate-spin" />
-          <span className="text-orange-300 text-sm font-medium tracking-wide">Generating image…</span>
+          <span className="text-orange-300 text-sm font-medium tracking-wide">
+            {isRecovering ? "Restoring image…" : "Generating image…"}
+          </span>
         </div>
       </div>
     );
   }
 
   // No image URL — generation failed or not yet completed
-  if (!imageUrl) {
+  if (!activeImageUrl) {
     return <UnavailablePlaceholder label={label} height={height} className={className} />;
   }
 
@@ -124,15 +181,17 @@ export function MealImageSlot({
         />
       )}
       <img
-        src={imageUrl}
+        key={`${activeImageUrl}:${retryNonce}`}
+        src={retryNonce ? `${activeImageUrl}${activeImageUrl.includes("?") ? "&" : "?"}image-retry=${retryNonce}` : activeImageUrl}
         alt={mealName}
         className={`w-full ${height} object-cover transition-opacity duration-300 ${revealed ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setRevealed(true)}
         onError={() => {
-          // Delivery failed: show neutral unavailable state.
-          // NEVER substitute another food photograph.
-          setFailed(true);
+          // Browser onError does not expose 404 vs 503. Ask the server to
+          // distinguish a confirmed-missing object from a retryable outage.
+          // The component will make at most one controlled retry.
           setRevealed(false);
+          void reportPermanentDeliveryFailure();
         }}
       />
     </div>

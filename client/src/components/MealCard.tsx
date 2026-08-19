@@ -29,19 +29,13 @@ import { MealRefinementPanel } from "@/components/MealRefinementPanel";
 import { useTranslation } from "react-i18next";
 
 // UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
+import type { BoardMealSlot } from "@/lib/mealSlots";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Meal type is canonical at @/types/meal — re-exported here for backward compat
 export type { Meal } from "@/types/meal";
 
-type Slot =
-  | "breakfast"
-  | "lunch"
-  | "dinner"
-  | "snacks"
-  | "meal4"
-  | "meal5"
-  | "meal6";
+type Slot = BoardMealSlot;
 
 // Explicit static mapping — unknown/future phases safely return no bullets rather than raw i18n keys.
 const COMP_PHASE_BULLET_KEYS: Partial<Record<string, [string, string]>> = {

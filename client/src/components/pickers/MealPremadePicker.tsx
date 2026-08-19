@@ -67,17 +67,31 @@ import {
 } from "@/data/competitionMealCatalog";
 import { filterPremadesByGuardrails } from "../../../../shared/clinical/guardrails";
 
+type MealPremadePickerSlot =
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+  | "snack"
+  | "snacks"
+  | "meal4"
+  | "meal5"
+  | "meal6";
+
 interface MealPremadePickerProps {
   open: boolean;
   onClose: () => void;
   onMealSelect?: (meal: any) => void;
-  mealType?: "breakfast" | "lunch" | "dinner" | "snack";
+  mealType?: MealPremadePickerSlot;
   dietType?:
     | "weekly"
     | "diabetic"
     | "glp1"
     | "anti-inflammatory"
     | "liver-support"
+    | "liver-disease"
+    | "kidney-disease"
+    | "heart-failure"
+    | "oncology-support"
     | "competition";
   showMacroTargeting?: boolean;
 }
@@ -453,6 +467,13 @@ export default function MealPremadePicker({
   dietType = "weekly",
   showMacroTargeting = false,
 }: MealPremadePickerProps) {
+  const generationMealType =
+    mealType === "snacks" ||
+    mealType === "meal4" ||
+    mealType === "meal5" ||
+    mealType === "meal6"
+      ? "snack"
+      : mealType;
   const { user } = useAuth();
   const userId = user?.id?.toString() || "";
   
@@ -462,15 +483,15 @@ export default function MealPremadePicker({
   const basePremadeData =
     effectiveDietType === "competition"
       ? competitionPremades
-      : mealType === "breakfast"
+      : generationMealType === "breakfast"
         ? effectiveDietType === "diabetic"
           ? diabeticBreakfastPremades
           : breakfastPremades
-        : mealType === "lunch"
+        : generationMealType === "lunch"
           ? effectiveDietType === "diabetic"
             ? diabeticLunchPremades
             : lunchPremades
-          : mealType === "snack"
+          : generationMealType === "snack"
             ? diabeticSnackPremades
             : effectiveDietType === "diabetic"
               ? diabeticDinnerPremades
@@ -653,7 +674,7 @@ export default function MealPremadePicker({
         setActiveCategory(firstCategory);
       }
     }
-  }, [open, mealType]);
+  }, [generationMealType, open]);
 
   const handleSelectPremade = (meal: any, category: string) => {
     // 🔥 DIABETIC/GLP-1/ANTI-INFLAMMATORY/COMPETITION: Title-only meals ALWAYS need prep modal
@@ -760,7 +781,7 @@ export default function MealPremadePicker({
       }
 
       console.log(
-        `🎨 Generating ${mealType} meal with ingredients:`,
+        `🎨 Generating ${generationMealType} meal with ingredients:`,
         ingredientsList,
       );
       console.log("📡 Calling unified API endpoint: /api/meals/generate");
@@ -776,7 +797,7 @@ export default function MealPremadePicker({
         },
         body: JSON.stringify({
           type: "fridge-rescue",
-          mealType: mealType,
+          mealType: generationMealType,
           input: ingredientsList,
           userId,
           ...(customMacroTargets && { macroTargets: customMacroTargets }),
@@ -833,7 +854,7 @@ export default function MealPremadePicker({
       };
 
       console.log(
-        `✅ Generated ${mealType} meal with image:`,
+        `✅ Generated ${generationMealType} meal with image:`,
         premadeMeal.imageUrl,
       );
 
@@ -844,7 +865,7 @@ export default function MealPremadePicker({
 
       toast({
         title: "Meal Added!",
-        description: `${meal.name} has been added to your ${mealType}`,
+        description: `${meal.name} has been added to your ${generationMealType}`,
       });
 
       // Clean up and close on success
@@ -901,7 +922,7 @@ export default function MealPremadePicker({
     <UniversalDialog rawLayout open={open} onOpenChange={handleDialogChange} className="max-w-2xl max-h-[85vh] bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border-white/20 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-semibold">
-            {mealType.charAt(0).toUpperCase() + mealType.slice(1)} Premades
+            {generationMealType.charAt(0).toUpperCase() + generationMealType.slice(1)} Premades
           </DialogTitle>
         </DialogHeader>
 
