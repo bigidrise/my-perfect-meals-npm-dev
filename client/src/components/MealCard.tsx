@@ -1,6 +1,6 @@
 // client/src/components/MealCard.tsx
 import * as React from "react";
-import { getMealFallbackImage } from "@/lib/mealFallbackImage";
+// getMealFallbackImage removed in Phase 1 — image failures show neutral placeholder, never another food
 import { BarChart3, Loader2, Wand2, RotateCcw } from "lucide-react";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
@@ -305,9 +305,10 @@ export function MealCard({
                 alt={title}
                 className={`w-full h-48 object-cover transition-opacity duration-300 ${imageRevealed ? "opacity-100" : "opacity-0"}`}
                 onLoad={() => setImageRevealed(true)}
-                onError={(e) => {
-                  e.currentTarget.src = getMealFallbackImage(title);
-                  setImageRevealed(true);
+                onError={() => {
+                  // Phase 1: never substitute another food on failure — hide the broken image.
+                  // The shimmer/dark background below remains visible as a neutral state.
+                  setImageRevealed(false);
                 }}
               />
             </>

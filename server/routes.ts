@@ -2993,7 +2993,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate medically personalized meal plan (template-based, respects foodAllergies)
       const { MedicalPersonalizationService } = await import("./medicalPersonalizationService.js");
-      const personalizedMealPlan = MedicalPersonalizationService.generateWeeklyMealPlan(
+      const personalizedMealPlan = await MedicalPersonalizationService.generateWeeklyMealPlan(
         userMedicalProfile,
         mealsPerDay,
         snacksPerDay,
