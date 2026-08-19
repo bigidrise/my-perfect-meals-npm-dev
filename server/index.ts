@@ -1535,6 +1535,12 @@ async function start() {
     await runTrialGrantsMigration(dbTg);
   });
 
+  await withBootRetry("Email identity review migration", async () => {
+    const { db: dbEmailIdentity } = await import("./db");
+    const { runEmailIdentityReviewMigration } = await import("./db/migrations/runEmailIdentityReviewMigration");
+    await runEmailIdentityReviewMigration(dbEmailIdentity);
+  });
+
   await withBootRetry("Safety override correlation ID migration", async () => {
     const { db: dbSoc } = await import("./db");
     const { runSafetyOverrideCorrelationMigration } = await import("./db/migrations/runSafetyOverrideCorrelationMigration");

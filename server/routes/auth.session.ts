@@ -11,6 +11,7 @@ import { checkLegalAcceptance } from "../services/legalCheck";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { emailServiceAvailable } from "../middleware/requireEmailService";
 import { sendTrialStartEmail } from "../services/emailService";
+import { resolveEmailIdentityForEmail } from "../services/emailIdentityService";
 
 const router = Router();
 
@@ -114,9 +115,9 @@ router.post("/api/auth/signup", async (req, res) => {
     if (pwError) return res.status(400).json({ error: pwError });
     if (isCommonPassword(password)) return res.status(400).json({ error: "This password is too common. Please choose a stronger passphrase." });
 
-    // Check if user already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    if (existingUser.length > 0) {
+    // Do not create another case-variant account when a legacy spelling exists.
+    const existingIdentity = await resolveEmailIdentityForEmail(email);
+    if (existingIdentity.status !== "not_found") {
       return res.status(400).json({ error: "User already exists" });
     }
 
@@ -367,16 +368,27 @@ router.post("/api/auth/login", async (req, res) => {
 
     const normalizedEmail = (email as string).toLowerCase().trim();
 
-    // ── Lockout check ─────────────────────────────────────────────────────────
-    if (isLockedOut(normalizedEmail)) {
-      return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
+    const identity = await resolveEmailIdentityForEmail(email);
+    const [user] = identity.status === "unique" || identity.status === "legacy_exact"
+      ? await db.select().from(users).where(eq(users.id, identity.user.id)).limit(1)
+      : [];
+    const lockoutKey = user ? `user:${user.id}` : normalizedEmail;
+
+    // A normalized address with multiple legacy accounts cannot select one by
+    // position. The caller must use the precise stored spelling or seek review.
+    if (identity.status === "ambiguous") {
+      return res.status(409).json({
+        error: "Multiple accounts use this email address. Sign in using the exact email capitalization for this account or contact support.",
+      });
     }
 
-    // Find user by email (case-insensitive)
-    const [user] = await db.select().from(users).where(sql`LOWER(${users.email}) = ${normalizedEmail}`).limit(1);
+    // ── Lockout check ─────────────────────────────────────────────────────────
+    if (isLockedOut(lockoutKey)) {
+      return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
+    }
     
     if (!user) {
-      const result = recordFailedAttempt(normalizedEmail);
+      const result = recordFailedAttempt(lockoutKey);
       logAudit({ actor: "anonymous", action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "user_not_found" } });
       if (result.locked) {
         logAudit({ actor: "anonymous", action: "AUTH_LOCKOUT", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
@@ -387,8 +399,8 @@ router.post("/api/auth/login", async (req, res) => {
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      const result = recordFailedAttempt(normalizedEmail);
-      logAudit({ actor: user.id, action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "bad_password", attempt: getLockoutEntry(normalizedEmail).count } });
+      const result = recordFailedAttempt(lockoutKey);
+      logAudit({ actor: user.id, action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "bad_password", attempt: getLockoutEntry(lockoutKey).count } });
       if (result.locked) {
         logAudit({ actor: user.id, action: "AUTH_LOCKOUT", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
         return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
@@ -397,7 +409,7 @@ router.post("/api/auth/login", async (req, res) => {
     }
 
     // Successful login — clear failed attempt counter
-    clearLockout(normalizedEmail);
+    clearLockout(lockoutKey);
 
     // ── MFA gate ──────────────────────────────────────────────────────────────
     // If the user has MFA enabled, pause here and require a TOTP challenge.
@@ -559,7 +571,10 @@ router.post("/api/auth/forgot-password", async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     console.log(`📧 [FORGOT-PASSWORD] Email normalized`);
 
-    const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
+    const identity = await resolveEmailIdentityForEmail(email);
+    const [user] = identity.status === "unique" || identity.status === "legacy_exact"
+      ? await db.select().from(users).where(eq(users.id, identity.user.id)).limit(1)
+      : [];
     console.log(`📧 [FORGOT-PASSWORD] User found: ${user ? 'YES' : 'NO'}`);
 
     if (user) {

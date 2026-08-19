@@ -10,6 +10,11 @@ import { eq, and, sql, isNull, gt } from "drizzle-orm";
 import { resolveCoach, isValidCoachSlug, coaches } from "../config/coaches";
 import { sendCoachActivationEmail, sendCoachingInviteEmail } from "../services/emailService";
 import { randomUUID } from "crypto";
+import {
+  findEmailIdentityCandidates,
+  normalizeEmailIdentity,
+  resolveEmailIdentityForUser,
+} from "../services/emailIdentityService";
 
 const router = Router();
 
@@ -75,6 +80,30 @@ router.post("/notify-coach", requireAuth, async (req: Request, res: Response) =>
       .limit(1);
 
     if (invite) {
+      if (invite.status !== "pending" || invite.acceptedAt) {
+        return res.status(409).json({ ok: false, error: "This invitation has already been used." });
+      }
+      if (new Date() > invite.expiresAt) {
+        return res.status(410).json({ ok: false, error: "This invitation has expired." });
+      }
+      const identity = await resolveEmailIdentityForUser(authUser.id);
+      if (identity.candidates.length > 1) {
+        return res.status(409).json({
+          ok: false,
+          error: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+          message: "This email address is linked to multiple legacy accounts. An administrator must review the account before this invitation can be accepted.",
+        });
+      }
+      if (
+        identity.status !== "unique" ||
+        normalizeEmailIdentity(identity.user.email) !== normalizeEmailIdentity(invite.email)
+      ) {
+        return res.status(403).json({
+          ok: false,
+          error: "EMAIL_MISMATCH",
+          message: "This invitation was sent to a different email address.",
+        });
+      }
       inviteRecord = invite;
       const coachFromInvite = resolveCoach(invite.coachSlug);
       if (coachFromInvite) {
@@ -362,6 +391,13 @@ router.post("/send-invite", requireAuth, requireEmailService, async (req: Reques
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ ok: false, error: "Invalid email format" });
+  }
+  const emailCandidates = await findEmailIdentityCandidates(email);
+  if (emailCandidates.length > 1) {
+    return res.status(409).json({
+      ok: false,
+      error: "This email address belongs to multiple legacy accounts. Ask an administrator to resolve the account identity before sending an invitation.",
+    });
   }
 
   const coach = resolveCoach(coachEntry.slug);

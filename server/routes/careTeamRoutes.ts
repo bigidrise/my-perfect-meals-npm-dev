@@ -11,6 +11,11 @@ import { getTierForLookupKey } from "@shared/planFeatures";
 import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
 import { providerHasProCareStudioAccess } from "../services/procareProviderAccess";
+import {
+  findEmailIdentityCandidates,
+  normalizeEmailIdentity,
+  resolveEmailIdentityForUser,
+} from "../services/emailIdentityService";
 
 const router = Router();
 
@@ -43,6 +48,14 @@ router.post("/invite", requireAuth, requireEmailService, async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: "Invalid email format. Please enter a valid email address." });
+    }
+
+    const emailCandidates = await findEmailIdentityCandidates(email);
+    if (emailCandidates.length > 1) {
+      return res.status(409).json({
+        error: "This email address belongs to multiple legacy accounts. Ask an administrator to resolve the account identity before sending an invitation.",
+        code: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+      });
     }
 
     // Fetch caller info once — used for both self-invite check and pro detection
@@ -135,11 +148,26 @@ router.post("/connect", requireAuth, async (req, res) => {
       ? await db.select().from(careAccessCode).where(eq(careAccessCode.code, trimmedCode))
       : [null];
 
-    if (!invite && !accessCodeRow) {
-      console.log(`❌ [CareTeam Connect] Code "${trimmedCode}" not found`);
-      return res.status(404).json({ error: "Invalid code" });
+    // An email-delivered invite may be redeemed only by the one verified
+    // account that owns its address. Legacy case-variant rows are deliberately
+    // paused for admin review rather than letting a forwarded code choose one.
+    if (invite) {
+      const identity = await resolveEmailIdentityForUser(userId);
+      if (identity.candidates.length > 1) {
+        return res.status(409).json({
+          error: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+          message: "This email address is linked to multiple legacy accounts. An administrator must review the account before this invitation can be accepted.",
+        });
+      }
+      if (
+        identity.status !== "unique" ||
+        normalizeEmailIdentity(identity.user.email) !== normalizeEmailIdentity(invite.email)
+      ) {
+        return res.status(403).json({
+          error: "This invitation was sent to a different email address. Please sign in with the invited account.",
+        });
+      }
     }
-
     const proUserId = invite ? invite.userId : accessCodeRow!.proUserId;
 
     // Resolve provider access from their effective plan. A sponsored Clinical

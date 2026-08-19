@@ -645,6 +645,22 @@ export const users = pgTable("users", {
   organizationIdx: index("idx_users_organization_id").on(t.organizationId),
 }));
 
+// Administrative review trail for legacy accounts whose email addresses differ
+// only by case. A review records an explicit human decision; it never merges or
+// deletes user rows.
+export const emailIdentityReviews = pgTable("email_identity_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  normalizedEmail: text("normalized_email").notNull(),
+  subjectUserId: varchar("subject_user_id", { length: 255 }).notNull().references(() => users.id),
+  reviewedByUserId: varchar("reviewed_by_user_id", { length: 255 }).notNull().references(() => users.id),
+  resolution: text("resolution").notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  normalizedEmailIdx: index("email_identity_reviews_normalized_email_idx").on(table.normalizedEmail, table.createdAt),
+  subjectUserIdx: index("email_identity_reviews_subject_user_idx").on(table.subjectUserId, table.createdAt),
+}));
+
 // Creator System — product code redemption log (future revenue tracking)
 export const productCodeRedemptions = pgTable("product_code_redemptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
