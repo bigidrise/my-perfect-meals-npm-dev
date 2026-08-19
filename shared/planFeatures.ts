@@ -309,6 +309,8 @@ export const PROCARE_ENTITLEMENTS: Entitlement[] = ["procare", "care_team", "lab
  * Rule: certification completion is NOT a substitute for subscription entitlement.
  */
 export const PROCARE_PLAN_KEYS: ReadonlySet<string> = new Set([
+  // Clinical Business includes the ProCare Studio for its professional owner.
+  "clinical_business_monthly",
   // Full canonical keys
   "mpm_procare_monthly",
   "mpm_procare_trainer_5",
@@ -328,6 +330,50 @@ export const PROCARE_PLAN_KEYS: ReadonlySet<string> = new Set([
 export function isProCarePlanKey(lookupKey: string | null | undefined): boolean {
   if (!lookupKey) return false;
   return PROCARE_PLAN_KEYS.has(lookupKey);
+}
+
+/**
+ * Canonical Studio-access policy. Keep this separate from the plan tier:
+ * personal Ultimate includes clinical features, but it does not include a
+ * professional ProCare Studio.
+ *
+ * Both API gates and eligibility payloads must use this function so the UI
+ * cannot advertise Studio access that the route middleware will reject.
+ */
+export function canAccessProCareStudio({
+  billingEnforced,
+  accessTier,
+  planLookupKey,
+  sponsoredByBusinessId,
+  sponsoredProCareAccess,
+  isInternalAccount,
+}: {
+  billingEnforced: boolean;
+  accessTier: string | null | undefined;
+  planLookupKey: string | null | undefined;
+  sponsoredByBusinessId?: string | null;
+  sponsoredProCareAccess?: boolean;
+  isInternalAccount?: boolean;
+}): boolean {
+  if (!billingEnforced) return true;
+  if (accessTier !== "PAID_FULL") return false;
+
+  // Effective access represents no-plan founders with a synthetic Ultimate
+  // key. Retain the explicit internal marker so that transformation cannot
+  // remove their intended Studio access.
+  if (isInternalAccount) return true;
+
+  // Paid internal/founder accounts have no Stripe lookup key.
+  if (!planLookupKey) return true;
+
+  // A Clinical Business plan grants Studio access to clinical professionals,
+  // not every sponsored organization seat. Personal owners with this plan are
+  // not sponsored and remain eligible through the product entitlement.
+  if (planLookupKey === "clinical_business_monthly" && sponsoredByBusinessId) {
+    return sponsoredProCareAccess === true;
+  }
+
+  return isProCarePlanKey(planLookupKey);
 }
 
 // ── Household / Family Plan Helpers ──────────────────────────────────────────

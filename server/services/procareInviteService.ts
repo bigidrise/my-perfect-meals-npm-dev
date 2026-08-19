@@ -17,19 +17,7 @@ import { eq } from "drizzle-orm";
 import { activateProCareClient, ActivationError } from "./procareActivation";
 import { checkLegalAcceptance } from "./legalCheck";
 import { getTierForLookupKey } from "@shared/planFeatures";
-
-// ── Constants ────────────────────────────────────────────────────────────────
-
-const PROCARE_PLAN_KEYS = [
-  "mpm_procare_monthly",
-  "mpm_trainer_5",
-  "mpm_trainer_10",
-  "mpm_trainer_25",
-  "mpm_trainer_50",
-  "mpm_physician_50",
-  "mpm_physician_150",
-  "clinical_business_monthly",
-];
+import { providerHasProCareStudioAccess } from "./procareProviderAccess";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -224,10 +212,18 @@ export async function acceptInviteByToken(
 
   // Pro subscription gate
   const [pro] = await db
-    .select({ planLookupKey: users.planLookupKey })
+    .select({
+      id: users.id,
+      planLookupKey: users.planLookupKey,
+      personalPlanLookupKey: users.personalPlanLookupKey,
+      isFounder: users.isFounder,
+      isSandbox: users.isSandbox,
+      isTester: users.isTester,
+      trialEndsAt: users.trialEndsAt,
+    })
     .from(users)
     .where(eq(users.id, r.proUserId));
-  if (!PROCARE_PLAN_KEYS.includes(pro?.planLookupKey ?? "")) {
+  if (!pro || !(await providerHasProCareStudioAccess(pro))) {
     return { ok: false, error: { code: "COACH_NOT_SUBSCRIBED" } };
   }
 

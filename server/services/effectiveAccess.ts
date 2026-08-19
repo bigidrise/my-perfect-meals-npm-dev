@@ -30,6 +30,12 @@ export interface EffectiveAccess {
   /** Non-null when access is sponsored by an active business membership. */
   sponsoredByBusinessId: string | null;
   sponsoredByBusinessName: string | null;
+  /**
+   * True only for a sponsored business seat whose membership role may use
+   * clinical Studio tools. This prevents staff/admin seats from inheriting
+   * provider access simply because their organization pays for Clinical.
+   */
+  sponsoredProCareAccess: boolean;
 }
 
 interface UserSnapshot {
@@ -44,6 +50,13 @@ interface UserSnapshot {
   /** ISO string or Date — used to grant TRIAL_UNLOCKS_TIER entitlements during active trial */
   trialEndsAt?: Date | string | null;
 }
+
+const STUDIO_ELIGIBLE_BUSINESS_ROLES = new Set([
+  "owner",
+  "coach",
+  "trainer",
+  "physician",
+]);
 
 export async function computeEffectiveAccess(
   user: UserSnapshot
@@ -74,6 +87,7 @@ export async function computeEffectiveAccess(
       tier: "ultimate",
       sponsoredByBusinessId: null,
       sponsoredByBusinessName: null,
+      sponsoredProCareAccess: false,
     };
   }
 
@@ -81,7 +95,9 @@ export async function computeEffectiveAccess(
     .select({
       businessId: businesses.id,
       businessName: businesses.name,
+      businessOwnerUserId: businesses.ownerUserId,
       plan: businesses.plan,
+      membershipRole: businessMembers.role,
     })
     .from(businessMembers)
     .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
@@ -102,6 +118,9 @@ export async function computeEffectiveAccess(
       tier,
       sponsoredByBusinessId: membership.businessId,
       sponsoredByBusinessName: membership.businessName,
+      sponsoredProCareAccess:
+        membership.businessOwnerUserId === user.id ||
+        STUDIO_ELIGIBLE_BUSINESS_ROLES.has(membership.membershipRole),
     };
   }
 
@@ -125,5 +144,6 @@ export async function computeEffectiveAccess(
     tier: effectiveTier,
     sponsoredByBusinessId: null,
     sponsoredByBusinessName: null,
+    sponsoredProCareAccess: false,
   };
 }

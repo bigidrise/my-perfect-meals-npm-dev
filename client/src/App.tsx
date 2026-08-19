@@ -39,6 +39,7 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { TrialBanner } from "@/components/TrialBanner";
 import { TrialMilestoneModal } from "@/components/TrialMilestoneModal";
 import { IdleTimeoutModal } from "@/components/IdleTimeoutModal";
+import MealPickerRetryHarness from "@/pages/e2e/MealPickerRetryHarness";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -176,6 +177,31 @@ export default function App() {
         />
         <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>{t("common.loading")}</p>
       </div>
+    );
+  }
+
+  // Browser tests need the real pickers, but not unrelated global widgets that
+  // require a complete production account. This route is unavailable outside
+  // Playwright because navigator.webdriver must be true.
+  const isMealPickerRetryTestRoute =
+    typeof navigator !== "undefined" &&
+    navigator.webdriver &&
+    window.location.pathname === "/__e2e/meal-picker-retry";
+
+  if (isMealPickerRetryTestRoute) {
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <AuthProvider>
+              <UpgradeModalProvider>
+                <MealPickerRetryHarness />
+                <Toaster />
+              </UpgradeModalProvider>
+            </AuthProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     );
   }
 

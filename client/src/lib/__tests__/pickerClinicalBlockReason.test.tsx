@@ -13,6 +13,7 @@
 // unrelated data fetching and clinical rendering dependencies.
 jest.mock("@/components/MealCard", () => ({
   __esModule: true,
+  MealCard: () => null,
   default: () => null,
 }));
 
@@ -38,6 +39,31 @@ function mockClinicalConflictResponse() {
   });
 }
 
+function mockGenerationFailureResponse() {
+  const fetchMock = globalThis.fetch as jest.Mock;
+  fetchMock.mockReset();
+  fetchMock.mockResolvedValueOnce({
+    ok: false,
+    status: 503,
+    json: jest.fn().mockResolvedValue({
+      error: "The meal service is temporarily unavailable.",
+    }),
+  });
+}
+
+function mockSuccessfulMealResponse() {
+  return {
+    ok: true,
+    json: jest.fn().mockResolvedValue({
+      meal: {
+        name: "Retry Meal",
+        ingredients: [],
+        instructions: [],
+      },
+    }),
+  };
+}
+
 function renderWithToaster(children: React.ReactElement) {
   return render(
     <>
@@ -54,6 +80,78 @@ beforeEach(() => {
 });
 
 describe("clinical block reason in meal pickers", () => {
+  it("CravingPicker explains a generation failure and retries successfully", async () => {
+    const user = userEvent.setup();
+    mockGenerationFailureResponse();
+    renderWithToaster(
+      <CravingPicker
+        open
+        slotLabel="Breakfast"
+        onClose={jest.fn()}
+        onUse={jest.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Generate Breakfast Option" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Meal generation failed\./)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: "Try Again" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("No options fit your current plan"),
+    ).not.toBeInTheDocument();
+
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
+      mockSuccessfulMealResponse(),
+    );
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText(/Meal generation failed\./)).not.toBeInTheDocument();
+    });
+  });
+
+  it("FixedMenuPicker explains a generation failure and retries successfully", async () => {
+    const user = userEvent.setup();
+    mockGenerationFailureResponse();
+    renderWithToaster(
+      <FixedMenuPicker
+        open
+        slotLabel="Dinner"
+        onClose={jest.fn()}
+        onSave={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add Meal" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Meal generation failed\./)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: "Try Again" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("No options fit your current plan"),
+    ).not.toBeInTheDocument();
+
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
+      mockSuccessfulMealResponse(),
+    );
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText(/Meal generation failed\./)).not.toBeInTheDocument();
+    });
+  });
+
   it("CravingPicker shows the clinical reason instead of HTTP 422", async () => {
     const user = userEvent.setup();
     renderWithToaster(
