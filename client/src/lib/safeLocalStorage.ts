@@ -10,12 +10,14 @@
  *
  * Strategy:
  *  1. Estimate payload size before writing
- *  2. Strip base64 imageUrls and other large optional fields if near the limit
+ *  2. Strip temporary/base64 imageUrls and other large optional fields if near the limit
  *  3. Evict stale builder caches (> 24 h) before attempting a write
  *  4. If still over quota, clear ALL other builder caches and retry once
  *  5. Inject generatedAtISO timestamp so entries can be TTL-evicted later
  */
 
+
+import { isTemporaryImageUrl } from "./imageUrlUtils";
 
 /** All known builder cache keys — used for cross-eviction when one is over quota. */
 export const BUILDER_CACHE_KEYS: readonly string[] = [
@@ -36,11 +38,12 @@ export const BUILDER_CACHE_KEYS: readonly string[] = [
 const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
- * Strip base64 data URIs and other oversized optional fields from a value
+ * Strip temporary image URLs and other oversized optional fields from a value
  * before it is serialized to localStorage.
  *
  * Rules:
- *  - imageUrl that starts with "data:" → undefined (too large, re-fetched on mount)
+ *  - temporary imageUrl (data URI or expiring first-party CDN URL) → undefined
+ *    (re-fetched on mount)
  *  - Applied recursively to nested generatedMeal / generatedMeals arrays
  */
 function stripLargeFields(value: unknown): unknown {
@@ -53,8 +56,9 @@ function stripLargeFields(value: unknown): unknown {
   const obj = value as Record<string, unknown>;
   const result: Record<string, unknown> = { ...obj };
 
-  // Strip base64 imageUrls — DALL-E/S3 URLs are fine and should be kept
-  if (typeof result.imageUrl === "string" && result.imageUrl.startsWith("data:")) {
+  // Never persist temporary image URLs. DALL-E CDN URLs expire after roughly
+  // an hour; permanent Object Storage paths are intentionally kept.
+  if (typeof result.imageUrl === "string" && isTemporaryImageUrl(result.imageUrl)) {
     result.imageUrl = undefined;
   }
 
@@ -182,7 +186,7 @@ function clearOtherBuilderCaches(exceptKey: string): void {
  *
  * - Automatically injects `generatedAtISO` (ISO timestamp) if not already present
  *   so that entries can be TTL-evicted on the next visit.
- * - Strips base64 imageUrls (and other large fields) before serializing.
+ * - Strips temporary/base64 imageUrls (and other large fields) before serializing.
  * - Evicts stale builder caches (>24 h) before each write.
  * - If a QuotaExceededError is thrown, clears all OTHER builder caches and
  *   retries once.

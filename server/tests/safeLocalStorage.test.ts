@@ -129,10 +129,10 @@ describe("safeLocalStorageSet — basic write", () => {
 });
 
 // ---------------------------------------------------------------------------
-// safeLocalStorageSet — base64 imageUrl stripping
+// safeLocalStorageSet — temporary imageUrl stripping
 // ---------------------------------------------------------------------------
 
-describe("safeLocalStorageSet — base64 imageUrl stripping", () => {
+describe("safeLocalStorageSet — temporary imageUrl stripping", () => {
   it("strips a top-level base64 imageUrl before writing", () => {
     safeLocalStorageSet("cravingCreator.cache.v1", {
       meal: "tacos",
@@ -145,7 +145,31 @@ describe("safeLocalStorageSet — base64 imageUrl stripping", () => {
     expect(parsed.meal).toBe("tacos");
   });
 
-  it("keeps an https imageUrl intact", () => {
+  it("strips a temporary DALL-E CDN imageUrl before writing and rehydrates without it", () => {
+    safeLocalStorageSet("cravingCreator.cache.v1", {
+      meal: "tacos",
+      imageUrl:
+        "https://oaidalleapiprodscus.blob.core.windows.net/private/img-expiring.png",
+    });
+
+    const parsed = JSON.parse(
+      mockStorage.getItem("cravingCreator.cache.v1")!
+    );
+    expect(parsed.imageUrl).toBeUndefined();
+  });
+
+  it("keeps a permanent Object Storage imageUrl intact", () => {
+    safeLocalStorageSet("cravingCreator.cache.v1", {
+      meal: "tacos",
+      imageUrl: "/public-objects/meal-images/tacos.png",
+    });
+    const parsed = JSON.parse(
+      mockStorage.getItem("cravingCreator.cache.v1")!
+    );
+    expect(parsed.imageUrl).toBe("/public-objects/meal-images/tacos.png");
+  });
+
+  it("keeps an unrelated https imageUrl intact", () => {
     safeLocalStorageSet("cravingCreator.cache.v1", {
       meal: "tacos",
       imageUrl: "https://cdn.example.com/img.png",
@@ -156,11 +180,12 @@ describe("safeLocalStorageSet — base64 imageUrl stripping", () => {
     expect(parsed.imageUrl).toBe("https://cdn.example.com/img.png");
   });
 
-  it("strips base64 imageUrl nested inside generatedMeal", () => {
+  it("strips temporary imageUrl nested inside generatedMeal", () => {
     safeLocalStorageSet("fridge-rescue-cached-state", {
       generatedMeal: {
         name: "Salad",
-        imageUrl: "data:image/jpeg;base64,/9j/ZZZZ",
+        imageUrl:
+          "https://oaidalleapiprodscus.blob.core.windows.net/private/salad.png",
       },
     });
     const parsed = JSON.parse(
