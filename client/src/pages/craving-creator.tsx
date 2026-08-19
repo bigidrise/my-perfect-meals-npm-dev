@@ -233,7 +233,7 @@ export default function CravingCreator() {
   const quickTour = useQuickTour("craving-creator");
   const [useOnboarding, setUseOnboarding] = useState(true); // ENFORCED: Always use onboarding for medical safety
   const [cravingInput, setCravingInput] = useState("");
-  const [dishFailureAlert, setDishFailureAlert] = useState<{ show: boolean; message: string; suggestedActions?: string[] }>({ show: false, message: "" });
+  const [dishFailureAlert, setDishFailureAlert] = useState<{ show: boolean; message: string; title?: string; suggestedActions?: string[] }>({ show: false, message: "" });
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [savedMeals, setSavedMeals] = useState(new Set<string>());
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
@@ -681,6 +681,18 @@ export default function CravingCreator() {
         if (data.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${data.message}`);
         }
+        // 🩸 Clinical BGL block — server tried a low-carb reformulation and it
+        // still exceeded the glucose-state carb ceiling. Show the plain-language
+        // clinical explanation, not a generic error.
+        if (data.clinicalBlock || data.error === "BGL_CLINICAL_BLOCK" || data.reasonCode === "bgl_carb_ceiling") {
+          setDishFailureAlert({
+            show: true,
+            title: data.title || "Your blood glucose needs a different version",
+            message: data.message || "Your current glucose setting requires a lower-carb meal, and we couldn't create a compliant version of this dish. You can try another craving, or update your glucose information if your reading has changed.",
+            suggestedActions: Array.isArray(data.suggestedActions) ? data.suggestedActions : [],
+          });
+          return;
+        }
         if (data.dishIdentityFailure) {
           setDishFailureAlert({
             show: true,
@@ -694,6 +706,14 @@ export default function CravingCreator() {
             description: data.message || "All generated options conflicted with your dietary protocol. Please try a different dish or adjust your craving description.",
             variant: "destructive",
             duration: 10000,
+          });
+          return;
+        }
+        if (data.reasonCode === "constraint_conflict") {
+          toast({
+            title: "No options fit your current plan",
+            description: data.message || "Your health protocol eliminated all generated options. Try a lower-carb dish, or adjust your glucose settings.",
+            duration: 8000,
           });
           return;
         }
@@ -1300,9 +1320,16 @@ export default function CravingCreator() {
                     <div className="mt-3 rounded-lg border border-orange-500/40 bg-orange-950/50 px-4 py-3 flex flex-col gap-2">
                       <div className="flex items-start gap-2">
                         <span className="text-orange-400 mt-0.5 shrink-0">⚠️</span>
-                        <p className="text-sm text-orange-200 leading-snug">
-                          {dishFailureAlert.message}
-                        </p>
+                        <div className="flex flex-col gap-1">
+                          {dishFailureAlert.title && (
+                            <p className="text-sm font-semibold text-orange-100 leading-snug">
+                              {dishFailureAlert.title}
+                            </p>
+                          )}
+                          <p className="text-sm text-orange-200 leading-snug">
+                            {dishFailureAlert.message}
+                          </p>
+                        </div>
                       </div>
                       {dishFailureAlert.suggestedActions && dishFailureAlert.suggestedActions.length > 0 && (
                         <ul className="pl-1 space-y-1">
