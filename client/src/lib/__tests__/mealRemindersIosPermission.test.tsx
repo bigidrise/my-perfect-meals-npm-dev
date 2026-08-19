@@ -346,4 +346,30 @@ describe('MealReminders — slot-toggle after iOS permission revoke/restore', ()
     const savedSlots: any[] = mockSaveRemindersToServer.mock.calls[0][0];
     expect(savedSlots[0].enabled).toBe(true);
   });
+
+  // ── Test C: in-app grant flips badge immediately, no visibility change needed
+  it('flips the iOS permission badge to granted immediately after requestNotificationPermission succeeds in-app', async () => {
+    // Mount with permission denied — badge starts as blocked.
+    mockCheckNotificationPermission.mockResolvedValue(false);
+    // The OS system prompt is shown inside the app and the user taps Allow.
+    mockRequestNotificationPermission.mockResolvedValue(true);
+
+    const { getByTestId, container } = await renderComponent();
+
+    // Badge must start as denied.
+    expect(getByTestId('ios-permission-label')).toHaveTextContent('statusBlockedIos');
+
+    // User taps the toggle — this calls requestNotificationPermission internally.
+    const toggleBtn = container.querySelector('[aria-pressed="false"]') as HTMLElement;
+    expect(toggleBtn).not.toBeNull();
+
+    await act(async () => {
+      toggleBtn.click();
+    });
+
+    // The badge must now reflect the granted state without any visibilitychange event.
+    await waitFor(() => {
+      expect(getByTestId('ios-permission-label')).toHaveTextContent('statusConnected');
+    });
+  });
 });

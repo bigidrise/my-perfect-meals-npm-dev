@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { X, Plus, RefreshCw } from "lucide-react";
 import MealCard from "@/components/MealCard";
 import TrashButton from "@/components/ui/TrashButton";
+import { useToast } from "@/hooks/use-toast";
 
 type Ingredient = { name: string; amount: string };
 export type FixedMeal = {
@@ -35,6 +36,7 @@ export default function FixedMenuPicker({
   slotLabel?: string; 
   userId?: string;
 }) {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<FixedMeal[]>([]);
   const [error, setError] = useState<string | undefined>();
@@ -58,7 +60,19 @@ export default function FixedMenuPicker({
         })
       });
       
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        let errData: any = {};
+        try { errData = await res.json(); } catch { /* non-JSON response */ }
+        if (errData.reasonCode === "constraint_conflict") {
+          toast({
+            title: "No options fit your current plan",
+            description: errData.message || errData.error || "Your health protocol eliminated all generated options. Try a different meal type or adjust your settings.",
+            duration: 8000,
+          });
+          return;
+        }
+        throw new Error(errData.error || errData.message || `HTTP ${res.status}`);
+      }
       
       const data = await res.json();
       const m = data.meal || data;

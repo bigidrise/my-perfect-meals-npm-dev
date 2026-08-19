@@ -7,7 +7,7 @@ import { sendEmail } from "./emailService";
 import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
-import { ObjectStorageService, objectStorageClient } from "./objectStorage";
+import { ObjectStorageService, objectStorageClient, StorageUnavailableError, inferContentType } from "./objectStorage";
 import { processMealImageForSave } from "./services/imageLifecycle";
 import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -395,43 +395,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/ai/reduce-drinking-plan", reduceDrinkingPlanRouter);
 
   // Public Object Storage - Serves meal images for Hybrid Meal Engine
+  // Reads use @replit/object-storage — the SAME SDK as the write path — so a
+  // GCS credential-sidecar failure can no longer break reads while writes work.
+  // Status contract: 404 = object missing (non-retryable), 503 = storage error (retryable).
   app.get("/public-objects/*", async (req, res) => {
     const filePath = (req.params as Record<string, string>)[0] || "";
+    const startedAt = Date.now();
+    let bytes = 0;
+
+    const logAccess = (httpStatus: number, extra?: Record<string, unknown>) => {
+      console.log(
+        JSON.stringify({
+          event: "public_object_access",
+          objectPath: filePath,
+          httpStatus,
+          bytes,
+          durationMs: Date.now() - startedAt,
+          ...extra,
+        }),
+      );
+    };
+
     try {
       const objectStorageService = new ObjectStorageService();
-
-      // New-format URLs embed the bucket ID directly in the path:
-      //   replit-objstore-<uuid>/meal-images/<filename>
-      // Serve these directly without going through PUBLIC_OBJECT_SEARCH_PATHS.
-      if (filePath.startsWith("replit-objstore-")) {
-        const slashIdx = filePath.indexOf("/");
-        if (slashIdx !== -1) {
-          const bucketName = filePath.slice(0, slashIdx);
-          const objectName = filePath.slice(slashIdx + 1);
-          const file = objectStorageClient.bucket(bucketName).file(objectName);
-          const [exists] = await file.exists();
-          if (!exists) {
-            return res.status(404).json({ error: "File not found" });
-          }
-          return objectStorageService.downloadObject(file, res);
-        }
-      }
-
-      // Legacy-format URLs: search across PUBLIC_OBJECT_SEARCH_PATHS buckets.
-      const file = await objectStorageService.searchPublicObject(filePath);
-      if (!file) {
+      const resolved = await objectStorageService.resolvePublicObjectPath(filePath);
+      if (!resolved) {
+        logAccess(404);
         return res.status(404).json({ error: "File not found" });
       }
-      objectStorageService.downloadObject(file, res);
+
+      res.set({
+        "Content-Type": inferContentType(resolved.objectName),
+        "Cache-Control": "public, max-age=3600",
+      });
+
+      const stream = objectStorageService.streamResolvedObject(
+        resolved.bucketId,
+        resolved.objectName,
+      );
+      stream.on("data", (chunk: Buffer) => {
+        bytes += chunk.length;
+      });
+      stream.on("error", (err: Error) => {
+        logAccess(res.headersSent ? 200 : 503, { streamError: err.message });
+        if (!res.headersSent) {
+          res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
+        } else {
+          res.destroy();
+        }
+      });
+      res.on("finish", () => logAccess(res.statusCode));
+      stream.pipe(res);
     } catch (error: any) {
+      if (error instanceof StorageUnavailableError) {
+        logAccess(503, { error: error.message });
+        return res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
+      }
       if (error.message?.includes("PUBLIC_OBJECT_SEARCH_PATHS not set")) {
+        logAccess(503, { error: "PUBLIC_OBJECT_SEARCH_PATHS not set" });
         return res.status(503).json({ 
           error: "Object storage not configured",
           hint: "Create a bucket in Object Storage and set PUBLIC_OBJECT_SEARCH_PATHS env var"
         });
       }
-      console.error("Error searching for public object:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      console.error("Error serving public object:", error);
+      logAccess(503, { error: error.message });
+      return res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
     }
   });
 
@@ -5430,17 +5459,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `${_bglGatedOptions.length} remain`,
           );
         }
-        // BGL gate eliminated every option — this is a clinical constraint outcome,
-        // not a generation failure.  Return a typed 422 so the inspiration route and
-        // the client can surface a "no compliant options" message without treating
-        // it as a crash.  Running the fallback here would be wrong: any single-
-        // option fallback would also exceed the same carb ceiling.
+        // BGL gate eliminated every option — this is a clinical constraint
+        // outcome, not a generation failure. Before blocking, attempt ONE
+        // targeted reformulation pass: same dish, same constraints (allergies,
+        // diet, cultural grounding, variety memory all flow through the same
+        // pipeline call), plus an explicit numeric carb ceiling. The clinical
+        // guardrail itself is NOT weakened — retry output is revalidated
+        // against the exact same ceiling before being served.
         if (_bglGatedOptions.length === 0 && mealOptions.length > 0) {
-          return res.status(422).json({
-            error: "We created additional versions of this recipe, but none met today's nutrition requirements.",
-            reasonCode: "constraint_conflict",
-            suggestedActions: [],
-          });
+          const _bglEffectiveCeiling = _bglCarbCeiling + BGL_CARB_TOLERANCE;
+          console.warn(
+            `🩸 [BGL Gate/CravingCreator] All options exceeded ${_bglCarbCeiling}g ceiling — ` +
+            `attempting one targeted low-carb reformulation (≤${_bglCarbCeiling}g per serving)`,
+          );
+          let _bglRetrySucceeded = false;
+          try {
+            // Solve for the actual numeric ceiling — no ingredient-type
+            // assumptions ("gluten-free"/"sugar-free" do not guarantee low carb).
+            const _bglRetryClause =
+              ` [CLINICAL CARB CONSTRAINT — the user's current blood glucose state requires each serving to contain ${_bglCarbCeiling}g of total carbohydrates or less. Keep this the SAME dish the user asked for (do not replace it with a different food); reformulate its ingredients and portions so total carbs per serving are at or below ${_bglCarbCeiling}g while preserving the dish's identity, flavor profile, and all other dietary constraints.]`;
+            const _bglRetryOptions = await generateCravingMealOptions(
+              `${cravingInput}${_bglRetryClause}`,
+              targetMealType || "lunch",
+              userId,
+              bodyDietRestrictions,
+              excludeMeals,
+              strictMode === true,
+              (generationMode === 'recipe' ? 'recipe' : 'meal'),
+              (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+              _cravingGlp1Targets,
+              _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+              _dishDirective,
+              skipImages === true,
+            );
+            if (_bglRetryOptions && _bglRetryOptions.length > 0) {
+              // Revalidate against the SAME ceiling — the guardrail is never bypassed.
+              const _bglRetryCompliant = _bglRetryOptions.filter((m: any) => {
+                const carbs = m.carbs ?? m.nutrition?.carbs ?? null;
+                if (carbs == null) return false; // fail-closed on unknown carbs
+                return Number(carbs) <= _bglEffectiveCeiling;
+              });
+              if (_bglRetryCompliant.length > 0) {
+                console.log(
+                  `🩸 [BGL Gate/CravingCreator] Reformulation succeeded — ` +
+                  `${_bglRetryCompliant.length} compliant option(s) at ≤${_bglCarbCeiling}g ceiling`,
+                );
+                _bglGatedOptions = _bglRetryCompliant;
+                _bglRetrySucceeded = true;
+              } else {
+                console.warn(`🩸 [BGL Gate/CravingCreator] Reformulation still exceeded the ${_bglCarbCeiling}g ceiling`);
+              }
+            }
+          } catch (bglRetryErr) {
+            console.error("🩸 [BGL Gate/CravingCreator] Reformulation retry error:", bglRetryErr);
+          }
+
+          if (!_bglRetrySucceeded) {
+            // Both the original pass and the single reformulation failed —
+            // block with a plain-language clinical explanation.
+            const _bglDishLabel = (rawCravingInput || "").trim() || "this dish";
+            return res.status(422).json({
+              error: "BGL_CLINICAL_BLOCK",
+              reasonCode: "bgl_carb_ceiling",
+              clinicalBlock: true,
+              title: "Your blood glucose needs a different version",
+              message: `Your current glucose setting requires meals with ${_bglCarbCeiling}g of carbs or less. We tried creating a lower-carb version of ${_bglDishLabel} but couldn't produce one that met your current nutrition safeguards. You can try another craving, or update your glucose information if your reading has changed.`,
+              carbCeiling: _bglCarbCeiling,
+              suggestedActions: [
+                "Try another craving",
+                "Update your glucose information if your reading has changed",
+              ],
+            });
+          }
         }
       }
 
