@@ -1,5 +1,7 @@
-import { type User, type InsertUser, type Recipe, type InsertRecipe, type MealPlan, type InsertMealPlan, type MealLog, type InsertMealLog, type ShoppingListItem as ShoppingList, type InsertShoppingListItem as InsertShoppingList, type MealReminder, type InsertMealReminder, type MentalHealthConversation, type InsertMentalHealthConversation, type UserGlycemicSettings, type InsertUserGlycemicSettings, type GlucoseLog, type InsertGlucoseLog } from "@shared/schema";
+import { users, type User, type Recipe, type InsertRecipe, type MealPlan, type InsertMealPlan, type MealLog, type InsertMealLog, type ShoppingListItem as ShoppingList, type InsertShoppingListItem as InsertShoppingList, type MealReminder, type InsertMealReminder, type MentalHealthConversation, type InsertMentalHealthConversation, type UserGlycemicSettings, type InsertUserGlycemicSettings, type GlucoseLog, type InsertGlucoseLog } from "@shared/schema";
 import { randomUUID } from "crypto";
+
+type InsertUser = typeof users.$inferInsert;
 
 export interface IStorage {
   // User methods
@@ -149,7 +151,12 @@ export class MemStorage implements IStorage {
     const user = this.users.get(id);
     if (!user) return undefined;
     
-    const updatedUser = { ...user, ...updates };
+    const updatedUser: User = {
+      ...user,
+      ...updates,
+      // Preserve the database enum contract when callers omit the field.
+      role: updates.role ?? user.role,
+    };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -611,7 +618,7 @@ export class MemStorage implements IStorage {
   async getMentalHealthConversations(userId: string, limit: number = 10): Promise<MentalHealthConversation[]> {
     return Array.from(this.mentalHealthConversations.values())
       .filter(conversation => conversation.userId === userId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
       .slice(0, limit);
   }
 
