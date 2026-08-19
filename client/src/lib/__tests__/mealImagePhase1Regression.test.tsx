@@ -15,14 +15,25 @@
  */
 
 import React from "react";
-import { render, fireEvent, screen } from "@testing-library/react";
+import { render, fireEvent, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import * as fs from "fs";
 import * as path from "path";
+
+jest.mock("@/lib/queryClient", () => ({
+  apiRequest: jest.fn(),
+}));
+
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
+import { apiRequest } from "@/lib/queryClient";
 
 const ROOT = path.resolve(__dirname, "../../../..");
+const mockedApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
+
+beforeEach(() => {
+  mockedApiRequest.mockReset();
+});
 
 // ── 1. Broken URLs never show another food ───────────────────────────────────
 
@@ -143,7 +154,47 @@ describe("MealImageSlot — successful image path unchanged", () => {
   });
 });
 
-// ── 6. No hardcoded Unsplash URLs remain (static source scan) ───────────────
+// ── 6. Permanent Object Storage delivery recovery is bounded ─────────────────
+
+describe("MealImageSlot — permanent Object Storage recovery", () => {
+  const permanentUrl = "/public-objects/replit-objstore-test/meal-images/salmon-thumb.jpg";
+
+  it("retries a retryable Object Storage failure once, then stops", async () => {
+    mockedApiRequest.mockResolvedValueOnce({
+      status: "retry",
+      imageUrl: permanentUrl,
+    });
+
+    const { container } = render(<MealImageSlot imageUrl={permanentUrl} mealName="Grilled Salmon" />);
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => expect(mockedApiRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(container.querySelector("img")?.getAttribute("src")).toContain("image-retry=1"));
+
+    // A second browser failure must be terminal: no infinite recovery loop.
+    fireEvent.error(container.querySelector("img")!);
+    await waitFor(() => expect(container.textContent).toContain("Image unavailable"));
+    expect(mockedApiRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses an existing stored variant when the failed thumbnail is missing", async () => {
+    const displayUrl = "/public-objects/replit-objstore-test/meal-images/salmon-display.jpg";
+    mockedApiRequest.mockResolvedValueOnce({
+      status: "recovered",
+      imageUrl: displayUrl,
+    });
+
+    const { container } = render(<MealImageSlot imageUrl={permanentUrl} mealName="Grilled Salmon" />);
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => expect(container.querySelector("img")).toHaveAttribute("src", displayUrl));
+    fireEvent.load(container.querySelector("img")!);
+    expect(container.textContent).not.toContain("Image unavailable");
+    expect(mockedApiRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── 7. No hardcoded Unsplash URLs remain (static source scan) ───────────────
 
 describe("Source scan — no hardcoded Unsplash meal images remain", () => {
   const filesThatMustBeClean = [
