@@ -5459,17 +5459,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `${_bglGatedOptions.length} remain`,
           );
         }
-        // BGL gate eliminated every option — this is a clinical constraint outcome,
-        // not a generation failure.  Return a typed 422 so the inspiration route and
-        // the client can surface a "no compliant options" message without treating
-        // it as a crash.  Running the fallback here would be wrong: any single-
-        // option fallback would also exceed the same carb ceiling.
+        // BGL gate eliminated every option — this is a clinical constraint
+        // outcome, not a generation failure. Before blocking, attempt ONE
+        // targeted reformulation pass: same dish, same constraints (allergies,
+        // diet, cultural grounding, variety memory all flow through the same
+        // pipeline call), plus an explicit numeric carb ceiling. The clinical
+        // guardrail itself is NOT weakened — retry output is revalidated
+        // against the exact same ceiling before being served.
         if (_bglGatedOptions.length === 0 && mealOptions.length > 0) {
-          return res.status(422).json({
-            error: "We created additional versions of this recipe, but none met today's nutrition requirements.",
-            reasonCode: "constraint_conflict",
-            suggestedActions: [],
-          });
+          const _bglEffectiveCeiling = _bglCarbCeiling + BGL_CARB_TOLERANCE;
+          console.warn(
+            `🩸 [BGL Gate/CravingCreator] All options exceeded ${_bglCarbCeiling}g ceiling — ` +
+            `attempting one targeted low-carb reformulation (≤${_bglCarbCeiling}g per serving)`,
+          );
+          let _bglRetrySucceeded = false;
+          try {
+            // Solve for the actual numeric ceiling — no ingredient-type
+            // assumptions ("gluten-free"/"sugar-free" do not guarantee low carb).
+            const _bglRetryClause =
+              ` [CLINICAL CARB CONSTRAINT — the user's current blood glucose state requires each serving to contain ${_bglCarbCeiling}g of total carbohydrates or less. Keep this the SAME dish the user asked for (do not replace it with a different food); reformulate its ingredients and portions so total carbs per serving are at or below ${_bglCarbCeiling}g while preserving the dish's identity, flavor profile, and all other dietary constraints.]`;
+            const _bglRetryOptions = await generateCravingMealOptions(
+              `${cravingInput}${_bglRetryClause}`,
+              targetMealType || "lunch",
+              userId,
+              bodyDietRestrictions,
+              excludeMeals,
+              strictMode === true,
+              (generationMode === 'recipe' ? 'recipe' : 'meal'),
+              (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+              _cravingGlp1Targets,
+              _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+              _dishDirective,
+              skipImages === true,
+            );
+            if (_bglRetryOptions && _bglRetryOptions.length > 0) {
+              // Revalidate against the SAME ceiling — the guardrail is never bypassed.
+              const _bglRetryCompliant = _bglRetryOptions.filter((m: any) => {
+                const carbs = m.carbs ?? m.nutrition?.carbs ?? null;
+                if (carbs == null) return false; // fail-closed on unknown carbs
+                return Number(carbs) <= _bglEffectiveCeiling;
+              });
+              if (_bglRetryCompliant.length > 0) {
+                console.log(
+                  `🩸 [BGL Gate/CravingCreator] Reformulation succeeded — ` +
+                  `${_bglRetryCompliant.length} compliant option(s) at ≤${_bglCarbCeiling}g ceiling`,
+                );
+                _bglGatedOptions = _bglRetryCompliant;
+                _bglRetrySucceeded = true;
+              } else {
+                console.warn(`🩸 [BGL Gate/CravingCreator] Reformulation still exceeded the ${_bglCarbCeiling}g ceiling`);
+              }
+            }
+          } catch (bglRetryErr) {
+            console.error("🩸 [BGL Gate/CravingCreator] Reformulation retry error:", bglRetryErr);
+          }
+
+          if (!_bglRetrySucceeded) {
+            // Both the original pass and the single reformulation failed —
+            // block with a plain-language clinical explanation.
+            const _bglDishLabel = (rawCravingInput || "").trim() || "this dish";
+            return res.status(422).json({
+              error: "BGL_CLINICAL_BLOCK",
+              reasonCode: "bgl_carb_ceiling",
+              clinicalBlock: true,
+              title: "Your blood glucose needs a different version",
+              message: `Your current glucose setting requires meals with ${_bglCarbCeiling}g of carbs or less. We tried creating a lower-carb version of ${_bglDishLabel} but couldn't produce one that met your current nutrition safeguards. You can try another craving, or update your glucose information if your reading has changed.`,
+              carbCeiling: _bglCarbCeiling,
+              suggestedActions: [
+                "Try another craving",
+                "Update your glucose information if your reading has changed",
+              ],
+            });
+          }
         }
       }
 
