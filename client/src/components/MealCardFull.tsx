@@ -6,6 +6,7 @@ import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { useTranslation } from "react-i18next";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 // Shopping list functionality removed - import eliminated
 
 // Simple UUID v4 format check
@@ -284,11 +285,12 @@ export default function MealCardFull({
       {/* Image */}
       {currentMeal.imageUrl && (
         <div className="relative">
-          <img
-            src={currentMeal.imageUrl}
-            alt={currentMeal.name}
-            className="w-full h-48 object-cover rounded-lg"
-            loading="lazy"
+          <MealImageSlot
+            imageUrl={currentMeal.imageUrl}
+            mealName={currentMeal.name}
+            ingredients={currentMeal.ingredients}
+            height="h-48"
+            className="!mb-0 !rounded-lg"
           />
           {currentMeal.difficulty && (
             <Badge 

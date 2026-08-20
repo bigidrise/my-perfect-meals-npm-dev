@@ -226,6 +226,27 @@ describe("MealImageSlot — permanent URL recovery", () => {
     );
   });
 
+  it("retries a permanent URL once when a generated card has no saved-meal asset yet", async () => {
+    const transientUrl = "/public-objects/test-bucket/meal-images/generated-card.jpg";
+    const { container } = render(
+      <MealImageSlot imageUrl={transientUrl} mealName="Freshly Generated Salmon" />,
+    );
+
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => {
+      expect(container.querySelector("img")).toHaveAttribute(
+        "src",
+        `${transientUrl}?delivery-retry=1`,
+      );
+    });
+    expect(mockPost).not.toHaveBeenCalled();
+
+    fireEvent.error(container.querySelector("img")!);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.textContent).toContain("Image unavailable");
+  });
+
   it("uses a surviving Object Storage variant without queuing regeneration", async () => {
     const brokenUrl = "/public-objects/test-bucket/meal-images/thumb.jpg";
     const displayUrl = "/public-objects/test-bucket/meal-images/display.jpg";

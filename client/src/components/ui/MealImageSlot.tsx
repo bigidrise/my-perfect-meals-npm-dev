@@ -16,6 +16,12 @@ const TYPE_LABELS: Record<ImageSourceType, string> = {
   meal: "Meal Preview",
 };
 
+export function withImageDeliveryRetry(url: string, retry: number): string {
+  if (!retry) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}delivery-retry=${retry}`;
+}
+
 function detectTypeFromName(name: string): ImageSourceType {
   const lower = name.toLowerCase();
   if (/smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade|beer|wine|soda|protein.shake|matcha|espresso|frappe|cooler|spritzer|tonic|punch|agua.fresca|horchata|kombucha|infusion|elixir/.test(lower)) return "beverage";
@@ -114,13 +120,14 @@ export function MealImageSlot({
   const [failed, setFailed] = useState(false);
   const [recoveryState, setRecoveryState] = useState<"idle" | "restoring">("idle");
   const [recoveredUrl, setRecoveredUrl] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const recoveryAttempted = useRef(false);
   const recoveryVersion = useRef(0);
   const mounted = useRef(true);
 
   const resolvedType = sourceType ?? detectTypeFromName(mealName);
   const label = TYPE_LABELS[resolvedType];
-  const renderedUrl = recoveredUrl ?? imageUrl;
+  const renderedUrl = withImageDeliveryRetry(recoveredUrl ?? imageUrl ?? "", retryNonce);
 
   useEffect(() => {
     // A new server-supplied URL starts a new display lifecycle. This is distinct
@@ -130,6 +137,7 @@ export function MealImageSlot({
     setFailed(false);
     setRevealed(false);
     setRecoveryState("idle");
+    setRetryNonce(0);
     recoveryVersion.current += 1;
   }, [imageUrl, savedMealId, mediaAssetId]);
 
@@ -149,6 +157,20 @@ export function MealImageSlot({
     const canUpdate = () => mounted.current && requestVersion === recoveryVersion.current;
 
     try {
+      // Generator and board cards have a durable URL but no saved-meal asset
+      // relationship. They must not call the persistence recovery endpoints,
+      // but they still deserve one retry after a transient storage read error.
+      if (!savedMealId || !mediaAssetId) {
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+        if (canUpdate()) {
+          setRetryNonce(1);
+          setRecoveryState("idle");
+          setFailed(false);
+          setRevealed(false);
+        }
+        return;
+      }
+
       // Object Storage can distinguish a 404 from a temporary delivery outage
       // and can offer a surviving thumbnail/display/original variant. Do that
       // no-cost recovery before considering image generation.
@@ -161,11 +183,8 @@ export function MealImageSlot({
 
         if (!canUpdate()) return;
         if ((delivery.status === "retry" || delivery.status === "recovered") && delivery.imageUrl) {
-          const separator = delivery.imageUrl.includes("?") ? "&" : "?";
-          const retryUrl = delivery.status === "retry"
-            ? `${delivery.imageUrl}${separator}delivery-retry=1`
-            : delivery.imageUrl;
-          setRecoveredUrl(retryUrl);
+          setRecoveredUrl(delivery.imageUrl);
+          setRetryNonce(delivery.status === "retry" ? 1 : 0);
           setRecoveryState("idle");
           setFailed(false);
           setRevealed(false);

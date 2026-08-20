@@ -12,6 +12,7 @@ import DietStyleBadge from "@/components/DietStyleBadge";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 import { MealRefinementPanel } from "@/components/MealRefinementPanel";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -160,32 +161,13 @@ export default function WeeklyMealCard({
     <Card className="overflow-hidden bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl flex flex-col h-full">
       {/* Image with badges - exactly like Fridge Rescue */}
       <div className="relative">
-        {/* Phase 1: never substitute another food on failure. Show neutral dark background when no image. */}
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-48 object-cover"
-            onError={(e) => {
-              // Hide the broken image; the card dark background remains as a neutral unavailable state.
-              e.currentTarget.style.display = "none";
-            }}
-          />
-        ) : (
-          <div
-            className="w-full h-48 flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #1a0a00 0%, #7c2d0e 50%, #1a0a00 100%)" }}
-          >
-            <div className="flex flex-col items-center gap-2 opacity-60">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <span className="text-orange-300 text-xs">Image unavailable</span>
-            </div>
-          </div>
-        )}
+        <MealImageSlot
+          imageUrl={imageUrl}
+          mealName={title}
+          ingredients={meal?.ingredients}
+          height="h-48"
+          className="!mb-0 !rounded-none"
+        />
         <div className="absolute top-3 left-3">
           <Badge
             variant={difficulty === "Easy" ? "default" : "secondary"}

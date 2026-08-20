@@ -19,6 +19,7 @@ import MealClassificationPill, { type DietClassification } from "@/components/Me
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 export interface GeneratedMealData {
   id: string;
@@ -263,14 +264,13 @@ export default function GeneratedMealCard({
 
       {/* 2. Image */}
       {mealToShow.imageUrl && (
-        <div className="rounded-lg overflow-hidden">
-          <img
-            key={mealToShow.imageUrl}
-            src={mealToShow.imageUrl}
-            alt={mealToShow.name}
-            className="w-full h-64 object-cover"
-          />
-        </div>
+        <MealImageSlot
+          imageUrl={mealToShow.imageUrl}
+          mealName={mealToShow.name}
+          ingredients={mealToShow.ingredients}
+          height="h-64"
+          className="!mb-0 !rounded-lg"
+        />
       )}
 
       {/* Coaching confirmation — answers "why should I trust this meal?" */}
