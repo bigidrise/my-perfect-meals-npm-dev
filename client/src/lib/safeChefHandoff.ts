@@ -23,16 +23,43 @@ export function safeLocalStorageImageUrl(url: string | null | undefined): string
  * Automatically strips unsafe imageUrls and handles QuotaExceededError by
  * clearing stale Chef keys and retrying once before giving up gracefully.
  */
-export function writeChefHandoffMeal(meal: Record<string, unknown>): void {
-  const safe = { ...meal, imageUrl: safeLocalStorageImageUrl(meal.imageUrl as string | null | undefined) };
+export function writeChefHandoffMeal<T extends { imageUrl?: string | null | undefined }>(meal: T): void {
+  const safe = { ...meal, imageUrl: safeLocalStorageImageUrl(meal.imageUrl) };
   const json = JSON.stringify(safe);
   try {
     localStorage.setItem("mpm_chefs_kitchen_meal", json);
   } catch {
     // Storage full — clear stale Chef keys and retry once
-    localStorage.removeItem("mpm_chefs_kitchen_meal");
-    localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
-    localStorage.removeItem("mpm_chefs_kitchen_origin");
-    try { localStorage.setItem("mpm_chefs_kitchen_meal", json); } catch { /* give up */ }
+    try {
+      localStorage.removeItem("mpm_chefs_kitchen_meal");
+      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
+      localStorage.removeItem("mpm_chefs_kitchen_origin");
+      localStorage.setItem("mpm_chefs_kitchen_meal", json);
+    } catch {
+      // Unavailable storage is non-blocking; Chef's Kitchen can open without a meal.
+    }
+  }
+}
+
+/**
+ * Persist an external "Prepare with Chef" launch without letting unavailable
+ * localStorage block navigation. The meal is always written first so its
+ * quota-recovery path has a chance to clear stale Chef keys before launch state.
+ */
+export function writeChefPrepareHandoff<T extends { imageUrl?: string | null | undefined }>(
+  meal: T,
+  options: { origin?: string; clearPrep?: boolean } = {},
+): void {
+  writeChefHandoffMeal(meal);
+  try {
+    localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+    if (options.origin) {
+      localStorage.setItem("mpm_chefs_kitchen_origin", options.origin);
+    }
+    if (options.clearPrep) {
+      localStorage.removeItem("mpm_chefs_kitchen_prep");
+    }
+  } catch {
+    // Chef's Kitchen handles a missing handoff meal, so navigation must proceed.
   }
 }

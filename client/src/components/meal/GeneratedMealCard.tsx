@@ -18,6 +18,7 @@ import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 
 export interface GeneratedMealData {
   id: string;
@@ -157,14 +158,7 @@ export default function GeneratedMealCard({
       medicalBadges: generatedMeal.medicalBadges || [],
     };
 
-    try {
-      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
-    } catch {
-      localStorage.removeItem("mpm_chefs_kitchen_meal");
-      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
-      localStorage.removeItem("mpm_chefs_kitchen_origin");
-      try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData)); } catch { /* give up */ }
-    }
+    writeChefHandoffMeal(mealData);
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 

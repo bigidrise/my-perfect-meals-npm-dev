@@ -57,6 +57,7 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import TrashButton from "@/components/ui/TrashButton";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 
 const PERFORMANCE_GOALS = [
@@ -1058,10 +1059,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                             instructions: generatedBeverage.instructions,
                             imageUrl: safeImageUrl,
                           };
-                          localStorage.setItem(
-                            "mpm_chefs_kitchen_meal",
-                            JSON.stringify(mealData),
-                          );
+                          writeChefHandoffMeal(mealData);
                           localStorage.setItem(
                             "mpm_chefs_kitchen_external_prepare",
                             "true",

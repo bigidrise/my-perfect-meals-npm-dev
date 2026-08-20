@@ -6,6 +6,7 @@ import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1084,10 +1085,7 @@ export default function BeverageCreator() {
                             instructions: generatedBeverage.instructions,
                             imageUrl: safeImageUrl,
                           };
-                          localStorage.setItem(
-                            "mpm_chefs_kitchen_meal",
-                            JSON.stringify(mealData),
-                          );
+                          writeChefHandoffMeal(mealData);
                           localStorage.setItem(
                             "mpm_chefs_kitchen_external_prepare",
                             "true",
