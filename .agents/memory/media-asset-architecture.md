@@ -31,6 +31,13 @@ description: Full lifecycle for meal images through media_assets table, paginate
 - `mealSharesRouter.ts` CREATE: blocks temp DALL-E patterns before INSERT.
 - `ingestImageToPermanentStorage` in `mealImageGenerator.ts`: already routes through lifecycle via shim.
 
+## Broken Permanent-URL Recovery
+- A client delivery-failure report is only a trigger: recovery must be bound to the reporting user's current saved meal, its exact current media asset, and that asset's canonical stored URL. First-party permanent forms include Object Storage and the configured legacy S3 bucket.
+- The replacement image request must derive its title, ingredients, and image type from the saved meal on the server, never browser-provided recipe fields.
+- Recovery jobs are durable and fenced by an active asset-level job plus a lease token. Before swapping an image, the worker must verify the saved meal's asset and complete recipe snapshot still match.
+- **Why:** otherwise a stale browser report can mutate another asset, regenerate unrelated food, duplicate paid work, or overwrite a meal edited while generation was in flight.
+- **How to apply:** preserve these ownership, recipe, lease, and conditional-write checks whenever adding another permanent image surface or worker.
+
 ## Client Side
 - `useSavedMeals.ts`: `useSavedMealsFeed(20)` returns InfiniteQuery. `useSavedMealsList()` kept for compat (flattens pages).
 - `SavedMealRow.tsx`: thumbnail uses `row.thumbnailUrl || d?.imageUrl` (list), display uses `row.displayUrl || row.thumbnailUrl || d?.imageUrl` (expanded).

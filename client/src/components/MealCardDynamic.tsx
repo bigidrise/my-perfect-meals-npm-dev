@@ -5,6 +5,7 @@ import { CheckCircle, AlertTriangle, RotateCcw, Plus, Clock, Users, Eye } from "
 import { EngineMeal, UserProfile } from "@/services/mealEngineService";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 interface MedicalBadge {
   badge: string;
@@ -196,11 +197,12 @@ const MealCardDynamic: React.FC<MealCardDynamicProps> = ({
 
       {/* Image */}
       {meal.imageUrl && (
-        <img
-          src={meal.imageUrl}
-          alt={meal.name}
-          className="w-full h-48 object-cover rounded-lg"
-          loading="lazy"
+        <MealImageSlot
+          imageUrl={meal.imageUrl}
+          mealName={meal.name}
+          ingredients={meal.ingredients}
+          height="h-48"
+          className="!mb-0 !rounded-lg"
         />
       )}
 

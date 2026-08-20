@@ -36,6 +36,7 @@ import {
   formatAllergyAlertDescription,
 } from "@/utils/allergyAlert";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -925,14 +926,13 @@ export default function ChefsKitchenPage() {
 
                   {/* Image */}
                   {mealToShow.imageUrl && (
-                    <div className="rounded-lg overflow-hidden">
-                      <img
-                        key={mealToShow.imageUrl}
-                        src={mealToShow.imageUrl}
-                        alt={mealToShow.name}
-                        className="w-full h-64 object-cover"
-                      />
-                    </div>
+                    <MealImageSlot
+                      imageUrl={mealToShow.imageUrl}
+                      mealName={mealToShow.name}
+                      ingredients={mealToShow.ingredients}
+                      height="h-64"
+                      className="!mb-0 !rounded-lg"
+                    />
                   )}
 
                   {/* Serving Size */}

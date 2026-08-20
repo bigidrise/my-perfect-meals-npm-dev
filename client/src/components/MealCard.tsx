@@ -14,6 +14,7 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import { type Meal, type DietClassification } from "@/types/meal";
 import KosherProTip from "@/components/KosherProTip";
@@ -267,47 +268,19 @@ export function MealCard({
   const isChefMeal = meal.id?.startsWith("chef-");
   const isAIMeal = isChefMeal || meal.id?.startsWith("ai-meal-");
   const imageUrl = (meal as any).imageUrl as string | null | undefined;
-  const [imageRevealed, setImageRevealed] = React.useState(false);
 
   return (
     <>
     <div className={`relative rounded-2xl border bg-white/5 backdrop-blur-xl overflow-hidden hover:bg-white/10 transition-colors ${isChefMeal ? "flash-border" : "border-white/20"}`}>
       {/* Image slot — always rendered for AI/chef meals so shimmer shows while loading */}
       {(isAIMeal || imageUrl) && (
-        <div
-          className="relative w-full h-48 overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }}
-        >
-          {/* Shimmer — visible while imageUrl is absent */}
-          {!imageUrl && (
-            <div
-              className="mpm-shimmer-bar absolute inset-0"
-              style={{
-                background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)",
-                animation: "mpm-shimmer 1.8s ease-in-out infinite",
-              }}
-            />
-          )}
-          {/* Image — fades in once loaded */}
-          {imageUrl && (
-            <>
-              {!imageRevealed && (
-                <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%)" }} />
-              )}
-              <img
-                src={imageUrl}
-                alt={title}
-                className={`w-full h-48 object-cover transition-opacity duration-300 ${imageRevealed ? "opacity-100" : "opacity-0"}`}
-                onLoad={() => setImageRevealed(true)}
-                onError={() => {
-                  // Phase 1: never substitute another food on failure — hide the broken image.
-                  // The shimmer/dark background below remains visible as a neutral state.
-                  setImageRevealed(false);
-                }}
-              />
-            </>
-          )}
-        </div>
+        <MealImageSlot
+          imageUrl={imageUrl}
+          mealName={title}
+          ingredients={(meal as any).ingredients}
+          height="h-48"
+          className="!mb-0 !rounded-none"
+        />
       )}
 
       {/* Coaching confirmation line — specific line from builder, or universal fallback */}

@@ -1303,6 +1303,8 @@ setTimeout(async () => {
   try {
     const { runMediaAssetsMigration } = await import("./db/migrations/runMediaAssetsMigration");
     await runMediaAssetsMigration();
+    const { resumePendingMealImageRecoveries } = await import("./services/mealImageRecovery");
+    await resumePendingMealImageRecoveries();
   } catch (err: any) {
     console.error("❌ Media Assets boot migration failed:", err.message);
   }

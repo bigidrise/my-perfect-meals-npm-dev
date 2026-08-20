@@ -999,6 +999,7 @@ function RecipeCard({
               <MealImageSlot
                 imageUrl={imageUrl ?? undefined}
                 mealName={recipe.recipeName}
+                ingredients={recipe.ingredients}
                 isLoading={imageLoading}
                 sourceType="meal"
                 height="h-56"

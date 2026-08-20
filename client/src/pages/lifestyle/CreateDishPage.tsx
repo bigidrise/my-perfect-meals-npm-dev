@@ -1129,6 +1129,7 @@ export default function CreateDishPage() {
                         <MealImageSlot
                           imageUrl={meal.imageUrl}
                           mealName={meal.name}
+                          ingredients={meal.ingredients}
                           isLoading={!!loadingImages[meal.id]}
                         />
                       ) : (

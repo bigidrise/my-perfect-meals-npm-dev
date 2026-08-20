@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ReactNode } from "react";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 interface GeneratedCardShellProps {
   title: string;
@@ -39,14 +40,12 @@ export default function GeneratedCardShell({
 
       <CardContent className="space-y-4">
         {imageUrl ? (
-          <div className="relative w-full aspect-square rounded-lg overflow-hidden">
-            <img
-              src={imageUrl}
-              alt={title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          </div>
+          <MealImageSlot
+            imageUrl={imageUrl}
+            mealName={title}
+            height="aspect-square"
+            className="!mb-0 !rounded-lg"
+          />
         ) : imagePlaceholder ? (
           <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-black/20 flex items-center justify-center border border-white/10">
             {imagePlaceholder}

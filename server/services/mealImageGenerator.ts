@@ -977,6 +977,28 @@ export function clearImageCache(): void {
   console.log('🗑️ In-memory image cache cleared');
 }
 
+/**
+ * Remove one request's cache entry before a confirmed delivery failure is
+ * regenerated. A broken Object Storage URL must never be served back from the
+ * cache during its own recovery attempt.
+ */
+export async function invalidateMealImageCache(request: MealImageRequest): Promise<void> {
+  const mealName = normalizeMealName(request.mealName);
+  const ingredients = request.ingredients
+    .map(i => (i || "").trim())
+    .filter(Boolean);
+  const cacheKey = buildStableCacheKey(mealName, ingredients, request.sourceType, request.pediatricContext?.stage);
+
+  memCache.delete(cacheKey);
+  try {
+    await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
+  } catch (err: any) {
+    // The fresh generation can still proceed; it will overwrite this key once
+    // persistence succeeds. Logging preserves visibility without blocking repair.
+    console.warn(`[IMG-RECOVERY] Could not evict DB cache for "${mealName}": ${err?.message ?? "unknown"}`);
+  }
+}
+
 export function getImageCacheStats(): { size: number; entries: string[] } {
   return {
     size: memCache.size,

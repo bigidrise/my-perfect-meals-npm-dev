@@ -130,6 +130,9 @@ export default function SavedMealRow({
           <MealImageSlot
             imageUrl={row.thumbnailUrl || d?.imageUrl}
             mealName={row.title}
+            ingredients={d?.ingredients}
+            savedMealId={row.id}
+            mediaAssetId={row.mediaAssetId}
             height="h-14"
             className="!mb-0 !rounded-none"
           />
@@ -161,6 +164,9 @@ export default function SavedMealRow({
           <MealImageSlot
             imageUrl={row.displayUrl || row.thumbnailUrl || d?.imageUrl}
             mealName={row.title}
+            ingredients={d?.ingredients}
+            savedMealId={row.id}
+            mediaAssetId={row.mediaAssetId}
             height="h-52"
           />
 

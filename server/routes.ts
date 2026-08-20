@@ -478,15 +478,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This endpoint intentionally NEVER generates an image — recovery must not
   // spend on DALL-E while an authoritative stored variant may still exist.
   app.post("/api/media/image-delivery-recovery", requireAuth, async (req, res) => {
-    const parsed = z.object({ imageUrl: z.string().min(1).max(2_048) }).safeParse(req.body);
+    const parsed = z.object({
+      imageUrl: z.string().min(1).max(2_048),
+      savedMealId: z.string().min(1),
+      mediaAssetId: z.string().min(1),
+    }).safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "A first-party image URL is required" });
+      return res.status(400).json({ error: "An owned saved meal image is required" });
     }
 
-    const failedUrl = parsed.data.imageUrl;
+    const { imageUrl: failedUrl, savedMealId, mediaAssetId } = parsed.data;
     const failedPath = publicObjectPathFromUrl(failedUrl);
     if (!failedPath) {
       return res.status(400).json({ error: "Only first-party Object Storage URLs can be recovered" });
+    }
+
+    // A public Object Storage URL is not authorization. Bind it to the
+    // caller's current saved-meal asset before probing or changing lifecycle
+    // state, matching the durable regeneration queue's ownership invariant.
+    const [savedMeal] = await db
+      .select({ id: savedMealsTable.id, mediaAssetId: savedMealsTable.mediaAssetId })
+      .from(savedMealsTable)
+      .where(and(
+        eq(savedMealsTable.id, savedMealId),
+        eq(savedMealsTable.userId, req.authUser!.id),
+      ))
+      .limit(1);
+    if (!savedMeal || savedMeal.mediaAssetId !== mediaAssetId) {
+      return res.status(404).json({ error: "Saved meal image was not found" });
+    }
+
+    const [asset] = await db
+      .select({
+        id: mediaAssetsTable.id,
+        thumbnailUrl: mediaAssetsTable.thumbnailUrl,
+        displayUrl: mediaAssetsTable.displayUrl,
+        originalObjectKey: mediaAssetsTable.originalObjectKey,
+      })
+      .from(mediaAssetsTable)
+      .where(eq(mediaAssetsTable.id, mediaAssetId))
+      .limit(1);
+    if (!asset || (asset.thumbnailUrl !== failedUrl && asset.displayUrl !== failedUrl)) {
+      return res.status(409).json({ error: "Reported URL is not the saved meal's current image" });
     }
 
     const objectStorage = new ObjectStorageService();
@@ -509,29 +542,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ ...decision, retryAfterMs: 1_000 });
       }
 
-      // Look for a canonical asset record. Legacy URLs without a media_assets
-      // record can still be rendered, but cannot safely be regenerated here.
-      const [asset] = await db
-        .select({
-          id: mediaAssetsTable.id,
-          thumbnailUrl: mediaAssetsTable.thumbnailUrl,
-          displayUrl: mediaAssetsTable.displayUrl,
-          originalObjectKey: mediaAssetsTable.originalObjectKey,
-        })
-        .from(mediaAssetsTable)
-        .where(or(
-          eq(mediaAssetsTable.thumbnailUrl, failedUrl),
-          eq(mediaAssetsTable.displayUrl, failedUrl),
-        ))
-        .limit(1);
-
-      const candidates = asset
-        ? [
-            asset.thumbnailUrl,
-            asset.displayUrl,
-            publicObjectUrlForKey(failedUrl, asset.originalObjectKey),
-          ].filter((url): url is string => Boolean(url && url !== failedUrl))
-        : [];
+      const candidates = [
+        asset.thumbnailUrl,
+        asset.displayUrl,
+        publicObjectUrlForKey(failedUrl, asset.originalObjectKey),
+      ].filter((url): url is string => Boolean(url && url !== failedUrl));
 
       let alternate: { url: string; probe: DeliveryProbe } | null = null;
       for (const candidate of candidates) {
@@ -541,7 +556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const decision = decideImageDeliveryRecovery({ failedUrl, failedProbe, alternate });
-      if (decision.status === "recovered" && asset) {
+      if (decision.status === "recovered") {
         const replacement = decision.imageUrl;
         await db.update(mediaAssetsTable).set({
           ...(asset.thumbnailUrl === failedUrl ? { thumbnailUrl: replacement } : {}),
@@ -550,14 +565,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }).where(eq(mediaAssetsTable.id, asset.id));
       }
 
-      if (decision.status === "unavailable" && decision.reason === "missing" && asset) {
-        // Do not keep serving the confirmed-missing URL on later reloads.
-        // A separate authoritative-generation flow can re-create this asset
-        // with the actual recipe contract; this delivery endpoint never does.
+      if (decision.status === "unavailable" && decision.reason === "missing") {
+        // Preserve the canonical URL for the subsequent authenticated,
+        // recipe-aware regeneration request to bind against. The queue will
+        // replace it only after ownership and current-asset checks pass.
         await db.update(mediaAssetsTable).set({
           status: "failed",
-          thumbnailUrl: asset.thumbnailUrl === failedUrl ? null : asset.thumbnailUrl,
-          displayUrl: asset.displayUrl === failedUrl ? null : asset.displayUrl,
+          validationStatus: "failed",
           processingError: "delivery_missing",
           retryCount: sql`COALESCE(${mediaAssetsTable.retryCount}, 0) + 1`,
           nextRetryAt: new Date(Date.now() + 5 * 60 * 1000),
