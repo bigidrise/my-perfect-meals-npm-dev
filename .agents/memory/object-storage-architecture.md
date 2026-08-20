@@ -12,6 +12,14 @@ The sidecar's `/object-storage/signed-object-url` returns 401 and is NOT fixable
 
 **Active bucket:** `replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b` (display name: "FuzzyOrdinaryWebmaster")
 
+## Parallel-workspace recovery
+
+An existing App Storage bucket can be deliberately granted to another app in the same Replit account via **App Storage → bucket menu → Add an existing bucket**. A clean, parallel workspace can therefore validate against the existing database and bucket without copying data or deleting the incumbent workspace.
+
+**Why:** A workspace-level authorization incident may justify a reversible recovery candidate, but replacing a bucket or database would unnecessarily risk user data and image history.
+
+**How to apply:** Keep the current deployment intact; attach the existing bucket only to a temporary recovery app, configure its production secrets, test there, and move the custom domain only after verification. Disconnecting/reconnecting a custom domain is required for cutover.
+
 **Why the old bucket stopped working:** The bucket `replit-objstore-e02a723e-40e9-4d89-9c0e-05adfa185d2d` became disconnected from the repl. The sidecar returned "no allowed resources" on all token requests. Creating a new bucket fixed it instantly.
 
 **Public URL format:** `/public-objects/<bucket-id>/<object-path>`  
