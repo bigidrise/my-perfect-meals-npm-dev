@@ -9,6 +9,12 @@ export const mediaAssets = pgTable("media_assets", {
 
   /** pending | ready | failed */
   status: text("status").notNull().default("pending"),
+  /**
+   * Delivery validation is intentionally separate from processing status.
+   * A URL can be uploaded successfully (`status: ready`) but still be
+   * unvalidated in a browser until it has been delivered successfully.
+   */
+  validationStatus: text("validation_status").default("unvalidated"),
 
   // ── Thumbnail variant (~400 px wide, JPEG 82%) — used in all card/list views ──
   thumbnailObjectKey: text("thumbnail_object_key"),

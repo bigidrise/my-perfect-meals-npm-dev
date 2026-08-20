@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { apiRequest } from "@/lib/queryClient";
+import { useEffect, useRef, useState } from "react";
+import { get, post } from "@/lib/api";
+import { isFirstPartyPermanentImageUrl } from "@shared/mediaImageUrls";
 
 export type ImageSourceType = "beverage" | "dessert" | "snack" | "sushi" | "meal";
 
@@ -56,10 +57,40 @@ function UnavailablePlaceholder({
   );
 }
 
+function RecoveringPlaceholder({
+  label,
+  height,
+  className,
+}: {
+  label: string;
+  height: string;
+  className: string;
+}) {
+  return (
+    <div className={`mb-6 rounded-lg overflow-hidden ${className}`}>
+      <div
+        className={`w-full ${height} flex flex-col items-center justify-center gap-3`}
+        style={{ background: "linear-gradient(135deg, #1a0a00 0%, #7c2d0e 50%, #1a0a00 100%)" }}
+      >
+        <div className="w-8 h-8 rounded-full border-2 border-orange-400 border-t-transparent animate-spin" />
+        <div className="text-center">
+          <p className="text-orange-300 text-sm font-medium">{label}</p>
+          <p className="text-white/40 text-xs mt-0.5">Restoring image…</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface MealImageSlotProps {
   imageUrl?: string | null;
   mealName: string;
   sourceType?: ImageSourceType;
+  /** Recipe contract used to safely regenerate a confirmed-broken image. */
+  ingredients?: Array<string | { name?: string; item?: string }>;
+  /** Present for saved meals, so recovery can replace the persisted asset. */
+  savedMealId?: string;
+  mediaAssetId?: string | null;
   isLoading?: boolean;
   height?: string;
   /** @deprecated No longer used. Kept for interface compat only — ignored. */
@@ -71,6 +102,9 @@ export function MealImageSlot({
   imageUrl,
   mealName,
   sourceType,
+  ingredients,
+  savedMealId,
+  mediaAssetId,
   isLoading = false,
   height = "h-64",
   className = "",
@@ -78,66 +112,137 @@ export function MealImageSlot({
   const [revealed, setRevealed] = useState(false);
   // true = image load failed; show neutral unavailable state, never another food
   const [failed, setFailed] = useState(false);
-  const [activeImageUrl, setActiveImageUrl] = useState(imageUrl ?? null);
-  const [isRecovering, setIsRecovering] = useState(false);
-  const [recoveryAttempted, setRecoveryAttempted] = useState(false);
-  const [retryNonce, setRetryNonce] = useState(0);
+  const [recoveryState, setRecoveryState] = useState<"idle" | "restoring">("idle");
+  const [recoveredUrl, setRecoveredUrl] = useState<string | null>(null);
+  const recoveryAttempted = useRef(false);
+  const recoveryVersion = useRef(0);
+  const mounted = useRef(true);
 
   const resolvedType = sourceType ?? detectTypeFromName(mealName);
   const label = TYPE_LABELS[resolvedType];
+  const renderedUrl = recoveredUrl ?? imageUrl;
 
-  // A new image URL is a new delivery attempt. Reset the bounded recovery state.
   useEffect(() => {
-    setActiveImageUrl(imageUrl ?? null);
-    setRevealed(false);
+    // A new server-supplied URL starts a new display lifecycle. This is distinct
+    // from the one replacement URL generated for an onError in this component.
+    recoveryAttempted.current = false;
+    setRecoveredUrl(null);
     setFailed(false);
-    setIsRecovering(false);
-    setRecoveryAttempted(false);
-    setRetryNonce(0);
-  }, [imageUrl]);
+    setRevealed(false);
+    setRecoveryState("idle");
+    recoveryVersion.current += 1;
+  }, [imageUrl, savedMealId, mediaAssetId]);
 
-  const reportPermanentDeliveryFailure = async () => {
-    if (
-      !activeImageUrl?.startsWith("/public-objects/") ||
-      recoveryAttempted
-    ) {
+  useEffect(() => () => {
+    mounted.current = false;
+  }, []);
+
+  const requestRecovery = async () => {
+    if (!isFirstPartyPermanentImageUrl(imageUrl) || recoveryAttempted.current) {
       setFailed(true);
       return;
     }
 
-    setRecoveryAttempted(true);
-    setIsRecovering(true);
-    try {
-      const result = await apiRequest<{
-        status: "retry" | "recovered" | "unavailable";
-        imageUrl?: string;
-      }>("/api/media/image-delivery-recovery", {
-        method: "POST",
-        body: JSON.stringify({ imageUrl: activeImageUrl }),
-      });
+    recoveryAttempted.current = true;
+    setRecoveryState("restoring");
+    const requestVersion = recoveryVersion.current;
+    const canUpdate = () => mounted.current && requestVersion === recoveryVersion.current;
 
-      if (result.status === "recovered" && result.imageUrl) {
-        setActiveImageUrl(result.imageUrl);
-        setRetryNonce(0);
+    try {
+      // Object Storage can distinguish a 404 from a temporary delivery outage
+      // and can offer a surviving thumbnail/display/original variant. Do that
+      // no-cost recovery before considering image generation.
+      if (imageUrl?.startsWith("/public-objects/")) {
+        const delivery = await post<{
+          status: "retry" | "recovered" | "unavailable";
+          imageUrl?: string;
+          reason?: "missing" | "unsupported";
+        }>("/api/media/image-delivery-recovery", { imageUrl, savedMealId, mediaAssetId });
+
+        if (!canUpdate()) return;
+        if ((delivery.status === "retry" || delivery.status === "recovered") && delivery.imageUrl) {
+          const separator = delivery.imageUrl.includes("?") ? "&" : "?";
+          const retryUrl = delivery.status === "retry"
+            ? `${delivery.imageUrl}${separator}delivery-retry=1`
+            : delivery.imageUrl;
+          setRecoveredUrl(retryUrl);
+          setRecoveryState("idle");
+          setFailed(false);
+          setRevealed(false);
+          return;
+        }
+        if (delivery.status !== "unavailable" || delivery.reason !== "missing") {
+          setRecoveryState("idle");
+          setFailed(true);
+          return;
+        }
+      }
+
+      // Only confirmed-missing Object Storage objects (or legacy first-party
+      // S3 URLs that have no Object Storage probe) reach the paid, recipe-aware
+      // regeneration queue.
+      const queued = await post<{ accepted: boolean; recoveryId?: string }>(
+        "/api/meal-images/recover",
+        {
+          imageUrl,
+          mealName,
+          ingredients,
+          sourceType: resolvedType === "sushi" ? "meal" : resolvedType,
+          savedMealId,
+          mediaAssetId,
+        },
+      );
+
+      if (!queued.accepted || !queued.recoveryId) {
+        if (canUpdate()) {
+          setRecoveryState("idle");
+          setFailed(true);
+        }
         return;
       }
-      if (result.status === "retry" && result.imageUrl) {
-        setActiveImageUrl(result.imageUrl);
-        setRetryNonce((nonce) => nonce + 1);
-        return;
-      }
-      setFailed(true);
+
+      // Polling observes the one background generation job; it does not start
+      // another generation. Once ready, the image element receives exactly one
+      // replacement URL and will never loop if that URL also fails.
+      const poll = async (attempt: number): Promise<void> => {
+        try {
+          const recovery = await get<{ status: "pending" | "ready" | "failed"; imageUrl?: string }>(
+            `/api/meal-images/recover/${queued.recoveryId}`,
+          );
+          if (!canUpdate()) return;
+          if (recovery.status === "ready" && recovery.imageUrl) {
+            setRecoveredUrl(recovery.imageUrl);
+            setRecoveryState("idle");
+            setFailed(false);
+            setRevealed(false);
+            return;
+          }
+          if (recovery.status === "failed" || attempt >= 119) {
+            setRecoveryState("idle");
+            setFailed(true);
+            return;
+          }
+        } catch {
+          if (canUpdate()) {
+            setRecoveryState("idle");
+            setFailed(true);
+          }
+          return;
+        }
+        window.setTimeout(() => void poll(attempt + 1), 1_000);
+      };
+
+      void poll(0);
     } catch {
-      // The recovery check itself is unavailable. Stay honest rather than
-      // leaving an infinite loading state or retrying unboundedly.
-      setFailed(true);
-    } finally {
-      setIsRecovering(false);
+      if (canUpdate()) {
+        setRecoveryState("idle");
+        setFailed(true);
+      }
     }
   };
 
   // Shimmer while actively loading
-  if (isLoading || isRecovering) {
+  if (isLoading) {
     return (
       <div className={`mb-6 rounded-lg overflow-hidden ${className}`}>
         <div
@@ -153,17 +258,19 @@ export function MealImageSlot({
             }}
           />
           <div className="w-8 h-8 rounded-full border-2 border-orange-400 border-t-transparent animate-spin" />
-          <span className="text-orange-300 text-sm font-medium tracking-wide">
-            {isRecovering ? "Restoring image…" : "Generating image…"}
-          </span>
+          <span className="text-orange-300 text-sm font-medium tracking-wide">Generating image…</span>
         </div>
       </div>
     );
   }
 
   // No image URL — generation failed or not yet completed
-  if (!activeImageUrl) {
+  if (!renderedUrl) {
     return <UnavailablePlaceholder label={label} height={height} className={className} />;
+  }
+
+  if (recoveryState === "restoring") {
+    return <RecoveringPlaceholder label={label} height={height} className={className} />;
   }
 
   // Delivery failed — image URL existed but could not be loaded
@@ -181,17 +288,16 @@ export function MealImageSlot({
         />
       )}
       <img
-        key={`${activeImageUrl}:${retryNonce}`}
-        src={retryNonce ? `${activeImageUrl}${activeImageUrl.includes("?") ? "&" : "?"}image-retry=${retryNonce}` : activeImageUrl}
+        src={renderedUrl}
         alt={mealName}
         className={`w-full ${height} object-cover transition-opacity duration-300 ${revealed ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setRevealed(true)}
         onError={() => {
-          // Browser onError does not expose 404 vs 503. Ask the server to
-          // distinguish a confirmed-missing object from a retryable outage.
-          // The component will make at most one controlled retry.
+          // Delivery failed: Object Storage URLs get one background recovery
+          // attempt. All other delivery failures remain neutral unavailable.
+          // NEVER substitute another food photograph.
           setRevealed(false);
-          void reportPermanentDeliveryFailure();
+          void requestRecovery();
         }}
       />
     </div>

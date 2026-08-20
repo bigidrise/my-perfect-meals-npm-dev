@@ -98,6 +98,7 @@ function buildObjectKey(mealName: string, variant: "thumb" | "display" | "orig",
 export interface MediaAsset {
   id: string;
   status: "pending" | "ready" | "failed";
+  validationStatus: "valid" | "unvalidated" | "failed" | null;
   thumbnailUrl: string | null;
   displayUrl: string | null;
   originalObjectKey: string | null;
@@ -122,7 +123,7 @@ export async function processImageForMeal(
       sourceType: "none",
     }).returning();
     logMedia("media_processed", { status: "pending", reason: "no_source", mealName });
-    return { id: record.id, status: "pending", thumbnailUrl: null, displayUrl: null, originalObjectKey: null };
+    return { id: record.id, status: "pending", validationStatus: record.validationStatus as MediaAsset["validationStatus"], thumbnailUrl: null, displayUrl: null, originalObjectKey: null };
   }
 
   // ── Case 2: Already a first-party permanent URL ─────────────────────────────
@@ -131,12 +132,13 @@ export async function processImageForMeal(
   if (FIRST_PARTY_PREFIXES.some(p => source.startsWith(p))) {
     const [record] = await db.insert(mediaAssets).values({
       status: "ready",
+      validationStatus: "unvalidated",
       thumbnailUrl: source,
       displayUrl: source,
       sourceType: source.startsWith("/public-objects/") ? "object-storage" : "s3",
     }).returning();
     logMedia("media_processed", { status: "ready", reason: "already_permanent", mealName, url: source.slice(0, 60) });
-    return { id: record.id, status: "ready", thumbnailUrl: source, displayUrl: source, originalObjectKey: null };
+    return { id: record.id, status: "ready", validationStatus: record.validationStatus as MediaAsset["validationStatus"], thumbnailUrl: source, displayUrl: source, originalObjectKey: null };
   }
 
   // ── Case 3: base64, temporary CDN URL, or other external URL ───────────────
@@ -172,6 +174,7 @@ export async function processImageForMeal(
 
       const [record] = await db.insert(mediaAssets).values({
         status: "ready",
+        validationStatus: "unvalidated",
         thumbnailObjectKey: thumbKey,
         thumbnailUrl: thumbUrl,
         displayObjectKey: displayKey,
@@ -190,7 +193,7 @@ export async function processImageForMeal(
         origBytes: original.length,
       });
 
-      return { id: record.id, status: "ready", thumbnailUrl: thumbUrl, displayUrl, originalObjectKey: origKey };
+      return { id: record.id, status: "ready", validationStatus: record.validationStatus as MediaAsset["validationStatus"], thumbnailUrl: thumbUrl, displayUrl, originalObjectKey: origKey };
 
     } catch (err: any) {
       const processingError = (err.message ?? "unknown").slice(0, 500);
@@ -198,6 +201,7 @@ export async function processImageForMeal(
 
       const [record] = await db.insert(mediaAssets).values({
         status: "failed",
+        validationStatus: "failed",
         sourceType: isBase64 ? "base64" : "url",
         processingError,
         retryCount: 0,
@@ -205,19 +209,20 @@ export async function processImageForMeal(
       }).returning();
 
       // CRITICAL: base64 bytes are NOT returned. Caller stores null imageUrl.
-      return { id: record.id, status: "failed", thumbnailUrl: null, displayUrl: null, originalObjectKey: null };
+      return { id: record.id, status: "failed", validationStatus: record.validationStatus as MediaAsset["validationStatus"], thumbnailUrl: null, displayUrl: null, originalObjectKey: null };
     }
   }
 
   // ── Case 4: Unknown relative path — treat as legacy first-party ─────────────
   const [record] = await db.insert(mediaAssets).values({
     status: "ready",
+    validationStatus: "unvalidated",
     thumbnailUrl: source,
     displayUrl: source,
     sourceType: "legacy",
   }).returning();
   logMedia("media_processed", { status: "ready", reason: "legacy_path", mealName });
-  return { id: record.id, status: "ready", thumbnailUrl: source, displayUrl: source, originalObjectKey: null };
+  return { id: record.id, status: "ready", validationStatus: record.validationStatus as MediaAsset["validationStatus"], thumbnailUrl: source, displayUrl: source, originalObjectKey: null };
 }
 
 /**

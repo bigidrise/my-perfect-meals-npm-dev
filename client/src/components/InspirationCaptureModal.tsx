@@ -1329,6 +1329,7 @@ export default function InspirationCaptureModal({
                         <MealImageSlot
                           imageUrl={mealData.imageUrl}
                           mealName={mealData.title || mealData.name || "Recipe Maker"}
+                          ingredients={mealData.ingredients}
                           className="w-full h-full object-cover"
                         />
                       )}
