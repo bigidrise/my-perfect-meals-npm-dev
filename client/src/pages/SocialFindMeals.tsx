@@ -869,6 +869,7 @@ export default function MealFinder() {
                     .replace(/[^a-z0-9]+/g, "-")
                     .slice(0, 64);
                   const mealImage = chefFlowImages[mealImageKey] || result.meal.imageUrl;
+                  const mealImagePending = !mealImage && !chefFlowFailed.has(mealImageKey);
 
                   return (
                     <div key={cardKey} className="bg-black/10 backdrop-blur-lg border border-white/20 rounded-xl overflow-hidden shadow-lg" data-testid={`card-result-${index}`}>
@@ -911,6 +912,7 @@ export default function MealFinder() {
                                 <ChefFlowImage
                                   src={mealImage}
                                   alt={result.meal.name}
+                                  isLoading={mealImagePending}
                                 />
                               </div>
 

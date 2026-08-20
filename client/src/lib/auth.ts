@@ -238,6 +238,10 @@ export interface User {
   clinicalContextResponse?: "yes" | "no" | "unsure" | null;
 
   clinicalContextCategories?: string[] | null;
+  /** Conditions inferred from clinical laboratory results by the server. */
+  labDrivenConditions?: string[];
+  /** True when a physician owns the user's active clinical protocol. */
+  physicianLocked?: boolean;
   // Culture Intelligence
 
   cuisinePreference?: string | null;

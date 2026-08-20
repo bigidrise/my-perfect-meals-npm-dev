@@ -4582,7 +4582,12 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
         // validator's macro branch actually fires.
         const snackForDietValidation = {
           ...tempSnack,
-          macros: { calories: tempSnack.calories, protein: tempSnack.protein, fat: tempSnack.fat, carbs: tempSnack.carbs },
+          macros: {
+            calories: tempSnack.calories,
+            protein: tempSnack.protein,
+            fat: tempSnack.fat,
+            ...(tempSnack.carbs === null ? {} : { carbs: tempSnack.carbs }),
+          },
         };
         const validation = validateMealForDiet(snackForDietValidation, dietType, undefined, true, glp1Targets);
         if (!validation.isValid) {

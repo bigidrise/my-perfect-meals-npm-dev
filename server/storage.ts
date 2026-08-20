@@ -1,12 +1,14 @@
-import { type User, type InsertUser, type Recipe, type InsertRecipe, type MealPlan, type InsertMealPlan, type MealLog, type InsertMealLog, type ShoppingListItem as ShoppingList, type InsertShoppingListItem as InsertShoppingList, type MealReminder, type InsertMealReminder, type MentalHealthConversation, type InsertMentalHealthConversation, type UserGlycemicSettings, type InsertUserGlycemicSettings, type GlucoseLog, type InsertGlucoseLog } from "@shared/schema";
+import { users, type User, type Recipe, type InsertRecipe, type MealPlan, type InsertMealPlan, type MealLog, type InsertMealLog, type ShoppingListItem as ShoppingList, type InsertShoppingListItem as InsertShoppingList, type MealReminder, type InsertMealReminder, type MentalHealthConversation, type InsertMentalHealthConversation, type UserGlycemicSettings, type InsertUserGlycemicSettings, type GlucoseLog, type InsertGlucoseLog } from "@shared/schema";
 import { randomUUID } from "crypto";
+
+type InsertUser = typeof users.$inferInsert;
 
 export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
 
   // Recipe methods
   getRecipes(filters?: { dietaryRestrictions?: string[], mealType?: string, tags?: string[] }): Promise<Recipe[]>;
@@ -78,16 +80,27 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+
   private recipes: Map<string, Recipe>;
+
   private mealPlans: Map<string, MealPlan>;
+
   private mealLogs: Map<string, MealLog>;
+
   private shoppingLists: Map<string, ShoppingList>;
+
   private mealReminders: Map<string, MealReminder>;
+
   private mentalHealthConversations: Map<string, MentalHealthConversation>;
+
   private glycemicSettings: Map<string, UserGlycemicSettings>;
+
   private shoppingListItems: Map<string, any>;
+
   private pushSubscriptions: Map<string, any>;
+
   private physicianReports: Map<string, any>;
+
   private glucoseLogs: Map<string, GlucoseLog>;
 
   constructor() {
@@ -145,11 +158,20 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...updates };
+
+    const { role, ...otherUpdates } = updates;
+    if (role !== undefined && !isUserRole(role)) {
+      throw new Error(`Invalid user role: ${role}`);
+    }
+
+    const updatedUser: User = {
+      ...user,
+      ...otherUpdates,
+      ...(role === undefined ? {} : { role }),
+    };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -611,7 +633,7 @@ export class MemStorage implements IStorage {
   async getMentalHealthConversations(userId: string, limit: number = 10): Promise<MentalHealthConversation[]> {
     return Array.from(this.mentalHealthConversations.values())
       .filter(conversation => conversation.userId === userId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
       .slice(0, limit);
   }
 
@@ -842,3 +864,9 @@ export class MemStorage implements IStorage {
 }
 
 export const storage = new MemStorage();
+
+type UserRole = NonNullable<User["role"]>;
+
+function isUserRole(value: unknown): value is UserRole {
+  return value === "admin" || value === "coach" || value === "client";
+}

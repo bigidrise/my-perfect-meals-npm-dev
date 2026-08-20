@@ -8,8 +8,12 @@ interface BirthdayGreetingProps {
   userId: number;
 }
 
+interface BirthdayUserResponse {
+  birthday?: string | null;
+}
+
 export const BirthdayGreeting = ({ userId }: BirthdayGreetingProps) => {
-  const { data: userData } = useQuery({
+  const { data: userData } = useQuery<BirthdayUserResponse>({
     queryKey: [`/api/users/${userId}`],
   });
 

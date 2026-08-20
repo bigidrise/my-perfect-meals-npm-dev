@@ -1005,7 +1005,13 @@ export default function AntiInflammatoryMenuBuilder() {
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
         setBoard(updatedBoard);
         if (!transformedMeal.imageUrl) {
-          fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+          fetchImageForMeal(
+            {
+              ...transformedMeal,
+              name: transformedMeal.name ?? transformedMeal.title ?? "Meal",
+            },
+            slot,
+            (mealId, imageUrl) => {
             setBoard(prev => {
               if (!prev) return prev;
               const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev;
@@ -1013,7 +1019,8 @@ export default function AntiInflammatoryMenuBuilder() {
               saveBoard(updated).catch(() => {});
               return updated;
             });
-          });
+            },
+          );
         }
 
         try {
@@ -1045,7 +1052,7 @@ export default function AntiInflammatoryMenuBuilder() {
     const r = nutritionState.remaining;
     return {
       protein:  r.protein,
-      carbs:    r.totalCarbs,
+      carbs:    r.carbs,
       fat:      r.fat,
       calories: r.calories,
     };
@@ -1202,7 +1209,14 @@ export default function AntiInflammatoryMenuBuilder() {
   }
 
   async function quickAdd(
-    list: "breakfast" | "lunch" | "dinner" | "snacks",
+    list:
+      | "breakfast"
+      | "lunch"
+      | "dinner"
+      | "snacks"
+      | "meal4"
+      | "meal5"
+      | "meal6",
     meal: Meal,
   ) {
     if (!board) return;
@@ -1563,8 +1577,8 @@ export default function AntiInflammatoryMenuBuilder() {
                           <GlobalMealActionBar
                             slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                             onCreateWithAI={() => {
-                              setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
-                              setAiMealModalOpen(true);
+                              setCreateWithChefSlot(key);
+                              setCreateWithChefOpen(true);
                             }}
                             onCreateWithChef={() => {
                               setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");

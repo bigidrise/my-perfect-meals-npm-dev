@@ -3,6 +3,12 @@ import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { speakWithElevenLabs } from './elevenLabsClient';
 import { AVATAR_FEATURES } from '../config/avatarFlags';
+import {
+  getSpeechRecognitionConstructor,
+  type BrowserSpeechRecognition,
+  type SpeechRecognitionErrorEvent,
+  type SpeechRecognitionResultEvent,
+} from '@/lib/speechRecognition';
 
 const commandsMap: Record<string, string> = {
   // Dashboard and Main Features
@@ -58,73 +64,30 @@ const commandsMap: Record<string, string> = {
   'profile': '/my-biometrics'
 };
 
-// Type definitions for Web Speech API
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  onresult: (event: SpeechRecognitionEvent) => void;
-  onerror: (event: any) => void;
-  onend: () => void;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  readonly length: number;
-  readonly isFinal: boolean;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-}
-
 export const ChefVoiceAssistant = () => {
   // Early return if voice features are disabled
   if (!AVATAR_FEATURES.VOICE_ENABLED) {
     return null;
   }
   
-  const [location, setLocation] = useLocation();
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [, setLocation] = useLocation();
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const isListeningRef = useRef(false);
 
   useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = getSpeechRecognitionConstructor();
 
     if (!SpeechRecognition) {
       console.warn('SpeechRecognition not supported in this browser.');
       return;
     }
 
-    const recognition: SpeechRecognition = new SpeechRecognition();
+    const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: SpeechRecognitionResultEvent) => {
       const transcript = event.results[event.resultIndex][0].transcript
         .toLowerCase()
         .trim();
@@ -145,7 +108,7 @@ export const ChefVoiceAssistant = () => {
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('Speech recognition error:', event.error);
     };
 

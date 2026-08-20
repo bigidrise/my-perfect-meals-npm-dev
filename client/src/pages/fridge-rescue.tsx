@@ -2,6 +2,7 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
@@ -1575,10 +1576,7 @@ const FridgeRescuePage = () => {
                                   imageUrl: safeImageUrl,
                                   cookMethod: cookMethod || undefined,
                                 };
-                                localStorage.setItem(
-                                  "mpm_chefs_kitchen_meal",
-                                  JSON.stringify(mealData),
-                                );
+                                writeChefHandoffMeal(mealData);
                                 localStorage.setItem(
                                   "mpm_chefs_kitchen_external_prepare",
                                   "true",

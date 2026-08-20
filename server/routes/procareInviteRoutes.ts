@@ -73,6 +73,11 @@ router.post("/token/:token/accept", requireAuth, async (req, res) => {
           message: `This invitation was sent to ${err.maskedEmail}. Please sign in with that account to continue.`,
           maskedEmail: err.maskedEmail,
         });
+      case "EMAIL_IDENTITY_REVIEW_REQUIRED":
+        return res.status(409).json({
+          error: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+          message: "This email address is linked to more than one legacy account. An administrator must review the account before it can accept an invitation.",
+        });
       case "CLINICAL_REQUIRED":
         return res.status(403).json({
           error: "CLINICAL_REQUIRED",

@@ -33,8 +33,8 @@ export default function ProfessionalLaunchpad() {
   const roleName = role === "physician" ? "Physician" : "Trainer";
 
   useEffect(() => {
-    apiRequest("GET", "/api/pro/training/launchpad-status")
-      .then((data: LaunchpadStatus) => setStatus(data))
+    apiRequest<LaunchpadStatus>("/api/pro/training/launchpad-status")
+      .then((data) => setStatus(data))
       .catch(() => setStatus({ personalAccountActive: false, academyCompleted: false, procareTrainingCompleted: false }))
       .finally(() => setLoading(false));
   }, []);

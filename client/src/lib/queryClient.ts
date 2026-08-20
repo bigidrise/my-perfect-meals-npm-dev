@@ -63,14 +63,14 @@ async function throwIfResNotOk(res: Response, meta?: { method?: string; startedA
   }
 }
 
-export async function apiRequest(
+export async function apiRequest<T = any>(
   url: string,
   options?: {
     method?: string;
     body?: string;
     headers?: Record<string, string>;
   }
-): Promise<any> {
+): Promise<T> {
   const { method = "GET", body, headers = {} } = options || {};
   
   const authToken = localStorage.getItem("mpm_auth_token");
@@ -100,7 +100,7 @@ export async function apiRequest(
     throw new Error(`API route intercepted by Vite middleware. Expected JSON but got HTML from ${url}`);
   }
   
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

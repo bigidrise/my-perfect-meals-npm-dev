@@ -1,8 +1,10 @@
 import type { LookupKey } from "@/data/planSkus";
+import type { PlanLookupKey } from "@shared/planFeatures";
 
 export interface IosProduct {
   productId: string;
   internalSku: LookupKey;
+  planLookupKeys: readonly PlanLookupKey[];
   label: string;
   price: number;
 }
@@ -10,19 +12,22 @@ export interface IosProduct {
 export const IOS_PRODUCTS: IosProduct[] = [
   {
     productId: "mpm.sub.basic.monthly.v1",
-    internalSku: "mpm_basic_monthly",
+    internalSku: "mpm_basic",
+    planLookupKeys: ["mpm_basic", "mpm_basic_monthly"],
     label: "Essential",
     price: 19.99,
   },
   {
     productId: "mpm.sub.premium.monthly.v1",
-    internalSku: "mpm_premium_monthly",
+    internalSku: "mpm_premium",
+    planLookupKeys: ["mpm_premium", "mpm_premium_monthly"],
     label: "Pro",
     price: 29.99,
   },
   {
     productId: "mpm.sub.ultimate.monthly.v1",
-    internalSku: "mpm_ultimate_monthly",
+    internalSku: "mpm_ultimate",
+    planLookupKeys: ["mpm_ultimate", "mpm_ultimate_monthly"],
     label: "Clinical",
     price: 44.99,
   },

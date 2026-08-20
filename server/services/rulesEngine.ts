@@ -1,7 +1,7 @@
 // services/rulesEngine.ts
 type MealType = "breakfast"|"lunch"|"dinner"|"snack";
 type Difficulty = "easy"|"medium"|"hard";
-type Template = {
+export type Template = {
   id: string; slug: string; name: string; type: MealType;
   calories: number; protein: number; carbs: number; fat: number; fiber?: number;
   vegetables?: number; dietTags: string[]; badges: string[]; allergens: string[];
@@ -53,7 +53,20 @@ export const defaultRules: HardRules = {
   exoticList: ["saffron", "black garlic", "sumac", "yuzu", "asafoetida"],
 };
 
-export function rejectReason(t: any, params: PlanParams, rules=defaultRules): string | null {
+type TemplateCandidate = {
+  type?: string;
+  prepTime?: number;
+  cookTime?: number;
+  vegetables?: number;
+  ingredients?: Array<{ name?: string }>;
+  calories?: number;
+  carbs?: number;
+  protein?: number;
+  allergens?: string[];
+  badges?: string[];
+};
+
+export function rejectReason(t: TemplateCandidate, params: PlanParams, rules=defaultRules): string | null {
   // normalize
   const type = String(t.type || "").toLowerCase(); // "breakfast"|"lunch"|"dinner"|"snack"
   const prep = Number(t.prepTime ?? 0), cook = Number(t.cookTime ?? 0);
@@ -69,7 +82,9 @@ export function rejectReason(t: any, params: PlanParams, rules=defaultRules): st
   
   // 0.5) Dislikes filter - hard reject if any ingredient is disliked
   if (params.dislikes?.length) {
-    const ingredientNames = (t.ingredients ?? []).map(i => i.name.toLowerCase());
+    const ingredientNames = (t.ingredients ?? [])
+      .map((ingredient) => ingredient.name?.toLowerCase())
+      .filter((name): name is string => Boolean(name));
     if (params.dislikes.some(dislike => ingredientNames.includes(dislike.toLowerCase()))) {
       return "contains-disliked-ingredient";
     }
@@ -96,7 +111,7 @@ export function rejectReason(t: any, params: PlanParams, rules=defaultRules): st
   return null;
 }
 
-export function fitsBaseSafety(t: any, params: PlanParams, rules=defaultRules) {
+export function fitsBaseSafety(t: TemplateCandidate, params: PlanParams, rules=defaultRules) {
   return rejectReason(t, params, rules) === null;
 }
 

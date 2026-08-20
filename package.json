@@ -7,6 +7,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "test": "jest",
     "dev": "NODE_ENV=development tsx server/index.ts",
     "dev:client": "cd client && vite",
     "dev:server": "NODE_ENV=development tsx server/index.ts",
@@ -22,6 +23,8 @@
     "prereplit:start": "npm run db:push",
     "replit:start": "NODE_ENV=production tsx server/prod.ts",
     "check": "tsc",
+    "check:safety-types": "tsc -p tsconfig.safety-check.json",
+    "check:release-types": "node scripts/check-release-type-baseline.mjs",
     "db:push": "drizzle-kit push",
     "push": "git add -A && (git commit -m \"snapshot $(date -u +'%Y-%m-%dT%H:%M:%SZ')\" || echo 'nothing to commit') && git push -u origin main",
     "validate": "bash scripts/validate.sh",

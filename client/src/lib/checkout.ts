@@ -1,4 +1,4 @@
-import type { LookupKey } from "@/data/planSkus";
+import type { CheckoutLookupKey } from "@shared/planFeatures";
 import { isIosNativeShell } from "@/lib/platform";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -44,7 +44,7 @@ function getCurrentUser() {
 }
 
 export async function startCheckout(
-  priceLookupKey: LookupKey,
+  priceLookupKey: CheckoutLookupKey,
   opts?: CheckoutOptions,
 ) {
   // iOS native shell handling

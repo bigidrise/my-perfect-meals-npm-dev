@@ -5,6 +5,7 @@ import { useMealImages } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -1796,10 +1797,7 @@ export default function UltimateExperiencesPage() {
                                 instructions: course.instructions,
                                 imageUrl: safeImageUrl,
                               };
-                              localStorage.setItem(
-                                "mpm_chefs_kitchen_meal",
-                                JSON.stringify(mealData),
-                              );
+                              writeChefHandoffMeal(mealData);
                               localStorage.setItem(
                                 "mpm_chefs_kitchen_external_prepare",
                                 "true",

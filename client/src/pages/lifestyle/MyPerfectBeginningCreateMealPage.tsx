@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
 import { post, get } from "@/lib/api";
@@ -1191,8 +1192,7 @@ function RecipeCard({
                     instructions: recipe.instructions.join("\n"),
                     imageUrl: imageUrl ?? undefined,
                   };
-                  const safeMealData = { ...mealData, imageUrl: (() => { const u = imageUrl; return (!u || u.startsWith("data:") || u.includes("oaidalleapiprodscus")) ? null : u; })() };
-                  try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(safeMealData)); } catch { localStorage.removeItem("mpm_chefs_kitchen_meal"); try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(safeMealData)); } catch { /* give up */ } }
+                  writeChefHandoffMeal(mealData);
                   localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
                   localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                   setLocation("/lifestyle/chefs-kitchen");

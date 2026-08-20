@@ -1,15 +1,11 @@
 import {
   type Entitlement,
   type PlanTier,
-  PLAN_FEATURES,
-  LOOKUP_KEY_TO_TIER,
+  type CheckoutLookupKey,
   getTierForLookupKey,
   getMinTierForEntitlement,
   tierIncludesEntitlement,
-
 } from "@shared/planFeatures";
-
-import type { LookupKey } from "@/data/planSkus";
 
 export type { Entitlement };
 
@@ -44,16 +40,18 @@ export function hasPlanFeature(
   return hasFeature(user, feature);
 }
 
-const TIER_TO_CHEAPEST_LOOKUP: Record<PlanTier, LookupKey> = {
+const TIER_TO_CHEAPEST_LOOKUP: Record<PlanTier, CheckoutLookupKey> = {
   free: "mpm_basic_monthly",
   basic: "mpm_basic_monthly",
   premium: "mpm_premium_monthly",
   ultimate: "mpm_ultimate_monthly",
 };
 
-export function getUpgradePlanForFeature(feature: Entitlement): LookupKey {
+export function getUpgradePlanForFeature(
+  feature: Entitlement,
+): CheckoutLookupKey {
   if (feature === "procare") {
-    return "mpm_procare_monthly";
+    return "mpm_trainer_5";
   }
   const minTier = getMinTierForEntitlement(feature);
   return TIER_TO_CHEAPEST_LOOKUP[minTier];

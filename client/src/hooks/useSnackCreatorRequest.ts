@@ -1,9 +1,14 @@
 import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import type { DietClassification } from "@/types/meal";
 
 export type DietType = 
   | 'anti-inflammatory'
   | 'liver-support'
+  | 'liver-disease'
+  | 'kidney-disease'
+  | 'heart-failure'
+  | 'oncology-support'
   | 'diabetic'
   | 'glp1'
   | 'beachbody'
@@ -37,6 +42,7 @@ interface Snack {
     fibrousCarbs?: number;
   };
   medicalBadges?: string[];
+  dietClassification?: DietClassification | null;
 }
 
 export interface ExplicitOverride {

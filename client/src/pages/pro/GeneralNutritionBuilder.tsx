@@ -37,6 +37,7 @@ import BuilderShoppingBar from "@/components/BuilderShoppingBar";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { computeTargetsFromOnboarding, sumBoard } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
+
 import { useNutritionBudget } from "@/hooks/useNutritionBudget";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
 import { 
@@ -315,7 +316,10 @@ export default function WeeklyMealBoard() {
 
   // Handler for Create With Chef meal selection
   // NOTE: slot is passed from the modal to avoid stale state issues
-  const handleCreateWithChefSelect = useCallback(async (meal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+  const handleCreateWithChefSelect = useCallback(async (
+    meal: any,
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+  ) => {
     if (!board) return;
 
     try {
@@ -472,12 +476,16 @@ export default function WeeklyMealBoard() {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
   // Save AI meals to localStorage
-  function saveAIMealsCache(meals: Meal[], dayISO: string, slot: "breakfast" | "lunch" | "dinner" | "snacks") {
+  function saveAIMealsCache(
+    meals: Meal[],
+    dayISO: string,
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+  ) {
     try {
       const state: CachedAIMeals = {
         meals,
@@ -603,7 +611,7 @@ export default function WeeklyMealBoard() {
     const r = nutritionState.remaining;
     return {
       protein:  r.protein,
-      carbs:    r.totalCarbs,
+      carbs:    r.carbs,
       fat:      r.fat,
       calories: r.calories,
     };
@@ -1042,8 +1050,8 @@ export default function WeeklyMealBoard() {
                       <GlobalMealActionBar
                         slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                         onCreateWithAI={() => {
-                          setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
-                          setAiMealModalOpen(true);
+                          setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
+                          setCreateWithChefOpen(true);
                         }}
                         onCreateWithChef={() => {
                           setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
@@ -1170,8 +1178,8 @@ export default function WeeklyMealBoard() {
                 <GlobalMealActionBar
                   slot={key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"}
                   onCreateWithAI={() => {
-                    setAiMealSlot(key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6");
-                    setAiMealModalOpen(true);
+                    setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
+                    setCreateWithChefOpen(true);
                   }}
                   onCreateWithChef={() => {
                     setCreateWithChefSlot(key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6");
@@ -1305,10 +1313,10 @@ export default function WeeklyMealBoard() {
                   prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                   onSaveDay={async () => {
                     const targets = {
-                      calories: resolved.calories || 0,
-                      protein_g: resolved.protein_g || 0,
-                      carbs_g: resolved.carbs_g || 0,
-                      fat_g: resolved.fat_g || 0,
+                      calories: prescription?.caloriesTarget ?? 0,
+                      protein_g: prescription?.proteinTarget ?? 0,
+                      carbs_g: prescription?.carbsTarget ?? 0,
+                      fat_g: prescription?.fatTarget ?? 0,
                     };
                     const result = await lockDay({
                       dateISO: activeDayISO,

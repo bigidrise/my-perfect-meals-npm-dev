@@ -226,29 +226,34 @@ export async function addMealToMacros({
   slot: string;
   meal: Meal;
 }) {
+  const nutrition = meal.nutrition;
+  if (!nutrition) {
+    throw new Error("A meal needs nutrition details before it can be added to macros.");
+  }
+
   // Use the same working pattern as craving creator
   console.log("📊 Adding meal to macros:", { date, slot, meal: meal.title });
 
   // AI-generated meals carry split carbs at the top level or inside nutrition.
   // Template/premade meals may not — derive from ingredients using the same
   // classifier the server pipeline uses.
-  const existingStarchy = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
-  const existingFibrous = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
+  const existingStarchy = meal.starchyCarbs ?? nutrition.starchyCarbs;
+  const existingFibrous = meal.fibrousCarbs ?? nutrition.fibrousCarbs;
   const hasSplit = typeof existingStarchy === "number" && typeof existingFibrous === "number"
     && (existingStarchy > 0 || existingFibrous > 0);
 
   const { starchyCarbs, fibrousCarbs } = hasSplit
     ? { starchyCarbs: existingStarchy!, fibrousCarbs: existingFibrous! }
-    : deriveSplitCarbs(meal.ingredients ?? [], meal.nutrition.carbs);
+    : deriveSplitCarbs(meal.ingredients ?? [], nutrition.carbs);
 
   const logEntry = {
     mealId: meal.id,
     loggedAt: new Date().toISOString(),
     mealType: slot || "lunch",
-    kcal: meal.nutrition.calories,
-    protein: meal.nutrition.protein,
-    carbs: meal.nutrition.carbs,
-    fat: meal.nutrition.fat,
+    kcal: nutrition.calories,
+    protein: nutrition.protein,
+    carbs: nutrition.carbs,
+    fat: nutrition.fat,
     starchyCarbs,
     fibrousCarbs,
     source: "weekly-meal-board",

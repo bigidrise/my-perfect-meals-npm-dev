@@ -674,9 +674,11 @@ async function initializeApp() {
       const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
       const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
       const { runPerformanceModeEnabledMigration } = await import("./db/migrations/runPerformanceModeEnabledMigration");
+      const { runEmailIdentityReviewMigration } = await import("./db/migrations/runEmailIdentityReviewMigration");
       await runTrialGrantsMigration(dbSyncMig as any);
       await runProcareTrainingMigration(dbSyncMig as any);
       await runPerformanceModeEnabledMigration(dbSyncMig as any);
+      await runEmailIdentityReviewMigration(dbSyncMig as any);
     }
 
     // ── Post-migration guards: verify critical columns are actually present ─

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { formatAmount } from "@/utils/formatAmount";
@@ -1486,10 +1487,7 @@ export default function CreateDishPage() {
                                 instructions: meal.instructions,
                                 imageUrl: safeImageUrl,
                               };
-                              localStorage.setItem(
-                                "mpm_chefs_kitchen_meal",
-                                JSON.stringify(mealData),
-                              );
+                              writeChefHandoffMeal(mealData);
                               localStorage.setItem(
                                 "mpm_chefs_kitchen_external_prepare",
                                 "true",

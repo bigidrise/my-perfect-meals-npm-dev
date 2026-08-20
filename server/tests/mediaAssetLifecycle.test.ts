@@ -29,6 +29,13 @@ jest.mock("../db/schema/mediaAssets", () => ({ mediaAssets: {} }));
 
 import { isFirstPartyImageUrl, findMealsWithTempImages } from "../services/imageLifecycle";
 import { isUnsafeImageUrl } from "../services/mediaAssetService";
+import {
+  safeLocalStorageImageUrl,
+  writeChefPrepareHandoff,
+  writeChefHandoffMeal,
+} from "../../client/src/lib/safeChefHandoff";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. isFirstPartyImageUrl — URL classification
@@ -294,17 +301,40 @@ describe("Shared Meals lifecycle gate", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("localStorage image safety (Prepare-with-Chef handoff)", () => {
-  function safeLocalStorageImageUrl(rawUrl: string | undefined | null): string | null {
-    // This mirrors the canonical logic in client/src/lib/safeChefHandoff.ts
-    // and every handoff writer (MealCardActions, meal-card, GeneratedMealCard,
-    // StudioWizard, fridge-rescue, craving-creator, CreateDishPage,
-    // GatheringsPage, AthleteBeverageCreator, BeverageCreator,
-    // CravingDessertCreator, SushiCreator).
-    if (!rawUrl) return null;
-    if (rawUrl.startsWith("data:")) return null;
-    if (rawUrl.includes("oaidalleapiprodscus")) return null;
-    return rawUrl;
+  const CHEF_MEAL_KEY = "mpm_chefs_kitchen_meal";
+  const clientSourceRoot = join(process.cwd(), "client", "src");
+
+  function activeClientSourceFiles(directory = clientSourceRoot): string[] {
+    return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+      const filePath = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        // Retired screens are intentionally outside the active Chef handoff
+        // surface. Their source is kept for historical reference only.
+        return entry.name === "legacy" ? [] : activeClientSourceFiles(filePath);
+      }
+      return /\.(ts|tsx)$/.test(entry.name) ? [filePath] : [];
+    });
   }
+
+  function sourceUsesSharedChefHandoff(filePath: string): boolean {
+    return /writeChef(?:HandoffMeal|PrepareHandoff)\(/.test(
+      readFileSync(filePath, "utf8"),
+    );
+  }
+
+  let writes: Map<string, string>;
+
+  beforeEach(() => {
+    writes = new Map();
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        setItem: (key: string, value: string) => writes.set(key, value),
+        getItem: (key: string) => writes.get(key) ?? null,
+        removeItem: (key: string) => writes.delete(key),
+      },
+    });
+  });
 
   test("strips base64 before localStorage write", () => {
     expect(safeLocalStorageImageUrl("data:image/png;base64,abc==")).toBeNull();
@@ -324,63 +354,79 @@ describe("localStorage image safety (Prepare-with-Chef handoff)", () => {
     expect(safeLocalStorageImageUrl(url)).toBe(url);
   });
 
-  // ── Coverage regression: every active handoff writer must strip unsafe URLs ──
-  // The writers below all construct a mealData object before calling
-  // localStorage.setItem("mpm_chefs_kitchen_meal", ...).  This suite verifies
-  // that the safe-image transform applied in each writer produces the correct
-  // output for the two failure modes (base64, DALL-E) and the two pass-through
-  // modes (S3, Object Storage).
-
-  const WRITERS = [
-    "MealCardActions.tsx",
-    "meal-card.tsx",
-    "GeneratedMealCard.tsx",
-    "StudioWizard.tsx",
-    "fridge-rescue.tsx",
-    "craving-creator.tsx",
-    "CreateDishPage.tsx",
-    "GatheringsPage.tsx",
-    "AthleteBeverageCreator.tsx",
-    "BeverageCreator.tsx",
-    "CravingDessertCreator.tsx",
-    "SushiCreator.tsx",
-  ];
-
-  const UNSAFE_URLS = [
+  test.each([
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA==",
-    "data:image/jpeg;base64,/9j/4AAQ==",
     "https://oaidalleapiprodscus.blob.core.windows.net/private/img-abc.png",
-    "https://oaidalleapiprodscus.blob.core.windows.net/img.png",
-  ];
+  ])("the shared writer removes unsafe imageUrl values from its payload", (imageUrl) => {
+    writeChefHandoffMeal({ name: "Safety test meal", imageUrl });
 
-  const SAFE_URLS = [
-    "https://my-perfect-meals-images.s3.us-east-2.amazonaws.com/img.jpg",
-    "/public-objects/replit-objstore-2a68d585/meal-images/foo.jpg",
-    "https://cdn.example.com/meals/photo.jpg",
-  ];
-
-  // Each writer applies the same normalization — verify the contract holds for
-  // all failure and pass-through cases.
-  for (const writer of WRITERS) {
-    describe(`${writer} imageUrl normalization`, () => {
-      for (const url of UNSAFE_URLS) {
-        test(`strips unsafe URL: ${url.slice(0, 60)}`, () => {
-          expect(safeLocalStorageImageUrl(url)).toBeNull();
-        });
-      }
-      for (const url of SAFE_URLS) {
-        test(`passes safe URL through: ${url.slice(0, 60)}`, () => {
-          expect(safeLocalStorageImageUrl(url)).toBe(url);
-        });
-      }
-      test("returns null for undefined", () => {
-        expect(safeLocalStorageImageUrl(undefined)).toBeNull();
-      });
-      test("returns null for null", () => {
-        expect(safeLocalStorageImageUrl(null)).toBeNull();
-      });
+    expect(JSON.parse(writes.get(CHEF_MEAL_KEY)!)).toEqual({
+      name: "Safety test meal",
+      imageUrl: null,
     });
-  }
+  });
+
+  test("the shared writer preserves a permanent image URL in its payload", () => {
+    const imageUrl = "/public-objects/replit-objstore-2a68d585/meal-images/foo.jpg";
+    writeChefHandoffMeal({ name: "Permanent image meal", imageUrl });
+
+    expect(JSON.parse(writes.get(CHEF_MEAL_KEY)!)).toEqual({
+      name: "Permanent image meal",
+      imageUrl,
+    });
+  });
+
+  test("the complete prepare handoff tolerates unavailable localStorage", () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        setItem: () => { throw new Error("QuotaExceededError"); },
+        getItem: () => null,
+        removeItem: () => { throw new Error("QuotaExceededError"); },
+      },
+    });
+
+    expect(() =>
+      writeChefPrepareHandoff(
+        { name: "Fallback meal", imageUrl: "data:image/png;base64,unsafe" },
+        { origin: "/sushi", clearPrep: true },
+      ),
+    ).not.toThrow();
+  });
+
+  test("every active meal-to-Chef writer uses the shared safe handoff helper", () => {
+    const directWriterPattern =
+      /localStorage\s*\.\s*setItem\s*\(\s*["']mpm_chefs_kitchen_meal["']/;
+    const chefHandoffWriterPattern =
+      /localStorage\s*\.\s*setItem\s*\(\s*["']mpm_chefs_kitchen_external_prepare["']/;
+    const sourceFiles = activeClientSourceFiles();
+    const bypassingWriters = sourceFiles
+      .filter((filePath) => !filePath.endsWith(join("lib", "safeChefHandoff.ts")))
+      .filter((filePath) => directWriterPattern.test(readFileSync(filePath, "utf8")))
+      .map((filePath) => relative(clientSourceRoot, filePath));
+    const activeHandoffWriters = sourceFiles
+      .filter((filePath) => !filePath.endsWith(join("lib", "safeChefHandoff.ts")))
+      .filter((filePath) => {
+        const source = readFileSync(filePath, "utf8");
+        return (
+          sourceUsesSharedChefHandoff(filePath) ||
+          chefHandoffWriterPattern.test(source)
+        );
+      })
+      .map((filePath) => relative(clientSourceRoot, filePath));
+
+    // This is source discovery, not a maintained filename list. It finds both
+    // helper-backed handoffs and any future writer that sets the launch flag.
+    expect(bypassingWriters).toEqual([]);
+    expect(activeHandoffWriters.length).toBeGreaterThan(0);
+    for (const writer of activeHandoffWriters) {
+      const writerSource = readFileSync(join(clientSourceRoot, writer), "utf8");
+      expect(sourceUsesSharedChefHandoff(join(clientSourceRoot, writer))).toBe(true);
+      expect(writerSource).toMatch(
+        /import\s*{\s*writeChef(?:HandoffMeal|PrepareHandoff)\s*}\s*from\s*["']@\/lib\/safeChefHandoff["']/,
+      );
+    }
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

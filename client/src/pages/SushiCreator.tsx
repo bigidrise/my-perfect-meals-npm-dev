@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
+import { writeChefPrepareHandoff } from "@/lib/safeChefHandoff";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isFeatureEnabled } from "@/lib/productionGates";
@@ -1643,19 +1644,9 @@ export default function SushiCreator() {
                                 imageUrl: safeImageUrl,
                                 cookMethod: cookMethod || undefined,
                               };
-                              try {
-                                localStorage.setItem(
-                                  "mpm_chefs_kitchen_meal",
-                                  JSON.stringify(mealData),
-                                );
-                                localStorage.setItem(
-                                  "mpm_chefs_kitchen_external_prepare",
-                                  "true",
-                                );
-                                localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
-                              } catch {
-                                // Storage full — navigate anyway, ChefsKitchenPage handles missing meal gracefully
-                              }
+                              writeChefPrepareHandoff(mealData, {
+                                origin: window.location.pathname,
+                              });
                               setLocation("/lifestyle/chefs-kitchen");
                               window.scrollTo({ top: 0, behavior: "instant" });
                             }}

@@ -139,22 +139,6 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
         // Cache the URL before playing — don't revoke, keep for rewind
         sectionAudioCache.current.set(index, result.audioUrl);
         playAudioUrl(result.audioUrl, index);
-      } else if (result.provider === "browser") {
-        setIsPlaying(true);
-        setIsPaused(false);
-        const intervalId = setInterval(() => {
-          if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-            clearInterval(intervalId);
-            if (browserTtsIntervalRef.current === intervalId) {
-              browserTtsIntervalRef.current = null;
-            }
-            if (!isCancelledRef.current) {
-              advanceToNextSection(index);
-              speakSection(index + 1);
-            }
-          }
-        }, 100);
-        browserTtsIntervalRef.current = intervalId;
       } else {
         advanceToNextSection(index);
         speakSection(index + 1);

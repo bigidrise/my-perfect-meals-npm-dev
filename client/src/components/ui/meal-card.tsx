@@ -10,6 +10,7 @@ import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPer
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 
 interface MealCardProps {
   recipe?: Recipe;
@@ -57,13 +58,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
     };
     
     // Store meal in Chef's Kitchen format + flag to enter prepare mode
-    try {
-      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
-    } catch {
-      localStorage.removeItem("mpm_chefs_kitchen_meal");
-      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
-      try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData)); } catch { /* give up */ }
-    }
+    writeChefHandoffMeal(mealData);
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     
     setLocation("/lifestyle/chefs-kitchen");

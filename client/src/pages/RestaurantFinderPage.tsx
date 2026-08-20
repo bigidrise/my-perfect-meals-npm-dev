@@ -199,11 +199,14 @@ export default function RestaurantFinderPage() {
 
   const findMutation = useMutation({
     mutationFn: (zip: string) =>
-      apiRequest("POST", "/api/restaurants/find-nearby", {
-        zipCode: zip,
-        diet: primaryDiet,
-        userId: (user as any)?.id,
-      }).then((r) => r.json()),
+      apiRequest<FindNearbyResponse>("/api/restaurants/find-nearby", {
+        method: "POST",
+        body: JSON.stringify({
+          zipCode: zip,
+          diet: primaryDiet,
+          userId: (user as any)?.id,
+        }),
+      }),
     onSuccess: (data: FindNearbyResponse) => {
       setResults(data);
     },
@@ -216,10 +219,16 @@ export default function RestaurantFinderPage() {
     setGpsLoading(true);
     try {
       const loc = await getLocation();
-      const response = await apiRequest("POST", "/api/restaurants/reverse-geocode", {
-        lat: loc.latitude,
-        lng: loc.longitude,
-      }).then((r) => r.json());
+      const response = await apiRequest<{ zipCode?: string }>(
+        "/api/restaurants/reverse-geocode",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            lat: loc.latitude,
+            lng: loc.longitude,
+          }),
+        },
+      );
       if (response.zipCode) {
         setZipCode(response.zipCode);
         findMutation.mutate(response.zipCode);

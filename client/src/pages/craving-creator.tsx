@@ -11,6 +11,7 @@
 // DO NOT MODIFY WITHOUT USER APPROVAL
 
 import { useState, useEffect, useRef } from "react";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -1861,10 +1862,7 @@ export default function CravingCreator() {
                                 imageUrl: safeImageUrl,
                                 cookMethod: cookMethod || undefined,
                               };
-                              localStorage.setItem(
-                                "mpm_chefs_kitchen_meal",
-                                JSON.stringify(mealData),
-                              );
+                              writeChefHandoffMeal(mealData);
                               localStorage.setItem(
                                 "mpm_chefs_kitchen_external_prepare",
                                 "true",

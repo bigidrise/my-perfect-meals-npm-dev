@@ -62,6 +62,8 @@
 - [ProCare physician builder navigation rule](procare-physician-builder-nav.md) — physician builder buttons must navigate to /pro/clients/:id/builder-route, never to /hub pages; hub pages use localStorage hack which nulls out proClientId and routes saves to wrong user.
 - [Global router.use(requireAuth) blocks public routes](router-global-requireauth-bug.md) — router.use(requireAuth) in a router mounted at /api intercepts ALL /api/* including login; always apply requireAuth per-route instead.
 - [drizzle-zod .omit() breaks with empty shape](drizzle-zod-omit-empty-shape.md) — createInsertSchema() shape collapses to {} in TS; .omit() always fails TS2322; fix by removing .omit() calls entirely.
+- [TypeScript check cache](typescript-check-cache.md) — run project-wide strict checks without incremental replay; stale build info can retain obsolete target diagnostics.
+- [Release typecheck gate](release-type-gate.md) — 4-layer release-check (builds + safety slice + fingerprinted baseline); new errors cannot hide behind existing debt; AI gate accepts 401.
 - [Feature Impact System](feature-impact-system.md) — mandatory 12-area report before every feature ships; skill at .local/skills/feature-impact/SKILL.md; full doc at docs/feature-impact-system.md.
 - [ProCare Physician Legal Policy](procare-legal-policy.md) — all activation paths for physician connections must call checkLegalAcceptance first; inviteAutoAccept was the bypass; careTeamMember now deactivated/reactivated with relationship; clientLinks unique pair index added.
 - [GLP-1 Hub Daily Check-in — Architecture](glp1-hub-checkin-arch.md) — separate glp1_daily_checkins table (not ace_daily_checkins); resolver v2 merge-by-timestamp; AdaptationEntry triad; 5 pending_review escalation rules; hub path preferred on same-second tie.
@@ -74,7 +76,9 @@
 - [Grocery Product Advisor](grocery-product-advisor.md) — fail-closed GLP-1 guard (503 retryable), usualPick validated against compliantSavedRows, mode tabs always visible.
 - [Meal image recipe-fidelity gate](meal-image-validation-gate.md) — GPT-4o vision check gates cache entry; FAIL twice → semantic fallback, cache nothing; SKIPPED still caches but is audited.
 - [Meal image ingredient contract](meal-image-ingredient-contract.md) — dish name is label only; allow/deny list from full recipe; cache key must hash all ingredients + version bump on prompt changes.
+- [Meal image delivery recovery](meal-image-delivery-recovery.md) — browser errors lack HTTP status; re-probe server-side, retry once for storage outages, reuse surviving variants before marking missing.
 - [Canonical Media Asset Architecture — Step 4](media-asset-architecture.md) — media_assets table, paginated /api/saved-meals, lifecycle gates on familyRecipes+mealShares, Object Storage API casts, Jest ESM stub pattern for tests.
 - [prod.ts early SPA fallback intercepts /public-objects/](prod-spa-fallback-intercepts-public-objects.md) — SPA fallback must exclude /public-objects/ or image URLs return HTML in production; dev is immune because routes register first there.
 - [Override propagation invariant](override-propagation-pattern.md) — a PIN allergen override must reach every post-gen scan (incl. cached results and sub-generators) or the meal is re-blocked after a valid PIN.
 - [Email-case duplicate safety](email-case-duplicate-safety.md) — development users can differ only by email capitalization; target account changes by user ID, never case-insensitive email.
+- [Checkout vs entitlement lookup keys](checkout-vs-entitlement-keys.md) — CheckoutLookupKey must mirror STRIPE_PRICE_IDS exactly; broad PlanLookupKey is read-only entitlement history, never purchasable.
