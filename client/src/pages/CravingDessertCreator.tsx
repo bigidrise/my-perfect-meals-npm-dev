@@ -1,6 +1,7 @@
 // 🔒 DESSERT CREATOR - RESTRUCTURED (December 9, 2025)
 // New 5-field structure: Category, Flavor Family, Specific Dessert, Serving Size, Dietary
 import { useState, useEffect, useRef } from "react";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
@@ -1257,10 +1258,7 @@ export default function DessertCreator() {
                             imageUrl: safeImageUrl,
                             cookMethod: cookMethod || undefined,
                           };
-                          localStorage.setItem(
-                            "mpm_chefs_kitchen_meal",
-                            JSON.stringify(mealData),
-                          );
+                          writeChefHandoffMeal(mealData);
                           localStorage.setItem(
                             "mpm_chefs_kitchen_external_prepare",
                             "true",

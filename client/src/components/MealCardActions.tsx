@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 
 interface MealData {
   id?: string;
@@ -104,15 +105,7 @@ export default function MealCardActions({
     // Store meal in Chef's Kitchen format + flag to enter prepare mode.
     // Wrapped in try/catch — if storage is still full for other reasons,
     // we degrade gracefully instead of crashing the app.
-    try {
-      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
-    } catch {
-      // Storage full — clear stale Chef keys and retry once
-      localStorage.removeItem("mpm_chefs_kitchen_meal");
-      localStorage.removeItem("mpm_chefs_kitchen_external_prepare");
-      localStorage.removeItem("mpm_chefs_kitchen_origin");
-      try { localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData)); } catch { /* give up */ }
-    }
+    writeChefHandoffMeal(mealData);
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
     localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 
