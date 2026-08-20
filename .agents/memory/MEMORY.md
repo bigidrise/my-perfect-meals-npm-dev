@@ -77,6 +77,7 @@
 - [Meal image recipe-fidelity gate](meal-image-validation-gate.md) — GPT-4o vision check gates cache entry; FAIL twice → semantic fallback, cache nothing; SKIPPED still caches but is audited.
 - [Meal image ingredient contract](meal-image-ingredient-contract.md) — dish name is label only; allow/deny list from full recipe; cache key must hash all ingredients + version bump on prompt changes.
 - [Meal image delivery recovery](meal-image-delivery-recovery.md) — browser errors lack HTTP status; re-probe server-side, retry once for storage outages, reuse surviving variants before marking missing.
+- [Production image differential diagnosis](production-image-differential-diagnosis.md) — test the exact saved-meal object path; one valid production object does not prove all production image records are valid.
 - [Canonical Media Asset Architecture — Step 4](media-asset-architecture.md) — media_assets table, paginated /api/saved-meals, lifecycle gates on familyRecipes+mealShares, Object Storage API casts, Jest ESM stub pattern for tests.
 - [prod.ts early SPA fallback intercepts /public-objects/](prod-spa-fallback-intercepts-public-objects.md) — SPA fallback must exclude /public-objects/ or image URLs return HTML in production; dev is immune because routes register first there.
 - [Override propagation invariant](override-propagation-pattern.md) — a PIN allergen override must reach every post-gen scan (incl. cached results and sub-generators) or the meal is re-blocked after a valid PIN.
