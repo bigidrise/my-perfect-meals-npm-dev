@@ -16,6 +16,7 @@ import {
   publicObjectUrlForKey,
   type DeliveryProbe,
 } from "./services/imageDeliveryRecovery";
+import { getPublicObjectDeliveryRedirect } from "./services/publicObjectDeliveryRedirect";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
@@ -405,6 +406,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GCS credential-sidecar failure can no longer break reads while writes work.
   // Status contract: 404 = object missing (non-retryable), 503 = storage error (retryable).
   app.get("/public-objects/*", async (req, res) => {
+    const deliveryRedirect = getPublicObjectDeliveryRedirect(req.hostname, req.originalUrl);
+    if (deliveryRedirect) {
+      // Do not cache this temporary routing decision: it should disappear
+      // immediately when the custom-domain Object Storage reader is repaired.
+      res.set("Cache-Control", "no-store");
+      return res.redirect(307, deliveryRedirect);
+    }
+
     const filePath = (req.params as Record<string, string>)[0] || "";
     const startedAt = Date.now();
     let bytes = 0;

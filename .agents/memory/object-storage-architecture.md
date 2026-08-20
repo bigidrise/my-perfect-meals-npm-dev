@@ -20,6 +20,14 @@ An existing App Storage bucket can be deliberately granted to another app in the
 
 **How to apply:** Keep the current deployment intact; attach the existing bucket only to a temporary recovery app, configure its production secrets, test there, and move the custom domain only after verification. Disconnecting/reconnecting a custom domain is required for cutover.
 
+## Custom-domain image delivery bypass
+
+The custom production domain can reach the app-side Object Storage reader and receive a retryable 503 even while the generated `.replit.app` deployment host serves the same permanent object successfully.
+
+**Why:** Replit’s generated-host delivery path and custom-domain app routing are not equivalent. A clean browser test against the generated host does not prove the custom domain is healthy.
+
+**How to apply:** During an active custom-domain storage outage, a temporary, host-scoped 307 from `/public-objects/*` to the generated deployment host restores image delivery without moving user data. Keep it `no-store`, preserve the query string, and remove it after the underlying authorization path is repaired.
+
 **Why the old bucket stopped working:** The bucket `replit-objstore-e02a723e-40e9-4d89-9c0e-05adfa185d2d` became disconnected from the repl. The sidecar returned "no allowed resources" on all token requests. Creating a new bucket fixed it instantly.
 
 **Public URL format:** `/public-objects/<bucket-id>/<object-path>`  
