@@ -9,8 +9,8 @@ For a browser-reported failure of a `/public-objects/` meal image, use the authe
 
 **How to apply:** Keep retry counts bounded at the renderer. If all canonical variants are confirmed missing, mark the media asset failed and stop returning its stale URL from saved-meal responses. Regeneration belongs to a separate, recipe-aware authoritative generation flow.
 
-Real-user visual validation confirmed that generated images remain semantically correct across the tested image surfaces, with Create a Dish showing the improved initial response time. Recipe Maker can still take noticeably longer because its generation flow remains synchronous.
+Real-user visual validation confirmed that generated images remain semantically correct across the tested image surfaces, with Create a Dish showing the improved initial response time. In Recipe Maker, the recipe and nutrition appear first and the correct image may follow about five seconds later; this is acceptable behavior, not an outstanding defect.
 
-**Why:** The recovery and semantic-fallback changes were intended to remove wrong-food substitutions without changing every generator's timing model.
+**Why:** The recovery and semantic-fallback changes were intended to remove wrong-food substitutions without requiring every generator to block on image delivery.
 
-**How to apply:** Treat Recipe Maker latency as a separate optimization opportunity; do not reintroduce placeholder or unrelated food imagery to make it appear faster.
+**How to apply:** Do not create a Recipe Maker latency task solely because the image arrives a few seconds after the recipe. Never reintroduce placeholder or unrelated food imagery to make it appear faster.
