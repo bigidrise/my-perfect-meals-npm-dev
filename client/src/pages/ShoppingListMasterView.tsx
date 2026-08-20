@@ -10,7 +10,6 @@ import {
   Mic,
   ListPlus,
   ExternalLink,
-  ScanLine,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import TrashButton from "@/components/ui/TrashButton";
@@ -600,16 +599,6 @@ export default function ShoppingListMasterView() {
             data-testid="shopping-add-buttons"
             className="mt-4 flex flex-wrap gap-2"
           >
-            <Button
-              data-wt="msl-barcode-scan-button"
-              onClick={() => { setBarcodeScanMode("manual"); setBarcodeModalOpen(true); }}
-              className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
-              size="sm"
-              data-testid="button-barcode-scan"
-            >
-              <ScanLine className="h-4 w-4 mr-2" />
-              Scan Barcode
-            </Button>
             <Button
               data-wt="msl-voice-add-button"
               onClick={() => setVoiceModalOpen(true)}
