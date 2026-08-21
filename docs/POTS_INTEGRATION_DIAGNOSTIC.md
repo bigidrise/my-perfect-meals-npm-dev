@@ -6,9 +6,9 @@
 
 ## Executive recommendation
 
-**Recommended architecture: C — onboarding medical condition that activates a constrained POTS protocol overlay.**
+**Recommended architecture: C — a dysautonomia-family condition model that activates a constrained, POTS-specific protocol overlay.**
 
-POTS should not be a dedicated meal builder or an automatic “high-sodium diet” mode. MPM's existing architecture is already designed for a primary clinical mode plus additive protocol modifiers. POTS fits that additive overlay pattern when, and only when, the overlay uses clinician-defined instructions or conservative, non-prescriptive support.
+POTS should not be a dedicated meal builder or an automatic “high-sodium diet” mode. POTS is a form of dysautonomia, so MPM should represent **Dysautonomia / Autonomic Conditions** as the clinical family and **POTS** as a specific condition/presentation within it. MPM's existing architecture is already designed for a primary clinical mode plus additive protocol modifiers. A POTS overlay fits that additive pattern when, and only when, it uses clinician-defined instructions or conservative, non-prescriptive support.
 
 The central safety rule is:
 
@@ -24,7 +24,7 @@ Clinical sources commonly include greater fluid and sodium intake among first-li
 - `ExtendedOnboarding.tsx` separately assigns a meal-builder experience (for example diabetic, GLP-1, anti-inflammatory, performance) rather than making every condition a standalone builder.
 - `AuthContext.tsx` already transports richer clinical context, specialty conditions, and clinical categories than the lightweight profile type alone.
 
-**Implication:** POTS should be available as a medical condition under a new **Autonomic / Circulatory Conditions** group, displayed as **“POTS — Postural Orthostatic Tachycardia Syndrome.”** It should not add a new main builder choice.
+**Implication:** MPM should introduce a **Dysautonomia / Autonomic Conditions** family and display **“POTS — Postural Orthostatic Tachycardia Syndrome”** as a specific condition beneath it. It should not add a new main builder choice.
 
 ### Protocol and meal-generation layer
 
@@ -84,6 +84,37 @@ The POTS overlay should have three operational states:
 1. **Context only:** POTS is recorded, but no clinician-defined nutrition instructions exist. MPM can provide limited education, preserve the condition in coaching context, and ask the person to add instructions from their care team. It makes no POTS-specific numeric adjustment.
 2. **Clinician-defined protocol:** A professional has entered approved fluid, sodium, electrolyte, restriction, and/or meal-pattern parameters. MPM can operationalize only those parameters and must label their source.
 3. **Restricted / conflict review:** A higher-priority restriction or unresolved conflict exists. POTS-specific adjustments are disabled until a professional instruction resolves the conflict.
+
+## 3A. Dysautonomia/POTS conditional decision tree
+
+The governing architecture principle is:
+
+> Conditions do not directly prescribe food. They activate a conditional decision tree that resolves the effective instruction before MPM generates a meal, beverage, recommendation, or coaching response.
+
+Johns Hopkins identifies POTS as a form of dysautonomia and notes variation in presentation, including different blood-pressure responses on standing. Dysautonomia International likewise frames sodium/fluid changes as individualized rather than appropriate for every person or presentation. These sources reinforce that MPM must not treat “POTS” as a nutrition rule.
+
+```text
+Dysautonomia / autonomic-condition context
+  → Is POTS the recorded condition/presentation?
+     → Is there a clinician-approved, current nutrition/hydration plan?
+        → No: context-only; no numeric sodium/fluid/electrolyte action
+        → Yes: identify each typed instruction and its authority
+           → Are organ-safety restrictions or clinician ceilings active?
+              → Yes: restriction wins; withhold conflicting POTS adjustment
+              → No: continue
+           → Is there a pregnancy, medication, GI, metabolic, or performance interaction?
+              → Unresolved: request clinician resolution / use conservative default
+              → Resolved: apply only the compatible portion of the POTS plan
+           → Generate/validate against the effective instruction set
+           → Persist the applied or withheld rationale for patient and clinician
+```
+
+### Presentations and factors the engine must represent as unresolved context, not infer
+
+- **POTS presentations:** literature often discusses neuropathic, hyperadrenergic, hypovolemic, and secondary/associated presentations. These labels can overlap and are not safe for MPM to assign from symptoms or a diagnosis alone.
+- **Blood-pressure response:** a person may have low blood pressure, normal blood pressure, or increased blood pressure on standing. MPM must obtain any relevant treatment direction from the care team rather than deduce salt/fluid strategy.
+- **Associated conditions:** POTS can coexist with GI disease/symptoms, autoimmune disease, asthma, migraine, connective-tissue conditions, diabetes, food allergy/intolerance, and other disorders. A co-occurrence is not permission to infer a diet, food restriction, or causal explanation.
+- **Medication and treatment plan:** medication classes and clinician treatment instructions can materially alter fluid, sodium, blood-pressure, appetite, and exercise considerations. MPM must not interpret medication lists, recommend changes, or derive targets from them; the clinician plan is the only executable source.
 
 ## 4. Conflict hierarchy
 
@@ -161,7 +192,7 @@ User-entered data should remain visible to the user but be treated as **context 
 
 ## 7. User onboarding and consent requirements
 
-1. Add “POTS — Postural Orthostatic Tachycardia Syndrome” under **Autonomic / Circulatory Conditions**.
+1. Add a **Dysautonomia / Autonomic Conditions** family with “POTS — Postural Orthostatic Tachycardia Syndrome” as a specific condition/presentation.
 2. After selection, explain plainly that nutrition guidance for POTS varies and may conflict with other conditions.
 3. Ask whether the person has written nutrition/hydration instructions from their care team.
 4. If no instructions exist, record context only; do not ask MPM to calculate a sodium/fluid target.
@@ -363,3 +394,5 @@ This is a **proposed architectural direction**, not a recommendation to begin re
 3. Ganesh R, Bonnes SL, DiBaise JK. *Postural Tachycardia Syndrome: Nutrition Implications.* Nutrition in Clinical Practice. 2020. doi:10.1002/ncp.10564. https://aspenjournals.onlinelibrary.wiley.com/doi/10.1002/ncp.10564
 4. Mehr SE, et al. *Gastrointestinal symptoms in postural tachycardia syndrome: a systematic review.* Clin Auton Res. 2018. https://pubmed.ncbi.nlm.nih.gov/29549458/
 5. Mullens W, et al. *Dietary sodium and fluid intake in heart failure.* European Journal of Heart Failure. 2024. PMID:38606657. https://pubmed.ncbi.nlm.nih.gov/38606657/
+6. Johns Hopkins Medicine. *Postural Orthostatic Tachycardia Syndrome (POTS).* https://www.hopkinsmedicine.org/health/conditions-and-diseases/postural-orthostatic-tachycardia-syndrome-pots
+7. Dysautonomia International. *Lifestyle Adaptations for POTS.* https://www.dysautonomiainternational.org/page.php?ID=44
