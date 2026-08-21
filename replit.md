@@ -118,8 +118,13 @@ git push --no-verify
 3. `git push origin dev` (or `npm run push` for a timestamped snapshot commit)
 4. On GitHub: open a PR from `dev` → `main` and merge
 5. In the production shell: `git pull`
-6. Confirm production is healthy: check `/api/health` in browser
-7. Update `LAST_STABLE.md` with the new commit hash
+6. **Run `bash scripts/pre-publish-validate.sh`** — must pass before clicking Publish.
+   Checks that production points at the correct storage bucket (not the dev bucket),
+   DATABASE_URL is a prod host, all critical secrets are set, storage and DB are reachable,
+   and the built client bundle contains no dev URLs. Exit non-zero = do NOT publish.
+7. Click Publish in Replit
+8. Confirm production is healthy: check `/api/health` in browser
+9. Update `LAST_STABLE.md` with the new commit hash
 
 **If production breaks after a pull:**
 Open `LAST_STABLE.md`, copy the last known-good commit hash, and run in the production shell:
