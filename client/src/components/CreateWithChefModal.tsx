@@ -490,7 +490,6 @@ export function CreateWithChefModal({
   return (
     <>
     <UniversalDialog rawLayout open={open} onOpenChange={onOpenChange} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md">
-        <div className="p-6">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-semibold">
             {t("createWithChef.title")}
@@ -712,7 +711,6 @@ export function CreateWithChefModal({
               </div>
             </>
           )}
-        </div>
         </div>
     </UniversalDialog>
 

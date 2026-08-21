@@ -276,7 +276,6 @@ export function AthleteMealPickerDrawer({
       rawLayout
       className="bg-black/90 border-white/20 text-white max-w-4xl max-h-[85vh] overflow-y-auto"
     >
-        <div className="p-6">
         <DialogHeader>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
@@ -624,7 +623,6 @@ export function AthleteMealPickerDrawer({
               </div>
             </div>
           </div>
-        </div>
         </div>
     </UniversalDialog>
 
