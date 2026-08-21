@@ -44,6 +44,7 @@ export function QuickTourModal({
       }}
       className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl"
     >
+        <div className="p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-white text-center break-words [text-wrap:balance]">
             {title}
@@ -99,6 +100,7 @@ export function QuickTourModal({
               Turn Off All Tour Guides
             </button>
           )}
+        </div>
         </div>
     </UniversalDialog>
   );

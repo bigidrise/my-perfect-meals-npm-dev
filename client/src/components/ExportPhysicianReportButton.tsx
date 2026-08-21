@@ -153,6 +153,7 @@ export function ExportPhysicianReportButton({
       </Button>
 
       <UniversalDialog rawLayout open={showDialog} onOpenChange={setShowDialog} className="max-w-2xl">
+          <div className="p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <FileText className="w-6 h-6 text-purple-600" />
@@ -240,6 +241,7 @@ export function ExportPhysicianReportButton({
                 Close
               </Button>
             </div>
+          </div>
           </div>
       </UniversalDialog>
     </>

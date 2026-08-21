@@ -71,6 +71,7 @@ export function UniversalDialog({
       <DialogContent
         className={cn(
           "flex flex-col max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden",
+          rawLayout && "p-0",
           className
         )}
         showCloseButton={showCloseButton}
