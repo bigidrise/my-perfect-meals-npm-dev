@@ -1139,6 +1139,8 @@ export default function Router() {
         <Route path="/admin" component={AdminDashboard} />
         {/* Modal regression-guard test harness — only active in DEV or Playwright */}
         <Route path="/__modal-test__" component={lazy(() => import("@/pages/ModalTestHarness"))} />
+        {/* Sheet/Drawer regression-guard test harness — only active in DEV or Playwright */}
+        <Route path="/__sheet-test__" component={lazy(() => import("@/pages/SheetTestHarness"))} />
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>
