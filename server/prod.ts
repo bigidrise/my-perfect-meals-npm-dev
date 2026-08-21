@@ -145,15 +145,40 @@ app.get("/api/health/full", async (_req, res) => {
     await dbCheck.execute(sqlCheck`SELECT 1`);
     result.database = "healthy";
   } catch {
-    // Do not expose raw DB error messages; check server logs for details
     result.database = "unhealthy: database probe failed";
     httpStatus = 503;
   }
 
   // Object Storage — SDK probe (no HTTP fetch, no SSRF)
   const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
+  if (!bucketId) {
+    result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
+    result.storageBucketId = "(not configured)";
+    httpStatus = 503;
+  } else if (bucketId === DEV_BUCKET) {
+    result.objectStorage = "unhealthy: production is pointing at the DEV bucket";
+    result.storageBucketId = bucketId;
+    httpStatus = 503;
+  } else {
+    result.storageBucketId = bucketId;
+    try {
+      const { probeStorageCanary } = await import("./objectStorage");
+      const probe = await probeStorageCanary(bucketId);
+      result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
+      if (!probe.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      httpStatus = 503;
+    }
+  }
 
-    const { probeStorageCanary } = await import("./objectStorage");
+  result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
+  if (!process.env.OPENAI_API_KEY) httpStatus = 503;
+  result.auth = process.env.SESSION_SECRET ? "configured" : "missing";
+  if (!process.env.SESSION_SECRET) httpStatus = 503;
+  result.timestamp = new Date().toISOString();
+  res.status(httpStatus).json(result);
+});
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`✅ [BOOT] Server listening on 0.0.0.0:${port}`);
@@ -2091,5 +2116,3 @@ async function initializeApp() {
     process.exit(1);
   }
 }
-
-    const probe = await probeStorageCanary(bucketId);
