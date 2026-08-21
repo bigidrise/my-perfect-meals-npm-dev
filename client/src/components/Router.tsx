@@ -1137,6 +1137,8 @@ export default function Router() {
         />
         {/* Admin Dashboard — role-checked on both server and client */}
         <Route path="/admin" component={AdminDashboard} />
+        {/* Modal regression-guard test harness — only active in DEV or Playwright */}
+        <Route path="/__modal-test__" component={lazy(() => import("@/pages/ModalTestHarness"))} />
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>

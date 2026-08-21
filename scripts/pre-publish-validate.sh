@@ -142,7 +142,70 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-header "7. Bundle isolation — no dev URLs in built artifacts"
+header "7. Shared dialog primitive — screenshot diff review (Gate 2)"
+
+# Check whether universal-modal.tsx or dialog.tsx has changed since the last
+# publish baseline.  If so, the modal-screenshot-diff.sh workflow must have been
+# run and the reviewer must have acknowledged any diff ≥ 2% of pixels.
+#
+# The acknowledgement is a simple flag file written by:
+#   bash scripts/modal-screenshot-diff.sh acknowledge
+#
+# Why a flag file (not a git tag or env var): it survives across shell sessions
+# and is resettable with a single rm, which is the safest pattern for this kind
+# of "must be reviewed before proceeding" gate.
+
+REVIEW_FLAG=".agents/modal-diff-reviewed"
+SHARED_PRIMITIVES_CHANGED=0
+
+# Detect whether the shared primitives have local changes vs the last commit,
+# OR vs the remote main branch (whichever reveals more).
+PRIM_FILES=(
+  "client/src/components/ui/universal-modal.tsx"
+  "client/src/components/ui/dialog.tsx"
+)
+
+for prim in "${PRIM_FILES[@]}"; do
+  if git diff HEAD -- "$prim" 2>/dev/null | grep -q "^[+-]"; then
+    SHARED_PRIMITIVES_CHANGED=1
+    warn "Shared primitive modified (uncommitted): $prim"
+  fi
+  if git diff HEAD~1 HEAD -- "$prim" 2>/dev/null | grep -q "^[+-]"; then
+    SHARED_PRIMITIVES_CHANGED=1
+    warn "Shared primitive modified (last commit): $prim"
+  fi
+done
+
+if [ "$SHARED_PRIMITIVES_CHANGED" -eq 1 ]; then
+  if [ -f "$REVIEW_FLAG" ]; then
+    REVIEWED_AT=$(grep "reviewed_at=" "$REVIEW_FLAG" 2>/dev/null | cut -d= -f2 || echo "unknown")
+    pass "Shared primitive diff acknowledged (reviewed_at: $REVIEWED_AT)"
+    echo "       Flag: $REVIEW_FLAG"
+  else
+    fail "Shared primitives changed but screenshot diff NOT reviewed"
+    echo ""
+    echo "  ${RED}UniversalDialog or DialogContent was modified but the screenshot diff${NC}"
+    echo "  workflow has not been completed.  This risks silent mobile layout regressions"
+    echo "  that produce zero JS errors (reference incident: InspirationCaptureModal, Aug 2026)."
+    echo ""
+    echo "  To resolve:"
+    echo "    1. Run BEFORE your edit (if not already done):"
+    echo "         bash scripts/modal-screenshot-diff.sh before"
+    echo "    2. Make your changes to the shared primitives."
+    echo "    3. Capture the AFTER screenshots and compare:"
+    echo "         bash scripts/modal-screenshot-diff.sh after"
+    echo "    4. Review the diff images in docs/screenshots/modal-diff/diff/"
+    echo "    5. If the change is intentional, acknowledge and re-run this script:"
+    echo "         bash scripts/modal-screenshot-diff.sh acknowledge"
+    echo "         bash scripts/pre-publish-validate.sh"
+    echo ""
+  fi
+else
+  pass "Shared dialog primitives unchanged — no diff review required"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+header "8. Bundle isolation — no dev URLs in built artifacts"
 
 DIST_DIR="client/dist"
 if [ ! -d "$DIST_DIR" ]; then
