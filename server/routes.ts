@@ -323,7 +323,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
   // Health endpoint for network testing
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, timestamp: Date.now(), version: "1.0.0" });
+    res.json({
+      ok: true,
+      timestamp: Date.now(),
+      version: "1.0.0",
+      environment: process.env.NODE_ENV || "development",
+      storageBucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "",
+    });
+  });
+
+  // Release identity — public, no auth, no DB.
+  // Reads the manifest built by update-version.js. Acceptance gate and monitoring use this
+  // to confirm git SHA, storage bucket, and environment after every publish.
+  app.get("/api/release", (req, res) => {
+    try {
+      // In dev, the manifest lives in client/public. In production prod.ts also registers
+      // this before initializeApp so both paths are covered.
+      const candidates = [
+        path.resolve(process.cwd(), "client/dist/release-manifest.json"),
+        path.resolve(process.cwd(), "client/public/release-manifest.json"),
+      ];
+      let manifest: Record<string, unknown> = {};
+      for (const p of candidates) {
+        if (fs.existsSync(p)) { manifest = JSON.parse(fs.readFileSync(p, "utf-8")); break; }
+      }
+      res.json({ ...manifest, apiOrigin: req.hostname, nodeVersion: process.version });
+    } catch (e: any) {
+      res.status(500).json({ error: "Failed to read release manifest", detail: e.message });
+    }
+  });
+
+  // Full infrastructure health — each critical dependency probed independently.
+  // Returns 503 if any subsystem is unhealthy. Used by acceptance gate + monitoring.
+  app.get("/api/health/full", async (req, res) => {
+    const DEV_BUCKET = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
+    const result: Record<string, string> = {};
+    let httpStatus = 200;
+
+    result.application = "healthy";
+
+    // Database
+    try {
+      const { db: dbCheck } = await import("./db");
+      const { sql: sqlCheck } = await import("drizzle-orm");
+      await dbCheck.execute(sqlCheck`SELECT 1`);
+      result.database = "healthy";
+    } catch (e: any) {
+      result.database = `unhealthy: ${e.message}`;
+      httpStatus = 503;
+    }
+
+    // Object Storage
+    const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
+    if (!bucketId) {
+      result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
+      result.storageBucketId = "(not configured)";
+      httpStatus = 503;
+    } else if (bucketId === DEV_BUCKET) {
+      result.objectStorage = "unhealthy: production is pointing at the DEV bucket";
+      result.storageBucketId = bucketId;
+      httpStatus = 503;
+    } else {
+      result.storageBucketId = bucketId;
+      try {
+        const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
+        const canaryUrl = `${proto}://${req.hostname}/public-objects/${bucketId}/migration-manifest.json`;
+        const storageRes = await fetch(canaryUrl, {
+          signal: AbortSignal.timeout(8000),
+          headers: { "x-health-probe": "1" },
+        });
+        result.objectStorage = storageRes.ok ? "healthy" : `unhealthy: canary returned HTTP ${storageRes.status}`;
+        if (!storageRes.ok) httpStatus = 503;
+      } catch (e: any) {
+        result.objectStorage = `unhealthy: ${e.message}`;
+        httpStatus = 503;
+      }
+    }
+
+    result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
+    if (!process.env.OPENAI_API_KEY) httpStatus = 503;
+    result.auth = process.env.SESSION_SECRET ? "configured" : "missing";
+    if (!process.env.SESSION_SECRET) httpStatus = 503;
+    result.timestamp = new Date().toISOString();
+    res.status(httpStatus).json(result);
   });
 
   // Release identity — public, no auth, no DB.
