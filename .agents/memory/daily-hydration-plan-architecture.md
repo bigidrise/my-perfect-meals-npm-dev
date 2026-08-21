@@ -7,4 +7,4 @@ MPM hydration must be a server-authoritative domain split into immutable intake 
 
 **Why:** Separate hydration calculations and browser-owned totals cannot safely resolve restrictions, explain historical behavior, synchronize across devices, or support clinical review.
 
-**How to apply:** Do not implement hydration screens or condition-specific logic until the architecture document’s contract review is complete. Preserve every plan revision, policy version, and effective interval; mid-day policy/clinician changes create a superseding revision rather than rewriting history. See `docs/DAILY_HYDRATION_PLAN_ARCHITECTURE.md`.
+**How to apply:** The architecture review is complete, but implementation remains blocked until every governance approval in `docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md` is affirmed. Preserve every plan revision, policy version, and effective interval; mid-day policy/clinician changes create a superseding revision rather than rewriting history.

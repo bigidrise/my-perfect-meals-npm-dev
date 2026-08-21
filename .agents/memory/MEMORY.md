@@ -1,5 +1,6 @@
 // hint: Logic changed on both sides. Requires understanding intent of each change.
 - [Safe-area modal layout — minimal blast radius rule](safe-area-modal-layout-rule.md) — spacing fixes must NOT restructure flex/overflow; inline paddingTop style is the only correct safe-area pattern.
+- [Authenticated API vs client cache identity](authenticated-api-client-cache-identity.md) — removing caller account IDs from APIs must not erase local account partitioning for cached or rendered health data.
 - [Clinical adaptation retry activation](clinical-adaptation-retries.md) — generator-side diabetic/GLP-1 behavior must key off server-resolved clinicalGenerationContext, never client dietType alone.
 - [ALLERGEN_ADAPT dish-name exemption](allergen-adapt-dish-name-exemption.md) — post-scan must exempt the requested dish's own name (curated allowlist + word-bounded request match) or adaptation always fails.
 - [Allergen override exact-key matching](allergen-override-exact-match.md) — PIN overrides must match allergies via allergenKeysMatch (canonical key + alias map), never substring; "fish" must not unlock "shellfish".
