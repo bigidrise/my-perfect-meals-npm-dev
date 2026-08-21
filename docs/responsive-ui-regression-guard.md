@@ -1,6 +1,6 @@
 # Responsive UI Regression Guard — Architecture Proposal
 
-**Status:** Phase 4 implemented — Gate 1 wired into `scripts/pre-publish-validate.sh`; viewport tests run automatically on publish when shared dialog primitives have changed  
+**Status:** Phases 1–4 implemented — Gate 1 viewport tests + Gate 2 screenshot diff, wired into `scripts/pre-publish-validate.sh`  
 **Reference incident:** Recipe Maker (InspirationCaptureModal) — August 2026  
 **Problem class:** A correct safe-area fix also restructured `flex/overflow/height` on the modal container. The app compiled cleanly, no JS errors, but the modal was wider than the phone screen and only usable in landscape.
 
@@ -114,34 +114,59 @@ This is implemented as a Playwright project config that maps file patterns to te
 
 ---
 
-## Gate 2 addition — screenshot diff for shared primitives
 
-When `universal-modal.tsx` or `dialog.tsx` is modified:
+## Gate 2 — screenshot diff for shared primitives ✅ IMPLEMENTED
 
-1. Before the change: capture screenshots at small-iphone-portrait, iphone-landscape, desktop
-2. After the change: capture same viewports
-3. Compute pixel diff — flag if diff > threshold (e.g., 2% of pixels)
-4. Agent must explicitly acknowledge the diff before proceeding
+**Files:**
+- `scripts/modal-screenshot-diff.sh` — orchestrates before/after/acknowledge workflow
+- `scripts/modal-screenshot-capture.mjs` — standalone Playwright capture (3 viewports × 7 variants = 21 pairs)
+- `docs/screenshots/modal-diff/` — before/, after/, diff/ subdirectories
+- `scripts/pre-publish-validate.sh` §7 — fingerprint-validated Gate 2 check
 
-This doesn't block on diff alone — it surfaces the diff for review. A layout change may be intentional. What matters is it's **seen**, not ignored.
+**State model:**
 
-The pre-publish-validate script gains one check: `did_shared_primitives_change && screenshot_diff_not_reviewed → FAIL`.
+| File | Written by | Purpose |
+|---|---|---|
+| `.agents/modal-diff-manifest` | `after` | Proof of completed comparison; holds SHA-256 fingerprints of both primitives at capture time |
+| `.agents/modal-diff-reviewed` | `after` (auto) or `acknowledge` | Proof of human review; read by pre-publish-validate.sh |
+
+`acknowledge` requires the manifest. Running it without a completed `after` cycle fails. Pre-publish-validate.sh re-hashes both primitives at validation time and rejects the flag if the files changed after the last `after` run — a second edit cannot inherit a prior review.
+
+**Workflow when `universal-modal.tsx` or `dialog.tsx` is modified:**
+
+```bash
+# Step 1 — capture baseline BEFORE your edit
+bash scripts/modal-screenshot-diff.sh before
+
+# Step 2 — make your changes to universal-modal.tsx or dialog.tsx
+
+# Step 3 — capture AFTER screenshots and compute pixel diff
+bash scripts/modal-screenshot-diff.sh after
+# If all 21 diffs < 2%: auto-acknowledged, jump to step 5
+# If any diff ≥ 2%: inspect docs/screenshots/modal-diff/diff/ then continue
+
+# Step 4 — acknowledge the intentional visual change (only needed when diff ≥ 2%)
+bash scripts/modal-screenshot-diff.sh acknowledge
+
+# Step 5 — Gate 2 now passes
+bash scripts/pre-publish-validate.sh
+```
+
+**Viewports:** small-iphone-portrait (375×667) · iphone-landscape (844×390) · desktop (1280×800)  
+**Variants:** universal · confirmation · form · picker · information · workflow · wizard  
+**Threshold:** 2% of pixels (ImageMagick AE metric, 3% fuzz) — diffs at or above this require explicit acknowledgement, not a hard block.
 
 ---
 
 ## Rollout order
 
-| Phase | What | Effort |
+| Phase | What | Status |
 |---|---|---|
-| 0 | Encode minimal-blast-radius rule in `replit.md` and agent memory | 30 min |
-| 1 | Playwright viewport tests for InspirationCaptureModal | 1–2 hours |
-| 2 | Extend tests to UniversalDialog + DialogContent | 1–2 hours |
-| 3 | Screenshot diff for shared primitive changes | 2–3 hours |
-| 4 | Connect Gate 1 to pre-publish-validate.sh | 30 min |
-
-Phase 0 is free — it costs nothing and prevents the class of bug immediately.  
-Phase 1 is the reference incident made into a test that guards future changes forever.  
-Phases 2–4 expand coverage progressively.
+| 0 | Encode minimal-blast-radius rule in `replit.md` and agent memory | ✅ Done |
+| 1 | Playwright viewport tests for InspirationCaptureModal | ✅ Done |
+| 2 | Extend tests to UniversalDialog + DialogContent | ✅ Done |
+| 3 | Screenshot diff for shared primitive changes (Gate 2) | ✅ Done |
+| 4 | Connect Gate 1 to pre-publish-validate.sh | ✅ Done |
 
 ---
 
@@ -167,3 +192,5 @@ Three assertions would have caught the regression before the user ever opened th
 **Every serious bug you fix should leave behind a test that makes that exact class of bug harder to reintroduce.**
 
 The Recipe Maker problem is now fixed. The next step is making it the reason the next 50 modal changes are safer.
+
+---

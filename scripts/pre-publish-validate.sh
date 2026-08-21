@@ -146,26 +146,28 @@ header "7. Shared dialog primitive — screenshot diff review (Gate 2)"
 
 # Check whether universal-modal.tsx or dialog.tsx has changed since the last
 # publish baseline.  If so, the modal-screenshot-diff.sh workflow must have been
-# run and the reviewer must have acknowledged any diff ≥ 2% of pixels.
+# run, all 21 capture pairs compared, and the reviewer must have acknowledged
+# any diff ≥ 2% of pixels.
 #
-# The acknowledgement is a simple flag file written by:
-#   bash scripts/modal-screenshot-diff.sh acknowledge
+# The gate uses a two-file state model:
+#   .agents/modal-diff-manifest   — written by `after`; contains SHA-256
+#                                   fingerprints of both primitives at capture time
+#   .agents/modal-diff-reviewed   — written by `after` (auto) or `acknowledge`
 #
-# Why a flag file (not a git tag or env var): it survives across shell sessions
-# and is resettable with a single rm, which is the safest pattern for this kind
-# of "must be reviewed before proceeding" gate.
+# Both files must exist AND the manifest fingerprints must match the current
+# on-disk primitive files.  If the primitives changed again after the last
+# `after` run, the stored fingerprints will differ and this gate fails, forcing
+# a fresh comparison cycle.
 
 REVIEW_FLAG=".agents/modal-diff-reviewed"
+MANIFEST=".agents/modal-diff-manifest"
 SHARED_PRIMITIVES_CHANGED=0
 
-# Detect whether the shared primitives have local changes vs the last commit,
-# OR vs the remote main branch (whichever reveals more).
-PRIM_FILES=(
-  "client/src/components/ui/universal-modal.tsx"
-  "client/src/components/ui/dialog.tsx"
-)
+PRIM_UNIVERSAL_MODAL="client/src/components/ui/universal-modal.tsx"
+PRIM_DIALOG="client/src/components/ui/dialog.tsx"
 
-for prim in "${PRIM_FILES[@]}"; do
+# Detect whether the shared primitives have changed (uncommitted or last commit)
+for prim in "$PRIM_UNIVERSAL_MODAL" "$PRIM_DIALOG"; do
   if git diff HEAD -- "$prim" 2>/dev/null | grep -q "^[+-]"; then
     SHARED_PRIMITIVES_CHANGED=1
     warn "Shared primitive modified (uncommitted): $prim"
@@ -177,27 +179,70 @@ for prim in "${PRIM_FILES[@]}"; do
 done
 
 if [ "$SHARED_PRIMITIVES_CHANGED" -eq 1 ]; then
-  if [ -f "$REVIEW_FLAG" ]; then
-    REVIEWED_AT=$(grep "reviewed_at=" "$REVIEW_FLAG" 2>/dev/null | cut -d= -f2 || echo "unknown")
-    pass "Shared primitive diff acknowledged (reviewed_at: $REVIEWED_AT)"
-    echo "       Flag: $REVIEW_FLAG"
-  else
+  GATE2_OK=1
+
+  # 1. Review flag must exist
+  if [ ! -f "$REVIEW_FLAG" ]; then
     fail "Shared primitives changed but screenshot diff NOT reviewed"
+    GATE2_OK=0
+  fi
+
+  # 2. Manifest must exist (proves `after` was run, not just `acknowledge`)
+  if [ ! -f "$MANIFEST" ]; then
+    fail "Diff manifest missing — 'after' command was never completed"
+    GATE2_OK=0
+  fi
+
+  if [ "$GATE2_OK" -eq 1 ]; then
+    # 3. Fingerprint check — re-hash both primitives now and compare to the
+    #    values recorded in the manifest when `after` ran.  Any subsequent edit
+    #    to the primitives will produce a mismatch and force a fresh cycle.
+    STORED_HASH_MODAL=$(grep "^primitive_hash_universal_modal=" "$MANIFEST" 2>/dev/null | cut -d= -f2 || echo "")
+    STORED_HASH_DIALOG=$(grep "^primitive_hash_dialog=" "$MANIFEST" 2>/dev/null | cut -d= -f2 || echo "")
+
+    CURRENT_HASH_MODAL=$(sha256sum "$PRIM_UNIVERSAL_MODAL" 2>/dev/null | awk '{print $1}' || echo "missing")
+    CURRENT_HASH_DIALOG=$(sha256sum "$PRIM_DIALOG" 2>/dev/null | awk '{print $1}' || echo "missing")
+
+    FINGERPRINT_OK=1
+    if [ "$CURRENT_HASH_MODAL" != "$STORED_HASH_MODAL" ]; then
+      fail "universal-modal.tsx changed after the screenshot diff was captured"
+      echo "       Stored:  ${STORED_HASH_MODAL:0:16}..."
+      echo "       Current: ${CURRENT_HASH_MODAL:0:16}..."
+      FINGERPRINT_OK=0
+    fi
+    if [ "$CURRENT_HASH_DIALOG" != "$STORED_HASH_DIALOG" ]; then
+      fail "dialog.tsx changed after the screenshot diff was captured"
+      echo "       Stored:  ${STORED_HASH_DIALOG:0:16}..."
+      echo "       Current: ${CURRENT_HASH_DIALOG:0:16}..."
+      FINGERPRINT_OK=0
+    fi
+
+    if [ "$FINGERPRINT_OK" -eq 1 ]; then
+      REVIEWED_AT=$(grep "^reviewed_at=" "$REVIEW_FLAG" 2>/dev/null | cut -d= -f2 || echo "unknown")
+      COMPARED=$(grep "^compared=" "$MANIFEST" 2>/dev/null | cut -d= -f2 || echo "?")
+      pass "Shared primitive diff acknowledged — $COMPARED pairs compared, fingerprints match (reviewed_at: $REVIEWED_AT)"
+    else
+      echo ""
+      echo "  The primitives were edited after the last screenshot comparison."
+      echo "  Run a fresh diff cycle:"
+      echo "    bash scripts/modal-screenshot-diff.sh before"
+      echo "    bash scripts/modal-screenshot-diff.sh after"
+      echo "    bash scripts/modal-screenshot-diff.sh acknowledge   # if diff ≥ 2%"
+      echo ""
+    fi
+  else
     echo ""
     echo "  ${RED}UniversalDialog or DialogContent was modified but the screenshot diff${NC}"
     echo "  workflow has not been completed.  This risks silent mobile layout regressions"
     echo "  that produce zero JS errors (reference incident: InspirationCaptureModal, Aug 2026)."
     echo ""
     echo "  To resolve:"
-    echo "    1. Run BEFORE your edit (if not already done):"
-    echo "         bash scripts/modal-screenshot-diff.sh before"
-    echo "    2. Make your changes to the shared primitives."
-    echo "    3. Capture the AFTER screenshots and compare:"
-    echo "         bash scripts/modal-screenshot-diff.sh after"
-    echo "    4. Review the diff images in docs/screenshots/modal-diff/diff/"
-    echo "    5. If the change is intentional, acknowledge and re-run this script:"
-    echo "         bash scripts/modal-screenshot-diff.sh acknowledge"
-    echo "         bash scripts/pre-publish-validate.sh"
+    echo "    1. bash scripts/modal-screenshot-diff.sh before"
+    echo "    2. <make your changes to the shared primitives>"
+    echo "    3. bash scripts/modal-screenshot-diff.sh after"
+    echo "    4. Review diff images in docs/screenshots/modal-diff/diff/"
+    echo "    5. bash scripts/modal-screenshot-diff.sh acknowledge   # if diff ≥ 2%"
+    echo "    6. bash scripts/pre-publish-validate.sh"
     echo ""
   fi
 else
