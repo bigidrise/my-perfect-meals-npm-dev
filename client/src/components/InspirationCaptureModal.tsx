@@ -860,7 +860,10 @@ export default function InspirationCaptureModal({
                   <p className="text-white/60 text-sm text-center">
                     {t("inspiration.uploadHint")}
                   </p>
-                  <div className="relative overflow-hidden w-full rounded-xl">
+                  <div
+                    className="relative overflow-hidden w-full rounded-xl"
+                    data-testid="inspiration-upload-cta"
+                  >
                     <div className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 flex flex-col items-center gap-2">
                       <ImagePlus className="h-8 w-8 text-orange-400" />
                       <span className="text-sm font-medium text-orange-300">

@@ -1,6 +1,6 @@
 # Responsive UI Regression Guard — Architecture Proposal
 
-**Status:** Proposed — do not implement until reviewed  
+**Status:** Phase 1 implemented — `client/e2e/inspiration-capture-modal-viewport.spec.ts`  
 **Reference incident:** Recipe Maker (InspirationCaptureModal) — August 2026  
 **Problem class:** A correct safe-area fix also restructured `flex/overflow/height` on the modal container. The app compiled cleanly, no JS errors, but the modal was wider than the phone screen and only usable in landscape.
 
