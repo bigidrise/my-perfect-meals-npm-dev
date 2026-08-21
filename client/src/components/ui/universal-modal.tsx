@@ -140,7 +140,7 @@ export function ModalFooter({
   return (
     <div
       className={cn(
-        "shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t border-white/10",
+        "shrink-0 w-full flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t border-white/10",
         className
       )}
       {...props}

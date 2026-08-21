@@ -1,0 +1,27 @@
+
+Modal Screenshot Diff Report — Fri Aug 21 06:40:33 PM UTC 2026
+Threshold: 2% of pixels
+--------------------------------------------
+OK: universal-portrait-mobile-375 | diff=0%
+OK: universal-iphone-landscape | diff=0%
+OK: universal-desktop | diff=0%
+OK: confirmation-portrait-mobile-375 | diff=0%
+OK: confirmation-iphone-landscape | diff=0%
+OK: confirmation-desktop | diff=0%
+OK: form-portrait-mobile-375 | diff=0%
+OK: form-iphone-landscape | diff=0%
+OK: form-desktop | diff=0%
+OK: picker-portrait-mobile-375 | diff=0%
+OK: picker-iphone-landscape | diff=0%
+OK: picker-desktop | diff=0%
+OK: information-portrait-mobile-375 | diff=0%
+OK: information-iphone-landscape | diff=0%
+OK: information-desktop | diff=0%
+OK: workflow-portrait-mobile-375 | diff=0%
+OK: workflow-iphone-landscape | diff=0%
+OK: workflow-desktop | diff=0%
+OK: wizard-portrait-mobile-375 | diff=0%
+OK: wizard-iphone-landscape | diff=0%
+OK: wizard-desktop | diff=0%
+--------------------------------------------
+REVIEW_REQUIRED=false

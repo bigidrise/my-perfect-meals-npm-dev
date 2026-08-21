@@ -113,6 +113,54 @@ async function mockAuth(page: Page): Promise<void> {
       body: JSON.stringify({ meals: [], total: 0, page: 1, limit: 20, hasMore: false }),
     })
   );
+
+  // OrgContext fetches /api/org/config on every page; the catch-all returns {}
+  // which leaves featureFlags undefined and crashes useOrgFlag("partnerMarketplace").
+  // Return a minimal valid config so the dashboard renders without errors.
+  await page.route("**/api/org/config**", (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "aaaaaaaa-0000-0000-0000-000000000001",
+        slug: "mpm-public",
+        name: "My Perfect Meals",
+        activeStatus: "active",
+        organizationType: "public",
+        dataAccessMode: "standalone",
+        appName: "My Perfect Meals",
+        appShortName: "MPM",
+        supportEmail: "support@myperfectmeals.ai",
+        supportUrl: null,
+        primaryColor: "#f97316",
+        secondaryColor: "#ea580c",
+        accentColor: null,
+        logoUrl: null,
+        logoDarkUrl: null,
+        onboardingHeadline: null,
+        poweredByVisible: true,
+        customDomain: null,
+        isDefault: true,
+        isWhiteLabel: false,
+        featureFlags: {
+          whiteLabelMode: false,
+          customBranding: false,
+          physicianDashboard: false,
+          providerMessaging: false,
+          medicalRecordIntegration: false,
+          diabeticHub: true,
+          glp1Support: true,
+          partnerMarketplace: false,
+          productRecommendations: false,
+          oncologySupport: false,
+          coachTools: true,
+          biometricTracking: true,
+          requireAcademy: true,
+          requireProfessionalVerification: true,
+        },
+      }),
+    })
+  );
 }
 
 // ── Navigate to /dashboard and open InspirationCaptureModal ───────────────
