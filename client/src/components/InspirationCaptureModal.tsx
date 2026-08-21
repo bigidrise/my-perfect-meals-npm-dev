@@ -754,12 +754,13 @@ export default function InspirationCaptureModal({
       onOpenChange={handleClose}
       rawLayout
       showCloseButton={false}
-      className="bg-black/95 border-white/10 text-white max-w-lg w-full max-h-[90vh] overflow-hidden rounded-2xl p-0"
+      className="bg-black/95 border-white/10 text-white max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-2xl p-0"
     >
-        {/* Safe-area-aware container — top/bottom padding adapts to iPhone notch/home indicator.
-            flex-col + overflow-hidden lets the header stay fixed while content scrolls inside. */}
+        {/* Safe-area-aware container — top/bottom padding uses env() so iPhone notch/home-indicator
+            never overlaps the title or action buttons. Horizontal padding stays fixed at 1.5 rem.
+            No flex restructuring — keeps the original single-column block layout intact. */}
         <div
-          className="bg-gradient-to-br from-black/60 via-orange-950/30 to-black/80 rounded-2xl flex flex-col overflow-hidden h-full"
+          className="bg-gradient-to-br from-black/60 via-orange-950/30 to-black/80 rounded-2xl"
           style={{
             paddingTop: 'max(1.5rem, env(safe-area-inset-top, 0px))',
             paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))',
@@ -804,9 +805,6 @@ export default function InspirationCaptureModal({
                   : t("inspiration.captureSubtitle"))}
             </p>
           </DialogHeader>
-
-          {/* ── Phase content — scrolls independently; header stays pinned above ── */}
-          <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
 
           {/* ── CAPTURE ── */}
           {(phase === "capture" || phase === "error") && (
@@ -1452,8 +1450,6 @@ export default function InspirationCaptureModal({
               ) : null
             )
           ) : null}
-
-          </div>{/* end scrollable phase content */}
 
         </div>{/* end safe-area container */}
     </UniversalDialog>
