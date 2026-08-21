@@ -1,6 +1,6 @@
 # Daily Hydration Plan — Technical Architecture Proposal
 
-**Status:** Design for approval only — no Hydration Intelligence implementation is authorized by this document.  
+**Status:** Architecture review in progress — no Hydration Intelligence implementation is authorized by this document.  
 **Scope:** One server-authoritative hydration domain for MPM.  
 **Non-goal:** This does not prescribe clinical fluid, sodium, electrolyte, POTS, pregnancy, or medication rules. Those require separately approved policies and clinical governance.
 
@@ -215,7 +215,8 @@ type EffectiveDailyHydrationPlan = {
   subjectUserId: string;
   localDate: string; // ISO date in the subject's current plan timezone
   timezone: string;
-  planVersion: number;
+  planRevision: number;
+  supersedesPlanId?: string;
   status: "resolved" | "provisional" | "blocked" | "needs_review";
 
   targetKind: "point" | "range" | "floor" | "ceiling" | "monitor_only";
@@ -237,12 +238,14 @@ type EffectiveDailyHydrationPlan = {
   restrictionIds: string[];
   electrolytePolicyId?: string;
   authoritySource: "safety" | "clinician" | "policy" | "context" | "user" | "baseline";
-  policyVersions: Record<string, string>;
+  calculationPolicyVersion: string;
+  policyVersionManifest: Record<string, string>;
+  inputSnapshotHash: string;
   missingData: string[];
   rationaleCodes: string[];
   explanationIds: string[];
   effectiveAt: string;
-  expiresAt?: string;
+  supersededAt?: string;
   createdAt: string;
 };
 ```
@@ -279,6 +282,7 @@ type HydrationIntakeEvent = {
   enteredAt: string;
   enteredByUserId: string;
   clientInstanceId?: string;
+  observedPlanId?: string; // What was active when the event was accepted; never changes event ownership.
   status: "active" | "corrected" | "voided";
   correctionOfId?: string;
   note?: string;
@@ -338,6 +342,13 @@ type HydrationDailyState = {
   stateVersion: number;
   effectivePlanId: string;
   planStatus: EffectiveDailyHydrationPlan["status"];
+  planTimeline: Array<{
+    planId: string;
+    planRevision: number;
+    effectiveAt: string;
+    supersededAt?: string;
+    status: EffectiveDailyHydrationPlan["status"];
+  }>;
 
   totalFluidMl: number;
   totalContributionMl?: number;
@@ -429,7 +440,149 @@ GLP-1 remains a safety adapter, not a separate hydration ledger. Its existing sy
 
 Persist the plan/state snapshot with an input watermark and version. Publish a `hydration.state.updated` domain event keyed by subject, date, and state version so consumers invalidate stale caches rather than recomputing on their own.
 
-## 7. Condition and context adapters
+## 7. Contract validation review — explicit answers before implementation
+
+This section is the implementation gate. The rules below make plan behavior, history, and mid-day changes explicit.
+
+### 1. What is persisted as the authoritative daily snapshot?
+
+The server persists **three different authoritative records**, each for a different purpose:
+
+1. **Immutable `HydrationIntakeEvent` rows** — the actual facts a user or authorized source logged, including original unit/value, occurred time, source, correction/void lineage, and idempotency key.
+2. **Immutable `EffectiveDailyHydrationPlan` revisions** — the resolved plan facts for a user/date: target/range/ceiling semantics, timing windows, active input references, applied/withheld restrictions, policy-version manifest, calculation-policy version, explanation IDs, input snapshot hash, and effective/superseded times.
+3. **Versioned `HydrationDailyState` read models** — current aggregate intake, remaining amount where valid, coverage, warnings, and plan timeline. These are persisted for efficient reads but are always reproducible from the event and plan-revision records.
+
+The authoritative server history is therefore not one mutable “daily water total.” It is an event ledger plus an explainable plan-revision timeline.
+
+### 2. What is dynamic versus frozen for the day?
+
+| Frozen / append-only | Dynamically recalculated |
+| --- | --- |
+| Intake event facts and correction/void lineage | Current-day total intake from active events |
+| Each resolved plan revision and its input/policy snapshot | Current remaining amount, only under the currently active plan revision |
+| The plan revision effective interval | Current state projection, electrolyte coverage, and trend projection |
+| The plan/policy version that governed a historical interval | Which revision is now active after a valid new input |
+| The explanation available at the time of a historical decision | Cache/read-model state from the immutable ledger and timeline |
+
+The implementation must **create a new plan revision**, never overwrite an earlier revision, when an input changes after a plan exists.
+
+### 3. How are clinician-defined ceilings and ranges represented?
+
+An active clinician instruction is stored as an effective-dated, auditable source input with:
+
+- a target kind (`point`, `range`, `floor`, or `ceiling`);
+- normalized `minimumMl`, `targetMl`, and/or `maximumMl`;
+- timing scope (`daily`, `session`, `event`, or beverage);
+- authority/source (`clinician`), author, rationale, review date, effective time, and expiration;
+- any structured electrolyte/sodium limit only when an approved clinical policy and professional permission support it.
+
+The resolver emits that instruction into the final plan as a structured restriction or target source. A clinician ceiling is not converted into an aspirational daily target.
+
+### 4. How are conflicting modifiers resolved and explained?
+
+The resolver first normalizes every contributor into a typed claim: target, range, floor, ceiling, timing rule, beverage block, electrolyte limit, or escalation trigger. It then:
+
+1. applies hard safety restrictions;
+2. applies active, scoped clinician restrictions;
+3. applies approved condition policies;
+4. applies compatible context modifiers;
+5. applies preferences/baseline only inside the resulting safe envelope.
+
+Every claim has an authority rank, effective interval, conflict group, policy version, and rationale code. Compatible claims are composed. Incompatible hard claims produce `needs_review` or `blocked` with an explanation that names the **kind of conflict** and the authority source; the resolver never silently averages, discards, or chooses by registration order.
+
+### 5. What happens when a condition policy changes mid-day?
+
+A policy change has a named version and an effective timestamp. If the change applies to an in-progress local day:
+
+- the resolver creates a **new plan revision** effective at that timestamp;
+- the previous revision remains immutable and visible in the plan timeline;
+- the current state reprojects against the newly active revision;
+- consumers receive a state-version invalidation and display the updated explanation;
+- historical events remain unchanged and retain their `observedPlanId` where one was captured.
+
+A policy update cannot retroactively rewrite an already-resolved plan interval. A true retrospective correction requires an explicit privileged correction workflow, audit record, correction reason, and a clearly labeled revised-history view.
+
+### 6. What happens when a clinician updates a target mid-day?
+
+The same revision rule applies, with stronger authority:
+
+- the original clinician instruction and its resulting plan revision retain their effective interval;
+- the new instruction creates a new effective-dated clinician input and a superseding plan revision;
+- the current remaining value changes only from the new revision’s effective time forward;
+- both the clinician-defined target and the effective resolved plan remain visible to the authorized professional;
+- the user receives an explanation that their plan was updated, without exposing clinician-only detail.
+
+No existing intake event is reassigned, deleted, or rewritten because a target changed.
+
+### 7. How is historical hydration preserved when today’s rules differ?
+
+History is queried by local date and plan-revision interval, not recalculated using today’s policy. A yesterday view shows:
+
+- the event ledger as it existed after corrections/voids;
+- the exact plan revision(s) active yesterday;
+- the calculation-policy and contributor policy versions used;
+- the target/range/ceiling semantics that actually applied;
+- the adherence/progress interpretation valid for that historical interval.
+
+This supports a future explanation such as: **“This state was resolved with Hydration Plan Policy v1.3 and clinician plan revision 4.”**
+
+### 8. How does Beverage Creator consume current state without recalculating it?
+
+The Beverage Creator calls/receives a server-produced **hydration action brief** derived from the current plan/state. It includes only:
+
+- current plan/state IDs and versions;
+- permitted timing/use window;
+- remaining range when one is valid;
+- applicable beverage blocks and nutrient/electrolyte constraints;
+- electrolyte coverage limitations;
+- approved explanation/label requirements.
+
+The creator chooses and validates a beverage within that brief using its existing medical guardrails. It does not read raw events to calculate totals, select a hydration target, infer an electrolyte requirement, or override the resolver.
+
+### 9. How does Coach’s Corner read the same state?
+
+Coach’s Corner receives a compact, role-scoped projection of the same `HydrationDailyState` and action brief. It can cite approved plain-language explanations and offer controlled actions, such as opening Beverage Creator, but it cannot:
+
+- calculate fluid remaining independently;
+- infer hydration from unrelated behavior;
+- diagnose dehydration;
+- turn missing electrolyte data into an electrolyte recommendation.
+
+Its response records the plan/state version it used for traceability.
+
+### 10. How does ProCare see prescribed targets and actual adherence?
+
+An authorized professional gets a dedicated, relationship-scoped projection containing:
+
+1. **Clinician-defined inputs** — their effective-dated target/range/ceiling, rationale, review date, and status.
+2. **Effective plan timeline** — what the resolver actually applied after all valid restrictions/conflicts.
+3. **Actual intake/adherence** — event aggregate, correction status, coverage limitations, and adherence interpretation for each plan interval.
+
+ProCare therefore never conflates “what was prescribed,” “what could safely be applied,” and “what was actually logged.”
+
+### 11. How is electrolyte data handled honestly?
+
+Electrolytes use a separate accounting projection. A beverage event contributes sodium, potassium, magnesium, or other nutrient values only when their source is declared (`label`, validated recipe nutrition, database, clinician entry, or explicitly labeled estimate) and its confidence is recorded.
+
+The state returns `complete`, `partial`, `water_only`, or `not_tracked` coverage. It never represents unlogged or unknown electrolyte content as zero, and it never assumes equal hydration/electrolyte contribution from every beverage.
+
+### 12. How do existing water logs and local-only targets migrate?
+
+**Existing water logs**
+
+- Backfill each row losslessly into a canonical event with original ID/timestamp, `source=legacy_manual`, `beverageClass=water`, and its exact normalized volume.
+- Do not infer electrolytes, food contribution, or historical clinical context.
+- Maintain temporary read compatibility while parity tests verify the new history projection.
+
+**Local-only hydration totals and targets**
+
+- Local storage is not silently imported as medical or historical fact.
+- At cutover, the client reads the server plan/state first.
+- If a current-day local total is higher than server-recorded intake, the user may confirm a single auditable manual adjustment; otherwise it remains only a discarded client cache.
+- A local target becomes an optional user preference proposal only after user confirmation. It never overrides an active plan restriction or clinician instruction.
+- After reconciliation, local storage can cache the latest server projection but cannot become authoritative again.
+
+## 8. Condition and context adapters
 
 Each contributor provides structured facts or approved constraints. No contributor gets a private “hydration target” calculator.
 
@@ -442,7 +595,7 @@ Each contributor provides structured facts or approved constraints. No contribut
 | Climate/wearables | Evidence/context only where data quality and consent support it. | Override clinician restrictions or imply a clinical diagnosis. |
 | User preferences | Preferred target or timing preference. | Override a restriction, clinician parameter, or policy hard stop. |
 
-## 8. Consumer contracts
+## 9. Consumer contracts
 
 All consumers read a compact projection from the same server-resolved plan/state.
 
@@ -483,7 +636,7 @@ All consumers read a compact projection from the same server-resolved plan/state
 - Reads only the client projection necessary for care.
 - Parameter creation, change, expiration, override, and view events are auditable.
 
-## 9. Proposed API boundary
+## 10. Proposed API boundary
 
 Names are illustrative and should be finalized during implementation design.
 
@@ -503,9 +656,9 @@ Rules for every endpoint:
 - Event correction/void is auditable; no silent historical mutation.
 - `preview` may evaluate a user preference but cannot activate clinician authority.
 - Professional endpoints use separately scoped paths/handlers and existing access verification; they do not rely on caller-provided client IDs alone.
-- Responses include `planVersion`, `stateVersion`, and `inputWatermark` so clients can reconcile deterministically.
+- Responses include `planRevision`, `stateVersion`, `inputWatermark`, and the applicable calculation-policy version so clients can reconcile deterministically.
 
-## 10. Migration from the current hydration system
+## 11. Migration from the current hydration system
 
 This is a staged migration, not a big-bang replacement.
 
@@ -515,7 +668,7 @@ This is a staged migration, not a big-bang replacement.
 | 1 — Data foundation | Create canonical event/audit schema and baseline/plan/state contracts. | Existing water UI remains unchanged. |
 | 2 — Lossless event migration | Backfill `water_logs` to canonical `HydrationIntakeEvent` rows using `source=legacy_manual`, retained IDs/timestamps, and `beverageClass=water`. | No inferred electrolyte data or retrospective clinical labeling. |
 | 3 — Shadow resolver | Compute server plan/state in shadow mode; compare only safe aggregates and instrument mismatches. | No consumer sees or acts on it. |
-| 4 — Biometrics cutover | Replace local target/counter authority with server plan/state behind a feature flag. | Local storage becomes cache only; reconciliation is versioned. |
+| 4 — Biometrics cutover | Replace local target/counter authority with server plan/state behind a feature flag. | Local storage becomes cache only; any current-day local total needs an explicit, auditable user-confirmed adjustment rather than a silent import. |
 | 5 — GLP-1 adapter | Make the GLP-1 safety path consume shared aggregates while preserving existing escalation/rule behavior. | Parity suite must pass before removing any independent aggregation. |
 | 6 — Context adapters | Add approved performance/pregnancy adapters and structured Protocol Envelope hydration context. | Conflicts return `needs_review`; no auto electrolyte prescription. |
 | 7 — Consumer migration | Migrate Coach, Beverage Creator, Life Plan, meal surfaces, and ProCare one consumer at a time. | No consumer can retain a direct calculator after its cutover. |
@@ -530,7 +683,7 @@ This is a staged migration, not a big-bang replacement.
 - Direct hydration math in Coach, builders, or individual feature pages.
 - Any attempt to hide hydration data inside `DailyNutritionPrescription`; the domains are related but distinct.
 
-## 11. Persistence, synchronization, security, and observability
+## 12. Persistence, synchronization, security, and observability
 
 ### Persistence and synchronization
 
@@ -563,7 +716,7 @@ Emit structured, privacy-safe telemetry for:
 
 Do not log raw medical notes, full intake histories, or sensitive explanations in generic application logs.
 
-## 12. Regression and release gates
+## 13. Regression and release gates
 
 ### Identity and access
 
@@ -587,6 +740,8 @@ Do not log raw medical notes, full intake histories, or sensitive explanations i
 - Conflicting hard restrictions yield `needs_review` or `blocked`; no arbitrary numeric result.
 - Every effective value identifies a source, effective period, policy version, and explanation.
 - A ceiling is never rendered as a “drink this much” target.
+- A policy or clinician update mid-day creates a superseding revision and leaves the earlier revision explainable.
+- Historical days remain pinned to their original plan-revision timeline and calculation-policy version.
 
 ### State and cross-device behavior
 
@@ -605,7 +760,7 @@ Do not log raw medical notes, full intake histories, or sensitive explanations i
 - Beverage Creator observes restrictions and validates nutrient/electrolyte claims.
 - No meal surface counts food water as measured fluid without explicit contribution provenance.
 
-## 13. Required approvals before implementation
+## 14. Required approvals before implementation
 
 Implementation should not begin until these are resolved:
 
@@ -616,7 +771,7 @@ Implementation should not begin until these are resolved:
 5. **Product claims:** the language allowed for hydration/electrolyte recommendations and constraints.
 6. **Migration acceptance:** lossless backfill criteria, shadow-mode metrics, rollout flags, and rollback behavior.
 
-## 14. Recommended next step
+## 15. Recommended next step
 
 Approve or amend this architecture first. Then create a separate implementation plan with:
 
