@@ -55,6 +55,7 @@
 - [Performance Hub macro anchoring](performance-hub-macro-anchor.md) — AI coach must never invent macro targets; /ask injects AUTHORITATIVE BASELINE + RESOLVED blocks and validates response.
 - [Object Storage Architecture (active)](object-storage-architecture.md) — @replit/object-storage Client is the working upload path; signed-URL sidecar returns 401; S3 still 403; bucket FuzzyOrdinaryWebmaster; route fix for direct bucket-ID URLs.
 - [DailyNutritionPrescription — Architecture](daily-nutrition-prescription.md) — shared contract + server resolver; starchMealsAllowed is integer not string; resolver uses real DB columns only.
+- [Daily Hydration Plan architecture](daily-hydration-plan-architecture.md) — one server-resolved hydration plan with immutable events and revisioned history; validate contract/governance before code.
 - [Nutrition Decision Engine — Food Entry Point Rule](nde-food-entry-points.md) — every food entry point (builders, scanners, imports, manual) must consult NDE before presenting to user; scanGeneratedOutput() is the post-gen validator; ndeSummary is the response field for scanner clients.
 - [Macro Calculator type sync rule](macro-calc-type-sync.md) — renaming client-side types (UserType, BodyType) requires updating server route validator AND engine types together or compute returns 400.
 - [GLP-1 Target Resolver](glp1-target-resolver.md) — pure resolver in server/services/glp1/resolveGLP1MealTargets.ts; loader in glp1TargetLoader.ts; applyGuardrails 8th param; validateMealForDiet 5th param; 57 unit tests.
