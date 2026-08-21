@@ -68,6 +68,8 @@ app.get("/api/health", (_req, res) => {
     initError: initError?.message || null,
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV || "production",
+    environment: process.env.NODE_ENV || "production",
+    storageBucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "",
     hasDatabase: !!process.env.DATABASE_URL,
     hasOpenAI: !!process.env.OPENAI_API_KEY,
     isDeployment: process.env.REPLIT_DEPLOYMENT === "1",

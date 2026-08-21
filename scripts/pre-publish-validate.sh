@@ -94,7 +94,21 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-header "5. Storage reachability"
+header "5. Database — reachability"
+
+if [ -n "$DB_URL" ] && ! echo "$DB_URL" | grep -qi "$DEV_HOSTNAME_FRAGMENT"; then
+  DB_RESULT=$(psql "$DB_URL" -c "SELECT 1" -q --no-psqlrc --tuples-only 2>&1)
+  if echo "$DB_RESULT" | grep -q "1"; then
+    pass "Database is reachable (SELECT 1 succeeded)"
+  else
+    fail "Database is NOT reachable — SELECT 1 failed: $(echo "$DB_RESULT" | head -1)"
+  fi
+else
+  warn "Skipping database reachability check (DATABASE_URL not valid or points at dev)"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+header "6. Storage reachability"
 
 if [ -n "$BUCKET_ID" ] && [ "$BUCKET_ID" != "$DEV_BUCKET" ]; then
   # Test the canary object — this is the same object used by monitoring
@@ -112,7 +126,7 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-header "6. Bundle isolation — no dev URLs in built artifacts"
+header "7. Bundle isolation — no dev URLs in built artifacts"
 
 DIST_DIR="client/dist"
 if [ ! -d "$DIST_DIR" ]; then
@@ -129,7 +143,7 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-header "7. TypeScript and build integrity"
+header "8. TypeScript and build integrity"
 
 if npm run check --silent 2>/dev/null; then
   pass "TypeScript check passed"
