@@ -9,7 +9,22 @@
 #
 #  Usage:
 #    bash scripts/pre-publish-validate.sh
-# ============================================================================
+#
+# ── Bucket rotation instructions ─────────────────────────────────────────────
+#  When the production Object Storage bucket is rotated or renamed:
+#    1. Update the DEFAULT_OBJECT_STORAGE_BUCKET_ID secret in the PRODUCTION
+#       Replit deployment to the new bucket ID.
+#    2. Update ACTIVE_BUCKET_ID in server/objectStorage.ts if the dev bucket
+#       also changed (dev bucket = DEV_BUCKET below).
+#    3. The DEV_BUCKET constant below is the ONLY hardcoded bucket ID in this
+#       script. It is the dev-workspace bucket that must NEVER be used in
+#       production. If the dev bucket itself is rotated, update DEV_BUCKET here
+#       AND update ACTIVE_BUCKET_ID in server/objectStorage.ts to match.
+#    4. The production bucket ID is intentionally NOT hardcoded here — the
+#       script reads DEFAULT_OBJECT_STORAGE_BUCKET_ID from the environment
+#       at runtime so it automatically accepts any rotated prod bucket without
+#       a code change.
+# =============================================================================
 
 set -euo pipefail
 
@@ -22,9 +37,11 @@ fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; FAILED=$((FAILED+1)); }
 warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNED=$((WARNED+1)); }
 header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 
-# ── Known bucket IDs (hard-coded — these are facts about the deployment) ──────
+# ── DEV bucket ID — the ONE bucket that must never reach production ───────────
+# Cross-reference: server/objectStorage.ts ACTIVE_BUCKET_ID must equal this
+# value (it is the active bucket for the dev workspace).  If you update one,
+# update the other.
 DEV_BUCKET="replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b"
-PROD_BUCKET="replit-objstore-3ccef2ce-f691-43ed-bb6e-fd72e925a491"
 # Dev workspace hostname fragment — any DATABASE_URL containing this is pointing at dev
 DEV_HOSTNAME_FRAGMENT="replit.dev"
 
@@ -71,13 +88,11 @@ elif [ "$BUCKET_ID" = "$DEV_BUCKET" ]; then
   fail "FATAL: DEFAULT_OBJECT_STORAGE_BUCKET_ID is the DEV bucket ($DEV_BUCKET)"
   echo ""
   echo -e "  ${RED}This is exactly the configuration that caused the image outage.${NC}"
-  echo "  Production must use the prod bucket: $PROD_BUCKET"
+  echo "  Set DEFAULT_OBJECT_STORAGE_BUCKET_ID to the production bucket ID in the"
+  echo "  Replit deployment secrets, then re-run this script."
   echo ""
-elif [ "$BUCKET_ID" = "$PROD_BUCKET" ]; then
-  pass "Storage bucket is the correct PRODUCTION bucket"
 else
-  warn "Storage bucket is $BUCKET_ID — not the expected prod bucket ($PROD_BUCKET)"
-  echo "       If this is intentional (bucket was rotated), update PROD_BUCKET in this script."
+  pass "Storage bucket is a non-dev bucket — $BUCKET_ID"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
