@@ -120,13 +120,14 @@ Dysautonomia / autonomic-condition context
 
 The effective order should be:
 
-1. **Emergency or red-flag safety:** Stop nutrition coaching and direct the person to appropriate urgent/emergency care messaging.
-2. **Explicit clinician restrictions and individualized prescriptions:** These override every inferred or generalized POTS consideration.
-3. **Organ-safety restrictions:** renal disease, heart failure/cardiac fluid restriction, clinically relevant hypertension/low-sodium plan, and liver disease with fluid-retention considerations block automatic sodium/fluid changes.
-4. **Pregnancy and active treatment contexts:** pregnancy, oncology treatment, post-bariatric care, and significant GI/nutrition-support contexts require their protocol and care-team instructions to govern.
-5. **Metabolic and medication overlays:** diabetes/prediabetes and GLP-1 retain their metabolic, glucose, nausea, and meal-tolerance rules. They do not authorize POTS sodium/fluid changes.
-6. **POTS clinician-defined overlay:** Applies only the parameters explicitly supplied and only if no higher restriction conflicts.
-7. **Preferences and optimization:** cuisine, meal timing, meal pattern, performance preferences, and ordinary personalization apply last.
+1. **Non-overridable safety escalation:** emergency/red-flag routing, verified allergies, and hard food-safety constraints stop routine optimization. They are never changed by a user preference.
+2. **Explicit clinician restrictions and individualized prescriptions:** a documented restriction, ceiling, or active care-team plan overrides every calculated or generic recommendation.
+3. **Verified organ-safety and active-treatment constraints:** renal disease, heart failure/cardiac fluid restriction, clinically relevant hypertension/low-sodium plan, liver fluid-retention context, pregnancy, oncology treatment, post-bariatric care, and serious GI/nutrition-support contexts block unsafe automatic adjustments unless a clinician resolves the interaction.
+4. **Resolved condition protocol overlays:** diabetes/prediabetes, GLP-1, POTS, thyroid, anti-inflammatory, and other protocols contribute only compatible constraints. No diagnosis may directly turn into a food instruction outside this resolver.
+5. **Performance/session context:** training details may adjust timing or wellness behavior, but never exceed a clinical ceiling or override a clinical restriction.
+6. **User preferences and self-observed tolerances:** cuisine, meal timing, flavor, and non-medical pattern preferences apply only within the effective safety plan.
+7. **Calculated wellness baseline:** body-profile/activity estimates are a fallback for users without higher-priority guidance.
+8. **Analytics comparison baselines:** fixed observer baselines may support investigation or trend flags; they are never user targets or clinical prescriptions.
 
 ### Required system behavior by situation
 
@@ -386,6 +387,101 @@ Its conceptual responsibilities would be:
 7. **Professional monitoring:** authorized clinicians can review trend/adherence signals and plan status, without MPM claiming to diagnose, treat, or determine symptom cause.
 
 This is a **proposed architectural direction**, not a recommendation to begin rebuilding hydration now. It should be reviewed alongside the POTS clinical-governance decisions.
+
+## 16. Cross-condition audit: does MPM already follow the decision-tree rule?
+
+**Finding:** Only partially. MPM has meaningful clinical protocol machinery, but its prevailing pattern is still “one primary mode plus additive badges,” not a complete, typed constraint resolver. That can suppress or bypass important secondary medical constraints when conditions overlap.
+
+| Protocol area | Current pattern | Risk | Why it matters |
+| --- | --- | --- | --- |
+| Diabetes | Stronger canonical resolution through nutrition state, with some specialized-module/picker bypasses. | Medium | More mature than most paths, but not all entry points are guaranteed to consume the same resolved context. |
+| GLP-1 | Strong provenance and symptom/adaptation logic. | Medium | Multi-condition composite generation context is not complete. |
+| Renal/kidney | Primary mode plus keyword/prompt guardrails. | High | No nutrient-level composition of renal potassium/phosphorus/sodium rules with other condition plans. |
+| Cardiac/heart failure | Qualitative sodium/fat/alcohol guardrails. | High | No server-authoritative numeric sodium gate despite nutrition facts being available. |
+| Liver disease/support | Primary mode selection and text/premade filters. | High | Separate liver strings and a single-primary model leave cross-condition integration incomplete. |
+| Oncology | Physician/self source and locked-state pattern exists. | High | Existing priority rules can suppress oncology support in some combinations. |
+| Crohn's/IBD and GI | No consistently canonical resolver path. | Medium–High | A diagnosis can map directly to food-category guidance instead of a reconciled care plan. |
+| Pregnancy | Present in legacy profile context but not consistently in the canonical priority chain. | Medium–High | Pregnancy-specific restrictions can be missed by a mode-first decision path. |
+| Anti-inflammatory | General fallback mode, not necessarily a verified clinical condition. | Low–Medium | Should not supersede organ-safety or professional plans. |
+| Performance | Conditional activity overlay. | Low–Medium | Must not raise fueling/hydration behavior above medical constraints. |
+| Thyroid | Additive modifier. | Medium | Current persisted board metadata cannot consistently represent it as a resolved protocol. |
+| Allergies | Distributed safety checks across surfaces. | Low for intent, high for failure impact | Must become an invariant checked before and after all generation, not merely another mode. |
+
+### Recommended universal clinical conflict-resolution contract
+
+Before any generator, scanner, grocery recommendation, or coaching action receives nutrition instructions, it should receive an **effective clinical plan** produced by four stages:
+
+1. **Canonical condition resolution:** normalize verified conditions, professional plans, restrictions, and source/locked status into one clinical identity.
+2. **Constraint composition:** merge compatible nutrient, ingredient, meal-pattern, and hydration constraints; identify irreconcilable conflicts rather than selecting one label and dropping the rest.
+3. **Server-side enforcement:** apply post-generation checks for hard constraints using nutrition/ingredient facts, not prompt wording or keyword matching alone.
+4. **Provenance and explanation:** emit the effective rules, the source/authority of each rule, and any withheld adjustment so users and professionals can understand the result.
+
+POTS must be added only after this contract is approved. More importantly, the contract should be applied to existing clinical paths, so POTS does not become the only condition with responsible conflict behavior.
+
+## 17. Daily Hydration Plan / Hydration Intelligence
+
+The product concept should be a **Daily Hydration Plan**, part of the Nutrition Life Plan—not a counter of water glasses.
+
+### The user experience it must answer
+
+1. **What is my effective target or range today?**
+2. **What have I actually logged?**
+3. **What remains, if a remaining amount is appropriate to show?**
+4. **What safe, actionable option can help me next?**
+
+Biometrics can remain the measurement home for logs, trends, and a Hydration Center. Nutrition Life Plan should show the current effective plan. Beverage Creator, Coach's Corner, and other appropriate tools should consume the same resolved state; they must not calculate their own target.
+
+```text
+Profile + body data + activity/session context + active protocols + clinician parameters
+  → Clinical conflict resolver
+  → Hydration Intelligence
+  → Daily Hydration Plan (target/range, intake, remaining, explanation, constraints)
+  → Biometrics / Hydration Center
+  → Beverage Creator / Coach's Corner / Nutrition Life Plan / ProCare
+```
+
+### What must be distinct in the underlying model
+
+- **Fluid intake:** what the person reports consuming.
+- **Hydration contribution:** a carefully qualified estimate when nutrition data supports one; it must be `unknown` rather than guessed.
+- **Electrolyte and sodium considerations:** separate, source-qualified values; “not tracked” is different from zero.
+- **Target, range, ceiling, and restriction:** distinct concepts with an authority source and effective date.
+- **Plan explanation:** why the effective plan differs from a wellness baseline, including active modifiers and withheld changes.
+
+### Authority and daily-state requirements
+
+Each resolved value needs a source, author/set-by identity where applicable, policy/version, effective date, review/expiry date, and machine-readable rationale. The server-resolved daily state should contain:
+
+- date/timezone, plan/version, target mode, range/ceiling, and remaining amount;
+- append-only, authenticated intake events with correction/import/device provenance;
+- fluid totals by type and data confidence;
+- optional hydration/electrolyte estimates with method and uncertainty;
+- active condition/symptom flags and safety escalations;
+- today, seven-day, and thirty-day trend windows with missing-data indicators;
+- user-facing “why” explanations and narrowly scoped consumer context;
+- visibility/audit metadata for the user, Coach's Corner, and authorized ProCare relationships.
+
+### Reuse versus containment
+
+**Reusable foundations**
+
+- server-backed `water_logs` event storage and history aggregation;
+- coaching observer evidence objects;
+- GLP-1 safety-adaptation logic as a condition-specific policy plugin;
+- performance demand/session signals;
+- prescription resolver, protocol envelope, provenance, and clinical-gate patterns.
+
+**Must be replaced or contained before clinical use**
+
+- browser-local Biometrics target/counter as the source of truth;
+- water-log identity supplied by the caller rather than derived from authentication;
+- the fixed 2,000 mL observer baseline, which may remain an analytics comparator only;
+- GLP-1 hydration logic as a universal target engine;
+- prompt-only electrolyte statements in beverage/performance generation;
+- the optional generic `hydrationTarget` field as an implicit hydration-domain store;
+- raw histories supplied to LLMs when a resolved aggregate/explanation is sufficient.
+
+This architecture would allow GLP-1, performance, pregnancy, illness/recovery, and eventually POTS to contribute information to one plan. It does not authorize any of them to overwrite a clinician restriction.
 
 ## Sources consulted
 
