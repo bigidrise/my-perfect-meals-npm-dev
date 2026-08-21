@@ -73,6 +73,36 @@ function getReplitClient(bucketId?: string): ReplitStorageClient {
   return client;
 }
 
+/**
+ * Probe object storage directly via the Replit SDK — no HTTP request, no SSRF risk.
+ * Self-provisioning: writes a small canary object then reads it back to verify both
+ * upload and download paths work. No pre-existing object state is required.
+ * Returns { ok: true } on success, { ok: false, error: "<safe message>" } on failure.
+ * Error strings are intentionally generic: do not expose SDK internals to callers.
+ */
+export async function probeStorageCanary(
+  bucketId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const CANARY_KEY = "health-probe/canary.txt";
+  try {
+    const client = getReplitClient(bucketId);
+    // Write — proves the upload path (credentials, bucket access) works.
+    const writeResult = await client.uploadFromText(CANARY_KEY, "ok");
+    if (!writeResult.ok) {
+      return { ok: false, error: "storage write probe failed" };
+    }
+    // Read-back — proves the download path works independently of the write.
+    const readResult = await client.exists(CANARY_KEY);
+    if (!readResult.ok) {
+      return { ok: false, error: "storage read probe failed" };
+    }
+    return readResult.value
+      ? { ok: true }
+      : { ok: false, error: "canary write succeeded but object not found on read-back" };
+  } catch {
+    return { ok: false, error: "storage probe threw an exception" };
+  }
+}
 const CONTENT_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
