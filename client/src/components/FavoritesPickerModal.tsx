@@ -10,20 +10,17 @@ import { useSavedMealsList, type SavedMealRow } from "@/hooks/useSavedMeals";
 import { PillButton } from "@/components/ui/pill-button";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
-/** Small thumbnail that cleanly disappears on broken/expired URLs — no stock photo fallback. */
+/** Small thumbnail with the shared bounded recovery and neutral terminal state. */
 function FavThumbnail({ imageUrl, mealName }: { imageUrl: string; mealName: string }) {
-  const [errored, setErrored] = useState(false);
-  if (errored) return null;
   return (
-    <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-zinc-800">
-      <img
-        src={imageUrl}
-        alt={mealName}
-        className="w-full h-full object-cover"
-        onError={() => setErrored(true)}
-      />
-    </div>
+    <MealImageSlot
+      imageUrl={imageUrl}
+      mealName={mealName}
+      height="h-14"
+      className="shrink-0 w-14 !mb-0 !rounded-lg"
+    />
   );
 }
 

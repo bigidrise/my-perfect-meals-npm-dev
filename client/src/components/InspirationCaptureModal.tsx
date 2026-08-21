@@ -753,19 +753,42 @@ export default function InspirationCaptureModal({
       open={open}
       onOpenChange={handleClose}
       rawLayout
+      showCloseButton={false}
       className="bg-black/95 border-white/10 text-white max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-2xl p-0"
     >
-        <div className="bg-gradient-to-br from-black/60 via-orange-950/30 to-black/80 rounded-2xl p-6">
+        {/* Safe-area-aware container — top/bottom padding uses env() so iPhone notch/home-indicator
+            never overlaps the title or action buttons. Horizontal padding stays fixed at 1.5 rem.
+            No flex restructuring — keeps the original single-column block layout intact. */}
+        <div
+          className="bg-gradient-to-br from-black/60 via-orange-950/30 to-black/80 rounded-2xl"
+          style={{
+            paddingTop: 'max(1.5rem, env(safe-area-inset-top, 0px))',
+            paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))',
+            paddingLeft: '1.5rem',
+            paddingRight: '1.5rem',
+          }}
+        >
 
-          {/* ── Header ── */}
-          <DialogHeader className="mb-5">
+          {/* ── Header — fixed, does not scroll ── */}
+          <DialogHeader className="mb-5 shrink-0">
             <div className="flex items-center justify-center relative">
+              {/* Back arrow — options phase only; takes you back to capture */}
               {phase === "options" && (
                 <button
                   onClick={() => setPhase("capture")}
                   className="absolute left-0 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all active:scale-95"
                 >
                   <ChevronLeft className="h-5 w-5" />
+                </button>
+              )}
+              {/* Discard / close — all phases except 3-option preview (which has its own Trash2) */}
+              {!(phase === "preview" && options && options.length > 1) && (
+                <button
+                  onClick={() => onOpenChange(false)}
+                  title={t("inspiration.deleteScan", "Discard")}
+                  className="absolute right-0 p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all active:scale-95"
+                >
+                  <Trash2 className="h-4 w-4" />
                 </button>
               )}
               <DialogTitle className="text-xl font-bold text-white">
@@ -837,7 +860,10 @@ export default function InspirationCaptureModal({
                   <p className="text-white/60 text-sm text-center">
                     {t("inspiration.uploadHint")}
                   </p>
-                  <div className="relative overflow-hidden w-full rounded-xl">
+                  <div
+                    className="relative overflow-hidden w-full rounded-xl"
+                    data-testid="inspiration-upload-cta"
+                  >
                     <div className="w-full py-5 rounded-xl border-2 border-dashed border-orange-500/40 bg-orange-500/5 flex flex-col items-center gap-2">
                       <ImagePlus className="h-8 w-8 text-orange-400" />
                       <span className="text-sm font-medium text-orange-300">
@@ -1329,6 +1355,7 @@ export default function InspirationCaptureModal({
                         <MealImageSlot
                           imageUrl={mealData.imageUrl}
                           mealName={mealData.title || mealData.name || "Recipe Maker"}
+                          ingredients={mealData.ingredients}
                           className="w-full h-full object-cover"
                         />
                       )}
@@ -1427,7 +1454,7 @@ export default function InspirationCaptureModal({
             )
           ) : null}
 
-        </div>
+        </div>{/* end safe-area container */}
     </UniversalDialog>
   );
 }

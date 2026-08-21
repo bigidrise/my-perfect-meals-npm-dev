@@ -842,6 +842,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                     <MealImageSlot
                       imageUrl={generatedBeverage.imageUrl}
                       mealName={generatedBeverage.name}
+                      ingredients={generatedBeverage.ingredients}
                       sourceType="beverage"
                       isLoading={false}
                     />

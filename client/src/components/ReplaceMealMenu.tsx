@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 interface ReplaceMealMenuProps {
   isOpen: boolean;
@@ -258,10 +259,11 @@ export function ReplaceMealMenu({
                         onClick={() => handleLibraryReplace(template)}
                       >
                         {template.imageUrl && (
-                          <img
-                            src={template.imageUrl}
-                            alt={template.name}
-                            className="w-full h-32 object-cover rounded mb-3"
+                          <MealImageSlot
+                            imageUrl={template.imageUrl}
+                            mealName={template.name}
+                            height="h-32"
+                            className="!mb-3 !rounded"
                           />
                         )}
                         <h3 className="font-semibold text-sm mb-2">{template.name}</h3>

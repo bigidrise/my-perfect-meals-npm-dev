@@ -5,10 +5,38 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { createApiRateLimit } from '../middleware/rateLimit';
 import { generateMealImage, generateMealImages, getCachedImage, getImageCacheStats } from '../services/mealImageGenerator';
+import { getMealImageRecoveryStatus, queueMealImageRecovery } from '../services/mealImageRecovery';
 
 const imageRateLimit = createApiRateLimit();
 
 export const mealImagesRouter = Router();
+
+// A browser can prove that a permanent Object Storage URL is no longer
+// deliverable. Queue one replacement job and let the image slot poll it once;
+// this never silently falls back to a photograph of another dish.
+mealImagesRouter.post('/meal-images/recover', requireAuth, imageRateLimit, async (req, res) => {
+  try {
+    const result = await queueMealImageRecovery({
+      userId: req.authUser!.id,
+      imageUrl: req.body?.imageUrl,
+      mealName: req.body?.mealName,
+      ingredients: req.body?.ingredients,
+      sourceType: req.body?.sourceType,
+      mediaAssetId: req.body?.mediaAssetId,
+      savedMealId: req.body?.savedMealId,
+    });
+    return res.status(result.accepted ? 202 : 400).json(result);
+  } catch (error: any) {
+    console.error("[IMG-RECOVERY] Could not queue recovery:", error);
+    return res.status(500).json({ accepted: false, reason: "Could not queue image recovery" });
+  }
+});
+
+mealImagesRouter.get('/meal-images/recover/:recoveryId', requireAuth, async (req, res) => {
+  const status = await getMealImageRecoveryStatus(req.params.recoveryId, req.authUser!.id);
+  if (!status) return res.status(404).json({ error: "Image recovery was not found" });
+  return res.json(status);
+});
 
 // Generate single meal image
 mealImagesRouter.post('/meal-images/generate', requireAuth, imageRateLimit, async (req, res) => {

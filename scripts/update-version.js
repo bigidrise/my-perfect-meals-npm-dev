@@ -15,10 +15,28 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const version = Date.now().toString();
+
+// ── Release identity fields injected at build time ─────────────────────────
+// These travel with the built artifact so the deployed app can identify itself.
+let gitSha = "unknown";
+try {
+  gitSha = execSync("git rev-parse --short HEAD", { stdio: ["pipe", "pipe", "ignore"] })
+    .toString()
+    .trim();
+} catch {
+  // Not a git repo or git unavailable — leave as "unknown"
+}
+
+const buildTimestamp = new Date().toISOString();
+const environment = process.env.NODE_ENV || "development";
+// The storage bucket bound to this deployment — travels with the manifest so
+// /api/release can report it without hitting the DB or env at read time.
+const storageBucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
 
 const manifestPath = path.join(__dirname, "../client/public/release-manifest.json");
 const buildVersionPath = path.join(__dirname, "../client/src/buildVersion.ts");
@@ -31,13 +49,17 @@ try {
   // No manifest yet — start from scratch; cut-release.js will add releaseId + notes.
 }
 
-// Merge: only the version field changes.
-const updated = { ...existing, version };
+// Merge: version + release identity fields change; releaseId/notes are owned by cut-release.js.
+const updated = { ...existing, version, gitSha, buildTimestamp, environment, storageBucketId };
 
 fs.writeFileSync(manifestPath, JSON.stringify(updated, null, 2) + "\n");
 fs.writeFileSync(buildVersionPath, `export const BUILD_VERSION = "${version}";\n`);
 
 console.log("✅ Build version set to:", version);
+console.log("   Git SHA         :", gitSha);
+console.log("   Build timestamp :", buildTimestamp);
+console.log("   Environment     :", environment);
+console.log("   Storage bucket  :", storageBucketId || "(not set)");
 if (updated.releaseId) {
   console.log("   Release ID preserved:", updated.releaseId);
   console.log("   Release notes preserved:", (updated.notes ?? []).length, "item(s)");

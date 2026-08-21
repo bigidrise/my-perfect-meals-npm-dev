@@ -1,4 +1,6 @@
 // hint: Logic changed on both sides. Requires understanding intent of each change.
+- [Safe-area modal layout — minimal blast radius rule](safe-area-modal-layout-rule.md) — spacing fixes must NOT restructure flex/overflow; inline paddingTop style is the only correct safe-area pattern.
+- [Authenticated API vs client cache identity](authenticated-api-client-cache-identity.md) — removing caller account IDs from APIs must not erase local account partitioning for cached or rendered health data.
 - [Clinical adaptation retry activation](clinical-adaptation-retries.md) — generator-side diabetic/GLP-1 behavior must key off server-resolved clinicalGenerationContext, never client dietType alone.
 - [ALLERGEN_ADAPT dish-name exemption](allergen-adapt-dish-name-exemption.md) — post-scan must exempt the requested dish's own name (curated allowlist + word-bounded request match) or adaptation always fails.
 - [Allergen override exact-key matching](allergen-override-exact-match.md) — PIN overrides must match allergies via allergenKeysMatch (canonical key + alias map), never substring; "fish" must not unlock "shellfish".
@@ -54,6 +56,7 @@
 - [Performance Hub macro anchoring](performance-hub-macro-anchor.md) — AI coach must never invent macro targets; /ask injects AUTHORITATIVE BASELINE + RESOLVED blocks and validates response.
 - [Object Storage Architecture (active)](object-storage-architecture.md) — @replit/object-storage Client is the working upload path; signed-URL sidecar returns 401; S3 still 403; bucket FuzzyOrdinaryWebmaster; route fix for direct bucket-ID URLs.
 - [DailyNutritionPrescription — Architecture](daily-nutrition-prescription.md) — shared contract + server resolver; starchMealsAllowed is integer not string; resolver uses real DB columns only.
+- [Daily Hydration Plan architecture](daily-hydration-plan-architecture.md) — one server-resolved hydration plan with immutable events and revisioned history; validate contract/governance before code.
 - [Nutrition Decision Engine — Food Entry Point Rule](nde-food-entry-points.md) — every food entry point (builders, scanners, imports, manual) must consult NDE before presenting to user; scanGeneratedOutput() is the post-gen validator; ndeSummary is the response field for scanner clients.
 - [Macro Calculator type sync rule](macro-calc-type-sync.md) — renaming client-side types (UserType, BodyType) requires updating server route validator AND engine types together or compute returns 400.
 - [GLP-1 Target Resolver](glp1-target-resolver.md) — pure resolver in server/services/glp1/resolveGLP1MealTargets.ts; loader in glp1TargetLoader.ts; applyGuardrails 8th param; validateMealForDiet 5th param; 57 unit tests.
@@ -77,6 +80,7 @@
 - [Meal image recipe-fidelity gate](meal-image-validation-gate.md) — GPT-4o vision check gates cache entry; FAIL twice → semantic fallback, cache nothing; SKIPPED still caches but is audited.
 - [Meal image ingredient contract](meal-image-ingredient-contract.md) — dish name is label only; allow/deny list from full recipe; cache key must hash all ingredients + version bump on prompt changes.
 - [Meal image delivery recovery](meal-image-delivery-recovery.md) — browser errors lack HTTP status; re-probe server-side, retry once for storage outages, reuse surviving variants before marking missing.
+- [Production image differential diagnosis](production-image-differential-diagnosis.md) — test the exact saved-meal object path; one valid production object does not prove all production image records are valid.
 - [Canonical Media Asset Architecture — Step 4](media-asset-architecture.md) — media_assets table, paginated /api/saved-meals, lifecycle gates on familyRecipes+mealShares, Object Storage API casts, Jest ESM stub pattern for tests.
 - [prod.ts early SPA fallback intercepts /public-objects/](prod-spa-fallback-intercepts-public-objects.md) — SPA fallback must exclude /public-objects/ or image URLs return HTML in production; dev is immune because routes register first there.
 - [Override propagation invariant](override-propagation-pattern.md) — a PIN allergen override must reach every post-gen scan (incl. cached results and sub-generators) or the meal is re-blocked after a valid PIN.

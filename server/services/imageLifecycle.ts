@@ -7,13 +7,16 @@
 // saves successfully and the image shows as pending.
 
 import { processImageForMeal, isUnsafeImageUrl, warnLifecycleViolation, type MediaAsset } from "./mediaAssetService";
+import {
+  DEFAULT_MEAL_IMAGE_S3_BUCKET,
+  LOCAL_PERMANENT_IMAGE_PREFIXES,
+  isFirstPartyPermanentImageUrl,
+} from "@shared/mediaImageUrls";
 
 // First-party URL prefixes — always permanent, always safe
-const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
+const S3_BUCKET = process.env.S3_BUCKET_NAME || DEFAULT_MEAL_IMAGE_S3_BUCKET;
 export const FIRST_PARTY_PREFIXES: string[] = [
-  "/public-objects/",
-  "/images/",
-  "/assets/",
+  ...LOCAL_PERMANENT_IMAGE_PREFIXES,
   `https://${S3_BUCKET}.s3.`,
 ];
 
@@ -38,7 +41,7 @@ export function isFirstPartyImageUrl(url: string | undefined | null): ImageValid
   if (!url) {
     return { isFirstParty: false, needsIngestion: false, reason: "No image URL provided" };
   }
-  if (FIRST_PARTY_PREFIXES.some(p => url.startsWith(p))) {
+  if (isFirstPartyPermanentImageUrl(url, S3_BUCKET)) {
     return { isFirstParty: true, needsIngestion: false, reason: "URL is first-party" };
   }
   if (TEMP_URL_PATTERNS.some(p => url.includes(p))) {

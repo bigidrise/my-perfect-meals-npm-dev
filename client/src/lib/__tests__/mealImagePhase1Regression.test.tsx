@@ -15,25 +15,22 @@
  */
 
 import React from "react";
-import { render, fireEvent, screen, waitFor } from "@testing-library/react";
+import { render, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import * as fs from "fs";
 import * as path from "path";
-
-jest.mock("@/lib/queryClient", () => ({
-  apiRequest: jest.fn(),
-}));
-
+import { get, post } from "@/lib/api";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
-import { apiRequest } from "@/lib/queryClient";
+
+jest.mock("@/lib/api", () => ({
+  get: jest.fn(),
+  post: jest.fn(),
+}));
 
 const ROOT = path.resolve(__dirname, "../../../..");
-const mockedApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
-
-beforeEach(() => {
-  mockedApiRequest.mockReset();
-});
+const mockGet = get as jest.MockedFunction<typeof get>;
+const mockPost = post as jest.MockedFunction<typeof post>;
 
 // ── 1. Broken URLs never show another food ───────────────────────────────────
 
@@ -51,11 +48,8 @@ describe("MealImageSlot — broken image never becomes another food", () => {
     expect(img).toBeInTheDocument();
     fireEvent.error(img);
 
-    // After error: no <img> remains at all — nothing to substitute with
     expect(container.querySelector("img")).toBeNull();
-    // Neutral unavailable state is shown
     expect(container.textContent).toContain("Image unavailable");
-    // No Unsplash URL anywhere in the rendered output
     expect(container.innerHTML).not.toContain("unsplash");
   });
 
@@ -91,10 +85,7 @@ describe("MealImageSlot — loading and unavailable states are distinct", () => 
 
 describe("ChefFlowImage — terminal unavailable state (no infinite shimmer)", () => {
   it("shows a shimmer while a background request is still generating an image", () => {
-    const { container } = render(
-      <ChefFlowImage alt="Grilled Chicken Bowl" isLoading />,
-    );
-
+    const { container } = render(<ChefFlowImage alt="Grilled Chicken Bowl" isLoading />);
     expect(container.querySelector(".animate-pulse")).not.toBeNull();
     expect(container.textContent).not.toContain("Image unavailable");
   });
@@ -104,12 +95,8 @@ describe("ChefFlowImage — terminal unavailable state (no infinite shimmer)", (
       <ChefFlowImage src="https://storage.example.com/broken.png" alt="Burrito Bowl" />,
     );
 
-    // Before error: shimmer present while loading
     expect(container.querySelector(".animate-pulse")).not.toBeNull();
-
     fireEvent.error(container.querySelector("img")!);
-
-    // After error: shimmer gone, terminal unavailable state shown, no img
     expect(container.querySelector(".animate-pulse")).toBeNull();
     expect(container.querySelector("img")).toBeNull();
     expect(container.textContent).toContain("Image unavailable");
@@ -130,10 +117,7 @@ describe("ChefFlowImage — terminal unavailable state (no infinite shimmer)", (
 // ── 4. Restaurant endpoints leave image enrichment to the client ─────────────
 
 describe("Restaurant image enrichment — non-blocking endpoint contract", () => {
-  const files = [
-    "server/routes/mealFinder.ts",
-    "server/routes/restaurants.ts",
-  ];
+  const files = ["server/routes/mealFinder.ts", "server/routes/restaurants.ts"];
 
   it.each(files)("%s does not generate images before returning recommendations", (rel) => {
     const content = fs.readFileSync(path.join(ROOT, rel), "utf-8");
@@ -154,43 +138,205 @@ describe("MealImageSlot — successful image path unchanged", () => {
   });
 });
 
-// ── 6. Permanent Object Storage delivery recovery is bounded ─────────────────
+// ── 6. Permanent Object Storage delivery failure recovery ────────────────────
 
-describe("MealImageSlot — permanent Object Storage recovery", () => {
-  const permanentUrl = "/public-objects/replit-objstore-test/meal-images/salmon-thumb.jpg";
-
-  it("retries a retryable Object Storage failure once, then stops", async () => {
-    mockedApiRequest.mockResolvedValueOnce({
-      status: "retry",
-      imageUrl: permanentUrl,
-    });
-
-    const { container } = render(<MealImageSlot imageUrl={permanentUrl} mealName="Grilled Salmon" />);
-    fireEvent.error(container.querySelector("img")!);
-
-    await waitFor(() => expect(mockedApiRequest).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(container.querySelector("img")?.getAttribute("src")).toContain("image-retry=1"));
-
-    // A second browser failure must be terminal: no infinite recovery loop.
-    fireEvent.error(container.querySelector("img")!);
-    await waitFor(() => expect(container.textContent).toContain("Image unavailable"));
-    expect(mockedApiRequest).toHaveBeenCalledTimes(1);
+describe("MealImageSlot — permanent URL recovery", () => {
+  beforeEach(() => {
+    mockGet.mockReset();
+    mockPost.mockReset();
   });
 
-  it("uses an existing stored variant when the failed thumbnail is missing", async () => {
-    const displayUrl = "/public-objects/replit-objstore-test/meal-images/salmon-display.jpg";
-    mockedApiRequest.mockResolvedValueOnce({
-      status: "recovered",
-      imageUrl: displayUrl,
-    });
+  it("reports a broken permanent URL and loads one regenerated replacement", async () => {
+    const brokenUrl = "/public-objects/test-bucket/meal-images/broken-display.jpg";
+    const restoredUrl = "/public-objects/test-bucket/meal-images/restored-display.jpg";
+    mockPost
+      .mockResolvedValueOnce({ status: "unavailable", reason: "missing" } as any)
+      .mockResolvedValueOnce({ accepted: true, recoveryId: "recovery-1" } as any);
+    mockGet.mockResolvedValue({ status: "ready", imageUrl: restoredUrl } as any);
 
-    const { container } = render(<MealImageSlot imageUrl={permanentUrl} mealName="Grilled Salmon" />);
+    const { container } = render(
+      <MealImageSlot
+        imageUrl={brokenUrl}
+        mealName="Grilled Salmon Bowl"
+        ingredients={["salmon", "lemon", "brown rice"]}
+        savedMealId="saved-meal-1"
+        mediaAssetId="asset-1"
+      />,
+    );
+
     fireEvent.error(container.querySelector("img")!);
 
-    await waitFor(() => expect(container.querySelector("img")).toHaveAttribute("src", displayUrl));
-    fireEvent.load(container.querySelector("img")!);
-    expect(container.textContent).not.toContain("Image unavailable");
-    expect(mockedApiRequest).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/media/image-delivery-recovery",
+        { imageUrl: brokenUrl, savedMealId: "saved-meal-1", mediaAssetId: "asset-1" },
+      );
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/meal-images/recover",
+        expect.objectContaining({
+          imageUrl: brokenUrl,
+          mealName: "Grilled Salmon Bowl",
+          ingredients: ["salmon", "lemon", "brown rice"],
+          savedMealId: "saved-meal-1",
+          mediaAssetId: "asset-1",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector("img")).toHaveAttribute("src", restoredUrl);
+    });
+
+    fireEvent.error(container.querySelector("img")!);
+    expect(mockPost).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain("Image unavailable");
+  });
+
+  it("does not report third-party image delivery failures as Object Storage repairs", () => {
+    const { container } = render(
+      <MealImageSlot
+        imageUrl="https://storage.example.com/broken-cake.png"
+        mealName="Chocolate Fudge Cake"
+        ingredients={["cocoa", "flour"]}
+      />,
+    );
+
+    fireEvent.error(container.querySelector("img")!);
+
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Image unavailable");
+  });
+
+  it("retries a temporary Object Storage delivery failure once without queuing regeneration", async () => {
+    const brokenUrl = "/public-objects/test-bucket/meal-images/transient.jpg";
+    mockPost.mockResolvedValueOnce({ status: "retry", imageUrl: brokenUrl } as any);
+    const { container } = render(
+      <MealImageSlot imageUrl={brokenUrl} mealName="Temporary Salmon" savedMealId="saved-temporary" mediaAssetId="asset-temporary" />,
+    );
+
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => {
+      expect(container.querySelector("img")).toHaveAttribute("src", `${brokenUrl}?delivery-retry=1`);
+    });
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockPost).toHaveBeenCalledWith(
+      "/api/media/image-delivery-recovery",
+      { imageUrl: brokenUrl, savedMealId: "saved-temporary", mediaAssetId: "asset-temporary" },
+    );
+  });
+
+  it("retries a permanent URL once when a generated card has no saved-meal asset yet", async () => {
+    const transientUrl = "/public-objects/test-bucket/meal-images/generated-card.jpg";
+    const { container } = render(
+      <MealImageSlot imageUrl={transientUrl} mealName="Freshly Generated Salmon" />,
+    );
+
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => {
+      expect(container.querySelector("img")).toHaveAttribute(
+        "src",
+        `${transientUrl}?delivery-retry=1`,
+      );
+    });
+    expect(mockPost).not.toHaveBeenCalled();
+
+    fireEvent.error(container.querySelector("img")!);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.textContent).toContain("Image unavailable");
+  });
+
+  it("uses a surviving Object Storage variant without queuing regeneration", async () => {
+    const brokenUrl = "/public-objects/test-bucket/meal-images/thumb.jpg";
+    const displayUrl = "/public-objects/test-bucket/meal-images/display.jpg";
+    mockPost.mockResolvedValueOnce({ status: "recovered", imageUrl: displayUrl } as any);
+    const { container } = render(
+      <MealImageSlot imageUrl={brokenUrl} mealName="Variant Salmon" savedMealId="saved-variant" mediaAssetId="asset-variant" />,
+    );
+
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => {
+      expect(container.querySelector("img")).toHaveAttribute("src", displayUrl);
+    });
+    expect(mockPost).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a completed old recovery after the server supplies a newer URL", async () => {
+    const oldUrl = "/public-objects/test-bucket/meal-images/old.jpg";
+    const newUrl = "/public-objects/test-bucket/meal-images/new.jpg";
+    let resolveStatus!: (value: unknown) => void;
+    mockPost
+      .mockResolvedValueOnce({ status: "unavailable", reason: "missing" } as any)
+      .mockResolvedValueOnce({ accepted: true, recoveryId: "old-recovery" } as any);
+    mockGet.mockReturnValueOnce(new Promise((resolve) => { resolveStatus = resolve; }) as any);
+
+    const { container, rerender } = render(
+      <MealImageSlot imageUrl={oldUrl} mealName="Old Salmon" savedMealId="saved-old" mediaAssetId="asset-old" />,
+    );
+    fireEvent.error(container.querySelector("img")!);
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+
+    rerender(<MealImageSlot imageUrl={newUrl} mealName="New Salmon" savedMealId="saved-new" mediaAssetId="asset-new" />);
+    resolveStatus({ status: "ready", imageUrl: "/public-objects/test-bucket/meal-images/stale-recovered.jpg" });
+
+    await waitFor(() => {
+      expect(container.querySelector("img")).toHaveAttribute("src", newUrl);
+      expect(container.querySelector("img")).not.toHaveAttribute("src", "/public-objects/test-bucket/meal-images/stale-recovered.jpg");
+    });
+  });
+
+  it("ignores an old recovery when a reused image URL belongs to a different saved meal", async () => {
+    const sharedUrl = "/public-objects/test-bucket/meal-images/shared.jpg";
+    let resolveStatus!: (value: unknown) => void;
+    mockPost
+      .mockResolvedValueOnce({ status: "unavailable", reason: "missing" } as any)
+      .mockResolvedValueOnce({ accepted: true, recoveryId: "shared-recovery" } as any);
+    mockGet.mockReturnValueOnce(new Promise((resolve) => { resolveStatus = resolve; }) as any);
+
+    const { container, rerender } = render(
+      <MealImageSlot imageUrl={sharedUrl} mealName="First Salmon" savedMealId="saved-first" mediaAssetId="asset-first" />,
+    );
+    fireEvent.error(container.querySelector("img")!);
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+
+    rerender(
+      <MealImageSlot imageUrl={sharedUrl} mealName="Second Salmon" savedMealId="saved-second" mediaAssetId="asset-second" />,
+    );
+    await waitFor(() => expect(container.querySelector("img")).toHaveAttribute("src", sharedUrl));
+    resolveStatus({ status: "ready", imageUrl: "/public-objects/test-bucket/meal-images/first-only-recovered.jpg" });
+
+    await waitFor(() => {
+      expect(container.querySelector("img")).toHaveAttribute("src", sharedUrl);
+      expect(container.querySelector("img")).not.toHaveAttribute("src", "/public-objects/test-bucket/meal-images/first-only-recovered.jpg");
+    });
+  });
+
+  it("reports a broken permanent S3 image URL for the same durable repair path", async () => {
+    const brokenUrl = "https://archived-meal-images.s3.amazonaws.com/meal-images/legacy.jpg";
+    mockPost.mockResolvedValue({ accepted: true, recoveryId: "legacy-recovery" } as any);
+    mockGet.mockResolvedValue({ status: "ready", imageUrl: "/public-objects/test-bucket/repaired.jpg" } as any);
+
+    const { container } = render(
+      <MealImageSlot
+        imageUrl={brokenUrl}
+        mealName="Legacy Salmon Bowl"
+        ingredients={["salmon", "rice"]}
+        savedMealId="saved-meal-legacy"
+        mediaAssetId="asset-legacy"
+      />,
+    );
+
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/meal-images/recover",
+        expect.objectContaining({ imageUrl: brokenUrl, savedMealId: "saved-meal-legacy", mediaAssetId: "asset-legacy" }),
+      );
+      expect(container.querySelector("img")).toHaveAttribute("src", "/public-objects/test-bucket/repaired.jpg");
+    });
   });
 });
 
@@ -226,7 +372,6 @@ describe("Source scan — no hardcoded Unsplash meal images remain", () => {
   });
 
   it("intentional static snack SVG mapping is preserved", () => {
-    const p = path.join(ROOT, "shared/staticSnackMappings.ts");
-    expect(fs.existsSync(p)).toBe(true);
+    expect(fs.existsSync(path.join(ROOT, "shared/staticSnackMappings.ts"))).toBe(true);
   });
 });

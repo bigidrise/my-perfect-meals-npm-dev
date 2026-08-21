@@ -1450,6 +1450,7 @@ export default function UltimateExperiencesPage() {
                         <MealImageSlot
                           imageUrl={course.imageUrl}
                           mealName={course.name}
+                          ingredients={course.ingredients}
                           isLoading={!!loadingImages[course.id]}
                         />
                       ) : (

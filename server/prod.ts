@@ -68,6 +68,8 @@ app.get("/api/health", (_req, res) => {
     initError: initError?.message || null,
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV || "production",
+    environment: process.env.NODE_ENV || "production",
+    storageBucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "",
     hasDatabase: !!process.env.DATABASE_URL,
     hasOpenAI: !!process.env.OPENAI_API_KEY,
     isDeployment: process.env.REPLIT_DEPLOYMENT === "1",
@@ -84,9 +86,7 @@ app.get("/api/health/coaching-patterns", async (_req, res) => {
   try {
     const { db: dbHealth } = await import("./db");
     const { sql: sqlHealth } = await import("drizzle-orm");
-    const result = await dbHealth.execute(
-      sqlHealth`SELECT COUNT(*)::int AS row_count FROM knowledge_patterns`
-    );
+  const result: Record<string, string> = {};
     const rowCount = (result as any).rows?.[0]?.row_count ?? (result as any)[0]?.row_count ?? 0;
     const healthy = Number(rowCount) > 0;
     res.status(healthy ? 200 : 503).json({
@@ -104,7 +104,81 @@ app.get("/api/health/coaching-patterns", async (_req, res) => {
   }
 });
 
-// START SERVER IMMEDIATELY - health checks respond before any heavy init
+// ─── Release identity — public, no auth, no DB dependency ───────────────────
+// Reads the manifest baked into client/dist at build time. Answers even when
+// the database is down. This is the deployment's identity card: git SHA,
+// storage bucket, environment, build timestamp. The acceptance gate reads it.
+app.get("/api/release", (req, res) => {
+  try {
+    const manifestPath = path.join(__dirname, "../client/dist/release-manifest.json");
+    let manifest: Record<string, unknown> = {};
+    if (fs.existsSync(manifestPath)) {
+      manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+    }
+    res.json({
+      ...manifest,
+      apiOrigin: req.hostname,
+      nodeVersion: process.version,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: "Failed to read release manifest", detail: e.message });
+  }
+});
+
+// ─── Full infrastructure health — per-system status ──────────────────────────
+// Tests each critical dependency independently. Used by the post-publish
+// acceptance gate and continuous monitoring. Not just "server responds."
+// Storage is probed directly via the Replit SDK — no HTTP self-request, no SSRF.
+// Error detail is intentionally withheld from the response; check server logs instead.
+app.get("/api/health/full", async (_req, res) => {
+  const DEV_BUCKET = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
+  const result: Record<string, string> = {};
+  let httpStatus = 200;
+
+  // Application init state
+  result.application = isInitialized ? "healthy" : "starting";
+
+  // Database — SELECT 1 (connection + basic query)
+  try {
+    const { db: dbCheck } = await import("./db");
+    const { sql: sqlCheck } = await import("drizzle-orm");
+    await dbCheck.execute(sqlCheck`SELECT 1`);
+    result.database = "healthy";
+  } catch {
+    result.database = "unhealthy: database probe failed";
+    httpStatus = 503;
+  }
+
+  // Object Storage — SDK probe (no HTTP fetch, no SSRF)
+  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
+  if (!bucketId) {
+    result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
+    result.storageBucketId = "(not configured)";
+    httpStatus = 503;
+  } else if (bucketId === DEV_BUCKET) {
+    result.objectStorage = "unhealthy: production is pointing at the DEV bucket";
+    result.storageBucketId = bucketId;
+    httpStatus = 503;
+  } else {
+    result.storageBucketId = bucketId;
+    try {
+      const { probeStorageCanary } = await import("./objectStorage");
+      const probe = await probeStorageCanary(bucketId);
+      result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
+      if (!probe.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      httpStatus = 503;
+    }
+  }
+
+  result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
+  if (!process.env.OPENAI_API_KEY) httpStatus = 503;
+  result.auth = process.env.SESSION_SECRET ? "configured" : "missing";
+  if (!process.env.SESSION_SECRET) httpStatus = 503;
+  result.timestamp = new Date().toISOString();
+  res.status(httpStatus).json(result);
+});
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`✅ [BOOT] Server listening on 0.0.0.0:${port}`);
@@ -1576,6 +1650,8 @@ async function initializeApp() {
         try {
           const { runMediaAssetsMigration } = await import("./db/migrations/runMediaAssetsMigration");
           await runMediaAssetsMigration();
+          const { resumePendingMealImageRecoveries } = await import("./services/mealImageRecovery");
+          await resumePendingMealImageRecoveries();
         } catch (err: any) {
           console.error("❌ [prod] Media Assets boot migration failed:", err.message);
         }

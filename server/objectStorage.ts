@@ -54,7 +54,10 @@ export class StorageUnavailableError extends Error {
 // The old disconnected bucket that still appears in legacy env vars.
 // Any search path or bucket ID referencing it is silently remapped to the active bucket.
 const LEGACY_DISCONNECTED_BUCKET = "replit-objstore-e02a723e-40e9-4d89-9c0e-05adfa185d2d";
-// The current active bucket for this repl.
+// The current active bucket for the DEV workspace.
+// ⚠️  Cross-reference: scripts/pre-publish-validate.sh DEV_BUCKET must equal this
+// value. If you rotate the dev bucket, update BOTH files together or the pre-publish
+// validator will silently stop blocking dev-bucket-in-production publishes.
 export const ACTIVE_BUCKET_ID = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
 
 // ── Replit Object Storage clients (same SDK as the write path) ────────────────
@@ -70,6 +73,36 @@ function getReplitClient(bucketId?: string): ReplitStorageClient {
   return client;
 }
 
+/**
+ * Probe object storage directly via the Replit SDK — no HTTP request, no SSRF risk.
+ * Self-provisioning: writes a small canary object then reads it back to verify both
+ * upload and download paths work. No pre-existing object state is required.
+ * Returns { ok: true } on success, { ok: false, error: "<safe message>" } on failure.
+ * Error strings are intentionally generic: do not expose SDK internals to callers.
+ */
+export async function probeStorageCanary(
+  bucketId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const CANARY_KEY = "health-probe/canary.txt";
+  try {
+    const client = getReplitClient(bucketId);
+    // Write — proves the upload path (credentials, bucket access) works.
+    const writeResult = await client.uploadFromText(CANARY_KEY, "ok");
+    if (!writeResult.ok) {
+      return { ok: false, error: "storage write probe failed" };
+    }
+    // Read-back — proves the download path works independently of the write.
+    const readResult = await client.exists(CANARY_KEY);
+    if (!readResult.ok) {
+      return { ok: false, error: "storage read probe failed" };
+    }
+    return readResult.value
+      ? { ok: true }
+      : { ok: false, error: "canary write succeeded but object not found on read-back" };
+  } catch {
+    return { ok: false, error: "storage probe threw an exception" };
+  }
+}
 const CONTENT_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",

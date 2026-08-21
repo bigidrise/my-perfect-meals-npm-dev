@@ -1163,6 +1163,7 @@ const FridgeRescuePage = () => {
                         <MealImageSlot
                           imageUrl={meal.imageUrl}
                           mealName={meal.name}
+                          ingredients={meal.ingredients}
                           isLoading={!!loadingImages[meal.id]}
                           height="h-48"
                         />

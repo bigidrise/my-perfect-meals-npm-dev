@@ -2,6 +2,9 @@ import express from "express";
 import { db } from "../db";
 import { waterLogs } from "../../shared/schema";
 import { and, eq, gt, lte, desc, lt } from "drizzle-orm";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
+import { verifyPhysicianClientAccess } from "../services/procareAccessService";
+import { handleOrgIsolationError } from "../lib/orgIsolation";
 
 const router = express.Router();
 
@@ -43,16 +46,66 @@ function toMl(amount: number, unit: string) {
   return Math.round(amount); // default
 }
 
-// POST /api/water-logs { userId, amount, unit, note?, intakeTimeISO?, freeText? }
-router.post("/water-logs", async (req, res) => {
+/**
+ * Resolves the hydration-record owner from the authenticated principal.
+ *
+ * `clientId` is an explicitly delegated ProCare workspace selector, not an
+ * identity claim. It can only change the effective owner after the shared
+ * organization + active care-team relationship check succeeds. Legacy
+ * `userId` request fields are intentionally ignored.
+ */
+async function resolveWaterLogOwner(
+  req: AuthenticatedRequest,
+  res: express.Response,
+  requestedClientId: unknown,
+): Promise<string | null> {
+  const authenticatedUserId = req.authUser?.id;
+  if (!authenticatedUserId) {
+    res.status(401).json({ error: "Authentication required", code: "AUTH_REQUIRED" });
+    return null;
+  }
+
+  const clientId =
+    typeof requestedClientId === "string" && requestedClientId.trim()
+      ? requestedClientId.trim()
+      : null;
+
+  if (!clientId || clientId === authenticatedUserId) {
+    return authenticatedUserId;
+  }
+
   try {
-    const { userId, amount, unit = "ml", intakeTimeISO, freeText } = req.body as {
-      userId: string; amount: number; unit?: string; intakeTimeISO?: string; freeText?: string;
+    const hasAccess = await verifyPhysicianClientAccess(authenticatedUserId, clientId);
+    if (!hasAccess) {
+      res.status(403).json({ error: "Not authorized to access this client's water logs" });
+      return null;
+    }
+    return clientId;
+  } catch (error) {
+    if (handleOrgIsolationError(error, res)) return null;
+    console.error("[water-logs] Authorization check failed:", error);
+    res.status(503).json({ error: "Authorization check failed. Please try again." });
+    return null;
+  }
+}
+
+// POST /api/water-logs { amount, unit, intakeTimeISO?, freeText?, clientId? }
+router.post("/water-logs", requireAuth, async (req, res) => {
+  try {
+    const { amount, unit = "ml", intakeTimeISO, freeText, clientId } = req.body as {
+      amount: number; unit?: string; intakeTimeISO?: string; freeText?: string; clientId?: string;
     };
 
-    if (!userId || !amount || Number(amount) <= 0) {
-      return res.status(400).json({ error: "userId and positive amount required" });
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ error: "A positive amount is required" });
     }
+
+    const userId = await resolveWaterLogOwner(
+      req as AuthenticatedRequest,
+      res,
+      clientId,
+    );
+    if (!userId) return;
 
     let intake = intakeTimeISO ? new Date(intakeTimeISO) : null;
     if (!intake && freeText) intake = parseTimeFromTextToToday(freeText);
@@ -77,11 +130,15 @@ router.post("/water-logs", async (req, res) => {
   }
 });
 
-// GET /api/water-logs?userId=...&from=YYYY-MM-DD&to=YYYY-MM-DD&limit=50&cursor=<ISO>
-router.get("/water-logs", async (req, res) => {
+// GET /api/water-logs?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=50&cursor=<ISO>&clientId=...
+router.get("/water-logs", requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId || "");
-    if (!userId) return res.status(400).json({ error: "userId required" });
+    const userId = await resolveWaterLogOwner(
+      req as AuthenticatedRequest,
+      res,
+      req.query.clientId,
+    );
+    if (!userId) return;
 
     const fromStr = (req.query.from as string) || null;
     const toStr = (req.query.to as string) || null;
