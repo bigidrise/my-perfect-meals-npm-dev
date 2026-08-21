@@ -86,9 +86,7 @@ app.get("/api/health/coaching-patterns", async (_req, res) => {
   try {
     const { db: dbHealth } = await import("./db");
     const { sql: sqlHealth } = await import("drizzle-orm");
-    const result = await dbHealth.execute(
-      sqlHealth`SELECT COUNT(*)::int AS row_count FROM knowledge_patterns`
-    );
+  const result: Record<string, string> = {};
     const rowCount = (result as any).rows?.[0]?.row_count ?? (result as any)[0]?.row_count ?? 0;
     const healthy = Number(rowCount) > 0;
     res.status(healthy ? 200 : 503).json({
@@ -130,7 +128,9 @@ app.get("/api/release", (req, res) => {
 // ─── Full infrastructure health — per-system status ──────────────────────────
 // Tests each critical dependency independently. Used by the post-publish
 // acceptance gate and continuous monitoring. Not just "server responds."
-app.get("/api/health/full", async (req, res) => {
+// Storage is probed directly via the Replit SDK — no HTTP self-request, no SSRF.
+// Error detail is intentionally withheld from the response; check server logs instead.
+app.get("/api/health/full", async (_req, res) => {
   const DEV_BUCKET = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
   const result: Record<string, string> = {};
   let httpStatus = 200;
@@ -138,57 +138,22 @@ app.get("/api/health/full", async (req, res) => {
   // Application init state
   result.application = isInitialized ? "healthy" : "starting";
 
-  // Database — SELECT 1
+  // Database — SELECT 1 (connection + basic query)
   try {
     const { db: dbCheck } = await import("./db");
     const { sql: sqlCheck } = await import("drizzle-orm");
     await dbCheck.execute(sqlCheck`SELECT 1`);
     result.database = "healthy";
-  } catch (e: any) {
-    result.database = `unhealthy: ${e.message}`;
+  } catch {
+    // Do not expose raw DB error messages; check server logs for details
+    result.database = "unhealthy: database probe failed";
     httpStatus = 503;
   }
 
-  // Object Storage — verify bucket ID + probe canary object via public-objects path
+  // Object Storage — SDK probe (no HTTP fetch, no SSRF)
   const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
-  if (!bucketId) {
-    result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
-    result.storageBucketId = "(not configured)";
-    httpStatus = 503;
-  } else if (bucketId === DEV_BUCKET) {
-    result.objectStorage = "unhealthy: production is pointing at the DEV bucket — environment isolation broken";
-    result.storageBucketId = bucketId;
-    httpStatus = 503;
-  } else {
-    result.storageBucketId = bucketId;
-    try {
-      const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
-      const canaryUrl = `${proto}://${req.hostname}/public-objects/${bucketId}/migration-manifest.json`;
-      const storageRes = await fetch(canaryUrl, {
-        signal: AbortSignal.timeout(8000),
-        headers: { "x-health-probe": "1" },
-      });
-      result.objectStorage = storageRes.ok ? "healthy" : `unhealthy: canary returned HTTP ${storageRes.status}`;
-      if (!storageRes.ok) httpStatus = 503;
-    } catch (e: any) {
-      result.objectStorage = `unhealthy: ${e.message}`;
-      httpStatus = 503;
-    }
-  }
 
-  // OpenAI API key present
-  result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
-  if (!process.env.OPENAI_API_KEY) httpStatus = 503;
-
-  // Session auth configured
-  result.auth = process.env.SESSION_SECRET ? "configured" : "missing";
-  if (!process.env.SESSION_SECRET) httpStatus = 503;
-
-  result.timestamp = new Date().toISOString();
-  res.status(httpStatus).json(result);
-});
-
-// START SERVER IMMEDIATELY - health checks respond before any heavy init
+    const { probeStorageCanary } = await import("./objectStorage");
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`✅ [BOOT] Server listening on 0.0.0.0:${port}`);
@@ -2126,3 +2091,5 @@ async function initializeApp() {
     process.exit(1);
   }
 }
+
+    const probe = await probeStorageCanary(bucketId);

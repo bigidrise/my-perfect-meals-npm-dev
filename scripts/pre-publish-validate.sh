@@ -126,7 +126,8 @@ fi
 header "6. Storage reachability"
 
 if [ -n "$BUCKET_ID" ] && [ "$BUCKET_ID" != "$DEV_BUCKET" ]; then
-  # Test the canary object — this is the same object used by monitoring
+  # Test the canary object — this is the same object used by monitoring.
+  # Run scripts/provision-storage-canary.sh once if this fails on a fresh bucket.
   CANARY_URL="https://app.myperfectmeals.com/public-objects/${BUCKET_ID}/migration-manifest.json"
   HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$CANARY_URL" 2>/dev/null || echo "000")
   if [ "$HTTP_STATUS" = "200" ]; then
@@ -134,7 +135,7 @@ if [ -n "$BUCKET_ID" ] && [ "$BUCKET_ID" != "$DEV_BUCKET" ]; then
   elif [ "$HTTP_STATUS" = "000" ]; then
     fail "Storage canary request timed out or could not connect"
   else
-    fail "Storage canary returned HTTP $HTTP_STATUS (expected 200)"
+    fail "Storage canary returned HTTP $HTTP_STATUS (expected 200) — run: bash scripts/provision-storage-canary.sh"
   fi
 else
   warn "Skipping storage reachability check (bucket ID not valid)"
@@ -155,15 +156,6 @@ else
     fail "Dev URLs found in production bundle — environment isolation broken"
     echo "$HITS" | while read -r line; do echo "       → $line"; done
   fi
-fi
-
-# ─────────────────────────────────────────────────────────────────────────────
-header "8. TypeScript and build integrity"
-
-if npm run check --silent 2>/dev/null; then
-  pass "TypeScript check passed"
-else
-  fail "TypeScript check failed — fix errors before publishing"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────

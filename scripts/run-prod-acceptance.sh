@@ -78,9 +78,9 @@ if [ "$LIVE_BUCKET" = "$PROD_BUCKET" ]; then
 elif [ "$LIVE_BUCKET" = "$DEV_BUCKET" ]; then
   fail "CRITICAL: Production is using the DEV storage bucket — images will fail"
 elif [ -n "$LIVE_BUCKET" ]; then
-  warn "Unexpected storage bucket: $LIVE_BUCKET (expected $PROD_BUCKET)"
+  fail "Unexpected storage bucket: $LIVE_BUCKET (expected $PROD_BUCKET) — do not declare release healthy"
 else
-  warn "storageBucketId not present in /api/release — update-version.js may not be updated yet"
+  fail "storageBucketId not present in /api/release — release manifest was not built correctly"
 fi
 
 LIVE_ENV=$(echo "$RELEASE_JSON" | grep -o '"environment":"[^"]*"' | cut -d'"' -f4)
@@ -89,7 +89,7 @@ if [ "$LIVE_ENV" = "production" ]; then
 elif [ -n "$LIVE_ENV" ]; then
   fail "Environment tag is '$LIVE_ENV' — production build is not tagged correctly"
 else
-  warn "environment field not present in /api/release"
+  fail "environment field missing from /api/release — release manifest was not built correctly"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ elif [ "$HEALTH_HTTP" = "503" ]; then
   fail "Infrastructure health endpoint → HTTP 503 (one or more systems unhealthy)"
   echo "       Response: $HEALTH_JSON"
 elif [ "$HEALTH_HTTP" = "404" ]; then
-  warn "/api/health/full not found (endpoint may not be deployed yet)"
+  fail "/api/health/full not found (404) — endpoint not deployed; release cannot be declared healthy"
 else
   fail "Infrastructure health returned HTTP $HEALTH_HTTP"
 fi
@@ -155,7 +155,7 @@ elif [ "$AUTH_STATUS" = "403" ]; then
 elif [ "$AUTH_STATUS" = "200" ]; then
   fail "CRITICAL: /api/user/profile returned 200 without auth — auth is broken"
 else
-  warn "Auth gate returned HTTP $AUTH_STATUS (expected 401)"
+  fail "Auth gate returned HTTP $AUTH_STATUS (expected 401/403) — auth middleware may not be mounted"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ CANARY_TYPE=$(curl -sI --max-time 10 "$CANARY_URL" 2>/dev/null | grep -i "conten
 if [ "$CANARY_STATUS" = "200" ]; then
   pass "Storage canary object → HTTP 200 ($CANARY_TYPE)"
 elif [ "$CANARY_STATUS" = "404" ]; then
-  fail "Storage canary not found — the migration-manifest.json object is missing from prod bucket"
+  fail "Storage canary not found — run: bash scripts/provision-storage-canary.sh"
 elif [ "$CANARY_STATUS" = "503" ]; then
   fail "Storage canary → HTTP 503 — Object Storage is unavailable"
 else
@@ -201,7 +201,7 @@ for ROUTE in "/api/health" "/api/weekly-board" "/api/shopping-list"; do
   elif [ "$STATUS" = "404" ]; then
     fail "Route missing: ${ROUTE} → 404 (route not mounted in prod)"
   else
-    warn "Route ${ROUTE} → HTTP $STATUS"
+    fail "Route ${ROUTE} → HTTP $STATUS (5xx or no response — server error)"
   fi
 done
 
