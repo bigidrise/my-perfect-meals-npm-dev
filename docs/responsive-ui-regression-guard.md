@@ -1,4 +1,4 @@
-# Responsive UI Regression Guard — Architecture Proposal
+# Responsive UI Regression Guard — Architecture
 
 **Status:** Phases 1–4 implemented — Gate 1 viewport tests + Gate 2 screenshot diff, wired into `scripts/pre-publish-validate.sh`  
 **Reference incident:** Recipe Maker (InspirationCaptureModal) — August 2026  
@@ -192,5 +192,3 @@ Three assertions would have caught the regression before the user ever opened th
 **Every serious bug you fix should leave behind a test that makes that exact class of bug harder to reintroduce.**
 
 The Recipe Maker problem is now fixed. The next step is making it the reason the next 50 modal changes are safer.
-
----

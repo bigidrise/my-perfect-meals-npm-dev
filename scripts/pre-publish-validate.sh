@@ -467,6 +467,126 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+header "8. Responsive modal tests — viewport bounds guard"
+#
+# Runs the Playwright responsive test suite against every supported mobile
+# viewport (375px → 1280px) and asserts that no modal/dialog overflows the
+# screen, occludes a close button, or hides a primary CTA.
+#
+# Gate logic: only runs when modal/dialog files have changed since the last
+# commit — avoids slowing every publish when UI has not been touched.
+#
+# Failure format (printed on failure):
+#   InspirationCaptureModal right=422 exceeds viewport width=375 at small-iphone-portrait
+#
+# Reference: docs/responsive-ui-regression-guard.md (Gate 2 integration)
+
+MODAL_CHANGED=false
+
+# Detect if any modal/dialog source files changed since the last commit.
+# Patterns match the trigger rules in responsive-ui-regression-guard.md §Gate 1.
+if command -v git &>/dev/null && git rev-parse --git-dir &>/dev/null 2>&1; then
+  CHANGED_FILES=$(git diff HEAD~1 --name-only 2>/dev/null || git diff --name-only 2>/dev/null || echo "")
+  if echo "$CHANGED_FILES" | grep -qE '(Modal|Sheet|Drawer)\.tsx$|ui/dialog\.tsx|ui/universal-modal\.tsx|ui/.*[Ss]heet|ui/.*[Dd]rawer'; then
+    MODAL_CHANGED=true
+    echo "  Detected modal/dialog file changes — responsive tests will run."
+  else
+    echo "  No modal/dialog files changed since last commit."
+  fi
+else
+  # Git unavailable in this environment — run tests unconditionally to be safe.
+  MODAL_CHANGED=true
+  echo "  Git unavailable — running responsive tests unconditionally."
+fi
+
+if [ "$MODAL_CHANGED" = "false" ]; then
+  warn "No modal/dialog files changed — skipping responsive viewport tests (fast path)"
+else
+  MODAL_TEST_FILE="client/e2e/modal-responsive.spec.ts"
+
+  if [ ! -f "$MODAL_TEST_FILE" ]; then
+    fail "Responsive modal test file not found: $MODAL_TEST_FILE"
+    echo "  Run: git pull to ensure the test suite is present."
+  elif ! command -v npx &>/dev/null; then
+    warn "npx not available — cannot run responsive modal tests; verify viewport bounds manually before publishing"
+  else
+    # ── Ensure the app server is reachable ──────────────────────────────────
+    # The modal tests navigate the real app at localhost:5000. If the server is
+    # not already running (e.g. this script is run in a fresh shell), start the
+    # dev server temporarily so the tests have a live app to measure.
+    MODAL_SERVER_PID=""
+    MODAL_SERVER_STARTED=false
+
+    if ! curl -s --max-time 3 "http://localhost:5000/" > /dev/null 2>&1; then
+      echo "  App server not running — starting dev server for responsive modal tests..."
+      NODE_ENV=development tsx server/index.ts > /tmp/modal-test-server.log 2>&1 &
+      MODAL_SERVER_PID=$!
+
+      # Wait up to 30 s for the server to accept connections
+      SERVER_READY=false
+      for i in $(seq 1 30); do
+        sleep 1
+        if curl -s --max-time 2 "http://localhost:5000/" > /dev/null 2>&1; then
+          SERVER_READY=true
+          break
+        fi
+      done
+
+      if [ "$SERVER_READY" = "true" ]; then
+        MODAL_SERVER_STARTED=true
+        echo "  Dev server ready on :5000"
+      else
+        echo "  Dev server did not start in time. Tail: $(tail -5 /tmp/modal-test-server.log 2>/dev/null)"
+        kill "$MODAL_SERVER_PID" 2>/dev/null || true
+        warn "Could not start dev server — responsive modal tests skipped; verify layout manually before publishing"
+        MODAL_SERVER_PID=""
+      fi
+    else
+      echo "  App server already running on :5000"
+    fi
+
+    # ── Run Playwright if server is available ────────────────────────────────
+    if curl -s --max-time 3 "http://localhost:5000/" > /dev/null 2>&1; then
+      echo "  Running: npx playwright test $MODAL_TEST_FILE --reporter=list"
+      echo ""
+      PW_EXIT_CODE=0
+      PW_OUTPUT=$(E2E_BASE_URL=http://localhost:5000 \
+        npx playwright test "$MODAL_TEST_FILE" --reporter=list 2>&1) || PW_EXIT_CODE=$?
+
+      if [ "$PW_EXIT_CODE" -eq 0 ]; then
+        PW_PASSED=$(echo "$PW_OUTPUT" | grep -cE '(✓|passed|ok)' 2>/dev/null || echo "?")
+        pass "Responsive modal tests passed — all viewport bounds checks OK ($PW_PASSED tests)"
+      else
+        fail "Responsive modal tests FAILED — modal overflow or inaccessible control detected"
+        echo ""
+        echo -e "  ${RED}Failing assertions:${NC}"
+        # Print lines that contain viewport names or assertion values — these are
+        # the precise failure messages in the format the gate was designed to surface:
+        #   InspirationCaptureModal right=422.0 exceeds viewport width=375 at small-iphone-portrait
+        echo "$PW_OUTPUT" | grep -E \
+          "(exceeds viewport|exceeds viewport width|off-screen|outside viewport|wider than viewport|Error:|FAIL|✗|×)" \
+          2>/dev/null | sed 's/^/    /' | head -30
+        echo ""
+        echo "  How to diagnose:"
+        echo "    1. Run: npx playwright test $MODAL_TEST_FILE --reporter=list"
+        echo "    2. Look for the viewport name in the failure, e.g. 'at small-iphone-portrait'"
+        echo "    3. Common causes: negative margin, removed max-width, flex restructuring"
+        echo "    4. Rule: spacing/padding fixes must NOT restructure flex/overflow/width"
+        echo "    5. Docs: docs/responsive-ui-regression-guard.md — minimal-blast-radius rule"
+        echo ""
+      fi
+    fi
+
+    # ── Stop the server if we started it ────────────────────────────────────
+    if [ "$MODAL_SERVER_STARTED" = "true" ] && [ -n "$MODAL_SERVER_PID" ]; then
+      kill "$MODAL_SERVER_PID" 2>/dev/null || true
+      # Also kill any child processes (tsx → node chain)
+      pkill -P "$MODAL_SERVER_PID" 2>/dev/null || true
+    fi
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║   PRE-PUBLISH VALIDATION SUMMARY                         ║"

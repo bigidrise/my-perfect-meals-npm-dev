@@ -26,6 +26,16 @@ import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 
+// DEV-ONLY: responsive modal bounds test harness.
+// Static import (no lazy) so the module is compiled into the main bundle and
+// renders immediately on the first navigation — no Vite cold-compile or HMR
+// cycle, which is what caused waitForSelector to time out in Playwright tests.
+// ModalBoundsTestPage itself lazy-imports InspirationCaptureModal internally,
+// so that heavy component is never in the production bundle.
+// In production Vite replaces import.meta.env.DEV with `false`; Rollup
+// tree-shakes the reference because it is only used inside dead code.
+import ModalBoundsTestPage from "@/pages/ModalBoundsTestPage";
+
 const COACHING_ADMIN_USER_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
 
 function getFeatureNameFromPath(path: string): string {
@@ -722,6 +732,8 @@ export default function Router() {
 
   // Routes that DON'T require onboarding or macro completion
   const ungatedRoutes = [
+    // Dev-only responsive modal test harness — never gated, never in production bundle
+    ...(import.meta.env.DEV ? ["/test-modal-bounds"] : []),
     "/", "/auth", "/welcome", "/login", "/signup",
     "/guest-builder", "/guest-suite",
     "/forgot-password", "/reset-password",
@@ -820,6 +832,10 @@ export default function Router() {
       <Switch>
         {/* Root route — AppRouter handles redirect to /welcome, /onboarding, or /dashboard */}
         <Route path="/">{() => null}</Route>
+        {/* Dev-only: responsive modal bounds test harness — static import, not lazy */}
+        {import.meta.env.DEV && (
+          <Route path="/test-modal-bounds" component={ModalBoundsTestPage} />
+        )}
         {/* Public shared meal preview — no auth required */}
         <Route path="/m/:shareToken" component={lazy(() => import("@/pages/SharedMealPage"))} />
         {/* Core Routes */}
