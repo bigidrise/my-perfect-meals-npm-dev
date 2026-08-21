@@ -10,11 +10,11 @@ export interface WaterLogRow {
   createdAt: string;
 }
 
-export function useWaterLogsInfinite(userId: string, range: { from: string | null; to: string | null }, pageSize = 50) {
+export function useWaterLogsInfinite(range: { from: string | null; to: string | null }, pageSize = 50) {
   return useInfiniteQuery({
-    queryKey: ["waterLogs", userId, range],
+    queryKey: ["waterLogs", range],
     queryFn: async ({ pageParam }) => {
-      const params: any = { userId, limit: pageSize };
+      const params: any = { limit: pageSize };
       if (range.from) params.from = range.from;
       if (range.to) params.to = range.to;
       if (pageParam) params.cursor = pageParam;
