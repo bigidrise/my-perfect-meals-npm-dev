@@ -42,6 +42,12 @@ export interface UniversalDialogProps extends Omit<BaseModalProps, "children" | 
    * When true, children render directly inside DialogContent's flex column.
    */
   rawLayout?: boolean
+  /**
+   * Set to false to suppress the built-in close ✕ button.
+   * Use when the consuming modal renders its own close control (e.g. a Trash2 icon).
+   * Default: true.
+   */
+  showCloseButton?: boolean
   /** Forwarded to Radix DialogContent's onOpenAutoFocus */
   onOpenAutoFocus?: (e: Event) => void
   children?: React.ReactNode
@@ -56,6 +62,7 @@ export function UniversalDialog({
   className,
   disableBodyScroll = false,
   rawLayout = false,
+  showCloseButton = true,
   onOpenAutoFocus,
   children,
 }: UniversalDialogProps) {
@@ -66,6 +73,7 @@ export function UniversalDialog({
           "flex flex-col max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden",
           className
         )}
+        showCloseButton={showCloseButton}
         onOpenAutoFocus={onOpenAutoFocus}
       >
         {rawLayout ? (

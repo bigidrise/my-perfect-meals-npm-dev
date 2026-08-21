@@ -11,6 +11,7 @@ import express, {
   type Response,
   type NextFunction,
 } from "express";
+import fs from "fs";
 import session from "express-session";
 import path from "path";
 
@@ -321,6 +322,80 @@ app.use(express.static(path.join(import.meta.dirname, "../client/public")));
 // Health checks and keep-alive first
 app.use("/api", healthRouter);
 app.use("/api", keepaliveRouter);
+
+// ── Release identity — public, no auth, reads manifest baked at build time ───
+// The acceptance gate and monitoring read this after every publish to confirm
+// the correct git SHA, storage bucket, and environment are live.
+app.get("/api/release", (req, res) => {
+  try {
+    const candidates = [
+      path.join(import.meta.dirname, "../client/dist/release-manifest.json"),
+      path.join(import.meta.dirname, "../client/public/release-manifest.json"),
+    ];
+    let manifest: Record<string, unknown> = {};
+    for (const p of candidates) {
+      if (fs.existsSync(p)) { manifest = JSON.parse(fs.readFileSync(p, "utf-8")); break; }
+    }
+    res.json({ ...manifest, apiOrigin: req.hostname, nodeVersion: process.version });
+  } catch (e: any) {
+    res.status(500).json({ error: "Failed to read release manifest", detail: e.message });
+  }
+});
+
+// ── Full infrastructure health — per-system status for acceptance gate ────────
+// Returns 503 if any critical dependency is unhealthy. Used by monitoring too.
+app.get("/api/health/full", async (req, res) => {
+  const DEV_BUCKET = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
+  const result: Record<string, string> = {};
+  let httpStatus = 200;
+
+  result.application = "healthy";
+
+  // Database
+  try {
+    const { db: dbCheck } = await import("./db");
+    const { sql: sqlCheck } = await import("drizzle-orm");
+    await dbCheck.execute(sqlCheck`SELECT 1`);
+    result.database = "healthy";
+  } catch (e: any) {
+    result.database = `unhealthy: ${e.message}`;
+    httpStatus = 503;
+  }
+
+  // Object Storage — check bucket ID then probe the canary object
+  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
+  if (!bucketId) {
+    result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
+    result.storageBucketId = "(not configured)";
+    httpStatus = 503;
+  } else if (bucketId === DEV_BUCKET) {
+    result.objectStorage = "unhealthy: production is pointing at the DEV bucket";
+    result.storageBucketId = bucketId;
+    httpStatus = 503;
+  } else {
+    result.storageBucketId = bucketId;
+    try {
+      const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
+      const canaryUrl = `${proto}://${req.hostname}/public-objects/${bucketId}/migration-manifest.json`;
+      const storageRes = await fetch(canaryUrl, {
+        signal: AbortSignal.timeout(8000),
+        headers: { "x-health-probe": "1" },
+      });
+      result.objectStorage = storageRes.ok ? "healthy" : `unhealthy: canary returned HTTP ${storageRes.status}`;
+      if (!storageRes.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      httpStatus = 503;
+    }
+  }
+
+  result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
+  if (!process.env.OPENAI_API_KEY) httpStatus = 503;
+  result.auth = process.env.SESSION_SECRET ? "configured" : "missing";
+  if (!process.env.SESSION_SECRET) httpStatus = 503;
+  result.timestamp = new Date().toISOString();
+  res.status(httpStatus).json(result);
+});
 
 // Stripe checkout route (after express.json())
 app.use("/api/stripe", stripeCheckoutRouter);
