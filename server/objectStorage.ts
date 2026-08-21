@@ -54,7 +54,10 @@ export class StorageUnavailableError extends Error {
 // The old disconnected bucket that still appears in legacy env vars.
 // Any search path or bucket ID referencing it is silently remapped to the active bucket.
 const LEGACY_DISCONNECTED_BUCKET = "replit-objstore-e02a723e-40e9-4d89-9c0e-05adfa185d2d";
-// The current active bucket for this repl.
+// The current active bucket for the DEV workspace.
+// ⚠️  Cross-reference: scripts/pre-publish-validate.sh DEV_BUCKET must equal this
+// value. If you rotate the dev bucket, update BOTH files together or the pre-publish
+// validator will silently stop blocking dev-bucket-in-production publishes.
 export const ACTIVE_BUCKET_ID = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
 
 // ── Replit Object Storage clients (same SDK as the write path) ────────────────

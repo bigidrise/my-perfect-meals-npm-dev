@@ -125,6 +125,7 @@ git push --no-verify
 7. Click Publish in Replit
 8. Confirm production is healthy: check `/api/health` in browser
 9. Update `LAST_STABLE.md` with the new commit hash
+   **If production is broken after publish:** follow `ROLLBACK.md` — do not improvise.
 
 **If production breaks after a pull:**
 Open `LAST_STABLE.md`, copy the last known-good commit hash, and run in the production shell:
