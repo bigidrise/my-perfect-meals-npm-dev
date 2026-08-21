@@ -236,6 +236,126 @@ Coach's Corner should stop routine nutrition coaching and direct the user to app
 6. Can weekly-board and saved-meal provenance retain all additive overlays without breaking existing clinical metadata consumers?
 7. Is any future electrolyte tracking worthwhile, or does it create more clinical risk than product value?
 
+## 12. Hydration architecture audit
+
+### Current end-to-end flow
+
+```text
+General hydration target
+  └─ My Biometrics calculates a weight-based target and stores target/progress locally
+     (`client/src/pages/my-biometrics.tsx`)
+       ├─ visible daily progress UI
+       └─ local reset action
+
+Water logging
+  └─ My Biometrics POSTs additions to /api/water-logs
+     └─ water_logs database rows (`shared/schema.ts`)
+        ├─ seven-day history is fetched back to the Biometrics chart
+        └─ hydrationObserver reads logs for coaching evidence
+           └─ uses a fixed 2,000 mL investigation baseline
+
+Separate GLP-1 path
+  └─ GLP-1 Hub stores hydrationMinMl in GLP-1 guardrails
+     └─ tolerance resolution can use symptoms/logs in the GLP-1 protocol path
+```
+
+### Where the chain breaks
+
+| Intended link | Current result |
+| --- | --- |
+| Target → durable clinical profile | **Broken for general hydration.** The normal target is calculated and retained in local browser storage, not in a server-side target model. |
+| Logged intake → target progress | **Partially broken.** Logs persist to `water_logs`, but the progress counter is local; resetting it does not reconcile or remove stored log rows. |
+| Logged intake → cross-device experience | **Partial.** The history is server-backed, but the general target/current-counter state is browser-local and can differ by session/device. |
+| Logged intake → recommendation engine | **Partial and non-clinical.** `hydrationObserver.ts` can inspect water logs, but uses a fixed 2,000 mL investigation baseline and explicitly is not a clinical prescription. |
+| Logged intake → Coach's Corner / Life Plan | **Broken.** The audit found no reliable flow that gives those surfaces a resolved “today versus your target” hydration state. |
+| Logged intake → Beverage Creator / meal generation | **Broken for general hydration.** Beverage rules can use medical guidance, but they do not receive current water intake or a unified hydration target. Meal generation does not consider hydration status. |
+| Logged intake → ProCare | **Broken.** There is no clinician-facing hydration history/target/plan path in the general hydration architecture. |
+| Electrolyte intake → daily state | **Absent.** Electrolyte language appears in some generation guidance, but intake is not durably measured or reconciled against a target. |
+
+The current route implementation also takes `userId` from the request body/query rather than deriving it from the authenticated user (`server/routes/waterLogs.ts`). That is a data-isolation concern that must be resolved before water logs can participate in clinician-managed protocols.
+
+### Classification
+
+**B — partially connected, with a cosmetic/tracker-like general target experience.**
+
+There is meaningful functionality: water events are persisted, seven-day history is available, and the coaching observer can read real logs. It is not merely a visual progress ring. However, the system lacks a durable general target, a server-authoritative daily state, clinician visibility, electrolyte accounting, and consistent recommendation consumption. The GLP-1 hydration path is materially more connected but is a separate protocol-specific design, not a reusable hydration layer.
+
+### POTS consequence
+
+MPM must not build a special POTS water tracker on top of this split architecture. It would duplicate the problem: a condition-specific target and UI with no reliable, shared intelligence path. The hydration foundation needs diagnosis-approved repair or replacement before numeric POTS hydration support is safe.
+
+## 13. Clinician-defined POTS parameters
+
+The appropriate comparison is not “POTS checkbox versus diabetes checkbox.” It is the existing pattern in which validated clinical parameters become resolved, explainable inputs to the nutrition system rather than passive dashboard information.
+
+| Parameter | Product decision | Authority | Current feasibility |
+| --- | --- | --- | --- |
+| Daily fluid target and maximum/restriction | Include, but only as a typed clinician-defined instruction; target and ceiling must be distinct. | Clinician / authorized dietitian | Not safely operational today: no unified daily hydration state or conflict gate. |
+| Dietary sodium target/range and maximum/restriction | Include only if the meaning, units, scope, and conflicts are explicit. Never calculate from POTS. | Clinician / authorized dietitian | Not safely operational today: no sodium target in the resolved prescription or post-generation nutrient gate. |
+| Electrolyte guidance | Include as structured instruction/restriction, not a default product recommendation or generic supplement plan. | Clinician | Partially representable as guidance; not measurable or enforceable today. |
+| Meal size/frequency | Include as a bounded directive or user preference, depending on its source. | Clinician for clinical directive; user for non-medical preference | Qualitative guidance can be propagated through the existing protocol envelope. |
+| Carbohydrate/post-prandial guidance | Include only when clinician-provided and reconciled with diabetes/GLP-1/pregnancy protocols. | Clinician | Existing carb targets and guardrails offer a partial pattern; POTS should not independently calculate one. |
+| Caffeine/alcohol guidance | Structured qualitative restriction/preference; no numeric dosing target. | Clinician for medical restriction; user for preference | Existing qualitative guardrails can support this, with clear limitations. |
+| Exercise/training hydration | Defer numeric support until a daily hydration state and session-aware performance model exist. | POTS clinician defines ceilings; performance professional may supply session context | Performance has partial contextual support, but no session hydration accounting or validator. |
+| Additional notes | Preserve as visible, versioned clinical context. Do not parse free text into hard generation rules. | Clinician | Appropriate for display/coaching context, not deterministic execution. |
+
+### Authority and precedence
+
+Every future parameter must identify its source:
+
+1. **System safety rule:** can withhold or require review; it cannot create a POTS numeric target.
+2. **Clinician-defined target or restriction:** the only source that may establish actionable POTS fluid, sodium, electrolyte, or maximum values.
+3. **Calculated target:** may exist only for a non-clinical general-wellness experience and must never become a POTS protocol input.
+4. **User preference or observation:** can affect reminders, meal timing, flavor, or a non-medical pattern preference; it cannot create clinical numbers or override restrictions.
+
+Clinician restrictions and higher-priority organ-safety protocols must win over all lower sources, including POTS and performance defaults.
+
+## 14. Required propagation path for an actionable POTS instruction
+
+An effective clinician control panel must feed actual platform behavior through a single authoritative path:
+
+```text
+Authorized ProCare clinician
+  → typed POTS plan, author, version, effective/review dates, and restrictions
+  → patient clinical profile
+  → conflict resolver (renal/cardiac/liver/hypertension/pregnancy/diabetes/GLP-1/etc.)
+  → resolved daily hydration and nutrition state
+     ├─ approved target/restriction
+     ├─ today's authenticated intake events
+     ├─ intake reliability/source
+     └─ withheld reason, if a conflict applies
+  → protocol envelope + generation context
+  → server-side generation/food-nutrient validation for hard constraints
+  → meal, beverage, grocery, and coaching response
+  → patient explanation and saved-result provenance
+  → ProCare monitoring, history, review, and escalation support
+```
+
+The current architecture has portions of this model:
+
+- ProCare/clinical prescription patterns establish provenance for nutrition targets.
+- The protocol envelope can distribute resolved qualitative guidance to generation surfaces.
+- GLP-1 demonstrates a stronger symptom-to-adaptation pattern.
+- Clinical macro gates show the correct direction for server-authoritative validation.
+
+But it does **not** yet have the middle of the chain for general hydration: a unified plan, authenticated daily intake arithmetic, sodium/electrolyte accounting, nutrient-aware validation, clinician monitoring, or end-user explanations grounded in actual current intake. A future control panel must not ship before that chain is complete.
+
+## 15. Recommended condition-neutral Hydration Intelligence architecture
+
+If MPM later approves this work, the foundation should be one **Hydration Intelligence** layer, not separate POTS, pregnancy, performance, and GLP-1 water trackers.
+
+Its conceptual responsibilities would be:
+
+1. **Hydration plan:** a versioned, source-aware plan with clinician targets/restrictions, optional general-wellness targets, effective dates, and a clear precedence contract.
+2. **Intake events:** authenticated, durable water/beverage events with units, time, source, and correction/audit behavior. Nutrition/electrolyte contribution can be counted only when it comes from reliable nutrition data; never guessed from vague beverage names.
+3. **Resolved daily state:** one server-calculated view of target, applicable ceiling, intake to date, remaining amount, confidence/reliability, active conflicts, and withheld-adjustment reason.
+4. **Protocol modifiers:** POTS, performance, pregnancy, GLP-1, illness/recovery, and other future protocols may contribute only appropriately authorized guidance to the same resolver.
+5. **Downstream consumers:** Coach's Corner, Beverage Creator, meal generation, Nutrition Life Plan, reminders, and ProCare all consume the same resolved state rather than recreating their own counters.
+6. **Safety and explainability:** hard clinician ceilings use server validation; recommendations explain source and reason; free-text instructions remain context unless translated into reviewed typed fields.
+7. **Professional monitoring:** authorized clinicians can review trend/adherence signals and plan status, without MPM claiming to diagnose, treat, or determine symptom cause.
+
+This is a **proposed architectural direction**, not a recommendation to begin rebuilding hydration now. It should be reviewed alongside the POTS clinical-governance decisions.
+
 ## Sources consulted
 
 1. Raj SR, et al. *Diagnosis and management of postural orthostatic tachycardia syndrome.* CMAJ. 2022;194:E378-E385. https://pmc.ncbi.nlm.nih.gov/articles/PMC8920526/
