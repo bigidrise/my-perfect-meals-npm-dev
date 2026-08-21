@@ -72,6 +72,7 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
 
   return (
     <UniversalDialog rawLayout open={open} onOpenChange={(isOpen) => { if (!isOpen) handleDismiss(); }} className="max-w-sm mx-auto bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border-white/10 rounded-2xl">
+        <div className="p-6">
         <DialogHeader className="text-center items-center">
           <div className="flex justify-center mb-3">
             <div className="w-14 h-14 rounded-full bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
@@ -115,6 +116,7 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
           >
             {t("upgrade.maybeLater")}
           </button>
+        </div>
         </div>
     </UniversalDialog>
   );

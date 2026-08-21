@@ -207,82 +207,109 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 header "7a. Modal viewport tests — responsive layout guard (Gate 1)"
 
-# Gate 1 (docs/responsive-ui-regression-guard.md): the Playwright viewport
-# tests in client/e2e/universal-modal-viewport.spec.ts must have passed against
-# the CURRENT state of the shared dialog primitives.
+# Gate 1 (docs/responsive-ui-regression-guard.md Phase 4): run the Playwright
+# viewport tests whenever the shared dialog primitives have changed (or when
+# no fingerprint exists yet), then write a fingerprint so subsequent runs can
+# skip re-execution when nothing changed.
 #
 # How it works:
-#   1. scripts/run-modal-viewport-tests.sh runs the Playwright suite.
-#   2. On success it writes SHA-256 fingerprints of the watched files to
-#      scripts/checksums/modal-viewport-gate.lock.
-#   3. This check reads that lock and re-hashes the live files.
-#      Match  → tests are still valid for the current code → PASS
-#      Miss   → a primitive changed since the last run      → FAIL
-#      No lock → tests have never been run                  → FAIL
+#   1. Compute SHA-256 fingerprints of the two watched primitives.
+#   2. If the fingerprints match the stored lock → tests are fresh → PASS.
+#   3. If they differ (or no lock) → run the Playwright specs right now:
+#        client/e2e/inspiration-capture-modal-viewport.spec.ts
+#        client/e2e/universal-modal-viewport.spec.ts
+#   4. On success → update the lock and PASS.
+#   5. On failure → FAIL (block publish).
 #
-# To resolve any failure here:
+# To force a re-run regardless of fingerprint state:
 #   bash scripts/run-modal-viewport-tests.sh
 #   bash scripts/pre-publish-validate.sh
 
 MODAL_LOCK="scripts/checksums/modal-viewport-gate.lock"
 GATE1_PRIMITIVE_A="client/src/components/ui/universal-modal.tsx"
 GATE1_PRIMITIVE_B="client/src/components/ui/dialog.tsx"
+GATE1_SPEC_A="client/e2e/inspiration-capture-modal-viewport.spec.ts"
+GATE1_SPEC_B="client/e2e/universal-modal-viewport.spec.ts"
 
-if [ ! -f "$MODAL_LOCK" ]; then
-  fail "Modal viewport tests have never been run — no Gate 1 fingerprint found"
-  echo ""
-  echo "  ${RED}The responsive layout guard (Gate 1) has not been activated.${NC}"
-  echo "  Run the modal viewport test suite at least once before publishing:"
-  echo "    bash scripts/run-modal-viewport-tests.sh"
-  echo ""
+# Compute current fingerprints up-front (needed for both paths)
+CURRENT_SHA_A=""
+CURRENT_SHA_B=""
+if [ -f "$GATE1_PRIMITIVE_A" ]; then
+  CURRENT_SHA_A=$(sha256sum "$GATE1_PRIMITIVE_A" | awk '{print $1}')
 else
-  # Read stored fingerprints
+  fail "Watched primitive not found: $GATE1_PRIMITIVE_A"
+fi
+if [ -f "$GATE1_PRIMITIVE_B" ]; then
+  CURRENT_SHA_B=$(sha256sum "$GATE1_PRIMITIVE_B" | awk '{print $1}')
+else
+  fail "Watched primitive not found: $GATE1_PRIMITIVE_B"
+fi
+
+GATE1_NEED_RUN=0
+GATE1_STORED_TS="never"
+
+if [ -z "$CURRENT_SHA_A" ] || [ -z "$CURRENT_SHA_B" ]; then
+  # Already failed above — skip further checks
+  GATE1_NEED_RUN=0
+elif [ ! -f "$MODAL_LOCK" ]; then
+  echo "  No Gate 1 fingerprint found — running modal viewport tests now..."
+  GATE1_NEED_RUN=1
+else
   STORED_SHA_A=$(grep "^universal_modal_sha256=" "$MODAL_LOCK" | cut -d= -f2 || echo "")
   STORED_SHA_B=$(grep "^dialog_sha256=" "$MODAL_LOCK" | cut -d= -f2 || echo "")
-  STORED_TS=$(grep "^timestamp=" "$MODAL_LOCK" | cut -d= -f2 || echo "unknown")
-
-  # Compute current fingerprints
-  CURRENT_SHA_A=""
-  CURRENT_SHA_B=""
-  if [ -f "$GATE1_PRIMITIVE_A" ]; then
-    CURRENT_SHA_A=$(sha256sum "$GATE1_PRIMITIVE_A" | awk '{print $1}')
-  fi
-  if [ -f "$GATE1_PRIMITIVE_B" ]; then
-    CURRENT_SHA_B=$(sha256sum "$GATE1_PRIMITIVE_B" | awk '{print $1}')
-  fi
-
-  GATE1_OK=1
+  GATE1_STORED_TS=$(grep "^timestamp=" "$MODAL_LOCK" | cut -d= -f2 || echo "unknown")
 
   if [ -z "$STORED_SHA_A" ] || [ -z "$STORED_SHA_B" ]; then
-    fail "Gate 1 fingerprint file is malformed (missing hash fields)"
-    GATE1_OK=0
-  elif [ -z "$CURRENT_SHA_A" ]; then
-    fail "Watched primitive not found: $GATE1_PRIMITIVE_A"
-    GATE1_OK=0
-  elif [ -z "$CURRENT_SHA_B" ]; then
-    fail "Watched primitive not found: $GATE1_PRIMITIVE_B"
-    GATE1_OK=0
-  elif [ "$CURRENT_SHA_A" != "$STORED_SHA_A" ]; then
-    fail "universal-modal.tsx changed since last passing viewport test run (run: $STORED_TS)"
-    GATE1_OK=0
-  elif [ "$CURRENT_SHA_B" != "$STORED_SHA_B" ]; then
-    fail "dialog.tsx changed since last passing viewport test run (run: $STORED_TS)"
-    GATE1_OK=0
+    echo "  Gate 1 fingerprint malformed — running modal viewport tests now..."
+    GATE1_NEED_RUN=1
+  elif [ "$CURRENT_SHA_A" != "$STORED_SHA_A" ] || [ "$CURRENT_SHA_B" != "$STORED_SHA_B" ]; then
+    echo "  Shared dialog primitive changed since last passing run ($GATE1_STORED_TS) — running modal viewport tests now..."
+    GATE1_NEED_RUN=1
   fi
+fi
 
-  if [ "$GATE1_OK" -eq 0 ]; then
-    echo ""
-    echo "  ${RED}A shared dialog primitive changed without re-running the viewport tests.${NC}"
-    echo "  This risks silent mobile layout regressions that produce no JS errors"
-    echo "  (reference incident: InspirationCaptureModal, August 2026)."
-    echo ""
-    echo "  Re-run the modal viewport tests, then re-run this script:"
-    echo "    bash scripts/run-modal-viewport-tests.sh"
-    echo "    bash scripts/pre-publish-validate.sh"
-    echo ""
+if [ "$GATE1_NEED_RUN" -eq 1 ]; then
+  # Spec files must exist
+  if [ ! -f "$GATE1_SPEC_A" ] || [ ! -f "$GATE1_SPEC_B" ]; then
+    fail "Modal viewport spec files not found — cannot run Gate 1"
+    echo "  Expected:"
+    echo "    $GATE1_SPEC_A"
+    echo "    $GATE1_SPEC_B"
+  elif ! command -v npx &>/dev/null; then
+    fail "npx not available — cannot run modal viewport tests"
+    echo "  Install Node.js and re-run this script."
   else
-    pass "Modal viewport tests passed for current dialog primitives (run: $STORED_TS)"
+    echo ""
+    if npx playwright test "$GATE1_SPEC_A" "$GATE1_SPEC_B"; then
+      # Tests passed — write updated fingerprint
+      GATE1_RUN_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      mkdir -p "$(dirname "$MODAL_LOCK")"
+      cat > "$MODAL_LOCK" <<LOCKEOF
+# Modal Viewport Gate — fingerprint of last passing run
+# Generated by: scripts/pre-publish-validate.sh (Gate 1 — Phase 4)
+# Specs: $GATE1_SPEC_A
+#        $GATE1_SPEC_B
+# Architecture: docs/responsive-ui-regression-guard.md Gate 1
+timestamp=$GATE1_RUN_TS
+universal_modal_sha256=$CURRENT_SHA_A
+dialog_sha256=$CURRENT_SHA_B
+LOCKEOF
+      pass "Modal viewport tests passed for current dialog primitives (run: $GATE1_RUN_TS)"
+    else
+      fail "Modal viewport tests FAILED — layout regression detected, do NOT publish"
+      echo ""
+      echo "  ${RED}One or more shared dialog primitives have a viewport regression.${NC}"
+      echo "  This blocks publish to prevent a layout break from reaching production."
+      echo ""
+      echo "  Debug steps:"
+      echo "    npx playwright show-report"
+      echo "    npx playwright test $GATE1_SPEC_A $GATE1_SPEC_B --headed"
+      echo ""
+    fi
   fi
+elif [ -n "$CURRENT_SHA_A" ] && [ -n "$CURRENT_SHA_B" ] && [ "$GATE1_NEED_RUN" -eq 0 ]; then
+  # Fingerprints matched — tests are still valid for current code
+  pass "Modal viewport tests passed for current dialog primitives (run: $GATE1_STORED_TS)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
