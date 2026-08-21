@@ -557,8 +557,9 @@ a {
       overflow-x: hidden;
     }
 
-    /* Fix flex layouts */
-    .flex {
+    /* Fix flex layouts — exclude Radix dialog portals which manage their
+       own flex-direction / flex-wrap and must never wrap children */
+    .flex:not([role="dialog"]) {
       flex-wrap: wrap;
       overflow-x: hidden;
     }

@@ -406,7 +406,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         clearAuthToken();
         clearUserContext();
         clearNutritionCache();
-        const publicPaths = ["/login", "/welcome", "/auth", "/forgot-password", "/reset-password", "/pricing", "/privacy", "/guest-builder", "/guest-suite", "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-attestation", "/founders", "/affiliates", "/delete-account", "/terms", "/privacy-policy", "/partners", "/join/studio"];
+        const publicPaths = ["/login", "/welcome", "/auth", "/forgot-password", "/reset-password", "/pricing", "/privacy", "/guest-builder", "/guest-suite", "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-attestation", "/founders", "/affiliates", "/delete-account", "/terms", "/privacy-policy", "/partners", "/join/studio", "/__modal-test__"];
         const isPublicPath = publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + "/"));
         if (!isPublicPath) {
           window.location.href = "/welcome";
