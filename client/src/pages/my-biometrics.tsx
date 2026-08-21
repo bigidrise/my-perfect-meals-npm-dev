@@ -10,6 +10,11 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  createWaterLog,
+  getWaterLogs,
+  isWaterHistoryResponseCurrent,
+} from "@/lib/waterLogsApi";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -2798,7 +2803,8 @@ export default function MyBiometrics() {
           </CardHeader>
           <CardContent className="space-y-4">
             <WaterLog
-              userId={user?.id || ""}
+              key={user?.id ?? "anonymous"}
+              userId={user?.id ?? ""}
               dietType={((user as any)?.dietaryRestrictions?.[0] || (user as any)?.dietType || "")}
             />
           </CardContent>
@@ -3028,32 +3034,45 @@ function WaterLog({ userId, dietType }: { userId: string; dietType: string }) {
   const [goal, setGoal] = useState(121);
   const [weekHistory, setWeekHistory] = useState<{ label: string; oz: number; dateStr: string }[]>([]);
   const [tipIndex, setTipIndex] = useState(0);
+  const historyOwnerRef = useRef(userId);
   const isHighProtein = dietType === "carnivore" || dietType === "keto";
+  const waterStorageKey = userId ? `mpm_bio_water:${userId}` : null;
 
   useEffect(() => {
     try {
-      const savedWater = localStorage.getItem("mpm_bio_water");
+      if (!waterStorageKey) {
+        setWater({ date: new Date().toDateString(), ounces: 0 });
+        return;
+      }
+      const savedWater = localStorage.getItem(waterStorageKey);
       if (savedWater) {
         const parsed = JSON.parse(savedWater);
         if (parsed.date === new Date().toDateString()) setWater(parsed);
+        else setWater({ date: new Date().toDateString(), ounces: 0 });
+      } else {
+        setWater({ date: new Date().toDateString(), ounces: 0 });
       }
       const w = Number(localStorage.getItem("latestWeight")) || 180;
       setGoal(Math.round(w * 0.67));
     } catch (e) {
       console.error("Failed to load water data:", e);
     }
-  }, []);
+  }, [waterStorageKey]);
 
   useEffect(() => {
+    historyOwnerRef.current = userId;
+    setWeekHistory([]);
     if (!userId) return;
+
+    let cancelled = false;
     const to = new Date();
     const from = new Date();
     from.setDate(from.getDate() - 6);
     const fromStr = from.toISOString().split("T")[0];
     const toStr = to.toISOString().split("T")[0];
-    fetch(`/api/water-logs?from=${fromStr}&to=${toStr}&limit=200`)
-      .then(r => r.ok ? r.json() : { items: [] })
+    getWaterLogs({ from: fromStr, to: toStr, limit: 200 })
       .then(data => {
+        if (cancelled || !isWaterHistoryResponseCurrent(userId, historyOwnerRef.current)) return;
         const byDay: Record<string, number> = {};
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
@@ -3071,7 +3090,15 @@ function WaterLog({ userId, dietType }: { userId: string; dietType: string }) {
         }));
         setWeekHistory(history);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled && isWaterHistoryResponseCurrent(userId, historyOwnerRef.current)) {
+          setWeekHistory([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   useEffect(() => {
@@ -3085,13 +3112,9 @@ function WaterLog({ userId, dietType }: { userId: string; dietType: string }) {
   const save = (newTotal: number, addedOz?: number) => {
     const updated = { date: new Date().toDateString(), ounces: newTotal };
     setWater(updated);
-    localStorage.setItem("mpm_bio_water", JSON.stringify(updated));
+    if (waterStorageKey) localStorage.setItem(waterStorageKey, JSON.stringify(updated));
     if (userId && addedOz && addedOz > 0) {
-      fetch("/api/water-logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: addedOz, unit: "oz" }),
-      }).catch(() => {});
+      createWaterLog({ amount: addedOz, unit: "oz" }).catch(() => {});
     }
   };
 
