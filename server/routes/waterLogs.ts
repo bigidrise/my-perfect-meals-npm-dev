@@ -2,6 +2,7 @@ import express from "express";
 import { db } from "../db";
 import { waterLogs } from "../../shared/schema";
 import { and, eq, gt, lte, desc, lt } from "drizzle-orm";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = express.Router();
 
@@ -43,17 +44,19 @@ function toMl(amount: number, unit: string) {
   return Math.round(amount); // default
 }
 
-// POST /api/water-logs { userId, amount, unit, note?, intakeTimeISO?, freeText? }
-router.post("/water-logs", async (req, res) => {
+// POST /api/water-logs { amount, unit, intakeTimeISO?, freeText? }
+// Ownership always comes from the authenticated session, never the request body.
+router.post("/water-logs", requireAuth, async (req, res) => {
   try {
-    const { userId, amount, unit = "ml", intakeTimeISO, freeText } = req.body as {
-      userId: string; amount: number; unit?: string; intakeTimeISO?: string; freeText?: string;
+    const { amount, unit = "ml", intakeTimeISO, freeText } = req.body as {
+      amount: number; unit?: string; intakeTimeISO?: string; freeText?: string;
     };
 
-    if (!userId || !amount || Number(amount) <= 0) {
-      return res.status(400).json({ error: "userId and positive amount required" });
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: "Positive amount required" });
     }
 
+    const userId = (req as AuthenticatedRequest).authUser.id;
     let intake = intakeTimeISO ? new Date(intakeTimeISO) : null;
     if (!intake && freeText) intake = parseTimeFromTextToToday(freeText);
     if (!intake) intake = new Date();
@@ -77,11 +80,11 @@ router.post("/water-logs", async (req, res) => {
   }
 });
 
-// GET /api/water-logs?userId=...&from=YYYY-MM-DD&to=YYYY-MM-DD&limit=50&cursor=<ISO>
-router.get("/water-logs", async (req, res) => {
+// GET /api/water-logs?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=50&cursor=<ISO>
+// Ownership always comes from the authenticated session, never the query string.
+router.get("/water-logs", requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId || "");
-    if (!userId) return res.status(400).json({ error: "userId required" });
+    const userId = (req as AuthenticatedRequest).authUser.id;
 
     const fromStr = (req.query.from as string) || null;
     const toStr = (req.query.to as string) || null;

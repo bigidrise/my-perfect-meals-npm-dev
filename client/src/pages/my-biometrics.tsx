@@ -3051,7 +3051,7 @@ function WaterLog({ userId, dietType }: { userId: string; dietType: string }) {
     from.setDate(from.getDate() - 6);
     const fromStr = from.toISOString().split("T")[0];
     const toStr = to.toISOString().split("T")[0];
-    fetch(`/api/water-logs?userId=${encodeURIComponent(userId)}&from=${fromStr}&to=${toStr}&limit=200`)
+    fetch(`/api/water-logs?from=${fromStr}&to=${toStr}&limit=200`)
       .then(r => r.ok ? r.json() : { items: [] })
       .then(data => {
         const byDay: Record<string, number> = {};
@@ -3090,7 +3090,7 @@ function WaterLog({ userId, dietType }: { userId: string; dietType: string }) {
       fetch("/api/water-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, amount: addedOz, unit: "oz" }),
+        body: JSON.stringify({ amount: addedOz, unit: "oz" }),
       }).catch(() => {});
     }
   };
