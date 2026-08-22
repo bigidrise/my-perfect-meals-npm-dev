@@ -1,6 +1,6 @@
 # Hydration Phase 1 — Final Engineering Blueprint
 
-**Status:** Blueprint for review only. It authorizes no code, schema, route, migration, UI, runtime, or production-behavior change.
+**Status:** Checkpoint Zero passed. The blueprint is approved in principle for a feature-disabled foundation, but it authorizes no code, schema, route, migration, UI, runtime, or production-behavior change until Task #1472 is explicitly started.
 
 **Product decision already recorded:** Phase 1 is a feature-disabled, nonclinical Hydration Intelligence foundation. It is not an upgrade of the existing Biometrics water tracker.
 
@@ -443,17 +443,23 @@ No checkpoint includes UI migration, local-storage import, consumer cutover, cli
 4. **Legacy API validation is permissive.** Its unknown-unit fallback, date parsing, and limit validation cannot be inherited by the canonical event API.
 5. **Current client local hydration behavior can diverge from the server.** Because Phase 1 leaves that UI untouched, it must remain isolated from canonical state; a later cutover needs explicit reconciliation and account-cache work.
 6. **Current non-hydration local caches are not uniformly account-partitioned.** Any future Hydration UI must meet the stricter isolation contract rather than copying global keys such as `latestWeight`.
-7. **The current governance documents differ in gate wording.** The ownership-resolution report permits inactive infrastructure after blueprint approval, while the decision matrix still describes an all-items-approved controlling gate. This must be reconciled before code begins so the implementation team has one authoritative authorization record.
+7. **Prior governance-gate wording conflict — resolved at Checkpoint Zero.** The ownership-resolution report, decision matrix, and implementation-gate review now use one staged controlling gate: the Foundation gate is passed in principle, the Activation gate remains closed, and code still requires explicit Task #1472 start authorization.
 
-## 16. Verdict
+## 16. Pre-Checkpoint Zero finding — resolved
 
-## READY WITH REQUIRED CHANGES
+The blueprint initially identified three required changes before implementation: reconcile the implementation gate, make migration readiness an explicit contract, and require development/production route parity. Checkpoint Zero has now documented those changes in the controlling gate and governance matrix.
 
-The foundation design is technically viable without inventing a hydration target or changing current user behavior. However, it is not ready to start code today because:
+The future backfill/shadow owner, parity threshold, and rollback review record remain mandatory before shadow mode is enabled. They do not authorize or require a current schema change.
 
-1. the user has intentionally withheld explicit authorization to begin Task #1472;
-2. the controlling implementation-gate wording must be reconciled with the recorded nonclinical scope-lock approval;
-3. the migration runner and dev/prod route-registration parity requirements above must be accepted as mandatory Phase 1 checkpoint-0 work;
-4. the future backfill/shadow owner, parity threshold, and rollback review record must be named before any shadow flag is enabled.
+## 17. Checkpoint Zero closure
 
-No clinical number, POTS policy, electrolyte target, clinician directive workflow, or consumer cutover approval is a blocker for the strictly feature-disabled foundation described here. Each remains blocked from activation until separately approved by its required owner.
+### Resolved implementation contract
+
+- **One controlling gate:** `docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md` defines a passed Foundation gate and a separately closed Activation gate.
+- **Migration readiness:** all Phase 1 schema work must be additive, transactional, idempotent, rerunnable, and non-destructive; `water_logs` remains intact; backfill has mapping, tie-safety, duplicate prevention, count/checksum reconciliation, recovery, and shadow requirements.
+- **Development/production parity:** one shared hydration registration contract, identical authentication/ownership/flag behavior, build-time route-contract verification, and post-publish checks on both customer-facing domains are mandatory.
+- **No activation:** the server foundation can return only `monitor_only`, `needs_review`, or `blocked`; no target, recommendation, professional directive, UI, consumer cutover, or browser-local automatic import is allowed.
+
+## CHECKPOINT ZERO PASSED — READY TO IMPLEMENT PHASE 1
+
+The feature-disabled foundation may begin only after the product owner explicitly starts Task #1472. The Activation gate remains closed for every clinical policy, electrolyte rule, professional authority, user-facing hydration behavior, and consumer cutover.
