@@ -1,107 +1,117 @@
-# Hydration Governance Decision Matrix
+# Daily Hydration Plan — Governance Decision Matrix
 
-**Purpose:** Resolve the remaining policy and authority decisions before starting Task #1470.  
-**Status:** Decision document only — no Hydration Intelligence implementation is authorized.  
+**Status:** Draft for governance review. Product-owner direction is recorded below; no implementation-gate or clinical-policy approval is recorded, and implementation remains unauthorized.
+
 **Companion documents:**
 
 - `docs/DAILY_HYDRATION_PLAN_ARCHITECTURE.md`
 - `docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md`
 - `docs/POTS_INTEGRATION_DIAGNOSTIC.md`
 
-## How to read this matrix
+## Recorded product-owner direction
 
-- **Group A** decisions define the legal/product semantics of the domain and must be affirmed before backend foundation work begins.
-- **Group B** decisions do **not** prevent building generic, inactive infrastructure after Group A approval. They do prevent rules from being activated for users.
-- A proposed default is intentionally conservative. “No automated rule,” “unknown,” and `monitor_only` are valid defaults; they are safer than inventing a medical value.
-- “Current evidence” describes the existing MPM code and architecture audit. It is not a substitute for clinical evidence review.
+On 2026-08-21, the product owner approved the nonclinical platform requirements expressed in Group A: one server-authoritative domain; immutable factual history; original-unit, timestamp, timezone, and provenance preservation; explicit unknowns; distinct volume, contribution, and nutrient semantics; typed plan states; non-averaging conflict handling; authenticated ownership; auditable ProCare access; historical revisions; legacy `water_logs` preservation; lossless reversible migration; no silent browser-data import; and feature-disabled Phase 1 infrastructure.
 
----
+This records product direction only. It does **not** approve a clinical target, condition policy, electrolyte claim, professional role scope, retention policy, or implementation-gate change. Those decisions remain subject to their named owners and the controlling gate below.
 
-## Group A — approve before backend foundation work begins
+## Current controlling gate
 
-| Decision | Why it matters | Current evidence | Safe proposed MPM default | Alternatives | Risk if wrong | Approval owner | Blocks |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **A1. What counts as a hydration intake event?** | Determines the canonical event schema, history, and what users believe the app is tracking. | `water_logs` contains manually logged water only. No current system reliably records all beverages or food water. | Canonical v1 accepts declared beverage volume, with `water` as the only legacy-confirmed class; all other classes retain their stated type and are not silently counted as water. | Water-only forever; include all nonalcoholic drinks; include food water. | Misstating intake, misleading adherence, unsafe clinical interpretation. | Mixed — product/engineering + dietitian/clinical governance | **Both** |
-| **A2. How is partial hydration contribution represented?** | Prevents volume, hydration effect, and nutrition data from being treated as the same fact. | Existing rows provide mL only; no contribution model exists. Architecture separates intake from contribution. | Persist beverage volume; report `contribution=unknown` unless a declared, versioned method supports an estimate. | Treat all volume equally; estimate all beverages; water-only contribution. | False precision and inaccurate progress/coaching. | Mixed — product/engineering + dietitian/clinical governance | **Both** |
-| **A3. Electrolyte data semantics** | Defines fields, coverage, labels, and whether nutrient amounts are facts or guesses. | Athlete beverage UI uses electrolyte-oriented prompt language; no canonical ledger or complete source coverage exists. | Store only declared/validated electrolyte values with source and confidence; return `not_tracked`, `water_only`, or `partial` rather than zero. | Manual-only logging; validated recipe/label import; full food-and-beverage nutrition integration. | Unsafe implied supplementation or false “zero” values. | Mixed — dietitian/clinical governance + product/engineering | **Both** |
-| **A4. Clinician directive authority** | Determines who may create floor, target, range, ceiling, timing, and electrolyte restrictions and what they may affect. | ProCare has relationship/organization gates; no hydration directive model exists. | Only an explicitly authorized, actively linked professional may create an effective-dated directive; every change is audited and may be more restrictive but cannot silently bypass a hard safety policy. | Physician-only; role-specific physician/dietitian/trainer scopes; read-only clinical view. | Unauthorized treatment-like instructions or unsafe override behavior. | Mixed — physician/clinical governance + product/engineering | **Both** |
-| **A5. User override authority** | Defines whether a preference can override clinical or safety constraints. | Existing Biometrics goal is browser-local; no current override hierarchy exists. | Users may set a **preference proposal** only. It can never override a clinician directive, hard restriction, `needs_review`, or `blocked` state. | Fully user-controlled wellness target; clinician-approved exceptions; no user preference field. | Users unknowingly defeat a safe ceiling or restriction. | Mixed — product/engineering + physician/clinical governance | **Both** |
-| **A6. Conflict precedence and composition** | The resolver needs approved behavior when inputs disagree. | Existing clinical mode ordering is meal-oriented, not a hydration conflict policy. The architecture requires typed claims and no array-order resolution. | Hard safety restriction → active clinician restriction → approved condition policy → compatible context modifier → user preference → baseline. Any incompatible hard claims do not compose. | Different clinician/policy ordering; manual-review-first model for all multi-condition users. | A lower-priority target silently defeats a safety constraint. | Physician/clinical governance, with engineering implementation review | **Both** |
-| **A7. `needs_review` behavior** | Governs what a user sees when a valid plan cannot be safely resolved. | No current common hydration state/status exists. Architecture treats conflict as a first-class outcome. | Do not display a target/remaining amount; preserve event logging; show neutral “plan needs review” explanation and allowed next action. | Fall back to baseline; block all logging; route automatically to clinician. | Misleading target or unnecessary denial of harmless logging. | Mixed — physician/clinical governance + product/engineering | **Both** |
-| **A8. `blocked` behavior** | Separates a high-risk action stop from uncertainty. | No canonical blocked hydration action contract exists. | Do not present a target, remaining amount, or hydration-oriented beverage action; preserve immutable event history and show approved escalation/care guidance. | Permit user logging only; clinician override only; emergency-only handling. | Encouraging a contraindicated action or hiding important history. | Physician/clinical governance | **Both** |
-| **A9. Mid-day clinician change semantics** | Determines plan revision history and what “remaining” means after a change. | Architecture specifies immutable plan revisions; no current hydration revision model exists. | New effective-dated directive creates a superseding plan revision. Earlier events/revisions remain unchanged; current state uses the active revision. | Apply only next day; retroactively rewrite today; require manual review. | Loss of auditability or confusing historical adherence. | Mixed — physician/clinical governance + product/engineering | **Both** |
-| **A10. Mid-day policy-change semantics** | Determines whether a clinical-rule update rewrites past explanations. | Existing GLP-1 daily tolerance uses mutable upserts; architecture requires policy-version history. | New policy version creates a new revision from its effective time. Past intervals stay pinned to their original policy manifest. | Apply policy next day; retrospectively re-evaluate history; manual correction workflow. | Historical records become unexplainable or misleading. | Mixed — physician/clinical governance + product/engineering | **Both** |
-| **A11. ProCare hydration permissions and consent** | Determines role scope, professional/client visibility, directive rights, and audit requirements. | Existing delegated water-log access verifies physician-client relationship; broad hydration role policy does not exist. | Deny by default. Reuse active relationship and organization isolation; grant read/write/directive scopes only after role/consent approval and audit every professional read/change. | Physician-only; physician + dietitian; read-only trainer/coach views; client opt-in sharing. | Inappropriate disclosure or unauthorized clinical action. | Mixed — product/engineering + physician/clinical governance | **Both** |
-| **A12. Legacy water-log migration acceptance** | Sets what proof is required before legacy data becomes canonical events. | `water_logs` is real user data but lacks beverage, contribution, timezone, correction, and plan metadata. | Lossless, repeatable event backfill only; preserve IDs/timestamps/mL; mark as `legacy_manual` water; no clinical inference. Require parity, rollback, and audit acceptance before cutover. | Keep permanent compatibility adapter; migration by date cohort; no historical backfill. | Data loss, duplicated intake, or invented clinical history. | Product/engineering, with clinical confirmation of non-inference rule | **Backend migration only** |
+`docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md`, Section 10, is the sole controlling implementation gate. Its checklist is currently unapproved. Therefore:
+
+- the Daily Hydration Plan remains **blocked from all implementation**;
+- no schema, route, migration, resolver, UI, or consumer change is authorized;
+- existing `water_logs` behavior and all current hydration-related product behavior remain unchanged.
+
+This matrix is a decision aid, not a replacement gate. It proposes a future two-stage authorization model only if governance explicitly approves that model **and updates the implementation gate review**. Until then, the existing all-items-approved gate remains in force.
+
+### Proposed staged authorization model
+
+If the gate review is formally amended, it must use these two gates and no others:
+
+1. **Foundation gate:** the recorded product direction, every remaining Group A owner approval, and the formal implementation-gate amendment are complete. This authorizes only non-activating, server-side infrastructure: typed contracts, append-only storage, audit records, immutable revisions, state projection, feature-disabled routes, and resolver harnesses that can return only `monitor_only`, `needs_review`, or `blocked`.
+2. **Activation gate:** the relevant Group B decision is approved, including its owner, policy/version, effective date, scope, explanation language, and applicable migration/cutover evidence. This authorizes only that policy or consumer behavior.
+
+Foundation approval never authorizes a fluid target, range, floor, ceiling, timing instruction, electrolyte recommendation, clinician directive workflow, consumer cutover, or UI change.
+
+## Group A — decisions required before backend foundation work
+
+| ID | Decision | Safe default pending approval | Required approval owner(s) | Foundation authorization affected |
+| --- | --- | --- | --- | --- |
+| A1 | Canonical intake-event meaning | Retain declared beverage volume as a fact. Preserve legacy `water_logs` as `legacy_manual` water. Do not infer food water, beverage contribution, or clinical meaning. | Product/data owner; clinical governance | Event schema and future lossless backfill |
+| A2 | Contribution and unknown-data semantics | Volume, hydration contribution, and nutrient data remain distinct. Contribution is `unknown` unless a declared, versioned method supports it. | Product safety; clinical governance; engineering | Contribution/state contracts |
+| A3 | Electrolyte data provenance and coverage | Store only declared or validated nutrient values with source and confidence. Unknown stays `not_tracked`, `water_only`, or `partial`, never zero. | Clinical governance; product safety; engineering | Nutrient provenance and coverage contracts |
+| A4 | Authority and restriction types | Keep point, range, floor, ceiling, timing block, and `monitor_only` as separate typed semantics. A ceiling is never an encouragement target. | Clinical governance; product safety; engineering | Plan/restriction contract |
+| A5 | Conflict and fail-safe behavior | Incompatible hard claims return `needs_review` or `blocked`; no registration-order, averaging, or fallback target is permitted. | Clinical governance; product safety | Resolver harness |
+| A6 | User preference boundary | A user setting is only a preference proposal and cannot override a hard restriction, clinician directive, `needs_review`, or `blocked` outcome. | Product owner; clinical governance | Baseline/preference contract |
+| A7 | Clinician and ProCare access boundary | Deny by default. Self-service identity derives from authentication. Any professional selector requires an active relationship, organization isolation, approved role scope, consent, and audit. | ProCare governance; privacy/security; clinical governance | Role-scoped projections and audit |
+| A8 | Event integrity and local-date rules | Preserve original amount/unit, normalized mL, occurrence time, timezone, idempotency, correction/void lineage, and validation rules. | Product/data owner; engineering | Event service and state projection |
+| A9 | Revision and historical-state semantics | Plan revisions are immutable. Mid-day changes supersede forward only; events and earlier intervals remain unchanged and explainable by their original policy manifest. | Product/data owner; clinical governance; engineering | Revision/state contracts |
+| A10 | Sensitive-data, retention, and audit scope | Define audit actions for corrections, voids, professional reads, denied access, and future directive changes. Classify hydration, symptoms, medication, clinician, and electrolyte data for retention, export, deletion, and access. | Privacy/compliance; ProCare; security | Audit and data-governance design |
+| A11 | Legacy migration, shadow, parity, and rollback | Preserve `water_logs`; require lossless/repeatable backfill, non-inference, parity measurement, rollback ownership, and explicit confirmation before a client-only total becomes an event. | Product/data owner; engineering | Backfill and shadow-readiness work |
+| A12 | Plan validity and resolution provenance | A resolver result is not valid merely because it returned a value. Every effective plan identifies its authority, contributing inputs, policy versions, provenance, and resolution status. Incomplete, stale, contradictory, or unauthorized inputs may return only `needs_review` or `blocked`, never a hydration number. | Product safety; clinical governance; engineering | Plan/state/provenance contract |
+| A13 | Foundation exclusion enforcement | Keep all foundation work feature-disabled and prohibit UI, recommendation, consumer, clinician-directive, electrolyte-calculator, and local-storage cutover changes. | Product owner; clinical governance; engineering | Feature-flag and rollout boundary |
 
 ### Group A approval statement
 
-Backend foundation work is safe to begin only when the owners affirm that:
+Before the proposed foundation gate could open, the named owners must affirm all of the following:
 
-1. the platform may preserve uncertainty rather than fabricate clinical meaning;
-2. user/professional authority and conflict statuses behave as above or through an approved alternative;
-3. legacy data will be migrated only as factual water events, not transformed into invented clinical history.
+- uncertainty is preserved rather than converted into a clinical value;
+- identity, access, audit, revisions, and historical behavior follow the Group A rows;
+- legacy data is migrated only as factual water events, not inferred clinical history;
+- a technically successful calculation cannot bypass plan-validity, provenance, or resolution-status requirements;
+- all Phase 1 exclusions remain enforced.
 
----
+## Group B — decisions that may remain clinically inactive during foundation work
 
-## Group B — infrastructure can be built, but these rules cannot activate without approval
+The following rows cannot activate an applicable rule, target, action, directive, or consumer behavior until their own approval is recorded. They are not currently authorized because the controlling implementation gate has not been amended or approved.
 
-| Decision | Why it matters | Current evidence | Safe proposed MPM default | Alternatives | Risk if wrong | Approval owner | Blocks |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **B1. Baseline daily hydration policy** | Determines whether MPM can show an actionable target at all. | The coaching observer’s 2,000 mL value is explicitly investigation-only. Biometrics’ weight formula is browser-local, not clinically governed. | `monitor_only` unless an approved policy or clinician directive supplies a target/range. | Evidence-based universal wellness baseline; clinician-only target; user-selected wellness baseline. | Unsupported medical/wellness claim or unsafe default. | Physician/clinical governance + dietitian/nutrition governance | **Clinical activation only** |
-| **B2. Body-size inputs** | Determines whether and how weight/height/body composition influence a baseline. | `latestWeight` is used only by a legacy local formula; no approved server calculation exists. | Store body size as optional provenance input; do not derive a target until a formula, population, units, validation, and review policy are approved. | Weight-only formula; body-surface-area approach; no body-size use. | Invalid targets for populations the formula does not fit. | Mixed — physician/clinical governance + dietitian/nutrition governance | **Clinical activation only** |
-| **B3. Activity/performance adjustment** | Determines if workload/session data increases, times, or otherwise changes a plan. | MPM has a mature performance-demand engine but no approved hydration adjustment model. | Permit a structured performance-context record and explanation; do not change volume/electrolyte targets automatically. | Session-timed fluid guidance; validated wearable/exertion adjustment; clinician-defined athletes only. | Over/under hydration and inappropriate electrolyte advice. | Mixed — physician/clinical governance + dietitian/nutrition governance | **Clinical activation only** |
-| **B4. Climate/heat adjustment** | Determines if temperature, humidity, elevation, or location alter a plan. | No approved climate data source, consent model, or MPM adjustment algorithm exists. | No automatic climate adjustment. Allow a future context input only after source-quality, privacy, and policy approval. | User-reported heat; weather API; wearable/environment source. | Location/privacy issues and false precision from poor environmental data. | Mixed — product/engineering + physician/clinical governance | **Clinical activation only** |
-| **B5. Pregnancy modification** | Current pregnancy wording could be mistaken for an individualized plan. | Pregnancy generator includes fixed glass-range language; no hydration policy/revision source exists. | Do not change hydration target automatically. Preserve pregnancy context and require an approved pregnancy policy or clinician directive for activation. | Trimester-specific range; symptom-aware rule; clinician-only directives. | Harmful generic advice in a higher-risk population. | Physician/clinical governance + dietitian/nutrition governance | **Clinical activation only** |
-| **B6. GLP-1 modification** | GLP-1 symptoms and tolerance are relevant but do not automatically define a general plan. | GLP-1 resolver already aggregates water rows and symptoms for safety overlays; it is condition-specific and mutable. | Keep existing safety workflow unchanged; expose GLP-1 as a typed observation/overlay candidate, not an automatic volume target. | Approved hydration floor; symptom-triggered escalation only; clinician-defined target. | Conflicting medication/symptom advice or unsafe target. | Physician/clinical governance | **Clinical activation only** |
-| **B7. Future POTS/dysautonomia modification** | POTS is heterogeneous and can conflict with renal, cardiac, liver, pregnancy, diabetes, GLP-1, and GI contexts. | Diagnostic explicitly rejects a “high sodium” toggle or standalone builder; no approved policy exists. | No POTS rule, sodium target, or automatic modification. Support only future typed placeholders and clinician-governed directives. | Dysautonomia family policy; presentation-specific clinician parameters; no automated support. | Serious clinical harm from simplistic sodium/fluid advice. | Physician/clinical governance | **Clinical activation only** |
-| **B8. Renal/cardiac/liver/fluid-restriction precedence** | Defines hard restriction behavior against baseline, performance, and other requests. | Beverage guardrails recognize condition families; no unified hydration restriction policy exists. | Treat approved restrictions as hard constraints and return `needs_review`/`blocked` when they conflict; activate no numeric rule until approved. | Condition-specific ceilings; clinician-only constraints; universal conservative block. | Direct contradiction of fluid/sodium restrictions. | Physician/clinical governance | **Clinical activation only** |
-| **B9. Caffeine treatment** | Caffeinated drinks may be logged, but their contribution and safety meaning are policy questions. | No canonical beverage/contribution model or caffeine policy exists. | Record declared caffeine only when available; do not automatically add/subtract hydration contribution or modify plan. | Count all fluid; partial contribution model; exclude caffeinated beverages. | Misleading intake/progress or inappropriate advice. | Dietitian/nutrition governance + physician/clinical governance | **Clinical activation only** |
-| **B10. Alcohol treatment** | Alcohol needs separate safety semantics and should not be hidden inside fluid totals. | Beverage medical guardrails treat alcohol conservatively; no hydration ledger policy exists. | Persist declared alcohol classification separately when logged; do not count it toward hydration contribution or use it to generate a hydration recommendation. | Exclude from tracking; record intake only; approved contribution model. | Normalizing alcohol as hydration or concealing relevant context. | Mixed — physician/clinical governance + dietitian/nutrition governance | **Clinical activation only** |
-| **B11. Electrolyte target/limit activation** | The data model can record nutrients, but values/limits imply clinical advice. | Existing UI may request electrolytes; no approved target, ceiling, or coverage policy exists. | No numeric electrolyte target or recommendation. Show only declared amounts and coverage after Group A semantics are approved. | General wellness targets; performance-specific targets; clinician-only limits. | Unsafe supplementation or contraindicated recommendations. | Physician/clinical governance + dietitian/nutrition governance | **Clinical activation only** |
-| **B12. User-facing explanation language** | “Goal,” “remaining,” “dehydrated,” and “hydration support” can be interpreted clinically. | Observer explicitly avoids diagnosing dehydration/causality; legacy UI says “goal reached.” | Use neutral language for `monitor_only`, uncertainty, and pending review. Display target/remaining only when a valid approved plan revision exists. | Wellness-first language; clinical-detail display; clinician-only detail. | Unsupported claim, unnecessary alarm, or unsafe reassurance. | Mixed — product + physician/clinical governance + dietitian/nutrition governance | **Clinical activation only** |
+| ID | Decision | Inactive default | Required approver(s) | Activation blocked until |
+| --- | --- | --- | --- | --- |
+| B1 | Baseline daily hydration policy | `monitor_only`; no target, range, floor, ceiling, or remaining calculation. | Physician/clinical governance; dietitian/nutrition governance; product safety | Evidence, population, formula, caps, review cadence, and permitted explanation language are approved. |
+| B2 | Body-size inputs | Store only optional provenance; do not derive a target from weight, height, or body composition. | Clinical governance; dietitian/nutrition governance | Formula, units, eligible population, validation, and review policy are approved. |
+| B3 | Activity and performance modifier | Capture context only; do not change fluid or electrolyte values. | Clinical governance; performance owner; dietitian/nutrition governance | Inputs, timing, caps, conflicts, and language are approved. |
+| B4 | Climate, heat, or wearable modifier | No automatic adjustment and no unapproved location/wearable ingestion. | Product/privacy; clinical governance | Consent, source quality, data handling, and adjustment policy are approved. |
+| B5 | Pregnancy modifier | Preserve context only; do not change a target or repeat fixed glass guidance as an individualized plan. | Clinical governance; dietitian/nutrition governance | Approved pregnancy policy or clinician directive scope exists. |
+| B6 | GLP-1 modifier | Existing GLP-1 behavior remains unchanged; it may be represented only as a future typed observation or overlay candidate. | Clinical governance | Approved hydration-specific safety policy and interaction rules exist. |
+| B7 | POTS/dysautonomia modifier | No fluid or sodium rule, target, or automatic modification. | Physician/clinical governance; legal/compliance | Presentation-specific policy, contraindications, clinician requirements, and audit scope are approved. |
+| B8 | Renal, cardiac, liver, oncology, and fluid-restriction policy | No numeric rule. An approved hard restriction may only be represented as a typed claim under Group A conflict behavior. | Physician/clinical governance | Condition policy, escalation, and conflict precedence are approved. |
+| B9 | Caffeine and alcohol treatment | Preserve declared classification/nutrients when available; do not estimate contribution or give a hydration recommendation. | Clinical governance; dietitian/nutrition governance | Approved accounting, contribution, and user-language rules exist. |
+| B10 | Electrolyte target or limit | No numeric electrolyte target, limit, replacement claim, or recommendation. | Clinical governance; dietitian/nutrition governance; product safety | Data-source, coverage, target/limit, contraindication, and claim semantics are approved. |
+| B11 | Clinician directive activation | No professional read/write endpoint or directive can be activated. | ProCare governance; clinical governance; privacy/compliance | Role scope, consent, review/expiry, directive types, and audit procedures are approved. |
+| B12 | Consumer language and cutover | No target, remaining, “goal met,” dehydration, or action language is published by Biometrics, Coach, Beverage Creator, ProCare, or generators. | Product safety; clinical governance; legal/compliance | Approved language, scoped projection, migration threshold, shadow duration, rollback trigger, and support plan exist. |
 
----
+## Section 10 checklist coverage
 
-## Decisions already settled by the architecture
+| Section 10 requirement | Matrix decision(s) | What approval authorizes |
+| --- | --- | --- |
+| Service is the sole source of truth | A4, A5, A9, A12, A13 | One server-owned contract and no competing authoritative calculator. |
+| Snapshot/revision/history contract | A8, A9, A12 | Immutable event/revision/state design, validity status, and historical provenance. |
+| Baseline and modifier policy owners are named | B1–B8 | Named accountable owners for each inactive policy family; not target activation. |
+| Clinical conflict precedence and escalation policy | A4, A5, A12, B5–B8 | Fail-safe foundation semantics; policy-specific precedence activates only with the relevant Group B approval. |
+| Clinician/ProCare permissions and audit scope | A7, A10, B11 | Access/audit model; professional behavior only after B11 activation approval. |
+| Electrolyte data and claim semantics | A3, B10 | Unknown-data/provenance storage; targets, limits, and claims only after B10 approval. |
+| Migration, shadow, parity, and rollback criteria | A11, B12 | Migration design; consumer cutover only after B12 criteria are approved. |
+| Phase 1 exclusions remain in place | A13 | Continued feature-disabled, non-user-facing foundation boundary. |
 
-These are engineering invariants, not requests for medical threshold decisions:
+## Approval record template
 
-1. **Immutable intake events:** corrections/voids create lineage; they do not erase facts.
-2. **Immutable plan revisions:** mid-day input changes create superseding revisions.
-3. **Versioned policy logic:** historic views retain their policy/version manifest.
-4. **One server-resolved plan:** no feature gets an independent calculator.
-5. **Authenticated ownership:** server routes derive the subject from authentication; ordinary self-service client requests do not select an account.
-6. **Account-safe client rendering:** local account identity remains in cache keys and stale-response guards.
-7. **No destructive migration:** preserve `water_logs`; backfill only factual water events.
-8. **No silent local-storage import:** client-only totals require explicit current-day user confirmation.
-9. **No false electrolyte precision:** unknown/partial coverage stays explicit.
-
-## Recommended approval sequence
-
-1. **Approve Group A** or amend its safe defaults. This authorizes the backend contract work, not clinical activation.
-2. **Record Group B decisions individually** with owner, policy/version ID, effective date, evidence source, and review date.
-3. Begin Task #1470 only after Group A approval.
-4. Build Phase 1 as inactive/server-authoritative infrastructure first.
-5. Activate a rule only after its corresponding Group B decision has clinical/nutrition sign-off.
-
-## Decision record template
-
-Use this compact record for every approved or rejected item:
+Each approval or rejection must be recorded with:
 
 ```text
-Decision ID:
 Matrix row:
-Decision:
-Chosen option:
-Owner(s):
+Status: proposed | approved | rejected | superseded
+Decision owner:
+Required reviewers:
+Decision and rationale:
 Evidence reviewed:
-Policy/version ID:
+Policy/version identifier (if applicable):
 Effective date:
 Review/expiry date:
-Activation scope:
-Risks accepted:
-Audit/communication notes:
+Authorized scope:
+Explicit exclusions:
+Rollback or revocation trigger:
 ```
 
-Until Group A is approved, Task #1470 remains on hold.
+## Current decision
+
+As of 2026-08-21, product-owner direction for the nonclinical Group A platform requirements is recorded. The remaining named Group A approvals and the implementation-gate authorization are still outstanding. The Daily Hydration Plan remains blocked, and no hydration implementation work is authorized.
