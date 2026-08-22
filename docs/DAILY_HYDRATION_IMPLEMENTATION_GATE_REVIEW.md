@@ -1,6 +1,7 @@
 # Daily Hydration Plan — Implementation Gate Review
 
 **Reviewed architecture:** `docs/DAILY_HYDRATION_PLAN_ARCHITECTURE.md`  
+**Governance companion:** `docs/HYDRATION_GOVERNANCE_DECISION_MATRIX.md`
 **Status:** **CONDITIONALLY READY FOR BACKEND-FOUNDATION PLANNING; NOT APPROVED FOR IMPLEMENTATION OR USER-FACING ACTIVATION**  
 **Date:** 2026-08-21  
 **Scope:** Phase 1 — Hydration Domain Foundation only
