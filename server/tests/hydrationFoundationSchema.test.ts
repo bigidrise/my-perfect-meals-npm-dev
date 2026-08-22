@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
+  hydrationAuditLog,
   hydrationIntakeEvents,
   hydrationDailyStates,
   hydrationPlanRevisions,
@@ -19,12 +20,18 @@ const migrationPath = path.resolve(
   process.cwd(),
   "migrations/0010_hydration_foundation.sql",
 );
+const drizzleConfigPath = path.resolve(process.cwd(), "drizzle.config.ts");
+const intakeServicePath = path.resolve(
+  process.cwd(),
+  "server/services/hydration/hydrationIntakeService.ts",
+);
 
 describe("Hydration Phase 1 schema contract", () => {
   it("exports the canonical Drizzle tables without changing water_logs", () => {
     expect(hydrationIntakeEvents).toBeDefined();
     expect(hydrationPlanRevisions).toBeDefined();
     expect(hydrationDailyStates).toBeDefined();
+    expect(hydrationAuditLog.occurredAt.name).toBe("occurred_at");
     expect(HYDRATION_PHASE1_CONTRACT_VERSION).toBe("hydration-foundation-v1");
   });
 
@@ -124,6 +131,7 @@ describe("Hydration Phase 1 schema contract", () => {
 
   it("contains all additive tables and append-only protections in the migration artifact", () => {
     const migration = fs.readFileSync(migrationPath, "utf8");
+    const drizzleConfig = fs.readFileSync(drizzleConfigPath, "utf8");
     for (const tableName of [
       "hydration_policy_versions",
       "hydration_baselines",
@@ -151,5 +159,17 @@ describe("Hydration Phase 1 schema contract", () => {
     expect(migration).toContain("water_logs(id)");
     expect(migration).not.toMatch(/DROP TABLE\s+water_logs/i);
     expect(migration).not.toMatch(/ALTER TABLE\s+water_logs/i);
+    expect(drizzleConfig).not.toContain("./server/db/schema/hydration.ts");
+  });
+
+  it("keeps every canonical event mutation audit-wired", () => {
+    const service = fs.readFileSync(intakeServicePath, "utf8");
+    expect(service).toContain("hydrationAuditLog");
+    expect(service).toContain('action: "intake_event.create"');
+    expect(service).toContain('action: "intake_event.correct"');
+    expect(service).toContain('action: "intake_event.void"');
+    expect(service).toContain('outcome: "accepted"');
+    expect(service).toContain('outcome: "deduplicated"');
+    expect(service).toContain("await this.insertAudit(tx");
   });
 });

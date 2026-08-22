@@ -9,6 +9,17 @@ import {
 
 const uuidSchema = z.string().uuid();
 const timezoneSchema = z.string().trim().min(1).max(100);
+const maxPersistedHydrationAmount = 999_999_999.999;
+
+const hydrationAmountSchema = z
+  .number()
+  .finite()
+  .positive()
+  .max(maxPersistedHydrationAmount)
+  .refine(
+    (value) => Math.abs(value * 1_000 - Math.round(value * 1_000)) < 1e-8,
+    "Hydration amount supports at most three decimal places",
+  );
 
 export const hydrationDeclaredNutrientsSchema = z
   .object({
@@ -31,9 +42,15 @@ export const hydrationDeclaredNutrientsSchema = z
 
 export const hydrationIntakeEventInputSchema = z
   .object({
-    originalAmount: z.number().finite().positive(),
+    originalAmount: hydrationAmountSchema,
     originalUnit: z.enum(HYDRATION_UNITS),
-    occurredAt: z.string().datetime({ offset: true }),
+    occurredAt: z
+      .string()
+      .datetime({ offset: true })
+      .refine(
+        (value) => Number(value.slice(0, 4)) >= 1,
+        "Hydration event timestamp must use an AD calendar year",
+      ),
     occurredTimezone: timezoneSchema,
     beverageClass: z.enum(HYDRATION_BEVERAGE_CLASSES),
     source: z.enum(["manual", "import"]).optional().default("manual"),
@@ -44,10 +61,20 @@ export const hydrationIntakeEventInputSchema = z
   })
   .strict() satisfies z.ZodType<HydrationIntakeEventInput>;
 
-export const hydrationDateSchema = z.string().regex(
-  /^\d{4}-\d{2}-\d{2}$/,
-  "Expected an ISO local date (YYYY-MM-DD)",
-);
+export const hydrationDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Expected an ISO local date (YYYY-MM-DD)")
+  .refine(
+    (value) => {
+      const parsed = new Date(`${value}T00:00:00.000Z`);
+      return (
+        Number(value.slice(0, 4)) >= 1 &&
+        !Number.isNaN(parsed.getTime()) &&
+        parsed.toISOString().slice(0, 10) === value
+      );
+    },
+    "Expected a real ISO local date (YYYY-MM-DD)",
+  );
 
 export const hydrationHistoryQuerySchema = z
   .object({

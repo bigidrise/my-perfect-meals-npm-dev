@@ -329,7 +329,9 @@ export const hydrationAuditLog = pgTable(
   "hydration_audit_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    occurredAt: createdAt(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     actorUserId: varchar("actor_user_id").references(() => users.id),
     subjectUserId: varchar("subject_user_id").references(() => users.id),
     action: text("action").notNull(),
