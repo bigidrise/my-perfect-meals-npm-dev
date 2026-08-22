@@ -2,6 +2,7 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 import * as mybestlifeSchema from "./db/schema/mybestlife";
+import * as hydrationSchema from "./db/schema/hydration";
 import { glp1Shots } from "./db/schema/glp1Shots";
 import { mealBoards, mealBoardItems } from "./db/schema/mealBoards";
 import { builderPlans } from "./db/schema/builderPlans";
@@ -74,6 +75,7 @@ export const db = drizzle(pool, {
   schema: { 
     ...schema, 
     ...mybestlifeSchema, 
+    ...hydrationSchema,
     glp1Shots, 
     mealBoards, 
     mealBoardItems, 
