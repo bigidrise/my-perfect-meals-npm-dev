@@ -1,6 +1,6 @@
 # Daily Hydration Plan — Governance Decision Matrix
 
-**Status:** Draft for governance review. Product-owner direction is recorded below; no implementation-gate or clinical-policy approval is recorded, and implementation remains unauthorized.
+**Status:** Checkpoint Zero passed for the feature-disabled foundation. Implementation remains paused pending explicit Task #1472 start authorization; clinical activation remains blocked.
 
 **Companion documents:**
 
@@ -12,24 +12,23 @@
 
 On 2026-08-21, the product owner approved the nonclinical platform requirements expressed in Group A: one server-authoritative domain; immutable factual history; original-unit, timestamp, timezone, and provenance preservation; explicit unknowns; distinct volume, contribution, and nutrient semantics; typed plan states; non-averaging conflict handling; authenticated ownership; auditable ProCare access; historical revisions; legacy `water_logs` preservation; lossless reversible migration; no silent browser-data import; and feature-disabled Phase 1 infrastructure.
 
-This records product direction only. It does **not** approve a clinical target, condition policy, electrolyte claim, professional role scope, retention policy, or implementation-gate change. Those decisions remain subject to their named owners and the controlling gate below.
+This records product direction only. It does **not** approve a clinical target, condition policy, electrolyte claim, professional role scope, retention policy, or activation behavior. Those decisions remain subject to their named owners and the activation gate below.
 
 ## Current controlling gate
 
-`docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md`, Section 10, is the sole controlling implementation gate. Its checklist is currently unapproved. Therefore:
+`docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md` is the sole controlling implementation gate. Its staged Foundation gate has passed Checkpoint Zero; its Activation gate remains closed. Therefore:
 
-- the Daily Hydration Plan remains **blocked from all implementation**;
-- no schema, route, migration, resolver, UI, or consumer change is authorized;
+- feature-disabled Phase 1 implementation is **authorized in principle but not started**;
+- no implementation may begin until Task #1472 is explicitly started;
+- no hydration target, clinical policy, professional directive, consumer cutover, or user-facing hydration behavior is authorized;
 - existing `water_logs` behavior and all current hydration-related product behavior remain unchanged.
 
-This matrix is a decision aid, not a replacement gate. It proposes a future two-stage authorization model only if governance explicitly approves that model **and updates the implementation gate review**. Until then, the existing all-items-approved gate remains in force.
+This matrix and the implementation-gate review now use the same two-stage authorization model. The Foundation gate does not replace the Activation gate.
 
-### Proposed staged authorization model
+### Controlling staged authorization model
 
-If the gate review is formally amended, it must use these two gates and no others:
-
-1. **Foundation gate:** the recorded product direction, every remaining Group A owner approval, and the formal implementation-gate amendment are complete. This authorizes only non-activating, server-side infrastructure: typed contracts, append-only storage, audit records, immutable revisions, state projection, feature-disabled routes, and resolver harnesses that can return only `monitor_only`, `needs_review`, or `blocked`.
-2. **Activation gate:** the relevant Group B decision is approved, including its owner, policy/version, effective date, scope, explanation language, and applicable migration/cutover evidence. This authorizes only that policy or consumer behavior.
+1. **Foundation gate:** Checkpoint Zero is passed. Once Task #1472 is explicitly started, this authorizes only non-activating, server-side infrastructure: typed contracts, append-only storage, audit records, immutable revisions, state projection, feature-disabled routes, and resolver harnesses that can return only `monitor_only`, `needs_review`, or `blocked`.
+2. **Activation gate:** remains closed until the relevant Group B decision is approved, including its owner, policy/version, effective date, scope, explanation language, and applicable migration/cutover evidence. This authorizes only that policy or consumer behavior.
 
 Foundation approval never authorizes a fluid target, range, floor, ceiling, timing instruction, electrolyte recommendation, clinician directive workflow, consumer cutover, or UI change.
 
@@ -112,6 +111,25 @@ Explicit exclusions:
 Rollback or revocation trigger:
 ```
 
+## Checkpoint Zero record
+
+**Recorded:** 2026-08-21
+**Result:** **CHECKPOINT ZERO PASSED — READY TO IMPLEMENT PHASE 1**
+
+The following safeguards are now controlling implementation requirements:
+
+- `water_logs` is preserved and never destructively migrated;
+- new schema work is additive, transactional, idempotent, and safe to rerun;
+- backfill requires source-to-target counts, checksums, duplicate prevention, reconciliation, and recovery evidence;
+- event ordering is tie-safe and browser-local hydration values are never automatically imported;
+- shadow/parity must precede any future consumer cutover;
+- development and production use one hydration route-registration contract with identical authentication, ownership, and feature-gate behavior;
+- release checks compare the tested development route contract with the built production server;
+- post-publish acceptance covers both customer-facing domains;
+- no user-facing hydration behavior can activate during Phase 1.
+
+Checkpoint Zero does not execute a migration, change schema, register routes, modify runtime behavior, or start Task #1472. It is the documentation gate required before explicit implementation authorization.
+
 ## Current decision
 
-As of 2026-08-21, product-owner direction for the nonclinical Group A platform requirements is recorded. The remaining named Group A approvals and the implementation-gate authorization are still outstanding. The Daily Hydration Plan remains blocked, and no hydration implementation work is authorized.
+As of 2026-08-21, product-owner direction for the nonclinical Group A platform requirements is recorded and Checkpoint Zero has passed. Task #1472 remains paused until explicitly started. The Daily Hydration Plan remains blocked from clinical activation, user-facing behavior, and consumer cutover.
