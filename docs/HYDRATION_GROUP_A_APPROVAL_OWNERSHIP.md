@@ -1,7 +1,7 @@
 # Hydration Group A Approval Ownership Resolution
 
 **Purpose:** Resolve which Group A decisions can be approved by the product owner now, which require a qualified external owner, and which genuinely block a feature-disabled Hydration Domain Foundation.  
-**Status:** Governance review only. **Do not start Task #1472 from this document alone.**  
+**Status:** Scope lock affirmed; blueprint review pending. **Do not start Task #1472 implementation from this document alone.**
 **Inputs:**
 
 - `docs/HYDRATION_GOVERNANCE_DECISION_MATRIX.md`
@@ -25,7 +25,7 @@ Clinical activation:
   qualified policy owner’s approval.
 ```
 
-Before implementation can start, the product owner must affirm the scope lock below. External review is required before enabling the specifically identified authority or rule, not before creating an inactive representation for it.
+The product owner has affirmed the scope lock below. The exact engineering blueprint must still be reviewed and approved before application code changes begin. External review is required before enabling the specifically identified authority or rule, not before creating an inactive representation for it.
 
 ## Scope lock to affirm before Task #1472
 
@@ -36,6 +36,16 @@ The following is an approvable nonclinical platform decision:
 **Product owner who can affirm:** Idrise  
 **Engineering/Data confirmation:** implementation includes no seeded active rule, no enabled consumer cutover, no new recommendation response, and no destructive migration.  
 **Security confirmation:** subject identity remains server-derived; access is deny-by-default; audit hooks exist for future privileged use.
+
+## Product-owner approval record
+
+**Recorded:** 2026-08-21
+**Approver:** Idrise
+**Approval:** Idrise approved the concept of a feature-disabled Phase 1 Hydration Intelligence foundation and affirmed the boundaries above. The existing Biometrics water tracker is not the target architecture; existing logs and safe presentation pieces may be audited for reuse, while the Hydration Domain is designed as the future authoritative system.
+
+**Condition of approval:** This is approval of the nonclinical product scope, not approval to modify application code. The final engineering blueprint must be returned for review and separately approved before Task #1472 implementation starts.
+
+**Future architecture direction affirmed:** One server-produced Daily Hydration State must eventually serve all authorized consumers and professional views. Future general wellness, performance, GLP-1, pregnancy, POTS/dysautonomia, clinician, restriction, beverage, electrolyte, and professional capabilities remain inactive until their required governance approvals exist. Autonomous dehydration, water-cutting, rapid weight-cutting, and fluid-restriction protocols are excluded from Phase 1.
 
 ---
 
@@ -89,9 +99,9 @@ These decisions are enough to define the engineering contract. They do not autho
 
 ### Genuine blockers to starting feature-disabled infrastructure
 
-**One product-owner confirmation is required:** affirm the Phase 1 scope lock at the top of this document.
+**The product-owner scope-lock confirmation is complete.** The remaining gate before implementation is review and approval of the exact engineering blueprint requested in the approval record above.
 
-Once that is recorded, there are **no unresolved clinical-number or condition-policy decisions that need to block #1472’s feature-disabled infrastructure**.
+Once the blueprint is approved, there are **no unresolved clinical-number or condition-policy decisions that need to block #1472’s feature-disabled infrastructure**.
 
 Engineering must still complete normal review of:
 
@@ -117,9 +127,10 @@ The following may stay unresolved while a feature-disabled foundation is built, 
 
 ## Recommended immediate path
 
-1. Idrise records approval of the **Scope lock** and the ten **Approvable Now** platform decisions.
-2. Keep #1472 blocked until that record is attached to the task.
-3. After the product-owner record, unlock #1472 only for the explicitly feature-disabled Phase 1 foundation.
-4. Use the external-review table to create/version individual clinical policy decisions before enabling each future rule.
+1. Treat the recorded Idrise approval as the **Scope lock** and approval of the ten **Approvable Now** platform decisions.
+2. Produce the exact feature-disabled engineering blueprint and stop for review.
+3. Keep #1472 implementation-blocked until the blueprint is separately approved and attached to the task.
+4. After blueprint approval, unlock #1472 only for the explicitly feature-disabled Phase 1 foundation.
+5. Use the external-review table to create/version individual clinical policy decisions before enabling each future rule.
 
 No application code, schema, route, calculation, UI, or migration behavior was changed by this review.
