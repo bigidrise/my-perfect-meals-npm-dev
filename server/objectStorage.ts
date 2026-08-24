@@ -13,7 +13,7 @@ import {
   setObjectAclPolicy,
 } from "./objectAcl";
 import {
-  MEAL_IMAGE_BUCKET_ID,
+  getActiveMealImageBucket,
   resolveMealImageReadBucket,
 } from "./services/mealImageBucket";
 
@@ -54,8 +54,6 @@ export class StorageUnavailableError extends Error {
     Object.setPrototypeOf(this, StorageUnavailableError.prototype);
   }
 }
-
-export const ACTIVE_BUCKET_ID = MEAL_IMAGE_BUCKET_ID;
 
 // ── Replit Object Storage clients (same SDK as the write path) ────────────────
 // One client per bucket ID; a bucketId of "" means the default (active) bucket.
@@ -120,19 +118,21 @@ export class ObjectStorageService {
   constructor() {}
 
   // Gets the public object search paths.
-  // Remaps the legacy disconnected bucket to the active bucket automatically,
+  // Remaps legacy production paths only when running in production,
   // and falls back to the active bucket when the env var is missing or invalid.
   getPublicObjectSearchPaths(): Array<string> {
+    const activeBucketId = getActiveMealImageBucket();
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
     const raw = pathsStr
       .split(",")
       .map((p) => p.trim())
       .filter((p) => p.length > 0)
-       // Repoint only the explicitly retired meal-image buckets.
-       .map((p) => p.replace(
-         /replit-objstore-(?:e02a723e-40e9-4d89-9c0e-05adfa185d2d|2a68d585-4c50-4c2e-a7ff-a9973358bc5b)/g,
-         ACTIVE_BUCKET_ID,
-       ))
+       .map((p) => {
+         const slashIndex = p.indexOf("/", 1);
+         const rawBucketId = (slashIndex === -1 ? p : p.slice(0, slashIndex))
+           .replace(/^\//, "");
+         return p.replace(rawBucketId, resolveMealImageReadBucket(rawBucketId));
+       })
       // Drop any entry whose first path segment is not a Replit Object Storage
       // bucket ID (format: replit-objstore-<uuid>).  A leading "/" is stripped
       // first so both "/replit-objstore-…" and "replit-objstore-…" forms pass.
@@ -148,9 +148,9 @@ export class ObjectStorageService {
     if (paths.length === 0) {
       console.warn(
         "[objectStorage] PUBLIC_OBJECT_SEARCH_PATHS missing or invalid — " +
-          `falling back to active bucket: ${ACTIVE_BUCKET_ID}/public`
+          `falling back to active bucket: ${activeBucketId}/public`
       );
-      return [`/${ACTIVE_BUCKET_ID}/public`];
+      return [`/${activeBucketId}/public`];
     }
     return paths;
   }

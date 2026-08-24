@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
 import {
-  assertCanonicalMealImageWriteBucket,
-  MEAL_IMAGE_BUCKET_ID,
+  assertActiveMealImageWriteBucket,
+  DEVELOPMENT_MEAL_IMAGE_BUCKET_ID,
+  PRODUCTION_MEAL_IMAGE_BUCKET_ID,
   publicMealImageUrl,
+  resolveMealImageStorageContext,
   resolveMealImageReadBucket,
 } from "../services/mealImageBucket";
 
@@ -39,32 +41,56 @@ describe("development routing and meal-image storage repair", () => {
     })).toBe("https://app.myperfectmeals.com");
   });
 
-  test("new meal-image URLs and write targets use only the canonical bucket", () => {
-    expect(publicMealImageUrl("meal-images/salmon-thumb.jpg"))
-      .toBe(`/public-objects/${MEAL_IMAGE_BUCKET_ID}/meal-images/salmon-thumb.jpg`);
-    expect(assertCanonicalMealImageWriteBucket(MEAL_IMAGE_BUCKET_ID))
-      .toBe(MEAL_IMAGE_BUCKET_ID);
-    expect(() => assertCanonicalMealImageWriteBucket(LEGACY_E02A)).toThrow(
-      "cannot be used for meal-image writes",
-    );
-    expect(() => assertCanonicalMealImageWriteBucket(LEGACY_2A68)).toThrow(
-      "cannot be used for meal-image writes",
-    );
+  test("DEV always writes and serves images from its attached bucket", () => {
+    const devContext = resolveMealImageStorageContext({
+      nodeEnv: "development",
+      configuredBucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
+    });
+
+    expect(devContext).toEqual({
+      environment: "development",
+      bucketId: DEVELOPMENT_MEAL_IMAGE_BUCKET_ID,
+    });
+    expect(publicMealImageUrl("meal-images/salmon-thumb.jpg", devContext))
+      .toBe(`/public-objects/${DEVELOPMENT_MEAL_IMAGE_BUCKET_ID}/meal-images/salmon-thumb.jpg`);
+    expect(assertActiveMealImageWriteBucket(DEVELOPMENT_MEAL_IMAGE_BUCKET_ID, devContext))
+      .toBe(DEVELOPMENT_MEAL_IMAGE_BUCKET_ID);
+    expect(() => assertActiveMealImageWriteBucket(PRODUCTION_MEAL_IMAGE_BUCKET_ID, devContext))
+      .toThrow("active bucket");
   });
 
-  test("only the two retired buckets remap on read", () => {
-    expect(resolveMealImageReadBucket(LEGACY_E02A)).toBe(MEAL_IMAGE_BUCKET_ID);
-    expect(resolveMealImageReadBucket(LEGACY_2A68)).toBe(MEAL_IMAGE_BUCKET_ID);
+  test("production requires its exact configured bucket and remaps only its legacy reads", () => {
+    const productionContext = resolveMealImageStorageContext({
+      nodeEnv: "production",
+      configuredBucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
+    });
+    expect(productionContext).toEqual({
+      environment: "production",
+      bucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
+    });
+    expect(resolveMealImageReadBucket(LEGACY_E02A, productionContext))
+      .toBe(PRODUCTION_MEAL_IMAGE_BUCKET_ID);
+    expect(resolveMealImageReadBucket(LEGACY_2A68, productionContext))
+      .toBe(PRODUCTION_MEAL_IMAGE_BUCKET_ID);
 
     const unknownBucket = "replit-objstore-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
-    expect(resolveMealImageReadBucket(unknownBucket)).toBe(unknownBucket);
+    expect(resolveMealImageReadBucket(unknownBucket, productionContext)).toBe(unknownBucket);
+    expect(() => resolveMealImageStorageContext({
+      nodeEnv: "production",
+      configuredBucketId: DEVELOPMENT_MEAL_IMAGE_BUCKET_ID,
+    })).toThrow("canonical production bucket");
   });
 
-  test("all full-health handlers reject a configured bucket other than canonical", () => {
+  test("DEV keeps legacy URLs unchanged and all health handlers resolve the active context", () => {
+    const devContext = resolveMealImageStorageContext({ nodeEnv: "development" });
+    expect(resolveMealImageReadBucket(LEGACY_E02A, devContext)).toBe(LEGACY_E02A);
+    expect(resolveMealImageReadBucket(LEGACY_2A68, devContext)).toBe(LEGACY_2A68);
+
     for (const sourceFile of ["../index.ts", "../prod.ts", "../routes.ts"]) {
       const source = fs.readFileSync(path.resolve(__dirname, sourceFile), "utf8");
-      expect(source).toContain("bucketId !== MEAL_IMAGE_BUCKET_ID");
-      expect(source).toContain("active meal-image bucket must be canonical");
+      expect(source).toContain("resolveMealImageStorageContext");
+      expect(source).toContain("probeStorageCanary(storageContext.bucketId)");
+      expect(source).not.toContain("bucketId !== MEAL_IMAGE_BUCKET_ID");
     }
   });
 

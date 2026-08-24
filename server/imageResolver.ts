@@ -7,7 +7,7 @@ import {
   type ImageAssetEntry 
 } from "../shared/catalog/imageAssetManifest.catalog";
 import {
-  MEAL_IMAGE_BUCKET_ID,
+  getActiveMealImageBucket,
   resolveMealImageReadBucket,
 } from "./services/mealImageBucket";
 
@@ -20,10 +20,11 @@ type ConfigValidation =
   | { ok: false; reason: string };
 
 function deriveMealImagesBasePath(rawEnv: string | undefined): ConfigValidation {
+  const activeBucketId = getActiveMealImageBucket();
   if (!rawEnv || rawEnv.trim() === "") {
     return {
       ok: true,
-      basePath: `${PUBLIC_OBJECTS_PREFIX}/${MEAL_IMAGE_BUCKET_ID}/${MEAL_IMAGES_SUBFOLDER}`,
+      basePath: `${PUBLIC_OBJECTS_PREFIX}/${activeBucketId}/${MEAL_IMAGES_SUBFOLDER}`,
     };
   }
 
@@ -31,7 +32,7 @@ function deriveMealImagesBasePath(rawEnv: string | undefined): ConfigValidation 
   if (entries.length === 0) {
     return {
       ok: true,
-      basePath: `${PUBLIC_OBJECTS_PREFIX}/${MEAL_IMAGE_BUCKET_ID}/${MEAL_IMAGES_SUBFOLDER}`,
+      basePath: `${PUBLIC_OBJECTS_PREFIX}/${activeBucketId}/${MEAL_IMAGES_SUBFOLDER}`,
     };
   }
 
@@ -63,14 +64,14 @@ function deriveMealImagesBasePath(rawEnv: string | undefined): ConfigValidation 
   if (segments.length === 0) {
     return {
       ok: true,
-      basePath: `${PUBLIC_OBJECTS_PREFIX}/${MEAL_IMAGE_BUCKET_ID}/${MEAL_IMAGES_SUBFOLDER}`,
+      basePath: `${PUBLIC_OBJECTS_PREFIX}/${activeBucketId}/${MEAL_IMAGES_SUBFOLDER}`,
     };
   }
 
   if (!segments[0].startsWith("replit-objstore-")) {
     return {
       ok: true,
-      basePath: `${PUBLIC_OBJECTS_PREFIX}/${MEAL_IMAGE_BUCKET_ID}/${MEAL_IMAGES_SUBFOLDER}`,
+      basePath: `${PUBLIC_OBJECTS_PREFIX}/${activeBucketId}/${MEAL_IMAGES_SUBFOLDER}`,
     };
   }
 

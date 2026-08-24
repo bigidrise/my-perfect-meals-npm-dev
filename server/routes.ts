@@ -11,7 +11,7 @@ import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
 import { ObjectStorageService, objectStorageClient, StorageUnavailableError, inferContentType } from "./objectStorage";
-import { MEAL_IMAGE_BUCKET_ID } from "./services/mealImageBucket";
+import { resolveMealImageStorageContext } from "./services/mealImageBucket";
 import { processMealImageForSave } from "./services/imageLifecycle";
 import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
 import {
@@ -374,30 +374,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Object Storage
-    const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
-    if (!bucketId) {
-      result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
-      result.storageBucketId = "(not configured)";
+    try {
+      const storageContext = resolveMealImageStorageContext();
+      result.storageBucketId = storageContext.bucketId;
+      const { probeStorageCanary } = await import("./objectStorage");
+      const probe = await probeStorageCanary(storageContext.bucketId);
+      result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
+      if (!probe.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      result.storageBucketId = "(invalid configuration)";
       httpStatus = 503;
-    } else if (bucketId !== MEAL_IMAGE_BUCKET_ID) {
-      result.objectStorage = "unhealthy: active meal-image bucket must be canonical";
-      result.storageBucketId = bucketId;
-      httpStatus = 503;
-    } else {
-      result.storageBucketId = bucketId;
-      try {
-        const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
-        const canaryUrl = `${proto}://${req.hostname}/public-objects/${bucketId}/migration-manifest.json`;
-        const storageRes = await fetch(canaryUrl, {
-          signal: AbortSignal.timeout(8000),
-          headers: { "x-health-probe": "1" },
-        });
-        result.objectStorage = storageRes.ok ? "healthy" : `unhealthy: canary returned HTTP ${storageRes.status}`;
-        if (!storageRes.ok) httpStatus = 503;
-      } catch (e: any) {
-        result.objectStorage = `unhealthy: ${e.message}`;
-        httpStatus = 503;
-      }
     }
 
     result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
@@ -449,30 +436,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Object Storage
-    const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
-    if (!bucketId) {
-      result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
-      result.storageBucketId = "(not configured)";
+    try {
+      const storageContext = resolveMealImageStorageContext();
+      result.storageBucketId = storageContext.bucketId;
+      const { probeStorageCanary } = await import("./objectStorage");
+      const probe = await probeStorageCanary(storageContext.bucketId);
+      result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
+      if (!probe.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      result.storageBucketId = "(invalid configuration)";
       httpStatus = 503;
-    } else if (bucketId !== MEAL_IMAGE_BUCKET_ID) {
-      result.objectStorage = "unhealthy: active meal-image bucket must be canonical";
-      result.storageBucketId = bucketId;
-      httpStatus = 503;
-    } else {
-      result.storageBucketId = bucketId;
-      try {
-        const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
-        const canaryUrl = `${proto}://${req.hostname}/public-objects/${bucketId}/migration-manifest.json`;
-        const storageRes = await fetch(canaryUrl, {
-          signal: AbortSignal.timeout(8000),
-          headers: { "x-health-probe": "1" },
-        });
-        result.objectStorage = storageRes.ok ? "healthy" : `unhealthy: canary returned HTTP ${storageRes.status}`;
-        if (!storageRes.ok) httpStatus = 503;
-      } catch (e: any) {
-        result.objectStorage = `unhealthy: ${e.message}`;
-        httpStatus = 503;
-      }
     }
 
     result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
@@ -527,21 +501,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Object Storage — SDK probe (no HTTP fetch, no SSRF)
-    const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
-    if (!bucketId) {
-      result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
-      result.storageBucketId = "(not configured)";
-      httpStatus = 503;
-    } else if (bucketId !== MEAL_IMAGE_BUCKET_ID) {
-      result.objectStorage = "unhealthy: active meal-image bucket must be canonical";
-      result.storageBucketId = bucketId;
-      httpStatus = 503;
-    } else {
-      result.storageBucketId = bucketId;
+    try {
+      const storageContext = resolveMealImageStorageContext();
+      result.storageBucketId = storageContext.bucketId;
       const { probeStorageCanary } = await import("./objectStorage");
-      const probe = await probeStorageCanary(bucketId);
-      result.objectStorage = probe.ok ? "healthy" : "unhealthy: storage probe failed";
+      const probe = await probeStorageCanary(storageContext.bucketId);
+      result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
       if (!probe.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      result.storageBucketId = "(invalid configuration)";
+      httpStatus = 503;
     }
 
     result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
