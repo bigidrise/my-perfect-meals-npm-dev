@@ -906,6 +906,13 @@ setTimeout(async () => {
     `);
     const certBridgeCount = (certBridgeResult as any).rowCount ?? (certBridgeResult as any).count ?? '?';
     console.log(`✅ Cert-type bridge: ${certBridgeCount} "platform" → "platform_mastery" record(s) created`);
+
+    // Recover only verified professional accounts that predate automatic
+    // Studio provisioning. The routine is idempotent and leaves unclear
+    // historical provider roles untouched.
+    const { backfillEligibleProviderStudios } = await import("./services/procareStudioReadiness");
+    await backfillEligibleProviderStudios("development_boot");
+
     // Meal Shares — public shareable meal preview links
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS meal_shares (

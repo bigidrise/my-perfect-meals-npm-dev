@@ -16,6 +16,7 @@ import { checkLegalAcceptance } from "../services/legalCheck";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 import { logAudit, getClientIp } from "../lib/auditLog";
+import { getProviderStudioReadiness } from "../services/procareStudioReadiness";
 import {
   findEmailIdentityCandidates,
   normalizeEmailIdentity,
@@ -73,6 +74,15 @@ router.post("/", async (req, res) => {
 
     if (!name) {
       return res.status(400).json({ error: "Studio name is required" });
+    }
+
+    const readiness = await getProviderStudioReadiness(userId);
+    if (!readiness.ok) {
+      return res.status(403).json({
+        error: readiness.message,
+        code: readiness.code,
+        setupRequired: true,
+      });
     }
 
     const [existing] = await db
@@ -295,6 +305,16 @@ router.post("/:studioId/invite", async (req, res) => {
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
+
+    const readiness = await getProviderStudioReadiness(userId);
+    if (!readiness.ok) {
+      return res.status(403).json({
+        error: readiness.message,
+        code: readiness.code,
+        setupRequired: true,
+      });
+    }
+
     const emailCandidates = await findEmailIdentityCandidates(String(email));
     if (emailCandidates.length > 1) {
       return res.status(409).json({
