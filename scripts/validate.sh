@@ -88,6 +88,18 @@ else
 fi
 rm -f "$TSLOG"
 
+HYDRATION_TSLOG=$(mktemp /tmp/mpm-hydration-ts-XXXXXX.log)
+if npx tsc --noEmit -p tsconfig.hydration-contract.json >"$HYDRATION_TSLOG" 2>&1; then
+  pass "Hydration schema contract: required intake fields match the strict Zod output"
+else
+  HYDRATION_TS_COUNT=$(grep -c ': error TS' "$HYDRATION_TSLOG" 2>/dev/null || echo 0)
+  fail "Hydration schema contract: ${HYDRATION_TS_COUNT} type error(s) found"
+  echo ""
+  echo -e "${RED}  Hydration contract output (first 40 lines):${NC}"
+  head -80 "$HYDRATION_TSLOG" | sed 's/^/    /'
+fi
+rm -f "$HYDRATION_TSLOG"
+
 # ──────────────────────────────────────────────────
 header "Step 2 of 4: Core File Integrity"
 # If any of these files go missing, the server will not start correctly.
