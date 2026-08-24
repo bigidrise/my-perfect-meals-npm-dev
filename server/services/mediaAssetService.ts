@@ -18,8 +18,8 @@ import { db } from "../db";
 import { mediaAssets } from "../db/schema/mediaAssets";
 import crypto from "crypto";
 import {
-  assertCanonicalMealImageWriteBucket,
-  MEAL_IMAGE_BUCKET_ID,
+  assertActiveMealImageWriteBucket,
+  getActiveMealImageBucket,
   publicMealImageUrl,
 } from "./mealImageBucket";
 
@@ -43,8 +43,9 @@ const TEMP_URL_PATTERNS = ["oaidalleapiprodscus", "blob.core.windows.net", "open
 let _storageClient: ReplitStorageClient | null = null;
 function getStorageClient(): ReplitStorageClient {
   if (!_storageClient) {
+    const bucketId = getActiveMealImageBucket();
     _storageClient = new ReplitStorageClient({
-      bucketId: assertCanonicalMealImageWriteBucket(MEAL_IMAGE_BUCKET_ID),
+      bucketId: assertActiveMealImageWriteBucket(bucketId),
     });
   }
   return _storageClient;

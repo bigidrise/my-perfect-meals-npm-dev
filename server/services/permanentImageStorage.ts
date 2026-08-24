@@ -6,8 +6,8 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Client as ReplitStorageClient } from "@replit/object-storage";
 import crypto from 'crypto';
 import {
-  assertCanonicalMealImageWriteBucket,
-  MEAL_IMAGE_BUCKET_ID,
+  assertActiveMealImageWriteBucket,
+  getActiveMealImageBucket,
   publicMealImageUrl,
 } from "./mealImageBucket";
 
@@ -51,13 +51,14 @@ interface UploadResult {
 // and must NOT be used. This Client path is proven working.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Lazy singleton — all new meal-image writes explicitly target the canonical
-// bucket rather than whichever bucket happens to be attached by default.
+// Lazy singleton — the runtime storage context selects a DEV-only or
+// production-only bucket; DEV never falls through to production storage.
 let _replitStorageClient: ReplitStorageClient | null = null;
 function getReplitStorageClient(): ReplitStorageClient {
   if (!_replitStorageClient) {
+    const bucketId = getActiveMealImageBucket();
     _replitStorageClient = new ReplitStorageClient({
-      bucketId: assertCanonicalMealImageWriteBucket(MEAL_IMAGE_BUCKET_ID),
+      bucketId: assertActiveMealImageWriteBucket(bucketId),
     });
   }
   return _replitStorageClient;
