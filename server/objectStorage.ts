@@ -12,6 +12,10 @@ import {
   getObjectAclPolicy,
   setObjectAclPolicy,
 } from "./objectAcl";
+import {
+  MEAL_IMAGE_BUCKET_ID,
+  resolveMealImageReadBucket,
+} from "./services/mealImageBucket";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
@@ -51,14 +55,7 @@ export class StorageUnavailableError extends Error {
   }
 }
 
-// The old disconnected bucket that still appears in legacy env vars.
-// Any search path or bucket ID referencing it is silently remapped to the active bucket.
-const LEGACY_DISCONNECTED_BUCKET = "replit-objstore-e02a723e-40e9-4d89-9c0e-05adfa185d2d";
-// The current active bucket for the DEV workspace.
-// ⚠️  Cross-reference: scripts/pre-publish-validate.sh DEV_BUCKET must equal this
-// value. If you rotate the dev bucket, update BOTH files together or the pre-publish
-// validator will silently stop blocking dev-bucket-in-production publishes.
-export const ACTIVE_BUCKET_ID = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
+export const ACTIVE_BUCKET_ID = MEAL_IMAGE_BUCKET_ID;
 
 // ── Replit Object Storage clients (same SDK as the write path) ────────────────
 // One client per bucket ID; a bucketId of "" means the default (active) bucket.
@@ -131,8 +128,11 @@ export class ObjectStorageService {
       .split(",")
       .map((p) => p.trim())
       .filter((p) => p.length > 0)
-      // Replace old disconnected bucket ID with the current active one.
-      .map((p) => p.replace(LEGACY_DISCONNECTED_BUCKET, ACTIVE_BUCKET_ID))
+       // Repoint only the explicitly retired meal-image buckets.
+       .map((p) => p.replace(
+         /replit-objstore-(?:e02a723e-40e9-4d89-9c0e-05adfa185d2d|2a68d585-4c50-4c2e-a7ff-a9973358bc5b)/g,
+         ACTIVE_BUCKET_ID,
+       ))
       // Drop any entry whose first path segment is not a Replit Object Storage
       // bucket ID (format: replit-objstore-<uuid>).  A leading "/" is stripped
       // first so both "/replit-objstore-…" and "replit-objstore-…" forms pass.
@@ -196,13 +196,13 @@ export class ObjectStorageService {
     filePath: string,
   ): Promise<{ bucketId: string | undefined; objectName: string } | null> {
     // New-format: bucket ID embedded directly in the path.
-    // If the embedded bucket is the old disconnected one, remap to the active bucket
-    // so URLs that were generated before the bucket migration still resolve correctly.
+     // Repoint only explicitly retired bucket IDs. Unknown embedded buckets are
+     // intentionally preserved rather than silently reading a different object.
     if (filePath.startsWith("replit-objstore-")) {
       const slashIdx = filePath.indexOf("/");
       if (slashIdx === -1) return null;
       const rawBucketId = filePath.slice(0, slashIdx);
-      const bucketId = rawBucketId === LEGACY_DISCONNECTED_BUCKET ? ACTIVE_BUCKET_ID : rawBucketId;
+       const bucketId = resolveMealImageReadBucket(rawBucketId);
       const objectName = filePath.slice(slashIdx + 1);
       const existsResult = await getReplitClient(bucketId).exists(objectName);
       if (!existsResult.ok) {
@@ -243,7 +243,7 @@ export class ObjectStorageService {
       const slashIdx = objectPath.indexOf("/");
       if (slashIdx !== -1) {
         const rawBucketId = objectPath.slice(0, slashIdx);
-        const bucketId = rawBucketId === LEGACY_DISCONNECTED_BUCKET ? ACTIVE_BUCKET_ID : rawBucketId;
+         const bucketId = resolveMealImageReadBucket(rawBucketId);
         const objectName = objectPath.slice(slashIdx + 1);
         return getReplitClient(bucketId).downloadAsStream(objectName);
       }

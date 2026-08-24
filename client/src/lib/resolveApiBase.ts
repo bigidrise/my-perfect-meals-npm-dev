@@ -1,65 +1,40 @@
 import { Capacitor } from '@capacitor/core';
 
-// ⭐ Production backend URL (your live deployed app backend)
-const PROD_SERVER_URL =
-  "https://my-perfect-meals-npm-dev-1.replit.app";
+/**
+ * Native shells do not have a web origin that can serve the API. Keep their
+ * production endpoint centralized here; all browser builds use their own
+ * origin, including custom domains, Replit deployments, and development.
+ */
+export const NATIVE_PRODUCTION_API_ORIGIN = "https://app.myperfectmeals.com";
 
-// ⭐ Staging backend URL (your new staging environment)
-const STAGING_SERVER_URL =
-  "https://my-perfect-meals-staging--bigidrise.replit.app";
-
-// Detect Capacitor native iOS/Android wrapper
-function isCapacitorNative(): boolean {
-  try {
-    return Capacitor.isNativePlatform();
-  } catch {
-    return false;
-  }
-}
-
-// Detect dev environments (localhost, Replit dev domain, etc.)
-function isDevEnvironment(): boolean {
-  const hostname = window.location.hostname;
-  return (
-    hostname.includes("localhost") ||
-    hostname.includes("127.0.0.1") ||
-    hostname.includes("repl.co") ||
-    hostname.includes("replit.dev") ||
-    hostname.includes("replit.app") // Production deployed apps should use same origin
-  );
-}
-
-// Detect staging environment
-function isStagingEnvironment(): boolean {
-  const hostname = window.location.hostname;
-  return hostname.includes("my-perfect-meals-staging--bigidrise");
+export function resolveApiBaseForRuntime({
+  isNative,
+  webOrigin,
+}: {
+  isNative: boolean;
+  webOrigin?: string;
+}): string {
+  if (isNative) return NATIVE_PRODUCTION_API_ORIGIN;
+  return webOrigin || "";
 }
 
 export function resolveApiBase(): string {
-  // Native app ALWAYS uses explicit server URL
-  if (isCapacitorNative()) {
-    console.log("Native app detected → production backend");
-    return PROD_SERVER_URL;
+  let isNative = false;
+  try {
+    isNative = Capacitor.isNativePlatform();
+  } catch {
+    isNative = false;
   }
 
-  // STAGING logic → always talk to staging backend
-  if (isStagingEnvironment()) {
-    console.log("Staging environment detected → staging backend");
-    return STAGING_SERVER_URL;
-  }
-
-  // DEV logic → use same origin
-  if (isDevEnvironment()) {
-    console.log("Dev environment detected → using window.origin");
-    return window.location.origin;
-  }
-
-  // Anything else is production
-  console.log("Production environment detected → production backend");
-  return PROD_SERVER_URL;
+  return resolveApiBaseForRuntime({
+    isNative,
+    webOrigin: typeof window === "undefined" ? undefined : window.location.origin,
+  });
 }
 
 export function apiUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
   const base = resolveApiBase();
-  return base + (path.startsWith("/") ? path : "/" + path);
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return base ? `${base}${normalizedPath}` : normalizedPath;
 }

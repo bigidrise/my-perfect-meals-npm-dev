@@ -1,10 +1,11 @@
 import { db } from "../db";
 import { users, weeklyPlans } from "../../shared/schema";
 import { sql } from "drizzle-orm";
+import { getInternalApiBase } from "../utils/internalApiBase";
 
 interface UserWithAutoGen {
   id: string;
-  autoGenerateWeeklyPlan: boolean;
+  autoGenerateWeeklyPlan: boolean | null;
 }
 
 async function getUsersWithAutoGen(): Promise<UserWithAutoGen[]> {
@@ -24,7 +25,7 @@ async function getWeeklyPlan(userId: string) {
 async function archiveCurrentList(userId: string, startDate: string, endDate: string) {
   // This would call the existing shopping list archive endpoint
   try {
-    const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/shopping-list/archive`, {
+    const response = await fetch(`${getInternalApiBase()}/api/shopping-list/archive`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, periodStart: startDate, periodEnd: endDate })

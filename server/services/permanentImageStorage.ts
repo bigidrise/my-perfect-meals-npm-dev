@@ -5,6 +5,11 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Client as ReplitStorageClient } from "@replit/object-storage";
 import crypto from 'crypto';
+import {
+  assertCanonicalMealImageWriteBucket,
+  MEAL_IMAGE_BUCKET_ID,
+  publicMealImageUrl,
+} from "./mealImageBucket";
 
 function getS3Client(): S3Client {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -46,11 +51,14 @@ interface UploadResult {
 // and must NOT be used. This Client path is proven working.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Lazy singleton — initialised once and reused across requests.
+// Lazy singleton — all new meal-image writes explicitly target the canonical
+// bucket rather than whichever bucket happens to be attached by default.
 let _replitStorageClient: ReplitStorageClient | null = null;
 function getReplitStorageClient(): ReplitStorageClient {
   if (!_replitStorageClient) {
-    _replitStorageClient = new ReplitStorageClient();
+    _replitStorageClient = new ReplitStorageClient({
+      bucketId: assertCanonicalMealImageWriteBucket(MEAL_IMAGE_BUCKET_ID),
+    });
   }
   return _replitStorageClient;
 }
@@ -71,17 +79,7 @@ async function uploadToReplitObjectStorage(
     throw new Error(`Replit Object Storage upload failed: ${result.error?.message ?? "unknown error"}`);
   }
 
-  // Discover the active bucket ID via the Object Storage sidecar.
-  // The SDK's Client does not expose a public bucketId accessor; the sidecar's
-  // /object-storage/default-bucket endpoint is the supported discovery path.
-  const sidecarRes = await fetch("http://127.0.0.1:1106/object-storage/default-bucket").catch(() => null);
-  const sidecarJson = sidecarRes?.ok ? await sidecarRes.json().catch(() => null) : null;
-  const bucketId: string =
-    sidecarJson?.bucketId ??
-    process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID ??
-    "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
-
-  const publicUrl = `/public-objects/${bucketId}/${objectName}`;
+  const publicUrl = publicMealImageUrl(objectName);
   console.log(`✅ Image uploaded to Replit Object Storage: ${publicUrl}`);
   return publicUrl;
 }
