@@ -16,45 +16,6 @@ const TYPE_LABELS: Record<ImageSourceType, string> = {
   meal: "Meal Preview",
 };
 
-// Temporary diagnosis only. This is disabled in production builds and logs
-// fingerprints/metadata instead of URLs or meal content.
-const IMAGE_DIAGNOSTICS_ENABLED = process.env.NODE_ENV === "development";
-let imageSlotDiagnosticSequence = 0;
-
-function diagnosticFingerprint(value: string | null | undefined): string {
-  if (!value) return "none";
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-}
-
-function diagnosticSrc(value: string | null | undefined) {
-  if (!value) return { fingerprint: "none", kind: "none", retry: 0 };
-  let retry = 0;
-  try {
-    retry = Number(new URL(value, window.location.origin).searchParams.get("delivery-retry") || 0);
-  } catch {
-    // Keep the fingerprint for malformed or non-HTTP image values.
-  }
-  return {
-    fingerprint: diagnosticFingerprint(value),
-    kind: value.includes("/public-objects/")
-      ? "first-party-object"
-      : value.startsWith("data:")
-        ? "data"
-        : "other",
-    retry,
-  };
-}
-
-function imageDiagnostic(event: string, payload: Record<string, unknown>) {
-  if (!IMAGE_DIAGNOSTICS_ENABLED) return;
-  console.info(`[IMG-DIAG] ${event}`, payload);
-}
-
 export function withImageDeliveryRetry(url: string, retry: number): string {
   if (!retry) return url;
   const separator = url.includes("?") ? "&" : "?";
@@ -163,70 +124,10 @@ export function MealImageSlot({
   const recoveryAttempted = useRef(false);
   const recoveryVersion = useRef(0);
   const mounted = useRef(true);
-  const diagnosticInstanceRef = useRef<number | null>(null);
-  if (diagnosticInstanceRef.current === null) {
-    diagnosticInstanceRef.current = ++imageSlotDiagnosticSequence;
-  }
-  const diagnosticInstance = `slot-${diagnosticInstanceRef.current}`;
-  const imageIdentity = mediaAssetId
-    ? `media:${diagnosticFingerprint(mediaAssetId)}`
-    : savedMealId
-      ? `saved:${diagnosticFingerprint(savedMealId)}`
-      : `url:${diagnosticFingerprint(imageUrl)}`;
 
   const resolvedType = sourceType ?? detectTypeFromName(mealName);
   const label = TYPE_LABELS[resolvedType];
   const renderedUrl = withImageDeliveryRetry(recoveredUrl ?? imageUrl ?? "", retryNonce);
-
-  useEffect(() => {
-    imageDiagnostic("MOUNT", {
-      instance: diagnosticInstance,
-      identity: imageIdentity,
-      sourceKind: diagnosticSrc(imageUrl).kind,
-    });
-    return () => {
-      imageDiagnostic("UNMOUNT", {
-        instance: diagnosticInstance,
-        identity: imageIdentity,
-      });
-    };
-  }, []);
-
-  useEffect(() => {
-    imageDiagnostic("IMAGE_PROPS", {
-      instance: diagnosticInstance,
-      identity: imageIdentity,
-      imageUrl: diagnosticSrc(imageUrl),
-      mediaAssetId: diagnosticFingerprint(mediaAssetId),
-      savedMealId: diagnosticFingerprint(savedMealId),
-    });
-  }, [diagnosticInstance, imageIdentity, imageUrl, mediaAssetId, savedMealId]);
-
-  const previousRenderedUrlRef = useRef<string | null>(null);
-  useEffect(() => {
-    const previous = previousRenderedUrlRef.current;
-    if (previous !== renderedUrl) {
-      imageDiagnostic("SRC_CHANGE", {
-        instance: diagnosticInstance,
-        identity: imageIdentity,
-        previous: diagnosticSrc(previous),
-        next: diagnosticSrc(renderedUrl),
-      });
-      previousRenderedUrlRef.current = renderedUrl;
-    }
-  }, [diagnosticInstance, imageIdentity, renderedUrl]);
-
-  useEffect(() => {
-    imageDiagnostic("STATE", {
-      instance: diagnosticInstance,
-      identity: imageIdentity,
-      recoveryState,
-      failed,
-      revealed,
-      retryNonce,
-      isLoading,
-    });
-  }, [diagnosticInstance, imageIdentity, recoveryState, failed, revealed, retryNonce, isLoading]);
 
   useEffect(() => {
     // A new server-supplied URL starts a new display lifecycle. This is distinct
@@ -245,17 +146,7 @@ export function MealImageSlot({
   }, []);
 
   const requestRecovery = async () => {
-    imageDiagnostic("RECOVERY_REQUESTED", {
-      instance: diagnosticInstance,
-      identity: imageIdentity,
-      source: diagnosticSrc(imageUrl),
-      hasSavedMealBinding: Boolean(savedMealId && mediaAssetId),
-    });
     if (!isFirstPartyPermanentImageUrl(imageUrl) || recoveryAttempted.current) {
-      imageDiagnostic("RECOVERY_NOT_RETRYABLE", {
-        instance: diagnosticInstance,
-        identity: imageIdentity,
-      });
       setFailed(true);
       return;
     }
@@ -272,12 +163,6 @@ export function MealImageSlot({
       if (!savedMealId || !mediaAssetId) {
         await new Promise((resolve) => window.setTimeout(resolve, 700));
         if (canUpdate()) {
-          imageDiagnostic("RETRY_TRANSITION", {
-            instance: diagnosticInstance,
-            identity: imageIdentity,
-            transition: "background-retry",
-            retry: 1,
-          });
           setRetryNonce(1);
           setRecoveryState("idle");
           setFailed(false);
@@ -297,13 +182,6 @@ export function MealImageSlot({
         }>("/api/media/image-delivery-recovery", { imageUrl, savedMealId, mediaAssetId });
 
         if (!canUpdate()) return;
-        imageDiagnostic("RECOVERY_RESPONSE", {
-          instance: diagnosticInstance,
-          identity: imageIdentity,
-          status: delivery.status,
-          reason: delivery.reason ?? "none",
-          returnedImage: diagnosticSrc(delivery.imageUrl),
-        });
         if ((delivery.status === "retry" || delivery.status === "recovered") && delivery.imageUrl) {
           setRecoveredUrl(delivery.imageUrl);
           setRetryNonce(delivery.status === "retry" ? 1 : 0);
@@ -352,12 +230,6 @@ export function MealImageSlot({
           );
           if (!canUpdate()) return;
           if (recovery.status === "ready" && recovery.imageUrl) {
-            imageDiagnostic("RETRY_TRANSITION", {
-              instance: diagnosticInstance,
-              identity: imageIdentity,
-              transition: "background-recovery-ready",
-              returnedImage: diagnosticSrc(recovery.imageUrl),
-            });
             setRecoveredUrl(recovery.imageUrl);
             setRecoveryState("idle");
             setFailed(false);
@@ -365,12 +237,6 @@ export function MealImageSlot({
             return;
           }
           if (recovery.status === "failed" || attempt >= 119) {
-            imageDiagnostic("RETRY_TRANSITION", {
-              instance: diagnosticInstance,
-              identity: imageIdentity,
-              transition: "recovery-exhausted",
-              attempt,
-            });
             setRecoveryState("idle");
             setFailed(true);
             return;
@@ -444,23 +310,11 @@ export function MealImageSlot({
         src={renderedUrl}
         alt={mealName}
         className={`w-full ${height} object-cover transition-opacity duration-300 ${revealed ? "opacity-100" : "opacity-0"}`}
-        onLoad={() => {
-          imageDiagnostic("ONLOAD", {
-            instance: diagnosticInstance,
-            identity: imageIdentity,
-            src: diagnosticSrc(renderedUrl),
-          });
-          setRevealed(true);
-        }}
+        onLoad={() => setRevealed(true)}
         onError={() => {
           // Delivery failed: Object Storage URLs get one background recovery
           // attempt. All other delivery failures remain neutral unavailable.
           // NEVER substitute another food photograph.
-          imageDiagnostic("ONERROR", {
-            instance: diagnosticInstance,
-            identity: imageIdentity,
-            src: diagnosticSrc(renderedUrl),
-          });
           setRevealed(false);
           void requestRecovery();
         }}
