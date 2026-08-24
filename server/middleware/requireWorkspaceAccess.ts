@@ -119,3 +119,83 @@ export async function requireWorkspaceAccess(
     res.status(500).json({ error: "Failed to verify workspace access" });
   }
 }
+
+/**
+ * Client-side counterpart to requireWorkspaceAccess. It resolves the active
+ * professional relationship from the authenticated client, then attaches the
+ * same workspace context used by professional routes. Video actions use this
+ * middleware instead of trusting a client-submitted studio or recipient ID.
+ */
+export async function requireClientWorkspaceAccess(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  try {
+    const [link] = await db
+      .select({
+        studioId: studios.id,
+        proUserId: clientLinks.proUserId,
+      })
+      .from(clientLinks)
+      .innerJoin(studios, eq(studios.ownerUserId, clientLinks.proUserId))
+      .where(
+        and(
+          eq(clientLinks.clientUserId, authUser.id),
+          eq(clientLinks.active, true),
+          eq(studios.status, "active")
+        )
+      )
+      .limit(1);
+
+    const [membership] = link
+      ? [null]
+      : await db
+          .select({
+            studioId: studios.id,
+            proUserId: studios.ownerUserId,
+          })
+          .from(studioMemberships)
+          .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
+          .where(
+            and(
+              eq(studioMemberships.clientUserId, authUser.id),
+              eq(studioMemberships.status, "active"),
+              eq(studioMemberships.isArchived, false),
+              eq(studios.status, "active")
+            )
+          )
+          .limit(1);
+
+    const relationship = link ?? membership;
+    if (!relationship) {
+      res.status(403).json({ error: "No active workspace access" });
+      return;
+    }
+
+    try {
+      await assertSameOrg(authUser.id, relationship.proUserId);
+    } catch (err) {
+      if (handleOrgIsolationError(err, res)) return;
+      res.status(500).json({ error: "Failed to verify workspace access" });
+      return;
+    }
+
+    (req as WorkspaceAccessRequest).workspaceClientId = authUser.id;
+    (req as WorkspaceRequest).workspace = {
+      actorUserId: authUser.id,
+      workspaceUserId: authUser.id,
+      boardLocked: false,
+    };
+    next();
+  } catch (error) {
+    console.error("[requireClientWorkspaceAccess]", error);
+    res.status(500).json({ error: "Failed to verify workspace access" });
+  }
+}

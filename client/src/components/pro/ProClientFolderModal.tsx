@@ -4,7 +4,7 @@ import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/di
 import { Button } from "@/components/ui/button";
 import { ClientProfile, proStore } from "@/lib/proData";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
-import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2, Mic, Play, Pause, Square, ChevronDown, ChevronUp } from "lucide-react";
+import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2, Mic, Play, Pause, Square, ChevronDown, ChevronUp, Video } from "lucide-react";
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
 import ProClientLabsSnapshot from "@/components/pro/ProClientLabsSnapshot";
@@ -84,12 +84,16 @@ interface TabletEntry {
   sender: "client" | "pro";
   createdAt: string;
   translatedBody?: string;
-  contentType?: "text" | "voice";
+  contentType?: "text" | "voice" | "video";
   audioObjectKey?: string;
   audioDurationSec?: number;
   transcript?: string;
   transcriptStatus?: "pending" | "completed" | "failed" | "blocked";
   moderationStatus?: "pending" | "approved" | "blocked";
+  videoMediaState?: "draft" | "uploading" | "uploaded" | "processing" | "ready" | "upload_failed" | "expiration_pending" | "expired" | "deleted";
+  videoDurationSec?: number;
+  videoWatchCompletedAt?: string | null;
+  videoExpiresAt?: string | null;
 }
 
 interface ProClientFolderModalProps {
@@ -194,6 +198,17 @@ export default function ProClientFolderModal({
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [isVideoRecording, setIsVideoRecording] = useState(false);
+  const [videoRecordingSeconds, setVideoRecordingSeconds] = useState(0);
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
+  const [videoMimeType, setVideoMimeType] = useState("");
+  const [videoMode, setVideoMode] = useState(false);
+  const [sendingVideo, setSendingVideo] = useState(false);
+  const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
+  const [openVideoId, setOpenVideoId] = useState<string | null>(null);
+  const videoRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoRecordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const videoProgressSentAtRef = useRef<Record<string, number>>({});
 
   const [clientGoal, setClientGoal] = useState<{
     goalType?: string | null;
@@ -576,6 +591,149 @@ export default function ProClientFolderModal({
     }
   };
 
+  const getSupportedVideoMimeType = () => {
+    const types = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+    return types.find((type) => {
+      try { return MediaRecorder.isTypeSupported(type); } catch { return false; }
+    }) || "video/webm";
+  };
+
+  const startVideoRecording = async () => {
+    setMicError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: "user" },
+      });
+      const mimeType = getSupportedVideoMimeType();
+      const recorder = new MediaRecorder(stream, { mimeType });
+      videoRecorderRef.current = recorder;
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        setVideoBlob(new Blob(chunks, { type: mimeType }));
+        setVideoMimeType(mimeType);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+      recorder.start(500);
+      setIsVideoRecording(true);
+      setVideoRecordingSeconds(0);
+      videoRecordingTimerRef.current = setInterval(() => {
+        setVideoRecordingSeconds((seconds) => {
+          if (seconds >= 119) {
+            const recorder = videoRecorderRef.current;
+            if (recorder && recorder.state !== "inactive") recorder.stop();
+            return 120;
+          }
+          return seconds + 1;
+        });
+      }, 1000);
+    } catch {
+      setMicError("Camera or microphone access denied. Enable both permissions to record a video message.");
+    }
+  };
+
+  const stopVideoRecording = () => {
+    const recorder = videoRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+    if (videoRecordingTimerRef.current) {
+      clearInterval(videoRecordingTimerRef.current);
+      videoRecordingTimerRef.current = null;
+    }
+    setIsVideoRecording(false);
+  };
+
+  const cancelVideoRecording = () => {
+    stopVideoRecording();
+    setVideoBlob(null);
+    setVideoRecordingSeconds(0);
+    setVideoMode(false);
+  };
+
+  const sendVideoMessage = async () => {
+    if (!videoBlob || !clientId || sendingVideo) return;
+    setSendingVideo(true);
+    setError(null);
+    try {
+      const extension = videoMimeType.includes("mp4") ? "mp4" : "webm";
+      const formData = new FormData();
+      formData.append("video", videoBlob, `studio-video-message.${extension}`);
+      formData.append("durationSec", String(Math.max(1, videoRecordingSeconds)));
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video-message`), {
+        method: "POST",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Failed to send video message");
+        return;
+      }
+      const data = await res.json();
+      setMessages((previous) => [...previous, data.entry]);
+      setVideoBlob(null);
+      setVideoRecordingSeconds(0);
+      setVideoMode(false);
+    } catch {
+      setError("Failed to send video message");
+    } finally {
+      setSendingVideo(false);
+    }
+  };
+
+  const reportVideoProgress = async (entry: TabletEntry, element: HTMLVideoElement) => {
+    const now = Date.now();
+    if (now - (videoProgressSentAtRef.current[entry.id] || 0) < 1000) return;
+    videoProgressSentAtRef.current[entry.id] = now;
+    try {
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video/${entry.id}/progress`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          positionSec: element.currentTime,
+          observedAtMs: now,
+          isPlaying: !element.paused && !element.seeking,
+          isSeeking: element.seeking,
+          playbackRate: element.playbackRate,
+        }),
+      });
+      if (!res.ok) return;
+      const progress = await res.json();
+      if (progress.watchCompletedAt) {
+        setMessages((previous) => previous.map((message) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "expiration_pending", videoWatchCompletedAt: progress.watchCompletedAt, videoExpiresAt: progress.expiresAt }
+            : message,
+        ));
+      }
+    } catch {}
+  };
+
+  const handlePlayVideo = async (entry: TabletEntry) => {
+    if (!clientId) return;
+    try {
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video/${entry.id}/playback`), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Could not load video");
+        return;
+      }
+      const data = await res.json();
+      setVideoUrlCache((previous) => ({ ...previous, [entry.id]: data.url }));
+      setOpenVideoId(entry.id);
+    } catch {
+      setError("Could not load video");
+    }
+  };
+
   const handlePlayVoice = async (entry: TabletEntry) => {
     if (playingEntryId === entry.id) {
       currentAudioRef.current?.pause();
@@ -708,6 +866,54 @@ export default function ProClientFolderModal({
     );
   };
 
+  const renderVideoBubble = (entry: TabletEntry) => {
+    const isExpired = entry.videoMediaState === "expired" || entry.videoMediaState === "deleted";
+    const hasExpiryCountdown = entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt;
+    const durationLabel = entry.videoDurationSec ? formatDuration(entry.videoDurationSec) : null;
+    const videoUrl = videoUrlCache[entry.id];
+    return (
+      <div key={entry.id} className={`rounded-lg p-2.5 border ${entry.sender === "client" ? "bg-blue-500/8 border-blue-500/25 ml-4" : "bg-violet-500/8 border-violet-500/25 mr-4"}`}>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <Video className="w-3 h-3 text-violet-300" />
+            <span className="text-[10px] font-semibold text-violet-200">Private video message</span>
+            {durationLabel && <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-mono">{durationLabel}</span>}
+          </div>
+          <span className="text-[10px] text-white/35">{formatTimestamp(entry.createdAt)}</span>
+        </div>
+        {isExpired ? (
+          <p className="text-[10px] text-white/45 italic">This video has expired. Its message record remains private.</p>
+        ) : (
+          <>
+            {openVideoId === entry.id && videoUrl ? (
+              <video
+                src={videoUrl}
+                controls
+                playsInline
+                className="w-full rounded-md bg-black max-h-48"
+                onTimeUpdate={(event) => reportVideoProgress(entry, event.currentTarget)}
+                onEnded={(event) => reportVideoProgress(entry, event.currentTarget)}
+              />
+            ) : (
+              <button onClick={() => handlePlayVideo(entry)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium w-full bg-violet-600 hover:bg-violet-500 text-white">
+                <Play className="w-3.5 h-3.5" />
+                Watch private video
+              </button>
+            )}
+            <p className="text-[10px] text-white/45 leading-snug mt-2">
+              Watching nearly all of this video verifies completion and starts its 24-hour expiry countdown.
+            </p>
+            {hasExpiryCountdown && (
+              <p className="text-[10px] text-amber-300 mt-1">
+                Available until {new Date(entry.videoExpiresAt!).toLocaleString()}.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
   const renderEntryList = (entries: TabletEntry[], scrollRef: React.RefObject<HTMLDivElement | null>, showTranslate: boolean) => (
     <div ref={scrollRef} className="max-h-48 overflow-y-auto space-y-2 mb-2">
       {entries.length === 0 && (
@@ -716,6 +922,9 @@ export default function ProClientFolderModal({
         </p>
       )}
       {entries.map((entry) => {
+        if (entry.contentType === "video") {
+          return renderVideoBubble(entry);
+        }
         if (entry.contentType === "voice" || entry.audioObjectKey) {
           return renderVoiceBubble(entry);
         }
@@ -993,7 +1202,36 @@ export default function ProClientFolderModal({
                 <>
                   {renderEntryList(messages, msgScrollRef, true)}
 
-                  {voiceMode === "messages" ? (
+                  {videoMode ? (
+                    <div className="rounded-lg border border-violet-500/30 bg-violet-500/8 p-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-violet-200 font-semibold">Private video message</span>
+                        <span className="text-[10px] text-white/40">max 2 min</span>
+                      </div>
+                      {micError && <p className="text-[10px] text-red-400">{micError}</p>}
+                      {!videoBlob ? (
+                        <div className="flex items-center gap-2">
+                          {isVideoRecording ? (
+                            <>
+                              <span className="flex items-center gap-1.5 text-[10px] text-red-400 font-mono"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />{formatDuration(videoRecordingSeconds)} / 2:00</span>
+                              <button onClick={stopVideoRecording} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium ml-auto"><Square className="w-3 h-3" />Stop</button>
+                            </>
+                          ) : (
+                            <button onClick={startVideoRecording} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-violet-600 text-white text-xs font-medium w-full justify-center"><Video className="w-3.5 h-3.5" />Tap to Record Video</button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-violet-200">Recording ready · {formatDuration(videoRecordingSeconds)}</p>
+                          <div className="flex gap-2">
+                            <button onClick={sendVideoMessage} disabled={sendingVideo} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-violet-600 text-white text-xs font-medium flex-1 justify-center">{sendingVideo ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}{sendingVideo ? "Sending…" : "Send Video"}</button>
+                            <button onClick={cancelVideoRecording} className="px-3 py-1.5 rounded-md bg-white/10 text-white/60 text-xs font-medium">Discard</button>
+                          </div>
+                        </div>
+                      )}
+                      <button onClick={cancelVideoRecording} className="text-[10px] text-white/30 w-full text-center">Cancel video mode</button>
+                    </div>
+                  ) : voiceMode === "messages" ? (
                     <div className="rounded-lg border border-orange-500/30 bg-orange-500/8 p-2.5 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-orange-300 font-semibold">🎤 Voice Message</span>
@@ -1092,6 +1330,13 @@ export default function ProClientFolderModal({
                           title="Send voice message"
                         >
                           <Mic className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => { setVideoMode(true); setVideoBlob(null); setVideoRecordingSeconds(0); }}
+                          className="flex items-center justify-center p-1.5 rounded-md bg-violet-600/20 border border-violet-500/30 text-violet-300"
+                          title="Send video message"
+                        >
+                          <Video className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>

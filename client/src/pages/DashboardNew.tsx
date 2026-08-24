@@ -37,6 +37,7 @@ import {
   Pause,
   Mic,
   Square,
+  Video,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
@@ -151,6 +152,16 @@ export default function DashboardNew() {
   const tabletMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const tabletRecordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tabletStreamRef = useRef<MediaStream | null>(null);
+  const [tabletVideoRecording, setTabletVideoRecording] = useState(false);
+  const [tabletVideoBlob, setTabletVideoBlob] = useState<Blob | null>(null);
+  const [tabletVideoSending, setTabletVideoSending] = useState(false);
+  const [tabletVideoSeconds, setTabletVideoSeconds] = useState(0);
+  const [tabletVideoMode, setTabletVideoMode] = useState(false);
+  const [tabletVideoUrls, setTabletVideoUrls] = useState<Record<string, string>>({});
+  const [tabletOpenVideoId, setTabletOpenVideoId] = useState<string | null>(null);
+  const tabletVideoRecorderRef = useRef<MediaRecorder | null>(null);
+  const tabletVideoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tabletVideoProgressSentAt = useRef<Record<string, number>>({});
 
   // Provider inbox — completely separate from client tablet
   const [providerOpen, setProviderOpen] = useState(false);
@@ -448,6 +459,137 @@ export default function DashboardNew() {
     } finally {
       setTabletVoiceSending(false);
     }
+  };
+
+  const startTabletVideo = async () => {
+    setTabletError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: "user" },
+      });
+      const mimeType = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
+        .find((type) => MediaRecorder.isTypeSupported(type)) || "video/webm";
+      const recorder = new MediaRecorder(stream, { mimeType });
+      const chunks: Blob[] = [];
+      tabletVideoRecorderRef.current = recorder;
+      recorder.ondataavailable = (event) => { if (event.data.size > 0) chunks.push(event.data); };
+      recorder.onstop = () => {
+        setTabletVideoBlob(new Blob(chunks, { type: mimeType }));
+        stream.getTracks().forEach((track) => track.stop());
+      };
+      recorder.start(500);
+      setTabletVideoRecording(true);
+      setTabletVideoSeconds(0);
+      tabletVideoTimerRef.current = setInterval(() => {
+        setTabletVideoSeconds((seconds) => {
+          if (seconds >= 119) {
+            const recorder = tabletVideoRecorderRef.current;
+            if (recorder && recorder.state !== "inactive") recorder.stop();
+            return 120;
+          }
+          return seconds + 1;
+        });
+      }, 1000);
+    } catch {
+      setTabletError("Camera or microphone access denied — enable both permissions to record video.");
+    }
+  };
+
+  const stopTabletVideo = () => {
+    const recorder = tabletVideoRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+    if (tabletVideoTimerRef.current) {
+      clearInterval(tabletVideoTimerRef.current);
+      tabletVideoTimerRef.current = null;
+    }
+    setTabletVideoRecording(false);
+  };
+
+  const discardTabletVideo = () => {
+    stopTabletVideo();
+    setTabletVideoBlob(null);
+    setTabletVideoSeconds(0);
+    setTabletVideoMode(false);
+  };
+
+  const sendTabletVideo = async () => {
+    if (!tabletVideoBlob || tabletVideoSending) return;
+    setTabletVideoSending(true);
+    try {
+      const formData = new FormData();
+      formData.append("video", tabletVideoBlob, "studio-video-message.webm");
+      formData.append("durationSec", String(Math.max(1, tabletVideoSeconds)));
+      const res = await fetch(apiUrl("/api/client/tablet/video-message"), {
+        method: "POST",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setTabletError(data.error || "Failed to send video message");
+        return;
+      }
+      const data = await res.json();
+      setTabletMessages((previous) => [...previous, data.entry]);
+      setTabletVideoBlob(null);
+      setTabletVideoSeconds(0);
+      setTabletVideoMode(false);
+    } catch {
+      setTabletError("Failed to send video message");
+    } finally {
+      setTabletVideoSending(false);
+    }
+  };
+
+  const loadTabletVideo = async (entry: any) => {
+    try {
+      const res = await fetch(apiUrl(`/api/client/tablet/video/${entry.id}/playback`), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setTabletError(data.error || "Video is not available");
+        return;
+      }
+      const data = await res.json();
+      setTabletVideoUrls((previous) => ({ ...previous, [entry.id]: data.url }));
+      setTabletOpenVideoId(entry.id);
+    } catch {
+      setTabletError("Could not load video");
+    }
+  };
+
+  const reportTabletVideoProgress = async (entry: any, element: HTMLVideoElement) => {
+    const observedAtMs = Date.now();
+    if (observedAtMs - (tabletVideoProgressSentAt.current[entry.id] || 0) < 1000) return;
+    tabletVideoProgressSentAt.current[entry.id] = observedAtMs;
+    try {
+      const res = await fetch(apiUrl(`/api/client/tablet/video/${entry.id}/progress`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          positionSec: element.currentTime,
+          observedAtMs,
+          isPlaying: !element.paused && !element.seeking,
+          isSeeking: element.seeking,
+          playbackRate: element.playbackRate,
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.watchCompletedAt) {
+        setTabletMessages((previous) => previous.map((message: any) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "expiration_pending", videoWatchCompletedAt: data.watchCompletedAt, videoExpiresAt: data.expiresAt }
+            : message,
+        ));
+      }
+    } catch {}
   };
 
   // ── Provider inbox functions (fully independent) ──────────────────────────
@@ -1074,7 +1216,42 @@ export default function DashboardNew() {
                           </div>
                         </div>
 
-                        {entry.contentType === "voice" ? (
+                        {entry.contentType === "video" ? (
+                          <div className="space-y-2">
+                            {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
+                              <p className="text-xs text-white/45 italic">This private video has expired.</p>
+                            ) : tabletOpenVideoId === entry.id && tabletVideoUrls[entry.id] ? (
+                              <video
+                                src={tabletVideoUrls[entry.id]}
+                                controls
+                                playsInline
+                                className="w-full rounded-md bg-black max-h-56"
+                                onTimeUpdate={(event) => reportTabletVideoProgress(entry, event.currentTarget)}
+                                onEnded={(event) => reportTabletVideoProgress(entry, event.currentTarget)}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => loadTabletVideo(entry)}
+                                className="flex items-center gap-2 rounded-md bg-violet-600 hover:bg-violet-500 px-3 py-2 text-xs font-medium text-white"
+                              >
+                                <Play className="w-3.5 h-3.5" />
+                                Watch private video
+                              </button>
+                            )}
+                            <div className="flex items-center gap-1.5">
+                              <Video className="w-3 h-3 text-violet-300" />
+                              <span className="text-[11px] text-violet-200 font-medium">
+                                Private video{entry.videoDurationSec ? ` · ${Math.floor(entry.videoDurationSec / 60)}:${String(entry.videoDurationSec % 60).padStart(2, "0")}` : ""}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-white/45 leading-snug">
+                              Verified completion starts this video’s 24-hour expiry countdown.
+                            </p>
+                            {entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt && (
+                              <p className="text-[10px] text-amber-300">Available until {new Date(entry.videoExpiresAt).toLocaleString()}.</p>
+                            )}
+                          </div>
+                        ) : entry.contentType === "voice" ? (
                           <div className="space-y-2">
                             {/* Play button row */}
                             <div className="flex items-center gap-2">
@@ -1128,7 +1305,28 @@ export default function DashboardNew() {
                       </div>
                     ))}
                   </div>
-                  {tabletRecording ? (
+                  {tabletVideoMode ? (
+                    <div className="space-y-2 rounded-md border border-violet-500/30 bg-violet-500/10 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-violet-300 shrink-0" />
+                        <span className="text-sm text-violet-200 flex-1">Private video · max 2:00</span>
+                        <button onClick={discardTabletVideo} className="text-white/40 text-xs">Cancel</button>
+                      </div>
+                      {tabletVideoRecording ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-red-300 flex-1">Recording {Math.floor(tabletVideoSeconds / 60)}:{String(tabletVideoSeconds % 60).padStart(2, "0")}</span>
+                          <button onClick={stopTabletVideo} className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white"><Square className="w-3.5 h-3.5 fill-white" /></button>
+                        </div>
+                      ) : tabletVideoBlob ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-violet-200 flex-1">Video ready · {Math.floor(tabletVideoSeconds / 60)}:{String(tabletVideoSeconds % 60).padStart(2, "0")}</span>
+                          <Button size="sm" disabled={tabletVideoSending} onClick={sendTabletVideo} className="bg-violet-600 px-3">{tabletVideoSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}</Button>
+                        </div>
+                      ) : (
+                        <Button size="sm" onClick={startTabletVideo} className="w-full bg-violet-600"><Video className="w-3.5 h-3.5 mr-1.5" />Record video</Button>
+                      )}
+                    </div>
+                  ) : tabletRecording ? (
                     <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
                       <Mic className="w-4 h-4 text-red-400 animate-pulse shrink-0" />
                       <span className="text-sm text-red-300 flex-1">
@@ -1190,6 +1388,13 @@ export default function DashboardNew() {
                           title={t("sendVoice")}
                         >
                           <Mic className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => { setTabletVideoMode(true); setTabletVideoBlob(null); setTabletVideoSeconds(0); }}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-violet-500/20 text-violet-200"
+                          title="Send video"
+                        >
+                          <Video className="w-4 h-4" />
                         </button>
                         <Button
                           size="sm"

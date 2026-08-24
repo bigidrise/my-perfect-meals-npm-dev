@@ -10,7 +10,10 @@
 export const STUDIO_VIDEO_MESSAGE_CONTRACT_VERSION =
   "studio-video-messages-foundation-v1";
 export const STUDIO_VIDEO_MESSAGES_FEATURE_KEY = "studio_video_messages";
-export const STUDIO_VIDEO_MESSAGES_DEFAULT_ENABLED = false;
+// The delivery slice is enabled by default. Operators can set
+// STUDIO_VIDEO_MESSAGES_ENABLED=false for an emergency kill switch; the
+// low-level contract validator still fails closed for missing/invalid values.
+export const STUDIO_VIDEO_MESSAGES_DEFAULT_ENABLED = true;
 
 export const STUDIO_VIDEO_MESSAGE_VISIBILITIES = [
   "shared_with_client",
@@ -773,6 +776,7 @@ export const STUDIO_VIDEO_AUDIT_EVENTS = [
   "moderation_completed",
   "playback_authorized",
   "watch_completion_recorded",
+  "expiration_started",
   "expiration_reached",
   "deletion_requested",
   "media_deleted",
