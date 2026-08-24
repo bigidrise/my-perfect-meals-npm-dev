@@ -4,7 +4,6 @@ import {
   HYDRATION_CONFIDENCE,
   HYDRATION_ELECTROLYTE_COVERAGE,
   HYDRATION_UNITS,
-  type HydrationIntakeEventInput,
 } from "./contracts";
 
 const uuidSchema = z.string().uuid();
@@ -59,7 +58,7 @@ export const hydrationIntakeEventInputSchema = z
     clientInstanceId: uuidSchema.optional(),
     declaredNutrients: hydrationDeclaredNutrientsSchema.optional(),
   })
-  .strict() satisfies z.ZodType<HydrationIntakeEventInput>;
+  .strict();
 
 export const hydrationDateSchema = z
   .string()
