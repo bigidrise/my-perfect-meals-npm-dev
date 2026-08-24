@@ -308,6 +308,9 @@ async function runGrandfatherMigrations() {
       `);
       const certBridgeCount = (certBridgeResult as any).rowCount ?? (certBridgeResult as any).count ?? '?';
       console.log(`✅ [INIT] Cert-type bridge: ${certBridgeCount} "platform" → "platform_mastery" record(s) created`);
+
+      const { backfillEligibleProviderStudios } = await import("./services/procareStudioReadiness");
+      await backfillEligibleProviderStudios("production_boot");
     })(),
     timeout30s,
   ]);

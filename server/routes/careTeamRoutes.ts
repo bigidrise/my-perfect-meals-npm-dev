@@ -11,6 +11,8 @@ import { getTierForLookupKey } from "@shared/planFeatures";
 import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
 import { providerHasProCareStudioAccess } from "../services/procareProviderAccess";
+import { ensureProviderStudioReady, isStudioProviderRole } from "../services/procareStudioReadiness";
+import { requireMfa } from "../middleware/requireMfa";
 import {
   findEmailIdentityCandidates,
   normalizeEmailIdentity,
@@ -35,7 +37,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/invite", requireAuth, requireEmailService, async (req, res) => {
+router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -64,7 +66,7 @@ router.post("/invite", requireAuth, requireEmailService, async (req, res) => {
       .from(users)
       .where(eq(users.id, userId));
 
-    const callerIsPro = ["physician", "trainer"].includes(callerUser?.professionalRole || "");
+    const callerIsPro = isStudioProviderRole(callerUser?.professionalRole);
 
     // Block self-invites — caller cannot invite their own email address
     if (callerUser?.email && callerUser.email.trim().toLowerCase() === email) {
@@ -75,6 +77,20 @@ router.post("/invite", requireAuth, requireEmailService, async (req, res) => {
         ? `The email you entered (${email}) matches the email registered to your professional account. Enter your client's email address instead.`
         : "You cannot send a care team invite to yourself. Enter your provider's email address.";
       return res.status(400).json({ error: msg });
+    }
+
+    // A provider invite must always have a canonical Studio ready before the
+    // invitation is persisted. This prevents an account from signing up into
+    // an orphaned provider relationship when a legacy provider has no Studio.
+    if (callerIsPro) {
+      const provisioned = await ensureProviderStudioReady(userId);
+      if (!provisioned.ok) {
+        return res.status(403).json({
+          error: provisioned.message,
+          code: provisioned.code,
+          setupRequired: true,
+        });
+      }
     }
 
     console.log(`📧 Care Team invite request - role: ${role}`);
@@ -239,7 +255,7 @@ router.post("/connect", requireAuth, async (req, res) => {
         .select({ professionalRole: users.professionalRole })
         .from(users)
         .where(eq(users.id, invite.userId));
-      const inviterIsPro = ["physician", "trainer"].includes(inviter?.professionalRole || "");
+      const inviterIsPro = isStudioProviderRole(inviter?.professionalRole);
 
       const patientId = inviterIsPro ? userId : invite.userId;
       const resolvedProId = inviterIsPro ? invite.userId : userId;

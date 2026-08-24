@@ -4,16 +4,19 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logClientActivity } from "./activityLog";
 
-export async function ensureStudioForTrainer(trainerUserId: string): Promise<{ studioId: string; studioName: string; studioType: string } | null> {
+export interface EnsuredStudio {
+  studioId: string;
+  studioName: string;
+  studioType: string;
+  created: boolean;
+}
+
+export async function ensureStudioForTrainer(trainerUserId: string): Promise<EnsuredStudio | null> {
   try {
     const [existingStudio] = await db
       .select()
       .from(studios)
       .where(eq(studios.ownerUserId, trainerUserId));
-
-    if (existingStudio) {
-      return { studioId: existingStudio.id, studioName: existingStudio.name, studioType: existingStudio.type };
-    }
 
     const [trainer] = await db
       .select()
@@ -23,31 +26,55 @@ export async function ensureStudioForTrainer(trainerUserId: string): Promise<{ s
     if (!trainer) return null;
 
     const isPhysician = trainer.professionalRole === "physician";
-    const studioType = isPhysician ? "clinic" : "studio";
+    const studioType = existingStudio?.type ?? (isPhysician ? "clinic" : "studio");
     const studioName = isPhysician
       ? `${trainer.firstName || trainer.username || "Dr."}'s Clinic`
       : `${trainer.firstName || trainer.username || "Coach"}'s Studio`;
 
-    const [newStudio] = await db
-      .insert(studios)
-      .values({
-        ownerUserId: trainerUserId,
-        name: studioName,
-        type: studioType,
-        contactEmail: trainer.email,
-        status: "active",
-      })
-      .returning();
+    let newStudio = null;
+    if (!existingStudio) {
+      [newStudio] = await db
+        .insert(studios)
+        .values({
+          ownerUserId: trainerUserId,
+          name: studioName,
+          type: studioType,
+          contactEmail: trainer.email,
+          status: "active",
+        })
+        .onConflictDoNothing()
+        .returning();
+    }
 
+    // owner_user_id is unique. A second simultaneous request can win the
+    // insert race; re-read the canonical row instead of treating that as a
+    // provisioning failure.
+    const studio = existingStudio ?? newStudio ?? (await db
+      .select()
+      .from(studios)
+      .where(eq(studios.ownerUserId, trainerUserId))
+      .then(([row]) => row));
+
+    if (!studio) return null;
+
+    // Ensure historical Studios recover their required internal billing row.
+    // This creates no external payment or Stripe subscription.
     await db.insert(studioBilling).values({
-      studioId: newStudio.id,
-      planCode: isPhysician ? "clinic_69" : "studio_59",
+      studioId: studio.id,
+      planCode: studio.type === "clinic" ? "clinic_69" : "studio_59",
       status: "trialing",
-    });
+    }).onConflictDoNothing();
 
-    console.log(`🏗️ [StudioBridge] Auto-created ${studioType} "${studioName}" for trainer ${trainerUserId}`);
+    if (newStudio) {
+      console.log(`🏗️ [StudioBridge] Auto-created ${studioType} "${studioName}" for trainer ${trainerUserId}`);
+    }
 
-    return { studioId: newStudio.id, studioName: newStudio.name, studioType: newStudio.type };
+    return {
+      studioId: studio.id,
+      studioName: studio.name,
+      studioType: studio.type,
+      created: !!newStudio,
+    };
   } catch (error) {
     console.error("❌ [StudioBridge] Error ensuring studio for trainer:", error);
     return null;

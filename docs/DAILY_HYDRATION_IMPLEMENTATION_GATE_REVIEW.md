@@ -1,7 +1,8 @@
 # Daily Hydration Plan — Implementation Gate Review
 
 **Reviewed architecture:** `docs/DAILY_HYDRATION_PLAN_ARCHITECTURE.md`  
-**Status:** **CONDITIONALLY READY FOR BACKEND-FOUNDATION PLANNING; NOT APPROVED FOR IMPLEMENTATION OR USER-FACING ACTIVATION**  
+**Governance companion:** `docs/HYDRATION_GOVERNANCE_DECISION_MATRIX.md`
+**Status:** **CHECKPOINT ZERO PASSED — READY TO IMPLEMENT PHASE 1 ON EXPLICIT TASK AUTHORIZATION; NO CODE IS AUTHORIZED BY THIS RECORD**
 **Date:** 2026-08-21  
 **Scope:** Phase 1 — Hydration Domain Foundation only
 
@@ -9,7 +10,54 @@
 
 The Daily Hydration Plan architecture is sound enough to become the implementation source document. The codebase audit confirms that MPM can build this as a server-authoritative platform service without replacing the existing tracker first.
 
-The gate is **not fully passed** because the clinical-policy and professional-governance inputs required to produce user-facing plans have not yet been approved. Engineering may prepare an implementation plan and schema contract, but must not activate a default target, condition-specific fluid rule, electrolyte recommendation, clinician override workflow, or Hydration Center.
+The controlling gate is now staged. **Checkpoint Zero has passed** for the feature-disabled foundation: the product-owner scope lock is recorded, the migration-readiness safeguards are part of the implementation contract, and development/production route parity is mandatory. This does not start Task #1472 or authorize application changes. The activation gate remains closed because clinical-policy and professional-governance inputs required to produce user-facing plans have not been approved.
+
+Foundation work, when explicitly started, may only create inactive server-side infrastructure that can return `monitor_only`, `needs_review`, or `blocked`. It may not activate a default target, condition-specific fluid rule, electrolyte recommendation, clinician directive workflow, consumer cutover, or Hydration Center.
+
+## Checkpoint Zero completion record
+
+### 1. Implementation-gate reconciliation — complete
+
+This document is the sole controlling implementation gate. Its two-stage authorization is:
+
+- **Foundation gate:** the recorded nonclinical scope lock and this Checkpoint Zero contract authorize only feature-disabled, server-side contracts, append-only storage, audit records, immutable revisions, state projection, disabled routes, and a resolver harness with no numeric outputs.
+- **Activation gate:** remains closed. Every baseline, modifier, restriction, electrolyte/sodium rule, professional role, user-facing claim, and consumer cutover requires its own named owner, policy/version, effective scope, explanation language, and evidence.
+
+The governance matrix and ownership-resolution report now reference this staged gate rather than an all-items-approved prerequisite. No document grants permission to change current user hydration behavior.
+
+### 2. Migration-readiness safeguards — complete
+
+The following are mandatory implementation gates before any schema or backfill checkpoint can pass:
+
+- preserve existing `water_logs`;
+- additive schema only;
+- no destructive migration, rename, delete, or in-place reinterpretation;
+- idempotent, rerunnable backfill;
+- source-to-target counts, checksums, and reconciliation report;
+- stable `(timestamp, id)` ordering and tie-safe cursors;
+- duplicate prevention through source mapping and idempotency keys;
+- explicit rollback/recovery procedure with retained audit history;
+- shadow-read/parity strategy before any future consumer cutover;
+- no automatic import of browser-local hydration values;
+- transactional migration readiness and schema preflight in development and production;
+- no production migration execution as part of Checkpoint Zero.
+
+### 3. Development/production route-parity safeguards — complete
+
+The implementation contract requires:
+
+- one shared hydration route-registration contract used by `server/index.ts` and `server/prod.ts`;
+- no hydration endpoint present in only one environment;
+- identical authentication middleware ordering and fail-closed feature-gate behavior;
+- identical server-derived subject ownership and delegated-access behavior;
+- release/build checks proving the published production server contains the tested hydration route contract;
+- post-publish acceptance against both customer-facing production domains.
+
+## Checkpoint Zero verdict
+
+**CHECKPOINT ZERO PASSED — READY TO IMPLEMENT PHASE 1**
+
+This verdict means the blueprint and its three required safeguards are documented and accepted in principle. It is not an instruction to begin code. Task #1472 remains paused until the product owner explicitly starts implementation.
 
 ### The single-source-of-truth decision
 
@@ -288,17 +336,18 @@ These are blockers for activating behavior. The implementation team must not inv
 
 ## 8. Dependency-ordered Phase 1 tasks
 
-These are planning units only. They must not start until this gate is explicitly approved.
+These are implementation checkpoints. They must not start until the product owner explicitly starts Task #1472. Each checkpoint must pass its exit evidence and rollback review before the next begins.
 
 | Order | Task | Engineering-safe work | Requires governance approval |
 | --- | --- | --- | --- |
-| 0 | Approve the implementation gate | Finalize source document, decisions, owner, and rollout/rollback acceptance. | **Yes — all unresolved decisions above.** |
-| 1 | Freeze shared hydration domain contracts | Types, enum semantics, provenance/version interfaces, fixture shapes, and nonclinical invariants. | No clinical numeric/default values. |
-| 2 | Create append-only hydration foundation schema | New tables/migrations for events, inputs, revisions, state, and audit; no destructive legacy migration. | Schema may be prepared; activating clinical directive types needs role policy. |
-| 3 | Build event/audit service contract | Auth-derived ownership, conversion, idempotency, correction/void lineage, account-safe API tests. | No new recommendation logic. |
-| 4 | Build resolver and state-projector harness | Pure resolver/state interfaces, `monitor_only`/`needs_review` handling, versioned snapshot generation, test fixtures. | Baseline and active modifier values cannot be enabled without approval. |
-| 5 | Add role-scoped read APIs behind a feature flag | Plan/state/history projections, access gates, cache/version headers, audit events. | Professional fields/permissions must match approved authority model. |
-| 6 | Run migration/shadow readiness review | Lossless water-log backfill plan, parity queries, no-destructive rollback plan, local-storage reconciliation specification. | Migration acceptance thresholds and user messaging require sign-off. |
+| 1 | Additive schema/domain contracts | Types, inactive input semantics, provenance/version interfaces, additive schema, transactional readiness runner. | No clinical numeric/default values; no production migration during this checkpoint. |
+| 2 | Immutable intake/event service | Auth-derived ownership, strict conversion, idempotency, correction/void lineage, audit, tie-safe history. | No recommendation logic; legacy `water_logs` remains unchanged. |
+| 3 | Plan revisions/provenance/state model | Monitor-only resolver, immutable revisions, state projection, unknown coverage, deterministic fixtures. | No active target, modifier, restriction, or numeric output. |
+| 4 | Authenticated APIs/account isolation | Disabled hydration routes, ownership tests, fail-closed flags, delegated-access boundary, cache contracts. | No professional hydration endpoint activation or UI cutover. |
+| 5 | Legacy compatibility/backfill tooling | Repeatable mapping, reconciliation/checksum reports, source preservation, explicit rollback/recovery. | No automatic local-storage import; no production backfill. |
+| 6 | Shadow/parity and cross-device tests | Internal shadow state, dev/prod route manifest parity, cross-device convergence, no consumer reads. | Shadow remains off unless separately enabled; no user behavior change. |
+| 7 | Observability/release-gate integration | Redacted telemetry, audit checks, build/release checks, migration and route readiness evidence. | No activation claim or consumer cutover. |
+| 8 | Production acceptance verification | Flag-off acceptance on both customer domains; controlled internal verification only if separately authorized. | No customer-facing hydration change; disable and recover on any failure. |
 
 ## 9. Explicit Phase 1 exclusions
 
@@ -314,17 +363,22 @@ Phase 1 must not:
 - let any client calculate the authoritative hydration plan;
 - add a second plan calculator to Coach, Beverage Creator, ProCare, Nutrition Life Plan, or a meal builder.
 
-## 10. Approval checklist
+## 10. Staged approval checklist
 
-Implementation may begin only when all statements are affirmed:
+### Foundation gate — affirmed for the blueprint; explicit task start still required
 
-- [ ] The Daily Hydration Plan service is the sole source of truth.
-- [ ] The snapshot/revision/history contract is approved.
-- [ ] Baseline and modifier policy owners are named.
+- [x] The Daily Hydration Plan service is the sole future source of truth.
+- [x] The snapshot/revision/history contract is approved for feature-disabled infrastructure.
+- [x] Migration, shadow, parity, and rollback safeguards are part of the implementation contract.
+- [x] Development/production route-registration and middleware parity are required.
+- [x] Phase 1 exclusions remain in place.
+
+### Activation gate — remains blocked
+
+- [ ] Baseline and modifier policy owners have approved numeric behavior.
 - [ ] Clinical conflict precedence and escalation policy are approved.
 - [ ] Clinician/ProCare permissions and audit scope are approved.
-- [ ] Electrolyte data/claim semantics are approved.
-- [ ] Migration, shadow, parity, and rollback acceptance criteria are approved.
-- [ ] Phase 1 exclusions remain in place.
+- [ ] Electrolyte data/claim semantics and user-facing language are approved.
+- [ ] Consumer migration and production cutover evidence are approved.
 
 Until that point, the appropriate work remains architecture review and policy governance—not implementation.

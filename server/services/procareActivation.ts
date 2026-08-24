@@ -1,11 +1,12 @@
 import { db } from "../db";
-import { studios, studioBilling, studioMemberships } from "../db/schema/studio";
+import { studios, studioMemberships } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { careTeamMember } from "../db/schema/careTeam";
 import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { logClientActivity } from "./activityLog";
 import { checkLegalAcceptance } from "./legalCheck";
+import { ensureStudioForTrainer } from "./studioBridge";
 
 export class ActivationError extends Error {
   code: string;
@@ -76,37 +77,19 @@ export async function activateProCareClient(
     throw new ActivationError("SELF_ACTIVATION", "Cannot activate a user as their own ProCare client");
   }
 
-  const [existingStudio] = await db
-    .select()
-    .from(studios)
-    .where(eq(studios.ownerUserId, proUserId));
-
-  let studio = existingStudio ?? null;
-
-  if (!studio) {
-    const [pro] = await db.select().from(users).where(eq(users.id, proUserId));
-    if (!pro) throw new ActivationError("PRO_NOT_FOUND", `Pro user ${proUserId} not found`);
-
-    const isPhysician = pro.professionalRole === "physician";
-    const studioType = isPhysician ? "clinic" : "studio";
-    const studioName = isPhysician
-      ? `${pro.firstName || pro.username || "Dr."}'s Clinic`
-      : `${pro.firstName || pro.username || "Coach"}'s Studio`;
-
-    const [newStudio] = await db
-      .insert(studios)
-      .values({ ownerUserId: proUserId, name: studioName, type: studioType, contactEmail: pro.email, status: "active" })
-      .returning();
-
-    await db.insert(studioBilling).values({
-      studioId: newStudio.id,
-      planCode: isPhysician ? "clinic_69" : "studio_59",
-      status: "trialing",
-    });
-
-    studio = newStudio;
-    console.log(`🏗️ [ProCareActivation] Auto-created ${studioType} "${studioName}" for pro ${proUserId}`);
+  // Legacy invitations may be accepted after their provider was created but
+  // before automatic Studio provisioning existed. Use the same conflict-safe
+  // bridge as the current provider setup instead of racing a duplicate insert.
+  const ensuredStudio = await ensureStudioForTrainer(proUserId);
+  if (!ensuredStudio) {
+    throw new ActivationError("PRO_NOT_FOUND", `Pro user ${proUserId} not found or has no recoverable Studio`);
   }
+
+  const studio = {
+    id: ensuredStudio.studioId,
+    name: ensuredStudio.studioName,
+    type: ensuredStudio.studioType,
+  };
 
   const workspace = studio.type === "clinic" ? "clinician" : "trainer";
 
@@ -118,7 +101,7 @@ export async function activateProCareClient(
       .where(
         and(
           eq(studioMemberships.clientUserId, clientUserId),
-          eq(studioMemberships.studioId, studio!.id)
+          eq(studioMemberships.studioId, studio.id)
         )
       );
 
@@ -176,7 +159,7 @@ export async function activateProCareClient(
           );
 
         console.log(
-          `♻️ [ProCareActivation] Restored existing membership for client ${clientUserId} in studio ${studio!.id}` +
+          `♻️ [ProCareActivation] Restored existing membership for client ${clientUserId} in studio ${studio.id}` +
           (currentUser?.activeBoard ? ` — resynced assignedBuilder="${currentUser.activeBoard}"` : "")
         );
       }
@@ -186,7 +169,7 @@ export async function activateProCareClient(
       const [updated] = await tx
         .update(studioMemberships)
         .set({
-          studioId: studio!.id,
+          studioId: studio.id,
           status: "active",
           isArchived: false,
           workspace,
@@ -196,12 +179,12 @@ export async function activateProCareClient(
         .where(eq(studioMemberships.id, otherStudioMembership.id))
         .returning();
       membership = updated;
-      console.log(`🔄 [ProCareActivation] Switched provider for client ${clientUserId} to studio ${studio!.id}`);
+      console.log(`🔄 [ProCareActivation] Switched provider for client ${clientUserId} to studio ${studio.id}`);
     } else {
       // Brand new relationship
       const [inserted] = await tx
         .insert(studioMemberships)
-        .values({ studioId: studio!.id, clientUserId, status: "active", workspace, joinedAt: new Date() })
+        .values({ studioId: studio.id, clientUserId, status: "active", workspace, joinedAt: new Date() })
         .returning();
       membership = inserted;
     }

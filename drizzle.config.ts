@@ -4,6 +4,9 @@ export default defineConfig({
   out: "./migrations",
   schema: [
     "./shared/schema.ts",
+    // Hydration is provisioned only by migrations/0010_hydration_foundation.sql.
+    // Its database-only checks and append-only triggers cannot be represented by
+    // Drizzle schema discovery, so db:push must not create an unsafe variant.
     "./server/db/schema/bodyComposition.ts",
     "./server/db/schema/organizations.ts",
     "./server/db/schema/userBehaviorSummary.ts",

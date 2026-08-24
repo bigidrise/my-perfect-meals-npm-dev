@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [],
+  "files": [
+    "shared/hydration/contracts.ts",
+    "shared/hydration/schemas.ts",
+    "shared/hydration/schemas.contract-check.ts"
+  ],
+  "compilerOptions": {
+    "strict": true,
+    "strictNullChecks": true
+  }
+}
