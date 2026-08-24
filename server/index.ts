@@ -1380,6 +1380,18 @@ setTimeout(async () => {
   }
 }, 4800);
 
+// Studio Video Messages — private message/media parent-child records.
+setTimeout(async () => {
+  try {
+    const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
+    await runStudioVideoMessagesMigration();
+    const { startStudioVideoExpiryWorker } = await import("./services/studioVideoExpiryWorker");
+    startStudioVideoExpiryWorker();
+  } catch (err: any) {
+    console.error("❌ Studio Video Messages boot migration failed:", err.message);
+  }
+}, 4900);
+
 // Meal image validation boot migration — validation columns on meal_image_cache
 setTimeout(async () => {
   try {

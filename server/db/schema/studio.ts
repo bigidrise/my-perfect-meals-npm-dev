@@ -157,6 +157,65 @@ export const tabletVoiceJobs = pgTable("tablet_voice_jobs", {
   statusIdx: index("idx_tablet_voice_jobs_status").on(table.status),
 }));
 
+/**
+ * Private Studio video messages use their own parent/media records so the
+ * permanent communication record can retain a transcript after the temporary
+ * media object is purged. Do not add public URL columns here.
+ */
+export const studioVideoMessages = pgTable("studio_video_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+  clientUserId: text("client_user_id").notNull(),
+  authorUserId: text("author_user_id").notNull(),
+  recipientUserId: text("recipient_user_id").notNull(),
+  sender: senderTypeEnum("sender").notNull(),
+  visibility: noteVisibilityEnum("visibility").notNull().default("shared_with_client"),
+  contentType: text("content_type").$type<"video">().notNull().default("video"),
+  body: text("body").notNull().default("Video message"),
+  transcript: text("transcript"),
+  transcriptStatus: text("transcript_status").$type<"pending" | "completed" | "failed" | "blocked">().notNull().default("completed"),
+  transcribedAt: timestamp("transcribed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  studioClientIdx: index("idx_studio_video_messages_studio_client").on(table.studioId, table.clientUserId),
+  authorIdx: index("idx_studio_video_messages_author").on(table.authorUserId),
+  createdIdx: index("idx_studio_video_messages_created").on(table.createdAt),
+}));
+
+export const studioVideoMedia = pgTable("studio_video_media", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  messageId: uuid("message_id").notNull().references(() => studioVideoMessages.id, { onDelete: "cascade" }).unique(),
+  state: text("state").$type<
+    "draft" | "uploading" | "uploaded" | "processing" | "ready" |
+    "upload_failed" | "transcription_failed" | "moderation_failed" |
+    "expiration_pending" | "expired" | "deleting" | "deletion_failed" | "deleted"
+  >().notNull().default("draft"),
+  objectKey: text("object_key"),
+  mimeType: text("mime_type").notNull(),
+  durationSec: integer("duration_sec").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  temporaryDerivativeKeys: jsonb("temporary_derivative_keys").$type<string[]>().notNull().default([]),
+  watchProgress: jsonb("watch_progress").$type<{
+    durationSec: number;
+    watchedIntervals: Array<[number, number]>;
+    lastPositionSec: number | null;
+    lastObservedAtMs: number | null;
+    maxVerifiedPositionSec: number;
+    rejectedSampleCount: number;
+  } | null>(),
+  watchCompletedAt: timestamp("watch_completed_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  moderationStatus: text("moderation_status").$type<"pending" | "approved" | "blocked">().notNull().default("approved"),
+  moderatedAt: timestamp("moderated_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  stateIdx: index("idx_studio_video_media_state").on(table.state),
+  expiresIdx: index("idx_studio_video_media_expires").on(table.expiresAt),
+}));
+
 export type Studio = typeof studios.$inferSelect;
 export type InsertStudio = typeof studios.$inferInsert;
 export type StudioBilling = typeof studioBilling.$inferSelect;
@@ -169,6 +228,10 @@ export type ClientSubscription = typeof clientSubscriptions.$inferSelect;
 export type InsertClientSubscription = typeof clientSubscriptions.$inferInsert;
 export type ClientNote = typeof clientNotes.$inferSelect;
 export type InsertClientNote = typeof clientNotes.$inferInsert;
+export type StudioVideoMessage = typeof studioVideoMessages.$inferSelect;
+export type InsertStudioVideoMessage = typeof studioVideoMessages.$inferInsert;
+export type StudioVideoMedia = typeof studioVideoMedia.$inferSelect;
+export type InsertStudioVideoMedia = typeof studioVideoMedia.$inferInsert;
 
 export const coachingInvites = pgTable("coaching_invites", {
   id: uuid("id").defaultRandom().primaryKey(),

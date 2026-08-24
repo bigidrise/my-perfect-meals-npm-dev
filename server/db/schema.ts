@@ -16,4 +16,5 @@ export * from "./schema/mealLibrary";
 export * from "./schema/bodyComposition";
 export * from "./schema/clinicalLabs";
 export * from "./schema/aiObservability";
+export * from "./schema/studio";
 export { glp1AuditLog } from "./schema/patientAssignment";
