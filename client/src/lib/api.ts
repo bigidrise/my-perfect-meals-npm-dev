@@ -3,29 +3,11 @@ import { getDeviceId } from "@/utils/deviceId";
 import { Capacitor } from "@capacitor/core";
 import { getAuthHeaders } from "@/lib/auth";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import { apiUrl, resolveApiBase } from "@/lib/resolveApiBase";
 
 type Json = Record<string, any>;
 
-// Production API base for iOS/native apps - must match capacitor.config.ts server.url
-const NATIVE_API_BASE = "https://my-perfect-meals-npm-dev.replit.app";
-
-const isDev = import.meta.env.DEV;
-const ENV_BASE =
-  (import.meta as any).env?.VITE_API_BASE?.trim() ||
-  (import.meta as any).env?.VITE_API_BASE_URL?.trim();
-
-function normalize(u?: string | null) {
-  return u ? u.replace(/\/+$/, "") : "";
-}
-
-function getApiBase(): string {
-  if (ENV_BASE) return normalize(ENV_BASE);
-  if (Capacitor.isNativePlatform()) return NATIVE_API_BASE;
-  if (isDev) return normalize(`http://${location.hostname}:5000`);
-  return "";
-}
-
-export const API_BASE = getApiBase();
+export const API_BASE = resolveApiBase();
 
 // Environment fingerprint for iOS debugging
 export function logEnvironmentFingerprint(
@@ -79,13 +61,7 @@ export class ApiError extends Error {
 // Build a full URL safely
 function url(path: string) {
   if (/^https?:\/\//i.test(path)) return path; // already absolute
-  const p = path.startsWith("/") ? path : `/${path}`;
-  // Native platforms always need absolute URLs
-  if (Capacitor.isNativePlatform()) return `${API_BASE}${p}`;
-  // In development on Replit, frontend and backend are on same origin (both served from port 5000)
-  // Use relative URLs so it works correctly
-  if (isDev && !ENV_BASE) return p;
-  return `${API_BASE}${p}`;
+  return apiUrl(path);
 }
 
 export async function apiJSON<T = any>(

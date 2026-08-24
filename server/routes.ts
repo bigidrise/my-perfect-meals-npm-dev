@@ -11,6 +11,7 @@ import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
 import { ObjectStorageService, objectStorageClient, StorageUnavailableError, inferContentType } from "./objectStorage";
+import { MEAL_IMAGE_BUCKET_ID } from "./services/mealImageBucket";
 import { processMealImageForSave } from "./services/imageLifecycle";
 import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
 import {
@@ -356,7 +357,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Full infrastructure health — each critical dependency probed independently.
   // Returns 503 if any subsystem is unhealthy. Used by acceptance gate + monitoring.
   app.get("/api/health/full", async (req, res) => {
-    const DEV_BUCKET = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
     const result: Record<string, string> = {};
     let httpStatus = 200;
 
@@ -379,8 +379,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
       result.storageBucketId = "(not configured)";
       httpStatus = 503;
-    } else if (bucketId === DEV_BUCKET) {
-      result.objectStorage = "unhealthy: production is pointing at the DEV bucket";
+    } else if (bucketId !== MEAL_IMAGE_BUCKET_ID) {
+      result.objectStorage = "unhealthy: active meal-image bucket must be canonical";
       result.storageBucketId = bucketId;
       httpStatus = 503;
     } else {
@@ -432,7 +432,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Full infrastructure health — each critical dependency probed independently.
   // Returns 503 if any subsystem is unhealthy. Used by acceptance gate + monitoring.
   app.get("/api/health/full", async (req, res) => {
-    const DEV_BUCKET = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
     const result: Record<string, string> = {};
     let httpStatus = 200;
 
@@ -455,8 +454,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
       result.storageBucketId = "(not configured)";
       httpStatus = 503;
-    } else if (bucketId === DEV_BUCKET) {
-      result.objectStorage = "unhealthy: production is pointing at the DEV bucket";
+    } else if (bucketId !== MEAL_IMAGE_BUCKET_ID) {
+      result.objectStorage = "unhealthy: active meal-image bucket must be canonical";
       result.storageBucketId = bucketId;
       httpStatus = 503;
     } else {
@@ -510,7 +509,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Storage is probed directly via the Replit SDK (no HTTP self-request, no SSRF risk).
   // Error detail is intentionally withheld from the response; check server logs instead.
   app.get("/api/health/full", async (_req, res) => {
-    const DEV_BUCKET = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
     const result: Record<string, string> = {};
     let httpStatus = 200;
 
@@ -534,8 +532,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
       result.storageBucketId = "(not configured)";
       httpStatus = 503;
-    } else if (bucketId === DEV_BUCKET) {
-      result.objectStorage = "unhealthy: production is pointing at the DEV bucket";
+    } else if (bucketId !== MEAL_IMAGE_BUCKET_ID) {
+      result.objectStorage = "unhealthy: active meal-image bucket must be canonical";
       result.storageBucketId = bucketId;
       httpStatus = 503;
     } else {

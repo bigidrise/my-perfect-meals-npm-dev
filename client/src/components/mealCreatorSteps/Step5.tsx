@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box, Typography, Button, CircularProgress } from "@mui/material";
 import axios from "axios";
 import { useLocation } from "wouter";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 interface Step5Props {
   prevStep: () => void;
@@ -33,7 +34,7 @@ const Step5: React.FC<Step5Props> = ({ prevStep }) => {
       );
 
       const response = await axios.post(
-        `http://localhost:5000/api/users/${userId}/meal-plan/generate`,
+        apiUrl(`/api/users/${userId}/meal-plan/generate`),
         {
           diet: selectedDiet,
           planDuration,
