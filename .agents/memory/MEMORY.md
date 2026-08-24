@@ -88,3 +88,4 @@
 - [Override propagation invariant](override-propagation-pattern.md) — a PIN allergen override must reach every post-gen scan (incl. cached results and sub-generators) or the meal is re-blocked after a valid PIN.
 - [Email-case duplicate safety](email-case-duplicate-safety.md) — development users can differ only by email capitalization; target account changes by user ID, never case-insensitive email.
 - [Checkout vs entitlement lookup keys](checkout-vs-entitlement-keys.md) — CheckoutLookupKey must mirror STRIPE_PRICE_IDS exactly; broad PlanLookupKey is read-only entitlement history, never purchasable.
+- [AI observability checkpoint 1](ai-observability-checkpoint1.md) — feature-disabled, PHI-safe contracts and append-only pricing precede any AI call instrumentation or routing.

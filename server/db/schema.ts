@@ -15,4 +15,5 @@ export * from "./schema/restaurantGuideSessions";
 export * from "./schema/mealLibrary";
 export * from "./schema/bodyComposition";
 export * from "./schema/clinicalLabs";
+export * from "./schema/aiObservability";
 export { glp1AuditLog } from "./schema/patientAssignment";
