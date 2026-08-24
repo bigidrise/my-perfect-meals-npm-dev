@@ -34,6 +34,7 @@ import legalPagesRouter from "./routes/legal-pages";
 import { loadOrgContext, loadOrgBySlug, getDefaultOrgContext } from "./lib/orgContext";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { resolveMealImageStorageContext } from "./services/mealImageBucket";
 
 // ⬇️ New: AI/Meals API router (this file must exist: server/routes/meals.ts)
 import mealsRouter from "./routes/meals";
@@ -345,7 +346,6 @@ app.get("/api/release", (req, res) => {
 // ── Full infrastructure health — per-system status for acceptance gate ────────
 // Returns 503 if any critical dependency is unhealthy. Used by monitoring too.
 app.get("/api/health/full", async (req, res) => {
-  const DEV_BUCKET = "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b";
   const result: Record<string, string> = {};
   let httpStatus = 200;
 
@@ -362,31 +362,19 @@ app.get("/api/health/full", async (req, res) => {
     httpStatus = 503;
   }
 
-  // Object Storage — check bucket ID then probe the canary object
-  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
-  if (!bucketId) {
-    result.objectStorage = "unhealthy: DEFAULT_OBJECT_STORAGE_BUCKET_ID not set";
-    result.storageBucketId = "(not configured)";
+  // Object Storage — DEV probes its attached bucket; production must resolve
+  // its explicitly configured canonical bucket before the probe can run.
+  try {
+    const storageContext = resolveMealImageStorageContext();
+    result.storageBucketId = storageContext.bucketId;
+    const { probeStorageCanary } = await import("./objectStorage");
+    const probe = await probeStorageCanary(storageContext.bucketId);
+    result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
+    if (!probe.ok) httpStatus = 503;
+  } catch (e: any) {
+    result.objectStorage = `unhealthy: ${e.message}`;
+    result.storageBucketId = "(invalid configuration)";
     httpStatus = 503;
-  } else if (bucketId === DEV_BUCKET) {
-    result.objectStorage = "unhealthy: production is pointing at the DEV bucket";
-    result.storageBucketId = bucketId;
-    httpStatus = 503;
-  } else {
-    result.storageBucketId = bucketId;
-    try {
-      const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
-      const canaryUrl = `${proto}://${req.hostname}/public-objects/${bucketId}/migration-manifest.json`;
-      const storageRes = await fetch(canaryUrl, {
-        signal: AbortSignal.timeout(8000),
-        headers: { "x-health-probe": "1" },
-      });
-      result.objectStorage = storageRes.ok ? "healthy" : `unhealthy: canary returned HTTP ${storageRes.status}`;
-      if (!storageRes.ok) httpStatus = 503;
-    } catch (e: any) {
-      result.objectStorage = `unhealthy: ${e.message}`;
-      httpStatus = 503;
-    }
   }
 
   result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";

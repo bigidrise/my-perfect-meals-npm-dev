@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { db } from '../db';
 import { users, mealInstances, mealPlans } from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
+import { getInternalApiBase } from '../utils/internalApiBase';
 
 const r = Router();
 
 async function getOnboardingProfile(userId: string) {
   try {
-    const resp = await fetch(`${process.env.APP_BASE_INTERNAL_URL || 'http://localhost:5000'}/api/onboarding/progress?userId=${userId}`, {
+    const resp = await fetch(`${getInternalApiBase()}/api/onboarding/progress?userId=${userId}`, {
       headers: { 'x-device-id': 'internal' },
     });
     return resp.ok ? resp.json() : { steps: {} };
@@ -18,7 +19,7 @@ async function getOnboardingProfile(userId: string) {
 
 async function getShoppingList(userId: string) {
   try {
-    const resp = await fetch(`${process.env.APP_BASE_INTERNAL_URL || 'http://localhost:5000'}/api/shopping-list?userId=${userId}`, {
+    const resp = await fetch(`${getInternalApiBase()}/api/shopping-list?userId=${userId}`, {
       headers: { 'x-device-id': 'internal' },
     });
     return resp.ok ? resp.json() : { items: [] };

@@ -17,6 +17,11 @@ import { Client as ReplitStorageClient } from "@replit/object-storage";
 import { db } from "../db";
 import { mediaAssets } from "../db/schema/mediaAssets";
 import crypto from "crypto";
+import {
+  assertActiveMealImageWriteBucket,
+  getActiveMealImageBucket,
+  publicMealImageUrl,
+} from "./mealImageBucket";
 
 // ── Variant dimensions ───────────────────────────────────────────────────────
 const THUMB_WIDTH    = 400;   // px  — card / list views
@@ -37,21 +42,13 @@ const TEMP_URL_PATTERNS = ["oaidalleapiprodscus", "blob.core.windows.net", "open
 // ── Object Storage client (singleton) ─────────────────────────────────────────
 let _storageClient: ReplitStorageClient | null = null;
 function getStorageClient(): ReplitStorageClient {
-  if (!_storageClient) _storageClient = new ReplitStorageClient();
+  if (!_storageClient) {
+    const bucketId = getActiveMealImageBucket();
+    _storageClient = new ReplitStorageClient({
+      bucketId: assertActiveMealImageWriteBucket(bucketId),
+    });
+  }
   return _storageClient;
-}
-
-/** Discover the active bucket ID (used to construct /public-objects/ URLs).
- *  Uses the Object Storage sidecar's supported discovery endpoint.
- *  The SDK Client does not expose a public bucketId accessor. */
-async function getBucketId(): Promise<string> {
-  const r = await fetch("http://127.0.0.1:1106/object-storage/default-bucket").catch(() => null);
-  const j = r?.ok ? await r.json().catch(() => null) : null;
-  return (
-    j?.bucketId ??
-    process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID ??
-    "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b"
-  );
 }
 
 /** Upload a buffer to Object Storage, return the public /public-objects/ URL. */
@@ -67,8 +64,7 @@ async function uploadBuffer(
   if (!result.ok) {
     throw new Error(`Object Storage upload failed for ${objectName}: ${result.error?.message ?? "unknown"}`);
   }
-  const bucketId = await getBucketId();
-  return `/public-objects/${bucketId}/${objectName}`;
+  return publicMealImageUrl(objectName);
 }
 
 /** Download an image from a URL or decode a base64 data URI. */

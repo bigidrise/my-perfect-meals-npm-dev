@@ -6,6 +6,10 @@ import {
   getImageAsset, 
   type ImageAssetEntry 
 } from "../shared/catalog/imageAssetManifest.catalog";
+import {
+  getActiveMealImageBucket,
+  resolveMealImageReadBucket,
+} from "./services/mealImageBucket";
 
 const FALLBACK_IMAGE = "generic-meal.jpg";
 const MEAL_IMAGES_SUBFOLDER = "meal-images";
@@ -16,13 +20,20 @@ type ConfigValidation =
   | { ok: false; reason: string };
 
 function deriveMealImagesBasePath(rawEnv: string | undefined): ConfigValidation {
+  const activeBucketId = getActiveMealImageBucket();
   if (!rawEnv || rawEnv.trim() === "") {
-    return { ok: false, reason: "PUBLIC_OBJECT_SEARCH_PATHS not configured" };
+    return {
+      ok: true,
+      basePath: `${PUBLIC_OBJECTS_PREFIX}/${activeBucketId}/${MEAL_IMAGES_SUBFOLDER}`,
+    };
   }
 
   const entries = rawEnv.split(",").map((e) => e.trim()).filter((e) => e.length > 0);
   if (entries.length === 0) {
-    return { ok: false, reason: "PUBLIC_OBJECT_SEARCH_PATHS is empty" };
+    return {
+      ok: true,
+      basePath: `${PUBLIC_OBJECTS_PREFIX}/${activeBucketId}/${MEAL_IMAGES_SUBFOLDER}`,
+    };
   }
 
   let segment = entries[0];
@@ -53,9 +64,18 @@ function deriveMealImagesBasePath(rawEnv: string | undefined): ConfigValidation 
   if (segments.length === 0) {
     return {
       ok: true,
-      basePath: `${PUBLIC_OBJECTS_PREFIX}/${MEAL_IMAGES_SUBFOLDER}`,
+      basePath: `${PUBLIC_OBJECTS_PREFIX}/${activeBucketId}/${MEAL_IMAGES_SUBFOLDER}`,
     };
   }
+
+  if (!segments[0].startsWith("replit-objstore-")) {
+    return {
+      ok: true,
+      basePath: `${PUBLIC_OBJECTS_PREFIX}/${activeBucketId}/${MEAL_IMAGES_SUBFOLDER}`,
+    };
+  }
+
+  segments[0] = resolveMealImageReadBucket(segments[0]);
 
   const lastSegment = segments[segments.length - 1];
   if (lastSegment === MEAL_IMAGES_SUBFOLDER) {

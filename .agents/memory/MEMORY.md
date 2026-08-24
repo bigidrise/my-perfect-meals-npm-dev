@@ -55,6 +55,7 @@
 - [Clinical Business — Effective Access Architecture](business-effective-access.md) — access tier computed at runtime from membership OR personal plan; never stored merged in planLookupKey; accept route snapshots personal plan, never calls updateUserSubscription.
 - [Performance Hub macro anchoring](performance-hub-macro-anchor.md) — AI coach must never invent macro targets; /ask injects AUTHORITATIVE BASELINE + RESOLVED blocks and validates response.
 - [Object Storage Architecture (active)](object-storage-architecture.md) — @replit/object-storage Client is the working upload path; signed-URL sidecar returns 401; S3 still 403; bucket FuzzyOrdinaryWebmaster; route fix for direct bucket-ID URLs.
+- [Canonical meal-image bucket rollout](canonical-meal-image-bucket-rollout.md) — code targets 3ccef2ce, but DEV lacks write permission; certify a real upload only after its storage binding is authorized.
 - [DailyNutritionPrescription — Architecture](daily-nutrition-prescription.md) — shared contract + server resolver; starchMealsAllowed is integer not string; resolver uses real DB columns only.
 - [Daily Hydration Plan architecture](daily-hydration-plan-architecture.md) — one server-resolved hydration plan with immutable events and revisioned history; validate contract/governance before code.
 - [Nutrition Decision Engine — Food Entry Point Rule](nde-food-entry-points.md) — every food entry point (builders, scanners, imports, manual) must consult NDE before presenting to user; scanGeneratedOutput() is the post-gen validator; ndeSummary is the response field for scanner clients.
@@ -88,3 +89,4 @@
 - [Override propagation invariant](override-propagation-pattern.md) — a PIN allergen override must reach every post-gen scan (incl. cached results and sub-generators) or the meal is re-blocked after a valid PIN.
 - [Email-case duplicate safety](email-case-duplicate-safety.md) — development users can differ only by email capitalization; target account changes by user ID, never case-insensitive email.
 - [Checkout vs entitlement lookup keys](checkout-vs-entitlement-keys.md) — CheckoutLookupKey must mirror STRIPE_PRICE_IDS exactly; broad PlanLookupKey is read-only entitlement history, never purchasable.
+- [AI observability checkpoint 1](ai-observability-checkpoint1.md) — feature-disabled, PHI-safe contracts and append-only pricing precede any AI call instrumentation or routing.
