@@ -17,6 +17,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
 import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
+import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -91,6 +92,7 @@ interface TabletEntry {
   audioDurationSec?: number;
   transcript?: string;
   transcriptStatus?: "pending" | "completed" | "failed" | "blocked";
+  videoTranscriptStatus?: "pending" | "completed" | "failed" | "blocked";
   moderationStatus?: "pending" | "approved" | "blocked";
   videoMediaState?: "draft" | "uploading" | "uploaded" | "processing" | "ready" | "upload_failed" | "transcription_failed" | "moderation_failed" | "expiration_pending" | "expired" | "deleting" | "deletion_failed" | "deleted";
   videoDurationSec?: number;
@@ -212,7 +214,12 @@ export default function ProClientFolderModal({
   const [videoMode, setVideoMode] = useState(false);
   const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
+  const videoUrlRevokeRef = useRef<Record<string, () => void>>({});
   const videoProgressSentAtRef = useRef<Record<string, number>>({});
+
+  useEffect(() => () => {
+    Object.values(videoUrlRevokeRef.current).forEach((revoke) => revoke());
+  }, []);
 
   const [clientGoal, setClientGoal] = useState<{
     goalType?: string | null;
@@ -513,6 +520,8 @@ export default function ProClientFolderModal({
         setNotes((prev) => prev.filter((n) => n.id !== entry.id));
       }
       if (entry.contentType === "video") {
+        videoUrlRevokeRef.current[entry.id]?.();
+        delete videoUrlRevokeRef.current[entry.id];
         setOpenVideoId((current) => current === entry.id ? null : current);
         setVideoUrlCache((current) => {
           const { [entry.id]: _, ...remaining } = current;
@@ -644,21 +653,16 @@ export default function ProClientFolderModal({
   const handlePlayVideo = async (entry: TabletEntry) => {
     if (!clientId) return;
     try {
-      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video/${entry.id}/playback`), {
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-        cache: "no-store",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error || "Could not load video");
-        return;
-      }
-      const data = await res.json();
-      setVideoUrlCache((previous) => ({ ...previous, [entry.id]: data.url }));
+      const source = await loadStudioVideoPlayback(
+        `/api/pro/tablet/${clientId}/video/${entry.id}/playback`,
+        getAuthHeaders(),
+      );
+      videoUrlRevokeRef.current[entry.id]?.();
+      videoUrlRevokeRef.current[entry.id] = source.revoke;
+      setVideoUrlCache((previous) => ({ ...previous, [entry.id]: source.url }));
       setOpenVideoId(entry.id);
-    } catch {
-      setError("Could not load video");
+    } catch (error) {
+      setError(error instanceof StudioVideoPlaybackError ? error.message : "Could not load video");
     }
   };
 
@@ -865,6 +869,14 @@ export default function ProClientFolderModal({
               </p>
             )}
           </>
+        )}
+        {entry.videoTranscriptStatus === "completed" && entry.transcript && (
+          <p className="mt-2 text-[10px] text-white/65 leading-relaxed bg-white/5 rounded-md px-2 py-1.5 italic border-l-2 border-violet-400/40">
+            {entry.transcript}
+          </p>
+        )}
+        {entry.videoTranscriptStatus === "failed" && (
+          <p className="mt-2 text-[10px] text-white/35 italic">Video transcript unavailable.</p>
         )}
       </div>
     );
@@ -1160,8 +1172,8 @@ export default function ProClientFolderModal({
 
                   {videoMode ? (
                     <StudioVideoMessageComposer
-                      clientName={client.name}
-                      clientId={clientId}
+                      recipientName={client.name}
+                      uploadPath={clientId ? `/api/pro/tablet/${clientId}/video-message` : ""}
                       onSent={(entry) => setMessages((previous) => [...previous, entry as TabletEntry])}
                       onCancel={() => setVideoMode(false)}
                     />
