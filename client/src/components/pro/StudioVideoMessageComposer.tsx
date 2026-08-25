@@ -208,9 +208,13 @@ export default function StudioVideoMessageComposer({
     setSendError(null);
 
     try {
-      const extension = videoMimeType.includes("mp4") ? "mp4" : "webm";
+      const uploadMimeType = videoMimeType.split(";")[0].trim().toLowerCase() || "video/webm";
+      const extension = uploadMimeType === "video/mp4" ? "mp4" : "webm";
+      const uploadBlob = videoBlob.type === uploadMimeType
+        ? videoBlob
+        : new Blob([videoBlob], { type: uploadMimeType });
       const formData = new FormData();
-      formData.append("video", videoBlob, `studio-video-message.${extension}`);
+      formData.append("video", uploadBlob, `studio-video-message.${extension}`);
       formData.append("durationSec", String(Math.max(1, recordingSeconds)));
 
       const response = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video-message`), {
