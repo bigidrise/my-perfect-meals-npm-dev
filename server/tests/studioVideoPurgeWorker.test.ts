@@ -61,10 +61,12 @@ describe("Studio video purge worker", () => {
   test("clears media references only after every original and derivative is deleted, then stays idempotent", async () => {
     const row = makeRow();
     const { database, queries } = queuedDatabase([
+      { rows: [] }, // recover abandoned manual deletion leases
       { rows: [] }, // mark expiration_pending rows as expired
       { rows: [row] }, // claim due media
       { rows: [{ id: row.id }] }, // renew this item's lease
       { rows: [{ id: row.id }] }, // finalize deletion
+      { rows: [] }, // recover abandoned manual deletion leases
       { rows: [] }, // second run expires none
       { rows: [] }, // second run claims none
     ]);
@@ -91,8 +93,9 @@ describe("Studio video purge worker", () => {
       "studio-video/message-1/preview.mp4",
       "studio-video/message-1/thumbnail.jpg",
     ]);
-    expect(sqlText(queries[0])).toContain("studio_video_messages");
-    const finalizationSql = sqlText(queries[3]);
+    expect(sqlText(queries[0])).toContain("deletion_lease_expires_at");
+    expect(sqlText(queries[1])).toContain("studio_video_messages");
+    const finalizationSql = sqlText(queries[4]);
     expect(finalizationSql).toContain("object_key = NULL");
     expect(finalizationSql).toContain("temporary_derivative_keys = '[]'::jsonb");
     expect(finalizationSql).toContain("deleted_at = COALESCE");
@@ -136,6 +139,7 @@ describe("Studio video purge worker", () => {
     const row = makeRow();
     const { database } = queuedDatabase([
       { rows: [] },
+      { rows: [] },
       { rows: [row] },
       { rows: [{ id: row.id }] },
       { rows: [{ id: row.id }] },
@@ -169,6 +173,26 @@ describe("Studio video purge worker", () => {
 
     expect(deleteObject).not.toHaveBeenCalled();
     expect(sqlText(queries[1])).toContain("state = 'deletion_failed'");
+  });
+
+  test("recovers a crashed manual deletion claim even when the video was never due for automatic expiry", async () => {
+    const { database, queries } = queuedDatabase([
+      { rows: [{ id: "ready-media" }] }, // lease recovery
+      { rows: [] }, // expiration advance
+      { rows: [] }, // due automatic claim
+    ]);
+
+    await expect(purgeExpiredStudioVideos({ database, now: NOW })).resolves.toEqual({
+      claimed: 0,
+      deleted: 0,
+      failed: 0,
+    });
+
+    const recoverySql = sqlText(queries[0]);
+    expect(recoverySql).toContain("state = 'deletion_failed'");
+    expect(recoverySql).toContain("state = 'deleting'");
+    expect(recoverySql).not.toMatch(/(?:^|[\s(])expires_at\s*<=/);
+    expect(recoverySql).not.toContain("object_key = NULL");
   });
 
   test("does not clear references when the transcript changes during storage deletion", async () => {

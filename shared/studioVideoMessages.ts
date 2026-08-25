@@ -216,11 +216,13 @@ const STUDIO_VIDEO_ALLOWED_TRANSITIONS: Record<
   uploading: ["uploaded", "upload_failed"],
   uploaded: ["processing", "upload_failed"],
   processing: ["ready", "transcription_failed", "moderation_failed"],
-  ready: ["expiration_pending"],
+  // A participant may remove an eligible private video before its automatic
+  // expiry. The permanent message/transcript record remains intact.
+  ready: ["expiration_pending", "deleting"],
   upload_failed: ["uploading"],
   transcription_failed: ["processing"],
   moderation_failed: ["processing"],
-  expiration_pending: ["expired"],
+  expiration_pending: ["expired", "deleting"],
   expired: ["deleting"],
   deleting: ["deleted", "deletion_failed"],
   deletion_failed: ["deleting"],
@@ -623,6 +625,24 @@ export function assertStudioVideoTranscriptRetainable(
       "A deleted video must retain its completed transcript",
     );
   }
+}
+
+/**
+ * Manual removal has the same transcript-retention protection as timed purge,
+ * but deliberately does not wait for the 24-hour expiry window. Storage
+ * deletion still occurs only after the media row has been claimed as deleting.
+ */
+export function assertStudioVideoManualDeletionAllowed(input: {
+  state: StudioVideoMediaState;
+  transcript: StudioVideoTranscript;
+}): void {
+  if (!["ready", "expiration_pending", "deletion_failed", "deleting"].includes(input.state)) {
+    throw new StudioVideoDomainError(
+      "INVALID_STUDIO_VIDEO_TRANSITION",
+      `Video cannot be manually deleted from ${input.state}`,
+    );
+  }
+  assertStudioVideoTranscriptRetainable(input.transcript);
 }
 
 export type StudioVideoDeletionResult = {

@@ -8,3 +8,9 @@ Treat a pending voice note without both a stored audio object and a transcriptio
 **Why:** A flow that persists a placeholder before storage and queue creation can leave a permanent pending row with no bytes or job for a worker to process.
 
 **How to apply:** Upload audio first, then atomically persist its storage reference and transcription job. If persistence or queuing fails, remove the fresh object and write a visible failed state. In readers, only show transcription progress for pending notes that have a stored audio reference and job.
+
+Queued transcription work must use a renewable, token-bound processing lease. Recovery may fail only an expired lease; terminal job and note writes must still be claim-token guarded.
+
+**Why:** an old pending job can become actively processed immediately before a recovery pass. Creation time is not evidence that its current worker is stalled.
+
+**How to apply:** renew the lease during long-running audio work, reclaim only expired processing leases, and leave object references intact when recovery marks a note failed so legacy and newly stored media are never deleted by queue repair.

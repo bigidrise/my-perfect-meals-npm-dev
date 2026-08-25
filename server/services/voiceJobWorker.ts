@@ -15,6 +15,10 @@ import { randomUUID } from "crypto";
 
 const POLL_INTERVAL_MS = 8000;
 const MAX_ATTEMPTS = 3;
+const VOICE_RECOVERY_INTERVAL_MS = 60_000;
+const VOICE_STUCK_GRACE_MS = 15 * 60_000;
+const VOICE_JOB_LEASE_MS = 30 * 60_000;
+const VOICE_JOB_LEASE_HEARTBEAT_MS = 5 * 60_000;
 const STUDIO_VIDEO_PURGE_BATCH_SIZE = 25;
 const STUDIO_VIDEO_PURGE_INTERVAL_MS = 60_000;
 const STUDIO_VIDEO_DELETION_LEASE_MS = 30 * 60_000;
@@ -53,6 +57,99 @@ export type StudioVideoPurgeOptions = {
   now?: Date;
   batchSize?: number;
 };
+
+export type VoiceRecoveryDatabase = {
+  execute: (query: any) => Promise<{ rows?: unknown[] }>;
+};
+
+export async function recoverStuckVoiceNotes(
+  options: {
+    database?: VoiceRecoveryDatabase;
+    now?: Date;
+    graceMs?: number;
+  } = {},
+): Promise<{ staleJobs: number; recoveredNotes: number }> {
+  const database = options.database ?? db;
+  const now = options.now ?? new Date();
+  const cutoff = new Date(now.getTime() - (options.graceMs ?? VOICE_STUCK_GRACE_MS));
+  const failureMessage = "🎤 Voice note (transcript unavailable — please ask the sender to record it again)";
+
+  // A worker that died after claiming a job must not leave that job in
+  // processing forever. Processing is guarded by a renewable claim lease, not
+  // by the job's creation time: an old queued note can legitimately begin
+  // work just before a recovery pass runs.
+  const staleProcessing = await database.execute(sql`
+    UPDATE tablet_voice_jobs AS job
+    SET status = 'failed',
+        last_error = 'Voice transcription job exceeded the recovery grace period',
+        processed_at = NOW(),
+        processing_claim_token = NULL,
+        processing_lease_expires_at = NULL
+    FROM client_notes AS note
+    WHERE job.note_id = note.id
+      AND job.status = 'processing'
+      AND (job.processing_lease_expires_at IS NULL OR job.processing_lease_expires_at <= ${now})
+      AND note.content_type = 'voice'
+      AND note.transcript_status = 'pending'
+    RETURNING job.note_id
+  `);
+
+  // Jobs for notes whose upload never produced an audio object are not
+  // runnable. Mark them failed before evaluating the note below.
+  await database.execute(sql`
+    UPDATE tablet_voice_jobs AS job
+    SET status = 'failed',
+        last_error = 'Voice recording object is unavailable',
+        processed_at = NOW()
+    FROM client_notes AS note
+    WHERE job.note_id = note.id
+      AND (
+        job.status = 'pending'
+        OR (
+          job.status = 'processing'
+          AND (job.processing_lease_expires_at IS NULL OR job.processing_lease_expires_at <= ${now})
+        )
+      )
+      AND job.created_at < ${cutoff}
+      AND note.content_type = 'voice'
+      AND note.transcript_status = 'pending'
+      AND note.audio_object_key IS NULL
+  `);
+
+  // This also catches historical pending notes that have valid media but no
+  // queued/runnable job. New writes are transactional, but recovery remains
+  // safe for older or interrupted records.
+  const recovered = await database.execute(sql`
+    UPDATE client_notes AS note
+    SET transcript_status = 'failed',
+        body = ${failureMessage},
+        updated_at = NOW()
+    WHERE note.content_type = 'voice'
+      AND note.transcript_status = 'pending'
+      AND note.created_at < ${cutoff}
+      AND (
+        note.audio_object_key IS NULL
+        OR NOT EXISTS (
+          SELECT 1
+          FROM tablet_voice_jobs AS job
+          WHERE job.note_id = note.id
+            AND (
+              job.status = 'pending'
+              OR (
+                job.status = 'processing'
+                AND job.processing_lease_expires_at > ${now}
+              )
+            )
+        )
+      )
+    RETURNING note.id
+  `);
+
+  return {
+    staleJobs: (staleProcessing.rows ?? []).length,
+    recoveredNotes: (recovered.rows ?? []).length,
+  };
+}
 
 function parseDerivativeKeys(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -274,6 +371,24 @@ export async function purgeExpiredStudioVideos(
   const claimToken = randomUUID();
   const leaseExpiresAt = new Date(now.getTime() + STUDIO_VIDEO_DELETION_LEASE_MS);
 
+  // A manual delete can be interrupted before the private storage call
+  // completes. Recover any expired claim regardless of watch state: a `ready`
+  // video has no expiry timestamp, so it would otherwise remain permanently
+  // unavailable. Keep its object references and transcript for a safe retry.
+  await database.execute(sql`
+    UPDATE studio_video_media
+    SET state = 'deletion_failed',
+        last_deletion_error = 'Studio video deletion lease expired before completion',
+        deletion_claim_token = NULL,
+        deletion_lease_expires_at = NULL,
+        updated_at = NOW()
+    WHERE state = 'deleting'
+      AND (
+        deletion_lease_expires_at IS NULL
+        OR deletion_lease_expires_at <= ${now}
+      )
+  `);
+
   const expiredResult = await database.execute(sql`
     UPDATE studio_video_media AS media
     SET state = 'expired',
@@ -365,23 +480,54 @@ export function startStudioVideoPurgeWorker(): void {
 }
 
 async function processNextJob(): Promise<void> {
+  const claimToken = randomUUID();
+  const leaseExpiresAt = new Date(Date.now() + VOICE_JOB_LEASE_MS);
   const result = await db.execute(sql`
     UPDATE tablet_voice_jobs
-    SET status = 'processing', attempts = attempts + 1
+    SET status = 'processing',
+        attempts = attempts + 1,
+        processing_claim_token = ${claimToken},
+        processing_lease_expires_at = ${leaseExpiresAt}
     WHERE id = (
-      SELECT id FROM tablet_voice_jobs
-      WHERE status = 'pending' AND attempts < ${MAX_ATTEMPTS}
-      ORDER BY created_at ASC
+      SELECT job.id
+      FROM tablet_voice_jobs AS job
+      JOIN client_notes AS note ON note.id = job.note_id
+      WHERE job.status = 'pending'
+        AND job.attempts < ${MAX_ATTEMPTS}
+        AND note.content_type = 'voice'
+        AND note.transcript_status = 'pending'
+      ORDER BY job.created_at ASC
       LIMIT 1
       FOR UPDATE SKIP LOCKED
     )
-    RETURNING id, note_id, attempts
+    RETURNING id, note_id, attempts, processing_claim_token
   `);
 
   const job = result.rows[0] as any;
   if (!job) return;
 
-  const { id: jobId, note_id: noteId, attempts } = job;
+  const { id: jobId, note_id: noteId, attempts, processing_claim_token: processingClaimToken } = job;
+  let leaseLost = false;
+  let heartbeatInFlight = false;
+  const renewJobLease = async (): Promise<boolean> => {
+    const renewed = await db.execute(sql`
+      UPDATE tablet_voice_jobs
+      SET processing_lease_expires_at = ${new Date(Date.now() + VOICE_JOB_LEASE_MS)}
+      WHERE id = ${jobId}
+        AND status = 'processing'
+        AND processing_claim_token = ${processingClaimToken}
+      RETURNING id
+    `);
+    return (renewed.rows ?? []).length > 0;
+  };
+  const heartbeat = setInterval(() => {
+    if (heartbeatInFlight) return;
+    heartbeatInFlight = true;
+    void renewJobLease()
+      .then((renewed) => { if (!renewed) leaseLost = true; })
+      .catch(() => { leaseLost = true; })
+      .finally(() => { heartbeatInFlight = false; });
+  }, VOICE_JOB_LEASE_HEARTBEAT_MS);
 
   try {
     const noteResult = await db.execute(sql`
@@ -407,7 +553,11 @@ async function processNextJob(): Promise<void> {
       ? `🎤 Voice note (${durationSec}s)`
       : "[Voice note removed]";
 
-    await db.execute(sql`
+    if (leaseLost || !await renewJobLease()) {
+      leaseLost = true;
+      throw new Error("Voice transcription job lease was lost");
+    }
+    const noteUpdated = await db.execute(sql`
       UPDATE client_notes SET
         transcript        = ${transcript},
         transcript_status = 'completed',
@@ -417,7 +567,10 @@ async function processNextJob(): Promise<void> {
         transcribed_at    = NOW(),
         moderated_at      = NOW()
       WHERE id = ${noteId}
+        AND transcript_status = 'pending'
+      RETURNING id
     `);
+    if ((noteUpdated.rows ?? []).length === 0) throw new Error("Voice note state changed before transcription could be saved");
 
     if (!modResult.allowed && isSharedMessage) {
       logClientActivity(
@@ -437,32 +590,50 @@ async function processNextJob(): Promise<void> {
       );
     }
 
-    await db.execute(sql`
+    const jobCompleted = await db.execute(sql`
       UPDATE tablet_voice_jobs
-      SET status = 'completed', processed_at = NOW()
+      SET status = 'completed',
+          processed_at = NOW(),
+          processing_claim_token = NULL,
+          processing_lease_expires_at = NULL
       WHERE id = ${jobId}
+        AND status = 'processing'
+        AND processing_claim_token = ${processingClaimToken}
+      RETURNING id
     `);
+    if ((jobCompleted.rows ?? []).length === 0) {
+      console.warn(`[VoiceWorker] Job ${jobId} completed transcription after its lease was lost; retained recovery state`);
+    }
   } catch (err: any) {
     const errorMsg = err?.message || "Unknown error";
     console.error(`[VoiceWorker] Job ${jobId} failed (attempt ${attempts}):`, errorMsg);
 
     const isFinal = attempts >= MAX_ATTEMPTS;
-    await db.execute(sql`
+    if (leaseLost) return;
+    const jobFailed = await db.execute(sql`
       UPDATE tablet_voice_jobs
       SET status = ${isFinal ? "failed" : "pending"},
           last_error = ${errorMsg},
-          processed_at = NOW()
+          processed_at = NOW(),
+          processing_claim_token = NULL,
+          processing_lease_expires_at = NULL
       WHERE id = ${jobId}
+        AND status = 'processing'
+        AND processing_claim_token = ${processingClaimToken}
+      RETURNING id
     `);
 
-    if (isFinal) {
+    if (isFinal && (jobFailed.rows ?? []).length > 0) {
       await db.execute(sql`
         UPDATE client_notes SET
           transcript_status = 'failed',
           body = '🎤 Voice note (transcript unavailable)'
         WHERE id = ${noteId}
+          AND transcript_status = 'pending'
       `);
     }
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 
@@ -478,6 +649,19 @@ export function startVoiceJobWorker(): void {
       console.error("[VoiceWorker] Unexpected poll error:", err);
     }
   };
+  const recover = async () => {
+    try {
+      const result = await recoverStuckVoiceNotes();
+      if (result.staleJobs > 0 || result.recoveredNotes > 0) {
+        console.log(`[VoiceWorker] Recovered ${result.recoveredNotes} stuck voice note(s) and ${result.staleJobs} stale job(s)`);
+      }
+    } catch (err) {
+      console.error("[VoiceWorker] Stuck-note recovery failed:", err);
+    }
+  };
+  void run();
+  void recover();
   setInterval(run, POLL_INTERVAL_MS);
+  setInterval(recover, VOICE_RECOVERY_INTERVAL_MS);
   console.log(`[VoiceWorker] Started — polling every ${POLL_INTERVAL_MS / 1000}s`);
 }

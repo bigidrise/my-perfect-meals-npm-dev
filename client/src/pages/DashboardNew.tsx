@@ -318,15 +318,24 @@ export default function DashboardNew() {
       return;
     }
     try {
-      const res = await fetch(apiUrl(`/api/client/tablet/entry/${entry.id}`), {
+      const isVideo = entry.contentType === "video";
+      if (isVideo && !window.confirm("Delete this video permanently? Its transcript will remain in your message history.")) return;
+      const endpoint = isVideo
+        ? `/api/client/tablet/video/${entry.id}`
+        : `/api/client/tablet/entry/${entry.id}`;
+      const res = await fetch(apiUrl(endpoint), {
         method: "DELETE",
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete");
-      setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
+      setTabletMessages((prev) => isVideo
+        ? prev.map((message: any) => message.id === entry.id
+          ? { ...message, videoMediaState: "deleted", videoExpiresAt: null }
+          : message)
+        : prev.filter((message: any) => message.id !== entry.id));
     } catch {
-      setTabletError("Failed to delete message");
+      setTabletError(entry.contentType === "video" ? "Failed to delete video" : "Failed to delete message");
     }
   };
 
@@ -1229,8 +1238,14 @@ export default function DashboardNew() {
 
                         {entry.contentType === "video" ? (
                           <div className="space-y-2">
-                            {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
-                              <p className="text-xs text-white/45 italic">This video has expired. Its transcript remains in your message history.</p>
+                            {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" || entry.videoMediaState === "deleting" || entry.videoMediaState === "deletion_failed" ? (
+                              <p className="text-xs text-white/45 italic">
+                                {entry.videoMediaState === "deleting"
+                                  ? "This video is being removed. Its transcript remains in your message history."
+                                  : entry.videoMediaState === "deletion_failed"
+                                    ? "The video could not be removed yet. Use delete to retry; its transcript remains in your message history."
+                                    : "This video is no longer available. Its transcript remains in your message history."}
+                              </p>
                             ) : tabletOpenVideoId === entry.id && tabletVideoUrls[entry.id] ? (
                               <video
                                 src={tabletVideoUrls[entry.id]}
