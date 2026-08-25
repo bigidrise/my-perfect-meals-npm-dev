@@ -1,5 +1,6 @@
 import { getDeviceId } from "@/utils/deviceId";
 import { getAuthToken } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 export async function apiRequest(path: string, init: RequestInit = {}) {
   const authToken = getAuthToken();
@@ -10,7 +11,7 @@ export async function apiRequest(path: string, init: RequestInit = {}) {
   if (!headers.has("X-Device-Id")) headers.set("X-Device-Id", deviceId);
   if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
-  const res = await fetch(path, { ...init, headers, credentials: "include" });
+  const res = await fetch(apiUrl(path), { ...init, headers, credentials: "include" });
   let data: any = null;
   try { data = await res.json(); } catch {}
 

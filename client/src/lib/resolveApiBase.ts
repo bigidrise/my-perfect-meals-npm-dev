@@ -1,11 +1,11 @@
 import { Capacitor } from '@capacitor/core';
 
 /**
- * Native shells do not have a web origin that can serve the API. Keep their
- * production endpoint centralized here; all browser builds use their own
- * origin, including custom domains, Replit deployments, and development.
+ * Bundled native shells start at capacitor://localhost, which cannot serve the
+ * API. Keep the canonical production endpoint centralized here; browser builds
+ * continue to use their own origin, including custom domains and development.
  */
-export const NATIVE_PRODUCTION_API_ORIGIN = "https://app.myperfectmeals.com";
+export const NATIVE_PRODUCTION_API_ORIGIN = "https://app.myperfectmeals.ai";
 
 export function resolveApiBaseForRuntime({
   isNative,

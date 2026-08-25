@@ -2,10 +2,6 @@
   "appId": "com.myperfectmeals.app",
   "appName": "My Perfect Meals",
   "webDir": "client/dist",
-  "server": {
-    "url": "https://app.myperfectmeals.ai",
-    "cleartext": false
-  },
   "ios": {
     "backgroundColor": "#000000",
     "scrollEnabled": false,
