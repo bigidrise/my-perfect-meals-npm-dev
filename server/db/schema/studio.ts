@@ -1,4 +1,5 @@
 import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex, boolean, integer } from "drizzle-orm/pg-core";
+import type { StudioVideoMediaState } from "@shared/studioVideoMessages";
 
 export const professionalSpaceTypeEnum = pgEnum("professional_space_type", ["studio", "clinic"]);
 
@@ -144,7 +145,6 @@ export const clientNotes = pgTable("client_notes", {
   studioClientIdx: index("idx_client_notes_studio_client").on(table.studioId, table.clientUserId),
   authorIdx: index("idx_client_notes_author").on(table.authorUserId),
 }));
-
 export const tabletVoiceJobs = pgTable("tablet_voice_jobs", {
   id: uuid("id").defaultRandom().primaryKey(),
   noteId: uuid("note_id").notNull().references(() => clientNotes.id, { onDelete: "cascade" }),
@@ -186,11 +186,7 @@ export const studioVideoMessages = pgTable("studio_video_messages", {
 export const studioVideoMedia = pgTable("studio_video_media", {
   id: uuid("id").defaultRandom().primaryKey(),
   messageId: uuid("message_id").notNull().references(() => studioVideoMessages.id, { onDelete: "cascade" }).unique(),
-  state: text("state").$type<
-    "draft" | "uploading" | "uploaded" | "processing" | "ready" |
-    "upload_failed" | "transcription_failed" | "moderation_failed" |
-    "expiration_pending" | "expired" | "deleting" | "deletion_failed" | "deleted"
-  >().notNull().default("draft"),
+  state: text("state").$type<StudioVideoMediaState>().notNull().default("draft"),
   objectKey: text("object_key"),
   mimeType: text("mime_type").notNull(),
   durationSec: integer("duration_sec").notNull(),
@@ -209,11 +205,16 @@ export const studioVideoMedia = pgTable("studio_video_media", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   moderationStatus: text("moderation_status").$type<"pending" | "approved" | "blocked">().notNull().default("approved"),
   moderatedAt: timestamp("moderated_at", { withTimezone: true }),
+  deletionAttempts: integer("deletion_attempts").notNull().default(0),
+  deletionClaimToken: text("deletion_claim_token"),
+  deletionLeaseExpiresAt: timestamp("deletion_lease_expires_at", { withTimezone: true }),
+  lastDeletionError: text("last_deletion_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   stateIdx: index("idx_studio_video_media_state").on(table.state),
   expiresIdx: index("idx_studio_video_media_expires").on(table.expiresAt),
+  purgeIdx: index("idx_studio_video_media_purge").on(table.state, table.expiresAt),
 }));
 
 export type Studio = typeof studios.$inferSelect;
