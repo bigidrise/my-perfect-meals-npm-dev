@@ -77,6 +77,7 @@ async function getProStudioId(proUserId: string): Promise<string | null> {
 }
 
 async function markMessagesRead(studioId: string, clientUserId: string): Promise<void> {
+  let transcript: string;
   try {
     await db.execute(sql`
       INSERT INTO pro_message_reads (studio_id, client_user_id, last_read_at)
@@ -250,7 +251,6 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
       req, event: "transcription_requested", actorUserId: authUser.id,
       targetUserId: clientId, studioId, messageId: message.id, metadata: {},
     });
-    let transcript: string;
     try {
       ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, mimeType));
       await db.update(studioVideoMessages)
@@ -333,6 +333,8 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
       contentType: "video",
       videoMediaState: "ready",
       videoDurationSec: durationSec,
+      transcript,
+      videoTranscriptStatus: "completed",
       createdAt: message.createdAt,
     },
   });

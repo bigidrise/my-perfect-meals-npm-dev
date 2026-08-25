@@ -119,6 +119,7 @@ async function handleClientStudioVideoDeletion(
   studioId: string,
   messageId: string,
 ): Promise<void> {
+  let transcript: string;
   try {
     const result = await deleteStudioVideoMessage({
       req,
@@ -249,7 +250,6 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
       req, event: "transcription_requested", actorUserId: authUser.id, targetUserId: authUser.id,
       studioId, messageId: message.id, metadata: {},
     });
-    let transcript: string;
     try {
       ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, req.file.mimetype));
       await db.update(studioVideoMessages)
@@ -329,6 +329,8 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
       contentType: "video",
       videoMediaState: "ready",
       videoDurationSec: durationSec,
+      transcript,
+      videoTranscriptStatus: "completed",
       createdAt: message.createdAt,
     },
   });

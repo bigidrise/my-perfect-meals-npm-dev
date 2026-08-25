@@ -72,6 +72,7 @@ beforeAll(() => {
     configurable: true,
     value: { getUserMedia },
   });
+  jest.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
 });
 
 beforeEach(() => {
@@ -85,8 +86,8 @@ beforeEach(() => {
 function renderComposer() {
   return render(
     <StudioVideoMessageComposer
-      clientName="Alex"
-      clientId="client-1"
+      recipientName="Alex"
+      uploadPath="/api/pro/tablet/client-1/video-message"
       onSent={onSent}
       onCancel={onCancel}
     />,
@@ -115,6 +116,12 @@ describe("StudioVideoMessageComposer", () => {
     );
 
     expect(getSupportedVideoMimeType()).toBe("video/mp4");
+  });
+
+  it("allows the browser to choose a container when no preferred MIME type is supported", () => {
+    MockMediaRecorder.isTypeSupported.mockImplementation(() => false);
+
+    expect(getSupportedVideoMimeType()).toBeUndefined();
   });
 
   it("records without uploading and shows a complete local preview before send", async () => {
@@ -192,6 +199,26 @@ describe("StudioVideoMessageComposer", () => {
     const uploadedFile = requestBody.get("video") as File;
     expect(uploadedFile.type).toBe("video/webm");
     expect(uploadedFile.name).toBe("studio-video-message.webm");
+  });
+
+  it("uses a QuickTime extension when an iOS recorder selects it", async () => {
+    MockMediaRecorder.isTypeSupported.mockImplementation(
+      (type: string) => type === "video/quicktime",
+    );
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ entry: { id: "message-mov", contentType: "video" } }),
+    });
+    renderComposer();
+    await recordOneVideo();
+
+    fireEvent.click(screen.getByTestId("send-video-message"));
+    await waitFor(() => expect(onSent).toHaveBeenCalledTimes(1));
+
+    const requestOptions = fetchMock.mock.calls[0][1] as RequestInit;
+    const uploadedFile = (requestOptions.body as FormData).get("video") as File;
+    expect(uploadedFile.type).toBe("video/quicktime");
+    expect(uploadedFile.name).toBe("studio-video-message.mov");
   });
 
   it("keeps the local recording available when send fails so it can be retried", async () => {

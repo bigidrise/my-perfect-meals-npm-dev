@@ -16,9 +16,9 @@ import {
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
-interface StudioVideoMessageComposerProps {
-  clientName: string;
-  clientId: string | null;
+export interface StudioVideoMessageComposerProps {
+  recipientName: string;
+  uploadPath: string;
   onSent: (entry: unknown) => void;
   onCancel: () => void;
 }
@@ -49,8 +49,8 @@ function formatDuration(seconds: number): string {
 }
 
 export default function StudioVideoMessageComposer({
-  clientName,
-  clientId,
+  recipientName,
+  uploadPath,
   onSent,
   onCancel,
 }: StudioVideoMessageComposerProps) {
@@ -207,9 +207,9 @@ export default function StudioVideoMessageComposer({
   };
 
   const sendVideoMessage = async () => {
-    if (!videoBlob || !clientId || sending || sendAttemptRef.current) {
-      if (!clientId && videoBlob) {
-        setSendError("The client connection is still loading. Please try again.");
+    if (!videoBlob || sending || sendAttemptRef.current || !uploadPath) {
+      if (videoBlob && !uploadPath) {
+        setSendError("The recipient connection is still loading. Please try again.");
       }
       return;
     }
@@ -232,7 +232,7 @@ export default function StudioVideoMessageComposer({
       formData.append("video", uploadBlob, `studio-video-message.${extension}`);
       formData.append("durationSec", String(Math.max(1, recordingSeconds)));
 
-      const response = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video-message`), {
+      const response = await fetch(apiUrl(uploadPath), {
         method: "POST",
         headers: { ...getAuthHeaders() },
         credentials: "include",
@@ -268,9 +268,9 @@ export default function StudioVideoMessageComposer({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-violet-100 font-semibold">Video message to {clientName}</p>
+          <p className="text-xs text-violet-100 font-semibold">Video message to {recipientName}</p>
           <p className="text-[10px] text-white/50 leading-snug mt-0.5">
-            Only you and this client can view this message.
+            Only you and this recipient can view this message.
           </p>
         </div>
         <button
@@ -410,7 +410,7 @@ export default function StudioVideoMessageComposer({
             data-testid="send-video-message"
           >
             {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-            {sending ? "Sending…" : sendError ? `Retry send to ${clientName}` : `Send to ${clientName}`}
+            {sending ? "Sending…" : sendError ? `Retry send to ${recipientName}` : `Send to ${recipientName}`}
           </button>
           {sendError && (
             <p className="text-center text-[10px] text-red-300">

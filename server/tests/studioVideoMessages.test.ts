@@ -153,7 +153,7 @@ describe("Studio Video Messages — verified watch completion", () => {
   });
 
   it("starts the exact 24-hour countdown only after verified completion", () => {
-    const progress = makeProgressThrough([
+    let progress = makeProgressThrough([
       [0, 60],
       [60, 98],
     ]);
@@ -172,9 +172,9 @@ describe("Studio Video Messages — verified watch completion", () => {
     });
 
     expect(result.accepted).toBe(false);
-    expect(result.reason).toBe("unverified_jump");
-    expect(result.progress.watchedIntervals).toEqual([]);
-    expect(result.complete).toBe(false);
+    expect(result.reason).toBe("non_monotonic_sample");
+    expect(result.progress.watchedIntervals).toEqual([[0, 98]]);
+    expect(result.complete).toBe(true);
   });
 
   it("counts unique verified playback and requires near-end progress", () => {

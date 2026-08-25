@@ -43,6 +43,7 @@ export type StudioVideoListEntry = {
   videoDurationSec: number;
   videoWatchCompletedAt: Date | null;
   videoExpiresAt: Date | null;
+  transcript: string | null;
   videoTranscriptStatus: "pending" | "completed" | "failed" | "blocked";
   videoModerationStatus: "pending" | "approved" | "blocked";
 };
@@ -86,6 +87,7 @@ export async function listStudioVideoMessages(
       visibility: studioVideoMessages.visibility,
       contentType: studioVideoMessages.contentType,
       createdAt: studioVideoMessages.createdAt,
+      transcript: studioVideoMessages.transcript,
       transcriptStatus: studioVideoMessages.transcriptStatus,
       mediaState: studioVideoMedia.state,
       durationSec: studioVideoMedia.durationSec,
@@ -106,8 +108,9 @@ export async function listStudioVideoMessages(
 
   return rows.map((row) => ({
     id: row.id,
-    // Deliberately generic: video bytes and transcripts are never included in
-    // message previews or notification payloads.
+    // Video bytes are never included in conversation records, previews, or
+    // notification payloads. The completed transcript is only returned after
+    // the existing Studio relationship and scope checks above succeed.
     body: "Video message",
     authorUserId: row.authorUserId,
     recipientUserId: row.recipientUserId,
@@ -120,6 +123,7 @@ export async function listStudioVideoMessages(
     videoDurationSec: row.durationSec,
     videoWatchCompletedAt: row.watchCompletedAt,
     videoExpiresAt: row.expiresAt,
+    transcript: row.transcript,
     videoTranscriptStatus: row.transcriptStatus as StudioVideoListEntry["videoTranscriptStatus"],
     videoModerationStatus: row.moderationStatus as StudioVideoListEntry["videoModerationStatus"],
   }));
