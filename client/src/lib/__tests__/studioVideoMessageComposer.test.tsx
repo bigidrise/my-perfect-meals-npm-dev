@@ -4,7 +4,9 @@
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
+import StudioVideoMessageComposer, {
+  getSupportedVideoMimeType,
+} from "@/components/pro/StudioVideoMessageComposer";
 
 jest.mock("@/lib/resolveApiBase", () => ({
   apiUrl: (path: string) => path,
@@ -17,8 +19,13 @@ jest.mock("@/lib/auth", () => ({
 class MockMediaRecorder {
   static isTypeSupported = jest.fn(() => true);
   state: "inactive" | "recording" = "inactive";
+  mimeType: string;
   ondataavailable: ((event: { data: Blob }) => void) | null = null;
   onstop: (() => void) | null = null;
+
+  constructor(_stream: MediaStream, options?: MediaRecorderOptions) {
+    this.mimeType = options?.mimeType || "video/webm";
+  }
 
   start() {
     this.state = "recording";
@@ -26,7 +33,7 @@ class MockMediaRecorder {
 
   stop() {
     this.state = "inactive";
-    this.ondataavailable?.({ data: new Blob(["recorded video"], { type: "video/webm" }) });
+    this.ondataavailable?.({ data: new Blob(["recorded video"], { type: this.mimeType }) });
     this.onstop?.();
   }
 }
@@ -69,6 +76,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  MockMediaRecorder.isTypeSupported.mockImplementation(() => true);
   getUserMedia.mockResolvedValue(makeStream());
   fetchMock.mockReset();
   global.fetch = fetchMock;
@@ -93,6 +101,22 @@ async function recordOneVideo() {
 }
 
 describe("StudioVideoMessageComposer", () => {
+  it("selects a Chrome-style WebM codec when the browser supports it", () => {
+    MockMediaRecorder.isTypeSupported.mockImplementation(
+      (type: string) => type === "video/webm;codecs=vp8,opus",
+    );
+
+    expect(getSupportedVideoMimeType()).toBe("video/webm;codecs=vp8,opus");
+  });
+
+  it("selects an iOS/Safari-compatible MP4 container when WebM is unavailable", () => {
+    MockMediaRecorder.isTypeSupported.mockImplementation(
+      (type: string) => type === "video/mp4",
+    );
+
+    expect(getSupportedVideoMimeType()).toBe("video/mp4");
+  });
+
   it("records without uploading and shows a complete local preview before send", async () => {
     renderComposer();
 
@@ -147,6 +171,27 @@ describe("StudioVideoMessageComposer", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId("recorded-video-preview")).not.toBeInTheDocument();
+  });
+
+  it("sends one normalized WebM file when the recorder includes codec parameters", async () => {
+    MockMediaRecorder.isTypeSupported.mockImplementation(
+      (type: string) => type === "video/webm;codecs=vp8,opus",
+    );
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ entry: { id: "message-codec", contentType: "video" } }),
+    });
+    renderComposer();
+    await recordOneVideo();
+
+    fireEvent.click(screen.getByTestId("send-video-message"));
+    await waitFor(() => expect(onSent).toHaveBeenCalledTimes(1));
+
+    const requestOptions = fetchMock.mock.calls[0][1] as RequestInit;
+    const requestBody = requestOptions.body as FormData;
+    const uploadedFile = requestBody.get("video") as File;
+    expect(uploadedFile.type).toBe("video/webm");
+    expect(uploadedFile.name).toBe("studio-video-message.webm");
   });
 
   it("keeps the local recording available when send fails so it can be retried", async () => {
