@@ -148,6 +148,7 @@ export const clientNotes = pgTable("client_notes", {
 }, (table) => ({
   studioClientIdx: index("idx_client_notes_studio_client").on(table.studioId, table.clientUserId),
   authorIdx: index("idx_client_notes_author").on(table.authorUserId),
+  voiceRecoveryIdx: index("idx_client_notes_voice_recovery").on(table.contentType, table.transcriptStatus),
 }));
 export const tabletVoiceJobs = pgTable("tablet_voice_jobs", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -161,6 +162,7 @@ export const tabletVoiceJobs = pgTable("tablet_voice_jobs", {
   processedAt: timestamp("processed_at", { withTimezone: true }),
 }, (table) => ({
   statusIdx: index("idx_tablet_voice_jobs_status").on(table.status),
+  processingLeaseIdx: index("idx_tablet_voice_jobs_processing_lease").on(table.status, table.processingLeaseExpiresAt),
 }));
 
 /**

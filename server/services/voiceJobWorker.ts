@@ -15,6 +15,10 @@ import { randomUUID } from "crypto";
 
 const POLL_INTERVAL_MS = 8000;
 const MAX_ATTEMPTS = 3;
+
+export const STUDIO_VOICE_RECOVERY_MESSAGE = "🎤 Voice note unavailable. Please record and send it again.";
+
+const STUDIO_VOICE_JOB_RECOVERY_ERROR = "Voice note transcription could not be recovered";
 const VOICE_RECOVERY_INTERVAL_MS = 60_000;
 const VOICE_STUCK_GRACE_MS = 15 * 60_000;
 const VOICE_JOB_LEASE_MS = 30 * 60_000;
@@ -479,6 +483,15 @@ export function startStudioVideoPurgeWorker(): void {
   console.log(`[StudioVideoPurge] Started — polling every ${STUDIO_VIDEO_PURGE_INTERVAL_MS / 1000}s`);
 }
 
+export type StudioVoiceRecoveryDatabase = {
+  execute: (query: any) => Promise<{ rows?: unknown[] }>;
+};
+
+export type StudioVoiceJobRecoveryState = {
+  status: "pending" | "processing" | "completed" | "failed";
+  attempts: number;
+  processingLeaseExpiresAt?: Date | null;
+};
 async function processNextJob(): Promise<void> {
   const claimToken = randomUUID();
   const leaseExpiresAt = new Date(Date.now() + VOICE_JOB_LEASE_MS);
@@ -568,6 +581,13 @@ async function processNextJob(): Promise<void> {
         moderated_at      = NOW()
       WHERE id = ${noteId}
         AND transcript_status = 'pending'
+        AND EXISTS (
+          SELECT 1
+          FROM tablet_voice_jobs
+          WHERE id = ${jobId}
+            AND status = 'processing'
+            AND processing_claim_token = ${processingClaimToken}
+        )
       RETURNING id
     `);
     if ((noteUpdated.rows ?? []).length === 0) throw new Error("Voice note state changed before transcription could be saved");
@@ -644,6 +664,10 @@ export function startVoiceJobWorker(): void {
   _started = true;
   const run = async () => {
     try {
+      const recovery = await recoverStuckStudioVoiceNotes();
+      if (recovery.recovered > 0) {
+        console.log(`[VoiceWorker] Recovered ${recovery.recovered} stuck Studio voice note(s)`);
+      }
       await processNextJob();
     } catch (err) {
       console.error("[VoiceWorker] Unexpected poll error:", err);
@@ -664,4 +688,106 @@ export function startVoiceJobWorker(): void {
   setInterval(run, POLL_INTERVAL_MS);
   setInterval(recover, VOICE_RECOVERY_INTERVAL_MS);
   console.log(`[VoiceWorker] Started — polling every ${POLL_INTERVAL_MS / 1000}s`);
+}
+
+/**
+ * Repairs historical voice notes that can never be processed.
+ *
+ * A processing claim is active only while its durable lease remains valid.
+ * Expired or legacy unleased claims are failed together with their note, while
+ * the claim token prevents a late worker from writing over that terminal state.
+ * Existing object keys are never deleted: even legacy media may still be useful
+ * for a later manual recovery.
+ */
+export async function recoverStuckStudioVoiceNotes(
+  database: StudioVoiceRecoveryDatabase = db,
+  now = new Date(),
+): Promise<{ recovered: number }> {
+  const result = await database.execute(sql`
+    WITH candidates AS (
+      SELECT note.id,
+             EXISTS (
+               SELECT 1
+               FROM tablet_voice_jobs AS unfinished_job
+               WHERE unfinished_job.note_id = note.id
+                 AND unfinished_job.status IN ('pending', 'processing')
+             ) AS has_unfinished_job
+      FROM client_notes AS note
+      WHERE note.content_type = 'voice'
+        AND note.transcript_status = 'pending'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM tablet_voice_jobs AS active_job
+          WHERE active_job.note_id = note.id
+            AND active_job.status = 'processing'
+            AND active_job.processing_lease_expires_at > ${now}
+        )
+        AND (
+          note.audio_object_key IS NULL
+          OR BTRIM(note.audio_object_key) = ''
+          OR NOT EXISTS (
+            SELECT 1
+            FROM tablet_voice_jobs AS runnable_job
+            WHERE runnable_job.note_id = note.id
+              AND runnable_job.status = 'pending'
+              AND runnable_job.attempts < ${MAX_ATTEMPTS}
+          )
+        )
+      FOR UPDATE OF note SKIP LOCKED
+    ),
+    failed_jobs AS (
+      UPDATE tablet_voice_jobs AS job
+      SET status = 'failed',
+          last_error = ${STUDIO_VOICE_JOB_RECOVERY_ERROR},
+          processed_at = NOW(),
+          processing_claim_token = NULL,
+          processing_lease_expires_at = NULL
+      FROM candidates
+      WHERE job.note_id = candidates.id
+        AND (
+          job.status = 'pending'
+          OR (
+            job.status = 'processing'
+            AND (
+              job.processing_lease_expires_at IS NULL
+              OR job.processing_lease_expires_at <= ${now}
+            )
+          )
+        )
+      RETURNING job.note_id
+    ),
+    failed_notes AS (
+      UPDATE client_notes AS note
+      SET transcript_status = 'failed',
+          body = ${STUDIO_VOICE_RECOVERY_MESSAGE},
+          updated_at = NOW()
+      WHERE note.id IN (
+        SELECT note_id FROM failed_jobs
+        UNION
+        SELECT id FROM candidates WHERE NOT has_unfinished_job
+      )
+      RETURNING note.id
+    )
+    SELECT id FROM failed_notes
+  `);
+
+  return { recovered: (result.rows ?? []).length };
+}
+
+export function shouldRecoverPendingStudioVoiceNote(input: {
+  audioObjectKey: string | null | undefined;
+  jobs: StudioVoiceJobRecoveryState[];
+  now: Date;
+}): boolean {
+  const hasActiveClaim = input.jobs.some((job) =>
+    job.status === "processing" &&
+    job.processingLeaseExpiresAt instanceof Date &&
+    job.processingLeaseExpiresAt > input.now,
+  );
+  if (hasActiveClaim) return false;
+
+  const hasUsableAudio = typeof input.audioObjectKey === "string" && input.audioObjectKey.trim().length > 0;
+  if (!hasUsableAudio) return true;
+
+  return !input.jobs.some((job) => job.status === "pending" && job.attempts < MAX_ATTEMPTS);
 }
