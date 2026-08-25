@@ -107,7 +107,7 @@ export default function CoachCornerWelcome() {
           <img
             src="/assets/chef-corner-black-apron-transparent.png"
             alt="Chef"
-            className="w-[20rem] h-auto -mb-3"
+            className="w-[16rem] h-auto -translate-y-2 mb-1"
           />
           <h1 className="text-2xl font-bold italic mt-0 text-center">
             Hi, I'm Chef.
