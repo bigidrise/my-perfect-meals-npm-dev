@@ -10,6 +10,8 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ProActionLock } from "@/components/ProActionLock";
+import { getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
 
 interface PartnerProfile {
   hasPartnerAccount: boolean;
@@ -94,14 +96,32 @@ export default function ReferralTools() {
     }
   }
 
-  function downloadQr(format: "png" | "svg") {
-    const a = document.createElement("a");
-    a.href = `/api/marketing-center/qr?format=${format}&download=1`;
-    a.download = `referral-qr.${format}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast({ description: `Downloading QR code as ${format.toUpperCase()}…` });
+  async function downloadQr(format: "png" | "svg") {
+    try {
+      const response = await fetch(
+        apiUrl(`/api/marketing-center/qr?format=${format}&download=1`),
+        {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        },
+      );
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `referral-qr.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+      toast({ description: `Downloading QR code as ${format.toUpperCase()}…` });
+    } catch {
+      toast({
+        variant: "destructive",
+        description: "Could not download the QR code. Please try again.",
+      });
+    }
   }
 
   if (loading) {
