@@ -1655,6 +1655,7 @@ async function start() {
   await withBootRetry("Critical column pre-flight migrations", async () => {
     const { db: dbPre } = await import("./db");
     const { sql: sqlPre } = await import("drizzle-orm");
+    const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
     // Phase 2 ProCare Studio gate
     await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
     // Performance Hub macro resolver
@@ -1678,6 +1679,7 @@ async function start() {
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh numeric`);
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh numeric`);
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s numeric`);
+    await runStudioVoiceStorageMigration();
     console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
   });
 

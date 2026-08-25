@@ -12,9 +12,15 @@ import { logClientActivity } from "../services/activityLog";
 import { sendCoachMessageAlert } from "../services/emailService";
 import {
   getSignedPlaybackUrl,
-  uploadVoiceToS3,
-  getVoiceObjectKey,
+  getStudioVoiceStream,
+  normalizeVoiceMimeType,
+  resolveVoiceStorageBackend,
 } from "../services/tabletVoiceService";
+import {
+  createStudioVoiceNote,
+  isValidStudioVoicePlaybackToken,
+  issueStudioVoicePlaybackToken,
+} from "../services/studioVoiceMessageService";
 import { getOrSet, invalidatePrefix } from "../services/queryCache";
 import { requireClientWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import {
@@ -604,7 +610,7 @@ router.post("/message", async (req: Request, res: Response) => {
   res.status(201).json({ entry });
 });
 
-router.post("/voice-message", upload.single("audio"), async (req: Request, res: Response) => {
+router.post("/voice-message", requireClientWorkspaceAccess, upload.single("audio"), async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
     res.status(401).json({ error: "Authentication required" });
@@ -616,7 +622,11 @@ router.post("/voice-message", upload.single("audio"), async (req: Request, res: 
     return;
   }
 
-  const mimeType = req.file.mimetype || "audio/webm";
+  const mimeType = normalizeVoiceMimeType(req.file.mimetype || "audio/webm");
+  if (!mimeType) {
+    res.status(400).json({ error: "Audio must be a supported WebM, MP4, M4A, AAC, MP3, WAV, or OGG file" });
+    return;
+  }
   const buffer = req.file.buffer;
 
   if (buffer.length > 15 * 1024 * 1024) {
@@ -630,44 +640,20 @@ router.post("/voice-message", upload.single("audio"), async (req: Request, res: 
     return;
   }
 
-  const placeholder = "🎤 Voice message — transcribing…";
-
-  const [entry] = await db
-    .insert(clientNotes)
-    .values({
+  let entry;
+  try {
+    entry = await createStudioVoiceNote({
       studioId,
       clientUserId: authUser.id,
       authorUserId: authUser.id,
-      body: placeholder,
-      noteType: "general",
-      visibility: "shared_with_client",
+      body: "🎤 Voice message — transcribing…",
       entryType: "message",
+      visibility: "shared_with_client",
       sender: "client",
-      contentType: "voice",
-      audioMimeType: mimeType,
-      transcriptStatus: "pending",
-      moderationStatus: "pending",
-    } as any)
-    .returning({ id: clientNotes.id, createdAt: clientNotes.createdAt });
-
-  const objectKey = getVoiceObjectKey(entry.id, mimeType);
-  try {
-    await uploadVoiceToS3(buffer, mimeType, objectKey);
-    await db.execute(sql`
-      UPDATE client_notes SET audio_object_key = ${objectKey} WHERE id = ${entry.id}
-    `);
-    await db.execute(sql`
-      INSERT INTO tablet_voice_jobs (note_id, status) VALUES (${entry.id}, 'pending')
-    `);
+      mimeType,
+    }, buffer);
   } catch (error) {
     console.error("[ClientVoiceMessage] Could not store or queue voice message:", error);
-    await db.update(clientNotes)
-      .set({
-        body: "🎤 Voice message (unavailable)",
-        transcriptStatus: "failed",
-        updatedAt: new Date(),
-      })
-      .where(eq(clientNotes.id, entry.id));
     res.status(502).json({ error: "Voice message upload failed. Please retry." });
     return;
   }
@@ -722,14 +708,9 @@ router.post("/voice-message", upload.single("audio"), async (req: Request, res: 
 
   res.status(201).json({
     entry: {
-      id: entry.id,
-      body: placeholder,
-      sender: "client",
-      entryType: "message",
+      ...entry,
       contentType: "voice",
       transcriptStatus: "pending",
-      audioObjectKey: objectKey,
-      createdAt: entry.createdAt,
     },
   });
 });
@@ -777,7 +758,7 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
-router.get("/audio/:entryId", async (req: Request, res: Response) => {
+router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
     res.status(401).json({ error: "Authentication required" });
@@ -785,12 +766,19 @@ router.get("/audio/:entryId", async (req: Request, res: Response) => {
   }
 
   const { entryId } = req.params;
+  const studioId = await resolveStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No active professional connection" });
+    return;
+  }
 
   const result = await db.execute(sql`
-    SELECT id, audio_object_key, client_user_id, visibility, content_type,
+    SELECT id, audio_object_key, audio_storage_backend, audio_mime_type,
+           studio_id, client_user_id, visibility, content_type,
            transcript_status, moderation_status, transcript
     FROM client_notes
     WHERE id = ${entryId}
+      AND studio_id = ${studioId}
       AND client_user_id = ${authUser.id}
       AND content_type = 'voice'
       AND visibility = 'shared_with_client'
@@ -810,6 +798,37 @@ router.get("/audio/:entryId", async (req: Request, res: Response) => {
 
   if (note.transcript_status !== "completed") {
     res.status(202).json({ pending: true, message: "Transcript not yet available" });
+    return;
+  }
+
+  const backend = resolveVoiceStorageBackend(note.audio_storage_backend);
+  if (backend === "replit") {
+    if (req.query.stream === "1") {
+      if (!isValidStudioVoicePlaybackToken(req.query.access, entryId, authUser.id)) {
+        res.status(403).json({ error: "Playback access expired" });
+        return;
+      }
+      res.set({
+        "Cache-Control": "no-store, private",
+        "Content-Type": note.audio_mime_type || "audio/webm",
+      });
+      getStudioVoiceStream(note.audio_object_key)
+        .on("error", () => {
+          if (!res.headersSent) res.status(503).end();
+        })
+        .pipe(res);
+      return;
+    }
+
+    const access = issueStudioVoicePlaybackToken(entryId, authUser.id);
+    const url = `/api/client/tablet/audio/${entryId}?stream=1&access=${encodeURIComponent(access)}`;
+    res.set("Cache-Control", "no-store, private");
+    res.json({
+      url,
+      privatePlayback: true,
+      transcript: note.transcript,
+      transcriptStatus: note.transcript_status,
+    });
     return;
   }
 

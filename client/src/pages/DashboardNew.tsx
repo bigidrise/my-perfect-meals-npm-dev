@@ -57,6 +57,7 @@ import { BugReportButton } from "@/components/BugReportButton";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
@@ -143,10 +144,11 @@ export default function DashboardNew() {
   const tabletTranslationCache = useRef(new Map<string, string>());
   const tabletInitialLoad = useRef(true);
   const [tabletPlayingId, setTabletPlayingId] = useState<string | null>(null);
-  const tabletAudioCache = useRef<Record<string, string>>({});
   const tabletAudioRef = useRef<HTMLAudioElement | null>(null);
+  const tabletVoiceUrlRevokeRef = useRef<(() => void) | null>(null);
   const [tabletRecording, setTabletRecording] = useState(false);
   const [tabletAudioBlob, setTabletAudioBlob] = useState<Blob | null>(null);
+  const [tabletAudioMimeType, setTabletAudioMimeType] = useState("audio/webm");
   const [tabletVoiceSending, setTabletVoiceSending] = useState(false);
   const [tabletRecordingSec, setTabletRecordingSec] = useState(0);
   const tabletMediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -331,42 +333,41 @@ export default function DashboardNew() {
   const handleTabletPlay = async (entry: any) => {
     if (tabletPlayingId === entry.id) {
       tabletAudioRef.current?.pause();
+      tabletVoiceUrlRevokeRef.current?.();
+      tabletVoiceUrlRevokeRef.current = null;
       setTabletPlayingId(null);
       return;
     }
     tabletAudioRef.current?.pause();
+    tabletVoiceUrlRevokeRef.current?.();
+    tabletVoiceUrlRevokeRef.current = null;
     setTabletPlayingId(entry.id);
     try {
-      let url = tabletAudioCache.current[entry.id];
-      if (!url) {
-        const res = await fetch(apiUrl(`/api/client/tablet/audio/${entry.id}`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
-        if (!res.ok) {
-          setTabletError("Audio not available yet — try again shortly");
-          setTabletPlayingId(null);
-          return;
-        }
-        const data = await res.json();
-        if (data.pending) {
-          setTabletError("Still transcribing — try again in a moment");
-          setTabletPlayingId(null);
-          return;
-        }
-        url = data.url;
-        tabletAudioCache.current[entry.id] = url;
-      }
-      const audio = new Audio(url);
+      const source = await loadStudioVoicePlayback(
+        `/api/client/tablet/audio/${entry.id}`,
+        getAuthHeaders(),
+      );
+      const audio = new Audio(source.url);
       tabletAudioRef.current = audio;
-      audio.onended = () => setTabletPlayingId(null);
+      tabletVoiceUrlRevokeRef.current = source.revoke;
+      audio.onended = () => {
+        source.revoke();
+        tabletVoiceUrlRevokeRef.current = null;
+        setTabletPlayingId(null);
+      };
       audio.onerror = () => {
+        source.revoke();
+        tabletVoiceUrlRevokeRef.current = null;
         setTabletError("Could not play audio");
         setTabletPlayingId(null);
       };
-      audio.play();
-    } catch {
-      setTabletError("Could not load audio");
+      await audio.play();
+    } catch (error) {
+      tabletVoiceUrlRevokeRef.current?.();
+      tabletVoiceUrlRevokeRef.current = null;
+      setTabletError(error instanceof StudioVoicePlaybackError
+        ? error.message
+        : "Could not load audio");
       setTabletPlayingId(null);
     }
   };
@@ -383,7 +384,9 @@ export default function DashboardNew() {
 
       let mimeType = "audio/webm;codecs=opus";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/mp4;codecs=mp4a.40.2";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/mp4";
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/m4a";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "";
 
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
@@ -394,6 +397,7 @@ export default function DashboardNew() {
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
         setTabletAudioBlob(blob);
+        setTabletAudioMimeType(mimeType || "audio/webm");
         stream.getTracks().forEach((t) => t.stop());
         tabletStreamRef.current = null;
         if (tabletRecordingTimerRef.current) {
@@ -438,7 +442,12 @@ export default function DashboardNew() {
     setTabletVoiceSending(true);
     try {
       const formData = new FormData();
-      formData.append("audio", tabletAudioBlob, "voice-message.webm");
+      const ext = tabletAudioMimeType.includes("webm") ? "webm"
+        : tabletAudioMimeType.includes("ogg") ? "ogg"
+        : tabletAudioMimeType.includes("mp4") || tabletAudioMimeType.includes("m4a") ? "m4a"
+        : tabletAudioMimeType.includes("aac") ? "aac"
+        : "webm";
+      formData.append("audio", tabletAudioBlob, `voice-message.${ext}`);
       const res = await fetch(apiUrl("/api/client/tablet/voice-message"), {
         method: "POST",
         headers: { ...getAuthHeaders() },

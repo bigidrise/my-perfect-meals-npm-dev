@@ -1,6 +1,11 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
-import { transcribeVoiceBuffer, downloadVoiceFromS3, MAX_VOICE_DURATION_SEC } from "./tabletVoiceService";
+import {
+  transcribeVoiceBuffer,
+  downloadVoiceForTranscription,
+  MAX_VOICE_DURATION_SEC,
+  resolveVoiceStorageBackend,
+} from "./tabletVoiceService";
 import { moderateContent } from "./tabletModerationService";
 import { logClientActivity } from "./activityLog";
 import { deleteStudioVideoFromS3 } from "./tabletVoiceService";
@@ -380,14 +385,17 @@ async function processNextJob(): Promise<void> {
 
   try {
     const noteResult = await db.execute(sql`
-      SELECT id, audio_object_key, audio_mime_type, entry_type, visibility,
+      SELECT id, audio_object_key, audio_storage_backend, audio_mime_type, entry_type, visibility,
              studio_id, client_user_id, author_user_id
       FROM client_notes WHERE id = ${noteId}
     `);
     const note = noteResult.rows[0] as any;
     if (!note?.audio_object_key) throw new Error("Note or audio key not found");
 
-    const buffer = await downloadVoiceFromS3(note.audio_object_key);
+    const buffer = await downloadVoiceForTranscription(
+      note.audio_object_key,
+      resolveVoiceStorageBackend(note.audio_storage_backend),
+    );
     const mimeType = note.audio_mime_type || "audio/webm";
 
     const { transcript, durationSec } = await transcribeVoiceBuffer(buffer, mimeType);

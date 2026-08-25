@@ -132,6 +132,10 @@ export const clientNotes = pgTable("client_notes", {
   sender: senderTypeEnum("sender").notNull().default("pro"),
   contentType: text("content_type").$type<"text" | "voice">().notNull().default("text"),
   audioObjectKey: text("audio_object_key"),
+  // New voice notes use the private Replit media store. Existing rows default
+  // to the legacy S3 adapter so their storage location is never guessed from a
+  // filename or object-key prefix.
+  audioStorageBackend: text("audio_storage_backend").$type<"replit" | "s3_legacy">().notNull().default("s3_legacy"),
   audioMimeType: text("audio_mime_type"),
   audioDurationSec: integer("audio_duration_sec"),
   transcript: text("transcript"),
