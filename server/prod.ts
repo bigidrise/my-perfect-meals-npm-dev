@@ -712,6 +712,8 @@ async function initializeApp() {
           // so it is a no-op on an already-migrated database.
           const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
           await runTrialGrantsMigration(database as any);
+          const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
+          await runStudioVoiceStorageMigration();
           console.log("✅ [INIT] Trial grants schema ensured");
       })();
 
@@ -744,10 +746,12 @@ async function initializeApp() {
       const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
       const { runPerformanceModeEnabledMigration } = await import("./db/migrations/runPerformanceModeEnabledMigration");
       const { runEmailIdentityReviewMigration } = await import("./db/migrations/runEmailIdentityReviewMigration");
+      const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
       await runTrialGrantsMigration(dbSyncMig as any);
       await runProcareTrainingMigration(dbSyncMig as any);
       await runPerformanceModeEnabledMigration(dbSyncMig as any);
       await runEmailIdentityReviewMigration(dbSyncMig as any);
+      await runStudioVoiceStorageMigration();
     }
 
     // ── Post-migration guards: verify critical columns are actually present ─

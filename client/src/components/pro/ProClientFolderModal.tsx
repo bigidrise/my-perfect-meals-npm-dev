@@ -16,6 +16,7 @@ import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageCompo
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
+import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -153,7 +154,16 @@ function formatTimestamp(iso: string): string {
 }
 
 function getSupportedMimeType(): string {
-  const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus", "audio/ogg"];
+  const types = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4;codecs=mp4a.40.2",
+    "audio/mp4",
+    "audio/m4a",
+    "audio/aac",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+  ];
   return types.find(t => {
     try { return MediaRecorder.isTypeSupported(t); } catch { return false; }
   }) || "audio/webm";
@@ -192,13 +202,13 @@ export default function ProClientFolderModal({
   const [sendingVoice, setSendingVoice] = useState(false);
   const [voiceMode, setVoiceMode] = useState<"messages" | "notes" | null>(null);
   const [playingEntryId, setPlayingEntryId] = useState<string | null>(null);
-  const [audioUrlCache, setAudioUrlCache] = useState<Record<string, string>>({});
   const [expandedTranscripts, setExpandedTranscripts] = useState<Set<string>>(new Set());
   const [micError, setMicError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentVoiceUrlRevokeRef = useRef<(() => void) | null>(null);
   const [videoMode, setVideoMode] = useState(false);
   const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
@@ -556,7 +566,11 @@ export default function ProClientFolderModal({
     setError(null);
     try {
       const formData = new FormData();
-      const ext = audioMimeType.includes("webm") ? "webm" : audioMimeType.includes("mp4") ? "mp4" : "opus";
+      const ext = audioMimeType.includes("webm") ? "webm"
+        : audioMimeType.includes("ogg") ? "ogg"
+        : audioMimeType.includes("mp4") || audioMimeType.includes("m4a") ? "m4a"
+        : audioMimeType.includes("aac") ? "aac"
+        : "webm";
       formData.append("audio", audioBlob, `voice-note.${ext}`);
       const endpoint = type === "messages"
         ? apiUrl(`/api/pro/tablet/${clientId}/voice-message`)
@@ -638,33 +652,40 @@ export default function ProClientFolderModal({
   const handlePlayVoice = async (entry: TabletEntry) => {
     if (playingEntryId === entry.id) {
       currentAudioRef.current?.pause();
+      currentVoiceUrlRevokeRef.current?.();
+      currentVoiceUrlRevokeRef.current = null;
       setPlayingEntryId(null);
       return;
     }
+    currentAudioRef.current?.pause();
+    currentVoiceUrlRevokeRef.current?.();
+    currentVoiceUrlRevokeRef.current = null;
     try {
-      let url = audioUrlCache[entry.id];
-      if (!url) {
-        const res = await fetch(apiUrl(`/api/pro/tablet/audio/${entry.id}`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
-        if (!res.ok) {
-          const d = await res.json().catch(() => ({}));
-          setError(d.error || "Could not load audio");
-          return;
-        }
-        const d = await res.json();
-        url = d.url;
-        setAudioUrlCache(prev => ({ ...prev, [entry.id]: url }));
-      }
-      const audio = new Audio(url);
+      const source = await loadStudioVoicePlayback(
+        `/api/pro/tablet/audio/${entry.id}`,
+        getAuthHeaders(),
+      );
+      const audio = new Audio(source.url);
       currentAudioRef.current = audio;
-      audio.onended = () => setPlayingEntryId(null);
-      audio.onerror = () => { setPlayingEntryId(null); setError("Failed to play audio"); };
+      currentVoiceUrlRevokeRef.current = source.revoke;
+      audio.onended = () => {
+        source.revoke();
+        currentVoiceUrlRevokeRef.current = null;
+        setPlayingEntryId(null);
+      };
+      audio.onerror = () => {
+        source.revoke();
+        currentVoiceUrlRevokeRef.current = null;
+        setPlayingEntryId(null);
+        setError("Failed to play audio");
+      };
       setPlayingEntryId(entry.id);
-      audio.play();
-    } catch {
-      setError("Failed to load audio");
+      await audio.play();
+    } catch (error) {
+      currentVoiceUrlRevokeRef.current?.();
+      currentVoiceUrlRevokeRef.current = null;
+      setError(error instanceof StudioVoicePlaybackError ? error.message : "Failed to load audio");
+      setPlayingEntryId(null);
     }
   };
 

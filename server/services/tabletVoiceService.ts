@@ -2,9 +2,11 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import OpenAI from "openai";
 import { Client as ReplitStorageClient } from "@replit/object-storage";
+import { Readable } from "node:stream";
 
 export const VOICE_BUCKET = process.env.S3_BUCKET_NAME!;
 export const VOICE_PREFIX = "tablet-voice";
+export const STUDIO_VOICE_PREFIX = "studio-voice";
 export const MAX_VOICE_DURATION_SEC = 60;
 export const STUDIO_VIDEO_BUCKET = process.env.S3_BUCKET_NAME!;
 export const STUDIO_VIDEO_PREFIX = "studio-video";
@@ -12,10 +14,13 @@ export const STUDIO_VIDEO_PREFIX = "studio-video";
 // message can complete the required transcription/moderation gate.
 export const MAX_STUDIO_VIDEO_SIZE_BYTES = 24 * 1024 * 1024;
 export const MAX_STUDIO_VIDEO_DURATION_SEC = 120;
-let studioVideoStorage: ReplitStorageClient | null = null;
-function getStudioVideoStorage(): ReplitStorageClient {
-  if (!studioVideoStorage) studioVideoStorage = new ReplitStorageClient();
-  return studioVideoStorage;
+export const STUDIO_VOICE_STORAGE_BACKENDS = ["replit", "s3_legacy"] as const;
+export type StudioVoiceStorageBackend = typeof STUDIO_VOICE_STORAGE_BACKENDS[number];
+
+let studioMediaStorage: ReplitStorageClient | null = null;
+function getStudioMediaStorage(): ReplitStorageClient {
+  if (!studioMediaStorage) studioMediaStorage = new ReplitStorageClient();
+  return studioMediaStorage;
 }
 
 function getS3Client() {
@@ -29,11 +34,86 @@ function getS3Client() {
 }
 
 export function getVoiceObjectKey(noteId: string, mimeType: string): string {
-  const ext = mimeType.includes("webm") ? "webm"
-    : mimeType.includes("mp4") ? "mp4"
-    : mimeType.includes("ogg") ? "ogg"
-    : "opus";
+  const ext = voiceExtension(mimeType);
   return `${VOICE_PREFIX}/${noteId}.${ext}`;
+}
+
+export function normalizeVoiceMimeType(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const mimeType = value.split(";")[0].trim().toLowerCase();
+  if ([
+    "audio/webm",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/m4a",
+    "audio/x-m4a",
+    "audio/aac",
+    "audio/mpeg",
+    "audio/wav",
+    "audio/x-wav",
+  ].includes(mimeType)) {
+    return mimeType;
+  }
+  return null;
+}
+
+export function resolveVoiceStorageBackend(value: unknown): StudioVoiceStorageBackend {
+  return value === "replit" ? "replit" : "s3_legacy";
+}
+
+function voiceExtension(mimeType: string): string {
+  const normalized = normalizeVoiceMimeType(mimeType) ?? mimeType.split(";")[0].trim().toLowerCase();
+  if (normalized === "audio/webm") return "webm";
+  if (normalized === "audio/ogg") return "ogg";
+  if (normalized === "audio/mp4") return "m4a";
+  if (normalized === "audio/m4a" || normalized === "audio/x-m4a") return "m4a";
+  if (normalized === "audio/aac") return "aac";
+  if (normalized === "audio/mpeg") return "mp3";
+  if (normalized === "audio/wav" || normalized === "audio/x-wav") return "wav";
+  return "webm";
+}
+
+export function getStudioVoiceObjectKey(noteId: string, mimeType: string): string {
+  return `${STUDIO_VOICE_PREFIX}/${noteId}.${voiceExtension(mimeType)}`;
+}
+
+export async function uploadStudioVoiceToPrivateStorage(
+  buffer: Buffer,
+  mimeType: string,
+  objectKey: string,
+): Promise<void> {
+  const result = await getStudioMediaStorage().uploadFromBytes(objectKey, buffer, { compress: false });
+  if (!result.ok) throw new Error(`Private voice upload failed: ${result.error?.message ?? "unknown error"}`);
+}
+
+export async function deleteStudioVoiceFromPrivateStorage(objectKey: string): Promise<void> {
+  const result = await getStudioMediaStorage().delete(objectKey);
+  if (!result.ok) throw new Error(`Private voice deletion failed: ${result.error?.message ?? "unknown error"}`);
+}
+
+export function getStudioVoiceStream(objectKey: string): Readable {
+  return getStudioMediaStorage().downloadAsStream(objectKey);
+}
+
+async function streamToBuffer(stream: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+export async function downloadStudioVoiceFromPrivateStorage(objectKey: string): Promise<Buffer> {
+  return streamToBuffer(getStudioVoiceStream(objectKey));
+}
+
+export async function downloadVoiceForTranscription(
+  objectKey: string,
+  backend: StudioVoiceStorageBackend,
+): Promise<Buffer> {
+  return backend === "replit"
+    ? downloadStudioVoiceFromPrivateStorage(objectKey)
+    : downloadVoiceFromS3(objectKey);
 }
 
 export async function uploadVoiceToS3(
@@ -75,7 +155,7 @@ export async function uploadStudioVideoToS3(
   mimeType: string,
   objectKey: string,
 ): Promise<void> {
-  const result = await getStudioVideoStorage().uploadFromBytes(objectKey, buffer, { compress: false });
+  const result = await getStudioMediaStorage().uploadFromBytes(objectKey, buffer, { compress: false });
   if (!result.ok) throw new Error(`Private video upload failed: ${result.error?.message ?? "unknown error"}`);
 }
 
@@ -91,12 +171,12 @@ export async function getSignedStudioVideoPlaybackUrl(
 }
 
 export async function deleteStudioVideoFromS3(objectKey: string): Promise<void> {
-  const result = await getStudioVideoStorage().delete(objectKey);
+  const result = await getStudioMediaStorage().delete(objectKey);
   if (!result.ok) throw new Error(`Private video deletion failed: ${result.error?.message ?? "unknown error"}`);
 }
 
 export function getStudioVideoStream(objectKey: string) {
-  return getStudioVideoStorage().downloadAsStream(objectKey);
+  return getStudioMediaStorage().downloadAsStream(objectKey);
 }
 
 export async function downloadVoiceFromS3(objectKey: string): Promise<Buffer> {

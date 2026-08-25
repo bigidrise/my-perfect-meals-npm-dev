@@ -20,12 +20,18 @@ export function invalidateProUnreadCache(proUserId: string): void {
 }
 import multer from "multer";
 import {
-  uploadVoiceToS3,
-  getVoiceObjectKey,
   getSignedPlaybackUrl,
+  getStudioVoiceStream,
   MAX_VOICE_DURATION_SEC,
+  normalizeVoiceMimeType,
+  resolveVoiceStorageBackend,
 } from "../services/tabletVoiceService";
 import { startVoiceJobWorker } from "../services/voiceJobWorker";
+import {
+  createStudioVoiceNote,
+  isValidStudioVoicePlaybackToken,
+  issueStudioVoicePlaybackToken,
+} from "../services/studioVoiceMessageService";
 import {
   assertStudioVideoFeatureEnabled,
   auditStudioVideoAction,
@@ -794,7 +800,11 @@ router.post("/:clientId/voice-message", requireWorkspaceAccess, upload.single("a
     return;
   }
 
-  const mimeType = req.file.mimetype || "audio/webm";
+  const mimeType = normalizeVoiceMimeType(req.file.mimetype || "audio/webm");
+  if (!mimeType) {
+    res.status(400).json({ error: "Audio must be a supported WebM, MP4, M4A, AAC, MP3, WAV, or OGG file" });
+    return;
+  }
   const buffer = req.file.buffer;
 
   if (buffer.length > 15 * 1024 * 1024) {
@@ -808,53 +818,20 @@ router.post("/:clientId/voice-message", requireWorkspaceAccess, upload.single("a
     return;
   }
 
-  const placeholder = "🎤 Voice note — transcribing…";
-
-  const [entry] = await db
-    .insert(clientNotes)
-    .values({
+  let entry;
+  try {
+    entry = await createStudioVoiceNote({
       studioId,
       clientUserId: clientId,
       authorUserId: authUser.id,
-      body: placeholder,
-      noteType: "general",
-      visibility: "shared_with_client",
+      body: "🎤 Voice note — transcribing…",
       entryType: "message",
+      visibility: "shared_with_client",
       sender: "pro",
-      contentType: "voice",
-      audioMimeType: mimeType,
-      transcriptStatus: "pending",
-      moderationStatus: "pending",
-    } as any)
-    .returning({
-      id: clientNotes.id,
-      body: clientNotes.body,
-      authorUserId: clientNotes.authorUserId,
-      entryType: clientNotes.entryType,
-      visibility: clientNotes.visibility,
-      sender: clientNotes.sender,
-      createdAt: clientNotes.createdAt,
-    });
-
-  const objectKey = getVoiceObjectKey(entry.id, mimeType);
-
-  try {
-    await uploadVoiceToS3(buffer, mimeType, objectKey);
-    await db.execute(sql`
-      UPDATE client_notes SET audio_object_key = ${objectKey} WHERE id = ${entry.id}
-    `);
-    await db.execute(sql`
-      INSERT INTO tablet_voice_jobs (note_id, status) VALUES (${entry.id}, 'pending')
-    `);
+      mimeType,
+    }, buffer);
   } catch (error) {
     console.error("[ProVoiceMessage] Could not store or queue voice message:", error);
-    await db.update(clientNotes)
-      .set({
-        body: "🎤 Voice note (unavailable)",
-        transcriptStatus: "failed",
-        updatedAt: new Date(),
-      })
-      .where(eq(clientNotes.id, entry.id));
     res.status(502).json({ error: "Voice message upload failed. Please retry." });
     return;
   }
@@ -866,7 +843,6 @@ router.post("/:clientId/voice-message", requireWorkspaceAccess, upload.single("a
     entry: {
       ...entry,
       contentType: "voice",
-      audioObjectKey: objectKey,
       transcriptStatus: "pending",
       moderationStatus: "pending",
     },
@@ -882,7 +858,11 @@ router.post("/:clientId/voice-note", requireWorkspaceAccess, upload.single("audi
     return;
   }
 
-  const mimeType = req.file.mimetype || "audio/webm";
+  const mimeType = normalizeVoiceMimeType(req.file.mimetype || "audio/webm");
+  if (!mimeType) {
+    res.status(400).json({ error: "Audio must be a supported WebM, MP4, M4A, AAC, MP3, WAV, or OGG file" });
+    return;
+  }
   const buffer = req.file.buffer;
 
   if (buffer.length > 15 * 1024 * 1024) {
@@ -896,45 +876,23 @@ router.post("/:clientId/voice-note", requireWorkspaceAccess, upload.single("audi
     return;
   }
 
-  const placeholder = "🎤 Voice note — transcribing…";
-
-  const [entry] = await db
-    .insert(clientNotes)
-    .values({
+  let entry;
+  try {
+    entry = await createStudioVoiceNote({
       studioId,
       clientUserId: clientId,
       authorUserId: authUser.id,
-      body: placeholder,
-      noteType: "general",
-      visibility: "professional_only",
+      body: "🎤 Voice note — transcribing…",
       entryType: "note",
+      visibility: "professional_only",
       sender: "pro",
-      contentType: "voice",
-      audioMimeType: mimeType,
-      transcriptStatus: "pending",
-      moderationStatus: "pending",
-    } as any)
-    .returning({
-      id: clientNotes.id,
-      body: clientNotes.body,
-      authorUserId: clientNotes.authorUserId,
-      entryType: clientNotes.entryType,
-      visibility: clientNotes.visibility,
-      sender: clientNotes.sender,
-      createdAt: clientNotes.createdAt,
-    });
-
-  const objectKey = getVoiceObjectKey(entry.id, mimeType);
-
-  await uploadVoiceToS3(buffer, mimeType, objectKey);
-
-  await db.execute(sql`
-    UPDATE client_notes SET audio_object_key = ${objectKey} WHERE id = ${entry.id}
-  `);
-
-  await db.execute(sql`
-    INSERT INTO tablet_voice_jobs (note_id, status) VALUES (${entry.id}, 'pending')
-  `);
+      mimeType,
+    }, buffer);
+  } catch (error) {
+    console.error("[ProVoiceNote] Could not store or queue voice note:", error);
+    res.status(502).json({ error: "Voice note upload failed. Please retry." });
+    return;
+  }
 
   logClientActivity(studioId, clientId, authUser.id, "note_added", "note", entry.id, { type: "voice" });
 
@@ -942,7 +900,6 @@ router.post("/:clientId/voice-note", requireWorkspaceAccess, upload.single("audi
     entry: {
       ...entry,
       contentType: "voice",
-      audioObjectKey: objectKey,
       transcriptStatus: "pending",
       moderationStatus: "pending",
     },
@@ -965,7 +922,8 @@ router.get("/audio/:entryId", async (req: Request, res: Response) => {
   }
 
   const result = await db.execute(sql`
-    SELECT id, audio_object_key, studio_id, client_user_id, content_type, transcript_status, moderation_status
+    SELECT id, audio_object_key, audio_storage_backend, audio_mime_type,
+           studio_id, client_user_id, content_type, transcript_status, moderation_status
     FROM client_notes
     WHERE id = ${entryId}
       AND studio_id = ${studioId}
@@ -979,6 +937,39 @@ router.get("/audio/:entryId", async (req: Request, res: Response) => {
     return;
   }
 
+  const backend = resolveVoiceStorageBackend(note.audio_storage_backend);
+  if (backend === "replit") {
+    if (req.query.stream === "1") {
+      if (!isValidStudioVoicePlaybackToken(req.query.access, entryId, authUser.id)) {
+        res.status(403).json({ error: "Playback access expired" });
+        return;
+      }
+      res.set({
+        "Cache-Control": "no-store, private",
+        "Content-Type": note.audio_mime_type || "audio/webm",
+      });
+      getStudioVoiceStream(note.audio_object_key)
+        .on("error", () => {
+          if (!res.headersSent) res.status(503).end();
+        })
+        .pipe(res);
+      return;
+    }
+
+    const access = issueStudioVoicePlaybackToken(entryId, authUser.id);
+    const url = `/api/pro/tablet/audio/${entryId}?stream=1&access=${encodeURIComponent(access)}`;
+    res.set("Cache-Control", "no-store, private");
+    res.json({
+      url,
+      privatePlayback: true,
+      transcriptStatus: note.transcript_status,
+      moderationStatus: note.moderation_status,
+    });
+    return;
+  }
+
+  // Legacy records retain their existing read-only S3 route. New voice writes
+  // never use this adapter.
   const url = await getSignedPlaybackUrl(note.audio_object_key);
   res.json({ url, transcriptStatus: note.transcript_status, moderationStatus: note.moderation_status });
 });
