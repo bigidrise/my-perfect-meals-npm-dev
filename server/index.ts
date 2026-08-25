@@ -1,3 +1,4 @@
+import "openai/shims/node";
 import dotenv from "dotenv";
 dotenv.config(); // Load .env file FIRST before anything else
 
