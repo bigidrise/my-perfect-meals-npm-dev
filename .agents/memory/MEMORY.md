@@ -1,5 +1,6 @@
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
+- [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
 - [Allergy adaptation layer](allergy-adaptation-layer.md) — classify adaptable conflicts before generation and rescan every final output.
 - [Allergen override matching](allergen-override-exact-match.md) — safety PINs use canonical key and alias matching, never substrings.
 - [Dish adaptation layer](dish-adaptation-layer.md) — never silently substitute requested dishes; keep prompt substitution maps synchronized.
