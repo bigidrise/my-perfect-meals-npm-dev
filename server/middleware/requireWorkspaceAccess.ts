@@ -16,6 +16,7 @@ export interface WorkspaceRequest extends Request {
   workspace: {
     actorUserId: string;
     workspaceUserId: string;
+    studioId: string;
     boardLocked: boolean;
   };
 }
@@ -66,8 +67,12 @@ export async function requireWorkspaceAccess(
 
   try {
     const [activeLink] = await db
-      .select({ mealBoardControl: clientLinks.mealBoardControl })
+      .select({
+        mealBoardControl: clientLinks.mealBoardControl,
+        studioId: studios.id,
+      })
       .from(clientLinks)
+      .innerJoin(studios, eq(studios.ownerUserId, clientLinks.proUserId))
       .where(
         and(
           eq(clientLinks.clientUserId, clientId),
@@ -82,6 +87,7 @@ export async function requireWorkspaceAccess(
       (req as WorkspaceRequest).workspace = {
         actorUserId: authUser.id,
         workspaceUserId: clientId,
+        studioId: activeLink.studioId,
         boardLocked: activeLink.mealBoardControl === "professional",
       };
       next();
@@ -89,7 +95,7 @@ export async function requireWorkspaceAccess(
     }
 
     const [studioMember] = await db
-      .select({ id: studioMemberships.id })
+      .select({ studioId: studioMemberships.studioId })
       .from(studioMemberships)
       .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
       .where(
@@ -107,6 +113,7 @@ export async function requireWorkspaceAccess(
       (req as WorkspaceRequest).workspace = {
         actorUserId: authUser.id,
         workspaceUserId: clientId,
+        studioId: studioMember.studioId,
         boardLocked: false,
       };
       next();
@@ -191,6 +198,7 @@ export async function requireClientWorkspaceAccess(
     (req as WorkspaceRequest).workspace = {
       actorUserId: authUser.id,
       workspaceUserId: authUser.id,
+      studioId: relationship.studioId,
       boardLocked: false,
     };
     next();

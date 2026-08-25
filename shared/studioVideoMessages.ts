@@ -81,6 +81,7 @@ export type StudioVideoDomainErrorCode =
   | "WATCH_COMPLETION_NOT_VERIFIED"
   | "VIDEO_EXPIRATION_NOT_REACHED"
   | "VIDEO_TRANSCRIPT_NOT_RETAINABLE"
+  | "VIDEO_MANUAL_DELETION_NOT_ALLOWED"
   | "VIDEO_STORAGE_NOT_PRIVATE"
   | "VIDEO_AUDIT_METADATA_UNSAFE";
 
@@ -216,8 +217,6 @@ const STUDIO_VIDEO_ALLOWED_TRANSITIONS: Record<
   uploading: ["uploaded", "upload_failed"],
   uploaded: ["processing", "upload_failed"],
   processing: ["ready", "transcription_failed", "moderation_failed"],
-  // A participant may remove an eligible private video before its automatic
-  // expiry. The permanent message/transcript record remains intact.
   ready: ["expiration_pending", "deleting"],
   upload_failed: ["uploading"],
   transcription_failed: ["processing"],
@@ -628,21 +627,57 @@ export function assertStudioVideoTranscriptRetainable(
 }
 
 /**
- * Manual removal has the same transcript-retention protection as timed purge,
- * but deliberately does not wait for the 24-hour expiry window. Storage
- * deletion still occurs only after the media row has been claimed as deleting.
+ * Manual deletion removes only the temporary private media. The permanent
+ * message record and its completed transcript remain available for the
+ * communication history.
  */
-export function assertStudioVideoManualDeletionAllowed(input: {
+export function assertStudioVideoManualDeletionEligible(input: {
   state: StudioVideoMediaState;
+  objectKey: string | null;
   transcript: StudioVideoTranscript;
 }): void {
-  if (!["ready", "expiration_pending", "deletion_failed", "deleting"].includes(input.state)) {
+  if (!["ready", "expiration_pending", "deletion_failed"].includes(input.state)) {
     throw new StudioVideoDomainError(
-      "INVALID_STUDIO_VIDEO_TRANSITION",
-      `Video cannot be manually deleted from ${input.state}`,
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+      `Video media cannot be manually deleted from ${input.state}`,
+    );
+  }
+  if (!input.objectKey) {
+    throw new StudioVideoDomainError(
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+      "Video media has no private object to delete",
     );
   }
   assertStudioVideoTranscriptRetainable(input.transcript);
+}
+
+export type StudioVideoManualDeletionResult = {
+  state: "deleted";
+  objectKey: null;
+  temporaryDerivativeKeys: readonly [];
+  deletedAt: string;
+  transcript: StudioVideoTranscript;
+};
+
+/**
+ * Represents a manually deleted media record. The caller must make the
+ * deletion durable in private storage before persisting this result.
+ */
+export function finalizeStudioVideoManualDeletion(input: {
+  currentState: "deleting";
+  now: Date | string | number;
+  transcript: StudioVideoTranscript;
+}): StudioVideoManualDeletionResult {
+  const nowMs = timestampMs(input.now, "now");
+  assertStudioVideoTranscriptRetainable(input.transcript);
+
+  return {
+    state: "deleted",
+    objectKey: null,
+    temporaryDerivativeKeys: [],
+    deletedAt: new Date(nowMs).toISOString(),
+    transcript: input.transcript,
+  };
 }
 
 export type StudioVideoDeletionResult = {

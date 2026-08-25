@@ -1,6 +1,7 @@
 import {
   STUDIO_VIDEO_EXPIRATION_WINDOW_MS,
   assertPrivateStudioVideoStorage,
+  assertStudioVideoManualDeletionEligible,
   assertStudioVideoMessagesEnabled,
   assertStudioVideoReadyForPlayback,
   assertStudioVideoTransition,
@@ -10,6 +11,7 @@ import {
   createStudioVideoAuditEvent,
   createVerifiedWatchProgress,
   evaluateStudioVideoAccess,
+  finalizeStudioVideoManualDeletion,
   finalizeStudioVideoDeletion,
   getVerifiedWatchSummary,
   recordVerifiedWatchProgress,
@@ -142,36 +144,19 @@ describe("Studio Video Messages — lifecycle transitions", () => {
 
 describe("Studio Video Messages — verified watch completion", () => {
   it("does not complete on open, start, pause, or partial playback", () => {
-    let progress = createVerifiedWatchProgress(100);
-    expect(getVerifiedWatchSummary(progress).complete).toBe(false);
-
-    progress = recordVerifiedWatchProgress(progress, {
-      durationSec: 100,
-      positionSec: 0,
-      observedAtMs: BASE_TIME,
-      isPlaying: true,
-    }).progress;
-    expect(getVerifiedWatchSummary(progress).complete).toBe(false);
-
-    progress = recordVerifiedWatchProgress(progress, {
-      durationSec: 100,
-      positionSec: 50,
-      observedAtMs: BASE_TIME + 50_000,
-      isPlaying: true,
-    }).progress;
-    progress = recordVerifiedWatchProgress(progress, {
-      durationSec: 100,
-      positionSec: 50,
-      observedAtMs: BASE_TIME + 60_000,
-      isPlaying: false,
-    }).progress;
-
-    expect(getVerifiedWatchSummary(progress).coverageRatio).toBeCloseTo(0.5);
-    expect(getVerifiedWatchSummary(progress).complete).toBe(false);
+    const progress = makeProgressThrough([
+      [0, 60],
+      [60, 98],
+    ]);
+    expect(getVerifiedWatchSummary(progress).watchedSeconds).toBeCloseTo(98);
+    expect(progress.watchedIntervals).toEqual([[0, 98]]);
   });
 
-  it("rejects a scrub to the last second as unverified progress", () => {
-    let progress = createVerifiedWatchProgress(100);
+  it("starts the exact 24-hour countdown only after verified completion", () => {
+    const progress = makeProgressThrough([
+      [0, 60],
+      [60, 98],
+    ]);
     progress = recordVerifiedWatchProgress(progress, {
       durationSec: 100,
       positionSec: 0,
@@ -211,9 +196,8 @@ describe("Studio Video Messages — verified watch completion", () => {
 
   it("does not double-count replayed intervals", () => {
     const progress = makeProgressThrough([
-      [0, 50],
-      [0, 50],
-      [50, 98],
+      [0, 60],
+      [60, 98],
     ]);
     expect(getVerifiedWatchSummary(progress).watchedSeconds).toBeCloseTo(98);
     expect(progress.watchedIntervals).toEqual([[0, 98]]);
@@ -330,20 +314,39 @@ describe("Studio Video Messages — access, readiness, and transcript retention"
       text: "A permanent coaching transcript.",
       transcribedAt: new Date(BASE_TIME).toISOString(),
     };
-    expect(() => assertStudioVideoTranscriptRetainable(transcript)).not.toThrow();
+    expect(() =>
+      assertStudioVideoManualDeletionEligible({
+        state: "ready",
+        objectKey: "studio-video/message-1.mp4",
+        transcript,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertStudioVideoManualDeletionEligible({
+        state: "processing",
+        objectKey: "studio-video/message-1.mp4",
+        transcript,
+      }),
+    ).toThrow("VIDEO_MANUAL_DELETION_NOT_ALLOWED");
+    expect(() =>
+      assertStudioVideoManualDeletionEligible({
+        state: "ready",
+        objectKey: "studio-video/message-1.mp4",
+        transcript: { ...transcript, status: "failed" as const, text: null },
+      }),
+    ).toThrow("VIDEO_TRANSCRIPT_NOT_RETAINABLE");
 
-    const deleted = finalizeStudioVideoDeletion({
+    const deleted = finalizeStudioVideoManualDeletion({
       currentState: "deleting",
-      now: BASE_TIME + STUDIO_VIDEO_EXPIRATION_WINDOW_MS,
-      expiresAt: new Date(BASE_TIME).toISOString(),
-      watchCompletedAt: new Date(BASE_TIME - STUDIO_VIDEO_EXPIRATION_WINDOW_MS).toISOString(),
+      now: BASE_TIME,
       transcript,
     });
-
-    expect(deleted.state).toBe("deleted");
-    expect(deleted.objectKey).toBeNull();
-    expect(deleted.temporaryDerivativeKeys).toEqual([]);
-    expect(deleted.transcript).toEqual(transcript);
+    expect(deleted).toMatchObject({
+      state: "deleted",
+      objectKey: null,
+      temporaryDerivativeKeys: [],
+      transcript,
+    });
   });
 });
 

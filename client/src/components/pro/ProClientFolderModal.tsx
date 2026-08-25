@@ -92,7 +92,7 @@ interface TabletEntry {
   transcript?: string;
   transcriptStatus?: "pending" | "completed" | "failed" | "blocked";
   moderationStatus?: "pending" | "approved" | "blocked";
-  videoMediaState?: "draft" | "uploading" | "uploaded" | "processing" | "ready" | "upload_failed" | "expiration_pending" | "expired" | "deleting" | "deletion_failed" | "deleted";
+  videoMediaState?: "draft" | "uploading" | "uploaded" | "processing" | "ready" | "upload_failed" | "transcription_failed" | "moderation_failed" | "expiration_pending" | "expired" | "deleting" | "deletion_failed" | "deleted";
   videoDurationSec?: number;
   videoWatchCompletedAt?: string | null;
   videoExpiresAt?: string | null;
@@ -501,37 +501,26 @@ export default function ProClientFolderModal({
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete");
-      if (entry.entryType === "message") {
+      if (entry.contentType === "video") {
+        setMessages((prev) => prev.map((message) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "deleted" }
+            : message,
+        ));
+      } else if (entry.entryType === "message") {
         setMessages((prev) => prev.filter((m) => m.id !== entry.id));
       } else {
         setNotes((prev) => prev.filter((n) => n.id !== entry.id));
       }
+      if (entry.contentType === "video") {
+        setOpenVideoId((current) => current === entry.id ? null : current);
+        setVideoUrlCache((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
+      }
     } catch {
       setError("Failed to delete entry");
-    }
-  };
-
-  const handleDeleteVideo = async (entry: TabletEntry) => {
-    if (!clientId) return;
-    if (!window.confirm("Delete this video permanently? Its transcript will remain in Studio history.")) return;
-    try {
-      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video/${entry.id}`), {
-        method: "DELETE",
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to delete video");
-      }
-      setMessages((previous) => previous.map((message) =>
-        message.id === entry.id
-          ? { ...message, videoMediaState: "deleted", videoExpiresAt: null }
-          : message,
-      ));
-      setOpenVideoId((openId) => openId === entry.id ? null : openId);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to delete video");
     }
   };
 
@@ -817,9 +806,8 @@ export default function ProClientFolderModal({
   };
 
   const renderVideoBubble = (entry: TabletEntry) => {
-    const isExpired = entry.videoMediaState === "expired" || entry.videoMediaState === "deleted";
-    const isDeleting = entry.videoMediaState === "deleting";
-    const deletionFailed = entry.videoMediaState === "deletion_failed";
+    const isDeleted = entry.videoMediaState === "deleted";
+    const isExpired = entry.videoMediaState === "expired" || isDeleted;
     const hasExpiryCountdown = entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt;
     const durationLabel = entry.videoDurationSec ? formatDuration(entry.videoDurationSec) : null;
     const videoUrl = videoUrlCache[entry.id];
@@ -833,20 +821,23 @@ export default function ProClientFolderModal({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] text-white/35">{formatTimestamp(entry.createdAt)}</span>
-            {!isExpired && !isDeleting && (
-              <button onClick={() => handleDeleteVideo(entry)} className="text-red-500/60 p-0.5" title="Delete video">
+            {!isDeleted && (
+              <button
+                onClick={() => handleDeleteEntry(entry)}
+                className="text-red-400/80 p-0.5"
+                title="Delete video"
+                aria-label="Delete video message"
+              >
                 <Trash2 className="w-3 h-3" />
               </button>
             )}
           </div>
         </div>
-        {isExpired || isDeleting || deletionFailed ? (
+        {isExpired ? (
           <p className="text-[10px] text-white/45 italic">
-            {isDeleting
-              ? "This video is being removed. Its message record remains in Studio history."
-              : deletionFailed
-                ? "The video could not be removed yet. Use the delete button to retry; its message record remains in Studio history."
-                : "This video is no longer available. Its message record remains in Studio history."}
+            {isDeleted
+              ? "This video was removed. Its message record remains in Studio history."
+              : "This video has expired. Its message record remains in Studio history."}
           </p>
         ) : (
           <>

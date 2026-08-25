@@ -36,14 +36,13 @@ import {
   assertStudioVideoFeatureEnabled,
   auditStudioVideoAction,
   auditStudioVideoListAction,
-  deleteStudioVideoMessageMedia,
+  deleteStudioVideoMessage,
   getStudioVideoMessage,
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
 } from "../services/studioVideoMessageService";
 import {
-  assertStudioVideoManualDeletionAllowed,
   assertStudioVideoReadyForPlayback,
   assertStudioVideoTransition,
   canReplayStudioVideo,
@@ -96,6 +95,48 @@ function studioVideoError(res: Response, error: unknown): boolean {
     return true;
   }
   return false;
+}
+
+async function handleProStudioVideoDeletion(
+  req: Request,
+  res: Response,
+  authUser: AuthenticatedRequest["authUser"],
+  studioId: string,
+  clientId: string,
+  messageId: string,
+): Promise<void> {
+  try {
+    const result = await deleteStudioVideoMessage({
+      req,
+      actorUserId: authUser.id,
+      studioId,
+      clientUserId: clientId,
+      messageId,
+    });
+    await logClientActivity(
+      studioId,
+      clientId,
+      authUser.id,
+      "message_deleted",
+      "message",
+      messageId,
+      { type: "video", deletedBy: "pro", mediaOnly: true },
+    );
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Video message not found")) {
+      res.status(404).json({ error: "Video message not found" });
+      return;
+    }
+    if (error instanceof Error && error.message.includes("Private video deletion failed")) {
+      res.status(502).json({ error: "Video could not be deleted. Please try again." });
+      return;
+    }
+    res.status(409).json({
+      error: "This video is no longer eligible for deletion or is already being deleted",
+    });
+  }
 }
 
 function parseVideoDuration(value: unknown): number | null {
@@ -297,6 +338,23 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
   });
 });
 
+router.delete("/:clientId/video/:messageId", requireWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = await getProStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No studio found" });
+    return;
+  }
+  await handleProStudioVideoDeletion(
+    req,
+    res,
+    authUser,
+    studioId,
+    req.params.clientId,
+    req.params.messageId,
+  );
+});
+
 router.get("/:clientId/video/:messageId/playback", requireWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   const studioId = await getProStudioId(authUser.id);
@@ -422,67 +480,6 @@ router.post("/:clientId/video/:messageId/progress", requireWorkspaceAccess, asyn
     watchCompletedAt: update.watchCompletedAt ?? record.media.watchCompletedAt,
     expiresAt: update.expiresAt ?? record.media.expiresAt,
   });
-});
-
-router.delete("/:clientId/video/:messageId", requireWorkspaceAccess, async (req: Request, res: Response) => {
-  const authUser = (req as AuthenticatedRequest).authUser;
-  const studioId = await getProStudioId(authUser.id);
-  if (!studioId) {
-    res.status(404).json({ error: "No studio found" });
-    return;
-  }
-  const record = await getStudioVideoMessage(studioId, req.params.clientId, req.params.messageId);
-  if (!record) {
-    res.status(404).json({ error: "Video message not found" });
-    return;
-  }
-  try {
-    assertStudioVideoFeatureEnabled();
-    assertStudioVideoManualDeletionAllowed({
-      state: record.media.state,
-      transcript: {
-        status: record.message.transcriptStatus,
-        text: record.message.transcript,
-        transcribedAt: record.message.transcribedAt?.toISOString() ?? null,
-      },
-    });
-  } catch (error) {
-    if (studioVideoError(res, error)) return;
-    res.status(409).json({ error: "This video cannot be deleted until its transcript is available" });
-    return;
-  }
-
-  const result = await deleteStudioVideoMessageMedia({
-    studioId,
-    clientUserId: req.params.clientId,
-    messageId: record.message.id,
-  });
-  if (result === "unavailable") {
-    res.status(409).json({ error: "This video is already being removed or is no longer available" });
-    return;
-  }
-
-  auditStudioVideoAction({
-    req, event: "deletion_requested", actorUserId: authUser.id,
-    targetUserId: record.message.clientUserId, studioId, messageId: record.message.id,
-    metadata: { source: "manual", actorRole: "professional" },
-  });
-  if (result === "deletion_failed") {
-    auditStudioVideoAction({
-      req, event: "deletion_failed", actorUserId: authUser.id,
-      targetUserId: record.message.clientUserId, studioId, messageId: record.message.id,
-      metadata: { source: "manual" },
-    });
-    res.status(502).json({ error: "The video could not be removed yet. Please try again." });
-    return;
-  }
-  auditStudioVideoAction({
-    req, event: "media_deleted", actorUserId: authUser.id,
-    targetUserId: record.message.clientUserId, studioId, messageId: record.message.id,
-    metadata: { source: "manual", actorRole: "professional" },
-  });
-  res.set("Cache-Control", "no-store");
-  res.json({ deleted: true, transcriptRetained: true });
 });
 
 router.get("/unread-summary", async (req: Request, res: Response) => {
@@ -809,6 +806,11 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
   const studioId = await getProStudioId(authUser.id);
   if (!studioId) {
     res.status(404).json({ error: "No studio found" });
+    return;
+  }
+
+  if (await getStudioVideoMessage(studioId, clientId, entryId)) {
+    await handleProStudioVideoDeletion(req, res, authUser, studioId, clientId, entryId);
     return;
   }
 

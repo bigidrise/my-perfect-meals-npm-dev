@@ -21,6 +21,13 @@ const MANUAL_VIDEO_DELETION_LEASE_MS = 30 * 60_000;
 const MANUAL_VIDEO_DELETION_HEARTBEAT_MS = 5 * 60_000;
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { STUDIO_VIDEO_MESSAGES_DEFAULT_ENABLED } from "@shared/studioVideoMessages";
+import {
+  assertStudioVideoManualDeletionEligible,
+  assertStudioVideoTransition,
+  finalizeStudioVideoManualDeletion,
+  StudioVideoDomainError,
+} from "@shared/studioVideoMessages";
+import { deleteStudioVideoFromS3 } from "./tabletVoiceService";
 
 export type StudioVideoListEntry = {
   id: string;
@@ -142,6 +149,272 @@ export async function getStudioVideoMessage(
   return row ?? null;
 }
 
+const STUDIO_VIDEO_MANUAL_DELETION_LEASE_MS = 30 * 60_000;
+
+function parseDerivativeKeys(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((key): key is string => typeof key === "string" && key.length > 0);
+}
+
+function storageKeysForManualDeletion(objectKey: string | null, derivativeKeys: unknown): string[] {
+  return Array.from(new Set([
+    ...(objectKey ? [objectKey] : []),
+    ...parseDerivativeKeys(derivativeKeys),
+  ]));
+}
+
+export type StudioVideoManualDeletionStorage = {
+  deleteObject: (objectKey: string) => Promise<void>;
+};
+
+export type StudioVideoManualDeletionOptions = {
+  now?: Date;
+  storage?: StudioVideoManualDeletionStorage;
+};
+
+export type StudioVideoManualDeletionOutcome = {
+  state: "deleted";
+  deletedAt: string;
+  deletedObjectCount: number;
+};
+
+/**
+ * Deletes a participant's private video media without deleting the
+ * communication record. The media row is first marked deleting with a
+ * token-bound lease, which disables playback and prevents a competing worker
+ * from clearing the same references while storage deletion is in flight.
+ */
+export async function deleteStudioVideoMessage(
+  input: {
+    studioId: string;
+    clientUserId: string;
+    messageId: string;
+    actorUserId: string;
+    req: Request;
+  },
+  options: StudioVideoManualDeletionOptions = {},
+): Promise<StudioVideoManualDeletionOutcome> {
+  const record = await getStudioVideoMessage(
+    input.studioId,
+    input.clientUserId,
+    input.messageId,
+  );
+  if (!record) {
+    throw new StudioVideoDomainError(
+      "INVALID_STUDIO_VIDEO_CONTRACT",
+      "Video message not found",
+    );
+  }
+
+  const transcript = {
+    status: record.message.transcriptStatus,
+    text: record.message.transcript,
+    transcribedAt: record.message.transcribedAt?.toISOString() ?? null,
+  } as const;
+  assertStudioVideoManualDeletionEligible({
+    state: record.media.state,
+    objectKey: record.media.objectKey,
+    transcript,
+  });
+
+  const now = options.now ?? new Date();
+  assertStudioVideoTransition({
+    currentState: record.media.state,
+    nextState: "deleting",
+    now,
+    expiresAt: record.media.expiresAt?.toISOString() ?? null,
+  });
+  const claimToken = crypto.randomUUID();
+  const leaseExpiresAt = new Date(now.getTime() + STUDIO_VIDEO_MANUAL_DELETION_LEASE_MS);
+  const claimed = await db.execute(
+    sql`
+      UPDATE studio_video_media AS media
+      SET state = 'deleting',
+          deletion_attempts = COALESCE(deletion_attempts, 0) + 1,
+          deletion_claim_token = ${claimToken},
+          deletion_lease_expires_at = ${leaseExpiresAt},
+          last_deletion_error = NULL,
+          updated_at = NOW()
+      FROM studio_video_messages AS message
+      WHERE media.id = ${record.media.id}
+        AND media.message_id = message.id
+        AND message.id = ${input.messageId}
+        AND message.studio_id = ${input.studioId}
+        AND message.client_user_id = ${input.clientUserId}
+        AND message.visibility = 'shared_with_client'
+        AND message.transcript_status = 'completed'
+        AND message.transcript = ${record.message.transcript}
+        AND media.state IN ('ready', 'expiration_pending', 'deletion_failed')
+        AND media.object_key IS NOT NULL
+      RETURNING media.object_key, media.temporary_derivative_keys, media.state
+    `,
+  );
+
+  const [claimedMedia] = (claimed.rows ?? []) as Array<{
+    object_key: string | null;
+    temporary_derivative_keys: unknown;
+    state: string;
+  }>;
+  if (!claimedMedia) {
+    throw new StudioVideoDomainError(
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+      "Video deletion is already in progress or no longer eligible",
+    );
+  }
+
+  auditStudioVideoMediaDeletionAction({
+    req: input.req,
+    event: "deletion_requested",
+    actorUserId: input.actorUserId,
+    targetUserId: input.clientUserId,
+    studioId: input.studioId,
+    messageId: input.messageId,
+    mediaId: record.media.id,
+    metadata: { deletionType: "manual" },
+  });
+
+  const keys = storageKeysForManualDeletion(
+    claimedMedia.object_key,
+    claimedMedia.temporary_derivative_keys,
+  );
+  const storage = options.storage ?? { deleteObject: deleteStudioVideoFromS3 };
+  let leaseLost = false;
+  let heartbeatInFlight = false;
+  const heartbeat = setInterval(() => {
+    if (heartbeatInFlight) return;
+    heartbeatInFlight = true;
+    void db.execute(sql`
+      UPDATE studio_video_media
+      SET deletion_lease_expires_at = ${new Date(Date.now() + STUDIO_VIDEO_MANUAL_DELETION_LEASE_MS)},
+          updated_at = NOW()
+      WHERE id = ${record.media.id}
+        AND state = 'deleting'
+        AND deletion_claim_token = ${claimToken}
+      RETURNING id
+    `)
+      .then((result) => {
+        if ((result.rows ?? []).length === 0) leaseLost = true;
+      })
+      .catch(() => {
+        leaseLost = true;
+      })
+      .finally(() => {
+        heartbeatInFlight = false;
+      });
+  }, 5 * 60_000);
+  let results: PromiseSettledResult<void>[];
+  try {
+    results = await Promise.allSettled(keys.map((key) => storage.deleteObject(key)));
+  } finally {
+    clearInterval(heartbeat);
+  }
+  const failedCount = results.filter((result) => result.status === "rejected").length;
+  if (leaseLost || failedCount > 0) {
+    const failureMessage = leaseLost
+      ? "Video deletion lease was lost while deleting private storage"
+      : `${failedCount} Studio video storage object${failedCount === 1 ? "" : "s"} could not be deleted`;
+    await db.execute(
+      sql`
+        UPDATE studio_video_media
+        SET state = 'deletion_failed',
+            last_deletion_error = ${failureMessage},
+            deletion_claim_token = NULL,
+            deletion_lease_expires_at = NULL,
+            updated_at = NOW()
+        WHERE id = ${record.media.id}
+          AND state = 'deleting'
+          AND deletion_claim_token = ${claimToken}
+      `,
+    );
+    auditStudioVideoMediaDeletionAction({
+      req: input.req,
+      event: "deletion_failed",
+      actorUserId: input.actorUserId,
+      targetUserId: input.clientUserId,
+      studioId: input.studioId,
+      messageId: input.messageId,
+      mediaId: record.media.id,
+      metadata: {
+        deletionType: "manual",
+        failedObjectCount: failedCount,
+        leaseLost,
+      },
+    });
+    throw new Error("Private video deletion failed");
+  }
+
+  const finalization = finalizeStudioVideoManualDeletion({
+    currentState: "deleting",
+    now,
+    transcript,
+  });
+  const finalized = await db.execute(
+    sql`
+      UPDATE studio_video_media AS media
+      SET state = 'deleted',
+          object_key = NULL,
+          temporary_derivative_keys = '[]'::jsonb,
+          deleted_at = COALESCE(deleted_at, ${finalization.deletedAt}),
+          deletion_claim_token = NULL,
+          deletion_lease_expires_at = NULL,
+          last_deletion_error = NULL,
+          updated_at = NOW()
+      FROM studio_video_messages AS message
+      WHERE media.id = ${record.media.id}
+        AND media.message_id = message.id
+        AND message.id = ${input.messageId}
+        AND message.studio_id = ${input.studioId}
+        AND message.client_user_id = ${input.clientUserId}
+        AND message.transcript_status = 'completed'
+        AND message.transcript = ${record.message.transcript}
+        AND media.state = 'deleting'
+        AND media.deletion_claim_token = ${claimToken}
+      RETURNING media.id
+    `,
+  );
+  if ((finalized.rows ?? []).length === 0) {
+    await db.execute(sql`
+      UPDATE studio_video_media
+      SET state = 'deletion_failed',
+          last_deletion_error = 'Video deletion could not be finalized safely',
+          deletion_claim_token = NULL,
+          deletion_lease_expires_at = NULL,
+          updated_at = NOW()
+      WHERE id = ${record.media.id}
+        AND state = 'deleting'
+        AND deletion_claim_token = ${claimToken}
+    `);
+    auditStudioVideoMediaDeletionAction({
+      req: input.req,
+      event: "deletion_failed",
+      actorUserId: input.actorUserId,
+      targetUserId: input.clientUserId,
+      studioId: input.studioId,
+      messageId: input.messageId,
+      mediaId: record.media.id,
+      metadata: { deletionType: "manual", reason: "finalization_guard_failed" },
+    });
+    throw new Error("Video deletion could not be finalized safely");
+  }
+
+  auditStudioVideoMediaDeletionAction({
+    req: input.req,
+    event: "media_deleted",
+    actorUserId: input.actorUserId,
+    targetUserId: input.clientUserId,
+    studioId: input.studioId,
+    messageId: input.messageId,
+    mediaId: record.media.id,
+    metadata: { deletionType: "manual", deletedObjectCount: keys.length },
+  });
+
+  return {
+    state: "deleted",
+    deletedAt: finalization.deletedAt,
+    deletedObjectCount: keys.length,
+  };
+}
+
 export function auditStudioVideoAction(input: {
   req: Request;
   event: StudioVideoAuditEvent;
@@ -171,6 +444,48 @@ export function auditStudioVideoAction(input: {
     resourceType: "studio_video_message",
     table: "studio_video_messages",
     resourceId: record.messageId,
+    route: input.req.path,
+    ip: getClientIp(input.req as any),
+    meta: record.metadata,
+  });
+}
+
+/**
+ * Media lifecycle events are separate from the permanent message record.
+ * This mirrors retention-worker auditing: media deletion is always a DELETE
+ * action and never logs object keys or other storage identifiers in metadata.
+ */
+export function auditStudioVideoMediaDeletionAction(input: {
+  req: Request;
+  event: Extract<
+    StudioVideoAuditEvent,
+    "deletion_requested" | "media_deleted" | "deletion_failed"
+  >;
+  actorUserId: string;
+  targetUserId: string;
+  studioId: string;
+  messageId: string;
+  mediaId: string;
+  metadata?: Record<string, unknown>;
+}): void {
+  const record = createStudioVideoAuditEvent({
+    event: input.event,
+    actorUserId: input.actorUserId,
+    targetUserId: input.targetUserId,
+    studioId: input.studioId,
+    messageId: input.messageId,
+    occurredAt: new Date(),
+    metadata: input.metadata,
+  });
+  logAudit({
+    actor: record.actorUserId,
+    target: record.targetUserId,
+    orgId: (input.req as any).authUser?.organizationId ?? null,
+    action: "DELETE",
+    resourceType: "studio_video_media",
+    table: "studio_video_media",
+    resourceId: input.mediaId,
+    field: "state,object_key,temporary_derivative_keys,deleted_at",
     route: input.req.path,
     ip: getClientIp(input.req as any),
     meta: record.metadata,

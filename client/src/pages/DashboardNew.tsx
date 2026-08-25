@@ -318,24 +318,30 @@ export default function DashboardNew() {
       return;
     }
     try {
-      const isVideo = entry.contentType === "video";
-      if (isVideo && !window.confirm("Delete this video permanently? Its transcript will remain in your message history.")) return;
-      const endpoint = isVideo
-        ? `/api/client/tablet/video/${entry.id}`
-        : `/api/client/tablet/entry/${entry.id}`;
-      const res = await fetch(apiUrl(endpoint), {
+      const res = await fetch(apiUrl(`/api/client/tablet/entry/${entry.id}`), {
         method: "DELETE",
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete");
-      setTabletMessages((prev) => isVideo
-        ? prev.map((message: any) => message.id === entry.id
-          ? { ...message, videoMediaState: "deleted", videoExpiresAt: null }
-          : message)
-        : prev.filter((message: any) => message.id !== entry.id));
+      if (entry.contentType === "video") {
+        setTabletMessages((prev) => prev.map((message: any) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "deleted" }
+            : message,
+        ));
+      } else {
+        setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
+      }
+      if (entry.contentType === "video") {
+        setTabletOpenVideoId((current) => current === entry.id ? null : current);
+        setTabletVideoUrls((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
+      }
     } catch {
-      setTabletError(entry.contentType === "video" ? "Failed to delete video" : "Failed to delete message");
+      setTabletError("Failed to delete message");
     }
   };
 
@@ -809,9 +815,9 @@ export default function DashboardNew() {
     setIsGuidedMode(coachMode === "guided");
   }, []);
 
-  // =========================================
+  // -------------------------------------------------------------------------
   // AUTO-OPEN COPILOT INTRO - Guided Mode Only
-  // =========================================
+  // -------------------------------------------------------------------------
   useEffect(() => {
     const triggerFlag = localStorage.getItem("trigger-copilot-intro");
 
@@ -1223,28 +1229,28 @@ export default function DashboardNew() {
                                 <Globe className="w-3.5 h-3.5" />
                               )}
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTabletDelete(entry);
-                              }}
-                              className="text-red-500 p-0.5"
-                              title={t("delete")}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {(entry.contentType !== "video" || entry.videoMediaState !== "deleted") && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTabletDelete(entry);
+                                }}
+                                className="text-red-500 p-0.5"
+                                title={entry.contentType === "video" ? "Delete video" : t("delete")}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
                         {entry.contentType === "video" ? (
                           <div className="space-y-2">
-                            {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" || entry.videoMediaState === "deleting" || entry.videoMediaState === "deletion_failed" ? (
+                            {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
                               <p className="text-xs text-white/45 italic">
-                                {entry.videoMediaState === "deleting"
-                                  ? "This video is being removed. Its transcript remains in your message history."
-                                  : entry.videoMediaState === "deletion_failed"
-                                    ? "The video could not be removed yet. Use delete to retry; its transcript remains in your message history."
-                                    : "This video is no longer available. Its transcript remains in your message history."}
+                                {entry.videoMediaState === "deleted"
+                                  ? "This video was removed. Its transcript remains in your message history."
+                                  : "This video has expired. Its transcript remains in your message history."}
                               </p>
                             ) : tabletOpenVideoId === entry.id && tabletVideoUrls[entry.id] ? (
                               <video
