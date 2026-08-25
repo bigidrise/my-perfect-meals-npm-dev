@@ -838,15 +838,26 @@ router.post("/:clientId/voice-message", requireWorkspaceAccess, upload.single("a
 
   const objectKey = getVoiceObjectKey(entry.id, mimeType);
 
-  await uploadVoiceToS3(buffer, mimeType, objectKey);
-
-  await db.execute(sql`
-    UPDATE client_notes SET audio_object_key = ${objectKey} WHERE id = ${entry.id}
-  `);
-
-  await db.execute(sql`
-    INSERT INTO tablet_voice_jobs (note_id, status) VALUES (${entry.id}, 'pending')
-  `);
+  try {
+    await uploadVoiceToS3(buffer, mimeType, objectKey);
+    await db.execute(sql`
+      UPDATE client_notes SET audio_object_key = ${objectKey} WHERE id = ${entry.id}
+    `);
+    await db.execute(sql`
+      INSERT INTO tablet_voice_jobs (note_id, status) VALUES (${entry.id}, 'pending')
+    `);
+  } catch (error) {
+    console.error("[ProVoiceMessage] Could not store or queue voice message:", error);
+    await db.update(clientNotes)
+      .set({
+        body: "🎤 Voice note (unavailable)",
+        transcriptStatus: "failed",
+        updatedAt: new Date(),
+      })
+      .where(eq(clientNotes.id, entry.id));
+    res.status(502).json({ error: "Voice message upload failed. Please retry." });
+    return;
+  }
 
   logClientActivity(studioId, clientId, authUser.id, "message_sent", "message", entry.id, { type: "voice" });
   notifyClientOfMessage(clientId);

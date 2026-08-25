@@ -686,8 +686,9 @@ export default function ProClientFolderModal({
     const isPlaying = playingEntryId === entry.id;
     const transcriptReady = entry.transcriptStatus === "completed";
     const isBlocked = entry.moderationStatus === "blocked";
-    const isPending = entry.transcriptStatus === "pending";
-    const isFailed = entry.transcriptStatus === "failed";
+    const hasStoredAudio = Boolean(entry.audioObjectKey);
+    const isPending = entry.transcriptStatus === "pending" && hasStoredAudio;
+    const isFailed = entry.transcriptStatus === "failed" || !hasStoredAudio;
     const transcriptExpanded = expandedTranscripts.has(entry.id);
     const durationLabel = entry.audioDurationSec ? formatDuration(entry.audioDurationSec) : null;
 
@@ -726,14 +727,15 @@ export default function ProClientFolderModal({
           <>
             <button
               onClick={() => handlePlayVoice(entry)}
+              disabled={!transcriptReady || isFailed}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium w-full mb-1.5 transition-colors ${
                 isPlaying
                   ? "bg-orange-600 text-white"
                   : "bg-orange-600/80 hover:bg-orange-600 text-white"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-50`}
             >
               {isPlaying ? <Pause className="w-3.5 h-3.5 shrink-0" /> : <Play className="w-3.5 h-3.5 shrink-0" />}
-              <span>{isPlaying ? "Playing…" : "Play Voice Note"}</span>
+              <span>{isPlaying ? "Playing…" : isFailed ? "Voice Note Unavailable" : "Play Voice Note"}</span>
             </button>
 
             {isPending && (
@@ -743,7 +745,9 @@ export default function ProClientFolderModal({
               </div>
             )}
             {isFailed && (
-              <p className="text-[10px] text-white/30 italic">Transcript unavailable</p>
+              <p className="text-[10px] text-white/30 italic">
+                {hasStoredAudio ? "Transcript unavailable" : "Voice recording unavailable"}
+              </p>
             )}
             {transcriptReady && entry.transcript && (
               <div>
