@@ -12,6 +12,7 @@ import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSna
 import ProClientProgramHistory from "@/components/pro/ProClientProgramHistory";
 import CycleProtocolControl from "@/components/pro/CycleProtocolControl";
 import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard";
+import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
@@ -198,16 +199,9 @@ export default function ProClientFolderModal({
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [isVideoRecording, setIsVideoRecording] = useState(false);
-  const [videoRecordingSeconds, setVideoRecordingSeconds] = useState(0);
-  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
-  const [videoMimeType, setVideoMimeType] = useState("");
   const [videoMode, setVideoMode] = useState(false);
-  const [sendingVideo, setSendingVideo] = useState(false);
   const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
-  const videoRecorderRef = useRef<MediaRecorder | null>(null);
-  const videoRecordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoProgressSentAtRef = useRef<Record<string, number>>({});
 
   const [clientGoal, setClientGoal] = useState<{
@@ -591,99 +585,6 @@ export default function ProClientFolderModal({
     }
   };
 
-  const getSupportedVideoMimeType = () => {
-    const types = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
-    return types.find((type) => {
-      try { return MediaRecorder.isTypeSupported(type); } catch { return false; }
-    }) || "video/webm";
-  };
-
-  const startVideoRecording = async () => {
-    setMicError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: { facingMode: "user" },
-      });
-      const mimeType = getSupportedVideoMimeType();
-      const recorder = new MediaRecorder(stream, { mimeType });
-      videoRecorderRef.current = recorder;
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-      recorder.onstop = () => {
-        setVideoBlob(new Blob(chunks, { type: mimeType }));
-        setVideoMimeType(mimeType);
-        stream.getTracks().forEach((track) => track.stop());
-      };
-      recorder.start(500);
-      setIsVideoRecording(true);
-      setVideoRecordingSeconds(0);
-      videoRecordingTimerRef.current = setInterval(() => {
-        setVideoRecordingSeconds((seconds) => {
-          if (seconds >= 119) {
-            const recorder = videoRecorderRef.current;
-            if (recorder && recorder.state !== "inactive") recorder.stop();
-            return 120;
-          }
-          return seconds + 1;
-        });
-      }, 1000);
-    } catch {
-      setMicError("Camera or microphone access denied. Enable both permissions to record a video message.");
-    }
-  };
-
-  const stopVideoRecording = () => {
-    const recorder = videoRecorderRef.current;
-    if (recorder && recorder.state !== "inactive") recorder.stop();
-    if (videoRecordingTimerRef.current) {
-      clearInterval(videoRecordingTimerRef.current);
-      videoRecordingTimerRef.current = null;
-    }
-    setIsVideoRecording(false);
-  };
-
-  const cancelVideoRecording = () => {
-    stopVideoRecording();
-    setVideoBlob(null);
-    setVideoRecordingSeconds(0);
-    setVideoMode(false);
-  };
-
-  const sendVideoMessage = async () => {
-    if (!videoBlob || !clientId || sendingVideo) return;
-    setSendingVideo(true);
-    setError(null);
-    try {
-      const extension = videoMimeType.includes("mp4") ? "mp4" : "webm";
-      const formData = new FormData();
-      formData.append("video", videoBlob, `studio-video-message.${extension}`);
-      formData.append("durationSec", String(Math.max(1, videoRecordingSeconds)));
-      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video-message`), {
-        method: "POST",
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-        body: formData,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error || "Failed to send video message");
-        return;
-      }
-      const data = await res.json();
-      setMessages((previous) => [...previous, data.entry]);
-      setVideoBlob(null);
-      setVideoRecordingSeconds(0);
-      setVideoMode(false);
-    } catch {
-      setError("Failed to send video message");
-    } finally {
-      setSendingVideo(false);
-    }
-  };
-
   const reportVideoProgress = async (entry: TabletEntry, element: HTMLVideoElement) => {
     const now = Date.now();
     if (now - (videoProgressSentAtRef.current[entry.id] || 0) < 1000) return;
@@ -876,13 +777,13 @@ export default function ProClientFolderModal({
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-1.5">
             <Video className="w-3 h-3 text-violet-300" />
-            <span className="text-[10px] font-semibold text-violet-200">Private video message</span>
+            <span className="text-[10px] font-semibold text-violet-200">Video message</span>
             {durationLabel && <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-mono">{durationLabel}</span>}
           </div>
           <span className="text-[10px] text-white/35">{formatTimestamp(entry.createdAt)}</span>
         </div>
         {isExpired ? (
-          <p className="text-[10px] text-white/45 italic">This video has expired. Its message record remains private.</p>
+          <p className="text-[10px] text-white/45 italic">This video has expired. Its message record remains in Studio history.</p>
         ) : (
           <>
             {openVideoId === entry.id && videoUrl ? (
@@ -895,9 +796,9 @@ export default function ProClientFolderModal({
                 onEnded={(event) => reportVideoProgress(entry, event.currentTarget)}
               />
             ) : (
-              <button onClick={() => handlePlayVideo(entry)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium w-full bg-violet-600 hover:bg-violet-500 text-white">
+                <button onClick={() => handlePlayVideo(entry)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium w-full bg-violet-600 hover:bg-violet-500 text-white">
                 <Play className="w-3.5 h-3.5" />
-                Watch private video
+                Watch video
               </button>
             )}
             <p className="text-[10px] text-white/45 leading-snug mt-2">
@@ -1203,34 +1104,12 @@ export default function ProClientFolderModal({
                   {renderEntryList(messages, msgScrollRef, true)}
 
                   {videoMode ? (
-                    <div className="rounded-lg border border-violet-500/30 bg-violet-500/8 p-2.5 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-violet-200 font-semibold">Private video message</span>
-                        <span className="text-[10px] text-white/40">max 2 min</span>
-                      </div>
-                      {micError && <p className="text-[10px] text-red-400">{micError}</p>}
-                      {!videoBlob ? (
-                        <div className="flex items-center gap-2">
-                          {isVideoRecording ? (
-                            <>
-                              <span className="flex items-center gap-1.5 text-[10px] text-red-400 font-mono"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />{formatDuration(videoRecordingSeconds)} / 2:00</span>
-                              <button onClick={stopVideoRecording} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium ml-auto"><Square className="w-3 h-3" />Stop</button>
-                            </>
-                          ) : (
-                            <button onClick={startVideoRecording} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-violet-600 text-white text-xs font-medium w-full justify-center"><Video className="w-3.5 h-3.5" />Tap to Record Video</button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-[10px] text-violet-200">Recording ready · {formatDuration(videoRecordingSeconds)}</p>
-                          <div className="flex gap-2">
-                            <button onClick={sendVideoMessage} disabled={sendingVideo} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-violet-600 text-white text-xs font-medium flex-1 justify-center">{sendingVideo ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}{sendingVideo ? "Sending…" : "Send Video"}</button>
-                            <button onClick={cancelVideoRecording} className="px-3 py-1.5 rounded-md bg-white/10 text-white/60 text-xs font-medium">Discard</button>
-                          </div>
-                        </div>
-                      )}
-                      <button onClick={cancelVideoRecording} className="text-[10px] text-white/30 w-full text-center">Cancel video mode</button>
-                    </div>
+                    <StudioVideoMessageComposer
+                      clientName={client.name}
+                      clientId={clientId}
+                      onSent={(entry) => setMessages((previous) => [...previous, entry as TabletEntry])}
+                      onCancel={() => setVideoMode(false)}
+                    />
                   ) : voiceMode === "messages" ? (
                     <div className="rounded-lg border border-orange-500/30 bg-orange-500/8 p-2.5 space-y-2">
                       <div className="flex items-center justify-between">
@@ -1332,7 +1211,7 @@ export default function ProClientFolderModal({
                           <Mic className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => { setVideoMode(true); setVideoBlob(null); setVideoRecordingSeconds(0); }}
+                          onClick={() => setVideoMode(true)}
                           className="flex items-center justify-center p-1.5 rounded-md bg-violet-600/20 border border-violet-500/30 text-violet-300"
                           title="Send video message"
                         >
