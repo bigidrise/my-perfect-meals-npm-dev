@@ -828,6 +828,7 @@ export const STUDIO_VIDEO_AUDIT_EVENTS = [
   "upload_completed",
   "transcription_requested",
   "transcription_completed",
+  "transcription_failed",
   "moderation_completed",
   "playback_authorized",
   "watch_completion_recorded",
