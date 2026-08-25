@@ -1,6 +1,8 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import "openai/shims/node";
 import OpenAI from "openai";
+import { toFile } from "openai/uploads";
 import { Client as ReplitStorageClient } from "@replit/object-storage";
 import { Readable } from "node:stream";
 
@@ -258,7 +260,7 @@ export async function transcribeStudioVideoBuffer(
   const ext = mimeType.includes("mp4") ? "mp4"
     : mimeType.includes("quicktime") ? "mov"
     : "webm";
-  const file = new File([buffer as unknown as BlobPart], `studio-video.${ext}`, { type: mimeType });
+  const file = await toFile(buffer, `studio-video.${ext}`, { type: mimeType });
   const response = await openai.audio.transcriptions.create({
     file,
     model: "whisper-1",
