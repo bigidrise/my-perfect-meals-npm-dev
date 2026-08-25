@@ -113,6 +113,22 @@ export async function downloadVoiceFromS3(objectKey: string): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
+/**
+ * Delete one private Studio media object. S3 deletion is idempotent: a
+ * previously removed object is treated as successfully cleaned up, which
+ * makes retries safe after a worker crash or a partial batch failure.
+ */
+export async function deleteVoiceObjectFromS3(objectKey: string): Promise<void> {
+  if (!objectKey || objectKey.trim().length === 0) {
+    throw new Error("Storage object key is required");
+  }
+
+  const s3 = getS3Client();
+  await s3.send(new DeleteObjectCommand({
+    Bucket: VOICE_BUCKET,
+    Key: objectKey,
+  }));
+}
 export async function transcribeVoiceBuffer(
   buffer: Buffer,
   mimeType: string

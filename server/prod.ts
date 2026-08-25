@@ -1348,6 +1348,26 @@ async function initializeApp() {
       }
     }, 5000);
 
+    // Keep destructive Studio video cleanup isolated from unrelated reminder
+    // services. It retries its own migration until the table is available
+    // rather than silently remaining off for the lifetime of this process.
+    let studioVideoPurgeInitialized = false;
+    const initStudioVideoPurge = async (): Promise<void> => {
+      if (studioVideoPurgeInitialized) return;
+      try {
+        const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
+        await runStudioVideoMessagesMigration();
+        const { startStudioVideoPurgeWorker } = await import("./services/voiceJobWorker");
+        startStudioVideoPurgeWorker();
+        studioVideoPurgeInitialized = true;
+        console.log("✅ [BG] Studio Video purge worker started");
+      } catch (err: any) {
+        console.error("❌ [BG] Studio Video purge initialization failed; retrying in 60 seconds:", err.message);
+        setTimeout(initStudioVideoPurge, 60_000);
+      }
+    };
+    setTimeout(initStudioVideoPurge, 6000);
+
     // Warmup service — pings /api/health every 4 min to prevent cold starts
     setTimeout(async () => {
       try {
@@ -1647,18 +1667,6 @@ async function initializeApp() {
           console.error("❌ [prod] Media Assets boot migration failed:", err.message);
         }
       }, 5400);
-
-      // Studio Video Messages — private message/media parent-child records.
-      setTimeout(async () => {
-        try {
-          const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
-          await runStudioVideoMessagesMigration();
-          const { startStudioVideoExpiryWorker } = await import("./services/studioVideoExpiryWorker");
-          startStudioVideoExpiryWorker();
-        } catch (err: any) {
-          console.error("❌ [prod] Studio Video Messages boot migration failed:", err.message);
-        }
-      }, 5450);
 
       // Meal image validation — validation columns on meal_image_cache
       setTimeout(async () => {

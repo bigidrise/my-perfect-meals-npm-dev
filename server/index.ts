@@ -658,6 +658,24 @@ const initDataRetentionLazy = async () => {
 };
 setTimeout(initDataRetentionLazy, 5000);
 
+// Studio Video Messages — migration-gated retrying startup. A failed schema
+// migration must never start a destructive worker against a missing table.
+let studioVideoPurgeInitialized = false;
+const initStudioVideoPurge = async (): Promise<void> => {
+  if (studioVideoPurgeInitialized) return;
+  try {
+    const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
+    await runStudioVideoMessagesMigration();
+    const { startStudioVideoPurgeWorker } = await import("./services/voiceJobWorker");
+    startStudioVideoPurgeWorker();
+    studioVideoPurgeInitialized = true;
+  } catch (err: any) {
+    console.error("❌ Studio Video purge initialization failed; retrying in 60 seconds:", err.message);
+    setTimeout(initStudioVideoPurge, 60_000);
+  }
+};
+setTimeout(initStudioVideoPurge, 10500);
+
 // Trial expiry reminder cron (daily 9 AM — emails at 6, 5, 3, 1 days remaining)
 let trialReminderInitialized = false;
 const initTrialReminderLazy = async () => {
@@ -1379,18 +1397,6 @@ setTimeout(async () => {
     console.error("❌ Media Assets boot migration failed:", err.message);
   }
 }, 4800);
-
-// Studio Video Messages — private message/media parent-child records.
-setTimeout(async () => {
-  try {
-    const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
-    await runStudioVideoMessagesMigration();
-    const { startStudioVideoExpiryWorker } = await import("./services/studioVideoExpiryWorker");
-    startStudioVideoExpiryWorker();
-  } catch (err: any) {
-    console.error("❌ Studio Video Messages boot migration failed:", err.message);
-  }
-}, 4900);
 
 // Meal image validation boot migration — validation columns on meal_image_cache
 setTimeout(async () => {

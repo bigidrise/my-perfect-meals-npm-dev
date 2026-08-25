@@ -603,9 +603,11 @@ export default function DashboardNew() {
       });
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
-          // Token was invalidated — stop polling and signal auth context to sign out
-          console.warn("⚠️ [DashboardNew] Provider tablet poll got 401 — dispatching auth-rejected");
-          window.dispatchEvent(new CustomEvent("mpm:polling-auth-rejected"));
+          // This endpoint is client-workspace-only. A professional can be
+          // authenticated and still receive an access response here, so never
+          // treat it as a revoked session or force a full-page sign-out.
+          console.warn("⚠️ [DashboardNew] Provider tablet poll access denied; keeping the current session");
+          setProviderError("Provider messages are unavailable for this account");
           return;
         }
         if (res.status === 404) setProviderError("No active provider connection");
