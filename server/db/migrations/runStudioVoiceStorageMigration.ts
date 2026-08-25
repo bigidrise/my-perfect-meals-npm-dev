@@ -11,5 +11,10 @@ export async function runStudioVoiceStorageMigration(): Promise<void> {
     ALTER TABLE client_notes
       ADD COLUMN IF NOT EXISTS audio_storage_backend TEXT NOT NULL DEFAULT 's3_legacy'
   `);
-  console.log("✅ Studio voice storage migration complete");
+  await db.execute(sql`
+    ALTER TABLE tablet_voice_jobs
+      ADD COLUMN IF NOT EXISTS processing_claim_token TEXT,
+      ADD COLUMN IF NOT EXISTS processing_lease_expires_at TIMESTAMPTZ
+  `);
+  console.log("✅ Studio voice storage and recovery migration complete");
 }

@@ -27,12 +27,14 @@ import {
   assertStudioVideoFeatureEnabled,
   auditStudioVideoAction,
   auditStudioVideoListAction,
+  deleteStudioVideoMessageMedia,
   getStudioVideoMessage,
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
 } from "../services/studioVideoMessageService";
 import {
+  assertStudioVideoManualDeletionAllowed,
   assertStudioVideoReadyForPlayback,
   assertStudioVideoTransition,
   canReplayStudioVideo,
@@ -418,6 +420,68 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
     watchCompletedAt: update.watchCompletedAt ?? record.media.watchCompletedAt,
     expiresAt: update.expiresAt ?? record.media.expiresAt,
   });
+});
+
+router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = await resolveStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No active professional connection" });
+    return;
+  }
+  const record = await getStudioVideoMessage(studioId, authUser.id, req.params.messageId);
+  if (!record) {
+    res.status(404).json({ error: "Video message not found" });
+    return;
+  }
+  try {
+    assertStudioVideoFeatureEnabled();
+    assertStudioVideoManualDeletionAllowed({
+      state: record.media.state,
+      transcript: {
+        status: record.message.transcriptStatus,
+        text: record.message.transcript,
+        transcribedAt: record.message.transcribedAt?.toISOString() ?? null,
+      },
+    });
+  } catch (error) {
+    if (studioVideoError(res, error)) return;
+    res.status(409).json({ error: "This video cannot be deleted until its transcript is available" });
+    return;
+  }
+
+  const result = await deleteStudioVideoMessageMedia({
+    studioId,
+    clientUserId: authUser.id,
+    messageId: record.message.id,
+  });
+  if (result === "unavailable") {
+    res.status(409).json({ error: "This video is already being removed or is no longer available" });
+    return;
+  }
+
+  auditStudioVideoAction({
+    req, event: "deletion_requested", actorUserId: authUser.id,
+    targetUserId: authUser.id, studioId, messageId: record.message.id,
+    metadata: { source: "manual", actorRole: "client" },
+  });
+  if (result === "deletion_failed") {
+    auditStudioVideoAction({
+      req, event: "deletion_failed", actorUserId: authUser.id,
+      targetUserId: authUser.id, studioId, messageId: record.message.id,
+      metadata: { source: "manual" },
+    });
+    res.status(502).json({ error: "The video could not be removed yet. Please try again." });
+    return;
+  }
+  auditStudioVideoAction({
+    req, event: "media_deleted", actorUserId: authUser.id,
+    targetUserId: authUser.id, studioId, messageId: record.message.id,
+    metadata: { source: "manual", actorRole: "client" },
+  });
+  invalidateClientTabletCache(authUser.id);
+  res.set("Cache-Control", "no-store");
+  res.json({ deleted: true, transcriptRetained: true });
 });
 
 router.get("/", requireClientWorkspaceAccess, async (req: Request, res: Response) => {

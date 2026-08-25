@@ -155,6 +155,8 @@ export const tabletVoiceJobs = pgTable("tablet_voice_jobs", {
   status: text("status").$type<"pending" | "processing" | "completed" | "failed">().notNull().default("pending"),
   attempts: integer("attempts").notNull().default(0),
   lastError: text("last_error"),
+  processingClaimToken: text("processing_claim_token"),
+  processingLeaseExpiresAt: timestamp("processing_lease_expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   processedAt: timestamp("processed_at", { withTimezone: true }),
 }, (table) => ({

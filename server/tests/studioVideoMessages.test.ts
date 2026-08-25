@@ -117,6 +117,11 @@ describe("Studio Video Messages — lifecycle transitions", () => {
     ).not.toThrow();
   });
 
+  it("allows an eligible participant to begin a manual deletion without changing automatic expiry rules", () => {
+    expect(() => validTransition("ready", "deleting")).not.toThrow();
+    expect(() => validTransition("expiration_pending", "deleting")).not.toThrow();
+  });
+
   it("rejects skipping states or expiring before the 24-hour deadline", () => {
     expect(() => validTransition("draft", "ready")).toThrow(
       "INVALID_STUDIO_VIDEO_TRANSITION",
