@@ -23,15 +23,23 @@ interface StudioVideoMessageComposerProps {
   onCancel: () => void;
 }
 
-function getSupportedVideoMimeType(): string {
-  const types = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+export function getSupportedVideoMimeType(): string | undefined {
+  const types = [
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+    "video/mp4",
+    "video/quicktime",
+  ];
+  if (typeof MediaRecorder === "undefined" || typeof MediaRecorder.isTypeSupported !== "function") {
+    return undefined;
+  }
   return types.find((type) => {
     try {
       return MediaRecorder.isTypeSupported(type);
     } catch {
       return false;
     }
-  }) || "video/webm";
+  });
 }
 
 function formatDuration(seconds: number): string {
@@ -131,8 +139,11 @@ export default function StudioVideoMessageComposer({
         audio: true,
         video: { facingMode: "user" },
       });
-      const mimeType = getSupportedVideoMimeType();
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const preferredMimeType = getSupportedVideoMimeType();
+      const recorder = preferredMimeType
+        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+        : new MediaRecorder(stream);
+      const mimeType = recorder.mimeType || preferredMimeType || "video/webm";
       const chunks: Blob[] = [];
 
       streamRef.current = stream;
@@ -209,7 +220,11 @@ export default function StudioVideoMessageComposer({
 
     try {
       const uploadMimeType = videoMimeType.split(";")[0].trim().toLowerCase() || "video/webm";
-      const extension = uploadMimeType === "video/mp4" ? "mp4" : "webm";
+      const extension = uploadMimeType === "video/mp4"
+        ? "mp4"
+        : uploadMimeType === "video/quicktime"
+          ? "mov"
+          : "webm";
       const uploadBlob = videoBlob.type === uploadMimeType
         ? videoBlob
         : new Blob([videoBlob], { type: uploadMimeType });

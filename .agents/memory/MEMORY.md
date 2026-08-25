@@ -27,3 +27,4 @@
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
 - [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
 - [Studio video purge retention](studio-video-purge-retention.md) — private media purge needs a renewable token lease and immutable retained transcript before references clear.
+- [Studio video MIME compatibility](studio-video-mime-compatibility.md) — use browser capability selection and server MIME normalization across WebM, MP4, and QuickTime.
