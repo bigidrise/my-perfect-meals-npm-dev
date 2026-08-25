@@ -1219,7 +1219,7 @@ export default function DashboardNew() {
                         {entry.contentType === "video" ? (
                           <div className="space-y-2">
                             {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
-                              <p className="text-xs text-white/45 italic">This private video has expired.</p>
+                              <p className="text-xs text-white/45 italic">This video has expired. Its transcript remains in your message history.</p>
                             ) : tabletOpenVideoId === entry.id && tabletVideoUrls[entry.id] ? (
                               <video
                                 src={tabletVideoUrls[entry.id]}
@@ -1235,17 +1235,17 @@ export default function DashboardNew() {
                                 className="flex items-center gap-2 rounded-md bg-violet-600 hover:bg-violet-500 px-3 py-2 text-xs font-medium text-white"
                               >
                                 <Play className="w-3.5 h-3.5" />
-                                Watch private video
+                                Watch video
                               </button>
                             )}
                             <div className="flex items-center gap-1.5">
                               <Video className="w-3 h-3 text-violet-300" />
                               <span className="text-[11px] text-violet-200 font-medium">
-                                Private video{entry.videoDurationSec ? ` · ${Math.floor(entry.videoDurationSec / 60)}:${String(entry.videoDurationSec % 60).padStart(2, "0")}` : ""}
+                                Video message{entry.videoDurationSec ? ` · ${Math.floor(entry.videoDurationSec / 60)}:${String(entry.videoDurationSec % 60).padStart(2, "0")}` : ""}
                               </span>
                             </div>
                             <p className="text-[10px] text-white/45 leading-snug">
-                              Verified completion starts this video’s 24-hour expiry countdown.
+                              This video will be deleted 24 hours after you finish watching it. The transcript remains in your message history.
                             </p>
                             {entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt && (
                               <p className="text-[10px] text-amber-300">Available until {new Date(entry.videoExpiresAt).toLocaleString()}.</p>
@@ -1309,7 +1309,7 @@ export default function DashboardNew() {
                     <div className="space-y-2 rounded-md border border-violet-500/30 bg-violet-500/10 px-3 py-2">
                       <div className="flex items-center gap-2">
                         <Video className="w-4 h-4 text-violet-300 shrink-0" />
-                        <span className="text-sm text-violet-200 flex-1">Private video · max 2:00</span>
+                        <span className="text-sm text-violet-200 flex-1">Video message · max 2:00</span>
                         <button onClick={discardTabletVideo} className="text-white/40 text-xs">Cancel</button>
                       </div>
                       {tabletVideoRecording ? (
