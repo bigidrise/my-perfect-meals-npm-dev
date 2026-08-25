@@ -180,6 +180,7 @@ export type StudioVideoManualDeletionOutcome = {
   state: "deleted";
   deletedAt: string;
   deletedObjectCount: number;
+  alreadyDeleted?: boolean;
 };
 
 /**
@@ -208,6 +209,22 @@ export async function deleteStudioVideoMessage(
       "INVALID_STUDIO_VIDEO_CONTRACT",
       "Video message not found",
     );
+  }
+  const hasNoMediaReferences =
+    record.media.objectKey === null &&
+    Array.isArray(record.media.temporaryDerivativeKeys) &&
+    record.media.temporaryDerivativeKeys.length === 0;
+  if (
+    record.media.state === "deleted" &&
+    hasNoMediaReferences &&
+    record.media.deletedAt
+  ) {
+    return {
+      state: "deleted",
+      deletedAt: record.media.deletedAt.toISOString(),
+      deletedObjectCount: 0,
+      alreadyDeleted: true,
+    };
   }
 
   const transcript = {
@@ -246,9 +263,18 @@ export async function deleteStudioVideoMessage(
         AND message.studio_id = ${input.studioId}
         AND message.client_user_id = ${input.clientUserId}
         AND message.visibility = 'shared_with_client'
-        AND message.transcript_status = 'completed'
-        AND message.transcript = ${record.message.transcript}
-        AND media.state IN ('ready', 'expiration_pending', 'deletion_failed')
+        AND (
+          (
+            message.transcript_status = 'completed'
+            AND message.transcript = ${record.message.transcript}
+          )
+          OR (
+            message.transcript_status = 'failed'
+            AND message.transcript IS NULL
+            AND media.state IN ('transcription_failed', 'deletion_failed')
+          )
+        )
+        AND media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed')
         AND media.object_key IS NOT NULL
       RETURNING media.object_key, media.temporary_derivative_keys, media.state
     `,
@@ -369,8 +395,17 @@ export async function deleteStudioVideoMessage(
         AND message.id = ${input.messageId}
         AND message.studio_id = ${input.studioId}
         AND message.client_user_id = ${input.clientUserId}
-        AND message.transcript_status = 'completed'
-        AND message.transcript = ${record.message.transcript}
+        AND (
+          (
+            message.transcript_status = 'completed'
+            AND message.transcript = ${record.message.transcript}
+          )
+          OR (
+            message.transcript_status = 'failed'
+            AND message.transcript IS NULL
+            AND media.state = 'deleting'
+          )
+        )
         AND media.state = 'deleting'
         AND media.deletion_claim_token = ${claimToken}
       RETURNING media.id
@@ -583,11 +618,20 @@ export async function deleteStudioVideoMessageMedia(
       AND message.id = ${input.messageId}
       AND message.studio_id = ${input.studioId}
       AND message.client_user_id = ${input.clientUserId}
-      AND message.transcript_status = 'completed'
-      AND message.transcript IS NOT NULL
+       AND (
+         (
+           message.transcript_status = 'completed'
+           AND message.transcript IS NOT NULL
+         )
+         OR (
+           message.transcript_status = 'failed'
+           AND message.transcript IS NULL
+           AND media.state IN ('transcription_failed', 'deletion_failed')
+         )
+       )
       AND media.object_key IS NOT NULL
       AND (
-        media.state IN ('ready', 'expiration_pending', 'deletion_failed')
+         media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed')
         OR (
           media.state = 'deleting'
           AND (
@@ -669,8 +713,17 @@ export async function deleteStudioVideoMessageMedia(
       AND media.state = 'deleting'
       AND media.deletion_claim_token = ${row.deletion_claim_token}
       AND media.deletion_lease_expires_at > NOW()
-      AND message.transcript_status = 'completed'
-      AND message.transcript = ${row.transcript}
+       AND (
+         (
+           message.transcript_status = 'completed'
+           AND message.transcript = ${row.transcript}
+         )
+         OR (
+           message.transcript_status = 'failed'
+           AND message.transcript IS NULL
+           AND media.state = 'deleting'
+         )
+       )
     RETURNING media.id
   `);
   if ((finalized.rows ?? []).length > 0) return "deleted";

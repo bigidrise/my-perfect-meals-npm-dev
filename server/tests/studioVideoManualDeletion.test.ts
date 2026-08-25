@@ -24,6 +24,17 @@ function makeRow() {
   };
 }
 
+function makeFailedTranscriptionRow() {
+  return {
+    ...makeRow(),
+    message_id: "message-failed-1",
+    object_key: "studio-video/message-failed-1/original.webm",
+    temporary_derivative_keys: [],
+    transcript: null,
+    transcript_status: "failed",
+  };
+}
+
 function sqlText(query: any): string {
   return (query?.queryChunks ?? [])
     .map((chunk: any) => typeof chunk === "string" ? chunk : (chunk?.value ?? ""))
@@ -57,11 +68,37 @@ describe("manual Studio video deletion", () => {
       "studio-video/message-1/preview.mp4",
       "studio-video/message-1/thumbnail.jpg",
     ]);
-    expect(sqlText(queries[0])).toContain("media.state IN ('ready', 'expiration_pending', 'deletion_failed')");
+    expect(sqlText(queries[0])).toContain("media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed')");
     expect(sqlText(queries[0])).toContain("media.state = 'deleting'");
     expect(sqlText(queries[1])).toContain("deletion_lease_expires_at");
     expect(sqlText(queries[2])).toContain("object_key = NULL");
     expect(sqlText(queries[2])).toContain("temporary_derivative_keys = '[]'::jsonb");
+    expect(sqlText(queries[2])).not.toContain("SET transcript");
+  });
+
+  test("deletes a failed-transcription private video while retaining its failed history record", async () => {
+    const row = makeFailedTranscriptionRow();
+    const queries: any[] = [];
+    const database: StudioVideoManualDeletionDatabase = {
+      execute: async (query) => {
+        queries.push(query);
+        return queries.length === 1 ? { rows: [row] } : { rows: [{ id: row.id }] };
+      },
+    };
+    const deleteObject = jest.fn(async () => {});
+
+    await expect(deleteStudioVideoMessageMedia({
+      studioId: "studio-1",
+      clientUserId: "client-1",
+      messageId: row.message_id,
+    }, {
+      database,
+      storage: { deleteObject },
+    })).resolves.toBe("deleted");
+
+    expect(deleteObject).toHaveBeenCalledWith(row.object_key);
+    expect(sqlText(queries[0])).toContain("message.transcript_status = 'failed'");
+    expect(sqlText(queries[0])).toContain("media.state IN ('transcription_failed', 'deletion_failed')");
     expect(sqlText(queries[2])).not.toContain("SET transcript");
   });
 

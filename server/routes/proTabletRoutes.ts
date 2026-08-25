@@ -115,15 +115,17 @@ async function handleProStudioVideoDeletion(
       clientUserId: clientId,
       messageId,
     });
-    await logClientActivity(
-      studioId,
-      clientId,
-      authUser.id,
-      "message_deleted",
-      "message",
-      messageId,
-      { type: "video", deletedBy: "pro", mediaOnly: true },
-    );
+    if (!result.alreadyDeleted) {
+      await logClientActivity(
+        studioId,
+        clientId,
+        authUser.id,
+        "message_deleted",
+        "message",
+        messageId,
+        { type: "video", deletedBy: "pro", mediaOnly: true },
+      );
+    }
     res.set("Cache-Control", "no-store");
     res.json({ ok: true, ...result });
   } catch (error) {

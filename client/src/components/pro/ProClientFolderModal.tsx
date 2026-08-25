@@ -840,7 +840,7 @@ export default function ProClientFolderModal({
         {isExpired ? (
           <p className="text-[10px] text-white/45 italic">
             {isDeleted
-              ? "This video was removed. Its message record remains in Studio history."
+               ? "Video deleted. Its message record remains in Studio history."
               : "This video has expired. Its message record remains in Studio history."}
           </p>
         ) : (

@@ -219,7 +219,7 @@ const STUDIO_VIDEO_ALLOWED_TRANSITIONS: Record<
   processing: ["ready", "transcription_failed", "moderation_failed"],
   ready: ["expiration_pending", "deleting"],
   upload_failed: ["uploading"],
-  transcription_failed: ["processing"],
+  transcription_failed: ["processing", "deleting"],
   moderation_failed: ["processing"],
   expiration_pending: ["expired", "deleting"],
   expired: ["deleting"],
@@ -636,10 +636,27 @@ export function assertStudioVideoManualDeletionEligible(input: {
   objectKey: string | null;
   transcript: StudioVideoTranscript;
 }): void {
-  if (!["ready", "expiration_pending", "deletion_failed"].includes(input.state)) {
+  const hasFailedTranscriptionHistory =
+    input.transcript.status === "failed" &&
+    input.transcript.text === null;
+  const isFailedTranscriptionDeletion =
+    hasFailedTranscriptionHistory &&
+    ["transcription_failed", "deletion_failed"].includes(input.state);
+
+  if (
+    !["ready", "expiration_pending", "deletion_failed", "transcription_failed"].includes(
+      input.state,
+    )
+  ) {
     throw new StudioVideoDomainError(
       "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
       `Video media cannot be manually deleted from ${input.state}`,
+    );
+  }
+  if (input.state === "transcription_failed" && !hasFailedTranscriptionHistory) {
+    throw new StudioVideoDomainError(
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+      "A failed-transcription video must retain its failed transcript status",
     );
   }
   if (!input.objectKey) {
@@ -648,7 +665,9 @@ export function assertStudioVideoManualDeletionEligible(input: {
       "Video media has no private object to delete",
     );
   }
-  assertStudioVideoTranscriptRetainable(input.transcript);
+  if (!isFailedTranscriptionDeletion) {
+    assertStudioVideoTranscriptRetainable(input.transcript);
+  }
 }
 
 export type StudioVideoManualDeletionResult = {
@@ -669,7 +688,12 @@ export function finalizeStudioVideoManualDeletion(input: {
   transcript: StudioVideoTranscript;
 }): StudioVideoManualDeletionResult {
   const nowMs = timestampMs(input.now, "now");
-  assertStudioVideoTranscriptRetainable(input.transcript);
+  const isFailedTranscriptionHistory =
+    input.transcript.status === "failed" &&
+    input.transcript.text === null;
+  if (!isFailedTranscriptionHistory) {
+    assertStudioVideoTranscriptRetainable(input.transcript);
+  }
 
   return {
     state: "deleted",

@@ -1165,7 +1165,7 @@ export default function DashboardNew() {
                             {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
                               <p className="text-xs text-white/45 italic">
                                 {entry.videoMediaState === "deleted"
-                                  ? "This video was removed. Its transcript remains in your message history."
+                                   ? "Video deleted. Its transcript remains in your message history."
                                   : "This video has expired. Its transcript remains in your message history."}
                               </p>
                             ) : tabletOpenVideoId === entry.id && tabletVideoUrls[entry.id] ? (

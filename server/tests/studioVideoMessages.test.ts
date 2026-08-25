@@ -122,6 +122,7 @@ describe("Studio Video Messages — lifecycle transitions", () => {
   it("allows an eligible participant to begin a manual deletion without changing automatic expiry rules", () => {
     expect(() => validTransition("ready", "deleting")).not.toThrow();
     expect(() => validTransition("expiration_pending", "deleting")).not.toThrow();
+    expect(() => validTransition("transcription_failed", "deleting")).not.toThrow();
   });
 
   it("rejects skipping states or expiring before the 24-hour deadline", () => {
@@ -336,6 +337,26 @@ describe("Studio Video Messages — access, readiness, and transcript retention"
       }),
     ).toThrow("VIDEO_TRANSCRIPT_NOT_RETAINABLE");
 
+    const failedTranscription = {
+      status: "failed" as const,
+      text: null,
+      transcribedAt: null,
+    };
+    expect(() =>
+      assertStudioVideoManualDeletionEligible({
+        state: "transcription_failed",
+        objectKey: "studio-video/message-2.webm",
+        transcript: failedTranscription,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertStudioVideoManualDeletionEligible({
+        state: "deletion_failed",
+        objectKey: "studio-video/message-2.webm",
+        transcript: failedTranscription,
+      }),
+    ).not.toThrow();
+
     const deleted = finalizeStudioVideoManualDeletion({
       currentState: "deleting",
       now: BASE_TIME,
@@ -346,6 +367,18 @@ describe("Studio Video Messages — access, readiness, and transcript retention"
       objectKey: null,
       temporaryDerivativeKeys: [],
       transcript,
+    });
+
+    expect(
+      finalizeStudioVideoManualDeletion({
+        currentState: "deleting",
+        now: BASE_TIME,
+        transcript: failedTranscription,
+      }),
+    ).toMatchObject({
+      state: "deleted",
+      objectKey: null,
+      transcript: failedTranscription,
     });
   });
 });
