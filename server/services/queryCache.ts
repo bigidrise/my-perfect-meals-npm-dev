@@ -44,6 +44,11 @@ export function invalidatePrefix(prefix: string): void {
   }
 }
 
+/** Evict one client's cached Studio conversation after a successful send. */
+export function invalidateClientTabletCache(clientUserId: string): void {
+  invalidatePrefix(`client-tablet:${clientUserId}`);
+}
+
 /** Convenience: cache the result of an async function, or compute and store it. */
 export async function getOrSet<T>(
   key: string,

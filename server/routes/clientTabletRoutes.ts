@@ -21,7 +21,7 @@ import {
   isValidStudioVoicePlaybackToken,
   issueStudioVoicePlaybackToken,
 } from "../services/studioVoiceMessageService";
-import { getOrSet, invalidatePrefix } from "../services/queryCache";
+import { getOrSet, invalidateClientTabletCache } from "../services/queryCache";
 import { requireClientWorkspaceAccess, WorkspaceRequest } from "../middleware/requireWorkspaceAccess";
 import {
   assertStudioVideoFeatureEnabled,
@@ -50,12 +50,9 @@ import {
   transcribeStudioVideoBuffer,
   uploadStudioVideoToS3,
 } from "../services/tabletVoiceService";
+import { getStudioVideoTranscriptionFailureMetadata } from "../services/studioVideoTranscriptionDiagnostics";
 
 const CLIENT_TABLET_TTL_MS = 15_000;
-
-function invalidateClientTabletCache(clientUserId: string): void {
-  invalidatePrefix(`client-tablet:${clientUserId}`);
-}
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 const videoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_STUDIO_VIDEO_SIZE_BYTES } });
@@ -259,13 +256,22 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
         req, event: "transcription_completed", actorUserId: authUser.id, targetUserId: authUser.id,
         studioId, messageId: message.id, metadata: {},
       });
-    } catch {
+    } catch (error) {
       await db.update(studioVideoMessages)
         .set({ transcriptStatus: "failed", updatedAt: new Date() })
         .where(eq(studioVideoMessages.id, message.id));
       await db.update(studioVideoMedia)
         .set({ state: "transcription_failed", updatedAt: new Date() })
         .where(eq(studioVideoMedia.messageId, message.id));
+      auditStudioVideoAction({
+        req,
+        event: "transcription_failed",
+        actorUserId: authUser.id,
+        targetUserId: authUser.id,
+        studioId,
+        messageId: message.id,
+        metadata: getStudioVideoTranscriptionFailureMetadata(error),
+      });
       res.status(422).json({ error: "We could not verify this video message. Please try recording it again." });
       return;
     }

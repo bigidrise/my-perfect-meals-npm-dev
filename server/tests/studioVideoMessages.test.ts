@@ -366,6 +366,28 @@ describe("Studio Video Messages — audit contract", () => {
     expect(event.metadata).toEqual({ coverageRatio: 0.98, verified: true });
   });
 
+  it("allows sanitized transcription failure diagnostics", () => {
+    const event = createStudioVideoAuditEvent({
+      event: "transcription_failed",
+      actorUserId: "client-1",
+      targetUserId: "client-1",
+      studioId: "studio-1",
+      messageId: "message-1",
+      occurredAt: BASE_TIME,
+      metadata: {
+        provider: "openai",
+        failureCategory: "timeout",
+        sdkErrorClass: "APITimeoutError",
+      },
+    });
+
+    expect(event.metadata).toEqual({
+      provider: "openai",
+      failureCategory: "timeout",
+      sdkErrorClass: "APITimeoutError",
+    });
+  });
+
   it("rejects transcript, URL, token, object-key, and nested content metadata", () => {
     for (const metadata of [
       { transcript: "sensitive content" },

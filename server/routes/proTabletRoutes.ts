@@ -10,7 +10,7 @@ import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationSe
 import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sql } from "drizzle-orm";
-import { getOrSet, invalidatePrefix } from "../services/queryCache";
+import { getOrSet, invalidateClientTabletCache, invalidatePrefix } from "../services/queryCache";
 
 const PRO_UNREAD_TTL_MS = 15_000;
 
@@ -59,6 +59,7 @@ import {
   transcribeStudioVideoBuffer,
   uploadStudioVideoToS3,
 } from "../services/tabletVoiceService";
+import { getStudioVideoTranscriptionFailureMetadata } from "../services/studioVideoTranscriptionDiagnostics";
 
 startVoiceJobWorker();
 
@@ -260,13 +261,22 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
         req, event: "transcription_completed", actorUserId: authUser.id,
         targetUserId: clientId, studioId, messageId: message.id, metadata: {},
       });
-    } catch {
+    } catch (error) {
       await db.update(studioVideoMessages)
         .set({ transcriptStatus: "failed", updatedAt: new Date() })
         .where(eq(studioVideoMessages.id, message.id));
       await db.update(studioVideoMedia)
         .set({ state: "transcription_failed", updatedAt: new Date() })
         .where(eq(studioVideoMedia.messageId, message.id));
+      auditStudioVideoAction({
+        req,
+        event: "transcription_failed",
+        actorUserId: authUser.id,
+        targetUserId: clientId,
+        studioId,
+        messageId: message.id,
+        metadata: getStudioVideoTranscriptionFailureMetadata(error),
+      });
       res.status(422).json({ error: "We could not verify this video message. Please try recording it again." });
       return;
     }
@@ -319,6 +329,7 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
     metadata: { approved: true },
   });
   logClientActivity(studioId, clientId, authUser.id, "message_sent", "message", message.id, { type: "video", sender: "pro" });
+  invalidateClientTabletCache(clientId);
   notifyClientOfMessage(clientId);
 
   res.set("Cache-Control", "no-store");
