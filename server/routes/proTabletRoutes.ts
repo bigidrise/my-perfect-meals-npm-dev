@@ -103,6 +103,10 @@ function parseVideoDuration(value: unknown): number | null {
   return Math.ceil(durationSec);
 }
 
+function normalizeStudioVideoMimeType(mimeType: string): string {
+  return mimeType.split(";")[0].trim().toLowerCase();
+}
+
 router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.single("video"), async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   const { clientId } = req.params;
@@ -118,7 +122,8 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
     res.status(400).json({ error: "video file is required" });
     return;
   }
-  if (!["video/webm", "video/mp4", "video/quicktime"].includes(req.file.mimetype)) {
+  const mimeType = normalizeStudioVideoMimeType(req.file.mimetype);
+  if (!["video/webm", "video/mp4", "video/quicktime"].includes(mimeType)) {
     res.status(400).json({ error: "Video must be WebM, MP4, or MOV" });
     return;
   }
@@ -151,7 +156,7 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
   await db.insert(studioVideoMedia).values({
     messageId: message.id,
     state: "draft",
-    mimeType: req.file.mimetype,
+    mimeType,
     durationSec,
     sizeBytes: req.file.size,
     temporaryDerivativeKeys: [],
@@ -182,8 +187,8 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
   });
 
   try {
-    const objectKey = getStudioVideoObjectKey(message.id, req.file.mimetype);
-    await uploadStudioVideoToS3(req.file.buffer, req.file.mimetype, objectKey);
+    const objectKey = getStudioVideoObjectKey(message.id, mimeType);
+    await uploadStudioVideoToS3(req.file.buffer, mimeType, objectKey);
     assertStudioVideoTransition({ currentState: "uploading", nextState: "uploaded", now: new Date() });
     await db.update(studioVideoMedia)
       .set({ state: "uploaded", objectKey, updatedAt: new Date() })
@@ -198,7 +203,7 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
     });
     let transcript: string;
     try {
-      ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, req.file.mimetype));
+      ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, mimeType));
       await db.update(studioVideoMessages)
         .set({ transcript, transcriptStatus: "completed", transcribedAt: new Date(), updatedAt: new Date() })
         .where(eq(studioVideoMessages.id, message.id));
@@ -253,7 +258,7 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.sing
     targetUserId: clientId,
     studioId,
     messageId: message.id,
-    metadata: { mimeType: req.file.mimetype, durationSec },
+    metadata: { mimeType, durationSec },
   });
   auditStudioVideoAction({
     req,
