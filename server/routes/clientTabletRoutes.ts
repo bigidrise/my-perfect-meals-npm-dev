@@ -22,19 +22,18 @@ import {
   issueStudioVoicePlaybackToken,
 } from "../services/studioVoiceMessageService";
 import { getOrSet, invalidatePrefix } from "../services/queryCache";
-import { requireClientWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
+import { requireClientWorkspaceAccess, WorkspaceRequest } from "../middleware/requireWorkspaceAccess";
 import {
   assertStudioVideoFeatureEnabled,
   auditStudioVideoAction,
   auditStudioVideoListAction,
-  deleteStudioVideoMessageMedia,
+  deleteStudioVideoMessage,
   getStudioVideoMessage,
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
 } from "../services/studioVideoMessageService";
 import {
-  assertStudioVideoManualDeletionAllowed,
   assertStudioVideoReadyForPlayback,
   assertStudioVideoTransition,
   canReplayStudioVideo,
@@ -113,6 +112,47 @@ function studioVideoError(res: Response, error: unknown): boolean {
   return false;
 }
 
+async function handleClientStudioVideoDeletion(
+  req: Request,
+  res: Response,
+  authUser: AuthenticatedRequest["authUser"],
+  studioId: string,
+  messageId: string,
+): Promise<void> {
+  try {
+    const result = await deleteStudioVideoMessage({
+      req,
+      actorUserId: authUser.id,
+      studioId,
+      clientUserId: authUser.id,
+      messageId,
+    });
+    await logClientActivity(
+      studioId,
+      authUser.id,
+      authUser.id,
+      "message_deleted",
+      "message",
+      messageId,
+      { type: "video", deletedBy: "client", mediaOnly: true },
+    );
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Video message not found")) {
+      res.status(404).json({ error: "Video message not found" });
+      return;
+    }
+    if (error instanceof Error && error.message.includes("Private video deletion failed")) {
+      res.status(502).json({ error: "Video could not be deleted. Please try again." });
+      return;
+    }
+    res.status(409).json({
+      error: "This video is no longer eligible for deletion or is already being deleted",
+    });
+  }
+}
+
 function parseVideoDuration(value: unknown): number | null {
   const durationSec = typeof value === "string" ? Number(value) : value;
   if (
@@ -147,11 +187,7 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
     res.status(400).json({ error: `Video duration must be between 1 and ${MAX_STUDIO_VIDEO_DURATION_SEC} seconds` });
     return;
   }
-  const studioId = await resolveStudioId(authUser.id);
-  if (!studioId) {
-    res.status(404).json({ error: "No active professional connection" });
-    return;
-  }
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
   const [studio] = await db
     .select({ ownerUserId: studios.ownerUserId })
     .from(studios)
@@ -300,11 +336,7 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
 
 router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
-  const studioId = await resolveStudioId(authUser.id);
-  if (!studioId) {
-    res.status(404).json({ error: "No active professional connection" });
-    return;
-  }
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
   const record = await getStudioVideoMessage(studioId, authUser.id, req.params.messageId);
   if (!record) {
     res.status(404).json({ error: "Video message not found" });
@@ -360,11 +392,7 @@ router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (re
 
 router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
-  const studioId = await resolveStudioId(authUser.id);
-  if (!studioId) {
-    res.status(404).json({ error: "No active professional connection" });
-    return;
-  }
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
   const record = await getStudioVideoMessage(studioId, authUser.id, req.params.messageId);
   if (!record) {
     res.status(404).json({ error: "Video message not found" });
@@ -420,68 +448,6 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
     watchCompletedAt: update.watchCompletedAt ?? record.media.watchCompletedAt,
     expiresAt: update.expiresAt ?? record.media.expiresAt,
   });
-});
-
-router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
-  const authUser = (req as AuthenticatedRequest).authUser;
-  const studioId = await resolveStudioId(authUser.id);
-  if (!studioId) {
-    res.status(404).json({ error: "No active professional connection" });
-    return;
-  }
-  const record = await getStudioVideoMessage(studioId, authUser.id, req.params.messageId);
-  if (!record) {
-    res.status(404).json({ error: "Video message not found" });
-    return;
-  }
-  try {
-    assertStudioVideoFeatureEnabled();
-    assertStudioVideoManualDeletionAllowed({
-      state: record.media.state,
-      transcript: {
-        status: record.message.transcriptStatus,
-        text: record.message.transcript,
-        transcribedAt: record.message.transcribedAt?.toISOString() ?? null,
-      },
-    });
-  } catch (error) {
-    if (studioVideoError(res, error)) return;
-    res.status(409).json({ error: "This video cannot be deleted until its transcript is available" });
-    return;
-  }
-
-  const result = await deleteStudioVideoMessageMedia({
-    studioId,
-    clientUserId: authUser.id,
-    messageId: record.message.id,
-  });
-  if (result === "unavailable") {
-    res.status(409).json({ error: "This video is already being removed or is no longer available" });
-    return;
-  }
-
-  auditStudioVideoAction({
-    req, event: "deletion_requested", actorUserId: authUser.id,
-    targetUserId: authUser.id, studioId, messageId: record.message.id,
-    metadata: { source: "manual", actorRole: "client" },
-  });
-  if (result === "deletion_failed") {
-    auditStudioVideoAction({
-      req, event: "deletion_failed", actorUserId: authUser.id,
-      targetUserId: authUser.id, studioId, messageId: record.message.id,
-      metadata: { source: "manual" },
-    });
-    res.status(502).json({ error: "The video could not be removed yet. Please try again." });
-    return;
-  }
-  auditStudioVideoAction({
-    req, event: "media_deleted", actorUserId: authUser.id,
-    targetUserId: authUser.id, studioId, messageId: record.message.id,
-    metadata: { source: "manual", actorRole: "client" },
-  });
-  invalidateClientTabletCache(authUser.id);
-  res.set("Cache-Control", "no-store");
-  res.json({ deleted: true, transcriptRetained: true });
 });
 
 router.get("/", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
@@ -779,7 +745,7 @@ router.post("/voice-message", requireClientWorkspaceAccess, upload.single("audio
   });
 });
 
-router.delete("/entry/:entryId", async (req: Request, res: Response) => {
+router.delete("/entry/:entryId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
     res.status(401).json({ error: "Authentication required" });
@@ -788,7 +754,12 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
 
   const { entryId } = req.params;
 
-  const studioId = await resolveStudioId(authUser.id);
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
+
+  if (await getStudioVideoMessage(studioId, authUser.id, entryId)) {
+    await handleClientStudioVideoDeletion(req, res, authUser, studioId, entryId);
+    return;
+  }
 
   const [deleted] = await db
     .delete(clientNotes)
@@ -820,6 +791,12 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
   }
 
   res.json({ ok: true });
+});
+
+router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
+  await handleClientStudioVideoDeletion(req, res, authUser, studioId, req.params.messageId);
 });
 
 router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
