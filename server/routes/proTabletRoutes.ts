@@ -78,7 +78,6 @@ async function getProStudioId(proUserId: string): Promise<string | null> {
 }
 
 async function markMessagesRead(studioId: string, clientUserId: string): Promise<void> {
-  let transcript: string;
   try {
     await db.execute(sql`
       INSERT INTO pro_message_reads (studio_id, client_user_id, last_read_at)
@@ -163,6 +162,7 @@ function normalizeStudioVideoMimeType(mimeType: string): string {
 router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.single("video"), async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   const { clientId } = req.params;
+  let transcript: string;
 
   try {
     assertStudioVideoFeatureEnabled();

@@ -30,5 +30,6 @@
 - [Studio video MIME compatibility](studio-video-mime-compatibility.md) — use browser capability selection and server MIME normalization across WebM, MP4, and QuickTime.
 - [Failed Studio video deletion](failed-studio-video-deletion.md) — failed-transcription media is deletable without creating a transcript or weakening playback gates.
 - [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
+- [Studio route result scope](studio-route-result-scope.md) — keep transcription results at handler scope when later moderation and response code runs outside the processing try block.
 - [Voice message queue integrity](voice-message-queue-integrity.md) — pending voice notes require stored audio and a transcription job; otherwise show failure.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
