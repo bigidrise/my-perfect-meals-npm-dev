@@ -116,7 +116,6 @@ async function handleClientStudioVideoDeletion(
   studioId: string,
   messageId: string,
 ): Promise<void> {
-  let transcript: string;
   try {
     const result = await deleteStudioVideoMessage({
       req,
@@ -168,6 +167,7 @@ function parseVideoDuration(value: unknown): number | null {
 
 router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("video"), async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
+  let transcript: string;
   try {
     assertStudioVideoFeatureEnabled();
   } catch (error) {
