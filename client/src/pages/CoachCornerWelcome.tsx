@@ -4,7 +4,7 @@ import { Play, Pause, ChevronLeft } from "lucide-react";
 import { voiceManager } from "@/voice/VoiceManager";
 import { PillButton } from "@/components/ui/pill-button";
 
-const CHEF_SCRIPT = `Hi, I'm Chef. Welcome to Coach's Corner.
+const CHEF_SCRIPT = `Hi, I'm Chef. Welcome to Chef's Corner.
 
 No matter how much we read, how many videos we watch, or how much we think we know about nutrition, there are still moments when we're just not sure what to do.
 
@@ -18,7 +18,7 @@ Maybe you're eating out tonight.
 
 Maybe life has simply gotten busy.
 
-Those are the moments Coach's Corner was built for.
+Those are the moments Chef's Corner was built for.
 
 My job isn't to replace your meal plan. My job is to help you make better decisions when real life gets in the way.
 
@@ -34,7 +34,7 @@ Just answer honestly.
 
 The better I understand you, the more personal my coaching becomes.
 
-After we finish, Coach's Corner will be here whenever you need it.
+After we finish, Chef's Corner will be here whenever you need it.
 
 Whether you're feeling tired...
 
@@ -105,15 +105,15 @@ export default function CoachCornerWelcome() {
 
         <div className="flex flex-col items-center mb-4 -mt-2">
           <img
-            src="/assets/ProCareChef.png"
+            src="/assets/chef-corner-black-apron-transparent.png"
             alt="Chef"
-            className="w-[24rem] h-auto -mb-3"
+            className="w-[16rem] h-auto -translate-y-2 mb-1"
           />
           <h1 className="text-2xl font-bold italic mt-0 text-center">
             Hi, I'm Chef.
           </h1>
           <p className="text-white/70 text-sm leading-relaxed text-center mt-1 max-w-xs">
-            Welcome to Coach's Corner.
+            Welcome to Chef's Corner.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ export default function CoachCornerWelcome() {
                 {isPlaying ? "Listening to Chef..." : "Hear from Chef"}
               </p>
               <p className="text-xs text-white/60">
-                {isPlaying ? "Tap to stop" : "A quick intro to Coach's Corner"}
+                {isPlaying ? "Tap to stop" : "A quick intro to Chef's Corner"}
               </p>
             </div>
           </button>

@@ -1,3 +1,4 @@
+import "openai/shims/node";
 import dotenv from "dotenv";
 dotenv.config(); // Load .env file FIRST before anything else
 
@@ -657,6 +658,24 @@ const initDataRetentionLazy = async () => {
   }
 };
 setTimeout(initDataRetentionLazy, 5000);
+
+// Studio Video Messages — migration-gated retrying startup. A failed schema
+// migration must never start a destructive worker against a missing table.
+let studioVideoPurgeInitialized = false;
+const initStudioVideoPurge = async (): Promise<void> => {
+  if (studioVideoPurgeInitialized) return;
+  try {
+    const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
+    await runStudioVideoMessagesMigration();
+    const { startStudioVideoPurgeWorker } = await import("./services/voiceJobWorker");
+    startStudioVideoPurgeWorker();
+    studioVideoPurgeInitialized = true;
+  } catch (err: any) {
+    console.error("❌ Studio Video purge initialization failed; retrying in 60 seconds:", err.message);
+    setTimeout(initStudioVideoPurge, 60_000);
+  }
+};
+setTimeout(initStudioVideoPurge, 10500);
 
 // Trial expiry reminder cron (daily 9 AM — emails at 6, 5, 3, 1 days remaining)
 let trialReminderInitialized = false;
@@ -1637,6 +1656,7 @@ async function start() {
   await withBootRetry("Critical column pre-flight migrations", async () => {
     const { db: dbPre } = await import("./db");
     const { sql: sqlPre } = await import("drizzle-orm");
+    const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
     // Phase 2 ProCare Studio gate
     await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
     // Performance Hub macro resolver
@@ -1660,6 +1680,7 @@ async function start() {
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh numeric`);
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh numeric`);
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s numeric`);
+    await runStudioVoiceStorageMigration();
     console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
   });
 

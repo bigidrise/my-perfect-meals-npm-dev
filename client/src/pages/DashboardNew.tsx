@@ -37,6 +37,7 @@ import {
   Pause,
   Mic,
   Square,
+  Video,
 } from "lucide-react";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
@@ -56,6 +57,9 @@ import { BugReportButton } from "@/components/BugReportButton";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
+import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
+import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
@@ -142,15 +146,25 @@ export default function DashboardNew() {
   const tabletTranslationCache = useRef(new Map<string, string>());
   const tabletInitialLoad = useRef(true);
   const [tabletPlayingId, setTabletPlayingId] = useState<string | null>(null);
-  const tabletAudioCache = useRef<Record<string, string>>({});
   const tabletAudioRef = useRef<HTMLAudioElement | null>(null);
+  const tabletVoiceUrlRevokeRef = useRef<(() => void) | null>(null);
   const [tabletRecording, setTabletRecording] = useState(false);
   const [tabletAudioBlob, setTabletAudioBlob] = useState<Blob | null>(null);
+  const [tabletAudioMimeType, setTabletAudioMimeType] = useState("audio/webm");
   const [tabletVoiceSending, setTabletVoiceSending] = useState(false);
   const [tabletRecordingSec, setTabletRecordingSec] = useState(0);
   const tabletMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const tabletRecordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tabletStreamRef = useRef<MediaStream | null>(null);
+  const [tabletVideoMode, setTabletVideoMode] = useState(false);
+  const [tabletVideoUrls, setTabletVideoUrls] = useState<Record<string, string>>({});
+  const [tabletOpenVideoId, setTabletOpenVideoId] = useState<string | null>(null);
+  const tabletVideoUrlRevokeRef = useRef<Record<string, () => void>>({});
+  const tabletVideoProgressSentAt = useRef<Record<string, number>>({});
+
+  useEffect(() => () => {
+    Object.values(tabletVideoUrlRevokeRef.current).forEach((revoke) => revoke());
+  }, []);
 
   // Provider inbox — completely separate from client tablet
   const [providerOpen, setProviderOpen] = useState(false);
@@ -311,7 +325,24 @@ export default function DashboardNew() {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete");
-      setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
+      if (entry.contentType === "video") {
+        setTabletMessages((prev) => prev.map((message: any) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "deleted" }
+            : message,
+        ));
+      } else {
+        setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
+      }
+      if (entry.contentType === "video") {
+        tabletVideoUrlRevokeRef.current[entry.id]?.();
+        delete tabletVideoUrlRevokeRef.current[entry.id];
+        setTabletOpenVideoId((current) => current === entry.id ? null : current);
+        setTabletVideoUrls((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
+      }
     } catch {
       setTabletError("Failed to delete message");
     }
@@ -320,42 +351,41 @@ export default function DashboardNew() {
   const handleTabletPlay = async (entry: any) => {
     if (tabletPlayingId === entry.id) {
       tabletAudioRef.current?.pause();
+      tabletVoiceUrlRevokeRef.current?.();
+      tabletVoiceUrlRevokeRef.current = null;
       setTabletPlayingId(null);
       return;
     }
     tabletAudioRef.current?.pause();
+    tabletVoiceUrlRevokeRef.current?.();
+    tabletVoiceUrlRevokeRef.current = null;
     setTabletPlayingId(entry.id);
     try {
-      let url = tabletAudioCache.current[entry.id];
-      if (!url) {
-        const res = await fetch(apiUrl(`/api/client/tablet/audio/${entry.id}`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
-        if (!res.ok) {
-          setTabletError("Audio not available yet — try again shortly");
-          setTabletPlayingId(null);
-          return;
-        }
-        const data = await res.json();
-        if (data.pending) {
-          setTabletError("Still transcribing — try again in a moment");
-          setTabletPlayingId(null);
-          return;
-        }
-        url = data.url;
-        tabletAudioCache.current[entry.id] = url;
-      }
-      const audio = new Audio(url);
+      const source = await loadStudioVoicePlayback(
+        `/api/client/tablet/audio/${entry.id}`,
+        getAuthHeaders(),
+      );
+      const audio = new Audio(source.url);
       tabletAudioRef.current = audio;
-      audio.onended = () => setTabletPlayingId(null);
+      tabletVoiceUrlRevokeRef.current = source.revoke;
+      audio.onended = () => {
+        source.revoke();
+        tabletVoiceUrlRevokeRef.current = null;
+        setTabletPlayingId(null);
+      };
       audio.onerror = () => {
+        source.revoke();
+        tabletVoiceUrlRevokeRef.current = null;
         setTabletError("Could not play audio");
         setTabletPlayingId(null);
       };
-      audio.play();
-    } catch {
-      setTabletError("Could not load audio");
+      await audio.play();
+    } catch (error) {
+      tabletVoiceUrlRevokeRef.current?.();
+      tabletVoiceUrlRevokeRef.current = null;
+      setTabletError(error instanceof StudioVoicePlaybackError
+        ? error.message
+        : "Could not load audio");
       setTabletPlayingId(null);
     }
   };
@@ -372,7 +402,9 @@ export default function DashboardNew() {
 
       let mimeType = "audio/webm;codecs=opus";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/mp4;codecs=mp4a.40.2";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/mp4";
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/m4a";
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "";
 
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
@@ -383,6 +415,7 @@ export default function DashboardNew() {
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
         setTabletAudioBlob(blob);
+        setTabletAudioMimeType(mimeType || "audio/webm");
         stream.getTracks().forEach((t) => t.stop());
         tabletStreamRef.current = null;
         if (tabletRecordingTimerRef.current) {
@@ -427,7 +460,12 @@ export default function DashboardNew() {
     setTabletVoiceSending(true);
     try {
       const formData = new FormData();
-      formData.append("audio", tabletAudioBlob, "voice-message.webm");
+      const ext = tabletAudioMimeType.includes("webm") ? "webm"
+        : tabletAudioMimeType.includes("ogg") ? "ogg"
+        : tabletAudioMimeType.includes("mp4") || tabletAudioMimeType.includes("m4a") ? "m4a"
+        : tabletAudioMimeType.includes("aac") ? "aac"
+        : "webm";
+      formData.append("audio", tabletAudioBlob, `voice-message.${ext}`);
       const res = await fetch(apiUrl("/api/client/tablet/voice-message"), {
         method: "POST",
         headers: { ...getAuthHeaders() },
@@ -450,6 +488,50 @@ export default function DashboardNew() {
     }
   };
 
+  const loadTabletVideo = async (entry: any) => {
+    try {
+      const source = await loadStudioVideoPlayback(
+        `/api/client/tablet/video/${entry.id}/playback`,
+        getAuthHeaders(),
+      );
+      tabletVideoUrlRevokeRef.current[entry.id]?.();
+      tabletVideoUrlRevokeRef.current[entry.id] = source.revoke;
+      setTabletVideoUrls((previous) => ({ ...previous, [entry.id]: source.url }));
+      setTabletOpenVideoId(entry.id);
+    } catch (error) {
+      setTabletError(error instanceof StudioVideoPlaybackError ? error.message : "Could not load video");
+    }
+  };
+
+  const reportTabletVideoProgress = async (entry: any, element: HTMLVideoElement) => {
+    const observedAtMs = Date.now();
+    if (observedAtMs - (tabletVideoProgressSentAt.current[entry.id] || 0) < 1000) return;
+    tabletVideoProgressSentAt.current[entry.id] = observedAtMs;
+    try {
+      const res = await fetch(apiUrl(`/api/client/tablet/video/${entry.id}/progress`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          positionSec: element.currentTime,
+          observedAtMs,
+          isPlaying: !element.paused && !element.seeking,
+          isSeeking: element.seeking,
+          playbackRate: element.playbackRate,
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.watchCompletedAt) {
+        setTabletMessages((previous) => previous.map((message: any) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "expiration_pending", videoWatchCompletedAt: data.watchCompletedAt, videoExpiresAt: data.expiresAt }
+            : message,
+        ));
+      }
+    } catch {}
+  };
+
   // ── Provider inbox functions (fully independent) ──────────────────────────
   const fetchProviderTablet = useCallback(async () => {
     if (providerInitialLoad.current) setProviderLoading(true);
@@ -461,9 +543,11 @@ export default function DashboardNew() {
       });
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
-          // Token was invalidated — stop polling and signal auth context to sign out
-          console.warn("⚠️ [DashboardNew] Provider tablet poll got 401 — dispatching auth-rejected");
-          window.dispatchEvent(new CustomEvent("mpm:polling-auth-rejected"));
+          // This endpoint is client-workspace-only. A professional can be
+          // authenticated and still receive an access response here, so never
+          // treat it as a revoked session or force a full-page sign-out.
+          console.warn("⚠️ [DashboardNew] Provider tablet poll access denied; keeping the current session");
+          setProviderError("Provider messages are unavailable for this account");
           return;
         }
         if (res.status === 404) setProviderError("No active provider connection");
@@ -647,9 +731,9 @@ export default function DashboardNew() {
     setIsGuidedMode(coachMode === "guided");
   }, []);
 
-  // =========================================
+  // -------------------------------------------------------------------------
   // AUTO-OPEN COPILOT INTRO - Guided Mode Only
-  // =========================================
+  // -------------------------------------------------------------------------
   useEffect(() => {
     const triggerFlag = localStorage.getItem("trigger-copilot-intro");
 
@@ -1061,20 +1145,69 @@ export default function DashboardNew() {
                                 <Globe className="w-3.5 h-3.5" />
                               )}
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTabletDelete(entry);
-                              }}
-                              className="text-red-500 p-0.5"
-                              title={t("delete")}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {(entry.contentType !== "video" || entry.videoMediaState !== "deleted") && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTabletDelete(entry);
+                                }}
+                                className="text-red-500 p-0.5"
+                                title={entry.contentType === "video" ? "Delete video" : t("delete")}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
-                        {entry.contentType === "voice" ? (
+                        {entry.contentType === "video" ? (
+                          <div className="space-y-2">
+                            {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
+                              <p className="text-xs text-white/45 italic">
+                                {entry.videoMediaState === "deleted"
+                                   ? "Video deleted. Its transcript remains in your message history."
+                                  : "This video has expired. Its transcript remains in your message history."}
+                              </p>
+                            ) : tabletOpenVideoId === entry.id && tabletVideoUrls[entry.id] ? (
+                              <video
+                                src={tabletVideoUrls[entry.id]}
+                                controls
+                                playsInline
+                                className="w-full rounded-md bg-black max-h-56"
+                                onTimeUpdate={(event) => reportTabletVideoProgress(entry, event.currentTarget)}
+                                onEnded={(event) => reportTabletVideoProgress(entry, event.currentTarget)}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => loadTabletVideo(entry)}
+                                className="flex items-center gap-2 rounded-md bg-violet-600 hover:bg-violet-500 px-3 py-2 text-xs font-medium text-white"
+                              >
+                                <Play className="w-3.5 h-3.5" />
+                                Watch video
+                              </button>
+                            )}
+                            <div className="flex items-center gap-1.5">
+                              <Video className="w-3 h-3 text-violet-300" />
+                              <span className="text-[11px] text-violet-200 font-medium">
+                                Video message{entry.videoDurationSec ? ` · ${Math.floor(entry.videoDurationSec / 60)}:${String(entry.videoDurationSec % 60).padStart(2, "0")}` : ""}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-white/45 leading-snug">
+                              This video will be deleted 24 hours after you finish watching it. The transcript remains in your message history.
+                            </p>
+                            {entry.videoTranscriptStatus === "completed" && entry.transcript && (
+                              <p className="text-xs text-white/75 leading-relaxed italic border-l-2 border-violet-400/40 pl-2">
+                                {entry.transcript}
+                              </p>
+                            )}
+                            {entry.videoTranscriptStatus === "failed" && (
+                              <p className="text-[10px] text-white/35 italic">Video transcript unavailable.</p>
+                            )}
+                            {entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt && (
+                              <p className="text-[10px] text-amber-300">Available until {new Date(entry.videoExpiresAt).toLocaleString()}.</p>
+                            )}
+                          </div>
+                        ) : entry.contentType === "voice" ? (
                           <div className="space-y-2">
                             {/* Play button row */}
                             <div className="flex items-center gap-2">
@@ -1128,7 +1261,14 @@ export default function DashboardNew() {
                       </div>
                     ))}
                   </div>
-                  {tabletRecording ? (
+                  {tabletVideoMode ? (
+                    <StudioVideoMessageComposer
+                      recipientName="your coach"
+                      uploadPath="/api/client/tablet/video-message"
+                      onSent={(entry) => setTabletMessages((previous) => [...previous, entry])}
+                      onCancel={() => setTabletVideoMode(false)}
+                    />
+                  ) : tabletRecording ? (
                     <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
                       <Mic className="w-4 h-4 text-red-400 animate-pulse shrink-0" />
                       <span className="text-sm text-red-300 flex-1">
@@ -1190,6 +1330,13 @@ export default function DashboardNew() {
                           title={t("sendVoice")}
                         >
                           <Mic className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setTabletVideoMode(true)}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-violet-500/20 text-violet-200"
+                          title="Send video"
+                        >
+                          <Video className="w-4 h-4" />
                         </button>
                         <Button
                           size="sm"

@@ -712,6 +712,8 @@ async function initializeApp() {
           // so it is a no-op on an already-migrated database.
           const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
           await runTrialGrantsMigration(database as any);
+          const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
+          await runStudioVoiceStorageMigration();
           console.log("✅ [INIT] Trial grants schema ensured");
       })();
 
@@ -744,10 +746,12 @@ async function initializeApp() {
       const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
       const { runPerformanceModeEnabledMigration } = await import("./db/migrations/runPerformanceModeEnabledMigration");
       const { runEmailIdentityReviewMigration } = await import("./db/migrations/runEmailIdentityReviewMigration");
+      const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
       await runTrialGrantsMigration(dbSyncMig as any);
       await runProcareTrainingMigration(dbSyncMig as any);
       await runPerformanceModeEnabledMigration(dbSyncMig as any);
       await runEmailIdentityReviewMigration(dbSyncMig as any);
+      await runStudioVoiceStorageMigration();
     }
 
     // ── Post-migration guards: verify critical columns are actually present ─
@@ -1351,6 +1355,26 @@ async function initializeApp() {
         console.warn("⚠️ [BG] Background service warning:", bgErr);
       }
     }, 5000);
+
+    // Keep destructive Studio video cleanup isolated from unrelated reminder
+    // services. It retries its own migration until the table is available
+    // rather than silently remaining off for the lifetime of this process.
+    let studioVideoPurgeInitialized = false;
+    const initStudioVideoPurge = async (): Promise<void> => {
+      if (studioVideoPurgeInitialized) return;
+      try {
+        const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
+        await runStudioVideoMessagesMigration();
+        const { startStudioVideoPurgeWorker } = await import("./services/voiceJobWorker");
+        startStudioVideoPurgeWorker();
+        studioVideoPurgeInitialized = true;
+        console.log("✅ [BG] Studio Video purge worker started");
+      } catch (err: any) {
+        console.error("❌ [BG] Studio Video purge initialization failed; retrying in 60 seconds:", err.message);
+        setTimeout(initStudioVideoPurge, 60_000);
+      }
+    };
+    setTimeout(initStudioVideoPurge, 6000);
 
     // Warmup service — pings /api/health every 4 min to prevent cold starts
     setTimeout(async () => {

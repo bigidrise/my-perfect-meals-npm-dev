@@ -4,7 +4,7 @@ import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/di
 import { Button } from "@/components/ui/button";
 import { ClientProfile, proStore } from "@/lib/proData";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
-import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2, Mic, Play, Pause, Square, ChevronDown, ChevronUp } from "lucide-react";
+import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2, Mic, Play, Pause, Square, ChevronDown, ChevronUp, Video } from "lucide-react";
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
 import ProClientLabsSnapshot from "@/components/pro/ProClientLabsSnapshot";
@@ -12,9 +12,12 @@ import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSna
 import ProClientProgramHistory from "@/components/pro/ProClientProgramHistory";
 import CycleProtocolControl from "@/components/pro/CycleProtocolControl";
 import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard";
+import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
+import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
+import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -84,12 +87,17 @@ interface TabletEntry {
   sender: "client" | "pro";
   createdAt: string;
   translatedBody?: string;
-  contentType?: "text" | "voice";
+  contentType?: "text" | "voice" | "video";
   audioObjectKey?: string;
   audioDurationSec?: number;
   transcript?: string;
   transcriptStatus?: "pending" | "completed" | "failed" | "blocked";
+  videoTranscriptStatus?: "pending" | "completed" | "failed" | "blocked";
   moderationStatus?: "pending" | "approved" | "blocked";
+  videoMediaState?: "draft" | "uploading" | "uploaded" | "processing" | "ready" | "upload_failed" | "transcription_failed" | "moderation_failed" | "expiration_pending" | "expired" | "deleting" | "deletion_failed" | "deleted";
+  videoDurationSec?: number;
+  videoWatchCompletedAt?: string | null;
+  videoExpiresAt?: string | null;
 }
 
 interface ProClientFolderModalProps {
@@ -148,7 +156,16 @@ function formatTimestamp(iso: string): string {
 }
 
 function getSupportedMimeType(): string {
-  const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus", "audio/ogg"];
+  const types = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4;codecs=mp4a.40.2",
+    "audio/mp4",
+    "audio/m4a",
+    "audio/aac",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+  ];
   return types.find(t => {
     try { return MediaRecorder.isTypeSupported(t); } catch { return false; }
   }) || "audio/webm";
@@ -187,13 +204,22 @@ export default function ProClientFolderModal({
   const [sendingVoice, setSendingVoice] = useState(false);
   const [voiceMode, setVoiceMode] = useState<"messages" | "notes" | null>(null);
   const [playingEntryId, setPlayingEntryId] = useState<string | null>(null);
-  const [audioUrlCache, setAudioUrlCache] = useState<Record<string, string>>({});
   const [expandedTranscripts, setExpandedTranscripts] = useState<Set<string>>(new Set());
   const [micError, setMicError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentVoiceUrlRevokeRef = useRef<(() => void) | null>(null);
+  const [videoMode, setVideoMode] = useState(false);
+  const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
+  const [openVideoId, setOpenVideoId] = useState<string | null>(null);
+  const videoUrlRevokeRef = useRef<Record<string, () => void>>({});
+  const videoProgressSentAtRef = useRef<Record<string, number>>({});
+
+  useEffect(() => () => {
+    Object.values(videoUrlRevokeRef.current).forEach((revoke) => revoke());
+  }, []);
 
   const [clientGoal, setClientGoal] = useState<{
     goalType?: string | null;
@@ -482,10 +508,25 @@ export default function ProClientFolderModal({
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete");
-      if (entry.entryType === "message") {
+      if (entry.contentType === "video") {
+        setMessages((prev) => prev.map((message) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "deleted" }
+            : message,
+        ));
+      } else if (entry.entryType === "message") {
         setMessages((prev) => prev.filter((m) => m.id !== entry.id));
       } else {
         setNotes((prev) => prev.filter((n) => n.id !== entry.id));
+      }
+      if (entry.contentType === "video") {
+        videoUrlRevokeRef.current[entry.id]?.();
+        delete videoUrlRevokeRef.current[entry.id];
+        setOpenVideoId((current) => current === entry.id ? null : current);
+        setVideoUrlCache((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
       }
     } catch {
       setError("Failed to delete entry");
@@ -547,7 +588,11 @@ export default function ProClientFolderModal({
     setError(null);
     try {
       const formData = new FormData();
-      const ext = audioMimeType.includes("webm") ? "webm" : audioMimeType.includes("mp4") ? "mp4" : "opus";
+      const ext = audioMimeType.includes("webm") ? "webm"
+        : audioMimeType.includes("ogg") ? "ogg"
+        : audioMimeType.includes("mp4") || audioMimeType.includes("m4a") ? "m4a"
+        : audioMimeType.includes("aac") ? "aac"
+        : "webm";
       formData.append("audio", audioBlob, `voice-note.${ext}`);
       const endpoint = type === "messages"
         ? apiUrl(`/api/pro/tablet/${clientId}/voice-message`)
@@ -576,36 +621,88 @@ export default function ProClientFolderModal({
     }
   };
 
+  const reportVideoProgress = async (entry: TabletEntry, element: HTMLVideoElement) => {
+    const now = Date.now();
+    if (now - (videoProgressSentAtRef.current[entry.id] || 0) < 1000) return;
+    videoProgressSentAtRef.current[entry.id] = now;
+    try {
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video/${entry.id}/progress`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          positionSec: element.currentTime,
+          observedAtMs: now,
+          isPlaying: !element.paused && !element.seeking,
+          isSeeking: element.seeking,
+          playbackRate: element.playbackRate,
+        }),
+      });
+      if (!res.ok) return;
+      const progress = await res.json();
+      if (progress.watchCompletedAt) {
+        setMessages((previous) => previous.map((message) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "expiration_pending", videoWatchCompletedAt: progress.watchCompletedAt, videoExpiresAt: progress.expiresAt }
+            : message,
+        ));
+      }
+    } catch {}
+  };
+
+  const handlePlayVideo = async (entry: TabletEntry) => {
+    if (!clientId) return;
+    try {
+      const source = await loadStudioVideoPlayback(
+        `/api/pro/tablet/${clientId}/video/${entry.id}/playback`,
+        getAuthHeaders(),
+      );
+      videoUrlRevokeRef.current[entry.id]?.();
+      videoUrlRevokeRef.current[entry.id] = source.revoke;
+      setVideoUrlCache((previous) => ({ ...previous, [entry.id]: source.url }));
+      setOpenVideoId(entry.id);
+    } catch (error) {
+      setError(error instanceof StudioVideoPlaybackError ? error.message : "Could not load video");
+    }
+  };
+
   const handlePlayVoice = async (entry: TabletEntry) => {
     if (playingEntryId === entry.id) {
       currentAudioRef.current?.pause();
+      currentVoiceUrlRevokeRef.current?.();
+      currentVoiceUrlRevokeRef.current = null;
       setPlayingEntryId(null);
       return;
     }
+    currentAudioRef.current?.pause();
+    currentVoiceUrlRevokeRef.current?.();
+    currentVoiceUrlRevokeRef.current = null;
     try {
-      let url = audioUrlCache[entry.id];
-      if (!url) {
-        const res = await fetch(apiUrl(`/api/pro/tablet/audio/${entry.id}`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
-        if (!res.ok) {
-          const d = await res.json().catch(() => ({}));
-          setError(d.error || "Could not load audio");
-          return;
-        }
-        const d = await res.json();
-        url = d.url;
-        setAudioUrlCache(prev => ({ ...prev, [entry.id]: url }));
-      }
-      const audio = new Audio(url);
+      const source = await loadStudioVoicePlayback(
+        `/api/pro/tablet/audio/${entry.id}`,
+        getAuthHeaders(),
+      );
+      const audio = new Audio(source.url);
       currentAudioRef.current = audio;
-      audio.onended = () => setPlayingEntryId(null);
-      audio.onerror = () => { setPlayingEntryId(null); setError("Failed to play audio"); };
+      currentVoiceUrlRevokeRef.current = source.revoke;
+      audio.onended = () => {
+        source.revoke();
+        currentVoiceUrlRevokeRef.current = null;
+        setPlayingEntryId(null);
+      };
+      audio.onerror = () => {
+        source.revoke();
+        currentVoiceUrlRevokeRef.current = null;
+        setPlayingEntryId(null);
+        setError("Failed to play audio");
+      };
       setPlayingEntryId(entry.id);
-      audio.play();
-    } catch {
-      setError("Failed to load audio");
+      await audio.play();
+    } catch (error) {
+      currentVoiceUrlRevokeRef.current?.();
+      currentVoiceUrlRevokeRef.current = null;
+      setError(error instanceof StudioVoicePlaybackError ? error.message : "Failed to load audio");
+      setPlayingEntryId(null);
     }
   };
 
@@ -627,8 +724,9 @@ export default function ProClientFolderModal({
     const isPlaying = playingEntryId === entry.id;
     const transcriptReady = entry.transcriptStatus === "completed";
     const isBlocked = entry.moderationStatus === "blocked";
-    const isPending = entry.transcriptStatus === "pending";
-    const isFailed = entry.transcriptStatus === "failed";
+    const hasStoredAudio = Boolean(entry.audioObjectKey);
+    const isPending = entry.transcriptStatus === "pending" && hasStoredAudio;
+    const isFailed = entry.transcriptStatus === "failed" || !hasStoredAudio;
     const transcriptExpanded = expandedTranscripts.has(entry.id);
     const durationLabel = entry.audioDurationSec ? formatDuration(entry.audioDurationSec) : null;
 
@@ -667,14 +765,15 @@ export default function ProClientFolderModal({
           <>
             <button
               onClick={() => handlePlayVoice(entry)}
+              disabled={!transcriptReady || isFailed}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium w-full mb-1.5 transition-colors ${
                 isPlaying
                   ? "bg-orange-600 text-white"
                   : "bg-orange-600/80 hover:bg-orange-600 text-white"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-50`}
             >
               {isPlaying ? <Pause className="w-3.5 h-3.5 shrink-0" /> : <Play className="w-3.5 h-3.5 shrink-0" />}
-              <span>{isPlaying ? "Playing…" : "Play Voice Note"}</span>
+              <span>{isPlaying ? "Playing…" : isFailed ? "Voice Note Unavailable" : "Play Voice Note"}</span>
             </button>
 
             {isPending && (
@@ -684,7 +783,9 @@ export default function ProClientFolderModal({
               </div>
             )}
             {isFailed && (
-              <p className="text-[10px] text-white/30 italic">Transcript unavailable</p>
+              <p className="text-[10px] text-white/30 italic">
+                {hasStoredAudio ? "Transcript unavailable" : "Voice recording unavailable"}
+              </p>
             )}
             {transcriptReady && entry.transcript && (
               <div>
@@ -708,6 +809,79 @@ export default function ProClientFolderModal({
     );
   };
 
+  const renderVideoBubble = (entry: TabletEntry) => {
+    const isDeleted = entry.videoMediaState === "deleted";
+    const isExpired = entry.videoMediaState === "expired" || isDeleted;
+    const hasExpiryCountdown = entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt;
+    const durationLabel = entry.videoDurationSec ? formatDuration(entry.videoDurationSec) : null;
+    const videoUrl = videoUrlCache[entry.id];
+    return (
+      <div key={entry.id} className={`rounded-lg p-2.5 border ${entry.sender === "client" ? "bg-blue-500/8 border-blue-500/25 ml-4" : "bg-violet-500/8 border-violet-500/25 mr-4"}`}>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <Video className="w-3 h-3 text-violet-300" />
+            <span className="text-[10px] font-semibold text-violet-200">Video message</span>
+            {durationLabel && <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-mono">{durationLabel}</span>}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-white/35">{formatTimestamp(entry.createdAt)}</span>
+            {!isDeleted && (
+              <button
+                onClick={() => handleDeleteEntry(entry)}
+                className="text-red-400/80 p-0.5"
+                title="Delete video"
+                aria-label="Delete video message"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+        {isExpired ? (
+          <p className="text-[10px] text-white/45 italic">
+            {isDeleted
+               ? "Video deleted. Its message record remains in Studio history."
+              : "This video has expired. Its message record remains in Studio history."}
+          </p>
+        ) : (
+          <>
+            {openVideoId === entry.id && videoUrl ? (
+              <video
+                src={videoUrl}
+                controls
+                playsInline
+                className="w-full rounded-md bg-black max-h-48"
+                onTimeUpdate={(event) => reportVideoProgress(entry, event.currentTarget)}
+                onEnded={(event) => reportVideoProgress(entry, event.currentTarget)}
+              />
+            ) : (
+                <button onClick={() => handlePlayVideo(entry)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium w-full bg-violet-600 hover:bg-violet-500 text-white">
+                <Play className="w-3.5 h-3.5" />
+                Watch video
+              </button>
+            )}
+            <p className="text-[10px] text-white/45 leading-snug mt-2">
+              Watching nearly all of this video verifies completion and starts its 24-hour expiry countdown.
+            </p>
+            {hasExpiryCountdown && (
+              <p className="text-[10px] text-amber-300 mt-1">
+                Available until {new Date(entry.videoExpiresAt!).toLocaleString()}.
+              </p>
+            )}
+          </>
+        )}
+        {entry.videoTranscriptStatus === "completed" && entry.transcript && (
+          <p className="mt-2 text-[10px] text-white/65 leading-relaxed bg-white/5 rounded-md px-2 py-1.5 italic border-l-2 border-violet-400/40">
+            {entry.transcript}
+          </p>
+        )}
+        {entry.videoTranscriptStatus === "failed" && (
+          <p className="mt-2 text-[10px] text-white/35 italic">Video transcript unavailable.</p>
+        )}
+      </div>
+    );
+  };
+
   const renderEntryList = (entries: TabletEntry[], scrollRef: React.RefObject<HTMLDivElement | null>, showTranslate: boolean) => (
     <div ref={scrollRef} className="max-h-48 overflow-y-auto space-y-2 mb-2">
       {entries.length === 0 && (
@@ -716,6 +890,9 @@ export default function ProClientFolderModal({
         </p>
       )}
       {entries.map((entry) => {
+        if (entry.contentType === "video") {
+          return renderVideoBubble(entry);
+        }
         if (entry.contentType === "voice" || entry.audioObjectKey) {
           return renderVoiceBubble(entry);
         }
@@ -993,7 +1170,14 @@ export default function ProClientFolderModal({
                 <>
                   {renderEntryList(messages, msgScrollRef, true)}
 
-                  {voiceMode === "messages" ? (
+                  {videoMode ? (
+                    <StudioVideoMessageComposer
+                      recipientName={client.name}
+                      uploadPath={clientId ? `/api/pro/tablet/${clientId}/video-message` : ""}
+                      onSent={(entry) => setMessages((previous) => [...previous, entry as TabletEntry])}
+                      onCancel={() => setVideoMode(false)}
+                    />
+                  ) : voiceMode === "messages" ? (
                     <div className="rounded-lg border border-orange-500/30 bg-orange-500/8 p-2.5 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-orange-300 font-semibold">🎤 Voice Message</span>
@@ -1092,6 +1276,13 @@ export default function ProClientFolderModal({
                           title="Send voice message"
                         >
                           <Mic className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setVideoMode(true)}
+                          className="flex items-center justify-center p-1.5 rounded-md bg-violet-600/20 border border-violet-500/30 text-violet-300"
+                          title="Send video message"
+                        >
+                          <Video className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
