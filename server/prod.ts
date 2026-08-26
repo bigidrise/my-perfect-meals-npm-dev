@@ -1,3 +1,8 @@
+// Covers direct TypeScript execution. The bundled production command also
+// preloads this shim via Node's --import flag because esbuild hoists external
+// OpenAI imports ahead of source-level imports.
+import "openai/shims/node";
+
 // CRITICAL: Start server FIRST, import everything else AFTER
 // This ensures health checks pass even if other imports crash
 import express from "express";
