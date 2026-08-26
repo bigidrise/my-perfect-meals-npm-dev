@@ -27,7 +27,6 @@ import {
   finalizeStudioVideoManualDeletion,
   StudioVideoDomainError,
 } from "@shared/studioVideoMessages";
-import { deleteStudioVideoFromS3 } from "./tabletVoiceService";
 
 export type StudioVideoListEntry = {
   id: string;
@@ -563,10 +562,6 @@ export type StudioVideoManualDeletionRow = {
 
 export type StudioVideoManualDeletionDatabase = {
   execute: (query: any) => Promise<{ rows?: unknown[] }>;
-};
-
-export type StudioVideoManualDeletionStorage = {
-  deleteObject: (objectKey: string) => Promise<void>;
 };
 
 function manualDeletionKeys(row: StudioVideoManualDeletionRow): string[] {
