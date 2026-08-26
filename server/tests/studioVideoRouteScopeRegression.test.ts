@@ -50,8 +50,8 @@ jest.mock("../middleware/requireWorkspaceAccess", () => ({
 
 jest.mock("../services/tabletVoiceService", () => ({
   MAX_VOICE_DURATION_SEC: 300,
-  MAX_STUDIO_VIDEO_DURATION_SEC: 120,
-  MAX_STUDIO_VIDEO_SIZE_BYTES: 20 * 1024 * 1024,
+  MAX_STUDIO_VIDEO_DURATION_SEC: 300,
+  MAX_STUDIO_VIDEO_SIZE_BYTES: 64 * 1024 * 1024,
   getSignedPlaybackUrl: jest.fn(),
   getStudioVoiceStream: jest.fn(),
   getStudioVideoStream: jest.fn(),
@@ -198,4 +198,36 @@ describe("Studio video route transcript scope regression", () => {
       [expect.objectContaining({ state: "ready" })],
     ]));
   });
+
+  it.each([
+    ["professional", proTabletRouter, "/api/pro/tablet", `/api/pro/tablet/${CLIENT_ID}/video-message`],
+    ["client", clientTabletRouter, "/api/client/tablet", "/api/client/tablet/video-message"],
+  ])(
+    "%s can send a five-minute video larger than the former 24 MiB ceiling",
+    async (_sender, router, prefix, path) => {
+      const legacyLimitExceededVideo = Buffer.alloc(24 * 1024 * 1024 + 1, 1);
+      const response = await request(buildApp(router, prefix))
+        .post(path)
+        .field("durationSec", "300")
+        .attach("video", legacyLimitExceededVideo, {
+          filename: "five-minute-studio-video.webm",
+          contentType: "video/webm",
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.entry).toEqual(expect.objectContaining({
+        videoDurationSec: 300,
+        videoMediaState: "ready",
+      }));
+      expect(mockUploadStudioVideoToS3).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        "video/webm",
+        "studio-video/test.webm",
+      );
+      expect(mockTranscribeStudioVideoBuffer).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        "video/webm",
+      );
+    },
+  );
 });

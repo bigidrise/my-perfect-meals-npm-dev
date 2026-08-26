@@ -62,6 +62,15 @@ export type StudioVideoModerationStatus =
 export const STUDIO_VIDEO_MEDIA_TYPE = "video" as const;
 export const STUDIO_VIDEO_EXPIRATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+// Five minutes at these capture targets is approximately 46.8 MB (44.6 MiB)
+// before container overhead. The 64 MiB upload ceiling leaves headroom while
+// preventing arbitrary browser-default camera bitrates from reaching memory
+// storage and the transcription pipeline.
+export const STUDIO_VIDEO_MAX_DURATION_SEC = 5 * 60;
+export const STUDIO_VIDEO_CAPTURE_VIDEO_BITS_PER_SECOND = 1_200_000;
+export const STUDIO_VIDEO_CAPTURE_AUDIO_BITS_PER_SECOND = 48_000;
+export const STUDIO_VIDEO_MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
+
 /**
  * Completion requires both broad coverage and verified progress near the end.
  * The second condition prevents a user from satisfying coverage by watching

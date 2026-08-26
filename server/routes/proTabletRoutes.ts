@@ -11,6 +11,7 @@ import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNot
 import { logClientActivity } from "../services/activityLog";
 import { sql } from "drizzle-orm";
 import { getOrSet, invalidateClientTabletCache, invalidatePrefix } from "../services/queryCache";
+import multer from "multer";
 
 const PRO_UNREAD_TTL_MS = 15_000;
 
@@ -18,7 +19,6 @@ const PRO_UNREAD_TTL_MS = 15_000;
 export function invalidateProUnreadCache(proUserId: string): void {
   invalidatePrefix(`pro-unread:${proUserId}`);
 }
-import multer from "multer";
 import {
   getSignedPlaybackUrl,
   getStudioVoiceStream,
@@ -65,7 +65,7 @@ import { getStudioVideoTranscriptionFailureMetadata } from "../services/studioVi
 startVoiceJobWorker();
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
-const videoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_STUDIO_VIDEO_SIZE_BYTES } });
+import { studioVideoUpload } from "../middleware/studioVideoUpload";
 
 const router = Router();
 
@@ -164,7 +164,7 @@ function normalizeStudioVideoMimeType(mimeType: string): string {
   return mimeType.split(";")[0].trim().toLowerCase();
 }
 
-router.post("/:clientId/video-message", requireWorkspaceAccess, videoUpload.single("video"), async (req: Request, res: Response) => {
+router.post("/:clientId/video-message", requireWorkspaceAccess, studioVideoUpload, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   const { clientId } = req.params;
   let transcript: string;

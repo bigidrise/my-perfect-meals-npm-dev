@@ -9,6 +9,11 @@ import {
   attachStudioVideoStorageDeleteDiagnostic,
   getStudioVideoStorageDeleteDiagnostic,
 } from "./studioVideoStorageDiagnostics";
+import {
+  STUDIO_VIDEO_MAX_DURATION_SEC,
+  STUDIO_VIDEO_MAX_UPLOAD_BYTES,
+} from "@shared/studioVideoMessages";
+import { extractStudioVideoAudio } from "./studioVideoAudioService";
 
 export const VOICE_BUCKET = process.env.S3_BUCKET_NAME!;
 export const VOICE_PREFIX = "tablet-voice";
@@ -16,10 +21,10 @@ export const STUDIO_VOICE_PREFIX = "studio-voice";
 export const MAX_VOICE_DURATION_SEC = 60;
 export const STUDIO_VIDEO_BUCKET = process.env.S3_BUCKET_NAME!;
 export const STUDIO_VIDEO_PREFIX = "studio-video";
-// Whisper accepts uploads below 25MB; cap slightly below that so every accepted
-// message can complete the required transcription/moderation gate.
-export const MAX_STUDIO_VIDEO_SIZE_BYTES = 24 * 1024 * 1024;
-export const MAX_STUDIO_VIDEO_DURATION_SEC = 120;
+// The video can exceed Whisper's limit because transcription uses extracted
+// audio. Keep these aliases for route callers and existing tests.
+export const MAX_STUDIO_VIDEO_SIZE_BYTES = STUDIO_VIDEO_MAX_UPLOAD_BYTES;
+export const MAX_STUDIO_VIDEO_DURATION_SEC = STUDIO_VIDEO_MAX_DURATION_SEC;
 export const STUDIO_VOICE_STORAGE_BACKENDS = ["replit", "s3_legacy"] as const;
 export type StudioVoiceStorageBackend = typeof STUDIO_VOICE_STORAGE_BACKENDS[number];
 
@@ -294,19 +299,26 @@ export async function transcribeStudioVideoBuffer(
     throw new Error("OPENAI_API_KEY required for transcription");
   }
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const ext = mimeType.includes("mp4") ? "mp4"
-    : mimeType.includes("quicktime") ? "mov"
-    : "webm";
-  const file = await toFile(buffer, `studio-video.${ext}`, { type: mimeType });
-  const response = await openai.audio.transcriptions.create({
-    file,
-    model: "whisper-1",
-    response_format: "verbose_json",
-  }) as any;
-  const transcript = (response.text || "").trim();
-  const durationSec = Number(response.duration || 0);
-  if (durationSec > MAX_STUDIO_VIDEO_DURATION_SEC) {
-    throw new Error(`Video message exceeds ${MAX_STUDIO_VIDEO_DURATION_SEC}s limit`);
+  let audioBuffer: Buffer | null = await extractStudioVideoAudio(buffer, mimeType);
+  try {
+    const file = await toFile(audioBuffer, "studio-video-transcription.webm", {
+      type: "audio/webm",
+    });
+    const response = await openai.audio.transcriptions.create({
+      file,
+      model: "whisper-1",
+      response_format: "verbose_json",
+    }) as any;
+    const transcript = (response.text || "").trim();
+    const durationSec = Number(response.duration || 0);
+    if (durationSec > MAX_STUDIO_VIDEO_DURATION_SEC) {
+      throw new Error(`Video message exceeds ${MAX_STUDIO_VIDEO_DURATION_SEC}s limit`);
+    }
+    return { transcript, durationSec };
+  } finally {
+    // Release the extracted sensitive audio as soon as provider processing
+    // finishes, including provider and extraction failures.
+    audioBuffer?.fill(0);
+    audioBuffer = null;
   }
-  return { transcript, durationSec };
 }

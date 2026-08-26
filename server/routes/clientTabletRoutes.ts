@@ -1,10 +1,10 @@
 import { Router, Request, Response } from "express";
-import multer from "multer";
 import { db } from "../db";
 import { clientNotes, studios, studioMemberships, studioVideoMedia, studioVideoMessages } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { users } from "../../shared/schema";
 import { eq, and, asc, sql } from "drizzle-orm";
+import multer from "multer";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
@@ -56,7 +56,7 @@ import { getStudioVideoTranscriptionFailureMetadata } from "../services/studioVi
 const CLIENT_TABLET_TTL_MS = 15_000;
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
-const videoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_STUDIO_VIDEO_SIZE_BYTES } });
+import { studioVideoUpload } from "../middleware/studioVideoUpload";
 
 const router = Router();
 
@@ -174,7 +174,7 @@ function normalizeStudioVideoMimeType(mimeType: string): string {
   return mimeType.split(";")[0].trim().toLowerCase();
 }
 
-router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("video"), async (req: Request, res: Response) => {
+router.post("/video-message", requireClientWorkspaceAccess, studioVideoUpload, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   let transcript: string;
   try {

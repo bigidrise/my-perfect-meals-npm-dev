@@ -18,12 +18,15 @@ jest.mock("@/lib/auth", () => ({
 
 class MockMediaRecorder {
   static isTypeSupported = jest.fn(() => true);
+  static lastOptions: MediaRecorderOptions | undefined;
+  static recordedBlob: Blob | undefined;
   state: "inactive" | "recording" = "inactive";
   mimeType: string;
   ondataavailable: ((event: { data: Blob }) => void) | null = null;
   onstop: (() => void) | null = null;
 
   constructor(_stream: MediaStream, options?: MediaRecorderOptions) {
+    MockMediaRecorder.lastOptions = options;
     this.mimeType = options?.mimeType || "video/webm";
   }
 
@@ -33,7 +36,10 @@ class MockMediaRecorder {
 
   stop() {
     this.state = "inactive";
-    this.ondataavailable?.({ data: new Blob(["recorded video"], { type: this.mimeType }) });
+    this.ondataavailable?.({
+      data: MockMediaRecorder.recordedBlob
+        ?? new Blob(["recorded video"], { type: this.mimeType }),
+    });
     this.onstop?.();
   }
 }
@@ -78,6 +84,8 @@ beforeAll(() => {
 beforeEach(() => {
   jest.clearAllMocks();
   MockMediaRecorder.isTypeSupported.mockImplementation(() => true);
+  MockMediaRecorder.lastOptions = undefined;
+  MockMediaRecorder.recordedBlob = undefined;
   getUserMedia.mockResolvedValue(makeStream());
   fetchMock.mockReset();
   global.fetch = fetchMock;
@@ -138,6 +146,11 @@ describe("StudioVideoMessageComposer", () => {
     expect(screen.getByTestId("record-video-again")).toBeInTheDocument();
     expect(screen.getByTestId("discard-video")).toBeInTheDocument();
     expect(screen.getByTestId("send-video-message")).toHaveTextContent("Send to Alex");
+    expect(screen.getByText(/Maximum 5 minutes/i)).toBeInTheDocument();
+    expect(MockMediaRecorder.lastOptions).toEqual(expect.objectContaining({
+      videoBitsPerSecond: 1_200_000,
+      audioBitsPerSecond: 48_000,
+    }));
   });
 
   it("replaces an unsent recording when Record Again is chosen", async () => {
@@ -260,6 +273,25 @@ describe("StudioVideoMessageComposer", () => {
     fireEvent.click(screen.getByTestId("send-video-message"));
     await waitFor(() => expect(onSent).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects an oversized recording before making an upload request", async () => {
+    const oversizedBlob = new Blob(["recorded video"], { type: "video/webm" });
+    Object.defineProperty(oversizedBlob, "size", {
+      configurable: true,
+      value: 64 * 1024 * 1024 + 1,
+    });
+    MockMediaRecorder.recordedBlob = oversizedBlob;
+    renderComposer();
+    await recordOneVideo();
+
+    fireEvent.click(screen.getByTestId("send-video-message"));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(
+      "The maximum is 64 MiB",
+    ));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("recorded-video-preview")).toBeInTheDocument();
   });
 
   it("does not call recipient playback progress while the sender reviews locally", async () => {
