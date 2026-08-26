@@ -267,3 +267,21 @@ export function moderateContent(text: string): ModerationResult {
 
   return { allowed: true, severity: null, category: null, reason: null, matchedTerms: [] };
 }
+
+/**
+ * Private Studio communication keeps the base moderation detection intact, but
+ * does not discard a professional/client message solely for ordinary profanity.
+ * Callers still receive the original severity/category/reason for audit logging.
+ * Public and community surfaces must continue to use moderateContent directly.
+ */
+export function moderatePrivateStudioContent(text: string): ModerationResult {
+  const result = moderateContent(text);
+  const isOrdinaryProfanity =
+    result.severity === "medium" &&
+    result.category === "abusive_language" &&
+    result.reason === "inappropriate language";
+
+  return isOrdinaryProfanity
+    ? { ...result, allowed: true }
+    : result;
+}

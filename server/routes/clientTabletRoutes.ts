@@ -6,7 +6,7 @@ import { users } from "../../shared/schema";
 import { eq, and, asc, sql } from "drizzle-orm";
 import multer from "multer";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
-import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
+import { moderatePrivateStudioContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sendCoachMessageAlert } from "../services/emailService";
@@ -177,6 +177,7 @@ function normalizeStudioVideoMimeType(mimeType: string): string {
 router.post("/video-message", requireClientWorkspaceAccess, studioVideoUpload, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   let transcript: string;
+  let moderation: ReturnType<typeof moderatePrivateStudioContent> | null = null;
   try {
     assertStudioVideoFeatureEnabled();
   } catch (error) {
@@ -287,7 +288,7 @@ router.post("/video-message", requireClientWorkspaceAccess, studioVideoUpload, a
       res.status(422).json({ error: "We could not verify this video message. Please try recording it again." });
       return;
     }
-    const moderation = moderateContent(transcript);
+    moderation = moderatePrivateStudioContent(transcript);
     if (!moderation.allowed) {
       await db.update(studioVideoMessages)
         .set({ transcriptStatus: "blocked", updatedAt: new Date() })
@@ -323,7 +324,15 @@ router.post("/video-message", requireClientWorkspaceAccess, studioVideoUpload, a
   });
   auditStudioVideoAction({
     req, event: "moderation_completed", actorUserId: authUser.id, targetUserId: authUser.id,
-    studioId, messageId: message.id, metadata: { approved: true },
+    studioId,
+    messageId: message.id,
+    metadata: {
+      approved: true,
+      flagged: moderation?.severity !== null,
+      severity: moderation?.severity ?? null,
+      category: moderation?.category ?? null,
+      reason: moderation?.reason ?? null,
+    },
   });
   logClientActivity(studioId, authUser.id, authUser.id, "message_sent", "message", message.id, { type: "video", sender: "client" });
   invalidateClientTabletCache(authUser.id);
@@ -553,7 +562,7 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
-  const moderation = moderateContent(body.trim());
+  const moderation = moderatePrivateStudioContent(body.trim());
   if (!moderation.allowed) {
     logClientActivity(
       studioId,
@@ -573,7 +582,7 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
-  if (moderation.severity === "low") {
+  if (moderation.severity !== null) {
     logClientActivity(
       studioId,
       authUser.id,

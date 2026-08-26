@@ -24,6 +24,8 @@ const mockDb = {
 
 const mockTranscribeStudioVideoBuffer = jest.fn();
 const mockUploadStudioVideoToS3 = jest.fn(async () => undefined);
+const mockModeratePrivateStudioContent = jest.fn(() => ({ allowed: true }));
+const mockAuditStudioVideoAction = jest.fn();
 
 jest.mock("../db", () => ({ db: mockDb }));
 
@@ -64,7 +66,7 @@ jest.mock("../services/tabletVoiceService", () => ({
 
 jest.mock("../services/studioVideoMessageService", () => ({
   assertStudioVideoFeatureEnabled: jest.fn(),
-  auditStudioVideoAction: jest.fn(),
+  auditStudioVideoAction: mockAuditStudioVideoAction,
   auditStudioVideoListAction: jest.fn(),
   deleteStudioVideoMessage: jest.fn(),
   getStudioVideoMessage: jest.fn(),
@@ -85,7 +87,7 @@ jest.mock("../services/voiceJobWorker", () => ({
 
 jest.mock("../services/tabletModerationService", () => ({
   BLOCKED_MESSAGE: "blocked",
-  moderateContent: jest.fn(() => ({ allowed: true })),
+  moderatePrivateStudioContent: mockModeratePrivateStudioContent,
 }));
 
 jest.mock("../services/tabletNotificationService", () => ({
@@ -139,6 +141,9 @@ describe("Studio video route transcript scope regression", () => {
       durationSec: 6,
     });
     mockUploadStudioVideoToS3.mockClear();
+    mockModeratePrivateStudioContent.mockReset();
+    mockModeratePrivateStudioContent.mockReturnValue({ allowed: true, severity: null, category: null, reason: null });
+    mockAuditStudioVideoAction.mockClear();
   });
 
   it("professional-to-client saves the transcript, reaches ready, and returns 201", async () => {
@@ -197,6 +202,42 @@ describe("Studio video route transcript scope regression", () => {
       })],
       [expect.objectContaining({ state: "ready" })],
     ]));
+  });
+
+  it("delivers a profanity-flagged client video with its verbatim transcript intact", async () => {
+    const transcript = "This is shit, but the rest of this private message is professional.";
+    mockTranscribeStudioVideoBuffer.mockResolvedValue({ transcript, durationSec: 6 });
+    mockModeratePrivateStudioContent.mockReturnValue({
+      allowed: true,
+      severity: "medium",
+      category: "abusive_language",
+      reason: "inappropriate language",
+    });
+
+    const response = await request(buildApp(clientTabletRouter, "/api/client/tablet"))
+      .post("/api/client/tablet/video-message")
+      .field("durationSec", "6")
+      .attach("video", Buffer.from("webm-video"), {
+        filename: "studio-video.webm",
+        contentType: "video/webm",
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.entry).toEqual(expect.objectContaining({
+      transcript,
+      videoTranscriptStatus: "completed",
+      videoMediaState: "ready",
+    }));
+    expect(mockModeratePrivateStudioContent).toHaveBeenCalledWith(transcript);
+    expect(mockAuditStudioVideoAction).toHaveBeenCalledWith(expect.objectContaining({
+      event: "moderation_completed",
+      metadata: expect.objectContaining({
+        approved: true,
+        flagged: true,
+        severity: "medium",
+        category: "abusive_language",
+      }),
+    }));
   });
 
   it.each([

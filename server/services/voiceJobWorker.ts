@@ -6,7 +6,7 @@ import {
   MAX_VOICE_DURATION_SEC,
   resolveVoiceStorageBackend,
 } from "./tabletVoiceService";
-import { moderateContent } from "./tabletModerationService";
+import { moderatePrivateStudioContent } from "./tabletModerationService";
 import { logClientActivity } from "./activityLog";
 import { deleteStudioVideoFromS3 } from "./tabletVoiceService";
 import { logAudit } from "../lib/auditLog";
@@ -559,7 +559,7 @@ async function processNextJob(): Promise<void> {
 
     const { transcript, durationSec } = await transcribeVoiceBuffer(buffer, mimeType);
 
-    const modResult = moderateContent(transcript);
+    const modResult = moderatePrivateStudioContent(transcript);
     const isSharedMessage = note.visibility === "shared_with_client";
     const moderationStatus = modResult.allowed ? "approved" : "blocked";
     const finalBody = modResult.allowed
@@ -592,12 +592,12 @@ async function processNextJob(): Promise<void> {
     `);
     if ((noteUpdated.rows ?? []).length === 0) throw new Error("Voice note state changed before transcription could be saved");
 
-    if (!modResult.allowed && isSharedMessage) {
+    if (modResult.severity !== null && isSharedMessage) {
       logClientActivity(
         note.studio_id,
         note.client_user_id,
         note.author_user_id,
-        "message_blocked",
+        modResult.allowed ? "message_flagged" : "message_blocked",
         "message",
         noteId,
         {

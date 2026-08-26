@@ -6,7 +6,7 @@ import { eq, and, asc, desc, inArray } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
-import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
+import { moderatePrivateStudioContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sql } from "drizzle-orm";
@@ -168,6 +168,7 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, studioVideoUploa
   const authUser = (req as AuthenticatedRequest).authUser;
   const { clientId } = req.params;
   let transcript: string;
+  let moderation: ReturnType<typeof moderatePrivateStudioContent> | null = null;
 
   try {
     assertStudioVideoFeatureEnabled();
@@ -287,7 +288,7 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, studioVideoUploa
       res.status(422).json({ error: "We could not verify this video message. Please try recording it again." });
       return;
     }
-    const moderation = moderateContent(transcript);
+    moderation = moderatePrivateStudioContent(transcript);
     if (!moderation.allowed) {
       await db.update(studioVideoMessages)
         .set({ transcriptStatus: "blocked", updatedAt: new Date() })
@@ -333,7 +334,13 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, studioVideoUploa
     targetUserId: clientId,
     studioId,
     messageId: message.id,
-    metadata: { approved: true },
+    metadata: {
+      approved: true,
+      flagged: moderation?.severity !== null,
+      severity: moderation?.severity ?? null,
+      category: moderation?.category ?? null,
+      reason: moderation?.reason ?? null,
+    },
   });
   logClientActivity(studioId, clientId, authUser.id, "message_sent", "message", message.id, { type: "video", sender: "pro" });
   invalidateClientTabletCache(clientId);
@@ -694,7 +701,7 @@ router.post("/:clientId/message", requireWorkspaceAccess, async (req: Request, r
     return;
   }
 
-  const moderation = moderateContent(body.trim());
+  const moderation = moderatePrivateStudioContent(body.trim());
   if (!moderation.allowed) {
     logClientActivity(
       studioId,
@@ -714,7 +721,7 @@ router.post("/:clientId/message", requireWorkspaceAccess, async (req: Request, r
     return;
   }
 
-  if (moderation.severity === "low") {
+  if (moderation.severity !== null) {
     logClientActivity(
       studioId,
       clientId,
