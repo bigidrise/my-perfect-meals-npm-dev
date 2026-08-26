@@ -230,7 +230,7 @@ const STUDIO_VIDEO_ALLOWED_TRANSITIONS: Record<
   ready: ["expiration_pending", "deleting"],
   upload_failed: ["uploading"],
   transcription_failed: ["processing", "deleting"],
-  moderation_failed: ["processing"],
+  moderation_failed: ["processing", "deleting"],
   expiration_pending: ["expired", "deleting"],
   expired: ["deleting"],
   deleting: ["deleted", "deletion_failed"],
@@ -638,8 +638,8 @@ export function assertStudioVideoTranscriptRetainable(
 
 /**
  * Manual deletion removes only the temporary private media. The permanent
- * message record and its completed transcript remain available for the
- * communication history.
+ * message record remains available for communication history, including
+ * blocked moderation history that must not be played back.
  */
 export function assertStudioVideoManualDeletionEligible(input: {
   state: StudioVideoMediaState;
@@ -652,15 +652,30 @@ export function assertStudioVideoManualDeletionEligible(input: {
   const isFailedTranscriptionDeletion =
     hasFailedTranscriptionHistory &&
     ["transcription_failed", "deletion_failed"].includes(input.state);
+  const isBlockedModerationDeletion =
+    input.state === "moderation_failed" &&
+    input.transcript.status === "blocked";
 
   if (
-    !["ready", "expiration_pending", "deletion_failed", "transcription_failed"].includes(
+    ![
+      "ready",
+      "expiration_pending",
+      "deletion_failed",
+      "transcription_failed",
+      "moderation_failed",
+    ].includes(
       input.state,
     )
   ) {
     throw new StudioVideoDomainError(
       "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
       `Video media cannot be manually deleted from ${input.state}`,
+    );
+  }
+  if (input.state === "moderation_failed" && input.transcript.status !== "blocked") {
+    throw new StudioVideoDomainError(
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+      "A moderation-failed video must retain its blocked transcript status",
     );
   }
   if (input.state === "transcription_failed" && !hasFailedTranscriptionHistory) {
@@ -675,7 +690,7 @@ export function assertStudioVideoManualDeletionEligible(input: {
       "Video media has no private object to delete",
     );
   }
-  if (!isFailedTranscriptionDeletion) {
+  if (!isFailedTranscriptionDeletion && !isBlockedModerationDeletion) {
     assertStudioVideoTranscriptRetainable(input.transcript);
   }
 }
@@ -725,7 +740,8 @@ export function finalizeStudioVideoManualDeletion(input: {
   const isFailedTranscriptionHistory =
     input.transcript.status === "failed" &&
     input.transcript.text === null;
-  if (!isFailedTranscriptionHistory) {
+  const isBlockedModerationHistory = input.transcript.status === "blocked";
+  if (!isFailedTranscriptionHistory && !isBlockedModerationHistory) {
     assertStudioVideoTranscriptRetainable(input.transcript);
   }
 

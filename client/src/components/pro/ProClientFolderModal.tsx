@@ -106,7 +106,7 @@ interface TabletEntry {
 }
 
 function canManuallyDeleteStudioVideo(state: TabletEntry["videoMediaState"]): boolean {
-  return ["ready", "expiration_pending", "transcription_failed", "deletion_failed"].includes(
+  return ["ready", "expiration_pending", "transcription_failed", "deletion_failed", "moderation_failed"].includes(
     state ?? "draft",
   );
 }
@@ -939,6 +939,7 @@ export default function ProClientFolderModal({
     const isDeleted = entry.videoMediaState === "deleted";
     const isExpired = entry.videoMediaState === "expired" || isDeleted;
     const isFailedTranscription = entry.videoMediaState === "transcription_failed";
+    const isModerationFailed = entry.videoMediaState === "moderation_failed";
     const isDeletionRetry = entry.videoMediaState === "deletion_failed";
     const isPlayable = entry.videoMediaState === "ready" || entry.videoMediaState === "expiration_pending";
     const hasExpiryCountdown = entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt;
@@ -991,6 +992,10 @@ export default function ProClientFolderModal({
         ) : isFailedTranscription ? (
           <p className="text-[10px] text-white/45 italic">
             This video could not be verified and cannot be played. You can delete its private media.
+          </p>
+        ) : isModerationFailed ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video was blocked during moderation and cannot be played. You can delete its private media.
           </p>
         ) : isDeletionRetry ? (
           <StudioVideoDeletionFailureNotice
