@@ -83,11 +83,11 @@ beforeEach(() => {
   global.fetch = fetchMock;
 });
 
-function renderComposer() {
+function renderComposer(uploadPath = "/api/pro/tablet/client-1/video-message") {
   return render(
     <StudioVideoMessageComposer
       recipientName="Alex"
-      uploadPath="/api/pro/tablet/client-1/video-message"
+      uploadPath={uploadPath}
       onSent={onSent}
       onCancel={onCancel}
     />,
@@ -178,6 +178,23 @@ describe("StudioVideoMessageComposer", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId("recorded-video-preview")).not.toBeInTheDocument();
+  });
+
+  it("uses the client reply endpoint when the shared composer is opened by a client", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ entry: { id: "client-message-1", contentType: "video" } }),
+    });
+    renderComposer("/api/client/tablet/video-message");
+    await recordOneVideo();
+
+    fireEvent.click(screen.getByTestId("send-video-message"));
+    await waitFor(() => expect(onSent).toHaveBeenCalledTimes(1));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/client/tablet/video-message",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
   it("sends one normalized WebM file when the recorder includes codec parameters", async () => {

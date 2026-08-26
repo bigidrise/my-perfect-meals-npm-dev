@@ -6,6 +6,7 @@ jest.mock("../services/tabletVoiceService", () => ({
 
 import {
   deleteStudioVideoMessageMedia,
+  isRetryableStudioVideoDeletionFailure,
   type StudioVideoManualDeletionDatabase,
 } from "../services/studioVideoMessageService";
 
@@ -42,6 +43,22 @@ function sqlText(query: any): string {
 }
 
 describe("manual Studio video deletion", () => {
+  test("classifies persisted storage and finalization failures as retryable route responses", () => {
+    expect(
+      isRetryableStudioVideoDeletionFailure(new Error("Private video deletion failed")),
+    ).toBe(true);
+    expect(
+      isRetryableStudioVideoDeletionFailure(
+        new Error("Video deletion could not be finalized safely"),
+      ),
+    ).toBe(true);
+    expect(
+      isRetryableStudioVideoDeletionFailure(
+        new Error("Video deletion is already in progress or no longer eligible"),
+      ),
+    ).toBe(false);
+  });
+
   test("claims media, deletes every private object, and retains the transcript record", async () => {
     const row = makeRow();
     const queries: any[] = [];

@@ -60,6 +60,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
 import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
 import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
+import StudioVideoDeletionFailureNotice from "@/components/pro/StudioVideoDeletionFailureNotice";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
@@ -106,6 +107,15 @@ interface FeatureCard {
 }
 
 const todayMacros = { protein: 50, carbs: 150, fat: 70 };
+
+function canManuallyDeleteStudioVideo(state: unknown): boolean {
+  return typeof state === "string" && [
+    "ready",
+    "expiration_pending",
+    "transcription_failed",
+    "deletion_failed",
+  ].includes(state);
+}
 
 export default function DashboardNew() {
   const [, setLocation] = useLocation();
@@ -159,6 +169,8 @@ export default function DashboardNew() {
   const [tabletVideoMode, setTabletVideoMode] = useState(false);
   const [tabletVideoUrls, setTabletVideoUrls] = useState<Record<string, string>>({});
   const [tabletOpenVideoId, setTabletOpenVideoId] = useState<string | null>(null);
+  const [tabletDeletingVideoId, setTabletDeletingVideoId] = useState<string | null>(null);
+  const [tabletVideoDeleteErrors, setTabletVideoDeleteErrors] = useState<Record<string, string>>({});
   const tabletVideoUrlRevokeRef = useRef<Record<string, () => void>>({});
   const tabletVideoProgressSentAt = useRef<Record<string, number>>({});
 
@@ -318,19 +330,50 @@ export default function DashboardNew() {
       setLocation("/pricing");
       return;
     }
+    if (entry.contentType === "video" && !canManuallyDeleteStudioVideo(entry.videoMediaState)) {
+      return;
+    }
+    if (entry.contentType === "video") {
+      setTabletDeletingVideoId(entry.id);
+      setTabletVideoDeleteErrors((current) => {
+        const { [entry.id]: _, ...remaining } = current;
+        return remaining;
+      });
+    }
     try {
-      const res = await fetch(apiUrl(`/api/client/tablet/entry/${entry.id}`), {
+      const deletePath = entry.contentType === "video"
+        ? `/api/client/tablet/video/${entry.id}`
+        : `/api/client/tablet/entry/${entry.id}`;
+      const res = await fetch(apiUrl(deletePath), {
         method: "DELETE",
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (
+          entry.contentType === "video" &&
+          data.retryable === true &&
+          data.mediaState === "deletion_failed"
+        ) {
+          setTabletMessages((prev) => prev.map((message: any) =>
+            message.id === entry.id
+              ? { ...message, videoMediaState: "deletion_failed" }
+              : message,
+          ));
+        }
+        throw new Error(data.error || "Failed to delete message");
+      }
       if (entry.contentType === "video") {
         setTabletMessages((prev) => prev.map((message: any) =>
           message.id === entry.id
             ? { ...message, videoMediaState: "deleted" }
             : message,
         ));
+        setTabletVideoDeleteErrors((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
       } else {
         setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
       }
@@ -343,8 +386,17 @@ export default function DashboardNew() {
           return remaining;
         });
       }
-    } catch {
-      setTabletError("Failed to delete message");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete message";
+      if (entry.contentType === "video") {
+        setTabletVideoDeleteErrors((current) => ({ ...current, [entry.id]: message }));
+      } else {
+        setTabletError(message);
+      }
+    } finally {
+      if (entry.contentType === "video") {
+        setTabletDeletingVideoId((current) => current === entry.id ? null : current);
+      }
     }
   };
 
@@ -1145,16 +1197,19 @@ export default function DashboardNew() {
                                 <Globe className="w-3.5 h-3.5" />
                               )}
                             </button>
-                            {(entry.contentType !== "video" || entry.videoMediaState !== "deleted") && (
+                            {(entry.contentType !== "video" || canManuallyDeleteStudioVideo(entry.videoMediaState)) && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleTabletDelete(entry);
                                 }}
-                                className="text-red-500 p-0.5"
-                                title={entry.contentType === "video" ? "Delete video" : t("delete")}
+                                disabled={entry.contentType === "video" && tabletDeletingVideoId === entry.id}
+                                className="text-red-500 p-0.5 disabled:opacity-50"
+                                title={entry.contentType === "video" ? "Delete private video" : t("delete")}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                {entry.contentType === "video" && tabletDeletingVideoId === entry.id
+                                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  : <Trash2 className="w-3.5 h-3.5" />}
                               </button>
                             )}
                           </div>
@@ -1167,6 +1222,20 @@ export default function DashboardNew() {
                                 {entry.videoMediaState === "deleted"
                                    ? "Video deleted. Its transcript remains in your message history."
                                   : "This video has expired. Its transcript remains in your message history."}
+                              </p>
+                            ) : entry.videoMediaState === "transcription_failed" ? (
+                              <p className="text-xs text-white/45 italic">
+                                This video could not be verified and cannot be played. You can delete its private media.
+                              </p>
+                            ) : entry.videoMediaState === "deletion_failed" ? (
+                              <StudioVideoDeletionFailureNotice
+                                error={tabletVideoDeleteErrors[entry.id]}
+                                isRetrying={tabletDeletingVideoId === entry.id}
+                                onRetry={() => handleTabletDelete(entry)}
+                              />
+                            ) : !["ready", "expiration_pending"].includes(entry.videoMediaState) ? (
+                              <p className="text-xs text-white/45 italic">
+                                This video is still being verified and cannot be played yet.
                               </p>
                             ) : tabletOpenVideoId === entry.id && tabletVideoUrls[entry.id] ? (
                               <video
