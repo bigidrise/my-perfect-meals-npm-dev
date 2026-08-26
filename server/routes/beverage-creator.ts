@@ -53,6 +53,7 @@ const SERVING_MULTIPLIERS: Record<string, { count: number; label: string }> = {
 
 const CATEGORY_LABELS: Record<string, string> = {
   cocktail: "Cocktail",
+  "dive-bar": "Dive Bar",
   mocktail: "Mocktail",
   smoothie: "Smoothie",
   "protein-shake": "Protein Shake",
@@ -88,6 +89,7 @@ function classifyBeverageIntent(text: string): string {
   if (/milkshake|milk\s+shake|ice\s+cream\s+shake/.test(t)) return "milkshake";
   if (/latte|espresso|cold\s+brew|americano|cappuccino|macchiato|frappuccino|coffee/.test(t)) return "coffee";
   if (/matcha|chai|green\s+tea|black\s+tea|herbal\s+tea|iced\s+tea|tea/.test(t)) return "tea";
+  if (/dive\s*bar|neighborhood\s+bar|bar\s+drink/.test(t)) return "dive-bar";
   if (/margarita|daiquiri|mojito|martini|sangria|cosmo|cosmopolitan|whiskey\s+sour|negroni|spritz|mimosa|bloody\s+mary|pina\s+colada|rum|vodka|gin|tequila|whiskey|whisky|bourbon|wine|beer|champagne|cocktail/.test(t)) return "cocktail";
   if (/mocktail|virgin|alcohol.free|non.alcoholic/.test(t)) return "mocktail";
   if (/lemonade|juice|agua\s+fresca|electrolyte|hydration|sports\s+drink|kombucha|infused\s+water/.test(t)) return "hydration";
@@ -271,6 +273,15 @@ beverageCreatorRouter.post("/", async (req, res) => {
 - Use proper bartending measurements (oz, dashes, parts)
 - Include garnish instructions
 - If serving size is pitcher or party batch, scale proportionally`;
+        case "dive-bar":
+          return `\n🍺 DIVE BAR-SPECIFIC RULES:
+- Design a drink that a normal neighborhood dive bar could realistically make with its everyday bar stock.
+- Favor common vodka, gin, rum, tequila, whiskey/bourbon, common beer, basic wine, cola, lemon-lime soda, ginger ale, tonic, soda water, cranberry, orange, pineapple, grapefruit, tomato juice, and simple lemon or lime.
+- Prefer highballs, simple mixed drinks, shots, basic cocktails, boilermakers or beer combinations, and straightforward two- or three-ingredient drinks.
+- Use common basic liqueurs only when they are reasonably expected behind a standard bar.
+- Keep preparation simple: standard glassware, ice, a pour, a stir, a shake, or a basic beer combination.
+- Do not use specialty syrups, obscure liqueurs, elaborate garnishes, exotic ingredients, molecular techniques, or advanced equipment.
+- Keep the drink practical and recognizable rather than making it resemble a craft cocktail lounge creation.`;
         case "mocktail":
           return `\n🥤 MOCKTAIL-SPECIFIC RULES:
 - Must be completely alcohol-free
