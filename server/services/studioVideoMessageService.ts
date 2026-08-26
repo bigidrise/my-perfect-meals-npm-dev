@@ -237,15 +237,21 @@ export async function deleteStudioVideoMessageRecord(input: {
     );
   }
 
-  auditStudioVideoAction({
-    req: input.req,
-    event: "message_deleted",
-    actorUserId: input.actorUserId,
-    targetUserId: input.clientUserId,
-    studioId: input.studioId,
-    messageId: input.messageId,
-    metadata: { deletionType: "transcript_message", mediaState: "deleted" },
-  });
+  try {
+    auditStudioVideoAction({
+      req: input.req,
+      event: "message_deleted",
+      actorUserId: input.actorUserId,
+      targetUserId: input.clientUserId,
+      studioId: input.studioId,
+      messageId: input.messageId,
+      metadata: { deletionType: "transcript_message", lifecycleState: "deleted" },
+    });
+  } catch (error) {
+    // The message row is already gone. Do not turn an audit-only failure into
+    // a retryable lifecycle error that encourages deleting the same message again.
+    console.error("Failed to record Studio video message deletion audit:", error);
+  }
   return { deletedAt: new Date().toISOString() };
 }
 
