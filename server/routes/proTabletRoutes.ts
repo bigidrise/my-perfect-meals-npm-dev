@@ -1,8 +1,14 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { clientNotes, studios, studioVideoMedia, studioVideoMessages } from "../db/schema/studio";
+import {
+  clientNotes,
+  studioMessageViewerDeletions,
+  studios,
+  studioVideoMedia,
+  studioVideoMessages,
+} from "../db/schema/studio";
 import { users } from "../../shared/schema";
-import { eq, and, asc, desc, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, inArray, notExists } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
@@ -21,6 +27,7 @@ export function invalidateProUnreadCache(proUserId: string): void {
 }
 import {
   getSignedPlaybackUrl,
+  getStudioVoiceObjectAvailability,
   getStudioVoiceStream,
   MAX_VOICE_DURATION_SEC,
   normalizeVoiceMimeType,
@@ -37,13 +44,16 @@ import {
   auditStudioVideoAction,
   auditStudioVideoListAction,
   deleteStudioVideoMessage,
-  deleteStudioVideoMessageRecord,
   getStudioVideoMessage,
   isRetryableStudioVideoDeletionFailure,
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
 } from "../services/studioVideoMessageService";
+import {
+  hideStudioMessageForViewer,
+  isStudioMessageHiddenForViewer,
+} from "../services/studioMessageVisibilityService";
 import {
   assertStudioVideoReadyForPlayback,
   assertStudioVideoTransition,
@@ -127,6 +137,7 @@ async function handleProStudioVideoDeletion(
         { type: "video", deletedBy: "pro", mediaOnly: true },
       );
     }
+    invalidateClientTabletCache(clientId);
     res.set("Cache-Control", "no-store");
     res.json({ ok: true, ...result });
   } catch (error) {
@@ -148,21 +159,22 @@ async function handleProStudioVideoDeletion(
   }
 }
 
-async function handleProStudioVideoMessageDeletion(
+async function hideProStudioMessageForViewer(
   req: Request,
   res: Response,
   authUser: AuthenticatedRequest["authUser"],
   studioId: string,
   clientId: string,
   messageId: string,
+  kind: "client_note" | "video_message",
 ): Promise<void> {
   try {
-    await deleteStudioVideoMessageRecord({
-      req,
-      actorUserId: authUser.id,
+    const result = await hideStudioMessageForViewer({
       studioId,
       clientUserId: clientId,
+      viewerUserId: authUser.id,
       messageId,
+      kind,
     });
     await logClientActivity(
       studioId,
@@ -171,18 +183,18 @@ async function handleProStudioVideoMessageDeletion(
       "message_deleted",
       "message",
       messageId,
-      { type: "video", deletedBy: "pro", deletionTarget: "transcript_message" },
+      { deletedBy: "pro", deletionScope: "viewer_only", messageKind: kind },
     );
+    invalidateClientTabletCache(clientId);
+    invalidateProUnreadCache(authUser.id);
     res.set("Cache-Control", "no-store");
-    res.json({ ok: true, deleted: true });
+    res.json({ ok: true, hidden: true, ...result });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("Video message not found")) {
-      res.status(404).json({ error: "Video message not found" });
+    if (error instanceof Error && error.message === "Studio message not found") {
+      res.status(404).json({ error: "Entry not found" });
       return;
     }
-    res.status(409).json({
-      error: "Transcript/message deletion is available only after the private video is fully deleted",
-    });
+    throw error;
   }
 }
 
@@ -428,13 +440,14 @@ router.delete("/:clientId/video/:messageId/transcript", requireWorkspaceAccess, 
     res.status(404).json({ error: "No studio found" });
     return;
   }
-  await handleProStudioVideoMessageDeletion(
+  await hideProStudioMessageForViewer(
     req,
     res,
     authUser,
     studioId,
     req.params.clientId,
     req.params.messageId,
+    "video_message",
   );
 });
 
@@ -443,6 +456,16 @@ router.get("/:clientId/video/:messageId/playback", requireWorkspaceAccess, async
   const studioId = await getProStudioId(authUser.id);
   if (!studioId) {
     res.status(404).json({ error: "No studio found" });
+    return;
+  }
+  if (await isStudioMessageHiddenForViewer({
+    studioId,
+    clientUserId: req.params.clientId,
+    viewerUserId: authUser.id,
+    messageId: req.params.messageId,
+    kind: "video_message",
+  })) {
+    res.status(404).json({ error: "Video message not found" });
     return;
   }
   const record = await getStudioVideoMessage(studioId, req.params.clientId, req.params.messageId);
@@ -506,6 +529,16 @@ router.post("/:clientId/video/:messageId/progress", requireWorkspaceAccess, asyn
   const studioId = await getProStudioId(authUser.id);
   if (!studioId) {
     res.status(404).json({ error: "No studio found" });
+    return;
+  }
+  if (await isStudioMessageHiddenForViewer({
+    studioId,
+    clientUserId: req.params.clientId,
+    viewerUserId: authUser.id,
+    messageId: req.params.messageId,
+    kind: "video_message",
+  })) {
+    res.status(404).json({ error: "Video message not found" });
     return;
   }
   const record = await getStudioVideoMessage(studioId, req.params.clientId, req.params.messageId);
@@ -595,6 +628,12 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
       WHERE cn.studio_id = ${studioId}
         AND cn.entry_type = 'message'
         AND cn.sender = 'client'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM studio_message_viewer_deletions hidden
+          WHERE hidden.viewer_user_id = ${authUser.id}
+            AND hidden.client_note_id = cn.id
+        )
       GROUP BY cn.client_user_id
     `);
 
@@ -642,7 +681,18 @@ router.get("/all-messages", async (req: Request, res: Response) => {
       and(
         eq(clientNotes.studioId, studioId),
         eq(clientNotes.entryType, "message"),
-        eq(clientNotes.sender, "client")
+        eq(clientNotes.sender, "client"),
+        notExists(
+          db
+            .select({ id: studioMessageViewerDeletions.id })
+            .from(studioMessageViewerDeletions)
+            .where(
+              and(
+                eq(studioMessageViewerDeletions.viewerUserId, authUser.id),
+                eq(studioMessageViewerDeletions.clientNoteId, clientNotes.id),
+              ),
+            ),
+        ),
       )
     )
     .orderBy(desc(clientNotes.createdAt))
@@ -711,12 +761,23 @@ router.get("/:clientId", requireWorkspaceAccess, async (req: Request, res: Respo
     .where(
       and(
         eq(clientNotes.studioId, studioId),
-        eq(clientNotes.clientUserId, clientId)
+        eq(clientNotes.clientUserId, clientId),
+        notExists(
+          db
+            .select({ id: studioMessageViewerDeletions.id })
+            .from(studioMessageViewerDeletions)
+            .where(
+              and(
+                eq(studioMessageViewerDeletions.viewerUserId, authUser.id),
+                eq(studioMessageViewerDeletions.clientNoteId, clientNotes.id),
+              ),
+            ),
+        ),
       )
     )
     .orderBy(asc(clientNotes.createdAt))
     .limit(200);
-  const videoMessages = await listStudioVideoMessages(studioId, clientId);
+  const videoMessages = await listStudioVideoMessages(studioId, clientId, authUser.id);
 
   markMessagesRead(studioId, clientId);
 
@@ -894,12 +955,23 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
   }
 
   if (await getStudioVideoMessage(studioId, clientId, entryId)) {
-    await handleProStudioVideoDeletion(req, res, authUser, studioId, clientId, entryId);
+    await hideProStudioMessageForViewer(
+      req,
+      res,
+      authUser,
+      studioId,
+      clientId,
+      entryId,
+      "video_message",
+    );
     return;
   }
 
   const [existing] = await db
-    .select({ entryType: clientNotes.entryType })
+    .select({
+      entryType: clientNotes.entryType,
+      visibility: clientNotes.visibility,
+    })
     .from(clientNotes)
     .where(
       and(
@@ -909,6 +981,24 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
       )
     )
     .limit(1);
+
+  if (!existing) {
+    res.status(404).json({ error: "Entry not found" });
+    return;
+  }
+
+  if (existing.entryType === "message" && existing.visibility === "shared_with_client") {
+    await hideProStudioMessageForViewer(
+      req,
+      res,
+      authUser,
+      studioId,
+      clientId,
+      entryId,
+      "client_note",
+    );
+    return;
+  }
 
   const [deleted] = await db
     .delete(clientNotes)
@@ -926,13 +1016,13 @@ router.delete("/:clientId/entry/:entryId", requireWorkspaceAccess, async (req: R
     return;
   }
 
-  const action = existing?.entryType === "note" ? "note_deleted" : "message_deleted";
+  const action = existing.entryType === "note" ? "note_deleted" : "message_deleted";
   logClientActivity(
     studioId,
     clientId,
     authUser.id,
     action as any,
-    existing?.entryType || "message",
+    existing.entryType,
     entryId,
     { deletedBy: "pro" }
   );
@@ -1077,6 +1167,12 @@ router.get("/audio/:entryId", async (req: Request, res: Response) => {
     WHERE id = ${entryId}
       AND studio_id = ${studioId}
       AND content_type = 'voice'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM studio_message_viewer_deletions hidden
+        WHERE hidden.viewer_user_id = ${authUser.id}
+          AND hidden.client_note_id = client_notes.id
+      )
     LIMIT 1
   `);
 
@@ -1088,6 +1184,16 @@ router.get("/audio/:entryId", async (req: Request, res: Response) => {
 
   const backend = resolveVoiceStorageBackend(note.audio_storage_backend);
   if (backend === "replit") {
+    const availability = await getStudioVoiceObjectAvailability(note.audio_object_key);
+    if (availability === "missing") {
+      res.status(410).json({ error: "Audio is no longer available" });
+      return;
+    }
+    if (availability === "unavailable") {
+      res.status(503).json({ error: "Audio playback is temporarily unavailable" });
+      return;
+    }
+
     if (req.query.stream === "1") {
       if (!isValidStudioVoicePlaybackToken(req.query.access, entryId, authUser.id)) {
         res.status(403).json({ error: "Playback access expired" });

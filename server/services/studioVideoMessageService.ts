@@ -1,14 +1,17 @@
 import { Request } from "express";
 import crypto from "crypto";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, notExists, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   deleteStudioVideoFromS3,
 } from "./tabletVoiceService";
-import { logStudioVideoStorageDeleteFailure } from "./studioVideoStorageDiagnostics";
+import {
+  logStudioVideoDeletionFailure,
+} from "./studioVideoStorageDiagnostics";
 import {
   studioVideoMedia,
   studioVideoMessages,
+  studioMessageViewerDeletions,
 } from "../db/schema/studio";
 import {
   assertStudioVideoMessagesEnabled,
@@ -77,6 +80,7 @@ export function isValidStudioVideoPlaybackToken(token: unknown, messageId: strin
 export async function listStudioVideoMessages(
   studioId: string,
   clientUserId: string,
+  viewerUserId: string,
 ): Promise<StudioVideoListEntry[]> {
   const rows = await db
     .select({
@@ -103,6 +107,17 @@ export async function listStudioVideoMessages(
         eq(studioVideoMessages.studioId, studioId),
         eq(studioVideoMessages.clientUserId, clientUserId),
         eq(studioVideoMessages.visibility, "shared_with_client"),
+        notExists(
+          db
+            .select({ id: studioMessageViewerDeletions.id })
+            .from(studioMessageViewerDeletions)
+            .where(
+              and(
+                eq(studioMessageViewerDeletions.viewerUserId, viewerUserId),
+                eq(studioMessageViewerDeletions.studioVideoMessageId, studioVideoMessages.id),
+              ),
+            ),
+        ),
       ),
     )
     .orderBy(asc(studioVideoMessages.createdAt));
@@ -429,13 +444,9 @@ export async function deleteStudioVideoMessage(
   }
   const failedCount = results.filter((result) => result.status === "rejected").length;
   if (leaseLost || failedCount > 0) {
-    if (failedCount > 0) {
-      for (const result of results) {
-        if (result.status === "rejected") {
-          logStudioVideoStorageDeleteFailure(result.reason, leaseLost);
-        }
-      }
-    }
+    const firstStorageFailure = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
     const failureMessage = leaseLost
       ? "Video deletion lease was lost while deleting private storage"
       : `${failedCount} Studio video storage object${failedCount === 1 ? "" : "s"} could not be deleted`;
@@ -452,6 +463,14 @@ export async function deleteStudioVideoMessage(
           AND deletion_claim_token = ${claimToken}
       `,
     );
+    logStudioVideoDeletionFailure({
+      failureStage: "storage_delete",
+      requestId: (input.req as Request & { id?: unknown }).id,
+      httpOutcome: 502,
+      leaseStatus: leaseLost ? "lost" : "valid",
+      storageDeletionCompleted: failedCount === 0,
+      error: firstStorageFailure?.reason,
+    });
     auditStudioVideoMediaDeletionAction({
       req: input.req,
       event: "deletion_failed",
@@ -523,6 +542,13 @@ export async function deleteStudioVideoMessage(
         AND state = 'deleting'
         AND deletion_claim_token = ${claimToken}
     `);
+    logStudioVideoDeletionFailure({
+      failureStage: "finalization_guard",
+      requestId: (input.req as Request & { id?: unknown }).id,
+      httpOutcome: 502,
+      leaseStatus: leaseLost ? "lost" : "unknown",
+      storageDeletionCompleted: true,
+    });
     auditStudioVideoMediaDeletionAction({
       req: input.req,
       event: "deletion_failed",
@@ -788,14 +814,20 @@ export async function deleteStudioVideoMessageMedia(
     clearInterval(heartbeat);
   }
   const failedCount = results.filter((result) => result.status === "rejected").length;
-  if (failedCount > 0) {
-    for (const result of results) {
-      if (result.status === "rejected") {
-        logStudioVideoStorageDeleteFailure(result.reason, leaseLost);
-      }
-    }
+  const firstStorageFailure = results.find(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+  if (leaseLost) {
+    logStudioVideoDeletionFailure({
+      failureStage: "storage_delete",
+      requestId: "unknown",
+      httpOutcome: 502,
+      leaseStatus: "lost",
+      storageDeletionCompleted: failedCount === 0,
+      error: firstStorageFailure?.reason,
+    });
+    return "deletion_failed";
   }
-  if (leaseLost) return "deletion_failed";
   if (failedCount > 0) {
     await database.execute(sql`
       UPDATE studio_video_media
@@ -808,6 +840,14 @@ export async function deleteStudioVideoMessageMedia(
         AND state = 'deleting'
         AND deletion_claim_token = ${row.deletion_claim_token}
     `);
+    logStudioVideoDeletionFailure({
+      failureStage: "storage_delete",
+      requestId: "unknown",
+      httpOutcome: 502,
+      leaseStatus: "valid",
+      storageDeletionCompleted: false,
+      error: firstStorageFailure?.reason,
+    });
     return "deletion_failed";
   }
 
@@ -857,5 +897,12 @@ export async function deleteStudioVideoMessageMedia(
       AND state = 'deleting'
       AND deletion_claim_token = ${row.deletion_claim_token}
   `);
+  logStudioVideoDeletionFailure({
+    failureStage: "finalization_guard",
+    requestId: "unknown",
+    httpOutcome: 502,
+    leaseStatus: "unknown",
+    storageDeletionCompleted: true,
+  });
   return "deletion_failed";
 }

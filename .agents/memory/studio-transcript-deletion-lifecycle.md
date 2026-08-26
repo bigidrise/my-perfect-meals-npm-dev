@@ -1,10 +1,12 @@
 ---
-name: Studio transcript deletion lifecycle
-description: Guardrails for removing a private Studio video transcript and message record.
+name: Studio participant deletion lifecycle
+description: Viewer-specific Studio history hiding and the separate private video-media lifecycle.
 ---
 
-Private Studio video media deletion and transcript/message deletion are intentionally separate actions. The message record may be removed only after the media is terminally deleted, its original object key is cleared, and no derivative references remain. Do not permit transcript-only removal while playable media remains.
+Normal Studio trash actions are per-viewer history hides, never shared-row deletion. This applies to text, voice, video messages, and retained video transcripts. A participant can remove a message from only their own history without deleting the shared client-note row, voice job, transcript, video parent, or media references. There is no global voice-media deletion in this model.
 
-**Why:** Playback, moderation, expiry, and storage-purge protections rely on a completed message/transcript record while private media exists. Deleting the parent first can cascade the media row while storage is still referenced.
+Private video-media deletion is a distinct global action with the existing guarded object-storage lifecycle. It removes private video bytes for both participants while preserving the shared transcript/message history.
 
-**How to apply:** Keep media deletion as the first action. Only expose and authorize the final record-deletion action after the terminal media guard passes; preserve metadata-only audit history after the message row is gone.
+**Why:** Shared Studio rows, transcriptions, moderation, retention, and object-storage safety depend on preserving the parent record. Per-viewer tombstones support each participant’s independent history without weakening those lifecycle guarantees.
+
+**How to apply:** Filter lists, unread counts, and playback/progress/audio access by the authenticated viewer’s tombstone. Keep normal UI copy explicit (“Delete for me”) and label the guarded video byte removal separately (“Delete video for everyone”). Preserve relationship checks, activity/audit logging, cache invalidation, and the global video-media lifecycle.

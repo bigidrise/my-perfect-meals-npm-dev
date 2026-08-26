@@ -21,6 +21,21 @@ type ErrorRecord = Record<string, unknown>;
 
 const diagnosticProperty = Symbol("studioVideoStorageDeleteDiagnostic");
 
+export type StudioVideoDeletionFailureStage =
+  | "storage_delete"
+  | "finalization_guard"
+  | "unknown";
+
+export type StudioVideoDeletionFailureDiagnostic = {
+  failureStage: StudioVideoDeletionFailureStage;
+  requestId: string;
+  httpOutcome: number;
+  leaseStatus: "valid" | "lost" | "unknown";
+  storageDeletionCompleted: boolean;
+  sdkErrorClass?: string;
+  sdkStatus?: number;
+};
+
 function asErrorRecord(error: unknown): ErrorRecord {
   return error !== null && typeof error === "object" ? error as ErrorRecord : {};
 }
@@ -36,6 +51,10 @@ function safeStatus(value: unknown): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value >= 100 && value <= 599
     ? value
     : undefined;
+}
+
+function safeRequestId(value: unknown): string {
+  return safeIdentifier(value) ?? "unknown";
 }
 
 function normalizeFailureCategory(input: {
@@ -142,4 +161,59 @@ export function logStudioVideoStorageDeleteFailure(
     ...diagnostic,
     leaseStatus: leaseLost ? "lost" : "valid",
   });
+}
+
+/**
+ * Produces one DEV-safe diagnostic event for the manual video deletion path.
+ * It intentionally excludes storage keys, media/transcript content, URLs,
+ * credentials, IP addresses, and account identifiers.
+ */
+export function getStudioVideoDeletionFailureDiagnostic(input: {
+  failureStage: StudioVideoDeletionFailureStage;
+  requestId: unknown;
+  httpOutcome: number;
+  leaseStatus: StudioVideoDeletionFailureDiagnostic["leaseStatus"];
+  storageDeletionCompleted: boolean;
+  error?: unknown;
+}): StudioVideoDeletionFailureDiagnostic {
+  const storageDiagnostic = input.error === undefined
+    ? undefined
+    : getAttachedStudioVideoStorageDeleteDiagnostic(input.error)
+      ?? getStudioVideoStorageDeleteDiagnostic(input.error);
+  const httpOutcome = safeStatus(input.httpOutcome) ?? 500;
+
+  return {
+    failureStage: input.failureStage,
+    requestId: safeRequestId(input.requestId),
+    httpOutcome,
+    leaseStatus: input.leaseStatus,
+    storageDeletionCompleted: input.storageDeletionCompleted,
+    ...(storageDiagnostic
+      ? {
+          sdkErrorClass: storageDiagnostic.sdkErrorClass,
+          ...(storageDiagnostic.statusCode !== undefined
+            ? { sdkStatus: storageDiagnostic.statusCode }
+            : {}),
+        }
+      : {}),
+  };
+}
+
+/**
+ * DEV-only deletion-stage telemetry. This is a server log only, so it cannot
+ * change the media lifecycle or retain sensitive content.
+ */
+export function logStudioVideoDeletionFailure(input: {
+  failureStage: StudioVideoDeletionFailureStage;
+  requestId: unknown;
+  httpOutcome: number;
+  leaseStatus: StudioVideoDeletionFailureDiagnostic["leaseStatus"];
+  storageDeletionCompleted: boolean;
+  error?: unknown;
+}): void {
+  if (process.env.NODE_ENV !== "development") return;
+  console.warn(
+    "[StudioVideoDeletionDiagnostic]",
+    getStudioVideoDeletionFailureDiagnostic(input),
+  );
 }

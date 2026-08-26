@@ -93,13 +93,39 @@ export async function uploadStudioVoiceToPrivateStorage(
   mimeType: string,
   objectKey: string,
 ): Promise<void> {
-  const result = await getStudioMediaStorage().uploadFromBytes(objectKey, buffer, { compress: false });
+  const storage = getStudioMediaStorage();
+  const result = await storage.uploadFromBytes(objectKey, buffer, { compress: false });
   if (!result.ok) throw new Error(`Private voice upload failed: ${result.error?.message ?? "unknown error"}`);
+
+  // Do not create a playable note/job until Object Storage confirms the object.
+  // This protects Studio from presenting a successful voice send whose media
+  // cannot subsequently be streamed or transcribed.
+  if (await getStudioVoiceObjectAvailability(objectKey) !== "available") {
+    throw new Error("Private voice upload could not be verified");
+  }
 }
 
 export async function deleteStudioVoiceFromPrivateStorage(objectKey: string): Promise<void> {
   const result = await getStudioMediaStorage().delete(objectKey);
   if (!result.ok) throw new Error(`Private voice deletion failed: ${result.error?.message ?? "unknown error"}`);
+}
+
+export type StudioVoiceObjectAvailability = "available" | "missing" | "unavailable";
+
+/**
+ * Checks object availability without exposing a storage key or provider error
+ * to callers. "Unavailable" means the storage check itself could not complete.
+ */
+export async function getStudioVoiceObjectAvailability(
+  objectKey: string,
+): Promise<StudioVoiceObjectAvailability> {
+  try {
+    const result = await getStudioMediaStorage().exists(objectKey);
+    if (!result.ok) return "unavailable";
+    return result.value ? "available" : "missing";
+  } catch {
+    return "unavailable";
+  }
 }
 
 export function getStudioVoiceStream(objectKey: string): Readable {
