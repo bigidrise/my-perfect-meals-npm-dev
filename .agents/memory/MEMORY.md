@@ -33,3 +33,4 @@
 - [Studio route result scope](studio-route-result-scope.md) — keep transcription results at handler scope when later moderation and response code runs outside the processing try block.
 - [Voice message queue integrity](voice-message-queue-integrity.md) — pending voice notes require stored audio and a transcription job; otherwise show failure.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
+- [Runtime database identity](runtime-database-identity.md) — compare active connection fingerprints when the platform inspector cannot identify the deployed database.
