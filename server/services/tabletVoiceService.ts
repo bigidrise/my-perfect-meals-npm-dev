@@ -5,6 +5,10 @@ import OpenAI from "openai";
 import { toFile } from "openai/uploads";
 import { Client as ReplitStorageClient } from "@replit/object-storage";
 import { Readable } from "node:stream";
+import {
+  attachStudioVideoStorageDeleteDiagnostic,
+  getStudioVideoStorageDeleteDiagnostic,
+} from "./studioVideoStorageDiagnostics";
 
 export const VOICE_BUCKET = process.env.S3_BUCKET_NAME!;
 export const VOICE_PREFIX = "tablet-voice";
@@ -173,8 +177,41 @@ export async function getSignedStudioVideoPlaybackUrl(
 }
 
 export async function deleteStudioVideoFromS3(objectKey: string): Promise<void> {
-  const result = await getStudioMediaStorage().delete(objectKey);
-  if (!result.ok) throw new Error(`Private video deletion failed: ${result.error?.message ?? "unknown error"}`);
+  const storage = getStudioMediaStorage();
+  let objectExistedBeforeDelete: boolean | "unknown" = "unknown";
+
+  // This DEV-only preflight is observational: an unavailable exists() call
+  // never blocks or changes the following delete attempt.
+  if (process.env.NODE_ENV === "development") {
+    try {
+      const existsResult = await storage.exists(objectKey);
+      if (existsResult.ok) objectExistedBeforeDelete = existsResult.value;
+    } catch {
+      // Preserve the original delete behavior when diagnostics cannot probe.
+    }
+  }
+
+  let result;
+  try {
+    result = await storage.delete(objectKey);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw attachStudioVideoStorageDeleteDiagnostic(
+        error,
+        getStudioVideoStorageDeleteDiagnostic(error, objectExistedBeforeDelete),
+      );
+    }
+    throw error;
+  }
+  if (result.ok) return;
+
+  const error = new Error(
+    `Private video deletion failed: ${result.error?.message ?? "unknown error"}`,
+  );
+  throw attachStudioVideoStorageDeleteDiagnostic(
+    error,
+    getStudioVideoStorageDeleteDiagnostic(result.error, objectExistedBeforeDelete),
+  );
 }
 
 export function getStudioVideoStream(objectKey: string) {

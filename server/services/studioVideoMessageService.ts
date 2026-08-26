@@ -5,6 +5,7 @@ import { db } from "../db";
 import {
   deleteStudioVideoFromS3,
 } from "./tabletVoiceService";
+import { logStudioVideoStorageDeleteFailure } from "./studioVideoStorageDiagnostics";
 import {
   studioVideoMedia,
   studioVideoMessages,
@@ -339,6 +340,13 @@ export async function deleteStudioVideoMessage(
   }
   const failedCount = results.filter((result) => result.status === "rejected").length;
   if (leaseLost || failedCount > 0) {
+    if (failedCount > 0) {
+      for (const result of results) {
+        if (result.status === "rejected") {
+          logStudioVideoStorageDeleteFailure(result.reason, leaseLost);
+        }
+      }
+    }
     const failureMessage = leaseLost
       ? "Video deletion lease was lost while deleting private storage"
       : `${failedCount} Studio video storage object${failedCount === 1 ? "" : "s"} could not be deleted`;
@@ -675,8 +683,15 @@ export async function deleteStudioVideoMessageMedia(
   } finally {
     clearInterval(heartbeat);
   }
-  if (leaseLost) return "deletion_failed";
   const failedCount = results.filter((result) => result.status === "rejected").length;
+  if (failedCount > 0) {
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logStudioVideoStorageDeleteFailure(result.reason, leaseLost);
+      }
+    }
+  }
+  if (leaseLost) return "deletion_failed";
   if (failedCount > 0) {
     await database.execute(sql`
       UPDATE studio_video_media
