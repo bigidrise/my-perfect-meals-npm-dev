@@ -113,6 +113,33 @@ describe("resolveDietCategoryStrategy — kosher procedural identity (Fix C)", (
   });
 });
 
+// ─── Dive Bar category — shared alcohol intelligence ──────────────────────────
+
+describe("resolveDietCategoryStrategy — Dive Bar category", () => {
+  test("keto + dive-bar keeps the category and injects low-sugar bar guidance", () => {
+    const result = resolveDietCategoryStrategy(["keto"], "dive-bar");
+    expect(result.conflictLevel).toBe("caution");
+    expect(result.effectiveCategory).toBe("dive-bar");
+    expect(result.coachingBlock).toMatch(/DIVE BAR OPTIMIZATION FOR KETO/i);
+    expect(result.coachingBlock).toMatch(/sugar-free|soda water/i);
+  });
+
+  test("paleo + dive-bar keeps the category and injects simple bar guidance", () => {
+    const result = resolveDietCategoryStrategy(["paleo"], "dive-bar");
+    expect(result.conflictLevel).toBe("caution");
+    expect(result.effectiveCategory).toBe("dive-bar");
+    expect(result.coachingBlock).toMatch(/DIVE BAR OPTIMIZATION FOR PALEO/i);
+    expect(result.coachingBlock).toMatch(/neighborhood bar|ordinary bar ingredients/i);
+  });
+
+  test("halal + dive-bar redirects to a non-alcoholic drink", () => {
+    const result = resolveDietCategoryStrategy(["halal"], "dive-bar");
+    expect(result.conflictLevel).toBe("caution");
+    expect(result.effectiveCategory).toBe("mocktail");
+    expect(result.coachingBlock).toMatch(/no wine, beer, sake, or spirits/i);
+  });
+});
+
 // ─── Post-gen scan: kosher wine catch ────────────────────────────────────────
 
 describe("scanForHiddenDietaryViolations — kosher wine violations (Fix C integration)", () => {

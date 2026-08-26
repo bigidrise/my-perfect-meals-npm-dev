@@ -65,6 +65,7 @@ import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
   { value: "cocktail", label: "Cocktail" },
+  { value: "dive-bar", label: "Dive Bar" },
   { value: "mocktail", label: "Mocktail" },
   { value: "smoothie", label: "Smoothie" },
   { value: "protein-shake", label: "Protein Shake" },
