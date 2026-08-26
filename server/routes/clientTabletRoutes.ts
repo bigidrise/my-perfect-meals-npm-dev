@@ -29,6 +29,7 @@ import {
   auditStudioVideoListAction,
   deleteStudioVideoMessage,
   getStudioVideoMessage,
+  isRetryableStudioVideoDeletionFailure,
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
@@ -142,8 +143,12 @@ async function handleClientStudioVideoDeletion(
       res.status(404).json({ error: "Video message not found" });
       return;
     }
-    if (error instanceof Error && error.message.includes("Private video deletion failed")) {
-      res.status(502).json({ error: "Video could not be deleted. Please try again." });
+    if (isRetryableStudioVideoDeletionFailure(error)) {
+      res.status(502).json({
+        error: "Video could not be deleted. Please try again.",
+        retryable: true,
+        mediaState: "deletion_failed",
+      });
       return;
     }
     res.status(409).json({
@@ -165,6 +170,10 @@ function parseVideoDuration(value: unknown): number | null {
   return Math.ceil(durationSec);
 }
 
+function normalizeStudioVideoMimeType(mimeType: string): string {
+  return mimeType.split(";")[0].trim().toLowerCase();
+}
+
 router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("video"), async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   let transcript: string;
@@ -178,7 +187,8 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
     res.status(400).json({ error: "video file is required" });
     return;
   }
-  if (!["video/webm", "video/mp4", "video/quicktime"].includes(req.file.mimetype)) {
+  const mimeType = normalizeStudioVideoMimeType(req.file.mimetype);
+  if (!["video/webm", "video/mp4", "video/quicktime"].includes(mimeType)) {
     res.status(400).json({ error: "Video must be WebM, MP4, or MOV" });
     return;
   }
@@ -214,7 +224,7 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
   await db.insert(studioVideoMedia).values({
     messageId: message.id,
     state: "draft",
-    mimeType: req.file.mimetype,
+    mimeType,
     durationSec,
     sizeBytes: req.file.size,
     temporaryDerivativeKeys: [],
@@ -235,8 +245,8 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
   });
 
   try {
-    const objectKey = getStudioVideoObjectKey(message.id, req.file.mimetype);
-    await uploadStudioVideoToS3(req.file.buffer, req.file.mimetype, objectKey);
+    const objectKey = getStudioVideoObjectKey(message.id, mimeType);
+    await uploadStudioVideoToS3(req.file.buffer, mimeType, objectKey);
     assertStudioVideoTransition({ currentState: "uploading", nextState: "uploaded", now: new Date() });
     await db.update(studioVideoMedia)
       .set({ state: "uploaded", objectKey, updatedAt: new Date() })
@@ -250,7 +260,7 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
       studioId, messageId: message.id, metadata: {},
     });
     try {
-      ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, req.file.mimetype));
+      ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, mimeType));
       await db.update(studioVideoMessages)
         .set({ transcript, transcriptStatus: "completed", transcribedAt: new Date(), updatedAt: new Date() })
         .where(eq(studioVideoMessages.id, message.id));
@@ -309,7 +319,7 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
 
   auditStudioVideoAction({
     req, event: "upload_completed", actorUserId: authUser.id, targetUserId: authUser.id,
-    studioId, messageId: message.id, metadata: { mimeType: req.file.mimetype, durationSec },
+    studioId, messageId: message.id, metadata: { mimeType, durationSec },
   });
   auditStudioVideoAction({
     req, event: "moderation_completed", actorUserId: authUser.id, targetUserId: authUser.id,
@@ -394,6 +404,7 @@ router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (re
   res.set("Cache-Control", "no-store, private");
   res.json({
     url,
+    mimeType: record.media.mimeType,
     durationSec: record.media.durationSec,
     expiresAt: record.media.expiresAt,
     watchCompletedAt: record.media.watchCompletedAt,

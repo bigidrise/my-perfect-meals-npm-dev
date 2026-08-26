@@ -184,6 +184,19 @@ export type StudioVideoManualDeletionOutcome = {
 };
 
 /**
+ * These errors are raised only after a manual deletion has persisted a
+ * retryable `deletion_failed` state. Route handlers use this distinction to
+ * keep the message visible and immediately offer another deletion attempt.
+ */
+export function isRetryableStudioVideoDeletionFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return [
+    "Private video deletion failed",
+    "Video deletion could not be finalized safely",
+  ].includes(error.message);
+}
+
+/**
  * Deletes a participant's private video media without deleting the
  * communication record. The media row is first marked deleting with a
  * token-bound lease, which disables playback and prevents a competing worker

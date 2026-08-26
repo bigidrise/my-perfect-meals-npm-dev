@@ -38,6 +38,7 @@ import {
   auditStudioVideoListAction,
   deleteStudioVideoMessage,
   getStudioVideoMessage,
+  isRetryableStudioVideoDeletionFailure,
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
@@ -132,8 +133,12 @@ async function handleProStudioVideoDeletion(
       res.status(404).json({ error: "Video message not found" });
       return;
     }
-    if (error instanceof Error && error.message.includes("Private video deletion failed")) {
-      res.status(502).json({ error: "Video could not be deleted. Please try again." });
+    if (isRetryableStudioVideoDeletionFailure(error)) {
+      res.status(502).json({
+        error: "Video could not be deleted. Please try again.",
+        retryable: true,
+        mediaState: "deletion_failed",
+      });
       return;
     }
     res.status(409).json({
@@ -426,6 +431,7 @@ router.get("/:clientId/video/:messageId/playback", requireWorkspaceAccess, async
   res.set("Cache-Control", "no-store, private");
   res.json({
     url,
+    mimeType: record.media.mimeType,
     durationSec: record.media.durationSec,
     expiresAt: record.media.expiresAt,
     watchCompletedAt: record.media.watchCompletedAt,

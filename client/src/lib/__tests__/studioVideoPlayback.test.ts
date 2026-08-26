@@ -67,4 +67,29 @@ describe("Studio video playback", () => {
     ).rejects.toBeInstanceOf(StudioVideoPlaybackError);
     expect(URL.createObjectURL).not.toHaveBeenCalled();
   });
+
+  test("preserves the server-declared MIME type when a native stream returns an untyped blob", async () => {
+    const fetchImpl = jest.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          url: "/api/client/tablet/video/message-1/stream?access=fresh-token",
+          mimeType: "video/webm",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob(["video"]),
+      });
+
+    await loadStudioVideoPlayback(
+      "/api/client/tablet/video/message-1/playback",
+      { "x-auth-token": "native-token" },
+      fetchImpl as unknown as typeof fetch,
+    );
+
+    const mediaBlob = (URL.createObjectURL as jest.Mock).mock.calls[0][0] as Blob;
+    expect(mediaBlob.type).toBe("video/webm");
+  });
 });

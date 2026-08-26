@@ -18,6 +18,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
 import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
 import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
+import StudioVideoDeletionFailureNotice from "@/components/pro/StudioVideoDeletionFailureNotice";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -98,6 +99,12 @@ interface TabletEntry {
   videoDurationSec?: number;
   videoWatchCompletedAt?: string | null;
   videoExpiresAt?: string | null;
+}
+
+function canManuallyDeleteStudioVideo(state: TabletEntry["videoMediaState"]): boolean {
+  return ["ready", "expiration_pending", "transcription_failed", "deletion_failed"].includes(
+    state ?? "draft",
+  );
 }
 
 interface ProClientFolderModalProps {
@@ -214,6 +221,8 @@ export default function ProClientFolderModal({
   const [videoMode, setVideoMode] = useState(false);
   const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
+  const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
+  const [videoDeleteErrors, setVideoDeleteErrors] = useState<Record<string, string>>({});
   const videoUrlRevokeRef = useRef<Record<string, () => void>>({});
   const videoProgressSentAtRef = useRef<Record<string, number>>({});
 
@@ -501,19 +510,50 @@ export default function ProClientFolderModal({
 
   const handleDeleteEntry = async (entry: TabletEntry) => {
     if (!clientId) return;
+    if (entry.contentType === "video" && !canManuallyDeleteStudioVideo(entry.videoMediaState)) {
+      return;
+    }
+    if (entry.contentType === "video") {
+      setDeletingVideoId(entry.id);
+      setVideoDeleteErrors((current) => {
+        const { [entry.id]: _, ...remaining } = current;
+        return remaining;
+      });
+    }
     try {
-      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/entry/${entry.id}`), {
+      const deletePath = entry.contentType === "video"
+        ? `/api/pro/tablet/${clientId}/video/${entry.id}`
+        : `/api/pro/tablet/${clientId}/entry/${entry.id}`;
+      const res = await fetch(apiUrl(deletePath), {
         method: "DELETE",
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (
+          entry.contentType === "video" &&
+          data.retryable === true &&
+          data.mediaState === "deletion_failed"
+        ) {
+          setMessages((prev) => prev.map((message) =>
+            message.id === entry.id
+              ? { ...message, videoMediaState: "deletion_failed" }
+              : message,
+          ));
+        }
+        throw new Error(data.error || "Failed to delete entry");
+      }
       if (entry.contentType === "video") {
         setMessages((prev) => prev.map((message) =>
           message.id === entry.id
             ? { ...message, videoMediaState: "deleted" }
             : message,
         ));
+        setVideoDeleteErrors((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
       } else if (entry.entryType === "message") {
         setMessages((prev) => prev.filter((m) => m.id !== entry.id));
       } else {
@@ -528,8 +568,17 @@ export default function ProClientFolderModal({
           return remaining;
         });
       }
-    } catch {
-      setError("Failed to delete entry");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete entry";
+      if (entry.contentType === "video") {
+        setVideoDeleteErrors((current) => ({ ...current, [entry.id]: message }));
+      } else {
+        setError(message);
+      }
+    } finally {
+      if (entry.contentType === "video") {
+        setDeletingVideoId((current) => current === entry.id ? null : current);
+      }
     }
   };
 
@@ -812,6 +861,9 @@ export default function ProClientFolderModal({
   const renderVideoBubble = (entry: TabletEntry) => {
     const isDeleted = entry.videoMediaState === "deleted";
     const isExpired = entry.videoMediaState === "expired" || isDeleted;
+    const isFailedTranscription = entry.videoMediaState === "transcription_failed";
+    const isDeletionRetry = entry.videoMediaState === "deletion_failed";
+    const isPlayable = entry.videoMediaState === "ready" || entry.videoMediaState === "expiration_pending";
     const hasExpiryCountdown = entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt;
     const durationLabel = entry.videoDurationSec ? formatDuration(entry.videoDurationSec) : null;
     const videoUrl = videoUrlCache[entry.id];
@@ -825,14 +877,17 @@ export default function ProClientFolderModal({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] text-white/35">{formatTimestamp(entry.createdAt)}</span>
-            {!isDeleted && (
+            {canManuallyDeleteStudioVideo(entry.videoMediaState) && (
               <button
                 onClick={() => handleDeleteEntry(entry)}
-                className="text-red-400/80 p-0.5"
-                title="Delete video"
+                disabled={deletingVideoId === entry.id}
+                className="text-red-400/80 p-0.5 disabled:opacity-50"
+                title="Delete private video"
                 aria-label="Delete video message"
               >
-                <Trash2 className="w-3 h-3" />
+                {deletingVideoId === entry.id
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Trash2 className="w-3 h-3" />}
               </button>
             )}
           </div>
@@ -842,6 +897,20 @@ export default function ProClientFolderModal({
             {isDeleted
                ? "Video deleted. Its message record remains in Studio history."
               : "This video has expired. Its message record remains in Studio history."}
+          </p>
+        ) : isFailedTranscription ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video could not be verified and cannot be played. You can delete its private media.
+          </p>
+        ) : isDeletionRetry ? (
+          <StudioVideoDeletionFailureNotice
+            error={videoDeleteErrors[entry.id]}
+            isRetrying={deletingVideoId === entry.id}
+            onRetry={() => handleDeleteEntry(entry)}
+          />
+        ) : !isPlayable ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video is still being verified and cannot be played yet.
           </p>
         ) : (
           <>
