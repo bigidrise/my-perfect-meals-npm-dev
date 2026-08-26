@@ -1,6 +1,6 @@
 import { Request } from "express";
 import crypto from "crypto";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, notExists, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   deleteStudioVideoFromS3,
@@ -11,6 +11,7 @@ import {
 import {
   studioVideoMedia,
   studioVideoMessages,
+  studioMessageViewerDeletions,
 } from "../db/schema/studio";
 import {
   assertStudioVideoMessagesEnabled,
@@ -79,6 +80,7 @@ export function isValidStudioVideoPlaybackToken(token: unknown, messageId: strin
 export async function listStudioVideoMessages(
   studioId: string,
   clientUserId: string,
+  viewerUserId: string,
 ): Promise<StudioVideoListEntry[]> {
   const rows = await db
     .select({
@@ -105,6 +107,17 @@ export async function listStudioVideoMessages(
         eq(studioVideoMessages.studioId, studioId),
         eq(studioVideoMessages.clientUserId, clientUserId),
         eq(studioVideoMessages.visibility, "shared_with_client"),
+        notExists(
+          db
+            .select({ id: studioMessageViewerDeletions.id })
+            .from(studioMessageViewerDeletions)
+            .where(
+              and(
+                eq(studioMessageViewerDeletions.viewerUserId, viewerUserId),
+                eq(studioMessageViewerDeletions.studioVideoMessageId, studioVideoMessages.id),
+              ),
+            ),
+        ),
       ),
     )
     .orderBy(asc(studioVideoMessages.createdAt));

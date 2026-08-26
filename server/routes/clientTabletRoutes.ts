@@ -1,6 +1,12 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { clientNotes, studios, studioMemberships, studioVideoMedia, studioVideoMessages } from "../db/schema/studio";
+import {
+  clientNotes,
+  studios,
+  studioMemberships,
+  studioVideoMedia,
+  studioVideoMessages,
+} from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { users } from "../../shared/schema";
 import { eq, and, asc, sql } from "drizzle-orm";
@@ -29,13 +35,16 @@ import {
   auditStudioVideoAction,
   auditStudioVideoListAction,
   deleteStudioVideoMessage,
-  deleteStudioVideoMessageRecord,
   getStudioVideoMessage,
   isRetryableStudioVideoDeletionFailure,
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
 } from "../services/studioVideoMessageService";
+import {
+  hideStudioMessageForViewer,
+  isStudioMessageHiddenForViewer,
+} from "../services/studioMessageVisibilityService";
 import {
   assertStudioVideoReadyForPlayback,
   assertStudioVideoTransition,
@@ -138,6 +147,7 @@ async function handleClientStudioVideoDeletion(
         { type: "video", deletedBy: "client", mediaOnly: true },
       );
     }
+    invalidateClientTabletCache(authUser.id);
     res.set("Cache-Control", "no-store");
     res.json({ ok: true, ...result });
   } catch (error) {
@@ -159,20 +169,21 @@ async function handleClientStudioVideoDeletion(
   }
 }
 
-async function handleClientStudioVideoMessageDeletion(
+async function hideClientStudioMessageForViewer(
   req: Request,
   res: Response,
   authUser: AuthenticatedRequest["authUser"],
   studioId: string,
   messageId: string,
+  kind: "client_note" | "video_message",
 ): Promise<void> {
   try {
-    await deleteStudioVideoMessageRecord({
-      req,
-      actorUserId: authUser.id,
+    const result = await hideStudioMessageForViewer({
       studioId,
       clientUserId: authUser.id,
+      viewerUserId: authUser.id,
       messageId,
+      kind,
     });
     await logClientActivity(
       studioId,
@@ -181,18 +192,17 @@ async function handleClientStudioVideoMessageDeletion(
       "message_deleted",
       "message",
       messageId,
-      { type: "video", deletedBy: "client", deletionTarget: "transcript_message" },
+      { deletedBy: "client", deletionScope: "viewer_only", messageKind: kind },
     );
+    invalidateClientTabletCache(authUser.id);
     res.set("Cache-Control", "no-store");
-    res.json({ ok: true, deleted: true });
+    res.json({ ok: true, hidden: true, ...result });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("Video message not found")) {
-      res.status(404).json({ error: "Video message not found" });
+    if (error instanceof Error && error.message === "Studio message not found") {
+      res.status(404).json({ error: "Entry not found" });
       return;
     }
-    res.status(409).json({
-      error: "Transcript/message deletion is available only after the private video is fully deleted",
-    });
+    throw error;
   }
 }
 
@@ -405,6 +415,16 @@ router.post("/video-message", requireClientWorkspaceAccess, studioVideoUpload, a
 router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   const studioId = (req as WorkspaceRequest).workspace.studioId;
+  if (await isStudioMessageHiddenForViewer({
+    studioId,
+    clientUserId: authUser.id,
+    viewerUserId: authUser.id,
+    messageId: req.params.messageId,
+    kind: "video_message",
+  })) {
+    res.status(404).json({ error: "Video message not found" });
+    return;
+  }
   const record = await getStudioVideoMessage(studioId, authUser.id, req.params.messageId);
   if (!record) {
     res.status(404).json({ error: "Video message not found" });
@@ -462,6 +482,16 @@ router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (re
 router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   const studioId = (req as WorkspaceRequest).workspace.studioId;
+  if (await isStudioMessageHiddenForViewer({
+    studioId,
+    clientUserId: authUser.id,
+    viewerUserId: authUser.id,
+    messageId: req.params.messageId,
+    kind: "video_message",
+  })) {
+    res.status(404).json({ error: "Video message not found" });
+    return;
+  }
   const record = await getStudioVideoMessage(studioId, authUser.id, req.params.messageId);
   if (!record) {
     res.status(404).json({ error: "Video message not found" });
@@ -550,11 +580,17 @@ router.get("/", requireClientWorkspaceAccess, async (req: Request, res: Response
       WHERE client_user_id = ${authUser.id}
         AND entry_type     = 'message'
         AND visibility     = 'shared_with_client'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM studio_message_viewer_deletions hidden
+          WHERE hidden.viewer_user_id = ${authUser.id}
+            AND hidden.client_note_id = client_notes.id
+        )
       ORDER BY created_at ASC
       LIMIT 200
     `);
 
-    const videoMessages = await listStudioVideoMessages(studioId, authUser.id);
+    const videoMessages = await listStudioVideoMessages(studioId, authUser.id, authUser.id);
     return {
       messages: [...(result.rows as any[]), ...videoMessages].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -826,40 +862,25 @@ router.delete("/entry/:entryId", requireClientWorkspaceAccess, async (req: Reque
   const studioId = (req as WorkspaceRequest).workspace.studioId;
 
   if (await getStudioVideoMessage(studioId, authUser.id, entryId)) {
-    await handleClientStudioVideoDeletion(req, res, authUser, studioId, entryId);
-    return;
-  }
-
-  const [deleted] = await db
-    .delete(clientNotes)
-    .where(
-      and(
-        eq(clientNotes.id, entryId),
-        eq(clientNotes.clientUserId, authUser.id),
-        eq(clientNotes.entryType, "message"),
-        eq(clientNotes.visibility, "shared_with_client")
-      )
-    )
-    .returning({ id: clientNotes.id });
-
-  if (!deleted) {
-    res.status(404).json({ error: "Entry not found" });
-    return;
-  }
-
-  if (studioId) {
-    logClientActivity(
+    await hideClientStudioMessageForViewer(
+      req,
+      res,
+      authUser,
       studioId,
-      authUser.id,
-      authUser.id,
-      "message_deleted",
-      "message",
       entryId,
-      { deletedBy: "client" }
+      "video_message",
     );
+    return;
   }
 
-  res.json({ ok: true });
+  await hideClientStudioMessageForViewer(
+    req,
+    res,
+    authUser,
+    studioId,
+    entryId,
+    "client_note",
+  );
 });
 
 router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
@@ -871,7 +892,14 @@ router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Req
 router.delete("/video/:messageId/transcript", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   const studioId = (req as WorkspaceRequest).workspace.studioId;
-  await handleClientStudioVideoMessageDeletion(req, res, authUser, studioId, req.params.messageId);
+  await hideClientStudioMessageForViewer(
+    req,
+    res,
+    authUser,
+    studioId,
+    req.params.messageId,
+    "video_message",
+  );
 });
 
 router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
@@ -898,6 +926,12 @@ router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request,
       AND client_user_id = ${authUser.id}
       AND content_type = 'voice'
       AND visibility = 'shared_with_client'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM studio_message_viewer_deletions hidden
+        WHERE hidden.viewer_user_id = ${authUser.id}
+          AND hidden.client_note_id = client_notes.id
+      )
     LIMIT 1
   `);
 
