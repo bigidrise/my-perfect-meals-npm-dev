@@ -191,6 +191,25 @@ export const studioVideoMessages = pgTable("studio_video_messages", {
   createdIdx: index("idx_studio_video_messages_created").on(table.createdAt),
 }));
 
+/**
+ * A participant-specific Studio history tombstone. The underlying shared
+ * message remains intact for the other participant and for retention rules.
+ * Exactly one of the two message references is populated by the migration.
+ */
+export const studioMessageViewerDeletions = pgTable("studio_message_viewer_deletions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+  clientUserId: text("client_user_id").notNull(),
+  viewerUserId: text("viewer_user_id").notNull(),
+  clientNoteId: uuid("client_note_id").references(() => clientNotes.id, { onDelete: "cascade" }),
+  studioVideoMessageId: uuid("studio_video_message_id").references(() => studioVideoMessages.id, { onDelete: "cascade" }),
+  hiddenAt: timestamp("hidden_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  viewerIdx: index("idx_studio_message_viewer_deletions_viewer").on(table.viewerUserId, table.studioId),
+  clientNoteIdx: index("idx_studio_message_viewer_deletions_client_note").on(table.clientNoteId),
+  videoMessageIdx: index("idx_studio_message_viewer_deletions_video_message").on(table.studioVideoMessageId),
+}));
+
 export const studioVideoMedia = pgTable("studio_video_media", {
   id: uuid("id").defaultRandom().primaryKey(),
   messageId: uuid("message_id").notNull().references(() => studioVideoMessages.id, { onDelete: "cascade" }).unique(),
@@ -239,6 +258,7 @@ export type ClientNote = typeof clientNotes.$inferSelect;
 export type InsertClientNote = typeof clientNotes.$inferInsert;
 export type StudioVideoMessage = typeof studioVideoMessages.$inferSelect;
 export type InsertStudioVideoMessage = typeof studioVideoMessages.$inferInsert;
+export type StudioMessageViewerDeletion = typeof studioMessageViewerDeletions.$inferSelect;
 export type StudioVideoMedia = typeof studioVideoMedia.$inferSelect;
 export type InsertStudioVideoMedia = typeof studioVideoMedia.$inferInsert;
 

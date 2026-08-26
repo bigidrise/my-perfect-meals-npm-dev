@@ -153,5 +153,7 @@ export async function runStudioVideoMessagesMigration(): Promise<void> {
       EXECUTE FUNCTION prevent_studio_video_transcript_mutation()
   `);
 
+  const { runStudioMessageViewerDeletionMigration } = await import("./runStudioMessageViewerDeletionMigration");
+  await runStudioMessageViewerDeletionMigration();
   console.log("✅ Studio Video Messages migration complete");
 }

@@ -102,13 +102,14 @@ export type { ChefSignatureImport, NewChefSignatureImport } from "../server/db/s
 export { 
   professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,
   studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog,
+  studioMessageViewerDeletions,
   clientCycleProtocols
 } from "../server/db/schema/studio";
 export type { 
   Studio, InsertStudio, StudioBilling, InsertStudioBilling, 
   StudioMembership, InsertStudioMembership, StudioInvite, InsertStudioInvite,
   ClientSubscription, InsertClientSubscription, ClientNote, InsertClientNote,
-  ClientActivityLog, InsertClientActivityLog,
+  ClientActivityLog, InsertClientActivityLog, StudioMessageViewerDeletion,
   ClientCycleProtocol, InsertClientCycleProtocol
 } from "../server/db/schema/studio";
 
