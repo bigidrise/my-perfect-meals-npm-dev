@@ -152,7 +152,7 @@ export interface User {
   narrationSpeedPreference?: "0.75" | "1.0" | "1.25" | "1.5";
   // ProCare Professional fields
 
-  professionalRole?: "trainer" | "physician" | "business" | null;
+  professionalRole?: "trainer" | "physician" | "dietitian" | "nurse_practitioner" | "business" | null;
 
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
 

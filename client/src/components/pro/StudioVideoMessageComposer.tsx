@@ -20,6 +20,7 @@ import {
   STUDIO_VIDEO_CAPTURE_VIDEO_BITS_PER_SECOND,
   STUDIO_VIDEO_MAX_DURATION_SEC,
   STUDIO_VIDEO_MAX_UPLOAD_BYTES,
+  STUDIO_VIDEO_RECORDING_ACTIVITY_INTERVAL_MS,
 } from "@shared/studioVideoMessages";
 
 export interface StudioVideoMessageComposerProps {
@@ -134,6 +135,48 @@ export default function StudioVideoMessageComposer({
     }
     setIsRecording(false);
   };
+
+  useEffect(() => {
+    if (!isRecording) return;
+    let disposed = false;
+
+    const refreshRecordingSession = async () => {
+      try {
+        const response = await fetch(apiUrl("/api/session/activity"), {
+          method: "POST",
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ activity: "studio_video_recording" }),
+        });
+
+        if (disposed || response.status !== 401) return;
+
+        stopVideoRecording();
+        setSendError("Your session expired while recording. Please sign in again before retrying.");
+        window.dispatchEvent(new CustomEvent("mpm:session-idle-timeout"));
+      } catch {
+        // A transient network error should not interrupt a local recording.
+        // The next activity interval will retry while recording continues.
+      }
+    };
+
+    void refreshRecordingSession();
+    const activityTimer = setInterval(
+      () => void refreshRecordingSession(),
+      STUDIO_VIDEO_RECORDING_ACTIVITY_INTERVAL_MS,
+    );
+
+    return () => {
+      disposed = true;
+      clearInterval(activityTimer);
+    };
+    // stopVideoRecording reads stable refs and is intentionally not a
+    // dependency: the interval belongs to the recording session itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording]);
 
   const startVideoRecording = async () => {
     setPermissionError(null);

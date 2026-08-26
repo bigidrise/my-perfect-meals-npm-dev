@@ -88,6 +88,7 @@ beforeEach(() => {
   MockMediaRecorder.recordedBlob = undefined;
   getUserMedia.mockResolvedValue(makeStream());
   fetchMock.mockReset();
+  fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
   global.fetch = fetchMock;
 });
 
@@ -107,6 +108,11 @@ async function recordOneVideo() {
   await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
   fireEvent.click(screen.getByTestId("stop-video-recording"));
   await waitFor(() => expect(screen.getByTestId("recorded-video-preview")).toBeInTheDocument());
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+    "/api/session/activity",
+    expect.objectContaining({ method: "POST" }),
+  ));
+  fetchMock.mockClear();
 }
 
 describe("StudioVideoMessageComposer", () => {
@@ -134,6 +140,7 @@ describe("StudioVideoMessageComposer", () => {
 
   it("records without uploading and shows a complete local preview before send", async () => {
     renderComposer();
+    expect(screen.getByText(/Maximum 5 minutes/i)).toBeInTheDocument();
 
     await recordOneVideo();
 
@@ -146,7 +153,6 @@ describe("StudioVideoMessageComposer", () => {
     expect(screen.getByTestId("record-video-again")).toBeInTheDocument();
     expect(screen.getByTestId("discard-video")).toBeInTheDocument();
     expect(screen.getByTestId("send-video-message")).toHaveTextContent("Send to Alex");
-    expect(screen.getByText(/Maximum 5 minutes/i)).toBeInTheDocument();
     expect(MockMediaRecorder.lastOptions).toEqual(expect.objectContaining({
       videoBitsPerSecond: 1_200_000,
       audioBitsPerSecond: 48_000,
@@ -162,7 +168,10 @@ describe("StudioVideoMessageComposer", () => {
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2));
     expect(screen.queryByTestId("recorded-video-preview")).not.toBeInTheDocument();
     expect(screen.getByTestId("stop-video-recording")).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/session/activity",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
   it("discards an unsent recording without uploading", async () => {
@@ -177,12 +186,13 @@ describe("StudioVideoMessageComposer", () => {
   });
 
   it("sends exactly once and clears the local recording after success", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ entry: { id: "message-1", contentType: "video" } }),
-    });
     renderComposer();
     await recordOneVideo();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ entry: { id: "message-1", contentType: "video" } }),
+    });
 
     fireEvent.click(screen.getByTestId("send-video-message"));
     fireEvent.click(screen.getByTestId("send-video-message"));
@@ -194,12 +204,13 @@ describe("StudioVideoMessageComposer", () => {
   });
 
   it("uses the client reply endpoint when the shared composer is opened by a client", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ entry: { id: "client-message-1", contentType: "video" } }),
-    });
     renderComposer("/api/client/tablet/video-message");
     await recordOneVideo();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ entry: { id: "client-message-1", contentType: "video" } }),
+    });
 
     fireEvent.click(screen.getByTestId("send-video-message"));
     await waitFor(() => expect(onSent).toHaveBeenCalledTimes(1));
@@ -214,12 +225,13 @@ describe("StudioVideoMessageComposer", () => {
     MockMediaRecorder.isTypeSupported.mockImplementation(
       (type: string) => type === "video/webm;codecs=vp8,opus",
     );
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ entry: { id: "message-codec", contentType: "video" } }),
-    });
     renderComposer();
     await recordOneVideo();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ entry: { id: "message-codec", contentType: "video" } }),
+    });
 
     fireEvent.click(screen.getByTestId("send-video-message"));
     await waitFor(() => expect(onSent).toHaveBeenCalledTimes(1));
@@ -235,12 +247,13 @@ describe("StudioVideoMessageComposer", () => {
     MockMediaRecorder.isTypeSupported.mockImplementation(
       (type: string) => type === "video/quicktime",
     );
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ entry: { id: "message-mov", contentType: "video" } }),
-    });
     renderComposer();
     await recordOneVideo();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ entry: { id: "message-mov", contentType: "video" } }),
+    });
 
     fireEvent.click(screen.getByTestId("send-video-message"));
     await waitFor(() => expect(onSent).toHaveBeenCalledTimes(1));
@@ -252,17 +265,19 @@ describe("StudioVideoMessageComposer", () => {
   });
 
   it("keeps the local recording available when send fails so it can be retried", async () => {
+    renderComposer();
+    await recordOneVideo();
     fetchMock
       .mockResolvedValueOnce({
         ok: false,
+        status: 503,
         json: async () => ({ error: "Upload unavailable" }),
       })
       .mockResolvedValueOnce({
-        ok: true,
+          ok: true,
+          status: 200,
         json: async () => ({ entry: { id: "message-2", contentType: "video" } }),
       });
-    renderComposer();
-    await recordOneVideo();
 
     fireEvent.click(screen.getByTestId("send-video-message"));
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Upload unavailable"));
@@ -276,12 +291,10 @@ describe("StudioVideoMessageComposer", () => {
   });
 
   it("rejects an oversized recording before making an upload request", async () => {
-    const oversizedBlob = new Blob(["recorded video"], { type: "video/webm" });
-    Object.defineProperty(oversizedBlob, "size", {
-      configurable: true,
-      value: 64 * 1024 * 1024 + 1,
-    });
-    MockMediaRecorder.recordedBlob = oversizedBlob;
+    MockMediaRecorder.recordedBlob = new Blob(
+      [new Uint8Array(64 * 1024 * 1024 + 1)],
+      { type: "video/webm" },
+    );
     renderComposer();
     await recordOneVideo();
 
@@ -292,6 +305,91 @@ describe("StudioVideoMessageComposer", () => {
     ));
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getByTestId("recorded-video-preview")).toBeInTheDocument();
+  });
+
+  it("sends session activity only while actively recording and clears it on stop", async () => {
+    jest.useFakeTimers();
+    try {
+      renderComposer();
+      fireEvent.click(screen.getByTestId("start-video-recording"));
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/session/activity",
+        expect.objectContaining({ method: "POST" }),
+      );
+
+      fetchMock.mockClear();
+      await act(async () => {
+        jest.advanceTimersByTime(60_000);
+        await Promise.resolve();
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/session/activity",
+        expect.objectContaining({ method: "POST" }),
+      );
+
+      fireEvent.click(screen.getByTestId("stop-video-recording"));
+      fetchMock.mockClear();
+      await act(async () => {
+        jest.advanceTimersByTime(2 * 60_000);
+        await Promise.resolve();
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("cleans up recording session activity when the composer unmounts", async () => {
+    jest.useFakeTimers();
+    try {
+      const { unmount } = renderComposer();
+      fireEvent.click(screen.getByTestId("start-video-recording"));
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/session/activity",
+        expect.objectContaining({ method: "POST" }),
+      );
+
+      fetchMock.mockClear();
+      unmount();
+      await act(async () => {
+        jest.advanceTimersByTime(2 * 60_000);
+        await Promise.resolve();
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("stops recording and dispatches timeout handling when activity returns 401", async () => {
+    const dispatchEvent = jest.spyOn(window, "dispatchEvent");
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: "Session expired" }),
+    });
+
+    try {
+      renderComposer();
+      fireEvent.click(screen.getByTestId("start-video-recording"));
+
+      await waitFor(() => expect(screen.getByTestId("recorded-video-preview")).toBeInTheDocument());
+      expect(screen.getByTestId("record-video-again")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Your session expired while recording",
+      );
+      expect(dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "mpm:session-idle-timeout" }),
+      );
+    } finally {
+      dispatchEvent.mockRestore();
+    }
   });
 
   it("does not call recipient playback progress while the sender reviews locally", async () => {

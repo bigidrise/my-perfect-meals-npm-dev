@@ -70,6 +70,7 @@ export const STUDIO_VIDEO_MAX_DURATION_SEC = 5 * 60;
 export const STUDIO_VIDEO_CAPTURE_VIDEO_BITS_PER_SECOND = 1_200_000;
 export const STUDIO_VIDEO_CAPTURE_AUDIO_BITS_PER_SECOND = 48_000;
 export const STUDIO_VIDEO_MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
+export const STUDIO_VIDEO_RECORDING_ACTIVITY_INTERVAL_MS = 60 * 1000;
 
 /**
  * Completion requires both broad coverage and verified progress near the end.
