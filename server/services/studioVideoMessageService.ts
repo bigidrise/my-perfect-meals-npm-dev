@@ -358,8 +358,12 @@ export async function deleteStudioVideoMessage(
             AND message.transcript IS NULL
             AND media.state IN ('transcription_failed', 'deletion_failed')
           )
+          OR (
+            message.transcript_status = 'blocked'
+            AND media.state = 'moderation_failed'
+          )
         )
-        AND media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed')
+        AND media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed', 'moderation_failed')
         AND media.object_key IS NOT NULL
       RETURNING media.object_key, media.temporary_derivative_keys, media.state
     `,
@@ -495,6 +499,10 @@ export async function deleteStudioVideoMessage(
           OR (
             message.transcript_status = 'failed'
             AND message.transcript IS NULL
+            AND media.state = 'deleting'
+          )
+          OR (
+            message.transcript_status = 'blocked'
             AND media.state = 'deleting'
           )
         )
@@ -723,10 +731,14 @@ export async function deleteStudioVideoMessageMedia(
            AND message.transcript IS NULL
            AND media.state IN ('transcription_failed', 'deletion_failed')
          )
+          OR (
+            message.transcript_status = 'blocked'
+            AND media.state = 'moderation_failed'
+          )
        )
       AND media.object_key IS NOT NULL
       AND (
-         media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed')
+          media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed', 'moderation_failed')
         OR (
           media.state = 'deleting'
           AND (
@@ -825,6 +837,10 @@ export async function deleteStudioVideoMessageMedia(
            AND message.transcript IS NULL
            AND media.state = 'deleting'
          )
+          OR (
+            message.transcript_status = 'blocked'
+            AND media.state = 'deleting'
+          )
        )
     RETURNING media.id
   `);

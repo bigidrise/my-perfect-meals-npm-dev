@@ -140,6 +140,9 @@ describe("Studio Video Messages — lifecycle transitions", () => {
       validTransition("moderation_failed", "processing"),
     ).not.toThrow();
     expect(() =>
+      validTransition("moderation_failed", "deleting"),
+    ).not.toThrow();
+    expect(() =>
       validTransition("deletion_failed", "deleting"),
     ).not.toThrow();
   });
@@ -381,6 +384,24 @@ describe("Studio Video Messages — access, readiness, and transcript retention"
         transcript: failedTranscription,
       }),
     ).not.toThrow();
+    expect(() =>
+      assertStudioVideoManualDeletionEligible({
+        state: "moderation_failed",
+        objectKey: "studio-video/message-3.webm",
+        transcript: {
+          status: "blocked",
+          text: "Blocked moderation history.",
+          transcribedAt: new Date(BASE_TIME).toISOString(),
+        },
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertStudioVideoManualDeletionEligible({
+        state: "moderation_failed",
+        objectKey: "studio-video/message-3.webm",
+        transcript,
+      }),
+    ).toThrow("VIDEO_MANUAL_DELETION_NOT_ALLOWED");
 
     const deleted = finalizeStudioVideoManualDeletion({
       currentState: "deleting",
@@ -404,6 +425,21 @@ describe("Studio Video Messages — access, readiness, and transcript retention"
       state: "deleted",
       objectKey: null,
       transcript: failedTranscription,
+    });
+
+    expect(
+      finalizeStudioVideoManualDeletion({
+        currentState: "deleting",
+        now: BASE_TIME,
+        transcript: {
+          status: "blocked",
+          text: "Blocked moderation history.",
+          transcribedAt: new Date(BASE_TIME).toISOString(),
+        },
+      }),
+    ).toMatchObject({
+      state: "deleted",
+      objectKey: null,
     });
   });
 });

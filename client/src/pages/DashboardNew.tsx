@@ -118,6 +118,7 @@ function canManuallyDeleteStudioVideo(state: unknown): boolean {
     "expiration_pending",
     "transcription_failed",
     "deletion_failed",
+    "moderation_failed",
   ].includes(state);
 }
 
@@ -1342,6 +1343,10 @@ export default function DashboardNew() {
                             ) : entry.videoMediaState === "transcription_failed" ? (
                               <p className="text-xs text-white/45 italic">
                                 This video could not be verified and cannot be played. You can delete its private media.
+                              </p>
+                            ) : entry.videoMediaState === "moderation_failed" ? (
+                              <p className="text-xs text-white/45 italic">
+                                This video was blocked during moderation and cannot be played. You can delete its private media.
                               </p>
                             ) : entry.videoMediaState === "deletion_failed" ? (
                               <StudioVideoDeletionFailureNotice
