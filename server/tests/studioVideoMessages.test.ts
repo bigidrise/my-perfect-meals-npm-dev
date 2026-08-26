@@ -2,6 +2,7 @@ import {
   STUDIO_VIDEO_EXPIRATION_WINDOW_MS,
   assertPrivateStudioVideoStorage,
   assertStudioVideoManualDeletionEligible,
+  assertStudioVideoMessageDeletionEligible,
   assertStudioVideoMessagesEnabled,
   assertStudioVideoReadyForPlayback,
   assertStudioVideoTransition,
@@ -76,6 +77,30 @@ describe("Studio Video Messages — feature gate and contract", () => {
         cacheControl: "no-store",
       }),
     ).toThrow("VIDEO_STORAGE_NOT_PRIVATE");
+  });
+});
+
+describe("Studio Video Messages — transcript/message deletion guard", () => {
+  const fullyDeletedMedia = {
+    state: "deleted" as const,
+    objectKey: null,
+    temporaryDerivativeKeys: [],
+    deletedAt: "2026-08-26T12:00:00.000Z",
+  };
+
+  it("allows transcript/message deletion only after private media is fully removed", () => {
+    expect(() => assertStudioVideoMessageDeletionEligible(fullyDeletedMedia)).not.toThrow();
+  });
+
+  it.each([
+    [{ ...fullyDeletedMedia, state: "ready" as const }],
+    [{ ...fullyDeletedMedia, objectKey: "studio-video/message.webm" }],
+    [{ ...fullyDeletedMedia, temporaryDerivativeKeys: ["studio-video/message.audio.webm"] }],
+    [{ ...fullyDeletedMedia, deletedAt: null }],
+  ])("rejects deletion until every media reference is gone", (media) => {
+    expect(() => assertStudioVideoMessageDeletionEligible(media)).toThrow(
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+    );
   });
 });
 

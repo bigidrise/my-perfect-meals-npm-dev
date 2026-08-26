@@ -37,6 +37,7 @@ import {
   auditStudioVideoAction,
   auditStudioVideoListAction,
   deleteStudioVideoMessage,
+  deleteStudioVideoMessageRecord,
   getStudioVideoMessage,
   isRetryableStudioVideoDeletionFailure,
   isValidStudioVideoPlaybackToken,
@@ -143,6 +144,44 @@ async function handleProStudioVideoDeletion(
     }
     res.status(409).json({
       error: "This video is no longer eligible for deletion or is already being deleted",
+    });
+  }
+}
+
+async function handleProStudioVideoMessageDeletion(
+  req: Request,
+  res: Response,
+  authUser: AuthenticatedRequest["authUser"],
+  studioId: string,
+  clientId: string,
+  messageId: string,
+): Promise<void> {
+  try {
+    await deleteStudioVideoMessageRecord({
+      req,
+      actorUserId: authUser.id,
+      studioId,
+      clientUserId: clientId,
+      messageId,
+    });
+    await logClientActivity(
+      studioId,
+      clientId,
+      authUser.id,
+      "message_deleted",
+      "message",
+      messageId,
+      { type: "video", deletedBy: "pro", deletionTarget: "transcript_message" },
+    );
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, deleted: true });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Video message not found")) {
+      res.status(404).json({ error: "Video message not found" });
+      return;
+    }
+    res.status(409).json({
+      error: "Transcript/message deletion is available only after the private video is fully deleted",
     });
   }
 }
@@ -373,6 +412,23 @@ router.delete("/:clientId/video/:messageId", requireWorkspaceAccess, async (req:
     return;
   }
   await handleProStudioVideoDeletion(
+    req,
+    res,
+    authUser,
+    studioId,
+    req.params.clientId,
+    req.params.messageId,
+  );
+});
+
+router.delete("/:clientId/video/:messageId/transcript", requireWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = await getProStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No studio found" });
+    return;
+  }
+  await handleProStudioVideoMessageDeletion(
     req,
     res,
     authUser,
