@@ -28,6 +28,7 @@ import {
   auditStudioVideoAction,
   auditStudioVideoListAction,
   deleteStudioVideoMessage,
+  deleteStudioVideoMessageRecord,
   getStudioVideoMessage,
   isRetryableStudioVideoDeletionFailure,
   isValidStudioVideoPlaybackToken,
@@ -153,6 +154,43 @@ async function handleClientStudioVideoDeletion(
     }
     res.status(409).json({
       error: "This video is no longer eligible for deletion or is already being deleted",
+    });
+  }
+}
+
+async function handleClientStudioVideoMessageDeletion(
+  req: Request,
+  res: Response,
+  authUser: AuthenticatedRequest["authUser"],
+  studioId: string,
+  messageId: string,
+): Promise<void> {
+  try {
+    await deleteStudioVideoMessageRecord({
+      req,
+      actorUserId: authUser.id,
+      studioId,
+      clientUserId: authUser.id,
+      messageId,
+    });
+    await logClientActivity(
+      studioId,
+      authUser.id,
+      authUser.id,
+      "message_deleted",
+      "message",
+      messageId,
+      { type: "video", deletedBy: "client", deletionTarget: "transcript_message" },
+    );
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, deleted: true });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Video message not found")) {
+      res.status(404).json({ error: "Video message not found" });
+      return;
+    }
+    res.status(409).json({
+      error: "Transcript/message deletion is available only after the private video is fully deleted",
     });
   }
 }
@@ -827,6 +865,12 @@ router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Req
   const authUser = (req as AuthenticatedRequest).authUser;
   const studioId = (req as WorkspaceRequest).workspace.studioId;
   await handleClientStudioVideoDeletion(req, res, authUser, studioId, req.params.messageId);
+});
+
+router.delete("/video/:messageId/transcript", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
+  await handleClientStudioVideoMessageDeletion(req, res, authUser, studioId, req.params.messageId);
 });
 
 router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {

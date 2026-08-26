@@ -680,6 +680,30 @@ export function assertStudioVideoManualDeletionEligible(input: {
   }
 }
 
+/**
+ * A message record can only be removed after its private media was deleted
+ * successfully. This prevents a database cascade from orphaning an object in
+ * private storage and leaves the existing media lifecycle unchanged.
+ */
+export function assertStudioVideoMessageDeletionEligible(
+  media: Pick<
+    StudioVideoMedia,
+    "state" | "objectKey" | "temporaryDerivativeKeys" | "deletedAt"
+  >,
+): void {
+  if (
+    media.state !== "deleted" ||
+    media.objectKey !== null ||
+    media.temporaryDerivativeKeys.length !== 0 ||
+    media.deletedAt === null
+  ) {
+    throw new StudioVideoDomainError(
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+      "Transcript/message deletion is available only after private video media is fully deleted",
+    );
+  }
+}
+
 export type StudioVideoManualDeletionResult = {
   state: "deleted";
   objectKey: null;
@@ -871,6 +895,7 @@ export const STUDIO_VIDEO_AUDIT_EVENTS = [
   "deletion_requested",
   "media_deleted",
   "deletion_failed",
+  "message_deleted",
   "access_denied",
 ] as const;
 export type StudioVideoAuditEvent = (typeof STUDIO_VIDEO_AUDIT_EVENTS)[number];

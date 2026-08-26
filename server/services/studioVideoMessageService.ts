@@ -24,6 +24,7 @@ import { logAudit, getClientIp } from "../lib/auditLog";
 import { STUDIO_VIDEO_MESSAGES_DEFAULT_ENABLED } from "@shared/studioVideoMessages";
 import {
   assertStudioVideoManualDeletionEligible,
+  assertStudioVideoMessageDeletionEligible,
   assertStudioVideoTransition,
   finalizeStudioVideoManualDeletion,
   StudioVideoDomainError,
@@ -182,6 +183,71 @@ export type StudioVideoManualDeletionOutcome = {
   deletedObjectCount: number;
   alreadyDeleted?: boolean;
 };
+
+export type StudioVideoMessageRecordDeletionOutcome = {
+  deletedAt: string;
+};
+
+/**
+ * Removes the remaining user-visible message and transcript only after the
+ * private media lifecycle has completed. The child media row cascades with the
+ * parent after its storage references have already been cleared.
+ */
+export async function deleteStudioVideoMessageRecord(input: {
+  req: Request;
+  actorUserId: string;
+  studioId: string;
+  clientUserId: string;
+  messageId: string;
+}): Promise<StudioVideoMessageRecordDeletionOutcome> {
+  const record = await getStudioVideoMessage(
+    input.studioId,
+    input.clientUserId,
+    input.messageId,
+  );
+  if (!record) {
+    throw new StudioVideoDomainError(
+      "INVALID_STUDIO_VIDEO_CONTRACT",
+      "Video message not found",
+    );
+  }
+
+  assertStudioVideoMessageDeletionEligible({
+    state: record.media.state as StudioVideoMediaState,
+    objectKey: record.media.objectKey,
+    temporaryDerivativeKeys: parseDerivativeKeys(record.media.temporaryDerivativeKeys),
+    deletedAt: record.media.deletedAt?.toISOString() ?? null,
+  });
+
+  const [deleted] = await db
+    .delete(studioVideoMessages)
+    .where(
+      and(
+        eq(studioVideoMessages.id, input.messageId),
+        eq(studioVideoMessages.studioId, input.studioId),
+        eq(studioVideoMessages.clientUserId, input.clientUserId),
+        eq(studioVideoMessages.visibility, "shared_with_client"),
+      ),
+    )
+    .returning({ id: studioVideoMessages.id });
+  if (!deleted) {
+    throw new StudioVideoDomainError(
+      "INVALID_STUDIO_VIDEO_CONTRACT",
+      "Video message not found",
+    );
+  }
+
+  auditStudioVideoAction({
+    req: input.req,
+    event: "message_deleted",
+    actorUserId: input.actorUserId,
+    targetUserId: input.clientUserId,
+    studioId: input.studioId,
+    messageId: input.messageId,
+    metadata: { deletionType: "transcript_message", mediaState: "deleted" },
+  });
+  return { deletedAt: new Date().toISOString() };
+}
 
 /**
  * These errors are raised only after a manual deletion has persisted a
@@ -495,11 +561,18 @@ export function auditStudioVideoAction(input: {
   const readEvents = new Set<StudioVideoAuditEvent>([
     "playback_authorized",
   ]);
+  const deleteEvents = new Set<StudioVideoAuditEvent>([
+    "message_deleted",
+  ]);
   logAudit({
     actor: record.actorUserId,
     target: record.targetUserId,
     orgId: (input.req as any).authUser?.organizationId ?? null,
-    action: readEvents.has(record.event) ? "READ" : "WRITE",
+    action: readEvents.has(record.event)
+      ? "READ"
+      : deleteEvents.has(record.event)
+        ? "DELETE"
+        : "WRITE",
     resourceType: "studio_video_message",
     table: "studio_video_messages",
     resourceId: record.messageId,
