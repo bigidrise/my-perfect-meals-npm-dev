@@ -23,6 +23,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders, clearAuthToken } from "@/lib/auth";
 import { clearUserContext } from "@/lib/sentry";
 import { clearNutritionCache } from "@/hooks/nutritionStateCache";
+import type { User } from "@/lib/auth";
 
 // Must match server/middleware/requireAuth.ts IDLE_TIMEOUT_MS
 const IDLE_TIMEOUT_MS: Record<string, number> = {
@@ -32,6 +33,12 @@ const IDLE_TIMEOUT_MS: Record<string, number> = {
 };
 const FALLBACK_TIMEOUT_MS = 60 * 60 * 1000;
 const WARNING_LEAD_MS = 2 * 60 * 1000; // show warning 2 min before timeout
+const CLINICAL_PROFESSIONAL_ROLES = new Set([
+  "trainer",
+  "physician",
+  "dietitian",
+  "nurse_practitioner",
+]);
 
 // Activity events that reset the idle timer
 const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
@@ -43,7 +50,29 @@ const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
   "pointerdown",
 ];
 
-function getIdleTimeout(role: string | undefined): number {
+export function isClinicalSessionUser(user: Pick<User, "role" | "professionalRole"> | null): boolean {
+  return (
+    user?.role === "coach" ||
+    user?.role === "admin" ||
+    user?.role === "trainer" ||
+    user?.role === "physician" ||
+    CLINICAL_PROFESSIONAL_ROLES.has(user?.professionalRole ?? "")
+  );
+}
+
+export function getIdleTimeout(
+  role: string | undefined,
+  professionalRole?: string | null,
+): number {
+  if (
+    role === "coach" ||
+    role === "admin" ||
+    role === "trainer" ||
+    role === "physician" ||
+    CLINICAL_PROFESSIONAL_ROLES.has(professionalRole ?? "")
+  ) {
+    return 15 * 60 * 1000;
+  }
   return IDLE_TIMEOUT_MS[role ?? "client"] ?? FALLBACK_TIMEOUT_MS;
 }
 
@@ -62,7 +91,8 @@ export function IdleTimeoutModal() {
     !user.id.startsWith("guest-") &&
     user.id !== "00000000-0000-0000-0000-000000000001"; // Apple review demo
 
-  const idleTimeout = getIdleTimeout(user?.role);
+  const idleTimeout = getIdleTimeout(user?.role, user?.professionalRole);
+  const isClinical = isClinicalSessionUser(user);
 
   const signOut = useCallback(async () => {
     // Best-effort server logout — don't block on failure
@@ -174,7 +204,6 @@ export function IdleTimeoutModal() {
 
   if (!warningVisible || !isRealUser) return null;
 
-  const isClinical = user?.role === "coach" || user?.role === "admin";
   const minutesLeft = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
   const countdown =
