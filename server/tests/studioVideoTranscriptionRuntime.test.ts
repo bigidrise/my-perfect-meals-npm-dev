@@ -16,6 +16,10 @@ jest.mock("@replit/object-storage", () => ({
   Client: jest.fn(),
 }));
 
+jest.mock("../services/studioVideoAudioService", () => ({
+  extractStudioVideoAudio: jest.fn(async () => Buffer.from("audio-bytes")),
+}));
+
 import { getStudioVideoTranscriptionFailureMetadata } from "../services/studioVideoTranscriptionDiagnostics";
 import { transcribeStudioVideoBuffer } from "../services/tabletVoiceService";
 
@@ -64,8 +68,8 @@ describe("Studio video transcription runtime", () => {
 
     expect(mockCreateTranscription).toHaveBeenCalledTimes(1);
     const [{ file, model, response_format }] = mockCreateTranscription.mock.calls[0];
-    expect(file.name).toBe("studio-video.webm");
-    expect(file.type).toBe("video/webm");
+    expect(file.name).toBe("studio-video-transcription.webm");
+    expect(file.type).toBe("audio/webm");
     expect(model).toBe("whisper-1");
     expect(response_format).toBe("verbose_json");
   });
@@ -74,12 +78,12 @@ describe("Studio video transcription runtime", () => {
     ["video/webm", "studio-video.webm"],
     ["video/mp4", "studio-video.mp4"],
     ["video/quicktime", "studio-video.mov"],
-  ])("preserves %s MIME metadata with filename %s", async (mimeType, filename) => {
+  ])("extracts audio metadata from %s video", async (mimeType) => {
     await transcribeStudioVideoBuffer(Buffer.from("video-bytes"), mimeType);
 
     const [{ file }] = mockCreateTranscription.mock.calls[0];
-    expect(file.name).toBe(filename);
-    expect(file.type).toBe(mimeType);
+    expect(file.name).toBe("studio-video-transcription.webm");
+    expect(file.type).toBe("audio/webm");
   });
 
   it("propagates provider errors so the existing route keeps its safe failed-media path", async () => {

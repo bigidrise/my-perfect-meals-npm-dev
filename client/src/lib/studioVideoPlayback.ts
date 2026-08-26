@@ -2,6 +2,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 
 type VideoPlaybackMetadata = {
   url?: string;
+  mimeType?: string;
 };
 
 export class StudioVideoPlaybackError extends Error {
@@ -50,8 +51,13 @@ export async function loadStudioVideoPlayback(
   }
 
   const blob = await streamResponse.blob();
+  const playbackMimeType =
+    blob.type ||
+    metadata.mimeType ||
+    streamResponse.headers?.get("content-type") ||
+    "video/mp4";
   const objectUrl = URL.createObjectURL(
-    blob.type ? blob : new Blob([blob], { type: "video/mp4" }),
+    blob.type ? blob : new Blob([blob], { type: playbackMimeType }),
   );
   return {
     url: objectUrl,

@@ -1,12 +1,12 @@
 import { Router, Request, Response } from "express";
-import multer from "multer";
 import { db } from "../db";
 import { clientNotes, studios, studioMemberships, studioVideoMedia, studioVideoMessages } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { users } from "../../shared/schema";
 import { eq, and, asc, sql } from "drizzle-orm";
+import multer from "multer";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
-import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
+import { moderatePrivateStudioContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sendCoachMessageAlert } from "../services/emailService";
@@ -28,7 +28,9 @@ import {
   auditStudioVideoAction,
   auditStudioVideoListAction,
   deleteStudioVideoMessage,
+  deleteStudioVideoMessageRecord,
   getStudioVideoMessage,
+  isRetryableStudioVideoDeletionFailure,
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
@@ -55,7 +57,7 @@ import { getStudioVideoTranscriptionFailureMetadata } from "../services/studioVi
 const CLIENT_TABLET_TTL_MS = 15_000;
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
-const videoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_STUDIO_VIDEO_SIZE_BYTES } });
+import { studioVideoUpload } from "../middleware/studioVideoUpload";
 
 const router = Router();
 
@@ -142,12 +144,53 @@ async function handleClientStudioVideoDeletion(
       res.status(404).json({ error: "Video message not found" });
       return;
     }
-    if (error instanceof Error && error.message.includes("Private video deletion failed")) {
-      res.status(502).json({ error: "Video could not be deleted. Please try again." });
+    if (isRetryableStudioVideoDeletionFailure(error)) {
+      res.status(502).json({
+        error: "Video could not be deleted. Please try again.",
+        retryable: true,
+        mediaState: "deletion_failed",
+      });
       return;
     }
     res.status(409).json({
       error: "This video is no longer eligible for deletion or is already being deleted",
+    });
+  }
+}
+
+async function handleClientStudioVideoMessageDeletion(
+  req: Request,
+  res: Response,
+  authUser: AuthenticatedRequest["authUser"],
+  studioId: string,
+  messageId: string,
+): Promise<void> {
+  try {
+    await deleteStudioVideoMessageRecord({
+      req,
+      actorUserId: authUser.id,
+      studioId,
+      clientUserId: authUser.id,
+      messageId,
+    });
+    await logClientActivity(
+      studioId,
+      authUser.id,
+      authUser.id,
+      "message_deleted",
+      "message",
+      messageId,
+      { type: "video", deletedBy: "client", deletionTarget: "transcript_message" },
+    );
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, deleted: true });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Video message not found")) {
+      res.status(404).json({ error: "Video message not found" });
+      return;
+    }
+    res.status(409).json({
+      error: "Transcript/message deletion is available only after the private video is fully deleted",
     });
   }
 }
@@ -165,9 +208,14 @@ function parseVideoDuration(value: unknown): number | null {
   return Math.ceil(durationSec);
 }
 
-router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("video"), async (req: Request, res: Response) => {
+function normalizeStudioVideoMimeType(mimeType: string): string {
+  return mimeType.split(";")[0].trim().toLowerCase();
+}
+
+router.post("/video-message", requireClientWorkspaceAccess, studioVideoUpload, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   let transcript: string;
+  let moderation: ReturnType<typeof moderatePrivateStudioContent> | null = null;
   try {
     assertStudioVideoFeatureEnabled();
   } catch (error) {
@@ -178,7 +226,8 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
     res.status(400).json({ error: "video file is required" });
     return;
   }
-  if (!["video/webm", "video/mp4", "video/quicktime"].includes(req.file.mimetype)) {
+  const mimeType = normalizeStudioVideoMimeType(req.file.mimetype);
+  if (!["video/webm", "video/mp4", "video/quicktime"].includes(mimeType)) {
     res.status(400).json({ error: "Video must be WebM, MP4, or MOV" });
     return;
   }
@@ -214,7 +263,7 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
   await db.insert(studioVideoMedia).values({
     messageId: message.id,
     state: "draft",
-    mimeType: req.file.mimetype,
+    mimeType,
     durationSec,
     sizeBytes: req.file.size,
     temporaryDerivativeKeys: [],
@@ -235,8 +284,8 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
   });
 
   try {
-    const objectKey = getStudioVideoObjectKey(message.id, req.file.mimetype);
-    await uploadStudioVideoToS3(req.file.buffer, req.file.mimetype, objectKey);
+    const objectKey = getStudioVideoObjectKey(message.id, mimeType);
+    await uploadStudioVideoToS3(req.file.buffer, mimeType, objectKey);
     assertStudioVideoTransition({ currentState: "uploading", nextState: "uploaded", now: new Date() });
     await db.update(studioVideoMedia)
       .set({ state: "uploaded", objectKey, updatedAt: new Date() })
@@ -250,7 +299,7 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
       studioId, messageId: message.id, metadata: {},
     });
     try {
-      ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, req.file.mimetype));
+      ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, mimeType));
       await db.update(studioVideoMessages)
         .set({ transcript, transcriptStatus: "completed", transcribedAt: new Date(), updatedAt: new Date() })
         .where(eq(studioVideoMessages.id, message.id));
@@ -277,7 +326,7 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
       res.status(422).json({ error: "We could not verify this video message. Please try recording it again." });
       return;
     }
-    const moderation = moderateContent(transcript);
+    moderation = moderatePrivateStudioContent(transcript);
     if (!moderation.allowed) {
       await db.update(studioVideoMessages)
         .set({ transcriptStatus: "blocked", updatedAt: new Date() })
@@ -309,11 +358,19 @@ router.post("/video-message", requireClientWorkspaceAccess, videoUpload.single("
 
   auditStudioVideoAction({
     req, event: "upload_completed", actorUserId: authUser.id, targetUserId: authUser.id,
-    studioId, messageId: message.id, metadata: { mimeType: req.file.mimetype, durationSec },
+    studioId, messageId: message.id, metadata: { mimeType, durationSec },
   });
   auditStudioVideoAction({
     req, event: "moderation_completed", actorUserId: authUser.id, targetUserId: authUser.id,
-    studioId, messageId: message.id, metadata: { approved: true },
+    studioId,
+    messageId: message.id,
+    metadata: {
+      approved: true,
+      flagged: moderation?.severity !== null,
+      severity: moderation?.severity ?? null,
+      category: moderation?.category ?? null,
+      reason: moderation?.reason ?? null,
+    },
   });
   logClientActivity(studioId, authUser.id, authUser.id, "message_sent", "message", message.id, { type: "video", sender: "client" });
   invalidateClientTabletCache(authUser.id);
@@ -394,6 +451,7 @@ router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (re
   res.set("Cache-Control", "no-store, private");
   res.json({
     url,
+    mimeType: record.media.mimeType,
     durationSec: record.media.durationSec,
     expiresAt: record.media.expiresAt,
     watchCompletedAt: record.media.watchCompletedAt,
@@ -542,7 +600,7 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
-  const moderation = moderateContent(body.trim());
+  const moderation = moderatePrivateStudioContent(body.trim());
   if (!moderation.allowed) {
     logClientActivity(
       studioId,
@@ -562,7 +620,7 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
-  if (moderation.severity === "low") {
+  if (moderation.severity !== null) {
     logClientActivity(
       studioId,
       authUser.id,
@@ -807,6 +865,12 @@ router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Req
   const authUser = (req as AuthenticatedRequest).authUser;
   const studioId = (req as WorkspaceRequest).workspace.studioId;
   await handleClientStudioVideoDeletion(req, res, authUser, studioId, req.params.messageId);
+});
+
+router.delete("/video/:messageId/transcript", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
+  await handleClientStudioVideoMessageDeletion(req, res, authUser, studioId, req.params.messageId);
 });
 
 router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {

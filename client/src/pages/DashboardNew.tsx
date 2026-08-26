@@ -57,9 +57,14 @@ import { BugReportButton } from "@/components/BugReportButton";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import {
+  getStudioMessageScrollDecision,
+  isStudioMessageListNearBottom,
+} from "@/lib/studioMessageScrollPolicy";
 import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
 import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
 import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
+import StudioVideoDeletionFailureNotice from "@/components/pro/StudioVideoDeletionFailureNotice";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
@@ -107,6 +112,20 @@ interface FeatureCard {
 
 const todayMacros = { protein: 50, carbs: 150, fat: 70 };
 
+function canManuallyDeleteStudioVideo(state: unknown): boolean {
+  return typeof state === "string" && [
+    "ready",
+    "expiration_pending",
+    "transcription_failed",
+    "deletion_failed",
+    "moderation_failed",
+  ].includes(state);
+}
+
+function canDeleteStudioVideoMessage(state: unknown): boolean {
+  return state === "deleted";
+}
+
 export default function DashboardNew() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -142,9 +161,13 @@ export default function DashboardNew() {
     null,
   );
   const [tabletHasUnread, setTabletHasUnread] = useState(false);
+  const [tabletHasNewMessagesBelow, setTabletHasNewMessagesBelow] = useState(false);
   const tabletScrollRef = useRef<HTMLDivElement>(null);
   const tabletTranslationCache = useRef(new Map<string, string>());
   const tabletInitialLoad = useRef(true);
+  const tabletScrollNearBottomRef = useRef(true);
+  const tabletPreviousMessageIdsRef = useRef<readonly string[] | null>(null);
+  const tabletInitialScrollPendingRef = useRef(false);
   const [tabletPlayingId, setTabletPlayingId] = useState<string | null>(null);
   const tabletAudioRef = useRef<HTMLAudioElement | null>(null);
   const tabletVoiceUrlRevokeRef = useRef<(() => void) | null>(null);
@@ -159,6 +182,9 @@ export default function DashboardNew() {
   const [tabletVideoMode, setTabletVideoMode] = useState(false);
   const [tabletVideoUrls, setTabletVideoUrls] = useState<Record<string, string>>({});
   const [tabletOpenVideoId, setTabletOpenVideoId] = useState<string | null>(null);
+  const [tabletDeletingVideoId, setTabletDeletingVideoId] = useState<string | null>(null);
+  const [tabletDeletingTranscriptId, setTabletDeletingTranscriptId] = useState<string | null>(null);
+  const [tabletVideoDeleteErrors, setTabletVideoDeleteErrors] = useState<Record<string, string>>({});
   const tabletVideoUrlRevokeRef = useRef<Record<string, () => void>>({});
   const tabletVideoProgressSentAt = useRef<Record<string, number>>({});
 
@@ -174,10 +200,14 @@ export default function DashboardNew() {
   const [providerInput, setProviderInput] = useState("");
   const [providerSending, setProviderSending] = useState(false);
   const [providerHasUnread, setProviderHasUnread] = useState(false);
+  const [providerHasNewMessagesBelow, setProviderHasNewMessagesBelow] = useState(false);
   const [providerTranslatingId, setProviderTranslatingId] = useState<string | null>(null);
   const providerScrollRef = useRef<HTMLDivElement>(null);
   const providerTranslationCache = useRef(new Map<string, string>());
   const providerInitialLoad = useRef(true);
+  const providerScrollNearBottomRef = useRef(true);
+  const providerPreviousMessageIdsRef = useRef<readonly string[] | null>(null);
+  const providerInitialScrollPendingRef = useRef(false);
 
   const fetchClientTablet = useCallback(async () => {
     if (tabletInitialLoad.current) {
@@ -318,19 +348,50 @@ export default function DashboardNew() {
       setLocation("/pricing");
       return;
     }
+    if (entry.contentType === "video" && !canManuallyDeleteStudioVideo(entry.videoMediaState)) {
+      return;
+    }
+    if (entry.contentType === "video") {
+      setTabletDeletingVideoId(entry.id);
+      setTabletVideoDeleteErrors((current) => {
+        const { [entry.id]: _, ...remaining } = current;
+        return remaining;
+      });
+    }
     try {
-      const res = await fetch(apiUrl(`/api/client/tablet/entry/${entry.id}`), {
+      const deletePath = entry.contentType === "video"
+        ? `/api/client/tablet/video/${entry.id}`
+        : `/api/client/tablet/entry/${entry.id}`;
+      const res = await fetch(apiUrl(deletePath), {
         method: "DELETE",
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (
+          entry.contentType === "video" &&
+          data.retryable === true &&
+          data.mediaState === "deletion_failed"
+        ) {
+          setTabletMessages((prev) => prev.map((message: any) =>
+            message.id === entry.id
+              ? { ...message, videoMediaState: "deletion_failed" }
+              : message,
+          ));
+        }
+        throw new Error(data.error || "Failed to delete message");
+      }
       if (entry.contentType === "video") {
         setTabletMessages((prev) => prev.map((message: any) =>
           message.id === entry.id
             ? { ...message, videoMediaState: "deleted" }
             : message,
         ));
+        setTabletVideoDeleteErrors((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
       } else {
         setTabletMessages((prev) => prev.filter((m: any) => m.id !== entry.id));
       }
@@ -343,8 +404,41 @@ export default function DashboardNew() {
           return remaining;
         });
       }
-    } catch {
-      setTabletError("Failed to delete message");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete message";
+      if (entry.contentType === "video") {
+        setTabletVideoDeleteErrors((current) => ({ ...current, [entry.id]: message }));
+      } else {
+        setTabletError(message);
+      }
+    } finally {
+      if (entry.contentType === "video") {
+        setTabletDeletingVideoId((current) => current === entry.id ? null : current);
+      }
+    }
+  };
+
+  const handleTabletDeleteStudioVideoMessage = async (entry: any) => {
+    if (!canDeleteStudioVideoMessage(entry.videoMediaState)) return;
+    setTabletDeletingTranscriptId(entry.id);
+    try {
+      const res = await fetch(
+        apiUrl(`/api/client/tablet/video/${entry.id}/transcript`),
+        {
+          method: "DELETE",
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete transcript");
+      }
+      setTabletMessages((prev) => prev.filter((message: any) => message.id !== entry.id));
+    } catch (error) {
+      setTabletError(error instanceof Error ? error.message : "Failed to delete transcript");
+    } finally {
+      setTabletDeletingTranscriptId((current) => current === entry.id ? null : current);
     }
   };
 
@@ -675,6 +769,10 @@ export default function DashboardNew() {
   useEffect(() => {
     if (tabletOpen && isProCareClient) {
       tabletInitialLoad.current = true;
+      tabletInitialScrollPendingRef.current = true;
+      tabletPreviousMessageIdsRef.current = null;
+      tabletScrollNearBottomRef.current = true;
+      setTabletHasNewMessagesBelow(false);
       fetchClientTablet();
       const interval = setInterval(fetchClientTablet, 10000);
       localStorage.setItem("mpm.tablet.client.lastSeen", Date.now().toString());
@@ -692,10 +790,27 @@ export default function DashboardNew() {
   }, [isProCareClient]);
 
   useEffect(() => {
-    if (tabletScrollRef.current) {
-      tabletScrollRef.current.scrollTop = tabletScrollRef.current.scrollHeight;
+    if (!tabletOpen) return;
+    const ids = tabletMessages.map((message: any) => message.id);
+    const decision = getStudioMessageScrollDecision({
+      initialLoad: tabletInitialScrollPendingRef.current,
+      wasNearBottom: tabletScrollNearBottomRef.current,
+      previousMessageIds: tabletPreviousMessageIdsRef.current,
+      messageIds: ids,
+    });
+    tabletPreviousMessageIdsRef.current = ids;
+    if (decision.showNewMessageIndicator) {
+      setTabletHasNewMessagesBelow(true);
     }
-  }, [tabletMessages]);
+    if (decision.scrollToBottom && tabletScrollRef.current) {
+      tabletScrollRef.current.scrollTop = tabletScrollRef.current.scrollHeight;
+      tabletScrollNearBottomRef.current = true;
+      setTabletHasNewMessagesBelow(false);
+    }
+    if (tabletInitialScrollPendingRef.current && ids.length > 0) {
+      tabletInitialScrollPendingRef.current = false;
+    }
+  }, [tabletMessages, tabletOpen]);
 
   // Provider inbox polling effects
   useEffect(() => {
@@ -709,6 +824,10 @@ export default function DashboardNew() {
   useEffect(() => {
     if (providerOpen && isCoach && hasProviderConnection) {
       providerInitialLoad.current = true;
+      providerInitialScrollPendingRef.current = true;
+      providerPreviousMessageIdsRef.current = null;
+      providerScrollNearBottomRef.current = true;
+      setProviderHasNewMessagesBelow(false);
       fetchProviderTablet();
       const interval = setInterval(fetchProviderTablet, 10000);
       localStorage.setItem("mpm.tablet.provider.lastSeen", Date.now().toString());
@@ -718,10 +837,27 @@ export default function DashboardNew() {
   }, [providerOpen, isCoach, hasProviderConnection, fetchProviderTablet]);
 
   useEffect(() => {
-    if (providerScrollRef.current) {
-      providerScrollRef.current.scrollTop = providerScrollRef.current.scrollHeight;
+    if (!providerOpen) return;
+    const ids = providerMessages.map((message: any) => message.id);
+    const decision = getStudioMessageScrollDecision({
+      initialLoad: providerInitialScrollPendingRef.current,
+      wasNearBottom: providerScrollNearBottomRef.current,
+      previousMessageIds: providerPreviousMessageIdsRef.current,
+      messageIds: ids,
+    });
+    providerPreviousMessageIdsRef.current = ids;
+    if (decision.showNewMessageIndicator) {
+      setProviderHasNewMessagesBelow(true);
     }
-  }, [providerMessages]);
+    if (decision.scrollToBottom && providerScrollRef.current) {
+      providerScrollRef.current.scrollTop = providerScrollRef.current.scrollHeight;
+      providerScrollNearBottomRef.current = true;
+      setProviderHasNewMessagesBelow(false);
+    }
+    if (providerInitialScrollPendingRef.current && ids.length > 0) {
+      providerInitialScrollPendingRef.current = false;
+    }
+  }, [providerMessages, providerOpen]);
 
   useEffect(() => {
     document.title = "Home | My Perfect Meals";
@@ -1100,8 +1236,28 @@ export default function DashboardNew() {
                 <>
                   <div
                     ref={tabletScrollRef}
+                    onScroll={(event) => {
+                      const nearBottom = isStudioMessageListNearBottom(event.currentTarget);
+                      tabletScrollNearBottomRef.current = nearBottom;
+                      if (nearBottom) setTabletHasNewMessagesBelow(false);
+                    }}
                     className="max-h-64 overflow-y-auto space-y-2"
                   >
+                    {tabletHasNewMessagesBelow && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tabletScrollRef.current) {
+                            tabletScrollRef.current.scrollTop = tabletScrollRef.current.scrollHeight;
+                          }
+                          tabletScrollNearBottomRef.current = true;
+                          setTabletHasNewMessagesBelow(false);
+                        }}
+                        className="sticky top-1 z-10 mx-auto block rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow"
+                      >
+                        New messages
+                      </button>
+                    )}
                     {tabletMessages.length === 0 && (
                       <p className="text-xs text-white/30 py-2">
                         {t("noMessages")}
@@ -1145,16 +1301,32 @@ export default function DashboardNew() {
                                 <Globe className="w-3.5 h-3.5" />
                               )}
                             </button>
-                            {(entry.contentType !== "video" || entry.videoMediaState !== "deleted") && (
+                            {(entry.contentType !== "video" ||
+                              canManuallyDeleteStudioVideo(entry.videoMediaState) ||
+                              canDeleteStudioVideoMessage(entry.videoMediaState)) && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleTabletDelete(entry);
+                                  if (entry.contentType === "video" && canDeleteStudioVideoMessage(entry.videoMediaState)) {
+                                    handleTabletDeleteStudioVideoMessage(entry);
+                                  } else {
+                                    handleTabletDelete(entry);
+                                  }
                                 }}
-                                className="text-red-500 p-0.5"
-                                title={entry.contentType === "video" ? "Delete video" : t("delete")}
+                                disabled={
+                                  entry.contentType === "video" &&
+                                  (tabletDeletingVideoId === entry.id || tabletDeletingTranscriptId === entry.id)
+                                }
+                                className="text-red-500 p-0.5 disabled:opacity-50"
+                                title={
+                                  entry.contentType === "video" && canDeleteStudioVideoMessage(entry.videoMediaState)
+                                    ? "Delete transcript/message"
+                                    : entry.contentType === "video" ? "Delete private video" : t("delete")
+                                }
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                {entry.contentType === "video" && tabletDeletingVideoId === entry.id
+                                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  : <Trash2 className="w-3.5 h-3.5" />}
                               </button>
                             )}
                           </div>
@@ -1165,8 +1337,26 @@ export default function DashboardNew() {
                             {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
                               <p className="text-xs text-white/45 italic">
                                 {entry.videoMediaState === "deleted"
-                                   ? "Video deleted. Its transcript remains in your message history."
+                                   ? "Video deleted. You can delete its transcript/message separately."
                                   : "This video has expired. Its transcript remains in your message history."}
+                              </p>
+                            ) : entry.videoMediaState === "transcription_failed" ? (
+                              <p className="text-xs text-white/45 italic">
+                                This video could not be verified and cannot be played. You can delete its private media.
+                              </p>
+                            ) : entry.videoMediaState === "moderation_failed" ? (
+                              <p className="text-xs text-white/45 italic">
+                                This video was blocked during moderation and cannot be played. You can delete its private media.
+                              </p>
+                            ) : entry.videoMediaState === "deletion_failed" ? (
+                              <StudioVideoDeletionFailureNotice
+                                error={tabletVideoDeleteErrors[entry.id]}
+                                isRetrying={tabletDeletingVideoId === entry.id}
+                                onRetry={() => handleTabletDelete(entry)}
+                              />
+                            ) : !["ready", "expiration_pending"].includes(entry.videoMediaState) ? (
+                              <p className="text-xs text-white/45 italic">
+                                This video is still being verified and cannot be played yet.
                               </p>
                             ) : tabletOpenVideoId === entry.id && tabletVideoUrls[entry.id] ? (
                               <video
@@ -1371,7 +1561,30 @@ export default function DashboardNew() {
               )}
               {!providerLoading && !providerError && (
                 <>
-                  <div ref={providerScrollRef} className="max-h-64 overflow-y-auto space-y-2">
+                  <div
+                    ref={providerScrollRef}
+                    onScroll={(event) => {
+                      const nearBottom = isStudioMessageListNearBottom(event.currentTarget);
+                      providerScrollNearBottomRef.current = nearBottom;
+                      if (nearBottom) setProviderHasNewMessagesBelow(false);
+                    }}
+                    className="max-h-64 overflow-y-auto space-y-2"
+                  >
+                    {providerHasNewMessagesBelow && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (providerScrollRef.current) {
+                            providerScrollRef.current.scrollTop = providerScrollRef.current.scrollHeight;
+                          }
+                          providerScrollNearBottomRef.current = true;
+                          setProviderHasNewMessagesBelow(false);
+                        }}
+                        className="sticky top-1 z-10 mx-auto block rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow"
+                      >
+                        New messages
+                      </button>
+                    )}
                     {providerMessages.length === 0 && (
                       <p className="text-xs text-white/30 py-2">{t("noMessages")}</p>
                     )}

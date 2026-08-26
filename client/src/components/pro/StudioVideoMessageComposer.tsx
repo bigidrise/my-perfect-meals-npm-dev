@@ -15,6 +15,13 @@ import {
 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import {
+  STUDIO_VIDEO_CAPTURE_AUDIO_BITS_PER_SECOND,
+  STUDIO_VIDEO_CAPTURE_VIDEO_BITS_PER_SECOND,
+  STUDIO_VIDEO_MAX_DURATION_SEC,
+  STUDIO_VIDEO_MAX_UPLOAD_BYTES,
+  STUDIO_VIDEO_RECORDING_ACTIVITY_INTERVAL_MS,
+} from "@shared/studioVideoMessages";
 
 export interface StudioVideoMessageComposerProps {
   recipientName: string;
@@ -46,6 +53,10 @@ function formatDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds % 60;
   return `${minutes}:${String(remainder).padStart(2, "0")}`;
+}
+
+function formatMiB(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 export default function StudioVideoMessageComposer({
@@ -125,6 +136,48 @@ export default function StudioVideoMessageComposer({
     setIsRecording(false);
   };
 
+  useEffect(() => {
+    if (!isRecording) return;
+    let disposed = false;
+
+    const refreshRecordingSession = async () => {
+      try {
+        const response = await fetch(apiUrl("/api/session/activity"), {
+          method: "POST",
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ activity: "studio_video_recording" }),
+        });
+
+        if (disposed || response.status !== 401) return;
+
+        stopVideoRecording();
+        setSendError("Your session expired while recording. Please sign in again before retrying.");
+        window.dispatchEvent(new CustomEvent("mpm:session-idle-timeout"));
+      } catch {
+        // A transient network error should not interrupt a local recording.
+        // The next activity interval will retry while recording continues.
+      }
+    };
+
+    void refreshRecordingSession();
+    const activityTimer = setInterval(
+      () => void refreshRecordingSession(),
+      STUDIO_VIDEO_RECORDING_ACTIVITY_INTERVAL_MS,
+    );
+
+    return () => {
+      disposed = true;
+      clearInterval(activityTimer);
+    };
+    // stopVideoRecording reads stable refs and is intentionally not a
+    // dependency: the interval belongs to the recording session itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording]);
+
   const startVideoRecording = async () => {
     setPermissionError(null);
     setSendError(null);
@@ -137,12 +190,28 @@ export default function StudioVideoMessageComposer({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: { facingMode: "user" },
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280, max: 1280 },
+          height: { ideal: 720, max: 720 },
+        },
       });
       const preferredMimeType = getSupportedVideoMimeType();
-      const recorder = preferredMimeType
-        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
-        : new MediaRecorder(stream);
+      const recorderOptions = {
+        ...(preferredMimeType ? { mimeType: preferredMimeType } : {}),
+        videoBitsPerSecond: STUDIO_VIDEO_CAPTURE_VIDEO_BITS_PER_SECOND,
+        audioBitsPerSecond: STUDIO_VIDEO_CAPTURE_AUDIO_BITS_PER_SECOND,
+      };
+      let recorder: MediaRecorder;
+      try {
+        recorder = new MediaRecorder(stream, recorderOptions);
+      } catch {
+        // Some browsers reject bitrate options even when they support the
+        // selected container. Preserve the MIME fallback in that case.
+        recorder = preferredMimeType
+          ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+          : new MediaRecorder(stream);
+      }
       const mimeType = recorder.mimeType || preferredMimeType || "video/webm";
       const chunks: Blob[] = [];
 
@@ -168,14 +237,14 @@ export default function StudioVideoMessageComposer({
       setRecordingSeconds(0);
       timerRef.current = setInterval(() => {
         setRecordingSeconds((seconds) => {
-          if (seconds >= 119) {
+           if (seconds >= STUDIO_VIDEO_MAX_DURATION_SEC - 1) {
             if (recorder.state !== "inactive") recorder.stop();
             if (timerRef.current) {
               clearInterval(timerRef.current);
               timerRef.current = null;
             }
             setIsRecording(false);
-            return 120;
+             return STUDIO_VIDEO_MAX_DURATION_SEC;
           }
           return seconds + 1;
         });
@@ -219,6 +288,11 @@ export default function StudioVideoMessageComposer({
     setSendError(null);
 
     try {
+      if (videoBlob.size > STUDIO_VIDEO_MAX_UPLOAD_BYTES) {
+        throw new Error(
+          `This recording is ${formatMiB(videoBlob.size)}. The maximum is 64 MiB. Record a shorter or lower-quality video.`,
+        );
+      }
       const uploadMimeType = videoMimeType.split(";")[0].trim().toLowerCase() || "video/webm";
       const extension = uploadMimeType === "video/mp4"
         ? "mp4"
@@ -323,7 +397,7 @@ export default function StudioVideoMessageComposer({
         {isRecording && (
           <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/65 px-2 py-1 text-[10px] text-red-300 font-mono">
             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-            REC {formatDuration(recordingSeconds)} / 2:00
+           REC {formatDuration(recordingSeconds)} / 5:00
           </div>
         )}
       </div>
@@ -422,7 +496,7 @@ export default function StudioVideoMessageComposer({
 
       {!videoBlob && !isRecording && (
         <p className="text-center text-[10px] text-white/35">
-          Maximum 2 minutes. You can review it locally before sending.
+           Maximum 5 minutes. Recordings over 64 MiB cannot be sent.
         </p>
       )}
       {videoBlob && !sending && (

@@ -62,6 +62,16 @@ export type StudioVideoModerationStatus =
 export const STUDIO_VIDEO_MEDIA_TYPE = "video" as const;
 export const STUDIO_VIDEO_EXPIRATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+// Five minutes at these capture targets is approximately 46.8 MB (44.6 MiB)
+// before container overhead. The 64 MiB upload ceiling leaves headroom while
+// preventing arbitrary browser-default camera bitrates from reaching memory
+// storage and the transcription pipeline.
+export const STUDIO_VIDEO_MAX_DURATION_SEC = 5 * 60;
+export const STUDIO_VIDEO_CAPTURE_VIDEO_BITS_PER_SECOND = 1_200_000;
+export const STUDIO_VIDEO_CAPTURE_AUDIO_BITS_PER_SECOND = 48_000;
+export const STUDIO_VIDEO_MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
+export const STUDIO_VIDEO_RECORDING_ACTIVITY_INTERVAL_MS = 60 * 1000;
+
 /**
  * Completion requires both broad coverage and verified progress near the end.
  * The second condition prevents a user from satisfying coverage by watching
@@ -220,7 +230,7 @@ const STUDIO_VIDEO_ALLOWED_TRANSITIONS: Record<
   ready: ["expiration_pending", "deleting"],
   upload_failed: ["uploading"],
   transcription_failed: ["processing", "deleting"],
-  moderation_failed: ["processing"],
+  moderation_failed: ["processing", "deleting"],
   expiration_pending: ["expired", "deleting"],
   expired: ["deleting"],
   deleting: ["deleted", "deletion_failed"],
@@ -628,8 +638,8 @@ export function assertStudioVideoTranscriptRetainable(
 
 /**
  * Manual deletion removes only the temporary private media. The permanent
- * message record and its completed transcript remain available for the
- * communication history.
+ * message record remains available for communication history, including
+ * blocked moderation history that must not be played back.
  */
 export function assertStudioVideoManualDeletionEligible(input: {
   state: StudioVideoMediaState;
@@ -642,15 +652,30 @@ export function assertStudioVideoManualDeletionEligible(input: {
   const isFailedTranscriptionDeletion =
     hasFailedTranscriptionHistory &&
     ["transcription_failed", "deletion_failed"].includes(input.state);
+  const isBlockedModerationDeletion =
+    input.state === "moderation_failed" &&
+    input.transcript.status === "blocked";
 
   if (
-    !["ready", "expiration_pending", "deletion_failed", "transcription_failed"].includes(
+    ![
+      "ready",
+      "expiration_pending",
+      "deletion_failed",
+      "transcription_failed",
+      "moderation_failed",
+    ].includes(
       input.state,
     )
   ) {
     throw new StudioVideoDomainError(
       "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
       `Video media cannot be manually deleted from ${input.state}`,
+    );
+  }
+  if (input.state === "moderation_failed" && input.transcript.status !== "blocked") {
+    throw new StudioVideoDomainError(
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+      "A moderation-failed video must retain its blocked transcript status",
     );
   }
   if (input.state === "transcription_failed" && !hasFailedTranscriptionHistory) {
@@ -665,8 +690,32 @@ export function assertStudioVideoManualDeletionEligible(input: {
       "Video media has no private object to delete",
     );
   }
-  if (!isFailedTranscriptionDeletion) {
+  if (!isFailedTranscriptionDeletion && !isBlockedModerationDeletion) {
     assertStudioVideoTranscriptRetainable(input.transcript);
+  }
+}
+
+/**
+ * A message record can only be removed after its private media was deleted
+ * successfully. This prevents a database cascade from orphaning an object in
+ * private storage and leaves the existing media lifecycle unchanged.
+ */
+export function assertStudioVideoMessageDeletionEligible(
+  media: Pick<
+    StudioVideoMedia,
+    "state" | "objectKey" | "temporaryDerivativeKeys" | "deletedAt"
+  >,
+): void {
+  if (
+    media.state !== "deleted" ||
+    media.objectKey !== null ||
+    media.temporaryDerivativeKeys.length !== 0 ||
+    media.deletedAt === null
+  ) {
+    throw new StudioVideoDomainError(
+      "VIDEO_MANUAL_DELETION_NOT_ALLOWED",
+      "Transcript/message deletion is available only after private video media is fully deleted",
+    );
   }
 }
 
@@ -691,7 +740,8 @@ export function finalizeStudioVideoManualDeletion(input: {
   const isFailedTranscriptionHistory =
     input.transcript.status === "failed" &&
     input.transcript.text === null;
-  if (!isFailedTranscriptionHistory) {
+  const isBlockedModerationHistory = input.transcript.status === "blocked";
+  if (!isFailedTranscriptionHistory && !isBlockedModerationHistory) {
     assertStudioVideoTranscriptRetainable(input.transcript);
   }
 
@@ -861,6 +911,7 @@ export const STUDIO_VIDEO_AUDIT_EVENTS = [
   "deletion_requested",
   "media_deleted",
   "deletion_failed",
+  "message_deleted",
   "access_denied",
 ] as const;
 export type StudioVideoAuditEvent = (typeof STUDIO_VIDEO_AUDIT_EVENTS)[number];

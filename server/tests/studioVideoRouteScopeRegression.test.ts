@@ -24,6 +24,9 @@ const mockDb = {
 
 const mockTranscribeStudioVideoBuffer = jest.fn();
 const mockUploadStudioVideoToS3 = jest.fn(async () => undefined);
+const mockModeratePrivateStudioContent = jest.fn(() => ({ allowed: true }));
+const mockAuditStudioVideoAction = jest.fn();
+const mockDeleteStudioVideoMessageRecord = jest.fn();
 
 jest.mock("../db", () => ({ db: mockDb }));
 
@@ -50,8 +53,8 @@ jest.mock("../middleware/requireWorkspaceAccess", () => ({
 
 jest.mock("../services/tabletVoiceService", () => ({
   MAX_VOICE_DURATION_SEC: 300,
-  MAX_STUDIO_VIDEO_DURATION_SEC: 120,
-  MAX_STUDIO_VIDEO_SIZE_BYTES: 20 * 1024 * 1024,
+  MAX_STUDIO_VIDEO_DURATION_SEC: 300,
+  MAX_STUDIO_VIDEO_SIZE_BYTES: 64 * 1024 * 1024,
   getSignedPlaybackUrl: jest.fn(),
   getStudioVoiceStream: jest.fn(),
   getStudioVideoStream: jest.fn(),
@@ -64,9 +67,10 @@ jest.mock("../services/tabletVoiceService", () => ({
 
 jest.mock("../services/studioVideoMessageService", () => ({
   assertStudioVideoFeatureEnabled: jest.fn(),
-  auditStudioVideoAction: jest.fn(),
+  auditStudioVideoAction: mockAuditStudioVideoAction,
   auditStudioVideoListAction: jest.fn(),
   deleteStudioVideoMessage: jest.fn(),
+  deleteStudioVideoMessageRecord: mockDeleteStudioVideoMessageRecord,
   getStudioVideoMessage: jest.fn(),
   isValidStudioVideoPlaybackToken: jest.fn(),
   issueStudioVideoPlaybackToken: jest.fn(),
@@ -85,7 +89,7 @@ jest.mock("../services/voiceJobWorker", () => ({
 
 jest.mock("../services/tabletModerationService", () => ({
   BLOCKED_MESSAGE: "blocked",
-  moderateContent: jest.fn(() => ({ allowed: true })),
+  moderatePrivateStudioContent: mockModeratePrivateStudioContent,
 }));
 
 jest.mock("../services/tabletNotificationService", () => ({
@@ -139,6 +143,13 @@ describe("Studio video route transcript scope regression", () => {
       durationSec: 6,
     });
     mockUploadStudioVideoToS3.mockClear();
+    mockModeratePrivateStudioContent.mockReset();
+    mockModeratePrivateStudioContent.mockReturnValue({ allowed: true, severity: null, category: null, reason: null });
+    mockAuditStudioVideoAction.mockClear();
+    mockDeleteStudioVideoMessageRecord.mockReset();
+    mockDeleteStudioVideoMessageRecord.mockResolvedValue({
+      deletedAt: "2026-08-26T12:00:00.000Z",
+    });
   });
 
   it("professional-to-client saves the transcript, reaches ready, and returns 201", async () => {
@@ -198,4 +209,108 @@ describe("Studio video route transcript scope regression", () => {
       [expect.objectContaining({ state: "ready" })],
     ]));
   });
+
+  it("delivers a profanity-flagged client video with its verbatim transcript intact", async () => {
+    const transcript = "This is shit, but the rest of this private message is professional.";
+    mockTranscribeStudioVideoBuffer.mockResolvedValue({ transcript, durationSec: 6 });
+    mockModeratePrivateStudioContent.mockReturnValue({
+      allowed: true,
+      severity: "medium",
+      category: "abusive_language",
+      reason: "inappropriate language",
+    });
+
+    const response = await request(buildApp(clientTabletRouter, "/api/client/tablet"))
+      .post("/api/client/tablet/video-message")
+      .field("durationSec", "6")
+      .attach("video", Buffer.from("webm-video"), {
+        filename: "studio-video.webm",
+        contentType: "video/webm",
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.entry).toEqual(expect.objectContaining({
+      transcript,
+      videoTranscriptStatus: "completed",
+      videoMediaState: "ready",
+    }));
+    expect(mockModeratePrivateStudioContent).toHaveBeenCalledWith(transcript);
+    expect(mockAuditStudioVideoAction).toHaveBeenCalledWith(expect.objectContaining({
+      event: "moderation_completed",
+      metadata: expect.objectContaining({
+        approved: true,
+        flagged: true,
+        severity: "medium",
+        category: "abusive_language",
+      }),
+    }));
+  });
+
+  it.each([
+    ["professional", proTabletRouter, "/api/pro/tablet", `/api/pro/tablet/${CLIENT_ID}/video-message`],
+    ["client", clientTabletRouter, "/api/client/tablet", "/api/client/tablet/video-message"],
+  ])(
+    "%s can send a five-minute video larger than the former 24 MiB ceiling",
+    async (_sender, router, prefix, path) => {
+      const legacyLimitExceededVideo = Buffer.alloc(24 * 1024 * 1024 + 1, 1);
+      const response = await request(buildApp(router, prefix))
+        .post(path)
+        .field("durationSec", "300")
+        .attach("video", legacyLimitExceededVideo, {
+          filename: "five-minute-studio-video.webm",
+          contentType: "video/webm",
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.entry).toEqual(expect.objectContaining({
+        videoDurationSec: 300,
+        videoMediaState: "ready",
+      }));
+      expect(mockUploadStudioVideoToS3).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        "video/webm",
+        "studio-video/test.webm",
+      );
+      expect(mockTranscribeStudioVideoBuffer).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        "video/webm",
+      );
+    },
+  );
+
+  it.each([
+    ["professional", proTabletRouter, "/api/pro/tablet", `/api/pro/tablet/${CLIENT_ID}/video/${MESSAGE_ID}/transcript`, PRO_ID, CLIENT_ID],
+    ["client", clientTabletRouter, "/api/client/tablet", `/api/client/tablet/video/${MESSAGE_ID}/transcript`, CLIENT_ID, CLIENT_ID],
+  ])(
+    "%s can remove a completed transcript/message only through the dedicated endpoint",
+    async (_actorType, router, prefix, path, actorUserId, clientUserId) => {
+      const response = await request(buildApp(router, prefix)).delete(path);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ ok: true, deleted: true });
+      expect(mockDeleteStudioVideoMessageRecord).toHaveBeenCalledWith(expect.objectContaining({
+        actorUserId,
+        clientUserId,
+        studioId: STUDIO_ID,
+        messageId: MESSAGE_ID,
+      }));
+    },
+  );
+
+  it.each([
+    ["professional", proTabletRouter, "/api/pro/tablet", `/api/pro/tablet/${CLIENT_ID}/video/${MESSAGE_ID}/transcript`],
+    ["client", clientTabletRouter, "/api/client/tablet", `/api/client/tablet/video/${MESSAGE_ID}/transcript`],
+  ])(
+    "%s does not report a transcript/message as deleted before private media deletion completes",
+    async (_actorType, router, prefix, path) => {
+      mockDeleteStudioVideoMessageRecord.mockRejectedValueOnce(
+        new Error("Transcript/message deletion is available only after private video media is fully deleted"),
+      );
+
+      const response = await request(buildApp(router, prefix)).delete(path);
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toContain("only after the private video is fully deleted");
+    },
+  );
 });

@@ -12,11 +12,45 @@ import {
   normalizeEmailIdentity,
   resolveEmailIdentityForUser,
 } from "../services/emailIdentityService";
+import {
+  createDatabaseIdentityDiagnostic,
+  getRuntimeEnvironment,
+  type DatabaseIdentityQueryRow,
+} from "../services/databaseIdentityDiagnostic";
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
 const S3_URL_PREFIX = `https://${S3_BUCKET}.s3.`;
 
 const router = Router();
+
+// Temporary, read-only infrastructure diagnostic. This router is mounted
+// behind requireAuth + requireAdmin in both server entrypoints.
+router.get("/database-identity", async (_req, res) => {
+  try {
+    const result = await pool.query<DatabaseIdentityQueryRow>(`
+      SELECT
+        current_database() AS "databaseName",
+        (SELECT oid::text FROM pg_database WHERE datname = current_database()) AS "databaseOid",
+        current_schema() AS "schemaName",
+        current_setting('server_version_num', true) AS "serverVersionNum",
+        COALESCE(inet_server_addr()::text, 'unix-socket') AS "serverAddress",
+        COALESCE(inet_server_port()::text, 'unknown') AS "serverPort"
+    `);
+
+    const row = result.rows[0];
+    if (!row) {
+      return res.status(503).json({ error: "Database identity diagnostic unavailable" });
+    }
+
+    return res.json(
+      createDatabaseIdentityDiagnostic(row, getRuntimeEnvironment()),
+    );
+  } catch {
+    // Do not serialize database errors: drivers may include connection details.
+    console.warn("[admin] database identity diagnostic unavailable");
+    return res.status(503).json({ error: "Database identity diagnostic unavailable" });
+  }
+});
 
 // Every account mutation below starts from a verified primary key. In
 // particular, never convert an admin search result's email back into a target.

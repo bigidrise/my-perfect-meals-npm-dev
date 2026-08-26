@@ -24,6 +24,7 @@ import { logAudit, getClientIp } from "../lib/auditLog";
 import { STUDIO_VIDEO_MESSAGES_DEFAULT_ENABLED } from "@shared/studioVideoMessages";
 import {
   assertStudioVideoManualDeletionEligible,
+  assertStudioVideoMessageDeletionEligible,
   assertStudioVideoTransition,
   finalizeStudioVideoManualDeletion,
   StudioVideoDomainError,
@@ -183,6 +184,90 @@ export type StudioVideoManualDeletionOutcome = {
   alreadyDeleted?: boolean;
 };
 
+export type StudioVideoMessageRecordDeletionOutcome = {
+  deletedAt: string;
+};
+
+/**
+ * Removes the remaining user-visible message and transcript only after the
+ * private media lifecycle has completed. The child media row cascades with the
+ * parent after its storage references have already been cleared.
+ */
+export async function deleteStudioVideoMessageRecord(input: {
+  req: Request;
+  actorUserId: string;
+  studioId: string;
+  clientUserId: string;
+  messageId: string;
+}): Promise<StudioVideoMessageRecordDeletionOutcome> {
+  const record = await getStudioVideoMessage(
+    input.studioId,
+    input.clientUserId,
+    input.messageId,
+  );
+  if (!record) {
+    throw new StudioVideoDomainError(
+      "INVALID_STUDIO_VIDEO_CONTRACT",
+      "Video message not found",
+    );
+  }
+
+  assertStudioVideoMessageDeletionEligible({
+    state: record.media.state as StudioVideoMediaState,
+    objectKey: record.media.objectKey,
+    temporaryDerivativeKeys: parseDerivativeKeys(record.media.temporaryDerivativeKeys),
+    deletedAt: record.media.deletedAt?.toISOString() ?? null,
+  });
+
+  const [deleted] = await db
+    .delete(studioVideoMessages)
+    .where(
+      and(
+        eq(studioVideoMessages.id, input.messageId),
+        eq(studioVideoMessages.studioId, input.studioId),
+        eq(studioVideoMessages.clientUserId, input.clientUserId),
+        eq(studioVideoMessages.visibility, "shared_with_client"),
+      ),
+    )
+    .returning({ id: studioVideoMessages.id });
+  if (!deleted) {
+    throw new StudioVideoDomainError(
+      "INVALID_STUDIO_VIDEO_CONTRACT",
+      "Video message not found",
+    );
+  }
+
+  try {
+    auditStudioVideoAction({
+      req: input.req,
+      event: "message_deleted",
+      actorUserId: input.actorUserId,
+      targetUserId: input.clientUserId,
+      studioId: input.studioId,
+      messageId: input.messageId,
+      metadata: { deletionType: "transcript_message", lifecycleState: "deleted" },
+    });
+  } catch (error) {
+    // The message row is already gone. Do not turn an audit-only failure into
+    // a retryable lifecycle error that encourages deleting the same message again.
+    console.error("Failed to record Studio video message deletion audit:", error);
+  }
+  return { deletedAt: new Date().toISOString() };
+}
+
+/**
+ * These errors are raised only after a manual deletion has persisted a
+ * retryable `deletion_failed` state. Route handlers use this distinction to
+ * keep the message visible and immediately offer another deletion attempt.
+ */
+export function isRetryableStudioVideoDeletionFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return [
+    "Private video deletion failed",
+    "Video deletion could not be finalized safely",
+  ].includes(error.message);
+}
+
 /**
  * Deletes a participant's private video media without deleting the
  * communication record. The media row is first marked deleting with a
@@ -273,8 +358,12 @@ export async function deleteStudioVideoMessage(
             AND message.transcript IS NULL
             AND media.state IN ('transcription_failed', 'deletion_failed')
           )
+          OR (
+            message.transcript_status = 'blocked'
+            AND media.state = 'moderation_failed'
+          )
         )
-        AND media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed')
+        AND media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed', 'moderation_failed')
         AND media.object_key IS NOT NULL
       RETURNING media.object_key, media.temporary_derivative_keys, media.state
     `,
@@ -412,6 +501,10 @@ export async function deleteStudioVideoMessage(
             AND message.transcript IS NULL
             AND media.state = 'deleting'
           )
+          OR (
+            message.transcript_status = 'blocked'
+            AND media.state = 'deleting'
+          )
         )
         AND media.state = 'deleting'
         AND media.deletion_claim_token = ${claimToken}
@@ -482,11 +575,18 @@ export function auditStudioVideoAction(input: {
   const readEvents = new Set<StudioVideoAuditEvent>([
     "playback_authorized",
   ]);
+  const deleteEvents = new Set<StudioVideoAuditEvent>([
+    "message_deleted",
+  ]);
   logAudit({
     actor: record.actorUserId,
     target: record.targetUserId,
     orgId: (input.req as any).authUser?.organizationId ?? null,
-    action: readEvents.has(record.event) ? "READ" : "WRITE",
+    action: readEvents.has(record.event)
+      ? "READ"
+      : deleteEvents.has(record.event)
+        ? "DELETE"
+        : "WRITE",
     resourceType: "studio_video_message",
     table: "studio_video_messages",
     resourceId: record.messageId,
@@ -631,10 +731,14 @@ export async function deleteStudioVideoMessageMedia(
            AND message.transcript IS NULL
            AND media.state IN ('transcription_failed', 'deletion_failed')
          )
+          OR (
+            message.transcript_status = 'blocked'
+            AND media.state = 'moderation_failed'
+          )
        )
       AND media.object_key IS NOT NULL
       AND (
-         media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed')
+          media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed', 'moderation_failed')
         OR (
           media.state = 'deleting'
           AND (
@@ -733,6 +837,10 @@ export async function deleteStudioVideoMessageMedia(
            AND message.transcript IS NULL
            AND media.state = 'deleting'
          )
+          OR (
+            message.transcript_status = 'blocked'
+            AND media.state = 'deleting'
+          )
        )
     RETURNING media.id
   `);

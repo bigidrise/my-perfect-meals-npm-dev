@@ -15,9 +15,14 @@ import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard"
 import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import {
+  getStudioMessageScrollDecision,
+  isStudioMessageListNearBottom,
+} from "@/lib/studioMessageScrollPolicy";
 import { apiRequest } from "@/lib/apiRequest";
 import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
 import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
+import StudioVideoDeletionFailureNotice from "@/components/pro/StudioVideoDeletionFailureNotice";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -98,6 +103,16 @@ interface TabletEntry {
   videoDurationSec?: number;
   videoWatchCompletedAt?: string | null;
   videoExpiresAt?: string | null;
+}
+
+function canManuallyDeleteStudioVideo(state: TabletEntry["videoMediaState"]): boolean {
+  return ["ready", "expiration_pending", "transcription_failed", "deletion_failed", "moderation_failed"].includes(
+    state ?? "draft",
+  );
+}
+
+function canDeleteStudioVideoMessage(state: TabletEntry["videoMediaState"]): boolean {
+  return state === "deleted";
 }
 
 interface ProClientFolderModalProps {
@@ -196,6 +211,12 @@ export default function ProClientFolderModal({
   const msgScrollRef = useRef<HTMLDivElement>(null);
   const noteScrollRef = useRef<HTMLDivElement>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [hasNewMessagesBelow, setHasNewMessagesBelow] = useState(false);
+  const messageScrollNearBottomRef = useRef(true);
+  const previousMessageIdsRef = useRef<readonly string[] | null>(null);
+  const initialMessageScrollPendingRef = useRef(false);
+  const previousNoteIdsRef = useRef<readonly string[] | null>(null);
+  const initialNoteScrollPendingRef = useRef(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -214,6 +235,9 @@ export default function ProClientFolderModal({
   const [videoMode, setVideoMode] = useState(false);
   const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
+  const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
+  const [deletingTranscriptId, setDeletingTranscriptId] = useState<string | null>(null);
+  const [videoDeleteErrors, setVideoDeleteErrors] = useState<Record<string, string>>({});
   const videoUrlRevokeRef = useRef<Record<string, () => void>>({});
   const videoProgressSentAtRef = useRef<Record<string, number>>({});
 
@@ -369,6 +393,12 @@ export default function ProClientFolderModal({
   useEffect(() => {
     if (open && clientId) {
       proInitialLoad.current = true;
+      initialMessageScrollPendingRef.current = true;
+      initialNoteScrollPendingRef.current = true;
+      previousMessageIdsRef.current = null;
+      previousNoteIdsRef.current = null;
+      messageScrollNearBottomRef.current = true;
+      setHasNewMessagesBelow(false);
       fetchTablet();
       const interval = setInterval(fetchTablet, 10000);
       return () => clearInterval(interval);
@@ -391,13 +421,45 @@ export default function ProClientFolderModal({
   }, [activeTab, clientId, hasUnreadMessages]);
 
   useEffect(() => {
-    if (activeTab === "messages" && msgScrollRef.current) {
-      msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight;
+    if (activeTab !== "messages") return;
+    const ids = messages.map((message) => message.id);
+    const decision = getStudioMessageScrollDecision({
+      initialLoad: initialMessageScrollPendingRef.current,
+      wasNearBottom: messageScrollNearBottomRef.current,
+      previousMessageIds: previousMessageIdsRef.current,
+      messageIds: ids,
+    });
+    previousMessageIdsRef.current = ids;
+    if (decision.showNewMessageIndicator) {
+      setHasNewMessagesBelow(true);
     }
-    if (activeTab === "notes" && noteScrollRef.current) {
+    if (decision.scrollToBottom && msgScrollRef.current) {
+      msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight;
+      messageScrollNearBottomRef.current = true;
+      setHasNewMessagesBelow(false);
+    }
+    if (initialMessageScrollPendingRef.current && ids.length > 0) {
+      initialMessageScrollPendingRef.current = false;
+    }
+  }, [messages, activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "notes") return;
+    const ids = notes.map((note) => note.id);
+    const decision = getStudioMessageScrollDecision({
+      initialLoad: initialNoteScrollPendingRef.current,
+      wasNearBottom: true,
+      previousMessageIds: previousNoteIdsRef.current,
+      messageIds: ids,
+    });
+    previousNoteIdsRef.current = ids;
+    if (decision.scrollToBottom && noteScrollRef.current) {
       noteScrollRef.current.scrollTop = noteScrollRef.current.scrollHeight;
     }
-  }, [messages, notes, activeTab]);
+    if (initialNoteScrollPendingRef.current && ids.length > 0) {
+      initialNoteScrollPendingRef.current = false;
+    }
+  }, [notes, activeTab]);
 
   useEffect(() => {
     if (!open) return;
@@ -501,19 +563,50 @@ export default function ProClientFolderModal({
 
   const handleDeleteEntry = async (entry: TabletEntry) => {
     if (!clientId) return;
+    if (entry.contentType === "video" && !canManuallyDeleteStudioVideo(entry.videoMediaState)) {
+      return;
+    }
+    if (entry.contentType === "video") {
+      setDeletingVideoId(entry.id);
+      setVideoDeleteErrors((current) => {
+        const { [entry.id]: _, ...remaining } = current;
+        return remaining;
+      });
+    }
     try {
-      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/entry/${entry.id}`), {
+      const deletePath = entry.contentType === "video"
+        ? `/api/pro/tablet/${clientId}/video/${entry.id}`
+        : `/api/pro/tablet/${clientId}/entry/${entry.id}`;
+      const res = await fetch(apiUrl(deletePath), {
         method: "DELETE",
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (
+          entry.contentType === "video" &&
+          data.retryable === true &&
+          data.mediaState === "deletion_failed"
+        ) {
+          setMessages((prev) => prev.map((message) =>
+            message.id === entry.id
+              ? { ...message, videoMediaState: "deletion_failed" }
+              : message,
+          ));
+        }
+        throw new Error(data.error || "Failed to delete entry");
+      }
       if (entry.contentType === "video") {
         setMessages((prev) => prev.map((message) =>
           message.id === entry.id
             ? { ...message, videoMediaState: "deleted" }
             : message,
         ));
+        setVideoDeleteErrors((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
       } else if (entry.entryType === "message") {
         setMessages((prev) => prev.filter((m) => m.id !== entry.id));
       } else {
@@ -528,8 +621,41 @@ export default function ProClientFolderModal({
           return remaining;
         });
       }
-    } catch {
-      setError("Failed to delete entry");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete entry";
+      if (entry.contentType === "video") {
+        setVideoDeleteErrors((current) => ({ ...current, [entry.id]: message }));
+      } else {
+        setError(message);
+      }
+    } finally {
+      if (entry.contentType === "video") {
+        setDeletingVideoId((current) => current === entry.id ? null : current);
+      }
+    }
+  };
+
+  const handleDeleteStudioVideoMessage = async (entry: TabletEntry) => {
+    if (!clientId || !canDeleteStudioVideoMessage(entry.videoMediaState)) return;
+    setDeletingTranscriptId(entry.id);
+    try {
+      const res = await fetch(
+        apiUrl(`/api/pro/tablet/${clientId}/video/${entry.id}/transcript`),
+        {
+          method: "DELETE",
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete transcript");
+      }
+      setMessages((prev) => prev.filter((message) => message.id !== entry.id));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to delete transcript");
+    } finally {
+      setDeletingTranscriptId((current) => current === entry.id ? null : current);
     }
   };
 
@@ -812,6 +938,10 @@ export default function ProClientFolderModal({
   const renderVideoBubble = (entry: TabletEntry) => {
     const isDeleted = entry.videoMediaState === "deleted";
     const isExpired = entry.videoMediaState === "expired" || isDeleted;
+    const isFailedTranscription = entry.videoMediaState === "transcription_failed";
+    const isModerationFailed = entry.videoMediaState === "moderation_failed";
+    const isDeletionRetry = entry.videoMediaState === "deletion_failed";
+    const isPlayable = entry.videoMediaState === "ready" || entry.videoMediaState === "expiration_pending";
     const hasExpiryCountdown = entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt;
     const durationLabel = entry.videoDurationSec ? formatDuration(entry.videoDurationSec) : null;
     const videoUrl = videoUrlCache[entry.id];
@@ -825,14 +955,30 @@ export default function ProClientFolderModal({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] text-white/35">{formatTimestamp(entry.createdAt)}</span>
-            {!isDeleted && (
+            {canManuallyDeleteStudioVideo(entry.videoMediaState) && (
               <button
                 onClick={() => handleDeleteEntry(entry)}
-                className="text-red-400/80 p-0.5"
-                title="Delete video"
+                disabled={deletingVideoId === entry.id}
+                className="text-red-400/80 p-0.5 disabled:opacity-50"
+                title="Delete private video"
                 aria-label="Delete video message"
               >
-                <Trash2 className="w-3 h-3" />
+                {deletingVideoId === entry.id
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Trash2 className="w-3 h-3" />}
+              </button>
+            )}
+            {canDeleteStudioVideoMessage(entry.videoMediaState) && (
+              <button
+                onClick={() => handleDeleteStudioVideoMessage(entry)}
+                disabled={deletingTranscriptId === entry.id}
+                className="text-red-400/80 p-0.5 disabled:opacity-50"
+                title="Delete transcript/message"
+                aria-label="Delete transcript message"
+              >
+                {deletingTranscriptId === entry.id
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Trash2 className="w-3 h-3" />}
               </button>
             )}
           </div>
@@ -840,8 +986,26 @@ export default function ProClientFolderModal({
         {isExpired ? (
           <p className="text-[10px] text-white/45 italic">
             {isDeleted
-               ? "Video deleted. Its message record remains in Studio history."
+               ? "Video deleted. You can delete its transcript/message separately."
               : "This video has expired. Its message record remains in Studio history."}
+          </p>
+        ) : isFailedTranscription ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video could not be verified and cannot be played. You can delete its private media.
+          </p>
+        ) : isModerationFailed ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video was blocked during moderation and cannot be played. You can delete its private media.
+          </p>
+        ) : isDeletionRetry ? (
+          <StudioVideoDeletionFailureNotice
+            error={videoDeleteErrors[entry.id]}
+            isRetrying={deletingVideoId === entry.id}
+            onRetry={() => handleDeleteEntry(entry)}
+          />
+        ) : !isPlayable ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video is still being verified and cannot be played yet.
           </p>
         ) : (
           <>
@@ -883,7 +1047,32 @@ export default function ProClientFolderModal({
   };
 
   const renderEntryList = (entries: TabletEntry[], scrollRef: React.RefObject<HTMLDivElement | null>, showTranslate: boolean) => (
-    <div ref={scrollRef} className="max-h-48 overflow-y-auto space-y-2 mb-2">
+    <div
+      ref={scrollRef}
+      onScroll={(event) => {
+        if (scrollRef === msgScrollRef) {
+          const nearBottom = isStudioMessageListNearBottom(event.currentTarget);
+          messageScrollNearBottomRef.current = nearBottom;
+          if (nearBottom) setHasNewMessagesBelow(false);
+        }
+      }}
+      className="max-h-48 overflow-y-auto space-y-2 mb-2"
+    >
+      {scrollRef === msgScrollRef && hasNewMessagesBelow && (
+        <button
+          type="button"
+          onClick={() => {
+            if (msgScrollRef.current) {
+              msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight;
+            }
+            messageScrollNearBottomRef.current = true;
+            setHasNewMessagesBelow(false);
+          }}
+          className="sticky top-1 z-10 mx-auto block rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow"
+        >
+          New messages
+        </button>
+      )}
       {entries.length === 0 && (
         <p className="text-xs text-white/30 py-2">
           {activeTab === "messages" ? "No messages yet" : "No notes yet"}

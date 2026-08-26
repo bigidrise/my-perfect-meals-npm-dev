@@ -1,5 +1,6 @@
 
 import { Router } from "express";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 const startTime = Date.now();
@@ -32,6 +33,33 @@ router.get("/warmup", (req, res) => {
     ready: Date.now(),
     version: process.env.NODE_ENV || "development"
   });
+});
+
+// This is deliberately not a general keepalive. The only accepted activity is
+// an authenticated clinical Studio recording, and the client starts/stops the
+// request loop with the recorder lifecycle.
+router.post("/session/activity", requireAuth, (req, res) => {
+  const activity = req.body?.activity;
+  if (activity !== "studio_video_recording") {
+    res.status(400).json({ error: "Unsupported session activity" });
+    return;
+  }
+
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const isClinical =
+    authUser.role === "coach" ||
+    authUser.role === "admin" ||
+    authUser.professionalRole === "trainer" ||
+    authUser.professionalRole === "physician" ||
+    authUser.professionalRole === "dietitian" ||
+    authUser.professionalRole === "nurse_practitioner";
+
+  if (!isClinical) {
+    res.status(403).json({ error: "This session activity is limited to clinical Studio recording" });
+    return;
+  }
+
+  res.json({ ok: true, activity });
 });
 
 export default router;

@@ -6,6 +6,7 @@ jest.mock("../services/tabletVoiceService", () => ({
 
 import {
   deleteStudioVideoMessageMedia,
+  isRetryableStudioVideoDeletionFailure,
   type StudioVideoManualDeletionDatabase,
 } from "../services/studioVideoMessageService";
 
@@ -42,6 +43,22 @@ function sqlText(query: any): string {
 }
 
 describe("manual Studio video deletion", () => {
+  test("classifies persisted storage and finalization failures as retryable route responses", () => {
+    expect(
+      isRetryableStudioVideoDeletionFailure(new Error("Private video deletion failed")),
+    ).toBe(true);
+    expect(
+      isRetryableStudioVideoDeletionFailure(
+        new Error("Video deletion could not be finalized safely"),
+      ),
+    ).toBe(true);
+    expect(
+      isRetryableStudioVideoDeletionFailure(
+        new Error("Video deletion is already in progress or no longer eligible"),
+      ),
+    ).toBe(false);
+  });
+
   test("claims media, deletes every private object, and retains the transcript record", async () => {
     const row = makeRow();
     const queries: any[] = [];
@@ -68,7 +85,7 @@ describe("manual Studio video deletion", () => {
       "studio-video/message-1/preview.mp4",
       "studio-video/message-1/thumbnail.jpg",
     ]);
-    expect(sqlText(queries[0])).toContain("media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed')");
+    expect(sqlText(queries[0])).toContain("media.state IN ('ready', 'expiration_pending', 'deletion_failed', 'transcription_failed', 'moderation_failed')");
     expect(sqlText(queries[0])).toContain("media.state = 'deleting'");
     expect(sqlText(queries[1])).toContain("deletion_lease_expires_at");
     expect(sqlText(queries[2])).toContain("object_key = NULL");
@@ -99,6 +116,39 @@ describe("manual Studio video deletion", () => {
     expect(deleteObject).toHaveBeenCalledWith(row.object_key);
     expect(sqlText(queries[0])).toContain("message.transcript_status = 'failed'");
     expect(sqlText(queries[0])).toContain("media.state IN ('transcription_failed', 'deletion_failed')");
+    expect(sqlText(queries[2])).not.toContain("SET transcript");
+  });
+
+  test("deletes a moderation-blocked private video while retaining its blocked history record", async () => {
+    const row = {
+      ...makeRow(),
+      message_id: "message-moderation-blocked-1",
+      transcript: "Blocked moderation history.",
+      transcript_status: "blocked",
+    };
+    const queries: any[] = [];
+    const database: StudioVideoManualDeletionDatabase = {
+      execute: async (query) => {
+        queries.push(query);
+        return queries.length === 1 ? { rows: [row] } : { rows: [{ id: row.id }] };
+      },
+    };
+    const deleteObject = jest.fn(async () => {});
+
+    await expect(deleteStudioVideoMessageMedia({
+      studioId: "studio-1",
+      clientUserId: "client-1",
+      messageId: row.message_id,
+    }, {
+      database,
+      storage: { deleteObject },
+    })).resolves.toBe("deleted");
+
+    expect(deleteObject).toHaveBeenCalledWith(row.object_key);
+    expect(sqlText(queries[0])).toContain("message.transcript_status = 'blocked'");
+    expect(sqlText(queries[0])).toContain("media.state = 'moderation_failed'");
+    expect(sqlText(queries[0])).toContain("'moderation_failed'");
+    expect(sqlText(queries[2])).toContain("message.transcript_status = 'blocked'");
     expect(sqlText(queries[2])).not.toContain("SET transcript");
   });
 
