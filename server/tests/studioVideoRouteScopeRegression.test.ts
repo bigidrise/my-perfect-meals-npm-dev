@@ -297,15 +297,20 @@ describe("Studio video route transcript scope regression", () => {
     },
   );
 
-  it("does not report a transcript/message as deleted before private media deletion completes", async () => {
-    mockDeleteStudioVideoMessageRecord.mockRejectedValueOnce(
-      new Error("Transcript/message deletion is available only after private video media is fully deleted"),
-    );
+  it.each([
+    ["professional", proTabletRouter, "/api/pro/tablet", `/api/pro/tablet/${CLIENT_ID}/video/${MESSAGE_ID}/transcript`],
+    ["client", clientTabletRouter, "/api/client/tablet", `/api/client/tablet/video/${MESSAGE_ID}/transcript`],
+  ])(
+    "%s does not report a transcript/message as deleted before private media deletion completes",
+    async (_actorType, router, prefix, path) => {
+      mockDeleteStudioVideoMessageRecord.mockRejectedValueOnce(
+        new Error("Transcript/message deletion is available only after private video media is fully deleted"),
+      );
 
-    const response = await request(buildApp(clientTabletRouter, "/api/client/tablet"))
-      .delete(`/api/client/tablet/video/${MESSAGE_ID}/transcript`);
+      const response = await request(buildApp(router, prefix)).delete(path);
 
-    expect(response.status).toBe(409);
-    expect(response.body.error).toContain("only after the private video is fully deleted");
-  });
+      expect(response.status).toBe(409);
+      expect(response.body.error).toContain("only after the private video is fully deleted");
+    },
+  );
 });
