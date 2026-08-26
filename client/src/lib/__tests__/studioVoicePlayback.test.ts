@@ -71,6 +71,20 @@ describe("Studio voice playback", () => {
     expect(fetchImpl).toHaveBeenNthCalledWith(4, "https://app.test/stream?access=fresh", expect.any(Object));
   });
 
+  test("surfaces the server's safe unavailable-audio message", async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: "Audio is no longer available" }),
+    });
+
+    await expect(
+      loadStudioVoicePlayback("/metadata", { "x-auth-token": "native-token" }, fetchImpl as unknown as typeof fetch),
+    ).rejects.toMatchObject({
+      name: "StudioVoicePlaybackError",
+      message: "Audio is no longer available",
+    });
+  });
+
   test("keeps legacy signed URLs as direct playback without adding token headers to S3", async () => {
     const fetchImpl = jest.fn().mockResolvedValue({
       ok: true,

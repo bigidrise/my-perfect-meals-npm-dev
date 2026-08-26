@@ -12,6 +12,7 @@ import { logClientActivity } from "../services/activityLog";
 import { sendCoachMessageAlert } from "../services/emailService";
 import {
   getSignedPlaybackUrl,
+  getStudioVoiceObjectAvailability,
   getStudioVoiceStream,
   normalizeVoiceMimeType,
   resolveVoiceStorageBackend,
@@ -918,6 +919,16 @@ router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request,
 
   const backend = resolveVoiceStorageBackend(note.audio_storage_backend);
   if (backend === "replit") {
+    const availability = await getStudioVoiceObjectAvailability(note.audio_object_key);
+    if (availability === "missing") {
+      res.status(410).json({ error: "Audio is no longer available" });
+      return;
+    }
+    if (availability === "unavailable") {
+      res.status(503).json({ error: "Audio playback is temporarily unavailable" });
+      return;
+    }
+
     if (req.query.stream === "1") {
       if (!isValidStudioVoicePlaybackToken(req.query.access, entryId, authUser.id)) {
         res.status(403).json({ error: "Playback access expired" });
