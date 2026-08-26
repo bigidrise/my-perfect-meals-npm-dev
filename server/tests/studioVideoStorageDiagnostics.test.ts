@@ -11,6 +11,8 @@ jest.mock("@replit/object-storage", () => ({
 import { deleteStudioVideoFromS3 } from "../services/tabletVoiceService";
 import {
   getAttachedStudioVideoStorageDeleteDiagnostic,
+  getStudioVideoDeletionFailureDiagnostic,
+  logStudioVideoDeletionFailure,
   logStudioVideoStorageDeleteFailure,
 } from "../services/studioVideoStorageDiagnostics";
 
@@ -95,6 +97,71 @@ describe("Studio video storage delete diagnostics", () => {
       leaseStatus: "valid",
     });
     expect(JSON.stringify(warn.mock.calls[0][1])).not.toContain("private-message");
+    warn.mockRestore();
+  });
+
+  test("classifies storage deletion failures separately from finalization guards", () => {
+    const objectKey = "studio-video/private-message.webm";
+    const storageError = new Error(`Provider rejected ${objectKey}`);
+    Object.assign(storageError, { statusCode: 503 });
+
+    const storageDelete = getStudioVideoDeletionFailureDiagnostic({
+      failureStage: "storage_delete",
+      requestId: "request-123",
+      httpOutcome: 502,
+      leaseStatus: "valid",
+      storageDeletionCompleted: false,
+      error: storageError,
+    });
+    const finalizationGuard = getStudioVideoDeletionFailureDiagnostic({
+      failureStage: "finalization_guard",
+      requestId: "request-456",
+      httpOutcome: 502,
+      leaseStatus: "unknown",
+      storageDeletionCompleted: true,
+    });
+
+    expect(storageDelete).toEqual({
+      failureStage: "storage_delete",
+      requestId: "request-123",
+      httpOutcome: 502,
+      leaseStatus: "valid",
+      storageDeletionCompleted: false,
+      sdkErrorClass: "Error",
+      sdkStatus: 503,
+    });
+    expect(finalizationGuard).toEqual({
+      failureStage: "finalization_guard",
+      requestId: "request-456",
+      httpOutcome: 502,
+      leaseStatus: "unknown",
+      storageDeletionCompleted: true,
+    });
+    expect(JSON.stringify(storageDelete)).not.toContain(objectKey);
+  });
+
+  test("emits only the sanitized deletion-stage event in development", () => {
+    process.env.NODE_ENV = "development";
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    logStudioVideoDeletionFailure({
+      failureStage: "storage_delete",
+      requestId: "request-789",
+      httpOutcome: 502,
+      leaseStatus: "lost",
+      storageDeletionCompleted: true,
+      error: Object.assign(new Error("private content"), { statusCode: 429 }),
+    });
+
+    expect(warn).toHaveBeenCalledWith("[StudioVideoDeletionDiagnostic]", {
+      failureStage: "storage_delete",
+      requestId: "request-789",
+      httpOutcome: 502,
+      leaseStatus: "lost",
+      storageDeletionCompleted: true,
+      sdkErrorClass: "Error",
+      sdkStatus: 429,
+    });
     warn.mockRestore();
   });
 });
