@@ -21,6 +21,7 @@ export function invalidateProUnreadCache(proUserId: string): void {
 }
 import {
   getSignedPlaybackUrl,
+  getStudioVoiceObjectAvailability,
   getStudioVoiceStream,
   MAX_VOICE_DURATION_SEC,
   normalizeVoiceMimeType,
@@ -1088,6 +1089,16 @@ router.get("/audio/:entryId", async (req: Request, res: Response) => {
 
   const backend = resolveVoiceStorageBackend(note.audio_storage_backend);
   if (backend === "replit") {
+    const availability = await getStudioVoiceObjectAvailability(note.audio_object_key);
+    if (availability === "missing") {
+      res.status(410).json({ error: "Audio is no longer available" });
+      return;
+    }
+    if (availability === "unavailable") {
+      res.status(503).json({ error: "Audio playback is temporarily unavailable" });
+      return;
+    }
+
     if (req.query.stream === "1") {
       if (!isValidStudioVoicePlaybackToken(req.query.access, entryId, authUser.id)) {
         res.status(403).json({ error: "Playback access expired" });

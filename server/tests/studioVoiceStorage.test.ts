@@ -1,6 +1,11 @@
 jest.mock("../db", () => ({ db: {} }));
+const mockUploadFromBytes = jest.fn();
+const mockExists = jest.fn();
 jest.mock("@replit/object-storage", () => ({
-  Client: class MockObjectStorageClient {},
+  Client: jest.fn(() => ({
+    uploadFromBytes: mockUploadFromBytes,
+    exists: mockExists,
+  })),
 }));
 
 import {
@@ -10,8 +15,10 @@ import {
   type StudioVoiceDraft,
 } from "../services/studioVoiceMessageService";
 import {
+  getStudioVoiceObjectAvailability,
   normalizeVoiceMimeType,
   resolveVoiceStorageBackend,
+  uploadStudioVoiceToPrivateStorage,
 } from "../services/tabletVoiceService";
 
 const draft: StudioVoiceDraft = {
@@ -39,6 +46,11 @@ function entry() {
 }
 
 describe("Studio voice private storage", () => {
+  beforeEach(() => {
+    mockUploadFromBytes.mockReset();
+    mockExists.mockReset();
+  });
+
   test("normalizes browser and Capacitor MIME values without accepting an unknown format", () => {
     expect(normalizeVoiceMimeType("audio/webm;codecs=opus")).toBe("audio/webm");
     expect(normalizeVoiceMimeType("audio/mp4; codecs=mp4a.40.2")).toBe("audio/mp4");
@@ -69,6 +81,32 @@ describe("Studio voice private storage", () => {
       objectKey: "studio-voice/voice-1.webm",
       storageBackend: "replit",
     }));
+  });
+
+  test("verifies the private object is available before a voice note can be persisted", async () => {
+    mockUploadFromBytes.mockResolvedValue({ ok: true, value: null });
+    mockExists.mockResolvedValue({ ok: true, value: true });
+
+    await expect(
+      uploadStudioVoiceToPrivateStorage(Buffer.from("audio"), "audio/webm", "studio-voice/voice-verify.webm"),
+    ).resolves.toBeUndefined();
+
+    expect(mockUploadFromBytes).toHaveBeenCalledWith(
+      "studio-voice/voice-verify.webm",
+      Buffer.from("audio"),
+      { compress: false },
+    );
+    expect(mockExists).toHaveBeenCalledWith("studio-voice/voice-verify.webm");
+  });
+
+  test("rejects a write whose private object cannot be verified and classifies missing media", async () => {
+    mockUploadFromBytes.mockResolvedValue({ ok: true, value: null });
+    mockExists.mockResolvedValue({ ok: true, value: false });
+
+    await expect(
+      uploadStudioVoiceToPrivateStorage(Buffer.from("audio"), "audio/webm", "studio-voice/voice-missing.webm"),
+    ).rejects.toThrow("Private voice upload could not be verified");
+    await expect(getStudioVoiceObjectAvailability("studio-voice/voice-missing.webm")).resolves.toBe("missing");
   });
 
   test("records a failed/unavailable note without queueing when private storage fails", async () => {

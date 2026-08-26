@@ -18,6 +18,17 @@ export type StudioVoicePlaybackSource = {
   revoke: () => void;
 };
 
+async function getPlaybackFailureMessage(response: Pick<Response, "json">): Promise<string> {
+  try {
+    const payload = await response.json() as { error?: unknown } | null;
+    return typeof payload?.error === "string" && payload.error.trim().length > 0
+      ? payload.error
+      : "Could not load audio";
+  } catch {
+    return "Could not load audio";
+  }
+}
+
 /**
  * Fetches metadata for every play so short-lived private stream tokens are
  * never cached. Private audio is fetched with the normal auth headers and
@@ -35,7 +46,7 @@ export async function loadStudioVoicePlayback(
     cache: "no-store",
   });
   if (!metadataResponse.ok) {
-    throw new StudioVoicePlaybackError("Could not load audio");
+    throw new StudioVoicePlaybackError(await getPlaybackFailureMessage(metadataResponse));
   }
 
   const metadata = await metadataResponse.json() as VoicePlaybackMetadata;
@@ -56,7 +67,7 @@ export async function loadStudioVoicePlayback(
     cache: "no-store",
   });
   if (!streamResponse.ok) {
-    throw new StudioVoicePlaybackError("Could not load audio");
+    throw new StudioVoicePlaybackError(await getPlaybackFailureMessage(streamResponse));
   }
 
   const objectUrl = URL.createObjectURL(await streamResponse.blob());
