@@ -981,16 +981,16 @@ export default function DashboardNew() {
               className="w-full h-full object-cover"
               style={{ objectPosition: "center 63%" }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4">
-              <div className="w-fit bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2.5 mb-3">
-                <h2 className="text-base font-bold text-white mb-1">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+            <div className="absolute bottom-3 left-4 right-4">
+              <div className="w-fit rounded-xl bg-black/25 px-3 py-1.5 shadow-lg">
+                <h2 className="mb-0 text-base font-bold leading-tight text-white drop-shadow-sm">
                   {t("greeting", { name: firstName })}
                 </h2>
-                <p className="text-white text-sm mb-2">
+                <p className="mb-1 text-sm leading-tight text-white drop-shadow-sm">
                   {t("coachLearning")}
                 </p>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/30 border border-orange-400/60 text-orange-200 text-xs font-medium">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/60 bg-orange-500/30 px-2.5 py-0.5 text-xs font-medium text-orange-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
                   {t("behaviorBadge")}
                 </span>
