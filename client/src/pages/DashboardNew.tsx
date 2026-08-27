@@ -974,28 +974,15 @@ export default function DashboardNew() {
           transition={{ delay: 0.1, duration: 0.5 }}
           className="mb-4"
         >
-          <div className="relative h-64 rounded-xl overflow-hidden">
+           <div className="relative h-64 rounded-xl overflow-hidden">
             <img
               src="/images/dashboard-chef-community-hero.png"
               alt={t("heroAlt")}
-              className="absolute inset-0 z-0 w-full h-full object-cover object-[center_63%] lg:object-[center_50%]"
+              className="w-full h-full object-cover"
+              style={{ objectPosition: "center 63%" }}
             />
-            <div className="pointer-events-none absolute inset-x-0 top-1 z-10 flex justify-center">
-              <img
-                src="/images/mpm-full-logo-transparent.png"
-                alt=""
-                aria-hidden="true"
-                className="h-auto w-[min(54vw,220px)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] lg:w-[min(28vw,240px)]"
-              />
-            </div>
-            <img
-              src="/images/dashboard-chef-community-foreground.png"
-              alt=""
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-20 w-full h-full object-cover object-[center_63%] lg:object-[center_50%]"
-            />
-            <div className="pointer-events-none absolute inset-0 z-30 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
-            <div className="absolute bottom-3 left-4 right-4 z-40">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+            <div className="absolute bottom-3 left-4 right-4">
               <div className="w-fit rounded-xl bg-black/25 px-3 py-1.5 shadow-lg">
                 <h2 className="mb-0 text-base font-bold leading-tight text-white drop-shadow-sm">
                   {t("greeting", { name: firstName })}
