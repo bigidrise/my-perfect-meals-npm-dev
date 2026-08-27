@@ -965,7 +965,10 @@
     "physiciansClinicTitle": "Clínica de Médicos",
     "physiciansClinicDesc": "Supervisión médica, guardianes y herramientas de nutrición clínica",
     "trainersStudioTitle": "Estudio de Entrenadores",
-    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento"
+    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento",
+    "studioVideoTitle": "निजी स्टूडियो वीडियो संदेश",
+    "studioVideoDesc": "पेशेवरों और ग्राहकों के बीच सुरक्षित वीडियो संदेश, साथ में प्रतिलिपियां ताकि कोचिंग मार्गदर्शन उपलब्ध रहे।",
+    "procareLabel": "ProCare"
   },
   "mealSelect": {
     "title": "Intercambio de Constructor de Comidas",
