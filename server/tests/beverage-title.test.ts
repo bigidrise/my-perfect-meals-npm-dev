@@ -1,4 +1,5 @@
 import {
+  BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION,
   ensureBeverageDietTitle,
   getBeverageDietTitleLabel,
 } from "../services/beverageTitle";
@@ -66,6 +67,21 @@ describe("Beverage Creator dietary title identity", () => {
   test("leaves titles unchanged when no supported diet is explicit", () => {
     expect(ensureBeverageDietTitle("Tropical Berry Cooler", ["none"])).toBe(
       "Tropical Berry Cooler",
+    );
+  });
+
+  test("requires an ingredient-specific explanation without certification claims", () => {
+    expect(BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION).toMatch(
+      /active dietary identity/i,
+    );
+    expect(BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION).toMatch(
+      /actual ingredients and mixers/i,
+    );
+    expect(BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION).toMatch(
+      /substitutions, exclusions, and preparation choices/i,
+    );
+    expect(BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION).toMatch(
+      /never claim certification/i,
     );
   });
 });

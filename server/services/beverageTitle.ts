@@ -245,6 +245,11 @@ const LOCALIZED_LABELS: Record<string, Partial<Record<BeverageDietKey, string>>>
   },
 };
 
+export const BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION =
+  "Reasoning must be 2–4 concise sentences explaining why this beverage fits the active dietary identity and flavor profile. " +
+  "Cite the actual ingredients and mixers that support the identity, plus any real substitutions, exclusions, and preparation choices that mattered. " +
+  "Do not invent substitutions. For kosher or halal, never claim certification when certification is unknown; describe compatibility or ingredient choices instead.";
+
 function normalizeDietValue(value: string): string {
   return value
     .trim()
