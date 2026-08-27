@@ -22,7 +22,6 @@ import {
 import { apiRequest } from "@/lib/apiRequest";
 import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
 import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
-import StudioVideoDeletionFailureNotice from "@/components/pro/StudioVideoDeletionFailureNotice";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -103,16 +102,6 @@ interface TabletEntry {
   videoDurationSec?: number;
   videoWatchCompletedAt?: string | null;
   videoExpiresAt?: string | null;
-}
-
-function canManuallyDeleteStudioVideo(state: TabletEntry["videoMediaState"]): boolean {
-  return ["ready", "expiration_pending", "transcription_failed", "deletion_failed", "moderation_failed"].includes(
-    state ?? "draft",
-  );
-}
-
-function canDeleteStudioVideoMessage(state: TabletEntry["videoMediaState"]): boolean {
-  return state === "deleted";
 }
 
 interface ProClientFolderModalProps {
@@ -235,9 +224,6 @@ export default function ProClientFolderModal({
   const [videoMode, setVideoMode] = useState(false);
   const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
-  const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
-  const [deletingTranscriptId, setDeletingTranscriptId] = useState<string | null>(null);
-  const [videoDeleteErrors, setVideoDeleteErrors] = useState<Record<string, string>>({});
   const videoUrlRevokeRef = useRef<Record<string, () => void>>({});
   const videoProgressSentAtRef = useRef<Record<string, number>>({});
 
@@ -593,46 +579,6 @@ export default function ProClientFolderModal({
     }
   };
 
-  const handleDeletePrivateVideo = async (entry: TabletEntry) => {
-    if (!clientId || !canManuallyDeleteStudioVideo(entry.videoMediaState)) return;
-    setDeletingVideoId(entry.id);
-    setVideoDeleteErrors((current) => {
-      const { [entry.id]: _, ...remaining } = current;
-      return remaining;
-    });
-    try {
-      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video/${entry.id}`), {
-        method: "DELETE",
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (data.retryable === true && data.mediaState === "deletion_failed") {
-          setMessages((prev) => prev.map((message) =>
-            message.id === entry.id ? { ...message, videoMediaState: "deletion_failed" } : message,
-          ));
-        }
-        throw new Error(data.error || "Failed to delete private video");
-      }
-      setMessages((prev) => prev.map((message) =>
-        message.id === entry.id ? { ...message, videoMediaState: "deleted" } : message,
-      ));
-      videoUrlRevokeRef.current[entry.id]?.();
-      delete videoUrlRevokeRef.current[entry.id];
-      setOpenVideoId((current) => current === entry.id ? null : current);
-      setVideoUrlCache((current) => {
-        const { [entry.id]: _, ...remaining } = current;
-        return remaining;
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to delete private video";
-      setVideoDeleteErrors((current) => ({ ...current, [entry.id]: message }));
-    } finally {
-      setDeletingVideoId((current) => current === entry.id ? null : current);
-    }
-  };
-
   const startRecording = async () => {
     setMicError(null);
     try {
@@ -942,41 +888,26 @@ export default function ProClientFolderModal({
             >
               <Trash2 className="w-3 h-3" />
             </button>
-            {canManuallyDeleteStudioVideo(entry.videoMediaState) && (
-              <button
-                onClick={() => handleDeletePrivateVideo(entry)}
-                disabled={deletingVideoId === entry.id}
-                className="text-[10px] text-amber-200 hover:text-amber-100 disabled:opacity-50"
-                title="Delete private video for everyone"
-                aria-label="Delete private video for everyone"
-              >
-                {deletingVideoId === entry.id
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : "Delete video for everyone"}
-              </button>
-            )}
           </div>
         </div>
         {isExpired ? (
           <p className="text-[10px] text-white/45 italic">
             {isDeleted
-               ? "Private video deleted. Its transcript remains in shared history."
-              : "This video has expired. Its message record remains in Studio history."}
+               ? "Private video deleted. Its transcript remains available independently, subject to the platform's applicable retention policy."
+              : "This video is no longer available. Its transcript remains available independently, subject to the platform's applicable retention policy."}
           </p>
         ) : isFailedTranscription ? (
           <p className="text-[10px] text-white/45 italic">
-            This video could not be verified and cannot be played. You can delete its private media.
+            This video could not be verified and cannot be played. Its private media is managed automatically.
           </p>
         ) : isModerationFailed ? (
           <p className="text-[10px] text-white/45 italic">
-            This video was blocked during moderation and cannot be played. You can delete its private media.
+            This video was blocked during moderation and cannot be played. Its private media is managed automatically.
           </p>
         ) : isDeletionRetry ? (
-          <StudioVideoDeletionFailureNotice
-            error={videoDeleteErrors[entry.id]}
-            isRetrying={deletingVideoId === entry.id}
-            onRetry={() => handleDeletePrivateVideo(entry)}
-          />
+          <p className="text-[10px] text-white/45 italic">
+            Automatic private-media cleanup is pending. This video cannot be played.
+          </p>
         ) : !isPlayable ? (
           <p className="text-[10px] text-white/45 italic">
             This video is still being verified and cannot be played yet.
@@ -999,7 +930,7 @@ export default function ProClientFolderModal({
               </button>
             )}
             <p className="text-[10px] text-white/45 leading-snug mt-2">
-              Watching nearly all of this video verifies completion and starts its 24-hour expiry countdown.
+              Watching nearly all of this video verifies completion and starts a 15-minute replay grace period before private media is removed. The transcript remains available independently until you choose Delete for me, subject to the platform's applicable retention policy.
             </p>
             {hasExpiryCountdown && (
               <p className="text-[10px] text-amber-300 mt-1">

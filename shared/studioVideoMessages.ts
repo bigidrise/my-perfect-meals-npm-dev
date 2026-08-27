@@ -60,7 +60,10 @@ export type StudioVideoModerationStatus =
   (typeof STUDIO_VIDEO_MODERATION_STATUSES)[number];
 
 export const STUDIO_VIDEO_MEDIA_TYPE = "video" as const;
-export const STUDIO_VIDEO_EXPIRATION_WINDOW_MS = 24 * 60 * 60 * 1000;
+/** Replay window after a recipient has verified completion. */
+export const STUDIO_VIDEO_POST_COMPLETION_GRACE_MS = 15 * 60 * 1000;
+/** Maximum private-media lifetime when the recipient never completes viewing. */
+export const STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Five minutes at these capture targets is approximately 46.8 MB (44.6 MiB)
 // before container overhead. The 64 MiB upload ceiling leaves headroom while
@@ -224,13 +227,14 @@ const STUDIO_VIDEO_ALLOWED_TRANSITIONS: Record<
   readonly StudioVideoMediaState[]
 > = {
   draft: ["uploading", "upload_failed"],
-  uploading: ["uploaded", "upload_failed"],
-  uploaded: ["processing", "upload_failed"],
-  processing: ["ready", "transcription_failed", "moderation_failed"],
-  ready: ["expiration_pending", "deleting"],
-  upload_failed: ["uploading"],
-  transcription_failed: ["processing", "deleting"],
-  moderation_failed: ["processing", "deleting"],
+  uploading: ["uploaded", "upload_failed", "expired"],
+  uploaded: ["processing", "upload_failed", "expired"],
+  processing: ["ready", "transcription_failed", "moderation_failed", "expired"],
+  // System retention may expire a never-watched video directly from ready.
+  ready: ["expiration_pending", "expired", "deleting"],
+  upload_failed: ["uploading", "expired"],
+  transcription_failed: ["processing", "deleting", "expired"],
+  moderation_failed: ["processing", "deleting", "expired"],
   expiration_pending: ["expired", "deleting"],
   expired: ["deleting"],
   deleting: ["deleted", "deletion_failed"],
@@ -264,9 +268,9 @@ export type StudioVideoTransitionInput = {
 };
 
 /**
- * Checks the state machine and enforces the time gate before expiration.
- * Same-state transitions are idempotent so retries do not create invalid
- * lifecycle edges.
+ * Checks the state machine and enforces the applicable time gate before
+ * expiration. Same-state transitions are idempotent so retries do not create
+ * invalid lifecycle edges.
  */
 export function assertStudioVideoTransition(
   input: StudioVideoTransitionInput,
@@ -312,6 +316,35 @@ export type VerifiedWatchProgress = {
   maxVerifiedPositionSec: number;
   rejectedSampleCount: number;
 };
+
+export type StoredVerifiedWatchProgress = {
+  durationSec: number;
+  watchedIntervals: Array<[number, number]>;
+  lastPositionSec: number | null;
+  lastObservedAtMs: number | null;
+  maxVerifiedPositionSec: number;
+  rejectedSampleCount: number;
+};
+
+/**
+ * Converts the immutable domain representation into the mutable JSON shape
+ * used by the database column. The copy also prevents later caller mutation
+ * from changing the progress object held by the domain result.
+ */
+export function serializeVerifiedWatchProgress(
+  progress: VerifiedWatchProgress,
+): StoredVerifiedWatchProgress {
+  return {
+    durationSec: progress.durationSec,
+    watchedIntervals: progress.watchedIntervals.map(
+      ([startSec, endSec]) => [startSec, endSec],
+    ),
+    lastPositionSec: progress.lastPositionSec,
+    lastObservedAtMs: progress.lastObservedAtMs,
+    maxVerifiedPositionSec: progress.maxVerifiedPositionSec,
+    rejectedSampleCount: progress.rejectedSampleCount,
+  };
+}
 
 export type WatchProgressSample = {
   durationSec: number;
@@ -583,7 +616,7 @@ export function completeStudioVideoWatch(input: {
   const completedAtMs = timestampMs(input.completedAt, "completedAt");
   const watchCompletedAt = new Date(completedAtMs).toISOString();
   const expiresAt = new Date(
-    completedAtMs + STUDIO_VIDEO_EXPIRATION_WINDOW_MS,
+    completedAtMs + STUDIO_VIDEO_POST_COMPLETION_GRACE_MS,
   ).toISOString();
 
   return { state: "expiration_pending", watchCompletedAt, expiresAt };
@@ -593,14 +626,27 @@ export function canReplayStudioVideo(
   media: Pick<
     StudioVideoMedia,
     "state" | "objectKey" | "expiresAt" | "deletedAt"
-  >,
+  > & { createdAt?: Date | string | null },
   now: Date | string | number,
 ): boolean {
   if (!media.objectKey || media.deletedAt || media.state === "deleted") {
     return false;
   }
 
-  if (media.state === "ready") return true;
+  if (media.state === "ready") {
+    const unopenedDeadline = media.expiresAt ?? (
+      media.createdAt
+        ? new Date(
+            timestampMs(media.createdAt, "createdAt") +
+              STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+          ).toISOString()
+        : null
+    );
+    return (
+      unopenedDeadline !== null &&
+      timestampMs(now, "now") < timestampMs(unopenedDeadline, "expiresAt")
+    );
+  }
   if (media.state !== "expiration_pending" || !media.expiresAt) return false;
 
   return timestampMs(now, "now") < timestampMs(media.expiresAt, "expiresAt");
@@ -760,7 +806,7 @@ export type StudioVideoDeletionResult = {
   temporaryDerivativeKeys: readonly [];
   deletedAt: string;
   transcript: StudioVideoTranscript;
-  watchCompletedAt: string;
+  watchCompletedAt: string | null;
   expiresAt: string;
 };
 
@@ -773,7 +819,7 @@ export function finalizeStudioVideoDeletion(input: {
   currentState: "expired" | "deleting";
   now: Date | string | number;
   expiresAt: string;
-  watchCompletedAt: string;
+  watchCompletedAt: string | null;
   transcript: StudioVideoTranscript;
 }): StudioVideoDeletionResult {
   const nowMs = timestampMs(input.now, "now");
@@ -791,7 +837,13 @@ export function finalizeStudioVideoDeletion(input: {
     );
   }
 
-  assertStudioVideoTranscriptRetainable(input.transcript);
+  const hasFailedTranscriptionHistory =
+    input.transcript.status === "failed" &&
+    input.transcript.text === null;
+  const hasBlockedModerationHistory = input.transcript.status === "blocked";
+  if (!hasFailedTranscriptionHistory && !hasBlockedModerationHistory) {
+    assertStudioVideoTranscriptRetainable(input.transcript);
+  }
   const deletedAt = new Date(nowMs).toISOString();
 
   return {

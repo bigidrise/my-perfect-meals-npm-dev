@@ -64,7 +64,6 @@ import {
 import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
 import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
 import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
-import StudioVideoDeletionFailureNotice from "@/components/pro/StudioVideoDeletionFailureNotice";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
@@ -111,20 +110,6 @@ interface FeatureCard {
 }
 
 const todayMacros = { protein: 50, carbs: 150, fat: 70 };
-
-function canManuallyDeleteStudioVideo(state: unknown): boolean {
-  return typeof state === "string" && [
-    "ready",
-    "expiration_pending",
-    "transcription_failed",
-    "deletion_failed",
-    "moderation_failed",
-  ].includes(state);
-}
-
-function canDeleteStudioVideoMessage(state: unknown): boolean {
-  return state === "deleted";
-}
 
 export default function DashboardNew() {
   const [, setLocation] = useLocation();
@@ -182,9 +167,6 @@ export default function DashboardNew() {
   const [tabletVideoMode, setTabletVideoMode] = useState(false);
   const [tabletVideoUrls, setTabletVideoUrls] = useState<Record<string, string>>({});
   const [tabletOpenVideoId, setTabletOpenVideoId] = useState<string | null>(null);
-  const [tabletDeletingVideoId, setTabletDeletingVideoId] = useState<string | null>(null);
-  const [tabletDeletingTranscriptId, setTabletDeletingTranscriptId] = useState<string | null>(null);
-  const [tabletVideoDeleteErrors, setTabletVideoDeleteErrors] = useState<Record<string, string>>({});
   const tabletVideoUrlRevokeRef = useRef<Record<string, () => void>>({});
   const tabletVideoProgressSentAt = useRef<Record<string, number>>({});
 
@@ -371,46 +353,6 @@ export default function DashboardNew() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to delete message";
       setTabletError(message);
-    }
-  };
-
-  const handleTabletDeletePrivateVideo = async (entry: any) => {
-    if (!isProCareClient || !canManuallyDeleteStudioVideo(entry.videoMediaState)) return;
-    setTabletDeletingVideoId(entry.id);
-    setTabletVideoDeleteErrors((current) => {
-      const { [entry.id]: _, ...remaining } = current;
-      return remaining;
-    });
-    try {
-      const res = await fetch(apiUrl(`/api/client/tablet/video/${entry.id}`), {
-        method: "DELETE",
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (data.retryable === true && data.mediaState === "deletion_failed") {
-          setTabletMessages((prev) => prev.map((message: any) =>
-            message.id === entry.id ? { ...message, videoMediaState: "deletion_failed" } : message,
-          ));
-        }
-        throw new Error(data.error || "Failed to delete private video");
-      }
-      setTabletMessages((prev) => prev.map((message: any) =>
-        message.id === entry.id ? { ...message, videoMediaState: "deleted" } : message,
-      ));
-      tabletVideoUrlRevokeRef.current[entry.id]?.();
-      delete tabletVideoUrlRevokeRef.current[entry.id];
-      setTabletOpenVideoId((current) => current === entry.id ? null : current);
-      setTabletVideoUrls((current) => {
-        const { [entry.id]: _, ...remaining } = current;
-        return remaining;
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to delete private video";
-      setTabletVideoDeleteErrors((current) => ({ ...current, [entry.id]: message }));
-    } finally {
-      setTabletDeletingVideoId((current) => current === entry.id ? null : current);
     }
   };
 
@@ -1284,21 +1226,6 @@ export default function DashboardNew() {
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
-                            {entry.contentType === "video" && canManuallyDeleteStudioVideo(entry.videoMediaState) && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleTabletDeletePrivateVideo(entry);
-                                }}
-                                disabled={tabletDeletingVideoId === entry.id}
-                                className="text-[10px] text-amber-200 hover:text-amber-100 disabled:opacity-50"
-                                title="Delete private video for everyone"
-                              >
-                                {tabletDeletingVideoId === entry.id
-                                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                                  : "Delete video for everyone"}
-                              </button>
-                            )}
                           </div>
                         </div>
 
@@ -1307,23 +1234,21 @@ export default function DashboardNew() {
                             {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
                               <p className="text-xs text-white/45 italic">
                                 {entry.videoMediaState === "deleted"
-                                   ? "Private video deleted. Its transcript remains in shared history."
-                                  : "This video has expired. Its transcript remains in your message history."}
+                                   ? "Private video deleted. Its transcript remains available independently, subject to the platform's applicable retention policy."
+                                  : "This video is no longer available. Its transcript remains available independently, subject to the platform's applicable retention policy."}
                               </p>
                             ) : entry.videoMediaState === "transcription_failed" ? (
                               <p className="text-xs text-white/45 italic">
-                                This video could not be verified and cannot be played. You can delete its private media.
+                                This video could not be verified and cannot be played. Its private media is managed automatically.
                               </p>
                             ) : entry.videoMediaState === "moderation_failed" ? (
                               <p className="text-xs text-white/45 italic">
-                                This video was blocked during moderation and cannot be played. You can delete its private media.
+                                This video was blocked during moderation and cannot be played. Its private media is managed automatically.
                               </p>
                             ) : entry.videoMediaState === "deletion_failed" ? (
-                              <StudioVideoDeletionFailureNotice
-                                error={tabletVideoDeleteErrors[entry.id]}
-                                isRetrying={tabletDeletingVideoId === entry.id}
-                                onRetry={() => handleTabletDeletePrivateVideo(entry)}
-                              />
+                              <p className="text-xs text-white/45 italic">
+                                Automatic private-media cleanup is pending. This video cannot be played.
+                              </p>
                             ) : !["ready", "expiration_pending"].includes(entry.videoMediaState) ? (
                               <p className="text-xs text-white/45 italic">
                                 This video is still being verified and cannot be played yet.
@@ -1353,7 +1278,7 @@ export default function DashboardNew() {
                               </span>
                             </div>
                             <p className="text-[10px] text-white/45 leading-snug">
-                              This video will be deleted 24 hours after you finish watching it. The transcript remains in your message history.
+                              After verified completion, this video is available for 15 more minutes before private media is removed. The transcript remains available independently until you choose Delete for me, subject to the platform's applicable retention policy.
                             </p>
                             {entry.videoTranscriptStatus === "completed" && entry.transcript && (
                               <p className="text-xs text-white/75 leading-relaxed italic border-l-2 border-violet-400/40 pl-2">
