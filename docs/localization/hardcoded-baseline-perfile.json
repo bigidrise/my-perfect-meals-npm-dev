@@ -6,6 +6,7 @@
   "totalComponentFindings": 2143,
   "files": {
     "client/src/components/AccountabilityChip.tsx": 2,
+    "client/src/components/AllergyConflictModal.tsx": 1,
     "client/src/components/AddOtherItems.tsx": 8,
     "client/src/components/AddToBoardButton.tsx": 0,
     "client/src/components/AddToBoardModal.tsx": 3,
@@ -19,6 +20,9 @@
     "client/src/components/AlphaGalBadge.tsx": 0,
     "client/src/components/AlphaGalProfileModal.tsx": 5,
     "client/src/components/AppRouter.tsx": 0,
+    "client/src/components/GenerationFailureBanner.tsx": 0,
+    "client/src/components/pro/StudioVideoDeletionFailureNotice.tsx": 0,
+    "client/src/components/pro/StudioVideoMessageComposer.tsx": 0,
     "client/src/components/AthleteModeCard.tsx": 1,
     "client/src/components/AvatarSelector.tsx": 0,
     "client/src/components/AvatarSettingsPanel.tsx": 5,

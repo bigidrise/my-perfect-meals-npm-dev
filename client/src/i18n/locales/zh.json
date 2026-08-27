@@ -3235,6 +3235,7 @@
     "nativeDelivery": "原生 iOS 交付",
     "saving": "保存中…",
     "statusBlocked": "浏览器中阻止了通知",
+    "statusBlockedIos": "通知已被阻止 — 打开“设置”以允许",
     "statusConnected": "通知已连接",
     "statusPartial": "未完全连接 — 切换一个插槽以完成设置",
     "statusPending": "切换一个插槽以启用通知",
@@ -3473,6 +3474,10 @@
   },
   "inspiration": {
     "servingsJustMe": "只有我",
+    "noAdditionalOptionsTitle": "目前没有更多符合您计划的选项",
+    "noAdditionalOptionsDesc": "我们为这道食谱创建了更多版本，但没有一个符合今天的营养要求。您当前的选项仍然可用。",
+    "tryMoreFailedTitle": "目前无法创建新的选项",
+    "tryMoreFailedDesc": "您当前的食谱未更改。请再试一次。",
     "servings2": "2人",
     "servings3": "3人",
     "servingsFamily": "家庭（4人）",
@@ -3935,6 +3940,35 @@
       "description": "我们与医生、注册营养师、诊所、医院和患者护理组织合作，将My Perfect Meals集成到临床和护理工作流程中。",
       "eta": "联系我们以探索临床合作伙伴选项"
     }
+  },
+  "imageStates": {
+    "unavailable": "图像不可用",
+    "generating": "正在生成图像",
+    "restoring": "正在恢复图像…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "没有符合您当前计划的选项"
+  },
+  "referralTools": {
+    "downloadFailed": "无法下载二维码。请再试一次。"
+  },
+  "allergyConflict": {
+    "makeSafe": "为我安全地制作"
+  },
+  "generationFailure": {
+    "technicalError": "我们这边出了点问题。请再试一次。"
+  },
+  "studioMessages": {
+    "deleteForMe": "仅为我删除",
+    "deleteFromHistory": "从我的历史记录中删除",
+    "deleteVideoFromHistory": "从我的历史记录中删除视频",
+    "videoMessage": "视频消息",
+    "videoTranscriptUnavailable": "视频文字稿不可用。",
+    "sendVideoMessage": "发送视频消息",
+    "cancelVideoMessage": "取消视频消息",
+    "liveCameraPreview": "实时相机预览",
+    "recordedVideoPreview": "已录制视频预览",
+    "cameraPreviewHint": "开始录制时将显示相机预览"
   },
   "procareInfo": {
     "title": "ProCare辅导",

@@ -2,6 +2,7 @@
 // Full-screen modal that uses the same backend as Craving Creator
 // and returns a meal object to the caller without leaving the page.
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
 import { X, RefreshCcw } from "lucide-react";
@@ -30,6 +31,7 @@ export default function CravingPicker({
   userId?: string;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [meal, setMeal] = useState<PickerMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export default function CravingPicker({
         try { errData = await res.json(); } catch { /* non-JSON response */ }
         if (errData.reasonCode === "constraint_conflict") {
           toast({
-            title: "No options fit your current plan",
+            title: t("mealPicker.noOptionsFitPlan"),
             description: errData.message || errData.error || "Your health protocol eliminated all generated options. Try a different meal type or adjust your settings.",
             duration: 8000,
           });

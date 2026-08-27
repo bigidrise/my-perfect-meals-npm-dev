@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, ChefHat, ShieldAlert, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface AllergyConflictPayload {
   type: "conflict_adaptable" | "conflict_identity_collapse";
@@ -49,6 +50,7 @@ export function AllergyConflictModal({
   onMakeOriginal,
   onCancel,
 }: AllergyConflictModalProps) {
+  const { t } = useTranslation();
   if (!conflict) return null;
 
   const isIdentityCollapse = conflict.type === "conflict_identity_collapse";
@@ -90,7 +92,7 @@ export function AllergyConflictModal({
             >
               <ChefHat className="h-4 w-4 shrink-0" />
               <span className="text-left">
-                <span className="font-semibold block">Make it safe for me</span>
+                <span className="font-semibold block">{t("allergyConflict.makeSafe")}</span>
                 <span className="text-xs opacity-90 font-normal">
                   Chef adapts the recipe — no PIN required
                 </span>

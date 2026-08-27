@@ -3481,6 +3481,7 @@
     "nativeDelivery": "Native na paghahatid ng iOS",
     "saving": "Sine-save…",
     "statusBlocked": "Naka-block ang mga notipikasyon sa browser",
+    "statusBlockedIos": "Naka-block ang mga notification — buksan ang Mga Setting para payagan",
     "statusConnected": "Nakakonekta ang mga notipikasyon",
     "statusPartial": "Hindi ganap na nakakonekta — i-toggle ang isang slot para tapusin ang setup",
     "statusPending": "I-toggle ang isang slot para paganahin ang mga notipikasyon",
@@ -3719,6 +3720,10 @@
   },
   "inspiration": {
     "servingsJustMe": "Ako lang",
+    "noAdditionalOptionsTitle": "Walang karagdagang opsyon na akma sa plano mo ngayon",
+    "noAdditionalOptionsDesc": "Gumawa kami ng mga karagdagang bersyon ng recipe na ito, pero wala ni isa ang tumugon sa mga pangangailangan sa nutrisyon ngayon. Available pa rin ang kasalukuyan mong mga opsyon.",
+    "tryMoreFailedTitle": "Hindi kami makagawa ng mga bagong opsyon ngayon",
+    "tryMoreFailedDesc": "Hindi nabago ang kasalukuyan mong mga recipe. Pakisubukan muli.",
     "servings2": "2 tao",
     "servings3": "3 tao",
     "servingsFamily": "Pamilya (4)",
@@ -4181,6 +4186,35 @@
       "description": "Nakikipagtulungan kami sa mga doktor, rehistradong dietitian, mga klinika, ospital, at mga organisasyon ng pangangalaga sa pasyente upang isama ang My Perfect Meals sa mga klinikal at pangangalaga na daloy ng trabaho.",
       "eta": "Makipag-ugnayan sa amin upang tuklasin ang mga pagpipilian sa klinikal na pakikipagsosyo"
     }
+  },
+  "imageStates": {
+    "unavailable": "Hindi available ang larawan",
+    "generating": "Ginagawa ang larawan",
+    "restoring": "Ibinabalik ang larawan…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "Walang opsyon na akma sa kasalukuyan mong plano"
+  },
+  "referralTools": {
+    "downloadFailed": "Hindi ma-download ang QR code. Pakisubukan muli."
+  },
+  "allergyConflict": {
+    "makeSafe": "Gawing ligtas para sa akin"
+  },
+  "generationFailure": {
+    "technicalError": "May naganap na problema sa aming panig. Pakisubukan muli."
+  },
+  "studioMessages": {
+    "deleteForMe": "I-delete para sa akin",
+    "deleteFromHistory": "I-delete sa aking history",
+    "deleteVideoFromHistory": "I-delete ang video sa aking history",
+    "videoMessage": "Mensahe ng video",
+    "videoTranscriptUnavailable": "Hindi available ang transcript ng video.",
+    "sendVideoMessage": "Magpadala ng mensahe ng video",
+    "cancelVideoMessage": "Kanselahin ang mensahe ng video",
+    "liveCameraPreview": "Live na preview ng camera",
+    "recordedVideoPreview": "Preview ng na-record na video",
+    "cameraPreviewHint": "Lalabas ang preview ng camera kapag nagsimula ang pag-record"
   },
   "procareInfo": {
     "title": "ProCare Coaching",

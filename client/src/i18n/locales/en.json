@@ -3912,6 +3912,35 @@
       "eta": "Contact us to explore clinical partnership options"
     }
   },
+  "imageStates": {
+    "unavailable": "Image unavailable",
+    "generating": "Generating image",
+    "restoring": "Restoring image…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "No options fit your current plan"
+  },
+  "referralTools": {
+    "downloadFailed": "Could not download the QR code. Please try again."
+  },
+  "allergyConflict": {
+    "makeSafe": "Make it safe for me"
+  },
+  "generationFailure": {
+    "technicalError": "Something went wrong on our end. Please try again."
+  },
+  "studioMessages": {
+    "deleteForMe": "Delete for me",
+    "deleteFromHistory": "Delete from my history",
+    "deleteVideoFromHistory": "Delete video from my history",
+    "videoMessage": "Video message",
+    "videoTranscriptUnavailable": "Video transcript unavailable.",
+    "sendVideoMessage": "Send video message",
+    "cancelVideoMessage": "Cancel video message",
+    "liveCameraPreview": "Live camera preview",
+    "recordedVideoPreview": "Recorded video preview",
+    "cameraPreviewHint": "Camera preview appears when recording starts"
+  },
   "procareInfo": {
     "title": "ProCare Coaching",
     "back": "Back",

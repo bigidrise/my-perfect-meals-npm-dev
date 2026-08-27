@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
   Camera,
@@ -65,6 +66,7 @@ export default function StudioVideoMessageComposer({
   onSent,
   onCancel,
 }: StudioVideoMessageComposerProps) {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
@@ -351,7 +353,7 @@ export default function StudioVideoMessageComposer({
           type="button"
           onClick={handleCancel}
           className="shrink-0 rounded-md p-1 text-white/40 hover:bg-white/10 hover:text-white"
-          aria-label="Cancel video message"
+          aria-label={t("studioMessages.cancelVideoMessage")}
           data-testid="cancel-video-message"
         >
           <X className="h-4 w-4" />
@@ -375,7 +377,7 @@ export default function StudioVideoMessageComposer({
           muted
           playsInline
           className={`h-full w-full object-cover ${videoBlob ? "hidden" : ""}`}
-          aria-label="Live camera preview"
+          aria-label={t("studioMessages.liveCameraPreview")}
           data-testid="live-video-preview"
         />
         {videoBlob && previewUrl && (
@@ -384,14 +386,14 @@ export default function StudioVideoMessageComposer({
             controls
             playsInline
             className="h-full w-full object-contain bg-black"
-            aria-label="Recorded video preview"
+            aria-label={t("studioMessages.recordedVideoPreview")}
             data-testid="recorded-video-preview"
           />
         )}
         {!videoBlob && !cameraStream && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/40">
             <Video className="h-7 w-7" />
-            <span className="text-[10px]">Camera preview appears when recording starts</span>
+            <span className="text-[10px]">{t("studioMessages.cameraPreviewHint")}</span>
           </div>
         )}
         {isRecording && (

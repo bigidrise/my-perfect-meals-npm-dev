@@ -3301,6 +3301,7 @@
     "nativeDelivery": "Native iOS-Zustellung",
     "saving": "Speichern…",
     "statusBlocked": "Mitteilungen im Browser blockiert",
+    "statusBlockedIos": "Benachrichtigungen blockiert — öffnen Sie die Einstellungen, um sie zu erlauben",
     "statusConnected": "Mitteilungen verbunden",
     "statusPartial": "Nicht ganz verbunden – Slot aktivieren zum Fertigstellen",
     "statusPending": "Slot aktivieren, um Mitteilungen einzuschalten",
@@ -3539,6 +3540,10 @@
   },
   "inspiration": {
     "servingsJustMe": "Nur ich",
+    "noAdditionalOptionsTitle": "Derzeit passen keine weiteren Optionen zu Ihrem Plan",
+    "noAdditionalOptionsDesc": "Wir haben zusätzliche Varianten dieses Rezepts erstellt, aber keine erfüllte die heutigen Ernährungsanforderungen. Ihre aktuellen Optionen bleiben verfügbar.",
+    "tryMoreFailedTitle": "Neue Optionen konnten momentan nicht erstellt werden",
+    "tryMoreFailedDesc": "Ihre aktuellen Rezepte wurden nicht geändert. Bitte versuchen Sie es erneut.",
     "servings2": "2 Personen",
     "servings3": "3 Personen",
     "servingsFamily": "Familie (4)",
@@ -4001,6 +4006,35 @@
       "description": "Wir arbeiten mit Ärzten, registrierten Diätassistenten, Kliniken, Krankenhäusern und Patientenpflegeorganisationen zusammen, um My Perfect Meals in klinische und Pflege-Workflows zu integrieren.",
       "eta": "Kontaktieren Sie uns, um Optionen für klinische Partnerschaften zu erkunden"
     }
+  },
+  "imageStates": {
+    "unavailable": "Bild nicht verfügbar",
+    "generating": "Bild wird erstellt",
+    "restoring": "Bild wird wiederhergestellt…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "Keine Optionen passen zu Ihrem aktuellen Plan"
+  },
+  "referralTools": {
+    "downloadFailed": "Der QR-Code konnte nicht heruntergeladen werden. Bitte versuchen Sie es erneut."
+  },
+  "allergyConflict": {
+    "makeSafe": "Für mich sicher machen"
+  },
+  "generationFailure": {
+    "technicalError": "Auf unserer Seite ist etwas schiefgelaufen. Bitte versuchen Sie es erneut."
+  },
+  "studioMessages": {
+    "deleteForMe": "Für mich löschen",
+    "deleteFromHistory": "Aus meinem Verlauf löschen",
+    "deleteVideoFromHistory": "Video aus meinem Verlauf löschen",
+    "videoMessage": "Videonachricht",
+    "videoTranscriptUnavailable": "Videotranskript nicht verfügbar.",
+    "sendVideoMessage": "Videonachricht senden",
+    "cancelVideoMessage": "Videonachricht abbrechen",
+    "liveCameraPreview": "Live-Kameravorschau",
+    "recordedVideoPreview": "Vorschau des aufgenommenen Videos",
+    "cameraPreviewHint": "Die Kameravorschau erscheint, wenn die Aufnahme beginnt"
   },
   "procareInfo": {
     "title": "ProCare Coaching",

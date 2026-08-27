@@ -3245,6 +3245,7 @@
     "nativeDelivery": "iOS 네이티브 전송",
     "saving": "저장 중…",
     "statusBlocked": "브라우저에서 알림 차단됨",
+    "statusBlockedIos": "알림이 차단되었습니다 — 허용하려면 설정을 여세요",
     "statusConnected": "알림 연결됨",
     "statusPartial": "완전히 연결 안 됨 — 슬롯을 켜서 설정 완료",
     "statusPending": "슬롯을 켜서 알림을 활성화",
@@ -3483,6 +3484,10 @@
   },
   "inspiration": {
     "servingsJustMe": "나만",
+    "noAdditionalOptionsTitle": "현재 계획에 맞는 추가 옵션이 없습니다",
+    "noAdditionalOptionsDesc": "이 레시피의 추가 버전을 만들었지만 오늘의 영양 요구 사항을 충족한 것은 없었습니다. 현재 옵션은 계속 사용할 수 있습니다.",
+    "tryMoreFailedTitle": "지금은 새 옵션을 만들 수 없습니다",
+    "tryMoreFailedDesc": "현재 레시피는 변경되지 않았습니다. 다시 시도해 주세요.",
     "servings2": "2인",
     "servings3": "3인",
     "servingsFamily": "가족 (4인)",
@@ -3945,6 +3950,35 @@
       "description": "우리는 의사, 등록된 영양사, 클리닉, 병원 및 환자 관리 조직과 협력하여 My Perfect Meals를 임상 및 케어 워크플로우에 통합합니다.",
       "eta": "임상 파트너십 옵션을 탐색하기 위해 저희에게 연락하십시오"
     }
+  },
+  "imageStates": {
+    "unavailable": "이미지를 사용할 수 없습니다",
+    "generating": "이미지 생성 중",
+    "restoring": "이미지 복원 중…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "현재 계획에 맞는 옵션이 없습니다"
+  },
+  "referralTools": {
+    "downloadFailed": "QR 코드를 다운로드할 수 없습니다. 다시 시도해 주세요."
+  },
+  "allergyConflict": {
+    "makeSafe": "나에게 안전하게 만들기"
+  },
+  "generationFailure": {
+    "technicalError": "문제가 발생했습니다. 다시 시도해 주세요."
+  },
+  "studioMessages": {
+    "deleteForMe": "나에게서 삭제",
+    "deleteFromHistory": "내 기록에서 삭제",
+    "deleteVideoFromHistory": "내 기록에서 동영상 삭제",
+    "videoMessage": "동영상 메시지",
+    "videoTranscriptUnavailable": "동영상 스크립트를 사용할 수 없습니다.",
+    "sendVideoMessage": "동영상 메시지 보내기",
+    "cancelVideoMessage": "동영상 메시지 취소",
+    "liveCameraPreview": "실시간 카메라 미리보기",
+    "recordedVideoPreview": "녹화된 동영상 미리보기",
+    "cameraPreviewHint": "녹화가 시작되면 카메라 미리보기가 표시됩니다"
   },
   "procareInfo": {
     "title": "ProCare 코칭",
