@@ -851,7 +851,10 @@
     "physiciansClinicTitle": "Physicians Clinic",
     "physiciansClinicDesc": "Medical oversight, guardrails, and clinical nutrition tools",
     "trainersStudioTitle": "Trainers Studio",
-    "trainersStudioDesc": "Coaching, personalization, and performance meal planning"
+    "trainersStudioDesc": "Coaching, personalization, and performance meal planning",
+    "studioVideoTitle": "Private Studio Video Messaging",
+    "studioVideoDesc": "Secure video messages between professionals and clients, with transcripts that keep coaching guidance accessible.",
+    "procareLabel": "ProCare"
   },
   "mealSelect": {
     "title": "Meal Builder Exchange",

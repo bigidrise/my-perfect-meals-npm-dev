@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2, Gift } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2, Gift, Video } from "lucide-react";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription, isClinicalOrAbove } from "@/lib/subscriptionCheck";
@@ -287,6 +287,28 @@ export default function MorePage() {
               </div>
             </div>
           </div>
+
+          {/* ProCare capability */}
+          <Card
+            className="bg-gradient-to-r from-black via-violet-950/35 to-black backdrop-blur-lg border border-violet-500/30 rounded-xl shadow-md overflow-hidden"
+            style={{ backgroundColor: "transparent" }}
+            data-testid="card-studio-video-messaging"
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-violet-500/20">
+                  <Video className="h-5 w-5 text-violet-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-white">{t("studioVideoTitle")}</h3>
+                  <p className="text-xs text-white/70">{t("studioVideoDesc")}</p>
+                </div>
+                <div className="flex-shrink-0 px-2 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/30">
+                  <span className="text-[10px] font-bold text-violet-300 uppercase tracking-wide">{t("procareLabel")}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Tips & Strategies */}
           <div className="relative">

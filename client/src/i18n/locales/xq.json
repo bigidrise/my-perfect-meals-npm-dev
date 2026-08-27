@@ -836,7 +836,10 @@
     "physiciansClinicTitle": "[Physíïcíïáãns Clíïníïc ŦŦŦ]",
     "physiciansClinicDesc": "[Méèdíïcáãl ôövéèrsíïght, gûüáãrdráãíïls, áãnd clíïníïcáãl nûütríïtíïôön tôöôöls ŦŦŦ]",
     "trainersStudioTitle": "[Tráãíïnéèrs Stûüdíïôö ŦŦŦ]",
-    "trainersStudioDesc": "[Côöáãchíïng, péèrsôönáãlíïzáãtíïôön, áãnd péèrfôörmáãncéè méèáãl pláãnníïng ŦŦŦ]"
+    "trainersStudioDesc": "[Côöáãchíïng, péèrsôönáãlíïzáãtíïôön, áãnd péèrfôörmáãncéè méèáãl pláãnníïng ŦŦŦ]",
+    "studioVideoTitle": "[Príïváãtéè Stûüdíïôö Víïdéèôö Méèssáãgéè ŦŦŦ]",
+    "studioVideoDesc": "[Séècûüréè víïdéèôö méèssáãgéès bêètwèèèën próöféèssíïôönáãls áãnd clíïèënts, wíïth tráãnscríïpts ŦŦŦ]",
+    "procareLabel": "[PrôöCáãréè ŦŦŦ]"
   },
   "mealSelect": {
     "title": "[Méèáãl Bûüíïldéèr ÉÈxcháãngéè ŦŦŦ]",
