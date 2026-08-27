@@ -76,6 +76,18 @@
     "whyThisWorksForYou": "Bakit Ito Gumagana Para sa Iyo",
     "withChef": "Kasama si Chef"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "Hindi tugma ang inuming ito sa kasalukuyan mong {{protocol}} nutrition settings.",
+    "title": "Hindi tugma ang inuming ito sa kasalukuyan mong nutrition settings.",
+    "description": "May isa o higit pang sangkap o nutrition target na salungat sa kasalukuyan mong plano. Pinigilan ng iyong safety settings ang pagpapakita ng inuming hindi angkop.",
+    "alternativesHeading": "Pero may mga pagpipilian ka pa rin.",
+    "alternativesIntro": "Pinapanatili ng mga na-validate na alternatibong ito ang karamihan sa orihinal mong ideya ng inumin habang mas nababagay sa iyong settings.",
+    "alcoholFreeNote": "Salungat ang alcohol sa kasalukuyan mong settings, kaya alcohol-free ang mga alternatibo sa ibaba.",
+    "noAlternatives": "Hindi namin ma-validate ang isang ligtas na alternatibo sa pagkakataong ito. Maaari kang sumubok ng mas angkop na inumin o ayusin ang iyong preferences.",
+    "useOption": "Gamitin ang opsyong ito",
+    "makeBetterFit": "Gumawa ng mas angkop na inumin",
+    "adjustPreferences": "Ayusin ang aking preferences"
+  },
   "language": {
     "pageTitle": "Wika",
     "intro": "Ang My Perfect Meals ay nagge-generate ng mga pangalan ng pagkain, recipe, rekomendasyon sa restaurant, gabay sa pamimili at mga tugon ng coaching nang native sa iyong wika.",
@@ -953,7 +965,10 @@
     "physiciansClinicTitle": "Clínica de Médicos",
     "physiciansClinicDesc": "Supervisión médica, guardianes y herramientas de nutrición clínica",
     "trainersStudioTitle": "Estudio de Entrenadores",
-    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento"
+    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento",
+    "studioVideoTitle": "Pribadong Studio Video Messaging",
+    "studioVideoDesc": "Ligtas na video message sa pagitan ng mga propesyonal at kliyente, na may transcript para manatiling madaling ma-access ang coaching guidance.",
+    "procareLabel": "ProCare"
   },
   "mealSelect": {
     "title": "Intercambio de Constructor de Comidas",

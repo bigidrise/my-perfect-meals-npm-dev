@@ -38,3 +38,4 @@
 - [Runtime database identity](runtime-database-identity.md) — compare active connection fingerprints when the platform inspector cannot identify the deployed database.
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
+- [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.

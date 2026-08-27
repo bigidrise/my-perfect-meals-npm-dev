@@ -76,6 +76,18 @@
     "whyThisWorksForYou": "Pourquoi Cela Fonctionne Pour Vous",
     "withChef": "Avec le Chef"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "Cette boisson ne convient pas à vos réglages nutritionnels actuels pour {{protocol}}.",
+    "title": "Cette boisson ne convient pas à vos réglages nutritionnels actuels.",
+    "description": "Un ou plusieurs ingrédients ou objectifs nutritionnels entrent en conflit avec votre plan actuel. Vos garde-fous ont évité l'affichage d'une boisson qui ne convient pas.",
+    "alternativesHeading": "Mais vous avez encore des options.",
+    "alternativesIntro": "Ces alternatives validées conservent autant que possible votre idée de boisson initiale tout en respectant mieux vos réglages.",
+    "alcoholFreeNote": "L'alcool est incompatible avec vos réglages actuels ; les alternatives ci-dessous sont donc sans alcool.",
+    "noAlternatives": "Nous n'avons pas pu valider une alternative sûre cette fois-ci. Essayez une autre boisson plus adaptée ou ajustez vos préférences.",
+    "useOption": "Choisir cette option",
+    "makeBetterFit": "Créer une boisson plus adaptée",
+    "adjustPreferences": "Ajuster mes préférences"
+  },
   "language": {
     "pageTitle": "Langue",
     "intro": "My Perfect Meals génère des noms de repas, des recettes, des recommandations de restaurants, des conseils d'épicerie et des réponses de coaching nativement dans votre langue.",
@@ -953,7 +965,10 @@
     "physiciansClinicTitle": "Clínica de Médicos",
     "physiciansClinicDesc": "Supervisión médica, guardianes y herramientas de nutrición clínica",
     "trainersStudioTitle": "Estudio de Entrenadores",
-    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento"
+    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento",
+    "studioVideoTitle": "Messagerie vidéo privée Studio",
+    "studioVideoDesc": "Des messages vidéo sécurisés entre professionnels et clients, avec des transcriptions qui gardent les conseils de coaching accessibles.",
+    "procareLabel": "ProCare"
   },
   "mealSelect": {
     "title": "Intercambio de Constructor de Comidas",

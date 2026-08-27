@@ -76,6 +76,18 @@
     "whyThisWorksForYou": "Warum Das Für Dich Funktioniert",
     "withChef": "Mit Chef"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "Dieses Getränk passt nicht zu deinen aktuellen {{protocol}}-Ernährungseinstellungen.",
+    "title": "Dieses Getränk passt nicht zu deinen aktuellen Ernährungseinstellungen.",
+    "description": "Eine oder mehrere Zutaten oder Nährwertziele stehen im Konflikt mit deinem aktuellen Plan. Deine Schutzvorgaben haben verhindert, dass wir ein ungeeignetes Getränk anzeigen.",
+    "alternativesHeading": "Aber du hast weiterhin Optionen.",
+    "alternativesIntro": "Diese geprüften Alternativen behalten so viel wie möglich von deiner ursprünglichen Getränkeidee bei und passen besser zu deinen Einstellungen.",
+    "alcoholFreeNote": "Alkohol steht im Konflikt mit deinen aktuellen Einstellungen, deshalb sind die folgenden Alternativen alkoholfrei.",
+    "noAlternatives": "Diesmal konnten wir keine sichere Alternative prüfen. Du kannst ein anderes passenderes Getränk versuchen oder deine Einstellungen anpassen.",
+    "useOption": "Diese Option wählen",
+    "makeBetterFit": "Ein passenderes Getränk erstellen",
+    "adjustPreferences": "Meine Einstellungen anpassen"
+  },
   "language": {
     "pageTitle": "Sprache",
     "intro": "My Perfect Meals generiert Mahlzeitennamen, Rezepte, Restaurantempfehlungen, Einkaufstipps und Coaching-Antworten nativ in Ihrer Sprache.",
@@ -953,7 +965,10 @@
     "physiciansClinicTitle": "Clínica de Médicos",
     "physiciansClinicDesc": "Supervisión médica, guardianes y herramientas de nutrición clínica",
     "trainersStudioTitle": "Estudio de Entrenadores",
-    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento"
+    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento",
+    "studioVideoTitle": "Private Studio-Videonachrichten",
+    "studioVideoDesc": "Sichere Videonachrichten zwischen Fachkräften und Kunden, mit Transkripten für dauerhaft zugängliche Coaching-Hinweise.",
+    "procareLabel": "ProCare"
   },
   "mealSelect": {
     "title": "Intercambio de Constructor de Comidas",

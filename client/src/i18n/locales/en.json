@@ -76,6 +76,18 @@
     "whyThisFitsYourDiet": "Why This Fits Your Diet",
     "whyThisWorksForYou": "Why This Works For You"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "This drink doesn't fit your current {{protocol}} nutrition settings.",
+    "title": "This drink doesn't fit your current nutrition settings.",
+    "description": "One or more ingredients or nutrition targets conflict with your current plan. Your safeguards kept us from showing a drink that doesn't fit.",
+    "alternativesHeading": "But you still have options.",
+    "alternativesIntro": "These validated alternatives keep as much of your original drink idea as possible while better fitting your settings.",
+    "alcoholFreeNote": "Alcohol itself conflicts with your current settings, so the alternatives below are alcohol-free.",
+    "noAlternatives": "We couldn't validate a safe alternative this time. You can try another better-fit drink or adjust your preferences.",
+    "useOption": "Use This Option",
+    "makeBetterFit": "Make Me a Better-Fit Drink",
+    "adjustPreferences": "Adjust My Preferences"
+  },
   "language": {
     "pageTitle": "Language",
     "intro": "My Perfect Meals generates meal names, recipes, restaurant recommendations, grocery guidance, and coaching responses natively in your language. There is no translation step — the AI thinks in your language from the start.",
@@ -839,7 +851,10 @@
     "physiciansClinicTitle": "Physicians Clinic",
     "physiciansClinicDesc": "Medical oversight, guardrails, and clinical nutrition tools",
     "trainersStudioTitle": "Trainers Studio",
-    "trainersStudioDesc": "Coaching, personalization, and performance meal planning"
+    "trainersStudioDesc": "Coaching, personalization, and performance meal planning",
+    "studioVideoTitle": "Private Studio Video Messaging",
+    "studioVideoDesc": "Secure video messages between professionals and clients, with transcripts that keep coaching guidance accessible.",
+    "procareLabel": "ProCare"
   },
   "mealSelect": {
     "title": "Meal Builder Exchange",

@@ -76,6 +76,18 @@
     "whyThisWorksForYou": "لماذا يناسبك هذا",
     "withChef": "مع الطاهي"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "هذا المشروب لا يناسب إعداداتك الغذائية الحالية الخاصة بـ {{protocol}}.",
+    "title": "هذا المشروب لا يناسب إعداداتك الغذائية الحالية.",
+    "description": "يتعارض مكوّن واحد أو أكثر أو هدف غذائي مع خطتك الحالية. منعت إعدادات الحماية عرض مشروب لا يناسبك.",
+    "alternativesHeading": "لكن ما زالت لديك خيارات.",
+    "alternativesIntro": "تحافظ هذه البدائل المعتمدة على أكبر قدر ممكن من فكرة مشروبك الأصلية وتناسب إعداداتك بصورة أفضل.",
+    "alcoholFreeNote": "يتعارض الكحول مع إعداداتك الحالية، لذا فإن البدائل أدناه خالية من الكحول.",
+    "noAlternatives": "لم نتمكن من اعتماد بديل آمن هذه المرة. يمكنك تجربة مشروب أنسب أو تعديل تفضيلاتك.",
+    "useOption": "استخدم هذا الخيار",
+    "makeBetterFit": "أنشئ مشروبًا أنسب",
+    "adjustPreferences": "تعديل تفضيلاتي"
+  },
   "language": {
     "pageTitle": "اللغة",
     "intro": "يولّد My Perfect Meals أسماء الوجبات والوصفات وتوصيات المطاعم وإرشادات التسوق وردود التدريب باللغة الأصلية لك.",
@@ -957,7 +969,10 @@
     "physiciansClinicTitle": "Clínica de Médicos",
     "physiciansClinicDesc": "Supervisión médica, guardianes y herramientas de nutrición clínica",
     "trainersStudioTitle": "Estudio de Entrenadores",
-    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento"
+    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento",
+    "studioVideoTitle": "مراسلة فيديو خاصة عبر الاستوديو",
+    "studioVideoDesc": "رسائل فيديو آمنة بين المتخصصين والعملاء، مع نصوص مكتوبة تُبقي إرشادات التدريب متاحة.",
+    "procareLabel": "ProCare"
   },
   "mealSelect": {
     "title": "Intercambio de Constructor de Comidas",

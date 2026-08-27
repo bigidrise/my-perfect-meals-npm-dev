@@ -392,12 +392,46 @@ export function buildBeveragePromptBlocks(
 // Post-generation validator
 // ─────────────────────────────────────────────────────────────────────────────
 
-type MealInput = {
+export type BeverageMealInput = {
   name?: string;
   description?: string;
+  instructions?: string | string[];
   ingredients?: Array<{ name?: string; item?: string; [k: string]: unknown }>;
   nutrition?: { calories?: number };
 };
+
+/**
+ * Reuses the same keyword and safe-variant rules as the medical validator to
+ * identify alcohol content for a structured protocol rejection. This only
+ * classifies the reason for an already-failed output; it never permits alcohol.
+ */
+export function containsAlcoholContent(meal: BeverageMealInput): boolean {
+  const instructionText = Array.isArray(meal.instructions)
+    ? meal.instructions.map(String)
+    : meal.instructions
+      ? [String(meal.instructions)]
+      : [];
+  const allText = [
+    ...(meal.ingredients ?? []).map((ingredient) =>
+      String(ingredient.name ?? ingredient.item ?? "").toLowerCase(),
+    ),
+    String(meal.name ?? "").toLowerCase(),
+    String(meal.description ?? "").toLowerCase(),
+    ...instructionText.map((instruction) => instruction.toLowerCase()),
+  ].filter(Boolean);
+
+  return allText.some((text) =>
+    ALCOHOL_KEYWORDS.some((keyword) => {
+      const normalizedKeyword = keyword.toLowerCase();
+      if (!text.includes(normalizedKeyword)) return false;
+      const safeVariants =
+        ALCOHOL_SAFE_VARIANTS[normalizedKeyword] ?? [];
+      return !safeVariants.some((safe) =>
+        text.includes(safe.toLowerCase()),
+      );
+    }),
+  );
+}
 
 /**
  * Scans the generated beverage output against the active condition ban lists.
@@ -410,7 +444,7 @@ type MealInput = {
  *   4. Violations include `keyword` + `isAlcohol` fields for auto-fix routing
  */
 export function validateBeverageOutput(
-  meal: MealInput,
+  meal: BeverageMealInput,
   envelope: UserProtocolEnvelope,
   builder: BuilderKey | null,
 ): BeverageValidationResult {
@@ -498,7 +532,7 @@ export function validateBeverageOutput(
  * retry is needed. If it still fails (rare edge case), fall through to retry.
  */
 export function attemptBeverageAutoFix(
-  meal: MealInput & { reasoning?: string },
+  meal: BeverageMealInput & { reasoning?: string },
   violations: BeverageViolation[],
 ): BeverageAutoFixResult | null {
   // Bail on alcohol violations — full mocktail rebuild required

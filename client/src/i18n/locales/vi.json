@@ -76,6 +76,18 @@
     "whyThisWorksForYou": "Vì sao món này phù hợp với bạn",
     "withChef": "Với đầu bếp"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "Đồ uống này không phù hợp với cài đặt dinh dưỡng {{protocol}} hiện tại của bạn.",
+    "title": "Đồ uống này không phù hợp với cài đặt dinh dưỡng hiện tại của bạn.",
+    "description": "Một hoặc nhiều thành phần hoặc mục tiêu dinh dưỡng xung đột với kế hoạch hiện tại. Các biện pháp bảo vệ đã ngăn việc hiển thị một đồ uống không phù hợp.",
+    "alternativesHeading": "Nhưng bạn vẫn còn lựa chọn.",
+    "alternativesIntro": "Các lựa chọn thay thế đã được xác thực này giữ lại tối đa ý tưởng đồ uống ban đầu của bạn và phù hợp hơn với cài đặt của bạn.",
+    "alcoholFreeNote": "Cồn xung đột với cài đặt hiện tại của bạn, vì vậy các lựa chọn bên dưới không chứa cồn.",
+    "noAlternatives": "Lần này chúng tôi không thể xác thực một lựa chọn thay thế an toàn. Bạn có thể thử đồ uống phù hợp hơn hoặc điều chỉnh tùy chọn của mình.",
+    "useOption": "Dùng lựa chọn này",
+    "makeBetterFit": "Tạo đồ uống phù hợp hơn",
+    "adjustPreferences": "Điều chỉnh tùy chọn của tôi"
+  },
   "language": {
     "pageTitle": "Ngôn ngữ",
     "intro": "My Perfect Meals tạo tên bữa ăn, công thức, đề xuất nhà hàng, hướng dẫn mua sắm và phản hồi huấn luyện bằng ngôn ngữ của bạn.",
@@ -953,7 +965,10 @@
     "physiciansClinicTitle": "Clínica de Médicos",
     "physiciansClinicDesc": "Supervisión médica, guardianes y herramientas de nutrición clínica",
     "trainersStudioTitle": "Estudio de Entrenadores",
-    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento"
+    "trainersStudioDesc": "Coaching, personalización y planificación de comidas para rendimiento",
+    "studioVideoTitle": "Tin nhắn video Studio riêng tư",
+    "studioVideoDesc": "Tin nhắn video bảo mật giữa chuyên gia và khách hàng, kèm bản chép lời để hướng dẫn coaching luôn dễ truy cập.",
+    "procareLabel": "ProCare"
   },
   "mealSelect": {
     "title": "Intercambio de Constructor de Comidas",
