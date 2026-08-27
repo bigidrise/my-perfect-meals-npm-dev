@@ -9,7 +9,7 @@ import {
 } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { users } from "../../shared/schema";
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, and, asc, isNull, sql } from "drizzle-orm";
 import multer from "multer";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { moderatePrivateStudioContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
@@ -52,6 +52,7 @@ import {
   completeStudioVideoWatch,
   createVerifiedWatchProgress,
   recordVerifiedWatchProgress,
+  STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
   type VerifiedWatchProgress,
 } from "@shared/studioVideoMessages";
 import {
@@ -278,6 +279,7 @@ router.post("/video-message", requireClientWorkspaceAccess, studioVideoUpload, a
     durationSec,
     sizeBytes: req.file.size,
     temporaryDerivativeKeys: [],
+    expiresAt: new Date(Date.now() + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS),
     moderationStatus: "pending",
   });
   auditStudioVideoAction({
@@ -446,6 +448,7 @@ router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (re
   if (!canReplayStudioVideo({
     state: record.media.state,
     objectKey: record.media.objectKey,
+    createdAt: record.media.createdAt,
     expiresAt: record.media.expiresAt?.toISOString() ?? null,
     deletedAt: record.media.deletedAt?.toISOString() ?? null,
   }, new Date())) {
@@ -497,9 +500,14 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
     res.status(404).json({ error: "Video message not found" });
     return;
   }
+  if (record.message.recipientUserId !== authUser.id) {
+    res.status(403).json({ error: "Only the video recipient can record watch completion" });
+    return;
+  }
   if (!canReplayStudioVideo({
     state: record.media.state,
     objectKey: record.media.objectKey,
+    createdAt: record.media.createdAt,
     expiresAt: record.media.expiresAt?.toISOString() ?? null,
     deletedAt: record.media.deletedAt?.toISOString() ?? null,
   }, new Date())) {
@@ -518,14 +526,37 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
   });
   const update: Record<string, unknown> = { watchProgress: result.progress, updatedAt: new Date() };
   if (result.complete && record.media.state === "ready") {
+    const completedAt = new Date();
     const completion = completeStudioVideoWatch({
       currentState: "ready",
       progress: result.progress,
-      completedAt: new Date(),
+      completedAt,
     });
-    update.state = completion.state;
-    update.watchCompletedAt = new Date(completion.watchCompletedAt);
-    update.expiresAt = new Date(completion.expiresAt);
+    const [persistedCompletion] = await db.update(studioVideoMedia)
+      .set({
+        watchProgress: result.progress,
+        state: completion.state,
+        watchCompletedAt: new Date(completion.watchCompletedAt),
+        expiresAt: new Date(completion.expiresAt),
+        updatedAt: completedAt,
+      })
+      .where(and(
+        eq(studioVideoMedia.id, record.media.id),
+        eq(studioVideoMedia.state, "ready"),
+        isNull(studioVideoMedia.watchCompletedAt),
+        sql`COALESCE(
+          ${studioVideoMedia.expiresAt},
+          ${studioVideoMedia.createdAt} + (${STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS} * INTERVAL '1 millisecond')
+        ) > ${completedAt}`,
+      ))
+      .returning({
+        watchCompletedAt: studioVideoMedia.watchCompletedAt,
+        expiresAt: studioVideoMedia.expiresAt,
+      });
+    if (!persistedCompletion) {
+      res.status(409).json({ error: "Video availability changed before completion could be recorded" });
+      return;
+    }
     auditStudioVideoAction({
       req, event: "watch_completion_recorded", actorUserId: authUser.id, targetUserId: authUser.id,
       studioId, messageId: record.message.id,
@@ -533,8 +564,17 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
     });
     auditStudioVideoAction({
       req, event: "expiration_started", actorUserId: authUser.id, targetUserId: authUser.id,
-      studioId, messageId: record.message.id, metadata: { windowHours: 24 },
+      studioId, messageId: record.message.id, metadata: { windowMinutes: 15 },
     });
+    res.set("Cache-Control", "no-store, private");
+    res.json({
+      accepted: result.accepted,
+      complete: result.complete,
+      coverageRatio: result.coverageRatio,
+      watchCompletedAt: persistedCompletion.watchCompletedAt,
+      expiresAt: persistedCompletion.expiresAt,
+    });
+    return;
   }
   await db.update(studioVideoMedia)
     .set(update as any)
@@ -884,9 +924,9 @@ router.delete("/entry/:entryId", requireClientWorkspaceAccess, async (req: Reque
 });
 
 router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
-  const authUser = (req as AuthenticatedRequest).authUser;
-  const studioId = (req as WorkspaceRequest).workspace.studioId;
-  await handleClientStudioVideoDeletion(req, res, authUser, studioId, req.params.messageId);
+  res.status(410).json({
+    error: "Private video media is managed automatically. Use Delete for me to remove this message from your Studio history.",
+  });
 });
 
 router.delete("/video/:messageId/transcript", requireClientWorkspaceAccess, async (req: Request, res: Response) => {

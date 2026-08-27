@@ -1234,8 +1234,8 @@ export default function DashboardNew() {
                             {entry.videoMediaState === "expired" || entry.videoMediaState === "deleted" ? (
                               <p className="text-xs text-white/45 italic">
                                 {entry.videoMediaState === "deleted"
-                                   ? "Private video deleted. Its transcript remains in shared history."
-                                  : "This video has expired. Its transcript remains in your message history."}
+                                   ? "Private video deleted. Its transcript remains available independently, subject to the platform's applicable retention policy."
+                                  : "This video is no longer available. Its transcript remains available independently, subject to the platform's applicable retention policy."}
                               </p>
                             ) : entry.videoMediaState === "transcription_failed" ? (
                               <p className="text-xs text-white/45 italic">
@@ -1278,7 +1278,7 @@ export default function DashboardNew() {
                               </span>
                             </div>
                             <p className="text-[10px] text-white/45 leading-snug">
-                              This video will be deleted 24 hours after you finish watching it. The transcript remains in your message history.
+                              After verified completion, this video is available for 15 more minutes before private media is removed. The transcript remains available independently until you choose Delete for me, subject to the platform's applicable retention policy.
                             </p>
                             {entry.videoTranscriptStatus === "completed" && entry.transcript && (
                               <p className="text-xs text-white/75 leading-relaxed italic border-l-2 border-violet-400/40 pl-2">

@@ -2,6 +2,9 @@ jest.mock("../db", () => ({ db: {} }));
 jest.mock("../lib/auditLog", () => ({ logAudit: jest.fn() }));
 jest.mock("../services/tabletVoiceService", () => ({
   deleteStudioVideoFromS3: jest.fn(),
+  getStudioVideoObjectKey: jest.fn((messageId: string, mimeType: string) =>
+    `studio-video/${messageId}.${mimeType.includes("mp4") ? "mp4" : "webm"}`,
+  ),
 }));
 
 import { deleteStudioVideoFromS3 } from "../services/tabletVoiceService";
@@ -22,7 +25,9 @@ function makeRow(overrides: Partial<StudioVideoPurgeRow> = {}): StudioVideoPurge
     client_user_id: "client-1",
     author_user_id: "pro-1",
     state: "deleting",
+    prior_state: "ready",
     object_key: "studio-video/message-1/original.mp4",
+    mime_type: "video/mp4",
     temporary_derivative_keys: [
       "studio-video/message-1/preview.mp4",
       "studio-video/message-1/thumbnail.jpg",
@@ -156,8 +161,8 @@ describe("Studio video purge worker", () => {
     expect(deleteStudioVideoFromS3).toHaveBeenCalledWith("studio-video/message-1/thumbnail.jpg");
   });
 
-  test("never deletes storage when the completed transcript is unavailable", async () => {
-    const row = makeRow({ transcript: null, transcript_status: "failed" });
+  test("never deletes storage when transcript state is malformed", async () => {
+    const row = makeRow({ transcript: "unexpected transcript", transcript_status: "failed" });
     const { database, queries } = queuedDatabase([
       { rows: [{ id: row.id }] }, // renew this item's lease
       { rows: [{ id: row.id }] }, // record transcript failure
@@ -173,6 +178,111 @@ describe("Studio video purge worker", () => {
 
     expect(deleteObject).not.toHaveBeenCalled();
     expect(sqlText(queries[1])).toContain("state = 'deletion_failed'");
+  });
+
+  test("deletes unopened media after its retention deadline while keeping a completed transcript", async () => {
+    const row = makeRow({
+      watch_completed_at: null,
+      expires_at: new Date("2026-08-23T12:00:00.000Z"),
+    });
+    const { database, queries } = queuedDatabase([
+      { rows: [{ id: row.id }] }, // renew this item's lease
+      { rows: [{ id: row.id }] }, // finalize deletion
+    ]);
+    const deletedKeys: string[] = [];
+
+    await expect(purgeClaimedStudioVideo(
+      row,
+      database,
+      { deleteObject: async (key) => { deletedKeys.push(key); } },
+      NOW,
+    )).resolves.toBe("deleted");
+
+    expect(deletedKeys).toEqual([
+      "studio-video/message-1/original.mp4",
+      "studio-video/message-1/preview.mp4",
+      "studio-video/message-1/thumbnail.jpg",
+    ]);
+    expect(sqlText(queries[1])).toContain("object_key = NULL");
+    expect(sqlText(queries[1])).not.toContain("SET transcript");
+  });
+
+  test("recovers a private object stranded between upload storage and database persistence", async () => {
+    const row = makeRow({
+      prior_state: "uploading",
+      object_key: null,
+      temporary_derivative_keys: [],
+      transcript: null,
+      transcript_status: "failed",
+      watch_completed_at: null,
+    });
+    const { database } = queuedDatabase([
+      { rows: [{ id: row.id }] }, // renew this item's lease
+      { rows: [{ id: row.id }] }, // finalize deletion
+    ]);
+    const deletedKeys: string[] = [];
+
+    await expect(purgeClaimedStudioVideo(
+      row,
+      database,
+      { deleteObject: async (key) => { deletedKeys.push(key); } },
+      NOW,
+    )).resolves.toBe("deleted");
+
+    expect(deletedKeys).toEqual(["studio-video/message-1.mp4"]);
+  });
+
+  test("retries a recovered upload key after a transient storage failure", async () => {
+    const failedRow = makeRow({
+      prior_state: "uploading",
+      object_key: null,
+      temporary_derivative_keys: [],
+      transcript: null,
+      transcript_status: "failed",
+      watch_completed_at: null,
+    });
+    const failedAttempt = queuedDatabase([
+      { rows: [{ id: failedRow.id }] }, // renew this item's lease
+      { rows: [{ id: failedRow.id }] }, // record retryable failure
+    ]);
+    await expect(purgeClaimedStudioVideo(
+      failedRow,
+      failedAttempt.database,
+      { deleteObject: async () => { throw new Error("temporary storage outage"); } },
+      NOW,
+    )).resolves.toBe("deletion_failed");
+
+    const retryRow = { ...failedRow, prior_state: "deletion_failed" };
+    const retryAttempt = queuedDatabase([
+      { rows: [{ id: retryRow.id }] }, // renew this item's lease
+      { rows: [{ id: retryRow.id }] }, // finalize deletion
+    ]);
+    const deletedKeys: string[] = [];
+    await expect(purgeClaimedStudioVideo(
+      retryRow,
+      retryAttempt.database,
+      { deleteObject: async (key) => { deletedKeys.push(key); } },
+      NOW,
+    )).resolves.toBe("deleted");
+
+    expect(deletedKeys).toEqual(["studio-video/message-1.mp4"]);
+  });
+
+  test("selects both watched-grace and unopened-retention deadlines for automatic expiration", async () => {
+    const { database, queries } = queuedDatabase([
+      { rows: [] }, // recover abandoned deletion leases
+      { rows: [] }, // expire completed or unopened media
+      { rows: [] }, // claim due media
+    ]);
+
+    await purgeExpiredStudioVideos({ database, now: NOW });
+
+    const expirationSql = sqlText(queries[1]);
+    expect(expirationSql).toContain("media.state = 'expiration_pending'");
+    expect(expirationSql).toContain("'ready'");
+    expect(expirationSql).toContain("'uploading'");
+    expect(expirationSql).toContain("media.created_at");
+    expect(expirationSql).toContain("media.watch_completed_at");
   });
 
   test("recovers a crashed manual deletion claim even when the video was never due for automatic expiry", async () => {

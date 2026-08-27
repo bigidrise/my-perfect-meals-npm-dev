@@ -893,8 +893,8 @@ export default function ProClientFolderModal({
         {isExpired ? (
           <p className="text-[10px] text-white/45 italic">
             {isDeleted
-               ? "Private video deleted. Its transcript remains in shared history."
-              : "This video has expired. Its message record remains in Studio history."}
+               ? "Private video deleted. Its transcript remains available independently, subject to the platform's applicable retention policy."
+              : "This video is no longer available. Its transcript remains available independently, subject to the platform's applicable retention policy."}
           </p>
         ) : isFailedTranscription ? (
           <p className="text-[10px] text-white/45 italic">
@@ -930,7 +930,7 @@ export default function ProClientFolderModal({
               </button>
             )}
             <p className="text-[10px] text-white/45 leading-snug mt-2">
-              Watching nearly all of this video verifies completion and starts its 24-hour expiry countdown.
+              Watching nearly all of this video verifies completion and starts a 15-minute replay grace period before private media is removed. The transcript remains available independently until you choose Delete for me, subject to the platform's applicable retention policy.
             </p>
             {hasExpiryCountdown && (
               <p className="text-[10px] text-amber-300 mt-1">
