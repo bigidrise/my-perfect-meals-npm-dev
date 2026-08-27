@@ -974,12 +974,11 @@ export default function DashboardNew() {
           transition={{ delay: 0.1, duration: 0.5 }}
           className="mb-4"
         >
-          <div className="relative h-64 rounded-xl overflow-hidden">
+           <div className="relative h-52 sm:h-64 rounded-xl overflow-hidden">
             <img
               src="/images/dashboard-chef-community-hero.png"
               alt={t("heroAlt")}
-              className="w-full h-full object-cover"
-              style={{ objectPosition: "center 63%" }}
+              className="w-full h-full object-cover object-[center_bottom] sm:object-[center_63%]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
             <div className="absolute bottom-3 left-4 right-4">
