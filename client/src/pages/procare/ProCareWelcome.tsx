@@ -64,6 +64,9 @@ export default function ProCareWelcome() {
     : isPhysicianWelcome
       ? "physician"
       : null;
+  const heroChefSrc = role
+    ? "/assets/WelcomeChef2026.png"
+    : "/assets/ProCareChef.png";
 
   // Returning professionals already have a role set — send them to their workspace
   useEffect(() => {
@@ -123,7 +126,7 @@ export default function ProCareWelcome() {
         {/* Hero */}
         <div className="flex flex-col items-center mb-6 text-center">
           <img
-            src="/assets/ProCareChef.png"
+            src={heroChefSrc}
             alt="Chef"
             className="w-56 h-auto"
           />
