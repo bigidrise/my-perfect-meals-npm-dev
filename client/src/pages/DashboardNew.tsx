@@ -974,7 +974,7 @@ export default function DashboardNew() {
           transition={{ delay: 0.1, duration: 0.5 }}
           className="mb-4"
         >
-           <div className="relative h-64 rounded-xl overflow-hidden">
+           <div className="relative h-56 sm:h-64 rounded-xl overflow-hidden">
             <img
               src="/images/dashboard-chef-community-hero.png"
               alt={t("heroAlt")}
