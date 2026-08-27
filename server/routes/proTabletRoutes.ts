@@ -8,7 +8,7 @@ import {
   studioVideoMessages,
 } from "../db/schema/studio";
 import { users } from "../../shared/schema";
-import { eq, and, asc, desc, inArray, notExists } from "drizzle-orm";
+import { eq, and, asc, desc, inArray, isNull, notExists } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
@@ -61,6 +61,7 @@ import {
   completeStudioVideoWatch,
   createVerifiedWatchProgress,
   recordVerifiedWatchProgress,
+  STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
   type VerifiedWatchProgress,
 } from "@shared/studioVideoMessages";
 import {
@@ -270,6 +271,7 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, studioVideoUploa
     durationSec,
     sizeBytes: req.file.size,
     temporaryDerivativeKeys: [],
+    expiresAt: new Date(Date.now() + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS),
     moderationStatus: "pending",
   });
   auditStudioVideoAction({
@@ -417,20 +419,9 @@ router.post("/:clientId/video-message", requireWorkspaceAccess, studioVideoUploa
 });
 
 router.delete("/:clientId/video/:messageId", requireWorkspaceAccess, async (req: Request, res: Response) => {
-  const authUser = (req as AuthenticatedRequest).authUser;
-  const studioId = await getProStudioId(authUser.id);
-  if (!studioId) {
-    res.status(404).json({ error: "No studio found" });
-    return;
-  }
-  await handleProStudioVideoDeletion(
-    req,
-    res,
-    authUser,
-    studioId,
-    req.params.clientId,
-    req.params.messageId,
-  );
+  res.status(410).json({
+    error: "Private video media is managed automatically. Use Delete for me to remove this message from your Studio history.",
+  });
 });
 
 router.delete("/:clientId/video/:messageId/transcript", requireWorkspaceAccess, async (req: Request, res: Response) => {
@@ -489,6 +480,7 @@ router.get("/:clientId/video/:messageId/playback", requireWorkspaceAccess, async
   if (!canReplayStudioVideo({
     state: record.media.state,
     objectKey: record.media.objectKey,
+    createdAt: record.media.createdAt,
     expiresAt: record.media.expiresAt?.toISOString() ?? null,
     deletedAt: record.media.deletedAt?.toISOString() ?? null,
   }, new Date())) {
@@ -546,9 +538,14 @@ router.post("/:clientId/video/:messageId/progress", requireWorkspaceAccess, asyn
     res.status(404).json({ error: "Video message not found" });
     return;
   }
+  if (record.message.recipientUserId !== authUser.id) {
+    res.status(403).json({ error: "Only the video recipient can record watch completion" });
+    return;
+  }
   if (!canReplayStudioVideo({
     state: record.media.state,
     objectKey: record.media.objectKey,
+    createdAt: record.media.createdAt,
     expiresAt: record.media.expiresAt?.toISOString() ?? null,
     deletedAt: record.media.deletedAt?.toISOString() ?? null,
   }, new Date())) {
@@ -567,14 +564,37 @@ router.post("/:clientId/video/:messageId/progress", requireWorkspaceAccess, asyn
   });
   const update: Record<string, unknown> = { watchProgress: result.progress, updatedAt: new Date() };
   if (result.complete && record.media.state === "ready") {
+    const completedAt = new Date();
     const completion = completeStudioVideoWatch({
       currentState: "ready",
       progress: result.progress,
-      completedAt: new Date(),
+      completedAt,
     });
-    update.state = completion.state;
-    update.watchCompletedAt = new Date(completion.watchCompletedAt);
-    update.expiresAt = new Date(completion.expiresAt);
+    const [persistedCompletion] = await db.update(studioVideoMedia)
+      .set({
+        watchProgress: result.progress,
+        state: completion.state,
+        watchCompletedAt: new Date(completion.watchCompletedAt),
+        expiresAt: new Date(completion.expiresAt),
+        updatedAt: completedAt,
+      })
+      .where(and(
+        eq(studioVideoMedia.id, record.media.id),
+        eq(studioVideoMedia.state, "ready"),
+        isNull(studioVideoMedia.watchCompletedAt),
+        sql`COALESCE(
+          ${studioVideoMedia.expiresAt},
+          ${studioVideoMedia.createdAt} + (${STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS} * INTERVAL '1 millisecond')
+        ) > ${completedAt}`,
+      ))
+      .returning({
+        watchCompletedAt: studioVideoMedia.watchCompletedAt,
+        expiresAt: studioVideoMedia.expiresAt,
+      });
+    if (!persistedCompletion) {
+      res.status(409).json({ error: "Video availability changed before completion could be recorded" });
+      return;
+    }
     auditStudioVideoAction({
       req, event: "watch_completion_recorded", actorUserId: authUser.id,
       targetUserId: record.message.clientUserId, studioId, messageId: record.message.id,
@@ -583,8 +603,17 @@ router.post("/:clientId/video/:messageId/progress", requireWorkspaceAccess, asyn
     auditStudioVideoAction({
       req, event: "expiration_started", actorUserId: authUser.id,
       targetUserId: record.message.clientUserId, studioId, messageId: record.message.id,
-      metadata: { windowHours: 24 },
+      metadata: { windowMinutes: 15 },
     });
+    res.set("Cache-Control", "no-store, private");
+    res.json({
+      accepted: result.accepted,
+      complete: result.complete,
+      coverageRatio: result.coverageRatio,
+      watchCompletedAt: persistedCompletion.watchCompletedAt,
+      expiresAt: persistedCompletion.expiresAt,
+    });
+    return;
   }
   await db.update(studioVideoMedia)
     .set(update as any)

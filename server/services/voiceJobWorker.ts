@@ -8,9 +8,16 @@ import {
 } from "./tabletVoiceService";
 import { moderatePrivateStudioContent } from "./tabletModerationService";
 import { logClientActivity } from "./activityLog";
-import { deleteStudioVideoFromS3 } from "./tabletVoiceService";
+import {
+  deleteStudioVideoFromS3,
+  getStudioVideoObjectKey,
+} from "./tabletVoiceService";
 import { logAudit } from "../lib/auditLog";
-import { finalizeStudioVideoDeletion } from "@shared/studioVideoMessages";
+import {
+  finalizeStudioVideoDeletion,
+  STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+  STUDIO_VIDEO_POST_COMPLETION_GRACE_MS,
+} from "@shared/studioVideoMessages";
 import { randomUUID } from "crypto";
 
 const POLL_INTERVAL_MS = 8000;
@@ -35,9 +42,11 @@ export type StudioVideoPurgeRow = {
   client_user_id: string;
   author_user_id: string;
   state: string;
+  prior_state?: string;
   object_key: string | null;
+  mime_type: string | null;
   temporary_derivative_keys: unknown;
-  expires_at: Date | string;
+  expires_at: Date | string | null;
   watch_completed_at: Date | string | null;
   transcript: string | null;
   transcript_status: string | null;
@@ -161,8 +170,13 @@ function parseDerivativeKeys(value: unknown): string[] {
 }
 
 function storageKeysForRow(row: StudioVideoPurgeRow): string[] {
+  const recoveredUploadKey =
+    !row.object_key &&
+    row.mime_type
+      ? getStudioVideoObjectKey(row.message_id, row.mime_type)
+      : null;
   return Array.from(new Set([
-    ...(row.object_key ? [row.object_key] : []),
+    ...((row.object_key ?? recoveredUploadKey) ? [row.object_key ?? recoveredUploadKey!] : []),
     ...parseDerivativeKeys(row.temporary_derivative_keys),
   ]));
 }
@@ -253,12 +267,18 @@ export async function purgeClaimedStudioVideo(
     attempt: "started",
   });
 
+  const hasCompletedTranscript =
+    row.transcript_status === "completed" && row.transcript !== null;
+  const hasFailedTranscriptionHistory =
+    row.transcript_status === "failed" && row.transcript === null;
+  const hasBlockedModerationHistory = row.transcript_status === "blocked";
   if (
-    row.transcript_status !== "completed" ||
-    row.transcript === null ||
-    !row.watch_completed_at
+    !row.expires_at ||
+    (!hasCompletedTranscript &&
+      !hasFailedTranscriptionHistory &&
+      !hasBlockedModerationHistory)
   ) {
-    const error = "Completed transcript and watch timestamp are required before Studio video deletion";
+    const error = "A retainable transcript state and expiration timestamp are required before Studio video deletion";
     if (await markStudioVideoDeletionFailed(row, database, error)) {
       auditStudioVideoLifecycle(row, "DELETE", "deletion_failed", {
         reason: "transcript_not_retainable",
@@ -316,9 +336,11 @@ export async function purgeClaimedStudioVideo(
     currentState: "deleting",
     now,
     expiresAt: toIsoTimestamp(row.expires_at),
-    watchCompletedAt: toIsoTimestamp(row.watch_completed_at),
+    watchCompletedAt: row.watch_completed_at
+      ? toIsoTimestamp(row.watch_completed_at)
+      : null,
     transcript: {
-      status: "completed",
+      status: row.transcript_status as "completed" | "failed" | "blocked",
       text: row.transcript,
       transcribedAt: null,
     },
@@ -339,8 +361,17 @@ export async function purgeClaimedStudioVideo(
       AND media.message_id = message.id
       AND media.state = 'deleting'
       AND media.deletion_claim_token = ${row.deletion_claim_token}
-      AND message.transcript_status = 'completed'
-      AND message.transcript = ${row.transcript}
+      AND (
+        (
+          message.transcript_status = 'completed'
+          AND message.transcript = ${row.transcript}
+        )
+        OR (
+          message.transcript_status = 'failed'
+          AND message.transcript IS NULL
+        )
+        OR message.transcript_status = 'blocked'
+      )
     RETURNING media.id
   `);
   if ((finalizedResult.rows ?? []).length === 0) {
@@ -374,6 +405,12 @@ export async function purgeExpiredStudioVideos(
   const batchSize = Math.max(1, Math.min(100, options.batchSize ?? STUDIO_VIDEO_PURGE_BATCH_SIZE));
   const claimToken = randomUUID();
   const leaseExpiresAt = new Date(now.getTime() + STUDIO_VIDEO_DELETION_LEASE_MS);
+  const completionCutoff = new Date(
+    now.getTime() - STUDIO_VIDEO_POST_COMPLETION_GRACE_MS,
+  );
+  const unopenedCutoff = new Date(
+    now.getTime() - STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+  );
 
   // A manual delete can be interrupted before the private storage call
   // completes. Recover any expired claim regardless of watch state: a `ready`
@@ -394,14 +431,71 @@ export async function purgeExpiredStudioVideos(
   `);
 
   const expiredResult = await database.execute(sql`
+    WITH stale_unopened_transcripts AS (
+      UPDATE studio_video_messages AS stale_message
+      SET transcript_status = 'failed',
+          updated_at = NOW()
+      FROM studio_video_media AS stale_media
+      WHERE stale_media.message_id = stale_message.id
+        AND stale_media.watch_completed_at IS NULL
+        AND stale_media.created_at <= ${unopenedCutoff}
+        AND stale_media.state IN (
+          'ready',
+          'uploading',
+          'uploaded',
+          'processing',
+          'upload_failed',
+          'transcription_failed',
+          'moderation_failed'
+        )
+        AND stale_message.transcript_status = 'pending'
+        AND stale_message.transcript IS NULL
+      RETURNING stale_message.id
+    )
     UPDATE studio_video_media AS media
     SET state = 'expired',
+        expires_at = CASE
+          WHEN media.watch_completed_at IS NOT NULL
+            THEN media.watch_completed_at + (${STUDIO_VIDEO_POST_COMPLETION_GRACE_MS} * INTERVAL '1 millisecond')
+          ELSE media.created_at + (${STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS} * INTERVAL '1 millisecond')
+        END,
         updated_at = NOW()
     FROM studio_video_messages AS message
     WHERE media.message_id = message.id
-      AND media.state = 'expiration_pending'
-      AND media.expires_at IS NOT NULL
-      AND media.expires_at <= ${now}
+      AND (
+        (
+          media.state = 'expiration_pending'
+          AND media.watch_completed_at IS NOT NULL
+          AND media.watch_completed_at <= ${completionCutoff}
+          AND message.transcript_status = 'completed'
+          AND message.transcript IS NOT NULL
+        )
+        OR (
+          media.state IN (
+            'ready',
+            'uploading',
+            'uploaded',
+            'processing',
+            'upload_failed',
+            'transcription_failed',
+            'moderation_failed'
+          )
+          AND media.watch_completed_at IS NULL
+          AND media.created_at <= ${unopenedCutoff}
+          AND (
+            (
+              message.transcript_status = 'completed'
+              AND message.transcript IS NOT NULL
+            )
+            OR (
+              message.transcript_status = 'failed'
+              AND message.transcript IS NULL
+            )
+            OR message.transcript_status = 'blocked'
+            OR message.id IN (SELECT id FROM stale_unopened_transcripts)
+          )
+        )
+      )
     RETURNING media.id, media.message_id, message.studio_id, message.client_user_id,
               message.author_user_id, media.state, media.object_key,
               media.temporary_derivative_keys, media.expires_at,
@@ -424,7 +518,7 @@ export async function purgeExpiredStudioVideos(
         last_deletion_error = NULL,
         updated_at = NOW()
     FROM (
-      SELECT id
+      SELECT id, state AS prior_state
       FROM studio_video_media
       WHERE state IN ('expired', 'deletion_failed', 'deleting')
         AND expires_at IS NOT NULL
@@ -443,7 +537,8 @@ export async function purgeExpiredStudioVideos(
               (SELECT studio_id FROM studio_video_messages WHERE id = media.message_id) AS studio_id,
               (SELECT client_user_id FROM studio_video_messages WHERE id = media.message_id) AS client_user_id,
               (SELECT author_user_id FROM studio_video_messages WHERE id = media.message_id) AS author_user_id,
-              media.state, media.object_key, media.temporary_derivative_keys,
+              media.state, due.prior_state, media.object_key, media.mime_type,
+              media.temporary_derivative_keys,
               media.expires_at, media.watch_completed_at, media.deletion_claim_token,
               (SELECT transcript FROM studio_video_messages WHERE id = media.message_id) AS transcript,
               (SELECT transcript_status FROM studio_video_messages WHERE id = media.message_id) AS transcript_status

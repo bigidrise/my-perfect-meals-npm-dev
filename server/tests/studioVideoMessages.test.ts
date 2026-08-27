@@ -1,5 +1,6 @@
 import {
-  STUDIO_VIDEO_EXPIRATION_WINDOW_MS,
+  STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+  STUDIO_VIDEO_POST_COMPLETION_GRACE_MS,
   assertPrivateStudioVideoStorage,
   assertStudioVideoManualDeletionEligible,
   assertStudioVideoMessageDeletionEligible,
@@ -126,6 +127,14 @@ describe("Studio Video Messages — lifecycle transitions", () => {
 
   it("models upload, transcription, moderation, and deletion failures as retryable boundaries", () => {
     expect(() => validTransition("uploading", "upload_failed")).not.toThrow();
+    expect(() =>
+      validTransition("uploading", "expired", {
+        now: BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+        expiresAt: new Date(
+          BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+        ).toISOString(),
+      }),
+    ).not.toThrow();
     expect(() => validTransition("upload_failed", "uploading")).not.toThrow();
     expect(() =>
       validTransition("processing", "transcription_failed"),
@@ -138,6 +147,14 @@ describe("Studio Video Messages — lifecycle transitions", () => {
     ).not.toThrow();
     expect(() =>
       validTransition("moderation_failed", "processing"),
+    ).not.toThrow();
+    expect(() =>
+      validTransition("uploaded", "expired", {
+        now: BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+        expiresAt: new Date(
+          BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+        ).toISOString(),
+      }),
     ).not.toThrow();
     expect(() =>
       validTransition("moderation_failed", "deleting"),
@@ -153,7 +170,7 @@ describe("Studio Video Messages — lifecycle transitions", () => {
     expect(() => validTransition("transcription_failed", "deleting")).not.toThrow();
   });
 
-  it("rejects skipping states or expiring before the 24-hour deadline", () => {
+  it("rejects skipping states or expiring before the applicable deadline", () => {
     expect(() => validTransition("draft", "ready")).toThrow(
       "INVALID_STUDIO_VIDEO_TRANSITION",
     );
@@ -166,6 +183,14 @@ describe("Studio Video Messages — lifecycle transitions", () => {
       validTransition("expiration_pending", "expired", {
         now: BASE_TIME + 1000,
         expiresAt: new Date(BASE_TIME + 1000).toISOString(),
+      }),
+    ).not.toThrow();
+    expect(() =>
+      validTransition("ready", "expired", {
+        now: BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+        expiresAt: new Date(
+          BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+        ).toISOString(),
       }),
     ).not.toThrow();
   });
@@ -181,7 +206,7 @@ describe("Studio Video Messages — verified watch completion", () => {
     expect(progress.watchedIntervals).toEqual([[0, 98]]);
   });
 
-  it("starts the exact 24-hour countdown only after verified completion", () => {
+  it("starts the post-completion grace period only after verified completion", () => {
     let progress = makeProgressThrough([
       [0, 60],
       [60, 98],
@@ -232,7 +257,7 @@ describe("Studio Video Messages — verified watch completion", () => {
     expect(progress.watchedIntervals).toEqual([[0, 98]]);
   });
 
-  it("starts the exact 24-hour countdown only after verified completion", () => {
+  it("starts the exact 15-minute replay grace period only after verified completion", () => {
     const progress = makeProgressThrough([
       [0, 60],
       [60, 98],
@@ -245,13 +270,13 @@ describe("Studio Video Messages — verified watch completion", () => {
 
     expect(completed.state).toBe("expiration_pending");
     expect(Date.parse(completed.expiresAt) - Date.parse(completed.watchCompletedAt)).toBe(
-      STUDIO_VIDEO_EXPIRATION_WINDOW_MS,
+      STUDIO_VIDEO_POST_COMPLETION_GRACE_MS,
     );
   });
 
   it("allows replay during the countdown but not at or after expiration", () => {
     const expiresAt = new Date(
-      BASE_TIME + STUDIO_VIDEO_EXPIRATION_WINDOW_MS,
+      BASE_TIME + STUDIO_VIDEO_POST_COMPLETION_GRACE_MS,
     ).toISOString();
     const media = {
       state: "expiration_pending" as const,
@@ -264,7 +289,32 @@ describe("Studio Video Messages — verified watch completion", () => {
     expect(
       canReplayStudioVideo(
         media,
-        BASE_TIME + STUDIO_VIDEO_EXPIRATION_WINDOW_MS,
+          BASE_TIME + STUDIO_VIDEO_POST_COMPLETION_GRACE_MS,
+      ),
+    ).toBe(false);
+  });
+
+  it("does not allow a never-completed video to be replayed after seven days", () => {
+    const media = {
+      state: "ready" as const,
+      objectKey: "studio-video/message-1.mp4",
+      createdAt: new Date(BASE_TIME).toISOString(),
+      expiresAt: new Date(
+        BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+      ).toISOString(),
+      deletedAt: null,
+    };
+
+    expect(
+      canReplayStudioVideo(
+        media,
+        BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS - 1,
+      ),
+    ).toBe(true);
+    expect(
+      canReplayStudioVideo(
+        media,
+        BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
       ),
     ).toBe(false);
   });
