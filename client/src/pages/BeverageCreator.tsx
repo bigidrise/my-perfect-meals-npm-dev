@@ -61,6 +61,7 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
+import { useTranslation } from "react-i18next";
 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -143,6 +144,7 @@ export default function BeverageCreator() {
   const isDesktop = useIsDesktop();
   usePageTitle("Beverage Creator");
   const { toast } = useToast();
+  const { t: tc } = useTranslation("common");
   const quickTour = useQuickTour("beverage-creator");
   const { user } = useAuth();
   const userId = user?.id || "";
@@ -182,6 +184,12 @@ export default function BeverageCreator() {
 
   const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
   const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const hasDietaryContext = Boolean(
+    (dietOverrideEnabled && dietOverrideValue.trim()) ||
+    (dietaryPreference && dietaryPreference !== "none") ||
+    customDietary.trim() ||
+    (Array.isArray(user?.dietaryRestrictions) && user.dietaryRestrictions.length > 0),
+  );
   const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
   const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
 
@@ -982,12 +990,12 @@ export default function BeverageCreator() {
                   })()}
 
                   {generatedBeverage.reasoning && (
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2 flex items-center gap-2 text-white">
+                    <div className="mb-4 p-4 rounded-xl bg-black/30 border border-white/15">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-white">
                         <Brain className="h-4 w-4" />
-                        Why This Works For You:
+                        {tc(hasDietaryContext ? "whyThisFitsYourDiet" : "whyThisWorksForYou")}
                       </h4>
-                      <p className="text-sm text-white/80">
+                      <p className="text-sm text-white/80 leading-relaxed">
                         {generatedBeverage.reasoning}
                       </p>
                     </div>
