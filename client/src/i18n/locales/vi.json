@@ -72,6 +72,8 @@
     "bringBackChef": "Mang lại đầu bếp của bạn",
     "comingSoon": "Sắp ra mắt",
     "today": "Hôm nay:",
+    "whyThisFitsYourDiet": "Vì sao món này phù hợp với chế độ ăn của bạn",
+    "whyThisWorksForYou": "Vì sao món này phù hợp với bạn",
     "withChef": "Với đầu bếp"
   },
   "language": {
@@ -206,7 +208,7 @@
     "dailyJournal": "Nhật ký hàng ngày & Cảm hứng",
     "dailyJournalDesc": "Động lực hàng ngày",
     "greeting": "Chào mừng trở lại, {{name}}!",
-    "coachLearning": "Huấn luyện viên của bạn đang học điều gì phù hợp với bạn.",
+    "coachLearning": "Chúng tôi có thể làm gì cho bạn?",
     "behaviorBadge": "AI hành vi · Huấn luyện nhận thức cảm xúc",
     "hubLabel": "Hub",
     "clientMessages": "Tin nhắn khách hàng",

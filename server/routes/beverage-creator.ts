@@ -28,6 +28,10 @@ import { getLanguageInstruction } from "../utils/languageInstruction";
 import { getDishAdaptationDirective, buildGuardrailContext } from "../services/dishAdaptation/dishAdaptationLayer";
 import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
 import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
+import {
+  BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION,
+  ensureBeverageDietTitle,
+} from "../services/beverageTitle";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -540,9 +544,10 @@ GENERATION RULES:
 3. If no specific drink is named, CREATE a unique beverage using the category + flavor combination.
 4. Instructions must be clear, step-by-step preparation directions.
 5. Nutrition must be realistic and scaled for the total serving count (${serving.count} servings).
-6. Reasoning explains why this beverage fits the flavor profile + dietary needs.
+6. ${BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION}
 7. imageUrl should be a short descriptive image prompt (no quotes).
 8. Apply all dietary requirements strictly.
+9. When an explicit dietary identity is provided, include that identity as a clear leading descriptor in the beverage name, using the response language. Do not repeat it if it is already present.
 ${palateGuidance}
 
 ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
@@ -824,6 +829,17 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       const creatorSystem = await resolveCreatorSystemForUser(userId);
       meal = await applyCreatorTransformation(meal, creatorSystem, "beverage");
     }
+
+    // Final response-only title guard. Explicit request values take precedence
+    // over profile context so an override/selection is the identity shown.
+    const titleDietRestrictions = [
+      ...(typeof dietOverride === "string" ? [dietOverride] : []),
+      ...(Array.isArray(dietaryPreferences)
+        ? dietaryPreferences
+        : [dietaryPreferences]),
+      ...activeRestrictions,
+    ];
+    meal.name = ensureBeverageDietTitle(meal.name, titleDietRestrictions, rawLang);
 
     if (isDev) console.log("[BEVERAGE] Sending response (image handled client-side)...");
 

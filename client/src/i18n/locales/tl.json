@@ -72,6 +72,8 @@
     "bringBackChef": "Ibalik ang iyong chef",
     "comingSoon": "Malapit na",
     "today": "Ngayon:",
+    "whyThisFitsYourDiet": "Bakit Ito Angkop sa Iyong Diet",
+    "whyThisWorksForYou": "Bakit Ito Gumagana Para sa Iyo",
     "withChef": "Kasama si Chef"
   },
   "language": {
@@ -206,7 +208,7 @@
     "dailyJournal": "Pang-araw-araw na Journal at Inspirasyon",
     "dailyJournalDesc": "Pang-araw-araw na motibasyon",
     "greeting": "Maligayang pagbabalik, {{name}}!",
-    "coachLearning": "Natututo ang iyong coach ng kung ano ang epektibo para sa iyo.",
+    "coachLearning": "Ano ang maitutulong namin sa iyo?",
     "behaviorBadge": "Behavior AI · Emosyon-aware na coaching",
     "hubLabel": "Hub",
     "clientMessages": "Mga Mensahe ng Kliyente",

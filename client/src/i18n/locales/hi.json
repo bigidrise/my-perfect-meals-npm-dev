@@ -72,7 +72,9 @@
     "bringBackChef": "शेफ को वापस लाएं",
     "comingSoon": "जल्द आ रहा है",
     "withChef": "शेफ के साथ",
-    "today": "आज:"
+    "today": "आज:",
+    "whyThisFitsYourDiet": "यह आपकी डाइट के लिए क्यों सही है",
+    "whyThisWorksForYou": "यह आपके लिए क्यों काम करता है"
   },
   "language": {
     "pageTitle": "भाषा",
@@ -206,7 +208,7 @@
     "dailyJournal": "दैनिक जर्नल और प्रेरणा",
     "dailyJournalDesc": "दैनिक प्रेरणा",
     "greeting": "वापस स्वागत है, {{name}}!",
-    "coachLearning": "आपका कोच सीख रहा है कि आपके लिए क्या काम करता है।",
+    "coachLearning": "हम आपके लिए क्या कर सकते हैं?",
     "behaviorBadge": "व्यवहार AI · भावना-सचेत कोचिंग",
     "hubLabel": "हब",
     "clientMessages": "क्लाइंट संदेश",

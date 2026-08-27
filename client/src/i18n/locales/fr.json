@@ -72,6 +72,8 @@
     "bringBackChef": "Ramenez votre chef",
     "comingSoon": "Bientôt disponible",
     "today": "Aujourd'hui :",
+    "whyThisFitsYourDiet": "Pourquoi Cela Convient À Votre Régime",
+    "whyThisWorksForYou": "Pourquoi Cela Fonctionne Pour Vous",
     "withChef": "Avec le Chef"
   },
   "language": {
@@ -206,7 +208,7 @@
     "dailyJournal": "Journal quotidien et inspiration",
     "dailyJournalDesc": "Motivation quotidienne",
     "greeting": "Bienvenue, {{name}} !",
-    "coachLearning": "Votre coach apprend ce qui fonctionne pour vous.",
+    "coachLearning": "Que pouvons-nous faire pour vous ?",
     "behaviorBadge": "IA comportementale · Coaching émotionnel",
     "hubLabel": "Hub",
     "clientMessages": "Messages clients",

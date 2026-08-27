@@ -72,6 +72,8 @@
     "bringBackChef": "Bringen Sie Ihren Koch zurück",
     "comingSoon": "Bald verfügbar",
     "today": "Heute:",
+    "whyThisFitsYourDiet": "Warum Das Zu Deiner Ernährung Passt",
+    "whyThisWorksForYou": "Warum Das Für Dich Funktioniert",
     "withChef": "Mit Chef"
   },
   "language": {
@@ -206,7 +208,7 @@
     "dailyJournal": "Tagesjournal & Inspiration",
     "dailyJournalDesc": "Tägliche Motivation",
     "greeting": "Willkommen zurück, {{name}}!",
-    "coachLearning": "Ihr Coach lernt, was für Sie funktioniert.",
+    "coachLearning": "Was können wir für Sie tun?",
     "behaviorBadge": "Verhaltens-KI · Emotionsbewusstes Coaching",
     "hubLabel": "Hub",
     "clientMessages": "Kundennachrichten",

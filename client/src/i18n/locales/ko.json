@@ -72,6 +72,8 @@
     "bringBackChef": "셰프를 다시 불러오세요",
     "comingSoon": "곧 출시 예정",
     "today": "오늘:",
+    "whyThisFitsYourDiet": "식단에 맞는 이유",
+    "whyThisWorksForYou": "이것이 나에게 맞는 이유",
     "withChef": "셰프와 함께"
   },
   "language": {
@@ -206,7 +208,7 @@
     "dailyJournal": "일일 일기 및 영감",
     "dailyJournalDesc": "매일의 동기부여",
     "greeting": "다시 오신 것을 환영합니다, {{name}}!",
-    "coachLearning": "코치가 당신에게 맞는 것을 배우고 있습니다.",
+    "coachLearning": "무엇을 도와드릴까요?",
     "behaviorBadge": "행동 AI · 감정 인식 코칭",
     "hubLabel": "허브",
     "clientMessages": "고객 메시지",

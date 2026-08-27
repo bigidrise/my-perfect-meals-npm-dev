@@ -72,6 +72,8 @@
     "bringBackChef": "Вернуть вашего шеф-повара",
     "comingSoon": "Скоро",
     "today": "Сегодня:",
+    "whyThisFitsYourDiet": "Почему это подходит вашей диете",
+    "whyThisWorksForYou": "Почему это подходит вам",
     "withChef": "С шефом"
   },
   "language": {
@@ -206,7 +208,7 @@
     "dailyJournal": "Ежедневный журнал и вдохновение",
     "dailyJournalDesc": "Ежедневная мотивация",
     "greeting": "С возвращением, {{name}}!",
-    "coachLearning": "Ваш тренер изучает, что подходит именно вам.",
+    "coachLearning": "Что мы можем для вас сделать?",
     "behaviorBadge": "Поведенческий ИИ · Эмоционально-ориентированный коучинг",
     "hubLabel": "Хаб",
     "clientMessages": "Сообщения клиентов",

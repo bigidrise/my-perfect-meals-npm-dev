@@ -72,7 +72,9 @@
     "bringBackChef": "Bring back your chef",
     "comingSoon": "Coming Soon",
     "withChef": "With Chef",
-    "today": "Today:"
+    "today": "Today:",
+    "whyThisFitsYourDiet": "Why This Fits Your Diet",
+    "whyThisWorksForYou": "Why This Works For You"
   },
   "language": {
     "pageTitle": "Language",
@@ -233,7 +235,7 @@
     "dailyJournal": "Daily Journal & Inspiration",
     "dailyJournalDesc": "Daily motivation",
     "greeting": "Welcome back, {{name}}!",
-    "coachLearning": "Your coach is learning what works for you.",
+    "coachLearning": "What can we do for you?",
     "behaviorBadge": "Behavior AI · Emotion-aware coaching",
     "hubLabel": "Hub",
     "clientMessages": "Client Messages",

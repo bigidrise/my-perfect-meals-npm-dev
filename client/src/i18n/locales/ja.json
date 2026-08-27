@@ -72,6 +72,8 @@
     "bringBackChef": "シェフを呼び戻す",
     "comingSoon": "近日公開",
     "today": "今日：",
+    "whyThisFitsYourDiet": "あなたの食事に合う理由",
+    "whyThisWorksForYou": "これがあなたに合う理由",
     "withChef": "シェフと一緒に"
   },
   "language": {
@@ -206,7 +208,7 @@
     "dailyJournal": "デイリージャーナル＆インスピレーション",
     "dailyJournalDesc": "日々のモチベーション",
     "greeting": "おかえりなさい、{{name}}！",
-    "coachLearning": "コーチがあなたに合った方法を学んでいます。",
+    "coachLearning": "私たちに何ができますか？",
     "behaviorBadge": "行動AI・感情認識コーチング",
     "hubLabel": "ハブ",
     "clientMessages": "クライアントメッセージ",
