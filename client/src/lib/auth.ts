@@ -286,8 +286,10 @@ export interface User {
   trialEndsAt?: string | null;
   /** ISO timestamp when the trial began */
   trialStartedAt?: string | null;
-  /** standard_signup | admin_grant | clinic_grant | promotion */
+  /** standard_signup | admin_grant | clinic_grant | promotion | pilot_program | client_access */
   trialSource?: string | null;
+  /** Reporting category for pre-registered 30-day access */
+  trialAccessType?: "pilot" | "client" | null;
   /** True when trialEndsAt is in the future and no paid plan is active */
   isTrialActive?: boolean;
   /** Server-computed days remaining (0 when expired or not in trial) */

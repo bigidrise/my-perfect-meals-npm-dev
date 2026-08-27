@@ -11,6 +11,8 @@ export function formatTrialSourceLabel(trialSource?: string | null): string {
     case 'admin_grant':  return 'Admin Trial';
     case 'clinic_grant': return 'Clinical Trial';
     case 'promotion':    return 'Promotional Trial';
+    case 'pilot_program': return 'Pilot Program';
+    case 'client_access': return 'Client Access';
     default:             return 'Free Trial';
   }
 }

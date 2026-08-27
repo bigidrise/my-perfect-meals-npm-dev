@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq, sql, and, isNotNull, gt } from "drizzle-orm";
+import { trialAccessInvites, users } from "@shared/schema";
+import { eq, sql, and, isNotNull, gt, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
@@ -12,6 +12,10 @@ import { logAudit, getClientIp } from "../lib/auditLog";
 import { emailServiceAvailable } from "../middleware/requireEmailService";
 import { sendTrialStartEmail } from "../services/emailService";
 import { resolveEmailIdentityForEmail } from "../services/emailIdentityService";
+import {
+  findPendingPreRegistrationAccess,
+  resolveSignupTrial,
+} from "../services/preRegistrationAccess";
 
 const router = Router();
 
@@ -134,13 +138,19 @@ router.post("/api/auth/signup", async (req, res) => {
     // Build user values with optional ProCare professional fields
     const isBusinessAccount = req.body.businessAccount === true;
 
-    // Tester accounts get immediate full access via planLookupKey.
-    // Normal consumer accounts get a 7-day trial that starts at account creation —
-    // not at onboarding completion.  Starting at creation prevents the loophole
-    // where someone creates an account and returns months later expecting a fresh trial.
-    // ProCare accounts get their plan directly; they do not receive a trial.
+    // Tester accounts get immediate full access via planLookupKey. Normal
+    // consumers get a 7-day signup trial unless their email has a pending
+    // pre-registration access record. Pilot/Client records grant 30 days by
+    // default, but their clock still starts only here at account activation.
+    // ProCare accounts get their plan directly and do not receive a trial.
     const isNormalConsumer = !isTester && !req.body.procare?.professionalCategory;
     const trialNow = isNormalConsumer ? new Date() : null;
+    const pendingPreRegistrationAccess = isNormalConsumer
+      ? await findPendingPreRegistrationAccess(email)
+      : null;
+    const signupTrial = trialNow
+      ? resolveSignupTrial(trialNow, pendingPreRegistrationAccess)
+      : null;
     const userValues: any = {
       email,
       username: email.split("@")[0],
@@ -151,10 +161,11 @@ router.post("/api/auth/signup", async (req, res) => {
       isAdmin,
       isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
       ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
-      ...(trialNow ? {
-        trialStartedAt: trialNow,
-        trialEndsAt: new Date(trialNow.getTime() + 7 * 24 * 60 * 60 * 1000),
-        trialSource: 'standard_signup',
+      ...(signupTrial ? {
+        trialStartedAt: signupTrial.trialStartedAt,
+        trialEndsAt: signupTrial.trialEndsAt,
+        trialSource: signupTrial.trialSource,
+        trialAccessType: signupTrial.trialAccessType,
       } : {}),
     };
 
@@ -211,8 +222,33 @@ router.post("/api/auth/signup", async (req, res) => {
       if (procare.credentialYear) userValues.credentialYear = procare.credentialYear;
     }
 
-    // Create user in database with auth token
-    const [newUser] = await db.insert(users).values(userValues).returning();
+    // Create the user and claim any pre-registration record atomically. If the
+    // record was claimed by another request, the user insert rolls back rather
+    // than issuing an untracked 30-day entitlement.
+    const newUser = await db.transaction(async (tx) => {
+      const [createdUser] = await tx.insert(users).values(userValues).returning();
+
+      if (pendingPreRegistrationAccess) {
+        const [claimed] = await tx
+          .update(trialAccessInvites)
+          .set({
+            activatedAt: trialNow!,
+            activatedUserId: createdUser.id,
+          })
+          .where(and(
+            eq(trialAccessInvites.id, pendingPreRegistrationAccess.id),
+            isNull(trialAccessInvites.activatedAt),
+            isNull(trialAccessInvites.revokedAt),
+          ))
+          .returning({ id: trialAccessInvites.id });
+
+        if (!claimed) {
+          throw new Error("Pre-registration access was already activated");
+        }
+      }
+
+      return createdUser;
+    });
 
   // Set session cookie for mobile compatibility (guard for prod where session may be undefined)
   if (req.session) {
@@ -220,17 +256,26 @@ router.post("/api/auth/signup", async (req, res) => {
   }
 
   console.log("✅ Created new user ID:", newUser.id);
-  logAudit({ actor: newUser.id, action: "AUTH_SIGNUP", resourceType: "auth", route: "/api/auth/signup", ip: getClientIp(req as any), meta: { isProCare: newUser.isProCare || false } });
+  logAudit({
+    actor: newUser.id,
+    action: "AUTH_SIGNUP",
+    resourceType: "auth",
+    route: "/api/auth/signup",
+    ip: getClientIp(req as any),
+    meta: {
+      isProCare: newUser.isProCare || false,
+      trialAccessType: signupTrial?.trialAccessType ?? null,
+    },
+  });
 
     // Send trial-start confirmation email for standard consumer trial (non-fatal)
-    if (isNormalConsumer && trialNow && emailServiceAvailable()) {
-      const trialEndsAt = new Date(trialNow.getTime() + 7 * 24 * 60 * 60 * 1000);
+    if (isNormalConsumer && signupTrial && emailServiceAvailable()) {
       sendTrialStartEmail({
         to: newUser.email,
         userName: newUser.username || newUser.email.split('@')[0],
-        trialSource: 'standard_signup',
-        durationDays: 7,
-        trialEndsAt,
+        trialSource: signupTrial.trialSource,
+        durationDays: signupTrial.durationDays,
+        trialEndsAt: signupTrial.trialEndsAt,
       }).catch((err) =>
         console.error('[signup] Trial start email failed (non-fatal):', err)
       );

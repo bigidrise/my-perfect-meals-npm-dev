@@ -39,3 +39,4 @@
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
+- [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
