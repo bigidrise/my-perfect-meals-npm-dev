@@ -36,7 +36,6 @@ export async function runStudioVideoMessagesMigration(): Promise<void> {
       size_bytes INTEGER NOT NULL,
       temporary_derivative_keys JSONB NOT NULL DEFAULT '[]'::jsonb,
       watch_progress JSONB,
-      opened_at TIMESTAMPTZ,
       watch_completed_at TIMESTAMPTZ,
       expires_at TIMESTAMPTZ,
       deleted_at TIMESTAMPTZ,
@@ -59,7 +58,6 @@ export async function runStudioVideoMessagesMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS size_bytes INTEGER,
       ADD COLUMN IF NOT EXISTS temporary_derivative_keys JSONB NOT NULL DEFAULT '[]'::jsonb,
       ADD COLUMN IF NOT EXISTS watch_progress JSONB,
-      ADD COLUMN IF NOT EXISTS opened_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS watch_completed_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ,
@@ -71,20 +69,6 @@ export async function runStudioVideoMessagesMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS last_deletion_error TEXT,
       ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  `);
-  // Earlier revisions persisted watch progress but not a first-open marker.
-  // Preserve those partial views rather than treating them as never opened
-  // after the new retention rule ships.
-  await db.execute(sql`
-    UPDATE studio_video_media
-    SET opened_at = COALESCE(opened_at, created_at),
-        expires_at = CASE
-          WHEN state = 'ready' AND watch_completed_at IS NULL THEN NULL
-          ELSE expires_at
-        END
-    WHERE opened_at IS NULL
-      AND watch_completed_at IS NULL
-      AND watch_progress IS NOT NULL
   `);
   await db.execute(sql`
     DO $$

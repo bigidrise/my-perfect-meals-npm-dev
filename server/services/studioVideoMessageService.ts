@@ -24,10 +24,7 @@ import {
 const MANUAL_VIDEO_DELETION_LEASE_MS = 30 * 60_000;
 const MANUAL_VIDEO_DELETION_HEARTBEAT_MS = 5 * 60_000;
 import { logAudit, getClientIp } from "../lib/auditLog";
-import {
-  STUDIO_VIDEO_MESSAGES_DEFAULT_ENABLED,
-  STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
-} from "@shared/studioVideoMessages";
+import { STUDIO_VIDEO_MESSAGES_DEFAULT_ENABLED } from "@shared/studioVideoMessages";
 import {
   assertStudioVideoManualDeletionEligible,
   assertStudioVideoMessageDeletionEligible,
@@ -62,39 +59,6 @@ export function assertStudioVideoFeatureEnabled(): void {
       ? STUDIO_VIDEO_MESSAGES_DEFAULT_ENABLED
       : configured === "true";
   assertStudioVideoMessagesEnabled(enabled);
-}
-
-/**
- * Marks the first authorized opening of a ready video. The unopened deadline
- * is removed atomically, so a video already opened before the seven-day limit
- * remains available until the recipient verifies completion.
- */
-export async function markStudioVideoOpened(
-  mediaId: string,
-  now = new Date(),
-): Promise<boolean> {
-  const [opened] = await db
-    .update(studioVideoMedia)
-    .set({
-      openedAt: sql`COALESCE(${studioVideoMedia.openedAt}, ${now})`,
-      expiresAt: sql`CASE WHEN ${studioVideoMedia.openedAt} IS NULL THEN NULL ELSE ${studioVideoMedia.expiresAt} END`,
-      updatedAt: now,
-    })
-    .where(and(
-      eq(studioVideoMedia.id, mediaId),
-      eq(studioVideoMedia.state, "ready"),
-      sql`${studioVideoMedia.objectKey} IS NOT NULL`,
-      sql`(
-        ${studioVideoMedia.openedAt} IS NOT NULL
-        OR COALESCE(
-          ${studioVideoMedia.expiresAt},
-          ${studioVideoMedia.createdAt} + (${STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS} * INTERVAL '1 millisecond')
-        ) > ${now}
-      )`,
-    ))
-    .returning({ id: studioVideoMedia.id });
-
-  return Boolean(opened);
 }
 
 const playbackTokens = new Map<string, { messageId: string; actorUserId: string; expiresAt: number }>();

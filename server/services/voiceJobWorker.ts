@@ -46,7 +46,6 @@ export type StudioVideoPurgeRow = {
   object_key: string | null;
   mime_type: string | null;
   temporary_derivative_keys: unknown;
-  opened_at: Date | string | null;
   expires_at: Date | string | null;
   watch_completed_at: Date | string | null;
   transcript: string | null;
@@ -414,8 +413,8 @@ export async function purgeExpiredStudioVideos(
   );
 
   // A manual delete can be interrupted before the private storage call
-  // completes. Recover any expired claim regardless of watch state: an opened
-  // ready video has no expiry timestamp, so it would otherwise remain permanently
+  // completes. Recover any expired claim regardless of watch state: a `ready`
+  // video has no expiry timestamp, so it would otherwise remain permanently
   // unavailable. Keep its object references and transcript for a safe retry.
   await database.execute(sql`
     UPDATE studio_video_media
@@ -438,7 +437,6 @@ export async function purgeExpiredStudioVideos(
           updated_at = NOW()
       FROM studio_video_media AS stale_media
       WHERE stale_media.message_id = stale_message.id
-        AND stale_media.opened_at IS NULL
         AND stale_media.watch_completed_at IS NULL
         AND stale_media.created_at <= ${unopenedCutoff}
         AND stale_media.state IN (
@@ -482,7 +480,6 @@ export async function purgeExpiredStudioVideos(
             'transcription_failed',
             'moderation_failed'
           )
-          AND media.opened_at IS NULL
           AND media.watch_completed_at IS NULL
           AND media.created_at <= ${unopenedCutoff}
           AND (
@@ -501,7 +498,7 @@ export async function purgeExpiredStudioVideos(
       )
     RETURNING media.id, media.message_id, message.studio_id, message.client_user_id,
               message.author_user_id, media.state, media.object_key,
-              media.temporary_derivative_keys, media.opened_at, media.expires_at,
+              media.temporary_derivative_keys, media.expires_at,
               media.watch_completed_at, NULL::text AS transcript,
               NULL::text AS transcript_status
   `);
@@ -541,7 +538,7 @@ export async function purgeExpiredStudioVideos(
               (SELECT client_user_id FROM studio_video_messages WHERE id = media.message_id) AS client_user_id,
               (SELECT author_user_id FROM studio_video_messages WHERE id = media.message_id) AS author_user_id,
               media.state, due.prior_state, media.object_key, media.mime_type,
-              media.temporary_derivative_keys, media.opened_at,
+              media.temporary_derivative_keys,
               media.expires_at, media.watch_completed_at, media.deletion_claim_token,
               (SELECT transcript FROM studio_video_messages WHERE id = media.message_id) AS transcript,
               (SELECT transcript_status FROM studio_video_messages WHERE id = media.message_id) AS transcript_status

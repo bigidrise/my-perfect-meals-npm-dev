@@ -62,7 +62,7 @@ export type StudioVideoModerationStatus =
 export const STUDIO_VIDEO_MEDIA_TYPE = "video" as const;
 /** Replay window after a recipient has verified completion. */
 export const STUDIO_VIDEO_POST_COMPLETION_GRACE_MS = 15 * 60 * 1000;
-/** Maximum private-media lifetime when no participant has opened the video. */
+/** Maximum private-media lifetime when the recipient never completes viewing. */
 export const STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Five minutes at these capture targets is approximately 46.8 MB (44.6 MiB)
@@ -121,7 +121,6 @@ export type StudioVideoMedia = {
   durationSec: number | null;
   sizeBytes: number | null;
   temporaryDerivativeKeys: readonly string[];
-  openedAt: string | null;
   watchCompletedAt: string | null;
   expiresAt: string | null;
   deletedAt: string | null;
@@ -627,10 +626,7 @@ export function canReplayStudioVideo(
   media: Pick<
     StudioVideoMedia,
     "state" | "objectKey" | "expiresAt" | "deletedAt"
-  > & {
-    createdAt?: Date | string | null;
-    openedAt?: Date | string | null;
-  },
+  > & { createdAt?: Date | string | null },
   now: Date | string | number,
 ): boolean {
   if (!media.objectKey || media.deletedAt || media.state === "deleted") {
@@ -638,10 +634,6 @@ export function canReplayStudioVideo(
   }
 
   if (media.state === "ready") {
-    // The maximum age applies only until somebody has actually opened the
-    // video. Once opened, only verified recipient completion begins a removal
-    // countdown.
-    if (media.openedAt) return true;
     const unopenedDeadline = media.expiresAt ?? (
       media.createdAt
         ? new Date(

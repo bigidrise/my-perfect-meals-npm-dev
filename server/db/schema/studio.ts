@@ -227,7 +227,6 @@ export const studioVideoMedia = pgTable("studio_video_media", {
     maxVerifiedPositionSec: number;
     rejectedSampleCount: number;
   } | null>(),
-  openedAt: timestamp("opened_at", { withTimezone: true }),
   watchCompletedAt: timestamp("watch_completed_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
