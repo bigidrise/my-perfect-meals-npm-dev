@@ -6,13 +6,18 @@
  */
 import { Router } from "express";
 import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { trialAccessInvites, users } from "@shared/schema";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { TRIAL_UNLOCKS_TIER } from "../../shared/planFeatures";
 import { logAudit } from "../lib/auditLog";
 import { sendTrialStartEmail } from "../services/emailService";
+import {
+  normalizeEmailIdentity,
+  resolveEmailIdentityForEmail,
+} from "../services/emailIdentityService";
+import type { TrialAccessType } from "../services/preRegistrationAccess";
 
 const router = Router();
 
@@ -22,6 +27,7 @@ function computeTrialStatus(user: {
   trialStartedAt?: Date | null;
   trialEndsAt?: Date | null;
   trialSource?: string | null;
+  trialAccessType?: TrialAccessType | null;
   planLookupKey?: string | null;
 }) {
   const now = new Date();
@@ -44,6 +50,7 @@ function computeTrialStatus(user: {
     trialEndsAt: trialEndsAt?.toISOString() ?? null,
     daysRemaining,
     trialSource: user.trialSource ?? null,
+    trialAccessType: user.trialAccessType ?? null,
     trialTier: isTrialActive ? TRIAL_UNLOCKS_TIER : null,
     expiresToTier: "free" as const,
   };
@@ -60,6 +67,7 @@ router.get("/status", requireAuth, async (req, res) => {
         trialEndsAt: users.trialEndsAt,
         planLookupKey: users.planLookupKey,
         trialSource: (users as any).trialSource,
+        trialAccessType: users.trialAccessType,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -71,6 +79,125 @@ router.get("/status", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[trial] GET /status error:", err);
     return res.status(500).json({ error: "Failed to fetch trial status" });
+  }
+});
+
+// ── Pre-registration access allowlist ───────────────────────────────────────
+
+router.get("/admin/pre-registrations", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(trialAccessInvites)
+      .orderBy(desc(trialAccessInvites.invitedAt));
+    return res.json({ invitations: rows });
+  } catch (err) {
+    console.error("[trial] GET /admin/pre-registrations error:", err);
+    return res.status(500).json({ error: "Failed to load pre-registration access" });
+  }
+});
+
+router.post("/admin/pre-registrations", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const invitedByUserId = (req as AuthenticatedRequest).authUser.id;
+    const email = typeof req.body?.email === "string"
+      ? normalizeEmailIdentity(req.body.email)
+      : "";
+    const accessType = req.body?.accessType as TrialAccessType;
+    const durationDays = req.body?.durationDays ?? 30;
+    const notes = typeof req.body?.notes === "string"
+      ? req.body.notes.trim().slice(0, 1000) || null
+      : null;
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "A valid email is required" });
+    }
+    if (accessType !== "pilot" && accessType !== "client") {
+      return res.status(400).json({ error: "accessType must be pilot or client" });
+    }
+    if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 365) {
+      return res.status(400).json({ error: "durationDays must be between 1 and 365" });
+    }
+
+    const identity = await resolveEmailIdentityForEmail(email);
+    if (identity.status !== "not_found") {
+      return res.status(409).json({
+        error: "This email already has an account. Use the existing-user trial grant instead.",
+      });
+    }
+
+    const [existingPending] = await db
+      .select({ id: trialAccessInvites.id })
+      .from(trialAccessInvites)
+      .where(and(
+        eq(trialAccessInvites.normalizedEmail, email),
+        isNull(trialAccessInvites.activatedAt),
+        isNull(trialAccessInvites.revokedAt),
+      ))
+      .limit(1);
+    if (existingPending) {
+      return res.status(409).json({ error: "This email already has pending pre-registration access" });
+    }
+
+    const [invitation] = await db
+      .insert(trialAccessInvites)
+      .values({
+        normalizedEmail: email,
+        accessType,
+        durationDays,
+        invitedByUserId,
+        notes,
+      })
+      .returning();
+
+    logAudit({
+      actor: invitedByUserId,
+      action: "WRITE",
+      resourceType: "trial_pre_registration",
+      resourceId: invitation.id,
+      route: "/api/trial/admin/pre-registrations",
+      meta: { accessType, durationDays },
+    });
+
+    return res.status(201).json({ invitation });
+  } catch (err: any) {
+    if (err?.code === "23505") {
+      return res.status(409).json({ error: "This email already has pending pre-registration access" });
+    }
+    console.error("[trial] POST /admin/pre-registrations error:", err);
+    return res.status(500).json({ error: "Failed to create pre-registration access" });
+  }
+});
+
+router.delete("/admin/pre-registrations/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const actorId = (req as AuthenticatedRequest).authUser.id;
+    const [revoked] = await db
+      .update(trialAccessInvites)
+      .set({ revokedAt: new Date() })
+      .where(and(
+        eq(trialAccessInvites.id, req.params.id),
+        isNull(trialAccessInvites.activatedAt),
+        isNull(trialAccessInvites.revokedAt),
+      ))
+      .returning({ id: trialAccessInvites.id });
+
+    if (!revoked) {
+      return res.status(404).json({ error: "Pending pre-registration access not found" });
+    }
+
+    logAudit({
+      actor: actorId,
+      action: "WRITE",
+      resourceType: "trial_pre_registration",
+      resourceId: revoked.id,
+      route: "/api/trial/admin/pre-registrations/:id",
+      meta: { revoked: true },
+    });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("[trial] DELETE /admin/pre-registrations/:id error:", err);
+    return res.status(500).json({ error: "Failed to revoke pre-registration access" });
   }
 });
 
@@ -152,6 +279,7 @@ router.post("/admin/grant", requireAuth, requireAdmin, async (req, res) => {
         trialEndsAt: users.trialEndsAt,
         planLookupKey: users.planLookupKey,
         trialSource: (users as any).trialSource,
+        trialAccessType: users.trialAccessType,
       })
       .from(users)
       .where(eq(users.id, userId))

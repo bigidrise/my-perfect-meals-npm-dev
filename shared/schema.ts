@@ -376,7 +376,8 @@ export const users = pgTable("users", {
   // Trial + Meal Builder Selection (Paywall system)
   trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
-  trialSource: varchar("trial_source", { length: 50 }), // standard_signup | admin_grant | clinic_grant | promotion
+  trialSource: varchar("trial_source", { length: 50 }), // standard_signup | admin_grant | clinic_grant | promotion | pilot_program | client_access
+  trialAccessType: varchar("trial_access_type", { length: 20 }).$type<"pilot" | "client">(),
   trialRemindersSent: text("trial_reminders_sent").array().default([]), // milestones sent: ["day_6","day_5","day_3","day_1"]
   selectedMealBuilder: text("selected_meal_builder"), // weekly, diabetic, glp1, anti_inflammatory
   // Builder Switch Controls (Beta)
@@ -660,6 +661,24 @@ export const emailIdentityReviews = pgTable("email_identity_reviews", {
 }, (table) => ({
   normalizedEmailIdx: index("email_identity_reviews_normalized_email_idx").on(table.normalizedEmail, table.createdAt),
   subjectUserIdx: index("email_identity_reviews_subject_user_idx").on(table.subjectUserId, table.createdAt),
+}));
+
+// Pre-registration access does not start a trial clock. The matching user row
+// receives trial dates only when account creation claims an active invitation.
+export const trialAccessInvites = pgTable("trial_access_invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  normalizedEmail: text("normalized_email").notNull(),
+  accessType: varchar("access_type", { length: 20 }).$type<"pilot" | "client">().notNull(),
+  durationDays: integer("duration_days").notNull().default(30),
+  invitedAt: timestamp("invited_at", { withTimezone: true }).notNull().defaultNow(),
+  invitedByUserId: varchar("invited_by_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  activatedAt: timestamp("activated_at", { withTimezone: true }),
+  activatedUserId: varchar("activated_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+}, (table) => ({
+  emailHistoryIdx: index("trial_access_invites_email_history_idx").on(table.normalizedEmail, table.invitedAt),
+  activatedUserIdx: index("trial_access_invites_activated_user_idx").on(table.activatedUserId),
 }));
 
 // Creator System — product code redemption log (future revenue tracking)

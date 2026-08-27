@@ -96,6 +96,7 @@ const SAFE_USER_FIELDS = {
   authTokenCreatedAt: users.authTokenCreatedAt,
   trialStartedAt: users.trialStartedAt,
   trialEndsAt: users.trialEndsAt,
+  trialAccessType: users.trialAccessType,
   medicalConditions: users.medicalConditions,
   healthConditions: users.healthConditions,
   specialtyCondition: users.specialtyCondition,

@@ -3763,6 +3763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
         trialStartedAt: (user as any).trialStartedAt?.toISOString?.() ?? (user as any).trialStartedAt ?? null,
         trialSource: (user as any).trialSource ?? null,
+        trialAccessType: (user as any).trialAccessType ?? null,
         isTrialActive: !!(user.trialEndsAt && !user.planLookupKey && user.trialEndsAt > new Date()),
         daysRemaining: (() => {
           if (!user.trialEndsAt || user.planLookupKey) return 0;
