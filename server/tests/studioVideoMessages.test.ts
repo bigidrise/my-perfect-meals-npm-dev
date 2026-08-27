@@ -319,6 +319,24 @@ describe("Studio Video Messages — verified watch completion", () => {
     ).toBe(false);
   });
 
+  it("keeps a partially watched video available after the unopened deadline", () => {
+    const media = {
+      state: "ready" as const,
+      objectKey: "studio-video/message.webm",
+      createdAt: new Date(BASE_TIME).toISOString(),
+      openedAt: new Date(BASE_TIME + 5_000).toISOString(),
+      expiresAt: null,
+      deletedAt: null,
+    };
+
+    expect(
+      canReplayStudioVideo(
+        media,
+        BASE_TIME + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS + 1,
+      ),
+    ).toBe(true);
+  });
+
   it("does not start expiration when completion is not verified", () => {
     expect(() =>
       completeStudioVideoWatch({

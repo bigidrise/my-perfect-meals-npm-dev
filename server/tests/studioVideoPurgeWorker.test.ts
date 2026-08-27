@@ -32,6 +32,7 @@ function makeRow(overrides: Partial<StudioVideoPurgeRow> = {}): StudioVideoPurge
       "studio-video/message-1/preview.mp4",
       "studio-video/message-1/thumbnail.jpg",
     ],
+    opened_at: null,
     expires_at: new Date("2026-08-23T12:00:00.000Z"),
     watch_completed_at: new Date("2026-08-22T12:00:00.000Z"),
     transcript: "The completed coaching transcript stays with the message.",
@@ -268,7 +269,7 @@ describe("Studio video purge worker", () => {
     expect(deletedKeys).toEqual(["studio-video/message-1.mp4"]);
   });
 
-  test("selects both watched-grace and unopened-retention deadlines for automatic expiration", async () => {
+  test("selects both watched-grace and never-opened retention deadlines for automatic expiration", async () => {
     const { database, queries } = queuedDatabase([
       { rows: [] }, // recover abandoned deletion leases
       { rows: [] }, // expire completed or unopened media
@@ -282,6 +283,7 @@ describe("Studio video purge worker", () => {
     expect(expirationSql).toContain("'ready'");
     expect(expirationSql).toContain("'uploading'");
     expect(expirationSql).toContain("media.created_at");
+    expect(expirationSql).toContain("media.opened_at IS NULL");
     expect(expirationSql).toContain("media.watch_completed_at");
   });
 

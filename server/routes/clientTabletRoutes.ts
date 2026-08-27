@@ -40,6 +40,7 @@ import {
   isValidStudioVideoPlaybackToken,
   issueStudioVideoPlaybackToken,
   listStudioVideoMessages,
+  markStudioVideoOpened,
 } from "../services/studioVideoMessageService";
 import {
   hideStudioMessageForViewer,
@@ -450,11 +451,18 @@ router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (re
     state: record.media.state,
     objectKey: record.media.objectKey,
     createdAt: record.media.createdAt,
+    openedAt: record.media.openedAt,
     expiresAt: record.media.expiresAt?.toISOString() ?? null,
     deletedAt: record.media.deletedAt?.toISOString() ?? null,
   }, new Date())) {
     res.status(410).json({ error: "This video is no longer available" });
     return;
+  }
+  if (record.media.state === "ready" && !record.media.openedAt) {
+    if (!await markStudioVideoOpened(record.media.id)) {
+      res.status(410).json({ error: "This video is no longer available" });
+      return;
+    }
   }
   if (req.query.stream === "1") {
     if (!isValidStudioVideoPlaybackToken(req.query.access, record.message.id, authUser.id)) {
@@ -509,11 +517,18 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
     state: record.media.state,
     objectKey: record.media.objectKey,
     createdAt: record.media.createdAt,
+    openedAt: record.media.openedAt,
     expiresAt: record.media.expiresAt?.toISOString() ?? null,
     deletedAt: record.media.deletedAt?.toISOString() ?? null,
   }, new Date())) {
     res.status(410).json({ error: "This video is no longer available" });
     return;
+  }
+  if (record.media.state === "ready" && !record.media.openedAt) {
+    if (!await markStudioVideoOpened(record.media.id)) {
+      res.status(410).json({ error: "This video is no longer available" });
+      return;
+    }
   }
 
   const previous = (record.media.watchProgress ?? createVerifiedWatchProgress(record.media.durationSec)) as VerifiedWatchProgress;
@@ -546,10 +561,13 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
         eq(studioVideoMedia.id, record.media.id),
         eq(studioVideoMedia.state, "ready"),
         isNull(studioVideoMedia.watchCompletedAt),
-        sql`COALESCE(
-          ${studioVideoMedia.expiresAt},
-          ${studioVideoMedia.createdAt} + (${STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS} * INTERVAL '1 millisecond')
-        ) > ${completedAt}`,
+        sql`(
+          ${studioVideoMedia.openedAt} IS NOT NULL
+          OR COALESCE(
+            ${studioVideoMedia.expiresAt},
+            ${studioVideoMedia.createdAt} + (${STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS} * INTERVAL '1 millisecond')
+          ) > ${completedAt}
+        )`,
       ))
       .returning({
         watchCompletedAt: studioVideoMedia.watchCompletedAt,
