@@ -978,8 +978,7 @@ export default function DashboardNew() {
             <img
               src="/images/dashboard-chef-community-hero.png"
               alt={t("heroAlt")}
-              className="w-full h-full object-cover"
-              style={{ objectPosition: "center 63%" }}
+              className="w-full h-full object-cover object-[center_bottom] sm:object-[center_63%]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
             <div className="absolute bottom-3 left-4 right-4">
