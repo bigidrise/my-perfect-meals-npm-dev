@@ -19,6 +19,7 @@ import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { emitActivityEvent } from "../services/coaching/activityEvents";
 import {
   buildBeveragePromptBlocks,
+  containsAlcoholContent,
   validateBeverageOutput,
   attemptBeverageAutoFix,
 } from "../services/guardrails/beverageMedicalRules";
@@ -32,6 +33,13 @@ import {
   BEVERAGE_DIET_FIT_EXPLANATION_INSTRUCTION,
   ensureBeverageDietTitle,
 } from "../services/beverageTitle";
+import {
+  buildBeverageAlternativePrompt,
+  getBeverageRejectionKind,
+  getKnownBeverageProtocolName,
+  shouldOfferBeverageAlternatives,
+  type BeverageProtocolRejection,
+} from "../services/beverageAlternativeSupport";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -260,6 +268,8 @@ beverageCreatorRouter.post("/", async (req, res) => {
     // Use effectiveCategory for generation (may differ from requested for redirect cases)
     const effectiveCategory = inferredCategory ?? dietCategoryStrategy.effectiveCategory;
     const categoryLabel = CATEGORY_LABELS[effectiveCategory] || effectiveCategory;
+    const requestedCategoryLabel =
+      CATEGORY_LABELS[beverageCategory] || beverageCategory || categoryLabel;
     const flavorLabel = FLAVOR_LABELS[flavorFamily] || flavorFamily;
     // INVARIANT: dietary identity always comes from the stored profile (activeRestrictions).
     // Body-supplied dietaryPreferences are already merged into activeRestrictions above.
@@ -570,6 +580,150 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       return nameHit || ingredientHit;
     }
 
+    const titleDietRestrictions = [
+      ...(typeof dietOverride === "string" ? [dietOverride] : []),
+      ...(Array.isArray(dietaryPreferences)
+        ? dietaryPreferences
+        : [dietaryPreferences]),
+      ...activeRestrictions,
+    ];
+    const knownProtocolName = getKnownBeverageProtocolName(
+      beverageContext.builder,
+      !!beverageGlp1ResolvedTargets,
+    );
+
+    async function generateValidatedAlternatives(
+      rejection: BeverageProtocolRejection,
+    ): Promise<any[]> {
+      try {
+        const alternativePrompt = buildBeverageAlternativePrompt({
+          originalPrompt: prompt,
+          requestedCategoryLabel,
+          effectiveCategoryLabel: categoryLabel,
+          flavorLabel,
+          specificDrink: specificDrink?.trim() || undefined,
+          customBeverageDescription: hasCustomDesc
+            ? customBeverageDescription.trim()
+            : undefined,
+          rejection,
+        });
+        const completion = await getOpenAI().chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: alternativePrompt }],
+          response_format: { type: "json_object" },
+        });
+        const parsed = JSON.parse(completion.choices[0]?.message?.content || "{}");
+        const candidates = Array.isArray(parsed?.alternatives)
+          ? parsed.alternatives
+          : [];
+        const alternatives: any[] = [];
+        const seenNames = new Set<string>();
+        const { validateMealForDiet } = beverageGlp1ResolvedTargets
+          ? await import("../services/guardrails")
+          : { validateMealForDiet: null };
+
+        for (const candidate of candidates.slice(0, 3)) {
+          if (
+            !candidate ||
+            typeof candidate.name !== "string" ||
+            !candidate.name.trim() ||
+            !Array.isArray(candidate.ingredients) ||
+            candidate.ingredients.length === 0 ||
+            typeof candidate.reasoning !== "string" ||
+            !candidate.reasoning.trim() ||
+            isSolidFood(candidate)
+          ) {
+            continue;
+          }
+
+          const candidateScan = scanGeneratedOutput(candidate, beverageEnvelope, {
+            generatorName: "beverage_creator_alternative",
+            skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+            overriddenAllergens: _overriddenBeverageAllergens.length > 0
+              ? _overriddenBeverageAllergens
+              : undefined,
+          });
+          if (!candidateScan.passed) continue;
+
+          if (activeRestrictions.includes("keto") && !userDietOverride) {
+            const candidateCarbs = Number(candidate.nutrition?.carbs ?? 0);
+            if (candidateCarbs > 15) continue;
+          }
+
+          const candidateMedicalValidation = validateBeverageOutput(
+            candidate,
+            beverageEnvelope,
+            beverageContext.builder,
+          );
+          if (!candidateMedicalValidation.passed) continue;
+
+          if (_beverageIsNamed) {
+            const candidateIdentity = validateDishIdentity(
+              _beverageIdentifier,
+              candidate,
+              _beverageDishDirective,
+            );
+            if (candidateIdentity.catastrophicDeviation) continue;
+          }
+
+          const normalizedCandidateIngredients = normalizeIngredients(
+            candidate.ingredients,
+          );
+          if (beverageGlp1ResolvedTargets && validateMealForDiet) {
+            const candidateNutrition = candidate.nutrition ?? {};
+            const glp1Check = validateMealForDiet(
+              {
+                name: candidate.name,
+                ingredients: normalizedCandidateIngredients.map((ingredient: any) => ({
+                  name: String(ingredient.name ?? ""),
+                })),
+                macros: {
+                  calories: Number(candidateNutrition.calories ?? 0),
+                  protein: Number(candidateNutrition.protein ?? 0),
+                  fat: Number(candidateNutrition.fat ?? 0),
+                },
+              },
+              null,
+              undefined,
+              true,
+              beverageGlp1ResolvedTargets,
+            );
+            if (!glp1Check.isValid) continue;
+          }
+
+          const normalizedName = String(
+            ensureBeverageDietTitle(
+              candidate.name,
+              titleDietRestrictions,
+              rawLang,
+            ) ?? candidate.name,
+          ).trim();
+          const identity = normalizedName.trim().toLowerCase();
+          if (seenNames.has(identity)) continue;
+          seenNames.add(identity);
+          alternatives.push({
+            ...candidate,
+            name: normalizedName,
+            ingredients: normalizedCandidateIngredients,
+            servingSize: candidate.servingSize || serving.label,
+            imageUrl: null,
+          });
+          if (alternatives.length === 2) break;
+        }
+
+        console.log(
+          `✅ [BEVERAGE] ${alternatives.length} validated alternative(s) available after ${rejection.error}`,
+        );
+        return alternatives;
+      } catch (alternativeError) {
+        console.error(
+          "[BEVERAGE] Alternative generation failed; returning the protected rejection:",
+          alternativeError,
+        );
+        return [];
+      }
+    }
+
     // Three attempts:
     //   Attempt 1 — normal generation
     //   Attempt 2 — appends specific protocol or clinical violation hint
@@ -578,6 +732,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     let meal: any;
     let beverageScan: ReturnType<typeof scanGeneratedOutput> | null = null;
     let beverageValidation: ReturnType<typeof validateBeverageOutput> | null = null;
+    let finalRejection: BeverageProtocolRejection | null = null;
 
     for (let attempt = 1; attempt <= MAX_BEVERAGE_ATTEMPTS; attempt++) {
       // Build the retry hint from whichever validator failed last round.
@@ -640,7 +795,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       // ingredient scan passes, verify the generated nutrition total.
       // Threshold: 15g carbs per serving — lenient enough for berries + coconut
       // but catches real violations like a 60g carb "keto" athletic drink.
-      if (beverageScan.passed && activeRestrictions.includes("keto") && !userDietOverride) {
+      if (beverageScan?.passed && activeRestrictions.includes("keto") && !userDietOverride) {
         const generatedCarbs = Number(meal.nutrition?.carbs ?? 0);
         const KETO_BEVERAGE_CARB_CEILING = 15;
         if (generatedCarbs > KETO_BEVERAGE_CARB_CEILING) {
@@ -650,15 +805,32 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         }
       }
 
-      if (!beverageScan.passed) {
-        console.log(`🚫 [BEVERAGE] Protocol violation (attempt ${attempt}): ${beverageScan.message}`);
+      if (!beverageScan?.passed) {
+        const failedScan = beverageScan ?? {
+          passed: false,
+          message: "The generated beverage could not be verified against your nutrition settings.",
+        };
+        console.log(`🚫 [BEVERAGE] Protocol violation (attempt ${attempt}): ${failedScan.message}`);
         beverageValidation = null;
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
-          return res.status(400).json({
+          finalRejection = {
             error: "PROTOCOL_VIOLATION",
-            message: beverageScan.message,
+            message: failedScan.message,
             retryable: true,
-          });
+            rejectionKind: getBeverageRejectionKind(
+              containsAlcoholContent(meal)
+                ? [{ isAlcohol: true }]
+                : undefined,
+              "protocol",
+            ),
+            protocolName: knownProtocolName,
+            violations: Array.isArray((failedScan as any).violations)
+              ? (failedScan as any).violations.map((violation: any) =>
+                  String(violation?.message ?? violation?.term ?? violation),
+                )
+              : undefined,
+          };
+          break;
         }
         continue;
       }
@@ -695,19 +867,42 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         }
 
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
-          return res.status(400).json({
+          finalRejection = {
             error: "CLINICAL_VIOLATION",
             message:
               `This beverage cannot be generated safely for your health profile. ` +
               `Violations: ${beverageValidation.violations.map(v => v.rule).join("; ")}`,
             retryable: true,
-          });
+            rejectionKind: getBeverageRejectionKind(
+              beverageValidation.violations,
+              "clinical",
+            ),
+            protocolName: knownProtocolName,
+            violations: beverageValidation.violations.map((violation) => violation.rule),
+          };
+          break;
         }
         continue;
       }
 
       // All three layers passed — output is clean
       break;
+    }
+
+    if (finalRejection) {
+      if (!shouldOfferBeverageAlternatives(process.env.NODE_ENV)) {
+        return res.status(400).json({
+          error: finalRejection.error,
+          message: finalRejection.message,
+          ...(finalRejection.violations && { violations: finalRejection.violations }),
+          retryable: true,
+        });
+      }
+      const alternatives = await generateValidatedAlternatives(finalRejection);
+      return res.status(400).json({
+        ...finalRejection,
+        alternatives,
+      });
     }
 
     // ── Dish Identity Validator (Phase 5) ─────────────────────────────────────
@@ -778,11 +973,26 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           `🚫 [BEVERAGE/GLP-1] Post-gen validation FAILED — ${bevGlp1Check.violations.join('; ')} | ` +
           `generated: ${meal.calories}kcal / ${meal.protein}g prot / ${meal.fat}g fat`
         );
-        return res.status(400).json({
+        const finalGlp1Rejection: BeverageProtocolRejection = {
           error: "PROTOCOL_VIOLATION",
           message: `Generated beverage exceeds GLP-1 clinical limits: ${bevGlp1Check.violations[0]}. Please try again.`,
           violations: bevGlp1Check.violations,
           retryable: true,
+          rejectionKind: getBeverageRejectionKind(undefined, "macro"),
+          protocolName: "GLP-1",
+        };
+        if (!shouldOfferBeverageAlternatives(process.env.NODE_ENV)) {
+          return res.status(400).json({
+            error: finalGlp1Rejection.error,
+            message: finalGlp1Rejection.message,
+            violations: finalGlp1Rejection.violations,
+            retryable: true,
+          });
+        }
+        const alternatives = await generateValidatedAlternatives(finalGlp1Rejection);
+        return res.status(400).json({
+          ...finalGlp1Rejection,
+          alternatives,
         });
       }
       console.log(
@@ -832,13 +1042,6 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
     // Final response-only title guard. Explicit request values take precedence
     // over profile context so an override/selection is the identity shown.
-    const titleDietRestrictions = [
-      ...(typeof dietOverride === "string" ? [dietOverride] : []),
-      ...(Array.isArray(dietaryPreferences)
-        ? dietaryPreferences
-        : [dietaryPreferences]),
-      ...activeRestrictions,
-    ];
     meal.name = ensureBeverageDietTitle(meal.name, titleDietRestrictions, rawLang);
 
     if (isDev) console.log("[BEVERAGE] Sending response (image handled client-side)...");

@@ -61,6 +61,12 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
+import {
+  BeverageProtocolFailurePanel,
+  isBeverageProtocolFailure,
+  type BeverageAlternative,
+  type BeverageProtocolFailure,
+} from "@/components/BeverageProtocolFailurePanel";
 import { useTranslation } from "react-i18next";
 
 const BEVERAGE_CATEGORIES = [
@@ -176,6 +182,7 @@ export default function BeverageCreator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [beverageImageLoading, setBeverageImageLoading] = useState(false);
   const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
+  const [protocolFailure, setProtocolFailure] = useState<BeverageProtocolFailure | null>(null);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -382,6 +389,7 @@ export default function BeverageCreator() {
 
     try {
       setGenerationFailure(HIDDEN_FAILURE);
+      setProtocolFailure(null);
       console.log("🍹 [BEVERAGE] Calling API...");
       const res = await fetch(apiUrl("/api/meals/beverage-creator"), {
         method: "POST",
@@ -438,6 +446,17 @@ export default function BeverageCreator() {
 
         if (data?.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+
+        if (import.meta.env.DEV && isBeverageProtocolFailure(data)) {
+          stopProgressTicker();
+          setProtocolFailure({
+            ...data,
+            alternatives: Array.isArray(data.alternatives)
+              ? data.alternatives
+              : [],
+          });
+          return;
         }
 
         throw new Error(data?.error || "Generation failed");
@@ -777,7 +796,27 @@ export default function BeverageCreator() {
                 </GlassButton>
               )}
 
-              {generationFailure.show && (
+              {protocolFailure ? (
+                <BeverageProtocolFailurePanel
+                  failure={protocolFailure}
+                  isRetrying={isGenerating}
+                  onRetry={() => handleGenerateBeverage()}
+                  onAdjustPreferences={() => {
+                    setProtocolFailure(null);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  onUseAlternative={(alternative: BeverageAlternative) => {
+                    setProtocolFailure(null);
+                    setGenerationFailure(HIDDEN_FAILURE);
+                    setGeneratedBeverage(alternative);
+                    setBeverageImageLoading(false);
+                    toast({
+                      title: "✨ Better-Fit Drink Selected!",
+                      description: `${alternative.name} is ready for you.`,
+                    });
+                  }}
+                />
+              ) : generationFailure.show && (
                 <GenerationFailureBanner
                   message={generationFailure.message}
                   suggestedActions={generationFailure.suggestedActions}

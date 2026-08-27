@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-08-15T00:12:54.129Z",
   "note": "Per-file hardcoded-string baseline for ALL ACTIVE client/src/components/ .tsx files (including zero-finding files). Generated from the uncapped audit reports. GATE_08b uses this to detect per-file regressions — any file whose count exceeds its baseline triggers a CI failure. New ACTIVE component files absent from this baseline also trigger a CI failure.",
-  "totalComponentFiles": 447,
+  "totalComponentFiles": 448,
   "totalComponentFilesWithFindings": 249,
   "totalComponentFindings": 2143,
   "files": {
@@ -21,6 +21,7 @@
     "client/src/components/AlphaGalProfileModal.tsx": 5,
     "client/src/components/AppRouter.tsx": 0,
     "client/src/components/GenerationFailureBanner.tsx": 0,
+    "client/src/components/BeverageProtocolFailurePanel.tsx": 0,
     "client/src/components/pro/StudioVideoDeletionFailureNotice.tsx": 0,
     "client/src/components/pro/StudioVideoMessageComposer.tsx": 0,
     "client/src/components/AthleteModeCard.tsx": 1,

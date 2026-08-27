@@ -76,6 +76,18 @@
     "whyThisWorksForYou": "Perché Funziona Per Te",
     "withChef": "Con Chef"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "Questa bevanda non è adatta alle tue attuali impostazioni nutrizionali per {{protocol}}.",
+    "title": "Questa bevanda non è adatta alle tue attuali impostazioni nutrizionali.",
+    "description": "Uno o più ingredienti o obiettivi nutrizionali sono in conflitto con il tuo piano attuale. Le tue protezioni hanno evitato di mostrarti una bevanda non adatta.",
+    "alternativesHeading": "Ma hai ancora delle opzioni.",
+    "alternativesIntro": "Queste alternative convalidate mantengono il più possibile la tua idea originale e si adattano meglio alle tue impostazioni.",
+    "alcoholFreeNote": "L'alcol è in conflitto con le tue impostazioni attuali, quindi le alternative seguenti sono analcoliche.",
+    "noAlternatives": "Non siamo riusciti a convalidare un'alternativa sicura questa volta. Puoi provare un'altra bevanda più adatta o modificare le tue preferenze.",
+    "useOption": "Scegli questa opzione",
+    "makeBetterFit": "Crea una bevanda più adatta",
+    "adjustPreferences": "Modifica le mie preferenze"
+  },
   "language": {
     "pageTitle": "Lingua",
     "intro": "My Perfect Meals genera nomi di pasti, ricette, consigli su ristoranti, indicazioni per la spesa e risposte di coaching nativamente nella tua lingua.",

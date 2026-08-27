@@ -76,6 +76,18 @@
     "whyThisWorksForYou": "これがあなたに合う理由",
     "withChef": "シェフと一緒に"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "このドリンクは現在の{{protocol}}向け栄養設定に合いません。",
+    "title": "このドリンクは現在の栄養設定に合いません。",
+    "description": "1つ以上の材料または栄養目標が現在のプランと競合しています。安全設定により、適さないドリンクは表示されませんでした。",
+    "alternativesHeading": "ただし、まだ選択肢があります。",
+    "alternativesIntro": "これらの検証済みの代替案は、元のドリンクのアイデアをできるだけ保ちながら、設定により適合します。",
+    "alcoholFreeNote": "アルコールは現在の設定と競合するため、以下の代替案はノンアルコールです。",
+    "noAlternatives": "今回は安全な代替案を検証できませんでした。より適したドリンクをもう一度試すか、設定を調整してください。",
+    "useOption": "この案を選ぶ",
+    "makeBetterFit": "より適したドリンクを作る",
+    "adjustPreferences": "設定を調整する"
+  },
   "language": {
     "pageTitle": "言語",
     "intro": "My Perfect Mealsは、食事名、レシピ、レストランの推薦、買い物ガイダンス、コーチングの回答をあなたの言語でネイティブに生成します。",
