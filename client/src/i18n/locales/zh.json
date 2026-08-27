@@ -76,6 +76,18 @@
     "whyThisWorksForYou": "为什么这对你有效",
     "withChef": "与厨师一起"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "这杯饮品不符合您当前的{{protocol}}营养设置。",
+    "title": "这杯饮品不符合您当前的营养设置。",
+    "description": "一种或多种食材或营养目标与您当前的计划冲突。安全设置阻止了不适合您的饮品显示出来。",
+    "alternativesHeading": "但您仍有其他选择。",
+    "alternativesIntro": "这些经过验证的替代方案会尽可能保留您原来的饮品想法，同时更符合您的设置。",
+    "alcoholFreeNote": "酒精与您当前的设置冲突，因此以下替代方案均不含酒精。",
+    "noAlternatives": "这次我们无法验证安全的替代方案。您可以尝试另一种更合适的饮品，或调整您的偏好。",
+    "useOption": "选择此选项",
+    "makeBetterFit": "制作更合适的饮品",
+    "adjustPreferences": "调整我的偏好"
+  },
   "language": {
     "pageTitle": "语言",
     "intro": "My Perfect Meals 以您的语言原生生成餐食名称、食谱、餐厅推荐、购物指导和教练回应。",

@@ -83,6 +83,18 @@
     "whyThisFitsYourDiet": "[Whýý Ŧhïïs Fïïŧs Ÿöµr Dïïëŧ ŦŦŦ]",
     "whyThisWorksForYou": "[Whýý Ŧhïïs Wørks Fσr Ÿöµ ŦŦŦ]"
   },
+  "beverageSafety": {
+    "titleWithProtocol": "[Ŧhïïs drïïñk døëës ñøøt fïït ýöür {{protocol}} ñütrïïtïïøñ sëëttïïñgs. ŦŦŦ]",
+    "title": "[Ŧhïïs drïïñk døëës ñøøt fïït ýöür ñütrïïtïïøñ sëëttïïñgs. ŦŦŦ]",
+    "description": "[Øñëë øør møørëë ïïñgrëëdïïëëñts øør ñütrïïtïïøñ tâârgëëts cøñflïïct wïïth ýöür plâân. ŦŦŦ]",
+    "alternativesHeading": "[Büüt ýöü stïïll hââvëë øøptïïøñs. ŦŦŦ]",
+    "alternativesIntro": "[Ŧhëësëë vââlïïdââtëëd ââltëërñââtïïvëës këëëp ýöür drïïñk ïïdëëâ ââs mûüch ââs pøøssïïblëë. ŦŦŦ]",
+    "alcoholFreeNote": "[ÂÂlcøhøøl cøñflïïcts wïïth ýöür sëëttïïñgs, søø thëësëë âârëë ââlcøhøøl-frëëë. ŦŦŦ]",
+    "noAlternatives": "[Wëë cøüldñ'ţ vââlïïdââtëë ââ sââfëë ââltëërñââtïïvëë thïïs tïïmëë. ŦŦŦ]",
+    "useOption": "[Üüsëë Ŧhïïs ØØptïïøñ ŦŦŦ]",
+    "makeBetterFit": "[Mââkëë Mëë ââ Bëëttëër-Fïït Drïïñk ŦŦŦ]",
+    "adjustPreferences": "[ÂÂdjüüst Mÿ Prëëfëërëñcëës ŦŦŦ]"
+  },
   "language": {
     "pageTitle": "[Láãngûüáãgéè ŦŦŦ]",
     "intro": "[My Péèrféèct Méèáãls géènéèráãtéès méèáãl náãméès, réècíïpéès, réèstáãûüráãnt réècôömméèndáãtíïôöns, grôöcéèry gûüíïdáãncéè, áãnd côöáãchíïng réèspôönséès náãtíïvéèly íïn yôöûür láãngûüáãgéè. Théèréè íïs nôö tráãnsláãtíïôön stéèp — théè ÁÃÍÏ thíïnks íïn yôöûür láãngûüáãgéè frôöm théè stáãrt. ŦŦŦ]",
