@@ -976,7 +976,7 @@ export default function DashboardNew() {
         >
           <div className="relative h-48 rounded-xl overflow-hidden">
             <img
-              src="/images/home-hero.png"
+              src="/images/dashboard-chef-community-hero.png"
               alt={t("heroAlt")}
               className="w-full h-full object-cover"
             />
