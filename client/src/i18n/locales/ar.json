@@ -3239,6 +3239,7 @@
     "nativeDelivery": "تسليم iOS أصلي",
     "saving": "جارٍ الحفظ…",
     "statusBlocked": "الإشعارات محظورة في المتصفح",
+    "statusBlockedIos": "تم حظر الإشعارات — افتح الإعدادات للسماح بها",
     "statusConnected": "الإشعارات متصلة",
     "statusPartial": "غير متصل بالكامل — فعّل خانة لإتمام الإعداد",
     "statusPending": "فعّل خانة لتشغيل الإشعارات",
@@ -3477,6 +3478,10 @@
   },
   "inspiration": {
     "servingsJustMe": "أنا فقط",
+    "noAdditionalOptionsTitle": "لا توجد خيارات إضافية تناسب خطتك الآن",
+    "noAdditionalOptionsDesc": "أنشأنا نسخًا إضافية من هذه الوصفة، لكن لم يستوفِ أيٌّ منها متطلبات التغذية لليوم. لا تزال خياراتك الحالية متاحة.",
+    "tryMoreFailedTitle": "تعذر علينا إنشاء خيارات جديدة الآن",
+    "tryMoreFailedDesc": "لم تتغير وصفاتك الحالية. يُرجى المحاولة مرة أخرى.",
     "servings2": "شخصان",
     "servings3": "3 أشخاص",
     "servingsFamily": "عائلة (4)",
@@ -3939,6 +3944,35 @@
       "description": "نعمل مع الأطباء، وأخصائيي التغذية المسجلين، والعيادات، والمستشفيات، ومنظمات رعاية المرضى لدمج My Perfect Meals في سير العمل السريري والرعاية.",
       "eta": "اتصل بنا لاستكشاف خيارات الشراكة السريرية"
     }
+  },
+  "imageStates": {
+    "unavailable": "الصورة غير متاحة",
+    "generating": "جارٍ إنشاء الصورة",
+    "restoring": "جارٍ استعادة الصورة…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "لا توجد خيارات تناسب خطتك الحالية"
+  },
+  "referralTools": {
+    "downloadFailed": "تعذر تنزيل رمز QR. يُرجى المحاولة مرة أخرى."
+  },
+  "allergyConflict": {
+    "makeSafe": "اجعله آمنًا لي"
+  },
+  "generationFailure": {
+    "technicalError": "حدث خطأ من جانبنا. يُرجى المحاولة مرة أخرى."
+  },
+  "studioMessages": {
+    "deleteForMe": "حذف لي",
+    "deleteFromHistory": "حذف من سجلي",
+    "deleteVideoFromHistory": "حذف الفيديو من سجلي",
+    "videoMessage": "رسالة فيديو",
+    "videoTranscriptUnavailable": "نسخة الفيديو النصية غير متاحة.",
+    "sendVideoMessage": "إرسال رسالة فيديو",
+    "cancelVideoMessage": "إلغاء رسالة الفيديو",
+    "liveCameraPreview": "معاينة الكاميرا المباشرة",
+    "recordedVideoPreview": "معاينة الفيديو المسجل",
+    "cameraPreviewHint": "تظهر معاينة الكاميرا عند بدء التسجيل"
   },
   "procareInfo": {
     "title": "تدريب ProCare",

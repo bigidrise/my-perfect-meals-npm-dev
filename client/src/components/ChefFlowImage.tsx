@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 interface ChefFlowImageProps {
@@ -25,6 +26,7 @@ interface ChefFlowImageProps {
  * Full component consolidation into MealImageSlot happens in Phase 4.
  */
 export function ChefFlowImage({ src, alt, className, isLoading = false }: ChefFlowImageProps) {
+  const { t } = useTranslation();
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -54,7 +56,7 @@ export function ChefFlowImage({ src, alt, className, isLoading = false }: ChefFl
             <polyline points="21 15 16 10 5 21" />
           </svg>
         </div>
-        <span className="text-orange-300/70 text-xs">Image unavailable</span>
+        <span className="text-orange-300/70 text-xs">{t("imageStates.unavailable")}</span>
       </div>
     );
   }
@@ -70,7 +72,7 @@ export function ChefFlowImage({ src, alt, className, isLoading = false }: ChefFl
       {showShimmer && (
         <div
           className="absolute inset-0 animate-pulse bg-gradient-to-r from-white/5 via-white/10 to-white/5"
-          aria-label="Generating image"
+          aria-label={t("imageStates.generating")}
         />
       )}
 

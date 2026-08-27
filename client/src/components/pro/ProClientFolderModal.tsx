@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -188,6 +189,7 @@ export default function ProClientFolderModal({
   onNavigate,
   isPhysician,
 }: ProClientFolderModalProps) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<TabletEntry[]>([]);
   const [notes, setNotes] = useState<TabletEntry[]>([]);
   const [activeTab, setActiveTab] = useState<"messages" | "notes">("messages");
@@ -802,8 +804,8 @@ export default function ProClientFolderModal({
             <button
               onClick={() => handleDeleteEntry(entry)}
               className="text-red-500/60 p-0.5"
-              title="Delete for me"
-              aria-label="Delete from my history"
+              title={t("studioMessages.deleteForMe")}
+              aria-label={t("studioMessages.deleteFromHistory")}
             >
               <Trash2 className="w-3 h-3" />
             </button>
@@ -875,7 +877,7 @@ export default function ProClientFolderModal({
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-1.5">
             <Video className="w-3 h-3 text-violet-300" />
-            <span className="text-[10px] font-semibold text-violet-200">Video message</span>
+            <span className="text-[10px] font-semibold text-violet-200">{t("studioMessages.videoMessage")}</span>
             {durationLabel && <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-mono">{durationLabel}</span>}
           </div>
           <div className="flex items-center gap-1.5">
@@ -883,8 +885,8 @@ export default function ProClientFolderModal({
             <button
               onClick={() => handleDeleteEntry(entry)}
               className="text-red-400/80 p-0.5"
-              title="Delete for me"
-              aria-label="Delete video from my history"
+              title={t("studioMessages.deleteForMe")}
+              aria-label={t("studioMessages.deleteVideoFromHistory")}
             >
               <Trash2 className="w-3 h-3" />
             </button>
@@ -945,7 +947,7 @@ export default function ProClientFolderModal({
           </p>
         )}
         {entry.videoTranscriptStatus === "failed" && (
-          <p className="mt-2 text-[10px] text-white/35 italic">Video transcript unavailable.</p>
+          <p className="mt-2 text-[10px] text-white/35 italic">{t("studioMessages.videoTranscriptUnavailable")}</p>
         )}
       </div>
     );
@@ -1021,8 +1023,8 @@ export default function ProClientFolderModal({
                 <button
                   onClick={() => handleDeleteEntry(entry)}
                   className="text-red-500 p-0.5"
-                  title="Delete for me"
-                  aria-label="Delete from my history"
+                  title={t("studioMessages.deleteForMe")}
+                  aria-label={t("studioMessages.deleteFromHistory")}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -1375,7 +1377,7 @@ export default function ProClientFolderModal({
                         <button
                           onClick={() => setVideoMode(true)}
                           className="flex items-center justify-center p-1.5 rounded-md bg-violet-600/20 border border-violet-500/30 text-violet-300"
-                          title="Send video message"
+                          title={t("studioMessages.sendVideoMessage")}
                         >
                           <Video className="w-3.5 h-3.5" />
                         </button>

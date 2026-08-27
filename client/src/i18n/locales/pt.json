@@ -3484,6 +3484,7 @@
     "nativeDelivery": "Entrega nativa iOS",
     "saving": "Salvando…",
     "statusBlocked": "Notificações bloqueadas no navegador",
+    "statusBlockedIos": "Notificações bloqueadas — abra Ajustes para permitir",
     "statusConnected": "Notificações conectadas",
     "statusPartial": "Não totalmente conectado — ative um horário para concluir",
     "statusPending": "Ative um horário para habilitar notificações",
@@ -3722,6 +3723,10 @@
   },
   "inspiration": {
     "servingsJustMe": "Só eu",
+    "noAdditionalOptionsTitle": "Nenhuma opção adicional se encaixa no seu plano no momento",
+    "noAdditionalOptionsDesc": "Criamos versões adicionais desta receita, mas nenhuma atendeu aos requisitos nutricionais de hoje. Suas opções atuais continuam disponíveis.",
+    "tryMoreFailedTitle": "Não foi possível criar novas opções agora",
+    "tryMoreFailedDesc": "Suas receitas atuais não foram alteradas. Tente novamente.",
     "servings2": "2 pessoas",
     "servings3": "3 pessoas",
     "servingsFamily": "Família (4)",
@@ -4184,6 +4189,35 @@
       "description": "Trabalhamos com médicos, nutricionistas registrados, clínicas, hospitais e organizações de atendimento ao paciente para integrar o My Perfect Meals em fluxos de trabalho clínicos e de cuidado.",
       "eta": "Entre em contato conosco para explorar opções de parceria clínica"
     }
+  },
+  "imageStates": {
+    "unavailable": "Imagem indisponível",
+    "generating": "Gerando imagem",
+    "restoring": "Restaurando imagem…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "Nenhuma opção se encaixa no seu plano atual"
+  },
+  "referralTools": {
+    "downloadFailed": "Não foi possível baixar o código QR. Tente novamente."
+  },
+  "allergyConflict": {
+    "makeSafe": "Tornar seguro para mim"
+  },
+  "generationFailure": {
+    "technicalError": "Algo deu errado do nosso lado. Tente novamente."
+  },
+  "studioMessages": {
+    "deleteForMe": "Excluir para mim",
+    "deleteFromHistory": "Excluir do meu histórico",
+    "deleteVideoFromHistory": "Excluir vídeo do meu histórico",
+    "videoMessage": "Mensagem de vídeo",
+    "videoTranscriptUnavailable": "Transcrição do vídeo indisponível.",
+    "sendVideoMessage": "Enviar mensagem de vídeo",
+    "cancelVideoMessage": "Cancelar mensagem de vídeo",
+    "liveCameraPreview": "Prévia da câmera ao vivo",
+    "recordedVideoPreview": "Prévia do vídeo gravado",
+    "cameraPreviewHint": "A prévia da câmera aparece quando a gravação começa"
   },
   "procareInfo": {
     "title": "Coaching ProCare",

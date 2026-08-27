@@ -14,6 +14,8 @@
  */
 
 import { RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 
 export type GenerationFailureType =
   | "technical_error"      // network / 500 — something broke on our end
@@ -40,7 +42,7 @@ export function buildFailureMessage(
   switch (type) {
     case "technical_error":
       return {
-        message: "Something went wrong on our end. Please try again.",
+        message: i18n.t("generationFailure.technicalError"),
         suggestedActions: [],
       };
     case "dietary_rejection":
@@ -88,6 +90,7 @@ export function GenerationFailureBanner({
   onDismiss,
   isRetrying = false,
 }: GenerationFailureBannerProps) {
+  const { t } = useTranslation();
   return (
     <div className="mt-3 rounded-lg border border-orange-500/40 bg-orange-950/50 px-4 py-3 flex flex-col gap-2">
       <div className="flex items-start gap-2">
@@ -110,11 +113,11 @@ export function GenerationFailureBanner({
         <button
           onClick={onRetry}
           disabled={isRetrying}
-          aria-label="Try again"
+          aria-label={t("common.tryAgain")}
           className="flex-1 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
         >
           <RotateCcw className="h-3 w-3" aria-hidden="true" />
-          Try Again
+          {t("common.tryAgain")}
         </button>
         <button
           onClick={onDismiss}
