@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { get, post } from "@/lib/api";
 import { isFirstPartyPermanentImageUrl } from "@shared/mediaImageUrls";
 
@@ -65,10 +66,12 @@ function UnavailablePlaceholder({
 
 function RecoveringPlaceholder({
   label,
+  statusLabel,
   height,
   className,
 }: {
   label: string;
+  statusLabel: string;
   height: string;
   className: string;
 }) {
@@ -81,7 +84,7 @@ function RecoveringPlaceholder({
         <div className="w-8 h-8 rounded-full border-2 border-orange-400 border-t-transparent animate-spin" />
         <div className="text-center">
           <p className="text-orange-300 text-sm font-medium">{label}</p>
-          <p className="text-white/40 text-xs mt-0.5">Restoring image…</p>
+          <p className="text-white/40 text-xs mt-0.5">{statusLabel}</p>
         </div>
       </div>
     </div>
@@ -115,6 +118,7 @@ export function MealImageSlot({
   height = "h-64",
   className = "",
 }: MealImageSlotProps) {
+  const { t } = useTranslation();
   const [revealed, setRevealed] = useState(false);
   // true = image load failed; show neutral unavailable state, never another food
   const [failed, setFailed] = useState(false);
@@ -289,7 +293,7 @@ export function MealImageSlot({
   }
 
   if (recoveryState === "restoring") {
-    return <RecoveringPlaceholder label={label} height={height} className={className} />;
+    return <RecoveringPlaceholder label={label} statusLabel={t("imageStates.restoring")} height={height} className={className} />;
   }
 
   // Delivery failed — image URL existed but could not be loaded

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Copy,
   Download,
@@ -51,6 +52,7 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
 
 export default function ReferralTools() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<PartnerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -119,7 +121,7 @@ export default function ReferralTools() {
     } catch {
       toast({
         variant: "destructive",
-        description: "Could not download the QR code. Please try again.",
+        description: t("referralTools.downloadFailed"),
       });
     }
   }

@@ -1,6 +1,7 @@
 // client/src/components/FixedMenuPicker.tsx
 // Lets users select 2–6 specific meals that cycle across the plan when mode === "fixed_menu".
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
 import { X, Plus, RefreshCw } from "lucide-react";
@@ -30,6 +31,7 @@ export default function FixedMenuPicker({
   userId?: string;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<FixedMeal[]>([]);
   const [error, setError] = useState<string | undefined>();
@@ -58,7 +60,7 @@ export default function FixedMenuPicker({
         try { errData = await res.json(); } catch { /* non-JSON response */ }
         if (errData.reasonCode === "constraint_conflict") {
           toast({
-            title: "No options fit your current plan",
+            title: t("mealPicker.noOptionsFitPlan"),
             description: errData.message || errData.error || "Your health protocol eliminated all generated options. Try a different meal type or adjust your settings.",
             duration: 8000,
           });

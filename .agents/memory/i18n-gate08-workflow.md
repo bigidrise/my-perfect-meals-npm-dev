@@ -9,6 +9,7 @@ description: How the hardcoded-string ratchet is computed and the pitfalls when 
 - The baseline in `docs/localization/hardcoded-baseline.json` is only auto-written on first run; after a successful decrease, update it manually to lock the new ceiling.
 - GATE_03 fails on empty locale values. CJK/RTL word order sometimes makes a segmented key ("before/mid/after" around `<strong>`) naturally empty — give it a small real word instead (e.g. zh "按钮", ja "設定で").
 - Clinical strings in `docs/localization/clinical-registry.json` must stay hardcoded during migration batches (GATE_07); skip them and note it.
+- GATE_08b requires an explicit per-file entry for every newly ACTIVE component. Add zero-string entries after localization; when a remaining literal is GATE_07-protected clinical copy, retain its observed count instead of translating it or broadly regenerating the baseline.
 - Parallel-subagent migration pattern that worked: each subagent edits only its component files and writes keys+13 translations to `scripts/i18n-new-keys/<slug>.json`; parent merges all scratch files into the 14 locale files in one script (no concurrent locale-file edits). Then verify every `t("...")` key in edited files exists in en.json — subagents occasionally reference keys they forgot to emit.
 
 **Why:** first batch (task moving 1439→1280) hit all of these.

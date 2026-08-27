@@ -3481,6 +3481,7 @@
     "nativeDelivery": "मूल iOS डिलीवरी",
     "saving": "सहेजा जा रहा है…",
     "statusBlocked": "ब्राउज़र में सूचनाएं अवरुद्ध",
+    "statusBlockedIos": "सूचनाएं अवरुद्ध हैं — अनुमति देने के लिए सेटिंग्स खोलें",
     "statusConnected": "सूचनाएं जुड़ी हुई हैं",
     "statusPartial": "पूरी तरह से जुड़ा नहीं — सेटअप पूरा करने के लिए एक स्लॉट टॉगल करें",
     "statusPending": "सूचनाएं सक्षम करने के लिए एक स्लॉट टॉगल करें",
@@ -3719,6 +3720,10 @@
   },
   "inspiration": {
     "servingsJustMe": "सिर्फ़ मैं",
+    "noAdditionalOptionsTitle": "अभी कोई अतिरिक्त विकल्प आपकी योजना के अनुकूल नहीं है",
+    "noAdditionalOptionsDesc": "हमने इस रेसिपी के अतिरिक्त संस्करण बनाए, लेकिन कोई भी आज की पोषण आवश्यकताओं को पूरा नहीं करता। आपके मौजूदा विकल्प अभी भी उपलब्ध हैं।",
+    "tryMoreFailedTitle": "हम अभी नए विकल्प नहीं बना सके",
+    "tryMoreFailedDesc": "आपकी मौजूदा रेसिपी नहीं बदली हैं। कृपया फिर से कोशिश करें।",
     "servings2": "2 लोग",
     "servings3": "3 लोग",
     "servingsFamily": "परिवार (4)",
@@ -4110,6 +4115,35 @@
       "description": "हम चिकित्सकों, पंजीकृत आहार विशेषज्ञों, क्लीनिकों, अस्पतालों और रोगी-देखभाल संगठनों के साथ काम करते हैं।",
       "eta": "क्लिनिकल साझेदारी के लिए हमसे संपर्क करें"
     }
+  },
+  "imageStates": {
+    "unavailable": "छवि उपलब्ध नहीं है",
+    "generating": "छवि बनाई जा रही है",
+    "restoring": "छवि पुनर्स्थापित की जा रही है…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "कोई विकल्प आपकी वर्तमान योजना के अनुकूल नहीं है"
+  },
+  "referralTools": {
+    "downloadFailed": "QR कोड डाउनलोड नहीं हो सका। कृपया फिर से कोशिश करें।"
+  },
+  "allergyConflict": {
+    "makeSafe": "इसे मेरे लिए सुरक्षित बनाएं"
+  },
+  "generationFailure": {
+    "technicalError": "हमारी ओर से कुछ गलत हो गया। कृपया फिर से कोशिश करें।"
+  },
+  "studioMessages": {
+    "deleteForMe": "मेरे लिए हटाएं",
+    "deleteFromHistory": "मेरे इतिहास से हटाएं",
+    "deleteVideoFromHistory": "मेरे इतिहास से वीडियो हटाएं",
+    "videoMessage": "वीडियो संदेश",
+    "videoTranscriptUnavailable": "वीडियो ट्रांसक्रिप्ट उपलब्ध नहीं है।",
+    "sendVideoMessage": "वीडियो संदेश भेजें",
+    "cancelVideoMessage": "वीडियो संदेश रद्द करें",
+    "liveCameraPreview": "लाइव कैमरा पूर्वावलोकन",
+    "recordedVideoPreview": "रिकॉर्ड किए गए वीडियो का पूर्वावलोकन",
+    "cameraPreviewHint": "रिकॉर्डिंग शुरू होने पर कैमरा पूर्वावलोकन दिखाई देता है"
   },
   "procareInfo": {
     "title": "प्रोकेयर कोचिंग",

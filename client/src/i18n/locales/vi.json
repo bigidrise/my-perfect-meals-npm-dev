@@ -3246,6 +3246,7 @@
     "nativeDelivery": "Giao hàng iOS bản địa",
     "saving": "Đang lưu…",
     "statusBlocked": "Thông báo bị chặn trong trình duyệt",
+    "statusBlockedIos": "Thông báo bị chặn — mở Cài đặt để cho phép",
     "statusConnected": "Thông báo đã kết nối",
     "statusPartial": "Chưa hoàn toàn kết nối — chuyển đổi một slot để hoàn tất thiết lập",
     "statusPending": "Chuyển đổi một slot để kích hoạt thông báo",
@@ -3484,6 +3485,10 @@
   },
   "inspiration": {
     "servingsJustMe": "Chỉ Có Tôi",
+    "noAdditionalOptionsTitle": "Hiện không có lựa chọn bổ sung nào phù hợp với kế hoạch của bạn",
+    "noAdditionalOptionsDesc": "Chúng tôi đã tạo thêm các phiên bản của công thức này, nhưng không phiên bản nào đáp ứng yêu cầu dinh dưỡng hôm nay. Các lựa chọn hiện tại của bạn vẫn có sẵn.",
+    "tryMoreFailedTitle": "Hiện không thể tạo các lựa chọn mới",
+    "tryMoreFailedDesc": "Các công thức hiện tại của bạn chưa thay đổi. Vui lòng thử lại.",
     "servings2": "2 Người",
     "servings3": "3 Người",
     "servingsFamily": "Gia Đình (4)",
@@ -3946,6 +3951,35 @@
       "description": "Chúng tôi làm việc với các bác sĩ, chuyên gia dinh dưỡng đã đăng ký, phòng khám, bệnh viện và tổ chức chăm sóc bệnh nhân để tích hợp My Perfect Meals vào quy trình lâm sàng và chăm sóc.",
       "eta": "Liên hệ với chúng tôi để khám phá các tùy chọn đối tác lâm sàng"
     }
+  },
+  "imageStates": {
+    "unavailable": "Không có hình ảnh",
+    "generating": "Đang tạo hình ảnh",
+    "restoring": "Đang khôi phục hình ảnh…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "Không có lựa chọn nào phù hợp với kế hoạch hiện tại của bạn"
+  },
+  "referralTools": {
+    "downloadFailed": "Không thể tải mã QR xuống. Vui lòng thử lại."
+  },
+  "allergyConflict": {
+    "makeSafe": "Làm món này an toàn cho tôi"
+  },
+  "generationFailure": {
+    "technicalError": "Đã xảy ra lỗi ở phía chúng tôi. Vui lòng thử lại."
+  },
+  "studioMessages": {
+    "deleteForMe": "Xóa cho tôi",
+    "deleteFromHistory": "Xóa khỏi lịch sử của tôi",
+    "deleteVideoFromHistory": "Xóa video khỏi lịch sử của tôi",
+    "videoMessage": "Tin nhắn video",
+    "videoTranscriptUnavailable": "Không có bản chép lời video.",
+    "sendVideoMessage": "Gửi tin nhắn video",
+    "cancelVideoMessage": "Hủy tin nhắn video",
+    "liveCameraPreview": "Xem trước camera trực tiếp",
+    "recordedVideoPreview": "Xem trước video đã ghi",
+    "cameraPreviewHint": "Bản xem trước camera xuất hiện khi bắt đầu ghi"
   },
   "procareInfo": {
     "title": "ProCare Coaching",

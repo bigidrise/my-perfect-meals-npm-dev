@@ -3301,6 +3301,7 @@
     "nativeDelivery": "iOSネイティブ配信",
     "saving": "保存中…",
     "statusBlocked": "ブラウザで通知がブロック中",
+    "statusBlockedIos": "通知はブロックされています — 許可するには設定を開いてください",
     "statusConnected": "通知が接続済み",
     "statusPartial": "未完了—枠をオンにして設定を完了",
     "statusPending": "枠をオンにして通知を有効化",
@@ -3539,6 +3540,10 @@
   },
   "inspiration": {
     "servingsJustMe": "自分だけ",
+    "noAdditionalOptionsTitle": "現在のプランに合う追加の選択肢はありません",
+    "noAdditionalOptionsDesc": "このレシピの追加バージョンを作成しましたが、今日の栄養要件を満たすものはありませんでした。現在の選択肢は引き続き利用できます。",
+    "tryMoreFailedTitle": "現在、新しい選択肢を作成できませんでした",
+    "tryMoreFailedDesc": "現在のレシピは変更されていません。もう一度お試しください。",
     "servings2": "2人",
     "servings3": "3人",
     "servingsFamily": "家族（4人）",
@@ -4001,6 +4006,35 @@
       "description": "私たちは、医師、登録栄養士、クリニック、病院、患者ケア組織と協力して、My Perfect Mealsを臨床およびケアワークフローに統合しています。",
       "eta": "臨床パートナーシップのオプションを探るためにお問い合わせください"
     }
+  },
+  "imageStates": {
+    "unavailable": "画像を利用できません",
+    "generating": "画像を生成中",
+    "restoring": "画像を復元中…"
+  },
+  "mealPicker": {
+    "noOptionsFitPlan": "現在のプランに合う選択肢はありません"
+  },
+  "referralTools": {
+    "downloadFailed": "QRコードをダウンロードできませんでした。もう一度お試しください。"
+  },
+  "allergyConflict": {
+    "makeSafe": "安全な内容にする"
+  },
+  "generationFailure": {
+    "technicalError": "こちらで問題が発生しました。もう一度お試しください。"
+  },
+  "studioMessages": {
+    "deleteForMe": "自分用に削除",
+    "deleteFromHistory": "履歴から削除",
+    "deleteVideoFromHistory": "履歴から動画を削除",
+    "videoMessage": "ビデオメッセージ",
+    "videoTranscriptUnavailable": "動画の文字起こしを利用できません。",
+    "sendVideoMessage": "ビデオメッセージを送信",
+    "cancelVideoMessage": "ビデオメッセージをキャンセル",
+    "liveCameraPreview": "ライブカメラプレビュー",
+    "recordedVideoPreview": "録画済みビデオのプレビュー",
+    "cameraPreviewHint": "録画を開始するとカメラのプレビューが表示されます"
   },
   "procareInfo": {
     "title": "ProCareコーチング",
