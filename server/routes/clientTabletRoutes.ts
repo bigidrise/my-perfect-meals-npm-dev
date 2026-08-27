@@ -52,6 +52,7 @@ import {
   completeStudioVideoWatch,
   createVerifiedWatchProgress,
   recordVerifiedWatchProgress,
+  serializeVerifiedWatchProgress,
   STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
   type VerifiedWatchProgress,
 } from "@shared/studioVideoMessages";
@@ -524,7 +525,8 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
     isSeeking: req.body.isSeeking === true,
     playbackRate: typeof req.body.playbackRate === "number" ? req.body.playbackRate : undefined,
   });
-  const update: Record<string, unknown> = { watchProgress: result.progress, updatedAt: new Date() };
+  const persistedWatchProgress = serializeVerifiedWatchProgress(result.progress);
+  const update: Record<string, unknown> = { watchProgress: persistedWatchProgress, updatedAt: new Date() };
   if (result.complete && record.media.state === "ready") {
     const completedAt = new Date();
     const completion = completeStudioVideoWatch({
@@ -534,7 +536,7 @@ router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (r
     });
     const [persistedCompletion] = await db.update(studioVideoMedia)
       .set({
-        watchProgress: result.progress,
+        watchProgress: persistedWatchProgress,
         state: completion.state,
         watchCompletedAt: new Date(completion.watchCompletedAt),
         expiresAt: new Date(completion.expiresAt),
