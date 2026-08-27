@@ -317,6 +317,35 @@ export type VerifiedWatchProgress = {
   rejectedSampleCount: number;
 };
 
+export type StoredVerifiedWatchProgress = {
+  durationSec: number;
+  watchedIntervals: Array<[number, number]>;
+  lastPositionSec: number | null;
+  lastObservedAtMs: number | null;
+  maxVerifiedPositionSec: number;
+  rejectedSampleCount: number;
+};
+
+/**
+ * Converts the immutable domain representation into the mutable JSON shape
+ * used by the database column. The copy also prevents later caller mutation
+ * from changing the progress object held by the domain result.
+ */
+export function serializeVerifiedWatchProgress(
+  progress: VerifiedWatchProgress,
+): StoredVerifiedWatchProgress {
+  return {
+    durationSec: progress.durationSec,
+    watchedIntervals: progress.watchedIntervals.map(
+      ([startSec, endSec]) => [startSec, endSec],
+    ),
+    lastPositionSec: progress.lastPositionSec,
+    lastObservedAtMs: progress.lastObservedAtMs,
+    maxVerifiedPositionSec: progress.maxVerifiedPositionSec,
+    rejectedSampleCount: progress.rejectedSampleCount,
+  };
+}
+
 export type WatchProgressSample = {
   durationSec: number;
   positionSec: number;
