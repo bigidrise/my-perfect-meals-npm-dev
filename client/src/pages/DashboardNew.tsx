@@ -981,6 +981,14 @@ export default function DashboardNew() {
               className="w-full h-full object-cover"
               style={{ objectPosition: "center 63%" }}
             />
+            <div className="pointer-events-none absolute inset-x-0 top-1 z-10 flex justify-center sm:top-2">
+              <img
+                src="/images/mpm-full-logo-transparent.png"
+                alt=""
+                aria-hidden="true"
+                className="h-auto w-[min(54vw,220px)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:w-[min(28vw,280px)]"
+              />
+            </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
             <div className="absolute bottom-3 left-4 right-4">
               <div className="w-fit rounded-xl bg-black/25 px-3 py-1.5 shadow-lg">
