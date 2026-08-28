@@ -225,6 +225,139 @@ export type HydrationDailyState = {
   projectionHash: string;
 };
 
+export const HYDRATION_MODIFIER_AUTHORITIES = [
+  "emergency_safety",
+  "clinician",
+  "organ_safety",
+  "condition_overlay",
+  "performance",
+  "user_preference",
+  "wellness_baseline",
+  "analytics_reference",
+] as const;
+export type HydrationModifierAuthority =
+  (typeof HYDRATION_MODIFIER_AUTHORITIES)[number];
+
+export const HYDRATION_MODIFIER_METRICS = [
+  "fluid",
+  "sodium",
+  "electrolyte",
+  "caffeine",
+  "carbohydrate",
+  "timing",
+  "general",
+] as const;
+export type HydrationModifierMetric =
+  (typeof HYDRATION_MODIFIER_METRICS)[number];
+
+export const HYDRATION_MODIFIER_EFFECTS = [
+  "context_only",
+  "supports",
+  "limits",
+  "blocks",
+  "requires_review",
+] as const;
+export type HydrationModifierEffect =
+  (typeof HYDRATION_MODIFIER_EFFECTS)[number];
+
+export const HYDRATION_MODIFIER_SOURCES = [
+  "baseline",
+  "performance",
+  "environment",
+  "builder",
+  "condition",
+  "medication",
+  "user_preference",
+  "clinician_directive",
+  "safety",
+  "analytics",
+] as const;
+export type HydrationModifierSource =
+  (typeof HYDRATION_MODIFIER_SOURCES)[number];
+
+export const HYDRATION_MODIFIER_STATUSES = [
+  "active",
+  "withheld",
+  "expired",
+] as const;
+export type HydrationModifierStatus =
+  (typeof HYDRATION_MODIFIER_STATUSES)[number];
+
+/**
+ * A modifier is a typed claim about future hydration planning, not a plan
+ * value. Numeric values are intentionally absent from this Phase 2 contract.
+ */
+export type HydrationModifierInput = {
+  id: string;
+  modifierType: string;
+  metric: HydrationModifierMetric;
+  effect: HydrationModifierEffect;
+  authority: HydrationModifierAuthority;
+  source: HydrationModifierSource;
+  sourceId: string;
+  conflictGroup?: string;
+  rationaleCode: string;
+  policyVersion: string;
+  status?: HydrationModifierStatus;
+  hardStop?: boolean;
+  contextKey?: string;
+};
+
+export type HydrationResolvedModifier = HydrationModifierInput & {
+  status: "active";
+  disposition: "active" | "suppressed";
+  suppressionReasonCodes: string[];
+  suppressedByInputIds: string[];
+};
+
+export type HydrationSuppression = {
+  modifierId: string;
+  reasonCode: string;
+  explanationKey: string;
+  byInputIds: string[];
+};
+
+export type HydrationNumericPlanGuard = {
+  targetMl: null;
+  minimumMl: null;
+  maximumMl: null;
+  remainingMl: null;
+  numericPlanAllowed: false;
+};
+
+export type HydrationResolvedPolicyState = HydrationNumericPlanGuard & {
+  policyVersion: string;
+  inputSnapshotHash: string;
+  status:
+    | "neutral"
+    | "context_only"
+    | "resolved"
+    | "withheld"
+    | "needs_review"
+    | "blocked";
+  activeModifiers: HydrationResolvedModifier[];
+  activeRestrictions: HydrationResolvedModifier[];
+  suppressedModifiers: HydrationResolvedModifier[];
+  suppressions: HydrationSuppression[];
+  clinicianDirectiveState:
+    | "none"
+    | "represented"
+    | "withheld_for_conflict"
+    | "needs_review";
+  potsState:
+    | "not_present"
+    | "context_only"
+    | "clinician_defined"
+    | "conflict_review";
+  clinicalConflictState: "none" | "detected" | "unresolved";
+  escalationRequired: boolean;
+  provenance: {
+    inputIds: string[];
+    sourceIds: string[];
+    policyVersion: string;
+  };
+};
+
 export type HydrationPhase1PolicyVersion = {
   policyKey: string;
   version: string;

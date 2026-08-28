@@ -41,3 +41,4 @@
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
 - [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
 - [Legacy Hydration intake bridge](legacy-hydration-intake-bridge.md) — until migration approval, canonical Hydration reads project from water_logs without a second stored copy.
+- [Hydration modifier governance](hydration-modifier-governance.md) — context sources emit nonnumeric claims; one deterministic resolver owns precedence, suppression, and review.
