@@ -56,6 +56,7 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 - **Macro Truth Contract**: `server/services/guardrails/macroTruthContract.ts` ensures that macro values are never invented (null=unknown, 0=known zero) and are only rejected or regenerated, never mutated.
 - **Slug-based Coaching System**: New coaches are added by updating config files and environment variables; no code changes required for coach onboarding.
 - **Creator System Layer (Branded Kitchens)**: Allows chefs/coaches to customize meal generation output styling (name, description, instructions) via `creator_system_configs` in the DB, without affecting core medical/dietary guardrails.
+- **Hydration evidence and discovery**: Every source used by the Hydration Formula & Numeric Safety Policy must be captured in a structured, versioned evidence record containing title, organization/author, publication date, URL or citation, supported rule, evidence level, population scope, and the Hydration policy version informed. The approved evidence registry must feed the Resources page. When Hydration is user-ready, register it in the App Library with its description, purpose, supported use cases, safety boundaries, and Hydration Center link.
 
 ## Product
 
