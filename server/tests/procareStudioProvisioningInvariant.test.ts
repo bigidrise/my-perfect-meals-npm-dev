@@ -46,6 +46,20 @@ describe("ProCare Studio provisioning invariant", () => {
     expect(inviteReadiness).toBeGreaterThan(inviteRoute);
   });
 
+  it("uses the authoritative Academy progression for every Phase 1 consumer", () => {
+    const middleware = read("middleware/requirePhase1Cert.ts");
+    const readiness = read("services/procareStudioReadiness.ts");
+    const certificationRoutes = read("routes/certificationRoutes.ts");
+
+    for (const source of [middleware, readiness, certificationRoutes]) {
+      expect(source).toContain("getAcademyProgression");
+      expect(source).toContain("progression.phase1.complete");
+    }
+
+    expect(middleware).not.toContain("userCertifications");
+    expect(readiness).not.toContain("userCertifications");
+  });
+
   it("keeps provisioning and legacy acceptance idempotent, then repairs legacy providers in both runtimes", () => {
     const bridge = read("services/studioBridge.ts");
     const readiness = read("services/procareStudioReadiness.ts");

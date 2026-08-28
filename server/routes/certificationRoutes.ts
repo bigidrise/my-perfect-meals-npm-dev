@@ -330,38 +330,36 @@ router.get("/assets/signature", async (req, res) => {
 });
 
 // GET /api/certifications/phase1-status
-// Canonical Phase 1 gate check — accepts both "platform" (legacy Academy records)
-// and "platform_mastery" (current Academy records). Returns a single boolean plus
-// the best matching cert record. Use this in all Phase 1 eligibility gates instead
-// of calling /platform/progress directly, so both cert types are always recognized.
+// Canonical Phase 1 status. Completion comes from the authoritative Academy
+// progression resolver; the parent certification row is returned only as
+// compatibility metadata and is not the completion authority.
 router.get("/phase1-status", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
 
-    // Only "platform_mastery" records (current Academy cert type) OR legacy "platform"
-    // records with is_certification_track=true (old Academy completions) satisfy Phase 1.
-    // Plain "platform" records without cert-track flag are ProCare training records and
-    // must NOT satisfy the Phase 1 Academy gate.
-    const certs = await db
-      .select({
-        status: userCertifications.status,
-        completedAt: userCertifications.completedAt,
-        certificationType: userCertifications.certificationType,
-        score: userCertifications.score,
-      })
-      .from(userCertifications)
-      .where(
-        and(
-          eq(userCertifications.userId, userId),
-          or(
-            eq(userCertifications.certificationType, "platform_mastery"),
-            and(
-              eq(userCertifications.certificationType, "platform"),
-              eq(userCertifications.isCertificationTrack, true)
+    const [progression, certs] = await Promise.all([
+      getAcademyProgression(userId),
+      db
+        .select({
+          status: userCertifications.status,
+          completedAt: userCertifications.completedAt,
+          certificationType: userCertifications.certificationType,
+          score: userCertifications.score,
+        })
+        .from(userCertifications)
+        .where(
+          and(
+            eq(userCertifications.userId, userId),
+            or(
+              eq(userCertifications.certificationType, "platform_mastery"),
+              and(
+                eq(userCertifications.certificationType, "platform"),
+                eq(userCertifications.isCertificationTrack, true)
+              )
             )
           )
-        )
-      );
+        ),
+    ]);
 
     const completed = certs.filter((c) => c.status === "completed" && c.completedAt);
     const best =
@@ -374,7 +372,7 @@ router.get("/phase1-status", requireAuth, async (req, res) => {
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     return res.json({
-      phase1Complete: completed.length > 0,
+      phase1Complete: progression.phase1.complete,
       certification: best
         ? {
             status: best.status,

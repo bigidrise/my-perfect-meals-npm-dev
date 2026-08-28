@@ -21,13 +21,27 @@ describe("Academy progression", () => {
     expect(result.nextStep.kind).toBe("start_platform");
   });
 
-  it("treats all nine lessons as Phase 1 complete without a certificate", () => {
+  it("treats 9/9 lessons as Phase 1 complete when the parent row is still in progress", () => {
     const result = resolveAcademyProgression({
       ...emptyInput,
       completedPlatformLessonIds: PLATFORM_MASTERY_LESSON_IDS,
+      // false models a stale platform_mastery parent row that is not completed.
+      legacyPlatformComplete: false,
     });
     expect(result.phase1.complete).toBe(true);
+    expect(result.phase1.completed).toBe(9);
     expect(result.nextStep.kind).toBe("start_marketing");
+  });
+
+  it("keeps Phase 1 incomplete when only 8/9 required lessons are complete", () => {
+    const result = resolveAcademyProgression({
+      ...emptyInput,
+      completedPlatformLessonIds: PLATFORM_MASTERY_LESSON_IDS.slice(0, -1),
+      legacyPlatformComplete: false,
+    });
+    expect(result.phase1.complete).toBe(false);
+    expect(result.phase1.completed).toBe(8);
+    expect(result.nextStep.kind).toBe("continue_platform");
   });
 
   it("requires every Marketing module before Specialist eligibility", () => {
