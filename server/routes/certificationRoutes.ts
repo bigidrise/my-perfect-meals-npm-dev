@@ -26,6 +26,40 @@ const router = express.Router();
 
 const DB_DRIVEN_CERT_TYPES = ["platform", "business_success"];
 
+async function findCertificateForDisplay(userId: string, certType: string) {
+  const [cert] = await db
+    .select()
+    .from(userCertifications)
+    .where(
+      and(
+        eq(userCertifications.userId, userId),
+        eq(userCertifications.certificationType, certType),
+      ),
+    )
+    .limit(1);
+
+  if (cert || certType !== SPECIALIST_CERTIFICATION_TYPE) {
+    return cert;
+  }
+
+  // The Specialist credential was introduced after some users had already
+  // completed Marketing & Coaching. Treat that completed legacy row as the
+  // source record for display/download, but never relabel or mutate it.
+  const [legacyMarketingCert] = await db
+    .select()
+    .from(userCertifications)
+    .where(
+      and(
+        eq(userCertifications.userId, userId),
+        eq(userCertifications.certificationType, "marketing_coaching"),
+        eq(userCertifications.status, "completed"),
+      ),
+    )
+    .limit(1);
+
+  return legacyMarketingCert;
+}
+
 // ─── DB-DRIVEN CERT: MODULE LIST WITH QUESTIONS ───────────────────────────────
 
 // GET /api/certifications/:certType/modules — DB-driven module list + questions (no correct answers)
@@ -376,16 +410,7 @@ router.get("/:certType/progress", requireAuth, async (req, res) => {
     const { certType } = req.params;
 
     const [certification, moduleProgress] = await Promise.all([
-      db
-        .select()
-        .from(userCertifications)
-        .where(
-          and(
-            eq(userCertifications.userId, userId),
-            eq(userCertifications.certificationType, certType)
-          )
-        )
-        .limit(1),
+      findCertificateForDisplay(userId, certType),
       db
         .select()
         .from(certificationModuleProgress)
@@ -402,7 +427,7 @@ router.get("/:certType/progress", requireAuth, async (req, res) => {
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     return res.json({
-      certification: certification[0] ?? null,
+      certification: certification ?? null,
       moduleProgress,
     });
   } catch (err) {
@@ -417,16 +442,7 @@ router.get("/:certType/certificate", requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType } = req.params;
 
-    const [cert] = await db
-      .select()
-      .from(userCertifications)
-      .where(
-        and(
-          eq(userCertifications.userId, userId),
-          eq(userCertifications.certificationType, certType)
-        )
-      )
-      .limit(1);
+    const cert = await findCertificateForDisplay(userId, certType);
 
     if (!cert || cert.status !== "completed") {
       return res.status(404).json({ error: "Certification not found" });
