@@ -61,13 +61,20 @@ export default function CertificationDashboard() {
       const json = await apiRequest(
         `/api/certifications/${certType}/progress?_t=${Date.now()}`
       );
+      if (pathId === "marketing" && json.certification?.status === "completed") {
+        setLocation(
+          `/business-center/affiliate/${pathId}/certification/complete`,
+          { replace: true },
+        );
+        return;
+      }
       setData(json);
     } catch {
       setData((prev) => prev ?? { certification: null, moduleProgress: [] });
     } finally {
       setLoading(false);
     }
-  }, [certType]);
+  }, [certType, pathId, setLocation]);
 
   // Only load once auth is established — prevents 401 race on hard reload
   useEffect(() => {

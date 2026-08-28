@@ -140,10 +140,10 @@ export default function CertificationCertificateView() {
               </button>
 
               <button
-                onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
+                onClick={() => setLocation("/business-center/affiliate/dashboard")}
                 className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm active:scale-[0.98] transition-transform print:hidden"
               >
-                Back to Certification Dashboard
+                Back to Dashboard
               </button>
 
               <button
