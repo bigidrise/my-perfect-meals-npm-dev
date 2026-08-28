@@ -31,6 +31,7 @@ import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import type { AcademyProgression } from "@shared/academyProgression";
 
 function certBadge(score: number | null | undefined) {
   if (score == null) return null;
@@ -158,6 +159,8 @@ export default function AcademyLandingPage() {
   });
 
   const [showMarketingModal, setShowMarketingModal] = useState(false);
+  const [academyProgression, setAcademyProgression] =
+    useState<AcademyProgression | null>(null);
   const [joiningWaitlist, setJoiningWaitlist] = useState(false);
 
   const [lessonStatuses, setLessonStatuses] = useState<LessonStatus[]>(
@@ -195,31 +198,25 @@ export default function AcademyLandingPage() {
     }
     (async () => {
       try {
-        const [p1Res, p2Res, mcRes] = await Promise.allSettled([
-          apiRequest("/api/certifications/phase1-status"),
-          apiRequest("/api/certifications/procare_training/progress"),
+        const [progressionRes, mcRes] = await Promise.allSettled([
+          apiRequest("/api/certifications/academy-progression"),
           apiRequest("/api/certifications/marketing_coaching/progress"),
         ]);
 
-        const phase1Done =
-          p1Res.status === "fulfilled" &&
-          (p1Res.value as any)?.phase1Complete === true;
-        const phase1Score =
-          p1Res.status === "fulfilled"
-            ? ((p1Res.value as any)?.certification?.score ?? null)
+        const resolved =
+          progressionRes.status === "fulfilled"
+            ? (progressionRes.value as AcademyProgression)
             : null;
-        const phase2Done =
-          p2Res?.status === "fulfilled" &&
-          (p2Res.value as any)?.certification?.status === "completed";
+        setAcademyProgression(resolved);
         const mcStatus: MarketingStatus =
           mcRes.status === "fulfilled"
             ? (((mcRes.value as any)?.certification?.status ?? "unknown") as MarketingStatus)
             : "unknown";
         setProgress({
           personalDone: !!user?.onboardingCompletedAt,
-          phase1Done,
-          phase1Score,
-          phase2Done,
+          phase1Done: resolved?.phase1.complete ?? false,
+          phase1Score: null,
+          phase2Done: resolved?.proCare.complete ?? false,
           marketingStatus: mcStatus,
           loading: false,
         });
@@ -233,7 +230,9 @@ export default function AcademyLandingPage() {
     (s) => s === "in_progress" || s === "completed"
   );
 
-  const allRequired = progress.personalDone && progress.phase1Done && progress.phase2Done && progress.marketingStatus === "completed";
+  const allRequired =
+    academyProgression?.specialist.complete === true ||
+    academyProgression?.specialist.eligible === true;
   const badge = allRequired ? certBadge(progress.phase1Score) : null;
 
   const marketingDone = progress.marketingStatus === "completed";
@@ -249,21 +248,11 @@ export default function AcademyLandingPage() {
       };
     }
 
-    // All nine Platform Mastery lessons are complete. Continue through the
-    // certification path instead of restarting lesson 01.
-    if (!progress.loading) {
-      if (!progress.phase1Done) {
-        return { route: "/academy/platform-mastery", label: "Finish Platform Mastery" };
-      }
-      if (!marketingDone) {
-        return {
-          route: "/business-center/affiliate/marketing/certification",
-          label: "Continue to Marketing & Coaching",
-        };
-      }
-      if (!progress.phase2Done) {
-        return { route: "/procare-training", label: "Continue to ProCare Certification" };
-      }
+    if (academyProgression) {
+      return {
+        route: academyProgression.nextStep.route,
+        label: academyProgression.nextStep.label,
+      };
     }
 
     return { route: "/academy", label: "View Academy Progress" };

@@ -39,11 +39,15 @@ const GOLD  = "#C4973A";
 
 export default function VisualCertificate({
   recipientName,
-  certType: _certType,
+  certType,
   certificateNumber,
   completedAt,
 }: VisualCertificateProps) {
   const dateStr = formatDate(completedAt);
+  const templateSrc =
+    certType === "mpm_specialist"
+      ? "/cert-template-specialist.png"
+      : "/cert-template-professional.png";
 
   return (
     <div className="overflow-x-auto w-full print:overflow-visible">
@@ -62,7 +66,7 @@ export default function VisualCertificate({
       >
         {/* ── STATIC TEMPLATE ── */}
         <img
-          src="/cert-template-professional.png"
+          src={templateSrc}
           alt="Certificate"
           style={{
             position: "absolute",

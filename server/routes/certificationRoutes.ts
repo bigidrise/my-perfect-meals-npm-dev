@@ -16,6 +16,11 @@ import { sendCertificationCompleteEmail } from "../services/emailService";
 import { emailServiceAvailable } from "../middleware/requireEmailService";
 import { generateCertificatePDF } from "../services/certificateService";
 import { evaluateAffiliateActivation } from "../services/affiliateActivation";
+import {
+  MARKETING_COACHING_MODULE_IDS,
+  SPECIALIST_CERTIFICATION_TYPE,
+} from "@shared/academyProgression";
+import { getAcademyProgression } from "../services/academyProgression";
 
 const router = express.Router();
 
@@ -351,6 +356,17 @@ router.get("/phase1-status", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/academy-progression", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    return res.json(await getAcademyProgression(userId));
+  } catch (err) {
+    console.error("[Cert] academy progression error:", err);
+    return res.status(500).json({ error: "Failed to load Academy progression" });
+  }
+});
+
 // ─── DYNAMIC ROUTES ───────────────────────────────────────────────────────────
 
 // GET /api/certifications/:certType/progress
@@ -679,6 +695,26 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "No completed modules found" });
     }
 
+    if (certType === "marketing_coaching") {
+      const completedIds = new Set(completedModules.map((module) => module.moduleId));
+      const missing = MARKETING_COACHING_MODULE_IDS.filter(
+        (moduleId) => !completedIds.has(moduleId),
+      );
+      const progression = await getAcademyProgression(userId);
+      if (missing.length > 0 && !progression.phase2.complete) {
+        return res.status(400).json({
+          error: "Complete all Marketing & Coaching modules before certification",
+          missingModules: missing,
+        });
+      }
+
+      if (!progression.phase1.complete) {
+        return res.status(400).json({
+          error: "Complete Platform Mastery before claiming the Specialist credential",
+        });
+      }
+    }
+
     const avgScore = Math.round(
       completedModules.reduce((acc, m) => acc + (m.score ?? 0), 0) /
         completedModules.length
@@ -727,6 +763,44 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
 
     const finalCertNumber = existing?.certificateNumber ?? newCertNumber;
 
+    let specialistCertificateNumber: string | null = null;
+    if (certType === "marketing_coaching") {
+      const specialistNumber = `MPM-SPC-${year}-${random}`;
+      await db
+        .insert(userCertifications)
+        .values({
+          userId,
+          certificationType: SPECIALIST_CERTIFICATION_TYPE,
+          status: "completed",
+          score: avgScore,
+          completedAt: new Date(),
+          certificateNumber: specialistNumber,
+          certificateName: certificateName ?? null,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [userCertifications.userId, userCertifications.certificationType],
+          set: {
+            certificateName: certificateName
+              ? sql`CASE WHEN ${userCertifications.certificateName} IS NULL THEN ${certificateName}::text ELSE ${userCertifications.certificateName} END`
+              : sql`${userCertifications.certificateName}`,
+            updatedAt: new Date(),
+          },
+        });
+      const [specialist] = await db
+        .select({ certificateNumber: userCertifications.certificateNumber })
+        .from(userCertifications)
+        .where(
+          and(
+            eq(userCertifications.userId, userId),
+            eq(userCertifications.certificationType, SPECIALIST_CERTIFICATION_TYPE),
+          ),
+        )
+        .limit(1);
+      specialistCertificateNumber =
+        specialist?.certificateNumber ?? specialistNumber;
+    }
+
     if (!emailServiceAvailable()) {
       console.warn(`[Cert] Email service not configured — completion email skipped for userId=${userId} certType=${certType}`);
     } else {
@@ -755,7 +829,12 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       console.error("[Cert] affiliate activation check failed:", e)
     );
 
-    return res.json({ ok: true, certificateNumber: finalCertNumber, score: avgScore });
+    return res.json({
+      ok: true,
+      certificateNumber: finalCertNumber,
+      specialistCertificateNumber,
+      score: avgScore,
+    });
   } catch (err) {
     console.error("[Cert] complete error:", err);
     return res.status(500).json({ error: "Failed to complete certification" });
