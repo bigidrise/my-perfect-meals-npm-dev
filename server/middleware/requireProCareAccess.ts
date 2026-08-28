@@ -37,6 +37,7 @@ export function requireProCareAccess(
     planLookupKey,
     sponsoredByBusinessId,
     sponsoredProCareAccess,
+    pilotProCareAccess,
     isFounder,
   } = authReq.authUser;
 
@@ -46,6 +47,7 @@ export function requireProCareAccess(
     planLookupKey,
     sponsoredByBusinessId,
     sponsoredProCareAccess,
+    pilotProCareAccess,
     isInternalAccount: isFounder,
   })) {
     next();

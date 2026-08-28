@@ -60,6 +60,10 @@ export interface AuthenticatedUser {
   sponsoredByBusinessName: string | null;
   /** Clinical-role authorization derived from an active business membership. */
   sponsoredProCareAccess: boolean;
+  /** Founder-approved, time-bounded private ProCare grant. */
+  pilotProCareAccess: boolean;
+  pilotProCareGrantId: string | null;
+  pilotProCareEndsAt: Date | null;
   preferredLanguage: string;
 }
 
@@ -67,7 +71,7 @@ export interface AuthenticatedRequest extends Request {
   authUser: AuthenticatedUser;
 }
 
-function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessId" | "sponsoredByBusinessName" | "sponsoredProCareAccess"> {
+function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessId" | "sponsoredByBusinessName" | "sponsoredProCareAccess" | "pilotProCareAccess" | "pilotProCareGrantId" | "pilotProCareEndsAt"> {
   const now = new Date();
   const accessTier = resolveAccessTier(user, now);
 
@@ -104,11 +108,16 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
       isFounder: user.isFounder,
       isTester: user.isTester,
       trialEndsAt: user.trialEndsAt,
+      trialAccessType: user.trialAccessType,
     });
 
     const now = new Date();
     const accessTier = resolveAccessTier(
-      { ...user, planLookupKey: effective.planLookupKey },
+      {
+        ...user,
+        planLookupKey: effective.planLookupKey,
+        hasPilotProCareAccess: effective.pilotProCareAccess,
+      },
       now
     );
 
@@ -120,6 +129,9 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
       sponsoredByBusinessId: effective.sponsoredByBusinessId,
       sponsoredByBusinessName: effective.sponsoredByBusinessName,
       sponsoredProCareAccess: effective.sponsoredProCareAccess,
+      pilotProCareAccess: effective.pilotProCareAccess,
+      pilotProCareGrantId: effective.pilotProCareGrantId,
+      pilotProCareEndsAt: effective.pilotProCareEndsAt,
     };
   } catch (err) {
     console.error("[requireAuth] effectiveAccess computation failed, falling back to raw plan:", err);
@@ -128,6 +140,9 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
       sponsoredByBusinessId: null,
       sponsoredByBusinessName: null,
       sponsoredProCareAccess: false,
+      pilotProCareAccess: false,
+      pilotProCareGrantId: null,
+      pilotProCareEndsAt: null,
     };
   }
 }

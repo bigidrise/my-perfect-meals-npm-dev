@@ -3676,8 +3676,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           planLookupKey: authReq.authUser.planLookupKey,
           sponsoredByBusinessId: authReq.authUser.sponsoredByBusinessId,
           sponsoredProCareAccess: authReq.authUser.sponsoredProCareAccess,
+           pilotProCareAccess: authReq.authUser.pilotProCareAccess,
           isInternalAccount: authReq.authUser.isFounder,
         }),
+        proCareAccessSource: authReq.authUser.pilotProCareAccess
+          ? "pilot_procare"
+          : authReq.authUser.sponsoredProCareAccess
+            ? "business_sponsored"
+            : canAccessProCareStudio({
+                billingEnforced: process.env.BILLING_ENFORCED === "true",
+                accessTier: authReq.authUser.accessTier,
+                planLookupKey: authReq.authUser.planLookupKey,
+                isInternalAccount: authReq.authUser.isFounder,
+              })
+              ? (authReq.authUser.isFounder ? "internal" : "paid_procare")
+              : null,
+        pilotProCareEndsAt: authReq.authUser.pilotProCareEndsAt?.toISOString() ?? null,
         monetizationEligible: (() => {
           if (process.env.BILLING_ENFORCED !== "true") return true;
           if (authReq.authUser.accessTier !== "PAID_FULL") return false;
