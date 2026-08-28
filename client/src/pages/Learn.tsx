@@ -1409,26 +1409,26 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
   {
     id: "glucoseguard",
     title: "GlucoseGuard™",
-    subtitle: "Real-time diabetic meal adjustment",
+    subtitle: "Glucose-aware meal context across the platform",
     icon: Heart,
     content: {
       sections: [
         {
           heading: "What Is GlucoseGuard?",
-          text: "GlucoseGuard is for diabetics only. It reads your actual blood glucose level (mg/dL) from the Diabetic Hub and adjusts meal generation based on your current glucose state.",
+          text: "GlucoseGuard is a glucose-awareness feature available across the platform's meal builders and creation tools. When you log a blood glucose reading, the app can show your latest reading and pass that glucose context into meal generation.",
         },
         {
           heading: "How GlucoseGuard Works",
           list: [
-            "Reads your latest glucose log from the Diabetic Hub",
-            "When glucose is low, meals include more carbs to help stabilize",
-            "When glucose is elevated, meals go lower carb to help bring you back into range",
-            "Only appears in the Diabetic Hub and Diabetic Meal Builder",
+            "Reads your latest logged glucose reading",
+            "Shows glucose awareness in supported builders and creation tools, including Create with Chef, Dessert Creator, and Snack Creator",
+            "Uses glucose context alongside the user's active nutrition and clinical settings when generating meals",
+            "The Diabetic Hub provides dedicated glucose logging and glycemic settings",
           ],
         },
         {
           heading: "This Is Different From Starch Guard",
-          text: "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about real-time glucose monitoring for diabetics. Most users don't need GlucoseGuard — they need Starch Guard.",
+          text: "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about displaying and using logged glucose context across the platform. The two features can work together when a user's profile supports them.",
         },
         {
           heading: "What It Does Not Do",

@@ -1555,7 +1555,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "A follower asks: \"Will this app work for my Type 2 diabetes?\" What is the compliant response?",
         options: [
           "\"Yes, it includes GlucoseGuard which is proven to manage Type 2 diabetes\"",
-          "\"The platform has a GlucoseGuard system — I'd direct you to the My Perfect Meals website for the clinical detail and recommend you discuss it with your doctor\"",
+          "\"The platform includes GlucoseGuard across its meal builders and creation tools. I'd direct you to the GlucoseGuard explanation in the App Library for how it works, and recommend discussing your individual care with your doctor\"",
           "\"It will definitely help — I've seen great results in diabetic users\"",
           "\"I can't comment on that because of HIPAA\"",
         ],
