@@ -3763,6 +3763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
         trialStartedAt: (user as any).trialStartedAt?.toISOString?.() ?? (user as any).trialStartedAt ?? null,
         trialSource: (user as any).trialSource ?? null,
+        trialAccessType: (user as any).trialAccessType ?? null,
         isTrialActive: !!(user.trialEndsAt && !user.planLookupKey && user.trialEndsAt > new Date()),
         daysRemaining: (() => {
           if (!user.trialEndsAt || user.planLookupKey) return 0;
@@ -9496,6 +9497,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   const { default: waterLogsRouterShared } = await import("./routes/waterLogs");
   app.use("/api", waterLogsRouterShared);
+
+  const { default: hydrationRouterShared } = await import("./routes/hydration");
+  app.use("/api", hydrationRouterShared);
 
   const { default: wmc2LogRouterShared } = await import("./routes/wmc2Log");
   app.use("/api", wmc2LogRouterShared);

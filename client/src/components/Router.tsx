@@ -25,6 +25,10 @@ import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualPro
 import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import {
+  createProfessionalLegalRecoveryUrl,
+  type ProfessionalLegalRecoveryAction,
+} from "@/lib/professionalLegalRecovery";
 
 // DEV-ONLY: responsive modal bounds test harness.
 // Static import (no lazy) so the module is compiled into the main bundle and
@@ -196,13 +200,54 @@ const PROCARE_CERT_POLL_MS = 5 * 60 * 1000; // 5 minutes
 
 function ProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [certChecked, setCertChecked] = useState(false);
   const [certified, setCertified] = useState(false);
+  const [legalChecked, setLegalChecked] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const certifiedRef = useRef(false);
   const { org, isLoading: orgLoading } = useOrg();
   const requireAcademy = org.featureFlags.requireAcademy !== false; // default: true
   const { requestUpgrade } = useUpgradeModal();
+
+  useEffect(() => {
+    if (!user?.professionalRole || user.professionalRole === "business") {
+      setLegalAccepted(true);
+      setLegalChecked(true);
+      return;
+    }
+
+    let active = true;
+    setLegalChecked(false);
+    const flow = user.professionalRole === "physician" ? "physician" : "professional";
+    Promise.all([
+      apiRequest("/api/legal/status?flow=attestation"),
+      apiRequest(`/api/legal/status?flow=${flow}`),
+    ])
+      .then(([attestation, professional]: any[]) => {
+        if (!active) return;
+        const accepted = attestation?.allAccepted === true && professional?.allAccepted === true;
+        setLegalAccepted(accepted);
+        setLegalChecked(true);
+        if (!accepted) {
+          setLocation(createProfessionalLegalRecoveryUrl(
+            location,
+            "professional-workspace",
+          ));
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        // The protected API remains fail-closed. Do not redirect a professional
+        // based only on a transient status-check failure.
+        setLegalAccepted(true);
+        setLegalChecked(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id, user?.professionalRole, location, setLocation]);
 
   // When any /api/pro/* call returns PRO_REQUIRED (e.g. trial expired), show
   // a clear upgrade prompt so professionals aren't left with a blank error.
@@ -289,8 +334,8 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
     return () => clearInterval(intervalId);
   }, [user?.id, verifyCert]);
 
-  if (!certChecked) return null;
-  if (!certified) return null;
+  if (!certChecked || !legalChecked) return null;
+  if (!certified || !legalAccepted) return null;
   return <Component />;
 }
 // Plan Builder Pages
@@ -360,6 +405,7 @@ import {
 // Dashboard navigation pages
 import TutorialHub from "@/pages/TutorialHub";
 import MyBiometrics from "@/pages/my-biometrics";
+const HydrationCenter = lazy(() => import("@/pages/HydrationCenter"));
 import BodyComposition from "@/pages/biometrics/body-composition";
 import Sleep from "@/pages/biometrics/sleep";
 import GetInspiration from "@/pages/GetInspiration";
@@ -568,6 +614,9 @@ const GuardedProClientNutritionPlan = () => <ProCareStudioGuard component={SafeP
 const GuardedTrainerClientDashboard = () => <ProCareStudioGuard component={SafeTrainerClientDashboard} />;
 const GuardedClinicianClientDashboard = () => <ProCareStudioGuard component={SafeClinicianClientDashboard} />;
 const GuardedProBoardViewer = () => <ProCareStudioGuard component={SafeProBoardViewer} />;
+const GuardedCareTeam = () => <ProCareStudioGuard component={SafeCareTeam} />;
+const GuardedPhysicianCareTeam = () => <ProCareStudioGuard component={SafePhysicianCareTeam} />;
+const GuardedTrainerCareTeam = () => <ProCareStudioGuard component={SafeTrainerCareTeam} />;
 // Stable module-level wrappers for ProCare client builder routes.
 // These MUST stay at module scope — never defined inline inside JSX.
 // An inline () => <ProCareStudioGuard /> creates a new reference on every Router render,
@@ -663,6 +712,27 @@ export default function Router() {
   const { toast } = useToast();
   const guardRedirectedRef = useRef(false);
   const isDesktopView = useIsDesktop();
+
+  useEffect(() => {
+    const handleProfessionalLegalRequired = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        returnTo?: string;
+        action?: ProfessionalLegalRecoveryAction;
+      }>).detail;
+      setLocation(createProfessionalLegalRecoveryUrl(
+        detail?.returnTo || location,
+        detail?.action || "professional-workspace",
+      ));
+    };
+    window.addEventListener(
+      "mpm:professional-legal-required",
+      handleProfessionalLegalRequired,
+    );
+    return () => window.removeEventListener(
+      "mpm:professional-legal-required",
+      handleProfessionalLegalRequired,
+    );
+  }, [location, setLocation]);
 
   // Add fallback protection
   if (!location) {
@@ -974,6 +1044,9 @@ export default function Router() {
         <Route path="/macro-counter" component={SafeMacroCounter} />
         {/* DELETED: All kids meal routes, all alcohol hub routes */}
         <Route path="/my-biometrics" component={SafeMyBiometrics} />
+        {import.meta.env.DEV && (
+          <Route path="/hydration" component={HydrationCenter} />
+        )}
         {/* Biometric sub-pages */}
         <Route path="/biometrics" component={SafeBiometrics} />
         <Route path="/biometrics/body-composition" component={SafeBodyComposition} />
@@ -1034,9 +1107,9 @@ export default function Router() {
         <Route path="/more" component={SafeMore} />
         <Route path="/tips" component={SafeTips} />
         <Route path="/pro/physician" component={PhysicianPortal} />
-        <Route path="/care-team" component={SafeCareTeam} />
-        <Route path="/care-team/physician" component={SafePhysicianCareTeam} />
-        <Route path="/care-team/trainer" component={SafeTrainerCareTeam} />
+        <Route path="/care-team" component={GuardedCareTeam} />
+        <Route path="/care-team/physician" component={GuardedPhysicianCareTeam} />
+        <Route path="/care-team/trainer" component={GuardedTrainerCareTeam} />
         <Route path="/pro-portal" component={GuardedProPortal} />
         <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
         <Route path="/pro/clients" component={GuardedProClients} />

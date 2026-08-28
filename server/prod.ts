@@ -13,6 +13,11 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import pg from "pg";
 import { resolveMealImageStorageContext } from "./services/mealImageBucket";
+import {
+  createStaticFileMiddleware,
+  registerFreshMetadataRoutes,
+  setNoStoreHeaders,
+} from "./staticDelivery";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -199,21 +204,9 @@ server.on("error", (err) => {
 // excluded here and will be handled once initializeApp() registers them.
 const clientDistEarly = path.resolve(__dirname, "../client/dist");
 if (fs.existsSync(clientDistEarly)) {
+  registerFreshMetadataRoutes(app, clientDistEarly);
   // Serve static assets (JS bundles, CSS, images, etc.)
-  app.use(
-    express.static(clientDistEarly, {
-      setHeaders: (res, filePath) => {
-        if (
-          /\.(js|css)$/i.test(filePath) &&
-          /[\.\-][a-f0-9]{8,}\./.test(filePath)
-        ) {
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        } else if (/index\.html$/i.test(filePath)) {
-          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        }
-      },
-    }),
-  );
+  for (const middleware of createStaticFileMiddleware(clientDistEarly)) app.use(middleware);
   // SPA fallback for all non-API GET routes — catches /sushi-creator, /lifestyle/*, etc.
   // Uses app.use() (middleware, not a named route) to avoid breaking Express route audits
   // that call .startsWith() on route paths — RegExp paths don't support .startsWith().
@@ -234,7 +227,7 @@ if (fs.existsSync(clientDistEarly)) {
       !req.path.startsWith("/public-objects/") &&
       !req.path.startsWith("/objects/")
     ) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      setNoStoreHeaders(res);
       return res.sendFile(path.join(clientDistEarly, "index.html"));
     }
     next();
@@ -1304,34 +1297,12 @@ async function initializeApp() {
     const clientDist = path.resolve(__dirname, "../client/dist");
     console.log("📁 [INIT] Serving static files from:", clientDist);
 
-    app.use(
-      express.static(clientDist, {
-        setHeaders: (res, filePath) => {
-          if (
-            /\.(js|css)$/i.test(filePath) &&
-            /[\.\-][a-f0-9]{8,}\./.test(filePath)
-          ) {
-            res.setHeader(
-              "Cache-Control",
-              "public, max-age=31536000, immutable",
-            );
-          } else if (/\.(png|jpg|jpeg|gif|svg|woff2?)$/i.test(filePath)) {
-            res.setHeader("Cache-Control", "public, max-age=86400");
-          } else if (/index\.html$/i.test(filePath)) {
-            res.setHeader(
-              "Cache-Control",
-              "no-cache, no-store, must-revalidate",
-            );
-          } else {
-            res.setHeader("Cache-Control", "no-cache, must-revalidate");
-          }
-        },
-      }),
-    );
+    registerFreshMetadataRoutes(app, clientDist);
+    for (const middleware of createStaticFileMiddleware(clientDist)) app.use(middleware);
 
     // SPA fallback
     app.get("*", (_req, res) => {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      setNoStoreHeaders(res);
       res.sendFile(path.join(clientDist, "index.html"));
     });
 

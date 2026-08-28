@@ -165,6 +165,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           trialEndsAt: userData.trialEndsAt ?? null,
           trialStartedAt: (userData as any).trialStartedAt ?? null,
           trialSource: (userData as any).trialSource ?? null,
+          trialAccessType: (userData as any).trialAccessType ?? null,
           isTrialActive: (userData as any).isTrialActive ?? false,
           daysRemaining: (userData as any).daysRemaining ?? 0,
           trialTier: (userData as any).trialTier ?? null,

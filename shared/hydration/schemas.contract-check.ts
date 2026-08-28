@@ -1,6 +1,16 @@
 import type { z } from "zod";
-import type { HydrationIntakeEventInput } from "./contracts";
-import { hydrationIntakeEventInputSchema } from "./schemas";
+import type {
+  HydrationIntakeEventInput,
+  HydrationModifierInput,
+  HydrationPlanningEligibilityInput,
+  HydrationPlanningEligibilityResult,
+} from "./contracts";
+import { hydrationModifierInputSchema } from "./modifierSchemas";
+import {
+  hydrationIntakeEventInputSchema,
+  hydrationPlanningEligibilityInputSchema,
+  hydrationPlanningEligibilityResultSchema,
+} from "./schemas";
 
 type Assert<T extends true> = T;
 type HydrationIntakeSchemaOutput = z.output<
@@ -17,5 +27,32 @@ type HydrationIntakeSchemaMatchesContract = Assert<
   HydrationIntakeSchemaOutput extends HydrationIntakeEventInput ? true : false
 >;
 
-export type HydrationSchemaContractCheck =
-  HydrationIntakeSchemaMatchesContract;
+type HydrationModifierSchemaOutput = z.output<
+  typeof hydrationModifierInputSchema
+>;
+type HydrationModifierSchemaMatchesContract = Assert<
+  HydrationModifierSchemaOutput extends HydrationModifierInput ? true : false
+>;
+type HydrationEligibilityInputSchemaOutput = z.output<
+  typeof hydrationPlanningEligibilityInputSchema
+>;
+type HydrationEligibilityInputSchemaMatchesContract = Assert<
+  HydrationEligibilityInputSchemaOutput extends HydrationPlanningEligibilityInput
+    ? true
+    : false
+>;
+type HydrationEligibilityResultSchemaOutput = z.output<
+  typeof hydrationPlanningEligibilityResultSchema
+>;
+type HydrationEligibilityResultSchemaMatchesContract = Assert<
+  HydrationEligibilityResultSchemaOutput extends HydrationPlanningEligibilityResult
+    ? true
+    : false
+>;
+
+export type HydrationSchemaContractCheck = [
+  HydrationIntakeSchemaMatchesContract,
+  HydrationModifierSchemaMatchesContract,
+  HydrationEligibilityInputSchemaMatchesContract,
+  HydrationEligibilityResultSchemaMatchesContract,
+];

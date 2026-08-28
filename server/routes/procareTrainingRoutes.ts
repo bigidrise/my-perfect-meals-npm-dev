@@ -69,6 +69,8 @@ router.post("/complete", requireAuth, requireMfa, async (req, res) => {
       return res.status(403).json({
         error: readinessBeforeTraining.message,
         code: readinessBeforeTraining.code,
+        flow: readinessBeforeTraining.flow,
+        missing: readinessBeforeTraining.missing,
       });
     }
 

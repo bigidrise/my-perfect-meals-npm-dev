@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -10,9 +10,11 @@ import {
   Info,
   BookOpen,
   ExternalLink,
+  Droplets,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
+import { apiRequest } from "@/lib/queryClient";
 
 interface MedicalSourcesInfoProps {
   trigger?: React.ReactNode;
@@ -1227,6 +1229,8 @@ export function MedicalSourcesInfo({
             </p>
           </section>
 
+          <HydrationEvidenceSection active={open} />
+
           <section className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
             <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
               <Info className="w-4 h-4" />
@@ -1260,6 +1264,96 @@ interface SourceItemProps {
   title: string;
   description: string;
   url: string;
+}
+
+interface HydrationEvidenceRecord {
+  key: string;
+  title: string;
+  organizationOrAuthor: string;
+  publicationDate: string;
+  url: string;
+  citation: string;
+  evidenceTier: string;
+  evidenceLevel: string;
+  populationScope: string;
+  ruleSupported: string;
+}
+
+function HydrationEvidenceSection({ active }: { active: boolean }) {
+  const [records, setRecords] = useState<HydrationEvidenceRecord[]>([]);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !active || records.length > 0 || failed) return;
+    apiRequest<{ sources: HydrationEvidenceRecord[] }>("/api/hydration/evidence")
+      .then((result) => setRecords(result.sources))
+      .catch(() => setFailed(true));
+  }, [active, failed, records.length]);
+
+  if (!import.meta.env.DEV) return null;
+
+  return (
+    <section
+      id="hydration-evidence"
+      className="rounded-2xl border border-sky-400/20 bg-sky-950/25 p-4"
+    >
+      <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+        <Droplets className="h-5 w-5 text-sky-300" />
+        Hydration evidence registry
+      </h3>
+      <p className="mt-2 text-xs leading-relaxed text-white/60">
+        These sources support the clinician-defined numeric policy and its
+        no-number safety boundaries. Population total-water values are
+        educational references, not individualized logged-water targets.
+      </p>
+      {failed ? (
+        <p className="mt-4 text-sm text-amber-300">
+          The Hydration evidence registry is temporarily unavailable.
+        </p>
+      ) : records.length === 0 ? (
+        <p className="mt-4 text-sm text-white/45">Loading 32 sources…</p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {records.map((record) => (
+            <details
+              key={record.key}
+              className="group rounded-xl border border-white/10 bg-black/20"
+            >
+              <summary className="cursor-pointer list-none px-3 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {record.title}
+                    </p>
+                    <p className="mt-1 text-[11px] text-white/40">
+                      {record.organizationOrAuthor} · {record.publicationDate} ·{" "}
+                      {record.evidenceTier.replaceAll("_", " ")}
+                    </p>
+                  </div>
+                  <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+                </div>
+              </summary>
+              <div className="space-y-2 border-t border-white/8 px-3 py-3 text-xs leading-relaxed">
+                <p className="text-white/65">{record.ruleSupported}</p>
+                <p className="text-white/45">
+                  Scope: {record.populationScope}
+                </p>
+                <a
+                  href={record.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sky-300 hover:text-sky-200"
+                >
+                  Open source
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function SourceItem({ title, description, url }: SourceItemProps) {

@@ -5,6 +5,11 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import {
+  createStaticFileMiddleware,
+  registerFreshMetadataRoutes,
+  setNoStoreHeaders,
+} from "./staticDelivery";
 
 const viteLogger = createLogger();
 
@@ -66,6 +71,7 @@ export async function setupVite(app: Express, server: Server) {
       // Vite still injects it, which causes a WebSocket error in the console.
       const page = (await vite.transformIndexHtml(url, template))
         .replace(/<script[^>]*src="\/@vite\/client"[^>]*><\/script>\s*/g, "");
+      setNoStoreHeaders(res);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
@@ -83,37 +89,12 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // Special handler for version.json - NEVER cache (critical for update detection)
-  app.get("/version.json", (_req, res) => {
-    res.setHeader("Cache-Control", "no-store, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    res.sendFile(path.resolve(distPath, "version.json"));
-  });
-
-  // Serve static assets with proper cache headers
-  app.use(express.static(distPath, {
-    setHeaders: (res, filePath) => {
-      // JS and CSS files - short cache to ensure updates are picked up quickly
-      if (/\.(js|css)$/i.test(filePath)) {
-        res.setHeader("Cache-Control", "public, max-age=300, must-revalidate"); // 5 minutes
-      }
-      // Images and fonts can be cached longer (they don't change as often)
-      else if (/\.(png|jpg|jpeg|gif|svg|woff2?)$/i.test(filePath)) {
-        res.setHeader("Cache-Control", "public, max-age=86400"); // 24 hours
-      } 
-      // Default for other assets
-      else {
-        res.setHeader("Cache-Control", "public, max-age=3600"); // 1 hour
-      }
-    },
-  }));
+  registerFreshMetadataRoutes(app, distPath);
+  for (const middleware of createStaticFileMiddleware(distPath)) app.use(middleware);
 
   // Serve index.html with NO cache so users always get the latest version
   app.use("*", (_req, res) => {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
+    setNoStoreHeaders(res);
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

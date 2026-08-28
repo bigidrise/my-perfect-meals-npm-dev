@@ -253,12 +253,12 @@ describe("auth.session.ts source scan — trial conditionally stamped in userVal
     expect(userValuesBlock).toContain("trialEndsAt:");
   });
 
-  it("the trial stamp is conditional (guarded by isNormalConsumer / trialNow)", () => {
+  it("the trial stamp is conditional (guarded by resolved signupTrial)", () => {
     // The stamp must be inside a conditional so ProCare accounts are excluded
     const userValuesStart = source.indexOf("const userValues: any = {");
     const businessBranchIdx = source.indexOf("if (isBusinessAccount)");
     const userValuesBlock = source.slice(userValuesStart, businessBranchIdx);
-    const hasGuard = userValuesBlock.includes("isNormalConsumer") || userValuesBlock.includes("trialNow");
+    const hasGuard = userValuesBlock.includes("signupTrial");
     expect(hasGuard).toBe(true);
   });
 });

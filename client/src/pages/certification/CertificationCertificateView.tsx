@@ -18,7 +18,8 @@ export default function CertificationCertificateView() {
   const [, setLocation] = useLocation();
   const params = useParams<{ pathId: string }>();
   const pathId = params.pathId ?? "social";
-  const certType = `affiliate_${pathId}`;
+  const certType =
+    pathId === "marketing" ? "marketing_coaching" : `affiliate_${pathId}`;
 
   const [cert, setCert] = useState<CertData | null>(null);
   const [loading, setLoading] = useState(true);

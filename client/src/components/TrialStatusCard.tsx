@@ -55,6 +55,8 @@ export function TrialStatusCard() {
     trialSource === "admin_grant" ? t("adminTrial") :
     trialSource === "clinic_grant" ? t("clinicalTrial") :
     trialSource === "promotion" ? t("promotionalTrial") :
+    trialSource === "pilot_program" ? t("pilotProgram", { defaultValue: "Pilot Program" }) :
+    trialSource === "client_access" ? t("clientAccess", { defaultValue: "Client Access" }) :
     t("freeTrial");
 
   const totalDays: number = (() => {

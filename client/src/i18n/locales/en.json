@@ -2255,6 +2255,8 @@
     "adminTrial": "Admin Trial",
     "clinicalTrial": "Clinical Trial",
     "promotionalTrial": "Promotional Trial",
+    "pilotProgram": "Pilot Program",
+    "clientAccess": "Client Access",
     "freeTrial": "Free Trial",
     "clinicalUltimate": "Clinical · Ultimate",
     "trialEndsToday": "Your trial ends today",

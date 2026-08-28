@@ -39,3 +39,9 @@
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
+- [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
+- [Legacy Hydration intake bridge](legacy-hydration-intake-bridge.md) — until migration approval, canonical Hydration reads project from water_logs without a second stored copy.
+- [Hydration modifier governance](hydration-modifier-governance.md) — context sources emit nonnumeric claims; one deterministic resolver owns precedence, suppression, and review.
+- [Hydration planning eligibility](hydration-planning-eligibility.md) — eligibility is nonnumeric; validate every registry claim before resolver status filtering.
+- [Hydration numeric policy v0.1](hydration-numeric-policy-v01.md) — only current clinician directives permit numbers; production stays inactive until the full activation gate opens.
+- [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.

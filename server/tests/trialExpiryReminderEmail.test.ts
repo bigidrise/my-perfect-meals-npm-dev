@@ -50,6 +50,14 @@ describe("formatTrialSourceLabel", () => {
     expect(formatTrialSourceLabel("promotion")).toBe("Promotional Trial");
   });
 
+  it("returns 'Pilot Program' for pilot_program", () => {
+    expect(formatTrialSourceLabel("pilot_program")).toBe("Pilot Program");
+  });
+
+  it("returns 'Client Access' for client_access", () => {
+    expect(formatTrialSourceLabel("client_access")).toBe("Client Access");
+  });
+
   it("returns 'Free Trial' for standard_signup", () => {
     expect(formatTrialSourceLabel("standard_signup")).toBe("Free Trial");
   });
@@ -118,6 +126,16 @@ describe("sendTrialExpiryReminderEmail — rendered HTML contains the correct la
   it("includes 'promotional trial' text for promotion", async () => {
     const html = await getGeneratedHtml("promotion");
     expect(html.toLowerCase()).toContain("promotional trial");
+  });
+
+  it("includes 'pilot program' text for pilot_program", async () => {
+    const html = await getGeneratedHtml("pilot_program");
+    expect(html.toLowerCase()).toContain("pilot program");
+  });
+
+  it("includes 'client access' text for client_access", async () => {
+    const html = await getGeneratedHtml("client_access");
+    expect(html.toLowerCase()).toContain("client access");
   });
 
   it("includes 'free trial' text for null (standard signup)", async () => {

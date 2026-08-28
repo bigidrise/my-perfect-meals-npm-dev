@@ -112,8 +112,27 @@ const ROUTE_KEY_MAP: Record<string, string> = {
 type PlanBadgeVariant = "free" | "paid" | "professional";
 interface PlanBadgeInfo { text: string; variant: PlanBadgeVariant }
 
-function getPlanLabel(user: { planLookupKey?: string | null; accessTier?: string } | null | undefined): PlanBadgeInfo {
+function getPlanLabel(user: {
+  planLookupKey?: string | null;
+  accessTier?: string;
+  subscriptionPlan?: string | null;
+  professionalRole?: string | null;
+  procareTrainingCompleted?: boolean | null;
+  isProCare?: boolean | null;
+} | null | undefined): PlanBadgeInfo {
   if (!user) return { text: "freeBadge", variant: "free" };
+
+  if (user.professionalRole && user.procareTrainingCompleted) {
+    return { text: "professionalBadge", variant: "professional" };
+  }
+
+  if (
+    user.professionalRole ||
+    user.isProCare ||
+    user.subscriptionPlan?.toLowerCase() === "procare"
+  ) {
+    return { text: "clinicalBadge", variant: "paid" };
+  }
 
   const key = (user.planLookupKey ?? "").toLowerCase();
   if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {

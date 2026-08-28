@@ -4,8 +4,9 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail, Bug, Gift, Clock } from "lucide-react";
+import { Search, User, ShieldAlert, LogOut, RefreshCw, Ban, CheckCircle, RotateCcw, KeyRound, ChefHat, ArrowRight, Award, Users, Download, Mail, Bug, Gift, Clock, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PillButton } from "@/components/ui/pill-button";
 
 const ENV = import.meta.env.MODE === "production" ? "PRODUCTION" : "DEVELOPMENT";
 const ENV_COLOR = ENV === "PRODUCTION" ? "bg-red-600" : "bg-amber-500";
@@ -35,6 +36,7 @@ type AdminUser = {
   authTokenCreatedAt: string | null;
   trialStartedAt: string | null;
   trialEndsAt: string | null;
+  trialAccessType: "pilot" | "client" | null;
   medicalConditions: string[] | null;
   healthConditions: string[] | null;
   specialtyCondition: string | null;
@@ -228,6 +230,7 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
     ["Signup Source", user.signupSource ?? "—"],
     ["Trial Start", user.trialStartedAt ? new Date(user.trialStartedAt).toLocaleDateString() : "—"],
     ["Trial End", user.trialEndsAt ? new Date(user.trialEndsAt).toLocaleDateString() : "—"],
+    ["Trial Access Type", user.trialAccessType === "pilot" ? "Pilot Program" : user.trialAccessType === "client" ? "Client Access" : "—"],
     ["Created", user.createdAt ? new Date(user.createdAt).toLocaleString() : "—"],
     ["Last Token", user.authTokenCreatedAt ? new Date(user.authTokenCreatedAt).toLocaleString() : "—"],
   ];
@@ -765,6 +768,189 @@ function GrantTrialPanel() {
   );
 }
 
+type PreRegistrationInvitation = {
+  id: string;
+  normalizedEmail: string;
+  accessType: "pilot" | "client";
+  durationDays: number;
+  invitedAt: string;
+  notes: string | null;
+  activatedAt: string | null;
+  revokedAt: string | null;
+};
+
+function PreRegistrationAccessPanel() {
+  const { toast } = useToast();
+  const [invitations, setInvitations] = useState<PreRegistrationInvitation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [email, setEmail] = useState("");
+  const [accessType, setAccessType] = useState<"pilot" | "client">("client");
+  const [notes, setNotes] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/trial/admin/pre-registrations"), {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load access list");
+      setInvitations(data.invitations ?? []);
+    } catch (e: any) {
+      toast({ title: "Could not load pre-registration access", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const addInvitation = async () => {
+    if (!email.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(apiUrl("/api/trial/admin/pre-registrations"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          email: email.trim(),
+          accessType,
+          durationDays: 30,
+          notes: notes.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add access");
+      toast({
+        title: accessType === "client" ? "Client access queued" : "Pilot access queued",
+        description: "The 30-day clock will start when this email creates an account.",
+      });
+      setEmail("");
+      setNotes("");
+      await load();
+    } catch (e: any) {
+      toast({ title: "Could not add access", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const revokeInvitation = async (invitation: PreRegistrationInvitation) => {
+    if (!window.confirm(`Remove pending access for ${invitation.normalizedEmail}?`)) return;
+    try {
+      const res = await fetch(apiUrl(`/api/trial/admin/pre-registrations/${invitation.id}`), {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove access");
+      await load();
+    } catch (e: any) {
+      toast({ title: "Could not remove access", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const pending = invitations.filter((item) => !item.activatedAt && !item.revokedAt);
+  const activated = invitations.filter((item) => !!item.activatedAt);
+
+  return (
+    <Card className="bg-black/40 border border-white/10 rounded-2xl">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-white text-base flex items-center gap-2">
+          <Clock className="h-4 w-4 text-orange-400" />
+          Pre-Registration Access
+        </CardTitle>
+        <p className="text-xs text-white/60 mt-1">
+          Queue 30-Day Client Access or a 30-Day Pilot Program before signup. No trial dates are created until the matching email activates an account.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="person@company.com"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:border-orange-500/60"
+          />
+          <div className="flex items-center gap-2">
+            <PillButton
+              type="button"
+              active={accessType === "client"}
+              variant="sky"
+              onClick={() => setAccessType("client")}
+            >
+              Client Access
+            </PillButton>
+            <PillButton
+              type="button"
+              active={accessType === "pilot"}
+              variant="amber"
+              onClick={() => setAccessType("pilot")}
+            >
+              Pilot Program
+            </PillButton>
+          </div>
+        </div>
+        <input
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          placeholder="Optional note, e.g. Stacy client"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:border-orange-500/60"
+        />
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-white/60">
+            Selected: <span className="text-white font-medium">{accessType === "client" ? "30-Day Client Access" : "30-Day Pilot Program"}</span>
+          </p>
+          <PillButton type="button" active variant="amber" disabled={saving || !email.trim()} onClick={addInvitation}>
+            {saving ? "Adding…" : "Add to access list"}
+          </PillButton>
+        </div>
+
+        <div className="border-t border-white/10 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-white/70 uppercase tracking-wide">Pending activation ({pending.length})</p>
+            <PillButton type="button" onClick={load} disabled={loading}>
+              {loading ? "Loading…" : "Refresh"}
+            </PillButton>
+          </div>
+          {!loading && pending.length === 0 && (
+            <p className="text-xs text-white/50">No pending pre-registration access.</p>
+          )}
+          {pending.length > 0 && (
+            <div className="space-y-2">
+              {pending.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-white truncate">{item.normalizedEmail}</p>
+                    <p className="text-xs text-white/60">
+                      {item.accessType === "client" ? "Client Access" : "Pilot Program"} · {item.durationDays} days · invited {new Date(item.invitedAt).toLocaleDateString()}
+                    </p>
+                    {item.notes && <p className="text-xs text-white/50 mt-0.5">{item.notes}</p>}
+                  </div>
+                  <PillButton type="button" variant="rose" onClick={() => revokeInvitation(item)} aria-label={`Remove access for ${item.normalizedEmail}`}>
+                    <Trash2 className="h-3 w-3" />
+                    Remove
+                  </PillButton>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {activated.length > 0 && (
+          <p className="text-xs text-white/50">
+            Activated records retained for reporting: {activated.filter((item) => item.accessType === "client").length} client, {activated.filter((item) => item.accessType === "pilot").length} pilot.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -927,6 +1113,9 @@ export default function AdminDashboard() {
 
         {/* Grant Trial Access */}
         <GrantTrialPanel />
+
+        {/* Pre-registration Pilot / Client Access */}
+        <PreRegistrationAccessPanel />
 
         {/* Grandfather Migration Status */}
         <GrandfatherStatusPanel />

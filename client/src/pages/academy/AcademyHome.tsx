@@ -31,7 +31,7 @@ const PLATFORM_MASTERY_LESSONS = [
 
 const BECOME_CERTIFIED = [
   { icon: "🎓", label: "Platform Mastery", desc: "9 modules · Workflow exercises · Quiz", route: "/academy/platform-mastery/lesson/lesson-01" },
-  { icon: "📈", label: "Marketing & Coaching", desc: "5 lessons · Coaching philosophy · Quiz", route: "/business-center/affiliate/coaching/certification" },
+  { icon: "📈", label: "Marketing & Coaching", desc: "5 lessons · Coaching philosophy · Quiz", route: "/business-center/affiliate/marketing/certification" },
   { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment", route: null },
 ];
 
@@ -80,6 +80,10 @@ export default function AcademyHome() {
 
   const allDone = completedLessons === PLATFORM_MASTERY_LESSONS.length;
   const isPlatformCertified = status?.certStatus === "completed";
+  // Finishing all required lessons unlocks the next certification in both
+  // Learning Mode and Certification Mode. Claiming the named Platform Mastery
+  // certificate remains a separate action with its own quiz requirements.
+  const hasCompletedPlatformRequirement = isPlatformCertified || allDone;
   // Keep legacy alias for backward compat within this file
   const isCertified = isPlatformCertified;
   const isMarketingCertified = marketingCertStatus === "completed";
@@ -152,10 +156,10 @@ export default function AcademyHome() {
     }
 
     // State 3: Platform done, marketing not done → Continue Certification
-    if (isPlatformCertified && !isMarketingCertified) {
+    if (hasCompletedPlatformRequirement && !isMarketingCertified) {
       return (
         <button
-          onClick={() => setLocation("/business-center/affiliate/coaching/certification")}
+          onClick={() => setLocation("/business-center/affiliate/marketing/certification")}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
         >
           <GraduationCap className="h-4 w-4" />
@@ -373,11 +377,11 @@ export default function AcademyHome() {
             {BECOME_CERTIFIED.map((item, i) => {
               // Per-item completion & lock state
               const itemDone =
-                i === 0 ? isPlatformCertified :
+                i === 0 ? hasCompletedPlatformRequirement :
                 i === 1 ? isMarketingCertified :
                 false; // ProCare cert tracked separately; show as optional
               const locked =
-                i === 1 ? !isPlatformCertified :
+                i === 1 ? !hasCompletedPlatformRequirement :
                 i === 2 ? !isMarketingCertified :
                 false;
               const noRoute = item.route === null;
@@ -413,7 +417,7 @@ export default function AcademyHome() {
 
               const sharedClass = `flex items-start gap-3 p-3.5 rounded-xl border ${
                 i === 0
-                  ? isPlatformCertified
+                  ? hasCompletedPlatformRequirement
                     ? "bg-emerald-500/10 border-emerald-500/20"
                     : "bg-orange-500/10 border-orange-500/25"
                   : i === 1
