@@ -261,6 +261,9 @@ export type HydrationModifierEffect =
   (typeof HYDRATION_MODIFIER_EFFECTS)[number];
 
 export const HYDRATION_MODIFIER_SOURCES = [
+  "manual",
+  "import",
+  "wearable",
   "baseline",
   "performance",
   "environment",
@@ -283,6 +286,14 @@ export const HYDRATION_MODIFIER_STATUSES = [
 export type HydrationModifierStatus =
   (typeof HYDRATION_MODIFIER_STATUSES)[number];
 
+export type HydrationRegistryProvenance = {
+  sourceRecordId: string;
+  sourceTimestamp?: string;
+  authorityIdentity?: string;
+  protocolRevision?: string;
+  populationContext?: string;
+};
+
 /**
  * A modifier is a typed claim about future hydration planning, not a plan
  * value. Numeric values are intentionally absent from this Phase 2 contract.
@@ -290,6 +301,9 @@ export type HydrationModifierStatus =
 export type HydrationModifierInput = {
   id: string;
   modifierType: string;
+  registryDefinitionId?: string;
+  registryFamily?: string;
+  registryProvenance?: HydrationRegistryProvenance;
   metric: HydrationModifierMetric;
   effect: HydrationModifierEffect;
   authority: HydrationModifierAuthority;
