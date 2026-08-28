@@ -1,7 +1,7 @@
 # My Perfect Meals Hydration Formula & Numeric Safety Policy
 
-**Policy version:** `MPM-HYDRATION-NUMERIC-POLICY-v0.1-PROPOSED`  
-**Status:** Proposed; inactive until required governance approval and activation-gate amendment  
+**Policy version:** `MPM-HYDRATION-NUMERIC-POLICY-v0.1`  
+**Status:** Product-approved; development implementation authorized; production activation remains closed  
 **Research date:** August 27, 2026  
 **Evidence registry:** `research/sources.json`
 
@@ -15,7 +15,7 @@ Approve the following conservative v0.1 policy:
 4. For everyone else, the Hydration Center may show logged water intake and nonnumeric education, but no target, remaining amount, completion percentage, or “goal met” statement.
 5. Do not add automatic exercise, heat, sweat, altitude, pregnancy, illness, medication, sodium, or electrolyte adjustments in v0.1.
 
-This is the fastest policy supported by the reviewed evidence that can support a useful Hydration Center without turning a population reference into an individualized prescription. Approval of this proposal satisfies the numeric-policy decision only. It does not supersede `docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md`, start Task #1472, activate clinician-directive workflows, authorize consumer language, or permit a user-facing Hydration Center.
+This is the fastest policy supported by the reviewed evidence that can support a useful Hydration Center without turning a population reference into an individualized prescription. Approval satisfies the numeric-policy decision and authorizes development implementation only. It does not supersede `docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md`, activate production clinician-directive workflows, authorize production consumer language, or open the production Hydration feature gate.
 
 ## Why the baseline is not an automatic number
 
@@ -264,9 +264,15 @@ Approval does not authorize:
 
 ## Approval and activation record
 
-**Decision requested:** Approve or reject `MPM-HYDRATION-NUMERIC-POLICY-v0.1-PROPOSED`.
+**Decision:** Approved — “Approve clinician-defined numeric v0.1.”
 
-**If product direction is approved:** Record the decision in the existing Hydration governance matrix. The policy remains inactive until the required clinical, professional-governance, privacy/security, product-safety, and consumer-language owners are recorded with effective scope/date, review/expiry, feature-gate, rollback, and cutover authorization.
+**Recorded:** 2026-08-27.
+
+**Authorized scope:** Development implementation and verification of clinician-defined point, range, floor, and ceiling directives; server-backed monitor-only intake remains available without a directive.
+
+**Activation effect:** None. Production remains inactive until the required clinical, professional-governance, privacy/security, product-safety, and consumer-language owners are recorded with effective scope/date, review/expiry, feature-gate, rollback, and cutover authorization.
+
+**Explicit exclusions:** Automatic baselines, weight-only formulas, automatic context adjustments, numeric LLM decisions, and numeric output based only on planning eligibility.
 
 **When the controlling activation gate is opened:** Replit may build the one combined Hydration implementation milestone described above. No extra decomposition into separate engine, remaining-water, UI, Resources, or App Library projects is required.
 

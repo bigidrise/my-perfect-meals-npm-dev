@@ -10,6 +10,29 @@ export interface FeatureKnowledge {
 }
 
 export const AppKnowledge: Record<string, FeatureKnowledge> = {
+  ...(import.meta.env.DEV
+    ? {
+        hydration: {
+          id: "hydration",
+          title: "Hydration Center",
+          description:
+            "Log water and view clinician-authorized hydration progress without an invented automatic target.",
+          howTo: [
+            "Open Hydration Center from Biometrics or the App Library.",
+            "Use a quick-add amount or enter a custom amount in ounces or milliliters.",
+            "Review today's server-backed water log.",
+            "If an authorized clinician has set a current directive, review the point, range, minimum, or maximum exactly as written.",
+            "Open Sources to review the Hydration evidence registry.",
+          ],
+          tips: [
+            "Tracking works even when no numeric target is available.",
+            "A ceiling is a limit, not a goal to reach.",
+            "Expired or incomplete clinician directives are withheld for review.",
+          ],
+          relatedCommands: [],
+        },
+      }
+    : {}),
   // ============================
   // 🔥 FRIDGE RESCUE
   // ============================

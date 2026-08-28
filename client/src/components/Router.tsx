@@ -360,6 +360,7 @@ import {
 // Dashboard navigation pages
 import TutorialHub from "@/pages/TutorialHub";
 import MyBiometrics from "@/pages/my-biometrics";
+const HydrationCenter = lazy(() => import("@/pages/HydrationCenter"));
 import BodyComposition from "@/pages/biometrics/body-composition";
 import Sleep from "@/pages/biometrics/sleep";
 import GetInspiration from "@/pages/GetInspiration";
@@ -974,6 +975,9 @@ export default function Router() {
         <Route path="/macro-counter" component={SafeMacroCounter} />
         {/* DELETED: All kids meal routes, all alcohol hub routes */}
         <Route path="/my-biometrics" component={SafeMyBiometrics} />
+        {import.meta.env.DEV && (
+          <Route path="/hydration" component={HydrationCenter} />
+        )}
         {/* Biometric sub-pages */}
         <Route path="/biometrics" component={SafeBiometrics} />
         <Route path="/biometrics/body-composition" component={SafeBodyComposition} />

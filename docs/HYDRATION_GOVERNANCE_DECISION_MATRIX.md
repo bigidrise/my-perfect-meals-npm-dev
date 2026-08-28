@@ -1,6 +1,6 @@
 # Daily Hydration Plan — Governance Decision Matrix
 
-**Status:** Checkpoint Zero passed for the feature-disabled foundation. Implementation remains paused pending explicit Task #1472 start authorization; clinical activation remains blocked.
+**Status:** Clinician-defined numeric v0.1 is product-approved for development implementation. Production clinical activation remains blocked.
 
 **Companion documents:**
 
@@ -14,14 +14,16 @@ On 2026-08-21, the product owner approved the nonclinical platform requirements 
 
 This records product direction only. It does **not** approve a clinical target, condition policy, electrolyte claim, professional role scope, retention policy, or activation behavior. Those decisions remain subject to their named owners and the activation gate below.
 
+On 2026-08-27, the product owner approved `MPM-HYDRATION-NUMERIC-POLICY-v0.1` with the explicit decision “Approve clinician-defined numeric v0.1.” The authorized scope is development implementation and verification of point, range, floor, and ceiling directives only. This approval has no production activation effect.
+
 ## Current controlling gate
 
 `docs/DAILY_HYDRATION_IMPLEMENTATION_GATE_REVIEW.md` is the sole controlling implementation gate. Its staged Foundation gate has passed Checkpoint Zero; its Activation gate remains closed. Therefore:
 
-- feature-disabled Phase 1 implementation is **authorized in principle but not started**;
-- no implementation may begin until Task #1472 is explicitly started;
-- no hydration target, clinical policy, professional directive, consumer cutover, or user-facing hydration behavior is authorized;
-- existing `water_logs` behavior and all current hydration-related product behavior remain unchanged.
+- development implementation and verification of the approved clinician-defined v0.1 milestone is authorized;
+- production numeric planning, professional directive workflows, consumer cutover, and production Hydration UI remain inactive;
+- no automatic baseline, weight-only formula, context delta, electrolyte quantity, or LLM-selected number is authorized;
+- `water_logs` remains the only editable intake ledger.
 
 This matrix and the implementation-gate review now use the same two-stage authorization model. The Foundation gate does not replace the Activation gate.
 
@@ -132,4 +134,4 @@ Checkpoint Zero does not execute a migration, change schema, register routes, mo
 
 ## Current decision
 
-As of 2026-08-21, product-owner direction for the nonclinical Group A platform requirements is recorded and Checkpoint Zero has passed. Task #1472 remains paused until explicitly started. The Daily Hydration Plan remains blocked from clinical activation, user-facing behavior, and consumer cutover.
+As of 2026-08-27, product-owner direction for clinician-defined numeric v0.1 is recorded and development implementation is authorized. The Daily Hydration Plan remains blocked from production clinical activation, production user-facing behavior, and consumer cutover until the remaining named approvals are recorded.

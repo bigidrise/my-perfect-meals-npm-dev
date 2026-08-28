@@ -9731,6 +9731,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: waterLogsRouterShared } = await import("./routes/waterLogs");
   app.use("/api", waterLogsRouterShared);
 
+  const { default: hydrationRouterShared } = await import("./routes/hydration");
+  app.use("/api", hydrationRouterShared);
+
   const { default: wmc2LogRouterShared } = await import("./routes/wmc2Log");
   app.use("/api", wmc2LogRouterShared);
 
