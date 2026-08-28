@@ -9,6 +9,22 @@ interface CertificateOptions {
   completedAt: Date;
 }
 
+const CERTIFICATE_TEMPLATES: Record<
+  string,
+  { fileName: string; nameTopPct: number; nameHeightPct: number }
+> = {
+  mpm_specialist: {
+    fileName: "cert-template-specialist.png",
+    nameTopPct: 0.3,
+    nameHeightPct: 0.13,
+  },
+  default: {
+    fileName: "cert-template-professional.png",
+    nameTopPct: 0.3,
+    nameHeightPct: 0.13,
+  },
+};
+
 // Template image: 2000 × 1545 px — almost exactly landscape LETTER (792 × 612).
 // New template: bottom cert-number and date areas are BLANK.
 // Only the recipient name area has a faded ghost placeholder that needs covering.
@@ -37,7 +53,14 @@ export function generateCertificatePDF(opts: CertificateOptions): Promise<Buffer
     const GOLD  = "#C4973A";
 
     // ── TEMPLATE BACKGROUND ──
-    const tplPath = path.join(process.cwd(), "server", "assets", "cert-template-professional.png");
+    const template =
+      CERTIFICATE_TEMPLATES[opts.certType] ?? CERTIFICATE_TEMPLATES.default;
+    const tplPath = path.join(
+      process.cwd(),
+      "server",
+      "assets",
+      template.fileName,
+    );
     if (fs.existsSync(tplPath)) {
       doc.image(tplPath, 0, 0, { width: W, height: H });
     } else {
@@ -48,8 +71,8 @@ export function generateCertificatePDF(opts: CertificateOptions): Promise<Buffer
 
     // ── OVERLAY 1: RECIPIENT NAME ──
     // Cover the faded ghost placeholder, render name in elegant italic script.
-    const nameTopPct  = 0.30;
-    const nameHeightPct = 0.13;
+    const nameTopPct = template.nameTopPct;
+    const nameHeightPct = template.nameHeightPct;
     const nameX = W * 0.13;
     const nameW = W * 0.74;
     const nameY = H * nameTopPct;

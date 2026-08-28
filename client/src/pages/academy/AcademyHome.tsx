@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import type { AcademyProgression } from "@shared/academyProgression";
 
 const PLATFORM_MASTERY_LESSONS = [
   { num: 1, title: "Your Profile & Nutrition Protocol", subtitle: "Setting up your dietary identity and health constraints" },
@@ -56,18 +57,18 @@ export default function AcademyHome() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const [status, setStatus] = useState<AcademyStatus | null>(null);
-  const [marketingCertStatus, setMarketingCertStatus] = useState<string>("not_started");
+  const [progression, setProgression] = useState<AcademyProgression | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     Promise.all([
       apiRequest("/api/academy/platform-mastery/status"),
-      apiRequest("/api/certifications/marketing_coaching/progress").catch(() => null),
+      apiRequest("/api/certifications/academy-progression").catch(() => null),
     ])
-      .then(([acad, mkt]) => {
+      .then(([acad, resolved]) => {
         setStatus(acad as AcademyStatus);
-        setMarketingCertStatus((mkt as any)?.status ?? "not_started");
+        setProgression(resolved as AcademyProgression | null);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -79,16 +80,16 @@ export default function AcademyHome() {
   }).length;
 
   const allDone = completedLessons === PLATFORM_MASTERY_LESSONS.length;
-  const isPlatformCertified = status?.certStatus === "completed";
+  const isPlatformCertified = progression?.phase1.complete ?? allDone;
   // Finishing all required lessons unlocks the next certification in both
   // Learning Mode and Certification Mode. Claiming the named Platform Mastery
   // certificate remains a separate action with its own quiz requirements.
   const hasCompletedPlatformRequirement = isPlatformCertified || allDone;
   // Keep legacy alias for backward compat within this file
   const isCertified = isPlatformCertified;
-  const isMarketingCertified = marketingCertStatus === "completed";
+  const isMarketingCertified = progression?.phase2.complete ?? false;
   // Core certified = Platform Mastery + Marketing & Coaching complete
-  const isCoreCertified = isPlatformCertified && isMarketingCertified;
+  const isCoreCertified = progression?.specialist.eligible ?? false;
   // ProCare workspace: they already have a professional account set up
   const hasProCareWorkspace =
     user?.professionalRole === "trainer" || user?.professionalRole === "physician";
@@ -96,15 +97,9 @@ export default function AcademyHome() {
   const proCareEligible = user?.proCareEligible ?? false;
 
   function getNextCertificationStep(): { route: string; label: string } {
-    if (!isMarketingCertified) {
-      return {
-        route: "/business-center/affiliate/marketing/certification",
-        label: "Continue to Marketing & Coaching",
-      };
-    }
-    return {
-      route: "/procare-training",
-      label: "Continue to ProCare Certification",
+    return progression?.nextStep ?? {
+      route: "/academy/platform-mastery/lesson/lesson-01",
+      label: "Start Platform Mastery",
     };
   }
 
@@ -132,7 +127,11 @@ export default function AcademyHome() {
     if (loading) return null;
 
     // State 5: Both done + ProCare workspace already exists
-    if (isCoreCertified && hasProCareWorkspace) {
+    if (
+      isCoreCertified &&
+      progression?.proCare.eligible &&
+      hasProCareWorkspace
+    ) {
       return (
         <button
           onClick={() => setLocation("/procare-welcome")}
@@ -156,14 +155,16 @@ export default function AcademyHome() {
               <p className="text-xs text-emerald-300/60 mt-0.5">Core certification complete — you're all set.</p>
             </div>
           </div>
+          {progression?.proCare.eligible && (
           <button
-            onClick={() => setLocation("/procare-welcome")}
+            onClick={() => setLocation(progression.nextStep.route)}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
           >
             <GraduationCap className="h-4 w-4 text-orange-400" />
             Continue to ProCare Certification
             <ChevronRight className="h-4 w-4 opacity-50" />
           </button>
+          )}
         </div>
       );
     }

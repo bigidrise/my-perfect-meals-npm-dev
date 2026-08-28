@@ -4,6 +4,7 @@ import { Award, ArrowLeft, CheckCircle2, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { apiRequest } from "@/lib/queryClient";
+import type { AcademyProgression } from "@shared/academyProgression";
 
 interface CertData {
   certificateNumber: string | null;
@@ -30,6 +31,7 @@ export default function PlatformMasteryComplete() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [phase1Complete, setPhase1Complete] = useState(false);
   const [nextStep, setNextStep] = useState<NextStep>({
     route: "/academy",
     label: "Continue to Academy",
@@ -38,9 +40,8 @@ export default function PlatformMasteryComplete() {
   useEffect(() => {
     Promise.all([
       apiRequest("/api/academy/platform-mastery/status"),
-      apiRequest("/api/certifications/marketing_coaching/progress").catch(() => null),
-      apiRequest("/api/certifications/procare_training/progress").catch(() => null),
-    ]).then(([d, marketing, procare]: any[]) => {
+      apiRequest("/api/certifications/academy-progression"),
+    ]).then(([d, progression]: [any, AcademyProgression]) => {
         setCert({
           certificateNumber: d.certificateNumber ?? null,
           certificateName: d.certificateName ?? null,
@@ -48,19 +49,8 @@ export default function PlatformMasteryComplete() {
           isCertificationTrack: d.isCertificationTrack ?? false,
           score: d.score ?? null,
         });
-        const marketingDone = marketing?.certification?.status === "completed";
-        const procareDone = procare?.certification?.status === "completed";
-        if (!marketingDone) {
-          setNextStep({
-            route: "/business-center/affiliate/marketing/certification",
-            label: "Continue to Marketing & Coaching",
-          });
-        } else if (!procareDone) {
-          setNextStep({
-            route: "/procare-training",
-            label: "Continue to ProCare Certification",
-          });
-        }
+        setPhase1Complete(progression.phase1.complete);
+        setNextStep(progression.nextStep);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -102,14 +92,15 @@ export default function PlatformMasteryComplete() {
       })
     : null;
 
-  // Redirect non-certified users away from the certificate page
+  // Phase 1 is educational. Completion depends on lessons, not on a legacy
+  // Platform certificate number.
   useEffect(() => {
-    if (!loading && !cert?.certificateNumber) {
+    if (!loading && !phase1Complete) {
       setLocation("/academy/platform-mastery");
     }
-  }, [loading, cert, setLocation]);
+  }, [loading, phase1Complete, setLocation]);
 
-  if (loading || !cert?.certificateNumber) {
+  if (loading || !phase1Complete) {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex items-center justify-center`}>
         <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
@@ -136,7 +127,7 @@ export default function PlatformMasteryComplete() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <h1 className="text-base font-bold text-white">Platform Mastery Certificate</h1>
+           <h1 className="text-base font-bold text-white">Platform Mastery Complete</h1>
         </div>
       </div>
 
@@ -155,8 +146,8 @@ export default function PlatformMasteryComplete() {
             <Award className="h-12 w-12 text-emerald-400" />
           </div>
           <div className="text-center space-y-1">
-            <h2 className="text-2xl font-black text-white">Certified!</h2>
-            <p className="text-sm text-emerald-400 font-semibold">Platform Mastery</p>
+             <h2 className="text-2xl font-black text-white">Phase 1 Complete</h2>
+             <p className="text-sm text-emerald-400 font-semibold">Platform Mastery</p>
           </div>
         </motion.div>
 
@@ -233,7 +224,8 @@ export default function PlatformMasteryComplete() {
           </motion.div>
         )}
 
-        {/* Download PDF button */}
+        {/* Legacy Platform certificates remain downloadable when present. */}
+        {cert?.certificateNumber && (
         <motion.button
           onClick={handleDownload}
           disabled={downloading}
@@ -249,6 +241,7 @@ export default function PlatformMasteryComplete() {
           )}
           {downloading ? "Generating…" : "Download Certificate (PDF)"}
         </motion.button>
+        )}
 
         {/* Download error */}
         {downloadError && (

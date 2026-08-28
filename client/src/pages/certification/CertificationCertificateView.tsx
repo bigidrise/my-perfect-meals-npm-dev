@@ -19,7 +19,7 @@ export default function CertificationCertificateView() {
   const params = useParams<{ pathId: string }>();
   const pathId = params.pathId ?? "social";
   const certType =
-    pathId === "marketing" ? "marketing_coaching" : `affiliate_${pathId}`;
+    pathId === "marketing" ? "mpm_specialist" : `affiliate_${pathId}`;
 
   const [cert, setCert] = useState<CertData | null>(null);
   const [loading, setLoading] = useState(true);
