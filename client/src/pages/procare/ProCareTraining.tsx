@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PillButton } from "@/components/ui/pill-button";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useTranslation } from "react-i18next";
+import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 
 interface TrainingSection {
   id: string;
@@ -170,7 +171,7 @@ export default function ProCareTraining() {
   );
 
   return (
-    <div className={`bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white ${isDesktop ? "pb-8" : "min-h-screen flex flex-col"}`}>
+    <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} text-white ${isDesktop ? "pb-8" : "flex flex-col"}`}>
       <div className={`px-4 max-w-lg mx-auto w-full ${isDesktop ? "pt-6 pb-0" : "flex-1 pt-10 pb-32"}`}>
 
         <button

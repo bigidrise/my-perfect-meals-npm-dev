@@ -29,7 +29,8 @@ export default function CertificationComplete() {
   const { user } = useAuth();
   const params = useParams<{ pathId: string }>();
   const pathId = params.pathId ?? "social";
-  const certType = `affiliate_${pathId}`;
+  const certType =
+    pathId === "marketing" ? "marketing_coaching" : `affiliate_${pathId}`;
 
   // Practitioner roles require professional certification beyond the affiliate track.
   // business role and no role = affiliate-only path.
@@ -551,7 +552,7 @@ export default function CertificationComplete() {
               </button>
 
               <button
-                onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
+                onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/view`)}
                 className="w-full p-3 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
               >
                 <FileText className="h-4 w-4" />
