@@ -245,3 +245,17 @@ uri = "file://client/public/images/chef-copilot-cooking-bg.png"
 type = "image"
 title = "Chef Copilot Kitchen Background"
 description = "AI-generated background for the Create a Dish page — Chef Copilot plating a gourmet dish in a cinematic kitchen."
+
+[[outputs]]
+id = "904mOzTYw5RSRSfz4bj_K"
+uri = "file://research/notes.md"
+type = "text"
+title = "Hydration Numeric Policy Research Notes"
+description = "Live research plan, source coverage, conflicts, and approval checklist for the Hydration Formula & Numeric Safety Policy."
+
+[[outputs]]
+id = "vsZpRSdUW1jZBlud3WkPF"
+uri = "file://research/hydration-formula-numeric-safety-policy.md"
+type = "text"
+title = "Hydration Formula & Numeric Safety Policy"
+description = "Proposed v0.1 policy with exact permitted arithmetic, no-number states, activation boundaries, implementation acceptance criteria, and a 32-source evidence registry."
