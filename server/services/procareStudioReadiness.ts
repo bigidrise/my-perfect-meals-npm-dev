@@ -32,6 +32,8 @@ export interface ProviderStudioReadiness {
   ok: boolean;
   code?: ProviderStudioReadinessCode;
   message?: string;
+  flow?: "professional" | "physician";
+  missing?: string[];
 }
 
 export interface ProviderStudioProvisionResult extends ProviderStudioReadiness {
@@ -121,12 +123,18 @@ export async function getProviderStudioReadiness(
   }
 
   const legalFlow = provider.professionalRole === "physician" ? "physician" : "professional";
-  const legal = await checkLegalAcceptance(providerUserId, legalFlow);
-  if (!legal.allAccepted) {
+  const [attestation, legal] = await Promise.all([
+    checkLegalAcceptance(providerUserId, "attestation"),
+    checkLegalAcceptance(providerUserId, legalFlow),
+  ]);
+  const missing = [...attestation.missing, ...legal.missing];
+  if (missing.length > 0) {
     return {
       ok: false,
       code: "LEGAL_REACCEPT_REQUIRED",
       message: "Accept all required professional legal documents before creating a Studio or inviting clients.",
+      flow: legalFlow,
+      missing,
     };
   }
 

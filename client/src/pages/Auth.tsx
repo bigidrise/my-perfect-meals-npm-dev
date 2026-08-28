@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { login, signUp, getProCareSignupData, clearProCareSignupData, getAuthHeaders } from "@/lib/auth";
+import { login, signUp, getProCareSignupData, getAuthHeaders } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { MfaChallengeModal } from "@/components/MfaChallengeModal";
+import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -55,7 +56,10 @@ export default function Auth() {
     }
   }
 
-  async function proceedAfterLogin(u: User) {
+  async function proceedAfterLogin(
+    u: User,
+    options: { professionalSetupPending?: boolean } = {},
+  ) {
     setUser(u);
     localStorage.setItem("isAuthenticated", "true");
     sessionStorage.removeItem("mpm.welcomeGateDone");
@@ -74,6 +78,15 @@ export default function Auth() {
       // Refresh session so the business membership is visible immediately
       try { await refreshUser(); } catch { /* non-fatal */ }
       setLocation("/business-dashboard");
+      return;
+    }
+
+    if (options.professionalSetupPending) {
+      try { await refreshUser(); } catch { /* non-fatal */ }
+      setLocation(createProfessionalLegalRecoveryUrl(
+        urlReturnTo || "/professional-dashboard",
+        "professional-workspace",
+      ));
       return;
     }
 
@@ -164,10 +177,10 @@ export default function Auth() {
             procareEntryPath: urlRole,
           };
         }
+        const professionalSetupPending = !!procareData && !isBusinessSignup;
         u = await signUp(email.trim(), pwd, procareData, isBusinessSignup, signupSource);
-        if (isProCare) {
-          clearProCareSignupData();
-        }
+        await proceedAfterLogin(u, { professionalSetupPending });
+        return;
       } else {
         const loginResult = await login(email.trim(), pwd);
         if ("mfaRequired" in loginResult && loginResult.mfaRequired) {

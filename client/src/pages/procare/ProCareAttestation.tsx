@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, ShieldCheck, FileCheck, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +8,10 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { LEGAL_DOCUMENTS } from "../../../../shared/legalDocuments";
 import ProfessionalLegalModal from "@/components/pro/ProfessionalLegalModal";
 import { useTranslation } from "react-i18next";
+import {
+  clearProfessionalLegalRecovery,
+  readProfessionalLegalRecovery,
+} from "@/lib/professionalLegalRecovery";
 
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
@@ -27,6 +31,7 @@ const CATEGORY_LABELS: Record<ProfessionalCategory, string> = {
 
 export default function ProCareAttestation() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { user, refreshUser } = useAuth();
   const { t } = useTranslation();
   const [accepted, setAccepted] = useState(false);
@@ -36,21 +41,37 @@ export default function ProCareAttestation() {
   const [showProfessionalModal, setShowProfessionalModal] = useState(false);
 
   const isLoggedIn = !!user;
+  const recovery = readProfessionalLegalRecovery(search);
+  const isExistingProfessionalRecovery =
+    !!user?.isProCare &&
+    !!user?.professionalRole &&
+    user.professionalRole !== "business";
 
   const professionalRole =
-    (localStorage.getItem("procare_role") as "trainer" | "physician" | null) ||
-    user?.professionalRole ||
-    "trainer";
+    isExistingProfessionalRecovery
+      ? user!.professionalRole as "trainer" | "physician"
+      : (localStorage.getItem("procare_role") as "trainer" | "physician" | null) ||
+        user?.professionalRole ||
+        "trainer";
   const proFlow = professionalRole === "physician" ? "physician" : "professional";
+  const recoveryActionLabel = recovery?.action === "client-invite"
+    ? "your client invitation"
+    : recovery?.action === "studio-creation"
+      ? "Studio creation"
+      : "your professional workspace";
 
   useEffect(() => {
-    const stored = localStorage.getItem("procare_category") as ProfessionalCategory | null;
+    const stored = (
+      isExistingProfessionalRecovery
+        ? user?.professionalCategory
+        : localStorage.getItem("procare_category") || user?.professionalCategory
+    ) as ProfessionalCategory | null;
     if (!stored) {
       setLocation("/procare-identity");
       return;
     }
     setCategory(stored);
-  }, [setLocation]);
+  }, [setLocation, user?.professionalCategory, isExistingProfessionalRecovery]);
 
   if (!category) return null;
 
@@ -96,7 +117,9 @@ export default function ProCareAttestation() {
       clearProCareSignupData();
       await refreshUser();
       localStorage.setItem("coachMode", "self");
-      setLocation("/pro-launchpad");
+      const returnTo = recovery?.returnTo || "/pro-launchpad";
+      clearProfessionalLegalRecovery();
+      setLocation(returnTo);
     } catch (err: any) {
       if (err.message?.includes("LEGAL_REACCEPT_REQUIRED") || err.message?.includes("legal documents")) {
         setShowProfessionalModal(true);
@@ -105,6 +128,14 @@ export default function ProCareAttestation() {
       }
       setUpgrading(false);
     }
+  };
+
+  const finishExistingRecovery = async () => {
+    await refreshUser();
+    const returnTo = recovery?.returnTo ||
+      (professionalRole === "physician" ? "/care-team/physician" : "/care-team/trainer");
+    clearProfessionalLegalRecovery();
+    setLocation(returnTo);
   };
 
   const handleContinue = async () => {
@@ -125,7 +156,11 @@ export default function ProCareAttestation() {
           return;
         }
 
-        await performUpgrade();
+        if (isExistingProfessionalRecovery) {
+          await finishExistingRecovery();
+        } else {
+          await performUpgrade();
+        }
       } catch (err: any) {
         setError(err.message || "Failed to process attestation. Please try again.");
         setUpgrading(false);
@@ -137,7 +172,11 @@ export default function ProCareAttestation() {
 
   const handleProfessionalDocsAccepted = async () => {
     setShowProfessionalModal(false);
-    await performUpgrade();
+    if (isExistingProfessionalRecovery) {
+      await finishExistingRecovery();
+    } else {
+      await performUpgrade();
+    }
   };
 
   return (
@@ -165,6 +204,14 @@ export default function ProCareAttestation() {
                 : "Please review and accept the following before creating your professional account."}
             </p>
           </div>
+
+          {recovery && (
+            <div className="mb-5 rounded-xl border border-blue-400/30 bg-blue-900/20 p-4">
+              <p className="text-sm text-blue-100">
+                Complete the required professional agreements and you will return to {recoveryActionLabel}.
+              </p>
+            </div>
+          )}
         </div>
 
         {isLoggedIn && (
@@ -248,6 +295,11 @@ export default function ProCareAttestation() {
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
               {t("procare.attestation.upgrading")}
+            </>
+          ) : isExistingProfessionalRecovery ? (
+            <>
+              Accept Agreements and Continue
+              <ArrowRight className="w-5 h-5" />
             </>
           ) : isLoggedIn ? (
             <>

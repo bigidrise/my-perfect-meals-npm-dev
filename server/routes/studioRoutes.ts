@@ -81,6 +81,8 @@ router.post("/", async (req, res) => {
       return res.status(403).json({
         error: readiness.message,
         code: readiness.code,
+        flow: readiness.flow,
+        missing: readiness.missing,
         setupRequired: true,
       });
     }
@@ -311,6 +313,8 @@ router.post("/:studioId/invite", async (req, res) => {
       return res.status(403).json({
         error: readiness.message,
         code: readiness.code,
+        flow: readiness.flow,
+        missing: readiness.missing,
         setupRequired: true,
       });
     }

@@ -64,8 +64,10 @@ router.get("/status", requireAuth, async (req: any, res) => {
     const userId = req.authUser.id;
     const flow = req.query.flow as LegalFlow | undefined;
 
-    if (!flow || !["client", "professional", "attestation"].includes(flow)) {
-      return res.status(400).json({ error: "flow query parameter required (client, professional, or attestation)" });
+    if (!flow || !["client", "professional", "physician", "patient_physician", "attestation"].includes(flow)) {
+      return res.status(400).json({
+        error: "flow query parameter required (client, professional, physician, patient_physician, or attestation)",
+      });
     }
 
     const requiredDocs = getRequiredDocuments(flow);

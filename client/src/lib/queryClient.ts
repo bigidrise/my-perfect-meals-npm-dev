@@ -1,6 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { apiUrl } from "./resolveApiBase";
 import { pushFailedRequest } from "./diagnosticsBuffer";
+import { inferProfessionalLegalAction } from "./professionalLegalRecovery";
 
 async function throwIfResNotOk(res: Response, meta?: { method?: string; startedAt?: number }) {
   if (!res.ok) {
@@ -17,6 +18,7 @@ async function throwIfResNotOk(res: Response, meta?: { method?: string; startedA
 
     let message = res.statusText;
     let code: string | undefined;
+    let legalFlow: string | undefined;
 
     try {
       const data = await res.clone().json();
@@ -24,6 +26,7 @@ async function throwIfResNotOk(res: Response, meta?: { method?: string; startedA
       else if (data?.message) message = data.message;
       else message = JSON.stringify(data);
       code = data?.code;
+      legalFlow = data?.flow;
     } catch {
       try {
         const text = await res.clone().text();
@@ -57,6 +60,20 @@ async function throwIfResNotOk(res: Response, meta?: { method?: string; startedA
     // can surface a clear "trial ended — upgrade" prompt rather than a blank error.
     if (res.status === 403 && code === "PRO_REQUIRED") {
       window.dispatchEvent(new CustomEvent("mpm:pro-required"));
+    }
+
+    if (
+      (res.status === 403 || res.status === 409) &&
+      code === "LEGAL_REACCEPT_REQUIRED" &&
+      (legalFlow === "professional" || legalFlow === "physician")
+    ) {
+      const returnTo = window.location.pathname + window.location.search;
+      window.dispatchEvent(new CustomEvent("mpm:professional-legal-required", {
+        detail: {
+          returnTo,
+          action: inferProfessionalLegalAction(res.url, method),
+        },
+      }));
     }
 
     throw new Error(`${res.status}: ${message}`);
