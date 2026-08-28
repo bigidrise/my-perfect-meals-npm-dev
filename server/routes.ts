@@ -3677,7 +3677,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sponsoredByBusinessId: authReq.authUser.sponsoredByBusinessId,
           sponsoredProCareAccess: authReq.authUser.sponsoredProCareAccess,
            pilotProCareAccess: authReq.authUser.pilotProCareAccess,
-          isInternalAccount: authReq.authUser.isFounder,
+          isInternalAccount:
+            authReq.authUser.isFounder ||
+            authReq.authUser.isSandbox ||
+            authReq.authUser.isTester,
         }),
         proCareAccessSource: authReq.authUser.pilotProCareAccess
           ? "pilot_procare"
@@ -3687,9 +3690,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 billingEnforced: process.env.BILLING_ENFORCED === "true",
                 accessTier: authReq.authUser.accessTier,
                 planLookupKey: authReq.authUser.planLookupKey,
-                isInternalAccount: authReq.authUser.isFounder,
+                isInternalAccount:
+                  authReq.authUser.isFounder ||
+                  authReq.authUser.isSandbox ||
+                  authReq.authUser.isTester,
               })
-              ? (authReq.authUser.isFounder ? "internal" : "paid_procare")
+              ? (
+                  authReq.authUser.isFounder ||
+                  authReq.authUser.isSandbox ||
+                  authReq.authUser.isTester
+                    ? "internal"
+                    : "paid_procare"
+                )
               : null,
         pilotProCareEndsAt: authReq.authUser.pilotProCareEndsAt?.toISOString() ?? null,
         monetizationEligible: (() => {
@@ -3702,6 +3714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         planLookupKey: user.planLookupKey,
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
+        isSandbox: user.isSandbox || false,
         accessTier: authReq.authUser.accessTier,
         profilePhotoUrl: user.profilePhotoUrl || null,
         role: user.role || "client",

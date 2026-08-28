@@ -192,10 +192,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUserContext(String(updatedUser.id), updatedUser.email);
         console.log("✅ [AuthContext] User refreshed");
         return updatedUser;
-      } else if (response.status === 401 || response.status === 403) {
+      } else if (response.status === 401) {
         // Definitive auth rejection — token is invalid or revoked
         console.warn("⚠️ [AuthContext] Refresh rejected (auth):", response.status);
         return null;
+      } else if (response.status === 403) {
+        // Authenticated but unauthorized for this response. Preserve the
+        // session; feature authorization must never be treated as logout.
+        console.warn("⚠️ [AuthContext] Refresh rejected (authorization) — keeping cached user");
+        throw new Error("transient:403");
       } else {
         // Transient server error (5xx) or unexpected status — do NOT sign out.
         // Preserve the cached user so the app keeps working through brief outages.
@@ -294,7 +299,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const res = await fetch(apiUrl("/api/auth/session"), {
           headers: { ...getAuthHeaders() },
         });
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 401) {
           console.warn("⚠️ [AuthContext] Session probe on resume → 401 — signing out");
           setUser(null);
           localStorage.removeItem("mpm_current_user");
