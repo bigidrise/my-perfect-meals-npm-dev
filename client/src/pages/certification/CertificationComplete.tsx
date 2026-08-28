@@ -356,18 +356,19 @@ export default function CertificationComplete() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Back button */}
+      {/* Leave completion without returning through the certification flow */}
       <div
         className="sticky top-0 z-10 bg-black/55 backdrop-blur-md border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center max-w-2xl mx-auto">
           <button
-            onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
+            onClick={() => setLocation("/business-center/affiliate/dashboard")}
+            data-testid="button-back-affiliate-dashboard"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Back to Dashboard
           </button>
         </div>
       </div>
