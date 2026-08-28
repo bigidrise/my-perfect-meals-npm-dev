@@ -558,14 +558,6 @@ export default function CertificationComplete() {
                 Go to Business Suite
               </button>
 
-              <button
-                onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/view`)}
-                className="w-full p-3 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-              >
-                <FileText className="h-4 w-4" />
-                View Certification Record
-              </button>
-
               <p className="text-xs text-gray-400 leading-relaxed px-2 text-center">
                 Your certificate is always available for download from this page.
               </p>
