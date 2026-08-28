@@ -9,7 +9,7 @@ import { AuthenticatedRequest } from "./requireAuth";
  * requirePhase1Cert — ProCare Studio gate (Phase 1 Academy)
  *
  * Blocks ProCare Studio and client-management API routes until the professional
- * has completed Phase 1 Academy certification (certificationType = "platform",
+ * has completed Phase 1 — Platform Mastery (certificationType = "platform",
  * status = "completed", completedAt set).
  *
  * Gate is skipped for:
@@ -101,7 +101,7 @@ export async function requirePhase1Cert(
       return;
     }
 
-    // Check Phase 1 certification. Accepts:
+    // Check Phase 1 — Platform Mastery completion. Accepts:
     //   - "platform_mastery" records (current Academy cert type, any cert-track flag)
     //   - "platform" records with is_certification_track=true (legacy Academy completions)
     // Plain "platform" records without cert-track flag are ProCare training records
@@ -130,7 +130,7 @@ export async function requirePhase1Cert(
       res.status(403).json({
         error: "PHASE1_CERT_REQUIRED",
         message:
-          "ProCare Studio access is locked until you have completed Phase 1 Academy certification. Visit /pro-launchpad to continue.",
+          "ProCare Studio access is locked until you have completed Phase 1 — Platform Mastery. Visit /pro-launchpad to continue.",
         redirectTo: "/pro-launchpad",
       });
       return;
