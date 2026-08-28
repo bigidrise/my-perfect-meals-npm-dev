@@ -88,6 +88,8 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
         return res.status(403).json({
           error: provisioned.message,
           code: provisioned.code,
+          flow: provisioned.flow,
+          missing: provisioned.missing,
           setupRequired: true,
         });
       }

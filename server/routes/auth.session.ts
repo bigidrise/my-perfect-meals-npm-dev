@@ -135,15 +135,18 @@ router.post("/api/auth/signup", async (req, res) => {
     const isTester = isTesterEmail(email);
     const isAdmin = isAdminEmail(email);
 
-    // Build user values with optional ProCare professional fields
+    // Build user values. Professional signup intent is deliberately kept
+    // pending until the new account is authenticated and has recorded the
+    // current versioned legal acceptances through upgrade-to-procare.
     const isBusinessAccount = req.body.businessAccount === true;
+    const professionalSetupRequested = !!procare?.professionalCategory;
 
     // Tester accounts get immediate full access via planLookupKey. Normal
     // consumers get a 7-day signup trial unless their email has a pending
     // pre-registration access record. Pilot/Client records grant 30 days by
     // default, but their clock still starts only here at account activation.
     // ProCare accounts get their plan directly and do not receive a trial.
-    const isNormalConsumer = !isTester && !req.body.procare?.professionalCategory;
+    const isNormalConsumer = !isTester && !professionalSetupRequested;
     const trialNow = isNormalConsumer ? new Date() : null;
     const pendingPreRegistrationAccess = isNormalConsumer
       ? await findPendingPreRegistrationAccess(email)
@@ -181,7 +184,7 @@ router.post("/api/auth/signup", async (req, res) => {
       userValues.signupSource = signupSource;
     }
 
-    if (procare && procare.professionalCategory) {
+    if (professionalSetupRequested) {
       const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
       const validCategories = ["certified", "experienced", "non_certified"];
       const licensedRoles = ["physician", "dietitian", "nurse_practitioner"];
@@ -190,9 +193,6 @@ router.post("/api/auth/signup", async (req, res) => {
       }
       if (!validCategories.includes(procare.professionalCategory)) {
         return res.status(400).json({ error: "Invalid professional category" });
-      }
-      if (!procare.attestationText || !procare.attestedAt) {
-        return res.status(400).json({ error: "Attestation is required for professional accounts" });
       }
       // Licensed roles (physician / dietitian / NP-PA) must supply license number + state
       if (licensedRoles.includes(procare.professionalRole) && procare.professionalCategory === "certified") {
@@ -203,23 +203,9 @@ router.post("/api/auth/signup", async (req, res) => {
           return res.status(400).json({ error: "License state is required for licensed professionals" });
         }
       }
-      // Trainers / coaches: no license required (cert body is optional)
-      userValues.role = "coach";
-      userValues.isProCare = true;
-      userValues.professionalRole = procare.professionalRole;
-      userValues.professionalCategory = procare.professionalCategory;
-      userValues.procareEntryPath = procare.procareEntryPath || procare.professionalCategory;
-      userValues.attestationText = procare.attestationText;
-      userValues.attestedAt = new Date(procare.attestedAt);
-      userValues.plan = "procare";
-      userValues.subscriptionPlan = "procare";
-      userValues.subscriptionStatus = "active";
-      userValues.planLookupKey = "mpm_procare_monthly";
-      userValues.entitlements = ["procare", "care_team", "lab_metrics"];
-      if (procare.credentialType) userValues.credentialType = procare.credentialType;
-      if (procare.credentialBody) userValues.credentialBody = procare.credentialBody;
-      if (procare.credentialNumber) userValues.credentialNumber = procare.credentialNumber;
-      if (procare.credentialYear) userValues.credentialYear = procare.credentialYear;
+      // Do not activate ProCare here. This unauthenticated endpoint cannot
+      // create legal acceptance records on the user's behalf. The authenticated
+      // upgrade endpoint is the sole professional activation boundary.
     }
 
     // Create the user and claim any pre-registration record atomically. If the
@@ -264,6 +250,7 @@ router.post("/api/auth/signup", async (req, res) => {
     ip: getClientIp(req as any),
     meta: {
       isProCare: newUser.isProCare || false,
+        professionalSetupRequested,
       trialAccessType: signupTrial?.trialAccessType ?? null,
     },
   });
@@ -300,6 +287,7 @@ router.post("/api/auth/signup", async (req, res) => {
       isTester: newUser.isTester || false,
       isFounder: newUser.isFounder || false,
       planLookupKey: newUser.planLookupKey || null,
+      professionalSetupRequired: professionalSetupRequested,
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
