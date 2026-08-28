@@ -13,6 +13,11 @@ interface CertData {
   score: number | null;
 }
 
+type NextStep = {
+  route: string;
+  label: string;
+};
+
 function getBadgeTier(score: number): { label: string; color: string; border: string; bg: string } {
   if (score >= 95) return { label: "Master", color: "text-purple-400", border: "border-purple-500/40", bg: "bg-purple-500/10" };
   if (score >= 90) return { label: "Advanced", color: "text-sky-400", border: "border-sky-500/40", bg: "bg-sky-500/10" };
@@ -25,10 +30,17 @@ export default function PlatformMasteryComplete() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [nextStep, setNextStep] = useState<NextStep>({
+    route: "/academy",
+    label: "Continue to Academy",
+  });
 
   useEffect(() => {
-    apiRequest("/api/academy/platform-mastery/status")
-      .then((d: any) => {
+    Promise.all([
+      apiRequest("/api/academy/platform-mastery/status"),
+      apiRequest("/api/certifications/marketing_coaching/progress").catch(() => null),
+      apiRequest("/api/certifications/procare_training/progress").catch(() => null),
+    ]).then(([d, marketing, procare]: any[]) => {
         setCert({
           certificateNumber: d.certificateNumber ?? null,
           certificateName: d.certificateName ?? null,
@@ -36,6 +48,19 @@ export default function PlatformMasteryComplete() {
           isCertificationTrack: d.isCertificationTrack ?? false,
           score: d.score ?? null,
         });
+        const marketingDone = marketing?.certification?.status === "completed";
+        const procareDone = procare?.certification?.status === "completed";
+        if (!marketingDone) {
+          setNextStep({
+            route: "/business-center/affiliate/marketing/certification",
+            label: "Continue to Marketing & Coaching",
+          });
+        } else if (!procareDone) {
+          setNextStep({
+            route: "/procare-training",
+            label: "Continue to ProCare Certification",
+          });
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -232,14 +257,20 @@ export default function PlatformMasteryComplete() {
 
         {/* Back to Academy */}
         <motion.button
-          onClick={() => setLocation("/academy")}
+          onClick={() => setLocation(nextStep.route)}
           className="w-full p-4 rounded-2xl bg-white/10 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
         >
-          Back to Academy
+          {nextStep.label}
         </motion.button>
+        <button
+          onClick={() => setLocation("/academy")}
+          className="w-full p-3 rounded-2xl text-white/60 font-medium text-sm active:scale-[0.98] transition-transform"
+        >
+          Back to Academy
+        </button>
       </div>
     </motion.div>
   );

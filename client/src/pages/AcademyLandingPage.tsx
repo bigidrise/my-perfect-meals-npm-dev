@@ -240,6 +240,35 @@ export default function AcademyLandingPage() {
   const marketingInProgress = progress.marketingStatus === "in_progress";
   const marketingWaitlisted = progress.marketingStatus === "waitlisted";
 
+  function getContinueLearningDestination(): { route: string; label: string } {
+    const nextLessonIndex = lessonStatuses.findIndex((s) => s !== "completed");
+    if (nextLessonIndex !== -1) {
+      return {
+        route: `/academy/platform-mastery/lesson/lesson-0${nextLessonIndex + 1}`,
+        label: hasAnyLessonProgress ? "Continue Learning" : "Start Learning",
+      };
+    }
+
+    // All nine Platform Mastery lessons are complete. Continue through the
+    // certification path instead of restarting lesson 01.
+    if (!progress.loading) {
+      if (!progress.phase1Done) {
+        return { route: "/academy/platform-mastery", label: "Finish Platform Mastery" };
+      }
+      if (!marketingDone) {
+        return {
+          route: "/business-center/affiliate/marketing/certification",
+          label: "Continue to Marketing & Coaching",
+        };
+      }
+      if (!progress.phase2Done) {
+        return { route: "/procare-training", label: "Continue to ProCare Certification" };
+      }
+    }
+
+    return { route: "/academy", label: "View Academy Progress" };
+  }
+
   function marketingSublabel() {
     if (marketingDone) return "Completed";
     if (marketingInProgress) return "In progress · Tap to continue";
@@ -423,15 +452,11 @@ export default function AcademyLandingPage() {
 
           <div className="px-5 py-4 bg-orange-500/8 border-t border-orange-500/20">
             <button
-              onClick={() => {
-                const idx = lessonStatuses.findIndex((s) => s !== "completed");
-                const num = idx === -1 ? 1 : idx + 1;
-                setLocation(`/academy/platform-mastery/lesson/lesson-0${num}`);
-              }}
+              onClick={() => setLocation(getContinueLearningDestination().route)}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
             >
               <BookOpen className="h-4 w-4" />
-              {hasAnyLessonProgress ? "Continue Learning" : "Start Learning"}
+              {getContinueLearningDestination().label}
               <ChevronRight className="h-4 w-4 opacity-70" />
             </button>
             <p className="text-center text-white/30 text-xs mt-2">
