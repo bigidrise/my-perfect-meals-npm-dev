@@ -1,5 +1,9 @@
 import type { z } from "zod";
-import type { HydrationIntakeEventInput } from "./contracts";
+import type {
+  HydrationIntakeEventInput,
+  HydrationModifierInput,
+} from "./contracts";
+import { hydrationModifierInputSchema } from "./modifierSchemas";
 import { hydrationIntakeEventInputSchema } from "./schemas";
 
 type Assert<T extends true> = T;
@@ -17,5 +21,14 @@ type HydrationIntakeSchemaMatchesContract = Assert<
   HydrationIntakeSchemaOutput extends HydrationIntakeEventInput ? true : false
 >;
 
-export type HydrationSchemaContractCheck =
-  HydrationIntakeSchemaMatchesContract;
+type HydrationModifierSchemaOutput = z.output<
+  typeof hydrationModifierInputSchema
+>;
+type HydrationModifierSchemaMatchesContract = Assert<
+  HydrationModifierSchemaOutput extends HydrationModifierInput ? true : false
+>;
+
+export type HydrationSchemaContractCheck = [
+  HydrationIntakeSchemaMatchesContract,
+  HydrationModifierSchemaMatchesContract,
+];
