@@ -11,6 +11,7 @@ import {
   X,
   GraduationCap,
   RefreshCw,
+  Building2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -153,6 +154,13 @@ export default function PlatformMasteryDashboard() {
               </span>
             </div>
           )}
+          <button
+            onClick={() => setLocation("/business-center")}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+          >
+            <Building2 className="h-4 w-4" />
+            Business Suite
+          </button>
         </div>
       </div>
 

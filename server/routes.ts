@@ -9125,6 +9125,11 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // requireProCareAccess gates all professional-facing routes on actual ProCare subscription.
   // Cert completion (requirePhase1Cert / requirePhase2Training) is a separate, layered gate.
   // Neither gate substitutes for the other — both must pass independently.
+  // Keep training ahead of every broad /api/pro mount. Express runs middleware
+  // on prefix matches even when the mounted router has no matching handler, so
+  // placing this later causes unrelated Studio gates to intercept completion.
+  app.use("/api/pro/training", requireAuth, procareTrainingRouter);
+
   app.use("/api/pro/board", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
@@ -9147,7 +9152,6 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
-  app.use("/api/pro/training", requireAuth, procareTrainingRouter);
   // requireAuth is applied per-route inside clinicalInterventionsRouter —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
   app.use("/api", clinicalInterventionsRouter);

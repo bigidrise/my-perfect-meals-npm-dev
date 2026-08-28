@@ -920,7 +920,7 @@ export default function PricingPage() {
         </div>
 
         {/* ProCare Professional Plans */}
-        <div className="mb-10">
+        <div id="procare-professional" className="mb-10 scroll-mt-24">
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-4">
                 <span className="text-blue-300 text-sm font-semibold tracking-wide uppercase">
