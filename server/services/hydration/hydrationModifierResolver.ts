@@ -1,5 +1,9 @@
 import crypto from "node:crypto";
 import { hydrationModifierResolutionInputSchema } from "@shared/hydration/modifierSchemas";
+import {
+  HYDRATION_MODIFIER_REGISTRY_VERSION,
+  assertHydrationModifierMatchesRegistry,
+} from "@shared/hydration/modifierRegistry";
 import type {
   HydrationModifierAuthority,
   HydrationModifierInput,
@@ -241,6 +245,11 @@ export function createHydrationModifierResolver() {
             `Hydration modifier ${modifier.id} uses policy ${modifier.policyVersion}; expected ${parsedInput.policyVersion}`,
           );
         }
+        if (
+          parsedInput.policyVersion === HYDRATION_MODIFIER_REGISTRY_VERSION
+        ) {
+          assertHydrationModifierMatchesRegistry(modifier);
+        }
       }
 
       const restrictions = normalized.filter(isRestriction);
@@ -259,9 +268,7 @@ export function createHydrationModifierResolver() {
             affectsSameScope(modifier, restriction) &&
             (modifier.effect !== "context_only" || isPots(modifier)) &&
             (authorityRank(restriction) > authorityRank(modifier) ||
-              (isPots(modifier) &&
-                (restriction.authority === "organ_safety" ||
-                  restriction.authority === "emergency_safety"))),
+              isPots(modifier)),
         );
         const higherPriorityClaims = normalized.filter(
           (candidate) =>
