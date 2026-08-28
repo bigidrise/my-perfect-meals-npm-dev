@@ -95,6 +95,19 @@ export default function AcademyHome() {
   // ProCare eligible: server-confirmed active ProCare subscription (not inferred from cert)
   const proCareEligible = user?.proCareEligible ?? false;
 
+  function getNextCertificationStep(): { route: string; label: string } {
+    if (!isMarketingCertified) {
+      return {
+        route: "/business-center/affiliate/marketing/certification",
+        label: "Continue to Marketing & Coaching",
+      };
+    }
+    return {
+      route: "/procare-training",
+      label: "Continue to ProCare Certification",
+    };
+  }
+
   const nextLesson = PLATFORM_MASTERY_LESSONS.find((l) => {
     const id = `lesson-0${l.num}`;
     return status?.progress?.[id]?.status !== "completed";
@@ -343,11 +356,11 @@ export default function AcademyHome() {
               </button>
             ) : allDone && !status?.isCertificationTrack ? (
               <button
-                onClick={() => setLocation("/academy/platform-mastery")}
+                onClick={() => setLocation(getNextCertificationStep().route)}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
               >
-                <Award className="h-4 w-4 text-orange-400" />
-                All Lessons Complete — View Options
+                <GraduationCap className="h-4 w-4 text-orange-400" />
+                {getNextCertificationStep().label}
                 <ChevronRight className="h-4 w-4 opacity-50" />
               </button>
             ) : null}
