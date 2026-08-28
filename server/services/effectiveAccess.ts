@@ -16,6 +16,7 @@
 import { db } from "../db";
 import { businessMembers, businesses } from "../db/schema/business";
 import { eq, and } from "drizzle-orm";
+import { getActivePilotProCareGrant, getPilotClientSponsorshipState } from "./pilotProcareAccess";
 import {
   getTierForLookupKey,
   getEntitlementsForTier,
@@ -36,6 +37,9 @@ export interface EffectiveAccess {
    * provider access simply because their organization pays for Clinical.
    */
   sponsoredProCareAccess: boolean;
+  pilotProCareAccess: boolean;
+  pilotProCareGrantId: string | null;
+  pilotProCareEndsAt: Date | null;
 }
 
 interface UserSnapshot {
@@ -49,6 +53,7 @@ interface UserSnapshot {
   isTester?: boolean | null;
   /** ISO string or Date — used to grant TRIAL_UNLOCKS_TIER entitlements during active trial */
   trialEndsAt?: Date | string | null;
+  trialAccessType?: "pilot" | "client" | null;
 }
 
 const STUDIO_ELIGIBLE_BUSINESS_ROLES = new Set([
@@ -64,6 +69,10 @@ export async function computeEffectiveAccess(
   const ultimateEntitlements = getEntitlementsForTier("ultimate") as string[];
 
   const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
+  const pilotGrant = await getActivePilotProCareGrant(user.id);
+  const pilotClientSponsorship = user.trialAccessType === "client"
+    ? await getPilotClientSponsorshipState(user.id)
+    : { linked: false, active: false };
 
   // Founders always get ultimate (permanent access regardless of billing mode).
   // Sandbox accounts get ultimate only in pre-launch mode — once billing is enforced
@@ -88,6 +97,9 @@ export async function computeEffectiveAccess(
       sponsoredByBusinessId: null,
       sponsoredByBusinessName: null,
       sponsoredProCareAccess: false,
+      pilotProCareAccess: Boolean(pilotGrant),
+      pilotProCareGrantId: pilotGrant?.id ?? null,
+      pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
     };
   }
 
@@ -121,6 +133,9 @@ export async function computeEffectiveAccess(
       sponsoredProCareAccess:
         membership.businessOwnerUserId === user.id ||
         STUDIO_ELIGIBLE_BUSINESS_ROLES.has(membership.membershipRole),
+      pilotProCareAccess: Boolean(pilotGrant),
+      pilotProCareGrantId: pilotGrant?.id ?? null,
+      pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
     };
   }
 
@@ -135,8 +150,11 @@ export async function computeEffectiveAccess(
   const trialEnd = user.trialEndsAt
     ? (user.trialEndsAt instanceof Date ? user.trialEndsAt : new Date(user.trialEndsAt as string))
     : null;
-  const hasActiveTrial = !effectiveLookupKey && trialEnd != null && trialEnd > now;
-  const effectiveTier: PlanTier = hasActiveTrial ? TRIAL_UNLOCKS_TIER : baseTier;
+  const hasActiveTrial = !effectiveLookupKey
+    && trialEnd != null
+    && trialEnd > now
+    && (!pilotClientSponsorship.linked || pilotClientSponsorship.active);
+  const effectiveTier: PlanTier = (hasActiveTrial || pilotGrant) ? TRIAL_UNLOCKS_TIER : baseTier;
 
   return {
     planLookupKey: effectiveLookupKey,
@@ -145,5 +163,8 @@ export async function computeEffectiveAccess(
     sponsoredByBusinessId: null,
     sponsoredByBusinessName: null,
     sponsoredProCareAccess: false,
+    pilotProCareAccess: Boolean(pilotGrant),
+    pilotProCareGrantId: pilotGrant?.id ?? null,
+    pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
   };
 }

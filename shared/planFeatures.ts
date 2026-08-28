@@ -392,6 +392,7 @@ export function canAccessProCareStudio({
   planLookupKey,
   sponsoredByBusinessId,
   sponsoredProCareAccess,
+  pilotProCareAccess,
   isInternalAccount,
 }: {
   billingEnforced: boolean;
@@ -399,6 +400,7 @@ export function canAccessProCareStudio({
   planLookupKey: string | null | undefined;
   sponsoredByBusinessId?: string | null;
   sponsoredProCareAccess?: boolean;
+  pilotProCareAccess?: boolean;
   isInternalAccount?: boolean;
 }): boolean {
   if (!billingEnforced) return true;
@@ -409,8 +411,12 @@ export function canAccessProCareStudio({
   // remove their intended Studio access.
   if (isInternalAccount) return true;
 
-  // Paid internal/founder accounts have no Stripe lookup key.
-  if (!planLookupKey) return true;
+  // Founder-controlled private exception. This is authoritative grant state,
+  // never a role, certification, affiliate flag, generic trial, or fake plan.
+  if (pilotProCareAccess === true) return true;
+
+  // Generic no-plan PAID_FULL states (including trials) are not ProCare.
+  if (!planLookupKey) return false;
 
   // A Clinical Business plan grants Studio access to clinical professionals,
   // not every sponsored organization seat. Personal owners with this plan are

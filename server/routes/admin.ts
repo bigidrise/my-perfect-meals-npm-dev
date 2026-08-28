@@ -17,11 +17,98 @@ import {
   getRuntimeEnvironment,
   type DatabaseIdentityQueryRow,
 } from "../services/databaseIdentityDiagnostic";
+import {
+  createPilotProCareGrant,
+  getPilotProCareAdminStatus,
+  grantPilotClientAccess,
+  revokePilotClientAccess,
+  revokePilotProCareGrant,
+} from "../services/pilotProcareAccess";
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || "my-perfect-meals-images";
 const S3_URL_PREFIX = `https://${S3_BUCKET}.s3.`;
 
 const router = Router();
+
+router.get("/users/:userId/pilot-procare", async (req, res) => {
+  try {
+    res.json(await getPilotProCareAdminStatus(req.params.userId));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Could not load Pilot ProCare status" });
+  }
+});
+
+router.post("/users/:userId/pilot-procare/grant", async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const durationDays = Number(req.body.durationDays ?? 30);
+    const seatLimit = Number(req.body.seatLimit ?? 5);
+    const reason = String(req.body.reason ?? "").trim();
+    if (!reason) return res.status(400).json({ error: "A grant reason is required" });
+    if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3650) {
+      return res.status(400).json({ error: "Duration must be between 1 and 3650 days" });
+    }
+    if (!Number.isInteger(seatLimit) || seatLimit < 1 || seatLimit > 10000) {
+      return res.status(400).json({ error: "Seat limit must be between 1 and 10000" });
+    }
+    const startsAt = new Date();
+    const grant = await createPilotProCareGrant({
+      providerUserId: req.params.userId,
+      grantedByUserId: authReq.authUser.id,
+      startsAt,
+      endsAt: new Date(startsAt.getTime() + durationDays * 86400000),
+      seatLimit,
+      reason,
+    });
+    res.status(201).json({ grant });
+  } catch (error: any) {
+    res.status(409).json({ error: error.message || "Could not create Pilot ProCare grant" });
+  }
+});
+
+router.post("/users/:userId/pilot-procare/revoke", async (req, res) => {
+  try {
+    const reason = String(req.body.reason ?? "").trim();
+    if (!reason) return res.status(400).json({ error: "A revocation reason is required" });
+    await revokePilotProCareGrant({
+      providerUserId: req.params.userId,
+      revokedByUserId: (req as AuthenticatedRequest).authUser.id,
+      reason,
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(409).json({ error: error.message || "Could not revoke Pilot ProCare grant" });
+  }
+});
+
+router.post("/users/:userId/pilot-procare/clients", async (req, res) => {
+  try {
+    const email = String(req.body.email ?? "").trim();
+    if (!email.includes("@")) return res.status(400).json({ error: "A valid client email is required" });
+    const result = await grantPilotClientAccess({
+      providerUserId: req.params.userId,
+      email,
+      durationDays: Number(req.body.durationDays ?? 30),
+      invitedByUserId: (req as AuthenticatedRequest).authUser.id,
+      notes: String(req.body.notes ?? "").trim() || undefined,
+    });
+    res.status(201).json(result);
+  } catch (error: any) {
+    res.status(409).json({ error: error.message || "Could not grant pilot client access" });
+  }
+});
+
+router.delete("/users/:userId/pilot-procare/clients/:invitationId", async (req, res) => {
+  try {
+    await revokePilotClientAccess({
+      providerUserId: req.params.userId,
+      invitationId: req.params.invitationId,
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(404).json({ error: error.message || "Could not revoke pilot client access" });
+  }
+});
 
 // Temporary, read-only infrastructure diagnostic. This router is mounted
 // behind requireAuth + requireAdmin in both server entrypoints.

@@ -1625,6 +1625,11 @@ async function start() {
     const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
     await runTrialGrantsMigration(dbTg);
   });
+  await withBootRetry("Pilot ProCare migration", async () => {
+    const { db: dbPilot } = await import("./db");
+    const { runPilotProcareMigration } = await import("./db/migrations/runPilotProcareMigration");
+    await runPilotProcareMigration(dbPilot);
+  });
 
   await withBootRetry("Email identity review migration", async () => {
     const { db: dbEmailIdentity } = await import("./db");

@@ -45,3 +45,4 @@
 - [Hydration planning eligibility](hydration-planning-eligibility.md) — eligibility is nonnumeric; validate every registry claim before resolver status filtering.
 - [Hydration numeric policy v0.1](hydration-numeric-policy-v01.md) — only current clinician directives permit numbers; production stays inactive until the full activation gate opens.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
+- [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.

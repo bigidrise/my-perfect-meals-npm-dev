@@ -8,6 +8,7 @@ interface UserForAccess {
   isFounder?: boolean | null;
   isSandbox?: boolean | null;
   trialEndsAt?: Date | string | null;
+  hasPilotProCareAccess?: boolean;
 }
 
 // PAID_PLAN_KEYS is now the single source of truth: it lives in shared/planFeatures.ts
@@ -30,6 +31,7 @@ export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): 
 
   // Tier 1: Founders — permanent full access (core family, business partners, contributors)
   if (user.isFounder) return "PAID_FULL";
+  if (user.hasPilotProCareAccess) return "PAID_FULL";
 
   // Tier 2: Active paid subscription
   if (user.planLookupKey && PAID_PLAN_KEYS.has(user.planLookupKey)) {
