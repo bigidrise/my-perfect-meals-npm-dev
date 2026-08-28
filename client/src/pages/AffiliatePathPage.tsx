@@ -23,7 +23,7 @@ const pathMeta = {
     description:
       "The full affiliate toolkit for coaches, trainers, and wellness professionals — including the Business Success Academy and Platform Certification.",
     resources: [
-      { name: "My Perfect Meals Academy", action: "certification", description: "Complete Phase 1 certification to unlock partner access" },
+      { name: "My Perfect Meals Academy", action: "certification", description: "Complete Phase 1 — Platform Mastery to unlock partner access" },
       { name: "Marketing Resources", eta: "Coming soon" },
       { name: "Monthly Marketing Packets", eta: "Coming soon" },
       { name: "Affiliate Dashboard", eta: "Unlocks after both certifications" },

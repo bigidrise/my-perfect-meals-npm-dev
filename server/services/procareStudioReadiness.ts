@@ -109,7 +109,7 @@ export async function getProviderStudioReadiness(
     return {
       ok: false,
       code: "PHASE1_CERT_REQUIRED",
-      message: "Complete Phase 1 Academy certification before creating a Studio or inviting clients.",
+      message: "Complete Phase 1 — Platform Mastery before creating a Studio or inviting clients.",
     };
   }
 

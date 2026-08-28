@@ -100,7 +100,7 @@ export default function PlatformCertDashboard() {
 
   useEffect(() => { if (user) load(); }, [user, load]);
 
-  // Gate: professionals must complete personal onboarding before Phase 1 certification
+  // Gate: professionals must complete personal onboarding before Phase 1 — Platform Mastery
   useEffect(() => {
     if (!user) return;
     if (user.professionalRole && !user.onboardingCompletedAt && certType === "platform") {
