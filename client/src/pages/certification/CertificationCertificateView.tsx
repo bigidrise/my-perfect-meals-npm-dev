@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Download, ArrowLeft } from "lucide-react";
+import { Download, ArrowLeft, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import VisualCertificate from "@/components/certification/VisualCertificate";
@@ -144,6 +144,14 @@ export default function CertificationCertificateView() {
                 className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm active:scale-[0.98] transition-transform print:hidden"
               >
                 Back to Certification Dashboard
+              </button>
+
+              <button
+                onClick={() => setLocation("/business-center")}
+                className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform print:hidden"
+              >
+                <Building2 className="h-4 w-4" />
+                Go to Business Suite
               </button>
             </motion.div>
           </>
