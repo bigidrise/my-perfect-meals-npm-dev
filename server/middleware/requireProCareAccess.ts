@@ -39,6 +39,8 @@ export function requireProCareAccess(
     sponsoredProCareAccess,
     pilotProCareAccess,
     isFounder,
+    isSandbox,
+    isTester,
   } = authReq.authUser;
 
   if (canAccessProCareStudio({
@@ -48,7 +50,7 @@ export function requireProCareAccess(
     sponsoredByBusinessId,
     sponsoredProCareAccess,
     pilotProCareAccess,
-    isInternalAccount: isFounder,
+    isInternalAccount: isFounder || isSandbox || isTester,
   })) {
     next();
     return;

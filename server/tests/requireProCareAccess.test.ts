@@ -126,6 +126,17 @@ describe("requireProCareAccess — production billing enforcement", () => {
     expect(result.nextCalled).toBe(true);
   });
 
+  it("allows an explicit internal sandbox account without a Stripe plan", async () => {
+    const result = await invokeGate({
+      id: "dummy-trainer",
+      accessTier: "PAID_FULL",
+      planLookupKey: null,
+      isSandbox: true,
+      isFounder: false,
+    }, true);
+    expect(result.nextCalled).toBe(true);
+  });
+
   it("keeps the pre-launch billing bypass behavior", async () => {
     const result = await invokeGate({
       id: "basic-user",

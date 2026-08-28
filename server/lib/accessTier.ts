@@ -31,6 +31,9 @@ export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): 
 
   // Tier 1: Founders — permanent full access (core family, business partners, contributors)
   if (user.isFounder) return "PAID_FULL";
+  // Explicit internal QA/test accounts exercise the real paid and professional
+  // product surfaces without manufacturing a Stripe subscription.
+  if (user.isSandbox || user.isTester) return "PAID_FULL";
   if (user.hasPilotProCareAccess) return "PAID_FULL";
 
   // Tier 2: Active paid subscription

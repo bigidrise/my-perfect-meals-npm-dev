@@ -87,7 +87,7 @@ export async function computeEffectiveAccess(
   //
   // We fall back to the synthetic "mpm_ultimate_monthly" key only when the
   // founder has no real paid plan on record (pure internal/founder accounts).
-  if (user.isFounder || (!BILLING_ENFORCED && user.isSandbox)) {
+  if (user.isFounder || user.isSandbox || user.isTester) {
     // Prefer the real plan key; treat empty strings as absent.
     const realKey = user.planLookupKey || user.personalPlanLookupKey || null;
     return {

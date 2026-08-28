@@ -42,17 +42,24 @@ describe("ProCare Studio access policy", () => {
   });
 
   it.each([
-    ["Clinical Business", "PAID_FULL", "clinical_business_monthly", true],
-    ["ProCare trainer", "PAID_FULL", "mpm_trainer_10", true],
-    ["internal founder", "PAID_FULL", null, true],
-    ["personal Ultimate", "PAID_FULL", "mpm_ultimate_monthly", false],
-    ["Premium", "PAID_FULL", "mpm_premium_monthly", false],
-    ["free user", "FREE", "clinical_business_monthly", false],
-  ])("applies the production policy for %s", (_name, accessTier, planLookupKey, expected) => {
+    ["Clinical Business", "PAID_FULL", "clinical_business_monthly", false, true],
+    ["ProCare trainer", "PAID_FULL", "mpm_trainer_10", false, true],
+    ["internal founder", "PAID_FULL", null, true, true],
+    ["personal Ultimate", "PAID_FULL", "mpm_ultimate_monthly", false, false],
+    ["Premium", "PAID_FULL", "mpm_premium_monthly", false, false],
+    ["free user", "FREE", "clinical_business_monthly", false, false],
+  ])("applies the production policy for %s", (
+    _name,
+    accessTier,
+    planLookupKey,
+    isInternalAccount,
+    expected,
+  ) => {
     expect(canAccessProCareStudio({
       billingEnforced: true,
       accessTier,
       planLookupKey,
+      isInternalAccount,
     })).toBe(expected);
   });
 
@@ -83,6 +90,15 @@ describe("ProCare Studio access policy", () => {
     })).toBe(true);
   });
 
+  it("allows an explicit internal test account without a commercial plan", () => {
+    expect(canAccessProCareStudio({
+      billingEnforced: true,
+      accessTier: "PAID_FULL",
+      planLookupKey: null,
+      isInternalAccount: true,
+    })).toBe(true);
+  });
+
   it("uses effective membership access for provider-side invitation decisions", () => {
     const provider = {
       id: "sponsored-provider",
@@ -105,6 +121,27 @@ describe("ProCare Studio access policy", () => {
 
     expect(canProviderAccessProCareStudio(provider, sponsoredAccess, true)).toBe(true);
     expect(canProviderAccessProCareStudio(provider, staffAccess, true)).toBe(false);
+  });
+
+  it("uses explicit sandbox identity for provider-side Studio access", () => {
+    const provider = {
+      id: "dummy-trainer",
+      planLookupKey: null,
+      isSandbox: true,
+    };
+    const internalAccess = {
+      planLookupKey: null,
+      entitlements: [],
+      tier: "ultimate" as const,
+      sponsoredByBusinessId: null,
+      sponsoredByBusinessName: null,
+      sponsoredProCareAccess: false,
+      pilotProCareAccess: false,
+      pilotProCareGrantId: null,
+      pilotProCareEndsAt: null,
+    };
+
+    expect(canProviderAccessProCareStudio(provider, internalAccess, true)).toBe(true);
   });
 
   it("uses the same catalog when persisting checkout entitlements", () => {

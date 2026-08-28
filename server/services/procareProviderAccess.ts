@@ -42,7 +42,10 @@ export function canProviderAccessProCareStudio(
     sponsoredByBusinessId: effectiveAccess.sponsoredByBusinessId,
     sponsoredProCareAccess: effectiveAccess.sponsoredProCareAccess,
     pilotProCareAccess: effectiveAccess.pilotProCareAccess,
-    isInternalAccount: provider.isFounder === true,
+    isInternalAccount:
+      provider.isFounder === true ||
+      provider.isSandbox === true ||
+      provider.isTester === true,
   });
 }
 
