@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
@@ -31,6 +31,7 @@ import {
   ShoppingCart,
   ListChecks,
   Activity,
+  Droplets,
   Fish,
   Globe,
   Camera,
@@ -747,15 +748,22 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "Water Log — Daily Hydration Tracker",
-          text: "The water log tracks your daily fluid intake in ounces. Tap +8 oz or +16 oz each time you drink, and the ring at the center fills as you go toward your goal. Your status updates in real time — Below Target, On Track, or Goal Reached.",
-          list: [
-            "Your daily goal is calculated automatically from your logged body weight using the formula: weight (lbs) × 0.67 = daily oz target",
-            "Log a new body weight and your water goal updates automatically — no manual target to set",
-            "The bar chart below the ring shows your past 7 days so you can see hydration consistency over the week",
-            "Blue bars mean you hit at least 80% of your goal that day — faint bars show days you fell short",
-            "Tap Reset to clear today's count and start over at any point",
-            "Carnivore and keto users see rotating hydration coaching tips throughout the day, since high-protein eating increases hydration needs",
-          ],
+          text: import.meta.env.DEV
+            ? "Water tracking now lives in the Hydration Center. Each entry is saved to your server-backed water log, so corrections and updates are reflected from one canonical intake source."
+            : "The water log tracks your daily fluid intake in ounces. Tap +8 oz or +16 oz each time you drink, and the ring at the center fills as you go toward your goal.",
+          list: import.meta.env.DEV
+            ? [
+                "Log common amounts quickly or enter a custom amount in ounces or milliliters",
+                "Tracking remains available when no numeric target has been authorized",
+                "My Perfect Meals does not create a personal water target from body weight or a population average",
+                "A current clinician directive may define a point, range, minimum, or maximum",
+                "Expired, incomplete, or safety-conflicting directives are withheld for review",
+              ]
+            : [
+                "Your daily goal is calculated automatically from your logged body weight",
+                "The bar chart shows your past 7 days",
+                "Tap Reset to clear today's count",
+              ],
         },
         {
           heading: "Ingredient Intelligence — Personalized Label Scan",
@@ -1309,6 +1317,47 @@ const SECTION_NUTRITION_STRATEGY: LibraryTopic[] = [
 ];
 
 const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
+  ...(import.meta.env.DEV
+    ? [
+        {
+          id: "hydration",
+          title: "Hydration Center & Numeric Safety",
+          subtitle:
+            "Track water without an invented target; honor clinician directives exactly",
+          icon: Droplets,
+          content: {
+            sections: [
+              {
+                heading: "One Intake Record",
+                text: "The Hydration Center reads and writes the existing water log. It does not keep a separate editable Hydration total, so corrections and deletions remain consistent everywhere.",
+              },
+              {
+                heading: "Tracking Without a Target",
+                text: "You can log water and review today's intake even when no numeric plan exists. The app does not convert body weight, pregnancy, age, exercise, heat, illness, medications, or population guidance into a personal number.",
+              },
+              {
+                heading: "Clinician-Defined Numeric Policy",
+                list: [
+                  "Point — one clinician-set daily amount",
+                  "Range — separate lower and upper bounds",
+                  "Floor — a clinician-set minimum",
+                  "Ceiling — a limit, never presented as a goal",
+                  "Every directive requires authorization, provenance, review timing, consent reference, and expiry",
+                ],
+              },
+              {
+                heading: "Safety Gate",
+                text: "Planning eligibility is necessary but never enough by itself. Numeric display also requires the development activation gate and a current, validated clinician directive. Missing, expired, conflicting, or cross-subject data fails closed.",
+              },
+              {
+                heading: "Evidence Registry",
+                text: "The Medical Sources panel exposes 32 structured Hydration sources. NASEM and EFSA total-water values are shown only as educational population references; they are not individualized logged-water targets.",
+              },
+            ],
+          },
+        },
+      ]
+    : []),
   {
     id: "safetyguard",
     title: "SafetyGuard™ — Allergy Protection",
@@ -3008,8 +3057,14 @@ const LIBRARY_SECTIONS: LibrarySection[] = [
   },
 ];
 
-function LibraryItem({ topic }: { topic: LibraryTopic }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+function LibraryItem({
+  topic,
+  initialExpanded = false,
+}: {
+  topic: LibraryTopic;
+  initialExpanded?: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [mode, setMode] = useState<"read" | "listen">("read");
   const [showTranscript, setShowTranscript] = useState(false);
   const narration = useNarration(topic.content.sections);
@@ -3038,8 +3093,18 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
 
   const Icon = topic.icon;
 
+  useEffect(() => {
+    if (!initialExpanded) return;
+    setIsExpanded(true);
+    window.setTimeout(() => {
+      document
+        .getElementById(`library-topic-${topic.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }, [initialExpanded, topic.id]);
+
   return (
-    <div className="w-full">
+    <div id={`library-topic-${topic.id}`} className="w-full scroll-mt-24">
       <button
         onClick={handleToggle}
         className={`w-full flex items-start gap-3 px-4 py-4 rounded-xl transition-all duration-200 ${
@@ -3216,7 +3281,10 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
 }
 
 export default function Learn() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const requestedTopic = new URLSearchParams(
+    location.includes("?") ? location.split("?")[1] : "",
+  ).get("topic");
 
   return (
     <motion.div
@@ -3263,7 +3331,11 @@ export default function Learn() {
             </div>
             <div className="space-y-2">
               {section.topics.map((topic) => (
-                <LibraryItem key={topic.id} topic={topic} />
+                <LibraryItem
+                  key={topic.id}
+                  topic={topic}
+                  initialExpanded={topic.id === requestedTopic}
+                />
               ))}
             </div>
           </div>

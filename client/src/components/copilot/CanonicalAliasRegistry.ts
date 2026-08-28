@@ -265,6 +265,23 @@ export const DIRECT_PAGES: Record<string, FeatureDefinition> = {
   }
 };
 
+if (import.meta.env.DEV) {
+  DIRECT_PAGES.HYDRATION = {
+    id: "HYDRATION",
+    legacyId: "hydration",
+    primaryRoute: "/hydration",
+    isHub: false,
+    keywords: [
+      "hydration",
+      "hydration center",
+      "water tracker",
+      "water log",
+      "log water",
+      "track water",
+    ],
+  };
+}
+
 /**
  * Normalize query for keyword matching
  * Removes punctuation, extra whitespace, and lowercases
