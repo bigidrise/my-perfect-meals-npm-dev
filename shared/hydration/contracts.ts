@@ -372,6 +372,111 @@ export type HydrationResolvedPolicyState = HydrationNumericPlanGuard & {
   };
 };
 
+export const HYDRATION_PLANNING_ELIGIBILITY_VERSION =
+  "hydration-planning-eligibility-v1";
+
+export const HYDRATION_PLANNING_ELIGIBILITY_OUTCOMES = [
+  "PLAN_ELIGIBLE",
+  "PLAN_WITHHELD",
+  "NEEDS_REVIEW",
+] as const;
+export type HydrationPlanningEligibilityOutcome =
+  (typeof HYDRATION_PLANNING_ELIGIBILITY_OUTCOMES)[number];
+
+export const HYDRATION_PLANNING_ELIGIBILITY_REASON_CODES = [
+  "ELIGIBILITY_INPUTS_GOVERNED",
+  "ACCESS_NOT_AUTHORIZED",
+  "ACCESS_SUBJECT_MISMATCH",
+  "ACCESS_AUTHORIZATION_UNAVAILABLE",
+  "INTAKE_UNAVAILABLE",
+  "INTAKE_PARTIAL",
+  "INTAKE_STALE",
+  "INTAKE_PROVENANCE_INCOMPLETE",
+  "INTAKE_SUBJECT_MISMATCH",
+  "INTAKE_SNAPSHOT_INVALID",
+  "MISSING_REQUIRED_INPUT",
+  "UNSUPPORTED_CONTEXT",
+  "REGISTRY_POLICY_NOT_APPROVED",
+  "REGISTRY_CLAIM_INVALID",
+  "RESOLVER_HARD_STOP",
+  "RESOLVER_REVIEW_REQUIRED",
+  "RESOLVER_NUMERIC_PERMISSION_VIOLATION",
+  "ACTIVE_RESTRICTIONS_PRESENT",
+  "MODIFIER_SUPPRESSED",
+] as const;
+export type HydrationPlanningEligibilityReasonCode =
+  (typeof HYDRATION_PLANNING_ELIGIBILITY_REASON_CODES)[number];
+
+export type HydrationCanonicalIntakeSnapshot = {
+  subjectUserId: string;
+  localDate: string;
+  timezone: string;
+  source: "canonical_intake_bridge";
+  status: "complete" | "partial" | "unavailable";
+  snapshotHash: string;
+  eventIds: string[];
+  eventFingerprints: string[];
+  sourceRecordIds: string[];
+  observedAt: string;
+};
+
+export type HydrationPlanningEligibilityAccess = {
+  authenticatedUserId: string;
+  subjectUserId: string;
+  mode: "self" | "delegated";
+  authorizationStatus: "allowed" | "denied" | "unavailable";
+  authorizationReference?: string;
+};
+
+export type HydrationPlanningEligibilityDataQuality = {
+  stale: boolean;
+  provenanceComplete: boolean;
+  missingDataCodes: string[];
+  unsupportedContextCodes: string[];
+};
+
+export type HydrationPlanningEligibilityInput = {
+  subjectUserId: string;
+  localDate: string;
+  timezone: string;
+  policyVersion: string;
+  access: HydrationPlanningEligibilityAccess;
+  intake: HydrationCanonicalIntakeSnapshot;
+  modifiers: unknown[];
+  dataQuality: HydrationPlanningEligibilityDataQuality;
+};
+
+export type HydrationPlanningEligibilityReason = {
+  code: HydrationPlanningEligibilityReasonCode;
+  disposition: "withhold" | "review" | "informational";
+  source: "access" | "intake" | "registry" | "resolver" | "eligibility";
+  inputIds: string[];
+  sourceIds: string[];
+  detailCodes?: string[];
+};
+
+export type HydrationPlanningEligibilityResult = {
+  eligibilityPolicyVersion: string;
+  policyVersion: string;
+  subjectUserId: string;
+  localDate: string;
+  timezone: string;
+  outcome: HydrationPlanningEligibilityOutcome;
+  numericPlanningPermission: "disabled";
+  intakeSnapshotHash: string;
+  resolverStatus: HydrationResolvedPolicyState["status"] | "unavailable";
+  resolverSnapshotHash?: string;
+  reasons: HydrationPlanningEligibilityReason[];
+  provenance: {
+    intakeEventIds: string[];
+    intakeEventFingerprints: string[];
+    intakeSourceRecordIds: string[];
+    resolverInputIds: string[];
+    resolverSourceIds: string[];
+    policyVersions: Record<string, string>;
+  };
+};
+
 export type HydrationPhase1PolicyVersion = {
   policyKey: string;
   version: string;

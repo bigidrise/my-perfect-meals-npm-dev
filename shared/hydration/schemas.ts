@@ -4,6 +4,8 @@ import {
   HYDRATION_CONFIDENCE,
   HYDRATION_ELECTROLYTE_COVERAGE,
   HYDRATION_UNITS,
+  HYDRATION_PLANNING_ELIGIBILITY_OUTCOMES,
+  HYDRATION_PLANNING_ELIGIBILITY_REASON_CODES,
 } from "./contracts";
 
 const uuidSchema = z.string().uuid();
@@ -138,6 +140,103 @@ export const hydrationPhase1StateSchema = z
     computedAt: z.string().datetime({ offset: true }),
     calculationPolicyVersionId: uuidSchema,
     projectionHash: z.string().min(1),
+  })
+  .strict();
+
+export const hydrationCanonicalIntakeSnapshotSchema = z
+  .object({
+    subjectUserId: z.string().trim().min(1),
+    localDate: hydrationDateSchema,
+    timezone: timezoneSchema,
+    source: z.literal("canonical_intake_bridge"),
+    status: z.enum(["complete", "partial", "unavailable"]),
+    snapshotHash: z.string().trim().min(1).max(256),
+    eventIds: z.array(z.string().trim().min(1).max(200)).max(10_000),
+    eventFingerprints: z
+      .array(z.string().trim().min(1).max(256))
+      .max(10_000),
+    sourceRecordIds: z
+      .array(z.string().trim().min(1).max(200))
+      .max(10_000),
+    observedAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+
+export const hydrationPlanningEligibilityAccessSchema = z
+  .object({
+    authenticatedUserId: z.string().trim().min(1),
+    subjectUserId: z.string().trim().min(1),
+    mode: z.enum(["self", "delegated"]),
+    authorizationStatus: z.enum(["allowed", "denied", "unavailable"]),
+    authorizationReference: z.string().trim().min(1).max(256).optional(),
+  })
+  .strict();
+
+export const hydrationPlanningEligibilityDataQualitySchema = z
+  .object({
+    stale: z.boolean(),
+    provenanceComplete: z.boolean(),
+    missingDataCodes: z.array(z.string().trim().min(1).max(200)).max(100),
+    unsupportedContextCodes: z
+      .array(z.string().trim().min(1).max(200))
+      .max(100),
+  })
+  .strict();
+
+export const hydrationPlanningEligibilityInputSchema = z
+  .object({
+    subjectUserId: z.string().trim().min(1),
+    localDate: hydrationDateSchema,
+    timezone: timezoneSchema,
+    policyVersion: z.string().trim().min(1).max(200),
+    access: hydrationPlanningEligibilityAccessSchema,
+    intake: hydrationCanonicalIntakeSnapshotSchema,
+    modifiers: z.array(z.unknown()).max(500),
+    dataQuality: hydrationPlanningEligibilityDataQualitySchema,
+  })
+  .strict();
+
+export const hydrationPlanningEligibilityReasonSchema = z
+  .object({
+    code: z.enum(HYDRATION_PLANNING_ELIGIBILITY_REASON_CODES),
+    disposition: z.enum(["withhold", "review", "informational"]),
+    source: z.enum(["access", "intake", "registry", "resolver", "eligibility"]),
+    inputIds: z.array(z.string().trim().min(1).max(200)).max(10_000),
+    sourceIds: z.array(z.string().trim().min(1).max(200)).max(10_000),
+    detailCodes: z.array(z.string().trim().min(1).max(200)).max(100).optional(),
+  })
+  .strict();
+
+export const hydrationPlanningEligibilityResultSchema = z
+  .object({
+    eligibilityPolicyVersion: z.string().trim().min(1).max(200),
+    policyVersion: z.string().trim().min(1).max(200),
+    subjectUserId: z.string().trim().min(1),
+    localDate: hydrationDateSchema,
+    timezone: timezoneSchema,
+    outcome: z.enum(HYDRATION_PLANNING_ELIGIBILITY_OUTCOMES),
+    numericPlanningPermission: z.literal("disabled"),
+    intakeSnapshotHash: z.string().trim().min(1).max(256),
+    resolverStatus: z.union([
+      z.enum(["neutral", "context_only", "resolved", "withheld", "needs_review", "blocked"]),
+      z.literal("unavailable"),
+    ]),
+    resolverSnapshotHash: z.string().trim().min(1).max(256).optional(),
+    reasons: z.array(hydrationPlanningEligibilityReasonSchema).max(500),
+    provenance: z
+      .object({
+        intakeEventIds: z.array(z.string().trim().min(1).max(200)).max(10_000),
+        intakeEventFingerprints: z
+          .array(z.string().trim().min(1).max(256))
+          .max(10_000),
+        intakeSourceRecordIds: z
+          .array(z.string().trim().min(1).max(200))
+          .max(10_000),
+        resolverInputIds: z.array(z.string().trim().min(1).max(200)).max(500),
+        resolverSourceIds: z.array(z.string().trim().min(1).max(200)).max(500),
+        policyVersions: z.record(z.string().trim().min(1).max(200)),
+      })
+      .strict(),
   })
   .strict();
 
