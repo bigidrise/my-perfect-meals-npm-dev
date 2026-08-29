@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import HydrationFourDoorPanels from "@/components/HydrationFourDoorPanels";
 import { useToast } from "@/hooks/use-toast";
 import {
   addHydrationWater,
@@ -273,6 +274,7 @@ export default function HydrationCenter() {
         {loading ? <div className="grid min-h-80 place-items-center"><RefreshCw className="h-7 w-7 animate-spin text-sky-300" /></div> : error ? (
           <Card className="border-white/10 bg-slate-950/45 text-white"><CardContent className="flex min-h-72 flex-col items-center justify-center text-center"><Info className="mb-3 h-8 w-8 text-amber-300" /><p className="font-semibold text-white">Hydration is unavailable</p><p className="mt-1 text-sm text-white">{error}</p><Button onClick={() => void load()} className="mt-4">Try again</Button></CardContent></Card>
         ) : state && policy && copy ? <>
+          <HydrationFourDoorPanels state={state} navigate={navigate} onReload={load} />
           <section className="grid gap-4 md:grid-cols-[1.15fr_.85fr]">
             <Card className="overflow-hidden border-white/10 bg-slate-950/45 text-white shadow-2xl backdrop-blur-xl">
               <CardContent className="p-5 sm:p-6">

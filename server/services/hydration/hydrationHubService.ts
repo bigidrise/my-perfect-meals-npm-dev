@@ -5,6 +5,10 @@ import { db } from "../../db";
 import { waterLogs } from "@shared/schema";
 import { assignedHydrationLocalDate, hydrationCalendarWindow, shiftLocalDate } from "./hydrationDay";
 import { resolveHydrationCenterState, type HydrationCenterState } from "./hydrationCenterService";
+import {
+  getCurrentLiquidNutritionProtocol,
+} from "./liquidNutritionProtocolService";
+import type { HydrationProtocolRecord } from "@shared/hydration/fourDoor";
 
 export const HYDRATION_BARRIER_CODES = [
   "forgetting",
@@ -138,7 +142,7 @@ export async function getHydrationHubState(input: {
     dailyTotals.set(day, current);
   }
 
-  const [preferenceResult, barrierResult, interventionResult, eventResult] = await Promise.all([
+  const [preferenceResult, barrierResult, interventionResult, eventResult, liquidProtocol] = await Promise.all([
     db.execute(sql`
       SELECT consented, preferences, opted_out_at AS "optedOutAt"
       FROM hydration_hub_preferences WHERE user_id = ${input.subjectUserId} LIMIT 1
@@ -163,6 +167,10 @@ export async function getHydrationHubState(input: {
       WHERE user_id = ${input.subjectUserId}
       GROUP BY event_type
     `),
+    getCurrentLiquidNutritionProtocol({
+      userId: input.subjectUserId,
+      localDate: input.localDate,
+    }),
   ]);
 
   const centerState = await resolveHydrationCenterState(input);
@@ -206,6 +214,7 @@ export async function getHydrationHubState(input: {
       createdAt: new Date(row.createdAt as string).toISOString(),
     })),
     outcomeCounts: Object.fromEntries((eventResult.rows as Array<{ eventType: string; count: number }>).map((row) => [row.eventType, Number(row.count)])),
+    liquidProtocol,
   };
 }
 
@@ -225,6 +234,7 @@ export type HydrationHubState = HydrationCenterState & {
   };
   interventions: Array<Record<string, unknown>>;
   outcomeCounts: Record<string, number>;
+  liquidProtocol: HydrationProtocolRecord | null;
 };
 
 export async function saveHydrationPreferences(input: {

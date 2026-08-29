@@ -83,5 +83,43 @@ export async function runHydrationHubMigration(db: NodePgDatabase<any>) {
     CREATE INDEX IF NOT EXISTS hydration_hub_intervention_events_user_idx
       ON hydration_hub_intervention_events (user_id, created_at DESC)
   `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS hydration_hub_liquid_protocols (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reason TEXT NOT NULL,
+      protocol_type TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'user_entered',
+      verification_status TEXT NOT NULL DEFAULT 'unverified',
+      original_instruction_text TEXT NOT NULL,
+      starts_on DATE NOT NULL,
+      ends_on DATE NOT NULL,
+      review_on DATE,
+      allowed_categories JSONB NOT NULL DEFAULT '[]'::jsonb,
+      restricted_categories JSONB NOT NULL DEFAULT '[]'::jsonb,
+      texture_requirements JSONB NOT NULL DEFAULT '[]'::jsonb,
+      explicit_timing_text TEXT,
+      unresolved_items JSONB NOT NULL DEFAULT '[]'::jsonb,
+      execution_plan JSONB NOT NULL DEFAULT '{}'::jsonb,
+      status TEXT NOT NULL DEFAULT 'draft',
+      confirmed_at TIMESTAMPTZ,
+      activated_at TIMESTAMPTZ,
+      expired_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      CONSTRAINT hydration_hub_liquid_protocols_date_order
+        CHECK (starts_on <= ends_on AND (review_on IS NULL OR review_on >= starts_on)),
+      CONSTRAINT hydration_hub_liquid_protocols_source_verification
+        CHECK (source <> 'professional_workflow' OR verification_status = 'professionally_verified')
+    )
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS hydration_hub_liquid_protocols_user_status_idx
+      ON hydration_hub_liquid_protocols (user_id, status)
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS hydration_hub_liquid_protocols_user_created_idx
+      ON hydration_hub_liquid_protocols (user_id, created_at DESC)
+  `);
   console.log("✅ [migration] hydration hub schema complete");
 }

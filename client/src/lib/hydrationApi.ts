@@ -1,5 +1,12 @@
 import { apiRequest } from "@/lib/queryClient";
 import { createWaterLog } from "@/lib/waterLogsApi";
+import type { HydrationProtocolRecord, LiquidNutritionProtocolInput } from "@shared/hydration/fourDoor";
+export type {
+  HydrationDoorKey,
+  HydrationProtocolRecord,
+  HydrationProtocolType,
+  LiquidNutritionProtocolInput,
+} from "@shared/hydration/fourDoor";
 
 export type HydrationTargetKind = "point" | "range" | "floor" | "ceiling";
 export type HydrationBarrierCode =
@@ -89,6 +96,7 @@ export interface HydrationCenterState {
     createdAt: string;
   }>;
   outcomeCounts?: Record<string, number>;
+  liquidProtocol?: HydrationProtocolRecord | null;
 }
 
 export function getHydrationCenterState(input: {
@@ -161,6 +169,23 @@ export function recordHydrationInterventionEvent(
     method: "POST",
     body: JSON.stringify({ eventType, metadata }),
   });
+}
+
+export function createHydrationLiquidProtocol(input: LiquidNutritionProtocolInput) {
+  return apiRequest<{ protocol: HydrationProtocolRecord }>("/api/hydration/hub/liquid-protocol", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function activateHydrationLiquidProtocol(protocolId: string) {
+  return apiRequest<{ protocol: HydrationProtocolRecord }>(
+    `/api/hydration/hub/liquid-protocol/${encodeURIComponent(protocolId)}/activate`,
+    {
+      method: "POST",
+      body: JSON.stringify({ confirm: true }),
+    },
+  );
 }
 
 export async function addHydrationWater(input: {

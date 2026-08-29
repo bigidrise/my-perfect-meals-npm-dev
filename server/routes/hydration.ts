@@ -30,6 +30,12 @@ import {
   saveHydrationPreferences,
   type HydrationBarrierCode,
 } from "../services/hydration/hydrationHubService";
+import {
+  activateLiquidNutritionProtocol,
+  createLiquidNutritionProtocol,
+  getCurrentLiquidNutritionProtocol,
+} from "../services/hydration/liquidNutritionProtocolService";
+import { liquidNutritionProtocolInputSchema } from "@shared/hydration/fourDoor";
 
 const router = express.Router();
 
@@ -351,6 +357,81 @@ router.post("/hydration/hub/interventions/:interventionId/events", requireAuth, 
     if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid intervention event" });
     console.error("[hydration] intervention event failed", error);
     res.status(500).json({ error: "Failed to record intervention outcome" });
+  }
+});
+
+const liquidProtocolActivationSchema = z.object({
+  confirm: z.literal(true),
+}).strict();
+
+router.get("/hydration/hub/liquid-protocol", requireAuth, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const owner = await authorizeSubject(authReq, res, req.query.clientId);
+    if (!owner) return;
+    const { timezone, localDate } = await resolveHydrationDay({
+      subjectUserId: owner.subjectUserId,
+    });
+    const protocol = await getCurrentLiquidNutritionProtocol({
+      userId: owner.subjectUserId,
+      localDate,
+    });
+    res.json({ protocol, timezone, localDate });
+  } catch (error) {
+    console.error("[hydration] liquid protocol read failed", error);
+    res.status(500).json({ error: "Failed to load Liquid Nutrition Support" });
+  }
+});
+
+router.post("/hydration/hub/liquid-protocol", requireAuth, async (req, res) => {
+  try {
+    const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
+    if (!userId) return;
+    const input = liquidNutritionProtocolInputSchema.parse(req.body);
+    const protocol = await createLiquidNutritionProtocol({
+      userId,
+      values: input,
+    });
+    res.status(201).json({ protocol });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Invalid Liquid Nutrition Support instructions" });
+    }
+    console.error("[hydration] liquid protocol create failed", error);
+    res.status(500).json({ error: "Failed to save Liquid Nutrition Support instructions" });
+  }
+});
+
+router.post("/hydration/hub/liquid-protocol/:protocolId/activate", requireAuth, async (req, res) => {
+  try {
+    const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
+    if (!userId) return;
+    liquidProtocolActivationSchema.parse(req.body);
+    const { localDate } = await resolveHydrationDay({ subjectUserId: userId });
+    const result = await activateLiquidNutritionProtocol({
+      userId,
+      protocolId: req.params.protocolId,
+      localDate,
+    });
+    if (!result.ok) {
+      if (result.reason === "not_found") {
+        return res.status(404).json({ error: "Liquid Nutrition Support instructions not found" });
+      }
+      if (result.reason === "expired") {
+        return res.status(409).json({ error: "These instructions have expired. Add a current instruction before activating a plan." });
+      }
+      return res.status(409).json({
+        error: "Clarification is needed before these instructions can become active.",
+        unresolvedItems: result.unresolvedItems || [],
+      });
+    }
+    res.json({ protocol: result.protocol });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Confirm the reviewed instructions before activation" });
+    }
+    console.error("[hydration] liquid protocol activation failed", error);
+    res.status(500).json({ error: "Failed to activate Liquid Nutrition Support" });
   }
 });
 
