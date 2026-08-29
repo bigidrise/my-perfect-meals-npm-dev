@@ -64,6 +64,50 @@
         ]
       }
     </script>
+    <style>
+      /* Meaningful first paint for crawlers and visitors while React boots. */
+      .seo-shell {
+        box-sizing: border-box;
+        min-height: 100dvh;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 28px 24px 64px;
+        color: #fff;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.6;
+      }
+      .seo-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 72px;
+      }
+      .seo-header a { color: #fed7aa; text-decoration: none; }
+      .seo-brand { font-weight: 700; letter-spacing: .02em; }
+      .seo-header nav { display: flex; flex-wrap: wrap; gap: 16px; font-size: .9rem; }
+      .seo-shell main { max-width: 760px; }
+      .seo-eyebrow {
+        color: #fdba74;
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+      }
+      .seo-shell h1 { max-width: 760px; margin: 12px 0 20px; font-size: clamp(2.2rem, 7vw, 4.8rem); line-height: 1.05; }
+      .seo-shell h2 { margin: 0 0 10px; font-size: 1.35rem; color: #fed7aa; }
+      .seo-intro { max-width: 680px; color: rgba(255,255,255,.78); font-size: 1.15rem; }
+      .seo-shell section { margin-top: 42px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,.14); }
+      .seo-shell section p, .seo-shell li { color: rgba(255,255,255,.72); }
+      .seo-shell ul { padding-left: 22px; }
+      .seo-cta { display: inline-block; margin-top: 24px; padding: 12px 20px; border-radius: 10px; background: #ea580c; color: #fff; font-weight: 700; text-decoration: none; }
+      .seo-shell footer { max-width: 760px; margin-top: 72px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,.14); color: rgba(255,255,255,.52); font-size: .88rem; }
+      .seo-shell footer a { color: #fdba74; }
+      @media (max-width: 640px) {
+        .seo-shell { padding: 20px 18px 48px; }
+        .seo-header { align-items: flex-start; flex-direction: column; margin-bottom: 52px; }
+      }
+    </style>
     <!-- Rewardful affiliate tracking -->
     <script>(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,'rewardful');</script>
     <script async src="https://r.wdfl.co/rw.js" data-rewardful="efb377"></script>
@@ -103,7 +147,7 @@
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><!-- SEO fallback --></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

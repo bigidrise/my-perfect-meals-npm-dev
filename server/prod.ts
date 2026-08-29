@@ -18,6 +18,7 @@ import {
   registerFreshMetadataRoutes,
   setNoStoreHeaders,
 } from "./staticDelivery";
+import { registerMarketingPageRoutes } from "./marketingPages";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -204,6 +205,7 @@ server.on("error", (err) => {
 // excluded here and will be handled once initializeApp() registers them.
 const clientDistEarly = path.resolve(__dirname, "../client/dist");
 if (fs.existsSync(clientDistEarly)) {
+  registerMarketingPageRoutes(app, path.join(clientDistEarly, "index.html"));
   registerFreshMetadataRoutes(app, clientDistEarly);
   // Serve static assets (JS bundles, CSS, images, etc.)
   for (const middleware of createStaticFileMiddleware(clientDistEarly)) app.use(middleware);
