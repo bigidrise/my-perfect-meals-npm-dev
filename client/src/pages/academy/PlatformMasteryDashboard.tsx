@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   Award,
   CheckCircle2,
   ChevronRight,
@@ -17,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 const LESSONS = [
   { id: "lesson-01", num: 1, title: "Your Profile & Nutrition Protocol", subtitle: "Setting up your dietary identity and health constraints" },
@@ -132,13 +132,7 @@ export default function PlatformMasteryDashboard() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation("/academy")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Academy
-          </button>
+          <AcademyBackButton onClick={() => setLocation("/academy")} label="Academy" />
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
               Platform Mastery

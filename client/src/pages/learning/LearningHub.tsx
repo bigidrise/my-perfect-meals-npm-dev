@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface CertStatus {
   status: "not_started" | "in_progress" | "completed";
@@ -88,12 +89,7 @@ export default function LearningHub() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation("/business-center/affiliate/coaching")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            ← Back
-          </button>
+          <AcademyBackButton onClick={() => setLocation("/business-center/affiliate/coaching")} />
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white">Learning & Certifications</h1>
             <p className="text-xs text-white/40">Coaching & Professional Training</p>
