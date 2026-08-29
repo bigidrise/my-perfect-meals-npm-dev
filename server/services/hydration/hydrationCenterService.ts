@@ -82,7 +82,6 @@ export async function resolveHydrationCenterState(input: {
   });
   const directiveResolution =
     await getHydrationClinicianDirectiveResolution(input.subjectUserId, now);
-  const numericContextCoverageAvailable = !directiveResolution.directive;
   const eligibility = evaluateHydrationPlanningEligibility({
     subjectUserId: input.subjectUserId,
     localDate: input.localDate,
@@ -93,10 +92,8 @@ export async function resolveHydrationCenterState(input: {
     modifiers: [],
     dataQuality: {
       stale: false,
-      provenanceComplete: numericContextCoverageAvailable,
-      missingDataCodes: numericContextCoverageAvailable
-        ? []
-        : ["GOVERNED_MODIFIER_CONTEXT_UNAVAILABLE"],
+      provenanceComplete: true,
+      missingDataCodes: [],
       unsupportedContextCodes: [],
     },
   });

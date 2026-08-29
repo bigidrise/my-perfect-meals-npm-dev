@@ -121,5 +121,33 @@ export async function runHydrationHubMigration(db: NodePgDatabase<any>) {
     CREATE INDEX IF NOT EXISTS hydration_hub_liquid_protocols_user_created_idx
       ON hydration_hub_liquid_protocols (user_id, created_at DESC)
   `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS hydration_athletic_coaching_guidance (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      subject_user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      coach_user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      organization_id VARCHAR(255),
+      training_context TEXT NOT NULL,
+      emphasis TEXT[] NOT NULL,
+      reminder_strategy TEXT NOT NULL,
+      beverage_strategy TEXT NOT NULL,
+      athlete_creator_intent TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      starts_on DATE NOT NULL,
+      review_on DATE NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      CONSTRAINT hydration_athletic_coaching_review_order CHECK (starts_on <= review_on)
+    )
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS hydration_athletic_coaching_subject_status_idx
+      ON hydration_athletic_coaching_guidance (subject_user_id, status)
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS hydration_athletic_coaching_coach_subject_idx
+      ON hydration_athletic_coaching_guidance (coach_user_id, subject_user_id)
+  `);
   console.log("✅ [migration] hydration hub schema complete");
 }

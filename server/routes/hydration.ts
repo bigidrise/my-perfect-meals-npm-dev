@@ -40,6 +40,18 @@ import {
   issueHydrationHandoff,
   verifyHydrationHandoff,
 } from "../services/hydration/hydrationHandoffService";
+import { db } from "../db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import {
+  athleticHydrationCoachingInputSchema,
+  findProhibitedTrainerHydrationContent,
+} from "@shared/hydration/professional";
+import {
+  getActiveAthleticHydrationCoaching,
+  revokeAthleticHydrationCoaching,
+  saveAthleticHydrationCoaching,
+} from "../services/hydration/athleticHydrationCoachingService";
 
 const router = express.Router();
 
@@ -506,6 +518,36 @@ const clinicianGate = [
   requireMfa,
 ] as const;
 
+function requireHydrationProfessionalRole(
+  allowed: readonly string[],
+): express.RequestHandler {
+  return async (req, res, next) => {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const [provider] = await db
+      .select({ professionalRole: users.professionalRole })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!provider?.professionalRole || !allowed.includes(provider.professionalRole)) {
+      return res.status(403).json({
+        error: "This Hydration control is not available for your professional role",
+      });
+    }
+    next();
+  };
+}
+
+const clinicalHydrationGate = [
+  ...clinicianGate,
+  requireHydrationProfessionalRole(["physician", "dietitian", "nurse_practitioner"]),
+] as const;
+
+const trainerHydrationGate = [
+  ...clinicianGate,
+  requireHydrationProfessionalRole(["trainer"]),
+] as const;
+
 router.get(
   "/pro/clients/:clientId/hydration-state",
   ...clinicianGate,
@@ -549,7 +591,7 @@ router.get(
 
 router.get(
   "/pro/clients/:clientId/hydration-directive",
-  ...clinicianGate,
+  ...clinicalHydrationGate,
   async (req, res) => {
     const authReq = req as AuthenticatedRequest;
     const owner = await authorizeSubject(authReq, res, req.params.clientId);
@@ -581,7 +623,7 @@ router.get(
 
 router.put(
   "/pro/clients/:clientId/hydration-directive",
-  ...clinicianGate,
+  ...clinicalHydrationGate,
   async (req, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
@@ -637,7 +679,7 @@ router.put(
 
 router.delete(
   "/pro/clients/:clientId/hydration-directive/:directiveId",
-  ...clinicianGate,
+  ...clinicalHydrationGate,
   async (req, res) => {
     const authReq = req as AuthenticatedRequest;
     const owner = await authorizeSubject(authReq, res, req.params.clientId);
@@ -662,7 +704,100 @@ router.delete(
       ip: getClientIp(req),
       meta: { operation: "revoke" },
     });
-    res.status(204).end();
+    res.json({ ok: true });
+  },
+);
+
+router.get(
+  "/pro/clients/:clientId/athletic-hydration-coaching",
+  ...trainerHydrationGate,
+  async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const owner = await authorizeSubject(authReq, res, req.params.clientId);
+      if (!owner || owner.mode !== "delegated") return;
+      const guidance = await getActiveAthleticHydrationCoaching(owner.subjectUserId);
+      res.json({ guidance });
+    } catch (error) {
+      if (handleOrgIsolationError(error, res)) return;
+      console.error("[hydration] trainer guidance read failed", error);
+      res.status(500).json({ error: "Failed to load Athletic Hydration coaching" });
+    }
+  },
+);
+
+router.put(
+  "/pro/clients/:clientId/athletic-hydration-coaching",
+  ...trainerHydrationGate,
+  async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const owner = await authorizeSubject(authReq, res, req.params.clientId);
+      if (!owner || owner.mode !== "delegated") return;
+      const guidanceInput = athleticHydrationCoachingInputSchema.parse(req.body);
+      const prohibitedCode = findProhibitedTrainerHydrationContent(guidanceInput);
+      if (prohibitedCode) {
+        return res.status(422).json({
+          error:
+            "Trainer Hydration coaching cannot include clinical fluid dosing, electrolyte prescriptions, dehydration, water-cut, sauna, diuretic/laxative, or weigh-in manipulation strategies.",
+          code: prohibitedCode,
+        });
+      }
+      const coachUserId = authReq.authUser!.id;
+      const organizationId = await getUserOrgId(coachUserId);
+      const guidance = await saveAthleticHydrationCoaching({
+        subjectUserId: owner.subjectUserId,
+        coachUserId,
+        organizationId,
+        guidance: guidanceInput,
+      });
+      logAudit({
+        actor: coachUserId,
+        target: owner.subjectUserId,
+        orgId: organizationId,
+        action: "WRITE",
+        resourceType: "athletic_hydration_coaching",
+        table: "hydration_athletic_coaching_guidance",
+        resourceId: guidance.id,
+        route: req.path,
+        ip: getClientIp(req),
+        meta: {
+          trainingContext: guidance.trainingContext,
+          emphasis: guidance.emphasis,
+        },
+      });
+      res.json({ guidance });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid Athletic Hydration coaching guidance" });
+      }
+      if (handleOrgIsolationError(error, res)) return;
+      console.error("[hydration] trainer guidance save failed", error);
+      res.status(500).json({ error: "Failed to save Athletic Hydration coaching" });
+    }
+  },
+);
+
+router.delete(
+  "/pro/clients/:clientId/athletic-hydration-coaching/:guidanceId",
+  ...trainerHydrationGate,
+  async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const owner = await authorizeSubject(authReq, res, req.params.clientId);
+      if (!owner || owner.mode !== "delegated") return;
+      const revoked = await revokeAthleticHydrationCoaching({
+        subjectUserId: owner.subjectUserId,
+        guidanceId: req.params.guidanceId,
+        coachUserId: authReq.authUser!.id,
+      });
+      if (!revoked) return res.status(404).json({ error: "Active guidance not found" });
+      res.json({ ok: true });
+    } catch (error) {
+      if (handleOrgIsolationError(error, res)) return;
+      console.error("[hydration] trainer guidance revoke failed", error);
+      res.status(500).json({ error: "Failed to remove Athletic Hydration coaching" });
+    }
   },
 );
 

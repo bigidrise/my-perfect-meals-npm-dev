@@ -44,6 +44,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 import AddToCalendarButtons from "@/components/AddToCalendarButtons";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
+import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
 
 
 const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
@@ -718,6 +719,8 @@ export default function TrainerClientDashboard() {
         />
 
         <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
+
+        <ProHydrationControls clientUserId={resolvedClientUserId} mode="trainer" />
 
         {bodyComp && (
           <Card className="bg-white/5 border border-white/20">

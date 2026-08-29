@@ -195,6 +195,37 @@ export const hydrationClinicianDirectives = pgTable(
   }),
 );
 
+export const hydrationAthleticCoachingGuidance = pgTable(
+  "hydration_athletic_coaching_guidance",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    subjectUserId: varchar("subject_user_id").notNull().references(() => users.id),
+    coachUserId: varchar("coach_user_id").notNull().references(() => users.id),
+    organizationId: varchar("organization_id"),
+    trainingContext: text("training_context").notNull(),
+    emphasis: text("emphasis").array().notNull(),
+    reminderStrategy: text("reminder_strategy").notNull(),
+    beverageStrategy: text("beverage_strategy").notNull(),
+    athleteCreatorIntent: text("athlete_creator_intent").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    startsOn: date("starts_on").notNull(),
+    reviewOn: date("review_on").notNull(),
+    status: text("status").notNull().default("active"),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    subjectStatusIdx: index("hydration_athletic_coaching_subject_status_idx").on(
+      table.subjectUserId,
+      table.status,
+    ),
+    coachSubjectIdx: index("hydration_athletic_coaching_coach_subject_idx").on(
+      table.coachUserId,
+      table.subjectUserId,
+    ),
+  }),
+);
+
 export const hydrationPlanRevisions = pgTable(
   "hydration_plan_revisions",
   {

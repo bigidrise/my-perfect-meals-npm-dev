@@ -3,7 +3,7 @@ name: Nutrition consistency score boundary
 description: Product rules for the first marketable Nutrition Life Plan consistency/adherence score.
 ---
 
-The score must measure observable behaviors the user controls: meal consistency, macro adherence, hydration adherence when an authoritative target exists, and Nutrition Life Plan engagement/completion. Protocol adherence is excluded because MPM applies protocol rules automatically. Calories should not remain a standalone component when macro adherence already captures the meaningful nutrition behavior.
+The score must measure observable behaviors the user controls: meal consistency, macro adherence, and hydration adherence when an authoritative target exists. Protocol adherence is excluded because MPM applies protocol rules automatically. Calories should not remain a standalone component when macro adherence already captures the meaningful nutrition behavior. Nutrition Life Plan engagement remains visible outside the score until a stable event contract exists.
 
 For Hydration, TRACK_ONLY or missing-target states must not receive an invented ounces target, progress percentage, or physiological adherence score. A Hydration adherence component is valid only when a current authoritative numeric requirement exists.
 
