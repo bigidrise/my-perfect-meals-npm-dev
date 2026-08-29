@@ -62,7 +62,7 @@ export default function ProfessionalDashboard() {
       try {
         const [phase1Res, phase2Res] = await Promise.allSettled([
           apiRequest("/api/certifications/phase1-status"),
-          apiRequest("/api/certifications/procare_training/progress"),
+          apiRequest("/api/certifications/procare_certification/progress"),
         ]);
 
         const phase1: CertStatus =

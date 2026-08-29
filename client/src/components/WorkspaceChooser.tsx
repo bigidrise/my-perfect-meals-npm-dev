@@ -33,6 +33,8 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
     try {
       const phase1Res = await apiRequest("/api/certifications/phase1-status");
       const phase1Complete = (phase1Res as any)?.phase1Complete === true;
+      const proCareCertificationComplete =
+        (phase1Res as any)?.proCareCertificationComplete === true;
 
       if (!phase1Complete) {
         sessionStorage.setItem(
@@ -43,12 +45,12 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
         return;
       }
 
-      if (user?.phase2GateEnabled && !user?.procareTrainingCompleted) {
+      if (user?.phase2GateEnabled && !proCareCertificationComplete) {
         sessionStorage.setItem(
           "mpm.launchpad.redirectMsg",
-          "Complete Phase 2 ProCare Training to access the ProCare Studio."
+          "Complete Phase 3 ProCare Certification to access the ProCare Studio."
         );
-        setLocation("/pro-launchpad");
+        setLocation("/certifications/procare_certification");
         return;
       }
 

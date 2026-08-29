@@ -21,8 +21,8 @@ Before any shared-data migration, endpoint-level tests must prove attempt persis
 
 **How to apply:** Complete HTTP-path hardening tests first, then review dry-run counts and classifications; do not let a migration task mutate data by default.
 
-The active Phase 3 journey uses the canonical three-video ProCare LMS, then professional attestation, the current legal agreement, and the Care Team/Studio workspace. The legacy five-step training page remains available only for compatibility and is not an active progression destination.
+The active Phase 3 journey uses the canonical three-video ProCare LMS, then professional attestation, the current legal agreement, and the Care Team/Studio workspace. The legacy five-step component may remain in source for compatibility, but its route redirects to the canonical LMS and its completion endpoint must never grant training or certification.
 
 **Why:** The approved ProCare certification is the assessed LMS course; routing eligible professionals through the legacy page bypasses the required quizzes, cumulative final, and preserved attempt history.
 
-**How to apply:** Academy and professional readiness redirects must target the canonical ProCare certification route. Completing that course may satisfy the existing training-readiness flag, but legal, MFA, role, and readiness gates remain separate and authoritative.
+**How to apply:** Academy and professional readiness redirects must target the canonical ProCare certification route. Never interpret `procare_training` completion as the Professional credential. Only canonical completion may satisfy the existing training-readiness flag; legal, MFA, role, and readiness gates remain separate and authoritative.

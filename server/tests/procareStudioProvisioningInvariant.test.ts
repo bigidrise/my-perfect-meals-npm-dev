@@ -17,11 +17,14 @@ describe("ProCare Studio provisioning invariant", () => {
     expect(isStudioProviderRole(role)).toBe(expected);
   });
 
-  it("provisions a Studio at the final training milestone after MFA", () => {
-    const source = read("routes/procareTrainingRoutes.ts");
-    expect(source).toMatch(/router\.post\("\/complete",\s*requireAuth,\s*requireMfa,/);
-    expect(source).toContain("getProviderStudioReadiness(userId");
-    expect(source).toContain("ensureProviderStudioReady(userId");
+  it("retires the five-page completion endpoint and uses canonical certification as training authority", () => {
+    const legacySource = read("routes/procareTrainingRoutes.ts");
+    const certificationSource = read("routes/certificationRoutes.ts");
+    expect(legacySource).toContain("PROCARE_LEGACY_TRAINING_RETIRED");
+    expect(legacySource).not.toContain("ensureProviderStudioReady(userId");
+    expect(legacySource).not.toContain('certificationType: "procare_training"');
+    expect(certificationSource).toContain("certType === PROCARE_CERTIFICATION_TYPE");
+    expect(certificationSource).toContain("procareTrainingCompleted: true");
   });
 
   it("prepares a provider Studio before persisting a provider invitation", () => {

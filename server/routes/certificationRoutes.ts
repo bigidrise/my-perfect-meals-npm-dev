@@ -1227,7 +1227,10 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
 
     const year = new Date().getFullYear();
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const newCertNumber = `MPM-AFF-${year}-${random}`;
+    const newCertNumber =
+      certType === PROCARE_CERTIFICATION_TYPE
+        ? `MPM-PRO-${year}-${random}`
+        : `MPM-AFF-${year}-${random}`;
 
     // Deterministic upsert — unique constraint on (user_id, certification_type)
     // On conflict: only update name if it was previously null; never overwrite cert number or completedAt

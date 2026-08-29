@@ -512,7 +512,7 @@ export default function AcademyLandingPage() {
                   sublabel="3 training videos"
                   done={progress.phase2Done}
                   available
-                  onGo={() => setLocation("/procare-training")}
+                  onGo={() => setLocation("/certifications/procare_certification")}
                 />
               </>
             )}
@@ -522,7 +522,7 @@ export default function AcademyLandingPage() {
             <div className="px-5 pb-4 pt-2 border-t border-white/8 space-y-3">
               <div className="p-3 rounded-xl bg-white/[0.04] border border-white/8">
                 <p className="text-xs text-white/50 leading-relaxed text-center">
-                  Complete all three to earn:{" "}
+                  Phase 1 and Phase 2 earn the Specialist credential. Complete Phase 3 to earn:{" "}
                   <span className="text-orange-300 font-semibold">
                     Certified My Perfect Meals Professional
                   </span>

@@ -306,7 +306,7 @@ export default function CertificationComplete() {
         return (
           <>
             <button
-              onClick={() => setLocation("/procare-training")}
+              onClick={() => setLocation("/certifications/procare_certification")}
               className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
               <ChevronRight className="h-5 w-5" />

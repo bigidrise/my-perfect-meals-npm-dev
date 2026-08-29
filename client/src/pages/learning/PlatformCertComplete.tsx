@@ -4,7 +4,6 @@ import { Award, Download, ArrowLeft, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
-import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -23,7 +22,7 @@ interface CertData {
 
 const CERT_LABELS: Record<string, string> = {
   platform: "Platform Certification",
-  procare_certification: "ProCare Certification",
+  procare_certification: "Certified My Perfect Meals Professional",
   business_success: "Business Success Certification",
 };
 
@@ -83,14 +82,7 @@ export default function PlatformCertComplete() {
     }
   };
 
-  const continueProCareSetup = () => {
-    setLocation(
-      createProfessionalLegalRecoveryUrl(
-        "/procare-certified",
-        "professional-workspace",
-      ),
-    );
-  };
+  const continueProCareSetup = () => setLocation("/procare-certified");
 
   if (loading) {
     return (
@@ -234,13 +226,13 @@ export default function PlatformCertComplete() {
               Your ProCare course is complete.
             </p>
             <p className="text-xs text-white/60 leading-relaxed">
-              Continue through professional attestation and the current legal agreement to enter your Care Team and Studio workspace.
+              Your Professional credential is ready. Continue to enter your Care Team and Studio workspace.
             </p>
             <button
               onClick={continueProCareSetup}
               className="w-full p-4 rounded-xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
-              Continue to Professional Attestation
+              Continue to Care Team & Studio
               <span className="text-base">→</span>
             </button>
           </motion.div>

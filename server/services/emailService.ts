@@ -512,9 +512,14 @@ export async function sendCertificationCompleteEmail({
     return false;
   }
 
-  const certLabel = certType.includes('coaching')
-    ? 'Business & Coaching Affiliate Certification'
-    : 'Social & Referral Affiliate Certification';
+  const isProfessionalCertification = certType === 'procare_certification';
+  const certLabel = isProfessionalCertification
+    ? 'Certified My Perfect Meals Professional'
+    : certType === 'mpm_specialist'
+      ? 'Certified My Perfect Meals Specialist'
+      : certType.includes('coaching')
+        ? 'Business & Coaching Affiliate Certification'
+        : 'Social & Referral Affiliate Certification';
 
   try {
     const { data, error } = await resend.emails.send({
@@ -524,7 +529,7 @@ export async function sendCertificationCompleteEmail({
       html: `
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <div style="background:linear-gradient(135deg,#ea580c 0%,#9a3412 100%);padding:30px;border-radius:12px 12px 0 0;text-align:center;">
-            <h1 style="color:white;margin:0;font-size:26px;">Affiliate Certification Complete</h1>
+             <h1 style="color:white;margin:0;font-size:26px;">${isProfessionalCertification ? 'Professional Certification Complete' : 'Certification Complete'}</h1>
             <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px;">My Perfect Meals</p>
           </div>
           <div style="background:#f9fafb;padding:30px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
@@ -534,7 +539,7 @@ export async function sendCertificationCompleteEmail({
               <p style="color:#92400e;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px;">Certificate Number</p>
               <p style="color:#7c2d12;font-size:22px;font-weight:700;font-family:monospace;margin:0;">${certificateNumber}</p>
             </div>
-            <p style="color:#374151;font-size:14px;line-height:1.6;">Your Affiliate Dashboard and marketing resources are now available inside the My Perfect Meals Business Suite.</p>
+            <p style="color:#374151;font-size:14px;line-height:1.6;">${isProfessionalCertification ? 'Your Certified My Perfect Meals Professional credential is now available to download, and your Care Team and Studio workspace are ready after current legal requirements are accepted.' : 'Your Affiliate Dashboard and marketing resources are now available inside the My Perfect Meals Business Suite.'}</p>
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
             <p style="color:#9ca3af;font-size:12px;text-align:center;margin:0;">My Perfect Meals — Personalized Nutrition &amp; Meal Planning</p>
           </div>

@@ -7,6 +7,7 @@ import { parseLessonParam } from "@/lib/parseLessonParam";
 import { resolveScrollTarget, LESSON_MODULE_TYPES } from "@/lib/resolveScrollTarget";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
+import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
 
 interface CertModule {
   id: string;
@@ -199,7 +200,16 @@ export default function PlatformCertDashboard() {
         headers: { "Content-Type": "application/json" },
       });
       if ((json as { ok: boolean }).ok) {
-        setLocation(`/certifications/${certType}/complete`);
+        if (certType === "procare_certification") {
+          setLocation(
+            createProfessionalLegalRecoveryUrl(
+              `/certifications/${certType}/complete`,
+              "professional-workspace",
+            ),
+          );
+        } else {
+          setLocation(`/certifications/${certType}/complete`);
+        }
       }
     } catch { } finally {
       setNameSaving(false);
