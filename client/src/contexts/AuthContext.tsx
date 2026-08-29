@@ -14,6 +14,7 @@ import i18n, { resolveI18nLang } from "@/i18n";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 import { setUserContext, clearUserContext } from "@/lib/sentry";
 import { clearNutritionCache } from "@/hooks/nutritionStateCache";
+import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 
 interface AuthContextType {
   user: User | null;
@@ -415,7 +416,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         clearUserContext();
         clearNutritionCache();
         const publicPaths = ["/login", "/welcome", "/auth", "/forgot-password", "/reset-password", "/pricing", "/privacy", "/guest-builder", "/guest-suite", "/consumer-welcome", "/procare-welcome", "/procare-identity", "/procare-attestation", "/founders", "/affiliates", "/delete-account", "/terms", "/privacy-policy", "/partners", "/join/studio", "/__modal-test__"];
-        const isPublicPath = publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + "/"));
+        const isPublicPath =
+          isExactPublicMarketingRoute(window.location.pathname) ||
+          publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + "/"));
         if (!isPublicPath) {
           window.location.href = "/welcome";
         }

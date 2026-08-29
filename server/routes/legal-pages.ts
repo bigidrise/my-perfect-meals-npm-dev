@@ -3,12 +3,39 @@ import { Router, Request, Response } from "express";
 const router = Router();
 
 function legalShell(title: string, body: string): string {
+  const route = title === "Privacy Policy" ? "/privacy-policy" : "/terms";
+  const description =
+    title === "Privacy Policy"
+      ? "Read the My Perfect Meals Privacy Policy, including how nutrition, health, account, and usage information is handled."
+      : "Read the My Perfect Meals Terms of Service, including acceptable use, subscriptions, medical disclaimers, and account responsibilities.";
+  const canonical = `https://app.myperfectmeals.com${route}`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title} — My Perfect Meals</title>
+  <meta name="description" content="${description}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${canonical}" />
+  <meta property="og:site_name" content="My Perfect Meals" />
+  <meta property="og:title" content="${title} — My Perfect Meals" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="${canonical}" />
+  <meta property="og:image" content="https://app.myperfectmeals.com/icons/ChefMPMLogo-v2.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title} — My Perfect Meals" />
+  <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:image" content="https://app.myperfectmeals.com/icons/ChefMPMLogo-v2.png" />
+  <script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: `${title} — My Perfect Meals`,
+    description,
+    url: canonical,
+    isPartOf: { "@type": "WebSite", name: "My Perfect Meals", url: "https://app.myperfectmeals.com" },
+  }).replace(/</g, "\\u003c")}</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; }

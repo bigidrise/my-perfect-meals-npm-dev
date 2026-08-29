@@ -36,6 +36,7 @@ import { loadOrgContext, loadOrgBySlug, getDefaultOrgContext } from "./lib/orgCo
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { resolveMealImageStorageContext } from "./services/mealImageBucket";
+import { registerMarketingPageRoutes } from "./marketingPages";
 
 // ⬇️ New: AI/Meals API router (this file must exist: server/routes/meals.ts)
 import mealsRouter from "./routes/meals";
@@ -317,6 +318,13 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 // the same canonical location. Root public/ is intentionally NOT served here;
 // add new images to client/public/images/ so they reach production.
 app.use(express.static(path.join(import.meta.dirname, "../client/public")));
+
+// Public marketing routes get meaningful HTML before the client application
+// mounts. The React app still takes over this same root for normal visitors.
+registerMarketingPageRoutes(
+  app,
+  path.join(import.meta.dirname, "../client/index.html"),
+);
 
 // Object Storage route is now in routes.ts with proper 503 handling
 
