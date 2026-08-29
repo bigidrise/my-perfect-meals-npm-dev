@@ -1,3 +1,12 @@
+import {
+  HYDRATION_HUB_CONSIDERED_FOR_YOU,
+  HYDRATION_HUB_DESCRIPTION,
+  HYDRATION_HUB_DOORS,
+  HYDRATION_HUB_MEDICAL_BOUNDARY,
+  HYDRATION_HUB_OVERVIEW,
+  HYDRATION_HUB_TITLE,
+} from "@/lib/hydrationHubContent";
+
 export interface PageExplanation {
   pageId: string;
   title: string;
@@ -34,6 +43,22 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
     guestSpokenText:
       "This is your Biometrics page, and this is where your nutrition starts turning into real data and real feedback. Most people eat every day without ever truly understanding what is helping them progress and what is holding them back. Here, you can see your protein, carbs, fats, calories, hydration, and body trends all in one place. You can scan food labels with MacroScan, describe meals using Just Describe It, and watch your macro consistency patterns develop over time across daily, weekly, and monthly views. This is not about perfection. It is about awareness, consistency, and understanding your habits. Subscribers unlock deeper tracking tools like weight trends, hydration monitoring, body composition tracking, and long term macro consistency insights that help close the loop between your nutrition and your results. You have now completed your first full loop of the Guest Experience. Nicely done. Head back to the Guest Experience and you will now find Fridge Rescue and Craving Creator unlocked and ready to explore. Go have fun with them. I will be here when you are ready for the next step.",
+  },
+
+  "/hydration": {
+    pageId: "hydration",
+    title: HYDRATION_HUB_TITLE,
+    description: `${HYDRATION_HUB_DESCRIPTION} Choose the kind of support that fits your situation.`,
+    spokenText: [
+      `${HYDRATION_HUB_TITLE} is ${HYDRATION_HUB_DESCRIPTION.toLowerCase()}`,
+      HYDRATION_HUB_OVERVIEW,
+      "Choose the door that fits your situation.",
+      ...HYDRATION_HUB_DOORS.map(({ title, description }) => `${title}: ${description}`),
+      HYDRATION_HUB_CONSIDERED_FOR_YOU,
+      "If an authorized professional has updated your Hydration Plan, review the current instructions here in Hydration Hub.",
+      HYDRATION_HUB_MEDICAL_BOUNDARY,
+    ].join(" "),
+    autoClose: true,
   },
 
   "/craving-creator": {

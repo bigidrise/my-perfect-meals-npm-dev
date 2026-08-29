@@ -28,6 +28,12 @@ import {
   type HydrationPreferenceKey,
   type HydrationPreferences,
 } from "@/lib/hydrationApi";
+import {
+  HYDRATION_HUB_CONSIDERED_FOR_YOU,
+  HYDRATION_HUB_DOORS,
+  HYDRATION_HUB_MEDICAL_BOUNDARY,
+  HYDRATION_HUB_OVERVIEW,
+} from "@/lib/hydrationHubContent";
 
 const ML_PER_OUNCE = 29.5735;
 const BEVERAGES = [
@@ -281,6 +287,27 @@ export default function HydrationCenter() {
           <Card className="border-white/10 bg-slate-950/45 text-white"><CardContent className="flex min-h-72 flex-col items-center justify-center text-center"><Info className="mb-3 h-8 w-8 text-amber-300" /><p className="font-semibold text-white">Hydration is unavailable</p><p className="mt-1 text-sm text-white">{error}</p><Button onClick={() => void load()} className="mt-4">Try again</Button></CardContent></Card>
         ) : state && policy && copy ? <>
           <HydrationFourDoorPanels state={state} navigate={navigate} onReload={load} />
+           <Card data-testid="hydration-about" className="border-white/10 bg-slate-950/45 text-white shadow-2xl backdrop-blur-xl">
+             <CardContent className="p-5 sm:p-6">
+               <div className="flex items-center gap-2">
+                 <Info className="h-5 w-5 text-sky-300" />
+                 <h2 className="text-lg font-semibold text-white">How Hydration Hub Works</h2>
+               </div>
+               <p className="mt-2 text-sm leading-relaxed text-white">{HYDRATION_HUB_OVERVIEW}</p>
+               <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                 {HYDRATION_HUB_DOORS.map((door) => (
+                   <div key={door.id} className="rounded-xl border border-white/15 bg-white/[.04] p-3">
+                     <h3 className="text-sm font-semibold text-white">{door.title}</h3>
+                     <p className="mt-1 text-xs leading-relaxed text-white/75">{door.description}</p>
+                   </div>
+                 ))}
+               </div>
+               <div className="mt-4 space-y-2 text-xs leading-relaxed text-white/75">
+                 <p>{HYDRATION_HUB_CONSIDERED_FOR_YOU}</p>
+                 <p>{HYDRATION_HUB_MEDICAL_BOUNDARY}</p>
+               </div>
+             </CardContent>
+           </Card>
           <section className="grid gap-4 md:grid-cols-[1.15fr_.85fr]">
             <Card className="overflow-hidden border-white/10 bg-slate-950/45 text-white shadow-2xl backdrop-blur-xl">
               <CardContent className="p-5 sm:p-6">

@@ -2793,12 +2793,12 @@ export default function MyBiometrics() {
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
-              Water & Hydration
+              Hydration Hub
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm leading-relaxed text-white/65">
-              Water tracking lives in the server-backed Hydration Center. No
+              Water tracking lives in the server-backed Hydration Hub. No
               personal target is created from body weight or a population
               average.
             </p>
@@ -2807,7 +2807,7 @@ export default function MyBiometrics() {
               className="w-full bg-sky-600 text-white hover:bg-sky-500"
               data-testid="open-hydration-center"
             >
-              Open Hydration Center
+              Open Hydration Hub
             </Button>
           </CardContent>
         </Card>

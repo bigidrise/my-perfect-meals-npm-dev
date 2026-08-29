@@ -101,6 +101,27 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     walkthroughId: "biometrics",
     keywords: ["biometrics", "diet numbers", "profile numbers", "my macros profile", "tracking", "weight", "my biometrics", "bio metrics", "body metrics", "weight tracking", "body data", "my stats", "track weight"],
   },
+
+  // Hydration Hub
+  {
+    path: "/hydration",
+    walkthroughId: "hydration",
+    keywords: [
+      "hydration hub",
+      "hydration",
+      "hydration center",
+      "water tracker",
+      "water log",
+      "log water",
+      "track water",
+      "hydration plan",
+      "liquid nutrition",
+      "athletic hydration",
+      "sick day hydration",
+      "everyday hydration",
+      "considered for you hydration",
+    ],
+  },
   
   // Get Inspiration
   {
