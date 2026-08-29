@@ -154,6 +154,7 @@ export default function DesktopHeader() {
   const { t } = useTranslation("routeTitles");
 
   function getPageTitle(loc: string): string {
+    if (loc === "/hydration") return "Hydration Hub";
     if (ROUTE_KEY_MAP[loc]) return t(ROUTE_KEY_MAP[loc]);
     for (const [route, key] of Object.entries(ROUTE_KEY_MAP)) {
       if (loc.startsWith(route + "/")) return t(key);
@@ -175,12 +176,24 @@ export default function DesktopHeader() {
 
   const fallbackTitle = getPageTitle(location);
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
+  const isHydrationPage = location === "/hydration";
 
   const planBadge = getPlanLabel(user);
 
   return (
     <header className="h-14 shrink-0 bg-black/40 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
+        {isHydrationPage && (
+          <button
+            type="button"
+            data-testid="desktop-hydration-back-button"
+            onClick={() => setLocation("/my-biometrics")}
+            className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-black shadow-sm transition-colors hover:bg-slate-100"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Biometrics
+          </button>
+        )}
         <h1 className="text-lg font-semibold text-white">{title}</h1>
       </div>
 
