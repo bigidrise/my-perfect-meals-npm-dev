@@ -89,15 +89,20 @@ async function resolveWaterLogOwner(
   }
 }
 
-// POST /api/water-logs { amount, unit, intakeTimeISO?, freeText?, clientId? }
+const BEVERAGE_CLASSES = ["water", "tea", "coffee", "milk", "juice", "sparkling", "other"] as const;
+
+// POST /api/water-logs { amount, unit, beverageClass?, intakeTimeISO?, freeText?, clientId? }
 router.post("/water-logs", requireAuth, async (req, res) => {
   try {
-    const { amount, unit = "ml", intakeTimeISO, freeText, clientId } = req.body as {
-      amount: number; unit?: string; intakeTimeISO?: string; freeText?: string; clientId?: string;
+    const { amount, unit = "ml", beverageClass = "water", intakeTimeISO, freeText, clientId } = req.body as {
+      amount: number; unit?: string; beverageClass?: string; intakeTimeISO?: string; freeText?: string; clientId?: string;
     };
 
     if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
       return res.status(400).json({ error: "A positive amount is required" });
+    }
+    if (!BEVERAGE_CLASSES.includes(beverageClass as (typeof BEVERAGE_CLASSES)[number])) {
+      return res.status(400).json({ error: "Unsupported beverage class" });
     }
 
     const userId = await resolveWaterLogOwner(
@@ -115,6 +120,7 @@ router.post("/water-logs", requireAuth, async (req, res) => {
       userId,
       amountMl: toMl(Number(amount), unit),
       unit: unit.toLowerCase(),
+      beverageClass,
       intakeTime: intake,
     };
 

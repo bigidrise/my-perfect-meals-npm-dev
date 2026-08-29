@@ -5,6 +5,7 @@ export interface WaterLogRow {
   userId: string;
   amountMl: number;
   unit: string;
+  beverageClass: string;
   intakeTime: string;
   createdAt: string;
 }
@@ -48,6 +49,7 @@ export async function getWaterLogs(options: {
 export async function createWaterLog(input: {
   amount: number;
   unit?: string;
+  beverageClass?: string;
   intakeTimeISO?: string;
   freeText?: string;
   clientId?: string;

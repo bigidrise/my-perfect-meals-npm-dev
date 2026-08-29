@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 import * as mybestlifeSchema from "./db/schema/mybestlife";
 import * as hydrationSchema from "./db/schema/hydration";
+import * as hydrationHubSchema from "./db/schema/hydrationHub";
 import * as aiObservabilitySchema from "./db/schema/aiObservability";
 import { glp1Shots } from "./db/schema/glp1Shots";
 import { mealBoards, mealBoardItems } from "./db/schema/mealBoards";
@@ -78,6 +79,7 @@ export const db = drizzle(pool, {
     ...schema, 
     ...mybestlifeSchema, 
     ...hydrationSchema,
+    ...hydrationHubSchema,
     ...aiObservabilitySchema,
     glp1Shots, 
     mealBoards, 
