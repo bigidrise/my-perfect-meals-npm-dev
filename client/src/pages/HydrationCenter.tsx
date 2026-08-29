@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -216,15 +215,13 @@ export default function HydrationCenter() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-[radial-gradient(circle_at_top,#0c4a6e_0%,#082f49_28%,#020617_68%)] text-white">
-      <MobileHeaderGuard>
-        <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-          <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 pb-3 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/my-biometrics")} className="text-white hover:bg-white/10 hover:text-white"><ArrowLeft className="mr-1.5 h-4 w-4" />Back</Button>
-            <div className="min-w-0 flex-1"><h1 className="truncate text-lg font-semibold">Hydration Hub</h1><p className="text-xs text-sky-100/55">Track fluids, solve barriers, see what helps</p></div>
-            <Badge className="border-sky-300/20 bg-sky-400/10 text-sky-100">Everyday support</Badge>
-          </div>
-        </header>
-      </MobileHeaderGuard>
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 pb-3 pt-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/my-biometrics")} className="text-white hover:bg-white/10 hover:text-white"><ArrowLeft className="mr-1.5 h-4 w-4" />Back</Button>
+          <div className="min-w-0 flex-1"><h1 className="truncate text-lg font-semibold">Hydration Hub</h1><p className="text-xs text-sky-100/55">Track fluids, solve barriers, see what helps</p></div>
+          <Badge className="border-sky-300/20 bg-sky-400/10 text-sky-100">Everyday support</Badge>
+        </div>
+      </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 pb-28" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.75rem)" }}>
         {loading ? <div className="grid min-h-80 place-items-center"><RefreshCw className="h-7 w-7 animate-spin text-sky-300" /></div> : error ? (
