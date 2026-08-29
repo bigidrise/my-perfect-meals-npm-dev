@@ -57,3 +57,4 @@
 - [Nutrition consistency score boundary](nutrition-consistency-score-boundary.md) — score observable user behavior, never rules the platform enforces automatically.
 - [Hydration Creator handoffs](hydration-creator-handoffs.md) — Creator handoffs carry signed intent only; current safety context is always re-resolved server-side.
 - [Professional Hydration role split](professional-hydration-role-split.md) — clinical professionals own numeric directives; trainers only own bounded nonclinical coaching.
+- [Hydration Hub entry experience](hydration-hub-entry-experience.md) — render the four-door shell immediately and keep Everyday/Athletic Creator handoffs obvious.

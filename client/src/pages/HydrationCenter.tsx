@@ -277,11 +277,29 @@ export default function HydrationCenter() {
           <ArrowLeft className="h-4 w-4" />
           Back to Biometrics
         </button>
-        {loading ? <div className="grid min-h-80 place-items-center"><RefreshCw className="h-7 w-7 animate-spin text-sky-300" /></div> : error ? (
-          <Card className="border-white/10 bg-slate-950/45 text-white"><CardContent className="flex min-h-72 flex-col items-center justify-center text-center"><Info className="mb-3 h-8 w-8 text-amber-300" /><p className="font-semibold text-white">Hydration is unavailable</p><p className="mt-1 text-sm text-white">{error}</p><Button onClick={() => void load()} className="mt-4">Try again</Button></CardContent></Card>
-        ) : state && policy && copy ? <>
-           <HydrationHubGuide />
-           <HydrationFourDoorPanels state={state} navigate={navigate} onReload={load} />
+        <HydrationFourDoorPanels state={state} navigate={navigate} onReload={load} />
+        <HydrationHubGuide />
+        {loading && !state ? (
+          <div
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm text-white/75 backdrop-blur-xl"
+            role="status"
+            data-testid="hydration-secondary-loading"
+          >
+            <RefreshCw className="h-4 w-4 animate-spin text-sky-300" />
+            Loading today, history, preferences, and professional guidance…
+          </div>
+        ) : null}
+        {error && !state ? (
+          <Card className="border-white/10 bg-slate-950/45 text-white">
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <Info className="mb-3 h-8 w-8 text-amber-300" />
+              <p className="font-semibold text-white">Saved Hydration details are unavailable</p>
+              <p className="mt-1 text-sm text-white">{error}</p>
+              <Button onClick={() => void load()} className="mt-4">Try again</Button>
+            </CardContent>
+          </Card>
+        ) : null}
+        {state && policy && copy ? <>
           <section className="grid gap-4 md:grid-cols-[1.15fr_.85fr]">
             <Card className="overflow-hidden border-white/10 bg-slate-950/45 text-white shadow-2xl backdrop-blur-xl">
               <CardContent className="p-5 sm:p-6">

@@ -27,7 +27,7 @@ import {
 import { sickDayHydrationRequiresEscalation } from "@shared/hydration/fourDoor";
 
 type Props = {
-  state: HydrationCenterState;
+  state: HydrationCenterState | null;
   navigate: (path: string) => void;
   onReload: () => Promise<void>;
 };
@@ -120,22 +120,26 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
   const [reason, setReason] = useState("");
   const [protocolType, setProtocolType] = useState<HydrationProtocolType>("clear_liquid");
   const [originalInstructionText, setOriginalInstructionText] = useState("");
-  const [startsOn, setStartsOn] = useState(state.localDate);
-  const [endsOn, setEndsOn] = useState(nextLocalDate(state.localDate));
+  const [startsOn, setStartsOn] = useState(state?.localDate ?? "");
+  const [endsOn, setEndsOn] = useState(state ? nextLocalDate(state.localDate) : "");
   const [reviewOn, setReviewOn] = useState("");
   const [allowedCategories, setAllowedCategories] = useState("");
   const [restrictedCategories, setRestrictedCategories] = useState("");
   const [textureRequirements, setTextureRequirements] = useState("");
   const [explicitTimingText, setExplicitTimingText] = useState("");
   const [protocol, setProtocol] = useState<HydrationProtocolRecord | null>(
-    state.liquidProtocol ?? null,
+    state?.liquidProtocol ?? null,
   );
   const [protocolSaving, setProtocolSaving] = useState(false);
+  const [creatorOpening, setCreatorOpening] = useState(false);
   const [activationConfirmed, setActivationConfirmed] = useState(false);
 
   useEffect(() => {
+    if (!state) return;
     setProtocol(state.liquidProtocol ?? null);
-  }, [state.liquidProtocol]);
+    setStartsOn(state.localDate);
+    setEndsOn(nextLocalDate(state.localDate));
+  }, [state]);
 
   const urgentSickDay = useMemo(
     () => sickDayHydrationRequiresEscalation(sickDaySymptoms),
@@ -171,6 +175,30 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
         description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const openEverydayCreator = async () => {
+    setCreatorOpening(true);
+    try {
+      const handoff = await createHydrationHandoff({
+        door: "everyday",
+        description:
+          "Create a practical Everyday Hydration beverage. Preserve all saved dietary and safety constraints and do not invent a medical fluid target.",
+      });
+      const params = new URLSearchParams({ hydrationHandoff: handoff.token });
+      navigate(`/lifestyle/beverage-creator?${params.toString()}`);
+    } catch (error) {
+      toast({
+        title: "Could not open the Creator",
+        description:
+          error instanceof Error
+            ? error.message.replace(/^\d+:\s*/, "")
+            : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatorOpening(false);
     }
   };
 
@@ -273,15 +301,37 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
         </div>
       </div>
 
+      {!state ? (
+        <Card className="border-white/10 bg-slate-950/35 text-white backdrop-blur-xl">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-white">
+              Loading your saved Hydration details…
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-white/70">
+              You can choose a door now. Its saved context and controls will
+              appear as soon as they are ready.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
       {door === "everyday" && (
         <Card className="border-sky-300/20 bg-sky-950/35 text-white backdrop-blur-xl">
           <CardContent className="flex items-start gap-3 p-4">
             <Droplets className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
-            <div>
+            <div className="min-w-0 flex-1">
               <h2 className="font-semibold text-white">Everyday support is ready below</h2>
               <p className="mt-1 text-sm leading-relaxed text-white">
                 Log a fluid, save optional preferences, or ask for a practical barrier-based option. These tools never create a personal target.
               </p>
+              <Button
+                onClick={() => void openEverydayCreator()}
+                disabled={creatorOpening}
+                className="mt-4 bg-sky-400 text-slate-950 hover:bg-sky-300"
+                data-testid="everyday-hydration-creator"
+              >
+                {creatorOpening ? "Opening Creator…" : "Create a Hydration Beverage"}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -332,7 +382,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               </label>
             </div>
             <Button onClick={() => void openAthleticCreator()} className="mt-4 bg-orange-400 text-slate-950 hover:bg-orange-300" data-testid="athletic-hydration-creator">
-              Continue to Athletic Beverage Creator
+              Create an Athletic Hydration Beverage
             </Button>
             <p className="mt-3 text-xs text-white">The Creator remains responsible for formulation and runs its normal safety checks.</p>
           </CardContent>
@@ -506,6 +556,8 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
             )}
           </CardContent>
         </Card>
+      )}
+        </>
       )}
     </section>
   );
