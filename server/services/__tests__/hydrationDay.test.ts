@@ -6,6 +6,7 @@
  */
 
 import {
+  assignedHydrationLocalDate,
   hydrationCalendarWindow,
   resolveHydrationDay,
 } from "../hydration/hydrationDay";
@@ -88,6 +89,24 @@ async function run() {
   assert(
     sevenDayWindow.end.toISOString() === "2026-08-30T04:59:59.999Z",
     "seven-day window ends at the current subject-local day boundary",
+  );
+
+  const texasEvent = new Date("2026-08-29T04:30:00.000Z");
+  assert(
+    assignedHydrationLocalDate({
+      eventTime: texasEvent,
+      eventLocalDate: "2026-08-28",
+      currentTimezone: "Europe/London",
+    }) === "2026-08-28",
+    "a preserved event-local date does not move after relocation",
+  );
+  assert(
+    assignedHydrationLocalDate({
+      eventTime: texasEvent,
+      eventLocalDate: null,
+      currentTimezone: "Europe/London",
+    }) === "2026-08-29",
+    "legacy events without timezone context use the current canonical timezone without fabricated history",
   );
 
   console.log(`\nHydration day tests: ${passed} passed, ${failed} failed`);

@@ -348,6 +348,7 @@ export const users = pgTable("users", {
   autoGenerateWeeklyPlan: boolean("auto_generate_weekly_plan").default(true), // auto-generate new 7-day plans
   // Enhanced notification system fields
   timezone: text("timezone").default("America/Chicago"),
+  timezoneUpdatedAt: timestamp("timezone_updated_at", { withTimezone: true }),
   phone: text("phone"),
   phoneVerified: boolean("phone_verified").default(false),
   smsOptIn: boolean("sms_opt_in").default(false),
@@ -813,6 +814,9 @@ export const waterLogs = pgTable(
     // allowing the Hub to distinguish plain water from other fluids.
     beverageClass: text("beverage_class").notNull().default("water"),
     intakeTime: timestamp("intake_time", { withTimezone: false }).notNull(), // when they said they drank
+    // Immutable event-day context. Null means legacy/unknown; never fabricate it.
+    eventTimezone: text("event_timezone"),
+    eventLocalDate: text("event_local_date"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => ({

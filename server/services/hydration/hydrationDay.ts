@@ -1,18 +1,7 @@
-import { eq } from "drizzle-orm";
-import { users } from "@shared/schema";
-import { db } from "../../db";
 import { localDayUTCBounds } from "../../utils/localDayBounds";
+import { getUserTimezone, isValidIanaTimezone } from "../nutritionDayService";
 
 const FALLBACK_TIMEZONE = "UTC";
-
-function isValidTimezone(timezone: string): boolean {
-  try {
-    new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date());
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export function localDateInTimezone(at: Date, timezone: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(at);
@@ -22,6 +11,14 @@ export function shiftLocalDate(localDate: string, days: number): string {
   const [year, month, day] = localDate.split("-").map(Number);
   const shifted = new Date(Date.UTC(year, month - 1, day + days, 12));
   return shifted.toISOString().slice(0, 10);
+}
+
+export function assignedHydrationLocalDate(input: {
+  eventTime: Date;
+  eventLocalDate?: string | null;
+  currentTimezone: string;
+}): string {
+  return input.eventLocalDate || localDateInTimezone(input.eventTime, input.currentTimezone);
 }
 
 export async function resolveHydrationDay(input: {
@@ -37,14 +34,9 @@ export async function resolveHydrationDay(input: {
 }> {
   let timezone = input.timezone?.trim() || "";
   if (!timezone) {
-    const [profile] = await db
-      .select({ timezone: users.timezone })
-      .from(users)
-      .where(eq(users.id, input.subjectUserId))
-      .limit(1);
-    timezone = profile?.timezone?.trim() || FALLBACK_TIMEZONE;
+    timezone = await getUserTimezone(input.subjectUserId);
   }
-  if (!isValidTimezone(timezone)) timezone = FALLBACK_TIMEZONE;
+  if (!isValidIanaTimezone(timezone)) timezone = FALLBACK_TIMEZONE;
 
   const localDate =
     input.localDate || localDateInTimezone(input.now ?? new Date(), timezone);

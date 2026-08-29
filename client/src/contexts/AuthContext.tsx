@@ -89,6 +89,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           firstName: userData.firstName || null,
           lastName: userData.lastName || null,
           nickname: userData.nickname || null,
+          timezone: userData.timezone || null,
+          timezoneUpdatedAt: userData.timezoneUpdatedAt || null,
           professionalCategory: userData.professionalCategory || null,
           credentialType: userData.credentialType || null,
           credentialBody: userData.credentialBody || null,

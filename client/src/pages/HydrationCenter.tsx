@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -36,9 +36,6 @@ const BARRIERS = [
 ] as const;
 const BARRIER_LABELS = Object.fromEntries(BARRIERS);
 
-function localToday(timezone: string) {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date());
-}
 function mlToOz(value: number) { return Math.round(value / ML_PER_OUNCE); }
 function displayVolume(value: number | null) {
   return value === null ? "—" : `${value.toLocaleString()} mL`;
@@ -79,8 +76,6 @@ type Intervention = NonNullable<HydrationCenterState["interventions"]>[number];
 export default function HydrationCenter() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Chicago";
-  const localDate = useMemo(() => localToday(timezone), [timezone]);
   const initializedSetup = useRef(false);
   const [state, setState] = useState<HydrationCenterState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +96,7 @@ export default function HydrationCenter() {
   const load = useCallback(async () => {
     setError("");
     try {
-      const next = await getHydrationHubState({ date: localDate, timezone });
+      const next = await getHydrationHubState({});
       setState(next);
       if (!initializedSetup.current && next.setup) {
         setConsented(next.setup.consented);
@@ -115,7 +110,7 @@ export default function HydrationCenter() {
     } finally {
       setLoading(false);
     }
-  }, [localDate, timezone]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -210,7 +205,7 @@ export default function HydrationCenter() {
   const dailyRows = (projections?.dailyTotals || []).filter((row) => {
     if (historyWindow === "30") return true;
     if (historyWindow === "7") return row.localDate >= new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-    return row.localDate === localDate;
+    return row.localDate === state?.localDate;
   }).reverse();
 
   return (

@@ -5,6 +5,8 @@ import { and, eq, gt, lte, desc, lt } from "drizzle-orm";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { verifyPhysicianClientAccess } from "../services/procareAccessService";
 import { handleOrgIsolationError } from "../lib/orgIsolation";
+import { getUserTimezone } from "../services/nutritionDayService";
+import { localDateInTimezone } from "../services/hydration/hydrationDay";
 
 const router = express.Router();
 
@@ -115,6 +117,7 @@ router.post("/water-logs", requireAuth, async (req, res) => {
     let intake = intakeTimeISO ? new Date(intakeTimeISO) : null;
     if (!intake && freeText) intake = parseTimeFromTextToToday(freeText);
     if (!intake) intake = new Date();
+    const eventTimezone = await getUserTimezone(userId);
 
     const rowToInsert = {
       userId,
@@ -122,6 +125,8 @@ router.post("/water-logs", requireAuth, async (req, res) => {
       unit: unit.toLowerCase(),
       beverageClass,
       intakeTime: intake,
+      eventTimezone,
+      eventLocalDate: localDateInTimezone(intake, eventTimezone),
     };
 
     const [row] = await db.insert(waterLogs).values(rowToInsert).returning();

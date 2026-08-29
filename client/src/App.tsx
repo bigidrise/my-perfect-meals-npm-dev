@@ -40,6 +40,7 @@ import { TrialBanner } from "@/components/TrialBanner";
 import { TrialMilestoneModal } from "@/components/TrialMilestoneModal";
 import { IdleTimeoutModal } from "@/components/IdleTimeoutModal";
 import MealPickerRetryHarness from "@/pages/e2e/MealPickerRetryHarness";
+import { CanonicalTimezonePrompt } from "@/components/CanonicalTimezonePrompt";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -213,6 +214,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <CanonicalTimezonePrompt />
             <OrgProvider>
             <HouseholdProvider>
             <FontSizeProvider>
