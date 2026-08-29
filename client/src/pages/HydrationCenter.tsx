@@ -224,6 +224,15 @@ export default function HydrationCenter() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 pb-28 pt-[calc(env(safe-area-inset-top,0px)+5.75rem)] text-white lg:pt-0">
+        <button
+          type="button"
+          data-testid="desktop-hydration-back-button"
+          onClick={() => navigate("/my-biometrics")}
+          className="hidden items-center gap-1.5 rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-sm font-medium text-white shadow-sm backdrop-blur-md transition-colors hover:bg-white/10 lg:inline-flex"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Biometrics
+        </button>
         {loading ? <div className="grid min-h-80 place-items-center"><RefreshCw className="h-7 w-7 animate-spin text-sky-300" /></div> : error ? (
           <Card className="border-white/10 bg-slate-950/45 text-white"><CardContent className="flex min-h-72 flex-col items-center justify-center text-center"><Info className="mb-3 h-8 w-8 text-amber-300" /><p className="font-semibold text-white">Hydration is unavailable</p><p className="mt-1 text-sm text-white">{error}</p><Button onClick={() => void load()} className="mt-4">Try again</Button></CardContent></Card>
         ) : state && policy && copy ? <>
