@@ -133,7 +133,7 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'log-water',
-    path: '/track-water',
+    path: '/hydration',
     displayName: 'Log Water',
     synonyms: ['track water', 'water logging', 'hydration tracking', 'water intake', 'log water'],
     hidden: true  // Not a card but Chef should know about it

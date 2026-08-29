@@ -343,7 +343,7 @@ export default function BeachBodyMealBoard() {
 
   // Handle "Go to Today" from locked day dialog — use device local timezone
   const handleGoToToday = useCallback(() => {
-    const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const localTZ = user?.timezone || "UTC";
     const today = todayISOInTZ(localTZ);
     setActiveDayISO(today);
     setLockedDayDialogOpen(false);
@@ -693,7 +693,7 @@ export default function BeachBodyMealBoard() {
   // Using Chicago here caused users in ET to see yesterday's meals as "today."
   useEffect(() => {
     if (weekDatesList.length > 0 && !activeDayISO) {
-      const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const localTZ = user?.timezone || "UTC";
       const todayISO = getTodayISOSafe(localTZ);
       const todayInWeek = weekDatesList.find((d) => d === todayISO);
       setActiveDayISO(todayInWeek ?? weekDatesList[0]);

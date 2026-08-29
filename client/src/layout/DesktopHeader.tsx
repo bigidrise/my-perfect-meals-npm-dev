@@ -4,7 +4,6 @@ import { useCurrentPageTitle } from "@/contexts/PageTitleContext";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { HubControlIcon } from "@/components/icons/HubControlIcon";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
-import { ChevronLeft } from "lucide-react";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { useTranslation } from "react-i18next";
 import { BugReportButton } from "@/components/BugReportButton";
@@ -154,6 +153,7 @@ export default function DesktopHeader() {
   const { t } = useTranslation("routeTitles");
 
   function getPageTitle(loc: string): string {
+    if (loc === "/hydration") return "Hydration Hub";
     if (ROUTE_KEY_MAP[loc]) return t(ROUTE_KEY_MAP[loc]);
     for (const [route, key] of Object.entries(ROUTE_KEY_MAP)) {
       if (loc.startsWith(route + "/")) return t(key);
@@ -175,7 +175,6 @@ export default function DesktopHeader() {
 
   const fallbackTitle = getPageTitle(location);
   const title = contextTitle || (fallbackTitle === "Signature Kitchen Experience" ? appName : fallbackTitle);
-
   const planBadge = getPlanLabel(user);
 
   return (

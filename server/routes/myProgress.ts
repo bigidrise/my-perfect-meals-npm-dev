@@ -108,15 +108,12 @@ router.get('/sleep', (req, res) => {
   });
 });
 
-// Hydration Metrics - Industry parity endpoint  
+// Hydration metrics were previously hard-coded demo values. Keep this route
+// explicitly unavailable until it can be backed by the canonical water ledger.
 router.get('/hydration', (req, res) => {
-  res.json({
-    dailyIntake: 72,
-    goalOunces: 80,
-    percentage: 90,
-    cupsToday: 9,
-    goalCups: 10,
-    hydrationScore: 88
+  res.status(410).json({
+    error: "Hydration progress is available from the Hydration Center",
+    route: "/hydration",
   });
 });
 

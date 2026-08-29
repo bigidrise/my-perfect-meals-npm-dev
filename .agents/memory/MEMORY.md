@@ -43,8 +43,11 @@
 - [Legacy Hydration intake bridge](legacy-hydration-intake-bridge.md) — until migration approval, canonical Hydration reads project from water_logs without a second stored copy.
 - [Hydration modifier governance](hydration-modifier-governance.md) — context sources emit nonnumeric claims; one deterministic resolver owns precedence, suppression, and review.
 - [Hydration planning eligibility](hydration-planning-eligibility.md) — eligibility is nonnumeric; validate every registry claim before resolver status filtering.
+- [Hydration local-day authority](hydration-local-day-authority.md) — hydration totals and rolling windows follow the subject's IANA timezone, including DST and backdated intake.
 - [Hydration numeric policy v0.1](hydration-numeric-policy-v01.md) — only current clinician directives permit numbers; production stays inactive until the full activation gate opens.
+- [Hydration product recommendation boundary](hydration-product-recommendation-boundary.md) — commercial relationships never determine eligibility; qualify and verify products first.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
 - [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.
 - [Academy progression authority](academy-progression-authority.md) — Phase 1 is educational; Phase 2 earns the core Specialist credential; ProCare is optional and role-gated.
 - [Academy contextual navigation](academy-contextual-navigation.md) — ProCare back controls should return to the logical course parent, not rely on browser history.
+- [Frontend static asset location](frontend-static-asset-location.md) — browser-facing images belong in client/public; verify the exact served asset before changing page layering.

@@ -7,6 +7,7 @@ import { explainFeature } from "./commands/explainFeature";
 import { shouldAllowAutoOpen } from "./CopilotRespectGuard";
 import { interpretFoodCommand } from "./NLEngine";
 import { FEATURES } from "@/featureFlags";
+import { addHydrationWater } from "@/lib/hydrationApi";
 import { findFeatureFromKeywords } from "./KeywordFeatureMap";
 import {
   findFeatureFromRegistry,
@@ -590,19 +591,28 @@ const Commands: Record<string, CommandHandler> = {
   "biometrics.logWater": async (payload?: { amount: number }) => {
     if (!responseCallback) return;
     const amount = payload?.amount || 8;
-    responseCallback({
-      title: "Water Logged",
-      description: `${amount} ounces of water added.`,
-      spokenText: `Adding ${amount} ounces of water.`,
-    });
+    try {
+      await addHydrationWater({ amount, unit: "oz" });
+      responseCallback({
+        title: "Water Logged",
+        description: `${amount} ounces of water was added to your server-backed Hydration Center.`,
+        spokenText: `${amount} ounces of water was logged.`,
+      });
+    } catch {
+      responseCallback({
+        title: "Water Was Not Logged",
+        description: "The Hydration Center could not save this entry. Open Hydration Center and try again.",
+        spokenText: "I could not log that water. Please open Hydration Center and try again.",
+      });
+    }
   },
 
   "biometrics.resetWater": async () => {
     if (!responseCallback) return;
     responseCallback({
-      title: "Water Reset",
-      description: "Water tracker has been reset.",
-      spokenText: "Resetting water tracker.",
+      title: "Water Reset Is Unavailable",
+      description: "Saved hydration history cannot be reset. Correction and void controls require a separately approved audited workflow.",
+      spokenText: "Water reset is unavailable because saved hydration history is not deleted.",
     });
   },
 

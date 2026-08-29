@@ -36,6 +36,7 @@ import {
   type CapabilityScope,
 } from "./capabilityRegistry";
 import type { CoachingContextSnapshot, FieldValue, DataConfidence } from "../../../shared/coaching/types";
+import { resolveHydrationDay } from "../hydration/hydrationDay";
 
 // ─── Helper: build a FieldValue ───────────────────────────────────────────────
 
@@ -198,6 +199,11 @@ export async function buildCoachingContext(
   const profile = profileResult.rows[0];
   const specialtyConditions: string[] = profile?.specialty_conditions ?? [];
   const effectiveTimezone = profile?.timezone ?? timezone;
+  const hydrationDay = await resolveHydrationDay({
+    subjectUserId: userId,
+    timezone: effectiveTimezone,
+    now: asOf,
+  });
 
   // Re-compute local hour with the DB-stored timezone if available
   if (profile?.timezone) {
@@ -331,7 +337,8 @@ export async function buildCoachingContext(
       COUNT(*)::text                     AS entry_count
     FROM water_logs
     WHERE user_id = ${userId}
-      AND DATE(intake_time AT TIME ZONE 'UTC') = CURRENT_DATE
+      AND intake_time >= ${hydrationDay.start.toISOString()}
+      AND intake_time <= ${hydrationDay.end.toISOString()}
   `);
 
   const hydRow = hydrationResult.rows[0];

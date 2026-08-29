@@ -288,7 +288,6 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "biometrics.addManual",
       "biometrics.updateWeight",
       "biometrics.logWater",
-      "biometrics.resetWater",
     ],
   },
 

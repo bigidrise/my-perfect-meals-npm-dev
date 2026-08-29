@@ -91,6 +91,10 @@ export interface User {
 
   nickname?: string | null;
 
+  timezone?: string | null;
+
+  timezoneUpdatedAt?: string | null;
+
   age?: number | null;
 
   height?: number | null;

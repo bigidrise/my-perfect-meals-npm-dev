@@ -1065,7 +1065,7 @@ export default function AntiInflammatoryMenuBuilder() {
   };
 
   // 🔧 FIX #2: Auto-reset macros at midnight in user's timezone
-  const userTimezone = "America/Chicago"; // Default timezone - could be enhanced with user preference
+  const userTimezone = user?.timezone || "UTC";
 
   useMidnightReset(userTimezone, () => {
     console.log("🌅 Midnight macro reset triggered");

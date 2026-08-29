@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -154,6 +154,15 @@ export default function BeverageCreator() {
   const quickTour = useQuickTour("beverage-creator");
   const { user } = useAuth();
   const userId = user?.id || "";
+  const hydrationHandoff = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("hydrationHandoff") !== "1") return null;
+    return {
+      interventionId: params.get("interventionId"),
+      barrier: params.get("barrier") || "practical hydration",
+      flavor: params.get("flavor") || "no_preference",
+    };
+  }, []);
 
   const [beverageCategory, setBeverageCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
@@ -265,6 +274,17 @@ export default function BeverageCreator() {
     document.title = "Beverage Creator | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  useEffect(() => {
+    if (!hydrationHandoff) return;
+    setBeverageCategory("hydration");
+    if (hydrationHandoff.flavor !== "no_preference") {
+      setFlavorFamily(hydrationHandoff.flavor);
+    }
+    setCustomBeverageDescription(
+      `A practical hydration drink idea for this barrier: ${hydrationHandoff.barrier.replaceAll("_", " ")}. Keep it simple and respect all saved dietary and safety constraints.`,
+    );
+  }, [hydrationHandoff]);
 
   // Write-back: whenever generatedBeverage is set (on mount-restore OR after a new generation)
   // and imageUrl is missing or still a data: URL, fetch the permanent S3 URL and write it
@@ -553,6 +573,14 @@ export default function BeverageCreator() {
           className="max-w-2xl mx-auto px-4 pb-24"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {hydrationHandoff && (
+            <div className="mb-4 rounded-xl border border-sky-300/30 bg-sky-950/70 p-4 text-white backdrop-blur">
+              <p className="text-sm font-semibold text-sky-100">Hydration Hub handoff</p>
+              <p className="mt-1 text-xs leading-relaxed text-sky-50/70">
+                Your practical need was carried here as context. Beverage Creator still applies its normal nutrition, diet, and safety checks.
+              </p>
+            </div>
+          )}
           {isDesktop && (
             <button
               onClick={() => setLocation("/lifestyle/beverage-hub")}

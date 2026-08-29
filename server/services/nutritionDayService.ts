@@ -22,11 +22,19 @@ import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 
-/** Validates IANA timezone names: alphanumeric, /, -, + only. */
-const SAFE_TZ_RE = /^[\w/+\-]+$/;
+/** Validates a real IANA timezone supported by this runtime. */
+export function isValidIanaTimezone(tz: unknown): tz is string {
+  if (typeof tz !== "string" || !tz.trim() || tz.length > 100) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-function sanitizeTz(tz: unknown): string {
-  if (typeof tz === "string" && SAFE_TZ_RE.test(tz)) return tz;
+export function sanitizeTz(tz: unknown): string {
+  if (isValidIanaTimezone(tz)) return tz;
   return "UTC";
 }
 
@@ -47,6 +55,15 @@ export async function getUserTimezone(userId: string): Promise<string> {
   } catch {
     return "UTC";
   }
+}
+
+export async function setUserTimezone(userId: string, timezone: string): Promise<string> {
+  if (!isValidIanaTimezone(timezone)) throw new Error("Invalid IANA timezone");
+  await db
+    .update(users)
+    .set({ timezone, timezoneUpdatedAt: new Date() })
+    .where(eq(users.id, userId));
+  return timezone;
 }
 
 /**
