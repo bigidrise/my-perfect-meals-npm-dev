@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Download, ArrowLeft, Building2 } from "lucide-react";
+import { Download, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import VisualCertificate from "@/components/certification/VisualCertificate";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface CertData {
   status: string;
@@ -72,12 +73,9 @@ export default function CertificationCertificateView() {
         className="flex items-center gap-3 px-4"
         style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
       >
-        <button
+        <AcademyBackButton
           onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/complete`)}
-          className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center active:scale-90 transition-transform"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </button>
+        />
         <p className="text-white font-semibold text-sm">Certification Record</p>
       </div>
 

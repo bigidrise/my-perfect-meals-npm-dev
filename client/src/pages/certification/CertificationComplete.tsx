@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Award, CheckCircle2, ChevronRight, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
+import { Award, CheckCircle2, ChevronRight, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -362,14 +363,11 @@ export default function CertificationComplete() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center max-w-2xl mx-auto">
-          <button
+          <AcademyBackButton
             onClick={() => setLocation("/business-center/affiliate/dashboard")}
+            label="Back to Dashboard"
             data-testid="button-back-affiliate-dashboard"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </button>
+          />
         </div>
       </div>
 

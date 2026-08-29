@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, BookOpen, CheckCircle2, Clock } from "lucide-react";
+import { BookOpen, CheckCircle2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { getModuleById, getCoachingModuleById, getMarketingModuleById } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 import { NarrationBar } from "@/components/NarrationBar";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 export default function CertificationLesson() {
   const [, setLocation] = useLocation();
@@ -43,8 +44,15 @@ export default function CertificationLesson() {
 
   if (!module) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
-        <p className="text-gray-400">Module not found.</p>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-black/55 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 max-w-2xl mx-auto">
+            <AcademyBackButton onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)} />
+          </div>
+        </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-400">Module not found.</p>
+        </div>
       </div>
     );
   }
@@ -64,13 +72,7 @@ export default function CertificationLesson() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
+          <AcademyBackButton onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)} />
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">{module.title}</h1>
             <p className="text-xs text-white/60">~{module.estimatedMinutes} min</p>

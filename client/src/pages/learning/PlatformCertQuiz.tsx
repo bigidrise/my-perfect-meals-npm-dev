@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, XCircle, ChevronRight, Award } from "lucide-react";
+import { XCircle, ChevronRight, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface QuizOption {
   id: string;
@@ -62,6 +63,11 @@ export default function PlatformCertQuiz() {
   const passingScore = module?.passingScorePct ?? 80;
   const moduleNum = getModuleNum(slug);
   const videoSlug = moduleNum ? `module-${moduleNum}` : null;
+  const quizBackTarget = isFinal
+    ? `/certifications/${certType}`
+    : videoSlug
+      ? `/certifications/${certType}/video/${videoSlug}`
+      : `/certifications/${certType}`;
 
   useEffect(() => {
     if (!slug) return;
@@ -137,17 +143,30 @@ export default function PlatformCertQuiz() {
 
   if (loading) {
     return (
-      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex items-center justify-center`}>
-        <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT}`}>
+        <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 max-w-2xl mx-auto">
+            <AcademyBackButton onClick={() => setLocation(`/certifications/${certType}`)} />
+          </div>
+        </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
+        </div>
       </div>
     );
   }
 
   if (questions.length === 0) {
     return (
-      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex flex-col items-center justify-center gap-4 px-4`}>
-        <p className="text-white/50 text-sm text-center">Quiz questions are being prepared for this module.</p>
-        <button onClick={() => setLocation(`/certifications/${certType}`)} className="px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-medium">Back to Overview</button>
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT}`}>
+        <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 max-w-2xl mx-auto">
+            <AcademyBackButton onClick={() => setLocation(`/certifications/${certType}`)} />
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-4 px-4 min-h-screen">
+          <p className="text-white/50 text-sm text-center">Quiz questions are being prepared for this module.</p>
+        </div>
       </div>
     );
   }
@@ -160,9 +179,7 @@ export default function PlatformCertQuiz() {
     >
       <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button onClick={() => setLocation(`/certifications/${certType}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
+          <AcademyBackButton onClick={() => setLocation(quizBackTarget)} />
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
               {phase === "taking" ? "Knowledge Check" : "Quiz Results"}

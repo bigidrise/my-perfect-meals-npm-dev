@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   GraduationCap,
   BookOpen,
   Award,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import type { AcademyProgression } from "@shared/academyProgression";
@@ -209,13 +209,7 @@ export default function AcademyHome() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation("/more")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-semibold active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
+          <AcademyBackButton onClick={() => setLocation("/more")} />
           <h1 className="text-base font-bold text-white">My Perfect Meals Academy</h1>
         </div>
       </div>
