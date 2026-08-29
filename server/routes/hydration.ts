@@ -282,7 +282,12 @@ router.put("/hydration/hub/preferences", requireAuth, async (req, res) => {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
     const input = hydrationHubPreferencesSchema.parse(req.body);
-    await saveHydrationPreferences({ userId, ...input });
+    await saveHydrationPreferences({
+      userId,
+      consented: input.consented!,
+      preferences: input.preferences ?? {},
+      optedOut: input.optedOut ?? false,
+    });
     res.json({ ok: true, consented: input.consented && !input.optedOut });
   } catch (error) {
     if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub preferences" });
@@ -313,7 +318,11 @@ router.post("/hydration/hub/help", requireAuth, async (req, res) => {
       barriers: z.array(z.enum(HYDRATION_BARRIER_CODES)).max(9).default([]),
       preferences: z.record(z.string(), z.unknown()).default({}),
     }).strict().parse(req.body);
-    const options = await createHydrationHelp({ userId, ...input });
+    const options = await createHydrationHelp({
+      userId,
+      barriers: input.barriers ?? [],
+      preferences: input.preferences ?? {},
+    });
     res.json({ options });
   } catch (error) {
     if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub help request" });
@@ -333,7 +342,8 @@ router.post("/hydration/hub/interventions/:interventionId/events", requireAuth, 
     const recorded = await recordHydrationInterventionEvent({
       userId,
       interventionId: req.params.interventionId,
-      ...input,
+      eventType: input.eventType!,
+      metadata: input.metadata,
     });
     if (!recorded) return res.status(404).json({ error: "Hydration intervention not found" });
     res.status(201).json({ ok: true });
