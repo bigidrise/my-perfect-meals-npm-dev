@@ -1,11 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { users } from "@shared/schema";
-import { userCertifications } from "../db/schema/certifications";
 import { db } from "../db";
 import { logAudit } from "../lib/auditLog";
 import { checkLegalAcceptance } from "./legalCheck";
 import { providerHasProCareStudioAccess } from "./procareProviderAccess";
 import { ensureStudioForTrainer, type EnsuredStudio } from "./studioBridge";
+import { getAcademyProgression } from "./academyProgression";
 
 export const STUDIO_PROVIDER_ROLES = [
   "trainer",
@@ -87,29 +87,12 @@ export async function getProviderStudioReadiness(
     };
   }
 
-  const certs = await db
-    .select({
-      certificationType: userCertifications.certificationType,
-      status: userCertifications.status,
-      completedAt: userCertifications.completedAt,
-      isCertificationTrack: userCertifications.isCertificationTrack,
-    })
-    .from(userCertifications)
-    .where(eq(userCertifications.userId, providerUserId));
-
-  const hasPhase1 = certs.some((cert) =>
-    cert.status === "completed" &&
-    !!cert.completedAt &&
-    (
-      cert.certificationType === "platform_mastery" ||
-      (cert.certificationType === "platform" && cert.isCertificationTrack === true)
-    )
-  );
-  if (!hasPhase1) {
+  const progression = await getAcademyProgression(providerUserId);
+  if (!progression.phase1.complete) {
     return {
       ok: false,
       code: "PHASE1_CERT_REQUIRED",
-      message: "Complete Phase 1 Academy certification before creating a Studio or inviting clients.",
+      message: "Complete Phase 1 — Platform Mastery before creating a Studio or inviting clients.",
     };
   }
 

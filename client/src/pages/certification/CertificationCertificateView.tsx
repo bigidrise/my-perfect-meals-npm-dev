@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Download, ArrowLeft } from "lucide-react";
+import { Download, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import VisualCertificate from "@/components/certification/VisualCertificate";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface CertData {
   status: string;
@@ -19,7 +20,7 @@ export default function CertificationCertificateView() {
   const params = useParams<{ pathId: string }>();
   const pathId = params.pathId ?? "social";
   const certType =
-    pathId === "marketing" ? "marketing_coaching" : `affiliate_${pathId}`;
+    pathId === "marketing" ? "mpm_specialist" : `affiliate_${pathId}`;
 
   const [cert, setCert] = useState<CertData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,12 +73,9 @@ export default function CertificationCertificateView() {
         className="flex items-center gap-3 px-4"
         style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
       >
-        <button
+        <AcademyBackButton
           onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/complete`)}
-          className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center active:scale-90 transition-transform"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </button>
+        />
         <p className="text-white font-semibold text-sm">Certification Record</p>
       </div>
 
@@ -140,10 +138,18 @@ export default function CertificationCertificateView() {
               </button>
 
               <button
-                onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
+                onClick={() => setLocation("/business-center/affiliate/dashboard")}
                 className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm active:scale-[0.98] transition-transform print:hidden"
               >
-                Back to Certification Dashboard
+                Back to Dashboard
+              </button>
+
+              <button
+                onClick={() => setLocation("/business-center")}
+                className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform print:hidden"
+              >
+                <Building2 className="h-4 w-4" />
+                Go to Business Suite
               </button>
             </motion.div>
           </>

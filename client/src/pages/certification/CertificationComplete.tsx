@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Award, CheckCircle2, ChevronRight, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
+import { Award, CheckCircle2, ChevronRight, Copy, Download, ExternalLink, FileText, Link2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -31,6 +32,8 @@ export default function CertificationComplete() {
   const pathId = params.pathId ?? "social";
   const certType =
     pathId === "marketing" ? "marketing_coaching" : `affiliate_${pathId}`;
+  const displayCertType =
+    pathId === "marketing" ? "mpm_specialist" : certType;
 
   // Practitioner roles require professional certification beyond the affiliate track.
   // business role and no role = affiliate-only path.
@@ -65,13 +68,13 @@ export default function CertificationComplete() {
   };
 
   useEffect(() => {
-    apiRequest(`/api/certifications/${certType}/progress`)
+    apiRequest(`/api/certifications/${displayCertType}/progress`)
       .then((data: any) => {
         if (data.certification) setCert(data.certification);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [certType]);
+  }, [displayCertType]);
 
   useEffect(() => {
     const isSocialTrack = pathId === "social";
@@ -117,7 +120,7 @@ export default function CertificationComplete() {
         body: JSON.stringify({ certificateName: name }),
         headers: { "Content-Type": "application/json" },
       });
-      const data: any = await apiRequest(`/api/certifications/${certType}/progress`);
+       const data: any = await apiRequest(`/api/certifications/${displayCertType}/progress`);
       if (data.certification) setCert(data.certification);
     } catch {
       setNameError("Failed to save. Please try again.");
@@ -131,7 +134,7 @@ export default function CertificationComplete() {
     setDownloading(true);
     try {
       const token = localStorage.getItem("mpm_auth_token");
-      const res = await fetch(`/api/certifications/${certType}/certificate`, {
+       const res = await fetch(`/api/certifications/${displayCertType}/certificate`, {
         headers: token ? { "x-auth-token": token } : {},
       });
       if (!res.ok) return;
@@ -183,7 +186,11 @@ export default function CertificationComplete() {
   const isSocialTrack = pathId === "social";
   const isBusinessTrack = pathId === "coaching";
   const certPathLabel =
-    isBusinessTrack ? "Business & Coaching Affiliate" : "Social & Referral Affiliate";
+    pathId === "marketing"
+      ? "Certified My Perfect Meals Specialist"
+      : isBusinessTrack
+        ? "Business & Coaching Affiliate"
+        : "Social & Referral Affiliate";
 
   const hasName = !!cert?.certificateName;
   const completedDate = cert?.completedAt
@@ -300,7 +307,7 @@ export default function CertificationComplete() {
         return (
           <>
             <button
-              onClick={() => setLocation("/procare-training")}
+              onClick={() => setLocation("/certifications/procare_certification")}
               className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
               <ChevronRight className="h-5 w-5" />
@@ -350,19 +357,17 @@ export default function CertificationComplete() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Back button */}
+      {/* Leave completion without returning through the certification flow */}
       <div
         className="sticky top-0 z-10 bg-black/55 backdrop-blur-md border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
+          <AcademyBackButton
+            onClick={() => setLocation("/business-center/affiliate/dashboard")}
+            label="Back to Dashboard"
+            data-testid="button-back-affiliate-dashboard"
+          />
         </div>
       </div>
 
@@ -549,14 +554,6 @@ export default function CertificationComplete() {
                 className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm active:scale-[0.98] transition-transform"
               >
                 Go to Business Suite
-              </button>
-
-              <button
-                onClick={() => setLocation(`/business-center/affiliate/${pathId}/certification/view`)}
-                className="w-full p-3 rounded-2xl bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-              >
-                <FileText className="h-4 w-4" />
-                View Certification Record
               </button>
 
               <p className="text-xs text-gray-400 leading-relaxed px-2 text-center">

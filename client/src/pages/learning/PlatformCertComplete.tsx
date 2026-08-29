@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Award, Download, ArrowLeft, Link2 } from "lucide-react";
+import { Award, Download, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -22,6 +23,7 @@ interface CertData {
 
 const CERT_LABELS: Record<string, string> = {
   platform: "Platform Certification",
+  procare_certification: "Certified My Perfect Meals Professional",
   business_success: "Business Success Certification",
 };
 
@@ -81,10 +83,19 @@ export default function PlatformCertComplete() {
     }
   };
 
+  const continueProCareSetup = () => setLocation("/procare-certified");
+
   if (loading) {
     return (
-      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex items-center justify-center`}>
-        <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT}`}>
+        <div className={`academy-navigation-header fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="px-4 py-3 max-w-2xl mx-auto">
+            <AcademyBackButton onClick={() => setLocation(`/certifications/${certType}`)} />
+          </div>
+        </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="w-8 h-8 border-2 border-orange-400/40 border-t-orange-400 rounded-full animate-spin" />
+        </div>
       </div>
     );
   }
@@ -95,11 +106,9 @@ export default function PlatformCertComplete() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className={`academy-navigation-header fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button onClick={() => setLocation(`/certifications/${certType}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
+          <AcademyBackButton onClick={() => setLocation(`/certifications/${certType}`)} />
           <h1 className="text-base font-bold text-white">{CERT_LABELS[certType] ?? "Certification"}</h1>
         </div>
       </div>
@@ -212,7 +221,7 @@ export default function PlatformCertComplete() {
           {downloading ? "Downloading…" : "Download Certificate (PDF)"}
         </motion.button>
 
-        {certType === "platform" && (
+        {certType === "procare_certification" && (
           <motion.div
             className="p-5 rounded-2xl bg-orange-900/20 border border-orange-500/30 text-center space-y-3"
             initial={{ opacity: 0, y: 8 }}
@@ -220,16 +229,16 @@ export default function PlatformCertComplete() {
             transition={{ delay: 0.35 }}
           >
             <p className="text-sm font-bold text-white">
-              Congratulations! You've Mastered Phase 1 — Platform Fundamentals.
+              Your ProCare course is complete.
             </p>
             <p className="text-xs text-white/60 leading-relaxed">
-              Now let's learn how to build and grow your professional business using ProCare.
+              Your Professional credential is ready. Continue to enter your Care Team and Studio workspace.
             </p>
             <button
-              onClick={() => setLocation("/procare-training")}
+              onClick={continueProCareSetup}
               className="w-full p-4 rounded-xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
-              Begin Phase 2 — Business & ProCare Success
+              Continue to Care Team & Studio
               <span className="text-base">→</span>
             </button>
           </motion.div>

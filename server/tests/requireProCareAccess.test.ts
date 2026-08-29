@@ -62,6 +62,32 @@ describe("requireProCareAccess — production billing enforcement", () => {
     });
   });
 
+  it("allows an explicit active Pilot ProCare entitlement without changing the plan", async () => {
+    const result = await invokeGate({
+      id: "pilot-provider",
+      accessTier: "PAID_FULL",
+      planLookupKey: "mpm_ultimate_monthly",
+      pilotProCareAccess: true,
+      isFounder: false,
+    }, true);
+    expect(result.nextCalled).toBe(true);
+  });
+
+  it("rejects generic no-plan trial access from Studio", async () => {
+    const result = await invokeGate({
+      id: "generic-trial",
+      accessTier: "PAID_FULL",
+      planLookupKey: null,
+      pilotProCareAccess: false,
+      isFounder: false,
+    }, true);
+    expect(result).toMatchObject({
+      nextCalled: false,
+      statusCode: 403,
+      body: { code: "PROCARE_SUBSCRIPTION_REQUIRED" },
+    });
+  });
+
   it("rejects a non-clinical sponsored business seat", async () => {
     const result = await invokeGate({
       id: "sponsored-staff",
@@ -96,6 +122,17 @@ describe("requireProCareAccess — production billing enforcement", () => {
       accessTier: "PAID_FULL",
       planLookupKey: "mpm_ultimate_monthly",
       isFounder: true,
+    }, true);
+    expect(result.nextCalled).toBe(true);
+  });
+
+  it("allows an explicit internal sandbox account without a Stripe plan", async () => {
+    const result = await invokeGate({
+      id: "dummy-trainer",
+      accessTier: "PAID_FULL",
+      planLookupKey: null,
+      isSandbox: true,
+      isFounder: false,
     }, true);
     expect(result.nextCalled).toBe(true);
   });

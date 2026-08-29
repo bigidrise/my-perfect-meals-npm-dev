@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   GraduationCap,
   BookOpen,
   Award,
@@ -14,8 +13,10 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import type { AcademyProgression } from "@shared/academyProgression";
 
 const PLATFORM_MASTERY_LESSONS = [
   { num: 1, title: "Your Profile & Nutrition Protocol", subtitle: "Setting up your dietary identity and health constraints" },
@@ -32,7 +33,7 @@ const PLATFORM_MASTERY_LESSONS = [
 const BECOME_CERTIFIED = [
   { icon: "🎓", label: "Platform Mastery", desc: "9 modules · Workflow exercises · Quiz", route: "/academy/platform-mastery/lesson/lesson-01" },
   { icon: "📈", label: "Marketing & Coaching", desc: "5 lessons · Coaching philosophy · Quiz", route: "/business-center/affiliate/marketing/certification" },
-  { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment", route: null },
+  { icon: "🩺", label: "ProCare Certification", desc: "3 videos · 3 quizzes · Final assessment", route: "/certifications/procare_certification" },
 ];
 
 const SPECIALIZE = [
@@ -56,18 +57,18 @@ export default function AcademyHome() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const [status, setStatus] = useState<AcademyStatus | null>(null);
-  const [marketingCertStatus, setMarketingCertStatus] = useState<string>("not_started");
+  const [progression, setProgression] = useState<AcademyProgression | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     Promise.all([
       apiRequest("/api/academy/platform-mastery/status"),
-      apiRequest("/api/certifications/marketing_coaching/progress").catch(() => null),
+      apiRequest("/api/certifications/academy-progression").catch(() => null),
     ])
-      .then(([acad, mkt]) => {
+      .then(([acad, resolved]) => {
         setStatus(acad as AcademyStatus);
-        setMarketingCertStatus((mkt as any)?.status ?? "not_started");
+        setProgression(resolved as AcademyProgression | null);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -79,21 +80,28 @@ export default function AcademyHome() {
   }).length;
 
   const allDone = completedLessons === PLATFORM_MASTERY_LESSONS.length;
-  const isPlatformCertified = status?.certStatus === "completed";
+  const isPlatformCertified = progression?.phase1.complete ?? allDone;
   // Finishing all required lessons unlocks the next certification in both
   // Learning Mode and Certification Mode. Claiming the named Platform Mastery
   // certificate remains a separate action with its own quiz requirements.
   const hasCompletedPlatformRequirement = isPlatformCertified || allDone;
   // Keep legacy alias for backward compat within this file
   const isCertified = isPlatformCertified;
-  const isMarketingCertified = marketingCertStatus === "completed";
+  const isMarketingCertified = progression?.phase2.complete ?? false;
   // Core certified = Platform Mastery + Marketing & Coaching complete
-  const isCoreCertified = isPlatformCertified && isMarketingCertified;
+  const isCoreCertified = progression?.specialist.eligible ?? false;
   // ProCare workspace: they already have a professional account set up
   const hasProCareWorkspace =
     user?.professionalRole === "trainer" || user?.professionalRole === "physician";
   // ProCare eligible: server-confirmed active ProCare subscription (not inferred from cert)
   const proCareEligible = user?.proCareEligible ?? false;
+
+  function getNextCertificationStep(): { route: string; label: string } {
+    return progression?.nextStep ?? {
+      route: "/academy/platform-mastery/lesson/lesson-01",
+      label: "Start Platform Mastery",
+    };
+  }
 
   const nextLesson = PLATFORM_MASTERY_LESSONS.find((l) => {
     const id = `lesson-0${l.num}`;
@@ -119,7 +127,12 @@ export default function AcademyHome() {
     if (loading) return null;
 
     // State 5: Both done + ProCare workspace already exists
-    if (isCoreCertified && hasProCareWorkspace) {
+    if (
+      isCoreCertified &&
+      progression?.proCare.eligible &&
+      progression.proCare.complete &&
+      hasProCareWorkspace
+    ) {
       return (
         <button
           onClick={() => setLocation("/procare-welcome")}
@@ -143,14 +156,16 @@ export default function AcademyHome() {
               <p className="text-xs text-emerald-300/60 mt-0.5">Core certification complete — you're all set.</p>
             </div>
           </div>
+          {progression?.proCare.eligible && (
           <button
-            onClick={() => setLocation("/procare-welcome")}
+            onClick={() => setLocation(progression.nextStep.route)}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
           >
             <GraduationCap className="h-4 w-4 text-orange-400" />
             Continue to ProCare Certification
             <ChevronRight className="h-4 w-4 opacity-50" />
           </button>
+          )}
         </div>
       );
     }
@@ -190,17 +205,11 @@ export default function AcademyHome() {
       transition={{ duration: 0.3 }}
     >
       <div
-        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+        className={`academy-navigation-header fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation("/more")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-semibold active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
+          <AcademyBackButton onClick={() => setLocation("/more")} />
           <h1 className="text-base font-bold text-white">My Perfect Meals Academy</h1>
         </div>
       </div>
@@ -343,11 +352,11 @@ export default function AcademyHome() {
               </button>
             ) : allDone && !status?.isCertificationTrack ? (
               <button
-                onClick={() => setLocation("/academy/platform-mastery")}
+                onClick={() => setLocation(getNextCertificationStep().route)}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
               >
-                <Award className="h-4 w-4 text-orange-400" />
-                All Lessons Complete — View Options
+                <GraduationCap className="h-4 w-4 text-orange-400" />
+                {getNextCertificationStep().label}
                 <ChevronRight className="h-4 w-4 opacity-50" />
               </button>
             ) : null}
@@ -379,7 +388,7 @@ export default function AcademyHome() {
               const itemDone =
                 i === 0 ? hasCompletedPlatformRequirement :
                 i === 1 ? isMarketingCertified :
-                false; // ProCare cert tracked separately; show as optional
+                progression?.proCare.complete ?? false;
               const locked =
                 i === 1 ? !hasCompletedPlatformRequirement :
                 i === 2 ? !isMarketingCertified :

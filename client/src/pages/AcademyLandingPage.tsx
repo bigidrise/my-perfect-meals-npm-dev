@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   GraduationCap,
   Users,
   CheckCircle2,
@@ -28,9 +27,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import type { AcademyProgression } from "@shared/academyProgression";
 
 function certBadge(score: number | null | undefined) {
   if (score == null) return null;
@@ -158,6 +159,8 @@ export default function AcademyLandingPage() {
   });
 
   const [showMarketingModal, setShowMarketingModal] = useState(false);
+  const [academyProgression, setAcademyProgression] =
+    useState<AcademyProgression | null>(null);
   const [joiningWaitlist, setJoiningWaitlist] = useState(false);
 
   const [lessonStatuses, setLessonStatuses] = useState<LessonStatus[]>(
@@ -195,31 +198,25 @@ export default function AcademyLandingPage() {
     }
     (async () => {
       try {
-        const [p1Res, p2Res, mcRes] = await Promise.allSettled([
-          apiRequest("/api/certifications/phase1-status"),
-          apiRequest("/api/certifications/procare_training/progress"),
+        const [progressionRes, mcRes] = await Promise.allSettled([
+          apiRequest("/api/certifications/academy-progression"),
           apiRequest("/api/certifications/marketing_coaching/progress"),
         ]);
 
-        const phase1Done =
-          p1Res.status === "fulfilled" &&
-          (p1Res.value as any)?.phase1Complete === true;
-        const phase1Score =
-          p1Res.status === "fulfilled"
-            ? ((p1Res.value as any)?.certification?.score ?? null)
+        const resolved =
+          progressionRes.status === "fulfilled"
+            ? (progressionRes.value as AcademyProgression)
             : null;
-        const phase2Done =
-          p2Res?.status === "fulfilled" &&
-          (p2Res.value as any)?.certification?.status === "completed";
+        setAcademyProgression(resolved);
         const mcStatus: MarketingStatus =
           mcRes.status === "fulfilled"
             ? (((mcRes.value as any)?.certification?.status ?? "unknown") as MarketingStatus)
             : "unknown";
         setProgress({
           personalDone: !!user?.onboardingCompletedAt,
-          phase1Done,
-          phase1Score,
-          phase2Done,
+          phase1Done: resolved?.phase1.complete ?? false,
+          phase1Score: null,
+          phase2Done: resolved?.proCare.complete ?? false,
           marketingStatus: mcStatus,
           loading: false,
         });
@@ -233,12 +230,33 @@ export default function AcademyLandingPage() {
     (s) => s === "in_progress" || s === "completed"
   );
 
-  const allRequired = progress.personalDone && progress.phase1Done && progress.phase2Done && progress.marketingStatus === "completed";
+  const allRequired =
+    academyProgression?.specialist.complete === true ||
+    academyProgression?.specialist.eligible === true;
   const badge = allRequired ? certBadge(progress.phase1Score) : null;
 
   const marketingDone = progress.marketingStatus === "completed";
   const marketingInProgress = progress.marketingStatus === "in_progress";
   const marketingWaitlisted = progress.marketingStatus === "waitlisted";
+
+  function getContinueLearningDestination(): { route: string; label: string } {
+    const nextLessonIndex = lessonStatuses.findIndex((s) => s !== "completed");
+    if (nextLessonIndex !== -1) {
+      return {
+        route: `/academy/platform-mastery/lesson/lesson-0${nextLessonIndex + 1}`,
+        label: hasAnyLessonProgress ? "Continue Learning" : "Start Learning",
+      };
+    }
+
+    if (academyProgression) {
+      return {
+        route: academyProgression.nextStep.route,
+        label: academyProgression.nextStep.label,
+      };
+    }
+
+    return { route: "/academy", label: "View Academy Progress" };
+  }
 
   function marketingSublabel() {
     if (marketingDone) return "Completed";
@@ -276,13 +294,7 @@ export default function AcademyLandingPage() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-            <button
-              onClick={() => setLocation("/business-center/partners")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Partner Programs
-            </button>
+            <AcademyBackButton onClick={() => setLocation("/business-center/partners")} label="Partner Programs" />
             <h1 className="text-lg font-bold text-white">MPM Academy</h1>
           </div>
         </div>
@@ -292,13 +304,7 @@ export default function AcademyLandingPage() {
         className="px-4 max-w-2xl mx-auto space-y-5"
         style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
-        <button
-          onClick={() => setLocation("/business-center/partners")}
-          className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Partner Programs
-        </button>
+        <AcademyBackButton onClick={() => setLocation("/business-center/partners")} label="Partner Programs" />
 
         {/* Hero */}
         <motion.div
@@ -423,15 +429,11 @@ export default function AcademyLandingPage() {
 
           <div className="px-5 py-4 bg-orange-500/8 border-t border-orange-500/20">
             <button
-              onClick={() => {
-                const idx = lessonStatuses.findIndex((s) => s !== "completed");
-                const num = idx === -1 ? 1 : idx + 1;
-                setLocation(`/academy/platform-mastery/lesson/lesson-0${num}`);
-              }}
+              onClick={() => setLocation(getContinueLearningDestination().route)}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
             >
               <BookOpen className="h-4 w-4" />
-              {hasAnyLessonProgress ? "Continue Learning" : "Start Learning"}
+              {getContinueLearningDestination().label}
               <ChevronRight className="h-4 w-4 opacity-70" />
             </button>
             <p className="text-center text-white/30 text-xs mt-2">
@@ -498,7 +500,7 @@ export default function AcademyLandingPage() {
                   sublabel="3 training videos"
                   done={progress.phase2Done}
                   available
-                  onGo={() => setLocation("/procare-training")}
+                  onGo={() => setLocation("/certifications/procare_certification")}
                 />
               </>
             )}
@@ -508,7 +510,7 @@ export default function AcademyLandingPage() {
             <div className="px-5 pb-4 pt-2 border-t border-white/8 space-y-3">
               <div className="p-3 rounded-xl bg-white/[0.04] border border-white/8">
                 <p className="text-xs text-white/50 leading-relaxed text-center">
-                  Complete all three to earn:{" "}
+                  Phase 1 and Phase 2 earn the Specialist credential. Complete Phase 3 to earn:{" "}
                   <span className="text-orange-300 font-semibold">
                     Certified My Perfect Meals Professional
                   </span>

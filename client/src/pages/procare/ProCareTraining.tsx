@@ -245,8 +245,16 @@ export default function ProCareTraining() {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl border border-red-400/30 bg-red-900/20">
+          <div className="mb-4 p-4 rounded-xl border border-red-400/30 bg-red-900/20 space-y-3">
             <p className="text-sm text-red-300">{error}</p>
+            {error.toLowerCase().includes("procare") && (
+              <button
+                onClick={() => setLocation("/pricing#procare-professional")}
+                className="w-full py-2.5 px-4 rounded-xl bg-white/10 border border-white/15 text-white text-sm font-semibold active:scale-[0.98]"
+              >
+                View ProCare Professional Plans
+              </button>
+            )}
           </div>
         )}
 

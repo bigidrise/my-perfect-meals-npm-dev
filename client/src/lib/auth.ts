@@ -66,6 +66,7 @@ export interface User {
   selectedMealBuilder?: MealBuilderType | null;
 
   isTester?: boolean;
+  isSandbox?: boolean;
 
   accessTier?: AccessTier;
 

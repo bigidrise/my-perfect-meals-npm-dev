@@ -30,6 +30,7 @@ export function canProviderAccessProCareStudio(
     {
       ...provider,
       planLookupKey: effectiveAccess.planLookupKey,
+      hasPilotProCareAccess: effectiveAccess.pilotProCareAccess,
     },
     new Date(),
   );
@@ -40,7 +41,11 @@ export function canProviderAccessProCareStudio(
     planLookupKey: effectiveAccess.planLookupKey,
     sponsoredByBusinessId: effectiveAccess.sponsoredByBusinessId,
     sponsoredProCareAccess: effectiveAccess.sponsoredProCareAccess,
-    isInternalAccount: provider.isFounder === true,
+    pilotProCareAccess: effectiveAccess.pilotProCareAccess,
+    isInternalAccount:
+      provider.isFounder === true ||
+      provider.isSandbox === true ||
+      provider.isTester === true,
   });
 }
 

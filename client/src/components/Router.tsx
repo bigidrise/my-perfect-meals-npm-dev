@@ -286,16 +286,21 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
       apiRequest("/api/certifications/phase1-status")
         .then((res: any) => {
           const phase1Complete = res?.phase1Complete === true;
+          const proCareCertificationComplete =
+            res?.proCareCertificationComplete === true;
           if (!phase1Complete) {
             setCertified(false);
             certifiedRef.current = false;
             // Route directly into the certification flow, not the launchpad
             setLocation("/professional-onboarding-bridge");
-          } else if (user?.phase2GateEnabled && !user?.procareTrainingCompleted) {
+          } else if (
+            user?.phase2GateEnabled &&
+            !proCareCertificationComplete
+          ) {
             setCertified(false);
             certifiedRef.current = false;
             // Phase 1 done, Phase 2 required — go directly into Phase 2
-            setLocation("/procare-training");
+            setLocation("/certifications/procare_certification");
           } else {
             setCertified(true);
             certifiedRef.current = true;
@@ -312,7 +317,7 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
           // On polling errors, keep current state — don't kick out on transient failures
         });
     },
-    [user?.id, user?.procareTrainingCompleted, user?.phase2GateEnabled, requireAcademy]
+    [user?.id, user?.phase2GateEnabled, requireAcademy]
   );
 
   // Wait for org config to load before making cert decision to avoid premature redirects
@@ -384,7 +389,6 @@ import ProCareIdentity from "@/pages/procare/ProCareIdentity";
 import ProCareAttestation from "@/pages/procare/ProCareAttestation";
 import ProCareRewards from "@/pages/procare/ProCareRewards";
 import ProLaunchpad from "@/pages/procare/ProLaunchpad";
-import ProCareTraining from "@/pages/procare/ProCareTraining";
 import ProfessionalOnboardingBridge from "@/pages/procare/ProfessionalOnboardingBridge";
 import CertifiedProfessionalUnlock from "@/pages/procare/CertifiedProfessionalUnlock";
 // DELETED: CommunityTestPage, CommunityPage (no page component exists)
@@ -707,6 +711,16 @@ const GuardedAdminCertifications = () => <AdminGuard component={AdminCertificati
 const GuardedAdminCampaignManager = () => <AdminGuard component={AdminCampaignManager} />;
 const GuardedBugReportsDashboard = () => <AdminGuard component={BugReportsDashboard} />;
 
+function LegacyProCareTrainingRedirect() {
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    setLocation("/certifications/procare_certification");
+  }, [setLocation]);
+
+  return null;
+}
+
 export default function Router() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
@@ -948,7 +962,7 @@ export default function Router() {
         <Route path="/professional-dashboard" component={ProLaunchpad} />
         <Route path="/professional-onboarding-bridge" component={ProfessionalOnboardingBridge} />
         <Route path="/procare-certified" component={CertifiedProfessionalUnlock} />
-        <Route path="/procare-training" component={ProCareTraining} />
+        <Route path="/procare-training" component={LegacyProCareTrainingRedirect} />
         <Route path="/ace-profile" component={lazy(() => import("@/pages/AceProfilePage"))} />
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/welcome" component={lazy(() => import("@/pages/CoachCornerWelcome"))} />}
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/intake" component={lazy(() => import("@/pages/CoachCornerIntake"))} />}

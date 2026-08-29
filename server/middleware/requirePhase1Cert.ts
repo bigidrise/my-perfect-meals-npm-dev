@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { userCertifications } from "../db/schema/certifications";
-import { eq, and, isNotNull, or } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
+import { getAcademyProgression } from "../services/academyProgression";
 
 /**
  * requirePhase1Cert — ProCare Studio gate (Phase 1 Academy)
  *
  * Blocks ProCare Studio and client-management API routes until the professional
- * has completed Phase 1 Academy certification (certificationType = "platform",
+ * has completed Phase 1 — Platform Mastery (certificationType = "platform",
  * status = "completed", completedAt set).
  *
  * Gate is skipped for:
@@ -101,36 +101,15 @@ export async function requirePhase1Cert(
       return;
     }
 
-    // Check Phase 1 certification. Accepts:
-    //   - "platform_mastery" records (current Academy cert type, any cert-track flag)
-    //   - "platform" records with is_certification_track=true (legacy Academy completions)
-    // Plain "platform" records without cert-track flag are ProCare training records
-    // and must NOT satisfy the Phase 1 Academy gate.
-    const certs = await db
-      .select({ status: userCertifications.status, completedAt: userCertifications.completedAt })
-      .from(userCertifications)
-      .where(
-        and(
-          eq(userCertifications.userId, authUser.id),
-          or(
-            eq(userCertifications.certificationType, "platform_mastery"),
-            and(
-              eq(userCertifications.certificationType, "platform"),
-              eq(userCertifications.isCertificationTrack, true)
-            )
-          )
-        )
-      );
-
-    const phase1Complete = certs.some(
-      (c) => c.status === "completed" && !!c.completedAt
-    );
-
-    if (!phase1Complete) {
+    // Academy progression is the single source of truth. It recognizes all
+    // nine completed Platform Mastery lessons as Phase 1 completion while
+    // retaining the resolver's existing legacy compatibility.
+    const progression = await getAcademyProgression(authUser.id);
+    if (!progression.phase1.complete) {
       res.status(403).json({
         error: "PHASE1_CERT_REQUIRED",
         message:
-          "ProCare Studio access is locked until you have completed Phase 1 Academy certification. Visit /pro-launchpad to continue.",
+          "ProCare Studio access is locked until you have completed Phase 1 — Platform Mastery. Visit /pro-launchpad to continue.",
         redirectTo: "/pro-launchpad",
       });
       return;

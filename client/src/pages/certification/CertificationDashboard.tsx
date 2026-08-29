@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, X, PlayCircle } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Lock, Award, X, PlayCircle, Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AFFILIATE_MODULES, COACHING_MODULES, MARKETING_COACHING_MODULES } from "@/data/affiliateCertification";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface ModuleProgress {
   moduleId: string;
@@ -61,13 +62,20 @@ export default function CertificationDashboard() {
       const json = await apiRequest(
         `/api/certifications/${certType}/progress?_t=${Date.now()}`
       );
+      if (pathId === "marketing" && json.certification?.status === "completed") {
+        setLocation(
+          `/business-center/affiliate/${pathId}/certification/complete`,
+          { replace: true },
+        );
+        return;
+      }
       setData(json);
     } catch {
       setData((prev) => prev ?? { certification: null, moduleProgress: [] });
     } finally {
       setLoading(false);
     }
-  }, [certType]);
+  }, [certType, pathId, setLocation]);
 
   // Only load once auth is established — prevents 401 race on hard reload
   useEffect(() => {
@@ -170,21 +178,25 @@ export default function CertificationDashboard() {
     >
       {/* Header */}
       <div
-        className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+        className={`academy-navigation-header fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setLocation(`/business-center/affiliate/${pathId}`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
+          <AcademyBackButton
+            onClick={() => setLocation(pathId === "marketing" ? "/academy" : `/business-center/affiliate/${pathId}`)}
+            label={pathId === "marketing" ? "Academy" : "Back"}
+          />
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">Affiliate Certification</h1>
             <p className="text-xs text-white/60">{certPathLabel} Path</p>
           </div>
+          <button
+            onClick={() => setLocation("/business-center")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
+          >
+            <Building2 className="h-4 w-4" />
+            Business Suite
+          </button>
         </div>
       </div>
 

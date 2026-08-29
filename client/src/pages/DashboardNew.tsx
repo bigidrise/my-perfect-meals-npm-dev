@@ -203,10 +203,16 @@ export default function DashboardNew() {
         cache: "no-store",
       });
       if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 401) {
           // Token was invalidated — stop polling and signal auth context to sign out
           console.warn("⚠️ [DashboardNew] Tablet poll got 401 — dispatching auth-rejected");
           window.dispatchEvent(new CustomEvent("mpm:polling-auth-rejected"));
+          return;
+        }
+        if (res.status === 403) {
+          // The session is still valid; this account simply cannot read the
+          // tablet endpoint. Do not turn a feature denial into a logout.
+          setTabletError("You do not have access to client messages");
           return;
         }
         if (res.status === 404) setTabletError("No active coach connection");

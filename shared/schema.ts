@@ -676,6 +676,8 @@ export const trialAccessInvites = pgTable("trial_access_invites", {
   activatedAt: timestamp("activated_at", { withTimezone: true }),
   activatedUserId: varchar("activated_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  pilotGrantId: uuid("pilot_grant_id"),
+  providerUserId: varchar("provider_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
 }, (table) => ({
   emailHistoryIdx: index("trial_access_invites_email_history_idx").on(table.normalizedEmail, table.invitedAt),
   activatedUserIdx: index("trial_access_invites_activated_user_idx").on(table.activatedUserId),

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileText, ChevronRight } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Lock, Award, PlayCircle, FileText, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { parseLessonParam } from "@/lib/parseLessonParam";
 import { resolveScrollTarget, LESSON_MODULE_TYPES } from "@/lib/resolveScrollTarget";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { useAuth } from "@/contexts/AuthContext";
+import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
+import { AcademyBackButton } from "@/components/AcademyBackButton";
 
 interface CertModule {
   id: string;
@@ -42,6 +44,7 @@ interface CertData {
 
 const CERT_LABELS: Record<string, { title: string; subtitle: string }> = {
   platform: { title: "ProCare Certification", subtitle: "MPM Professional Training" },
+  procare_certification: { title: "ProCare Certification", subtitle: "MPM Professional Training" },
   business_success: { title: "Business Success Certification", subtitle: "MPM Affiliate & Partner Training" },
 };
 
@@ -100,7 +103,7 @@ export default function PlatformCertDashboard() {
 
   useEffect(() => { if (user) load(); }, [user, load]);
 
-  // Gate: professionals must complete personal onboarding before Phase 1 certification
+  // Gate: professionals must complete personal onboarding before Phase 1 — Platform Mastery
   useEffect(() => {
     if (!user) return;
     if (user.professionalRole && !user.onboardingCompletedAt && certType === "platform") {
@@ -198,7 +201,16 @@ export default function PlatformCertDashboard() {
         headers: { "Content-Type": "application/json" },
       });
       if ((json as { ok: boolean }).ok) {
-        setLocation(`/certifications/${certType}/complete`);
+        if (certType === "procare_certification") {
+          setLocation(
+            createProfessionalLegalRecoveryUrl(
+              `/certifications/${certType}/complete`,
+              "professional-workspace",
+            ),
+          );
+        } else {
+          setLocation(`/certifications/${certType}/complete`);
+        }
       }
     } catch { } finally {
       setNameSaving(false);
@@ -211,11 +223,9 @@ export default function PlatformCertDashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className={`academy-navigation-header fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-          <button onClick={() => setLocation("/business-center/academy")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
-            <ArrowLeft className="h-4 w-4" /> Academy
-          </button>
+          <AcademyBackButton onClick={() => setLocation("/business-center/academy")} label="Academy" />
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">{meta.title}</h1>
             <p className="text-xs text-white/50">{meta.subtitle}</p>

@@ -61,6 +61,23 @@ type TrialGrant = {
   granted_by_email: string | null;
 };
 
+type PilotProCareStatus = {
+  activeGrant: null | {
+    id: string;
+    startsAt: string;
+    endsAt: string;
+    seatLimit: number;
+    reason: string;
+  };
+  usedSeats: number;
+  clients: Array<{
+    id: string;
+    normalizedEmail: string;
+    activatedAt: string | null;
+    revokedAt: string | null;
+  }>;
+};
+
 function useAdminAction() {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -102,6 +119,16 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
   const [grants, setGrants] = useState<TrialGrant[]>([]);
   const [grantsLoading, setGrantsLoading] = useState(false);
   const [grantsLoaded, setGrantsLoaded] = useState(false);
+  const [pilot, setPilot] = useState<PilotProCareStatus | null>(null);
+  const [pilotBusy, setPilotBusy] = useState(false);
+  const [pilotClientEmail, setPilotClientEmail] = useState("");
+
+  const loadPilot = useCallback(async () => {
+    const response = await fetch(apiUrl(`/api/admin/users/${user.id}/pilot-procare`), { headers: getAuthHeaders() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not load Pilot ProCare status");
+    setPilot(data);
+  }, [user.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,8 +150,31 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
       .finally(() => {
         if (!cancelled) setGrantsLoading(false);
       });
+    void loadPilot().catch((e) => {
+      toast({ title: "Could not load Pilot ProCare status", description: e.message, variant: "destructive" });
+    });
     return () => { cancelled = true; };
-  }, [user.id]);
+  }, [user.id, loadPilot, toast]);
+
+  const pilotAction = async (path: string, body: Record<string, unknown>) => {
+    setPilotBusy(true);
+    try {
+      const response = await fetch(apiUrl(`/api/admin/users/${user.id}/pilot-procare/${path}`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Pilot action failed");
+      setPilotClientEmail("");
+      await loadPilot();
+      toast({ title: "Pilot ProCare updated" });
+    } catch (e: any) {
+      toast({ title: "Pilot ProCare action failed", description: e.message, variant: "destructive" });
+    } finally {
+      setPilotBusy(false);
+    }
+  };
 
   const actions = [
     {
@@ -273,6 +323,58 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
               );
             })}
           </div>
+        </div>
+
+        <div className="border-t border-white/10 pt-4 space-y-3">
+          <p className="text-xs text-white/30 uppercase tracking-wide">Private Pilot ProCare</p>
+          {pilot?.activeGrant ? (
+            <>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <span className="text-white/40">Status</span><span className="text-green-400">Active</span>
+                <span className="text-white/40">Expires</span><span className="text-white/70">{new Date(pilot.activeGrant.endsAt).toLocaleDateString()}</span>
+                <span className="text-white/40">Client seats</span><span className="text-white/70">{pilot.usedSeats} / {pilot.activeGrant.seatLimit}</span>
+                <span className="text-white/40">Reason</span><span className="text-white/70">{pilot.activeGrant.reason}</span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={pilotClientEmail}
+                  onChange={(event) => setPilotClientEmail(event.target.value)}
+                  placeholder="client@example.com"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+                />
+                <button
+                  disabled={pilotBusy || !pilotClientEmail.trim()}
+                  onClick={() => pilotAction("clients", { email: pilotClientEmail, durationDays: 30 })}
+                  className="px-3 py-2 rounded-lg text-xs bg-sky-700 hover:bg-sky-600 disabled:opacity-50 text-white"
+                >
+                  Add client
+                </button>
+              </div>
+              <button
+                disabled={pilotBusy}
+                onClick={() => {
+                  const reason = window.prompt("Reason for revoking this pilot?");
+                  if (reason?.trim()) void pilotAction("revoke", { reason });
+                }}
+                className="px-3 py-2 rounded-lg text-xs bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white"
+              >
+                Revoke pilot
+              </button>
+            </>
+          ) : (
+            <button
+              disabled={pilotBusy}
+              onClick={() => {
+                const reason = window.prompt("Reason for this private pilot grant?");
+                if (reason?.trim()) void pilotAction("grant", { reason, durationDays: 30, seatLimit: 5 });
+              }}
+              className="px-3 py-2 rounded-lg text-xs bg-violet-700 hover:bg-violet-600 disabled:opacity-50 text-white"
+            >
+              Grant 30-day pilot (5 seats)
+            </button>
+          )}
+          <p className="text-xs text-white/40">This does not change the user’s Stripe plan. Studio readiness, training, professional role, MFA, and legal gates still apply.</p>
         </div>
 
         {/* Trial Grant History */}

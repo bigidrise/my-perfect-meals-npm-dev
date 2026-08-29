@@ -1,5 +1,12 @@
 import { pgTable, uuid, text, timestamp, integer, boolean, unique, jsonb } from "drizzle-orm/pg-core";
 
+export type CertificationAttemptAnswers =
+  | Record<string, number>
+  | {
+      assessmentId: string;
+      submittedAnswers: Record<string, string>;
+    };
+
 // NOTE: user_certifications has a unique constraint on (user_id, certification_type)
 // added via migration (not drizzle-kit push — that tool times out on this project).
 // Constraint name: uniq_user_cert_type
@@ -44,7 +51,7 @@ export const certificationQuizAttempts = pgTable("certification_quiz_attempts", 
   certificationType: text("certification_type").notNull(),
   moduleId: text("module_id").notNull(),
   status: text("status").notNull().default("in_progress"),
-  answersJson: jsonb("answers_json").$type<Record<string, number>>().default({}),
+  answersJson: jsonb("answers_json").$type<CertificationAttemptAnswers>().default({}),
   score: integer("score"),
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
   completedAt: timestamp("completed_at", { withTimezone: true }),

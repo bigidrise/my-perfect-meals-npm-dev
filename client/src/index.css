@@ -1316,6 +1316,19 @@ button, a, [role="button"], .interactive {
   display: none !important;
 }
 
+/* Academy and certification pages own contextual navigation that must remain
+   visible on desktop. Their mobile headers are fixed, but inside DesktopLayout
+   they participate in the page flow as sticky course-navigation bars. */
+@media (min-width: 1024px) {
+  .desktop-content .fixed.top-0.z-50.academy-navigation-header {
+    display: block !important;
+    position: sticky !important;
+    top: 0 !important;
+    left: auto !important;
+    right: auto !important;
+  }
+}
+
 .desktop-content {
   --safe-area-inset-top: 0px;
   --safe-area-inset-bottom: 0px;
