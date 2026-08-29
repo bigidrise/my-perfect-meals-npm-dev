@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   addHydrationWater,
   createHydrationHelp,
+  createHydrationHandoff,
   getHydrationHubState,
   recordHydrationInterventionEvent,
   saveHydrationHubBarriers,
@@ -217,10 +218,15 @@ export default function HydrationCenter() {
     await recordHydrationInterventionEvent(option.id, "accepted");
     if (option.destinationType === "beverage_creator") {
       await recordHydrationInterventionEvent(option.id, "opened", { destination: "beverage_creator" });
-      const params = new URLSearchParams({
-        hydrationHandoff: "1", interventionId: option.id, barrier: option.barrierCode,
-        flavor: preferences.flavor || "no_preference",
+      const handoff = await createHydrationHandoff({
+        door: "everyday",
+        description: [
+          `Practical Hydration support for barrier: ${option.barrierCode}`,
+          `Flavor preference: ${preferences.flavor || "no preference"}`,
+          option.description,
+        ].join(". "),
       });
+      const params = new URLSearchParams({ hydrationHandoff: handoff.token });
       navigate(`/lifestyle/beverage-creator?${params.toString()}`);
       return;
     }

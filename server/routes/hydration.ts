@@ -36,8 +36,17 @@ import {
   getCurrentLiquidNutritionProtocol,
 } from "../services/hydration/liquidNutritionProtocolService";
 import { liquidNutritionProtocolInputSchema } from "@shared/hydration/fourDoor";
+import {
+  issueHydrationHandoff,
+  verifyHydrationHandoff,
+} from "../services/hydration/hydrationHandoffService";
 
 const router = express.Router();
+
+const hydrationHandoffSchema = z.object({
+  door: z.enum(["everyday", "athletic", "liquid_nutrition"]),
+  description: z.string().trim().min(1).max(1200),
+}).strict();
 
 const directiveSchema = z
   .object({
@@ -267,6 +276,56 @@ router.get("/hydration/hub", requireAuth, async (req, res) => {
     if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub request" });
     console.error("[hydration] hub state failed", error);
     res.status(500).json({ error: "Failed to resolve Hydration Hub" });
+  }
+});
+
+router.post("/hydration/hub/handoff", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const input = hydrationHandoffSchema.parse(req.body);
+    const handoff = issueHydrationHandoff({
+      userId,
+      door: input.door,
+      description: input.description,
+    });
+    return res.status(201).json({
+      token: handoff.token,
+      door: handoff.payload.door,
+      description: handoff.payload.description,
+      expiresAt: new Date(handoff.payload.expiresAt).toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Invalid Hydration handoff request" });
+    }
+    console.error("[hydration] handoff creation failed", error);
+    return res.status(500).json({ error: "Failed to create Hydration handoff" });
+  }
+});
+
+router.get("/hydration/hub/handoff/:token", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser?.id;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const payload = verifyHydrationHandoff({
+      token: req.params.token,
+      userId,
+    });
+    return res.json({
+      door: payload.door,
+      description: payload.description,
+      expiresAt: new Date(payload.expiresAt).toISOString(),
+    });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (code === "HYDRATION_HANDOFF_WRONG_ACCOUNT") {
+      return res.status(403).json({ error: "This Hydration handoff belongs to another account" });
+    }
+    if (code === "HYDRATION_HANDOFF_EXPIRED") {
+      return res.status(410).json({ error: "This Hydration handoff has expired" });
+    }
+    return res.status(400).json({ error: "Invalid Hydration handoff" });
   }
 });
 

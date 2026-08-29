@@ -11,10 +11,11 @@
  */
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, ShieldCheck, Layers, FlaskConical, Activity } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, ShieldCheck, Layers, FlaskConical, Activity, Droplets } from "lucide-react";
 import { useNutritionSummary } from "@/hooks/useNutritionSummary";
 import type { NutritionPersonalizationSummary, NutritionSummaryHealthItem } from "@/types/nutritionSummary";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 
 interface Props {
   summary?: NutritionPersonalizationSummary;
@@ -86,6 +87,8 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
   const isLoading = isLoadingProp ?? hook.isLoading;
   const [expanded, setExpanded] = useState(defaultExpanded);
   const { t } = useTranslation("nutritionPlan");
+  const [, navigate] = useLocation();
+  const [acknowledgedUpdateId, setAcknowledgedUpdateId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -109,6 +112,36 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
   const hasLiveMetrics       = (nutritionDrivers?.liveMetrics?.length ?? 0) > 0;
   const hasDietaryIdentity   = (data.dietaryIdentity?.length ?? 0) > 0;
   const hasMealBuilder       = !!data.mealBuilderLabel;
+  const latestProfessionalUpdate = data.professionalUpdates?.[0] ?? null;
+  const updateSeen = latestProfessionalUpdate
+    ? acknowledgedUpdateId === latestProfessionalUpdate.id ||
+      localStorage.getItem(`mpm-plan-update-seen:${latestProfessionalUpdate.id}`) === "1"
+    : true;
+  const hasHydrationPlan =
+    data.hydration?.tracking.status === "NUMERIC_ACTIVE" ||
+    data.hydration?.liquidNutrition?.status === "active";
+  const displayMl = (ml: number | null) =>
+    ml === null ? null : `${Math.round(ml / 29.5735)} oz (${ml.toLocaleString()} mL)`;
+  const hydrationDetail = (() => {
+    const tracking = data.hydration?.tracking;
+    if (!tracking) return "Hydration status is unavailable.";
+    if (tracking.status === "TRACK_ONLY") return "Tracking active — no numeric target established.";
+    if (tracking.status === "PLAN_WITHHELD") return "A numeric plan is currently withheld.";
+    if (tracking.status === "NEEDS_REVIEW") return "Hydration guidance needs review.";
+    if (tracking.targetKind === "range") {
+      return `${displayMl(tracking.minimumMl)}–${displayMl(tracking.maximumMl)} per day`;
+    }
+    if (tracking.targetKind === "floor") return `At least ${displayMl(tracking.minimumMl)} per day`;
+    if (tracking.targetKind === "ceiling") return `Up to ${displayMl(tracking.maximumMl)} per day`;
+    return `${displayMl(tracking.targetMl)} per day`;
+  })();
+
+  const openProfessionalUpdate = () => {
+    if (!latestProfessionalUpdate) return;
+    localStorage.setItem(`mpm-plan-update-seen:${latestProfessionalUpdate.id}`, "1");
+    setAcknowledgedUpdateId(latestProfessionalUpdate.id);
+    navigate(latestProfessionalUpdate.href);
+  };
 
   return (
     <div className="rounded-2xl bg-black/50 border border-orange-500/25 overflow-hidden">
@@ -119,12 +152,28 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
           <ShieldCheck className="w-4 h-4 text-orange-400 flex-shrink-0" />
           <p className="text-sm font-bold text-white">{t("title")}</p>
         </div>
-        {!hasAnyActiveProtocol && (
+        {!hasAnyActiveProtocol && !hasHydrationPlan && (
           <span className="text-[10px] text-white/30 font-medium bg-white/5 rounded-full px-2 py-0.5 border border-white/10">
             {t("baseline")}
           </span>
         )}
       </div>
+
+      {latestProfessionalUpdate && !updateSeen && (
+        <button
+          type="button"
+          onClick={openProfessionalUpdate}
+          className="mx-4 mb-3 flex w-[calc(100%-2rem)] items-start gap-3 rounded-xl border border-orange-400/40 bg-orange-500/15 p-3 text-left active:scale-[0.99]"
+          data-testid="nutrition-plan-professional-update"
+        >
+          <Bell className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
+          <span className="min-w-0">
+            <span className="block text-xs font-bold text-orange-200">New update from your care team</span>
+            <span className="mt-0.5 block text-xs text-white/80">{latestProfessionalUpdate.title}</span>
+            <span className="mt-1 block text-[10px] font-semibold text-orange-300">Review update</span>
+          </span>
+        </button>
+      )}
 
       {/* ── Macros strip ── */}
       {activeInputs?.macros && (activeInputs.macros.calories || activeInputs.macros.proteinG) && (() => {
@@ -199,6 +248,43 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {data.hydration && (
+            <div className={allHealthItems.length === 0 ? "pt-3" : ""}>
+              <div className="rounded-xl border border-sky-500/25 bg-sky-500/10 px-3 py-3">
+                <div className="flex items-start gap-2">
+                  <Droplets className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-sky-300">Hydration</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-white/75">{hydrationDetail}</p>
+                    {data.hydration.tracking.validThrough && data.hydration.tracking.status === "NUMERIC_ACTIVE" && (
+                      <p className="mt-1 text-[10px] text-white/55">
+                        Active through {new Date(data.hydration.tracking.validThrough).toLocaleDateString()}
+                      </p>
+                    )}
+                    {data.hydration.liquidNutrition?.status === "active" && (
+                      <div className="mt-2 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+                        <p className="text-[10px] font-semibold text-sky-200">Liquid Nutrition Support</p>
+                        <p className="mt-0.5 text-[10px] text-white/65">
+                          {data.hydration.liquidNutrition.currentDay
+                            ? `Day ${data.hydration.liquidNutrition.currentDay} · `
+                            : ""}
+                          Ends {new Date(`${data.hydration.liquidNutrition.endsOn}T12:00:00`).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => navigate(data.hydration!.href)}
+                      className="mt-2 text-[10px] font-semibold text-sky-300"
+                    >
+                      Open Hydration
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

@@ -19,6 +19,11 @@ import {
 import { getHydrationClinicianDirectiveResolution } from "./hydrationClinicianDirectiveService";
 import { getCurrentLiquidNutritionProtocol } from "./liquidNutritionProtocolService";
 import type { HydrationProtocolRecord } from "@shared/hydration/fourDoor";
+import { getActiveNutritionContext } from "../nutritionContext/getActiveNutritionContext";
+import {
+  buildHydrationConsideredForYou,
+  type ConsideredForYouItem,
+} from "./hydrationContextService";
 
 export type HydrationCenterHistoryItem = Readonly<{
   id: string;
@@ -37,6 +42,7 @@ export type HydrationCenterState = Readonly<{
   numericPolicy: HydrationNumericPolicyResult;
   featureStatus: "development_preview" | "production_inactive";
   liquidProtocol: HydrationProtocolRecord | null;
+  consideredForYou: ConsideredForYouItem[];
 }>;
 
 export async function resolveHydrationCenterState(input: {
@@ -110,6 +116,12 @@ export async function resolveHydrationCenterState(input: {
     userId: input.subjectUserId,
     localDate: input.localDate,
   });
+  const nutritionContext = await getActiveNutritionContext(input.subjectUserId);
+  const consideredForYou = buildHydrationConsideredForYou({
+    envelope: nutritionContext.envelope,
+    builder: nutritionContext.builder,
+    liquidProtocol,
+  });
 
   return {
     subjectUserId: input.subjectUserId,
@@ -125,6 +137,7 @@ export async function resolveHydrationCenterState(input: {
     eligibility,
     numericPolicy,
     liquidProtocol,
+    consideredForYou,
     featureStatus: developmentAuthorized
       ? "development_preview"
       : "production_inactive",

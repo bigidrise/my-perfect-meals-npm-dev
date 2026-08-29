@@ -40,5 +40,31 @@ export interface NutritionPersonalizationSummary {
     gelatinRestriction: "yes" | "no" | "unsure";
     profileComplete: boolean;
   } | null;
+  hydration?: {
+    tracking: {
+      status: "TRACK_ONLY" | "NUMERIC_ACTIVE" | "PLAN_WITHHELD" | "NEEDS_REVIEW";
+      targetKind: "point" | "range" | "floor" | "ceiling" | null;
+      targetMl: number | null;
+      minimumMl: number | null;
+      maximumMl: number | null;
+      validThrough: string | null;
+    };
+    liquidNutrition: {
+      status: string;
+      startsOn: string;
+      endsOn: string;
+      currentDay: number | null;
+      verificationStatus: string;
+    } | null;
+    href: string;
+  };
+  professionalUpdates?: Array<{
+    id: string;
+    kind: "hydration" | "macros" | "meal_plan";
+    title: string;
+    detail: string;
+    changedAt: string;
+    href: string;
+  }>;
   meta: { generatedAt: string };
 }

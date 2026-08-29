@@ -34,6 +34,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { Wheat } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { resolveHydrationHandoff } from "@/lib/hydrationApi";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { isProOrAbove } from "@/lib/subscriptionCheck";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
@@ -167,9 +168,7 @@ export default function AthleteBeverageCreator() {
   const userId = user?.id || "";
   const hydrationHandoff = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("hydrationDoor") !== "athletic") return null;
-    const description = params.get("customBeverageDescription")?.trim();
-    return description ? { description } : null;
+    return params.get("hydrationHandoff");
   }, []);
 
   useEffect(() => {
@@ -281,8 +280,16 @@ export default function AthleteBeverageCreator() {
 
   useEffect(() => {
     if (!hydrationHandoff) return;
-    setCustomBeverageDescription(hydrationHandoff.description);
-  }, [hydrationHandoff]);
+    resolveHydrationHandoff(hydrationHandoff)
+      .then((handoff) => setCustomBeverageDescription(handoff.description))
+      .catch((error) => {
+        toast({
+          title: "Hydration handoff unavailable",
+          description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Return to Hydration Hub to start again.",
+          variant: "destructive",
+        });
+      });
+  }, [hydrationHandoff, toast]);
 
   // Image is now returned inline from the server — no client-side re-fetch needed on mount.
 
@@ -390,6 +397,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
           dietAdaptOverride,
           userDietOverride,
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          hydrationHandoff: hydrationHandoff || undefined,
         }),
       });
 
@@ -848,6 +856,14 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                   <p className="text-white/90 mb-4">
                     {generatedBeverage.description}
                   </p>
+                  {Array.isArray(generatedBeverage.consideredForYou) && generatedBeverage.consideredForYou.length > 0 && (
+                    <div className="mb-4 rounded-xl border border-sky-400/25 bg-sky-500/10 p-3">
+                      <p className="text-xs font-semibold text-sky-200">Considered for you</p>
+                      <p className="mt-1 text-xs leading-relaxed text-white/80">
+                        {generatedBeverage.consideredForYou.map((item: any) => item.label).join(" • ")}
+                      </p>
+                    </div>
+                  )}
 
                   {generatedBeverage.imageUrl ? (
                     <MealImageSlot

@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   activateHydrationLiquidProtocol,
   createHydrationLiquidProtocol,
+  createHydrationHandoff,
   type HydrationCenterState,
   type HydrationDoorKey,
   type HydrationProtocolRecord,
@@ -149,7 +150,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
     );
   };
 
-  const openAthleticCreator = () => {
+  const openAthleticCreator = async () => {
     const details = [
       `Hydration context: ${athleticPhase} activity`,
       `Activity: ${athleticActivity}`,
@@ -157,11 +158,20 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
       `Environment context: ${athleticEnvironment}`,
       "Do not invent hydration targets, electrolyte dosing, or medical treatment. Preserve all saved dietary and safety constraints.",
     ].filter(Boolean).join(". ");
-    const params = new URLSearchParams({
-      hydrationDoor: "athletic",
-      customBeverageDescription: details,
-    });
-    navigate(`/lifestyle/athlete-beverage-creator?${params.toString()}`);
+    try {
+      const handoff = await createHydrationHandoff({
+        door: "athletic",
+        description: details,
+      });
+      const params = new URLSearchParams({ hydrationHandoff: handoff.token });
+      navigate(`/lifestyle/athlete-beverage-creator?${params.toString()}`);
+    } catch (error) {
+      toast({
+        title: "Could not open the Creator",
+        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const saveLiquidProtocol = async () => {
@@ -321,7 +331,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
                 </select>
               </label>
             </div>
-            <Button onClick={openAthleticCreator} className="mt-4 bg-orange-400 text-slate-950 hover:bg-orange-300" data-testid="athletic-hydration-creator">
+            <Button onClick={() => void openAthleticCreator()} className="mt-4 bg-orange-400 text-slate-950 hover:bg-orange-300" data-testid="athletic-hydration-creator">
               Continue to Athletic Beverage Creator
             </Button>
             <p className="mt-3 text-xs text-white">The Creator remains responsible for formulation and runs its normal safety checks.</p>
