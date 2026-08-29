@@ -215,9 +215,9 @@ export default function HydrationCenter() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-[radial-gradient(circle_at_top,#0c4a6e_0%,#082f49_28%,#020617_68%)] text-white">
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <header data-testid="hydration-header" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 pb-3 pt-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/my-biometrics")} className="text-white hover:bg-white/10 hover:text-white"><ArrowLeft className="mr-1.5 h-4 w-4" />Back</Button>
+          <Button data-testid="hydration-back-button" variant="ghost" size="sm" onClick={() => navigate("/my-biometrics")} className="text-white hover:bg-white/10 hover:text-white"><ArrowLeft className="mr-1.5 h-4 w-4" />Back to My Biometrics</Button>
           <div className="min-w-0 flex-1"><h1 className="truncate text-lg font-semibold">Hydration Hub</h1><p className="text-xs text-sky-100/55">Track fluids, solve barriers, see what helps</p></div>
           <Badge className="border-sky-300/20 bg-sky-400/10 text-sky-100">Everyday support</Badge>
         </div>
