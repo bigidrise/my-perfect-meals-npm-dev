@@ -33,7 +33,7 @@ const PLATFORM_MASTERY_LESSONS = [
 const BECOME_CERTIFIED = [
   { icon: "🎓", label: "Platform Mastery", desc: "9 modules · Workflow exercises · Quiz", route: "/academy/platform-mastery/lesson/lesson-01" },
   { icon: "📈", label: "Marketing & Coaching", desc: "5 lessons · Coaching philosophy · Quiz", route: "/business-center/affiliate/marketing/certification" },
-  { icon: "🩺", label: "ProCare Certification", desc: "3 training videos · Final assessment", route: null },
+  { icon: "🩺", label: "ProCare Certification", desc: "3 videos · 3 quizzes · Final assessment", route: "/certifications/procare_certification" },
 ];
 
 const SPECIALIZE = [
@@ -130,6 +130,7 @@ export default function AcademyHome() {
     if (
       isCoreCertified &&
       progression?.proCare.eligible &&
+      progression.proCare.complete &&
       hasProCareWorkspace
     ) {
       return (
@@ -393,7 +394,7 @@ export default function AcademyHome() {
               const itemDone =
                 i === 0 ? hasCompletedPlatformRequirement :
                 i === 1 ? isMarketingCertified :
-                false; // ProCare cert tracked separately; show as optional
+                progression?.proCare.complete ?? false;
               const locked =
                 i === 1 ? !hasCompletedPlatformRequirement :
                 i === 2 ? !isMarketingCertified :

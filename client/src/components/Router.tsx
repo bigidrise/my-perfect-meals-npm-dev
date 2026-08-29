@@ -286,16 +286,22 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
       apiRequest("/api/certifications/phase1-status")
         .then((res: any) => {
           const phase1Complete = res?.phase1Complete === true;
+          const proCareCertificationComplete =
+            res?.proCareCertificationComplete === true;
           if (!phase1Complete) {
             setCertified(false);
             certifiedRef.current = false;
             // Route directly into the certification flow, not the launchpad
             setLocation("/professional-onboarding-bridge");
-          } else if (user?.phase2GateEnabled && !user?.procareTrainingCompleted) {
+          } else if (
+            user?.phase2GateEnabled &&
+            !user?.procareTrainingCompleted &&
+            !proCareCertificationComplete
+          ) {
             setCertified(false);
             certifiedRef.current = false;
             // Phase 1 done, Phase 2 required — go directly into Phase 2
-            setLocation("/procare-training");
+            setLocation("/certifications/procare_certification");
           } else {
             setCertified(true);
             certifiedRef.current = true;

@@ -42,6 +42,7 @@ interface CertData {
 
 const CERT_LABELS: Record<string, { title: string; subtitle: string }> = {
   platform: { title: "ProCare Certification", subtitle: "MPM Professional Training" },
+  procare_certification: { title: "ProCare Certification", subtitle: "MPM Professional Training" },
   business_success: { title: "Business Success Certification", subtitle: "MPM Affiliate & Partner Training" },
 };
 

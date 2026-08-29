@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, CheckCircle2, XCircle, ChevronRight, Award } from "lucide-react";
+import { ArrowLeft, XCircle, ChevronRight, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -53,7 +53,7 @@ export default function PlatformCertQuiz() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [phase, setPhase] = useState<QuizPhase>("taking");
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [result, setResult] = useState<{ score: number; passed: boolean; correct: number; total: number; correctAnswers: Record<string, string> } | null>(null);
+  const [result, setResult] = useState<{ score: number; passed: boolean; correct: number; total: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasNextModule, setHasNextModule] = useState(false);
@@ -106,7 +106,7 @@ export default function PlatformCertQuiz() {
         method: "POST",
         body: JSON.stringify({ answers }),
         headers: { "Content-Type": "application/json" },
-      }) as { ok: boolean; score: number; passed: boolean; correct: number; total: number; correctAnswers: Record<string, string> };
+      }) as { ok: boolean; score: number; passed: boolean; correct: number; total: number };
       setResult(res);
       setPhase("results");
     } catch {
@@ -279,26 +279,18 @@ export default function PlatformCertQuiz() {
                 </div>
               )}
 
-              {/* Question review */}
+              {/* Submitted-answer review; the server intentionally never discloses answer keys. */}
               <div className="space-y-2 pt-2">
-                <p className="text-xs text-white/30 uppercase tracking-widest font-semibold px-1">Question Review</p>
+                <p className="text-xs text-white/30 uppercase tracking-widest font-semibold px-1">Your Submitted Answers</p>
                 {questions.map((q) => {
                   const userAnswer = answers[q.id];
-                  const correctOptId = result.correctAnswers[q.id];
-                  const isCorrect = userAnswer === correctOptId;
                   const userOpt = q.options.find((o) => o.id === userAnswer);
-                  const correctOpt = q.options.find((o) => o.id === correctOptId);
                   return (
-                    <div key={q.id} className={`p-4 rounded-2xl border text-xs ${isCorrect ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"}`}>
+                    <div key={q.id} className="p-4 rounded-2xl border border-white/10 bg-white/[0.03] text-xs">
                       <p className="text-white/80 font-medium mb-2 text-sm leading-snug">{q.questionText}</p>
-                      {isCorrect ? (
-                        <p className="text-green-400 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" /> {userOpt?.optionText}</p>
-                      ) : (
-                        <div className="space-y-1">
-                          <p className="text-red-400 flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5 flex-shrink-0" /> Your answer: {userOpt?.optionText ?? "Not answered"}</p>
-                          <p className="text-green-400 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" /> Correct: {correctOpt?.optionText}</p>
-                        </div>
-                      )}
+                      <p className="text-white/60">
+                        Your answer: {userOpt?.optionText ?? "Not answered"}
+                      </p>
                     </div>
                   );
                 })}

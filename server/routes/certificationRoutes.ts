@@ -737,6 +737,7 @@ router.get("/phase1-status", requireAuth, async (req, res) => {
     res.setHeader("Expires", "0");
     return res.json({
       phase1Complete: progression.phase1.complete,
+      proCareCertificationComplete: progression.proCare.complete,
       certification: best
         ? {
             status: best.status,
@@ -1253,6 +1254,16 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
           updatedAt: new Date(),
         },
       });
+
+    // The canonical three-video course is now the ProCare training authority.
+    // Keep the existing readiness flag in sync so Studio provisioning can
+    // continue to enforce training completion without using the retired page.
+    if (certType === PROCARE_CERTIFICATION_TYPE) {
+      await db
+        .update(users)
+        .set({ procareTrainingCompleted: true })
+        .where(eq(users.id, userId));
+    }
 
     const [existing] = await db
       .select()
