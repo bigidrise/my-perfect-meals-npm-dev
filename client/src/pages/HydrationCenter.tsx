@@ -209,7 +209,21 @@ export default function HydrationCenter() {
   }).reverse();
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-[radial-gradient(circle_at_top,#0c4a6e_0%,#082f49_28%,#020617_68%)] text-white">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/images/hydration-hub-bg.png')" }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,rgba(2,15,30,.86)_0%,rgba(3,31,54,.72)_38%,rgba(2,15,30,.9)_100%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(14,116,144,.18),transparent_42%)]"
+      />
+      <div className="relative z-10 min-h-screen">
       <header data-testid="hydration-header" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl lg:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 pb-3 pt-2">
           <Button data-testid="hydration-back-button" variant="outline" size="sm" onClick={() => navigate("/my-biometrics")} className="border-slate-300 bg-white text-black shadow-sm hover:bg-slate-100 hover:text-black"><ArrowLeft className="mr-1.5 h-4 w-4" />Back to Biometrics</Button>
@@ -295,6 +309,7 @@ export default function HydrationCenter() {
           </section>
         </> : null}
       </main>
+      </div>
     </motion.div>
   );
 }
