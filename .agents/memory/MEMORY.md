@@ -54,3 +54,4 @@
 - [Frontend static asset location](frontend-static-asset-location.md) — browser-facing images belong in client/public; verify the exact served asset before changing page layering.
 - [Production-mode dev dependencies](production-mode-dev-dependencies.md) — NODE_ENV=production can omit declared TypeScript types and create false LSP cascades.
 - [Crawler-visible SPA pages](crawler-visible-spa-pages.md) — public HTML snapshots must precede every SPA fallback and remain public after the client mounts.
+- [Nutrition consistency score boundary](nutrition-consistency-score-boundary.md) — score observable user behavior, never rules the platform enforces automatically.
