@@ -45,6 +45,7 @@
 - [Hydration planning eligibility](hydration-planning-eligibility.md) — eligibility is nonnumeric; validate every registry claim before resolver status filtering.
 - [Hydration local-day authority](hydration-local-day-authority.md) — hydration totals and rolling windows follow the subject's IANA timezone, including DST and backdated intake.
 - [Hydration numeric policy v0.1](hydration-numeric-policy-v01.md) — only current clinician directives permit numbers; production stays inactive until the full activation gate opens.
+- [Hydration four-door product boundary](daily-hydration-plan-architecture.md) — keep Everyday, Athletic, Sick-Day, and Liquid Nutrition Support distinct while one Hub organizes explicit instructions.
 - [Hydration product recommendation boundary](hydration-product-recommendation-boundary.md) — commercial relationships never determine eligibility; qualify and verify products first.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
 - [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.
