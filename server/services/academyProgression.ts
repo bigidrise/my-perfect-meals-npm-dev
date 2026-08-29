@@ -53,7 +53,6 @@ export async function getAcademyProgression(userId: string) {
             "platform_mastery",
             "marketing_coaching",
             SPECIALIST_CERTIFICATION_TYPE,
-            "procare_training",
             "procare_certification",
           ]),
         ),
@@ -98,8 +97,7 @@ export async function getAcademyProgression(userId: string) {
       completed("platform_mastery") || completedLegacyPlatformMastery,
     legacyMarketingComplete: completed("marketing_coaching"),
     specialistCredentialComplete: completed(SPECIALIST_CERTIFICATION_TYPE),
-    proCareTrainingComplete:
-      completed("procare_training") || completed("procare_certification"),
+    proCareTrainingComplete: completed("procare_certification"),
     proCareTrainingEligible: PROCARE_PROFESSIONAL_ROLES.has(
       user?.professionalRole ?? "",
     ),
