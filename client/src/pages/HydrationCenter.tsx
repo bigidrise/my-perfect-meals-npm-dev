@@ -209,11 +209,16 @@ export default function HydrationCenter() {
   }).reverse();
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="relative min-h-screen overflow-hidden bg-slate-950 text-white"
+    >
+      <img
+        src="/images/hydration-hub-bg.png"
+        alt=""
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/hydration-hub-bg.png')" }}
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
       />
       <div className="relative z-10 min-h-screen">
       <header data-testid="hydration-header" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl lg:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
