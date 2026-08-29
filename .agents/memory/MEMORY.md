@@ -47,3 +47,4 @@
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
 - [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.
 - [Academy progression authority](academy-progression-authority.md) — Phase 1 is educational; Phase 2 earns the core Specialist credential; ProCare is optional and role-gated.
+- [Academy contextual navigation](academy-contextual-navigation.md) — ProCare back controls should return to the logical course parent, not rely on browser history.
