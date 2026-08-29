@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { validateProfilePayload } from "./guards/profileFieldGuard";
 import { computeAlphaGalBadge } from "./services/medicalBadges";
 import { resolveDailyNutritionState } from "./services/dailyNutritionState";
+import { isValidIanaTimezone } from "./services/nutritionDayService";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { sendEmail } from "./emailService";
@@ -4162,6 +4163,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cuisineIntensity,
         performanceOverlay,
         performanceControlMode,
+        timezone,
+        timezoneChangeConfirmed,
       } = req.body;
       
       // Build update object with only provided fields
@@ -4236,6 +4239,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (cuisineIntensity !== undefined) updateData.cuisineIntensity = cuisineIntensity;
       if (performanceOverlay !== undefined) updateData.performanceOverlay = performanceOverlay;
       if (performanceControlMode !== undefined) updateData.performanceControlMode = performanceControlMode;
+      if (timezone !== undefined) {
+        if (!isValidIanaTimezone(timezone)) {
+          return res.status(400).json({
+            error: "Invalid IANA timezone",
+            code: "INVALID_TIMEZONE",
+          });
+        }
+        if (timezoneChangeConfirmed !== true) {
+          return res.status(400).json({
+            error: "Timezone changes require explicit confirmation",
+            code: "TIMEZONE_CONFIRMATION_REQUIRED",
+          });
+        }
+        updateData.timezone = timezone;
+        updateData.timezoneUpdatedAt = new Date();
+      }
       
       if (allergies !== undefined) {
         const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
