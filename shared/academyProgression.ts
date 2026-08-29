@@ -101,8 +101,8 @@ export function resolveAcademyProgression(
   ) {
     nextStep = {
       kind: "start_procare",
-      route: "/procare-training",
-      label: "Explore Optional ProCare Training",
+      route: "/certifications/procare_certification",
+      label: "Start ProCare Certification",
     };
   } else if (input.proCareTrainingComplete) {
     nextStep = {

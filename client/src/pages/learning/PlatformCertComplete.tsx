@@ -4,6 +4,7 @@ import { Award, Download, ArrowLeft, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -22,6 +23,7 @@ interface CertData {
 
 const CERT_LABELS: Record<string, string> = {
   platform: "Platform Certification",
+  procare_certification: "ProCare Certification",
   business_success: "Business Success Certification",
 };
 
@@ -79,6 +81,15 @@ export default function PlatformCertComplete() {
     } finally {
       setDownloading(false);
     }
+  };
+
+  const continueProCareSetup = () => {
+    setLocation(
+      createProfessionalLegalRecoveryUrl(
+        "/procare-certified",
+        "professional-workspace",
+      ),
+    );
   };
 
   if (loading) {
@@ -212,7 +223,7 @@ export default function PlatformCertComplete() {
           {downloading ? "Downloading…" : "Download Certificate (PDF)"}
         </motion.button>
 
-        {certType === "platform" && (
+        {certType === "procare_certification" && (
           <motion.div
             className="p-5 rounded-2xl bg-orange-900/20 border border-orange-500/30 text-center space-y-3"
             initial={{ opacity: 0, y: 8 }}
@@ -220,16 +231,16 @@ export default function PlatformCertComplete() {
             transition={{ delay: 0.35 }}
           >
             <p className="text-sm font-bold text-white">
-              Congratulations! You've Mastered Phase 1 — Platform Fundamentals.
+              Your ProCare course is complete.
             </p>
             <p className="text-xs text-white/60 leading-relaxed">
-              Now let's learn how to build and grow your professional business using ProCare.
+              Continue through professional attestation and the current legal agreement to enter your Care Team and Studio workspace.
             </p>
             <button
-              onClick={() => setLocation("/procare-training")}
+              onClick={continueProCareSetup}
               className="w-full p-4 rounded-xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
-              Begin Phase 2 — Business & ProCare Success
+              Continue to Professional Attestation
               <span className="text-base">→</span>
             </button>
           </motion.div>
