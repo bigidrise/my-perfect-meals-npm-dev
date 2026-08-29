@@ -2,6 +2,26 @@ import { apiRequest } from "@/lib/queryClient";
 import { createWaterLog } from "@/lib/waterLogsApi";
 
 export type HydrationTargetKind = "point" | "range" | "floor" | "ceiling";
+export type HydrationBarrierCode =
+  | "forgetting"
+  | "taste"
+  | "temperature"
+  | "carbonation"
+  | "access"
+  | "timing"
+  | "bathroom_concerns"
+  | "nutrition_conflicts"
+  | "low_appetite";
+export type HydrationBeverageClass =
+  | "water"
+  | "sparkling"
+  | "tea"
+  | "coffee"
+  | "milk"
+  | "juice"
+  | "other";
+export type HydrationPreferenceKey = "flavor" | "temperature" | "carbonation";
+export type HydrationPreferences = Record<HydrationPreferenceKey, string>;
 
 export interface HydrationNumericPolicyState {
   policyVersion: string;
@@ -39,7 +59,7 @@ export interface HydrationCenterState {
     today: {
       totalFluidsMl: number;
       plainWaterMl: number;
-      beverageMix: Array<{ beverageClass: string; amountMl: number }>;
+      beverageMix: Array<{ beverageClass: HydrationBeverageClass; amountMl: number }>;
     };
     sevenDay: { totalFluidsMl: number; plainWaterMl: number; daysWithEntries: number };
     thirtyDay: { totalFluidsMl: number; plainWaterMl: number; daysWithEntries: number };
@@ -49,18 +69,18 @@ export interface HydrationCenterState {
     id: string;
     amountMl: number;
     unit: string;
-    beverageClass: string;
+    beverageClass: HydrationBeverageClass;
     intakeTime: string;
   }>;
   setup?: {
     consented: boolean;
     preferences: Record<string, unknown>;
     optedOutAt: string | null;
-    barriers: Array<{ barrierCode: string; note: string | null }>;
+    barriers: Array<{ barrierCode: HydrationBarrierCode; note: string | null }>;
   };
   interventions?: Array<{
     id: string;
-    barrierCode: string;
+    barrierCode: HydrationBarrierCode;
     optionKey: string;
     title: string;
     description: string;
@@ -105,7 +125,7 @@ export function saveHydrationHubPreferences(input: {
 }
 
 export function saveHydrationHubBarriers(input: {
-  barriers: Array<{ barrierCode: string; note?: string }>;
+  barriers: Array<{ barrierCode: HydrationBarrierCode; note?: string }>;
 }) {
   return apiRequest<{ ok: boolean }>("/api/hydration/hub/barriers", {
     method: "PUT",
@@ -114,12 +134,12 @@ export function saveHydrationHubBarriers(input: {
 }
 
 export function createHydrationHelp(input: {
-  barriers: string[];
+  barriers: HydrationBarrierCode[];
   preferences: Record<string, unknown>;
 }) {
   return apiRequest<{ options: Array<{
     id: string;
-    barrierCode: string;
+    barrierCode: HydrationBarrierCode;
     optionKey: string;
     title: string;
     description: string;
@@ -147,7 +167,7 @@ export async function addHydrationWater(input: {
   amount: number;
   unit: "oz" | "ml";
   clientId?: string;
-  beverageClass?: string;
+  beverageClass?: HydrationBeverageClass;
 }) {
   return createWaterLog(input);
 }
