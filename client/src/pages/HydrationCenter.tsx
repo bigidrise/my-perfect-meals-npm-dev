@@ -221,7 +221,7 @@ export default function HydrationCenter() {
               </p>
             </div>
             <Badge className="border-sky-300/20 bg-sky-400/10 text-sky-100">
-              Preview
+              Server-backed
             </Badge>
           </div>
         </header>

@@ -1058,9 +1058,7 @@ export default function Router() {
         <Route path="/macro-counter" component={SafeMacroCounter} />
         {/* DELETED: All kids meal routes, all alcohol hub routes */}
         <Route path="/my-biometrics" component={SafeMyBiometrics} />
-        {import.meta.env.DEV && (
-          <Route path="/hydration" component={HydrationCenter} />
-        )}
+        <Route path="/hydration" component={HydrationCenter} />
         {/* Biometric sub-pages */}
         <Route path="/biometrics" component={SafeBiometrics} />
         <Route path="/biometrics/body-composition" component={SafeBodyComposition} />

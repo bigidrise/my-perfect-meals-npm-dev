@@ -6,6 +6,7 @@ import { glp1AuditLog } from "../db/schema";
 import crypto from "crypto";
 import { enforceAssignedBuilder } from "../middleware/studioAccess";
 import { resolveDailyMedicationTolerance } from "../services/glp1/resolveDailyMedicationTolerance";
+import { resolveHydrationDay } from "../services/hydration/hydrationDay";
 
 const router = Router();
 
@@ -99,7 +100,7 @@ router.get("/daily-tolerance", async (req, res) => {
     }
 
     const userId = String(authUser.id);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = (await resolveHydrationDay({ subjectUserId: userId })).localDate;
 
     const tolerance = await resolveDailyMedicationTolerance({ userId, dateStr: today });
     return res.json({ tolerance });
@@ -126,7 +127,7 @@ router.post("/daily-tolerance", async (req, res) => {
     }
 
     const userId = String(authUser.id);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = (await resolveHydrationDay({ subjectUserId: userId })).localDate;
 
     const tolerance = await resolveDailyMedicationTolerance({ userId, dateStr: today });
 
@@ -212,7 +213,7 @@ router.get("/hub-checkin/today", async (req, res) => {
     const authUser = (req as any).authUser;
     if (!authUser?.id) return res.status(401).json({ error: "Unauthorized" });
     const userId = String(authUser.id);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = (await resolveHydrationDay({ subjectUserId: userId })).localDate;
 
     const rows = await db.execute(
       sql`
@@ -247,7 +248,7 @@ router.post("/hub-checkin", async (req, res) => {
     const authUser = (req as any).authUser;
     if (!authUser?.id) return res.status(401).json({ error: "Unauthorized" });
     const userId = String(authUser.id);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = (await resolveHydrationDay({ subjectUserId: userId })).localDate;
 
     const { HubCheckinPayloadZ } = await import("../../shared/glp1-schema");
     const parse = HubCheckinPayloadZ.safeParse(req.body);

@@ -87,7 +87,7 @@ export const Tools = {
 
   openMealLogging: async (): Promise<ToolResult> => ({ ok: true, navigateTo: "/log-meals" }),
 
-  openWaterTracking: async (): Promise<ToolResult> => ({ ok: true, navigateTo: "/log-water" }),
+  openWaterTracking: async (): Promise<ToolResult> => ({ ok: true, navigateTo: "/hydration" }),
 
   async showAntiInflammatoryHelp() {
     // Trigger the info modal on the Anti-Inflammatory Meal Board

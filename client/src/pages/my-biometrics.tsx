@@ -10,11 +10,6 @@ import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
-import {
-  createWaterLog,
-  getWaterLogs,
-  isWaterHistoryResponseCurrent,
-} from "@/lib/waterLogsApi";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -2794,42 +2789,32 @@ export default function MyBiometrics() {
           </Card>
         )}
 
-        {/* WATER LOG */}
+        {/* CANONICAL HYDRATION */}
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
-              {import.meta.env.DEV ? "Water & Hydration" : "💧 Water Log"}
+              Water & Hydration
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {import.meta.env.DEV ? (
-              <>
-                <p className="text-sm leading-relaxed text-white/65">
-                  Water tracking now lives in the server-backed Hydration Center.
-                  No personal target is created from body weight or a population
-                  average.
-                </p>
-                <Button
-                  onClick={() => setLocation("/hydration")}
-                  className="w-full bg-sky-600 text-white hover:bg-sky-500"
-                  data-testid="open-hydration-center"
-                >
-                  Open Hydration Center
-                </Button>
-              </>
-            ) : (
-              <WaterLog
-                key={user?.id ?? "anonymous"}
-                userId={user?.id ?? ""}
-                dietType={((user as any)?.dietaryRestrictions?.[0] || (user as any)?.dietType || "")}
-              />
-            )}
+            <p className="text-sm leading-relaxed text-white/65">
+              Water tracking lives in the server-backed Hydration Center. No
+              personal target is created from body weight or a population
+              average.
+            </p>
+            <Button
+              onClick={() => setLocation("/hydration")}
+              className="w-full bg-sky-600 text-white hover:bg-sky-500"
+              data-testid="open-hydration-center"
+            >
+              Open Hydration Center
+            </Button>
           </CardContent>
         </Card>
 
         {/* Version tag for deployment tracking */}
         <div className="text-[10px] text-white/40 text-center mt-4 mb-2">
-          Build: Biometrics v1.1 • Profiles ON • Water Logger
+          Build: Biometrics v1.1 • Profiles ON • Server-backed Hydration
         </div>
       </div>
 
@@ -3029,185 +3014,6 @@ export default function MyBiometrics() {
       </ConfirmationModal>
 
     </motion.div>
-  );
-}
-
-// ============================== WATER LOG ==============================
-
-const CARNIVORE_HYDRATION_TIPS = [
-  "Higher protein intake works best when hydration is consistent.",
-  "Water helps your body process increased protein and fat intake.",
-  "Simple meals. Consistent hydration. Better results.",
-  "On a high-protein plan — aim for an extra glass with each meal.",
-];
-
-function getDayLabel(date: Date): string {
-  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
-}
-
-function WaterLog({ userId, dietType }: { userId: string; dietType: string }) {
-  const todayStr = new Date().toDateString();
-  const [water, setWater] = useState({ date: todayStr, ounces: 0 });
-  const [goal, setGoal] = useState(121);
-  const [weekHistory, setWeekHistory] = useState<{ label: string; oz: number; dateStr: string }[]>([]);
-  const [tipIndex, setTipIndex] = useState(0);
-  const historyOwnerRef = useRef(userId);
-  const isHighProtein = dietType === "carnivore" || dietType === "keto";
-  const waterStorageKey = userId ? `mpm_bio_water:${userId}` : null;
-
-  useEffect(() => {
-    try {
-      if (!waterStorageKey) {
-        setWater({ date: new Date().toDateString(), ounces: 0 });
-        return;
-      }
-      const savedWater = localStorage.getItem(waterStorageKey);
-      if (savedWater) {
-        const parsed = JSON.parse(savedWater);
-        if (parsed.date === new Date().toDateString()) setWater(parsed);
-        else setWater({ date: new Date().toDateString(), ounces: 0 });
-      } else {
-        setWater({ date: new Date().toDateString(), ounces: 0 });
-      }
-      const w = Number(localStorage.getItem("latestWeight")) || 180;
-      setGoal(Math.round(w * 0.67));
-    } catch (e) {
-      console.error("Failed to load water data:", e);
-    }
-  }, [waterStorageKey]);
-
-  useEffect(() => {
-    historyOwnerRef.current = userId;
-    setWeekHistory([]);
-    if (!userId) return;
-
-    let cancelled = false;
-    const to = new Date();
-    const from = new Date();
-    from.setDate(from.getDate() - 6);
-    const fromStr = from.toISOString().split("T")[0];
-    const toStr = to.toISOString().split("T")[0];
-    getWaterLogs({ from: fromStr, to: toStr, limit: 200 })
-      .then(data => {
-        if (cancelled || !isWaterHistoryResponseCurrent(userId, historyOwnerRef.current)) return;
-        const byDay: Record<string, number> = {};
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          byDay[d.toDateString()] = 0;
-        }
-        (data.items || []).forEach((row: any) => {
-          const d = new Date(row.intakeTime).toDateString();
-          if (d in byDay) byDay[d] = (byDay[d] || 0) + Math.round(row.amountMl / 29.5735);
-        });
-        const history = Object.entries(byDay).map(([dateStr, oz]) => ({
-          label: getDayLabel(new Date(dateStr)),
-          oz,
-          dateStr,
-        }));
-        setWeekHistory(history);
-      })
-      .catch(() => {
-        if (!cancelled && isWaterHistoryResponseCurrent(userId, historyOwnerRef.current)) {
-          setWeekHistory([]);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  useEffect(() => {
-    if (!isHighProtein) return;
-    const interval = setInterval(() => {
-      setTipIndex(i => (i + 1) % CARNIVORE_HYDRATION_TIPS.length);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [isHighProtein]);
-
-  const save = (newTotal: number, addedOz?: number) => {
-    const updated = { date: new Date().toDateString(), ounces: newTotal };
-    setWater(updated);
-    if (waterStorageKey) localStorage.setItem(waterStorageKey, JSON.stringify(updated));
-    if (userId && addedOz && addedOz > 0) {
-      createWaterLog({ amount: addedOz, unit: "oz" }).catch(() => {});
-    }
-  };
-
-  const addWater = (oz: number) => {
-    const newTotal = Math.min(goal, water.ounces + oz);
-    const actual = newTotal - water.ounces;
-    save(newTotal, actual);
-  };
-  const resetWater = () => save(0);
-  const pct = Math.min(100, (water.ounces / goal) * 100);
-
-  const statusLabel = pct < 40 ? "Below target" : pct < 80 ? "On track" : "Goal reached";
-  const statusColor = pct < 40 ? "text-red-400" : pct < 80 ? "text-sky-400" : "text-green-400";
-
-  const maxOz = Math.max(goal, ...weekHistory.map(d => d.oz), 1);
-
-  return (
-    <div data-wt="bio-water-counter" className="flex flex-col items-center space-y-4 text-center">
-      <div className="relative w-32 h-32">
-        <svg className="w-full h-full -rotate-90">
-          <circle cx="64" cy="64" r="60" stroke="rgba(255,255,255,0.1)" strokeWidth="8" fill="none" />
-          <circle
-            cx="64" cy="64" r="60" stroke="#38bdf8" strokeWidth="8" fill="none"
-            strokeLinecap="round"
-            strokeDasharray={`${2 * Math.PI * 60}`}
-            strokeDashoffset={`${2 * Math.PI * 60 * (1 - pct / 100)}`}
-            className="transition-all duration-500"
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-white">{water.ounces}</span>
-          <span className="text-sm text-white/70">/ {goal} oz</span>
-        </div>
-      </div>
-
-      <span className={`text-xs font-semibold ${statusColor}`}>{statusLabel}</span>
-      <p className="text-[10px] text-white/30">Goal = your weight × 0.67 oz</p>
-
-      <div className="flex gap-2">
-        <Button data-wt="bio-water-plus8" onClick={() => addWater(8)} className="bg-sky-600 hover:bg-sky-700 text-white" data-testid="button-add-8oz">+8 oz</Button>
-        <Button data-wt="bio-water-plus16" onClick={() => addWater(16)} className="bg-sky-600 hover:bg-sky-700 text-white" data-testid="button-add-16oz">+16 oz</Button>
-        <Button onClick={resetWater} className="bg-black/30 border border-white/20 text-white hover:bg-black/50" data-testid="button-reset-water">Reset</Button>
-      </div>
-
-      {isHighProtein && (
-        <p className="text-xs text-sky-300/80 italic max-w-xs transition-all">
-          {CARNIVORE_HYDRATION_TIPS[tipIndex]}
-        </p>
-      )}
-
-      {weekHistory.length > 0 && (
-        <div className="w-full pt-2">
-          <p className="text-xs text-white/50 mb-2">Past 7 days</p>
-          <div className="flex gap-1 items-end justify-center h-16">
-            {weekHistory.map((day, i) => {
-              const barH = day.oz > 0 ? Math.max(6, Math.round((day.oz / maxOz) * 52)) : 4;
-              const isToday = day.dateStr === new Date().toDateString();
-              const onTrack = day.oz >= goal * 0.8;
-              const barColor = isToday ? "bg-sky-400" : onTrack ? "bg-sky-600/70" : "bg-white/20";
-              return (
-                <div key={i} className="flex flex-col items-center gap-1" style={{ width: "13%" }}>
-                  <div
-                    className={`w-full rounded-t-sm ${barColor} transition-all duration-300`}
-                    style={{ height: `${barH}px` }}
-                    title={`${day.label}: ${day.oz} oz`}
-                  />
-                  <span className={`text-[10px] ${isToday ? "text-sky-300 font-bold" : "text-white/40"}`}>
-                    {day.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 

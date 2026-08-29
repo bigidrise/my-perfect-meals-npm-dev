@@ -61,6 +61,7 @@ import {
   type RuleAppliedEntry,
   type RuleFiredEntry,
 } from "./ruleRegistry";
+import { resolveHydrationDay } from "../hydration/hydrationDay";
 
 /** Semantic version of this resolver — bump on any logic or output-shape change. */
 const RESOLVER_VERSION = "2.0";
@@ -295,7 +296,9 @@ function buildHydrationAdaptation(risk: HydrationRisk): AdaptationEntry | null {
 
 export interface ResolveDailyToleranceOptions {
   userId: string;
-  dateStr: string; // YYYY-MM-DD — the date to assess
+  dateStr?: string; // YYYY-MM-DD — defaults to the subject's local date
+  timezone?: string;
+  now?: Date;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -318,7 +321,14 @@ export interface ResolveDailyToleranceOptions {
 export async function resolveDailyMedicationTolerance(
   opts: ResolveDailyToleranceOptions
 ): Promise<DailyMedicationTolerance> {
-  const { userId, dateStr } = opts;
+  const { userId } = opts;
+  const hydrationDay = await resolveHydrationDay({
+    subjectUserId: userId,
+    localDate: opts.dateStr,
+    timezone: opts.timezone,
+    now: opts.now,
+  });
+  const dateStr = hydrationDay.localDate;
 
   const rulesApplied:  RuleAppliedEntry[] = [];
   const rulesWithheld: string[] = [];
@@ -441,7 +451,8 @@ export async function resolveDailyMedicationTolerance(
       .where(
         and(
           eq(waterLogs.userId, userId),
-          drizzleSql`DATE(${waterLogs.intakeTime}) = ${dateStr}::date`
+          drizzleSql`${waterLogs.intakeTime} >= ${hydrationDay.start}`,
+          drizzleSql`${waterLogs.intakeTime} <= ${hydrationDay.end}`,
         )
       );
     waterMlLogged = waterRows[0] ? Number(waterRows[0].total) : 0;

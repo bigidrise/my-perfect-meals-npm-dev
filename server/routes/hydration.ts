@@ -132,8 +132,6 @@ async function authorizeSubject(
   }
 }
 
-router.use(developmentOnly);
-
 router.get("/hydration/evidence", requireAuth, async (_req, res) => {
   try {
     const raw = await readFile(
@@ -213,6 +211,10 @@ router.get("/hydration/state", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to resolve Hydration state" });
   }
 });
+
+// Keep clinician directive and delegated ProCare hydration endpoints gated
+// until numeric Hydration activation receives separate production approval.
+router.use(developmentOnly);
 
 const clinicianGate = [
   requireAuth,
