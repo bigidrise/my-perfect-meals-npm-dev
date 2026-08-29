@@ -553,7 +553,8 @@ router.post("/:certType/modules/:moduleId/quiz/evaluate", requireAuth, async (re
       questionIds,
       answers,
     );
-    if (!submission.ok) {
+    if (submission.ok === false) {
+      const { missingQuestionIds, unexpectedQuestionIds } = submission;
       if (course.isProCare) {
         await recordAssessmentAttempt({
           userId,
@@ -566,8 +567,8 @@ router.post("/:certType/modules/:moduleId/quiz/evaluate", requireAuth, async (re
       }
       return res.status(400).json({
         error: "Every configured assessment question must be answered",
-        missingQuestionIds: submission.missingQuestionIds,
-        unexpectedQuestionIds: submission.unexpectedQuestionIds,
+        missingQuestionIds,
+        unexpectedQuestionIds,
       });
     }
 
