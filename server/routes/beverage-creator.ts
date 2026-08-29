@@ -993,7 +993,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
     meal.ingredients = normalizedIngredients;
     const liquidValidation = validateLiquidNutritionOutput(meal, activeLiquidProtocol);
-    if (!liquidValidation.passed) {
+    if (liquidValidation.passed === false) {
       return res.status(400).json({
         error: "LIQUID_NUTRITION_CONFLICT",
         message: liquidValidation.message,

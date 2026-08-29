@@ -484,7 +484,7 @@ router.post("/hydration/hub/liquid-protocol/:protocolId/activate", requireAuth, 
       protocolId: req.params.protocolId,
       localDate,
     });
-    if (!result.ok) {
+    if (result.ok === false) {
       if (result.reason === "not_found") {
         return res.status(404).json({ error: "Liquid Nutrition Support instructions not found" });
       }
