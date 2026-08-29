@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -165,6 +165,12 @@ export default function AthleteBeverageCreator() {
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
   const userId = user?.id || "";
+  const hydrationHandoff = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("hydrationDoor") !== "athletic") return null;
+    const description = params.get("customBeverageDescription")?.trim();
+    return description ? { description } : null;
+  }, []);
 
   useEffect(() => {
     if (user !== undefined && !isProOrAbove(user)) {
@@ -272,6 +278,11 @@ export default function AthleteBeverageCreator() {
     document.title = "Athlete Beverage Creator | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
+
+  useEffect(() => {
+    if (!hydrationHandoff) return;
+    setCustomBeverageDescription(hydrationHandoff.description);
+  }, [hydrationHandoff]);
 
   // Image is now returned inline from the server — no client-side re-fetch needed on mount.
 
