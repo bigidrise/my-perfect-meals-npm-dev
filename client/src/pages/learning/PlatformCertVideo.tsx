@@ -195,7 +195,7 @@ export default function PlatformCertVideo() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className={`academy-navigation-header fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
             <AcademyBackButton onClick={() => setLocation(`/certifications/${certType}`)} />
             <h1 className="text-base font-bold text-white">{certLabel}</h1>
@@ -250,7 +250,7 @@ export default function PlatformCertVideo() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className={`academy-navigation-header fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
           <AcademyBackButton onClick={() => setLocation(`/certifications/${certType}`)} />
           <div className="flex-1 min-w-0">
