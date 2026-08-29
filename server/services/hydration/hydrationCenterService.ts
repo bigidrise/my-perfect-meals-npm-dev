@@ -10,7 +10,7 @@ import type {
   HydrationPlanningEligibilityAccess,
   HydrationPlanningEligibilityResult,
 } from "@shared/hydration/contracts";
-import { localDayUTCBounds } from "../dailyNutritionState";
+import { resolveHydrationDay } from "./hydrationDay";
 import { mapLegacyWaterLogToHydrationEvent } from "./legacyWaterLogHydrationBridge";
 import {
   createHydrationCanonicalIntakeSnapshot,
@@ -44,7 +44,12 @@ export async function resolveHydrationCenterState(input: {
   now?: Date;
 }): Promise<HydrationCenterState> {
   const now = input.now ?? new Date();
-  const { start, end } = localDayUTCBounds(input.localDate, input.timezone);
+  const { start, end } = await resolveHydrationDay({
+    subjectUserId: input.subjectUserId,
+    localDate: input.localDate,
+    timezone: input.timezone,
+    now,
+  });
   const rows = await db
     .select()
     .from(waterLogs)

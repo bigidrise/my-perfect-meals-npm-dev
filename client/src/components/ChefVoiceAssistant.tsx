@@ -40,11 +40,11 @@ const commandsMap: Record<string, string> = {
   'journal': '/daily-journal',
   'log meals': '/food',
   'meal logging': '/food',
-  'log water': '/track-water',
-  'water log': '/track-water',
-  'water logging': '/track-water',
-  'track water': '/track-water',
-  'water intake': '/track-water',
+  'log water': '/hydration',
+  'water log': '/hydration',
+  'water logging': '/hydration',
+  'track water': '/hydration',
+  'water intake': '/hydration',
   
   // Health and Biometrics
   'my biometrics': '/my-biometrics',

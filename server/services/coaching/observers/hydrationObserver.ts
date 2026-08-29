@@ -26,6 +26,10 @@ import type {
   CoachSubject,
   Evidence,
 } from "../../../../shared/coaching/types";
+import {
+  hydrationCalendarWindow,
+  resolveHydrationDay,
+} from "../../hydration/hydrationDay";
 
 /** Investigation signal — not a clinical standard */
 const BASELINE_ML_PER_DAY = 2000;
@@ -57,6 +61,15 @@ export const hydrationObserver: ObserverConfig & {
     const now = new Date();
 
     try {
+      const hydrationDay = await resolveHydrationDay({
+        subjectUserId: userId,
+        now,
+      });
+      const window = hydrationCalendarWindow({
+        endingLocalDate: hydrationDay.localDate,
+        timezone: hydrationDay.timezone,
+        days: 7,
+      });
       // ── 7-day aggregate ────────────────────────────────────────────────────
       const rows = await db.execute<{
         log_days: string;
@@ -64,12 +77,13 @@ export const hydrationObserver: ObserverConfig & {
         latest_intake: string | null;
       }>(sql`
         SELECT
-          COUNT(DISTINCT DATE(intake_time))::text AS log_days,
+          COUNT(DISTINCT DATE(intake_time AT TIME ZONE ${hydrationDay.timezone}))::text AS log_days,
           COALESCE(SUM(amount_ml), 0)::text       AS total_ml,
           MAX(intake_time)::text                  AS latest_intake
         FROM water_logs
         WHERE user_id = ${userId}
-          AND intake_time >= NOW() - INTERVAL '7 days'
+          AND intake_time >= ${window.start.toISOString()}
+          AND intake_time <= ${window.end.toISOString()}
       `);
 
       const r = rows.rows[0];

@@ -54,7 +54,7 @@ export function getDashboardScrollPosition(fromPage: string): number {
     '/meal-planning': 'meal-planning-section',
     '/craving-creator': 'meal-planning-section',
     '/ai-meal-creator': 'meal-planning-section',
-    '/track-water': 'wellness-section',
+    '/hydration': 'wellness-section',
     '/body-composition': 'wellness-section',
     '/cycle-tracking': 'wellness-section'
   };

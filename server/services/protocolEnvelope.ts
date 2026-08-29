@@ -1337,10 +1337,8 @@ export async function loadUserProtocolEnvelope(
     let glp1DailyTolerance: DailyMedicationTolerance | null = null;
     if (medicalConditionsGlp1.length > 0) {
       try {
-        const today = new Date().toISOString().slice(0, 10);
         glp1DailyTolerance = await resolveDailyMedicationTolerance({
           userId: String(userId),
-          dateStr: today,
         });
         conditionGuidanceBlocks.push(buildGlp1ToleranceBlock(glp1DailyTolerance));
       } catch (err) {

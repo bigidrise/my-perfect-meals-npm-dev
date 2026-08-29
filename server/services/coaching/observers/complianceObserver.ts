@@ -46,6 +46,10 @@ import type {
   CoachSubject,
   Evidence,
 } from "../../../../shared/coaching/types";
+import {
+  hydrationCalendarWindow,
+  resolveHydrationDay,
+} from "../../hydration/hydrationDay";
 
 export const complianceObserver: ObserverConfig & {
   run(subject: CoachSubject): Promise<ObserverOutput>;
@@ -121,11 +125,21 @@ export const complianceObserver: ObserverConfig & {
       });
 
       // ── Water log frequency ─────────────────────────────────────────────────
+      const hydrationDay = await resolveHydrationDay({
+        subjectUserId: userId,
+        now,
+      });
+      const hydrationWindow = hydrationCalendarWindow({
+        endingLocalDate: hydrationDay.localDate,
+        timezone: hydrationDay.timezone,
+        days: 7,
+      });
       const waterRows = await db.execute<{ log_days_7d: string }>(sql`
-        SELECT COUNT(DISTINCT DATE(intake_time))::text AS log_days_7d
+        SELECT COUNT(DISTINCT DATE(intake_time AT TIME ZONE ${hydrationDay.timezone}))::text AS log_days_7d
         FROM water_logs
         WHERE user_id = ${userId}
-          AND intake_time >= NOW() - INTERVAL '7 days'
+          AND intake_time >= ${hydrationWindow.start.toISOString()}
+          AND intake_time <= ${hydrationWindow.end.toISOString()}
       `);
 
       waterLogDays7 = parseInt(waterRows.rows[0]?.log_days_7d ?? "0");

@@ -42,7 +42,7 @@ const KB: Doc[] = [
     domain:"app", 
     title:"Water Tracking", 
     text:"Track your daily water intake to stay hydrated. Set goals and get reminders to drink water throughout the day.", 
-    route:"/log-water" 
+    route:"/hydration"
   },
 
   // Nutrition knowledge

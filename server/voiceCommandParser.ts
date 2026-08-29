@@ -85,10 +85,10 @@ Available routes (use DASHBOARD CARD NAMES, not internal routes):
 - "Journal" → /daily-journal - Same as Daily Journal
 - "Log Meals" → /log-meals - Log meals and nutrition
 - "Meal Logging" → /log-meals - Same as Log Meals
-- "Log Water" → /track-water - Track water intake
-- "Water Log" → /track-water - Same as Log Water
-- "Water Tracking" → /track-water - Same as Log Water
-- "Track Water" → /track-water - Same as Log Water
+- "Log Water" → /hydration - Track water intake
+- "Water Log" → /hydration - Same as Log Water
+- "Water Tracking" → /hydration - Same as Log Water
+- "Track Water" → /hydration - Same as Log Water
 - "My Biometrics" → /my-biometrics - Weight and health tracking
 - "Biometrics" → /my-biometrics - Same as My Biometrics
 - "Women's Health" → /womens-health - Women's health hub
