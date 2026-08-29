@@ -45,9 +45,15 @@
 - [Hydration planning eligibility](hydration-planning-eligibility.md) — eligibility is nonnumeric; validate every registry claim before resolver status filtering.
 - [Hydration local-day authority](hydration-local-day-authority.md) — hydration totals and rolling windows follow the subject's IANA timezone, including DST and backdated intake.
 - [Hydration numeric policy v0.1](hydration-numeric-policy-v01.md) — only current clinician directives permit numbers; production stays inactive until the full activation gate opens.
+- [Hydration four-door product boundary](daily-hydration-plan-architecture.md) — keep Everyday, Athletic, Sick-Day, and Liquid Nutrition Support distinct while one Hub organizes explicit instructions.
 - [Hydration product recommendation boundary](hydration-product-recommendation-boundary.md) — commercial relationships never determine eligibility; qualify and verify products first.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
 - [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.
 - [Academy progression authority](academy-progression-authority.md) — Phase 1 is educational; Phase 2 earns the core Specialist credential; ProCare is optional and role-gated.
 - [Academy contextual navigation](academy-contextual-navigation.md) — ProCare back controls should return to the logical course parent, not rely on browser history.
 - [Frontend static asset location](frontend-static-asset-location.md) — browser-facing images belong in client/public; verify the exact served asset before changing page layering.
+- [Production-mode dev dependencies](production-mode-dev-dependencies.md) — NODE_ENV=production can omit declared TypeScript types and create false LSP cascades.
+- [Crawler-visible SPA pages](crawler-visible-spa-pages.md) — public HTML snapshots must precede every SPA fallback and remain public after the client mounts.
+- [Nutrition consistency score boundary](nutrition-consistency-score-boundary.md) — score observable user behavior, never rules the platform enforces automatically.
+- [Hydration Creator handoffs](hydration-creator-handoffs.md) — Creator handoffs carry signed intent only; current safety context is always re-resolved server-side.
+- [Professional Hydration role split](professional-hydration-role-split.md) — clinical professionals own numeric directives; trainers only own bounded nonclinical coaching.

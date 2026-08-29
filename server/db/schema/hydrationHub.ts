@@ -1,4 +1,4 @@
-import { boolean, index, jsonb, text, timestamp, uniqueIndex, uuid, varchar, pgTable } from "drizzle-orm/pg-core";
+import { boolean, date, index, jsonb, text, timestamp, uniqueIndex, uuid, varchar, pgTable } from "drizzle-orm/pg-core";
 import { users } from "@shared/schema";
 
 export const hydrationHubPreferences = pgTable("hydration_hub_preferences", {
@@ -49,4 +49,32 @@ export const hydrationHubInterventionEvents = pgTable("hydration_hub_interventio
 }, (table) => ({
   interventionCreatedIdx: index("hydration_hub_intervention_events_idx").on(table.interventionId, table.createdAt),
   userCreatedIdx: index("hydration_hub_intervention_events_user_idx").on(table.userId, table.createdAt),
+}));
+
+export const hydrationHubLiquidProtocols = pgTable("hydration_hub_liquid_protocols", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  protocolType: text("protocol_type").notNull(),
+  source: text("source").notNull().default("user_entered"),
+  verificationStatus: text("verification_status").notNull().default("unverified"),
+  originalInstructionText: text("original_instruction_text").notNull(),
+  startsOn: date("starts_on", { mode: "string" }).notNull(),
+  endsOn: date("ends_on", { mode: "string" }).notNull(),
+  reviewOn: date("review_on", { mode: "string" }),
+  allowedCategories: jsonb("allowed_categories").$type<string[]>().notNull().default([]),
+  restrictedCategories: jsonb("restricted_categories").$type<string[]>().notNull().default([]),
+  textureRequirements: jsonb("texture_requirements").$type<string[]>().notNull().default([]),
+  explicitTimingText: text("explicit_timing_text"),
+  unresolvedItems: jsonb("unresolved_items").$type<Array<{ code: string; label: string }>>().notNull().default([]),
+  executionPlan: jsonb("execution_plan").$type<Record<string, unknown>>().notNull().default({}),
+  status: text("status").notNull().default("draft"),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  activatedAt: timestamp("activated_at", { withTimezone: true }),
+  expiredAt: timestamp("expired_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  userStatusIdx: index("hydration_hub_liquid_protocols_user_status_idx").on(table.userId, table.status),
+  userCreatedIdx: index("hydration_hub_liquid_protocols_user_created_idx").on(table.userId, table.createdAt),
 }));

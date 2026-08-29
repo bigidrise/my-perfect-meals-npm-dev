@@ -5,6 +5,7 @@ import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
+import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import AppLayout from "@/layout/AppLayout";
 
 interface AppRouterProps {
@@ -107,7 +108,9 @@ export default function AppRouter({ children }: AppRouterProps) {
       // Dev-only: responsive modal bounds test harness (never deployed in production)
       ...(import.meta.env.DEV ? ["/test-modal-bounds"] : []),
     ];
-    const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
+    const isPublicRoute =
+      isExactPublicMarketingRoute(location) ||
+      publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
     if (loading && isAuthenticated && !isPublicRoute) {
       return;

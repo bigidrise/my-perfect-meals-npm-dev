@@ -11,6 +11,10 @@ interface ActivitySummary {
   calorieCompliance: number;
   proteinCompliance: number;
   loggingCompliance: number;
+  mealConsistency: number;
+  macroAdherence: number;
+  hydrationAdherence: number | null;
+  hydrationEligible: boolean;
   loggedDays7: number;
   windowDays: number;
   reason?: string;
@@ -101,8 +105,6 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
   const score = data.complianceScore ?? 0;
   const win = data.windowDays ?? 7;
   const slots = data.mealSlots ?? { breakfast: 0, lunch: 0, dinner: 0 };
-  const proteinGoalDays = data.proteinGoalDays ?? 0;
-  const calorieGoalDays = data.calorieGoalDays ?? 0;
   const maxSlot = Math.max(slots.breakfast, slots.lunch, slots.dinner);
   const dinnerGap = maxSlot - slots.dinner >= 2;
   const lunchGap = maxSlot - slots.lunch >= 2;
@@ -130,24 +132,24 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
             <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">
               Behavioral Summary
             </p>
-            <BehaviorRow
-              label="Meal logging active"
-              value={data.loggedDays7}
-              total={win}
-              warn={data.loggedDays7 < Math.ceil(win * 0.5)}
-            />
-            <BehaviorRow
-              label="Protein goal achieved"
-              value={proteinGoalDays}
-              total={win}
-              warn={proteinGoalDays < Math.ceil(win * 0.5)}
-            />
-            <BehaviorRow
-              label="Calories on target"
-              value={calorieGoalDays}
-              total={win}
-              warn={calorieGoalDays < Math.ceil(win * 0.5)}
-            />
+            <div className="flex items-center justify-between text-[11px] text-white/70">
+              <span>Meal consistency</span>
+              <span className="font-semibold text-white">{data.mealConsistency}%</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-white/70">
+              <span>Whole-plan macro adherence</span>
+              <span className="font-semibold text-white">{data.macroAdherence}%</span>
+            </div>
+            {data.hydrationEligible && data.hydrationAdherence !== null ? (
+              <div className="flex items-center justify-between text-[11px] text-white/70">
+                <span>Hydration adherence</span>
+                <span className="font-semibold text-white">{data.hydrationAdherence}%</span>
+              </div>
+            ) : (
+              <p className="text-[10px] text-white/35">
+                Hydration excluded: no current measurable target.
+              </p>
+            )}
             {(slots.breakfast + slots.lunch + slots.dinner > 0) && (
               <>
                 {dinnerGap && (

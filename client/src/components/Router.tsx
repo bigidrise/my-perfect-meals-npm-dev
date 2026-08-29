@@ -351,6 +351,7 @@ import BeachBodyMealBoard from "@/pages/BeachBodyMealBoard";
 import MacroCounter from "@/pages/MacroCalculator";
 // DELETED: AdultBeverageHubPage, HealthyKidsMeals, KidsMealsHub, ToddlersMealsHub
 import LifestyleLandingPage from "@/pages/LifestyleLandingPage"; // Renamed from EmotionAIHub
+import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import GLP1MealsTracking from "@/pages/GLP1MealsTracking";
 
 // New Simple Plan page
@@ -837,7 +838,9 @@ export default function Router() {
     "/business/setup",
   ];
 
-  const isUngatedRoute = ungatedRoutes.some(r => location === r || location.startsWith(r + "/"));
+  const isUngatedRoute =
+    isExactPublicMarketingRoute(location) ||
+    ungatedRoutes.some(r => location === r || location.startsWith(r + "/"));
   const isMacroRoute = location === "/macro-counter" || location.startsWith("/macro-counter");
 
   const isProfessionalUser =

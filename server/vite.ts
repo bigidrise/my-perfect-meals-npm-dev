@@ -10,6 +10,7 @@ import {
   registerFreshMetadataRoutes,
   setNoStoreHeaders,
 } from "./staticDelivery";
+import { registerMarketingSsrRoutes } from "./marketingSsr";
 
 const viteLogger = createLogger();
 
@@ -50,6 +51,21 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+  registerMarketingSsrRoutes(app, async () => {
+    const clientTemplate = path.resolve(
+      import.meta.dirname,
+      "..",
+      "client",
+      "index.html",
+    );
+    let template = await fs.promises.readFile(clientTemplate, "utf-8");
+    template = template.replace(
+      `src="/src/main.tsx"`,
+      `src="/src/main.tsx?v=${nanoid()}"`,
+    );
+    return (await vite.transformIndexHtml("/", template))
+      .replace(/<script[^>]*src="\/@vite\/client"[^>]*><\/script>\s*/g, "");
+  });
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 

@@ -1,0 +1,9 @@
+# My Perfect Meals
+
+> AI-powered meal planning personalized to health goals, dietary needs, and medical conditions.
+
+## Key pages
+- [Welcome](https://app.myperfectmeals.com/welcome): Overview and onboarding
+- [Pricing](https://app.myperfectmeals.com/pricing): Plans and features
+- [Lifestyle](https://app.myperfectmeals.com/lifestyle): Meal builder tools
+- [Learn](https://app.myperfectmeals.com/learn): Nutrition education

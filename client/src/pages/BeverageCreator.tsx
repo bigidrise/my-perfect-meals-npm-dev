@@ -39,6 +39,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { Wheat } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { resolveHydrationHandoff } from "@/lib/hydrationApi";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
@@ -156,12 +157,7 @@ export default function BeverageCreator() {
   const userId = user?.id || "";
   const hydrationHandoff = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("hydrationHandoff") !== "1") return null;
-    return {
-      interventionId: params.get("interventionId"),
-      barrier: params.get("barrier") || "practical hydration",
-      flavor: params.get("flavor") || "no_preference",
-    };
+    return params.get("hydrationHandoff");
   }, []);
 
   const [beverageCategory, setBeverageCategory] = useState("");
@@ -208,6 +204,19 @@ export default function BeverageCreator() {
   );
   const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
   const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
+
+  useEffect(() => {
+    if (!hydrationHandoff) return;
+    resolveHydrationHandoff(hydrationHandoff)
+      .then((handoff) => setCustomBeverageDescription(handoff.description))
+      .catch((error) => {
+        toast({
+          title: "Hydration handoff unavailable",
+          description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Return to Hydration Hub to start again.",
+          variant: "destructive",
+        });
+      });
+  }, [hydrationHandoff, toast]);
 
   const {
     checking: safetyChecking,
@@ -278,12 +287,6 @@ export default function BeverageCreator() {
   useEffect(() => {
     if (!hydrationHandoff) return;
     setBeverageCategory("hydration");
-    if (hydrationHandoff.flavor !== "no_preference") {
-      setFlavorFamily(hydrationHandoff.flavor);
-    }
-    setCustomBeverageDescription(
-      `A practical hydration drink idea for this barrier: ${hydrationHandoff.barrier.replaceAll("_", " ")}. Keep it simple and respect all saved dietary and safety constraints.`,
-    );
   }, [hydrationHandoff]);
 
   // Write-back: whenever generatedBeverage is set (on mount-restore OR after a new generation)
@@ -436,6 +439,7 @@ export default function BeverageCreator() {
           userDietOverride,
           dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
           cultureOverride: cuisineOverrideEnabled && cuisineOverrideValue ? cuisineOverrideValue : undefined,
+          hydrationHandoff: hydrationHandoff || undefined,
         }),
       });
 
@@ -918,6 +922,14 @@ export default function BeverageCreator() {
                   <p className="text-white/90 mb-4">
                     {generatedBeverage.description}
                   </p>
+                  {Array.isArray(generatedBeverage.consideredForYou) && generatedBeverage.consideredForYou.length > 0 && (
+                    <div className="mb-4 rounded-xl border border-sky-400/25 bg-sky-500/10 p-3">
+                      <p className="text-xs font-semibold text-sky-200">Considered for you</p>
+                      <p className="mt-1 text-xs leading-relaxed text-white/80">
+                        {generatedBeverage.consideredForYou.map((item: any) => item.label).join(" • ")}
+                      </p>
+                    </div>
+                  )}
 
                   {generatedBeverage.imageUrl ? (
                     <MealImageSlot

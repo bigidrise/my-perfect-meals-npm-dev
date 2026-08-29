@@ -18,6 +18,9 @@ import {
   registerFreshMetadataRoutes,
   setNoStoreHeaders,
 } from "./staticDelivery";
+import { registerMarketingPageRoutes } from "./marketingPages";
+import { registerMarketingSsrRoutes } from "./marketingSsr";
+import legalPagesRouter from "./routes/legal-pages";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,13 +46,8 @@ if (!process.env.SESSION_SECRET) {
 }
 
 const app = express();
-app.set("trust proxy", 1);
 
-// Sandbox reset is registered inside initializeApp() via dynamic import,
-// placed explicitly before registerRoutes() so it precedes any
-// app.use("/api", requireAuth, ...) layers added by registerRoutes.
-
-// Track initialization state
+const clientDistForSsr = path.resolve(__dirname, "../client/dist");
 let isInitialized = false;
 let initError: Error | null = null;
 
@@ -204,6 +202,7 @@ server.on("error", (err) => {
 // excluded here and will be handled once initializeApp() registers them.
 const clientDistEarly = path.resolve(__dirname, "../client/dist");
 if (fs.existsSync(clientDistEarly)) {
+  registerMarketingPageRoutes(app, path.join(clientDistEarly, "index.html"));
   registerFreshMetadataRoutes(app, clientDistEarly);
   // Serve static assets (JS bundles, CSS, images, etc.)
   for (const middleware of createStaticFileMiddleware(clientDistEarly)) app.use(middleware);
@@ -1080,10 +1079,6 @@ async function initializeApp() {
     // procare-invite — token-based deep-link acceptance (public GET, authenticated POST)
     const procareInviteRouter = (await import("./routes/procareInviteRoutes")).default;
     app.use("/api/procare-invite", procareInviteRouter);
-
-    // legal-pages — privacy policy, terms-of-service rendered pages
-    const legalPagesRouter = (await import("./routes/legal-pages")).default;
-    app.use(legalPagesRouter);
 
     // mealPlan — /api/meal-plan/current and related plan CRUD
     const mealPlanRouter = (await import("./routes/mealPlan")).default;

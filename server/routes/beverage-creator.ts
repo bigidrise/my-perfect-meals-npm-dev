@@ -40,6 +40,14 @@ import {
   shouldOfferBeverageAlternatives,
   type BeverageProtocolRejection,
 } from "../services/beverageAlternativeSupport";
+import { verifyHydrationHandoff } from "../services/hydration/hydrationHandoffService";
+import { resolveHydrationDay } from "../services/hydration/hydrationDay";
+import { getCurrentLiquidNutritionProtocol } from "../services/hydration/liquidNutritionProtocolService";
+import {
+  buildHydrationConsideredForYou,
+  buildLiquidNutritionPromptBlock,
+  validateLiquidNutritionOutput,
+} from "../services/hydration/hydrationContextService";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -129,11 +137,33 @@ beverageCreatorRouter.post("/", async (req, res) => {
       dietOverride,          // builder hub diet override — replaces profile primary diet
       cultureOverride: _cultureOverride,
       cuisineOverride: _cuisineOverride,
+      hydrationHandoff,
     } = req.body ?? {};
 
     // Always use the authenticated identity for all clinical, safety, and profile
     // lookups — the body-supplied userId is discarded to prevent IDOR.
     const userId = String((req as any).authUser?.id ?? "");
+    let trustedHydrationHandoff: ReturnType<typeof verifyHydrationHandoff> | null = null;
+    if (hydrationHandoff) {
+      try {
+        trustedHydrationHandoff = verifyHydrationHandoff({
+          token: String(hydrationHandoff),
+          userId,
+        });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        const status = code === "HYDRATION_HANDOFF_WRONG_ACCOUNT"
+          ? 403
+          : code === "HYDRATION_HANDOFF_EXPIRED"
+            ? 410
+            : 400;
+        return res.status(status).json({
+          error: code === "HYDRATION_HANDOFF_EXPIRED"
+            ? "This Hydration handoff has expired. Return to Hydration Hub to start again."
+            : "This Hydration handoff is not valid for the current account.",
+        });
+      }
+    }
 
     // Accept either key name — some clients send cuisineOverride, others cultureOverride
     const cultureOverride: string | undefined = (_cultureOverride || _cuisineOverride) ?? undefined;
@@ -195,6 +225,27 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const beverageEnvelope = beverageContext.envelope;
     const beverageProtocolBlock = beverageContext.combinedBlock;
     console.log(`🔒 [BEVERAGE] Nutrition context: diet=[${beverageContext.diet.join(",")}] medical=[${beverageContext.medical.length} flags] builder=${beverageContext.builder ?? "none"}`);
+    const hydrationDay = await resolveHydrationDay({ subjectUserId: userId });
+    const activeLiquidProtocol = await getCurrentLiquidNutritionProtocol({
+      userId,
+      localDate: hydrationDay.localDate,
+    });
+    if (activeLiquidProtocol?.status === "active" && !activeLiquidProtocol.handoffAllowed) {
+      return res.status(409).json({
+        error: "LIQUID_NUTRITION_VERIFICATION_REQUIRED",
+        message:
+          "Your active Liquid Nutrition instructions must be professionally verified and complete before Beverage Creator can safely use them.",
+        consideredForYou: buildHydrationConsideredForYou({
+          envelope: beverageEnvelope,
+          builder: beverageContext.builder,
+          liquidProtocol: activeLiquidProtocol,
+        }),
+      });
+    }
+    const liquidNutritionBlock = buildLiquidNutritionPromptBlock(activeLiquidProtocol);
+    const hydrationHandoffBlock = trustedHydrationHandoff
+      ? `\nVERIFIED HYDRATION HUB HANDOFF (${trustedHydrationHandoff.door}):\n${trustedHydrationHandoff.description}\nRe-resolve and enforce all current saved constraints; the handoff is intent only.\n`
+      : "";
 
     let palateGuidance = "\nFLAVOR STYLE: Use light, neutral flavoring suitable for serving to guests or family.";
     let dietCategoryStrategy: DietCategoryStrategy = {
@@ -401,6 +452,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     // layer on top so a GLP-1 user gets the same personalized ceilings in
     // Beverage Creator that they get in the meal builders and the unified route.
     let glp1CanonicalBlock = "";
+    let beverageGlp1Active = false;
     // Stored outside the try block so the post-generation validator can use it.
     let beverageGlp1ResolvedTargets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
     if (userId) {
@@ -411,6 +463,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
           // Beverages are portion-equivalent to snacks for GLP-1 sizing
           "snack",
         );
+        beverageGlp1Active = glp1Ctx.isActive;
         if (glp1Ctx.isActive && !glp1Ctx.resolvedTargets) {
           throw new Error("[GLP-1] Active GLP-1 patient detected but clinical targets unavailable — generation blocked");
         }
@@ -510,7 +563,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const prompt = `${beverageLangPrefix}
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
-${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${_beverageDishDirective ? `\n${_beverageDishDirective.adaptationBlock}\n` : ""}${medicalBeverageBlock}${glp1CanonicalBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
+${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${_beverageDishDirective ? `\n${_beverageDishDirective.adaptationBlock}\n` : ""}${medicalBeverageBlock}${glp1CanonicalBlock}${liquidNutritionBlock}${hydrationHandoffBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
 
 Return JSON ONLY, following this exact schema:
@@ -939,6 +992,14 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
     meal.ingredients = normalizedIngredients;
+    const liquidValidation = validateLiquidNutritionOutput(meal, activeLiquidProtocol);
+    if (liquidValidation.passed === false) {
+      return res.status(400).json({
+        error: "LIQUID_NUTRITION_CONFLICT",
+        message: liquidValidation.message,
+        retryable: true,
+      });
+    }
 
     const ingredientNames = normalizedIngredients.map((i: any) =>
       String(i.name ?? "").toLowerCase()
@@ -1067,6 +1128,12 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
       complianceSection: bevCompliance,
       dietClassification: bevDietClass,
+      consideredForYou: buildHydrationConsideredForYou({
+        envelope: beverageEnvelope,
+        builder: beverageContext.builder,
+        liquidProtocol: activeLiquidProtocol,
+        glp1Active: beverageGlp1Active,
+      }),
       ...(dietCategoryStrategy.conflictLevel !== 'none' && {
         dietCategoryConflict: dietCategoryStrategy.conflictLevel,
         requestedCategory: dietCategoryStrategy.requestedCategory,
