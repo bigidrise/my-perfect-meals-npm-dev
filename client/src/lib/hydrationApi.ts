@@ -97,6 +97,18 @@ export interface HydrationCenterState {
   }>;
   outcomeCounts?: Record<string, number>;
   liquidProtocol?: HydrationProtocolRecord | null;
+  consideredForYou: Array<{
+    key: string;
+    label: string;
+    status: "applied" | "checked" | "withheld";
+  }>;
+}
+
+export interface HydrationHandoff {
+  token: string;
+  door: "everyday" | "athletic" | "liquid_nutrition";
+  description: string;
+  expiresAt: string;
 }
 
 export function getHydrationCenterState(input: {
@@ -185,6 +197,22 @@ export function activateHydrationLiquidProtocol(protocolId: string) {
       method: "POST",
       body: JSON.stringify({ confirm: true }),
     },
+  );
+}
+
+export function createHydrationHandoff(input: {
+  door: HydrationHandoff["door"];
+  description: string;
+}) {
+  return apiRequest<HydrationHandoff>("/api/hydration/hub/handoff", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function resolveHydrationHandoff(token: string) {
+  return apiRequest<Omit<HydrationHandoff, "token">>(
+    `/api/hydration/hub/handoff/${encodeURIComponent(token)}`,
   );
 }
 
