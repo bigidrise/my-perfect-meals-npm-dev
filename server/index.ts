@@ -1630,6 +1630,11 @@ async function start() {
     const { runPilotProcareMigration } = await import("./db/migrations/runPilotProcareMigration");
     await runPilotProcareMigration(dbPilot);
   });
+  await withBootRetry("Hydration Hub migration", async () => {
+    const { db: dbHydrationHub } = await import("./db");
+    const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
+    await runHydrationHubMigration(dbHydrationHub);
+  });
 
   await withBootRetry("Email identity review migration", async () => {
     const { db: dbEmailIdentity } = await import("./db");

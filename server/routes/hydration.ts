@@ -20,6 +20,15 @@ import {
   revokeHydrationClinicianDirective,
 } from "../services/hydration/hydrationClinicianDirectiveService";
 import { resolveHydrationCenterState } from "../services/hydration/hydrationCenterService";
+import {
+  createHydrationHelp,
+  getHydrationHubState,
+  HYDRATION_BARRIER_CODES,
+  recordHydrationInterventionEvent,
+  saveHydrationBarriers,
+  saveHydrationPreferences,
+  type HydrationBarrierCode,
+} from "../services/hydration/hydrationHubService";
 
 const router = express.Router();
 
@@ -209,6 +218,133 @@ router.get("/hydration/state", requireAuth, async (req, res) => {
     }
     console.error("[hydration] state failed", error);
     res.status(500).json({ error: "Failed to resolve Hydration state" });
+  }
+});
+
+const hydrationHubPreferencesSchema = z.object({
+  consented: z.boolean(),
+  optedOut: z.boolean().default(false),
+  preferences: z.record(z.string(), z.unknown()).default({}),
+}).strict();
+
+const hydrationHubBarriersSchema = z.object({
+  barriers: z.array(z.object({
+    barrierCode: z.enum(HYDRATION_BARRIER_CODES),
+    note: z.string().trim().max(500).optional(),
+  }).strict()).max(9),
+}).strict();
+
+const hydrationHubEventSchema = z.object({
+  eventType: z.enum(["accepted", "dismissed", "opened", "completed", "logged", "rated"]),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+}).strict();
+
+router.get("/hydration/hub", requireAuth, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const owner = await authorizeSubject(authReq, res, req.query.clientId);
+    if (!owner) return;
+    const timezone = timezoneSchema.parse(req.query.timezone || "America/Chicago");
+    const localDate = hydrationDateSchema.parse(
+      req.query.date || new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date()),
+    );
+    const state = await getHydrationHubState({
+      subjectUserId: owner.subjectUserId,
+      localDate,
+      timezone,
+      access: {
+        authenticatedUserId: authReq.authUser!.id,
+        subjectUserId: owner.subjectUserId,
+        mode: owner.mode,
+        authorizationStatus: "allowed",
+        ...(owner.authorizationReference ? { authorizationReference: owner.authorizationReference } : {}),
+      },
+    });
+    res.json(state);
+  } catch (error) {
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub request" });
+    console.error("[hydration] hub state failed", error);
+    res.status(500).json({ error: "Failed to resolve Hydration Hub" });
+  }
+});
+
+function requireSelfHydrationWrite(req: AuthenticatedRequest, res: express.Response) {
+  const authenticatedUserId = req.authUser?.id;
+  if (!authenticatedUserId) {
+    res.status(401).json({ error: "Authentication required" });
+    return null;
+  }
+  if (typeof req.body?.clientId === "string" && req.body.clientId !== authenticatedUserId) {
+    res.status(403).json({ error: "Hydration Hub setup can only be changed by the account owner" });
+    return null;
+  }
+  return authenticatedUserId;
+}
+
+router.put("/hydration/hub/preferences", requireAuth, async (req, res) => {
+  try {
+    const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
+    if (!userId) return;
+    const input = hydrationHubPreferencesSchema.parse(req.body);
+    await saveHydrationPreferences({ userId, ...input });
+    res.json({ ok: true, consented: input.consented && !input.optedOut });
+  } catch (error) {
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub preferences" });
+    console.error("[hydration] preferences save failed", error);
+    res.status(500).json({ error: "Failed to save Hydration Hub preferences" });
+  }
+});
+
+router.put("/hydration/hub/barriers", requireAuth, async (req, res) => {
+  try {
+    const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
+    if (!userId) return;
+    const input = hydrationHubBarriersSchema.parse(req.body);
+    await saveHydrationBarriers({ userId, barriers: input.barriers as Array<{ barrierCode: HydrationBarrierCode; note?: string }> });
+    res.json({ ok: true, barriers: input.barriers });
+  } catch (error) {
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub barriers" });
+    console.error("[hydration] barriers save failed", error);
+    res.status(500).json({ error: "Failed to save Hydration Hub barriers" });
+  }
+});
+
+router.post("/hydration/hub/help", requireAuth, async (req, res) => {
+  try {
+    const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
+    if (!userId) return;
+    const input = z.object({
+      barriers: z.array(z.enum(HYDRATION_BARRIER_CODES)).max(9).default([]),
+      preferences: z.record(z.string(), z.unknown()).default({}),
+    }).strict().parse(req.body);
+    const options = await createHydrationHelp({ userId, ...input });
+    res.json({ options });
+  } catch (error) {
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub help request" });
+    if ((error as { code?: string }).code === "HYDRATION_HUB_CONSENT_REQUIRED") {
+      return res.status(403).json({ error: "Save Hydration Hub consent before requesting personalized options" });
+    }
+    console.error("[hydration] help generation failed", error);
+    res.status(500).json({ error: "Failed to create practical hydration options" });
+  }
+});
+
+router.post("/hydration/hub/interventions/:interventionId/events", requireAuth, async (req, res) => {
+  try {
+    const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
+    if (!userId) return;
+    const input = hydrationHubEventSchema.parse(req.body);
+    const recorded = await recordHydrationInterventionEvent({
+      userId,
+      interventionId: req.params.interventionId,
+      ...input,
+    });
+    if (!recorded) return res.status(404).json({ error: "Hydration intervention not found" });
+    res.status(201).json({ ok: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid intervention event" });
+    console.error("[hydration] intervention event failed", error);
+    res.status(500).json({ error: "Failed to record intervention outcome" });
   }
 });
 

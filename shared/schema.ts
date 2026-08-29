@@ -809,6 +809,9 @@ export const waterLogs = pgTable(
     // store mL for accuracy, show oz/cups in UI as needed
     amountMl: integer("amount_ml").notNull(),
     unit: text("unit").notNull().default("ml"), // "ml" | "oz" | "cup" (UI reference)
+    // Phase 1 keeps water_logs as the only editable intake ledger while
+    // allowing the Hub to distinguish plain water from other fluids.
+    beverageClass: text("beverage_class").notNull().default("water"),
     intakeTime: timestamp("intake_time", { withTimezone: false }).notNull(), // when they said they drank
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
