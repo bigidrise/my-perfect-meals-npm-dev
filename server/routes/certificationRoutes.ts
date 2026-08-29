@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import { randomUUID } from "crypto";
 import { db } from "../db";
 import { eq, and, asc, inArray, ne, or } from "drizzle-orm";
 import { sql } from "drizzle-orm";
@@ -21,10 +22,160 @@ import {
   SPECIALIST_CERTIFICATION_TYPE,
 } from "@shared/academyProgression";
 import { getAcademyProgression } from "../services/academyProgression";
+import {
+  buildAttemptHistoryModuleId,
+  filterProCareProgress,
+  getProCareAssessmentPrerequisites,
+  hasLegacyProCareProgressEvidence,
+  isProCareCourseStructure,
+  LEGACY_PROCARE_CERTIFICATION_TYPE,
+  PROCARE_CERTIFICATION_TYPE,
+  PROCARE_FINAL_ASSESSMENT_ID,
+  PROCARE_FINAL_QUESTION_COUNT,
+  PROCARE_PASSING_SCORE,
+  PROCARE_QUIZ_MODULE_IDS,
+  PROCARE_REQUIRED_SEQUENCE,
+  PROCARE_VIDEO_MODULE_IDS,
+  scoreAssessment,
+  selectProCareFinalAssessmentQuestions,
+  validateCompleteAssessmentSubmission,
+  validateProCareCertificationProgress,
+} from "../services/procareCertification";
 
 const router = express.Router();
 
-const DB_DRIVEN_CERT_TYPES = ["platform", "business_success"];
+const DB_DRIVEN_CERT_TYPES = [
+  LEGACY_PROCARE_CERTIFICATION_TYPE,
+  PROCARE_CERTIFICATION_TYPE,
+  "business_success",
+];
+
+async function loadStoredModules(certType: string) {
+  return db
+    .select()
+    .from(certModules)
+    .where(and(eq(certModules.certType, certType), eq(certModules.isActive, true)))
+    .orderBy(asc(certModules.sortOrder));
+}
+
+async function resolveCertificationCourse(requestedCertType: string) {
+  if (requestedCertType === PROCARE_CERTIFICATION_TYPE) {
+    const canonicalModules = await loadStoredModules(PROCARE_CERTIFICATION_TYPE);
+    if (isProCareCourseStructure(canonicalModules)) {
+      return {
+        requestedCertType,
+        storageCertType: PROCARE_CERTIFICATION_TYPE,
+        isProCare: true,
+        modules: canonicalModules,
+      };
+    }
+
+    const legacyModules = await loadStoredModules(
+      LEGACY_PROCARE_CERTIFICATION_TYPE,
+    );
+    if (isProCareCourseStructure(legacyModules)) {
+      return {
+        requestedCertType,
+        storageCertType: LEGACY_PROCARE_CERTIFICATION_TYPE,
+        isProCare: true,
+        modules: legacyModules,
+      };
+    }
+
+    return {
+      requestedCertType,
+      storageCertType: PROCARE_CERTIFICATION_TYPE,
+      isProCare: true,
+      modules: canonicalModules,
+    };
+  }
+
+  const modules = await loadStoredModules(requestedCertType);
+  return {
+    requestedCertType,
+    storageCertType: requestedCertType,
+    isProCare:
+      requestedCertType === LEGACY_PROCARE_CERTIFICATION_TYPE &&
+      isProCareCourseStructure(modules),
+    modules,
+  };
+}
+
+function withVirtualProCareFinalAssessment(
+  modules: Awaited<ReturnType<typeof loadStoredModules>>,
+  requestedCertType: string,
+) {
+  if (modules.some((module) => module.slug === PROCARE_FINAL_ASSESSMENT_ID)) {
+    return modules;
+  }
+
+  const maxSortOrder = modules.reduce(
+    (maximum, module) => Math.max(maximum, module.sortOrder),
+    0,
+  );
+  return [
+    ...modules,
+    {
+      id: "virtual-procare-final-assessment",
+      certType: requestedCertType,
+      slug: PROCARE_FINAL_ASSESSMENT_ID,
+      title: "Final ProCare Assessment",
+      description:
+        "20 cumulative questions across all three ProCare training modules",
+      moduleType: "final_assessment",
+      videoUrl: null,
+      sortOrder: maxSortOrder + 1,
+      passingScorePct: PROCARE_PASSING_SCORE,
+      questionLimit: PROCARE_FINAL_QUESTION_COUNT,
+      isActive: true,
+      createdAt: new Date(0),
+    },
+  ];
+}
+
+async function recordAssessmentAttempt(params: {
+  userId: string;
+  certificationType: string;
+  assessmentId: string;
+  answers: Record<string, string>;
+  status: "blocked" | "incomplete" | "failed" | "passed";
+  score: number;
+}) {
+  const now = new Date();
+  await db.insert(certificationQuizAttempts).values({
+    userId: params.userId,
+    certificationType: params.certificationType,
+    moduleId: buildAttemptHistoryModuleId(
+      params.assessmentId,
+      randomUUID(),
+    ),
+    status: params.status,
+    answersJson: {
+      assessmentId: params.assessmentId,
+      submittedAnswers: params.answers,
+    },
+    score: params.score,
+    startedAt: now,
+    completedAt: now,
+  });
+}
+
+function proCarePrerequisiteIsComplete(
+  moduleId: string,
+  progress: Array<{
+    moduleId: string;
+    status: string;
+    score: number | null;
+    videoWatchedPct: number | null;
+  }>,
+) {
+  const row = progress.find((item) => item.moduleId === moduleId);
+  if (!row || row.status !== "completed") return false;
+  if ((PROCARE_VIDEO_MODULE_IDS as readonly string[]).includes(moduleId)) {
+    return (row.videoWatchedPct ?? 0) >= 100;
+  }
+  return (row.score ?? 0) >= PROCARE_PASSING_SCORE;
+}
 
 async function findCertificateForDisplay(userId: string, certType: string) {
   const [cert] = await db
@@ -60,6 +211,51 @@ async function findCertificateForDisplay(userId: string, certType: string) {
   return legacyMarketingCert;
 }
 
+async function findProCareCertificateForDisplay(
+  userId: string,
+  requestedCertType: string,
+  progress: Array<{
+    moduleId: string;
+    status: string;
+    score: number | null;
+    videoWatchedPct: number | null;
+  }>,
+) {
+  const certs = await db
+    .select()
+    .from(userCertifications)
+    .where(
+      and(
+        eq(userCertifications.userId, userId),
+        inArray(userCertifications.certificationType, [
+          PROCARE_CERTIFICATION_TYPE,
+          LEGACY_PROCARE_CERTIFICATION_TYPE,
+        ]),
+      ),
+    );
+
+  const canonical = certs.find(
+    (cert) => cert.certificationType === PROCARE_CERTIFICATION_TYPE,
+  );
+  if (canonical) return canonical;
+
+  const legacy = certs.find(
+    (cert) =>
+      cert.certificationType === LEGACY_PROCARE_CERTIFICATION_TYPE &&
+      cert.isCertificationTrack !== true,
+  );
+  if (
+    legacy &&
+    hasLegacyProCareProgressEvidence(progress) &&
+    (requestedCertType === PROCARE_CERTIFICATION_TYPE ||
+      requestedCertType === LEGACY_PROCARE_CERTIFICATION_TYPE)
+  ) {
+    return legacy;
+  }
+
+  return undefined;
+}
+
 // ─── DB-DRIVEN CERT: MODULE LIST WITH QUESTIONS ───────────────────────────────
 
 // GET /api/certifications/:certType/modules — DB-driven module list + questions (no correct answers)
@@ -70,11 +266,10 @@ router.get("/:certType/modules", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Not a DB-driven certification type" });
     }
 
-    const modules = await db
-      .select()
-      .from(certModules)
-      .where(and(eq(certModules.certType, certType), eq(certModules.isActive, true)))
-      .orderBy(asc(certModules.sortOrder));
+    const course = await resolveCertificationCourse(certType);
+    const modules = course.isProCare
+      ? withVirtualProCareFinalAssessment(course.modules, certType)
+      : course.modules;
 
     // For each quiz/final module, fetch its questions + options (no isCorrect sent to client)
     const quizModuleSlugs = modules
@@ -85,19 +280,31 @@ router.get("/:certType/modules", requireAuth, async (req, res) => {
     let options: typeof certQuestionOptions.$inferSelect[] = [];
 
     if (quizModuleSlugs.length > 0) {
-      if (modules.some((m) => m.moduleType === "final_assessment")) {
+      if (course.isProCare) {
+        questions = await db
+          .select()
+          .from(certQuestions)
+          .where(
+            and(
+              eq(certQuestions.certType, course.storageCertType),
+              eq(certQuestions.isActive, true),
+              inArray(certQuestions.moduleSlug, [...PROCARE_QUIZ_MODULE_IDS]),
+            ),
+          )
+          .orderBy(asc(certQuestions.sortOrder));
+      } else if (modules.some((m) => m.moduleType === "final_assessment")) {
         // Final assessment: all active questions for this cert type (excluding final itself)
         questions = await db
           .select()
           .from(certQuestions)
-          .where(and(eq(certQuestions.certType, certType), eq(certQuestions.isActive, true), ne(certQuestions.moduleSlug, "final")))
+          .where(and(eq(certQuestions.certType, course.storageCertType), eq(certQuestions.isActive, true), ne(certQuestions.moduleSlug, "final")))
           .orderBy(asc(certQuestions.sortOrder));
       } else {
         questions = await db
           .select()
           .from(certQuestions)
           .where(and(
-            eq(certQuestions.certType, certType),
+            eq(certQuestions.certType, course.storageCertType),
             eq(certQuestions.isActive, true),
             inArray(certQuestions.moduleSlug, quizModuleSlugs)
           ))
@@ -134,10 +341,29 @@ router.get("/:certType/modules", requireAuth, async (req, res) => {
       if (m.moduleType === "quiz") {
         baseModule.questions = questionsBySlug[m.slug] ?? [];
       } else if (m.moduleType === "final_assessment") {
-        // Shuffle all questions and limit to questionLimit
         const allQ = Object.values(questionsBySlug).flat();
-        const shuffled = allQ.sort(() => Math.random() - 0.5).slice(0, m.questionLimit ?? 20);
-        baseModule.questions = shuffled;
+        if (course.isProCare) {
+          const finalQuestions = selectProCareFinalAssessmentQuestions(
+            questions.map((question) => ({
+              ...question,
+              options:
+                questionsBySlug[question.moduleSlug]?.find(
+                  (item) => item.id === question.id,
+                )?.options ?? [],
+            })),
+          );
+          if (!finalQuestions) {
+            return res.status(409).json({
+              error:
+                "The approved ProCare question bank cannot support the 20-question final assessment",
+            });
+          }
+          baseModule.questions = finalQuestions;
+        } else {
+          baseModule.questions = allQ
+            .sort(() => Math.random() - 0.5)
+            .slice(0, m.questionLimit ?? 20);
+        }
       }
       return baseModule;
     });
@@ -157,6 +383,17 @@ router.post("/:certType/modules/:moduleId/video-progress", requireAuth, async (r
     const { certType, moduleId } = req.params;
     const { pct } = req.body as { pct: number };
     if (typeof pct !== "number") return res.status(400).json({ error: "pct required" });
+    if (!DB_DRIVEN_CERT_TYPES.includes(certType)) {
+      return res.status(400).json({ error: "Not a DB-driven certification type" });
+    }
+
+    const course = await resolveCertificationCourse(certType);
+    const moduleConfig = course.modules.find(
+      (module) => module.slug === moduleId && module.moduleType === "video",
+    );
+    if (!moduleConfig) {
+      return res.status(404).json({ error: "Training video not found" });
+    }
 
     const clampedPct = Math.min(100, Math.max(0, Math.round(pct)));
     const newStatus = clampedPct >= 100 ? "completed" : "in_progress";
@@ -165,7 +402,7 @@ router.post("/:certType/modules/:moduleId/video-progress", requireAuth, async (r
       .insert(certificationModuleProgress)
       .values({
         userId,
-        certificationType: certType,
+        certificationType: course.storageCertType,
         moduleId,
         status: newStatus,
         videoWatchedPct: clampedPct,
@@ -204,13 +441,107 @@ router.post("/:certType/modules/:moduleId/quiz/evaluate", requireAuth, async (re
       return res.status(400).json({ error: "Not a DB-driven cert type" });
     }
 
-    // Fetch all questions for this module (or all for final assessment)
-    const isFinal = moduleId === "final";
+    if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+      return res.status(400).json({ error: "answers must be an object" });
+    }
+
+    const course = await resolveCertificationCourse(certType);
+    const isFinal = moduleId === PROCARE_FINAL_ASSESSMENT_ID;
+    if (
+      course.isProCare &&
+      !(
+        (PROCARE_QUIZ_MODULE_IDS as readonly string[]).includes(moduleId) ||
+        isFinal
+      )
+    ) {
+      return res.status(404).json({ error: "ProCare assessment not found" });
+    }
+
+    const progress = course.isProCare
+      ? await db
+          .select({
+            moduleId: certificationModuleProgress.moduleId,
+            status: certificationModuleProgress.status,
+            score: certificationModuleProgress.score,
+            videoWatchedPct: certificationModuleProgress.videoWatchedPct,
+          })
+          .from(certificationModuleProgress)
+          .where(
+            and(
+              eq(certificationModuleProgress.userId, userId),
+              eq(
+                certificationModuleProgress.certificationType,
+                course.storageCertType,
+              ),
+            ),
+          )
+      : [];
+    if (course.isProCare) {
+      const missingPrerequisites = getProCareAssessmentPrerequisites(
+        moduleId,
+      ).filter(
+        (requiredModuleId) =>
+          !proCarePrerequisiteIsComplete(requiredModuleId, progress),
+      );
+      if (missingPrerequisites.length > 0) {
+        await recordAssessmentAttempt({
+          userId,
+          certificationType: course.storageCertType,
+          assessmentId: moduleId,
+          answers,
+          status: "blocked",
+          score: 0,
+        });
+        return res.status(409).json({
+          error: "Complete the required ProCare training steps first",
+          missingPrerequisites,
+        });
+      }
+    }
+
     let questions: typeof certQuestions.$inferSelect[];
-    if (isFinal) {
-      questions = await db.select().from(certQuestions).where(and(eq(certQuestions.certType, certType), eq(certQuestions.isActive, true)));
+    if (isFinal && course.isProCare) {
+      const questionBank = await db
+        .select()
+        .from(certQuestions)
+        .where(
+          and(
+            eq(certQuestions.certType, course.storageCertType),
+            eq(certQuestions.isActive, true),
+            inArray(certQuestions.moduleSlug, [...PROCARE_QUIZ_MODULE_IDS]),
+          ),
+        )
+        .orderBy(asc(certQuestions.sortOrder));
+      const selected = selectProCareFinalAssessmentQuestions(questionBank);
+      if (!selected) {
+        return res.status(409).json({
+          error:
+            "The approved ProCare question bank cannot support the 20-question final assessment",
+        });
+      }
+      questions = selected;
+    } else if (isFinal) {
+      questions = await db
+        .select()
+        .from(certQuestions)
+        .where(
+          and(
+            eq(certQuestions.certType, course.storageCertType),
+            eq(certQuestions.isActive, true),
+          ),
+        );
     } else {
-      questions = await db.select().from(certQuestions).where(and(eq(certQuestions.certType, certType), eq(certQuestions.moduleSlug, moduleId), eq(certQuestions.isActive, true)));
+      questions = await db
+        .select()
+        .from(certQuestions)
+        .where(
+          and(
+            eq(certQuestions.certType, course.storageCertType),
+            eq(certQuestions.moduleSlug, moduleId),
+            eq(certQuestions.isActive, true),
+          ),
+        )
+        .orderBy(asc(certQuestions.sortOrder));
     }
 
     if (questions.length === 0) {
@@ -218,6 +549,28 @@ router.post("/:certType/modules/:moduleId/quiz/evaluate", requireAuth, async (re
     }
 
     const questionIds = questions.map((q) => q.id);
+    const submission = validateCompleteAssessmentSubmission(
+      questionIds,
+      answers,
+    );
+    if (!submission.ok) {
+      if (course.isProCare) {
+        await recordAssessmentAttempt({
+          userId,
+          certificationType: course.storageCertType,
+          assessmentId: moduleId,
+          answers,
+          status: "incomplete",
+          score: 0,
+        });
+      }
+      return res.status(400).json({
+        error: "Every configured assessment question must be answered",
+        missingQuestionIds: submission.missingQuestionIds,
+        unexpectedQuestionIds: submission.unexpectedQuestionIds,
+      });
+    }
+
     const correctOptions = await db
       .select({ questionId: certQuestionOptions.questionId, id: certQuestionOptions.id })
       .from(certQuestionOptions)
@@ -225,37 +578,48 @@ router.post("/:certType/modules/:moduleId/quiz/evaluate", requireAuth, async (re
 
     const correctMap = new Map(correctOptions.map((o) => [o.questionId as string, o.id as string]));
 
-    const answeredQuestionIds = Object.keys(answers);
-    let correct = 0;
-    const correctAnswers: Record<string, string> = {};
-
-    for (const qId of answeredQuestionIds) {
-      const correctOptionId = correctMap.get(qId);
-      correctAnswers[qId] = correctOptionId ?? "";
-      if (correctOptionId && answers[qId] === correctOptionId) {
-        correct++;
-      }
-    }
-
-    const total = answeredQuestionIds.length;
-    const score = total > 0 ? Math.round((correct / total) * 100) : 0;
-
     // Get passing score from module config
-    const [moduleConfig] = await db.select({ passingScorePct: certModules.passingScorePct }).from(certModules).where(and(eq(certModules.certType, certType), eq(certModules.slug, moduleId))).limit(1);
-    const passingScore = moduleConfig?.passingScorePct ?? 80;
-    const passed = score >= passingScore;
+    const moduleConfig = isFinal && course.isProCare
+      ? { passingScorePct: PROCARE_PASSING_SCORE }
+      : course.modules.find((module) => module.slug === moduleId);
+    const passingScore =
+      moduleConfig?.passingScorePct ?? PROCARE_PASSING_SCORE;
+    const { score, passed, total, correct, correctAnswers } = scoreAssessment(
+      questionIds,
+      answers,
+      correctMap,
+      passingScore,
+    );
 
     const status = passed ? "completed" : "quiz_failed";
 
+    if (course.isProCare) {
+      await recordAssessmentAttempt({
+        userId,
+        certificationType: course.storageCertType,
+        assessmentId: moduleId,
+        answers,
+        status: passed ? "passed" : "failed",
+        score,
+      });
+    }
+
     await db
       .insert(certificationModuleProgress)
-      .values({ userId, certificationType: certType, moduleId, status, score, completedAt: passed ? new Date() : null, lastViewedAt: new Date() })
+      .values({ userId, certificationType: course.storageCertType, moduleId, status, score, completedAt: passed ? new Date() : null, lastViewedAt: new Date() })
       .onConflictDoUpdate({
         target: [certificationModuleProgress.userId, certificationModuleProgress.certificationType, certificationModuleProgress.moduleId],
         set: { status, score, completedAt: passed ? new Date() : null, lastViewedAt: new Date() },
       });
 
-    return res.json({ ok: true, score, passed, total, correct, correctAnswers });
+    return res.json({
+      ok: true,
+      score,
+      passed,
+      total,
+      correct,
+      ...(course.isProCare ? {} : { correctAnswers }),
+    });
   } catch (err) {
     console.error("[Cert] quiz evaluate error:", err);
     return res.status(500).json({ error: "Failed to evaluate quiz" });
@@ -406,19 +770,31 @@ router.get("/:certType/progress", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType } = req.params;
-
-    const [certification, moduleProgress] = await Promise.all([
-      findCertificateForDisplay(userId, certType),
-      db
-        .select()
-        .from(certificationModuleProgress)
-        .where(
-          and(
-            eq(certificationModuleProgress.userId, userId),
-            eq(certificationModuleProgress.certificationType, certType)
-          )
+    const course = DB_DRIVEN_CERT_TYPES.includes(certType)
+      ? await resolveCertificationCourse(certType)
+      : null;
+    const storedProgress = await db
+      .select()
+      .from(certificationModuleProgress)
+      .where(
+        and(
+          eq(certificationModuleProgress.userId, userId),
+          eq(
+            certificationModuleProgress.certificationType,
+            course?.storageCertType ?? certType,
+          ),
         ),
-    ]);
+      );
+    const moduleProgress = course?.isProCare
+      ? filterProCareProgress(storedProgress)
+      : storedProgress;
+    const certification = course?.isProCare
+      ? await findProCareCertificateForDisplay(
+          userId,
+          certType,
+          moduleProgress,
+        )
+      : await findCertificateForDisplay(userId, certType);
 
     // Never cache this response — module status changes after every quiz
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -440,7 +816,28 @@ router.get("/:certType/certificate", requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType } = req.params;
 
-    const cert = await findCertificateForDisplay(userId, certType);
+    const course = DB_DRIVEN_CERT_TYPES.includes(certType)
+      ? await resolveCertificationCourse(certType)
+      : null;
+    const progress = course?.isProCare
+      ? filterProCareProgress(
+          await db
+            .select()
+            .from(certificationModuleProgress)
+            .where(
+              and(
+                eq(certificationModuleProgress.userId, userId),
+                eq(
+                  certificationModuleProgress.certificationType,
+                  course.storageCertType,
+                ),
+              ),
+            ),
+        )
+      : [];
+    const cert = course?.isProCare
+      ? await findProCareCertificateForDisplay(userId, certType, progress)
+      : await findCertificateForDisplay(userId, certType);
 
     if (!cert || cert.status !== "completed") {
       return res.status(404).json({ error: "Certification not found" });
@@ -524,6 +921,18 @@ router.get("/:certType/modules/:moduleId/quiz-attempt", requireAuth, async (req,
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType, moduleId } = req.params;
+    const course = DB_DRIVEN_CERT_TYPES.includes(certType)
+      ? await resolveCertificationCourse(certType)
+      : null;
+    if (
+      course?.isProCare &&
+      ![
+        ...PROCARE_QUIZ_MODULE_IDS,
+        PROCARE_FINAL_ASSESSMENT_ID,
+      ].includes(moduleId as any)
+    ) {
+      return res.status(404).json({ error: "ProCare assessment not found" });
+    }
 
     const [attempt] = await db
       .select()
@@ -531,7 +940,10 @@ router.get("/:certType/modules/:moduleId/quiz-attempt", requireAuth, async (req,
       .where(
         and(
           eq(certificationQuizAttempts.userId, userId),
-          eq(certificationQuizAttempts.certificationType, certType),
+          eq(
+            certificationQuizAttempts.certificationType,
+            course?.storageCertType ?? certType,
+          ),
           eq(certificationQuizAttempts.moduleId, moduleId),
           eq(certificationQuizAttempts.status, "in_progress")
         )
@@ -551,6 +963,18 @@ router.post("/:certType/modules/:moduleId/quiz-attempt/answer", requireAuth, asy
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType, moduleId } = req.params;
     const { questionId, answerIndex } = req.body as { questionId: string; answerIndex: number };
+    const course = DB_DRIVEN_CERT_TYPES.includes(certType)
+      ? await resolveCertificationCourse(certType)
+      : null;
+    if (
+      course?.isProCare &&
+      ![
+        ...PROCARE_QUIZ_MODULE_IDS,
+        PROCARE_FINAL_ASSESSMENT_ID,
+      ].includes(moduleId as any)
+    ) {
+      return res.status(404).json({ error: "ProCare assessment not found" });
+    }
 
     if (!questionId || answerIndex === undefined) {
       return res.status(400).json({ error: "questionId and answerIndex required" });
@@ -562,7 +986,7 @@ router.post("/:certType/modules/:moduleId/quiz-attempt/answer", requireAuth, asy
       .insert(certificationQuizAttempts)
       .values({
         userId,
-        certificationType: certType,
+        certificationType: course?.storageCertType ?? certType,
         moduleId,
         status: "in_progress",
         answersJson: { [questionId]: answerIndex },
@@ -591,14 +1015,30 @@ router.delete("/:certType/modules/:moduleId/quiz-attempt", requireAuth, async (r
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType, moduleId } = req.params;
+    const course = DB_DRIVEN_CERT_TYPES.includes(certType)
+      ? await resolveCertificationCourse(certType)
+      : null;
+    if (
+      course?.isProCare &&
+      ![
+        ...PROCARE_QUIZ_MODULE_IDS,
+        PROCARE_FINAL_ASSESSMENT_ID,
+      ].includes(moduleId as any)
+    ) {
+      return res.status(404).json({ error: "ProCare assessment not found" });
+    }
 
     await db
       .delete(certificationQuizAttempts)
       .where(
         and(
           eq(certificationQuizAttempts.userId, userId),
-          eq(certificationQuizAttempts.certificationType, certType),
-          eq(certificationQuizAttempts.moduleId, moduleId)
+          eq(
+            certificationQuizAttempts.certificationType,
+            course?.storageCertType ?? certType,
+          ),
+          eq(certificationQuizAttempts.moduleId, moduleId),
+          eq(certificationQuizAttempts.status, "in_progress"),
         )
       );
 
@@ -616,12 +1056,21 @@ router.post("/:certType/modules/:moduleId/view", requireAuth, async (req, res) =
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType, moduleId } = req.params;
+    const course = DB_DRIVEN_CERT_TYPES.includes(certType)
+      ? await resolveCertificationCourse(certType)
+      : null;
+    if (
+      course?.isProCare &&
+      !(PROCARE_REQUIRED_SEQUENCE as readonly string[]).includes(moduleId)
+    ) {
+      return res.status(404).json({ error: "ProCare module not found" });
+    }
 
     await db
       .insert(certificationModuleProgress)
       .values({
         userId,
-        certificationType: certType,
+        certificationType: course?.storageCertType ?? certType,
         moduleId,
         status: "in_progress",
         lastViewedAt: new Date(),
@@ -652,6 +1101,15 @@ router.post("/:certType/modules/:moduleId/quiz", requireAuth, async (req, res) =
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType, moduleId } = req.params;
     const { score, passed } = req.body as { score: number; passed: boolean };
+    const course = DB_DRIVEN_CERT_TYPES.includes(certType)
+      ? await resolveCertificationCourse(certType)
+      : null;
+    if (course?.isProCare) {
+      return res.status(400).json({
+        error:
+          "ProCare quiz results must be evaluated by the server assessment endpoint",
+      });
+    }
 
     const status = passed ? "completed" : "quiz_failed";
 
@@ -659,7 +1117,7 @@ router.post("/:certType/modules/:moduleId/quiz", requireAuth, async (req, res) =
       .insert(certificationModuleProgress)
       .values({
         userId,
-        certificationType: certType,
+        certificationType: course?.storageCertType ?? certType,
         moduleId,
         status,
         score,
@@ -693,20 +1151,44 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const { certType } = req.params;
     const { certificateName } = req.body as { certificateName?: string };
+    const course = DB_DRIVEN_CERT_TYPES.includes(certType)
+      ? await resolveCertificationCourse(certType)
+      : null;
+    const storageCertType = course?.storageCertType ?? certType;
+    const certificateWriteType =
+      certType === PROCARE_CERTIFICATION_TYPE
+        ? PROCARE_CERTIFICATION_TYPE
+        : storageCertType;
 
-    const completedModules = await db
+    const storedProgress = await db
       .select()
       .from(certificationModuleProgress)
       .where(
         and(
           eq(certificationModuleProgress.userId, userId),
-          eq(certificationModuleProgress.certificationType, certType),
-          eq(certificationModuleProgress.status, "completed")
+          eq(certificationModuleProgress.certificationType, storageCertType),
         )
       );
+    const relevantProgress = course?.isProCare
+      ? filterProCareProgress(storedProgress)
+      : storedProgress;
+    const completedModules = relevantProgress.filter(
+      (module) => module.status === "completed",
+    );
 
     if (completedModules.length === 0) {
       return res.status(400).json({ error: "No completed modules found" });
+    }
+
+    if (course?.isProCare) {
+      const integrity = validateProCareCertificationProgress(relevantProgress);
+      if (!integrity.complete) {
+        return res.status(400).json({
+          error:
+            "Complete all ProCare videos, module quizzes, and the final assessment before certification",
+          missingModules: integrity.missing,
+        });
+      }
     }
 
     if (certType === "marketing_coaching") {
@@ -729,9 +1211,17 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       }
     }
 
+    const scoredModules = course?.isProCare
+      ? completedModules.filter((module) =>
+          [
+            ...PROCARE_QUIZ_MODULE_IDS,
+            PROCARE_FINAL_ASSESSMENT_ID,
+          ].includes(module.moduleId as any),
+        )
+      : completedModules;
     const avgScore = Math.round(
-      completedModules.reduce((acc, m) => acc + (m.score ?? 0), 0) /
-        completedModules.length
+      scoredModules.reduce((acc, m) => acc + (m.score ?? 0), 0) /
+        scoredModules.length
     );
 
     const year = new Date().getFullYear();
@@ -744,7 +1234,7 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       .insert(userCertifications)
       .values({
         userId,
-        certificationType: certType,
+        certificationType: certificateWriteType,
         status: "completed",
         score: avgScore,
         completedAt: new Date(),
@@ -770,7 +1260,7 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
       .where(
         and(
           eq(userCertifications.userId, userId),
-          eq(userCertifications.certificationType, certType)
+          eq(userCertifications.certificationType, certificateWriteType)
         )
       )
       .limit(1);
@@ -816,7 +1306,7 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
     }
 
     if (!emailServiceAvailable()) {
-      console.warn(`[Cert] Email service not configured — completion email skipped for userId=${userId} certType=${certType}`);
+      console.warn(`[Cert] Email service not configured — completion email skipped for userId=${userId} certType=${certificateWriteType}`);
     } else {
       try {
         const [user] = await db
@@ -829,7 +1319,7 @@ router.post("/:certType/complete", requireAuth, async (req, res) => {
           await sendCertificationCompleteEmail({
             to: user.email,
             userName: certificateName ?? (user as any).name ?? user.email,
-            certType,
+            certType: certificateWriteType,
             certificateNumber: finalCertNumber,
           });
         }

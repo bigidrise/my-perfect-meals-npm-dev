@@ -42,6 +42,7 @@ export async function getAcademyProgression(userId: string) {
         certificationType: userCertifications.certificationType,
         status: userCertifications.status,
         certificateNumber: userCertifications.certificateNumber,
+        isCertificationTrack: userCertifications.isCertificationTrack,
       })
       .from(userCertifications)
       .where(
@@ -67,6 +68,12 @@ export async function getAcademyProgression(userId: string) {
     certRows.some(
       (row) => row.certificationType === type && row.status === "completed",
     );
+  const completedLegacyPlatformMastery = certRows.some(
+    (row) =>
+      row.certificationType === "platform" &&
+      row.status === "completed" &&
+      row.isCertificationTrack === true,
+  );
   const completedModules = (type: string, required: string[]) =>
     progressRows
       .filter(
@@ -87,7 +94,7 @@ export async function getAcademyProgression(userId: string) {
       MARKETING_COACHING_MODULE_IDS,
     ),
     legacyPlatformComplete:
-      completed("platform_mastery") || completed("platform"),
+      completed("platform_mastery") || completedLegacyPlatformMastery,
     legacyMarketingComplete: completed("marketing_coaching"),
     specialistCredentialComplete: completed(SPECIALIST_CERTIFICATION_TYPE),
     proCareTrainingComplete: completed("procare_training"),

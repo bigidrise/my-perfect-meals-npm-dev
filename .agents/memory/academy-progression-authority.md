@@ -8,3 +8,9 @@ Academy progression must come from one authoritative calculation. Completing all
 **Why:** Independent page-level calculations previously sent completed learners backward, treated ProCare as part of the core credential, and coupled educational completion to legacy certificate issuance.
 
 **How to apply:** New Academy surfaces must consume the shared progression result and its next step. Preserve legacy certificate rows as compatibility evidence; do not relabel or overwrite them. Offer ProCare only to eligible professional roles, while leaving legal, MFA, readiness, and access gates authoritative.
+
+Legacy `platform` certification data is ambiguous: Platform Mastery evidence requires its explicit certification-track marker, while ProCare compatibility requires the known three-video/three-quiz LMS structure plus related module progress. Never infer either identity from the `platform` string alone.
+
+**Why:** Both historical Academy records and the advanced ProCare LMS have used the same storage identifier, so blanket aliases can grant the wrong credential or erase valid progression.
+
+**How to apply:** Introduce canonical identities in code first, keep compatibility matching evidence-based, and move records only through a later reviewed migration with a dry-run inventory.
