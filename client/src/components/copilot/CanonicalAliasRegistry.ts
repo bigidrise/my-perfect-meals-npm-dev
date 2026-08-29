@@ -256,6 +256,28 @@ export const DIRECT_PAGES: Record<string, FeatureDefinition> = {
     keywords: ["lifestyle", "main lifestyle page", "nutrition lifestyle", "lifestyle hub", "lifestyle page"]
   },
 
+  HYDRATION: {
+    id: "HYDRATION",
+    legacyId: "hydration",
+    primaryRoute: "/hydration",
+    isHub: false,
+    keywords: [
+      "hydration hub",
+      "hydration",
+      "hydration center",
+      "water tracker",
+      "water log",
+      "log water",
+      "track water",
+      "hydration plan",
+      "liquid nutrition",
+      "athletic hydration",
+      "sick day hydration",
+      "everyday hydration",
+      "considered for you hydration",
+    ],
+  },
+
   PRO_CARE: {
     id: "PRO_CARE",
     legacyId: "pro-care",
@@ -264,23 +286,6 @@ export const DIRECT_PAGES: Record<string, FeatureDefinition> = {
     keywords: ["pro care", "professional care", "doctor care", "procare", "medical care", "professional help", "doctor", "more"]
   }
 };
-
-if (import.meta.env.DEV) {
-  DIRECT_PAGES.HYDRATION = {
-    id: "HYDRATION",
-    legacyId: "hydration",
-    primaryRoute: "/hydration",
-    isHub: false,
-    keywords: [
-      "hydration",
-      "hydration center",
-      "water tracker",
-      "water log",
-      "log water",
-      "track water",
-    ],
-  };
-}
 
 /**
  * Normalize query for keyword matching
@@ -302,15 +307,26 @@ export function findFeatureFromRegistry(query: string): FeatureDefinition | null
   const normalized = normalizeQuery(query);
   const queryTokens = normalized.split(' ').filter(t => t.length > 2); // Tokens with 3+ chars
 
+  const allFeatures = [
+    ...Object.values(HUBS),
+    ...Object.values(DIRECT_PAGES),
+  ];
+  const exactMatches = allFeatures.flatMap((feature) =>
+    feature.keywords
+      .map((keyword) => ({ feature, keyword: normalizeQuery(keyword) }))
+      .filter(({ keyword }) =>
+        normalized.includes(keyword) || keyword.includes(normalized),
+      ),
+  );
+  if (exactMatches.length > 0) {
+    exactMatches.sort((a, b) => b.keyword.length - a.keyword.length);
+    return exactMatches[0].feature;
+  }
+
   // Helper: check if query matches keyword
   const matches = (keyword: string): boolean => {
     const normalizedKeyword = normalizeQuery(keyword);
-    
-    // Exact/substring match (bidirectional)
-    if (normalized.includes(normalizedKeyword) || normalizedKeyword.includes(normalized)) {
-      return true;
-    }
-    
+
     // Token-level matching for partial utterances
     const keywordTokens = normalizedKeyword.split(' ').filter(t => t.length > 2);
     return queryTokens.some(qToken => 

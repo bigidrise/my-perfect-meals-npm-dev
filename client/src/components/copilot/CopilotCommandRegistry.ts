@@ -595,14 +595,14 @@ const Commands: Record<string, CommandHandler> = {
       await addHydrationWater({ amount, unit: "oz" });
       responseCallback({
         title: "Water Logged",
-        description: `${amount} ounces of water was added to your server-backed Hydration Center.`,
+        description: `${amount} ounces of water was added to your server-backed Hydration Hub.`,
         spokenText: `${amount} ounces of water was logged.`,
       });
     } catch {
       responseCallback({
         title: "Water Was Not Logged",
-        description: "The Hydration Center could not save this entry. Open Hydration Center and try again.",
-        spokenText: "I could not log that water. Please open Hydration Center and try again.",
+        description: "Hydration Hub could not save this entry. Open Hydration Hub and try again.",
+        spokenText: "I could not log that water. Please open Hydration Hub and try again.",
       });
     }
   },
@@ -1053,11 +1053,15 @@ async function handleVoiceQuery(transcript: string) {
     currentHub = null;
 
     if (responseCallback) {
-      responseCallback({
-        title: `Opening ${registryFeature.id.replace(/_/g, " ")}`,
-        description: `Navigating to ${registryFeature.primaryRoute}`,
-        spokenText: `Opening ${registryFeature.id.replace(/_/g, " ").toLowerCase()}`,
-      });
+      if (registryFeature.id === "HYDRATION") {
+        responseCallback(await explainFeature(registryFeature.legacyId || registryFeature.id));
+      } else {
+        responseCallback({
+          title: `Opening ${registryFeature.id.replace(/_/g, " ")}`,
+          description: `Navigating to ${registryFeature.primaryRoute}`,
+          spokenText: `Opening ${registryFeature.id.replace(/_/g, " ").toLowerCase()}`,
+        });
+      }
     }
 
     return;

@@ -1,4 +1,13 @@
 // client/src/lib/knowledge/AppKnowledgeRegistry.ts
+import {
+  HYDRATION_HUB_ABOUT_SECTIONS,
+  HYDRATION_HUB_CONSIDERED_FOR_YOU,
+  HYDRATION_HUB_DESCRIPTION,
+  HYDRATION_HUB_DOORS,
+  HYDRATION_HUB_MEDICAL_BOUNDARY,
+  HYDRATION_HUB_OVERVIEW,
+  HYDRATION_HUB_TITLE,
+} from "@/lib/hydrationHubContent";
 
 export interface FeatureKnowledge {
   id: string;
@@ -10,29 +19,28 @@ export interface FeatureKnowledge {
 }
 
 export const AppKnowledge: Record<string, FeatureKnowledge> = {
-  ...(import.meta.env.DEV
-    ? {
-        hydration: {
-          id: "hydration",
-          title: "Hydration Center",
-          description:
-            "Log water and view clinician-authorized hydration progress without an invented automatic target.",
-          howTo: [
-            "Open Hydration Center from Biometrics or the App Library.",
-            "Use a quick-add amount or enter a custom amount in ounces or milliliters.",
-            "Review today's server-backed water log.",
-            "If an authorized clinician has set a current directive, review the point, range, minimum, or maximum exactly as written.",
-            "Open Sources to review the Hydration evidence registry.",
-          ],
-          tips: [
-            "Tracking works even when no numeric target is available.",
-            "A ceiling is a limit, not a goal to reach.",
-            "Expired or incomplete clinician directives are withheld for review.",
-          ],
-          relatedCommands: [],
-        },
-      }
-    : {}),
+  hydration: {
+    id: "hydration",
+    title: HYDRATION_HUB_TITLE,
+    description: `${HYDRATION_HUB_DESCRIPTION} ${HYDRATION_HUB_OVERVIEW}`,
+    howTo: [
+      "Open Hydration Hub from Biometrics or the App Library.",
+      ...HYDRATION_HUB_DOORS.map(({ title, description }) => `${title}: ${description}`),
+      "Log a fluid using a quick-add amount or a custom amount in ounces or milliliters.",
+      "Review your server-backed fluid history and any current professional Hydration instructions.",
+      "Read Considered for you to see which verified Nutrition Life Plan information informed practical support.",
+      "Use Hydration Hub for support and tracking; it does not create a medical fluid prescription.",
+    ],
+    tips: [
+      "Tracking works even when no numeric target is available.",
+      "A ceiling is a limit, not a goal to reach.",
+      "Professional instructions remain the source of truth when they apply.",
+      HYDRATION_HUB_CONSIDERED_FOR_YOU,
+      HYDRATION_HUB_MEDICAL_BOUNDARY,
+      ...HYDRATION_HUB_ABOUT_SECTIONS.map(({ heading, text }) => text ? `${heading}: ${text}` : heading),
+    ],
+    relatedCommands: [],
+  },
   // ============================
   // 🔥 FRIDGE RESCUE
   // ============================

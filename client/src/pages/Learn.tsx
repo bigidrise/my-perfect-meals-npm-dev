@@ -45,6 +45,11 @@ import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { useNarration } from "@/hooks/useNarration";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import {
+  HYDRATION_HUB_ABOUT_SECTIONS,
+  HYDRATION_HUB_DESCRIPTION,
+  HYDRATION_HUB_TITLE,
+} from "@/lib/hydrationHubContent";
 
 interface LibraryTopic {
   id: string;
@@ -749,7 +754,7 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         {
           heading: "Water Log — Daily Hydration Tracker",
           text: import.meta.env.DEV
-            ? "Water tracking now lives in the Hydration Center. Each entry is saved to your server-backed water log, so corrections and updates are reflected from one canonical intake source."
+            ? "Water tracking now lives in Hydration Hub. Each entry is saved to your server-backed water log, so corrections and updates are reflected from one canonical intake source."
             : "The water log tracks your daily fluid intake in ounces. Tap +8 oz or +16 oz each time you drink, and the ring at the center fills as you go toward your goal.",
           list: import.meta.env.DEV
             ? [
@@ -1317,47 +1322,19 @@ const SECTION_NUTRITION_STRATEGY: LibraryTopic[] = [
 ];
 
 const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
-  ...(import.meta.env.DEV
-    ? [
-        {
-          id: "hydration",
-          title: "Hydration Center & Numeric Safety",
-          subtitle:
-            "Track water without an invented target; honor clinician directives exactly",
-          icon: Droplets,
-          content: {
-            sections: [
-              {
-                heading: "One Intake Record",
-                text: "The Hydration Center reads and writes the existing water log. It does not keep a separate editable Hydration total, so corrections and deletions remain consistent everywhere.",
-              },
-              {
-                heading: "Tracking Without a Target",
-                text: "You can log water and review today's intake even when no numeric plan exists. The app does not convert body weight, pregnancy, age, exercise, heat, illness, medications, or population guidance into a personal number.",
-              },
-              {
-                heading: "Clinician-Defined Numeric Policy",
-                list: [
-                  "Point — one clinician-set daily amount",
-                  "Range — separate lower and upper bounds",
-                  "Floor — a clinician-set minimum",
-                  "Ceiling — a limit, never presented as a goal",
-                  "Every directive requires authorization, provenance, review timing, consent reference, and expiry",
-                ],
-              },
-              {
-                heading: "Safety Gate",
-                text: "Planning eligibility is necessary but never enough by itself. Numeric display also requires the development activation gate and a current, validated clinician directive. Missing, expired, conflicting, or cross-subject data fails closed.",
-              },
-              {
-                heading: "Evidence Registry",
-                text: "The Medical Sources panel exposes 32 structured Hydration sources. NASEM and EFSA total-water values are shown only as educational population references; they are not individualized logged-water targets.",
-              },
-            ],
-          },
-        },
-      ]
-    : []),
+  {
+    id: "hydration",
+    title: HYDRATION_HUB_TITLE,
+    subtitle: HYDRATION_HUB_DESCRIPTION,
+    icon: Droplets,
+    content: {
+      sections: HYDRATION_HUB_ABOUT_SECTIONS.map((section) => ({
+        heading: section.heading,
+        ...(section.text ? { text: section.text } : {}),
+        ...(section.list ? { list: [...section.list] } : {}),
+      })),
+    },
+  },
   {
     id: "safetyguard",
     title: "SafetyGuard™ — Allergy Protection",
