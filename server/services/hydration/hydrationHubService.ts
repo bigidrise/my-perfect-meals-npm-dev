@@ -91,58 +91,25 @@ export async function getHydrationHubState(input: {
   access: Parameters<typeof resolveHydrationCenterState>[0]["access"];
   now?: Date;
 }): Promise<HydrationHubState> {
+  const startedAt = performance.now();
   const thirtyDayWindow = hydrationCalendarWindow({ endingLocalDate: input.localDate, timezone: input.timezone, days: 30 });
-
-  const rows = await db.select({
-    id: waterLogs.id,
-    amountMl: waterLogs.amountMl,
-    unit: waterLogs.unit,
-    beverageClass: waterLogs.beverageClass,
-    intakeTime: waterLogs.intakeTime,
-    eventTimezone: waterLogs.eventTimezone,
-    eventLocalDate: waterLogs.eventLocalDate,
-  }).from(waterLogs).where(and(
-    eq(waterLogs.userId, input.subjectUserId),
-    or(
-      and(
-        isNotNull(waterLogs.eventLocalDate),
-        gte(waterLogs.eventLocalDate, shiftLocalDate(input.localDate, -29)),
-        lte(waterLogs.eventLocalDate, input.localDate),
+  const queryStartedAt = performance.now();
+  const [rows, preferenceResult, barrierResult, interventionResult, eventResult, liquidProtocol] = await Promise.all([
+    db.select().from(waterLogs).where(and(
+      eq(waterLogs.userId, input.subjectUserId),
+      or(
+        and(
+          isNotNull(waterLogs.eventLocalDate),
+          gte(waterLogs.eventLocalDate, shiftLocalDate(input.localDate, -29)),
+          lte(waterLogs.eventLocalDate, input.localDate),
+        ),
+        and(
+          isNull(waterLogs.eventLocalDate),
+          gte(waterLogs.intakeTime, thirtyDayWindow.start),
+          lte(waterLogs.intakeTime, thirtyDayWindow.end),
+        ),
       ),
-      and(
-        isNull(waterLogs.eventLocalDate),
-        gte(waterLogs.intakeTime, thirtyDayWindow.start),
-        lte(waterLogs.intakeTime, thirtyDayWindow.end),
-      ),
-    ),
-  )).orderBy(asc(waterLogs.intakeTime));
-
-  const assignedDay = (row: typeof rows[number]) =>
-    assignedHydrationLocalDate({
-      eventTime: row.intakeTime,
-      eventLocalDate: row.eventLocalDate,
-      currentTimezone: input.timezone,
-    });
-  const todayRows = rows.filter((row) => assignedDay(row) === input.localDate);
-  const sevenDayStart = shiftLocalDate(input.localDate, -6);
-  const sevenRows = rows.filter((row) => assignedDay(row) >= sevenDayStart);
-  const plainWater = (items: typeof rows) => sum(items.filter((row) => (row.beverageClass || "water") === "water"));
-  const mix = (items: typeof rows) => Object.entries(items.reduce<Record<string, number>>((acc, row) => {
-    const key = row.beverageClass || "water";
-    acc[key] = (acc[key] || 0) + Number(row.amountMl || 0);
-    return acc;
-  }, {})).map(([beverageClass, amountMl]) => ({ beverageClass, amountMl }));
-
-  const dailyTotals = new Map<string, { totalMl: number; plainWaterMl: number }>();
-  for (const row of rows) {
-    const day = assignedDay(row);
-    const current = dailyTotals.get(day) || { totalMl: 0, plainWaterMl: 0 };
-    current.totalMl += Number(row.amountMl || 0);
-    if ((row.beverageClass || "water") === "water") current.plainWaterMl += Number(row.amountMl || 0);
-    dailyTotals.set(day, current);
-  }
-
-  const [preferenceResult, barrierResult, interventionResult, eventResult, liquidProtocol] = await Promise.all([
+    )).orderBy(asc(waterLogs.intakeTime)),
     db.execute(sql`
       SELECT consented, preferences, opted_out_at AS "optedOutAt"
       FROM hydration_hub_preferences WHERE user_id = ${input.subjectUserId} LIMIT 1
@@ -172,9 +139,41 @@ export async function getHydrationHubState(input: {
       localDate: input.localDate,
     }),
   ]);
+  const queryMs = performance.now() - queryStartedAt;
 
-  const centerState = await resolveHydrationCenterState(input);
-  return {
+  const assignedDay = (row: typeof rows[number]) =>
+    assignedHydrationLocalDate({
+      eventTime: row.intakeTime,
+      eventLocalDate: row.eventLocalDate,
+      currentTimezone: input.timezone,
+    });
+  const todayRows = rows.filter((row) => assignedDay(row) === input.localDate);
+  const sevenDayStart = shiftLocalDate(input.localDate, -6);
+  const sevenRows = rows.filter((row) => assignedDay(row) >= sevenDayStart);
+  const plainWater = (items: typeof rows) => sum(items.filter((row) => (row.beverageClass || "water") === "water"));
+  const mix = (items: typeof rows) => Object.entries(items.reduce<Record<string, number>>((acc, row) => {
+    const key = row.beverageClass || "water";
+    acc[key] = (acc[key] || 0) + Number(row.amountMl || 0);
+    return acc;
+  }, {})).map(([beverageClass, amountMl]) => ({ beverageClass, amountMl }));
+
+  const dailyTotals = new Map<string, { totalMl: number; plainWaterMl: number }>();
+  for (const row of rows) {
+    const day = assignedDay(row);
+    const current = dailyTotals.get(day) || { totalMl: 0, plainWaterMl: 0 };
+    current.totalMl += Number(row.amountMl || 0);
+    if ((row.beverageClass || "water") === "water") current.plainWaterMl += Number(row.amountMl || 0);
+    dailyTotals.set(day, current);
+  }
+
+  const centerStartedAt = performance.now();
+  const centerState = await resolveHydrationCenterState({
+    ...input,
+    preloadedRows: todayRows,
+    preloadedLiquidProtocol: liquidProtocol,
+  });
+  const centerMs = performance.now() - centerStartedAt;
+  const result = {
     ...centerState,
     projections: {
       today: {
@@ -216,6 +215,18 @@ export async function getHydrationHubState(input: {
     outcomeCounts: Object.fromEntries((eventResult.rows as Array<{ eventType: string; count: number }>).map((row) => [row.eventType, Number(row.count)])),
     liquidProtocol,
   };
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[hydration:timing] hub-state", {
+      totalMs: Math.round(performance.now() - startedAt),
+      aggregateQueriesMs: Math.round(queryMs),
+      centerStateMs: Math.round(centerMs),
+      thirtyDayRows: rows.length,
+      todayRows: todayRows.length,
+      duplicateTodayQueryRemoved: true,
+      duplicateLiquidProtocolQueryRemoved: true,
+    });
+  }
+  return result;
 }
 
 export type HydrationHubState = HydrationCenterState & {

@@ -301,20 +301,6 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
         </div>
       </div>
 
-      {!state ? (
-        <Card className="border-white/10 bg-slate-950/35 text-white backdrop-blur-xl">
-          <CardContent className="p-4">
-            <p className="text-sm font-medium text-white">
-              Loading your saved Hydration details…
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-white/70">
-              You can choose a door now. Its saved context and controls will
-              appear as soon as they are ready.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
       {door === "everyday" && (
         <Card className="border-sky-300/20 bg-sky-950/35 text-white backdrop-blur-xl">
           <CardContent className="flex items-start gap-3 p-4">
@@ -423,7 +409,23 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
         </Card>
       )}
 
-      {door === "liquid_nutrition" && (
+      {door === "liquid_nutrition" && !state && (
+        <Card className="border-violet-300/20 bg-violet-950/30 text-white backdrop-blur-xl">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-3">
+              <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-violet-200" />
+              <div>
+                <h2 className="font-semibold text-white">Liquid Nutrition Support</h2>
+                <p className="mt-1 text-sm leading-relaxed text-white">
+                  Your saved instructions are being checked. This section will open when their current status is available.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {door === "liquid_nutrition" && state && (
         <Card className="border-violet-300/20 bg-violet-950/30 text-white backdrop-blur-xl">
           <CardContent className="p-5">
             <div className="flex items-start gap-3">
@@ -556,8 +558,6 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
             )}
           </CardContent>
         </Card>
-      )}
-        </>
       )}
     </section>
   );
