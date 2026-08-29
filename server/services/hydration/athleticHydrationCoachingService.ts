@@ -49,6 +49,18 @@ export async function saveAthleticHydrationCoaching(input: {
   organizationId: string;
   guidance: AthleticHydrationCoachingInput;
 }): Promise<AthleticHydrationCoachingRecord> {
+  const guidance = input.guidance;
+  if (
+    !guidance.trainingContext ||
+    !guidance.emphasis?.length ||
+    !guidance.reminderStrategy ||
+    !guidance.beverageStrategy ||
+    !guidance.startsOn ||
+    !guidance.reviewOn
+  ) {
+    throw new Error("Athletic Hydration coaching requires complete guidance");
+  }
+
   return db.transaction(async (tx) => {
     await tx
       .update(hydrationAthleticCoachingGuidance)
@@ -63,7 +75,14 @@ export async function saveAthleticHydrationCoaching(input: {
         subjectUserId: input.subjectUserId,
         coachUserId: input.coachUserId,
         organizationId: input.organizationId,
-        ...input.guidance,
+        trainingContext: guidance.trainingContext,
+        emphasis: guidance.emphasis,
+        reminderStrategy: guidance.reminderStrategy,
+        beverageStrategy: guidance.beverageStrategy,
+        athleteCreatorIntent: guidance.athleteCreatorIntent ?? "",
+        notes: guidance.notes ?? "",
+        startsOn: guidance.startsOn,
+        reviewOn: guidance.reviewOn,
       })
       .returning();
     return mapRow(created);
