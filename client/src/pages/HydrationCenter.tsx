@@ -19,22 +19,55 @@ import {
   recordHydrationInterventionEvent,
   saveHydrationHubBarriers,
   saveHydrationHubPreferences,
+  type HydrationBarrierCode,
+  type HydrationBeverageClass,
   type HydrationCenterState,
   type HydrationNumericPolicyState,
+  type HydrationPreferenceKey,
+  type HydrationPreferences,
 } from "@/lib/hydrationApi";
 
 const ML_PER_OUNCE = 29.5735;
 const BEVERAGES = [
   ["water", "Plain water"], ["sparkling", "Sparkling"], ["tea", "Tea"],
   ["coffee", "Coffee"], ["milk", "Milk"], ["juice", "Juice"], ["other", "Other"],
-] as const;
+] as const satisfies ReadonlyArray<readonly [HydrationBeverageClass, string]>;
 const BARRIERS = [
   ["forgetting", "I forget"], ["taste", "Taste"], ["temperature", "Temperature"],
   ["carbonation", "I prefer bubbles"], ["access", "Access"], ["timing", "Timing"],
   ["bathroom_concerns", "Bathroom concerns"], ["nutrition_conflicts", "Nutrition conflicts"],
   ["low_appetite", "Low appetite"],
-] as const;
-const BARRIER_LABELS = Object.fromEntries(BARRIERS);
+] as const satisfies ReadonlyArray<readonly [HydrationBarrierCode, string]>;
+const PREFERENCE_CONTROLS = [
+  { key: "flavor", label: "Flavor", values: ["no_preference", "citrus", "berry", "mild"] },
+  { key: "temperature", label: "Temperature", values: ["no_preference", "cold", "room", "warm"] },
+  { key: "carbonation", label: "Bubbles", values: ["no_preference", "still", "sparkling"] },
+] as const satisfies ReadonlyArray<{
+  key: HydrationPreferenceKey;
+  label: string;
+  values: readonly string[];
+}>;
+const DEFAULT_PREFERENCES: HydrationPreferences = {
+  flavor: "no_preference",
+  temperature: "no_preference",
+  carbonation: "no_preference",
+};
+
+function barrierLabel(code: HydrationBarrierCode) {
+  return BARRIERS.find(([value]) => value === code)?.[1] ?? code;
+}
+
+function normalizePreferences(value: Record<string, unknown>): HydrationPreferences {
+  return {
+    flavor: typeof value.flavor === "string" ? value.flavor : DEFAULT_PREFERENCES.flavor,
+    temperature: typeof value.temperature === "string" ? value.temperature : DEFAULT_PREFERENCES.temperature,
+    carbonation: typeof value.carbonation === "string" ? value.carbonation : DEFAULT_PREFERENCES.carbonation,
+  };
+}
+
+function isHydrationBeverageClass(value: string): value is HydrationBeverageClass {
+  return BEVERAGES.some(([beverageClass]) => beverageClass === value);
+}
 
 function mlToOz(value: number) { return Math.round(value / ML_PER_OUNCE); }
 function displayVolume(value: number | null) {
@@ -83,14 +116,12 @@ export default function HydrationCenter() {
   const [error, setError] = useState("");
   const [customAmount, setCustomAmount] = useState("");
   const [customUnit, setCustomUnit] = useState<"oz" | "ml">("oz");
-  const [beverageClass, setBeverageClass] = useState("water");
+  const [beverageClass, setBeverageClass] = useState<HydrationBeverageClass>("water");
   const [historyWindow, setHistoryWindow] = useState<"today" | "7" | "30">("today");
   const [consented, setConsented] = useState(false);
-  const [selectedBarriers, setSelectedBarriers] = useState<string[]>([]);
+  const [selectedBarriers, setSelectedBarriers] = useState<HydrationBarrierCode[]>([]);
   const [barrierNote, setBarrierNote] = useState("");
-  const [preferences, setPreferences] = useState<Record<string, string>>({
-    flavor: "no_preference", temperature: "no_preference", carbonation: "no_preference",
-  });
+  const [preferences, setPreferences] = useState<HydrationPreferences>(DEFAULT_PREFERENCES);
   const [helpOptions, setHelpOptions] = useState<Intervention[]>([]);
 
   const load = useCallback(async () => {
@@ -102,7 +133,7 @@ export default function HydrationCenter() {
         setConsented(next.setup.consented);
         setSelectedBarriers(next.setup.barriers.map((item) => item.barrierCode));
         setBarrierNote(next.setup.barriers.find((item) => item.note)?.note || "");
-        setPreferences((current) => ({ ...current, ...(next.setup?.preferences as Record<string, string>) }));
+        setPreferences(normalizePreferences(next.setup.preferences));
         initializedSetup.current = true;
       }
     } catch (loadError) {
@@ -127,7 +158,7 @@ export default function HydrationCenter() {
     } finally { setSaving(false); }
   };
 
-  const toggleBarrier = (code: string) => {
+  const toggleBarrier = (code: HydrationBarrierCode) => {
     setSelectedBarriers((current) => current.includes(code) ? current.filter((item) => item !== code) : [...current, code]);
   };
 
@@ -158,7 +189,7 @@ export default function HydrationCenter() {
       await saveHydrationHubPreferences({ consented: false, optedOut: true, preferences: {} });
       await saveHydrationHubBarriers({ barriers: [] });
       setConsented(false); setSelectedBarriers([]); setBarrierNote("");
-      setPreferences({ flavor: "no_preference", temperature: "no_preference", carbonation: "no_preference" });
+      setPreferences(DEFAULT_PREFERENCES);
       setHelpOptions([]);
       initializedSetup.current = false;
       await load();
@@ -261,7 +292,7 @@ export default function HydrationCenter() {
             <Card className="border-white/10 bg-slate-950/45 text-white backdrop-blur-xl"><CardContent className="p-5">
               <div className="flex items-center gap-2"><Plus className="h-5 w-5 text-sky-300" /><h2 className="font-semibold text-white">Log a fluid</h2></div>
               <label className="mt-4 block text-xs text-white">Beverage</label>
-              <select value={beverageClass} onChange={(event) => setBeverageClass(event.target.value)} className="mt-1 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="hydration-beverage-class">{BEVERAGES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <select value={beverageClass} onChange={(event) => { if (isHydrationBeverageClass(event.target.value)) setBeverageClass(event.target.value); }} className="mt-1 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="hydration-beverage-class">{BEVERAGES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <div className="mt-3 grid grid-cols-2 gap-2">{[8, 12, 16, 24].map((ounces) => <Button key={ounces} disabled={saving} onClick={() => void addFluid(ounces, "oz")} className="border border-sky-300/20 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25" data-testid={`hydration-add-${ounces}oz`}>+{ounces} oz</Button>)}</div>
               <div className="mt-3 flex gap-2"><Input inputMode="decimal" value={customAmount} onChange={(event) => setCustomAmount(event.target.value)} placeholder="Custom amount" className="border-white/10 bg-white/5 text-white" data-testid="hydration-custom-amount" /><select value={customUnit} onChange={(event) => setCustomUnit(event.target.value as "oz" | "ml")} className="rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-white"><option value="oz">oz</option><option value="ml">mL</option></select></div>
               <Button disabled={saving || Number(customAmount) <= 0} onClick={() => void addFluid(Number(customAmount), customUnit)} className="mt-2 w-full bg-sky-500 text-white hover:bg-sky-400 hover:text-white" data-testid="hydration-add-custom">{saving ? "Saving…" : "Add to today"}</Button>
@@ -276,7 +307,7 @@ export default function HydrationCenter() {
               <div className="mt-4 flex flex-wrap gap-2">{BARRIERS.map(([code, label]) => <button key={code} onClick={() => toggleBarrier(code)} className={`rounded-full border px-3 py-2 text-xs text-white transition ${selectedBarriers.includes(code) ? "border-violet-300/50 bg-violet-400/20" : "border-white/30 bg-white/[.03] hover:bg-white/[.07]"}`}>{selectedBarriers.includes(code) && <Check className="mr-1 inline h-3 w-3" />}{label}</button>)}</div>
               <Textarea value={barrierNote} onChange={(event) => setBarrierNote(event.target.value)} maxLength={500} placeholder="Optional note about what makes this hard" className="mt-3 border-slate-300/45 bg-slate-400/20 text-slate-100 placeholder:text-slate-300/80 focus-visible:ring-violet-300/50" />
               <div className="mt-4 grid grid-cols-3 gap-2">
-                {[["flavor", "Flavor", ["no_preference", "citrus", "berry", "mild"]], ["temperature", "Temperature", ["no_preference", "cold", "room", "warm"]], ["carbonation", "Bubbles", ["no_preference", "still", "sparkling"]]].map(([key, label, values]) => <label key={key as string} className="text-[11px] text-white">{label as string}<select value={preferences[key as string]} onChange={(event) => setPreferences((current) => ({ ...current, [key as string]: event.target.value }))} className="mt-1 w-full rounded-md border border-white/30 bg-slate-900 px-2 py-2 text-xs text-white">{(values as string[]).map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select></label>)}
+                {PREFERENCE_CONTROLS.map(({ key, label, values }) => <label key={key} className="text-[11px] text-white">{label}<select value={preferences[key]} onChange={(event) => setPreferences((current) => ({ ...current, [key]: event.target.value }))} className="mt-1 w-full rounded-md border border-white/30 bg-slate-900 px-2 py-2 text-xs text-white">{values.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select></label>)}
               </div>
               <label className="mt-4 flex items-start gap-2 rounded-xl border border-white/30 bg-white/[.03] p-3 text-xs text-white"><input type="checkbox" checked={consented} onChange={(event) => setConsented(event.target.checked)} className="mt-0.5" /><span>I consent to saving these optional preferences and barriers for Hydration Hub suggestions.</span></label>
               <div className="mt-3 flex gap-2"><Button disabled={saving} onClick={() => void saveSetup()} className="flex-1 bg-violet-500 hover:bg-violet-400">Save setup</Button><Button disabled={saving} onClick={() => void optOut()} variant="outline" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"><RotateCcw className="mr-1.5 h-4 w-4" />Reset & opt out</Button></div>
@@ -285,7 +316,7 @@ export default function HydrationCenter() {
             <Card className="border-white/10 bg-slate-950/45 text-white backdrop-blur-xl"><CardContent className="p-5">
               <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-300" /><h2 className="font-semibold text-white">Help Me Get It In</h2></div><Button size="sm" disabled={saving} onClick={() => void getHelp()} className="bg-amber-400 text-slate-950 hover:bg-amber-300 hover:text-slate-950"><Sparkles className="mr-1.5 h-4 w-4" />Get options</Button></div>
               <p className="mt-2 text-sm text-white">Small, nonnumeric strategies based on the barrier you chose.</p>
-              <div className="mt-4 space-y-2">{options.length ? options.map((option) => <div key={option.id} className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><div className="flex items-start justify-between gap-3"><div><Badge variant="outline" className="mb-2 border-white/30 text-[10px] text-white">{BARRIER_LABELS[option.barrierCode] || option.barrierCode}</Badge><h3 className="text-sm font-semibold text-white">{option.title}</h3><p className="mt-1 text-xs leading-relaxed text-white">{option.description}</p></div><Button size="sm" onClick={() => void chooseIntervention(option)} className="shrink-0 bg-white/10 text-white hover:bg-white/20">{option.destinationType === "beverage_creator" ? "Create" : "Try it"}</Button></div></div>) : <div className="rounded-xl border border-dashed border-slate-300/45 bg-slate-400/15 p-6 text-center text-sm text-slate-200">Save a barrier, then ask for practical options.</div>}</div>
+              <div className="mt-4 space-y-2">{options.length ? options.map((option) => <div key={option.id} className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><div className="flex items-start justify-between gap-3"><div><Badge variant="outline" className="mb-2 border-white/30 text-[10px] text-white">{barrierLabel(option.barrierCode)}</Badge><h3 className="text-sm font-semibold text-white">{option.title}</h3><p className="mt-1 text-xs leading-relaxed text-white">{option.description}</p></div><Button size="sm" onClick={() => void chooseIntervention(option)} className="shrink-0 bg-white/10 text-white hover:bg-white/20">{option.destinationType === "beverage_creator" ? "Create" : "Try it"}</Button></div></div>) : <div className="rounded-xl border border-dashed border-slate-300/45 bg-slate-400/15 p-6 text-center text-sm text-slate-200">Save a barrier, then ask for practical options.</div>}</div>
             </CardContent></Card>
           </section>
 
