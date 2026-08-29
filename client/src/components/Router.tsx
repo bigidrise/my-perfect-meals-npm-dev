@@ -410,7 +410,33 @@ import {
 // Dashboard navigation pages
 import TutorialHub from "@/pages/TutorialHub";
 import MyBiometrics from "@/pages/my-biometrics";
-const HydrationCenter = lazy(() => import("@/pages/HydrationCenter"));
+const LazyHydrationCenter = lazy(() => import("@/pages/HydrationCenter"));
+const HydrationCenter = () => (
+  <Suspense
+    fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-sky-950 to-slate-950 px-4 py-8 text-white">
+        <div className="mx-auto max-w-5xl space-y-4">
+          <div>
+            <h1 className="text-xl font-semibold">Hydration Hub</h1>
+            <p className="mt-1 text-sm text-white/70">Track fluids, solve barriers, see what helps</p>
+          </div>
+          <div className="rounded-2xl border border-white/15 bg-slate-950/55 p-5">
+            <p className="text-xs uppercase tracking-[.2em] text-white/70">Choose a Hydration door</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {["Everyday Hydration", "Athletic Hydration", "Sick-Day Hydration", "Liquid Nutrition Support"].map((title) => (
+                <div key={title} className="rounded-xl border border-white/15 bg-white/[.04] p-3">
+                  <p className="text-sm font-semibold text-white">{title}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  >
+    <LazyHydrationCenter />
+  </Suspense>
+);
 import BodyComposition from "@/pages/biometrics/body-composition";
 import Sleep from "@/pages/biometrics/sleep";
 import GetInspiration from "@/pages/GetInspiration";
