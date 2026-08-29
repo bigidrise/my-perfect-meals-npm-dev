@@ -4,6 +4,7 @@ import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { isValidIanaTimezone, setUserTimezone } from "../services/nutritionDayService";
 
 const router = Router();
 
@@ -40,6 +41,17 @@ const UpdateProfileSchema = z.object({
   // Performance Overlay
   performanceOverlay: z.enum(["standard", "performance", "competition_prep", "recovery", "recomp"]).optional(),
   performanceControlMode: z.enum(["self_guided", "coach_controlled"]).optional(),
+  timezone: z.string().max(100).optional(),
+  timezoneChangeConfirmed: z.literal(true).optional(),
+}).superRefine((value, ctx) => {
+  if (value.timezone !== undefined) {
+    if (!value.timezoneChangeConfirmed) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["timezoneChangeConfirmed"], message: "Timezone changes require confirmation" });
+    }
+    if (!isValidIanaTimezone(value.timezone)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["timezone"], message: "Invalid IANA timezone" });
+    }
+  }
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
@@ -128,16 +140,23 @@ router.put("/profile", requireAuth, async (req, res) => {
     if (patch.goalStartDate !== undefined) updateData.goalStartDate = patch.goalStartDate ? new Date(patch.goalStartDate) : null;
     if (patch.performanceOverlay !== undefined) updateData.performanceOverlay = patch.performanceOverlay;
     if (patch.performanceControlMode !== undefined) updateData.performanceControlMode = patch.performanceControlMode;
+    if (patch.timezone !== undefined) {
+      await setUserTimezone(userId, patch.timezone);
+    }
 
     const updatedFields = Object.keys(updateData).filter(k => k !== 'updatedAt').join(', ');
     console.log(`✅ Profile updated for user ${userId}: ${updatedFields}`);
 
-    await db
-      .update(users)
-      .set(updateData)
-      .where(eq(users.id, userId));
+    if (Object.keys(updateData).some((key) => key !== "updatedAt")) {
+      await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, userId));
+    }
+    const { invalidatePrefix } = await import("../services/queryCache");
+    invalidatePrefix(`profile:${userId}`);
 
-    return res.json({ ok: true });
+    return res.json({ ok: true, timezone: patch.timezone });
   } catch (e) {
     console.error("Update profile error:", e);
     return res.status(500).json({ error: "Server error" });

@@ -72,14 +72,11 @@ export interface HydrationCenterState {
 }
 
 export function getHydrationCenterState(input: {
-  date: string;
-  timezone: string;
+  date?: string;
   clientId?: string;
 }) {
-  const params = new URLSearchParams({
-    date: input.date,
-    timezone: input.timezone,
-  });
+  const params = new URLSearchParams();
+  if (input.date) params.set("date", input.date);
   if (input.clientId) params.set("clientId", input.clientId);
   return apiRequest<HydrationCenterState>(
     `/api/hydration/state?${params.toString()}`,
@@ -87,11 +84,11 @@ export function getHydrationCenterState(input: {
 }
 
 export function getHydrationHubState(input: {
-  date: string;
-  timezone: string;
+  date?: string;
   clientId?: string;
 }) {
-  const params = new URLSearchParams({ date: input.date, timezone: input.timezone });
+  const params = new URLSearchParams();
+  if (input.date) params.set("date", input.date);
   if (input.clientId) params.set("clientId", input.clientId);
   return apiRequest<HydrationCenterState>(`/api/hydration/hub?${params.toString()}`);
 }

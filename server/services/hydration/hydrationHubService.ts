@@ -1,9 +1,9 @@
-import { and, asc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gte, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { db } from "../../db";
 import { waterLogs } from "@shared/schema";
-import { hydrationCalendarWindow, localDateInTimezone, resolveHydrationDay } from "./hydrationDay";
+import { assignedHydrationLocalDate, hydrationCalendarWindow, shiftLocalDate } from "./hydrationDay";
 import { resolveHydrationCenterState, type HydrationCenterState } from "./hydrationCenterService";
 
 export const HYDRATION_BARRIER_CODES = [
@@ -87,14 +87,6 @@ export async function getHydrationHubState(input: {
   access: Parameters<typeof resolveHydrationCenterState>[0]["access"];
   now?: Date;
 }): Promise<HydrationHubState> {
-  const now = input.now ?? new Date();
-  const todayWindow = await resolveHydrationDay({
-    subjectUserId: input.subjectUserId,
-    localDate: input.localDate,
-    timezone: input.timezone,
-    now,
-  });
-  const sevenDayWindow = hydrationCalendarWindow({ endingLocalDate: input.localDate, timezone: input.timezone, days: 7 });
   const thirtyDayWindow = hydrationCalendarWindow({ endingLocalDate: input.localDate, timezone: input.timezone, days: 30 });
 
   const rows = await db.select({
@@ -103,14 +95,33 @@ export async function getHydrationHubState(input: {
     unit: waterLogs.unit,
     beverageClass: waterLogs.beverageClass,
     intakeTime: waterLogs.intakeTime,
+    eventTimezone: waterLogs.eventTimezone,
+    eventLocalDate: waterLogs.eventLocalDate,
   }).from(waterLogs).where(and(
     eq(waterLogs.userId, input.subjectUserId),
-    gte(waterLogs.intakeTime, thirtyDayWindow.start),
-    lte(waterLogs.intakeTime, thirtyDayWindow.end),
+    or(
+      and(
+        isNotNull(waterLogs.eventLocalDate),
+        gte(waterLogs.eventLocalDate, shiftLocalDate(input.localDate, -29)),
+        lte(waterLogs.eventLocalDate, input.localDate),
+      ),
+      and(
+        isNull(waterLogs.eventLocalDate),
+        gte(waterLogs.intakeTime, thirtyDayWindow.start),
+        lte(waterLogs.intakeTime, thirtyDayWindow.end),
+      ),
+    ),
   )).orderBy(asc(waterLogs.intakeTime));
 
-  const todayRows = rows.filter((row) => row.intakeTime >= todayWindow.start && row.intakeTime <= todayWindow.end);
-  const sevenRows = rows.filter((row) => row.intakeTime >= sevenDayWindow.start);
+  const assignedDay = (row: typeof rows[number]) =>
+    assignedHydrationLocalDate({
+      eventTime: row.intakeTime,
+      eventLocalDate: row.eventLocalDate,
+      currentTimezone: input.timezone,
+    });
+  const todayRows = rows.filter((row) => assignedDay(row) === input.localDate);
+  const sevenDayStart = shiftLocalDate(input.localDate, -6);
+  const sevenRows = rows.filter((row) => assignedDay(row) >= sevenDayStart);
   const plainWater = (items: typeof rows) => sum(items.filter((row) => (row.beverageClass || "water") === "water"));
   const mix = (items: typeof rows) => Object.entries(items.reduce<Record<string, number>>((acc, row) => {
     const key = row.beverageClass || "water";
@@ -120,7 +131,7 @@ export async function getHydrationHubState(input: {
 
   const dailyTotals = new Map<string, { totalMl: number; plainWaterMl: number }>();
   for (const row of rows) {
-    const day = localDateInTimezone(row.intakeTime, input.timezone);
+    const day = assignedDay(row);
     const current = dailyTotals.get(day) || { totalMl: 0, plainWaterMl: 0 };
     current.totalMl += Number(row.amountMl || 0);
     if ((row.beverageClass || "water") === "water") current.plainWaterMl += Number(row.amountMl || 0);
@@ -166,12 +177,12 @@ export async function getHydrationHubState(input: {
       sevenDay: {
         totalFluidsMl: sum(sevenRows),
         plainWaterMl: plainWater(sevenRows),
-        daysWithEntries: new Set(sevenRows.map((row) => localDateInTimezone(row.intakeTime, input.timezone))).size,
+        daysWithEntries: new Set(sevenRows.map(assignedDay)).size,
       },
       thirtyDay: {
         totalFluidsMl: sum(rows),
         plainWaterMl: plainWater(rows),
-        daysWithEntries: new Set(rows.map((row) => localDateInTimezone(row.intakeTime, input.timezone))).size,
+        daysWithEntries: new Set(rows.map(assignedDay)).size,
       },
       dailyTotals: [...dailyTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([localDate, values]) => ({ localDate, ...values })),
     },

@@ -20,6 +20,7 @@ import {
   revokeHydrationClinicianDirective,
 } from "../services/hydration/hydrationClinicianDirectiveService";
 import { resolveHydrationCenterState } from "../services/hydration/hydrationCenterService";
+import { resolveHydrationDay } from "../services/hydration/hydrationDay";
 import {
   createHydrationHelp,
   getHydrationHubState,
@@ -31,15 +32,6 @@ import {
 } from "../services/hydration/hydrationHubService";
 
 const router = express.Router();
-
-const timezoneSchema = z.string().trim().min(1).max(100).refine((value) => {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date());
-    return true;
-  } catch {
-    return false;
-  }
-}, "Invalid timezone");
 
 const directiveSchema = z
   .object({
@@ -189,13 +181,14 @@ router.get("/hydration/state", requireAuth, async (req, res) => {
     const owner = await authorizeSubject(authReq, res, req.query.clientId);
     if (!owner) return;
     const now = new Date();
-    const timezone = timezoneSchema.parse(
-      req.query.timezone || "America/Chicago",
-    );
-    const localDate = hydrationDateSchema.parse(
-      req.query.date ||
-        new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(now),
-    );
+    const requestedDate = req.query.date
+      ? hydrationDateSchema.parse(req.query.date)
+      : undefined;
+    const { timezone, localDate } = await resolveHydrationDay({
+      subjectUserId: owner.subjectUserId,
+      localDate: requestedDate,
+      now,
+    });
     const state = await resolveHydrationCenterState({
       subjectUserId: owner.subjectUserId,
       localDate,
@@ -244,10 +237,13 @@ router.get("/hydration/hub", requireAuth, async (req, res) => {
     const authReq = req as AuthenticatedRequest;
     const owner = await authorizeSubject(authReq, res, req.query.clientId);
     if (!owner) return;
-    const timezone = timezoneSchema.parse(req.query.timezone || "America/Chicago");
-    const localDate = hydrationDateSchema.parse(
-      req.query.date || new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date()),
-    );
+    const requestedDate = req.query.date
+      ? hydrationDateSchema.parse(req.query.date)
+      : undefined;
+    const { timezone, localDate } = await resolveHydrationDay({
+      subjectUserId: owner.subjectUserId,
+      localDate: requestedDate,
+    });
     const state = await getHydrationHubState({
       subjectUserId: owner.subjectUserId,
       localDate,
@@ -369,13 +365,14 @@ router.get(
       const owner = await authorizeSubject(authReq, res, req.params.clientId);
       if (!owner || owner.mode !== "delegated") return;
       const now = new Date();
-      const timezone = timezoneSchema.parse(
-        req.query.timezone || "America/Chicago",
-      );
-      const localDate = hydrationDateSchema.parse(
-        req.query.date ||
-          new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(now),
-      );
+      const requestedDate = req.query.date
+        ? hydrationDateSchema.parse(req.query.date)
+        : undefined;
+      const { timezone, localDate } = await resolveHydrationDay({
+        subjectUserId: owner.subjectUserId,
+        localDate: requestedDate,
+        now,
+      });
       const state = await resolveHydrationCenterState({
         subjectUserId: owner.subjectUserId,
         localDate,

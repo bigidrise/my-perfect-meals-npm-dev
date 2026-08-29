@@ -10,6 +10,15 @@ export async function runHydrationHubMigration(db: NodePgDatabase<any>) {
     ALTER TABLE water_logs
       ADD COLUMN IF NOT EXISTS beverage_class TEXT NOT NULL DEFAULT 'water'
   `);
+  await db.execute(sql`
+    ALTER TABLE water_logs
+      ADD COLUMN IF NOT EXISTS event_timezone TEXT,
+      ADD COLUMN IF NOT EXISTS event_local_date TEXT
+  `);
+  await db.execute(sql`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS timezone_updated_at TIMESTAMPTZ
+  `);
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS hydration_hub_preferences (

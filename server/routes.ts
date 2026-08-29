@@ -3656,6 +3656,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName,
         lastName: user.lastName || null,
         nickname: user.nickname || null,
+        timezone: user.timezone || null,
+        timezoneUpdatedAt: user.timezoneUpdatedAt?.toISOString?.() ?? null,
         professionalRole: user.professionalRole || null,
         professionalCategory: user.professionalCategory || null,
         credentialType: user.credentialType || null,
