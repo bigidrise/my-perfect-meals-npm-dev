@@ -14,3 +14,9 @@ Legacy `platform` certification data is ambiguous: Platform Mastery evidence req
 **Why:** Both historical Academy records and the advanced ProCare LMS have used the same storage identifier, so blanket aliases can grant the wrong credential or erase valid progression.
 
 **How to apply:** Introduce canonical identities in code first, keep compatibility matching evidence-based, and move records only through a later reviewed migration with a dry-run inventory.
+
+Before any shared-data migration, endpoint-level tests must prove attempt persistence, history immutability, answer-key suppression, and incomplete-submission rejection. The migration's first pass must be read-only and report which rows move, remain, and why.
+
+**Why:** Stage 1 is accepted, but the shared Neon database contains production data and the migration boundary must remain reversible and reviewable.
+
+**How to apply:** Complete HTTP-path hardening tests first, then review dry-run counts and classifications; do not let a migration task mutate data by default.
