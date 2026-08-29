@@ -47,6 +47,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPanel";
+import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
 
 
 export default function ClinicianClientDashboard() {
@@ -641,6 +642,8 @@ export default function ClinicianClientDashboard() {
         )}
 
         <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
+
+        <ProHydrationControls clientUserId={resolvedClientUserId} mode="clinical" />
 
         {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
         {client && (

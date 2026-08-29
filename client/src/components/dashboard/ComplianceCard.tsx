@@ -10,6 +10,10 @@ interface ActivitySummary {
   calorieCompliance: number;
   proteinCompliance: number;
   loggingCompliance: number;
+  mealConsistency: number;
+  macroAdherence: number;
+  hydrationAdherence: number | null;
+  hydrationEligible: boolean;
   calorieAverage7: number;
   proteinAverage7: number;
   loggedDays7: number;
@@ -156,9 +160,25 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
 
         {/* Behavioral highlights — PRIMARY */}
         <div className="space-y-2">
-          <BulletRow label={t("complianceCard.loggedMeals")} value={data.loggedDays7} total={win} />
-          <BulletRow label={t("complianceCard.proteinGoalMet")} value={data.proteinGoalDays ?? 0} total={win} />
-          <BulletRow label={t("complianceCard.caloriesOnTarget")} value={data.calorieGoalDays ?? 0} total={win} />
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/80">Meal consistency</span>
+            <span className="font-semibold text-white">{data.mealConsistency}%</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/80">Whole-plan macro adherence</span>
+            <span className="font-semibold text-white">{data.macroAdherence}%</span>
+          </div>
+          {data.hydrationEligible && data.hydrationAdherence !== null && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/80">Hydration adherence</span>
+              <span className="font-semibold text-white">{data.hydrationAdherence}%</span>
+            </div>
+          )}
+          {!data.hydrationEligible && (
+            <p className="text-xs text-white/45">
+              Hydration is not scored because no current measurable Hydration target is established.
+            </p>
+          )}
           {(slots.breakfast + slots.lunch + slots.dinner > 0) && (
             <>
               <BulletRow label={t("complianceCard.breakfastLogged")} value={slots.breakfast} total={win} highlight="neutral" />

@@ -1,7 +1,8 @@
 import { db } from "../db";
-import { macroLogs, users } from "../../shared/schema";
+import { macroLogs, users, waterLogs } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { getUserTimezone, todayInTimezone, daysAgo } from "./nutritionDayService";
+import { resolveHydrationCenterState } from "./hydration/hydrationCenterService";
 
 export interface MealSlots {
   breakfast: number;
@@ -15,6 +16,10 @@ export interface ComplianceResult {
   calorieCompliance: number;
   proteinCompliance: number;
   loggingCompliance: number;
+  mealConsistency: number;
+  macroAdherence: number;
+  hydrationAdherence: number | null;
+  hydrationEligible: boolean;
   calorieAverage7: number;
   proteinAverage7: number;
   loggedDays7: number;
@@ -39,6 +44,19 @@ function clamp(value: number, min: number, max: number): number {
 function sanitizeWindow(raw: number): number {
   if (!Number.isFinite(raw) || raw < 1) return DEFAULT_WINDOW;
   return clamp(Math.round(raw), 1, MAX_WINDOW);
+}
+
+export function combineConsistencyComponents(input: {
+  mealConsistency: number;
+  macroAdherence: number;
+  hydrationAdherence: number | null;
+}): number {
+  const score = input.hydrationAdherence === null
+    ? input.mealConsistency * 0.5 + input.macroAdherence * 0.5
+    : input.mealConsistency * 0.4 +
+      input.macroAdherence * 0.4 +
+      input.hydrationAdherence * 0.2;
+  return clamp(Math.round(score), 0, 100);
 }
 
 function computeBiggestOpportunity(
@@ -107,6 +125,8 @@ export async function getUserCompliance(
     .select({
       dailyCalorieTarget: users.dailyCalorieTarget,
       dailyProteinTarget: users.dailyProteinTarget,
+      dailyCarbsTarget: users.dailyCarbsTarget,
+      dailyFatTarget: users.dailyFatTarget,
     })
     .from(users)
     .where(eq(users.id, userId));
@@ -117,6 +137,10 @@ export async function getUserCompliance(
       calorieCompliance: 0,
       proteinCompliance: 0,
       loggingCompliance: 0,
+      mealConsistency: 0,
+      macroAdherence: 0,
+      hydrationAdherence: null,
+      hydrationEligible: false,
       calorieAverage7: 0,
       proteinAverage7: 0,
       loggedDays7: 0,
@@ -139,6 +163,10 @@ export async function getUserCompliance(
       calorieCompliance: 0,
       proteinCompliance: 0,
       loggingCompliance: 0,
+      mealConsistency: 0,
+      macroAdherence: 0,
+      hydrationAdherence: null,
+      hydrationEligible: false,
       calorieAverage7: 0,
       proteinAverage7: 0,
       loggedDays7: 0,
@@ -163,7 +191,9 @@ export async function getUserCompliance(
         (${macroLogs.at} AT TIME ZONE ${tz})::date AS date,
         ${macroLogs.source} AS source,
         SUM(${macroLogs.kcal})::int AS kcal,
-        SUM(${macroLogs.protein})::int AS protein
+        SUM(${macroLogs.protein})::int AS protein,
+        SUM(${macroLogs.carbs})::int AS carbs,
+        SUM(${macroLogs.fat})::int AS fat
       FROM ${macroLogs}
       WHERE ${macroLogs.userId} = ${userId}
         AND (${macroLogs.at} AT TIME ZONE ${tz})::date >= ${startDateStr}::date
@@ -176,7 +206,9 @@ export async function getUserCompliance(
     SELECT
       d.date,
       SUM(d.kcal)::int AS kcal,
-      SUM(d.protein)::int AS protein
+      SUM(d.protein)::int AS protein,
+      SUM(d.carbs)::int AS carbs,
+      SUM(d.fat)::int AS fat
     FROM day_data d
     WHERE
       (d.date IN (SELECT date FROM locked_dates) AND d.source = 'locked-day')
@@ -186,7 +218,13 @@ export async function getUserCompliance(
     ORDER BY d.date ASC
   `);
 
-  const dailyRows = rows.rows as Array<{ date: string; kcal: number; protein: number }>;
+  const dailyRows = rows.rows as Array<{
+    date: string;
+    kcal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }>;
   const loggedDays = dailyRows.length;
 
   // --- Meal slot query (count distinct days per slot via raw SQL) ---
@@ -224,6 +262,10 @@ export async function getUserCompliance(
       calorieCompliance: 0,
       proteinCompliance: 0,
       loggingCompliance: 0,
+      mealConsistency: 0,
+      macroAdherence: 0,
+      hydrationAdherence: null,
+      hydrationEligible: false,
       calorieAverage7: 0,
       proteinAverage7: 0,
       loggedDays7: 0,
@@ -252,12 +294,98 @@ export async function getUserCompliance(
   const proteinCompliance = clamp(Math.round((daysMetProtein / loggedDays) * 100), 0, 100);
 
   const loggingCompliance = clamp(Math.round((loggedDays / cappedWindow) * 100), 0, 100);
-
-  const complianceScore = clamp(
-    Math.round(calorieCompliance * 0.4 + proteinCompliance * 0.4 + loggingCompliance * 0.2),
-    0,
-    100,
+  const mealConsistency = loggingCompliance;
+  const macroTargets = [
+    { key: "kcal" as const, target: calorieTarget },
+    { key: "protein" as const, target: proteinTarget },
+    { key: "carbs" as const, target: user.dailyCarbsTarget },
+    { key: "fat" as const, target: user.dailyFatTarget },
+  ].filter((entry): entry is {
+    key: "kcal" | "protein" | "carbs" | "fat";
+    target: number;
+  } => typeof entry.target === "number" && entry.target > 0);
+  const macroAdherence = Math.round(
+    dailyRows.reduce((sum, row) => {
+      const dailyScore = macroTargets.reduce((daySum, target) => {
+        const actual = Number(row[target.key] ?? 0);
+        return daySum + clamp(
+          Math.round(100 - Math.abs(actual - target.target) / target.target * 100),
+          0,
+          100,
+        );
+      }, 0) / macroTargets.length;
+      return sum + dailyScore;
+    }, 0) / dailyRows.length,
   );
+
+  let hydrationAdherence: number | null = null;
+  let hydrationEligible = false;
+  try {
+    const hydrationState = await resolveHydrationCenterState({
+      subjectUserId: userId,
+      localDate: todayStr,
+      timezone: tz,
+      access: {
+        authenticatedUserId: userId,
+        subjectUserId: userId,
+        mode: "self",
+        authorizationStatus: "allowed",
+      },
+    });
+    const policy = hydrationState.numericPolicy;
+    hydrationEligible = policy.status === "NUMERIC_ACTIVE";
+    if (hydrationEligible) {
+      const hydrationRows = await db.execute(sql`
+        SELECT
+          (${waterLogs.intakeTime} AT TIME ZONE ${tz})::date AS date,
+          SUM(${waterLogs.amountMl})::int AS total_ml
+        FROM ${waterLogs}
+        WHERE ${waterLogs.userId} = ${userId}
+          AND (${waterLogs.intakeTime} AT TIME ZONE ${tz})::date >= ${startDateStr}::date
+          AND (${waterLogs.intakeTime} AT TIME ZONE ${tz})::date <= ${todayStr}::date
+        GROUP BY 1
+      `);
+      const hydrationByDate = new Map(
+        (hydrationRows.rows as Array<{ date: string; total_ml: number }>).map((row) => [
+          String(row.date).slice(0, 10),
+          Number(row.total_ml ?? 0),
+        ]),
+      );
+      const scoreHydrationDay = (consumed: number): number => {
+        if (policy.targetKind === "point" && policy.targetMl) {
+          return clamp(Math.round(100 - Math.abs(consumed - policy.targetMl) / policy.targetMl * 100), 0, 100);
+        }
+        if (policy.targetKind === "range" && policy.minimumMl && policy.maximumMl) {
+          if (consumed >= policy.minimumMl && consumed <= policy.maximumMl) return 100;
+          const boundary = consumed < policy.minimumMl ? policy.minimumMl : policy.maximumMl;
+          return clamp(Math.round(100 - Math.abs(consumed - boundary) / boundary * 100), 0, 100);
+        }
+        if (policy.targetKind === "floor" && policy.minimumMl) {
+          return clamp(Math.round(consumed / policy.minimumMl * 100), 0, 100);
+        }
+        if (policy.targetKind === "ceiling" && policy.maximumMl) {
+          return consumed <= policy.maximumMl
+            ? 100
+            : clamp(Math.round(100 - (consumed - policy.maximumMl) / policy.maximumMl * 100), 0, 100);
+        }
+        return 0;
+      };
+      const hydrationScores = Array.from({ length: cappedWindow }, (_, offset) =>
+        scoreHydrationDay(hydrationByDate.get(daysAgo(todayStr, offset)) ?? 0),
+      );
+      hydrationAdherence = Math.round(
+        hydrationScores.reduce((sum, score) => sum + score, 0) / hydrationScores.length,
+      );
+    }
+  } catch (error) {
+    console.warn("[consistency-score] Hydration unavailable; omitting component", error);
+  }
+
+  const complianceScore = combineConsistencyComponents({
+    mealConsistency,
+    macroAdherence,
+    hydrationAdherence,
+  });
 
   // Days where calories fell within 80-120% of target
   const calorieGoalDays = dailyRows.filter((r) => {
@@ -273,6 +401,10 @@ export async function getUserCompliance(
     calorieCompliance,
     proteinCompliance,
     loggingCompliance,
+    mealConsistency,
+    macroAdherence,
+    hydrationAdherence,
+    hydrationEligible,
     calorieAverage7: calorieAverage,
     proteinAverage7: proteinAverage,
     loggedDays7: loggedDays,
