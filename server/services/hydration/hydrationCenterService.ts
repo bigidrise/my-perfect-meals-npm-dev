@@ -51,25 +51,32 @@ export async function resolveHydrationCenterState(input: {
   timezone: string;
   access: HydrationPlanningEligibilityAccess;
   now?: Date;
+  preloadedRows?: Array<typeof waterLogs.$inferSelect>;
+  preloadedLiquidProtocol?: HydrationProtocolRecord | null;
 }): Promise<HydrationCenterState> {
+  const startedAt = performance.now();
   const now = input.now ?? new Date();
-  const { start, end } = await resolveHydrationDay({
-    subjectUserId: input.subjectUserId,
-    localDate: input.localDate,
-    timezone: input.timezone,
-    now,
-  });
-  const rows = await db
-    .select()
-    .from(waterLogs)
-    .where(
-      and(
-        eq(waterLogs.userId, input.subjectUserId),
-        gte(waterLogs.intakeTime, start),
-        lte(waterLogs.intakeTime, end),
-      ),
-    )
-    .orderBy(asc(waterLogs.intakeTime));
+  const waterStartedAt = performance.now();
+  const rows = input.preloadedRows ?? await (async () => {
+    const { start, end } = await resolveHydrationDay({
+      subjectUserId: input.subjectUserId,
+      localDate: input.localDate,
+      timezone: input.timezone,
+      now,
+    });
+    return db
+      .select()
+      .from(waterLogs)
+      .where(
+        and(
+          eq(waterLogs.userId, input.subjectUserId),
+          gte(waterLogs.intakeTime, start),
+          lte(waterLogs.intakeTime, end),
+        ),
+      )
+      .orderBy(asc(waterLogs.intakeTime));
+  })();
+  const waterMs = performance.now() - waterStartedAt;
 
   const events = rows.map(mapLegacyWaterLogToHydrationEvent);
   const snapshot = createHydrationCanonicalIntakeSnapshot({
@@ -80,8 +87,34 @@ export async function resolveHydrationCenterState(input: {
     observedAt: now.toISOString(),
     events,
   });
-  const directiveResolution =
-    await getHydrationClinicianDirectiveResolution(input.subjectUserId, now);
+  let directiveMs = 0;
+  let liquidProtocolMs = 0;
+  let nutritionContextMs = 0;
+  const [directiveResolution, liquidProtocol, nutritionContext] = await Promise.all([
+    (async () => {
+      const operationStartedAt = performance.now();
+      const result = await getHydrationClinicianDirectiveResolution(input.subjectUserId, now);
+      directiveMs = performance.now() - operationStartedAt;
+      return result;
+    })(),
+    (async () => {
+      const operationStartedAt = performance.now();
+      const result = Object.prototype.hasOwnProperty.call(input, "preloadedLiquidProtocol")
+        ? input.preloadedLiquidProtocol ?? null
+        : await getCurrentLiquidNutritionProtocol({
+            userId: input.subjectUserId,
+            localDate: input.localDate,
+          });
+      liquidProtocolMs = performance.now() - operationStartedAt;
+      return result;
+    })(),
+    (async () => {
+      const operationStartedAt = performance.now();
+      const result = await getActiveNutritionContext(input.subjectUserId);
+      nutritionContextMs = performance.now() - operationStartedAt;
+      return result;
+    })(),
+  ]);
   const eligibility = evaluateHydrationPlanningEligibility({
     subjectUserId: input.subjectUserId,
     localDate: input.localDate,
@@ -109,18 +142,13 @@ export async function resolveHydrationCenterState(input: {
       : "inactive",
     evaluatedAt: now.toISOString(),
   });
-  const liquidProtocol = await getCurrentLiquidNutritionProtocol({
-    userId: input.subjectUserId,
-    localDate: input.localDate,
-  });
-  const nutritionContext = await getActiveNutritionContext(input.subjectUserId);
   const consideredForYou = buildHydrationConsideredForYou({
     envelope: nutritionContext.envelope,
     builder: nutritionContext.builder,
     liquidProtocol,
   });
 
-  return {
+  const result: HydrationCenterState = {
     subjectUserId: input.subjectUserId,
     localDate: input.localDate,
     timezone: input.timezone,
@@ -139,4 +167,16 @@ export async function resolveHydrationCenterState(input: {
       ? "development_preview"
       : "production_inactive",
   };
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[hydration:timing] center-state", {
+      totalMs: Math.round(performance.now() - startedAt),
+      waterMs: Math.round(waterMs),
+      waterSource: input.preloadedRows ? "preloaded" : "database",
+      directiveMs: Math.round(directiveMs),
+      liquidProtocolMs: Math.round(liquidProtocolMs),
+      liquidProtocolSource: Object.prototype.hasOwnProperty.call(input, "preloadedLiquidProtocol") ? "preloaded" : "database",
+      nutritionContextMs: Math.round(nutritionContextMs),
+    });
+  }
+  return result;
 }

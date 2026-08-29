@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, BookOpen, Check, Clock3, Droplets, GlassWater, Info,
-  Lightbulb, Plus, RefreshCw, RotateCcw, Settings2, ShieldCheck, Sparkles,
+  Lightbulb, Plus, RotateCcw, Settings2, ShieldCheck, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -112,8 +112,9 @@ export default function HydrationCenter() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const initializedSetup = useRef(false);
+  const initialLoadStarted = useRef(false);
+  const pageStartedAt = useRef(performance.now());
   const [state, setState] = useState<HydrationCenterState | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [customAmount, setCustomAmount] = useState("");
@@ -125,12 +126,20 @@ export default function HydrationCenter() {
   const [barrierNote, setBarrierNote] = useState("");
   const [preferences, setPreferences] = useState<HydrationPreferences>(DEFAULT_PREFERENCES);
   const [helpOptions, setHelpOptions] = useState<Intervention[]>([]);
+  const shellReadyAt = useRef<number | null>(null);
 
   const load = useCallback(async () => {
+    const startedAt = performance.now();
     setError("");
     try {
       const next = await getHydrationHubState({});
       setState(next);
+      if (import.meta.env.DEV) {
+        console.info("[hydration:timing] authoritative state ready", {
+          requestMs: Math.round(performance.now() - startedAt),
+          shellReadyMs: shellReadyAt.current,
+        });
+      }
       if (!initializedSetup.current && next.setup) {
         setConsented(next.setup.consented);
         setSelectedBarriers(next.setup.barriers.map((item) => item.barrierCode));
@@ -140,12 +149,20 @@ export default function HydrationCenter() {
       }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message.replace(/^\d+:\s*/, "") : "Hydration data is unavailable");
-    } finally {
-      setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    shellReadyAt.current = Math.round(performance.now() - pageStartedAt.current);
+    if (import.meta.env.DEV) {
+      console.info("[hydration:timing] safe shell ready", {
+        shellReadyMs: shellReadyAt.current,
+      });
+    }
+    if (initialLoadStarted.current) return;
+    initialLoadStarted.current = true;
+    void load();
+  }, [load]);
 
   const addFluid = async (amount: number, unit: "oz" | "ml") => {
     if (!Number.isFinite(amount) || amount <= 0) return;
@@ -279,16 +296,6 @@ export default function HydrationCenter() {
         </button>
         <HydrationFourDoorPanels state={state} navigate={navigate} onReload={load} />
         <HydrationHubGuide />
-        {loading && !state ? (
-          <div
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm text-white/75 backdrop-blur-xl"
-            role="status"
-            data-testid="hydration-secondary-loading"
-          >
-            <RefreshCw className="h-4 w-4 animate-spin text-sky-300" />
-            Loading today, history, preferences, and professional guidance…
-          </div>
-        ) : null}
         {error && !state ? (
           <Card className="border-white/10 bg-slate-950/45 text-white">
             <CardContent className="flex flex-col items-center justify-center p-6 text-center">
@@ -299,8 +306,8 @@ export default function HydrationCenter() {
             </CardContent>
           </Card>
         ) : null}
-        {state && policy && copy ? <>
           <section className="grid gap-4 md:grid-cols-[1.15fr_.85fr]">
+            {state && policy && copy ? (
             <Card className="overflow-hidden border-white/10 bg-slate-950/45 text-white shadow-2xl backdrop-blur-xl">
               <CardContent className="p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-3">
@@ -315,6 +322,22 @@ export default function HydrationCenter() {
                 <div className="mt-5 rounded-xl border border-white/10 bg-black/15 p-4 text-white"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-sky-300" /><h3 className="font-semibold text-white">{copy.title}</h3></div><p className="mt-2 text-sm leading-relaxed text-white">{copy.body}</p><p className="mt-2 text-xs text-white">Preferences may change practical suggestions, never physiological requirements.</p></div>
               </CardContent>
             </Card>
+            ) : (
+              <Card className="overflow-hidden border-white/10 bg-slate-950/45 text-white shadow-2xl backdrop-blur-xl">
+                <CardContent className="p-5 sm:p-6">
+                  <div className="flex items-start gap-3">
+                    <Droplets className="mt-0.5 h-7 w-7 shrink-0 text-sky-300" />
+                    <div>
+                      <p className="text-xs uppercase tracking-[.2em] text-white">Today</p>
+                      <h2 className="mt-1 text-xl font-semibold text-white">Your totals will appear here</h2>
+                      <p className="mt-2 text-sm leading-relaxed text-white/75">
+                        You can use the Hydration doors or log a fluid now. Saved totals and any authorized guidance will appear when verified.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="border-white/10 bg-slate-950/45 text-white backdrop-blur-xl"><CardContent className="p-5">
               <div className="flex items-center gap-2"><Plus className="h-5 w-5 text-sky-300" /><h2 className="font-semibold text-white">Log a fluid</h2></div>
@@ -350,19 +373,20 @@ export default function HydrationCenter() {
           <section className="grid gap-4 md:grid-cols-[1.15fr_.85fr]">
             <Card className="border-white/10 bg-slate-950/45 text-white backdrop-blur-xl"><CardContent className="p-5">
               <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-sky-300" /><h2 className="font-semibold text-white">Descriptive history</h2></div><div className="flex rounded-lg border border-white/30 bg-black/15 p-1">{(["today", "7", "30"] as const).map((window) => <button key={window} onClick={() => setHistoryWindow(window)} className={`rounded-md px-3 py-1.5 text-xs text-white ${historyWindow === window ? "bg-sky-400/20" : ""}`}>{window === "today" ? "Today" : `${window} days`}</button>)}</div></div>
-              {historyWindow === "today" ? <div className="mt-4 space-y-2">{state.todayHistory?.length ? state.todayHistory.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/30 bg-white/[.04] px-3 py-2.5 text-white"><div><span className="text-sm text-white">{new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(item.intakeTime))}</span><span className="ml-2 text-xs text-white">{BEVERAGES.find(([value]) => value === item.beverageClass)?.[1] || item.beverageClass}</span></div><span className="font-medium text-white">{mlToOz(item.amountMl)} oz <span className="ml-1 text-xs font-normal text-white">{item.amountMl} mL</span></span></div>) : <p className="rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white">No fluids logged yet today.</p>}</div> : <div className="mt-4 space-y-2">{dailyRows.length ? dailyRows.map((row) => <div key={row.localDate} className="grid grid-cols-[1fr_auto_auto] gap-4 rounded-xl border border-white/30 bg-white/[.04] px-3 py-2.5 text-sm text-white"><span className="text-white">{new Date(`${row.localDate}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span><span className="text-white">{mlToOz(row.totalMl)} oz total</span><span className="text-white">{mlToOz(row.plainWaterMl)} oz water</span></div>) : <p className="rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white">No entries in this window.</p>}</div>}
+              {!state ? (
+                <p className="mt-4 rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white/70">Saved history will appear here when it is ready.</p>
+              ) : historyWindow === "today" ? <div className="mt-4 space-y-2">{state.todayHistory?.length ? state.todayHistory.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/30 bg-white/[.04] px-3 py-2.5 text-white"><div><span className="text-sm text-white">{new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(item.intakeTime))}</span><span className="ml-2 text-xs text-white">{BEVERAGES.find(([value]) => value === item.beverageClass)?.[1] || item.beverageClass}</span></div><span className="font-medium text-white">{mlToOz(item.amountMl)} oz <span className="ml-1 text-xs font-normal text-white">{item.amountMl} mL</span></span></div>) : <p className="rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white">No fluids logged yet today.</p>}</div> : <div className="mt-4 space-y-2">{dailyRows.length ? dailyRows.map((row) => <div key={row.localDate} className="grid grid-cols-[1fr_auto_auto] gap-4 rounded-xl border border-white/30 bg-white/[.04] px-3 py-2.5 text-sm text-white"><span className="text-white">{new Date(`${row.localDate}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span><span className="text-white">{mlToOz(row.totalMl)} oz total</span><span className="text-white">{mlToOz(row.plainWaterMl)} oz water</span></div>) : <p className="rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white">No entries in this window.</p>}</div>}
               <p className="mt-3 text-xs text-white">History describes what you logged. It does not diagnose hydration status or prescribe a target.</p>
             </CardContent></Card>
 
             <Card className="border-white/10 bg-slate-950/45 text-white backdrop-blur-xl"><CardContent className="p-5">
               <div className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-sky-300" /><h2 className="font-semibold text-white">Learn & reflect</h2></div>
               <p className="mt-3 text-sm leading-relaxed text-white">Reviewed sources explain hydration concepts without converting population references into a personal target.</p>
-              <div className="mt-4 grid grid-cols-2 gap-2"><div className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><p className="text-xs text-white">Options tried</p><p className="mt-1 text-2xl font-semibold text-white">{state.outcomeCounts?.accepted || 0}</p></div><div className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><p className="text-xs text-white">Completed</p><p className="mt-1 text-2xl font-semibold text-white">{state.outcomeCounts?.completed || 0}</p></div></div>
+              <div className="mt-4 grid grid-cols-2 gap-2"><div className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><p className="text-xs text-white">Options tried</p><p className="mt-1 text-2xl font-semibold text-white">{state ? state.outcomeCounts?.accepted || 0 : "—"}</p></div><div className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><p className="text-xs text-white">Completed</p><p className="mt-1 text-2xl font-semibold text-white">{state ? state.outcomeCounts?.completed || 0 : "—"}</p></div></div>
               <div className="mt-4 flex flex-col gap-2"><MedicalSourcesInfo trigger={<Button className="w-full bg-white/10 text-white hover:bg-white/15"><GlassWater className="mr-2 h-4 w-4" />View hydration sources</Button>} /><Button onClick={() => navigate("/learn?topic=hydration")} variant="outline" className="w-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">Open learning library</Button></div>
               <p className="mt-4 text-xs leading-relaxed text-white">Products, sponsorships, and affiliate relationships never determine nutrition or clinical eligibility. Hydration Hub Phase 1 does not recommend products or supplements.</p>
             </CardContent></Card>
           </section>
-        </> : null}
       </main>
       </div>
     </motion.div>

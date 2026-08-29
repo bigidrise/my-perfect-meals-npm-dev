@@ -260,6 +260,7 @@ const hydrationHubEventSchema = z.object({
 }).strict();
 
 router.get("/hydration/hub", requireAuth, async (req, res) => {
+  const startedAt = performance.now();
   try {
     const authReq = req as AuthenticatedRequest;
     const owner = await authorizeSubject(authReq, res, req.query.clientId);
@@ -283,6 +284,7 @@ router.get("/hydration/hub", requireAuth, async (req, res) => {
         ...(owner.authorizationReference ? { authorizationReference: owner.authorizationReference } : {}),
       },
     });
+    res.setHeader("Server-Timing", `hydration-hub;dur=${(performance.now() - startedAt).toFixed(1)}`);
     res.json(state);
   } catch (error) {
     if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub request" });
