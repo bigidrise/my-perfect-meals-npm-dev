@@ -23,7 +23,7 @@ const PLATFORM_MASTERY_LESSONS = [
   { num: 2, title: "Meal Builders — Choosing the Right Tool", subtitle: "Every meal creation tool and when to reach for it" },
   { num: 3, title: "Weekly Planning", subtitle: "Building consistent habits with the Meal Planner" },
   { num: 4, title: "Shopping & Your Grocery Scope", subtitle: "Smart Grocery List, Grocery Coach, Product Scan, and Fridge Rescue" },
-  { num: 5, title: "Eating Away From Home", subtitle: "Restaurant Guide, Fast Food Guide, and Find Meals Near Me" },
+  { num: 5, title: "Eating Away From Home", subtitle: "Restaurant Assistant, Find Meals Near Me, and My Perfect Buffet" },
   { num: 6, title: "Biometrics & Tracking", subtitle: "Logging progress and reading your data" },
   { num: 7, title: "Specialized Health & Performance Systems", subtitle: "Clinical programs, performance nutrition, and the protocol hierarchy" },
   { num: 8, title: "AI Adaptation & Transparency", subtitle: "What the AI knows, what it estimates, and your boundaries" },

@@ -68,7 +68,7 @@ const PLATFORM_MASTERY_LESSONS = [
   {
     number: "05",
     title: "Eating Away From Home",
-    description: "Restaurant Guide, Fast Food Guide, and Find Meals Near Me — using your profile when you're not cooking at home.",
+    description: "Restaurant Assistant, Find Meals Near Me, and My Perfect Buffet — using your profile when you're not cooking at home.",
     icon: MoreHorizontal,
   },
   {
