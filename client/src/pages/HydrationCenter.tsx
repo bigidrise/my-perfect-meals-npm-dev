@@ -269,7 +269,7 @@ export default function HydrationCenter() {
       animate={{ opacity: 1 }}
       className="min-h-screen text-white"
       style={{
-        backgroundImage: "url('/images/hydration-hub-bg.png')",
+        backgroundImage: "url('/images/hydration-hub-bg-waterfall.png?v=waterfall-20260830')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
