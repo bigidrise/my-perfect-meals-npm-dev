@@ -283,11 +283,12 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               key={key}
               type="button"
               data-testid={`hydration-door-${key}`}
+              aria-pressed={door === key}
               onClick={() => setDoor(key)}
               className={`group rounded-xl border p-3 text-left transition ${
                 door === key
-                  ? "border-sky-300/60 bg-sky-400/15"
-                  : "border-white/15 bg-white/[.04] hover:bg-white/[.08]"
+                  ? "border-sky-200 bg-sky-400/20 shadow-[0_0_0_1px_rgba(186,230,253,0.9),0_0_18px_rgba(56,189,248,0.35)]"
+                  : "border-white/15 bg-white/[.04] hover:border-sky-200/60 hover:bg-white/[.08]"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
