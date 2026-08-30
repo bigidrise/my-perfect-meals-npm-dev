@@ -277,19 +277,14 @@ export default function HydrationCenter() {
     >
       <div className="min-h-screen">
       <header data-testid="hydration-header" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl lg:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="mx-auto max-w-5xl px-4 pb-3 pt-2">
-          <div className="flex items-center">
-            <Button data-testid="hydration-back-button" variant="outline" size="sm" onClick={() => navigate("/my-biometrics")} className="shrink-0 border-slate-300 bg-white text-black shadow-sm hover:bg-slate-100 hover:text-black"><ArrowLeft className="mr-1.5 h-4 w-4" />Back to Biometrics</Button>
-          </div>
-          <div className="mt-2 min-w-0">
-            <h1 className="text-lg font-semibold leading-tight text-white">Hydration Hub</h1>
-            <p className="mt-0.5 text-xs leading-normal text-white">Track fluids, solve barriers, see what helps</p>
-            <Badge className="mt-2 inline-flex border-sky-300/20 bg-sky-400/10 text-white">Everyday support</Badge>
-          </div>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 pb-3 pt-2">
+          <h1 className="text-lg font-semibold leading-tight text-white">Hydration Hub</h1>
+          <Badge className="shrink-0 border-sky-300/20 bg-sky-400/10 text-white">Everyday support</Badge>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-4 px-4 pb-28 pt-[calc(env(safe-area-inset-top,0px)+9rem)] text-white lg:pt-0">
+      <main className="mx-auto max-w-5xl space-y-4 px-4 pb-28 pt-[calc(env(safe-area-inset-top,0px)+5.5rem)] text-white lg:pt-0">
+        <Button data-testid="hydration-back-button" variant="outline" size="sm" onClick={() => navigate("/my-biometrics")} className="border-white/10 bg-black/30 text-white shadow-lg backdrop-blur-md hover:bg-white/10 hover:text-white lg:hidden"><ArrowLeft className="mr-1.5 h-4 w-4" />Back to Biometrics</Button>
         <button
           type="button"
           data-testid="desktop-hydration-back-button"
