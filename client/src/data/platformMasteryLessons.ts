@@ -576,8 +576,8 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         body: "Grocery Coach provides protocol-aware guidance on what to buy — not just what's on your ingredient list, but how to stock your kitchen in a way that supports your active nutrition programs.\n\nWhere the Smart Grocery List tells you exactly which ingredients your saved meals require, Grocery Coach answers the broader question: *given your protocol, what kind of kitchen should you maintain?*\n\nBased on your active health programs and dietary identity, Grocery Coach delivers targeted buying guidance:\n\n- **A user on the GLP-1 Builder** receives guidance on keeping high-protein, easy-to-prepare options available for low-appetite windows\n- **A user on an anti-inflammatory protocol** receives guidance on which produce and protein categories to prioritize across the week\n- **A user managing Type 2 diabetes** receives guidance on structuring their kitchen to support glycemic stability throughout the week\n\nGrocery Coach is the strategic guidance layer above your ingredient list. It helps you make protocol-aligned decisions before you get to the store — so your kitchen consistently supports your plan, not just the meals you happened to save this week.",
       },
       {
-        heading: "Product Scan — Ingredient Intelligence in the Store",
-        body: "Product Scan brings profile-aware evaluation to the store shelf. Point your camera at any product barcode and the platform evaluates the nutrition label against your active profile.\n\nWhat Product Scan checks:\n- Does this product fit your dietary identity?\n- Does it conflict with any medical guardrails?\n- How does it compare to your remaining macro targets?\n\nThe result: compatible, use with caution, or avoid — with the specific reason. Most useful when comparing similar products or evaluating packaged foods you haven't used before.",
+        heading: "Product Scan — Identify, Evaluate, and Compare Products",
+        body: "Product Scan evaluates a specific packaged product before you buy it. Instead of scanning a barcode or photographing only the ingredients list, take a clear picture of the product's front label. The front label allows the platform to identify the exact product and brand.\n\nOnce the product is identified, Product Scan uses available nutrition and ingredient information and compares the product with your dietary identity, allergies, medical guardrails, and macro targets.\n\nThe result includes:\n- The identified product and brand\n- A personalized grade and recommendation\n- Specific reasons the product does or does not fit\n- Three alternative products that may fit you better\n\nProduct Scan provides three alternatives even when the original product is compatible. This helps you compare real products and choose the best available option — not simply determine whether a list of ingredients is acceptable.\n\nIf you do not have a specific product in front of you and want help finding one, use Find a Product and ask for something like, \"Find me a spaghetti sauce.\" The platform recommends real products matched to your profile.",
       },
       {
         heading: "Recipe Maker — Adapting Recipes You Already Love",
@@ -597,6 +597,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
         "Save a weekly plan in your builder — tap **Save Plan**.",
         "Open your **Smart Grocery List**. Review what populated.",
         "Open **Grocery Coach**. Review the organized sections and note any flagged items.",
+        "Open **Product Scan** and photograph the front label of a packaged product. Confirm that the correct product and brand were identified, then review its profile-based evaluation and the three recommended alternatives.",
         "Find a recipe online. Open **Recipe Maker**, paste the URL or enter the ingredients, and generate the adapted version. Read the full Meal Card.",
         "Open **Fridge Rescue**. Enter three ingredients you currently have. Generate and read the Meal Card.",
       ],
@@ -645,26 +646,26 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q4",
         question:
-          "What factors does Product Scan evaluate when a user scans a barcode in the store?",
+          "What should a user photograph when using Product Scan, and why?",
         options: [
-          "Store pricing, product reviews, and total calorie count.",
-          "Macronutrient totals only, without profile context.",
-          "Dietary identity, active medical guardrails, and remaining daily macro targets.",
-          "Brand reputation, ingredient sourcing, and shelf life.",
+          "The barcode, so the platform can look up the product in a store database.",
+          "Only the ingredients list, so the platform can determine whether each ingredient is allowed.",
+          "The product's front label, so the platform can identify the specific product and brand, evaluate its available nutrition and ingredient information against the user's Nutrition Life Plan, and compare it with other real products.",
+          "The store shelf tag, so the platform can compare prices across retailers.",
         ],
         correctIndex: 2,
       },
       {
         id: "l4-q5",
         question:
-          "A user scans two protein bars. One is marked compatible and the other use with caution. What determines the difference?",
+          "What does Product Scan do after evaluating the product you scanned?",
         options: [
-          "The compatible bar has fewer total calories.",
-          "The platform compared pricing.",
-          "The caution bar conflicts with something in her active profile — her dietary identity, medical guardrails, or macro targets.",
-          "The compatible bar had better user ratings on the platform.",
+          "It saves the product automatically as the user's permanent favorite.",
+          "It recommends three alternative products that may be a better fit for the user, even if the product scanned already fits the user's Nutrition Life Plan.",
+          "It orders the product from the lowest-priced nearby store.",
+          "It removes the product from the user's shopping list.",
         ],
-        correctIndex: 2,
+        correctIndex: 1,
       },
       {
         id: "l4-q6",
@@ -693,14 +694,14 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       {
         id: "l4-q8",
         question:
-          "A user wants to compare two brands of keto protein powder before buying. Which tool is most appropriate?",
+          "A user wants spaghetti sauce. She does not have a particular sauce in mind, but another shopper is holding a specific sauce she wants to check. Which MPM tools would she use in each situation?",
         options: [
-          "Grocery Coach — it has a product comparison database.",
-          "Fridge Rescue — she enters the serving size to see how it fits a meal.",
-          "Recipe Maker — she enters the supplement facts as ingredients.",
-          "Product Scan — she scans both barcodes in-store to compare them against her profile.",
+          "She uses Fridge Rescue to find a sauce and Recipe Maker to check the sauce another shopper is holding.",
+          "She uses Grocery Coach for both situations because Product Scan only evaluates ingredients.",
+          "She uses Find a Product to discover sauces that fit her. For the specific sauce in front of her, she uses Product Scan to photograph the product's front label, identify and evaluate it, and receive three alternatives.",
+          "She uses the Smart Grocery List for both situations because it contains every packaged product.",
         ],
-        correctIndex: 3,
+        correctIndex: 2,
       },
       {
         id: "l4-q9",
