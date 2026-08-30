@@ -11,6 +11,7 @@ import {
   certificationModuleProgress,
   userCertifications,
 } from "../db/schema/certifications";
+import { hasCompletedLegacyProCareCertification } from "./procareCertification";
 
 const PROCARE_PROFESSIONAL_ROLES = new Set([
   "trainer",
@@ -26,6 +27,8 @@ export async function getAcademyProgression(userId: string) {
         certificationType: certificationModuleProgress.certificationType,
         moduleId: certificationModuleProgress.moduleId,
         status: certificationModuleProgress.status,
+        score: certificationModuleProgress.score,
+        videoWatchedPct: certificationModuleProgress.videoWatchedPct,
       })
       .from(certificationModuleProgress)
       .where(
@@ -34,6 +37,8 @@ export async function getAcademyProgression(userId: string) {
           inArray(certificationModuleProgress.certificationType, [
             "platform_mastery",
             "marketing_coaching",
+            "platform",
+            "procare_certification",
           ]),
         ),
       ),
@@ -83,6 +88,17 @@ export async function getAcademyProgression(userId: string) {
           required.includes(row.moduleId),
       )
       .map((row) => row.moduleId);
+  const legacyProCareComplete = hasCompletedLegacyProCareCertification(
+    certRows,
+    progressRows
+      .filter((row) => row.certificationType === "platform")
+      .map((row) => ({
+        moduleId: row.moduleId,
+        status: row.status,
+        score: row.score,
+        videoWatchedPct: row.videoWatchedPct,
+      })),
+  );
 
   return resolveAcademyProgression({
     completedPlatformLessonIds: completedModules(
@@ -97,7 +113,8 @@ export async function getAcademyProgression(userId: string) {
       completed("platform_mastery") || completedLegacyPlatformMastery,
     legacyMarketingComplete: completed("marketing_coaching"),
     specialistCredentialComplete: completed(SPECIALIST_CERTIFICATION_TYPE),
-    proCareTrainingComplete: completed("procare_certification"),
+    proCareTrainingComplete:
+      completed("procare_certification") || legacyProCareComplete,
     proCareTrainingEligible: PROCARE_PROFESSIONAL_ROLES.has(
       user?.professionalRole ?? "",
     ),
