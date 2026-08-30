@@ -75,6 +75,8 @@ describe("Academy progression", () => {
     });
     expect(result.specialist.complete).toBe(true);
     expect(result.proCare.optional).toBe(true);
+    expect(result.summary.coreComplete).toBe(true);
+    expect(result.summary.allCertificationsComplete).toBe(true);
     expect(result.nextStep.kind).toBe("view_specialist");
   });
 
@@ -94,7 +96,36 @@ describe("Academy progression", () => {
       proCareTrainingEligible: false,
     });
     expect(eligible.nextStep.kind).toBe("start_procare");
+    expect(eligible.summary.coreComplete).toBe(true);
+    expect(eligible.summary.allCertificationsComplete).toBe(false);
     expect(ineligible.nextStep.kind).toBe("view_specialist");
+    expect(ineligible.summary.allCertificationsComplete).toBe(true);
+  });
+
+  it("keeps the summary and rows consistent until eligible ProCare training is complete", () => {
+    const incomplete = resolveAcademyProgression({
+      ...emptyInput,
+      completedPlatformLessonIds: PLATFORM_MASTERY_LESSON_IDS,
+      completedMarketingModuleIds: MARKETING_COACHING_MODULE_IDS,
+      specialistCredentialComplete: true,
+      proCareTrainingEligible: true,
+      proCareTrainingComplete: false,
+    });
+    const complete = resolveAcademyProgression({
+      ...emptyInput,
+      completedPlatformLessonIds: PLATFORM_MASTERY_LESSON_IDS,
+      completedMarketingModuleIds: MARKETING_COACHING_MODULE_IDS,
+      specialistCredentialComplete: true,
+      proCareTrainingEligible: true,
+      proCareTrainingComplete: true,
+    });
+
+    expect(incomplete.phase2.complete).toBe(true);
+    expect(incomplete.proCare.complete).toBe(false);
+    expect(incomplete.summary.allCertificationsComplete).toBe(false);
+    expect(complete.phase2.complete).toBe(true);
+    expect(complete.proCare.complete).toBe(true);
+    expect(complete.summary.allCertificationsComplete).toBe(true);
   });
 
   it("preserves legacy completions without relabeling their records", () => {

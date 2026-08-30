@@ -36,6 +36,7 @@ export interface AcademyProgression {
   phase2: { complete: boolean; completed: number; total: number };
   specialist: { eligible: boolean; complete: boolean };
   proCare: { eligible: boolean; complete: boolean; optional: true };
+  summary: { coreComplete: boolean; allCertificationsComplete: boolean };
   nextStep: { kind: AcademyNextStepKind; route: string; label: string };
 }
 
@@ -62,6 +63,11 @@ export function resolveAcademyProgression(
     marketingCompleted === MARKETING_COACHING_MODULE_IDS.length ||
     input.legacyMarketingComplete;
   const specialistEligible = phase1Complete && phase2Complete;
+  const coreComplete =
+    specialistEligible || input.specialistCredentialComplete;
+  const allCertificationsComplete =
+    coreComplete &&
+    (!input.proCareTrainingEligible || input.proCareTrainingComplete);
 
   let nextStep: AcademyProgression["nextStep"];
   if (!phase1Complete) {
@@ -137,6 +143,10 @@ export function resolveAcademyProgression(
       eligible: input.proCareTrainingEligible,
       complete: input.proCareTrainingComplete,
       optional: true,
+    },
+    summary: {
+      coreComplete,
+      allCertificationsComplete,
     },
     nextStep,
   };

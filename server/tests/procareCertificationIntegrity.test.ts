@@ -1,6 +1,7 @@
 import {
   buildAttemptHistoryModuleId,
   filterProCareProgress,
+  hasCompletedLegacyProCareCertification,
   hasLegacyProCareProgressEvidence,
   isProCareCourseStructure,
   PROCARE_FINAL_ASSESSMENT_ID,
@@ -81,6 +82,37 @@ describe("Phase 3 ProCare compatibility identity", () => {
         { moduleId: "lesson-01", status: "completed" },
         { moduleId: "lesson-09", status: "completed" },
       ]),
+    ).toBe(false);
+  });
+
+  it("requires a completed legacy certificate and the full ProCare course", () => {
+    const legacyCertificate = [
+      {
+        certificationType: "platform",
+        status: "completed",
+        isCertificationTrack: false,
+      },
+    ];
+
+    expect(
+      hasCompletedLegacyProCareCertification(
+        legacyCertificate,
+        completeProgress(),
+      ),
+    ).toBe(true);
+    expect(
+      hasCompletedLegacyProCareCertification(
+        legacyCertificate,
+        completeProgress().filter(
+          (row) => row.moduleId !== PROCARE_FINAL_ASSESSMENT_ID,
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      hasCompletedLegacyProCareCertification(
+        [{ ...legacyCertificate[0], isCertificationTrack: true }],
+        completeProgress(),
+      ),
     ).toBe(false);
   });
 });
