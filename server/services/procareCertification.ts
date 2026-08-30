@@ -55,6 +55,12 @@ export type ProCareAttemptSnapshot = {
   submittedAnswers: Record<string, string>;
 };
 
+export type ProCareCertificationEvidence = {
+  certificationType: string;
+  status: string;
+  isCertificationTrack?: boolean | null;
+};
+
 const EXPECTED_MODULE_TYPES = new Map<string, string>([
   ["module-1", "video"],
   ["quiz-1", "quiz"],
@@ -92,6 +98,23 @@ export function hasLegacyProCareProgressEvidence(
   progress: ProCareProgressEvidence[],
 ): boolean {
   return progress.some((row) => PROCARE_EVIDENCE_IDS.has(row.moduleId));
+}
+
+export function hasCompletedLegacyProCareCertification(
+  certifications: ProCareCertificationEvidence[],
+  progress: ProCareProgressEvidence[],
+): boolean {
+  const hasCompletedLegacyCertificate = certifications.some(
+    (row) =>
+      row.certificationType === LEGACY_PROCARE_CERTIFICATION_TYPE &&
+      row.status === "completed" &&
+      row.isCertificationTrack !== true,
+  );
+  if (!hasCompletedLegacyCertificate) return false;
+
+  return validateProCareCertificationProgress(
+    filterProCareProgress(progress),
+  ).complete;
 }
 
 export function filterProCareProgress<T extends ProCareProgressEvidence>(

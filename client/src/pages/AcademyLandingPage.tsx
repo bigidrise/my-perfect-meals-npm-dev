@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
   GraduationCap,
@@ -68,7 +68,7 @@ const PLATFORM_MASTERY_LESSONS = [
   {
     number: "05",
     title: "Eating Away From Home",
-    description: "Restaurant Guide, Fast Food Guide, and Find Meals Near Me — using your profile when you're not cooking at home.",
+    description: "Restaurant Assistant, Find Meals Near Me, and My Perfect Buffet — using your profile when you're not cooking at home.",
     icon: MoreHorizontal,
   },
   {
@@ -138,7 +138,7 @@ interface CertProgress {
   personalDone: boolean;
   phase1Done: boolean;
   phase1Score: number | null;
-  phase2Done: boolean;
+  proCareDone: boolean;
   marketingStatus: MarketingStatus;
   loading: boolean;
 }
@@ -153,7 +153,7 @@ export default function AcademyLandingPage() {
     personalDone: false,
     phase1Done: false,
     phase1Score: null,
-    phase2Done: false,
+    proCareDone: false,
     marketingStatus: "unknown",
     loading: true,
   });
@@ -191,51 +191,77 @@ export default function AcademyLandingPage() {
     })();
   }, [user?.id]);
 
-  useEffect(() => {
-    if (!user) {
+  const refreshCertificationProgress = useCallback(async () => {
+    if (!user?.id) {
       setProgress((p) => ({ ...p, loading: false }));
       return;
     }
-    (async () => {
-      try {
-        const [progressionRes, mcRes] = await Promise.allSettled([
-          apiRequest("/api/certifications/academy-progression"),
-          apiRequest("/api/certifications/marketing_coaching/progress"),
-        ]);
 
-        const resolved =
-          progressionRes.status === "fulfilled"
-            ? (progressionRes.value as AcademyProgression)
-            : null;
-        setAcademyProgression(resolved);
-        const mcStatus: MarketingStatus =
-          mcRes.status === "fulfilled"
-            ? (((mcRes.value as any)?.certification?.status ?? "unknown") as MarketingStatus)
-            : "unknown";
-        setProgress({
-          personalDone: !!user?.onboardingCompletedAt,
-          phase1Done: resolved?.phase1.complete ?? false,
-          phase1Score: null,
-          phase2Done: resolved?.proCare.complete ?? false,
-          marketingStatus: mcStatus,
-          loading: false,
-        });
-      } catch {
-        setProgress((p) => ({ ...p, loading: false }));
-      }
-    })();
+    try {
+      const resolved = await apiRequest<AcademyProgression>(
+        `/api/certifications/academy-progression?_t=${Date.now()}`,
+        { headers: { "Cache-Control": "no-cache" } },
+      );
+      setAcademyProgression(resolved);
+      setProgress((current) => ({
+        personalDone: !!user.onboardingCompletedAt,
+        phase1Done: resolved.phase1.complete,
+        phase1Score: current.phase1Score,
+        proCareDone: resolved.proCare.complete,
+        marketingStatus: resolved.phase2.complete
+          ? "completed"
+          : resolved.phase2.completed > 0
+            ? "in_progress"
+            : current.marketingStatus === "waitlisted"
+              ? "waitlisted"
+              : "unknown",
+        loading: false,
+      }));
+    } catch {
+      // A temporary refresh failure must not erase completion already shown.
+      setProgress((p) => ({ ...p, loading: false }));
+    }
   }, [user?.id, user?.onboardingCompletedAt]);
+
+  useEffect(() => {
+    void refreshCertificationProgress();
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refreshCertificationProgress();
+      }
+    };
+    const refreshOnReturn = () => {
+      void refreshCertificationProgress();
+    };
+
+    window.addEventListener("focus", refreshOnReturn);
+    window.addEventListener("pageshow", refreshOnReturn);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("focus", refreshOnReturn);
+      window.removeEventListener("pageshow", refreshOnReturn);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refreshCertificationProgress]);
 
   const hasAnyLessonProgress = lessonStatuses.some(
     (s) => s === "in_progress" || s === "completed"
   );
 
-  const allRequired =
-    academyProgression?.specialist.complete === true ||
-    academyProgression?.specialist.eligible === true;
-  const badge = allRequired ? certBadge(progress.phase1Score) : null;
+  const coreComplete =
+    academyProgression?.summary.coreComplete ??
+    (progress.phase1Done && progress.marketingStatus === "completed");
+  const allCertificationsComplete =
+    academyProgression?.summary.allCertificationsComplete ??
+    (coreComplete && (!isProfessional || progress.proCareDone));
+  const badge = coreComplete ? certBadge(progress.phase1Score) : null;
 
-  const marketingDone = progress.marketingStatus === "completed";
+  const marketingDone =
+    academyProgression?.phase2.complete ??
+    progress.marketingStatus === "completed";
+  const proCareDone =
+    academyProgression?.proCare.complete ?? progress.proCareDone;
   const marketingInProgress = progress.marketingStatus === "in_progress";
   const marketingWaitlisted = progress.marketingStatus === "waitlisted";
 
@@ -460,7 +486,7 @@ export default function AcademyLandingPage() {
                   For coaches, trainers, healthcare professionals, and partners
                 </p>
               </div>
-              {allRequired && badge && (
+              {coreComplete && badge && (
                 <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold flex-shrink-0 ${badge.color}`}>
                   <span>{badge.icon}</span>
                   <span className="hidden sm:inline">{badge.label}</span>
@@ -498,7 +524,7 @@ export default function AcademyLandingPage() {
                   icon="🩺"
                   label="ProCare Certification"
                   sublabel="3 training videos"
-                  done={progress.phase2Done}
+                  done={proCareDone}
                   available
                   onGo={() => setLocation("/certifications/procare_certification")}
                 />
@@ -516,7 +542,7 @@ export default function AcademyLandingPage() {
                   </span>
                 </p>
               </div>
-              {!allRequired ? (
+              {!coreComplete ? (
                 <button
                   onClick={() => setLocation("/professional-onboarding-bridge")}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
@@ -529,7 +555,9 @@ export default function AcademyLandingPage() {
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-900/20 border border-emerald-500/25">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                   <p className="text-sm font-semibold text-emerald-300">
-                    All certifications complete
+                    {allCertificationsComplete
+                      ? "All certifications complete"
+                      : "Core certification complete"}
                   </p>
                 </div>
               )}
