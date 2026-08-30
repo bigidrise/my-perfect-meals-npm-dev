@@ -1,0 +1,2 @@
+import { HydrationHubPreview } from "./_shared";
+export function TidalWave() { return <HydrationHubPreview image="/__mockup/images/hydration-tidal-wave-teal.png" name="Tidal wave" eyebrow="Momentum, held steady" accent="#6ec8e3" note="Layered movement adds energy to routine logging. Deep overlays keep the wave dramatic without competing with safety copy." />; }

@@ -1,0 +1,2 @@
+import { HydrationHubPreview } from "./_shared";
+export function Glacier() { return <HydrationHubPreview image="/__mockup/images/hydration-glacier-teal.png" name="Glacier" eyebrow="Clarity over time" accent="#a0e6ed" note="Ice channels and dark meltwater frame the page as a clear, enduring record: cool, deliberate, and dependable." />; }
