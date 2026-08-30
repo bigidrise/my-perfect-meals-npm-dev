@@ -277,14 +277,14 @@ export default function HydrationCenter() {
     >
       <div className="min-h-screen">
       <header data-testid="hydration-header" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl lg:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 pb-3 pt-2">
-          <Button data-testid="hydration-back-button" variant="outline" size="sm" onClick={() => navigate("/my-biometrics")} className="border-slate-300 bg-white text-black shadow-sm hover:bg-slate-100 hover:text-black"><ArrowLeft className="mr-1.5 h-4 w-4" />Back to Biometrics</Button>
-          <div className="min-w-0 flex-1"><h1 className="truncate text-lg font-semibold text-white">Hydration Hub</h1><p className="text-xs text-white">Track fluids, solve barriers, see what helps</p></div>
-          <Badge className="border-sky-300/20 bg-sky-400/10 text-white">Everyday support</Badge>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 pb-3 pt-2">
+          <h1 className="text-lg font-semibold leading-tight text-white">Hydration Hub</h1>
+          <Badge className="shrink-0 border-sky-300/20 bg-sky-400/10 text-white">Everyday support</Badge>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-4 px-4 pb-28 pt-[calc(env(safe-area-inset-top,0px)+5.75rem)] text-white lg:pt-0">
+      <main className="mx-auto max-w-5xl space-y-4 px-4 pb-28 pt-[calc(env(safe-area-inset-top,0px)+5.5rem)] text-white lg:pt-0">
+        <Button data-testid="hydration-back-button" variant="outline" size="sm" onClick={() => navigate("/my-biometrics")} className="border-white/10 bg-black/30 text-white shadow-lg backdrop-blur-md hover:bg-white/10 hover:text-white lg:hidden"><ArrowLeft className="mr-1.5 h-4 w-4" />Back to Biometrics</Button>
         <button
           type="button"
           data-testid="desktop-hydration-back-button"
