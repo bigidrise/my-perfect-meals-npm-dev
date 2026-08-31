@@ -337,6 +337,11 @@ export const users = pgTable("users", {
   entitlements: text("entitlements").array().default(sql`ARRAY[]::text[]`), // Feature entitlements array
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }), // Stripe customer ID
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }), // Stripe subscription ID
+  stripeLastEventCreatedAt: timestamp("stripe_last_event_created_at", { withTimezone: true }),
+  stripeLastEventRank: integer("stripe_last_event_rank").notNull().default(0),
+  stripeLastEventId: varchar("stripe_last_event_id", { length: 255 }),
+  stripeEntitlementSource: varchar("stripe_entitlement_source", { length: 32 }),
+  stripeReconciledAt: timestamp("stripe_reconciled_at", { withTimezone: true }),
   // ── Personal plan snapshot (preserved across business membership changes) ──
   // When a user accepts a business invite their personal plan is snapshotted
   // here so it can be restored if they leave or are removed. Access tier is

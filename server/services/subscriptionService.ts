@@ -2,7 +2,37 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { getEntitlementsForPlan } from "../entitlements";
-import { and, eq } from "drizzle-orm";
+import { getTierForLookupKey } from "@shared/planFeatures";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
+
+export interface SubscriptionMutationContext {
+  eventId: string;
+  eventCreatedAt: Date;
+  eventRank: number;
+  source: "webhook" | "reconciliation";
+}
+
+function legacyPlanName(lookupKey: string): string {
+  const tier = getTierForLookupKey(lookupKey);
+  return tier === "basic" ? "basic" : tier === "premium" ? "premium" : "ultimate";
+}
+
+function eventOrderingCondition(context?: SubscriptionMutationContext) {
+  if (!context) return undefined;
+  return or(
+    isNull(users.stripeLastEventCreatedAt),
+    lt(users.stripeLastEventCreatedAt, context.eventCreatedAt),
+    and(
+      eq(users.stripeLastEventCreatedAt, context.eventCreatedAt),
+      lt(users.stripeLastEventRank, context.eventRank),
+    ),
+    and(
+      eq(users.stripeLastEventCreatedAt, context.eventCreatedAt),
+      eq(users.stripeLastEventRank, context.eventRank),
+      eq(users.stripeLastEventId, context.eventId),
+    ),
+  );
+}
 
 /**
  * Derive the entitlements array for any plan lookup key.
@@ -17,8 +47,17 @@ export async function updateUserSubscription(opts: {
   lookupKey: LookupKey | string;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
+  mutation?: SubscriptionMutationContext;
+  storeAsPersonalPlan?: boolean;
 }) {
-  const { userId, lookupKey, stripeCustomerId, stripeSubscriptionId } = opts;
+  const {
+    userId,
+    lookupKey,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    mutation,
+    storeAsPersonalPlan = true,
+  } = opts;
 
   // A webhook metadata value is only a selector until this exact primary-key
   // lookup verifies it names one account. Never fall back to an email match.
@@ -36,49 +75,77 @@ export async function updateUserSubscription(opts: {
 
   const updateFields: Record<string, unknown> = {
     planLookupKey: lookupKey,
+    subscriptionPlan: legacyPlanName(lookupKey),
     entitlements,
     subscriptionStatus: "active",
     trialEndsAt: null,
+    ...(mutation ? {
+      stripeLastEventCreatedAt: mutation.eventCreatedAt,
+      stripeLastEventRank: mutation.eventRank,
+      stripeLastEventId: mutation.eventId,
+      stripeEntitlementSource: mutation.source,
+      ...(mutation.source === "reconciliation" ? { stripeReconciledAt: new Date() } : {}),
+    } : {}),
   };
+  if (storeAsPersonalPlan) {
+    updateFields.personalPlanLookupKey = lookupKey;
+    updateFields.personalEntitlements = entitlements;
+    updateFields.personalSubscriptionStatus = "active";
+  }
   if (stripeCustomerId !== undefined) updateFields.stripeCustomerId = stripeCustomerId;
   if (stripeSubscriptionId !== undefined) updateFields.stripeSubscriptionId = stripeSubscriptionId;
 
+  const ordering = eventOrderingCondition(mutation);
   const result = await db
     .update(users)
     .set(updateFields as any)
-    .where(eq(users.id, verifiedUser.id));
+    .where(ordering ? and(eq(users.id, verifiedUser.id), ordering) : eq(users.id, verifiedUser.id))
+    .returning({ id: users.id });
 
   console.log(`✅ [subscription] Activated user ${userId} on plan ${lookupKey} — ${entitlements.length} entitlements`);
 
-  if (!result) {
-    console.warn(`⚠️ [subscription] No user updated for activation: ${userId}`);
+  if (result.length === 0) {
+    console.warn(`⚠️ [subscription] Activation ignored as stale or missing: ${userId}`);
   }
-  return { updated: Boolean(result) };
+  return { updated: result.length === 1, reason: result.length === 1 ? undefined : "STALE_EVENT" as const };
 }
 
 export async function cancelUserSubscription(
   stripeCustomerId: string,
   stripeSubscriptionId?: string | null,
+  mutation?: SubscriptionMutationContext,
 ) {
   const user = await resolveSubscriptionUser(stripeCustomerId, stripeSubscriptionId);
   if (!user) return { updated: false, reason: "AMBIGUOUS_OR_NOT_FOUND" as const, user: null };
 
+  const ordering = eventOrderingCondition(mutation);
   const result = await db
     .update(users)
     .set({
       planLookupKey: null,
+      subscriptionPlan: "basic",
       stripeSubscriptionId: null,
       entitlements: [],
       subscriptionStatus: "cancelled",
+      personalPlanLookupKey: null,
+      personalEntitlements: [],
+      personalSubscriptionStatus: "cancelled",
+      ...(mutation ? {
+        stripeLastEventCreatedAt: mutation.eventCreatedAt,
+        stripeLastEventRank: mutation.eventRank,
+        stripeLastEventId: mutation.eventId,
+        stripeEntitlementSource: mutation.source,
+      } : {}),
     } as any)
-    .where(eq(users.id, user.id));
+    .where(ordering ? and(eq(users.id, user.id), ordering) : eq(users.id, user.id))
+    .returning({ id: users.id });
 
   console.log(`⚠️ [subscription] Cancelled subscription for Stripe customer ${stripeCustomerId} — entitlements cleared`);
 
-  if (!result) {
-    console.warn(`⚠️ [subscription] No user found for Stripe customer ${stripeCustomerId}`);
+  if (result.length === 0) {
+    console.warn(`⚠️ [subscription] Cancellation ignored as stale or missing for Stripe customer ${stripeCustomerId}`);
   }
-  return { updated: Boolean(result), user };
+  return { updated: result.length === 1, user, reason: result.length === 1 ? undefined : "STALE_EVENT" as const };
 }
 
 export async function resolveSubscriptionUser(

@@ -1691,6 +1691,11 @@ async function start() {
     const { runPilotProcareMigration } = await import("./db/migrations/runPilotProcareMigration");
     await runPilotProcareMigration(dbPilot);
   });
+  await withBootRetry("Stripe billing migration", async () => {
+    const { db: dbStripeBilling } = await import("./db");
+    const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
+    await runStripeBillingMigration(dbStripeBilling);
+  });
   await withBootRetry("Hydration Hub migration", async () => {
     const { db: dbHydrationHub } = await import("./db");
     const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");

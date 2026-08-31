@@ -1,8 +1,10 @@
 import { Router } from "express";
 import Stripe from "stripe";
-import { STRIPE_PRICE_IDS } from "../config/stripePrices";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { requireAuth } from "../middleware/requireAuth";
+import { getTrustedCheckoutPlan } from "../services/stripePlanCatalog";
+import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
+import { reconcileCheckoutSession } from "../services/stripeReconciliationService";
 
 const router = Router();
 
@@ -42,6 +44,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
   }
 
   try {
+    assertStripeBillingOwnership(stripeKey);
     const body = req.body as CheckoutRequestBody;
 
     const userId = getUserId(req);
@@ -60,9 +63,10 @@ router.post("/checkout", requireAuth, async (req, res) => {
       });
     }
 
-    const priceId = STRIPE_PRICE_IDS[lookupKey];
+    const trustedPlan = getTrustedCheckoutPlan(lookupKey);
+    const priceId = trustedPlan?.priceId;
 
-    if (!priceId) {
+    if (!trustedPlan || !priceId) {
       console.error(
         `❌ No Stripe price configured for plan "${lookupKey}". Check environment variables.`,
       );
@@ -134,9 +138,16 @@ router.post("/checkout", requireAuth, async (req, res) => {
 
       metadata: {
         userId,
-        sku: lookupKey,
+        sku: trustedPlan.planLookupKey,
         context: body.context ?? "unknown",
         ...(stripePromoCodeId && { promoCodeId: stripePromoCodeId }),
+      },
+      subscription_data: {
+        metadata: {
+          userId,
+          sku: trustedPlan.planLookupKey,
+          context: body.context ?? "unknown",
+        },
       },
     });
 
@@ -153,6 +164,11 @@ router.post("/checkout", requireAuth, async (req, res) => {
     console.error("❌ Stripe checkout error:", err?.message || err);
 
     const msg = err?.message || "";
+    if (msg.includes("disabled outside the production billing runtime")) {
+      return res.status(503).json({
+        error: "Live billing is only available from the production application.",
+      });
+    }
 
     if (msg.includes("No such price")) {
       return res.status(500).json({
@@ -163,6 +179,39 @@ router.post("/checkout", requireAuth, async (req, res) => {
 
     return res.status(500).json({
       error: "Failed to create checkout session. Please try again.",
+    });
+  }
+});
+
+router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: "Payment system not configured" });
+  }
+
+  try {
+    assertStripeBillingOwnership(stripeKey);
+    const sessionId = typeof req.body?.sessionId === "string"
+      ? req.body.sessionId.trim()
+      : "";
+    if (!sessionId) {
+      return res.status(400).json({ error: "Missing checkout session ID" });
+    }
+
+    const result = await reconcileCheckoutSession({
+      stripe,
+      userId: req.authUser.id,
+      sessionId,
+    });
+    return res.json(result);
+  } catch (error: any) {
+    const message = error?.message ?? "Subscription reconciliation failed";
+    const forbidden = message.includes("does not belong")
+      || message.includes("identity does not match");
+    console.error("[stripe/reconcile-checkout]", message);
+    return res.status(forbidden ? 403 : 409).json({
+      error: forbidden
+        ? "Checkout session does not belong to this account."
+        : "Payment is still being verified. Please try again shortly.",
     });
   }
 });
@@ -245,6 +294,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     "http://localhost:5000";
 
   try {
+    assertStripeBillingOwnership(stripeKey);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [
@@ -264,6 +314,8 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       },
       subscription_data: {
         metadata: {
+          userId,
+          sku: "clinical_business_monthly",
           subscriptionType: "business_seat",
           seatCount: String(requestedSeats),
         },
