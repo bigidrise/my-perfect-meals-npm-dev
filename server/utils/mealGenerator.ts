@@ -6,6 +6,11 @@ import { normalizeUnits } from "./units";
 import { pickImageForMeal } from "./images";
 import { OnboardingProfile, MealRequest, MealResult } from "../types";
 import { storage } from "../storage";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+  type WholeFoodPurpose,
+} from "../services/wholeFoodStandard";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -28,6 +33,29 @@ export async function generateMeal(req: MealRequest): Promise<MealResult> {
     meal = fallbackMeal(req);
   }
 
+  const purposes: WholeFoodPurpose[] = req.onboarding.healthConditions?.length
+    ? ["clinical"]
+    : [];
+  const wholeFoodDecision = evaluateWholeFoodCandidate(meal, {
+    purposes,
+    recommendationSurface: "legacy_meal_generator",
+    practicalAlternativeAvailable: true,
+  });
+  if (wholeFoodDecision.shouldBlock) {
+    console.warn(
+      `[WholeFoodStandard:legacy_meal_generator] Rejected "${meal.name}": ${wholeFoodDecision.reason}`,
+    );
+    meal = fallbackMeal(req);
+    const fallbackDecision = evaluateWholeFoodCandidate(meal, {
+      purposes,
+      recommendationSurface: "legacy_meal_fallback",
+      practicalAlternativeAvailable: true,
+    });
+    if (fallbackDecision.shouldBlock) {
+      throw new Error("No Whole-Food Standard compliant fallback is available");
+    }
+  }
+
   // Fix units
   meal.ingredients = meal.ingredients.map(normalizeUnits);
   
@@ -42,7 +70,7 @@ export async function generateMeal(req: MealRequest): Promise<MealResult> {
 async function gptFallback(req: MealRequest): Promise<MealResult> {
   const { onboarding, mealType, craving } = req;
   
-  const system = `You are a professional chef and nutritionist creating personalized recipes. 
+  const system = appendWholeFoodStandardPrompt(`You are a professional chef and nutritionist creating personalized recipes.
 Return a JSON response with this exact structure:
 {
   "name": "Recipe Name",
@@ -65,7 +93,10 @@ Mediterranean Diet Principles:
 - Limited red meat, processed foods, refined sugars
 - Focus on fresh herbs, tomatoes, olives, feta cheese
 - Cooking methods: grilling, roasting, sautéing with olive oil
-- Signature ingredients: olive oil, lemon, garlic, herbs (oregano, basil, thyme)`;
+- Signature ingredients: olive oil, lemon, garlic, herbs (oregano, basil, thyme)`, {
+    purposes: onboarding.healthConditions?.length ? ["clinical"] : [],
+    recommendationSurface: "legacy_meal_generator",
+  });
 
   const allergiesText = onboarding.allergies?.length ? ` ALLERGIES: ${onboarding.allergies.join(', ')} - MUST AVOID COMPLETELY` : '';
   const restrictionsText = onboarding.dietaryRestrictions?.length ? ` DIET: ${onboarding.dietaryRestrictions.join(', ')}` : '';

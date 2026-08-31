@@ -21,6 +21,10 @@ import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { generateDoctrineSystemPromptSection } from "../services/coaching/doctrine/supportiveAccountabilityDoctrine";
 import { getComplianceBehaviorSignal, renderBehaviorSignalBlock } from "../services/coaching/doctrine/behaviorProgressClassifier";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+} from "../services/wholeFoodStandard";
 
 const router = express.Router();
 
@@ -506,6 +510,10 @@ You MUST respond with a JSON object:
 }
 
 "suggestedMealActions": Include ONLY when your reply addresses a concrete food, meal, snack, or drink question that has a buildable solution. Leave as [] for symptom questions without a direct meal answer, medical referrals, supplement questions, or general safety warnings. Maximum 2 actions. "actionType" must always be exactly "create_pregnancy_meal".`;
+    systemPrompt = appendWholeFoodStandardPrompt(systemPrompt, {
+      purposes: ["clinical"],
+      recommendationSurface: "pregnancy_coach",
+    });
     if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
 
     // ── Load conversation history from DB (authoritative) ─────────────────────
@@ -538,10 +546,25 @@ You MUST respond with a JSON object:
       if (Array.isArray(parsed.suggestedMealActions)) {
         suggestedMealActions = parsed.suggestedMealActions
           .filter((a: any) => a.actionType === "create_pregnancy_meal" && typeof a.label === "string" && typeof a.mealIdea === "string")
+          .filter((a: any) => !evaluateWholeFoodCandidate({
+            name: a.label,
+            description: a.mealIdea,
+          }, {
+            purposes: ["clinical"],
+            recommendationSurface: "pregnancy_coach_action",
+          }).shouldSubstitute)
           .slice(0, 2);
       }
     } catch {
       if (raw && raw !== "{}") reply = raw;
+    }
+    if (evaluateWholeFoodCandidate({ description: reply }, {
+      purposes: ["clinical"],
+      recommendationSurface: "pregnancy_coach",
+    }).shouldSubstitute) {
+      return res.status(422).json({
+        error: "Unable to provide a food recommendation that meets the Whole-Food Standard.",
+      });
     }
 
     const updatedHistory = [

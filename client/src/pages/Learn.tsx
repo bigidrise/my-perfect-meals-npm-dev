@@ -126,6 +126,50 @@ const SECTION_START_HERE: LibraryTopic[] = [
     },
   },
   {
+    id: "whole-food-standard",
+    title: "Whole-Food Standard",
+    subtitle: "Better ingredients. Built into every recommendation.",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "What The Standard Does",
+          text: "The Whole-Food Standard is an always-on quality layer behind My Perfect Meals. It helps Meal Board, creators, Restaurant Guide, Grocery Coach, specialized programs, and other recommendation tools prefer recognizable whole and minimally processed foods whenever that is practical and appropriate.",
+        },
+        {
+          heading: "Processed Does Not Automatically Mean Poor Quality",
+          text: "Frozen vegetables, canned beans and fish, plain yogurt, tofu, minimally processed cheese, nut butter, and appropriate whole-grain products can all be useful choices. The standard considers nutritional purpose and product formulation instead of rejecting a food simply because it was processed.",
+        },
+        {
+          heading: "How Recommendations Are Classified",
+          list: [
+            "Preferred — whole or minimally processed foods are the default",
+            "Appropriate — useful processed foods that support the recommendation",
+            "Substitute when practical — a stronger option can serve the same purpose",
+            "Purposeful exception — a processed product is justified for clinical, performance, accessibility, or adequate-intake needs",
+            "Uncertain — there is not enough verified information to make a processing claim",
+          ],
+        },
+        {
+          heading: "Safety And Purpose Always Come First",
+          text: "Clinical safety, allergies, medical nutrition requirements, dietary identity, medication tolerance, hypoglycemia treatment, and legitimate performance fueling take priority. The standard never removes a food or product that is necessary for a higher-priority purpose.",
+        },
+        {
+          heading: "Personalization Stays Under The Standard",
+          text: "My Perfect Meals learns the flavors, textures, cuisines, and convenience you prefer. It learns what you want, not necessarily the lower-quality form in which you previously got it. Learned preferences can rank appropriate options, but they cannot override a Whole-Food substitution decision.",
+        },
+        {
+          heading: "Restaurants And Products",
+          text: "Restaurant preparation and packaged-product ingredients are not always fully available. When the evidence is incomplete, My Perfect Meals treats the classification as uncertain rather than pretending to know how the item was made.",
+        },
+        {
+          heading: "Not Another Diet Or Toggle",
+          text: "The Whole-Food Standard is not a meal builder, restrictive diet, or setting you have to turn on. It is part of how the platform evaluates recommendation quality while preserving cultural food, real-life practicality, and higher-priority nutrition needs.",
+        },
+      ],
+    },
+  },
+  {
     id: "meal-builder",
     title: "Your Builders & Why You're on Yours",
     subtitle: "What each builder does, why it was chosen, and what it's doing for you",
@@ -1330,8 +1374,8 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
     content: {
       sections: HYDRATION_HUB_ABOUT_SECTIONS.map((section) => ({
         heading: section.heading,
-        ...(section.text ? { text: section.text } : {}),
-        ...(section.list ? { list: [...section.list] } : {}),
+        ...("text" in section && section.text ? { text: section.text } : {}),
+        ...("list" in section && section.list ? { list: [...section.list] } : {}),
       })),
     },
   },

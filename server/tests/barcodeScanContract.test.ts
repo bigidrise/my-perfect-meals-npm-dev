@@ -152,7 +152,7 @@ describe("POST /api/biometrics/ingredient-scan-by-barcode — response-shape con
     expect((res.body.resolvedName as string).length).toBeGreaterThan(0);
   });
 
-  // ── Case 2: barcode not found in OFF → resolvedFromDb: false ──────────────
+  // ── Case 2: barcode not found in OFF → explicit unresolved response ──────
 
   test("resolvedFromDb is false when Open Food Facts has no record", async () => {
     stubFetchOFFMiss();
@@ -162,15 +162,14 @@ describe("POST /api/biometrics/ingredient-scan-by-barcode — response-shape con
       .post("/api/biometrics/ingredient-scan-by-barcode")
       .send({ barcode: "099999999999" });
 
-    expect(res.status).toBe(200);
-    assertSuccessShape(res.body);
-
+    expect(res.status).toBe(404);
+    expect(res.body).toHaveProperty("ok", false);
     expect(res.body.resolvedFromDb).toBe(false);
-    // resolvedName falls back to the raw barcode string (non-null)
-    expect(res.body.resolvedName).toBeTruthy();
+    expect(res.body.unresolvedBarcode).toBe(true);
+    expect(res.body).not.toHaveProperty("result");
   });
 
-  // ── Case 3: OFF network error → graceful fallback, resolvedFromDb: false ──
+  // ── Case 3: OFF network error → explicit unresolved response ─────────────
 
   test("resolvedFromDb is false when Open Food Facts fetch throws", async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error("network timeout")) as unknown as typeof fetch;
@@ -180,10 +179,11 @@ describe("POST /api/biometrics/ingredient-scan-by-barcode — response-shape con
       .post("/api/biometrics/ingredient-scan-by-barcode")
       .send({ barcode: "012000030901" });
 
-    expect(res.status).toBe(200);
-    assertSuccessShape(res.body);
-
+    expect(res.status).toBe(404);
+    expect(res.body).toHaveProperty("ok", false);
     expect(res.body.resolvedFromDb).toBe(false);
+    expect(res.body.unresolvedBarcode).toBe(true);
+    expect(res.body).not.toHaveProperty("result");
   });
 
   // ── Input-validation cases (shape of error envelope) ──────────────────────

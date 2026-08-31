@@ -27,6 +27,10 @@ import type {
 } from "../../shared/coachCornerTypes";
 import type { CoachingProfile } from "../db/schema/ace";
 import { getLanguageInstruction } from "../utils/languageInstruction";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+} from "../services/wholeFoodStandard";
 
 // ─── OpenAI client ────────────────────────────────────────────────────────────
 
@@ -224,6 +228,9 @@ Rules for suggestedMealActions:
 • For progress-slowed situations, only suggest if the recommendation explicitly mentions eating differently
 
 Respond ONLY with valid JSON. No preamble, no markdown fences.`;
+  systemPrompt = appendWholeFoodStandardPrompt(systemPrompt, {
+    recommendationSurface: "coach_corner",
+  });
   if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
 
   const completion = await getOpenAI().chat.completions.create({
@@ -256,12 +263,22 @@ Respond ONLY with valid JSON. No preamble, no markdown fences.`;
             typeof a.label === "string" &&
             a.label.trim().length > 0
         )
+        .filter((a) => !evaluateWholeFoodCandidate({
+          name: a.label,
+          description: a.actionType,
+        }, { recommendationSurface: "coach_corner_action" }).shouldSubstitute)
         .slice(0, 2)
         .map((a) => ({ actionType: a.actionType as CoachMealAction["actionType"], label: a.label.trim() }))
     : [];
 
+  const messageDecision = evaluateWholeFoodCandidate(
+    { description: coachMessage },
+    { recommendationSurface: "coach_corner" },
+  );
   return {
-    coachMessage,
+    coachMessage: messageDecision.shouldSubstitute
+      ? "I can’t provide that food recommendation as written. Please choose a practical whole-food-based alternative that still fits your care plan."
+      : coachMessage,
     ...(suggestedMealActions.length > 0 ? { suggestedMealActions } : {}),
   };
 }

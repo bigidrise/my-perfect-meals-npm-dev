@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { processAssistantRequest } from "../assistant/pipeline";
+import { evaluateWholeFoodCandidate } from "../services/wholeFoodStandard";
 
 /**
  * Modern Avatar Assistant Pipeline
@@ -34,9 +35,15 @@ export default async function modernAssistant(req: Request, res: Response) {
     });
 
     // Return the pipeline response directly (not res.json)
+    const text = pipelineResponse.text;
+    if (evaluateWholeFoodCandidate({ description: text }, {
+      recommendationSurface: "modern_assistant",
+    }).shouldSubstitute) {
+      throw new Error("Modern assistant response did not meet the Whole-Food Standard.");
+    }
     return {
-      text: pipelineResponse.text,
-      captions: pipelineResponse.captions || pipelineResponse.text,
+      text,
+      captions: pipelineResponse.captions || text,
       navigateTo: pipelineResponse.navigateTo
     };
 

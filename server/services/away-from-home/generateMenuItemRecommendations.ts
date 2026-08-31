@@ -27,7 +27,16 @@ import type {
 } from "@shared/awayFromHome";
 import { getNutritionDisclosure } from "@shared/awayFromHome";
 import { buildDietPromptBlock, getPrimaryDiet } from "../allergyGuardrails";
-import type { UserProtocolEnvelope } from "../protocolEnvelope";
+import {
+  enforceBeforeGenerate,
+  scanGeneratedOutput,
+  type UserProtocolEnvelope,
+} from "../protocolEnvelope";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+  type WholeFoodPurpose,
+} from "../wholeFoodStandard";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -126,6 +135,31 @@ function resolveNutritionStatus(
   return "estimated";
 }
 
+/** Deterministic evidence from the normalized menu feed; model output cannot override it. */
+export function isStructuredMenuItemCompatible(
+  item: NormalizedMenuItem,
+  envelope: UserProtocolEnvelope,
+): boolean {
+  const activeAllergies = envelope.allergies.map((value) => value.trim().toLowerCase());
+  const declaredAllergens = (item.allergens ?? []).map((value) => value.trim().toLowerCase());
+  if (declaredAllergens.some((declared) =>
+    activeAllergies.some((active) => declared === active || declared.includes(active) || active.includes(declared))
+  )) {
+    return false;
+  }
+
+  const primaryDiet = getPrimaryDiet(envelope.dietaryIdentity);
+  if (primaryDiet === "vegan" && item.isVegan !== true) return false;
+  if (primaryDiet === "vegetarian" && item.isVegetarian !== true && item.isVegan !== true) return false;
+  if (
+    envelope.dietaryIdentity.some((diet) => ["gluten-free", "gluten free"].includes(diet.trim().toLowerCase())) &&
+    item.isGlutenFree !== true
+  ) {
+    return false;
+  }
+  return true;
+}
+
 // ── Main entry point ──────────────────────────────────────────────────────────
 
 export async function generateMenuItemRecommendations(
@@ -141,6 +175,7 @@ export async function generateMenuItemRecommendations(
     craving,
     user,
     protocolBlock,
+    protocolEnvelope,
     builderBlock,
   } = request;
 
@@ -156,8 +191,8 @@ export async function generateMenuItemRecommendations(
 
   // ── Build context blocks ────────────────────────────────────────────────────
 
-  const userDietaryRestrictions: string[] = user?.dietaryRestrictions || [];
-  const userAllergies: string[] = user?.allergies || [];
+  const userDietaryRestrictions: string[] = protocolEnvelope?.dietaryIdentity ?? user?.dietaryRestrictions ?? [];
+  const userAllergies: string[] = protocolEnvelope?.allergies ?? user?.allergies ?? [];
   const userConditions: string[] = user?.healthConditions || [];
 
   const dietBlock = buildDietPromptBlock(userDietaryRestrictions);
@@ -178,9 +213,16 @@ export async function generateMenuItemRecommendations(
     userConditions.length > 0
       ? `\nMEDICAL CONDITIONS: ${userConditions.join(", ")} — prioritize items that support these conditions and generate a medicalWaiterScript if needed.`
       : "";
+  const wholeFoodPurposes: WholeFoodPurpose[] = userConditions.length > 0 ? ["clinical"] : [];
 
   const protocolSection = protocolBlock
     ? `\n\n=== NUTRITION PROTOCOL ===\n${protocolBlock}`
+    : "";
+  const canonicalProtocolSection = protocolEnvelope
+    ? `\n\n${enforceBeforeGenerate(protocolEnvelope, {
+        userInput: craving,
+        generatorName: "verified_restaurant_menu",
+      }).combined}`
     : "";
 
   const builderSection = builderBlock
@@ -193,11 +235,11 @@ export async function generateMenuItemRecommendations(
 
   // ── Build system prompt ─────────────────────────────────────────────────────
 
-  const systemPrompt = `You are a clinical nutrition advisor helping a user choose the healthiest options from a REAL, VERIFIED restaurant menu.
+  const systemPrompt = appendWholeFoodStandardPrompt(`You are a clinical nutrition advisor helping a user choose the healthiest options from a REAL, VERIFIED restaurant menu.
 
 CRITICAL RULE: You MUST select ONLY from the exact items listed below. You CANNOT invent, create, or combine items that are not on this list. Every itemId in your response must exactly match an id from the list.
 
-Restaurant: ${restaurantIdentity.displayName}${cravingLine}${allergyLine}${dietLine}${medicalLine}${protocolSection}${builderSection}
+Restaurant: ${restaurantIdentity.displayName}${cravingLine}${allergyLine}${dietLine}${medicalLine}${canonicalProtocolSection}${protocolSection}${builderSection}
 
 === VERIFIED MENU ITEMS (select from ONLY these) ===
 
@@ -231,7 +273,7 @@ Return ONLY valid JSON — no commentary, no markdown fences:
       }
     }
   ]
-}`;
+  }`, { purposes: wholeFoodPurposes, recommendationSurface: "verified_restaurant_menu" });
 
   // ── Call AI ────────────────────────────────────────────────────────────────
 
@@ -271,6 +313,41 @@ Return ONLY valid JSON — no commentary, no markdown fences:
       console.warn(`⚠️ [MenuRec] AI returned unknown itemId "${sel.itemId}" — dropped`);
       continue;
     }
+    if (protocolEnvelope && !isStructuredMenuItemCompatible(item, protocolEnvelope)) {
+      console.warn(`🚫 [MenuRec/Structured] Dropped "${item.name}" — declared allergen or diet flags conflict with active protocol`);
+      continue;
+    }
+    let canonicalWholeFoodDecision: ReturnType<typeof evaluateWholeFoodCandidate> | undefined;
+    if (protocolEnvelope) {
+      const protocolDecision = scanGeneratedOutput(
+        {
+          name: item.name,
+          description: item.description,
+          ingredients: item.allergens,
+          preparationEvidence: "unknown",
+          instructions: [
+            sel.modifications ?? "",
+            ...(sel.howToOrder?.modify ?? []),
+            ...(sel.howToOrder?.swap ?? []),
+          ],
+        },
+        protocolEnvelope,
+        { generatorName: "verified_restaurant_menu" },
+      );
+      if (!protocolDecision.passed) {
+        console.warn(`🚫 [MenuRec/Protocol] Dropped "${item.name}" — ${protocolDecision.message}`);
+        continue;
+      }
+      canonicalWholeFoodDecision = protocolDecision.wholeFoodDecision;
+    }
+    const wholeFoodDecision = canonicalWholeFoodDecision ?? evaluateWholeFoodCandidate(
+        { name: item.name, description: item.description, preparationEvidence: "unknown" },
+        { purposes: wholeFoodPurposes, recommendationSurface: "verified_restaurant_menu" },
+      );
+    if (wholeFoodDecision.shouldBlock) {
+      console.warn(`🚫 [MenuRec/WFS] Dropped "${item.name}" — ${wholeFoodDecision.reason}`);
+      continue;
+    }
 
     const hasSubstitutions = !!(sel.howToOrder?.swap && sel.howToOrder.swap.length > 0);
     const nutritionStatus = resolveNutritionStatus(menuSource, hasSubstitutions);
@@ -300,7 +377,9 @@ Return ONLY valid JSON — no commentary, no markdown fences:
       },
 
       recommendation: {
-        reason: sel.reason,
+        reason: wholeFoodDecision.classification === "uncertain"
+          ? `${sel.reason} Processing classification is uncertain because restaurant ingredients and preparation were not verified.`
+          : sel.reason,
         modifications: sel.modifications,
         howToOrder: sel.howToOrder,
         medicalWaiterScript: sel.medicalWaiterScript,

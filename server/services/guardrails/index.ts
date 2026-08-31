@@ -47,6 +47,21 @@ import {
   buildLiverDiseasePrompt, buildLiverDiseaseSnackPrompt, getLiverDiseaseSystemPrompt,
   liverDiseaseBlockedIngredients, liverDiseasePreferredIngredients,
 } from './prompt/liverDiseasePromptBuilder';
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+  type WholeFoodPolicyContext,
+  type WholeFoodPurpose,
+} from '../wholeFoodStandard';
+
+function wholeFoodContextForDiet(dietType: DietType): WholeFoodPolicyContext {
+  const purposes: WholeFoodPurpose[] = [];
+  if (dietType === 'performance') purposes.push('performance');
+  if (dietType && !['general-nutrition', 'vegan', 'vegetarian', 'pescatarian', 'beachbody'].includes(dietType)) {
+    purposes.push('clinical');
+  }
+  return { purposes, practicalAlternativeAvailable: true };
+}
 
 /**
  * Builds a mode-aware macro budget block to append to non-BeachBody prompts.
@@ -94,6 +109,10 @@ export function applyGuardrails(
   dailyProteinTarget?: number,
   glp1Targets?: ResolvedGLP1Targets
 ): GuardrailResult {
+  basePrompt = appendWholeFoodStandardPrompt(
+    basePrompt,
+    wholeFoodContextForDiet(dietType),
+  );
   // No primary-diet guardrails for null/undefined diet type (Weekly Meal Board,
   // Create With Chef with no builder selection, etc.).
   // GLP-1 is a mandatory medical protocol — still inject overlay when targets
@@ -402,13 +421,28 @@ export function validateMealForDiet(
   // Helper: merge ingredient precision violations into any diet result
   function mergeWithPrecision(dietResult: ValidationResult): ValidationResult {
     const precisionCheck = validateIngredientPrecision(meal.ingredients);
-    if (precisionCheck.isValid) return dietResult;
-    console.log(`📏 Ingredient Precision: ${precisionCheck.violations.length} violation(s) found`);
-    precisionCheck.violations.forEach(v => console.log(`  ⚠️ ${v}`));
+    const wholeFoodDecision = evaluateWholeFoodCandidate(
+      meal,
+      wholeFoodContextForDiet(dietType),
+    );
+    const precisionViolations = precisionCheck.isValid ? [] : precisionCheck.violations;
+    const wholeFoodViolations = wholeFoodDecision.shouldBlock
+      ? [`Whole-Food Standard: ${wholeFoodDecision.reason}`]
+      : [];
+    if (precisionViolations.length > 0) {
+      console.log(`📏 Ingredient Precision: ${precisionViolations.length} violation(s) found`);
+      precisionViolations.forEach(v => console.log(`  ⚠️ ${v}`));
+    }
+    if (wholeFoodViolations.length > 0) {
+      console.log(`🥕 Whole-Food Standard: ${wholeFoodDecision.matchedTerms.join(', ')}`);
+    }
     return {
-      isValid: false,
-      violations: [...dietResult.violations, ...precisionCheck.violations],
-      blockedIngredients: [...(dietResult.blockedIngredients ?? [])],
+      isValid: dietResult.isValid && precisionViolations.length === 0 && wholeFoodViolations.length === 0,
+      violations: [...dietResult.violations, ...precisionViolations, ...wholeFoodViolations],
+      blockedIngredients: [
+        ...(dietResult.blockedIngredients ?? []),
+        ...(wholeFoodDecision.shouldBlock ? wholeFoodDecision.matchedTerms : []),
+      ],
       warnings: dietResult.warnings,
     };
   }

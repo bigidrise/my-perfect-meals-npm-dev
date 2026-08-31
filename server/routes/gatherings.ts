@@ -9,6 +9,10 @@ import {
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+} from "../services/wholeFoodStandard";
 import OpenAI from "openai";
 
 let _openai: OpenAI | null = null;
@@ -383,7 +387,9 @@ function buildCoursePrompt(
   lines.push(`- Liquids: cup or fl oz — e.g. "8 fl oz broth"`);
   lines.push(`FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful"`);
 
-  return lines.join("\n");
+  return appendWholeFoodStandardPrompt(lines.join("\n"), {
+    recommendationSurface: "gatherings",
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -681,6 +687,16 @@ router.post("/generate", async (req: Request, res: Response) => {
           continue; // treat as failed attempt — retry with stricter prompt
         }
 
+        // Quality selection happens after protocol scanning so clinical,
+        // allergy, and dietary enforcement retain precedence.
+        const wholeFoodDecision = evaluateWholeFoodCandidate(meal, {
+          recommendationSurface: "gatherings",
+        });
+        if (wholeFoodDecision.shouldBlock) {
+          console.warn(`⚠️ [Gatherings] Whole-food selection rejected "${meal.name}" (attempt ${attempt + 1}): ${wholeFoodDecision.reason}`);
+          continue;
+        }
+
         // Server-side duplicate detection — if AI still produced a duplicate, force another attempt
         const existingNames = generatedCourses.map((c: any) => c.name).filter(Boolean);
         if (!assignedDish && isDuplicateDish(meal.name, existingNames)) {
@@ -690,6 +706,7 @@ router.post("/generate", async (req: Request, res: Response) => {
 
         courseMeal = {
           ...meal,
+          wholeFoodDecision,
           courseType,
           courseLabel:
             courseType === "side"

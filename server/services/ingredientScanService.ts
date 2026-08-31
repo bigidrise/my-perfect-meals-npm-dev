@@ -1,6 +1,22 @@
 import { openai, chatJson } from '../utils/openaiSafe';
 import { loadUserProtocolEnvelope, UserProtocolEnvelope } from './protocolEnvelope';
 import { scanTextForHighRiskIngredients } from './ingredientIntelligence';
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+  type WholeFoodDecision,
+} from './wholeFoodStandard';
+
+function withWholeFoodUncertainty(
+  footer: string,
+  candidate: { name?: string; ingredients?: string[] },
+  surface: string,
+): string {
+  const decision = evaluateWholeFoodCandidate(candidate, { recommendationSurface: surface });
+  return decision.classification === "uncertain"
+    ? `${footer} Whole-Food processing classification is uncertain without a verified, complete ingredient label.`
+    : footer;
+}
 
 export interface HighRiskFlag {
   ingredientName: string;
@@ -63,6 +79,47 @@ export interface IngredientScanResult {
   analysisMethod: 'by_name' | 'by_label' | 'full_product_advisor';
   profileFactorsUsed: string[];
   whatMattersMost: string[];
+  wholeFoodDecision?: WholeFoodDecision;
+}
+
+function enforceWholeFoodProductVerdict(
+  alignment: any,
+  decision: WholeFoodDecision,
+): {
+  alignmentGrade: 'A' | 'B' | 'C' | 'D';
+  verdict: string;
+  verdictLevel: 'buy' | 'caution' | 'skip';
+  overallSummary: string;
+} {
+  const modelGrade = (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
+    ? alignment.alignmentGrade as 'A' | 'B' | 'C' | 'D'
+    : 'B';
+  const modelVerdictLevel = (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel)
+    ? alignment.verdictLevel as 'buy' | 'caution' | 'skip'
+    : 'caution';
+
+  if (decision.shouldBlock) {
+    return {
+      alignmentGrade: 'D',
+      verdictLevel: 'skip',
+      verdict: decision.reason,
+      overallSummary: `Whole-Food Standard: ${decision.reason}`,
+    };
+  }
+  if (decision.classification === 'uncertain' && modelVerdictLevel === 'buy') {
+    return {
+      alignmentGrade: modelGrade === 'A' ? 'B' : modelGrade,
+      verdictLevel: 'caution',
+      verdict: `${typeof alignment.verdict === 'string' ? alignment.verdict : ''} Processing classification remains uncertain without a verified complete label.`.trim(),
+      overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
+    };
+  }
+  return {
+    alignmentGrade: modelGrade,
+    verdictLevel: modelVerdictLevel,
+    verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
+    overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
+  };
 }
 
 // ─── Analysis profile ────────────────────────────────────────────────────────
@@ -835,7 +892,9 @@ Analyze how this product aligns with this specific user's health profile.`;
 
   try {
     const alignment = await chatJson({
-      system: isCompanionScan ? COMPANION_ALIGNMENT_SYSTEM_PROMPT : ALIGNMENT_SYSTEM_PROMPT,
+      system: isCompanionScan
+        ? COMPANION_ALIGNMENT_SYSTEM_PROMPT
+        : appendWholeFoodStandardPrompt(ALIGNMENT_SYSTEM_PROMPT, { recommendationSurface: "ingredient_label_scan" }),
       user: userMessage,
       temperature: 0.2,
     });
@@ -849,17 +908,21 @@ Analyze how this product aligns with this specific user's health profile.`;
         flag: (['ok', 'watch', 'avoid'] as const).includes(d.flag) ? d.flag : 'watch' as const,
       }));
 
-    const validGrade = (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
-      ? (alignment.alignmentGrade as 'A' | 'B' | 'C' | 'D')
-      : null;
+    const wholeFoodDecision = evaluateWholeFoodCandidate({
+      name: detectedProductName,
+      ingredientLabel: extractedIngredients,
+      isPackagedProduct: true,
+    }, {
+      recommendationSurface: "ingredient_label_scan",
+      practicalAlternativeAvailable: true,
+    });
+    const enforcedVerdict = enforceWholeFoodProductVerdict(alignment, wholeFoodDecision);
 
     return {
-      alignmentGrade: validGrade ?? 'B',
-      overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
-      verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
-      verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel)
-        ? alignment.verdictLevel
-        : 'caution',
+      alignmentGrade: enforcedVerdict.alignmentGrade,
+      overallSummary: enforcedVerdict.overallSummary,
+      verdict: enforcedVerdict.verdict,
+      verdictLevel: enforcedVerdict.verdictLevel,
       scoreCards: parseScoreCards(alignment.scoreCards),
       outcomeCards: parseOutcomeCards(alignment.outcomeCards, cardRequests),
       analysisProfile,
@@ -878,7 +941,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       extractedIngredients,
       highRiskFindings,
       ocrConfidenceLow,
-      fallbackUsed: !validGrade,
+      fallbackUsed: !(['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade),
       productName: detectedProductName,
       isFrontLabel: false,
       productNameMissing: !detectedProductName,
@@ -891,6 +954,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       whatMattersMost: Array.isArray(alignment.whatMattersMost)
         ? alignment.whatMattersMost.filter((s: any) => typeof s === 'string').slice(0, 3)
         : [],
+      wholeFoodDecision,
     };
   } catch {
     return {
@@ -952,7 +1016,7 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
 
   try {
     const alignment = await chatJson({
-      system: BY_NAME_SYSTEM_PROMPT,
+      system: appendWholeFoodStandardPrompt(BY_NAME_SYSTEM_PROMPT, { recommendationSurface: "ingredient_name_scan" }),
       user: userMessage,
       model: 'gpt-4o',
       temperature: 0.3,
@@ -974,15 +1038,20 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       targetCriteria: typeof a.targetCriteria === 'string' ? a.targetCriteria : '',
     })).filter((a: BetterAlternative) => a.category);
 
-    const validGradeByName = (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
-      ? (alignment.alignmentGrade as 'A' | 'B' | 'C' | 'D')
-      : null;
+    const wholeFoodDecision = evaluateWholeFoodCandidate({
+      name: productName,
+      isPackagedProduct: true,
+    }, {
+      recommendationSurface: "ingredient_name_scan",
+      practicalAlternativeAvailable: true,
+    });
+    const enforcedVerdict = enforceWholeFoodProductVerdict(alignment, wholeFoodDecision);
 
     return {
-      alignmentGrade: validGradeByName ?? 'B',
-      overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
-      verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
-      verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel) ? alignment.verdictLevel : 'caution',
+      alignmentGrade: enforcedVerdict.alignmentGrade,
+      overallSummary: enforcedVerdict.overallSummary,
+      verdict: enforcedVerdict.verdict,
+      verdictLevel: enforcedVerdict.verdictLevel,
       scoreCards: parseScoreCards(alignment.scoreCards),
       outcomeCards: [],
       analysisProfile,
@@ -992,13 +1061,17 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       mayNotAlignWith: Array.isArray(alignment.mayNotAlignWith) ? alignment.mayNotAlignWith.filter((s: any) => typeof s === 'string') : [],
       betterFor: Array.isArray(alignment.betterFor) ? alignment.betterFor.filter((s: any) => typeof s === 'string') : [],
       householdNotes: Array.isArray(alignment.householdNotes) ? alignment.householdNotes.filter((s: any) => typeof s === 'string') : [],
-      educationalFooter: typeof alignment.educationalFooter === 'string'
-        ? alignment.educationalFooter
-        : 'Based on product knowledge, not a verified label scan. Product formulas can change.',
+      educationalFooter: withWholeFoodUncertainty(
+        typeof alignment.educationalFooter === 'string'
+          ? alignment.educationalFooter
+          : 'Based on product knowledge, not a verified label scan. Product formulas can change.',
+        { name: productName },
+        "ingredient_name_scan",
+      ),
       extractedIngredients: [],
       highRiskFindings: [],
       ocrConfidenceLow: false,
-      fallbackUsed: !validGradeByName,
+      fallbackUsed: !(['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade),
       productName,
       isFrontLabel: false,
       productNameMissing: false,
@@ -1011,6 +1084,7 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       whatMattersMost: Array.isArray(alignment.whatMattersMost)
         ? alignment.whatMattersMost.filter((s: any) => typeof s === 'string').slice(0, 3)
         : [],
+      wholeFoodDecision,
     };
   } catch {
     return {
@@ -1052,7 +1126,7 @@ You have TWO sources of information: your product knowledge AND verified label d
 
   try {
     const alignment = await chatJson({
-      system: BY_NAME_SYSTEM_PROMPT,
+      system: appendWholeFoodStandardPrompt(BY_NAME_SYSTEM_PROMPT, { recommendationSurface: "full_product_scan" }),
       user: userMessage,
       model: 'gpt-4o',
       temperature: 0.3,
@@ -1074,15 +1148,22 @@ You have TWO sources of information: your product knowledge AND verified label d
       targetCriteria: typeof a.targetCriteria === 'string' ? a.targetCriteria : '',
     })).filter((a: BetterAlternative) => a.category);
 
-    const validGradeFullAdvisor = (['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade)
-      ? (alignment.alignmentGrade as 'A' | 'B' | 'C' | 'D')
-      : null;
+    const labelIngredients = ingredients.split(',').map((s: string) => s.trim()).filter(Boolean);
+    const wholeFoodDecision = evaluateWholeFoodCandidate({
+      name: productName,
+      ingredientLabel: labelIngredients,
+      isPackagedProduct: true,
+    }, {
+      recommendationSurface: "full_product_scan",
+      practicalAlternativeAvailable: true,
+    });
+    const enforcedVerdict = enforceWholeFoodProductVerdict(alignment, wholeFoodDecision);
 
     return {
-      alignmentGrade: validGradeFullAdvisor ?? 'B',
-      overallSummary: typeof alignment.overallSummary === 'string' ? alignment.overallSummary : 'Analysis complete.',
-      verdict: typeof alignment.verdict === 'string' ? alignment.verdict : '',
-      verdictLevel: (['buy', 'caution', 'skip'] as const).includes(alignment.verdictLevel) ? alignment.verdictLevel : 'caution',
+      alignmentGrade: enforcedVerdict.alignmentGrade,
+      overallSummary: enforcedVerdict.overallSummary,
+      verdict: enforcedVerdict.verdict,
+      verdictLevel: enforcedVerdict.verdictLevel,
       scoreCards: parseScoreCards(alignment.scoreCards),
       outcomeCards: [],
       analysisProfile,
@@ -1092,13 +1173,17 @@ You have TWO sources of information: your product knowledge AND verified label d
       mayNotAlignWith: Array.isArray(alignment.mayNotAlignWith) ? alignment.mayNotAlignWith.filter((s: any) => typeof s === 'string') : [],
       betterFor: Array.isArray(alignment.betterFor) ? alignment.betterFor.filter((s: any) => typeof s === 'string') : [],
       householdNotes: Array.isArray(alignment.householdNotes) ? alignment.householdNotes.filter((s: any) => typeof s === 'string') : [],
-      educationalFooter: typeof alignment.educationalFooter === 'string'
-        ? alignment.educationalFooter
-        : 'Full Product Advisor — verified label + product knowledge + your health profile.',
-      extractedIngredients: ingredients.split(',').map((s: string) => s.trim()).filter(Boolean),
+      educationalFooter: withWholeFoodUncertainty(
+        typeof alignment.educationalFooter === 'string'
+          ? alignment.educationalFooter
+          : 'Full Product Advisor — verified label + product knowledge + your health profile.',
+        { name: productName, ingredients: ingredients.split(",").map((item) => item.trim()) },
+        "full_product_scan",
+      ),
+      extractedIngredients: labelIngredients,
       highRiskFindings: [],
       ocrConfidenceLow: false,
-      fallbackUsed: !validGradeFullAdvisor,
+      fallbackUsed: !(['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade),
       productName,
       isFrontLabel: false,
       productNameMissing: false,
@@ -1111,6 +1196,7 @@ You have TWO sources of information: your product knowledge AND verified label d
       whatMattersMost: Array.isArray(alignment.whatMattersMost)
         ? alignment.whatMattersMost.filter((s: any) => typeof s === 'string').slice(0, 3)
         : [],
+      wholeFoodDecision,
     };
   } catch {
     return {

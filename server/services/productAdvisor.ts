@@ -14,6 +14,7 @@
 import { openai } from "../utils/openaiSafe";
 import { buildGroceryCoachContext } from "./groceryCoachContext";
 import type { GroceryCoachContext } from "./groceryCoachContext";
+import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "./wholeFoodStandard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,32 @@ export interface SwapPersonalizationContext {
   diabeticConstraintBlock: string;
 }
 
+function recognizedPurposeContext(text: string): {
+  purposes: Array<"clinical" | "hypoglycemia" | "performance" | "accessibility" | "inadequate_intake" | "clinician_directed">;
+  purposefulNeed?: string;
+} {
+  const normalized = text.toLowerCase();
+  const purposes = [
+    ...(/\b(hypoglycemia|low blood sugar)\b/.test(normalized) ? ["hypoglycemia" as const] : []),
+    ...( /\b(performance|athlete|training|workout)\b/.test(normalized) ? ["performance" as const] : []),
+    ...( /\b(clinician.directed|prescribed|medical nutrition)\b/.test(normalized) ? ["clinician_directed" as const] : []),
+    ...( /\b(inadequate intake|poor appetite|malnutrition)\b/.test(normalized) ? ["inadequate_intake" as const] : []),
+    ...( /\b(accessibility|unable to prepare)\b/.test(normalized) ? ["accessibility" as const] : []),
+    ...( /\b(clinical|renal|diabet|cardiac|cancer)\b/.test(normalized) ? ["clinical" as const] : []),
+  ];
+  const needs = [
+    ...(/\b(hypoglycemia|low blood sugar)\b/.test(normalized) ? ["documented low blood glucose treatment need"] : []),
+    ...(/\b(performance|athlete|training|workout)\b/.test(normalized) ? ["active performance fueling need"] : []),
+    ...(/\b(clinician.directed|prescribed|medical nutrition)\b/.test(normalized) ? ["clinician-directed nutrition need"] : []),
+    ...(/\b(inadequate intake|poor appetite|malnutrition)\b/.test(normalized) ? ["documented inadequate intake support"] : []),
+    ...(/\b(accessibility|unable to prepare)\b/.test(normalized) ? ["documented food preparation accessibility need"] : []),
+  ];
+  return {
+    purposes,
+    purposefulNeed: needs.length > 0 ? needs.join("; ") : undefined,
+  };
+}
+
 // ─── Brand Knowledge Provider (abstraction layer) ─────────────────────────────
 // Today: GPT-4o. Tomorrow: Open Food Facts, USDA, retail APIs — nothing above changes.
 
@@ -118,7 +145,7 @@ export interface BrandKnowledgeProvider {
 
 // ─── GPT-4o Brand Knowledge Provider ─────────────────────────────────────────
 
-const SHOPPING_ADVISOR_SYSTEM_PROMPT = `You are a Product Advisor for a personalized nutrition app. Your job is to recommend specific, real grocery brands for packaged ingredients based on a user's exact health profile.
+const SHOPPING_ADVISOR_SYSTEM_PROMPT = appendWholeFoodStandardPrompt(`You are a Product Advisor for a personalized nutrition app. Your job is to recommend specific, real grocery brands for packaged ingredients based on a user's exact health profile.
 
 CORE RULES:
 - Only advise on packaged/branded items that have meaningful brand variation: sauces, broths, pasta, canned goods, cheese, oils, grains, condiments, dressings, protein powders, snacks, cereals, etc.
@@ -153,7 +180,9 @@ RESPONSE FORMAT — strict JSON only, no markdown:
   "profileUsed": ["Cardiac Protocol", "Anti-Inflammatory"]
 }
 
-profileUsed: short label strings listing only the conditions that genuinely drove the recommendations. Examples: "Cardiac Protocol", "Anti-Inflammatory", "Renal Protocol", "GLP-1 Protocol", "Vegan Diet", "Gluten-Free", "Blood Glucose Control", "Weight Loss Goal", "Hashimoto's Support".`;
+profileUsed: short label strings listing only the conditions that genuinely drove the recommendations. Examples: "Cardiac Protocol", "Anti-Inflammatory", "Renal Protocol", "GLP-1 Protocol", "Vegan Diet", "Gluten-Free", "Blood Glucose Control", "Weight Loss Goal", "Hashimoto's Support".
+
+For protein shakes, bars, meal replacements, sports drinks, or other purposeful nutrition products, recommend them only when the USER HEALTH PROFILE explicitly establishes a recognized clinical, hypoglycemia, performance, accessibility, inadequate-intake, or clinician-directed purpose.`, { recommendationSurface: "grocery_product_advisor" });
 
 class GptBrandKnowledgeProvider implements BrandKnowledgeProvider {
   async getCartRecommendations(
@@ -185,8 +214,28 @@ ${ingredients.map((i, n) => `${n + 1}. ${i}`).join("\n")}`;
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw);
 
+    const purposeContext = recognizedPurposeContext(protocolContext);
+    const advice = ((parsed.advice ?? []) as IngredientAdvice[]).map((item) => ({
+      ...item,
+      recommended: (item.recommended ?? []).flatMap((recommendation) => {
+        const decision = evaluateWholeFoodCandidate(
+          { name: recommendation.brand, description: `${item.ingredient} ${recommendation.reason}` },
+          { ...purposeContext, recommendationSurface: "grocery_product_advisor" },
+        );
+        if (decision.shouldBlock) return [];
+        return [{
+          ...recommendation,
+          reason: decision.classification === "uncertain"
+            ? `${recommendation.reason} Processing classification is uncertain without a verified ingredient label.`
+            : recommendation.reason,
+        }];
+      }),
+    })).filter((item) => item.recommended.length > 0);
+    if (((parsed.advice ?? []) as unknown[]).length > 0 && advice.length === 0) {
+      throw new WholeFoodRecommendationUnavailableError();
+    }
     return {
-      advice: (parsed.advice ?? []) as IngredientAdvice[],
+      advice,
       profileUsed: (parsed.profileUsed ?? []) as string[],
       store,
     };
@@ -211,7 +260,7 @@ ${ingredients.map((i, n) => `${n + 1}. ${i}`).join("\n")}`;
       ? `The user specifically wants: "${userRequest}" — use this as coachSuggestion if it is safe, stays in-role, and meets all constraints. Otherwise suggest the closest compliant in-role option and note the reason in protocolNote.`
       : "";
 
-    const systemPrompt = `You are a Grocery Store Coach. The user wants to replace one grocery item while keeping their meal intact.
+    const systemPrompt = appendWholeFoodStandardPrompt(`You are a Grocery Store Coach. The user wants to replace one grocery item while keeping their meal intact.
 
 MEAL: "${mealName || "current meal"}"${mealDescription ? ` — ${mealDescription}` : ""}
 ITEM TO REPLACE: "${ingredientToReplace}"
@@ -245,7 +294,10 @@ Respond ONLY with valid JSON — no markdown, no extra text:
   ],
   "savedOption": { "item": "string", "quantity": "string", "unit": "string", "reason": "string — mention it is from their saved products" } | null,
   "protocolNote": "string" | null
-}`;
+}`, {
+      ...recognizedPurposeContext(context.protocolContext),
+      recommendationSurface: "grocery_product_swap",
+    });
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -267,7 +319,19 @@ Respond ONLY with valid JSON — no markdown, no extra text:
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    return JSON.parse(raw) as SwapSelectionResult;
+    const result = JSON.parse(raw) as SwapSelectionResult;
+    const purposeContext = recognizedPurposeContext(context.protocolContext);
+    const allowed = (suggestion: SwapSuggestion | undefined | null) =>
+      suggestion && !evaluateWholeFoodCandidate(
+        { name: suggestion.item, description: suggestion.reason },
+        { ...purposeContext, recommendationSurface: "grocery_product_swap" },
+      ).shouldBlock;
+    return {
+      ...result,
+      coachSuggestion: allowed(result.coachSuggestion) ? result.coachSuggestion : undefined,
+      alternatives: (result.alternatives ?? []).filter(allowed),
+      savedOption: allowed(result.savedOption) ? result.savedOption : null,
+    };
   }
 }
 
@@ -314,6 +378,12 @@ export class ClinicalContextUnavailableError extends Error {
   constructor(message = "Clinical guidance temporarily unavailable. Please try again.") {
     super(message);
     this.name = "ClinicalContextUnavailableError";
+  }
+}
+export class WholeFoodRecommendationUnavailableError extends Error {
+  constructor() {
+    super("No product recommendations met the Whole-Food Standard. Please choose a different product category or provide a clinically recognized purpose.");
+    this.name = "WholeFoodRecommendationUnavailableError";
   }
 }
 

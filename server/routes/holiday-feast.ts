@@ -1,7 +1,16 @@
 // server/routes/holiday-feast.ts
 import express, { Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import { generateHolidayFeast } from "../services/holidayFeastService";
+import {
+  generateHolidayFeast,
+  HolidayFeastCompletenessError,
+} from "../services/holidayFeastService";
+import {
+  buildGuestEnvelope,
+  deriveProcedureRules,
+  enforceBeforeGenerate,
+  loadUserProtocolEnvelope,
+} from "../services/protocolEnvelope";
 
 const router = express.Router();
 
@@ -47,7 +56,6 @@ export const FeastRequest = z.object({
     .enum(["low", "moderate", "high"])
     .optional()
     .default("moderate"),
-  userId: z.string().optional(),
   familyRecipe: z
     .object({
       name: z.string(),
@@ -114,6 +122,40 @@ router.post(
     const input = parsed.data;
 
     try {
+      // Identity may only come from trusted authentication middleware. Anonymous
+      // requests remain guest-scoped and can add only request-local restrictions.
+      const actorId = (req as Request & { authUser?: { id?: string } }).authUser?.id;
+      let protocolEnvelope = buildGuestEnvelope();
+      if (actorId) {
+        const loadedEnvelope = await loadUserProtocolEnvelope(actorId);
+        if (!loadedEnvelope) {
+          return res.status(503).json({
+            error: "PROTOCOL_ENVELOPE_UNAVAILABLE",
+            message: "Your dietary and medical safety profile could not be loaded. No feast was generated.",
+            retryable: true,
+          });
+        }
+        protocolEnvelope = loadedEnvelope;
+      }
+
+      // Request-scoped restrictions narrow the authoritative profile; they
+      // never remove or override restrictions loaded from the user envelope.
+      const dietaryIdentity = [
+        ...new Set([
+          ...protocolEnvelope.dietaryIdentity,
+          ...(input.dietaryRestrictions || []),
+        ]),
+      ];
+      protocolEnvelope = {
+        ...protocolEnvelope,
+        dietaryIdentity,
+        procedural: deriveProcedureRules(dietaryIdentity),
+      };
+      const protocolBlock = enforceBeforeGenerate(protocolEnvelope, {
+        generatorName: "holiday_feast",
+        actorId,
+      }).combined;
+
       const result = await generateHolidayFeast({
         occasion: input.occasion,
         servings: input.servings,
@@ -122,6 +164,8 @@ router.post(
         cuisineType: input.cuisineType,
         budgetLevel: input.budgetLevel || "moderate",
         familyRecipe: input.familyRecipe,
+        protocolEnvelope,
+        protocolBlock,
       } as any);
 
       const feast = (result.feast || []).map(coerceServings(input.servings));
@@ -138,6 +182,15 @@ router.post(
       });
     } catch (err: any) {
       console.error("[holiday-feast] generation failed:", err?.stack || err);
+      if (err instanceof HolidayFeastCompletenessError) {
+        return res.status(422).json({
+          error: err.code,
+          message: err.message,
+          expectedCounts: err.expectedCounts,
+          actualCounts: err.actualCounts,
+          retryable: true,
+        });
+      }
       return res.status(500).json({ error: "Generation failed" });
     }
   },
