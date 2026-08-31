@@ -33,6 +33,22 @@ export function hasFeature(
   return user.entitlements?.includes(feature) || false;
 }
 
+/**
+ * Strict storefront entitlement check.
+ *
+ * Unlike hasFeature(), this does not grant access from tester, founder, trial,
+ * sandbox, or BILLING_ENFORCED bypass state. Use it for features that must be
+ * visibly paywalled by the customer's purchased plan even in QA accounts.
+ */
+export function purchasedPlanIncludesFeature(
+  user: UserWithEntitlements | null | undefined,
+  feature: Entitlement,
+): boolean {
+  if (!user?.planLookupKey) return false;
+  const tier = getTierForLookupKey(user.planLookupKey);
+  return tierIncludesEntitlement(tier, feature);
+}
+
 export function hasPlanFeature(
   user: UserWithEntitlements | null | undefined,
   feature: Entitlement

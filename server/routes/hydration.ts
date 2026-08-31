@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireProAccess } from "../middleware/requireProAccess";
+import { requirePurchasedPlanEntitlement } from "../middleware/requirePurchasedPlanEntitlement";
 import { requirePhase1Cert } from "../middleware/requirePhase1Cert";
 import { requirePhase2Training } from "../middleware/requirePhase2Training";
 import { requireMfa } from "../middleware/requireMfa";
@@ -54,6 +55,7 @@ import {
 } from "../services/hydration/athleticHydrationCoachingService";
 
 const router = express.Router();
+const requireHydrationCenterPlan = requirePurchasedPlanEntitlement("hydration_center");
 
 const hydrationHandoffSchema = z.object({
   door: z.enum(["everyday", "athletic", "liquid_nutrition"]),
@@ -194,7 +196,7 @@ router.get("/hydration/evidence", requireAuth, async (_req, res) => {
   }
 });
 
-router.get("/hydration/state", requireAuth, requireProAccess, async (req, res) => {
+router.get("/hydration/state", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
     if (
@@ -259,7 +261,7 @@ const hydrationHubEventSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 }).strict();
 
-router.get("/hydration/hub", requireAuth, requireProAccess, async (req, res) => {
+router.get("/hydration/hub", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   const startedAt = performance.now();
   try {
     const authReq = req as AuthenticatedRequest;
@@ -293,7 +295,7 @@ router.get("/hydration/hub", requireAuth, requireProAccess, async (req, res) => 
   }
 });
 
-router.post("/hydration/hub/handoff", requireAuth, requireProAccess, async (req, res) => {
+router.post("/hydration/hub/handoff", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser?.id;
     if (!userId) return res.status(401).json({ error: "Authentication required" });
@@ -318,7 +320,7 @@ router.post("/hydration/hub/handoff", requireAuth, requireProAccess, async (req,
   }
 });
 
-router.get("/hydration/hub/handoff/:token", requireAuth, requireProAccess, async (req, res) => {
+router.get("/hydration/hub/handoff/:token", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser?.id;
     if (!userId) return res.status(401).json({ error: "Authentication required" });
@@ -356,7 +358,7 @@ function requireSelfHydrationWrite(req: AuthenticatedRequest, res: express.Respo
   return authenticatedUserId;
 }
 
-router.put("/hydration/hub/preferences", requireAuth, requireProAccess, async (req, res) => {
+router.put("/hydration/hub/preferences", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -375,7 +377,7 @@ router.put("/hydration/hub/preferences", requireAuth, requireProAccess, async (r
   }
 });
 
-router.put("/hydration/hub/barriers", requireAuth, requireProAccess, async (req, res) => {
+router.put("/hydration/hub/barriers", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -389,7 +391,7 @@ router.put("/hydration/hub/barriers", requireAuth, requireProAccess, async (req,
   }
 });
 
-router.post("/hydration/hub/help", requireAuth, requireProAccess, async (req, res) => {
+router.post("/hydration/hub/help", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -413,7 +415,7 @@ router.post("/hydration/hub/help", requireAuth, requireProAccess, async (req, re
   }
 });
 
-router.post("/hydration/hub/interventions/:interventionId/events", requireAuth, requireProAccess, async (req, res) => {
+router.post("/hydration/hub/interventions/:interventionId/events", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -437,7 +439,7 @@ const liquidProtocolActivationSchema = z.object({
   confirm: z.literal(true),
 }).strict();
 
-router.get("/hydration/hub/liquid-protocol", requireAuth, requireProAccess, async (req, res) => {
+router.get("/hydration/hub/liquid-protocol", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
     const owner = await authorizeSubject(authReq, res, req.query.clientId);
@@ -456,7 +458,7 @@ router.get("/hydration/hub/liquid-protocol", requireAuth, requireProAccess, asyn
   }
 });
 
-router.post("/hydration/hub/liquid-protocol", requireAuth, requireProAccess, async (req, res) => {
+router.post("/hydration/hub/liquid-protocol", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -475,7 +477,7 @@ router.post("/hydration/hub/liquid-protocol", requireAuth, requireProAccess, asy
   }
 });
 
-router.post("/hydration/hub/liquid-protocol/:protocolId/activate", requireAuth, requireProAccess, async (req, res) => {
+router.post("/hydration/hub/liquid-protocol/:protocolId/activate", requireAuth, requireHydrationCenterPlan, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
