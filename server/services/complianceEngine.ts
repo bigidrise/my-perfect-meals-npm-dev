@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { macroLogs, users, waterLogs } from "../../shared/schema";
+import { macroLogs, mealInstances, users, waterLogs } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { getUserTimezone, todayInTimezone, daysAgo } from "./nutritionDayService";
 import { resolveHydrationCenterState } from "./hydration/hydrationCenterService";
@@ -10,6 +10,14 @@ export interface MealSlots {
   dinner: number;
 }
 
+export interface MealActivity {
+  expectedMealCount: number;
+  completedMealCount: number;
+  plannedMealDays: number;
+  completedMealDays: number;
+  completionRate: number | null;
+}
+
 export interface ComplianceResult {
   // --- existing fields (preserved for all current consumers) ---
   complianceScore: number | null;
@@ -17,13 +25,18 @@ export interface ComplianceResult {
   proteinCompliance: number;
   loggingCompliance: number;
   mealConsistency: number;
+  mealCompletion: number | null;
+  mealLogging: number;
   macroAdherence: number;
+  macroAdherenceEligible: boolean;
   hydrationAdherence: number | null;
   hydrationEligible: boolean;
   calorieAverage7: number;
   proteinAverage7: number;
   loggedDays7: number;
   windowDays: number;
+  mealActivity: MealActivity;
+  completedMealSlots: MealSlots;
   reason?: string;
 
   // --- new behavioral summary fields ---
@@ -48,20 +61,37 @@ function sanitizeWindow(raw: number): number {
 
 export function combineConsistencyComponents(input: {
   mealConsistency: number;
-  macroAdherence: number;
+  macroAdherence: number | null;
   hydrationAdherence: number | null;
 }): number {
-  const score = input.hydrationAdherence === null
-    ? input.mealConsistency * 0.5 + input.macroAdherence * 0.5
-    : input.mealConsistency * 0.4 +
-      input.macroAdherence * 0.4 +
-      input.hydrationAdherence * 0.2;
+  const components = [
+    { value: input.mealConsistency, weight: 0.4 },
+    { value: input.macroAdherence, weight: 0.4 },
+    { value: input.hydrationAdherence, weight: 0.2 },
+  ].filter((component): component is { value: number; weight: number } =>
+    component.value !== null && Number.isFinite(component.value),
+  );
+  const totalWeight = components.reduce((sum, component) => sum + component.weight, 0);
+  if (totalWeight === 0) return 0;
+  const score = components.reduce(
+    (sum, component) => sum + component.value * component.weight,
+    0,
+  ) / totalWeight;
   return clamp(Math.round(score), 0, 100);
+}
+
+export function combineMealConsistency(input: {
+  completionRate: number | null;
+  loggingRate: number;
+}): number {
+  if (input.completionRate === null) return clamp(Math.round(input.loggingRate), 0, 100);
+  return clamp(Math.round((input.completionRate + input.loggingRate) / 2), 0, 100);
 }
 
 function computeBiggestOpportunity(
   slots: MealSlots,
   proteinGoalDays: number,
+  proteinTargetAvailable: boolean,
   loggedDays: number,
   windowDays: number,
 ): string {
@@ -77,7 +107,7 @@ function computeBiggestOpportunity(
   if (maxSlot - breakfast >= 2) {
     return "Log breakfast to track your full day of nutrition.";
   }
-  if (proteinGoalDays < Math.ceil(windowDays * 0.5)) {
+  if (proteinTargetAvailable && proteinGoalDays < Math.ceil(windowDays * 0.5)) {
     return "Focus on meeting your daily protein target more consistently.";
   }
   if (loggedDays < Math.ceil(windowDays * 0.7)) {
@@ -89,6 +119,7 @@ function computeBiggestOpportunity(
 function computeCoachingSummary(
   slots: MealSlots,
   proteinGoalDays: number,
+  proteinTargetAvailable: boolean,
   loggedDays: number,
   windowDays: number,
 ): string {
@@ -101,7 +132,7 @@ function computeCoachingSummary(
   if (maxSlot - lunch >= 2) {
     return "Midday meal logging is the primary gap. May indicate a disrupted lunch routine or work schedule conflict.";
   }
-  if (proteinGoalDays < Math.ceil(windowDays * 0.5)) {
+  if (proteinTargetAvailable && proteinGoalDays < Math.ceil(windowDays * 0.5)) {
     return "Protein adherence is below target on more than half of tracked days. Reviewing meal composition and protein sources may help.";
   }
   if (loggedDays < Math.ceil(windowDays * 0.5)) {
@@ -120,6 +151,14 @@ export async function getUserCompliance(
   const cappedWindow = sanitizeWindow(windowDays);
 
   const emptySlots: MealSlots = { breakfast: 0, lunch: 0, dinner: 0 };
+  const emptyMealActivity: MealActivity = {
+    expectedMealCount: 0,
+    completedMealCount: 0,
+    plannedMealDays: 0,
+    completedMealDays: 0,
+    completionRate: null,
+  };
+  const emptyCompletedMealSlots: MealSlots = { breakfast: 0, lunch: 0, dinner: 0 };
 
   const [user] = await db
     .select({
@@ -138,13 +177,18 @@ export async function getUserCompliance(
       proteinCompliance: 0,
       loggingCompliance: 0,
       mealConsistency: 0,
+      mealCompletion: null,
+      mealLogging: 0,
       macroAdherence: 0,
+      macroAdherenceEligible: false,
       hydrationAdherence: null,
       hydrationEligible: false,
       calorieAverage7: 0,
       proteinAverage7: 0,
       loggedDays7: 0,
       windowDays: cappedWindow,
+      mealActivity: emptyMealActivity,
+      completedMealSlots: emptyCompletedMealSlots,
       reason: "user_not_found",
       proteinGoalDays: 0,
       calorieGoalDays: 0,
@@ -154,31 +198,12 @@ export async function getUserCompliance(
     };
   }
 
-  const calorieTarget = user.dailyCalorieTarget;
-  const proteinTarget = user.dailyProteinTarget;
-
-  if (!calorieTarget || calorieTarget <= 0 || !proteinTarget || proteinTarget <= 0) {
-    return {
-      complianceScore: null,
-      calorieCompliance: 0,
-      proteinCompliance: 0,
-      loggingCompliance: 0,
-      mealConsistency: 0,
-      macroAdherence: 0,
-      hydrationAdherence: null,
-      hydrationEligible: false,
-      calorieAverage7: 0,
-      proteinAverage7: 0,
-      loggedDays7: 0,
-      windowDays: cappedWindow,
-      reason: "no_targets",
-      proteinGoalDays: 0,
-      calorieGoalDays: 0,
-      mealSlots: emptySlots,
-      biggestOpportunity: "Set your macro targets to activate full nutrition tracking.",
-      coachingSummary: "Client has not set macro targets. Establishing targets is the recommended first step.",
-    };
-  }
+  const calorieTarget = typeof user.dailyCalorieTarget === "number" && user.dailyCalorieTarget > 0
+    ? user.dailyCalorieTarget
+    : null;
+  const proteinTarget = typeof user.dailyProteinTarget === "number" && user.dailyProteinTarget > 0
+    ? user.dailyProteinTarget
+    : null;
 
   const tz = await getUserTimezone(userId);
   const todayStr = todayInTimezone(tz);
@@ -227,6 +252,65 @@ export async function getUserCompliance(
   }>;
   const loggedDays = dailyRows.length;
 
+  // --- Meal activity query ---
+  // A replacement creates a replaced original and a new instance for the same
+  // date/slot. Collapse those records so one planned slot cannot count twice.
+  let mealActivity = emptyMealActivity;
+  let completedMealSlots: MealSlots = { ...emptyCompletedMealSlots };
+  try {
+    const activityResult = await db.execute(sql`
+      WITH slot_activity AS (
+        SELECT
+          ${mealInstances.date} AS date,
+          ${mealInstances.slot} AS slot,
+          BOOL_OR(${mealInstances.status} IN ('eaten', 'logged')) AS completed,
+          BOOL_OR(${mealInstances.status} IN ('planned', 'eaten', 'logged', 'skipped', 'replaced')) AS scheduled
+        FROM ${mealInstances}
+        WHERE ${mealInstances.userId} = ${userId}
+          AND ${mealInstances.date} >= ${startDateStr}::date
+          AND ${mealInstances.date} <= ${todayStr}::date
+          AND ${mealInstances.status} IN ('planned', 'eaten', 'logged', 'skipped', 'replaced')
+        GROUP BY ${mealInstances.date}, ${mealInstances.slot}
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE scheduled)::int AS expected_meal_count,
+        COUNT(*) FILTER (WHERE scheduled AND completed)::int AS completed_meal_count,
+        COUNT(DISTINCT date) FILTER (WHERE scheduled)::int AS planned_meal_days,
+        COUNT(DISTINCT date) FILTER (WHERE scheduled AND completed)::int AS completed_meal_days,
+        COUNT(DISTINCT date) FILTER (WHERE scheduled AND completed AND slot = 'breakfast')::int AS completed_breakfast_days,
+        COUNT(DISTINCT date) FILTER (WHERE scheduled AND completed AND slot = 'lunch')::int AS completed_lunch_days,
+        COUNT(DISTINCT date) FILTER (WHERE scheduled AND completed AND slot = 'dinner')::int AS completed_dinner_days
+      FROM slot_activity
+    `);
+    const row = activityResult.rows[0] as {
+      expected_meal_count?: number;
+      completed_meal_count?: number;
+      planned_meal_days?: number;
+      completed_meal_days?: number;
+      completed_breakfast_days?: number;
+      completed_lunch_days?: number;
+      completed_dinner_days?: number;
+    } | undefined;
+    const expectedMealCount = Number(row?.expected_meal_count ?? 0);
+    const completedMealCount = Number(row?.completed_meal_count ?? 0);
+    mealActivity = {
+      expectedMealCount,
+      completedMealCount,
+      plannedMealDays: Number(row?.planned_meal_days ?? 0),
+      completedMealDays: Number(row?.completed_meal_days ?? 0),
+      completionRate: expectedMealCount > 0
+        ? clamp(Math.round((completedMealCount / expectedMealCount) * 100), 0, 100)
+        : null,
+    };
+    completedMealSlots = {
+      breakfast: Number(row?.completed_breakfast_days ?? 0),
+      lunch: Number(row?.completed_lunch_days ?? 0),
+      dinner: Number(row?.completed_dinner_days ?? 0),
+    };
+  } catch (error) {
+    console.warn("[consistency-score] Meal activity unavailable; completion component omitted", error);
+  }
+
   // --- Meal slot query (count distinct days per slot via raw SQL) ---
   // meal_type column exists in the DB but is not mapped in the Drizzle schema.
   // Wrapped in try/catch: if the column is missing in a given environment the
@@ -256,20 +340,25 @@ export async function getUserCompliance(
     // meal_type column not available in this environment — slots stay at zero
   }
 
-  if (loggedDays === 0) {
+  if (loggedDays === 0 && mealActivity.expectedMealCount === 0) {
     return {
       complianceScore: 0,
       calorieCompliance: 0,
       proteinCompliance: 0,
       loggingCompliance: 0,
       mealConsistency: 0,
+      mealCompletion: null,
+      mealLogging: 0,
       macroAdherence: 0,
+      macroAdherenceEligible: false,
       hydrationAdherence: null,
       hydrationEligible: false,
       calorieAverage7: 0,
       proteinAverage7: 0,
       loggedDays7: 0,
       windowDays: cappedWindow,
+      mealActivity,
+      completedMealSlots,
       proteinGoalDays: 0,
       calorieGoalDays: 0,
       mealSlots,
@@ -280,21 +369,30 @@ export async function getUserCompliance(
 
   const totalKcal = dailyRows.reduce((sum, r) => sum + (r.kcal || 0), 0);
   const totalProtein = dailyRows.reduce((sum, r) => sum + (r.protein || 0), 0);
-  const calorieAverage = Math.round(totalKcal / loggedDays);
-  const proteinAverage = Math.round(totalProtein / loggedDays);
+  const calorieAverage = loggedDays > 0 ? Math.round(totalKcal / loggedDays) : 0;
+  const proteinAverage = loggedDays > 0 ? Math.round(totalProtein / loggedDays) : 0;
 
-  const calorieCompliance = clamp(
+  const calorieCompliance = loggedDays > 0 && calorieTarget !== null ? clamp(
     Math.round(100 - (Math.abs(calorieAverage - calorieTarget) / calorieTarget) * 100),
     0,
     100,
-  );
+  ) : 0;
 
-  const proteinThreshold = proteinTarget * 0.9;
-  const daysMetProtein = dailyRows.filter((r) => (r.protein || 0) >= proteinThreshold).length;
-  const proteinCompliance = clamp(Math.round((daysMetProtein / loggedDays) * 100), 0, 100);
+  const proteinThreshold = proteinTarget !== null ? proteinTarget * 0.9 : null;
+  const daysMetProtein = proteinThreshold !== null
+    ? dailyRows.filter((r) => (r.protein || 0) >= proteinThreshold).length
+    : 0;
+  const proteinCompliance = loggedDays > 0 && proteinTarget !== null
+    ? clamp(Math.round((daysMetProtein / loggedDays) * 100), 0, 100)
+    : 0;
 
   const loggingCompliance = clamp(Math.round((loggedDays / cappedWindow) * 100), 0, 100);
-  const mealConsistency = loggingCompliance;
+  const mealCompletion = mealActivity.completionRate;
+  const mealLogging = loggingCompliance;
+  const mealConsistency = combineMealConsistency({
+    completionRate: mealCompletion,
+    loggingRate: mealLogging,
+  });
   const macroTargets = [
     { key: "kcal" as const, target: calorieTarget },
     { key: "protein" as const, target: proteinTarget },
@@ -304,7 +402,8 @@ export async function getUserCompliance(
     key: "kcal" | "protein" | "carbs" | "fat";
     target: number;
   } => typeof entry.target === "number" && entry.target > 0);
-  const macroAdherence = Math.round(
+  const macroAdherenceEligible = dailyRows.length > 0 && macroTargets.length > 0;
+  const macroAdherence = macroAdherenceEligible ? Math.round(
     dailyRows.reduce((sum, row) => {
       const dailyScore = macroTargets.reduce((daySum, target) => {
         const actual = Number(row[target.key] ?? 0);
@@ -316,7 +415,7 @@ export async function getUserCompliance(
       }, 0) / macroTargets.length;
       return sum + dailyScore;
     }, 0) / dailyRows.length,
-  );
+  ) : 0;
 
   let hydrationAdherence: number | null = null;
   let hydrationEligible = false;
@@ -383,18 +482,30 @@ export async function getUserCompliance(
 
   const complianceScore = combineConsistencyComponents({
     mealConsistency,
-    macroAdherence,
+    macroAdherence: macroAdherenceEligible ? macroAdherence : null,
     hydrationAdherence,
   });
 
   // Days where calories fell within 80-120% of target
-  const calorieGoalDays = dailyRows.filter((r) => {
+  const calorieGoalDays = calorieTarget === null ? 0 : dailyRows.filter((r) => {
     const pct = (r.kcal || 0) / calorieTarget;
     return pct >= 0.8 && pct <= 1.2;
   }).length;
 
-  const biggestOpportunity = computeBiggestOpportunity(mealSlots, daysMetProtein, loggedDays, cappedWindow);
-  const coachingSummary = computeCoachingSummary(mealSlots, daysMetProtein, loggedDays, cappedWindow);
+  const biggestOpportunity = computeBiggestOpportunity(
+    mealSlots,
+    daysMetProtein,
+    proteinTarget !== null,
+    loggedDays,
+    cappedWindow,
+  );
+  const coachingSummary = computeCoachingSummary(
+    mealSlots,
+    daysMetProtein,
+    proteinTarget !== null,
+    loggedDays,
+    cappedWindow,
+  );
 
   return {
     complianceScore,
@@ -409,6 +520,11 @@ export async function getUserCompliance(
     proteinAverage7: proteinAverage,
     loggedDays7: loggedDays,
     windowDays: cappedWindow,
+    mealActivity,
+    completedMealSlots,
+    mealCompletion,
+    mealLogging,
+    macroAdherenceEligible,
     proteinGoalDays: daysMetProtein,
     calorieGoalDays,
     mealSlots,
