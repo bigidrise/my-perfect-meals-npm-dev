@@ -7,8 +7,10 @@ export function useMealActions() {
     // Invalidate queries commonly used on dashboard/board
     qc.invalidateQueries({ queryKey: ['weekly-meal-board'] });
     qc.invalidateQueries({ queryKey: ['day-nutrition-totals'] });
-    qc.invalidateQueries({ queryKey: ['compliance-badges'] });
+    qc.invalidateQueries({ queryKey: ['compliance'] });
+    qc.invalidateQueries({ queryKey: ['proClientCompliance'] });
     qc.invalidateQueries({ queryKey: ['meal-instances'] });
+    window.dispatchEvent(new CustomEvent('mpm:nutritionActivityUpdated'));
   };
 
   const logMutation = useMutation({ 

@@ -11,7 +11,10 @@ interface ActivitySummary {
   proteinCompliance: number;
   loggingCompliance: number;
   mealConsistency: number;
+  mealCompletion: number | null;
+  mealLogging: number;
   macroAdherence: number;
+  macroAdherenceEligible: boolean;
   hydrationAdherence: number | null;
   hydrationEligible: boolean;
   calorieAverage7: number;
@@ -22,6 +25,14 @@ interface ActivitySummary {
   proteinGoalDays: number;
   calorieGoalDays: number;
   mealSlots: { breakfast: number; lunch: number; dinner: number };
+  completedMealSlots: { breakfast: number; lunch: number; dinner: number };
+  mealActivity: {
+    expectedMealCount: number;
+    completedMealCount: number;
+    plannedMealDays: number;
+    completedMealDays: number;
+    completionRate: number | null;
+  };
   biggestOpportunity: string;
   coachingSummary: string;
 }
@@ -77,11 +88,15 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const handleTargetsUpdated = () => {
+    const handleActivityUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ["compliance", userId] });
     };
-    window.addEventListener("mpm:targetsUpdated", handleTargetsUpdated);
-    return () => window.removeEventListener("mpm:targetsUpdated", handleTargetsUpdated);
+    window.addEventListener("mpm:targetsUpdated", handleActivityUpdated);
+    window.addEventListener("mpm:nutritionActivityUpdated", handleActivityUpdated);
+    return () => {
+      window.removeEventListener("mpm:targetsUpdated", handleActivityUpdated);
+      window.removeEventListener("mpm:nutritionActivityUpdated", handleActivityUpdated);
+    };
   }, [userId, queryClient]);
 
   const { data, isLoading, isError } = useQuery<ActivitySummary>({
@@ -134,7 +149,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   const score = data.complianceScore ?? 0;
   const slots = data.mealSlots ?? { breakfast: 0, lunch: 0, dinner: 0 };
 
-  if (data.loggedDays7 === 0) {
+  if (data.loggedDays7 === 0 && (data.mealActivity?.expectedMealCount ?? 0) === 0) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6 space-y-2">
@@ -164,9 +179,27 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
             <span className="text-white/80">Meal consistency</span>
             <span className="font-semibold text-white">{data.mealConsistency}%</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
+          <div className="ml-2 space-y-1 border-l border-white/10 pl-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/55">Meals completed</span>
+              <span className="font-medium text-white/80">
+                {data.mealCompletion === null
+                  ? "Not yet tracked"
+                  : `${data.mealActivity.completedMealCount}/${data.mealActivity.expectedMealCount} · ${data.mealCompletion}%`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/55">Days with meal logs</span>
+              <span className="font-medium text-white/80">
+                {data.loggedDays7}/{win} · {data.mealLogging}%
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-white/80">Whole-plan macro adherence</span>
-            <span className="font-semibold text-white">{data.macroAdherence}%</span>
+            <span className="font-semibold text-white text-right">
+              {data.macroAdherenceEligible ? `${data.macroAdherence}%` : "Not currently scored"}
+            </span>
           </div>
           {data.hydrationEligible && data.hydrationAdherence !== null && (
             <div className="flex items-center justify-between text-sm">
