@@ -262,19 +262,18 @@ export default function MorePage() {
       )}
 
       <div
-        className="flex-1 px-4 py-8"
-        style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
-      >
-        <div className="max-w-2xl mx-auto space-y-4">
-          <SponsorEndedBanner />
-          {/* Hero — hidden */}
+  className="flex-1 px-4 py-8"
+  style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+>
+  <div className="max-w-2xl mx-auto space-y-4">
+    <SponsorEndedBanner />
 
-          {/* ProCare capability */}
-          <Card
-            className="bg-gradient-to-r from-black via-violet-950/35 to-black backdrop-blur-lg border border-violet-500/30 rounded-xl shadow-md overflow-hidden"
-            style={{ backgroundColor: "transparent" }}
-            data-testid="card-studio-video-messaging"
-          >
+    {/* ProCare capability */}
+    <Card
+      className="bg-gradient-to-r from-black via-violet-950/35 to-black backdrop-blur-lg border border-violet-500/30 rounded-xl shadow-md overflow-hidden"
+      style={{ backgroundColor: "transparent" }}
+      data-testid="card-studio-video-messaging"
+    >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-violet-500/20">

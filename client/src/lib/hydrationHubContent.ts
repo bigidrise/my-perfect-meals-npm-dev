@@ -1,10 +1,10 @@
-export const HYDRATION_HUB_TITLE = "Hydration Hub";
+export const HYDRATION_HUB_TITLE = "My Perfect Hydration Center";
 
 export const HYDRATION_HUB_DESCRIPTION =
   "Personalized fluid support that works with your Nutrition Life Plan.";
 
 export const HYDRATION_HUB_OVERVIEW =
-  "Hydration Hub helps you manage fluids based on what you are trying to accomplish and the nutrition information My Perfect Meals already knows about you.";
+  "My Perfect Hydration Center helps you manage fluids based on what you are trying to accomplish and the nutrition information My Perfect Meals already knows about you.";
 
 export const HYDRATION_HUB_DOORS = [
   {
@@ -30,14 +30,14 @@ export const HYDRATION_HUB_DOORS = [
 ] as const;
 
 export const HYDRATION_HUB_CONSIDERED_FOR_YOU =
-  "Considered for you means Hydration Hub used applicable dietary preferences, allergies, nutrition settings, active MPM programs, and professional guidance that the system was authorized and able to verify. It never means that MPM invented a medical requirement.";
+  "Considered for you means My Perfect Hydration Center used applicable dietary preferences, allergies, nutrition settings, active MPM programs, and professional guidance that the system was authorized and able to verify. It never means that MPM invented a medical requirement.";
 
 export const HYDRATION_HUB_MEDICAL_BOUNDARY =
-  "Hydration Hub does not diagnose or treat illness, independently prescribe fluid or electrolyte requirements, invent Liquid Nutrition instructions, or replace professional care. Current professional instructions remain the source of truth when they apply.";
+  "My Perfect Hydration Center does not diagnose or treat illness, independently prescribe fluid or electrolyte requirements, invent Liquid Nutrition instructions, or replace professional care. Current professional instructions remain the source of truth when they apply.";
 
 export const HYDRATION_HUB_ABOUT_SECTIONS = [
   {
-    heading: "What Hydration Hub is",
+    heading: "What My Perfect Hydration Center is",
     text: `${HYDRATION_HUB_DESCRIPTION} ${HYDRATION_HUB_OVERVIEW}`,
   },
   {
@@ -46,7 +46,7 @@ export const HYDRATION_HUB_ABOUT_SECTIONS = [
   },
   {
     heading: "Personalized, without invented targets",
-    text: "Hydration Hub can consider applicable Nutrition Life Plan information, preferences, allergies, active programs, and professional instructions. It can help you log fluids and choose practical support even when no numeric target exists.",
+    text: "My Perfect Hydration Center can consider applicable Nutrition Life Plan information, preferences, allergies, active programs, and professional instructions. It can help you log fluids and choose practical support even when no numeric target exists.",
   },
   {
     heading: "What “Considered for you” means",

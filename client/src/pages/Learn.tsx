@@ -797,22 +797,14 @@ const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
         },
         {
           heading: "Water Log — Daily Hydration Tracker",
-          text: import.meta.env.DEV
-            ? "Water tracking now lives in Hydration Hub. Each entry is saved to your server-backed water log, so corrections and updates are reflected from one canonical intake source."
-            : "The water log tracks your daily fluid intake in ounces. Tap +8 oz or +16 oz each time you drink, and the ring at the center fills as you go toward your goal.",
-          list: import.meta.env.DEV
-            ? [
-                "Log common amounts quickly or enter a custom amount in ounces or milliliters",
-                "Tracking remains available when no numeric target has been authorized",
-                "My Perfect Meals does not create a personal water target from body weight or a population average",
-                "A current clinician directive may define a point, range, minimum, or maximum",
-                "Expired, incomplete, or safety-conflicting directives are withheld for review",
-              ]
-            : [
-                "Your daily goal is calculated automatically from your logged body weight",
-                "The bar chart shows your past 7 days",
-                "Tap Reset to clear today's count",
-              ],
+          text: "Basic Hydration Tracking lives in Biometrics. Each entry is saved to your server-backed water log so shared nutrition and coaching features can use the same intake history.",
+          list: [
+            "Log common amounts in ounces or milliliters",
+            "Tracking remains available when no numeric target has been authorized",
+            "My Perfect Meals does not create a personal water target from body weight or a population average",
+            "My Perfect Hydration Center adds advanced Pro hydration intelligence",
+            "Expired, incomplete, or safety-conflicting directives are withheld for review",
+          ],
         },
         {
           heading: "Ingredient Intelligence — Personalized Label Scan",

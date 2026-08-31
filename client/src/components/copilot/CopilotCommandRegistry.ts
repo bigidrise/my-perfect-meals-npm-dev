@@ -595,14 +595,14 @@ const Commands: Record<string, CommandHandler> = {
       await addHydrationWater({ amount, unit: "oz" });
       responseCallback({
         title: "Water Logged",
-        description: `${amount} ounces of water was added to your server-backed Hydration Hub.`,
+        description: `${amount} ounces of water was added to your server-backed Basic Hydration Tracking.`,
         spokenText: `${amount} ounces of water was logged.`,
       });
     } catch {
       responseCallback({
         title: "Water Was Not Logged",
-        description: "Hydration Hub could not save this entry. Open Hydration Hub and try again.",
-        spokenText: "I could not log that water. Please open Hydration Hub and try again.",
+        description: "Basic Hydration Tracking could not save this entry. Open Biometrics and try again.",
+        spokenText: "I could not log that water. Please open Biometrics and try again.",
       });
     }
   },

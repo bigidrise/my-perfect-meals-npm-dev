@@ -32,7 +32,7 @@ const STEPS = [
   },
   {
     title: "Follow the Hydration support shown",
-    text: "Hydration Hub may show practical strategies, organize instructions, offer beverage support, show Considered for you, or send you to a Beverage Creator when appropriate.",
+    text: "My Perfect Hydration Center may show practical strategies, organize instructions, offer beverage support, show Considered for you, or send you to a Beverage Creator when appropriate.",
   },
   {
     title: "Log what you drink",
@@ -44,7 +44,7 @@ const STEPS = [
   },
   {
     title: "Adjust or revisit the plan",
-    text: "Return to Hydration Hub whenever your situation changes. Current authorized professional guidance may appear here and, when applicable, in your Nutrition Life Plan.",
+    text: "Return to My Perfect Hydration Center whenever your situation changes. Current authorized professional guidance may appear here and, when applicable, in your Nutrition Life Plan.",
   },
 ] as const;
 
@@ -81,7 +81,7 @@ const DOOR_GUIDES = [
     enterText:
       "Select the symptoms or tolerability concerns that apply. Be as accurate as you can, especially if you are having trouble keeping fluids down.",
     nextText:
-      "Hydration Hub uses what you selected to show practical, low-effort support and safety or escalation guidance when symptoms may need professional attention.",
+      "My Perfect Hydration Center uses what you selected to show practical, low-effort support and safety or escalation guidance when symptoms may need professional attention.",
     expectText:
       "This door does not diagnose you or create medical treatment. Seek medical care when symptoms are serious, worsening, or you cannot safely keep fluids down.",
   },
@@ -133,7 +133,7 @@ export default function HydrationHubGuide() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-semibold text-white">
-                Start Here: How to Use Hydration Hub
+                Start Here: How to Use My Perfect Hydration Center
               </h2>
               <Badge className="border-sky-300/20 bg-sky-400/10 text-sky-100">
                 Quick guide

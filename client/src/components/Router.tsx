@@ -25,6 +25,7 @@ import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualPro
 import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { hasFeature } from "@/lib/entitlements";
 import {
   createProfessionalLegalRecoveryUrl,
   type ProfessionalLegalRecoveryAction,
@@ -411,13 +412,60 @@ import {
 import TutorialHub from "@/pages/TutorialHub";
 import MyBiometrics from "@/pages/my-biometrics";
 const LazyHydrationCenter = lazy(() => import("@/pages/HydrationCenter"));
-const HydrationCenter = () => (
+const HydrationCenter = () => {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const { requestUpgrade } = useUpgradeModal();
+  const hasAccess = hasFeature(user, "hydration_center");
+  const requestHydrationUpgrade = useCallback(() => {
+    requestUpgrade({
+      requiredTier: "pro",
+      featureName: "My Perfect Hydration Center",
+      valueMessage: "Build hydration support around your activity, nutrition context, preferences, barriers, and verified professional guidance—without relying on a generic one-size-fits-all water target.",
+    });
+  }, [requestUpgrade]);
+
+  useEffect(() => {
+    if (user && !hasAccess) requestHydrationUpgrade();
+  }, [hasAccess, requestHydrationUpgrade, user]);
+
+  if (!user) return null;
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-sky-950 to-slate-950 px-4 py-10 text-white">
+        <div className="mx-auto max-w-lg rounded-2xl border border-white/15 bg-black/35 p-6 text-center shadow-2xl backdrop-blur-xl">
+          <p className="text-xs font-semibold uppercase tracking-[.2em] text-sky-200">Pro feature</p>
+          <h1 className="mt-2 text-2xl font-bold">My Perfect Hydration Center</h1>
+          <p className="mt-3 text-sm leading-relaxed text-white/80">
+            Basic fluid tracking remains available in Biometrics. Pro unlocks personalized hydration support for activity, nutrition context, barriers, and verified professional guidance.
+          </p>
+          <button
+            type="button"
+            onClick={requestHydrationUpgrade}
+            className="mt-6 w-full rounded-xl bg-orange-600 px-4 py-3 font-semibold text-white active:bg-orange-700"
+            data-testid="hydration-upgrade-button"
+          >
+            View Pro Plans
+          </button>
+          <button
+            type="button"
+            onClick={() => setLocation("/my-biometrics")}
+            className="mt-2 w-full rounded-xl bg-white/10 px-4 py-3 font-semibold text-white active:bg-white/20"
+          >
+            Back to Biometrics
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
   <Suspense
     fallback={
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-sky-950 to-slate-950 px-4 py-8 text-white">
         <div className="mx-auto max-w-5xl space-y-4">
           <div>
-            <h1 className="text-xl font-semibold">Hydration Hub</h1>
+            <h1 className="text-xl font-semibold">My Perfect Hydration Center</h1>
             <p className="mt-1 text-sm text-white/70">Track fluids, solve barriers, see what helps</p>
           </div>
           <div className="rounded-2xl border border-white/15 bg-slate-950/55 p-5">
@@ -436,7 +484,8 @@ const HydrationCenter = () => (
   >
     <LazyHydrationCenter />
   </Suspense>
-);
+  );
+};
 import BodyComposition from "@/pages/biometrics/body-composition";
 import Sleep from "@/pages/biometrics/sleep";
 import GetInspiration from "@/pages/GetInspiration";
@@ -668,6 +717,10 @@ const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="gen
 const GuardedPerformanceBuilder = () => <ClinicalGuard component={PerformanceCompetitionBuilderStandalone} />;
 const GuardedPerformanceHub = () => <ClinicalGuard component={TrainingNutritionHub} />;
 const GuardedPerformanceSetup = () => <ClinicalGuard component={PerformanceNutritionSetupPage} />;
+const GuardedGeneralNutritionTraining = () => <ClinicalGuard component={GeneralNutritionTrainingPage} />;
+const GuardedDiabeticTraining = () => <ClinicalGuard component={DiabeticTrainingPage} />;
+const GuardedGLP1Training = () => <ClinicalGuard component={GLP1TrainingPage} />;
+const GuardedAntiInflammatoryTraining = () => <ClinicalGuard component={AntiInflammatoryTrainingPage} />;
 const GuardedDiabeticBuilder = () => <BuilderAccessGuard builderKey="diabetic" component={SafeDiabeticMenuBuilder} />;
 const GuardedGLP1Builder = () => <BuilderAccessGuard builderKey="glp1" component={SafeGLP1MealBuilder} />;
 const GuardedSavedMeals = () => <PaywallGuard component={SavedMeals} />;
@@ -1038,13 +1091,13 @@ export default function Router() {
         <Route path="/lifestyle/my-perfect-beginning/growth" component={GuardedMyPerfectBeginningStub} />
         <Route path="/performance" component={GuardedPerformanceHub} />
         <Route path="/performance/setup" component={GuardedPerformanceSetup} />
-        <Route path="/general-nutrition/training" component={GeneralNutritionTrainingPage} />
+        <Route path="/general-nutrition/training" component={GuardedGeneralNutritionTraining} />
         <Route path="/diabetic-builder" component={DiabeticBuilderEntry} />
         <Route path="/glp1-builder" component={GLP1BuilderEntry} />
         <Route path="/anti-inflammatory-builder" component={AntiInflammatoryBuilderEntry} />
-        <Route path="/diabetic/training" component={DiabeticTrainingPage} />
-        <Route path="/glp1/training" component={GLP1TrainingPage} />
-        <Route path="/anti-inflammatory/training" component={AntiInflammatoryTrainingPage} />
+        <Route path="/diabetic/training" component={GuardedDiabeticTraining} />
+        <Route path="/glp1/training" component={GuardedGLP1Training} />
+        <Route path="/anti-inflammatory/training" component={GuardedAntiInflammatoryTraining} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />

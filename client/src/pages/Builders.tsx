@@ -221,8 +221,6 @@ export default function Builders() {
             </div>
           )}
 
-          {/* Hero Image Section — hidden */}
-
           {/* Instruction hint */}
           <p className="text-xs text-white/40 text-center tracking-wide uppercase">
             {t("builders.tapToStart")}
@@ -230,7 +228,7 @@ export default function Builders() {
 
           {/* Builder Cards */}
           <div className="flex flex-col gap-3">
-            {builderFeatures.map((feature) => {
+            {builderFeatures.filter((feature) => feature.builderId !== "beach_body").map((feature) => {
               const Icon = feature.icon;
               const unlocked = isBuilderUnlocked(feature.builderId);
               const glow = builderGlowConfigs[feature.builderId] ?? builderGlowConfigs.weekly;
