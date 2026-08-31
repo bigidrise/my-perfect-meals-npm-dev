@@ -33,6 +33,7 @@ import {
   buildNutritionSummary,
   type UserExtrasForSummary,
 } from "../services/nutritionSummary/buildNutritionSummary";
+import { filterNutritionSummaryForProvider } from "../services/procareClientDataPolicy";
 
 const router = Router();
 
@@ -967,8 +968,9 @@ router.get("/clients/:clientId/nutrition-strategy", requireAuth, requireProAcces
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/pro/clients/:clientId/nutrition-summary
-// Read-only. Mirrors nutrition-summary DTO — coaches + physicians see all fields
-// including therapeutic doses (Option A policy, read-only).
+// Read-only. Physicians receive the Clinical DTO. Coaches/trainers receive an
+// explicitly filtered coaching DTO without diagnoses, therapeutic inputs,
+// medications, glucose, labs, or other Clinical-only details.
 // ─────────────────────────────────────────────────────────────────────────────
 router.get("/clients/:clientId/nutrition-summary", requireAuth, requireProAccess, requirePhase1Cert, requirePhase2Training, async (req, res) => {
   try {
@@ -1055,7 +1057,15 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, requireProAccess
       activeBoard:              userRow?.activeBoard              ?? null,
     };
 
-    const summary = buildNutritionSummary(envelope, extras);
+    const summary = filterNutritionSummaryForProvider(
+      buildNutritionSummary(envelope, {
+        ...extras,
+        latestGlucose: callerUser.professionalRole === "physician"
+          ? extras.latestGlucose
+          : null,
+      }),
+      callerUser.professionalRole,
+    );
 
     logAudit({
       actor: callerId,

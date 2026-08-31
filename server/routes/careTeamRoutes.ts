@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
 import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
-import { getTierForLookupKey } from "@shared/planFeatures";
+import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
 import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
 import { providerHasProCareStudioAccess } from "../services/procareProviderAccess";
@@ -207,19 +207,23 @@ router.post("/connect", requireAuth, async (req, res) => {
       .where(eq(users.id, proUserId));
 
     // ── Subscription gates ────────────────────────────────────────────────────
-    // Client Clinical check — use effective access already resolved by requireAuth.
-    // req.authUser.planLookupKey reflects computeEffectiveAccess(): it correctly
-    // represents Clinical Business seats, org-sponsored access, and personal plans.
-    // Never read the raw DB planLookupKey here; that path misses business-tier entitlements.
-    const { accessTier: clientAccessTier, planLookupKey: clientPlanKey } = (req as AuthenticatedRequest).authUser;
-    const clientTier = clientPlanKey ? getTierForLookupKey(clientPlanKey) : "ultimate"; // null = internal/founder
-    const clientHasClinical = clientAccessTier === "PAID_FULL" && clientTier === "ultimate";
+    // Consumer eligibility is role-aware: Pro+ may connect to a coach/trainer;
+    // physician and other clinical relationships remain Clinical-only.
+    const authUser = (req as AuthenticatedRequest).authUser;
+    const eligibility = evaluateConsumerProCareAccess({
+      accessTier: authUser.accessTier,
+      planLookupKey: authUser.planLookupKey,
+      providerRole: pro?.professionalRole,
+      isInternalAccount: authUser.isFounder || authUser.isSandbox || authUser.isTester,
+    });
 
-    if (!clientHasClinical) {
-      console.log(`🔒 [CareTeam Connect] Blocked — client ${userId} lacks Clinical access (tier: ${clientTier}, accessTier: ${clientAccessTier})`);
+    if (!eligibility.allowed && "code" in eligibility) {
+      console.log(`🔒 [CareTeam Connect] Blocked — client ${userId}; providerRole=${pro?.professionalRole ?? "unknown"}; code=${eligibility.code}; tier=${eligibility.consumerTier}`);
       return res.status(403).json({
-        error: "CLINICAL_REQUIRED",
-        message: "A Clinical subscription is required to connect with a ProCare provider.",
+        error: eligibility.code,
+        code: eligibility.code,
+        requiredTier: eligibility.requiredTier,
+        message: eligibility.message,
       });
     }
 

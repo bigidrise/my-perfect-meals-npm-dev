@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Loader2, ShieldCheck, AlertTriangle, CheckCircle2, UserX } from "lucide-react";
@@ -26,6 +27,7 @@ type PageState =
   | { kind: "email_mismatch"; maskedEmail: string }
   | { kind: "expired" }
   | { kind: "already_accepted" }
+  | { kind: "pro_required" }
   | { kind: "clinical_required" }
   | { kind: "coach_not_subscribed" }
   | { kind: "error"; message: string };
@@ -34,6 +36,7 @@ export default function JoinStudio() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { user, loading: authLoading } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const { t } = useTranslation();
   const [state, setState] = useState<PageState>({ kind: "loading" });
 
@@ -122,6 +125,9 @@ export default function JoinStudio() {
         case "CLINICAL_REQUIRED":
           setState({ kind: "clinical_required" });
           break;
+        case "PRO_REQUIRED":
+          setState({ kind: "pro_required" });
+          break;
         case "COACH_NOT_SUBSCRIBED":
           setState({ kind: "coach_not_subscribed" });
           break;
@@ -132,6 +138,14 @@ export default function JoinStudio() {
       setState({ kind: "error", message: t("joinStudio.errorConnectionIssue") });
     }
   }
+
+  useEffect(() => {
+    if (state.kind === "pro_required") {
+      requestUpgrade({ requiredTier: "pro", featureName: "ProCare Coaching" });
+    } else if (state.kind === "clinical_required") {
+      requestUpgrade({ requiredTier: "clinical", featureName: "Clinical Care Team" });
+    }
+  }, [state.kind, requestUpgrade]);
 
   // ── Shell ──────────────────────────────────────────────────────────────────
   return (
@@ -297,14 +311,25 @@ function InviteBody({
     );
   }
 
-  if (state.kind === "clinical_required") {
+  if (state.kind === "pro_required" || state.kind === "clinical_required") {
+    const isProRequired = state.kind === "pro_required";
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <AlertTriangle className="w-12 h-12 text-orange-400" />
         <h2 className="text-lg font-bold text-white">{t("joinStudio.subscriptionRequiredTitle")}</h2>
-        <p className="text-gray-300 text-sm">{t("joinStudio.subscriptionRequiredBody")}</p>
-        <Button onClick={() => window.location.href = "/pricing"} className="w-full bg-orange-600 hover:bg-orange-500 text-white rounded-full">
-          {t("joinStudio.viewPlans")}
+        <p className="text-gray-300 text-sm">
+          {isProRequired
+            ? "Working with an authorized ProCare coach or trainer requires Pro or higher."
+            : t("joinStudio.subscriptionRequiredBody")}
+        </p>
+        <Button
+          onClick={() => requestUpgrade({
+            requiredTier: isProRequired ? "pro" : "clinical",
+            featureName: isProRequired ? "ProCare Coaching" : "Clinical Care Team",
+          })}
+          className="w-full bg-orange-600 hover:bg-orange-500 text-white rounded-full"
+        >
+          View Upgrade Options
         </Button>
         <Button onClick={onGoHome} variant="ghost" className="text-gray-400 hover:text-white text-sm">
           {t("joinStudio.backToApp")}

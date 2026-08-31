@@ -10,7 +10,7 @@ import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2, Gift, Video } from "lucide-react";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { useAuth } from "@/contexts/AuthContext";
-import { hasActivePaidSubscription, isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthHeaders } from "@/lib/auth";
@@ -197,8 +197,8 @@ export default function MorePage() {
   };
 
   async function connectWithCode() {
-    if (!isClinicalOrAbove(user)) {
-      requestUpgrade({ requiredTier: "clinical", featureName: "ProCare Connection" });
+    if (!isProOrAbove(user)) {
+      requestUpgrade({ requiredTier: "pro", featureName: "ProCare Coaching" });
       return;
     }
     setError(null);
@@ -220,6 +220,8 @@ export default function MorePage() {
         if (data?.code === "LEGAL_REACCEPT_REQUIRED") {
           setPendingLegalFlow(data.flow === "patient_physician" ? "patient_physician" : "client");
           setShowClientLegalModal(true);
+        } else if (data?.error === "PRO_REQUIRED") {
+          requestUpgrade({ requiredTier: "pro", featureName: "ProCare Coaching" });
         } else if (data?.error === "CLINICAL_REQUIRED") {
           requestUpgrade({ requiredTier: "clinical", featureName: "ProCare Connection" });
         } else {
