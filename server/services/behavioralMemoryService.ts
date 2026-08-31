@@ -10,12 +10,15 @@
  * Data sources (descending signal strength):
  *   1. saved_meals  — user explicitly saved a meal ("I want this again")
  *   2. user_recipes — user saved a recipe (strong intent signal)
- *   3. meal_instances (status='logged') — user logged a meal as eaten (acceptance signal)
+ *   3. meal_instances (status='eaten') — user logged a meal as eaten (confirmed consumption)
+ *   4. meal_instances (status='skipped'|'replaced') — user did not choose the meal (weak negative signal)
  *
  * Scoring:
- *   Base score  = +1.0 per evidence event
+ *   Saved evidence = +1.0, confirmed consumption = +1.5
+ *   Skipped/replaced evidence = -0.5 (negative evidence must repeat before surfacing)
  *   Recency decay: score × e^(-0.025 × daysSince)  (half-life ≈ 28 days)
  *   Minimum score to surface as a preference: SCORE_THRESHOLD = 0.4
+ *   Minimum negative score to surface as a soft avoidance: NEGATIVE_SCORE_THRESHOLD = 0.75
  *   Maximum preference items per category: MAX_LIKES_PER_CATEGORY = 3
  *
  * Enforcement contract: this service NEVER touches the enforcement gateway.
@@ -28,14 +31,19 @@ import { db } from "../db";
 import { savedMeals } from "@shared/schema";
 import { userRecipes } from "@shared/schema";
 import { mealInstances } from "@shared/schema";
-import { eq, gte, desc } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, or } from "drizzle-orm";
 import { createHash } from "crypto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type EvidenceType = "saved_meal" | "saved_recipe" | "logged_instance";
+export type EvidenceType =
+  | "saved_meal"
+  | "saved_recipe"
+  | "logged_instance"
+  | "skipped_instance"
+  | "replaced_instance";
 
 export interface EvidenceRecord {
   mealTitle: string;
@@ -69,15 +77,29 @@ export interface PreferenceProfile {
   };
 }
 
+export function hasBehavioralMemorySignals(profile: PreferenceProfile): boolean {
+  return profile.likes.length > 0 || profile.avoids.length > 0;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SCORING CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SCORE_THRESHOLD = 0.4;
+const NEGATIVE_SCORE_THRESHOLD = 0.75;
 const MAX_LIKES_PER_CATEGORY = 3;
+const MAX_AVOIDS_PER_CATEGORY = 3;
 const DECAY_LAMBDA = 0.025;     // score × e^(-lambda × days), half-life ≈ 28d
 const LOOKBACK_DAYS = 90;       // only consider last 90 days of history
 const MAX_RECORDS = 50;         // cap DB reads
+
+const EVIDENCE_WEIGHTS: Record<EvidenceType, number> = {
+  saved_meal: 1,
+  saved_recipe: 1,
+  logged_instance: 1.5,
+  skipped_instance: -0.5,
+  replaced_instance: -0.5,
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SIGNAL DETECTION — deterministic keyword matching only
@@ -94,14 +116,20 @@ const CUISINE_SIGNALS: Record<string, string[]> = {
 };
 
 const PROTEIN_SIGNALS: Record<string, string[]> = {
-  chicken: ["chicken", "poultry", "rotisserie", "hen"],
-  salmon:  ["salmon", "fish", "cod", "tilapia", "tuna", "halibut", "trout"],
-  beef:    ["beef", "steak", "brisket", "ground beef", "sirloin", "ribeye"],
-  turkey:  ["turkey", "ground turkey"],
-  shrimp:  ["shrimp", "prawn", "seafood"],
-  tofu:    ["tofu", "tempeh", "edamame"],
-  eggs:    ["egg", "eggs", "omelette", "frittata", "quiche"],
-  lamb:    ["lamb", "mutton"],
+  chicken:  ["chicken", "poultry", "rotisserie", "hen"],
+  salmon:   ["salmon"],
+  cod:      ["cod"],
+  tilapia:  ["tilapia"],
+  tuna:     ["tuna"],
+  halibut:  ["halibut"],
+  trout:    ["trout"],
+  fish:     ["fish", "seafood"],
+  beef:     ["beef", "steak", "brisket", "ground beef", "sirloin", "ribeye"],
+  turkey:   ["turkey", "ground turkey"],
+  shrimp:   ["shrimp", "prawn"],
+  tofu:     ["tofu", "tempeh", "edamame"],
+  eggs:     ["egg", "eggs", "omelette", "frittata", "quiche"],
+  lamb:     ["lamb", "mutton"],
 };
 
 const METHOD_SIGNALS: Record<string, string[]> = {
@@ -168,9 +196,9 @@ interface SignalAccumulator {
   [key: string]: number;
 }
 
-function topN(acc: SignalAccumulator, n: number): string[] {
+function topN(acc: SignalAccumulator, n: number, threshold: number = SCORE_THRESHOLD): string[] {
   return Object.entries(acc)
-    .filter(([, score]) => score >= SCORE_THRESHOLD)
+    .filter(([, score]) => score >= threshold)
     .sort((a, b) => b[1] - a[1])
     .slice(0, n)
     .map(([key]) => key);
@@ -262,7 +290,17 @@ export async function derivePreferenceProfile(userId: string): Promise<Preferenc
         createdAt: userRecipes.createdAt,
       })
       .from(userRecipes)
-      .where(eq(userRecipes.userId, userId))
+      .leftJoin(
+        mealInstances,
+        and(
+          eq(mealInstances.recipeId, userRecipes.id),
+          eq(mealInstances.userId, userId),
+        ),
+      )
+      .where(and(
+        eq(userRecipes.userId, userId),
+        isNull(mealInstances.id),
+      ))
       .orderBy(desc(userRecipes.createdAt))
       .limit(MAX_RECORDS);
 
@@ -298,39 +336,148 @@ export async function derivePreferenceProfile(userId: string): Promise<Preferenc
     console.warn("[BehavioralMemory] Could not read user_recipes:", err);
   }
 
+  // ── Source 3: confirmed meal-instance behavior ────────────────────────────
+  //
+  // recipeId is intentionally resolved through user_recipes with the same
+  // owner constraint. meal_instances predates a foreign key on recipe_id, so
+  // this prevents a malformed or cross-account ID from leaking another user's
+  // recipe into the preference profile.
+  try {
+    const instances = await db
+      .select({
+        title: userRecipes.title,
+        ingredients: userRecipes.ingredients,
+        status: mealInstances.status,
+        statusChangedAt: mealInstances.statusChangedAt,
+        loggedAt: mealInstances.loggedAt,
+      })
+      .from(mealInstances)
+      .innerJoin(
+        userRecipes,
+        and(
+          eq(userRecipes.id, mealInstances.recipeId),
+          eq(userRecipes.userId, userId),
+        ),
+      )
+      .where(and(
+        eq(mealInstances.userId, userId),
+        inArray(mealInstances.status, ["eaten", "logged", "skipped", "replaced"]),
+        or(
+          gte(mealInstances.loggedAt, cutoff),
+          gte(mealInstances.statusChangedAt, cutoff),
+        ),
+      ))
+      .orderBy(desc(mealInstances.loggedAt), desc(mealInstances.statusChangedAt))
+      .limit(MAX_RECORDS);
+
+    for (const row of instances) {
+      const eventType: EvidenceType =
+        row.status === "eaten" || row.status === "logged"
+          ? "logged_instance"
+          : row.status === "skipped"
+            ? "skipped_instance"
+            : "replaced_instance";
+      const eventDate = row.status === "eaten" || row.status === "logged"
+        ? row.loggedAt ?? row.statusChangedAt
+        : row.statusChangedAt;
+
+      // Legacy negative rows do not have a reliable action timestamp. Ignoring
+      // them is safer than treating the original plan creation time as the
+      // moment the user rejected the meal.
+      if (!eventDate) continue;
+      if (eventDate && eventDate < cutoff) continue;
+
+      const ingredientText = Array.isArray(row.ingredients)
+        ? (row.ingredients as any[])
+            .map((i: any) => (typeof i === "string" ? i : i?.name || i?.item || ""))
+            .join(" ")
+        : "";
+      const signals = extractSignals(row.title, ingredientText);
+      const days = daysSince(eventDate);
+      const score = EVIDENCE_WEIGHTS[eventType] * decayedScore(days);
+
+      evidenceRecords.push({
+        mealTitle: row.title,
+        eventType,
+        savedAt: eventDate?.toISOString() || "",
+        daysSince: days,
+        score,
+        extractedSignals: [
+          ...signals.cuisines,
+          ...signals.proteins,
+          ...signals.methods,
+          ...(signals.highProtein ? ["high-protein"] : []),
+          ...(signals.lowPrep ? ["quick-prep"] : []),
+        ],
+      });
+    }
+  } catch (err) {
+    console.warn("[BehavioralMemory] Could not read meal_instances:", err);
+  }
+
   if (evidenceRecords.length === 0) {
     return null;
   }
 
   // ── Aggregate scores ──────────────────────────────────────────────────────
-  const cuisineAcc:  SignalAccumulator = {};
-  const proteinAcc:  SignalAccumulator = {};
-  const methodAcc:   SignalAccumulator = {};
+  const cuisineAcc: SignalAccumulator = {};
+  const proteinAcc: SignalAccumulator = {};
+  const methodAcc: SignalAccumulator = {};
+  const negativeCuisineAcc: SignalAccumulator = {};
+  const negativeProteinAcc: SignalAccumulator = {};
+  const negativeMethodAcc: SignalAccumulator = {};
   let highProteinTotal = 0;
-  let lowPrepTotal     = 0;
+  let lowPrepTotal = 0;
+  let negativeHighProteinTotal = 0;
+  let negativeLowPrepTotal = 0;
 
   for (const ev of evidenceRecords) {
+    const positive = ev.score >= 0;
+    const magnitude = Math.abs(ev.score);
     for (const signal of ev.extractedSignals) {
       if (Object.keys(CUISINE_SIGNALS).includes(signal)) {
-        cuisineAcc[signal] = (cuisineAcc[signal] || 0) + ev.score;
+        const target = positive ? cuisineAcc : negativeCuisineAcc;
+        target[signal] = (target[signal] || 0) + magnitude;
       } else if (Object.keys(PROTEIN_SIGNALS).includes(signal)) {
-        proteinAcc[signal] = (proteinAcc[signal] || 0) + ev.score;
+        const target = positive ? proteinAcc : negativeProteinAcc;
+        target[signal] = (target[signal] || 0) + magnitude;
       } else if (Object.keys(METHOD_SIGNALS).includes(signal)) {
-        methodAcc[signal] = (methodAcc[signal] || 0) + ev.score;
+        const target = positive ? methodAcc : negativeMethodAcc;
+        target[signal] = (target[signal] || 0) + magnitude;
       } else if (signal === "high-protein") {
-        highProteinTotal += ev.score;
+        if (positive) highProteinTotal += magnitude;
+        else negativeHighProteinTotal += magnitude;
       } else if (signal === "quick-prep") {
-        lowPrepTotal += ev.score;
+        if (positive) lowPrepTotal += magnitude;
+        else negativeLowPrepTotal += magnitude;
       }
     }
   }
 
+  const effectiveNegativeCuisineAcc = gatedNegativeScores(negativeCuisineAcc);
+  const effectiveNegativeProteinAcc = gatedNegativeScores(negativeProteinAcc);
+  const effectiveNegativeMethodAcc = gatedNegativeScores(negativeMethodAcc);
+  const effectiveNegativeHighProteinTotal =
+    negativeHighProteinTotal >= NEGATIVE_SCORE_THRESHOLD ? negativeHighProteinTotal : 0;
+  const effectiveNegativeLowPrepTotal =
+    negativeLowPrepTotal >= NEGATIVE_SCORE_THRESHOLD ? negativeLowPrepTotal : 0;
+  const netCuisineAcc = subtractScores(cuisineAcc, effectiveNegativeCuisineAcc);
+  const netProteinAcc = subtractScores(proteinAcc, effectiveNegativeProteinAcc);
+  const netMethodAcc = subtractScores(methodAcc, effectiveNegativeMethodAcc);
+  const netNegativeCuisineAcc = subtractScores(effectiveNegativeCuisineAcc, cuisineAcc);
+  const netNegativeProteinAcc = subtractScores(effectiveNegativeProteinAcc, proteinAcc);
+  const netNegativeMethodAcc = subtractScores(effectiveNegativeMethodAcc, methodAcc);
+  const netHighProteinTotal = highProteinTotal - effectiveNegativeHighProteinTotal;
+  const netLowPrepTotal = lowPrepTotal - effectiveNegativeLowPrepTotal;
+  const netNegativeHighProteinTotal = effectiveNegativeHighProteinTotal - highProteinTotal;
+  const netNegativeLowPrepTotal = effectiveNegativeLowPrepTotal - lowPrepTotal;
+
   const patterns: BehavioralPatterns = {
-    prefersCuisines:     topN(cuisineAcc,  MAX_LIKES_PER_CATEGORY),
-    prefersProteins:     topN(proteinAcc,  MAX_LIKES_PER_CATEGORY),
-    prefersCookingMethods: topN(methodAcc, MAX_LIKES_PER_CATEGORY),
-    highProteinBias:     highProteinTotal >= SCORE_THRESHOLD,
-    lowPrepBias:         lowPrepTotal     >= SCORE_THRESHOLD,
+    prefersCuisines: topN(netCuisineAcc, MAX_LIKES_PER_CATEGORY),
+    prefersProteins: topN(netProteinAcc, MAX_LIKES_PER_CATEGORY),
+    prefersCookingMethods: topN(netMethodAcc, MAX_LIKES_PER_CATEGORY),
+    highProteinBias: netHighProteinTotal >= SCORE_THRESHOLD,
+    lowPrepBias: netLowPrepTotal >= SCORE_THRESHOLD,
   };
 
   // Build likes[] — human-readable preference phrases
@@ -342,9 +489,19 @@ export async function derivePreferenceProfile(userId: string): Promise<Preferenc
     ...(patterns.lowPrepBias     ? ["quick and simple prep"] : []),
   ];
 
-  // Build avoids[] — only from explicit meal-level patterns (no clinical overrides)
-  // Phase 2: will include rejected meals once feedback events are stored.
-  const avoids: string[] = [];
+  // Build soft avoids[] from repeated negative evidence only. These are
+  // recommendation hints, never enforcement rules or replacements for explicit
+  // allergies/dietary restrictions.
+  const avoidedCuisines = topN(netNegativeCuisineAcc, MAX_AVOIDS_PER_CATEGORY, NEGATIVE_SCORE_THRESHOLD);
+  const avoidedProteins = topN(netNegativeProteinAcc, MAX_AVOIDS_PER_CATEGORY, NEGATIVE_SCORE_THRESHOLD);
+  const avoidedMethods = topN(netNegativeMethodAcc, MAX_AVOIDS_PER_CATEGORY, NEGATIVE_SCORE_THRESHOLD);
+  const avoids: string[] = [
+    ...avoidedCuisines.map(c => `${c} cuisine`),
+    ...avoidedProteins.map(p => `${p} dishes`),
+    ...avoidedMethods.map(m => `${m} preparations`),
+    ...(netNegativeHighProteinTotal >= NEGATIVE_SCORE_THRESHOLD ? ["high-protein meals"] : []),
+    ...(netNegativeLowPrepTotal >= NEGATIVE_SCORE_THRESHOLD ? ["quick and simple prep"] : []),
+  ];
 
   // Audit metadata
   const profileHash = hashProfile(evidenceRecords);
@@ -354,6 +511,7 @@ export async function derivePreferenceProfile(userId: string): Promise<Preferenc
   if (patterns.prefersCookingMethods.length > 0) categories.push("cooking-method");
   if (patterns.highProteinBias) categories.push("macro-bias");
   if (patterns.lowPrepBias)     categories.push("prep-time-bias");
+  if (avoids.length > 0) categories.push("inferred-avoidance");
 
   const sourceTypes = [...new Set(evidenceRecords.map(e => e.eventType))];
 
@@ -368,7 +526,7 @@ export async function derivePreferenceProfile(userId: string): Promise<Preferenc
       evidenceCount: evidenceRecords.length,
       derivedAt: new Date().toISOString(),
       categories,
-      dataSourceSummary: `${evidenceRecords.length} records from [${sourceTypes.join(", ")}], cutoff=${LOOKBACK_DAYS}d`,
+      dataSourceSummary: `${evidenceRecords.length} preference records from [${sourceTypes.join(", ")}], cutoff=${LOOKBACK_DAYS}d`,
     },
   };
 }
@@ -380,7 +538,7 @@ export async function derivePreferenceProfile(userId: string): Promise<Preferenc
 export function buildBehavioralMemoryPromptSection(profile: PreferenceProfile): string {
   const lines: string[] = [];
 
-  if (profile.likes.length === 0) return "";
+  if (profile.likes.length === 0 && profile.avoids.length === 0) return "";
 
   lines.push("USER PREFERENCE HISTORY (soft hints — do not override dietary or medical rules):");
 
@@ -404,7 +562,29 @@ export function buildBehavioralMemoryPromptSection(profile: PreferenceProfile): 
     lines.push(`  Prep preference: tends to favor quick, simple recipes`);
   }
 
-  lines.push(`  (Based on ${profile.auditMeta.evidenceCount} saved meals — profile hash: ${profile.auditMeta.profileHash})`);
+  if (profile.avoids.length > 0) {
+    lines.push(`  Repeatedly does not choose: ${profile.avoids.join(", ")}`);
+    lines.push("  Treat these as soft recommendation hints only — do not treat them as allergies or hard restrictions.");
+  }
+
+  lines.push(`  (Based on ${profile.auditMeta.evidenceCount} preference records — profile hash: ${profile.auditMeta.profileHash})`);
 
   return lines.join("\n");
+}
+
+function subtractScores(
+  positive: SignalAccumulator,
+  negative: SignalAccumulator,
+): SignalAccumulator {
+  const keys = new Set([...Object.keys(positive), ...Object.keys(negative)]);
+  return Object.fromEntries(
+    [...keys].map(key => [key, (positive[key] || 0) - (negative[key] || 0)]),
+  );
+}
+
+function gatedNegativeScores(negative: SignalAccumulator): SignalAccumulator {
+  return Object.fromEntries(
+    Object.entries(negative)
+      .filter(([, score]) => score >= NEGATIVE_SCORE_THRESHOLD),
+  );
 }

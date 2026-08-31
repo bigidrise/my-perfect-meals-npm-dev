@@ -30,7 +30,12 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 // Phase 2 Step 1: Behavioral memory — read-only preference profile
-import { derivePreferenceProfile, buildBehavioralMemoryPromptSection, type PreferenceProfile } from "./behavioralMemoryService";
+import {
+  derivePreferenceProfile,
+  buildBehavioralMemoryPromptSection,
+  hasBehavioralMemorySignals,
+  type PreferenceProfile,
+} from "./behavioralMemoryService";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -856,7 +861,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   if (userPrefs?.userId && !skipPalate) {
     try {
       behavioralProfile = await derivePreferenceProfile(userPrefs.userId);
-      if (behavioralProfile && behavioralProfile.likes.length > 0) {
+      if (behavioralProfile && hasBehavioralMemorySignals(behavioralProfile)) {
         behavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
         console.log(
           `🧠 [BehavioralMemory] Loaded profile — ` +

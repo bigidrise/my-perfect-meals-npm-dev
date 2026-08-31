@@ -184,6 +184,7 @@ router.post('/log', requireAuth, async (req: any, res) => {
         recipeId: savedRecipe.id,
         source: 'fridge-rescue',
         status: input.logNow ? 'eaten' : 'planned',
+        statusChangedAt: input.logNow ? sql`now()` : null,
         loggedAt: input.logNow ? sql`now()` : null,
         notes: input.note || null
       }).returning();
