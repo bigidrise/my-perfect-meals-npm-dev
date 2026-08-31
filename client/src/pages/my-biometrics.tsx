@@ -83,7 +83,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
 import TherapeuticNutritionCard from "@/components/biometrics/TherapeuticNutritionCard";
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
-import { hasFeature } from "@/lib/entitlements";
+import { purchasedPlanIncludesFeature } from "@/lib/entitlements";
 import { canAccessClinicalLabs, canAccessTherapeuticNutrition } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { convertWeightLbsDisplay } from "@shared/units";
@@ -2807,7 +2807,7 @@ export default function MyBiometrics() {
             {user?.id && <BasicHydrationLogger userId={user.id} />}
             <Button
               onClick={() => {
-                if (hasFeature(user, "hydration_center")) {
+                if (purchasedPlanIncludesFeature(user, "hydration_center")) {
                   setLocation("/hydration");
                   return;
                 }

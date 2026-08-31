@@ -184,6 +184,7 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "Kids & Toddler Meals",
     "My Perfect Pets",
     "Grocery Store Coach (AI grocery advisor, protocol-aware)",
+    "My Perfect Hydration Center — personalized hydration intelligence for activity, nutrition context, barriers, and verified professional guidance",
     "Athlete Beverage Creator — performance drinks calibrated to your training phase, sport, and recovery goals.",
     "My Perfect Getaway™ (stay on track at theme parks, airports, resorts & cruises)",
     "Business Center (partner programs, referral tools, organization setup & team management)",

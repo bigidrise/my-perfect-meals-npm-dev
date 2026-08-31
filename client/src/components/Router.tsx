@@ -25,7 +25,7 @@ import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualPro
 import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
-import { hasFeature } from "@/lib/entitlements";
+import { purchasedPlanIncludesFeature } from "@/lib/entitlements";
 import {
   createProfessionalLegalRecoveryUrl,
   type ProfessionalLegalRecoveryAction,
@@ -416,7 +416,7 @@ const HydrationCenter = () => {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
-  const hasAccess = hasFeature(user, "hydration_center");
+  const hasAccess = purchasedPlanIncludesFeature(user, "hydration_center");
   const requestHydrationUpgrade = useCallback(() => {
     requestUpgrade({
       requiredTier: "pro",
