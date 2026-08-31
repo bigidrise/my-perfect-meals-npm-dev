@@ -928,6 +928,7 @@ async function initializeApp() {
     const mealsRouter = (await import("./routes/meals")).default;
     const macroCalculatorRouter = (await import("./routes/macroCalculatorRoutes")).default;
     const { requireAuth } = await import("./middleware/requireAuth");
+    const { requireClinicalAccess } = await import("./middleware/requireClinicalAccess");
     const { requireActiveAccess } = await import(
       "./middleware/requireActiveAccess"
     );
@@ -1098,11 +1099,11 @@ async function initializeApp() {
 
     // Performance Nutrition — sport-specific fueling protocol
     const performanceNutritionRouter = (await import("./routes/performanceNutrition")).default;
-    app.use("/api/performance", requireAuth, performanceNutritionRouter);
+    app.use("/api/performance", requireAuth, requireClinicalAccess, performanceNutritionRouter);
 
     // Carb Response Engine — carb cycle state, log, and override
     const carbCycleRouter = (await import("./routes/carbCycle")).default;
-    app.use("/api/performance", requireAuth, carbCycleRouter);
+    app.use("/api/performance", requireAuth, requireClinicalAccess, carbCycleRouter);
 
     // Nutrition Personalization Summary — read-only Protocol Envelope mirror
     const nutritionSummaryRouter = (await import("./routes/nutritionSummary")).default;

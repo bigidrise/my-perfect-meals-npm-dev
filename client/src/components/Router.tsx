@@ -668,6 +668,10 @@ const GuardedGeneralNutritionBuilder = () => <BuilderAccessGuard builderKey="gen
 const GuardedPerformanceBuilder = () => <ClinicalGuard component={PerformanceCompetitionBuilderStandalone} />;
 const GuardedPerformanceHub = () => <ClinicalGuard component={TrainingNutritionHub} />;
 const GuardedPerformanceSetup = () => <ClinicalGuard component={PerformanceNutritionSetupPage} />;
+const GuardedGeneralNutritionTraining = () => <ClinicalGuard component={GeneralNutritionTrainingPage} />;
+const GuardedDiabeticTraining = () => <ClinicalGuard component={DiabeticTrainingPage} />;
+const GuardedGLP1Training = () => <ClinicalGuard component={GLP1TrainingPage} />;
+const GuardedAntiInflammatoryTraining = () => <ClinicalGuard component={AntiInflammatoryTrainingPage} />;
 const GuardedDiabeticBuilder = () => <BuilderAccessGuard builderKey="diabetic" component={SafeDiabeticMenuBuilder} />;
 const GuardedGLP1Builder = () => <BuilderAccessGuard builderKey="glp1" component={SafeGLP1MealBuilder} />;
 const GuardedSavedMeals = () => <PaywallGuard component={SavedMeals} />;
@@ -1038,13 +1042,13 @@ export default function Router() {
         <Route path="/lifestyle/my-perfect-beginning/growth" component={GuardedMyPerfectBeginningStub} />
         <Route path="/performance" component={GuardedPerformanceHub} />
         <Route path="/performance/setup" component={GuardedPerformanceSetup} />
-        <Route path="/general-nutrition/training" component={GeneralNutritionTrainingPage} />
+        <Route path="/general-nutrition/training" component={GuardedGeneralNutritionTraining} />
         <Route path="/diabetic-builder" component={DiabeticBuilderEntry} />
         <Route path="/glp1-builder" component={GLP1BuilderEntry} />
         <Route path="/anti-inflammatory-builder" component={AntiInflammatoryBuilderEntry} />
-        <Route path="/diabetic/training" component={DiabeticTrainingPage} />
-        <Route path="/glp1/training" component={GLP1TrainingPage} />
-        <Route path="/anti-inflammatory/training" component={AntiInflammatoryTrainingPage} />
+        <Route path="/diabetic/training" component={GuardedDiabeticTraining} />
+        <Route path="/glp1/training" component={GuardedGLP1Training} />
+        <Route path="/anti-inflammatory/training" component={GuardedAntiInflammatoryTraining} />
         <Route path="/lifestyle/my-perfect-getaway" component={GuardedGetaway} />
         <Route path="/lifestyle/my-perfect-gatherings" component={GuardedGatheringsPage} />
         <Route path="/lifestyle/ultimate-experiences" component={GuardedGatheringsPage} />

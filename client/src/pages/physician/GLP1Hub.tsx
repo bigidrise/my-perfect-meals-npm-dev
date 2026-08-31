@@ -31,6 +31,7 @@ import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import GLP1DailyCheckin from "@/components/glp1/GLP1DailyCheckin";
 import ProtocolStatusBadge from "@/components/ProtocolStatusBadge";
+import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 
 export default function GLP1Hub() {
   const { t } = useTranslation();
@@ -38,6 +39,7 @@ export default function GLP1Hub() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [shotTrackerOpen, setShotTrackerOpen] = useState(false);
   const { user } = useAuth();
+  const canAccessTrainingNutrition = isClinicalOrAbove(user);
   const quickTour = useQuickTour("glp1-hub");
 
   const GLP1_TOUR_STEPS = useMemo<TourStep[]>(() => [
@@ -195,6 +197,7 @@ export default function GLP1Hub() {
 
         {/* ── Training Nutrition Schedule ── */}
         <button
+          hidden={!canAccessTrainingNutrition}
           onClick={() => setLocation("/glp1/training")}
           className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
         >
@@ -202,7 +205,12 @@ export default function GLP1Hub() {
             <Dumbbell className="w-4 h-4 text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-white leading-tight">{t("glp1Hub.trainingTitle")}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-sm text-white leading-tight">{t("glp1Hub.trainingTitle")}</p>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
+                Clinical
+              </span>
+            </div>
             <p className="text-white/40 text-xs mt-0.5">{t("glp1Hub.trainingSub")}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />

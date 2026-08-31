@@ -40,6 +40,7 @@ import { GlucoseGuardExplainerModal } from "@/components/GlucoseGuardExplainerMo
 import { GlycemicSettingsModal } from "@/components/diabetic/GlycemicSettingsModal";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { GLP1CompanionModal } from "@/components/diabetic/GLP1CompanionModal";
+import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 
 function getDeviceId(): string {
   let deviceId = localStorage.getItem("deviceId");
@@ -54,6 +55,7 @@ export default function DiabeticHub() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const canAccessTrainingNutrition = isClinicalOrAbove(user);
   const { toast } = useToast();
   const userId = user?.id?.toString() || getDeviceId();
   const quickTour = useQuickTour("diabetic-hub");
@@ -309,6 +311,7 @@ export default function DiabeticHub() {
 
           {/* ── Training Nutrition Schedule ── */}
           <button
+            hidden={!canAccessTrainingNutrition}
             onClick={() => setLocation("/diabetic/training")}
             className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
           >
@@ -316,7 +319,12 @@ export default function DiabeticHub() {
               <Dumbbell className="w-4 h-4 text-orange-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-white leading-tight">{t("diabeticHub.trainingTitle")}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-sm text-white leading-tight">{t("diabeticHub.trainingTitle")}</p>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
+                  Clinical
+                </span>
+              </div>
               <p className="text-white/40 text-xs mt-0.5">{t("diabeticHub.trainingSub")}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />

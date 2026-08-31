@@ -15,11 +15,13 @@ import { useTranslation } from "react-i18next";
 import { ChevronRight, Dumbbell, CalendarDays, Utensils } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/apiRequest";
+import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 
 export default function GeneralNutritionBuilderEntry() {
   const { t } = useTranslation("pro");
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
+  const canAccessTrainingNutrition = isClinicalOrAbove(user);
 
   const hasSchedule = !!(user?.weeklyTrainingSchedule);
   const performanceModeEnabled = user?.performanceModeEnabled ?? false;
@@ -101,7 +103,7 @@ export default function GeneralNutritionBuilderEntry() {
         </button>
 
         {/* Section Header */}
-        <div className="mt-6 mb-4">
+        <div className="mt-6 mb-4" hidden={!canAccessTrainingNutrition}>
           <div className="h-px bg-white/10 mb-4" />
           <p className="text-white font-semibold text-base mb-1">{t("gnbEntry.trainTitle")}</p>
           <p className="text-white text-sm leading-relaxed">
@@ -111,6 +113,7 @@ export default function GeneralNutritionBuilderEntry() {
 
         {/* Option 2: Performance Mode — sets Performance Mode ON */}
         <button
+          hidden={!canAccessTrainingNutrition}
           onClick={handlePerformance}
           className="w-full flex items-start gap-4 px-5 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
         >
@@ -122,6 +125,9 @@ export default function GeneralNutritionBuilderEntry() {
               <p className="text-white font-semibold text-base leading-tight">
                 {t("gnbEntry.scheduleTitle")}
               </p>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
+                Clinical
+              </span>
               {performanceModeEnabled && hasSchedule && (
                 <span className="text-xs font-semibold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
                   {t("gnbEntry.activeLabel")}
@@ -151,7 +157,7 @@ export default function GeneralNutritionBuilderEntry() {
         </button>
 
         {/* Explainer — only shown when no schedule is active */}
-        {!hasSchedule && (
+        {canAccessTrainingNutrition && !hasSchedule && (
           <div className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
             <p className="text-white text-xs leading-relaxed">
               {t("gnbEntry.explainer")}
