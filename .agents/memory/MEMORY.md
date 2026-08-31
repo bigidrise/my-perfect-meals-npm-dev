@@ -61,3 +61,4 @@
 - [Hydration Center strict paywall](hydration-center-strict-paywall.md) — Free and Essential stay blocked even when internal pre-launch/test bypasses are enabled.
 - [Whole-Food governance](whole-food-governance.md) — central evidence-aware policy gates every active human recommendation; a clean coverage matrix is required for platform-wide claims.
 - [Consumer ProCare role split](consumer-procare-role-split.md) — Pro opens coach/trainer relationships; Clinical remains required for clinical professionals and data.
+- [Stripe entitlement authority](stripe-entitlement-authority.md) — web access requires Stripe verification plus immutable user identity; email and client returns never grant it.

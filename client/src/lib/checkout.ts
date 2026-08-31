@@ -142,7 +142,7 @@ export async function startCheckout(
 }
 
 export async function openCustomerPortal(
-  customerId: string,
+  _customerId: string,
   returnUrl?: string,
 ) {
   if (isIosNativeShell()) {
@@ -162,7 +162,6 @@ export async function openCustomerPortal(
       },
       credentials: "include",
       body: JSON.stringify({
-        customerId,
         returnUrl: returnUrl || window.location.href,
       }),
     });
