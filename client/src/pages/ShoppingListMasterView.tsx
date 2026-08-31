@@ -39,6 +39,7 @@ import GroceryExportModal from "@/components/shopping/GroceryExportModal";
 import { formatQuantity } from "@/lib/formatQuantity";
 import { convertServingDisplay } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { apiRequest } from "@/lib/queryClient";
@@ -88,6 +89,7 @@ export default function ShoppingListMasterView() {
   const { toast } = useToast();
   const { t } = useTranslation("shopping");
   const { user } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const measurementSystem = ((user as any)?.measurementSystem ?? "imperial") as "imperial" | "metric";
   const entitlements: string[] = (user as any)?.entitlements || [];
   const hasGroceryCoachAccess =
@@ -625,7 +627,9 @@ export default function ShoppingListMasterView() {
           <div className="relative mt-2">
             <div className="absolute inset-0 rounded-2xl bg-orange-500/10 blur-md scale-105" />
             <Button
-              onClick={() => hasGroceryCoachAccess ? setGroceryCoachOpen(true) : setLocation("/pricing")}
+              onClick={() => hasGroceryCoachAccess
+                ? setGroceryCoachOpen(true)
+                : requestUpgrade({ requiredTier: "pro", featureName: "Grocery Coach" })}
               className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-950/80 to-black/80 rounded-2xl py-3 h-auto border border-orange-500/40 text-left"
               data-testid="button-grocery-store-coach"
             >
