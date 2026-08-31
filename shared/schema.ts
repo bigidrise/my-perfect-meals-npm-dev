@@ -1592,6 +1592,7 @@ export const mealInstances = pgTable('meal_instances', {
   recipeId: uuid('recipe_id'),
   source: varchar('source', { length: 32 }).notNull().default('plan'),
   status: varchar('status', { length: 16 }).notNull().default('planned'),
+  statusChangedAt: timestamp('status_changed_at', { withTimezone: true }),
   loggedAt: timestamp('logged_at', { withTimezone: true }),
   replacedByMealInstanceId: uuid('replaced_by_meal_instance_id'),
   notes: text('notes'),

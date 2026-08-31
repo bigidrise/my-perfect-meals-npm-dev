@@ -98,6 +98,7 @@ router.post('/:mealInstanceId/log', requireAuth, async (req: any, res) => {
     await db.update(mealInstances)
       .set({ 
         status: 'eaten', 
+        statusChangedAt: sql`now()`,
         loggedAt: sql`now()`, 
         recipeId: finalRecipeId, 
         notes: note || null 
@@ -122,7 +123,10 @@ router.post('/:mealInstanceId/skip', requireAuth, async (req: any, res) => {
     const userId = getAuthUserId(req);
 
     await db.update(mealInstances)
-      .set({ status: 'skipped' })
+      .set({
+        status: 'skipped',
+        statusChangedAt: sql`now()`,
+      })
       .where(and(
         eq(mealInstances.id, mealInstanceId), 
         eq(mealInstances.userId, userId)
@@ -172,6 +176,7 @@ router.post('/:mealInstanceId/replace-and-optional-log', requireAuth, async (req
       recipeId: finalRecipeId,
       source,
       status: logNow ? 'eaten' : 'planned',
+      statusChangedAt: logNow ? sql`now()` : null,
       loggedAt: logNow ? sql`now()` : null,
       notes: note || null,
     }).returning();
@@ -180,9 +185,13 @@ router.post('/:mealInstanceId/replace-and-optional-log', requireAuth, async (req
     await db.update(mealInstances)
       .set({ 
         status: 'replaced', 
+        statusChangedAt: sql`now()`,
         replacedByMealInstanceId: replacement.id 
       })
-      .where(eq(mealInstances.id, orig.id));
+      .where(and(
+        eq(mealInstances.id, orig.id),
+        eq(mealInstances.userId, userId),
+      ));
 
     // 5) Recalculate nutrition
     await recalcDailyNutrition(userId);
@@ -240,6 +249,7 @@ router.post('/create-and-log', requireAuth, async (req: any, res) => {
       recipeId,
       source,
       status: 'eaten',
+      statusChangedAt: sql`now()`,
       loggedAt: sql`now()`
     });
 
