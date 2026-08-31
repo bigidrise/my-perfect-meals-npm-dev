@@ -58,4 +58,5 @@
 - [Hydration Creator handoffs](hydration-creator-handoffs.md) — Creator handoffs carry signed intent only; current safety context is always re-resolved server-side.
 - [Professional Hydration role split](professional-hydration-role-split.md) — clinical professionals own numeric directives; trainers only own bounded nonclinical coaching.
 - [Hydration Hub entry experience](hydration-hub-entry-experience.md) — render the four-door shell immediately and keep Everyday/Athletic Creator handoffs obvious.
+- [Hydration Center strict paywall](hydration-center-strict-paywall.md) — Free and Essential stay blocked even when internal pre-launch/test bypasses are enabled.
 - [Whole-Food governance](whole-food-governance.md) — central evidence-aware policy gates every active human recommendation; a clean coverage matrix is required for platform-wide claims.
