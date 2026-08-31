@@ -55,7 +55,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
       "Choose the door that fits your situation.",
       ...HYDRATION_HUB_DOORS.map(({ title, description }) => `${title}: ${description}`),
       HYDRATION_HUB_CONSIDERED_FOR_YOU,
-      "If an authorized professional has updated your Hydration Plan, review the current instructions here in Hydration Hub.",
+      "If an authorized professional has updated your Hydration Plan, review the current instructions here in My Perfect Hydration Center.",
       HYDRATION_HUB_MEDICAL_BOUNDARY,
     ].join(" "),
     autoClose: true,

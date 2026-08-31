@@ -15,9 +15,9 @@ import {
 } from "@/components/copilot/KeywordFeatureMap";
 import { PAGE_EXPLANATIONS } from "@/components/copilot/CopilotPageExplanations";
 
-describe("Hydration Hub discoverability", () => {
+describe("My Perfect Hydration Center discoverability", () => {
   it("uses one canonical customer-facing title and description", () => {
-    expect(HYDRATION_HUB_TITLE).toBe("Hydration Hub");
+    expect(HYDRATION_HUB_TITLE).toBe("My Perfect Hydration Center");
     expect(HYDRATION_HUB_DESCRIPTION).toContain("Nutrition Life Plan");
     expect(AppKnowledge.hydration.title).toBe(HYDRATION_HUB_TITLE);
     expect(PAGE_EXPLANATIONS["/hydration"].title).toBe(HYDRATION_HUB_TITLE);
@@ -53,7 +53,7 @@ describe("Hydration Hub discoverability", () => {
     "can hydration help with training",
     "what is liquid nutrition",
     "what does considered for you hydration mean",
-  ])("routes '%s' to the existing Hydration Hub", (query) => {
+  ])("routes legacy and current queries to My Perfect Hydration Center", (query) => {
     expect(findFeatureFromRegistry(query)?.primaryRoute).toBe("/hydration");
   });
 

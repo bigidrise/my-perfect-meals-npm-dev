@@ -7,12 +7,16 @@ export interface WaterLogRow {
   unit: string;
   beverageClass: string;
   intakeTime: string;
+  eventTimezone: string;
+  eventLocalDate: string;
   createdAt: string;
 }
 
 export interface WaterLogPage {
   items: WaterLogRow[];
   nextCursor?: string;
+  localDate: string;
+  timezone: string;
 }
 
 export function waterLogsQueryKey(

@@ -11,9 +11,10 @@ interface TierUpgradeModalProps {
   onClose: () => void;
   requiredTier: RequiredTier;
   featureName?: string;
+  valueMessage?: string;
 }
 
-export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: TierUpgradeModalProps) {
+export function TierUpgradeModal({ open, onClose, requiredTier, featureName, valueMessage }: TierUpgradeModalProps) {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
 
@@ -67,7 +68,6 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
 
   const handleDismiss = () => {
     onClose();
-    setLocation("/dashboard");
   };
 
   return (
@@ -89,7 +89,7 @@ export function TierUpgradeModal({ open, onClose, requiredTier, featureName }: T
               : t("upgrade.availableOn", { plan: config.label })}
           </DialogTitle>
           <DialogDescription className="text-white/55 text-sm mt-1">
-            {config.tagline}
+            {valueMessage ?? config.tagline}
           </DialogDescription>
         </DialogHeader>
 
