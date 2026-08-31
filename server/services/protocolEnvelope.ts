@@ -72,6 +72,13 @@ import {
   type DailyMedicationTolerance,
   type ToleranceAppetiteLevel,
 } from "../../shared/glp1-schema";
+import {
+  buildWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+  type WholeFoodDecision,
+  type WholeFoodPolicyContext,
+  type WholeFoodPurpose,
+} from "./wholeFoodStandard";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCEDURAL RULES — The third enforcement dimension
@@ -750,6 +757,7 @@ export interface ProtocolPromptBlock {
     allergies: string;
     medicalHardLimits: string;
     performanceIntent: string;
+    wholeFoodStandard: string;
     avoidances: string;
     procedural: string;
     preferences: string;
@@ -775,6 +783,7 @@ export interface ProtocolScanResult {
   /** Instruction-level violations found in the cooking steps */
   instructionViolations: string[];
   primaryViolation?: HiddenViolation;
+  wholeFoodDecision?: WholeFoodDecision;
   /** Human-readable message suitable for logging or error responses */
   message: string;
   /**
@@ -1629,6 +1638,44 @@ function expandDietaryIdentity(dietaryIdentity: string[]): string[] {
   return Array.from(expanded);
 }
 
+function deriveWholeFoodPolicyContext(
+  envelope: UserProtocolEnvelope,
+  recommendationSurface: string,
+): WholeFoodPolicyContext {
+  const purposes = new Set<WholeFoodPurpose>();
+  const purposefulNeeds: string[] = [];
+  const medicalText = [
+    ...envelope.medicalHardLimits,
+    ...envelope.medicalOptimization,
+    ...(envelope.conditionGuidanceBlocks ?? []),
+  ].join(" ").toLowerCase();
+
+  if (medicalText) purposes.add("clinical");
+  if (/hypogly|low blood glucose|low glucose/.test(medicalText)) {
+    purposes.add("hypoglycemia");
+    purposefulNeeds.push("rapid treatment of documented low blood glucose risk");
+  }
+  if (/inadequate intake|malnutrition|poor appetite|oral nutrition/.test(medicalText)) {
+    purposes.add("inadequate_intake");
+    purposefulNeeds.push("documented inadequate intake or poor appetite support");
+  }
+  if ((envelope.providerInterventions ?? []).length > 0) {
+    purposes.add("clinician_directed");
+    purposefulNeeds.push("an active clinician-directed nutrition intervention");
+  }
+  if (envelope.performanceOverlay !== "standard") {
+    purposes.add("performance");
+    purposefulNeeds.push("active performance fueling requirements");
+  }
+
+  return {
+    purposes: Array.from(purposes),
+    recommendationSurface,
+    practicalAlternativeAvailable: true,
+    purposefulNeed: purposefulNeeds.length > 0 ? purposefulNeeds.join("; ") : undefined,
+  };
+}
+
 /**
  * Enforce the protocol envelope before generation begins.
  *
@@ -1655,10 +1702,12 @@ export function enforceBeforeGenerate(
     allergies: "",
     medicalHardLimits: "",
     performanceIntent: "",
+    wholeFoodStandard: "",
     avoidances: "",
     procedural: "",
     preferences: "",
   };
+  const wholeFoodContext = deriveWholeFoodPolicyContext(envelope, generatorName);
 
   // ── TIER 1: Dietary Identity ───────────────────────────────────────────────
   if (envelope.dietaryIdentity.length > 0) {
@@ -1874,6 +1923,10 @@ ${proceduralParts.join("\n")}`;
       `(Tiers 1–4) still take absolute precedence.`;
   }
 
+  // Always-on nutrition quality policy. It cannot outrank any safety,
+  // clinical, dietary, or performance requirement above it.
+  layers.wholeFoodStandard = `\n${buildWholeFoodStandardPrompt(wholeFoodContext)}`;
+
   // ── TIER 6: Avoidances ────────────────────────────────────────────────────
   if (envelope.avoidances.length > 0) {
     const expandedAvoidances = expandAvoidances(envelope.avoidances);
@@ -2008,6 +2061,7 @@ SELF-CHECK before responding: Verify the meal reflects at least 3 of these authe
     layers.medicalHardLimits,
     layers.procedural,
     layers.performanceIntent,
+    layers.wholeFoodStandard,
     layers.avoidances,
     layers.preferences,
   ]
@@ -2189,6 +2243,7 @@ export function scanGeneratedOutput(
     description?: string;
     ingredients?: Array<{ name?: string; item?: string } | string>;
     instructions?: string | string[];
+    preparationEvidence?: "verified" | "unknown";
   },
   envelope: UserProtocolEnvelope,
   context?: {
@@ -2208,6 +2263,10 @@ export function scanGeneratedOutput(
   const generatorName = context?.generatorName || "unknown_generator";
   const mealText = extractMealTextForScan(meal);
   const instructionsText = extractInstructionsText(meal);
+  const wholeFoodDecision = evaluateWholeFoodCandidate(
+    meal,
+    deriveWholeFoodPolicyContext(envelope, generatorName),
+  );
 
   // ── Ingredient-level scan ─────────────────────────────────────────────────
   const rawIngredientViolations = scanForHiddenDietaryViolations(
@@ -2318,6 +2377,14 @@ export function scanGeneratedOutput(
     });
   }
 
+  if (wholeFoodDecision.shouldBlock) {
+    ingredientViolations.push({
+      term: wholeFoodDecision.matchedTerms[0] ?? "ultra-processed product",
+      category: "whole-food-standard",
+      reason: `${wholeFoodDecision.reason} Preserve the dish identity and required nutrition purpose while using a stronger practical form.`,
+    });
+  }
+
   // ── Instruction-level scan ────────────────────────────────────────────────
   const instructionViolations = scanInstructionsForViolations(
     instructionsText,
@@ -2358,6 +2425,7 @@ export function scanGeneratedOutput(
       instructionViolations: [],
       message: `[ProtocolEnvelope:${generatorName}] "${meal.name}" passed full protocol scan (ingredients + instructions).`,
       starchBudgetViolation,
+      wholeFoodDecision,
     };
   }
 
@@ -2378,6 +2446,7 @@ export function scanGeneratedOutput(
       primaryViolation: primary,
       message: `This meal contains "${primary.term}" which conflicts with your ${primary.category} rules. ${primary.reason}`,
       starchBudgetViolation,
+      wholeFoodDecision,
     };
   }
 
@@ -2392,6 +2461,7 @@ export function scanGeneratedOutput(
     instructionViolations,
     message: `The cooking instructions for this meal contain a step that violates your dietary protocol: "${primaryInstruction}". Regenerating with compliant instructions.`,
     starchBudgetViolation,
+    wholeFoodDecision,
   };
 }
 
@@ -2870,6 +2940,7 @@ export function validateDietConsistency(
 export interface MealComplianceBundle {
   complianceSection: MealComplianceSection | null;
   dietClassification: DietClassification | null;
+  wholeFoodDecision: WholeFoodDecision;
 }
 
 /**
@@ -2911,11 +2982,15 @@ export function buildMealComplianceBundle(
   });
 
   let dietClassification = buildDietClassification(meal, envelope, { kosherCategory });
+  const wholeFoodDecision = evaluateWholeFoodCandidate(
+    meal,
+    deriveWholeFoodPolicyContext(envelope, "meal_compliance_bundle"),
+  );
 
   // ── Validation gate — suppress pill if inconsistency detected ────────────
   if (!validateDietConsistency(meal, dietClassification)) {
     dietClassification = null;
   }
 
-  return { complianceSection, dietClassification };
+  return { complianceSection, dietClassification, wholeFoodDecision };
 }

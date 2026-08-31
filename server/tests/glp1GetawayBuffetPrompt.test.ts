@@ -201,6 +201,20 @@ jest.mock("../services/glp1/resolveGLP1GlobalContext", () => ({
   },
 }));
 
+const MOCK_PROTOCOL_ENVELOPE = {
+  medicalHardLimits: [],
+  medicalOptimization: [],
+  conditionGuidanceBlocks: [],
+  providerInterventions: [],
+  performanceOverlay: "standard",
+  hasDiabetes: false,
+};
+jest.mock("../services/protocolEnvelope", () => ({
+  loadUserProtocolEnvelope: jest.fn().mockResolvedValue(MOCK_PROTOCOL_ENVELOPE),
+  enforceBeforeGenerate: jest.fn(() => ({ combined: "WHOLE-FOOD STANDARD WFS-V1" })),
+  scanGeneratedOutput: jest.fn(() => ({ passed: true, message: "Passed" })),
+}));
+
 // ── Imports (after jest.mock declarations) ─────────────────────────────────────
 import express from "express";
 import request from "supertest";
@@ -326,6 +340,7 @@ describe("generateBuffetRecommendations — GLP-1 user with logged meals", () =>
     await generateBuffetRecommendations({
       foodsDescription: "grilled chicken, salmon, mashed potatoes, salad bar, broccoli",
       nutritionContext: MOCK_NUTRITION_CONTEXT,
+      protocolEnvelope: MOCK_PROTOCOL_ENVELOPE as any,
       glp1RecommendationBlock: GLP1_BLOCK,
       remainingMacrosBlock: REMAINING_BLOCK,
     });
@@ -341,6 +356,7 @@ describe("generateBuffetRecommendations — GLP-1 user with logged meals", () =>
     await generateBuffetRecommendations({
       foodsDescription: "grilled chicken, salmon, mashed potatoes, salad bar, broccoli",
       nutritionContext: MOCK_NUTRITION_CONTEXT,
+      protocolEnvelope: MOCK_PROTOCOL_ENVELOPE as any,
       glp1RecommendationBlock: GLP1_BLOCK,
       remainingMacrosBlock: REMAINING_BLOCK,
     });
@@ -354,6 +370,7 @@ describe("generateBuffetRecommendations — GLP-1 user with logged meals", () =>
     await generateBuffetRecommendations({
       foodsDescription: "grilled chicken, roasted turkey, salad bar, vegetables",
       nutritionContext: MOCK_NUTRITION_CONTEXT,
+      protocolEnvelope: MOCK_PROTOCOL_ENVELOPE as any,
       glp1RecommendationBlock: GLP1_BLOCK,
       remainingMacrosBlock: REMAINING_BLOCK,
     });
@@ -370,6 +387,7 @@ describe("generateBuffetRecommendations — GLP-1 user with logged meals", () =>
     await generateBuffetRecommendations({
       foodsDescription: "wild-caught tuna, roasted asparagus, quinoa",
       nutritionContext: MOCK_NUTRITION_CONTEXT,
+      protocolEnvelope: MOCK_PROTOCOL_ENVELOPE as any,
       glp1RecommendationBlock: GLP1_BLOCK,
       remainingMacrosBlock: REMAINING_BLOCK,
     });
@@ -383,6 +401,7 @@ describe("generateBuffetRecommendations — GLP-1 user with logged meals", () =>
     const results = await generateBuffetRecommendations({
       foodsDescription: "grilled salmon, vegetables",
       nutritionContext: MOCK_NUTRITION_CONTEXT,
+      protocolEnvelope: MOCK_PROTOCOL_ENVELOPE as any,
       glp1RecommendationBlock: GLP1_BLOCK,
       remainingMacrosBlock: REMAINING_BLOCK,
     });
@@ -400,6 +419,7 @@ describe("generateBuffetRecommendations — GLP-1 user with NO meals logged (edg
     await generateBuffetRecommendations({
       foodsDescription: "grilled chicken, salad, rice",
       nutritionContext: MOCK_NUTRITION_CONTEXT,
+      protocolEnvelope: MOCK_PROTOCOL_ENVELOPE as any,
       glp1RecommendationBlock: GLP1_BLOCK,
       remainingMacrosBlock: undefined, // no meals logged → no remaining block
     });
@@ -414,6 +434,7 @@ describe("generateBuffetRecommendations — GLP-1 user with NO meals logged (edg
       generateBuffetRecommendations({
         foodsDescription: "grilled chicken, salad",
         nutritionContext: MOCK_NUTRITION_CONTEXT,
+        protocolEnvelope: MOCK_PROTOCOL_ENVELOPE as any,
         glp1RecommendationBlock: undefined,
         remainingMacrosBlock: undefined,
       }),

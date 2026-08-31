@@ -19,6 +19,8 @@ import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 import type { ActiveNutritionContext } from "./nutritionContext/getActiveNutritionContext";
 import { buildCravingInstructions } from "./restaurantMealGeneratorAI";
 import { randomUUID } from "crypto";
+import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "./wholeFoodStandard";
+import { enforceBeforeGenerate, scanGeneratedOutput, type UserProtocolEnvelope } from "./protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -51,6 +53,7 @@ export interface BuffetRecommendationRequest {
   remainingMacrosBlock?: string;
   /** GLP-1 recommendation-surface guidance block from buildGLP1RecommendationBlock() */
   glp1RecommendationBlock?: string;
+  protocolEnvelope: UserProtocolEnvelope;
 }
 
 /** Derive fibrousCarbs from fiber (application rule — never ask AI for this) */
@@ -133,7 +136,7 @@ function mapPlate(parsed: Record<string, unknown>): AwayFromHomeRecommendation {
 export async function generateBuffetRecommendations(
   req: BuffetRecommendationRequest
 ): Promise<AwayFromHomeRecommendation[]> {
-  const { foodsDescription, categories, nutritionContext, requestedFood, remainingMacrosBlock, glp1RecommendationBlock } = req;
+  const { foodsDescription, categories, nutritionContext, requestedFood, remainingMacrosBlock, glp1RecommendationBlock, protocolEnvelope } = req;
 
   const foodsLines: string[] = [];
   if (foodsDescription.trim()) {
@@ -149,7 +152,7 @@ export async function generateBuffetRecommendations(
   }
   const foodsBlock = foodsLines.join("\n");
 
-  const systemPrompt = `You are a clinical nutrition AI helping a user build the best plate at a buffet.
+  const systemPrompt = appendWholeFoodStandardPrompt(`You are a clinical nutrition AI helping a user build the best plate at a buffet.
 Your job is to return THREE completely distinct plate options built from the available foods.
 
 Each plate must be centered on a DIFFERENT protein source (e.g. Plate 1: steak, Plate 2: salmon, Plate 3: chicken).
@@ -192,7 +195,10 @@ Return ONLY valid JSON with this exact shape (no markdown, no explanation):
       "medicalGuidance": string | null
     }
   ]
-}`;
+}`, {
+    purposes: nutritionContext?.envelope?.hasDiabetes ? ["clinical"] : [],
+    recommendationSurface: "buffet",
+  });
 
   // GLP-1 / craving intent: if the user requested a specific food, preserve it as
   // the anchor protein. For diabetic users, achieve carb compliance via sides only.
@@ -201,6 +207,7 @@ Return ONLY valid JSON with this exact shape (no markdown, no explanation):
 
   const userPrompt = `USER NUTRITION PROFILE:
 ${nutritionContext.combinedBlock || "(standard healthy adult — no active protocols)"}
+${enforceBeforeGenerate(protocolEnvelope, { userInput: foodsDescription, generatorName: "buffet" }).combined}
 ${glp1RecommendationBlock ?? ""}
 ${cravingInstructions}
 ${remainingMacrosBlock ?? ""}
@@ -234,7 +241,41 @@ Build THREE distinct protein-centered plates from the available foods. Respect a
     throw new Error("Buffet AI returned no plates");
   }
 
-  return plates.map((plate) => mapPlate(plate as Record<string, unknown>));
+  const purposes = nutritionContext?.envelope?.hasDiabetes ? ["clinical"] as const : [];
+  const recommendations = plates
+    .map((plate) => ({ plate: plate as Record<string, unknown>, recommendation: mapPlate(plate as Record<string, unknown>) }))
+    .filter(({ recommendation }) => {
+      const protocolScan = scanGeneratedOutput({
+        name: recommendation.meal.name,
+        description: recommendation.meal.description,
+        ingredients: recommendation.meal.ingredients,
+      }, protocolEnvelope, { generatorName: "buffet" });
+      if (!protocolScan.passed) {
+        console.warn(`🚫 [Buffet/Protocol] Dropped "${recommendation.meal.name}" — ${protocolScan.message}`);
+        return false;
+      }
+      const decision = evaluateWholeFoodCandidate({
+        name: recommendation.meal.name,
+        description: recommendation.meal.description,
+        ingredients: recommendation.meal.ingredients,
+      }, { purposes: [...purposes], recommendationSurface: "buffet" });
+      if (decision.shouldBlock) {
+        console.warn(`🚫 [Buffet/WFS] Dropped "${recommendation.meal.name}" — ${decision.reason}`);
+        return false;
+      }
+      if (decision.classification === "uncertain") {
+        recommendation.recommendation.cautionNotes = [
+          ...(recommendation.recommendation.cautionNotes ?? []),
+          "Processing classification is uncertain because buffet ingredients and preparation were not verified.",
+        ];
+      }
+      return true;
+    })
+    .map(({ recommendation }) => recommendation);
+  if (recommendations.length === 0) {
+    throw new Error("No buffet plates met your dietary, clinical, and whole-food requirements. Please describe additional available foods.");
+  }
+  return recommendations;
 }
 
 /** @deprecated Use generateBuffetRecommendations (returns array of 3) */

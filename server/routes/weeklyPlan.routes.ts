@@ -1,6 +1,7 @@
 import express from "express";
 import { getWeeklyPlan, upsertWeeklyPlan, deleteWeeklyPlan, checkPlanExpiry, generateImmediatePlan } from "../db/repo.weeklyPlan";
 import { requireAuth } from "../middleware/requireAuth";
+import { evaluateWholeFoodCandidate } from "../services/wholeFoodStandard";
 // import { generateSingleMeal } from "../services/mealEngineService";
 
 const router = express.Router();
@@ -188,7 +189,22 @@ router.post("/meal-plan/immediate", requireAuth, async (req, res) => {
       }
     }
 
-    const mockPlan = { meals: planMeals };
+    // These are static recommendation templates, so evaluate them at the
+    // selection boundary before persisting or returning them.
+    const wholeFoodPlanMeals = planMeals.flatMap((meal) => {
+      const wholeFoodDecision = evaluateWholeFoodCandidate({
+        name: meal.name,
+        description: meal.description,
+        ingredients: meal.ingredients.map((ingredient) => ingredient.item),
+        instructions: meal.instructions,
+      }, { recommendationSurface: "immediate_weekly_plan" });
+      if (wholeFoodDecision.shouldBlock) {
+        console.warn(`[ImmediatePlan] Excluding "${meal.name}" under ${wholeFoodDecision.policyVersion}: ${wholeFoodDecision.reason}`);
+        return [];
+      }
+      return [{ ...meal, wholeFoodDecision }];
+    });
+    const mockPlan = { meals: wholeFoodPlanMeals };
     await upsertWeeklyPlan(sessionUserId, mockPlan, planDetails.params, planDetails.startDate, planDetails.endDate);
     
     res.json({ 

@@ -8,6 +8,10 @@ import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
 import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
 import { buildDietPromptBlock, violatesDietaryConstraints, AVOIDANCE_EXPANSION } from "./allergyGuardrails";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+} from "./wholeFoodStandard";
 
 /** Expand user avoidance categories into concrete ingredient lists for prompt injection. */
 function buildAvoidancePromptBlock(avoidIngredients: string[] | undefined): string {
@@ -141,7 +145,7 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
       messages: [
         {
           role: "system",
-          content: `You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds).
+          content: appendWholeFoodStandardPrompt(`You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds).
 ${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}
 ${avoidanceBlock}
 ${getBaselineMacroPrompt({ builderType: "general", dietType: dietaryRestrictions[0] ?? "general", mealType: mealType })}
@@ -166,7 +170,7 @@ Nutrition:
 Calories: 450
 Protein: 35g
 Carbs: 40g
-Fat: 12g`
+Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
         },
         {
           role: "user",
@@ -323,6 +327,21 @@ Fat: 12g`
     if (violates) {
       console.warn(`⚠️ [DIET GUARD] universalMealGenerator produced a meal with dietary violations: ${reasons.join(", ")} — diet: ${dietaryRestrictions.join("|")}`);
     }
+  }
+
+  const wholeFoodDecision = evaluateWholeFoodCandidate(
+    { name, description, ingredients, instructions: finalInstructions },
+    {
+      recommendationSurface: "universal_meal_generator",
+      practicalAlternativeAvailable: true,
+    },
+  );
+  if (wholeFoodDecision.shouldBlock) {
+    console.warn(
+      `[WholeFoodStandard:universal_meal_generator] Rejected "${name}": ${wholeFoodDecision.matchedTerms.join(", ")}`,
+    );
+    telemetry.closeSession(sessionId);
+    throw new Error(`Whole-Food Standard rejected generated meal: ${wholeFoodDecision.reason}`);
   }
 
   // Build debug metadata and close session

@@ -17,6 +17,10 @@ import { eq, sql } from "drizzle-orm";
 import { getUserTimezone, todayInTimezone } from "../services/nutritionDayService";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { logAudit, getClientIp } from "../lib/auditLog";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+} from "../services/wholeFoodStandard";
 
 const router = express.Router();
 
@@ -516,6 +520,11 @@ ATHLETIC COACHING RULES:
       systemPrompt += `No protocol configured yet. Tell the user: "Set up your protocol first — I need your training type and goal to give you specific numbers. Go to the setup screen." Do not give generic advice.`;
     }
 
+    systemPrompt = appendWholeFoodStandardPrompt(systemPrompt, {
+      purposes: ["performance"],
+      purposefulNeed: "active performance fueling requirements",
+      recommendationSurface: "performance_nutrition_chat",
+    });
     const messages: any[] = [
       { role: "system", content: systemPrompt },
       ...history.slice(-10).map((m: any) => ({ role: m.role, content: m.content })),
@@ -563,6 +572,40 @@ ATHLETIC COACHING RULES:
       }
     }
 
+    const wholeFoodDecision = evaluateWholeFoodCandidate({ description: finalReply }, {
+      purposes: ["performance"],
+      purposefulNeed: "active performance fueling requirements",
+      recommendationSurface: "performance_nutrition_chat",
+    });
+    if (wholeFoodDecision.shouldSubstitute) {
+      const correctiveCompletion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          ...messages,
+          { role: "assistant", content: finalReply },
+          {
+            role: "user",
+            content: `SYSTEM CONSTRAINT: Revise the food recommendation to use a practical stronger alternative while preserving this athlete's authorized targets exactly: ${resolvedForAsk.proteinG}g protein, ${resolvedForAsk.carbsG}g carbohydrates, and ${resolvedForAsk.fatG}g fat. Legitimate performance fuel remains allowed when needed.`,
+          },
+        ],
+        max_tokens: 400,
+        temperature: 0.1,
+      });
+      const correctedReply = correctiveCompletion.choices[0]?.message?.content?.trim() ?? "";
+      const correctedTargets = validatePerformanceResponse(correctedReply, authTargets);
+      if (!correctedReply || !correctedTargets.valid || evaluateWholeFoodCandidate({
+        description: correctedReply,
+      }, {
+        purposes: ["performance"],
+        purposefulNeed: "active performance fueling requirements",
+        recommendationSurface: "performance_nutrition_chat",
+      }).shouldSubstitute) {
+        return res.status(422).json({
+          error: "Unable to provide a food recommendation that meets the Whole-Food Standard.",
+        });
+      }
+      finalReply = correctedReply;
+    }
     res.json({ reply: finalReply });
   } catch (err: any) {
     console.error("[performanceNutrition] /ask error:", err);

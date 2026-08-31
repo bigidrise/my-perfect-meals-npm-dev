@@ -30,6 +30,10 @@ import { applyCreatorTransformation } from "../services/creatorSystems/applyCrea
 import { resolveKitchenSystem } from "../services/creatorSystems/resolveKitchenSystem";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { enforceCarbs } from "../utils/carbClassifier";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+} from "../services/wholeFoodStandard";
 
 const router = express.Router();
 
@@ -167,10 +171,14 @@ router.post('/generate', requireAuth, async (req, res) => {
     const cravingWithServings = servings > 1 
       ? `${craving} (for ${servings} servings)` 
       : craving;
+    const wholeFoodGuidedCraving = appendWholeFoodStandardPrompt(
+      cravingWithServings,
+      { recommendationSurface: "legacy_craving_creator" },
+    );
     
     let generatedMeal = await generateCravingMeal(
       mealType,
-      cravingWithServings,
+      wholeFoodGuidedCraving,
       {
         userId: userId?.toString() || "1",
         dietaryRestrictions: user?.dietaryRestrictions || [],
@@ -289,6 +297,25 @@ router.post('/generate', requireAuth, async (req, res) => {
       generatedMeal = await applyCreatorTransformation(generatedMeal, creatorSystem, "meal");
     }
 
+    // Evaluate the final recommendation only after existing allergy, dietary,
+    // medical, GLP-1, and creator-system handling has completed. This keeps
+    // those constraints authoritative while preventing a transformed output
+    // from bypassing whole-food selection.
+    const wholeFoodDecision = evaluateWholeFoodCandidate({
+      name: generatedMeal.name,
+      description: generatedMeal.description,
+      ingredients: generatedMeal.ingredients || [],
+      instructions: generatedMeal.instructions || [],
+    }, { recommendationSurface: "legacy_craving_creator" });
+    if (wholeFoodDecision.shouldBlock) {
+      return res.status(422).json({
+        error: "WHOLE_FOOD_SUBSTITUTE_REQUIRED",
+        message: wholeFoodDecision.reason,
+        retryable: true,
+        wholeFoodDecision,
+      });
+    }
+
     // Generate image server-inline via canonical pipeline (caching + fallback handled internally)
     let cravingImageUrl: string | null = null;
     try {
@@ -308,6 +335,7 @@ router.post('/generate', requireAuth, async (req, res) => {
     // Add servings info to the meal response
     const mealWithServings = {
       ...mealWithCarbsEnforced,
+      wholeFoodDecision,
       imageUrl: cravingImageUrl || (mealWithCarbsEnforced as any).imageUrl || null,
       servingSize: `${servings} ${servings === 1 ? 'serving' : 'servings'}`,
       servings: servings

@@ -515,16 +515,61 @@ app.use("/api/shopping-list-v2", shoppingRouter); // Protected endpoints (inheri
 app.post("/api/meals/holiday-feast", requireAuth, requireActiveAccess, async (req, res) => {
   console.log("🎯 WORKING Holiday Feast route HIT!");
   try {
-    const { generateHolidayFeast } = await import("./services/holidayFeastService");
+    const {
+      generateHolidayFeast,
+      HolidayFeastCompletenessError,
+    } = await import("./services/holidayFeastService");
+    const {
+      deriveProcedureRules,
+      enforceBeforeGenerate,
+      loadUserProtocolEnvelope,
+    } = await import("./services/protocolEnvelope");
 
     // Map frontend fields to backend fields
     const occasion = req.body.holiday || req.body.occasion || "Christmas";
     const servings = req.body.numberOfGuests || req.body.servings || 6;
     const counts = req.body.courses || req.body.counts || { appetizers: 1, mainDishes: 1, sideDishes: 1, desserts: 1 };
+    const actorId = (req as any).authUser?.id;
+    if (!actorId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    const loadedEnvelope = await loadUserProtocolEnvelope(actorId);
+    if (!loadedEnvelope) {
+      return res.status(503).json({
+        error: "PROTOCOL_ENVELOPE_UNAVAILABLE",
+        message: "Your dietary and medical safety profile could not be loaded. No feast was generated.",
+        retryable: true,
+      });
+    }
+    const dietaryIdentity = [
+      ...new Set([
+        ...loadedEnvelope.dietaryIdentity,
+        ...(Array.isArray(req.body.dietaryRestrictions) ? req.body.dietaryRestrictions : []),
+      ]),
+    ];
+    const protocolEnvelope = {
+      ...loadedEnvelope,
+      dietaryIdentity,
+      procedural: deriveProcedureRules(dietaryIdentity),
+    };
+    const protocolBlock = enforceBeforeGenerate(protocolEnvelope, {
+      generatorName: "holiday_feast",
+      actorId,
+    }).combined;
 
     console.log("🔍 Mapped data:", { occasion, servings, counts });
 
-    const result = await generateHolidayFeast({ occasion, servings, counts });
+    const result = await generateHolidayFeast({
+      occasion,
+      servings,
+      counts,
+      dietaryRestrictions: Array.isArray(req.body.dietaryRestrictions) ? req.body.dietaryRestrictions : [],
+      cuisineType: req.body.cuisineType,
+      budgetLevel: req.body.budgetLevel || "moderate",
+      familyRecipe: req.body.familyRecipe,
+      protocolEnvelope,
+      protocolBlock,
+    });
 
     res.json({
       holiday: occasion,
@@ -535,6 +580,14 @@ app.post("/api/meals/holiday-feast", requireAuth, requireActiveAccess, async (re
     });
   } catch (error: any) {
     console.error("❌ Holiday feast error:", error);
+    if (error?.name === "HolidayFeastCompletenessError") {
+      return res.status(422).json({
+        error: error.code,
+        message: error.message,
+        expected: error.expected,
+        actual: error.actual,
+      });
+    }
     res.status(500).json({ error: "Generation failed" });
   }
 });

@@ -1,5 +1,9 @@
 import type { Request, Response } from "express";
 import OpenAI from "openai";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+} from "../services/wholeFoodStandard";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -77,7 +81,7 @@ MY PERFECT MEALS APP FEATURES:
 - Shopping list button (maroon) for quick grocery access
 - Avatar assistant (that's me!) for help and guidance`;
 
-    const systemPrompt = `You are Maya, the friendly AI health concierge for My Perfect Meals app. You help users navigate the app and understand features.
+    const systemPrompt = appendWholeFoodStandardPrompt(`You are Maya, the friendly AI health concierge for My Perfect Meals app. You help users navigate the app and understand features.
 
 USER CONTEXT:
 - Name: ${context?.userName || "there"}
@@ -99,9 +103,7 @@ RESPONSE GUIDELINES:
 - Give clear, actionable guidance
 - Mention specific page routes when helpful (like /weekly-meal-planning)
 - Celebrate user achievements when appropriate
-- If unsure about something, admit it but offer general help
-
-User question: "${message}"`;
+- If unsure about something, admit it but offer general help`, { recommendationSurface: "legacy_assistant" });
 
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -119,7 +121,30 @@ User question: "${message}"`;
       temperature: 0.7,
     });
 
-    const responseText = completion.choices[0]?.message?.content || "I'm here to help! What would you like to know?";
+    let responseText = completion.choices[0]?.message?.content || "I'm here to help! What would you like to know?";
+    if (evaluateWholeFoodCandidate({ description: responseText }, {
+      recommendationSurface: "legacy_assistant",
+    }).shouldSubstitute) {
+      const retry = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message },
+          { role: "assistant", content: responseText },
+          { role: "user", content: "Revise only the food recommendation to use a practical stronger alternative. Preserve clinical, allergy, dietary, and performance constraints." },
+        ],
+        max_tokens: 200,
+        temperature: 0.2,
+      });
+      responseText = retry.choices[0]?.message?.content?.trim() || "";
+      if (!responseText || evaluateWholeFoodCandidate({ description: responseText }, {
+        recommendationSurface: "legacy_assistant",
+      }).shouldSubstitute) {
+        return res.status(422).json({
+          error: "Unable to provide a food recommendation that meets the Whole-Food Standard.",
+        });
+      }
+    }
 
     // Smart navigation detection for voice commands
     const detectNavigation = (userMessage: string, aiResponse: string): string | undefined => {

@@ -14,6 +14,8 @@ import { discoverVenue } from "../services/locationContext/venueDiscovery";
 import { resolveDailyNutritionState } from "../services/nutritionStateService";
 import { buildCravingInstructions, buildRemainingMacrosBlock } from "../services/restaurantMealGeneratorAI";
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
+import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "../services/wholeFoodStandard";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput } from "../services/protocolEnvelope";
 
 const router = Router();
 
@@ -46,6 +48,10 @@ router.post("/coach", async (req, res) => {
 
     let user: any = null;
     let nutritionContext: any = null;
+    const protocolEnvelope = await loadUserProtocolEnvelope(userId);
+    if (!protocolEnvelope) {
+      return res.status(503).json({ error: "Nutrition guidance is temporarily unavailable. Please try again.", retryable: true });
+    }
     try {
       const [found] = await db.select().from(users).where(eq(users.id, userId));
       if (found) user = found;
@@ -117,12 +123,12 @@ router.post("/coach", async (req, res) => {
       locationBlock = lines.join("\n");
     }
 
-    const systemPrompt = `You are a personal nutrition coach in the My Perfect Meals app called the Getaway Coach. Your specialty: helping users find the BEST food options wherever life takes them — Disney, Universal, airports, cruise ships, resorts, arenas, state fairs, and more.
+    const systemPrompt = appendWholeFoodStandardPrompt(`You are a personal nutrition coach in the My Perfect Meals app called the Getaway Coach. Your specialty: helping users find the BEST food options wherever life takes them — Disney, Universal, airports, cruise ships, resorts, arenas, state fairs, and more.
 
 When a user tells you where they are, you:
 1. Draw on your detailed knowledge of that venue's actual food outlets, restaurants, and stands
 2. Cross-reference against the user's dietary profile, allergies, and medical protocols
-3. Recommend 2-3 specific, named options that actually exist at that venue
+3. Recommend 2-3 specific, named options when supported by the supplied venue context or reliable knowledge; when menu/outlet availability is not verified, label it as unverified and tell the user to confirm on site
 4. Explain briefly why each fits their goals
 5. Flag 1-2 items to avoid ONLY if there is a meaningful medical/dietary reason
 6. End with a warm 1-2 sentence coach note — supportive, never preachy
@@ -170,7 +176,10 @@ RESPONSE FORMAT — return valid JSON only, no markdown, no code fences:
   "coachNote": "1-2 sentences. Warm and practical. Remind them vacation is about living, just smarter."
 }
 
-Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specifically problematic for this user. The familyNote array should have 1-2 practical tips about eating at this venue with family or children. For venues like theme parks, cruises, and resorts this is almost always relevant. For a solo business airport context it can be []. The zone field should be null when no zone was specified.`;
+Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specifically problematic for this user. The familyNote array should have 1-2 practical tips about eating at this venue with family or children. For venues like theme parks, cruises, and resorts this is almost always relevant. For a solo business airport context it can be []. The zone field should be null when no zone was specified.`, {
+      purposes: profileLines.some((line) => line.startsWith("Health conditions:")) ? ["clinical"] : [],
+      recommendationSurface: "getaway_coach",
+    });
 
     // ── Craving intent: extract the user's food request from the message ─────
     const cravingInstructions = buildCravingInstructions(message.trim(), nutritionContext?.envelope?.hasDiabetes ?? false);
@@ -196,6 +205,10 @@ Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specif
     if (glp1Ctx) glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
 
     const contextParts: string[] = [profileBlock];
+    contextParts.push(enforceBeforeGenerate(protocolEnvelope, {
+      userInput: message.trim(),
+      generatorName: "getaway_coach",
+    }).combined);
     if (nutritionContext?.combinedBlock) contextParts.push(nutritionContext.combinedBlock);
     if (glp1Block) contextParts.push(glp1Block);
     if (cravingInstructions) contextParts.push(cravingInstructions);
@@ -230,6 +243,40 @@ Based on where this person is right now, give them their best food guidance.`;
 
     if (locationZoneLabel && !result.zone) {
       result.zone = locationZoneLabel;
+    }
+
+    // Composition is not verified for venue suggestions. Apply deterministic
+    // blocking only for clear product patterns and disclose all uncertainty.
+    if (Array.isArray(result.bestChoices)) {
+      const purposes = profileLines.some((line) => line.startsWith("Health conditions:")) ? ["clinical"] as const : [];
+      result.bestChoices = result.bestChoices.filter((choice: any) => {
+        const protocolScan = scanGeneratedOutput({
+          name: choice?.name,
+          description: `${choice?.why ?? ""} ${choice?.where ?? ""}`,
+        }, protocolEnvelope, { generatorName: "getaway_coach" });
+        if (!protocolScan.passed) {
+          console.warn(`[Getaway/Protocol] Removed "${choice?.name}" — ${protocolScan.message}`);
+          return false;
+        }
+        const decision = evaluateWholeFoodCandidate(
+          { name: choice?.name, description: `${choice?.why ?? ""} ${choice?.where ?? ""}` },
+          { purposes: [...purposes], recommendationSurface: "getaway_coach" },
+        );
+        if (decision.shouldBlock) {
+          console.warn(`[Getaway/WFS] Removed "${choice?.name}" — ${decision.reason}`);
+          return false;
+        }
+        if (decision.classification === "uncertain") {
+          choice.why = `${choice?.why ?? ""} Processing classification is uncertain because venue ingredients and preparation were not verified.`.trim();
+        }
+        return true;
+      });
+      if (result.bestChoices.length === 0) {
+        return res.status(503).json({
+          error: "No venue food choices could be confirmed against your active dietary and clinical requirements. Please ask about additional options on site.",
+          retryable: true,
+        });
+      }
     }
 
     // ── GLP-1 post-gen bestChoice filtering ───────────────────────────────────

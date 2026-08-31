@@ -12,6 +12,7 @@ import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, sc
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { classifyRestaurantArchetype } from './restaurantCuisineArchetype';
 import { validateDiabeticMeal } from './guardrails/validators/diabeticValidator';
+import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate, type WholeFoodPurpose } from './wholeFoodStandard';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -481,7 +482,11 @@ Adjustments go in "howToOrder.modify" and "howToOrder.swap" — NOT in the meal 
     }
 
     // Use OpenAI to generate restaurant-specific meals
-    const prompt = `You are a nutrition expert helping someone order healthy meals at "${restaurantName}", a ${cuisine} restaurant.
+    const wholeFoodPurposes: WholeFoodPurpose[] = [
+      ...(userConditions.length > 0 ? ["clinical" as const] : []),
+      ...((String((user as any)?.goalType ?? "").toLowerCase().includes("performance")) ? ["performance" as const] : []),
+    ];
+    const prompt = appendWholeFoodStandardPrompt(`You are a nutrition expert helping someone order healthy meals at "${restaurantName}", a ${cuisine} restaurant.
 ${protocolBlock ? `\n${protocolBlock}\n` : ""}${builderBlock ? `\n${builderBlock}\n` : ""}
 ${medicalWaiterBlock}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${remainingMacrosBlock}${dietBehaviorBlock}
 ${archetypeRealism}
@@ -544,7 +549,10 @@ Return ONLY a JSON object with this exact structure (the meals array MUST be wra
   ]
 }
 
-Make the meals sound like something you would genuinely see on the menu at ${restaurantName}. A person should be able to walk in and order this out loud.`;
+Make the meals sound like something you would genuinely see on the menu at ${restaurantName}. A person should be able to walk in and order this out loud.`, {
+      purposes: wholeFoodPurposes,
+      recommendationSurface: "restaurant_ai_fallback",
+    });
 
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini", // 10x faster than gpt-4
@@ -660,13 +668,16 @@ Make the meals sound like something you would genuinely see on the menu at ${res
         console.warn(`⚠️ [VARIETY] Duplicate format group "${group}" at index ${i} ("${meals[i].name}") — regenerating`);
         try {
           const existingNames = meals.map(m => m.name).join(", ");
-          const fixPrompt = `You are a nutrition expert for ${restaurantName}, a ${cuisine} restaurant.
+          const fixPrompt = appendWholeFoodStandardPrompt(`You are a nutrition expert for ${restaurantName}, a ${cuisine} restaurant.
 The previous meal results contained duplicate meal formats. The current meals are: ${existingNames}.
 The previous result duplicated an existing meal format. Return a meal that is clearly a different type and structure from the previous results.
 It must NOT be another ${group} dish. It must fill the "alternative format" slot — for example a bowl, a wrap, a salad, or another non-traditional option.
 ${dietaryContext}${dietBehaviorBlock}
 Return ONLY a single JSON object (not an array) with this exact structure:
-{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[]}`;
+{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[]}`, {
+            purposes: wholeFoodPurposes,
+            recommendationSurface: "restaurant_ai_fallback",
+          });
           const fixCompletion = await getOpenAI().chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: fixPrompt }],
@@ -845,7 +856,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
 Only choose a different protein if "${cravingContext}" itself is the direct source of excess carbohydrates (it almost never is for a meat or fish protein).`
           : `Choose a meal with a lean protein (grilled meat, fish, shrimp, or eggs) paired with non-starchy sides only.`;
 
-        const retryPrompt = `You are a nutrition expert for ${restaurantName}, a ${cuisine} restaurant.
+        const retryPrompt = appendWholeFoodStandardPrompt(`You are a nutrition expert for ${restaurantName}, a ${cuisine} restaurant.
 ${protocolBlock ? `\n${protocolBlock}\n` : ''}
 CRITICAL — PREVIOUS MEAL REJECTED BY DIABETIC SAFETY VALIDATOR.
 The meal "${meal.name}" was rejected. Violations: ${result.violations.join('; ')}
@@ -861,7 +872,10 @@ HARD RULES for this replacement meal:
 - Non-starchy vegetables are required
 
 Return ONLY a single JSON object (not an array):
-{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[],"menuAnchorItem":"...","howToOrder":{"askFor":"...","modify":[],"swap":[]},"medicalWaiterScript":""}`;
+{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[],"menuAnchorItem":"...","howToOrder":{"askFor":"...","modify":[],"swap":[]},"medicalWaiterScript":""}`, {
+          purposes: wholeFoodPurposes,
+          recommendationSurface: "restaurant_ai_fallback",
+        });
 
         try {
           const retryCompletion = await getOpenAI().chat.completions.create({
@@ -935,6 +949,30 @@ Return ONLY a single JSON object (not an array):
       enforcedMeals.push(...validatedMeals);
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    // Run after every clinical and dietary gate, including diabetic retries.
+    // Restaurant composition is often incomplete: disclose uncertainty rather
+    // than incorrectly calling an item compliant.
+    const wholeFoodSafeMeals = enforcedMeals.filter((meal) => {
+      const decision = evaluateWholeFoodCandidate(
+        { name: meal.name, description: meal.description, ingredients: meal.ingredients, instructions: meal.modifications },
+        { purposes: wholeFoodPurposes, recommendationSurface: "restaurant_ai_fallback" },
+      );
+      if (decision.shouldBlock) {
+        console.warn(`🚫 [Restaurant/WFS] Removed "${meal.name}" — ${decision.reason}`);
+        return false;
+      }
+      if (decision.classification === "uncertain") {
+        meal.reason = `${meal.reason} Processing classification is uncertain because restaurant ingredients and preparation were not verified.`;
+      }
+      return true;
+    });
+    if (wholeFoodSafeMeals.length === 0 && enforcedMeals.length > 0) {
+      console.warn("⚠️ [Restaurant/WFS] No suitable whole-food-standard restaurant meals remain");
+      return [];
+    }
+    enforcedMeals.length = 0;
+    enforcedMeals.push(...wholeFoodSafeMeals);
 
     // Image generation — skipped when caller has client-side image rendering (ChefFlow)
     if (skipImages) {
