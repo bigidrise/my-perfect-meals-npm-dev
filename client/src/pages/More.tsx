@@ -267,26 +267,6 @@ export default function MorePage() {
       >
         <div className="max-w-2xl mx-auto space-y-4">
           <SponsorEndedBanner />
-          <div className="relative h-48 rounded-xl overflow-hidden">
-            <img
-              src="/images/procare-hero.png"
-              alt="Professional coaching"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%238b5cf6;stop-opacity:0.3' /%3E%3Cstop offset='100%25' style='stop-color:%23ec4899;stop-opacity:0.3' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='200' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='white' font-size='24' font-family='sans-serif' dy='.3em'%3EProCare%3C/text%3E%3C/svg%3E";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4">
-              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-3 py-2.5">
-                <h2 className="text-2xl font-bold text-white mb-1"></h2>
-                <p className="text-white/90 text-sm">
-                  {t("proHeroDesc")}
-                </p>
-              </div>
-            </div>
-          </div>
 
           {/* ProCare capability */}
           <Card
