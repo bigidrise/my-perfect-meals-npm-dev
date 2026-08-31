@@ -127,6 +127,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
 import { useTranslation } from "react-i18next";
+import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
@@ -147,6 +148,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const canAccessTrainingNutrition = isClinicalOrAbove(user);
   const { t } = useTranslation();
   usePageTitle(t("antiInflammatoryBuilder.pageTitle"));
 
@@ -1379,6 +1381,7 @@ export default function AntiInflammatoryMenuBuilder() {
       >
         {/* ── Training Nutrition Schedule entry ── */}
         <button
+          hidden={!canAccessTrainingNutrition}
           onClick={() => setLocation("/anti-inflammatory/training")}
           className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group mx-0"
         >
@@ -1386,7 +1389,12 @@ export default function AntiInflammatoryMenuBuilder() {
             <Dumbbell className="w-4 h-4 text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-white leading-tight">Training Nutrition Schedule</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-sm text-white leading-tight">Training Nutrition Schedule</p>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
+                Clinical
+              </span>
+            </div>
             <p className="text-white/40 text-xs mt-0.5">Adjust daily macro targets based on your workout schedule</p>
           </div>
           <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />
