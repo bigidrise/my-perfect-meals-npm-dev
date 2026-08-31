@@ -186,11 +186,18 @@ export default function LifestyleLandingPage() {
           className="sticky top-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div
-  className="flex-1 px-4 py-8"
-  style={{ paddingTop: isDesktop ? "0" : undefined }}
->
-  <div className="max-w-2xl mx-auto space-y-4">
+          <div className="px-8 py-3 flex items-center gap-3">
+            <Sparkles className="h-6 w-6 text-orange-500" />
+            <h1 className="text-lg font-bold text-white">{t("title")}</h1>
+          </div>
+        </div>
+      )}
+
+      <div
+        className="flex-1 px-4 py-8"
+        style={{ paddingTop: isDesktop ? "0" : undefined }}
+      >
+        <div className="max-w-2xl mx-auto space-y-4">
     {/* ── Featured Kitchens — hidden from Lifestyle Hub (lives in Business Suite) ── */}
     {false && kitchensIsAdmin && <div>
       <div className="flex items-center justify-between mb-2">

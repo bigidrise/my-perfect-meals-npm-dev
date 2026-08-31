@@ -92,6 +92,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Grocery Store Coach — AI grocery advisor personalized to your full nutrition protocol",
       "My Perfect Hydration Center — personalized hydration intelligence for activity, nutrition context, barriers, and verified professional guidance",
       "Athlete Beverage Creator — performance drinks calibrated to your training phase, sport, and recovery goals.",
+      "ProCare Coaching — connect and work with an authorized ProCare coach or trainer.",
       "My Perfect Getaway™ — stay on track anywhere: theme parks, airports, resorts, and cruises with venue-specific, protocol-aware dining recommendations.",
       "Business Center — access partner programs, referral and marketing tools, organization setup, team management, and business growth resources.",
     ],
@@ -119,7 +120,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     displayFeatures: [
       "Everything in Pro",
       "Clinical Lab Results Integration — connect your blood work and let the system adjust your meal protocols automatically based on your biomarkers",
-      "Care Team Access — Connect with physicians, registered dietitians, nutrition coaches, and trainers inside My Perfect Meals for collaborative clinical guidance.",
+      "Clinical Care Team Access — everything in Pro, plus physician and clinical Care Team collaboration.",
       "Hormone Biomarker Integration — Track hormone values and incorporate them into your Clinical nutrition profile and personalized guidance.",
       "Performance Nutrition Builder — sport-specific fueling protocols, starch cycling, and competition prep meal builder",
       "Clinical Advisory System — AI that continuously interprets your health data, medications, biomarkers, and nutrition history to deliver personalized clinical guidance.",

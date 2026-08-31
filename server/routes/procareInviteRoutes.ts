@@ -44,6 +44,7 @@ router.post("/token/:token/accept", requireAuth, async (req, res) => {
       authUser.id,
       authUser.planLookupKey ?? null,
       authUser.accessTier,
+      authUser.isFounder || authUser.isSandbox || authUser.isTester,
     );
 
     if (result.ok) {
@@ -82,6 +83,17 @@ router.post("/token/:token/accept", requireAuth, async (req, res) => {
         return res.status(403).json({
           error: "CLINICAL_REQUIRED",
           message: "A Clinical (Ultimate) subscription is required to connect with a ProCare provider.",
+        });
+      case "PRO_REQUIRED":
+        return res.status(403).json({
+          error: "PRO_REQUIRED",
+          requiredTier: "pro",
+          message: "A Pro subscription or higher is required to connect with a ProCare coach or trainer.",
+        });
+      case "UNSUPPORTED_PROVIDER_ROLE":
+        return res.status(403).json({
+          error: "UNSUPPORTED_PROVIDER_ROLE",
+          message: "This professional role is not eligible for consumer ProCare connections.",
         });
       case "COACH_NOT_SUBSCRIBED":
         return res.status(403).json({
