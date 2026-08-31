@@ -14,6 +14,7 @@ import { generateRestaurantMealsAI } from './restaurantMealGeneratorAI';
 import type { User } from '@shared/schema';
 import { violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
 import type { UserProtocolEnvelope } from './protocolEnvelope';
+import { evaluateWholeFoodCandidate, type WholeFoodPurpose } from './wholeFoodStandard';
 
 const MIN_RESULTS_TARGET = 3;
 
@@ -66,6 +67,33 @@ interface RestaurantResult {
     reason: string;
     color: string;
   }>;
+}
+
+function applyWholeFoodStandard(
+  results: RestaurantResult[],
+  user?: User,
+): RestaurantResult[] {
+  const purposes: WholeFoodPurpose[] = [];
+  if ((user?.healthConditions?.length ?? 0) > 0) purposes.push("clinical");
+  if (String((user as any)?.goalType ?? "").toLowerCase().includes("performance")) {
+    purposes.push("performance");
+  }
+  return results.filter((result) => {
+    const decision = evaluateWholeFoodCandidate({
+      name: result.meal.name,
+      description: result.meal.description,
+      ingredients: result.meal.ingredients,
+      instructions: result.meal.modifications,
+    }, { purposes, recommendationSurface: "meal_finder" });
+    if (decision.shouldBlock) {
+      console.warn(`🚫 [MealFinder/WFS] Removed "${result.meal.name}" — ${decision.reason}`);
+      return false;
+    }
+    if (decision.classification === "uncertain") {
+      result.meal.reason = `${result.meal.reason} Processing classification is uncertain because restaurant ingredients and preparation were not verified.`;
+    }
+    return true;
+  });
 }
 
 // ─── Cuisine preference query helper ─────────────────────────────────────────
@@ -392,7 +420,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
     });
     const fallbackResults = (await Promise.all(fallbackPromises)).flat();
     console.log(`✅ Fallback generated ${fallbackResults.length} AI suggestions`);
-    return fallbackResults;
+    return applyWholeFoodStandard(fallbackResults, aiUser);
   }
 
   // ── Step 2: Price filtering ───────────────────────────────────────────────
@@ -486,7 +514,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
   }
 
   console.log(`✅ ${results.length} meal recommendations ready`);
-  return results;
+  return applyWholeFoodStandard(results, aiUser);
 }
 
 // ─── Fallback restaurant inference (when Places API returns nothing) ─────────

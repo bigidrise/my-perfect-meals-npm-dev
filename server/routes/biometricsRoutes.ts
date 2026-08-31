@@ -709,7 +709,7 @@ router.post('/ingredient-intelligence', requireAuth, requireActiveAccess, async 
 });
 
 // Barcode lookup — resolves UPC/EAN → product name via Open Food Facts, then runs the by-name scan.
-// Falls back to the raw barcode string as productName if no DB match is found.
+// An unresolved barcode is not a product identity and must never be analyzed as one.
 router.post('/ingredient-scan-by-barcode', requireAuth, requireActiveAccess, async (req, res) => {
   try {
     const { barcode } = req.body;
@@ -722,7 +722,7 @@ router.post('/ingredient-scan-by-barcode', requireAuth, requireActiveAccess, asy
     }
 
     // Resolve barcode → product name via Open Food Facts (free, no key needed)
-    let productName: string = cleanBarcode;
+    let productName = "";
     let resolvedFromDb = false;
     try {
       const offUrl = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(cleanBarcode)}.json`;
@@ -749,10 +749,18 @@ router.post('/ingredient-scan-by-barcode', requireAuth, requireActiveAccess, asy
         }
       }
     } catch (lookupErr: any) {
-      // Timeout or network error — continue with raw barcode as fallback
+      // Lookup failure leaves the product unresolved; do not analyze the barcode token.
       console.warn('[barcode] Open Food Facts lookup failed:', lookupErr?.message);
     }
 
+    if (!resolvedFromDb || !productName) {
+      return res.status(404).json({
+        ok: false,
+        error: "Product could not be verified from this barcode. Scan the ingredient label or enter the product name.",
+        resolvedFromDb: false,
+        unresolvedBarcode: true,
+      });
+    }
     const userId = getAuthUserId(req);
     const { analyzeProductByName } = await import('../services/ingredientScanService');
     const result = await analyzeProductByName(productName, String(userId));

@@ -30,7 +30,13 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 // Phase 2 Step 1: Behavioral memory — read-only preference profile
-import { derivePreferenceProfile, buildBehavioralMemoryPromptSection, type PreferenceProfile } from "./behavioralMemoryService";
+import {
+  derivePreferenceProfile,
+  buildBehavioralMemoryPromptSection,
+  hasBehavioralMemorySignals,
+  type PreferenceProfile,
+} from "./behavioralMemoryService";
+import { evaluateWholeFoodCandidate } from "./wholeFoodStandard";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -584,7 +590,17 @@ function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealTyp
     slots.includes(s.mealType) &&
     !violatesAllergy(s.ingredients, req.allergies) &&
     !violatesDiet(s.ingredients, req.dietaryRestrictions) &&
-    validateMealType(s) // Ensure meal type is appropriate
+    validateMealType(s) &&
+    !evaluateWholeFoodCandidate(
+      {
+        name: s.name,
+        ingredients: s.ingredients.map((ingredient) => ({ name: ingredient.name })),
+      },
+      {
+        recommendationSurface: "weekly_meal_catalog",
+        practicalAlternativeAvailable: true,
+      },
+    ).shouldBlock
   );
 
   // Apply glycemic filtering if settings exist
@@ -616,24 +632,14 @@ function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealTyp
     if (!pick) {
       pick = pool.find(p => p.mealType === slot);
     }
-    if (!pick) {
-      pick = catalog.find(p => p.mealType === slot);
-    }
     
     if (pick) {
       out.push(pick);
       used.push(pick);
     } else {
-      console.warn(`No meal found for slot: ${slot}`);
-      // Create a fallback meal to prevent null issues
-      const fallback: Skeleton = {
-        name: `Default ${slot} meal`,
-        mealType: slot,
-        ingredients: [{ name: "Placeholder ingredient", grams: 100 }],
-        tags: ['fallback']
-      };
-      out.push(fallback);
-      used.push(fallback);
+      throw new Error(
+        `No allergy-, diet-, meal-type-, and Whole-Food Standard-compliant catalog meal is available for ${slot}`,
+      );
     }
   }
   return out;
@@ -856,7 +862,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   if (userPrefs?.userId && !skipPalate) {
     try {
       behavioralProfile = await derivePreferenceProfile(userPrefs.userId);
-      if (behavioralProfile && behavioralProfile.likes.length > 0) {
+      if (behavioralProfile && hasBehavioralMemorySignals(behavioralProfile)) {
         behavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
         console.log(
           `🧠 [BehavioralMemory] Loaded profile — ` +
@@ -929,6 +935,23 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     
     if (!validation.isValid) {
       console.log(`🚫 Filtered out ${s.name}: ${validation.reasons?.join(', ')}`);
+      return false;
+    }
+
+    const wholeFoodDecision = evaluateWholeFoodCandidate(
+      {
+        name: s.name,
+        ingredients: s.ingredients.map((ingredient) => ({ name: ingredient.name })),
+      },
+      {
+        recommendationSurface: "stable_meal_catalog",
+        practicalAlternativeAvailable: true,
+      },
+    );
+    if (wholeFoodDecision.shouldBlock) {
+      console.log(
+        `🥕 Filtered out ${s.name}: Whole-Food Standard (${wholeFoodDecision.matchedTerms.join(", ")})`,
+      );
       return false;
     }
     

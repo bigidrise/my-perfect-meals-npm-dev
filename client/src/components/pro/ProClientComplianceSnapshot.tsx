@@ -12,7 +12,10 @@ interface ActivitySummary {
   proteinCompliance: number;
   loggingCompliance: number;
   mealConsistency: number;
+  mealCompletion: number | null;
+  mealLogging: number;
   macroAdherence: number;
+  macroAdherenceEligible: boolean;
   hydrationAdherence: number | null;
   hydrationEligible: boolean;
   loggedDays7: number;
@@ -21,6 +24,13 @@ interface ActivitySummary {
   proteinGoalDays: number;
   calorieGoalDays: number;
   mealSlots: { breakfast: number; lunch: number; dinner: number };
+  mealActivity: {
+    expectedMealCount: number;
+    completedMealCount: number;
+    plannedMealDays: number;
+    completedMealDays: number;
+    completionRate: number | null;
+  };
   biggestOpportunity: string;
   coachingSummary: string;
 }
@@ -89,14 +99,12 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
     );
   }
 
-  if (isError || !data || data.reason === "no_targets") {
+  if (isError || !data) {
     return (
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
         <h4 className="text-xs font-medium text-white/60 mb-1">Nutrition Activity</h4>
         <p className="text-[10px] text-white/30 italic">
-          {!data || isError
-            ? "Not available — client account not linked"
-            : "No active macro targets set yet"}
+          Not available — client account not linked
         </p>
       </div>
     );
@@ -121,7 +129,7 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
         </div>
       </div>
 
-      {data.loggedDays7 === 0 ? (
+      {data.loggedDays7 === 0 && (data.mealActivity?.expectedMealCount ?? 0) === 0 ? (
         <p className="text-[10px] text-white/30 italic">
           No meal logs recorded in this window
         </p>
@@ -136,9 +144,25 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
               <span>Meal consistency</span>
               <span className="font-semibold text-white">{data.mealConsistency}%</span>
             </div>
+            <div className="ml-1 space-y-1 border-l border-white/10 pl-2">
+              <div className="flex items-center justify-between gap-2 text-[10px] text-white/45">
+                <span>Meals completed</span>
+                <span className="text-white/70">
+                  {data.mealCompletion === null
+                    ? "Not yet tracked"
+                    : `${data.mealActivity.completedMealCount}/${data.mealActivity.expectedMealCount} · ${data.mealCompletion}%`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 text-[10px] text-white/45">
+                <span>Days with meal logs</span>
+                <span className="text-white/70">{data.loggedDays7}/{win} · {data.mealLogging}%</span>
+              </div>
+            </div>
             <div className="flex items-center justify-between text-[11px] text-white/70">
               <span>Whole-plan macro adherence</span>
-              <span className="font-semibold text-white">{data.macroAdherence}%</span>
+              <span className="font-semibold text-white">
+                {data.macroAdherenceEligible ? `${data.macroAdherence}%` : "Not scored"}
+              </span>
             </div>
             {data.hydrationEligible && data.hydrationAdherence !== null ? (
               <div className="flex items-center justify-between text-[11px] text-white/70">

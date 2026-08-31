@@ -16,6 +16,7 @@ import { generateBuffetRecommendations } from "../services/buffetRecommendationA
 import { resolveDailyNutritionState } from "../services/nutritionStateService";
 import { buildRemainingMacrosBlock } from "../services/restaurantMealGeneratorAI";
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
+import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 
 const router = Router();
 
@@ -40,6 +41,10 @@ router.post("/recommend", async (req, res) => {
     }
 
     const nutritionContext = await getActiveNutritionContext(userId);
+    const protocolEnvelope = await loadUserProtocolEnvelope(userId);
+    if (!protocolEnvelope) {
+      return res.status(503).json({ error: "Nutrition guidance is temporarily unavailable. Please try again.", retryable: true });
+    }
 
     // ── GLP-1 canonical context — fail closed ─────────────────────────────────
     const todayISO = new Date().toISOString().slice(0, 10);
@@ -66,6 +71,7 @@ router.post("/recommend", async (req, res) => {
       requestedFood: requestedFood ?? undefined,
       remainingMacrosBlock: remainingMacrosBlock || undefined,
       glp1RecommendationBlock: glp1Block || undefined,
+      protocolEnvelope,
     });
 
     // ── GLP-1 post-gen plate filtering ────────────────────────────────────────
