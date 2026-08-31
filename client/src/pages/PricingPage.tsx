@@ -36,6 +36,7 @@ import { restorePurchases, purchaseProduct } from "@/lib/storekit";
 import { IOS_PRODUCTS, type IosProduct } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { syncPurchaseRequiredFlag } from "@/lib/purchaseRequired";
 
 export default function PricingPage() {
   const [, setLocation] = useLocation();
@@ -72,9 +73,11 @@ export default function PricingPage() {
     : false;
 
   useEffect(() => {
-    if (requiredFromUrl) {
-      localStorage.setItem("mpm_purchase_required", "true");
-    }
+    // A normal visit (including the Hydration Center upgrade link) must not
+    // inherit a stale purchase-required redirect from an earlier checkout
+    // flow. Without this cleanup, the app can keep sending the user back to
+    // /pricing after they leave it.
+    syncPurchaseRequiredFlag(requiredFromUrl);
   }, [requiredFromUrl]);
 
   useEffect(() => {
