@@ -87,6 +87,7 @@ import { hasFeature } from "@/lib/entitlements";
 import { canAccessClinicalLabs, canAccessTherapeuticNutrition } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { convertWeightLbsDisplay } from "@shared/units";
+import { BasicHydrationLogger } from "@/components/biometrics/BasicHydrationLogger";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -185,7 +186,7 @@ export default function MyBiometrics() {
     {
       title: "Track Your Water",
       description:
-        "Log your daily water intake at the bottom of the page to support hydration and recovery.",
+        "Use Basic Hydration Tracking at the bottom of the page to log fluids and review today's total.",
     },
     {
       icon: "📐",
@@ -2793,21 +2794,33 @@ export default function MyBiometrics() {
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
-              Hydration Hub
+              My Perfect Hydration Center
             </CardTitle>
+            <Badge className="border-sky-300/25 bg-sky-500/15 text-sky-100">Pro</Badge>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm leading-relaxed text-white/65">
-              Water tracking lives in the server-backed Hydration Hub. No
-              personal target is created from body weight or a population
-              average.
+              Build hydration support around activity, nutrition context,
+              preferences, barriers, and verified professional guidance—without
+              relying on a generic one-size-fits-all water target.
             </p>
+            {user?.id && <BasicHydrationLogger userId={user.id} />}
             <Button
-              onClick={() => setLocation("/hydration")}
+              onClick={() => {
+                if (hasFeature(user, "hydration_center")) {
+                  setLocation("/hydration");
+                  return;
+                }
+                requestUpgrade({
+                  requiredTier: "pro",
+                  featureName: "My Perfect Hydration Center",
+                  valueMessage: "Build hydration support around your activity, nutrition context, preferences, barriers, and verified professional guidance—without relying on a generic one-size-fits-all water target.",
+                });
+              }}
               className="w-full bg-sky-600 text-white hover:bg-sky-500"
               data-testid="open-hydration-center"
             >
-              Open Hydration Hub
+              Open My Perfect Hydration Center
             </Button>
           </CardContent>
         </Card>
@@ -2917,7 +2930,9 @@ export default function MyBiometrics() {
             </PillButton>
           </div>
         }
-      />
+      >
+        <span className="sr-only">Confirm whether to reset today's macro entries.</span>
+      </ConfirmationModal>
 
       <MacroScanModal
         open={showMacroModal}

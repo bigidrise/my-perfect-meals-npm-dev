@@ -194,7 +194,7 @@ router.get("/hydration/evidence", requireAuth, async (_req, res) => {
   }
 });
 
-router.get("/hydration/state", requireAuth, async (req, res) => {
+router.get("/hydration/state", requireAuth, requireProAccess, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
     if (
@@ -259,7 +259,7 @@ const hydrationHubEventSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 }).strict();
 
-router.get("/hydration/hub", requireAuth, async (req, res) => {
+router.get("/hydration/hub", requireAuth, requireProAccess, async (req, res) => {
   const startedAt = performance.now();
   try {
     const authReq = req as AuthenticatedRequest;
@@ -287,13 +287,13 @@ router.get("/hydration/hub", requireAuth, async (req, res) => {
     res.setHeader("Server-Timing", `hydration-hub;dur=${(performance.now() - startedAt).toFixed(1)}`);
     res.json(state);
   } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub request" });
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Center request" });
     console.error("[hydration] hub state failed", error);
-    res.status(500).json({ error: "Failed to resolve Hydration Hub" });
+    res.status(500).json({ error: "Failed to resolve My Perfect Hydration Center" });
   }
 });
 
-router.post("/hydration/hub/handoff", requireAuth, async (req, res) => {
+router.post("/hydration/hub/handoff", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser?.id;
     if (!userId) return res.status(401).json({ error: "Authentication required" });
@@ -318,7 +318,7 @@ router.post("/hydration/hub/handoff", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/hydration/hub/handoff/:token", requireAuth, async (req, res) => {
+router.get("/hydration/hub/handoff/:token", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser?.id;
     if (!userId) return res.status(401).json({ error: "Authentication required" });
@@ -350,13 +350,13 @@ function requireSelfHydrationWrite(req: AuthenticatedRequest, res: express.Respo
     return null;
   }
   if (typeof req.body?.clientId === "string" && req.body.clientId !== authenticatedUserId) {
-    res.status(403).json({ error: "Hydration Hub setup can only be changed by the account owner" });
+    res.status(403).json({ error: "Hydration Center setup can only be changed by the account owner" });
     return null;
   }
   return authenticatedUserId;
 }
 
-router.put("/hydration/hub/preferences", requireAuth, async (req, res) => {
+router.put("/hydration/hub/preferences", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -369,13 +369,13 @@ router.put("/hydration/hub/preferences", requireAuth, async (req, res) => {
     });
     res.json({ ok: true, consented: input.consented && !input.optedOut });
   } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub preferences" });
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Center preferences" });
     console.error("[hydration] preferences save failed", error);
-    res.status(500).json({ error: "Failed to save Hydration Hub preferences" });
+    res.status(500).json({ error: "Failed to save Hydration Center preferences" });
   }
 });
 
-router.put("/hydration/hub/barriers", requireAuth, async (req, res) => {
+router.put("/hydration/hub/barriers", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -383,13 +383,13 @@ router.put("/hydration/hub/barriers", requireAuth, async (req, res) => {
     await saveHydrationBarriers({ userId, barriers: input.barriers as Array<{ barrierCode: HydrationBarrierCode; note?: string }> });
     res.json({ ok: true, barriers: input.barriers });
   } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub barriers" });
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Center barriers" });
     console.error("[hydration] barriers save failed", error);
-    res.status(500).json({ error: "Failed to save Hydration Hub barriers" });
+    res.status(500).json({ error: "Failed to save Hydration Center barriers" });
   }
 });
 
-router.post("/hydration/hub/help", requireAuth, async (req, res) => {
+router.post("/hydration/hub/help", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -404,16 +404,16 @@ router.post("/hydration/hub/help", requireAuth, async (req, res) => {
     });
     res.json({ options });
   } catch (error) {
-    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Hub help request" });
+    if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid Hydration Center help request" });
     if ((error as { code?: string }).code === "HYDRATION_HUB_CONSENT_REQUIRED") {
-      return res.status(403).json({ error: "Save Hydration Hub consent before requesting personalized options" });
+      return res.status(403).json({ error: "Save Hydration Center consent before requesting personalized options" });
     }
     console.error("[hydration] help generation failed", error);
     res.status(500).json({ error: "Failed to create practical hydration options" });
   }
 });
 
-router.post("/hydration/hub/interventions/:interventionId/events", requireAuth, async (req, res) => {
+router.post("/hydration/hub/interventions/:interventionId/events", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -437,7 +437,7 @@ const liquidProtocolActivationSchema = z.object({
   confirm: z.literal(true),
 }).strict();
 
-router.get("/hydration/hub/liquid-protocol", requireAuth, async (req, res) => {
+router.get("/hydration/hub/liquid-protocol", requireAuth, requireProAccess, async (req, res) => {
   try {
     const authReq = req as AuthenticatedRequest;
     const owner = await authorizeSubject(authReq, res, req.query.clientId);
@@ -456,7 +456,7 @@ router.get("/hydration/hub/liquid-protocol", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/hydration/hub/liquid-protocol", requireAuth, async (req, res) => {
+router.post("/hydration/hub/liquid-protocol", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;
@@ -475,7 +475,7 @@ router.post("/hydration/hub/liquid-protocol", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/hydration/hub/liquid-protocol/:protocolId/activate", requireAuth, async (req, res) => {
+router.post("/hydration/hub/liquid-protocol/:protocolId/activate", requireAuth, requireProAccess, async (req, res) => {
   try {
     const userId = requireSelfHydrationWrite(req as AuthenticatedRequest, res);
     if (!userId) return;

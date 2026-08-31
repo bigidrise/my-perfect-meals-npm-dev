@@ -24,12 +24,12 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     title: HYDRATION_HUB_TITLE,
     description: `${HYDRATION_HUB_DESCRIPTION} ${HYDRATION_HUB_OVERVIEW}`,
     howTo: [
-      "Open Hydration Hub from Biometrics or the App Library.",
+      "Open My Perfect Hydration Center from Biometrics or the App Library.",
       ...HYDRATION_HUB_DOORS.map(({ title, description }) => `${title}: ${description}`),
       "Log a fluid using a quick-add amount or a custom amount in ounces or milliliters.",
       "Review your server-backed fluid history and any current professional Hydration instructions.",
       "Read Considered for you to see which verified Nutrition Life Plan information informed practical support.",
-      "Use Hydration Hub for support and tracking; it does not create a medical fluid prescription.",
+      "Use My Perfect Hydration Center for support and tracking; it does not create a medical fluid prescription.",
     ],
     tips: [
       "Tracking works even when no numeric target is available.",
@@ -37,7 +37,11 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Professional instructions remain the source of truth when they apply.",
       HYDRATION_HUB_CONSIDERED_FOR_YOU,
       HYDRATION_HUB_MEDICAL_BOUNDARY,
-      ...HYDRATION_HUB_ABOUT_SECTIONS.map(({ heading, text }) => text ? `${heading}: ${text}` : heading),
+      ...HYDRATION_HUB_ABOUT_SECTIONS.map((section) =>
+        "text" in section && section.text
+          ? `${section.heading}: ${section.text}`
+          : section.heading,
+      ),
     ],
     relatedCommands: [],
   },

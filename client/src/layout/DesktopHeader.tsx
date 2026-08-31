@@ -153,7 +153,7 @@ export default function DesktopHeader() {
   const { t } = useTranslation("routeTitles");
 
   function getPageTitle(loc: string): string {
-    if (loc === "/hydration") return "Hydration Hub";
+    if (loc === "/hydration") return "My Perfect Hydration Center";
     if (ROUTE_KEY_MAP[loc]) return t(ROUTE_KEY_MAP[loc]);
     for (const [route, key] of Object.entries(ROUTE_KEY_MAP)) {
       if (loc.startsWith(route + "/")) return t(key);

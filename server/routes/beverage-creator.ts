@@ -159,7 +159,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
             : 400;
         return res.status(status).json({
           error: code === "HYDRATION_HANDOFF_EXPIRED"
-            ? "This Hydration handoff has expired. Return to Hydration Hub to start again."
+            ? "This Hydration handoff has expired. Return to My Perfect Hydration Center to start again."
             : "This Hydration handoff is not valid for the current account.",
         });
       }

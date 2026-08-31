@@ -20,6 +20,7 @@ export type Entitlement =
   | "pregnancy"
   | "getaway"
   | "grocery_coach"
+  | "hydration_center"
   | "performance_nutrition";
 
 export interface PlanDefinition {
@@ -89,6 +90,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "My Perfect Pets — AI-generated nutrition and meal plans for your pets",
       "My Perfect Beginning — age-appropriate nutrition guidance and meal support for children from infancy through the early years.",
       "Grocery Store Coach — AI grocery advisor personalized to your full nutrition protocol",
+      "My Perfect Hydration Center — personalized hydration intelligence for activity, nutrition context, barriers, and verified professional guidance",
       "Athlete Beverage Creator — performance drinks calibrated to your training phase, sport, and recovery goals.",
       "My Perfect Getaway™ — stay on track anywhere: theme parks, airports, resorts, and cruises with venue-specific, protocol-aware dining recommendations.",
       "Business Center — access partner programs, referral and marketing tools, organization setup, team management, and business growth resources.",
@@ -108,6 +110,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "holiday_feast",
       "learn_cook",
       "grocery_coach",
+      "hydration_center",
       "getaway",
     ],
   },
@@ -142,6 +145,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "pregnancy",
       "getaway",
       "grocery_coach",
+      "hydration_center",
       "performance_nutrition",
     ],
   },

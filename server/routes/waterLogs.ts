@@ -173,7 +173,9 @@ router.get("/water-logs", requireAuth, async (req, res) => {
       rows.length = limit;
     }
 
-    res.json({ items: rows, nextCursor });
+    const timezone = await getUserTimezone(userId);
+    const localDate = localDateInTimezone(new Date(), timezone);
+    res.json({ items: rows, nextCursor, timezone, localDate });
   } catch (e: any) {
     console.error("get water-logs error", e);
     res.status(500).json({ error: "Failed to fetch water logs" });

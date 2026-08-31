@@ -212,7 +212,7 @@ export default function BeverageCreator() {
       .catch((error) => {
         toast({
           title: "Hydration handoff unavailable",
-          description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Return to Hydration Hub to start again.",
+          description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Return to My Perfect Hydration Center to start again.",
           variant: "destructive",
         });
       });
@@ -579,7 +579,7 @@ export default function BeverageCreator() {
         >
           {hydrationHandoff && (
             <div className="mb-4 rounded-xl border border-sky-300/30 bg-sky-950/70 p-4 text-white backdrop-blur">
-              <p className="text-sm font-semibold text-sky-100">Hydration Hub handoff</p>
+              <p className="text-sm font-semibold text-sky-100">My Perfect Hydration Center handoff</p>
               <p className="mt-1 text-xs leading-relaxed text-sky-50/70">
                 Your practical need was carried here as context. Beverage Creator still applies its normal nutrition, diet, and safety checks.
               </p>

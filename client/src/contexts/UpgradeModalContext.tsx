@@ -6,6 +6,7 @@ export type RequiredTier = "essential" | "pro" | "clinical" | "meal-builders";
 interface UpgradeRequest {
   requiredTier: RequiredTier;
   featureName?: string;
+  valueMessage?: string;
 }
 
 interface UpgradeModalContextType {
@@ -36,6 +37,7 @@ export function UpgradeModalProvider({ children }: { children: ReactNode }) {
           onClose={handleClose}
           requiredTier={current.requiredTier}
           featureName={current.featureName}
+          valueMessage={current.valueMessage}
         />
       )}
     </UpgradeModalContext.Provider>

@@ -248,7 +248,7 @@ export default function HydrationCenter() {
       return;
     }
     await recordHydrationInterventionEvent(option.id, "completed");
-    toast({ title: "Saved as something to try", description: "Come back to Hydration Hub and tell us what worked." });
+    toast({ title: "Saved as something to try", description: "Come back to My Perfect Hydration Center and tell us what worked." });
     await load();
   };
 
@@ -278,7 +278,7 @@ export default function HydrationCenter() {
       <div className="min-h-screen">
       <header data-testid="hydration-header" className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl lg:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 pb-3 pt-2">
-          <h1 className="text-lg font-semibold leading-tight text-white">Hydration Hub</h1>
+          <h1 className="text-lg font-semibold leading-tight text-white">My Perfect Hydration Center</h1>
           <Badge className="shrink-0 border-sky-300/20 bg-sky-400/10 text-white">Everyday support</Badge>
         </div>
       </header>
@@ -359,7 +359,7 @@ export default function HydrationCenter() {
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {PREFERENCE_CONTROLS.map(({ key, label, values }) => <label key={key} className="text-[11px] text-white">{label}<select value={preferences[key]} onChange={(event) => setPreferences((current) => ({ ...current, [key]: event.target.value }))} className="mt-1 w-full rounded-md border border-white/30 bg-slate-900 px-2 py-2 text-xs text-white">{values.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select></label>)}
               </div>
-              <label className="mt-4 flex items-start gap-2 rounded-xl border border-white/30 bg-white/[.03] p-3 text-xs text-white"><input type="checkbox" checked={consented} onChange={(event) => setConsented(event.target.checked)} className="mt-0.5" /><span>I consent to saving these optional preferences and barriers for Hydration Hub suggestions.</span></label>
+              <label className="mt-4 flex items-start gap-2 rounded-xl border border-white/30 bg-white/[.03] p-3 text-xs text-white"><input type="checkbox" checked={consented} onChange={(event) => setConsented(event.target.checked)} className="mt-0.5" /><span>I consent to saving these optional preferences and barriers for My Perfect Hydration Center suggestions.</span></label>
               <div className="mt-3 flex gap-2"><Button disabled={saving} onClick={() => void saveSetup()} className="flex-1 bg-violet-500 hover:bg-violet-400">Save setup</Button><Button disabled={saving} onClick={() => void optOut()} variant="outline" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"><RotateCcw className="mr-1.5 h-4 w-4" />Reset & opt out</Button></div>
             </CardContent></Card>
 
@@ -384,7 +384,7 @@ export default function HydrationCenter() {
               <p className="mt-3 text-sm leading-relaxed text-white">Reviewed sources explain hydration concepts without converting population references into a personal target.</p>
               <div className="mt-4 grid grid-cols-2 gap-2"><div className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><p className="text-xs text-white">Options tried</p><p className="mt-1 text-2xl font-semibold text-white">{state ? state.outcomeCounts?.accepted || 0 : "—"}</p></div><div className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><p className="text-xs text-white">Completed</p><p className="mt-1 text-2xl font-semibold text-white">{state ? state.outcomeCounts?.completed || 0 : "—"}</p></div></div>
               <div className="mt-4 flex flex-col gap-2"><MedicalSourcesInfo trigger={<Button className="w-full bg-white/10 text-white hover:bg-white/15"><GlassWater className="mr-2 h-4 w-4" />View hydration sources</Button>} /><Button onClick={() => navigate("/learn?topic=hydration")} variant="outline" className="w-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">Open learning library</Button></div>
-              <p className="mt-4 text-xs leading-relaxed text-white">Products, sponsorships, and affiliate relationships never determine nutrition or clinical eligibility. Hydration Hub Phase 1 does not recommend products or supplements.</p>
+              <p className="mt-4 text-xs leading-relaxed text-white">Products, sponsorships, and affiliate relationships never determine nutrition or clinical eligibility. My Perfect Hydration Center does not recommend products or supplements.</p>
             </CardContent></Card>
           </section>
       </main>

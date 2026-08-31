@@ -285,7 +285,7 @@ export default function AthleteBeverageCreator() {
       .catch((error) => {
         toast({
           title: "Hydration handoff unavailable",
-          description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Return to Hydration Hub to start again.",
+          description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Return to My Perfect Hydration Center to start again.",
           variant: "destructive",
         });
       });
