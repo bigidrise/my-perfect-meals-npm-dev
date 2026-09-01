@@ -21,6 +21,16 @@ import type { TrialAccessType } from "../services/preRegistrationAccess";
 
 const router = Router();
 
+function getPublicAppUrl(req: AuthenticatedRequest | any): string {
+  if (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
+  const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:5000";
+  return `${protocol}://${host}`;
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────
 
 function computeTrialStatus(user: {
@@ -80,6 +90,34 @@ router.get("/status", requireAuth, async (req, res) => {
     console.error("[trial] GET /status error:", err);
     return res.status(500).json({ error: "Failed to fetch trial status" });
   }
+});
+
+router.get("/pilot/activation", async (req, res) => {
+  return res.status(410).json({
+    error: "The participant-level pilot activation flow has been retired. Use an organizational pilot invitation.",
+    code: "LEGACY_PILOT_FLOW_RETIRED",
+  });
+});
+
+router.post("/pilot/activate", async (req, res) => {
+  return res.status(410).json({
+    error: "The participant-level pilot activation flow has been retired. Use an organizational pilot invitation.",
+    code: "LEGACY_PILOT_FLOW_RETIRED",
+  });
+});
+
+router.post("/admin/pilot-programs", requireAuth, requireAdmin, async (req, res) => {
+  return res.status(410).json({
+    error: "Participant-level pilot provisioning has been retired. Create an organizational pilot through the approved Business flow.",
+    code: "LEGACY_PILOT_FLOW_RETIRED",
+  });
+});
+
+router.post("/admin/pilot-programs/:programId/start", requireAuth, requireAdmin, async (req, res) => {
+  return res.status(410).json({
+    error: "Participant-level pilot start has been retired. Use the organizational pilot start workflow.",
+    code: "LEGACY_PILOT_FLOW_RETIRED",
+  });
 });
 
 // ── Pre-registration access allowlist ───────────────────────────────────────

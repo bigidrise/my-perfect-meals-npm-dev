@@ -17,6 +17,7 @@ import { db } from "../db";
 import { businessMembers, businesses } from "../db/schema/business";
 import { eq, and } from "drizzle-orm";
 import { getActivePilotProCareGrant, getPilotClientSponsorshipState } from "./pilotProcareAccess";
+import { getActivePilotFullAccess } from "./pilotProgramAccess";
 import {
   getTierForLookupKey,
   getEntitlementsForTier,
@@ -40,6 +41,10 @@ export interface EffectiveAccess {
   pilotProCareAccess: boolean;
   pilotProCareGrantId: string | null;
   pilotProCareEndsAt: Date | null;
+  pilotFullAccess: boolean;
+  pilotParticipantId: string | null;
+  pilotProgramName: string | null;
+  pilotFullAccessEndsAt: Date | null;
 }
 
 interface UserSnapshot {
@@ -70,6 +75,7 @@ export async function computeEffectiveAccess(
 
   const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
   const pilotGrant = await getActivePilotProCareGrant(user.id);
+  const pilotFullAccess = await getActivePilotFullAccess(user.id);
   const pilotClientSponsorship = user.trialAccessType === "client"
     ? await getPilotClientSponsorshipState(user.id)
     : { linked: false, active: false };
@@ -100,6 +106,10 @@ export async function computeEffectiveAccess(
       pilotProCareAccess: Boolean(pilotGrant),
       pilotProCareGrantId: pilotGrant?.id ?? null,
       pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
+      pilotFullAccess: Boolean(pilotFullAccess),
+      pilotParticipantId: pilotFullAccess?.participantId ?? null,
+      pilotProgramName: pilotFullAccess?.programName ?? null,
+      pilotFullAccessEndsAt: pilotFullAccess?.expiresAt ?? null,
     };
   }
 
@@ -123,19 +133,29 @@ export async function computeEffectiveAccess(
     .limit(1);
 
   if (membership) {
-    const tier = getTierForLookupKey(membership.plan);
+    const baseMembershipTier = getTierForLookupKey(membership.plan);
+    const effectiveMembershipTier: PlanTier = pilotFullAccess
+      ? TRIAL_UNLOCKS_TIER
+      : baseMembershipTier;
+    const isOrganizationalPilotBusiness = membership.plan === "organizational_pilot";
     return {
       planLookupKey: membership.plan,
-      entitlements: getEntitlementsForTier(tier) as string[],
-      tier,
+      entitlements: getEntitlementsForTier(effectiveMembershipTier) as string[],
+      tier: effectiveMembershipTier,
       sponsoredByBusinessId: membership.businessId,
       sponsoredByBusinessName: membership.businessName,
       sponsoredProCareAccess:
-        membership.businessOwnerUserId === user.id ||
-        STUDIO_ELIGIBLE_BUSINESS_ROLES.has(membership.membershipRole),
+        !isOrganizationalPilotBusiness && (
+          membership.businessOwnerUserId === user.id ||
+          STUDIO_ELIGIBLE_BUSINESS_ROLES.has(membership.membershipRole)
+        ),
       pilotProCareAccess: Boolean(pilotGrant),
       pilotProCareGrantId: pilotGrant?.id ?? null,
       pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
+      pilotFullAccess: Boolean(pilotFullAccess),
+      pilotParticipantId: pilotFullAccess?.participantId ?? null,
+      pilotProgramName: pilotFullAccess?.programName ?? null,
+      pilotFullAccessEndsAt: pilotFullAccess?.expiresAt ?? null,
     };
   }
 
@@ -154,7 +174,9 @@ export async function computeEffectiveAccess(
     && trialEnd != null
     && trialEnd > now
     && (!pilotClientSponsorship.linked || pilotClientSponsorship.active);
-  const effectiveTier: PlanTier = (hasActiveTrial || pilotGrant) ? TRIAL_UNLOCKS_TIER : baseTier;
+  const effectiveTier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess)
+    ? TRIAL_UNLOCKS_TIER
+    : baseTier;
 
   return {
     planLookupKey: effectiveLookupKey,
@@ -166,5 +188,9 @@ export async function computeEffectiveAccess(
     pilotProCareAccess: Boolean(pilotGrant),
     pilotProCareGrantId: pilotGrant?.id ?? null,
     pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
+    pilotFullAccess: Boolean(pilotFullAccess),
+    pilotParticipantId: pilotFullAccess?.participantId ?? null,
+    pilotProgramName: pilotFullAccess?.programName ?? null,
+    pilotFullAccessEndsAt: pilotFullAccess?.expiresAt ?? null,
   };
 }

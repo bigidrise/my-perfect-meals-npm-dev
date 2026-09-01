@@ -20,7 +20,7 @@ describe("professional legal activation invariant", () => {
     expect(signupSource).not.toContain('userValues.planLookupKey = "mpm_procare_monthly"');
   });
 
-  test("authenticated upgrade remains the legal activation boundary", () => {
+  test("authenticated profile assertions cannot activate paid ProCare", () => {
     const source = fs.readFileSync(
       path.join(root, "server/routes/auth.session.ts"),
       "utf8",
@@ -28,10 +28,10 @@ describe("professional legal activation invariant", () => {
     const upgradeStart = source.indexOf('router.post("/api/auth/upgrade-to-procare"');
     const upgradeSource = source.slice(upgradeStart);
 
-    expect(upgradeSource).toContain('checkLegalAcceptance(userId, "attestation")');
-    expect(upgradeSource).toContain("checkLegalAcceptance(userId, proFlow)");
-    expect(upgradeSource).toContain('code: "LEGAL_REACCEPT_REQUIRED"');
-    expect(upgradeSource).toContain("isProCare: true");
+    expect(upgradeSource).toContain('code: "PROCARE_SELF_UPGRADE_RETIRED"');
+    expect(upgradeSource).toContain("verified billing");
+    expect(upgradeSource).not.toContain("isProCare: true");
+    expect(upgradeSource).not.toContain('planLookupKey: "mpm_procare_monthly"');
   });
 
   test("legal status supports both professional role-specific flows", () => {

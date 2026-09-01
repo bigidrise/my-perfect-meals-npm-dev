@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, unique } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, unique, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const businesses = pgTable("businesses", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -6,7 +6,20 @@ export const businesses = pgTable("businesses", {
   ownerUserId: text("owner_user_id").notNull().unique(),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  stripeCheckoutReservationId: text("stripe_checkout_reservation_id"),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+  stripeCheckoutSeatCount: integer("stripe_checkout_seat_count"),
+  stripeLastEventCreatedAt: timestamp("stripe_last_event_created_at", { withTimezone: true }),
+  stripeLastEventRank: integer("stripe_last_event_rank").notNull().default(0),
+  stripeLastEventId: text("stripe_last_event_id"),
   plan: text("plan").notNull().default("clinical_business_monthly"),
+  /**
+   * Professional capacity remains seatLimit. Client capacity is deliberately
+   * separate so clinics and gyms can support many clients without consuming
+   * professional seats. NULL preserves legacy paid-business behavior until an
+   * explicit client allocation is configured.
+   */
+  clientCapacity: integer("client_capacity"),
   seatLimit: integer("seat_limit").notNull().default(4),
   status: text("status").$type<"active" | "cancelled" | "past_due" | "pending_billing">().notNull().default("active"),
   /**
@@ -42,7 +55,11 @@ export const businesses = pgTable("businesses", {
   welcomeEmailSentAt: timestamp("welcome_email_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => ({
+  stripeCustomerIdUnique: uniqueIndex("businesses_stripe_customer_id_uniq").on(t.stripeCustomerId),
+  stripeSubscriptionIdUnique: uniqueIndex("businesses_stripe_subscription_id_uniq").on(t.stripeSubscriptionId),
+  stripeCheckoutSessionIdUnique: uniqueIndex("businesses_stripe_checkout_session_id_uniq").on(t.stripeCheckoutSessionId),
+}));
 
 export type Business = typeof businesses.$inferSelect;
 export type InsertBusiness = typeof businesses.$inferInsert;
@@ -51,7 +68,7 @@ export const businessMembers = pgTable("business_members", {
   id: uuid("id").defaultRandom().primaryKey(),
   businessId: uuid("business_id").notNull(),
   userId: text("user_id").notNull(),
-  role: text("role").$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "staff">().notNull().default("staff"),
+  role: text("role").$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
   status: text("status").$type<"active" | "removed">().notNull().default("active"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
   removedAt: timestamp("removed_at", { withTimezone: true }),
@@ -69,7 +86,10 @@ export const businessInvitations = pgTable("business_invitations", {
   businessId: uuid("business_id").notNull(),
   email: text("email").notNull(),
   token: text("token").notNull().unique(),
-  role: text("role").$type<"admin" | "coach" | "trainer" | "physician" | "staff">().notNull().default("staff"),
+  /** New pilot invitations use a digest in both token fields; raw legacy
+   * tokens remain supported by the existing paid-business flow. */
+  tokenHash: text("token_hash"),
+  role: text("role").$type<"admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
   status: text("status").$type<"pending" | "accepted" | "cancelled" | "expired">().notNull().default("pending"),
   invitedByUserId: text("invited_by_user_id").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -80,6 +100,10 @@ export const businessInvitations = pgTable("business_invitations", {
   trialDays: integer("trial_days"),
   programName: text("program_name"),
   partnerRecordId: text("partner_record_id"),
+  organizationalPilotId: uuid("organizational_pilot_id"),
+  populationType: text("population_type").$type<"professional" | "client">(),
+  participantRole: text("participant_role"),
+  assignedProfessionalUserId: text("assigned_professional_user_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

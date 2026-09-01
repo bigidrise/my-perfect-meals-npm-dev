@@ -19,6 +19,10 @@ export default function Auth() {
   // Invitation token carried from a team-member invite email.  When present this
   // signup is always business-intent; the token is auto-accepted after auth.
   const urlInvite = useMemo(() => new URLSearchParams(search).get("invite"), [search]);
+  const pilotAuthorizationToken = useMemo(
+    () => new URLSearchParams(search).get("pilotAuthorization"),
+    [search],
+  );
   // returnTo is set by /join/studio (and similar pages) when redirecting an
   // unauthenticated user to login. Only same-origin paths are honoured.
   const urlReturnTo = useMemo(() => {
@@ -31,7 +35,7 @@ export default function Auth() {
     return p.get("source") || p.get("ref") || null;
   }, [search]);
   const [mode, setMode] = useState<"signup" | "login">(
-    isProCare || urlRole || urlInvite ? "signup" : urlMode === "signup" ? "signup" : "login"
+    isProCare || urlRole || urlInvite || pilotAuthorizationToken ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -53,6 +57,36 @@ export default function Auth() {
       return { ok: true };
     } catch {
       return { ok: false, error: "Could not auto-accept invitation." };
+    }
+  }
+
+  async function claimPilotAuthorization(token: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const res = await fetch("/api/business/pilot-authorizations/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { ok: false, error: data.error };
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Could not claim the organizational authorization." };
+    }
+  }
+
+  async function hasOrganizationWorkspace(): Promise<boolean> {
+    try {
+      const res = await fetch("/api/business/workspaces", {
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      return Array.isArray(data.workspaces) && data.workspaces.length > 0;
+    } catch {
+      return false;
     }
   }
 
@@ -80,6 +114,16 @@ export default function Auth() {
       setLocation("/business-dashboard");
       return;
     }
+    if (pilotAuthorizationToken) {
+      const result = await claimPilotAuthorization(pilotAuthorizationToken);
+      if (!result.ok) {
+        setErr(result.error || "Could not claim the organizational authorization.");
+        return;
+      }
+      try { await refreshUser(); } catch { /* non-fatal */ }
+      setLocation("/business/setup?pilot=1");
+      return;
+    }
 
     if (options.professionalSetupPending) {
       try { await refreshUser(); } catch { /* non-fatal */ }
@@ -102,6 +146,9 @@ export default function Auth() {
     const fullUser = await refreshUser();
     const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
     const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
+    const organizationWorkspaceAvailable = mode === "login"
+      ? await hasOrganizationWorkspace()
+      : false;
     const onboardingDone = fullUser?.onboardingCompletedAt;
 
     const isBusinessUser = fullUser?.professionalRole === "business";
@@ -132,7 +179,7 @@ export default function Auth() {
       } catch {
         setLocation("/business-dashboard");
       }
-    } else if (isProfessional && mode === "login") {
+    } else if ((isProfessional || organizationWorkspaceAvailable) && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
     } else if (mode === "signup" && urlRole === "business") {
@@ -167,7 +214,7 @@ export default function Auth() {
         // Treat invite-link signups as business signups so the account is
         // created with professionalRole="business" from the start and the
         // invite auto-accept succeeds immediately after (email must match).
-        const isBusinessSignup = urlRole === "business" || !!urlInvite;
+        const isBusinessSignup = urlRole === "business" || !!urlInvite || !!pilotAuthorizationToken;
         if (!procareData && urlRole && urlRole !== "business") {
           procareData = {
             professionalRole: urlRole,
@@ -178,7 +225,15 @@ export default function Auth() {
           };
         }
         const professionalSetupPending = !!procareData && !isBusinessSignup;
-        u = await signUp(email.trim(), pwd, procareData, isBusinessSignup, signupSource);
+        u = await signUp(
+          email.trim(),
+          pwd,
+          procareData,
+          isBusinessSignup,
+          signupSource,
+          urlInvite,
+          pilotAuthorizationToken,
+        );
         await proceedAfterLogin(u, { professionalSetupPending });
         return;
       } else {

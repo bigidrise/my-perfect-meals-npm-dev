@@ -53,6 +53,15 @@ interface BusinessData {
     plan: string;
     independentClientPolicy?: string;
   };
+  pilot?: {
+    id: string;
+    status: string;
+    professionalCapacity: number;
+    clientCapacity: number;
+    durationDays: number;
+    pilotStartAt: string | null;
+    pilotEndAt: string | null;
+  } | null;
   members: {
     id: string;
     userId: string;
@@ -112,6 +121,12 @@ export default function BusinessDashboard() {
     { value: "trainer", label: t("businessDashboard.roles.trainer") },
     { value: "physician", label: t("businessDashboard.roles.physician") },
     { value: "staff", label: t("businessDashboard.roles.staff") },
+  ];
+  const PILOT_ROLE_OPTIONS = [
+    { value: "nurse", label: "Nurse" },
+    { value: "provider", label: "Provider" },
+    { value: "coach", label: "Coach" },
+    { value: "staff", label: "Staff" },
   ];
 
   const POLICY_OPTIONS = [
@@ -409,11 +424,14 @@ export default function BusinessDashboard() {
     }
     setInviteLoading(true);
     try {
-      const res = await fetch("/api/business/invite", {
+      const pilotId = ownerData?.pilot?.id;
+      const res = await fetch(pilotId ? `/api/business/pilots/${pilotId}/invitations` : "/api/business/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+        body: JSON.stringify(pilotId
+          ? { email: inviteEmail, populationType: "professional", participantRole: inviteRole }
+          : { email: inviteEmail, role: inviteRole }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -461,11 +479,18 @@ export default function BusinessDashboard() {
     }
     setClientInviteLoading(true);
     try {
-      const res = await fetch("/api/business/invite", {
+      const pilotId = ownerData?.pilot?.id;
+      const res = await fetch(pilotId ? `/api/business/pilots/${pilotId}/invitations` : "/api/business/invite", {
         method: "POST",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
+        body: JSON.stringify(pilotId ? {
+          email: clientEmail,
+          populationType: "client",
+          participantRole: "client",
+          participantName: clientProgramName.trim() || null,
+          sendEmail: deliveryMethod === "email",
+        } : {
           email: clientEmail,
           invitationType: "client",
           trialDays: resolvedTrialDays,
@@ -1640,7 +1665,7 @@ export default function BusinessDashboard() {
             <div>
               <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Role</label>
               <div className="flex flex-wrap gap-2">
-                {ROLE_OPTIONS.map((r) => (
+                {(ownerData?.pilot ? PILOT_ROLE_OPTIONS : ROLE_OPTIONS).map((r) => (
                   <button
                     key={r.value}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${

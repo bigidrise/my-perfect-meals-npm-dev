@@ -3377,9 +3377,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", async (req, res) => {
+  const GENERIC_USER_PROFILE_FIELDS = new Set([
+    "firstName",
+    "lastName",
+    "nickname",
+    "age",
+    "height",
+    "weight",
+    "activityLevel",
+    "bodyType",
+    "birthday",
+    "fitnessGoal",
+    "dietaryRestrictions",
+    "healthConditions",
+    "allergies",
+    "dislikedFoods",
+    "likedFoods",
+    "avoidedFoods",
+    "preferredSweeteners",
+    "avoidSweeteners",
+    "timezone",
+  ]);
+
+  app.patch("/api/users/:id", requireAuth, async (req: any, res) => {
     try {
-      const updates = req.body;
+      const authReq = req as AuthenticatedRequest;
+      if (req.params.id !== authReq.authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? req.body
+        : {};
+      const updates = Object.fromEntries(
+        Object.entries(body).filter(([key]) => GENERIC_USER_PROFILE_FIELDS.has(key)),
+      );
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({
+          code: "NO_EDITABLE_PROFILE_FIELDS",
+          error: "No editable profile fields were provided.",
+        });
+      }
       const [user] = await db.update(users).set(updates).where(eq(users.id, req.params.id)).returning();
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -3421,29 +3459,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id/subscription", async (req, res) => {
-    try {
-      const { plan, status, expiresAt } = req.body;
-      const updates = {
-        subscriptionPlan: plan,
-        subscriptionStatus: status,
-        subscriptionExpiresAt: expiresAt
-      };
-
-      const [user] = await db.update(users).set(updates).where(eq(users.id, req.params.id)).returning();
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      res.json({
-        plan: user.subscriptionPlan,
-        status: user.subscriptionStatus,
-        expiresAt: user.subscriptionExpiresAt,
-        features: getFeaturesByPlan(user.subscriptionPlan || "basic")
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+  app.patch("/api/users/:id/subscription", requireAuth, async (req: any, res) => {
+    const authReq = req as AuthenticatedRequest;
+    if (req.params.id !== authReq.authUser.id) {
+      return res.status(403).json({ error: "Forbidden" });
     }
+    return res.status(410).json({
+      code: "SUBSCRIPTION_MUTATION_RETIRED",
+      error: "Subscriptions can only be changed through a verified billing provider.",
+    });
   });
 
   // User preferences routes (notification settings only)
@@ -3668,7 +3692,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attestationText: user.attestationText || null,
         procareEntryPath: user.procareEntryPath || null,
         attestedAt: user.attestedAt?.toISOString() || null,
-        entitlements: mergedEntitlements,
+        entitlements: authReq.authUser.entitlements,
         // ── Explicit server-side entitlement flags ─────────────────────────
         // Use the same effective plan and policy as requireProCareAccess.
         // Never trust a stale DB entitlement here: it can make the UI claim
@@ -3707,6 +3731,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 )
               : null,
         pilotProCareEndsAt: authReq.authUser.pilotProCareEndsAt?.toISOString() ?? null,
+        pilotFullAccess: authReq.authUser.pilotFullAccess,
+        pilotProgramName: authReq.authUser.pilotProgramName,
+        pilotFullAccessEndsAt: authReq.authUser.pilotFullAccessEndsAt?.toISOString() ?? null,
         monetizationEligible: (() => {
           if (process.env.BILLING_ENFORCED !== "true") return true;
           if (authReq.authUser.accessTier !== "PAID_FULL") return false;
@@ -8965,7 +8992,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
 
-  app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
+  // Consumer relationship management is Pro-or-higher. Provider Studio access
+  // remains independently protected by requireProCareAccess on /api/pro and
+  // /api/studios; this mount must not grant professional workspace access.
+  app.use("/api/care-team", requireAuth, requireProAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
   // requireAuth is applied per-route inside clinicalInterventionsRouter —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).

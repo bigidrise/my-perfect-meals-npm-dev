@@ -1,6 +1,7 @@
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
 - [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
+- [Studio message composer controls](studio-message-composer-controls.md) — client-facing composers share purple Send, orange Voice, and prominent red Video controls.
 - [Allergy adaptation layer](allergy-adaptation-layer.md) — classify adaptable conflicts before generation and rescan every final output.
 - [Allergen override matching](allergen-override-exact-match.md) — safety PINs use canonical key and alias matching, never substrings.
 - [Dish adaptation layer](dish-adaptation-layer.md) — never silently substitute requested dishes; keep prompt substitution maps synchronized.
@@ -60,3 +61,6 @@
 - [Hydration Hub entry experience](hydration-hub-entry-experience.md) — render the four-door shell immediately and keep Everyday/Athletic Creator handoffs obvious.
 - [Hydration Center strict paywall](hydration-center-strict-paywall.md) — Free and Essential stay blocked even when internal pre-launch/test bypasses are enabled.
 - [Whole-Food governance](whole-food-governance.md) — central evidence-aware policy gates every active human recommendation; a clean coverage matrix is required for platform-wide claims.
+- [Consumer ProCare role split](consumer-procare-role-split.md) — Pro opens coach/trainer relationships; Clinical remains required for clinical professionals and data.
+- [Stripe entitlement authority](stripe-entitlement-authority.md) — web access requires Stripe verification plus immutable user identity; email and client returns never grant it.
+- [Organizational pilot authority](organizational-pilot-authority.md) — Business owns one shared pilot clock; professional seats and client capacity stay separate.

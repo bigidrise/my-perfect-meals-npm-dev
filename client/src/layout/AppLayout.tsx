@@ -13,6 +13,7 @@ const FULL_SCREEN_ROUTES = [
   "/onboarding-legacy",
   "/forgot-password",
   "/reset-password",
+  "/pilot/activate",
   "/guest-builder",
   "/guest-suite",
   "/guest",

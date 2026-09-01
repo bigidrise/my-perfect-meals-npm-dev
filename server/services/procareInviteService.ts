@@ -16,7 +16,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { activateProCareClient, ActivationError } from "./procareActivation";
 import { checkLegalAcceptance } from "./legalCheck";
-import { getTierForLookupKey } from "@shared/planFeatures";
+import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
 import { providerHasProCareStudioAccess } from "./procareProviderAccess";
 import { resolveEmailIdentityForUser } from "./emailIdentityService";
 
@@ -30,6 +30,7 @@ export interface InviteResolution {
   studioName: string;
   proName: string;
   studioType: "studio" | "clinic";
+  providerRole: string | null;
   expiresAt: Date;
   alreadyAccepted: boolean;
   inviteCode: string;
@@ -57,7 +58,9 @@ export type AcceptError =
   | { code: "ALREADY_ACCEPTED" }
   | { code: "EMAIL_MISMATCH"; maskedEmail: string }
   | { code: "EMAIL_IDENTITY_REVIEW_REQUIRED" }
+  | { code: "PRO_REQUIRED" }
   | { code: "CLINICAL_REQUIRED" }
+  | { code: "UNSUPPORTED_PROVIDER_ROLE" }
   | { code: "COACH_NOT_SUBSCRIBED" }
   | { code: "LEGAL_REQUIRED"; missing: string[]; flow: string }
   | { code: "ALREADY_HAS_PROFESSIONAL" }
@@ -120,6 +123,7 @@ export async function resolveInviteByToken(urlToken: string): Promise<InviteReso
       studioName: studio?.name ?? `${proName}'s ${studioType === "clinic" ? "Clinic" : "Studio"}`,
       proName,
       studioType,
+      providerRole: pro?.professionalRole ?? null,
       expiresAt: careRow.expiresAt,
       alreadyAccepted: careRow.accepted,
       inviteCode: careRow.inviteCode,
@@ -136,6 +140,10 @@ export async function resolveInviteByToken(urlToken: string): Promise<InviteReso
   if (studioRow) {
     const [studio] = await db.select().from(studios).where(eq(studios.id, studioRow.studioId));
     if (!studio) return null;
+    const [provider] = await db
+      .select({ professionalRole: users.professionalRole })
+      .from(users)
+      .where(eq(users.id, studio.ownerUserId));
 
     const proName = await buildProName(studio.ownerUserId);
     const studioType: "studio" | "clinic" = studio.type === "clinic" ? "clinic" : "studio";
@@ -149,6 +157,7 @@ export async function resolveInviteByToken(urlToken: string): Promise<InviteReso
       studioName: studio.name,
       proName,
       studioType,
+      providerRole: provider?.professionalRole ?? null,
       expiresAt: studioRow.expiresAt,
       alreadyAccepted: !!studioRow.acceptedAt,
       inviteCode: studioRow.inviteCode,
@@ -182,6 +191,7 @@ export async function acceptInviteByToken(
   userId: string,
   planLookupKey: string | null,
   accessTier: string,
+  isInternalAccount = false,
 ): Promise<{ ok: true; result: AcceptResult } | { ok: false; error: AcceptError }> {
   const r = await resolveInviteByToken(urlToken);
   if (!r) return { ok: false, error: { code: "NOT_FOUND" } };
@@ -208,11 +218,15 @@ export async function acceptInviteByToken(
     };
   }
 
-  // Client subscription gate (Clinical/Ultimate required)
-  const clientTier = planLookupKey ? getTierForLookupKey(planLookupKey) : "ultimate";
-  const clientHasClinical = accessTier === "PAID_FULL" && clientTier === "ultimate";
-  if (!clientHasClinical) {
-    return { ok: false, error: { code: "CLINICAL_REQUIRED" } };
+  // Consumer subscription gate is role-aware and shared with code acceptance.
+  const eligibility = evaluateConsumerProCareAccess({
+    accessTier,
+    planLookupKey,
+    providerRole: r.providerRole,
+    isInternalAccount,
+  });
+  if (!eligibility.allowed && "code" in eligibility) {
+    return { ok: false, error: { code: eligibility.code } };
   }
 
   // Pro subscription gate

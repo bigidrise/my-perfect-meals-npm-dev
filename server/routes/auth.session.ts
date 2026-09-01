@@ -11,11 +11,13 @@ import { checkLegalAcceptance } from "../services/legalCheck";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { emailServiceAvailable } from "../middleware/requireEmailService";
 import { sendTrialStartEmail } from "../services/emailService";
-import { resolveEmailIdentityForEmail } from "../services/emailIdentityService";
+import { normalizeEmailIdentity, resolveEmailIdentityForEmail } from "../services/emailIdentityService";
 import {
   findPendingPreRegistrationAccess,
   resolveSignupTrial,
 } from "../services/preRegistrationAccess";
+import { findOrganizationalPilotInvitation } from "../services/organizationalPilotInvitationService";
+import { inspectPilotAuthorizationToken } from "../services/organizationalPilotAuthorizationService";
 
 const router = Router();
 
@@ -139,6 +141,39 @@ router.post("/api/auth/signup", async (req, res) => {
     // pending until the new account is authenticated and has recorded the
     // current versioned legal acceptances through upgrade-to-procare.
     const isBusinessAccount = req.body.businessAccount === true;
+    const inviteToken = typeof req.body.inviteToken === "string" ? req.body.inviteToken : null;
+    const pilotInvite = inviteToken
+      ? await findOrganizationalPilotInvitation(inviteToken)
+      : null;
+    if (pilotInvite && normalizeEmailIdentity(pilotInvite.email) !== normalizeEmailIdentity(email)) {
+      return res.status(403).json({ error: "This invitation was issued to a different email address.", code: "EMAIL_MISMATCH" });
+    }
+    const isValidPilotSignup = Boolean(
+      pilotInvite &&
+      pilotInvite.status === "pending" &&
+      pilotInvite.expiresAt > new Date(),
+    );
+    const isPilotClientSignup = isValidPilotSignup && pilotInvite?.populationType === "client";
+    const pilotAuthorizationToken = typeof req.body.pilotAuthorizationToken === "string"
+      ? req.body.pilotAuthorizationToken
+      : null;
+    const pilotAuthorization = pilotAuthorizationToken
+      ? await inspectPilotAuthorizationToken(pilotAuthorizationToken)
+      : null;
+    if (pilotAuthorizationToken && !pilotAuthorization) {
+      return res.status(404).json({ error: "Organizational authorization not found.", code: "AUTHORIZATION_NOT_FOUND" });
+    }
+    if (pilotAuthorization && normalizeEmailIdentity(pilotAuthorization.championEmail) !== normalizeEmailIdentity(email)) {
+      return res.status(403).json({ error: "This organizational authorization was issued to a different email address.", code: "EMAIL_MISMATCH" });
+    }
+    const isValidPilotAuthorizationSignup = Boolean(
+      pilotAuthorization &&
+      pilotAuthorization.status === "approved" &&
+      (!pilotAuthorization.claimTokenExpiresAt || pilotAuthorization.claimTokenExpiresAt > new Date()),
+    );
+    if (pilotAuthorizationToken && !isValidPilotAuthorizationSignup) {
+      return res.status(410).json({ error: "This organizational authorization is no longer available.", code: "AUTHORIZATION_NOT_AVAILABLE" });
+    }
     const professionalSetupRequested = !!procare?.professionalCategory;
 
     // Tester accounts get immediate full access via planLookupKey. Normal
@@ -146,7 +181,11 @@ router.post("/api/auth/signup", async (req, res) => {
     // pre-registration access record. Pilot/Client records grant 30 days by
     // default, but their clock still starts only here at account activation.
     // ProCare accounts get their plan directly and do not receive a trial.
-    const isNormalConsumer = !isTester && !professionalSetupRequested;
+    const isNormalConsumer = !isTester
+      && !professionalSetupRequested
+      && !isValidPilotSignup
+      && !isValidPilotAuthorizationSignup
+      && !isBusinessAccount;
     const trialNow = isNormalConsumer ? new Date() : null;
     const pendingPreRegistrationAccess = isNormalConsumer
       ? await findPendingPreRegistrationAccess(email)
@@ -174,7 +213,7 @@ router.post("/api/auth/signup", async (req, res) => {
 
     // Business / Organization account — not a ProCare practitioner.
     // Gets professionalRole="business" only; no isProCare, no role=coach, no plan override.
-    if (isBusinessAccount) {
+    if (isBusinessAccount && !isPilotClientSignup) {
       userValues.professionalRole = "business";
     }
 
@@ -298,93 +337,15 @@ router.post("/api/auth/signup", async (req, res) => {
 
 /**
  * POST /api/auth/upgrade-to-procare
- * Upgrades an existing authenticated user to coach/ProCare role
+ * Retired: professional profile assertions and legal acceptance are not
+ * payment authority. ProCare access is granted only by verified billing or
+ * an explicit audited administrative/pilot entitlement path.
  */
 router.post("/api/auth/upgrade-to-procare", requireAuth, async (req: any, res) => {
-  try {
-    const userId = req.authUser.id;
-    const { procare } = req.body;
-
-    if (!procare || !procare.professionalCategory) {
-      return res.status(400).json({ error: "Professional category is required" });
-    }
-
-    const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
-    const validCategories = ["certified", "experienced", "non_certified"];
-    const licensedRoles = ["physician", "dietitian", "nurse_practitioner"];
-
-    if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
-      return res.status(400).json({ error: "Invalid professional role" });
-    }
-    if (!validCategories.includes(procare.professionalCategory)) {
-      return res.status(400).json({ error: "Invalid professional category" });
-    }
-    if (!procare.attestationText || !procare.attestedAt) {
-      return res.status(400).json({ error: "Attestation is required for professional accounts" });
-    }
-    // Licensed roles (physician / dietitian / NP-PA) must supply license number + state
-    if (licensedRoles.includes(procare.professionalRole) && procare.professionalCategory === "certified") {
-      if (!procare.credentialNumber?.trim()) {
-        return res.status(400).json({ error: "License number is required for licensed professionals" });
-      }
-      if (!procare.credentialBody?.trim()) {
-        return res.status(400).json({ error: "License state is required for licensed professionals" });
-      }
-    }
-
-    const proFlow = procare.professionalRole === "physician" ? "physician" : "professional";
-    const attestationCheck = await checkLegalAcceptance(userId, "attestation");
-    const professionalCheck = await checkLegalAcceptance(userId, proFlow);
-    const allMissing = [...attestationCheck.missing, ...professionalCheck.missing];
-    if (allMissing.length > 0) {
-      return res.status(409).json({
-        code: "LEGAL_REACCEPT_REQUIRED",
-        missing: allMissing,
-        flow: proFlow,
-        error: "Please accept all required legal documents before upgrading.",
-      });
-    }
-
-    const updateValues: any = {
-      role: "coach",
-      isProCare: true,
-      professionalRole: procare.professionalRole,
-      professionalCategory: procare.professionalCategory,
-      procareEntryPath: procare.procareEntryPath || procare.professionalCategory,
-      attestationText: procare.attestationText,
-      attestedAt: new Date(procare.attestedAt),
-      plan: "procare",
-      subscriptionPlan: "procare",
-      subscriptionStatus: "active",
-      planLookupKey: "mpm_procare_monthly",
-      entitlements: ["procare", "care_team", "lab_metrics"],
-    };
-
-    if (procare.credentialType) updateValues.credentialType = procare.credentialType;
-    if (procare.credentialBody) updateValues.credentialBody = procare.credentialBody;
-    if (procare.credentialNumber) updateValues.credentialNumber = procare.credentialNumber;
-    if (procare.credentialYear) updateValues.credentialYear = procare.credentialYear;
-
-    const [updatedUser] = await db
-      .update(users)
-      .set(updateValues)
-      .where(eq(users.id, userId))
-      .returning();
-
-    console.log("✅ Upgraded user to ProCare, ID:", updatedUser.id);
-
-    res.json({
-      success: true,
-      id: updatedUser.id,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      isProCare: updatedUser.isProCare,
-      professionalRole: updatedUser.professionalRole,
-    });
-  } catch (error: any) {
-    console.error("ProCare upgrade error:", error);
-    res.status(500).json({ error: "Failed to upgrade account" });
-  }
+  return res.status(410).json({
+    code: "PROCARE_SELF_UPGRADE_RETIRED",
+    error: "ProCare access can only be activated through verified billing.",
+  });
 });
 
 /**
