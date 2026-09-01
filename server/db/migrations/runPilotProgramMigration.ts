@@ -6,6 +6,18 @@ export async function runPilotProgramMigration(database: { execute: (query: any)
       ADD COLUMN IF NOT EXISTS client_capacity integer
   `);
   await database.execute(sql`
+    ALTER TABLE business_members
+      ADD COLUMN IF NOT EXISTS role text
+  `);
+  await database.execute(sql`
+    ALTER TABLE business_invitations
+      ADD COLUMN IF NOT EXISTS token_hash text,
+      ADD COLUMN IF NOT EXISTS organizational_pilot_id uuid,
+      ADD COLUMN IF NOT EXISTS population_type varchar(20),
+      ADD COLUMN IF NOT EXISTS participant_role varchar(32),
+      ADD COLUMN IF NOT EXISTS assigned_professional_user_id varchar(255)
+  `);
+  await database.execute(sql`
     DO $$
     BEGIN
       IF NOT EXISTS (
@@ -185,5 +197,13 @@ export async function runPilotProgramMigration(database: { execute: (query: any)
   await database.execute(sql`
     CREATE INDEX IF NOT EXISTS organizational_pilot_events_history_idx
       ON organizational_pilot_events(pilot_id, created_at DESC)
+  `);
+  await database.execute(sql`
+    CREATE INDEX IF NOT EXISTS business_invitations_pilot_idx
+      ON business_invitations(organizational_pilot_id, status)
+  `);
+  await database.execute(sql`
+    CREATE INDEX IF NOT EXISTS business_invitations_token_hash_idx
+      ON business_invitations(token_hash)
   `);
 }

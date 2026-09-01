@@ -9,6 +9,8 @@ Professional seats and client capacity are permanently separate allocations. Cli
 
 One organizational pilot owns the shared start and end timestamps. Normal commercial pilot access requires an active pilot, active participation, and current time inside that window. Preparing grants no normal commercial entitlement.
 
-**Why:** Clinics and gyms can support far more clients than professionals, and participant-level clocks, placeholder users, or synthetic paid plans do not scale or preserve billing authority.
+Pilot Champion authority is an exact-user organizational authorization, not a participant role that can be requested through an ordinary team invitation. Existing and new users claim through different entry paths, then converge on the same Business organization, pilot, and Champion authority. Champion administration and participant commercial entitlement remain independent permissions.
 
-**How to apply:** Keep Stripe and paid Business flows unchanged. Store pending invitations without users, associate real accounts only on acceptance, and leave care-team/client relationships as the independent authority for access to individual client data.
+**Why:** Clinics and gyms can support far more clients than professionals, and participant-level clocks, placeholder users, synthetic paid plans, or email-domain administration do not scale or preserve billing and administrative authority.
+
+**How to apply:** Keep Stripe and paid Business flows unchanged. Store pending invitations without users, associate real accounts only on acceptance, require Champions to claim approved organizational authorizations, and leave care-team/client relationships as the independent authority for access to individual client data.

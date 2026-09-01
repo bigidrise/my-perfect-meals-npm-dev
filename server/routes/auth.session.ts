@@ -11,11 +11,12 @@ import { checkLegalAcceptance } from "../services/legalCheck";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { emailServiceAvailable } from "../middleware/requireEmailService";
 import { sendTrialStartEmail } from "../services/emailService";
-import { resolveEmailIdentityForEmail } from "../services/emailIdentityService";
+import { normalizeEmailIdentity, resolveEmailIdentityForEmail } from "../services/emailIdentityService";
 import {
   findPendingPreRegistrationAccess,
   resolveSignupTrial,
 } from "../services/preRegistrationAccess";
+import { findOrganizationalPilotInvitation } from "../services/organizationalPilotInvitationService";
 
 const router = Router();
 
@@ -139,6 +140,19 @@ router.post("/api/auth/signup", async (req, res) => {
     // pending until the new account is authenticated and has recorded the
     // current versioned legal acceptances through upgrade-to-procare.
     const isBusinessAccount = req.body.businessAccount === true;
+    const inviteToken = typeof req.body.inviteToken === "string" ? req.body.inviteToken : null;
+    const pilotInvite = inviteToken
+      ? await findOrganizationalPilotInvitation(inviteToken)
+      : null;
+    if (pilotInvite && normalizeEmailIdentity(pilotInvite.email) !== normalizeEmailIdentity(email)) {
+      return res.status(403).json({ error: "This invitation was issued to a different email address.", code: "EMAIL_MISMATCH" });
+    }
+    const isValidPilotSignup = Boolean(
+      pilotInvite &&
+      pilotInvite.status === "pending" &&
+      pilotInvite.expiresAt > new Date(),
+    );
+    const isPilotClientSignup = isValidPilotSignup && pilotInvite?.populationType === "client";
     const professionalSetupRequested = !!procare?.professionalCategory;
 
     // Tester accounts get immediate full access via planLookupKey. Normal
@@ -146,7 +160,7 @@ router.post("/api/auth/signup", async (req, res) => {
     // pre-registration access record. Pilot/Client records grant 30 days by
     // default, but their clock still starts only here at account activation.
     // ProCare accounts get their plan directly and do not receive a trial.
-    const isNormalConsumer = !isTester && !professionalSetupRequested;
+    const isNormalConsumer = !isTester && !professionalSetupRequested && !isValidPilotSignup && !isBusinessAccount;
     const trialNow = isNormalConsumer ? new Date() : null;
     const pendingPreRegistrationAccess = isNormalConsumer
       ? await findPendingPreRegistrationAccess(email)
@@ -174,7 +188,7 @@ router.post("/api/auth/signup", async (req, res) => {
 
     // Business / Organization account — not a ProCare practitioner.
     // Gets professionalRole="business" only; no isProCare, no role=coach, no plan override.
-    if (isBusinessAccount) {
+    if (isBusinessAccount && !isPilotClientSignup) {
       userValues.professionalRole = "business";
     }
 

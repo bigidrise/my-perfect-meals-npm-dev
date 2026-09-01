@@ -14,6 +14,16 @@ import {
   resolveEmailIdentityForEmail,
   resolveEmailIdentityForUser,
 } from "../services/emailIdentityService";
+import {
+  acceptOrganizationalPilotInvitation,
+  cancelOrganizationalPilotInvitation,
+  createOrganizationalPilotInvitation,
+  expireOrganizationalPilotInvitation,
+  findOrganizationalPilotInvitation,
+  PilotInvitationError,
+  resendOrganizationalPilotInvitation,
+  type PilotInvitationRole,
+} from "../services/organizationalPilotInvitationService";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -21,6 +31,120 @@ const stripe = stripeKey
   : null;
 
 const router = Router();
+
+function handlePilotInvitationError(res: any, error: unknown) {
+  if (error instanceof PilotInvitationError) {
+    return res.status(error.statusCode).json({ error: error.message, code: error.code });
+  }
+  throw error;
+}
+
+router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    if (!resolved) return res.status(403).json({ error: "No business account found." });
+    const populationType = req.body?.populationType;
+    const participantRole = req.body?.participantRole as PilotInvitationRole;
+    if (populationType !== "professional" && populationType !== "client") {
+      return res.status(400).json({ error: "populationType must be professional or client.", code: "INVALID_POPULATION" });
+    }
+    const allowedRoles = populationType === "professional"
+      ? ["nurse", "provider", "coach", "staff"]
+      : ["client"];
+    if (!allowedRoles.includes(participantRole)) {
+      return res.status(400).json({ error: "Invalid role for this participant population.", code: "INVALID_ROLE" });
+    }
+    const created = await createOrganizationalPilotInvitation({
+      businessId: resolved.business.id,
+      pilotId: req.params.pilotId,
+      invitedByUserId: userId,
+      email: req.body?.email,
+      populationType,
+      participantRole,
+      assignedProfessionalUserId: req.body?.assignedProfessionalUserId ?? null,
+      participantName: req.body?.participantName ?? null,
+    });
+    const inviteLink = `${getAppUrl()}${created.inviteLink}`;
+    if (req.body?.sendEmail !== false) {
+      await sendBusinessInviteEmail({
+        to: created.invite.email,
+        businessName: resolved.business.name,
+        inviterName: "Your organization",
+        inviteLink,
+        role: participantRole,
+        expiresAt: created.invite.expiresAt,
+        invitationType: created.invite.invitationType,
+        trialDays: null,
+        programName: created.pilot.name,
+      });
+    }
+    return res.status(201).json({
+      success: true,
+      invitationId: created.invite.id,
+      participantId: created.participant.id,
+      populationType,
+      participantRole,
+      expiresAt: created.invite.expiresAt,
+    });
+  } catch (error) {
+    try { return handlePilotInvitationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-invite/create] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    if (!resolved) return res.status(403).json({ error: "No business account found." });
+    const [invite] = await db.select().from(businessInvitations).where(and(
+      eq(businessInvitations.id, req.params.inviteId),
+      eq(businessInvitations.businessId, resolved.business.id),
+    )).limit(1);
+    if (!invite?.organizationalPilotId) return res.status(404).json({ error: "Pilot invitation not found." });
+    const cancelled = await cancelOrganizationalPilotInvitation(invite.id, userId);
+    return cancelled
+      ? res.json({ success: true })
+      : res.status(409).json({ error: "Invitation is no longer pending." });
+  } catch (error) {
+    console.error("[business/pilot-invite/cancel] error:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
+router.post("/pilot-invitations/:inviteId/resend", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    if (!resolved) return res.status(403).json({ error: "No business account found." });
+    const resent = await resendOrganizationalPilotInvitation({
+      inviteId: req.params.inviteId,
+      businessId: resolved.business.id,
+      actorUserId: userId,
+    });
+    const inviteLink = `${getAppUrl()}${resent.invitePath}`;
+    await sendBusinessInviteEmail({
+      to: resent.invite.email,
+      businessName: resolved.business.name,
+      inviterName: "Your organization",
+      inviteLink,
+      role: resent.invite.participantRole ?? resent.invite.role,
+      expiresAt: resent.expiresAt,
+      invitationType: resent.invite.invitationType,
+      trialDays: null,
+      programName: resent.invite.programName ?? undefined,
+    });
+    return res.json({ success: true, expiresAt: resent.expiresAt });
+  } catch (error) {
+    try { return handlePilotInvitationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-invite/resend] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tier requirement: ALL revenue-generating endpoints in this router require Pro
@@ -812,6 +936,41 @@ router.get("/invite/:token", async (req, res) => {
   const { token } = req.params;
 
   try {
+    const pilotInvite = await findOrganizationalPilotInvitation(token);
+    if (pilotInvite) {
+      if (pilotInvite.status !== "pending") {
+        return res.status(pilotInvite.status === "accepted" ? 200 : 410).json({
+          alreadyAccepted: pilotInvite.status === "accepted",
+          status: pilotInvite.status,
+          invitationType: pilotInvite.invitationType,
+          populationType: pilotInvite.populationType,
+          participantRole: pilotInvite.participantRole,
+          email: pilotInvite.email,
+          expiresAt: pilotInvite.expiresAt,
+          programName: pilotInvite.programName,
+        });
+      }
+      if (new Date() > pilotInvite.expiresAt) {
+        await expireOrganizationalPilotInvitation(pilotInvite.id);
+        return res.status(410).json({ error: "This invitation has expired.", status: "expired" });
+      }
+      const [pilotBusiness] = await db.select({ name: businesses.name })
+        .from(businesses)
+        .where(eq(businesses.id, pilotInvite.businessId))
+        .limit(1);
+      return res.json({
+        email: pilotInvite.email,
+        role: pilotInvite.participantRole,
+        businessName: pilotBusiness?.name ?? pilotInvite.programName,
+        expiresAt: pilotInvite.expiresAt,
+        invitationType: pilotInvite.invitationType,
+        populationType: pilotInvite.populationType,
+        participantRole: pilotInvite.participantRole,
+        programName: pilotInvite.programName,
+        organizationalPilot: true,
+      });
+    }
+
     const [invite] = await db
       .select({
         id: businessInvitations.id,
@@ -874,6 +1033,26 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
   const { token } = req.params;
 
   try {
+    const pilotInvite = await findOrganizationalPilotInvitation(token);
+    if (pilotInvite) {
+      try {
+        const accepted = await acceptOrganizationalPilotInvitation(token, userId);
+        if (!accepted) return res.status(404).json({ error: "Invitation not found." });
+        const [pilotBusiness] = await db.select({ name: businesses.name })
+          .from(businesses).where(eq(businesses.id, pilotInvite.businessId)).limit(1);
+        return res.json({
+          success: true,
+          alreadyAccepted: accepted.alreadyAccepted,
+          businessName: pilotBusiness?.name ?? pilotInvite.programName,
+          populationType: pilotInvite.populationType,
+          participantRole: pilotInvite.participantRole,
+          pilotEndAt: accepted.alreadyAccepted ? null : accepted.pilotEndAt,
+        });
+      } catch (error) {
+        try { return handlePilotInvitationError(res, error); } catch (unexpected) { throw unexpected; }
+      }
+    }
+
     const [invite] = await db
       .select()
       .from(businessInvitations)
