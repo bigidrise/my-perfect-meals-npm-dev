@@ -5,7 +5,6 @@ import { businessMembers, businesses } from "../db/schema/business";
 import {
   organizationalPilotAuthorizations,
   organizationalPilotEvents,
-  organizationalPilotParticipants,
   organizationalPilots,
 } from "../db/schema/pilotProgram";
 import { normalizeEmailIdentity, resolveEmailIdentityForUser } from "./emailIdentityService";
@@ -216,36 +215,6 @@ export async function claimPilotAuthorization(input: {
         pilotEndAt: null,
         createdByUserId: input.userId,
       }).returning();
-    }
-
-    const [existingParticipant] = await tx.select().from(organizationalPilotParticipants).where(and(
-      eq(organizationalPilotParticipants.pilotId, pilot.id),
-      eq(organizationalPilotParticipants.normalizedEmail, normalizedUserEmail),
-    )).limit(1);
-    if (existingParticipant) {
-      await tx.update(organizationalPilotParticipants).set({
-        userId: input.userId,
-        businessMemberId: membership.id,
-        participantRole: "champion",
-        populationType: "professional",
-        status: "active",
-        acceptedAt: existingParticipant.acceptedAt ?? new Date(),
-        removedAt: null,
-        updatedAt: new Date(),
-      }).where(eq(organizationalPilotParticipants.id, existingParticipant.id));
-    } else {
-      await tx.insert(organizationalPilotParticipants).values({
-        pilotId: pilot.id,
-        userId: input.userId,
-        businessMemberId: membership.id,
-        email: identity.user.email,
-        normalizedEmail: normalizedUserEmail,
-        populationType: "professional",
-        participantRole: "champion",
-        status: "active",
-        acceptedAt: new Date(),
-        createdByUserId: input.userId,
-      });
     }
 
     const [claimed] = await tx.update(organizationalPilotAuthorizations).set({

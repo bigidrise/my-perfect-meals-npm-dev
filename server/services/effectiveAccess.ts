@@ -133,16 +133,22 @@ export async function computeEffectiveAccess(
     .limit(1);
 
   if (membership) {
-    const tier = getTierForLookupKey(membership.plan);
+    const baseMembershipTier = getTierForLookupKey(membership.plan);
+    const effectiveMembershipTier: PlanTier = pilotFullAccess
+      ? TRIAL_UNLOCKS_TIER
+      : baseMembershipTier;
+    const isOrganizationalPilotBusiness = membership.plan === "organizational_pilot";
     return {
       planLookupKey: membership.plan,
-      entitlements: getEntitlementsForTier(tier) as string[],
-      tier,
+      entitlements: getEntitlementsForTier(effectiveMembershipTier) as string[],
+      tier: effectiveMembershipTier,
       sponsoredByBusinessId: membership.businessId,
       sponsoredByBusinessName: membership.businessName,
       sponsoredProCareAccess:
-        membership.businessOwnerUserId === user.id ||
-        STUDIO_ELIGIBLE_BUSINESS_ROLES.has(membership.membershipRole),
+        !isOrganizationalPilotBusiness && (
+          membership.businessOwnerUserId === user.id ||
+          STUDIO_ELIGIBLE_BUSINESS_ROLES.has(membership.membershipRole)
+        ),
       pilotProCareAccess: Boolean(pilotGrant),
       pilotProCareGrantId: pilotGrant?.id ?? null,
       pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
