@@ -8965,7 +8965,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
 
-  app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
+  // Consumer relationship management is Pro-or-higher. Provider Studio access
+  // remains independently protected by requireProCareAccess on /api/pro and
+  // /api/studios; this mount must not grant professional workspace access.
+  app.use("/api/care-team", requireAuth, requireProAccess, careTeamRoutes);
   app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
   // requireAuth is applied per-route inside clinicalInterventionsRouter —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).

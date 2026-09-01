@@ -1364,20 +1364,24 @@ export default function ProClientFolderModal({
                           disabled={!msgInput.trim() || sending}
                           onClick={handleSendMessage}
                           className="bg-purple-600 hover:bg-purple-700 px-3"
+                          title="Send message"
+                          aria-label="Send message"
                         >
                           {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                         </Button>
                         <button
                           onClick={() => { setVoiceMode("messages"); setAudioBlob(null); setRecordingSeconds(0); }}
-                          className="flex items-center justify-center p-1.5 rounded-md bg-orange-600/20 border border-orange-500/30 text-orange-400"
+                          className="flex items-center justify-center p-1.5 rounded-md bg-orange-600 border border-orange-400 text-white hover:bg-orange-700"
                           title="Send voice message"
+                          aria-label="Send voice message"
                         >
                           <Mic className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setVideoMode(true)}
-                          className="flex items-center justify-center p-1.5 rounded-md bg-violet-600/20 border border-violet-500/30 text-violet-300"
-                          title={t("studioMessages.sendVideoMessage")}
+                          className="flex items-center justify-center p-1.5 rounded-md bg-red-600 border border-red-400 text-white hover:bg-red-700 shadow-sm shadow-red-950/40"
+                          title="Video message"
+                          aria-label="Video message"
                         >
                           <Video className="w-3.5 h-3.5" />
                         </button>

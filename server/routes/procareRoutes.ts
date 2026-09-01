@@ -34,6 +34,7 @@ import {
   type UserExtrasForSummary,
 } from "../services/nutritionSummary/buildNutritionSummary";
 import { filterNutritionSummaryForProvider } from "../services/procareClientDataPolicy";
+import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
 
 const router = Router();
 
@@ -713,7 +714,8 @@ router.get("/clients/:clientId/board-lock", requireAuth, requireProAccess, requi
 // No client data is exposed to a professional actor. Phase 2 gate not applicable.
 router.get("/connection-status", async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser?.id;
+    const authUser = (req as AuthenticatedRequest).authUser;
+    const userId = authUser?.id;
     if (!userId) return res.status(401).json({ error: "Authentication required" });
 
     const [activeLink] = await db
@@ -732,10 +734,36 @@ router.get("/connection-status", async (req, res) => {
       return res.json({ connected: false });
     }
 
+    const eligibility = evaluateConsumerProCareAccess({
+      accessTier: authUser.accessTier,
+      planLookupKey: authUser.planLookupKey,
+      providerRole: activeLink.professionalRole,
+      isInternalAccount:
+        authUser.isFounder || authUser.isSandbox || authUser.isTester,
+    });
+    if (!eligibility.allowed && "code" in eligibility) {
+      return res.json({
+        connected: false,
+        reason: eligibility.code,
+        requiredTier: eligibility.requiredTier,
+      });
+    }
+
     const [studio] = await db
       .select({ id: studios.id, name: studios.name, type: studios.type })
       .from(studios)
-      .where(eq(studios.ownerUserId, activeLink.proUserId));
+      .where(
+        and(
+          eq(studios.ownerUserId, activeLink.proUserId),
+          eq(studios.status, "active"),
+        ),
+      );
+
+    // Provider messaging is a Studio workspace capability. A stale client link
+    // without an active Studio must not advertise a usable connection.
+    if (!studio) {
+      return res.json({ connected: false });
+    }
 
     const providerName = activeLink.firstName && activeLink.lastName
       ? `${activeLink.firstName} ${activeLink.lastName}`
@@ -747,8 +775,8 @@ router.get("/connection-status", async (req, res) => {
         userId: activeLink.proUserId,
         name: providerName,
         role: activeLink.professionalRole || "trainer",
-        studioName: studio?.name || null,
-        studioId: studio?.id || null,
+        studioName: studio.name,
+        studioId: studio.id,
       },
     });
   } catch (error) {

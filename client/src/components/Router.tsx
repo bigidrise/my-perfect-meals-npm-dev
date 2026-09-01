@@ -694,7 +694,26 @@ const GuardedProClientNutritionPlan = () => <ProCareStudioGuard component={SafeP
 const GuardedTrainerClientDashboard = () => <ProCareStudioGuard component={SafeTrainerClientDashboard} />;
 const GuardedClinicianClientDashboard = () => <ProCareStudioGuard component={SafeClinicianClientDashboard} />;
 const GuardedProBoardViewer = () => <ProCareStudioGuard component={SafeProBoardViewer} />;
-const GuardedCareTeam = () => <ProCareStudioGuard component={SafeCareTeam} />;
+function GuardedCareTeam() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const isProfessional =
+    user?.professionalRole === "trainer" ||
+    user?.professionalRole === "physician" ||
+    user?.professionalRole === "dietitian" ||
+    user?.professionalRole === "nurse_practitioner";
+
+  useEffect(() => {
+    if (!user || isProfessional) return;
+    // Consumer invite links historically target /care-team?code=... . Keep
+    // consumers out of the professional Studio surface and move the code into
+    // the role-aware relationship flow on More instead.
+    setLocation(`/more${window.location.search}`);
+  }, [user, isProfessional, setLocation]);
+
+  if (!user || !isProfessional) return null;
+  return <ProCareStudioGuard component={SafeCareTeam} />;
+}
 const GuardedPhysicianCareTeam = () => <ProCareStudioGuard component={SafePhysicianCareTeam} />;
 const GuardedTrainerCareTeam = () => <ProCareStudioGuard component={SafeTrainerCareTeam} />;
 // Stable module-level wrappers for ProCare client builder routes.
