@@ -25,12 +25,14 @@ export async function sendTrialStartEmail({
   trialSource,
   durationDays,
   trialEndsAt,
+  appUrl,
 }: {
   to: string;
   userName: string;
   trialSource?: string | null;
   durationDays: number;
   trialEndsAt: Date;
+  appUrl?: string;
 }): Promise<boolean> {
   if (!resend) {
     console.log('[TrialStart] Resend not available — skipping trial start email');
@@ -60,7 +62,7 @@ export async function sendTrialStartEmail({
             <h2 style="color: #111827; font-size: 22px; margin-top: 0;">Hi ${userName},</h2>
 
             <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-              Your <strong>${trialLabel}</strong> is now active. You have <strong>${durationDays} days</strong> of full access to My Perfect Meals — AI-powered personalized meal plans, macro tracking, clinical nutrition protocols, and more.
+              Your <strong>${trialLabel}</strong> is now active. You have <strong>${durationDays} days</strong> of approved access to My Perfect Meals — including AI-powered personalized meals, planning, and macro tracking.
             </p>
 
             <div style="background: #f3f0ff; border-left: 4px solid #7c3aed; padding: 16px; margin: 24px 0; border-radius: 4px;">
@@ -76,7 +78,7 @@ export async function sendTrialStartEmail({
             </p>
 
             <div style="text-align: center; margin: 28px 0;">
-              <a href="https://app.myperfectmeals.ai" style="display: inline-block; background: #7c3aed; color: white; padding: 14px 36px; text-decoration: none; border-radius: 999px; font-weight: 600; font-size: 16px;">
+              <a href="${appUrl || "https://app.myperfectmeals.ai"}" style="display: inline-block; background: #7c3aed; color: white; padding: 14px 36px; text-decoration: none; border-radius: 999px; font-weight: 600; font-size: 16px;">
                 Open My Perfect Meals →
               </a>
             </div>
@@ -189,6 +191,102 @@ export async function sendPasswordResetEmail({
     console.error('❌ Email service error:', error);
     throw error;
   }
+}
+
+export async function sendPilotActivationEmail({
+  to,
+  userName,
+  programName,
+  organizationName,
+  activationLink,
+  durationDays,
+  requiresPasswordSetup,
+}: {
+  to: string;
+  userName: string;
+  programName: string;
+  organizationName: string;
+  activationLink: string;
+  durationDays: number;
+  requiresPasswordSetup: boolean;
+}) {
+  if (!resend) {
+    console.log("[PilotActivation] Resend not available — activation email not sent");
+    return null;
+  }
+
+  const actionLabel = requiresPasswordSetup ? "Activate Account" : "Activate Pilot Access";
+  const setupCopy = requiresPasswordSetup
+    ? "Use the secure link below to choose your password and activate your account."
+    : "Use the secure link below to activate pilot access for your existing account. Your password will not change.";
+
+  const { data, error } = await resend.emails.send({
+    from: EMAIL_FROM,
+    to: [to],
+    subject: `${programName}: activate your My Perfect Meals pilot access`,
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+        <div style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);padding:30px;border-radius:12px 12px 0 0;text-align:center">
+          <h1 style="color:white;margin:0;font-size:28px">You're invited to ${programName}</h1>
+          <p style="color:rgba(255,255,255,.85);margin:8px 0 0">${organizationName}</p>
+        </div>
+        <div style="background:#f9fafb;padding:30px;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 12px 12px">
+          <h2 style="color:#111827;margin-top:0">Hi ${userName},</h2>
+          <p style="color:#374151;line-height:1.6">${setupCopy}</p>
+          <p style="color:#374151;line-height:1.6">Your full ${durationDays}-day pilot begins only after you activate, so you receive the entire evaluation period.</p>
+          <div style="text-align:center;margin:30px 0">
+            <a href="${activationLink}" style="display:inline-block;background:#6d28d9;color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:600">${actionLabel}</a>
+          </div>
+          <p style="color:#6b7280;font-size:13px;line-height:1.5">This single-use link expires in 7 days. If you did not expect this invitation, you may ignore this email.</p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) throw new Error(`Failed to send pilot activation email: ${error.message}`);
+  return data;
+}
+
+export async function sendPilotParticipantActivatedEmail({
+  to,
+  userName,
+  programName,
+  durationDays,
+  pilotStarted,
+  appUrl,
+}: {
+  to: string;
+  userName: string;
+  programName: string;
+  durationDays: number;
+  pilotStarted: boolean;
+  appUrl?: string;
+}) {
+  if (!resend) return false;
+  const statusCopy = pilotStarted
+    ? `The shared ${durationDays}-day pilot is active now.`
+    : `Your account is ready. The Pilot Champion will start the shared ${durationDays}-day window when the team is ready.`;
+  const { error } = await resend.emails.send({
+    from: EMAIL_FROM,
+    to: [to],
+    subject: `${programName}: your pilot account is ready`,
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+        <div style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);padding:30px;border-radius:12px 12px 0 0;text-align:center">
+          <h1 style="color:white;margin:0">Pilot account ready</h1>
+        </div>
+        <div style="background:#f9fafb;padding:30px;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 12px 12px">
+          <h2 style="color:#111827;margin-top:0">Hi ${userName},</h2>
+          <p style="color:#374151;line-height:1.6">${statusCopy}</p>
+          <p style="color:#6b7280;font-size:13px;line-height:1.5">Pilot access is separate from clinical and ProCare authorization.</p>
+          <div style="text-align:center;margin:26px 0">
+            <a href="${appUrl || "https://app.myperfectmeals.ai"}" style="display:inline-block;background:#6d28d9;color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:600">Open My Perfect Meals</a>
+          </div>
+        </div>
+      </div>
+    `,
+  });
+  return !error;
 }
 
 export async function sendCoachActivationEmail({

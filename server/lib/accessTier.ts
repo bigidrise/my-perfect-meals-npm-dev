@@ -9,6 +9,7 @@ interface UserForAccess {
   isSandbox?: boolean | null;
   trialEndsAt?: Date | string | null;
   hasPilotProCareAccess?: boolean;
+  hasPilotFullAccess?: boolean;
 }
 
 // PAID_PLAN_KEYS is now the single source of truth: it lives in shared/planFeatures.ts
@@ -35,6 +36,7 @@ export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): 
   // product surfaces without manufacturing a Stripe subscription.
   if (user.isSandbox || user.isTester) return "PAID_FULL";
   if (user.hasPilotProCareAccess) return "PAID_FULL";
+  if (user.hasPilotFullAccess) return "PAID_FULL";
 
   // Tier 2: Active paid subscription
   if (user.planLookupKey && PAID_PLAN_KEYS.has(user.planLookupKey)) {

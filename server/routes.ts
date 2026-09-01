@@ -3692,7 +3692,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attestationText: user.attestationText || null,
         procareEntryPath: user.procareEntryPath || null,
         attestedAt: user.attestedAt?.toISOString() || null,
-        entitlements: mergedEntitlements,
+        entitlements: authReq.authUser.entitlements,
         // ── Explicit server-side entitlement flags ─────────────────────────
         // Use the same effective plan and policy as requireProCareAccess.
         // Never trust a stale DB entitlement here: it can make the UI claim
@@ -3731,6 +3731,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 )
               : null,
         pilotProCareEndsAt: authReq.authUser.pilotProCareEndsAt?.toISOString() ?? null,
+        pilotFullAccess: authReq.authUser.pilotFullAccess,
+        pilotProgramName: authReq.authUser.pilotProgramName,
+        pilotFullAccessEndsAt: authReq.authUser.pilotFullAccessEndsAt?.toISOString() ?? null,
         monetizationEligible: (() => {
           if (process.env.BILLING_ENFORCED !== "true") return true;
           if (authReq.authUser.accessTier !== "PAID_FULL") return false;

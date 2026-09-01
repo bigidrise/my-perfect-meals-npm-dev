@@ -64,6 +64,11 @@ export interface AuthenticatedUser {
   pilotProCareAccess: boolean;
   pilotProCareGrantId: string | null;
   pilotProCareEndsAt: Date | null;
+  /** Commercial full-platform pilot; does not grant clinical credentials or ProCare authority. */
+  pilotFullAccess: boolean;
+  pilotParticipantId: string | null;
+  pilotProgramName: string | null;
+  pilotFullAccessEndsAt: Date | null;
   preferredLanguage: string;
 }
 
@@ -71,7 +76,7 @@ export interface AuthenticatedRequest extends Request {
   authUser: AuthenticatedUser;
 }
 
-function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessId" | "sponsoredByBusinessName" | "sponsoredProCareAccess" | "pilotProCareAccess" | "pilotProCareGrantId" | "pilotProCareEndsAt"> {
+function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessId" | "sponsoredByBusinessName" | "sponsoredProCareAccess" | "pilotProCareAccess" | "pilotProCareGrantId" | "pilotProCareEndsAt" | "pilotFullAccess" | "pilotParticipantId" | "pilotProgramName" | "pilotFullAccessEndsAt"> {
   const now = new Date();
   const accessTier = resolveAccessTier(user, now);
 
@@ -117,6 +122,7 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
         ...user,
         planLookupKey: effective.planLookupKey,
         hasPilotProCareAccess: effective.pilotProCareAccess,
+        hasPilotFullAccess: effective.pilotFullAccess,
       },
       now
     );
@@ -132,6 +138,10 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
       pilotProCareAccess: effective.pilotProCareAccess,
       pilotProCareGrantId: effective.pilotProCareGrantId,
       pilotProCareEndsAt: effective.pilotProCareEndsAt,
+      pilotFullAccess: effective.pilotFullAccess,
+      pilotParticipantId: effective.pilotParticipantId,
+      pilotProgramName: effective.pilotProgramName,
+      pilotFullAccessEndsAt: effective.pilotFullAccessEndsAt,
     };
   } catch (err) {
     console.error("[requireAuth] effectiveAccess computation failed, falling back to raw plan:", err);
@@ -143,6 +153,10 @@ async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authenticate
       pilotProCareAccess: false,
       pilotProCareGrantId: null,
       pilotProCareEndsAt: null,
+      pilotFullAccess: false,
+      pilotParticipantId: null,
+      pilotProgramName: null,
+      pilotFullAccessEndsAt: null,
     };
   }
 }

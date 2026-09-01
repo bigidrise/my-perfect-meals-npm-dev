@@ -919,7 +919,7 @@ export default function Router() {
     ...(import.meta.env.DEV ? ["/test-modal-bounds"] : []),
     "/", "/auth", "/welcome", "/login", "/signup",
     "/guest-builder", "/guest-suite",
-    "/forgot-password", "/reset-password",
+    "/forgot-password", "/reset-password", "/pilot/activate",
     "/onboarding", "/onboarding-v2", "/onboarding/extended",
     "/pricing", "/paywall", "/apply-guidance",
     "/checkout/success",
@@ -1031,6 +1031,7 @@ export default function Router() {
         <Route path="/auth" component={Auth} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/pilot/activate" component={lazy(() => import("@/pages/PilotActivation"))} />
         <Route path="/pricing" component={PricingPage} />
         <Route path="/apply-guidance" component={() => <CoachingAdminGate component={ApplyGuidance} />} />
         <Route path="/paywall" component={PricingPage} />
@@ -1050,6 +1051,7 @@ export default function Router() {
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
         <Route path="/admin/chef-kitchens" component={ChefKitchensAdmin} />
+        <Route path="/admin/pilots" component={lazy(() => import("@/pages/PilotProgramAdmin"))} />
         <Route path="/kitchens" component={SignatureKitchenHubPage} />
         <Route path="/kitchen/:slug" component={SignatureKitchenPage} />
         <Route path="/consumer-welcome" component={ConsumerWelcome} />

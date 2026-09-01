@@ -41,7 +41,25 @@ export function requireProCareAccess(
     isFounder,
     isSandbox,
     isTester,
+    pilotFullAccess,
   } = authReq.authUser;
+
+  if (
+    pilotFullAccess &&
+    !sponsoredProCareAccess &&
+    !pilotProCareAccess &&
+    !planLookupKey &&
+    !isFounder &&
+    !isSandbox &&
+    !isTester
+  ) {
+    res.status(403).json({
+      error: "Pilot access does not grant ProCare Studio authority.",
+      code: "PROCARE_SUBSCRIPTION_REQUIRED",
+      requiredTier: "procare",
+    });
+    return;
+  }
 
   if (canAccessProCareStudio({
     billingEnforced: BILLING_ENFORCED,
