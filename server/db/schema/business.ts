@@ -13,6 +13,13 @@ export const businesses = pgTable("businesses", {
   stripeLastEventRank: integer("stripe_last_event_rank").notNull().default(0),
   stripeLastEventId: text("stripe_last_event_id"),
   plan: text("plan").notNull().default("clinical_business_monthly"),
+  /**
+   * Professional capacity remains seatLimit. Client capacity is deliberately
+   * separate so clinics and gyms can support many clients without consuming
+   * professional seats. NULL preserves legacy paid-business behavior until an
+   * explicit client allocation is configured.
+   */
+  clientCapacity: integer("client_capacity"),
   seatLimit: integer("seat_limit").notNull().default(4),
   status: text("status").$type<"active" | "cancelled" | "past_due" | "pending_billing">().notNull().default("active"),
   /**
