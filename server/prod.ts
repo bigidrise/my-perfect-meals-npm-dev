@@ -344,16 +344,11 @@ async function initializeApp() {
 
     console.log("📋 [INIT] Running safe column migrations...");
     try {
-      const migTimeout = (ms: number) =>
-        new Promise<void>((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`Migration timed out after ${ms}ms`)),
-            ms,
-          ),
-        );
-
       const { db: database } = await import("./db");
       const { sql } = await import("drizzle-orm");
+      const { awaitSingleBootMigration } = await import(
+        "./bootstrap/awaitSingleBootMigration"
+      );
 
       // Assign the IIFE to a named promise before racing so the background
       // grandfather task can await its natural completion independently.
@@ -713,58 +708,44 @@ async function initializeApp() {
           await runPilotProcareMigration(database as any);
           const { runPilotProgramMigration } = await import("./db/migrations/runPilotProgramMigration");
           await runPilotProgramMigration(database as any);
-          const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
-          await runStripeBillingMigration(database as any);
            const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
            await runHydrationHubMigration(database as any);
+           const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
+           await runProcareTrainingMigration(database as any);
+           const { runPerformanceModeEnabledMigration } = await import("./db/migrations/runPerformanceModeEnabledMigration");
+           await runPerformanceModeEnabledMigration(database as any);
+           const { runEmailIdentityReviewMigration } = await import("./db/migrations/runEmailIdentityReviewMigration");
+           await runEmailIdentityReviewMigration(database as any);
           const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
           await runStudioVoiceStorageMigration();
+           // Keep this last: its deliberate ownership-review exception must not
+           // prevent the unrelated schema migrations above from completing.
+           const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
+           await runStripeBillingMigration(database as any);
           console.log("✅ [INIT] Trial grants schema ensured");
       })();
 
-      // Race the schema migration promise against a 6-second boot timeout.
-      // The timeout only unblocks the boot path — schemaMigPromise keeps running
-      // so the background grandfather task can await its natural completion.
-      await Promise.race([schemaMigPromise, migTimeout(6000)]);
-
+      // The timeout is only a warning boundary. It never cancels the original
+      // promise, so await that same promise rather than launching duplicate DDL.
+      await awaitSingleBootMigration(schemaMigPromise, 6000, (migErr) => {
+        console.warn(
+          "⚠️ [INIT] Column migration exceeded/fell through boot warning boundary:",
+          (migErr as Error)?.message ?? String(migErr),
+        );
+      });
       console.log("✅ [INIT] Column migrations complete");
     } catch (migErr) {
-      console.warn(
-        "⚠️ [INIT] Column migration skipped (timeout or error):",
-        (migErr as Error).message,
+      const { handleStripeMigrationFailure } = await import(
+        "./services/stripeMigrationReview"
       );
-    }
-
-    // ── Synchronous guard-backing migrations ─────────────────────────────────
-    // schemaMigPromise above is raced against a 6 s timeout, so its ALTERs
-    // may not have completed before the guards below run.  Re-applying all
-    // three critical idempotent migrations here guarantees every guarded
-    // column is present when its guard fires, regardless of whether the race
-    // timed out.
-    //
-    // runTrialGrantsMigration is placed last in schemaMigPromise and is
-    // therefore the most likely to be cut off by the 6 s timeout — it MUST
-    // be re-run here before assertTrialSourceColumn fires.
-    {
-      const { db: dbSyncMig } = await import("./db");
-      const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
-      const { runPilotProcareMigration } = await import("./db/migrations/runPilotProcareMigration");
-      const { runPilotProgramMigration } = await import("./db/migrations/runPilotProgramMigration");
-      const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
-      const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
-      const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
-      const { runPerformanceModeEnabledMigration } = await import("./db/migrations/runPerformanceModeEnabledMigration");
-      const { runEmailIdentityReviewMigration } = await import("./db/migrations/runEmailIdentityReviewMigration");
-      const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
-      await runTrialGrantsMigration(dbSyncMig as any);
-      await runPilotProcareMigration(dbSyncMig as any);
-      await runPilotProgramMigration(dbSyncMig as any);
-      await runStripeBillingMigration(dbSyncMig as any);
-      await runHydrationHubMigration(dbSyncMig as any);
-      await runProcareTrainingMigration(dbSyncMig as any);
-      await runPerformanceModeEnabledMigration(dbSyncMig as any);
-      await runEmailIdentityReviewMigration(dbSyncMig as any);
-      await runStudioVoiceStorageMigration();
+      const { db: dbStripeGuard } = await import("./db");
+      const { assertStripeBillingSchema } = await import(
+        "./db/migrations/assertStripeBillingSchema"
+      );
+      await handleStripeMigrationFailure(
+        migErr,
+        () => assertStripeBillingSchema(dbStripeGuard as any),
+      );
     }
 
     // ── Post-migration guards: verify critical columns are actually present ─
