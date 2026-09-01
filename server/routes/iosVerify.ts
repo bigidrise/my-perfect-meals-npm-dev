@@ -1,74 +1,21 @@
 import { Router, Request, Response } from "express";
-import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 
 const router = Router();
 
-const IOS_PRODUCT_TO_PLAN: Record<string, string> = {
-  "mpm.sub.basic.monthly.v1": "mpm_basic_monthly",
-  "mpm.sub.premium.monthly.v1": "mpm_premium_monthly",
-  "mpm.sub.ultimate.monthly.v1": "mpm_ultimate_monthly",
-  mpm_basic_plan_999: "mpm_basic_monthly",
-  mpm_premium_plan_1999: "mpm_premium_monthly",
-  mpm_ultimate_plan_2999: "mpm_ultimate_monthly",
-};
-
-const PLAN_ENTITLEMENTS: Record<string, string[]> = {
-  mpm_basic_monthly: [
-    "smart_menu_builder",
-    "weekly_meal_board",
-    "shopping_list",
-    "biometrics",
-    "alcohol_hub",
-    "hormones_women",
-    "hormones_men",
-  ],
-  mpm_premium_monthly: [
-    "smart_menu_builder",
-    "weekly_meal_board",
-    "shopping_list",
-    "biometrics",
-    "alcohol_hub",
-    "hormones_women",
-    "hormones_men",
-    "restaurant_guide",
-    "fridge_rescue",
-    "potluck_planner",
-    "holiday_feast",
-    "learn_cook",
-    "grocery_coach",
-  ],
-  mpm_ultimate_monthly: [
-    "smart_menu_builder",
-    "weekly_meal_board",
-    "shopping_list",
-    "biometrics",
-    "alcohol_hub",
-    "hormones_women",
-    "hormones_men",
-    "restaurant_guide",
-    "fridge_rescue",
-    "potluck_planner",
-    "holiday_feast",
-    "learn_cook",
-    "lab_metrics",
-    "care_team",
-    "pregnancy",
-    "getaway",
-    "grocery_coach",
-    "performance_nutrition",
-  ],
+const verificationUnavailable = {
+  code: "APP_STORE_SERVER_VERIFICATION_REQUIRED",
+  error:
+    "Paid iOS access is temporarily unavailable until App Store Server API verification and signed transaction ownership validation are configured.",
 };
 
 router.post("/verify-purchase", requireAuth, async (req: Request, res: Response) => {
   try {
     const authUserId = (req as any).authUser?.id as string | undefined;
-    const { userId, transactionId, productId, internalSku } = req.body;
+    const { userId } = req.body;
 
-    if (!userId || !transactionId || !productId) {
-      return res.status(400).json({ error: "Missing required fields" });
+    if (!userId) {
+      return res.status(400).json({ error: "Missing user ID" });
     }
 
     // Security: the userId in the request body must match the authenticated session
@@ -77,62 +24,8 @@ router.post("/verify-purchase", requireAuth, async (req: Request, res: Response)
       return res.status(403).json({ error: "User ID does not match authenticated session" });
     }
 
-    console.log("[iOS Verify] Processing purchase:", {
-      userId,
-      transactionId,
-      productId,
-      internalSku,
-    });
-
-    const planLookupKey = IOS_PRODUCT_TO_PLAN[productId] || internalSku;
-    if (!planLookupKey) {
-      return res.status(400).json({ error: "Unknown product ID" });
-    }
-
-    const entitlements = PLAN_ENTITLEMENTS[planLookupKey] || [];
-
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        planLookupKey,
-        entitlements,
-        subscriptionStatus: "active",
-      })
-      .where(eq(users.id, userId))
-      .returning();
-
-    if (!updatedUser) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    console.log("[iOS Verify] User updated:", {
-      userId: updatedUser.id,
-      planLookupKey,
-      entitlements,
-    });
-
-    const safeUser = {
-      id: updatedUser.id,
-      email: updatedUser.email,
-      username: updatedUser.username,
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      planLookupKey: updatedUser.planLookupKey,
-      entitlements: updatedUser.entitlements,
-      subscriptionStatus: updatedUser.subscriptionStatus,
-      role: updatedUser.role,
-      onboardingCompletedAt: updatedUser.onboardingCompletedAt,
-      selectedMealBuilder: updatedUser.selectedMealBuilder,
-      activeBoard: (updatedUser as any).activeBoard ?? null,
-      profilePhotoUrl: updatedUser.profilePhotoUrl,
-      nickname: (updatedUser as any).nickname ?? null,
-    };
-
-    return res.json({
-      success: true,
-      user: safeUser,
-      plan: planLookupKey,
-    });
+    console.warn(`[iOS Verify] Rejected unverified client purchase claim for user ${userId}`);
+    return res.status(503).json(verificationUnavailable);
   } catch (error: any) {
     console.error("[iOS Verify] Error:", error);
     return res.status(500).json({ error: error.message || "Verification failed" });
@@ -142,10 +35,10 @@ router.post("/verify-purchase", requireAuth, async (req: Request, res: Response)
 router.post("/restore-purchases", requireAuth, async (req: Request, res: Response) => {
   try {
     const authUserId = (req as any).authUser?.id as string | undefined;
-    const { userId, entitlements } = req.body;
+    const { userId } = req.body;
 
-    if (!userId || !entitlements || !Array.isArray(entitlements)) {
-      return res.status(400).json({ error: "Missing required fields" });
+    if (!userId) {
+      return res.status(400).json({ error: "Missing user ID" });
     }
 
     // Security: the userId in the request body must match the authenticated session
@@ -154,66 +47,8 @@ router.post("/restore-purchases", requireAuth, async (req: Request, res: Respons
       return res.status(403).json({ error: "User ID does not match authenticated session" });
     }
 
-    if (entitlements.length === 0) {
-      return res.json({ success: true, message: "No purchases to restore" });
-    }
-
-    const highestTierProduct = entitlements.reduce((highest: string, productId: string) => {
-      const tierOrder = [
-        "mpm.sub.ultimate.monthly.v1", "mpm.sub.premium.monthly.v1", "mpm.sub.basic.monthly.v1",
-        "mpm_ultimate_plan_2999", "mpm_premium_plan_1999", "mpm_basic_plan_999",
-      ];
-      const currentIndex = tierOrder.indexOf(productId);
-      const highestIndex = tierOrder.indexOf(highest);
-      if (currentIndex === -1) return highest;
-      if (highestIndex === -1) return productId;
-      return currentIndex < highestIndex ? productId : highest;
-    }, entitlements[0]);
-
-    const planLookupKey = IOS_PRODUCT_TO_PLAN[highestTierProduct];
-    if (!planLookupKey) {
-      return res.status(400).json({ error: "Unknown product" });
-    }
-
-    const planEntitlements = PLAN_ENTITLEMENTS[planLookupKey] || [];
-
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        planLookupKey,
-        entitlements: planEntitlements,
-        subscriptionStatus: "active",
-      })
-      .where(eq(users.id, userId))
-      .returning();
-
-    if (!updatedUser) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const safeUser = {
-      id: updatedUser.id,
-      email: updatedUser.email,
-      username: updatedUser.username,
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      planLookupKey: updatedUser.planLookupKey,
-      entitlements: updatedUser.entitlements,
-      subscriptionStatus: updatedUser.subscriptionStatus,
-      role: updatedUser.role,
-      onboardingCompletedAt: updatedUser.onboardingCompletedAt,
-      selectedMealBuilder: updatedUser.selectedMealBuilder,
-      activeBoard: (updatedUser as any).activeBoard ?? null,
-      profilePhotoUrl: updatedUser.profilePhotoUrl,
-      nickname: (updatedUser as any).nickname ?? null,
-    };
-
-    return res.json({
-      success: true,
-      user: safeUser,
-      plan: planLookupKey,
-      restoredProduct: highestTierProduct,
-    });
+    console.warn(`[iOS Restore] Rejected unverified client restore claim for user ${userId}`);
+    return res.status(503).json(verificationUnavailable);
   } catch (error: any) {
     console.error("[iOS Restore] Error:", error);
     return res.status(500).json({ error: error.message || "Restore failed" });

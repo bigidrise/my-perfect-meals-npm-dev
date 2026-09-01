@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/requireAuth";
 import { getTrustedCheckoutPlan } from "../services/stripePlanCatalog";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 import { reconcileCheckoutSession } from "../services/stripeReconciliationService";
+import { randomUUID } from "node:crypto";
 
 const router = Router();
 
@@ -236,38 +237,6 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "User not authenticated" });
   }
 
-  // Require an existing business record (created via the self-service /api/business/create-org
-  // flow or by an admin) before allowing checkout. This ensures the org row exists to associate
-  // with the Stripe subscription. A pending_billing status is acceptable — the webhook will
-  // activate it on payment confirmation.
-  try {
-    const { db: checkDb } = await import("../db");
-    const { businesses: bizTable } = await import("../db/schema/business");
-    const { eq: eqBiz } = await import("drizzle-orm");
-    const [existingBiz] = await checkDb
-      .select({ id: bizTable.id, status: bizTable.status })
-      .from(bizTable)
-      .where(eqBiz(bizTable.ownerUserId, userId))
-      .limit(1);
-    if (!existingBiz) {
-      return res.status(403).json({
-        code: "ORGANIZATION_REQUIRED",
-        error: "Please complete organization setup before purchasing seats.",
-      });
-    }
-    // Block active organizations from creating a second Stripe checkout — doing so would
-    // create a duplicate subscription and the webhook would overwrite the active billing state.
-    // Active owners must use the Stripe customer portal to change seats or billing details.
-    if (existingBiz.status === "active") {
-      return res.status(403).json({
-        code: "ORGANIZATION_ALREADY_ACTIVE",
-        error: "Your organization is already active. To change your seat count or billing details, use the customer portal.",
-      });
-    }
-  } catch (gateErr) {
-    console.error("[checkout/business] Gate check failed:", gateErr);
-  }
-
   const requestedSeats = Number(req.body.seats);
   if (!Number.isInteger(requestedSeats) || requestedSeats < 1 || requestedSeats > 250) {
     return res.status(400).json({
@@ -296,6 +265,56 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
 
   try {
     assertStripeBillingOwnership(stripeKey);
+    const { db: checkoutDb } = await import("../db");
+    const { businesses: bizTable } = await import("../db/schema/business");
+    const { and, eq, isNull, sql: drizzleSql } = await import("drizzle-orm");
+    const proposedReservationId = randomUUID();
+    const [reservedBusiness] = await checkoutDb
+      .update(bizTable)
+      .set({
+        stripeCheckoutReservationId: drizzleSql`
+          COALESCE(${bizTable.stripeCheckoutReservationId}, ${proposedReservationId})
+        `,
+        stripeCheckoutSeatCount: drizzleSql`
+          COALESCE(${bizTable.stripeCheckoutSeatCount}, ${requestedSeats})
+        `,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(bizTable.ownerUserId, userId),
+        eq(bizTable.status, "pending_billing"),
+        isNull(bizTable.stripeSubscriptionId),
+      ))
+      .returning({
+        id: bizTable.id,
+        reservationId: bizTable.stripeCheckoutReservationId,
+        reservedSeatCount: bizTable.stripeCheckoutSeatCount,
+      });
+
+    if (!reservedBusiness) {
+      const [existingBusiness] = await checkoutDb
+        .select({ id: bizTable.id, status: bizTable.status })
+        .from(bizTable)
+        .where(eq(bizTable.ownerUserId, userId))
+        .limit(1);
+      return res.status(existingBusiness ? 409 : 403).json({
+        code: existingBusiness ? "ORGANIZATION_CHECKOUT_UNAVAILABLE" : "ORGANIZATION_REQUIRED",
+        error: existingBusiness
+          ? "This organization already has active or conflicting billing."
+          : "Please complete organization setup before purchasing seats.",
+      });
+    }
+
+    if (
+      !reservedBusiness.reservationId
+      || reservedBusiness.reservedSeatCount !== requestedSeats
+    ) {
+      return res.status(409).json({
+        code: "ORGANIZATION_CHECKOUT_CONFLICT",
+        error: "A checkout with a different seat count is already in progress.",
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [
@@ -308,6 +327,8 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       cancel_url: `${appUrl}/business/setup`,
       metadata: {
         userId,
+        businessId: reservedBusiness.id,
+        checkoutReservationId: reservedBusiness.reservationId,
         sku: "clinical_business_monthly",
         subscriptionType: "business_seat",
         seatCount: String(requestedSeats),
@@ -316,15 +337,35 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       subscription_data: {
         metadata: {
           userId,
+          businessId: reservedBusiness.id,
+          checkoutReservationId: reservedBusiness.reservationId,
           sku: "clinical_business_monthly",
           subscriptionType: "business_seat",
           seatCount: String(requestedSeats),
         },
       },
+    }, {
+      idempotencyKey: `mpm-business-checkout:${reservedBusiness.id}:${reservedBusiness.reservationId}`,
     });
 
     if (!session.url) {
       throw new Error("Stripe session created but no checkout URL returned");
+    }
+
+    const [sessionBound] = await checkoutDb
+      .update(bizTable)
+      .set({
+        stripeCheckoutSessionId: session.id,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(bizTable.id, reservedBusiness.id),
+        eq(bizTable.stripeCheckoutReservationId, reservedBusiness.reservationId),
+        isNull(bizTable.stripeSubscriptionId),
+      ))
+      .returning({ id: bizTable.id });
+    if (!sessionBound) {
+      throw new Error("Business checkout reservation changed before the session could be bound");
     }
 
     console.log(
