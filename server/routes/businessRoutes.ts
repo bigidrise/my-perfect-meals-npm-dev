@@ -8,6 +8,7 @@ import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireProAccess } from "../middleware/requireProAccess";
 import { requireProOrOrgAdmin } from "../middleware/requireProOrOrgAdmin";
+import { requireAdmin } from "../middleware/requireAdmin";
 import { sendBusinessInviteEmail } from "../services/emailService";
 import {
   normalizeEmailIdentity,
@@ -24,6 +25,16 @@ import {
   resendOrganizationalPilotInvitation,
   type PilotInvitationRole,
 } from "../services/organizationalPilotInvitationService";
+import {
+  claimPilotAuthorization,
+  createApprovedPilotAuthorization,
+  getClaimedChampionSetup,
+  getOrganizationWorkspaceOptions,
+  inspectPilotAuthorizationToken,
+  PilotAuthorizationError,
+  updateClaimedChampionSetup,
+} from "../services/organizationalPilotAuthorizationService";
+import { organizationalPilots } from "../db/schema/pilotProgram";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -39,6 +50,140 @@ function handlePilotInvitationError(res: any, error: unknown) {
   throw error;
 }
 
+function handlePilotAuthorizationError(res: any, error: unknown) {
+  if (error instanceof PilotAuthorizationError) {
+    return res.status(error.statusCode).json({ error: error.message, code: error.code });
+  }
+  throw error;
+}
+
+router.post("/pilot-authorizations", requireAuth, requireAdmin, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const created = await createApprovedPilotAuthorization({
+      organizationName: req.body?.organizationName ?? "",
+      championEmail: req.body?.championEmail ?? "",
+      professionalCapacity: Number(req.body?.professionalCapacity),
+      clientCapacity: Number(req.body?.clientCapacity),
+      durationDays: Number(req.body?.durationDays ?? 30),
+      approvedByUserId: userId,
+    });
+    const claimLink = `${getAppUrl()}/auth?pilotAuthorization=${created.rawToken}`;
+    const emailSent = req.body?.sendEmail === false
+      ? false
+      : await sendBusinessInviteEmail({
+          to: created.authorization.championEmail,
+          businessName: created.authorization.organizationName,
+          inviterName: "My Perfect Meals",
+          inviteLink: claimLink,
+          role: "Pilot Champion",
+          expiresAt: created.authorization.claimTokenExpiresAt!,
+          invitationType: "team_member",
+          trialDays: null,
+          programName: `${created.authorization.durationDays}-Day Organizational Pilot`,
+        });
+    return res.status(201).json({
+      authorizationId: created.authorization.id,
+      organizationName: created.authorization.organizationName,
+      status: created.authorization.status,
+      expiresAt: created.authorization.claimTokenExpiresAt,
+      emailSent,
+      ...(process.env.NODE_ENV !== "production" && req.body?.sendEmail === false ? { claimLink } : {}),
+    });
+  } catch (error) {
+    try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-authorization/create] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+router.get("/pilot-authorizations/claim/:token", async (req, res) => {
+  try {
+    const authorization = await inspectPilotAuthorizationToken(req.params.token);
+    if (!authorization) return res.status(404).json({ error: "Authorization not found." });
+    if (authorization.status !== "approved" && authorization.status !== "claimed") {
+      return res.status(410).json({ error: "Authorization is no longer available.", status: authorization.status });
+    }
+    if (authorization.claimTokenExpiresAt && authorization.claimTokenExpiresAt <= new Date()) {
+      return res.status(410).json({ error: "Authorization has expired.", status: "expired" });
+    }
+    return res.json({
+      organizationName: authorization.organizationName,
+      championEmail: authorization.championEmail,
+      status: authorization.status,
+      professionalCapacity: authorization.professionalCapacity,
+      clientCapacity: authorization.clientCapacity,
+      durationDays: authorization.durationDays,
+      expiresAt: authorization.claimTokenExpiresAt,
+    });
+  } catch (error) {
+    console.error("[business/pilot-authorization/inspect] error:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
+router.post("/pilot-authorizations/claim", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const claimed = await claimPilotAuthorization({
+      userId,
+      rawToken: typeof req.body?.token === "string" ? req.body.token : undefined,
+      authorizationId: typeof req.body?.authorizationId === "string" ? req.body.authorizationId : undefined,
+    });
+    return res.json({
+      success: true,
+      alreadyClaimed: claimed.alreadyClaimed,
+      businessId: claimed.business?.id ?? null,
+      organizationName: claimed.business?.name ?? claimed.authorization.organizationName,
+      pilotId: claimed.pilot?.id ?? null,
+      pilotStatus: claimed.pilot?.status ?? "preparing",
+      setupPath: "/business/setup?pilot=1",
+    });
+  } catch (error) {
+    try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-authorization/claim] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+router.get("/workspaces", requireAuth, async (req, res) => {
+  try {
+    const workspaces = await getOrganizationWorkspaceOptions((req as any).authUser?.id as string);
+    return res.json({ workspaces });
+  } catch (error) {
+    console.error("[business/workspaces] error:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
+router.get("/pilot-setup", requireAuth, async (req, res) => {
+  try {
+    return res.json(await getClaimedChampionSetup((req as any).authUser?.id as string));
+  } catch (error) {
+    try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-setup/get] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+router.patch("/pilot-setup", requireAuth, async (req, res) => {
+  try {
+    const setup = await updateClaimedChampionSetup(
+      (req as any).authUser?.id as string,
+      typeof req.body?.name === "string" ? req.body.name : "",
+    );
+    return res.json({ success: true, setup });
+  } catch (error) {
+    try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-setup/update] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
 router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
@@ -52,6 +197,12 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
     const allowedRoles = populationType === "professional"
       ? ["nurse", "provider", "coach", "staff"]
       : ["client"];
+    if (participantRole === "champion") {
+      return res.status(403).json({
+        error: "Pilot Champion access requires an exact-user organizational authorization.",
+        code: "CHAMPION_AUTHORIZATION_REQUIRED",
+      });
+    }
     if (!allowedRoles.includes(participantRole)) {
       return res.status(400).json({ error: "Invalid role for this participant population.", code: "INVALID_ROLE" });
     }
@@ -86,6 +237,7 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
       populationType,
       participantRole,
       expiresAt: created.invite.expiresAt,
+      ...(req.body?.sendEmail === false ? { inviteLink } : {}),
     });
   } catch (error) {
     try { return handlePilotInvitationError(res, error); } catch (unexpected) {
@@ -358,9 +510,21 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     const usedSeats = members.length;
     const planLostCount = members.filter((m) => m.planLost).length;
+    const [pilot] = await db.select({
+      id: organizationalPilots.id,
+      status: organizationalPilots.status,
+      professionalCapacity: organizationalPilots.professionalCapacity,
+      clientCapacity: organizationalPilots.clientCapacity,
+      durationDays: organizationalPilots.durationDays,
+      pilotStartAt: organizationalPilots.pilotStartAt,
+      pilotEndAt: organizationalPilots.pilotEndAt,
+    }).from(organizationalPilots)
+      .where(eq(organizationalPilots.businessId, business.id))
+      .limit(1);
 
     return res.json({
       business,
+      pilot: pilot ?? null,
       members,
       invitations,
       clientInvitations,

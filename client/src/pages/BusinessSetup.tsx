@@ -9,7 +9,7 @@
  * This page is intentionally ungated — the user has not yet paid.
  */
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { Building2, Users, ChevronRight, Loader2, CheckCircle } from "lucide-react";
@@ -24,7 +24,9 @@ const SEAT_OPTIONS = [
 
 export default function BusinessSetup() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { user } = useAuth();
+  const pilotMode = new URLSearchParams(search).get("pilot") === "1";
 
   const [orgName, setOrgName] = useState("");
   const [seats, setSeats] = useState(5);
@@ -33,12 +35,31 @@ export default function BusinessSetup() {
   const [step, setStep] = useState<"form" | "redirecting">("form");
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pilotSetup, setPilotSetup] = useState<{
+    organizationName: string;
+    professionalCapacity: number;
+    clientCapacity: number;
+    durationDays: number;
+    pilotStatus: string;
+  } | null>(null);
 
   // Pre-fill org name if a pending_billing org already exists (e.g. owner returns after
   // abandoning Stripe checkout — we don't want to create a duplicate).
   useEffect(() => {
     (async () => {
       try {
+        if (pilotMode) {
+          const pilotRes = await fetch("/api/business/pilot-setup", {
+            credentials: "include",
+            headers: getAuthHeaders(),
+          });
+          const pilotData = await pilotRes.json();
+          if (!pilotRes.ok) throw new Error(pilotData.error || "Could not load pilot setup.");
+          setPilotSetup(pilotData);
+          setOrgName(pilotData.organizationName);
+          setSeats(pilotData.professionalCapacity);
+          return;
+        }
         const res = await fetch("/api/business/check-status", {
           credentials: "include",
           headers: getAuthHeaders(),
@@ -49,11 +70,11 @@ export default function BusinessSetup() {
             setOrgName(name);
           }
         }
-      } catch {
-        // Non-fatal — ignore errors, form stays blank
+      } catch (error: any) {
+        if (pilotMode) setErr(error?.message || "Could not load pilot setup.");
       }
     })();
-  }, []);
+  }, [pilotMode]);
 
   const resolvedSeats = useCustom ? (parseInt(customSeats) || 0) : seats;
 
@@ -72,6 +93,22 @@ export default function BusinessSetup() {
 
     setSubmitting(true);
     try {
+      if (pilotMode) {
+        const setupRes = await fetch("/api/business/pilot-setup", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({ name: orgName.trim() }),
+        });
+        const setupData = await setupRes.json();
+        if (!setupRes.ok) {
+          setErr(setupData.error || "Could not save your organization.");
+          setSubmitting(false);
+          return;
+        }
+        setLocation("/business-dashboard");
+        return;
+      }
       // Step 1: Create the organization record
       const createRes = await fetch("/api/business/create-org", {
         method: "POST",
@@ -131,7 +168,9 @@ export default function BusinessSetup() {
           <h1 className="text-white text-2xl font-bold">Set Up Your Organization</h1>
           <p className="text-white/50 text-sm mt-2">
             {user?.email && <span className="text-white/70">{user.email} · </span>}
-            Name your organization and choose how many seats to purchase.
+            {pilotMode
+              ? "Confirm your organization details and authorized pilot capacity."
+              : "Name your organization and choose how many seats to purchase."}
           </p>
         </div>
 
@@ -155,8 +194,20 @@ export default function BusinessSetup() {
           {/* Seat count */}
           <div>
             <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-2">
-              Number of Seats
+              {pilotMode ? "Authorized Professional Capacity" : "Number of Seats"}
             </label>
+            {pilotMode ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+                  <p className="text-xs text-white/50">Professional seats</p>
+                  <p className="mt-1 text-2xl font-bold text-orange-300">{pilotSetup?.professionalCapacity ?? seats}</p>
+                </div>
+                <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4">
+                  <p className="text-xs text-white/50">Client capacity</p>
+                  <p className="mt-1 text-2xl font-bold text-violet-300">{pilotSetup?.clientCapacity ?? 0}</p>
+                </div>
+              </div>
+            ) : (
             <div className="grid grid-cols-3 gap-2">
               {SEAT_OPTIONS.map((opt) => (
                 <button
@@ -187,7 +238,8 @@ export default function BusinessSetup() {
                 <div className="text-xs text-white/40">1–250</div>
               </button>
             </div>
-            {useCustom && (
+            )}
+            {!pilotMode && useCustom && (
               <input
                 className="mt-2 w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
                 type="number"
@@ -200,12 +252,14 @@ export default function BusinessSetup() {
               />
             )}
             <p className="text-white/30 text-xs mt-2">
-              Each seat covers one team member (coaches, trainers, staff). You occupy seat 1 as the owner.
+              {pilotMode
+                ? `These limits come from the approved authorization and cannot be increased here. The ${pilotSetup?.durationDays ?? 30}-day clock remains stopped while the pilot is Preparing.`
+                : "Each seat covers one team member (coaches, trainers, staff). You occupy seat 1 as the owner."}
             </p>
           </div>
 
           {/* Price preview */}
-          {resolvedSeats >= 1 && (
+          {!pilotMode && resolvedSeats >= 1 && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between">
               <div>
                 <p className="text-white/50 text-xs">Estimated monthly</p>
@@ -247,12 +301,14 @@ export default function BusinessSetup() {
             {submitting ? (
               <><Loader2 className="w-5 h-5 animate-spin" /> Creating organization…</>
             ) : (
-              <><Users className="w-5 h-5" /> Continue to Payment <ChevronRight className="w-4 h-4" /></>
+              <><Users className="w-5 h-5" /> {pilotMode ? "Open Business Suite" : "Continue to Payment"} <ChevronRight className="w-4 h-4" /></>
             )}
           </button>
 
           <p className="text-center text-white/30 text-xs">
-            Secure checkout via Stripe. Cancel or adjust seats any time from your dashboard.
+            {pilotMode
+              ? "No payment is required for this authorized pilot. Claiming setup does not start the pilot clock."
+              : "Secure checkout via Stripe. Cancel or adjust seats any time from your dashboard."}
           </p>
         </form>
       </div>
