@@ -18,13 +18,6 @@ import {
   resolveEmailIdentityForEmail,
 } from "../services/emailIdentityService";
 import type { TrialAccessType } from "../services/preRegistrationAccess";
-import {
-  activatePilotByToken,
-  inspectPilotActivationToken,
-  provisionPilotProgram,
-  startPilotProgram,
-} from "../services/pilotProgramAccess";
-import { emailServiceAvailable } from "../middleware/requireEmailService";
 
 const router = Router();
 
@@ -100,88 +93,31 @@ router.get("/status", requireAuth, async (req, res) => {
 });
 
 router.get("/pilot/activation", async (req, res) => {
-  const token = typeof req.query.token === "string" ? req.query.token : "";
-  if (!token) return res.status(400).json({ error: "Activation token is required" });
-  const pending = await inspectPilotActivationToken(token);
-  if (!pending) return res.status(400).json({ error: "Invalid or expired pilot activation link" });
-  return res.json({
-    participantName: pending.participantName,
-    email: pending.email,
-    programName: pending.programName,
-    organizationName: pending.organizationName,
-    durationDays: pending.durationDays,
-    requiresPasswordSetup: pending.requiresPasswordSetup,
+  return res.status(410).json({
+    error: "The participant-level pilot activation flow has been retired. Use an organizational pilot invitation.",
+    code: "LEGACY_PILOT_FLOW_RETIRED",
   });
 });
 
 router.post("/pilot/activate", async (req, res) => {
-  try {
-    const token = typeof req.body?.token === "string" ? req.body.token : "";
-    const password = typeof req.body?.password === "string" ? req.body.password : undefined;
-    if (!token) return res.status(400).json({ error: "Activation token is required" });
-    const activated = await activatePilotByToken(token, password);
-    return res.json({
-      success: true,
-      programName: activated.programName,
-      startsAt: activated.participant.startsAt,
-      expiresAt: activated.participant.expiresAt,
-    });
-  } catch (error: any) {
-    return res.status(400).json({ error: error?.message || "Pilot activation failed" });
-  }
+  return res.status(410).json({
+    error: "The participant-level pilot activation flow has been retired. Use an organizational pilot invitation.",
+    code: "LEGACY_PILOT_FLOW_RETIRED",
+  });
 });
 
 router.post("/admin/pilot-programs", requireAuth, requireAdmin, async (req, res) => {
-  try {
-    if (!emailServiceAvailable()) {
-      return res.status(503).json({ error: "Email service is required for pilot provisioning" });
-    }
-    const programName = typeof req.body?.programName === "string" ? req.body.programName : "";
-    const organizationName = typeof req.body?.organizationName === "string" ? req.body.organizationName : "";
-    const durationDays = Number(req.body?.durationDays ?? 30);
-    const participants = Array.isArray(req.body?.participants) ? req.body.participants : [];
-    const result = await provisionPilotProgram({
-      programName,
-      organizationName,
-      durationDays,
-      participants,
-      createdByUserId: (req as AuthenticatedRequest).authUser.id,
-      activationBaseUrl: getPublicAppUrl(req),
-    });
-    logAudit({
-      actor: (req as AuthenticatedRequest).authUser.id,
-      action: "TRIAL_GRANT",
-      resourceType: "pilot_program",
-      resourceId: result.program.id,
-      route: "/api/trial/admin/pilot-programs",
-      meta: {
-        participantCount: participants.length,
-        activeCount: result.participants.filter((item) => item.status === "active").length,
-        pendingCount: result.participants.filter((item) => item.status === "pending").length,
-        failedCount: result.participants.filter((item) => item.status === "failed").length,
-      },
-    });
-    return res.status(201).json(result);
-  } catch (error: any) {
-    return res.status(400).json({ error: error?.message || "Pilot provisioning failed" });
-  }
+  return res.status(410).json({
+    error: "Participant-level pilot provisioning has been retired. Create an organizational pilot through the approved Business flow.",
+    code: "LEGACY_PILOT_FLOW_RETIRED",
+  });
 });
 
 router.post("/admin/pilot-programs/:programId/start", requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const program = await startPilotProgram(req.params.programId);
-    logAudit({
-      actor: (req as AuthenticatedRequest).authUser.id,
-      action: "TRIAL_GRANT",
-      resourceType: "pilot_program",
-      resourceId: program.id,
-      route: "/api/trial/admin/pilot-programs/:programId/start",
-      meta: { status: program.status, durationDays: program.durationDays },
-    });
-    return res.json({ success: true, program });
-  } catch (error: any) {
-    return res.status(400).json({ error: error?.message || "Pilot start failed" });
-  }
+  return res.status(410).json({
+    error: "Participant-level pilot start has been retired. Use the organizational pilot start workflow.",
+    code: "LEGACY_PILOT_FLOW_RETIRED",
+  });
 });
 
 // ── Pre-registration access allowlist ───────────────────────────────────────
