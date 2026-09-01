@@ -6,6 +6,12 @@ export const businesses = pgTable("businesses", {
   ownerUserId: text("owner_user_id").notNull().unique(),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  stripeCheckoutReservationId: text("stripe_checkout_reservation_id"),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+  stripeCheckoutSeatCount: integer("stripe_checkout_seat_count"),
+  stripeLastEventCreatedAt: timestamp("stripe_last_event_created_at", { withTimezone: true }),
+  stripeLastEventRank: integer("stripe_last_event_rank").notNull().default(0),
+  stripeLastEventId: text("stripe_last_event_id"),
   plan: text("plan").notNull().default("clinical_business_monthly"),
   seatLimit: integer("seat_limit").notNull().default(4),
   status: text("status").$type<"active" | "cancelled" | "past_due" | "pending_billing">().notNull().default("active"),
@@ -45,6 +51,7 @@ export const businesses = pgTable("businesses", {
 }, (t) => ({
   stripeCustomerIdUnique: uniqueIndex("businesses_stripe_customer_id_uniq").on(t.stripeCustomerId),
   stripeSubscriptionIdUnique: uniqueIndex("businesses_stripe_subscription_id_uniq").on(t.stripeSubscriptionId),
+  stripeCheckoutSessionIdUnique: uniqueIndex("businesses_stripe_checkout_session_id_uniq").on(t.stripeCheckoutSessionId),
 }));
 
 export type Business = typeof businesses.$inferSelect;

@@ -2,10 +2,24 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
+
+export const stripeIdentityOwners = pgTable("stripe_identity_owners", {
+  identityType: varchar("identity_type", { length: 32 }).notNull(),
+  identityValue: varchar("identity_value", { length: 255 }).notNull(),
+  ownerUserId: varchar("owner_user_id", { length: 255 }).notNull(),
+  businessId: varchar("business_id", { length: 255 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.identityType, table.identityValue] }),
+  ownerIdx: index("stripe_identity_owners_owner_idx")
+    .on(table.ownerUserId, table.businessId),
+}));
 
 export const stripeBillingEvents = pgTable("stripe_billing_events", {
   eventId: varchar("event_id", { length: 255 }).primaryKey(),

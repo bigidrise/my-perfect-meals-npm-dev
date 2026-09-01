@@ -5,6 +5,7 @@ import { users } from "@shared/schema";
 import { claimBillingEvent, completeBillingEvent, failBillingEvent } from "./stripeBillingEventService";
 import { planFromSubscription } from "./stripePlanCatalog";
 import { updateUserSubscription } from "./subscriptionService";
+import { applyBusinessSubscriptionTransition } from "./businessSubscriptionService";
 
 export type ReconciliationResult =
   | {
@@ -74,19 +75,40 @@ export async function reconcileCheckoutSession(args: {
 
   try {
     if (claim === "claimed") {
-      const result = await updateUserSubscription({
-        userId: args.userId,
-        lookupKey: trustedPlan.planLookupKey,
-        stripeCustomerId: customerId,
-        stripeSubscriptionId: subscription.id,
-        mutation: {
-          eventId,
-          eventCreatedAt,
-          eventRank: 90,
-          source: "reconciliation",
-        },
-        storeAsPersonalPlan: trustedPlan.planLookupKey !== "clinical_business_monthly",
-      });
+      const result = trustedPlan.planLookupKey === "clinical_business_monthly"
+        ? await applyBusinessSubscriptionTransition({
+            ownerUserId: args.userId,
+            businessId: session.metadata?.businessId,
+            checkoutReservationId: session.metadata?.checkoutReservationId,
+            checkoutSessionId: session.id,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscription.id,
+            status: "active",
+            seatLimit: subscription.items.data[0]?.quantity,
+            mutation: {
+              eventId,
+              eventCreatedAt,
+              eventRank: 90,
+              source: "reconciliation",
+            },
+          })
+        : await updateUserSubscription({
+            userId: args.userId,
+            lookupKey: trustedPlan.planLookupKey,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscription.id,
+            mutation: {
+              eventId,
+              eventCreatedAt,
+              eventRank: 90,
+              source: "reconciliation",
+            },
+          });
+      if (!result.updated && result.reason !== "STALE_EVENT") {
+        throw new Error(
+          `Verified Stripe subscription could not be persisted (${result.reason})`,
+        );
+      }
       await completeBillingEvent(
         eventId,
         result.updated ? "processed" : "ignored",

@@ -10,7 +10,6 @@ import {
   resolveStripeEventUser,
 } from "../services/subscriptionService";
 import { clientLinks } from "../db/schema/procare";
-import { businesses } from "../db/schema/business";
 import { deactivateProCareClient } from "../services/procareActivation";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { isProCarePlanKey } from "@shared/planFeatures";
@@ -21,6 +20,7 @@ import {
 } from "../services/stripeBillingEventService";
 import { planFromSubscription } from "../services/stripePlanCatalog";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
+import { applyBusinessSubscriptionTransition } from "../services/businessSubscriptionService";
 
 const router = Router();
 
@@ -53,41 +53,6 @@ function eventRank(type: string): number {
 function stripeObjectId(value: string | { id: string } | null | undefined): string | null {
   if (typeof value === "string") return value;
   return value?.id ?? null;
-}
-
-function storesAsPersonalPlan(planLookupKey: string): boolean {
-  return planLookupKey !== "clinical_business_monthly";
-}
-
-async function syncBusinessBillingState(input: {
-  ownerUserId: string;
-  subscriptionId: string;
-  status: "active" | "cancelled" | "past_due";
-  seatLimit?: number | null;
-}): Promise<void> {
-  const update: {
-    status: "active" | "cancelled" | "past_due";
-    updatedAt: Date;
-    seatLimit?: number;
-  } = {
-    status: input.status,
-    updatedAt: new Date(),
-  };
-  if (input.seatLimit != null && input.seatLimit > 0) {
-    update.seatLimit = input.seatLimit;
-  }
-
-  await db
-    .update(businesses)
-    .set(update)
-    .where(and(
-      eq(businesses.ownerUserId, input.ownerUserId),
-      eq(businesses.stripeSubscriptionId, input.subscriptionId),
-    ));
-
-  // Deliberately do not mutate businessMembers here. Billing recovery restores
-  // organization availability only; removed members may be restored solely by
-  // the explicit clearRemovalNotice flow in businessRoutes.ts.
 }
 
 function eventObjectIdentity(event: Stripe.Event): {
@@ -234,114 +199,41 @@ router.post("/", async (req, res) => {
         const subscriptionType = metadata.subscriptionType ?? "individual";
         const seatCount = metadata.seatCount ? Number(metadata.seatCount) : 1;
 
-        const mutationResult = await updateUserSubscription({
-          userId,
-          lookupKey: trustedPlan.planLookupKey,
-          stripeCustomerId: customerId,
-          stripeSubscriptionId: subscriptionId,
-          mutation: {
-            eventId: event.id,
-            eventCreatedAt: new Date(event.created * 1000),
-            eventRank: eventRank(event.type),
-            source: "webhook",
-          },
-          storeAsPersonalPlan: subscriptionType !== "business_seat",
-        });
-        processedUserId = userId;
-        if (!mutationResult.updated) {
-          if (mutationResult.reason !== "STALE_EVENT") {
+        if (subscriptionType === "business_seat") {
+          const { businesses } = await import("../db/schema/business");
+          const { eq: eqBiz, sql: drizzleSql } = await import("drizzle-orm");
+          const businessId = metadata.businessId ?? subscription.metadata?.businessId;
+          const checkoutReservationId =
+            metadata.checkoutReservationId
+            ?? subscription.metadata?.checkoutReservationId;
+          const transition = await applyBusinessSubscriptionTransition({
+            ownerUserId: userId,
+            businessId,
+            checkoutReservationId,
+            checkoutSessionId: session.id,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            status: "active",
+            seatLimit: seatCount,
+            mutation: {
+              eventId: event.id,
+              eventCreatedAt: new Date(event.created * 1000),
+              eventRank: eventRank(event.type),
+              source: "webhook",
+            },
+          });
+          processedUserId = userId;
+          if (!transition.updated) {
+            if (transition.reason === "STALE_EVENT") {
+              await completeBillingEvent(event.id, "ignored", userId);
+              return res.json({ received: true, ignored: "stale_event" });
+            }
             throw new Error(
-              `Completed checkout could not be assigned safely (${mutationResult.reason})`,
+              `Business checkout could not be assigned safely (${transition.reason})`,
             );
           }
-          await completeBillingEvent(event.id, "ignored", userId);
-          return res.json({ received: true, ignored: "stale_event" });
-        }
-
-        if (subscriptionType === "business_seat") {
-          const { businesses, businessMembers } = await import("../db/schema/business");
-          const { eq: eqBiz, sql: drizzleSql } = await import("drizzle-orm");
-
-          // ── Step 1: Create or update the Business record ─────────────────
-          let bizId = "";
-          let orgName = "";
-          try {
-            const [existing] = await db.select().from(businesses).where(eqBiz(businesses.ownerUserId, userId)).limit(1);
-
-            if (!existing) {
-              // Atomic: business row + owner membership in one transaction so partial failure
-              // leaves no orphaned record. Replay enters the existing branch and repairs.
-              await db.transaction(async (tx) => {
-                const [newBiz] = await tx.insert(businesses).values({
-                  name: "My Business Team",
-                  ownerUserId: userId,
-                  stripeCustomerId: customerId,
-                  stripeSubscriptionId: subscriptionId,
-              plan: trustedPlan.planLookupKey,
-                  seatLimit: seatCount,
-                  status: "active",
-                }).returning();
-                await tx.insert(businessMembers).values({
-                  businessId: newBiz.id,
-                  userId,
-                  role: "owner",
-                  status: "active",
-                });
-                bizId = newBiz.id;
-                orgName = newBiz.name;
-              });
-              console.log(`✅ [webhook] Business created | id=${bizId} | owner=${userId} | seats=${seatCount}`);
-            } else {
-              // Guard: if the org is already active under a DIFFERENT subscription, this
-              // checkout session is a stale/unauthorized duplicate — ignore it to protect
-              // the existing billing state.
-              const isIntendedSubscription =
-                existing.status === "pending_billing" ||
-                existing.stripeSubscriptionId === subscriptionId ||
-                existing.stripeSubscriptionId === null;
-
-              if (!isIntendedSubscription) {
-                console.warn(
-                  `⚠️ [webhook] Ignoring checkout for already-active org with mismatched subscription | ` +
-                  `bizId=${existing.id} | existingSub=${existing.stripeSubscriptionId} | newSub=${subscriptionId}`,
-                );
-                // Skip further processing — do not overwrite billing state or send email
-                break;
-              }
-
-              // Update core fields and repair missing owner membership in one transaction
-              await db.transaction(async (tx) => {
-                await tx.update(businesses).set({
-                  seatLimit: seatCount,
-                  stripeSubscriptionId: subscriptionId,
-                  stripeCustomerId: customerId,
-                  status: "active",
-                  updatedAt: new Date(),
-                }).where(eqBiz(businesses.id, existing.id));
-                const [ownerMember] = await tx
-                  .select({ id: businessMembers.id })
-                  .from(businessMembers)
-                  .where(drizzleSql`business_id = ${existing.id} AND user_id = ${userId}`)
-                  .limit(1);
-                if (!ownerMember) {
-                  await tx.insert(businessMembers).values({
-                    businessId: existing.id,
-                    userId,
-                    role: "owner",
-                    status: "active",
-                  });
-                  console.log(`🔧 [webhook] Repaired missing owner membership | bizId=${existing.id} | owner=${userId}`);
-                }
-              });
-              bizId = existing.id;
-              orgName = existing.name;
-              console.log(`✅ [webhook] Business updated | id=${bizId} | seats=${seatCount}`);
-            }
-          } catch (bizErr) {
-            // Propagate so the outer handler returns 500 and Stripe retries the event
-            console.error("❌ [webhook] Business creation/update failed:", bizErr);
-            throw bizErr;
-          }
+          const bizId = transition.businessId;
+          const orgName = transition.businessName;
 
           // ── Step 2: Welcome email — two-column idempotency ──────────────────
           //
@@ -422,6 +314,28 @@ router.post("/", async (req, res) => {
             `✅ [webhook] checkout.session.completed — business_seat | user ${userId} → ${trustedPlan.planLookupKey} | seats=${seatCount} | total=$${(44.99 * seatCount).toFixed(2)}/mo`,
           );
         } else {
+          const mutationResult = await updateUserSubscription({
+            userId,
+            lookupKey: trustedPlan.planLookupKey,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            mutation: {
+              eventId: event.id,
+              eventCreatedAt: new Date(event.created * 1000),
+              eventRank: eventRank(event.type),
+              source: "webhook",
+            },
+          });
+          processedUserId = userId;
+          if (!mutationResult.updated) {
+            if (mutationResult.reason !== "STALE_EVENT") {
+              throw new Error(
+                `Completed checkout could not be assigned safely (${mutationResult.reason})`,
+              );
+            }
+            await completeBillingEvent(event.id, "ignored", userId);
+            return res.json({ received: true, ignored: "stale_event" });
+          }
           console.log(`✅ [webhook] checkout.session.completed — user ${userId} → ${trustedPlan.planLookupKey}`);
         }
         break;
@@ -452,41 +366,58 @@ router.post("/", async (req, res) => {
 
         const trustedPlan = planFromSubscription(subscription);
         if (trustedPlan && (subscription.status === "active" || subscription.status === "trialing")) {
-            const mutationResult = await updateUserSubscription({
-              userId: user.id,
-              lookupKey: trustedPlan.planLookupKey,
-              stripeCustomerId: customerId,
-              stripeSubscriptionId: subscriptionId,
-              mutation: {
-                eventId: event.id,
-                eventCreatedAt: new Date(event.created * 1000),
-                eventRank: eventRank(event.type),
-                source: "webhook",
-              },
-              storeAsPersonalPlan: storesAsPersonalPlan(trustedPlan.planLookupKey),
-            });
-            if (!mutationResult.updated && mutationResult.reason !== "STALE_EVENT") {
-              throw new Error(
-                `Invoice payment could not be assigned safely (${mutationResult.reason})`,
-              );
-            }
-            processedUserId = user.id;
-            if (
-              mutationResult.updated
-              && trustedPlan.planLookupKey === "clinical_business_monthly"
-            ) {
-              await syncBusinessBillingState({
+            if (trustedPlan.planLookupKey === "clinical_business_monthly") {
+              const transition = await applyBusinessSubscriptionTransition({
                 ownerUserId: user.id,
-                subscriptionId,
+                businessId: subscription.metadata?.businessId,
+                checkoutReservationId: subscription.metadata?.checkoutReservationId,
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscriptionId,
                 status: "active",
                 seatLimit: subscription.items.data[0]?.quantity,
+                mutation: {
+                  eventId: event.id,
+                  eventCreatedAt: new Date(event.created * 1000),
+                  eventRank: eventRank(event.type),
+                  source: "webhook",
+                },
               });
+              if (!transition.updated && transition.reason !== "STALE_EVENT") {
+                throw new Error(
+                  `Business invoice payment could not be assigned safely (${transition.reason})`,
+                );
+              }
+              processedUserId = user.id;
+              console.log(
+                transition.updated
+                  ? `✅ [webhook] invoice.payment_succeeded — business access synchronized for user ${user.id}`
+                  : `ℹ️ [webhook] invoice.payment_succeeded — stale business event ignored for user ${user.id}`,
+              );
+            } else {
+              const mutationResult = await updateUserSubscription({
+                userId: user.id,
+                lookupKey: trustedPlan.planLookupKey,
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscriptionId,
+                mutation: {
+                  eventId: event.id,
+                  eventCreatedAt: new Date(event.created * 1000),
+                  eventRank: eventRank(event.type),
+                  source: "webhook",
+                },
+              });
+              if (!mutationResult.updated && mutationResult.reason !== "STALE_EVENT") {
+                throw new Error(
+                  `Invoice payment could not be assigned safely (${mutationResult.reason})`,
+                );
+              }
+              processedUserId = user.id;
+              console.log(
+                mutationResult.updated
+                  ? `✅ [webhook] invoice.payment_succeeded — access synchronized for user ${user.id} → ${trustedPlan.planLookupKey}`
+                  : `ℹ️ [webhook] invoice.payment_succeeded — stale event ignored for user ${user.id}`,
+              );
             }
-            console.log(
-              mutationResult.updated
-                ? `✅ [webhook] invoice.payment_succeeded — access synchronized for user ${user.id} → ${trustedPlan.planLookupKey}`
-                : `ℹ️ [webhook] invoice.payment_succeeded — stale event ignored for user ${user.id}`,
-            );
         } else {
           console.log(`[webhook] invoice.payment_succeeded — subscription not active or price not trusted`);
         }
@@ -511,29 +442,41 @@ router.post("/", async (req, res) => {
           );
           break;
         }
-        const cancelled = await cancelUserSubscription(customerId, subscriptionId, {
-          eventId: event.id,
-          eventCreatedAt: new Date(event.created * 1000),
-          eventRank: eventRank(event.type),
-          source: "webhook",
-        }, storesAsPersonalPlan(failedPlan.planLookupKey));
-        processedUserId = cancelled.user?.id ?? null;
-        if (
-          cancelled.updated
-          && cancelled.user
-          && failedPlan.planLookupKey === "clinical_business_monthly"
-        ) {
-          await syncBusinessBillingState({
-            ownerUserId: cancelled.user.id,
-            subscriptionId,
-            status: "past_due",
+        if (failedPlan.planLookupKey === "clinical_business_monthly") {
+          const owner = await resolveStripeEventUser({
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            metadataUserId: failedSubscription.metadata?.userId,
+            allowMetadataBootstrap: true,
           });
+          if (!owner) break;
+          const transition = await applyBusinessSubscriptionTransition({
+            ownerUserId: owner.id,
+            businessId: failedSubscription.metadata?.businessId,
+            checkoutReservationId: failedSubscription.metadata?.checkoutReservationId,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            status: "past_due",
+            mutation: {
+              eventId: event.id,
+              eventCreatedAt: new Date(event.created * 1000),
+              eventRank: eventRank(event.type),
+              source: "webhook",
+            },
+          });
+          if (!transition.updated && transition.reason !== "STALE_EVENT") {
+            throw new Error(`Business payment failure could not be applied (${transition.reason})`);
+          }
+          processedUserId = owner.id;
+        } else {
+          const cancelled = await cancelUserSubscription(customerId, subscriptionId, {
+            eventId: event.id,
+            eventCreatedAt: new Date(event.created * 1000),
+            eventRank: eventRank(event.type),
+            source: "webhook",
+          });
+          processedUserId = cancelled.user?.id ?? null;
         }
-        console.warn(
-          cancelled.updated
-            ? `⚠️ [webhook] invoice.payment_failed — access revoked for customer ${customerId}`
-            : `ℹ️ [webhook] invoice.payment_failed — no eligible entitlement mutation (${cancelled.reason})`,
-        );
         break;
       }
 
@@ -553,18 +496,40 @@ router.post("/", async (req, res) => {
           break;
         }
         const cancelledLookupKey = cancelledPlan.planLookupKey;
-        const affectedUser = await resolveSubscriptionUser(customerId, subscription.id);
+        const affectedUser = cancelledLookupKey === "clinical_business_monthly"
+          ? await resolveStripeEventUser({
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
+              metadataUserId: subscription.metadata?.userId,
+              allowMetadataBootstrap: true,
+            })
+          : await resolveSubscriptionUser(customerId, subscription.id);
         if (!affectedUser) {
           console.warn(`[webhook] customer.subscription.deleted — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
 
-        const cancellation = await cancelUserSubscription(customerId, subscription.id, {
-          eventId: event.id,
-          eventCreatedAt: new Date(event.created * 1000),
-          eventRank: eventRank(event.type),
-          source: "webhook",
-        }, storesAsPersonalPlan(cancelledLookupKey));
+        const cancellation = cancelledLookupKey === "clinical_business_monthly"
+          ? await applyBusinessSubscriptionTransition({
+              ownerUserId: affectedUser.id,
+              businessId: subscription.metadata?.businessId,
+              checkoutReservationId: subscription.metadata?.checkoutReservationId,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
+              status: "cancelled",
+              mutation: {
+                eventId: event.id,
+                eventCreatedAt: new Date(event.created * 1000),
+                eventRank: eventRank(event.type),
+                source: "webhook",
+              },
+            })
+          : await cancelUserSubscription(customerId, subscription.id, {
+              eventId: event.id,
+              eventCreatedAt: new Date(event.created * 1000),
+              eventRank: eventRank(event.type),
+              source: "webhook",
+            });
         if (!cancellation.updated) {
           console.warn(
             cancellation.reason === "STALE_EVENT"
@@ -574,16 +539,6 @@ router.post("/", async (req, res) => {
           break;
         }
         processedUserId = affectedUser.id;
-        if (
-          cancellation.updated
-          && cancelledLookupKey === "clinical_business_monthly"
-        ) {
-          await syncBusinessBillingState({
-            ownerUserId: affectedUser.id,
-            subscriptionId: subscription.id,
-            status: "cancelled",
-          });
-        }
         console.log(`⚠️ [webhook] customer.subscription.deleted — access revoked for customer ${customerId}`);
 
         const planKey = cancelledLookupKey;
@@ -626,19 +581,34 @@ router.post("/", async (req, res) => {
         processedUserId = user.id;
 
         if (subscription.status === "active" || subscription.status === "trialing") {
-          const mutationResult = await updateUserSubscription({
-            userId: user.id,
-            lookupKey: trustedPlan.planLookupKey,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscription.id,
-            mutation: {
-              eventId: event.id,
-              eventCreatedAt: new Date(event.created * 1000),
-              eventRank: eventRank(event.type),
-              source: "webhook",
-            },
-            storeAsPersonalPlan: storesAsPersonalPlan(trustedPlan.planLookupKey),
-          });
+          const mutationResult = trustedPlan.planLookupKey === "clinical_business_monthly"
+            ? await applyBusinessSubscriptionTransition({
+                ownerUserId: user.id,
+                businessId: subscription.metadata?.businessId,
+                checkoutReservationId: subscription.metadata?.checkoutReservationId,
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscription.id,
+                status: "active",
+                seatLimit: subscription.items.data[0]?.quantity,
+                mutation: {
+                  eventId: event.id,
+                  eventCreatedAt: new Date(event.created * 1000),
+                  eventRank: eventRank(event.type),
+                  source: "webhook",
+                },
+              })
+            : await updateUserSubscription({
+                userId: user.id,
+                lookupKey: trustedPlan.planLookupKey,
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscription.id,
+                mutation: {
+                  eventId: event.id,
+                  eventCreatedAt: new Date(event.created * 1000),
+                  eventRank: eventRank(event.type),
+                  source: "webhook",
+                },
+              });
           if (!mutationResult.updated && mutationResult.reason !== "STALE_EVENT") {
             throw new Error(
               `${event.type} could not be assigned safely (${mutationResult.reason})`,
@@ -649,42 +619,30 @@ router.post("/", async (req, res) => {
               ? `✅ [webhook] ${event.type} — user ${user.id} → ${trustedPlan.planLookupKey} (${subscription.status})`
               : `ℹ️ [webhook] ${event.type} — stale event ignored for user ${user.id}`,
           );
-
-          if (
-            mutationResult.updated
-            && trustedPlan.planLookupKey === "clinical_business_monthly"
-          ) {
-            try {
-              const newQty = subscription.items.data[0]?.quantity ?? null;
-              await syncBusinessBillingState({
-                ownerUserId: user.id,
-                subscriptionId: subscription.id,
-                status: "active",
-                seatLimit: newQty,
-              });
-              console.log(`✅ [webhook] business state synchronized | owner=${user.id}`);
-            } catch (seatErr) {
-              console.error("❌ [webhook] failed to sync business billing state:", seatErr);
-              throw seatErr;
-            }
-          }
         } else if (subscription.status === "canceled" || subscription.status === "unpaid") {
-          const cancellation = await cancelUserSubscription(customerId, subscription.id, {
-            eventId: event.id,
-            eventCreatedAt: new Date(event.created * 1000),
-            eventRank: eventRank(event.type),
-            source: "webhook",
-          }, storesAsPersonalPlan(trustedPlan.planLookupKey));
-          if (
-            cancellation.updated
-            && cancellation.user
-            && trustedPlan.planLookupKey === "clinical_business_monthly"
-          ) {
-            await syncBusinessBillingState({
-              ownerUserId: cancellation.user.id,
-              subscriptionId: subscription.id,
-              status: subscription.status === "unpaid" ? "past_due" : "cancelled",
-            });
+          const cancellation = trustedPlan.planLookupKey === "clinical_business_monthly"
+            ? await applyBusinessSubscriptionTransition({
+                ownerUserId: user.id,
+                businessId: subscription.metadata?.businessId,
+                checkoutReservationId: subscription.metadata?.checkoutReservationId,
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscription.id,
+                status: subscription.status === "unpaid" ? "past_due" : "cancelled",
+                mutation: {
+                  eventId: event.id,
+                  eventCreatedAt: new Date(event.created * 1000),
+                  eventRank: eventRank(event.type),
+                  source: "webhook",
+                },
+              })
+            : await cancelUserSubscription(customerId, subscription.id, {
+                eventId: event.id,
+                eventCreatedAt: new Date(event.created * 1000),
+                eventRank: eventRank(event.type),
+                source: "webhook",
+              });
+          if (!cancellation.updated && cancellation.reason !== "STALE_EVENT") {
+            throw new Error(`${event.type} cancellation could not be applied (${cancellation.reason})`);
           }
           console.log(`⚠️ [webhook] customer.subscription.updated — user ${user.id} revoked (status: ${subscription.status})`);
         } else {

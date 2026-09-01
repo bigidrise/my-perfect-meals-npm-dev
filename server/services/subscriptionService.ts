@@ -4,6 +4,11 @@ import type { LookupKey } from "../../client/src/data/planSkus";
 import { getEntitlementsForPlan } from "../entitlements";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
+import { businesses } from "../db/schema/business";
+import {
+  claimStripeIdentityOwnership,
+  StripeIdentityOwnershipConflictError,
+} from "./stripeIdentityOwnershipService";
 
 export interface SubscriptionMutationContext {
   eventId: string;
@@ -86,28 +91,6 @@ export async function updateUserSubscription(opts: {
     return { updated: false, reason: "USER_NOT_FOUND" as const };
   }
 
-  if (stripeCustomerId || stripeSubscriptionId) {
-    const identityConditions = [];
-    if (stripeCustomerId) {
-      identityConditions.push(eq(users.stripeCustomerId, stripeCustomerId));
-    }
-    if (stripeSubscriptionId) {
-      identityConditions.push(eq(users.stripeSubscriptionId, stripeSubscriptionId));
-    }
-
-    const claimedIdentities = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(or(...identityConditions))
-      .limit(2);
-    if (claimedIdentities.some((claimed) => claimed.id !== verifiedUser.id)) {
-      console.error(
-        `❌ [subscription] Refusing activation: Stripe identity is already linked to another account`,
-      );
-      return { updated: false, reason: "IDENTITY_CONFLICT" as const };
-    }
-  }
-
   const entitlements = entitlementsForSubscriptionLookupKey(lookupKey);
 
   const updateFields: Record<string, unknown> = {
@@ -133,15 +116,58 @@ export async function updateUserSubscription(opts: {
   if (stripeSubscriptionId !== undefined) updateFields.stripeSubscriptionId = stripeSubscriptionId;
 
   const ordering = eventOrderingCondition(mutation);
-  let result: Array<{ id: string }>;
   try {
-    result = await db
-      .update(users)
-      .set(updateFields as any)
-      .where(ordering ? and(eq(users.id, verifiedUser.id), ordering) : eq(users.id, verifiedUser.id))
-      .returning({ id: users.id });
+    const result = await db.transaction(async (tx) => {
+      if (stripeCustomerId || stripeSubscriptionId) {
+        await claimStripeIdentityOwnership(tx, {
+          ownerUserId: verifiedUser.id,
+          stripeCustomerId,
+          stripeSubscriptionId,
+        });
+
+        const identityConditions = [
+          ...(stripeCustomerId ? [eq(users.stripeCustomerId, stripeCustomerId)] : []),
+          ...(stripeSubscriptionId ? [eq(users.stripeSubscriptionId, stripeSubscriptionId)] : []),
+        ];
+        const claimedIdentities = await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(or(...identityConditions))
+          .limit(2);
+        if (claimedIdentities.some((claimed) => claimed.id !== verifiedUser.id)) {
+          throw new StripeIdentityOwnershipConflictError();
+        }
+
+        const businessIdentityClaims = await tx
+          .select({ id: businesses.id })
+          .from(businesses)
+          .where(or(
+            ...(stripeCustomerId ? [eq(businesses.stripeCustomerId, stripeCustomerId)] : []),
+            ...(stripeSubscriptionId ? [eq(businesses.stripeSubscriptionId, stripeSubscriptionId)] : []),
+          ))
+          .limit(1);
+        if (businessIdentityClaims.length > 0) {
+          throw new StripeIdentityOwnershipConflictError();
+        }
+      }
+
+      return tx
+        .update(users)
+        .set(updateFields as any)
+        .where(ordering ? and(eq(users.id, verifiedUser.id), ordering) : eq(users.id, verifiedUser.id))
+        .returning({ id: users.id });
+    });
+
+    console.log(`✅ [subscription] Activated user ${userId} on plan ${lookupKey} — ${entitlements.length} entitlements`);
+    if (result.length === 0) {
+      console.warn(`⚠️ [subscription] Activation ignored as stale or missing: ${userId}`);
+    }
+    return { updated: result.length === 1, reason: result.length === 1 ? undefined : "STALE_EVENT" as const };
   } catch (error) {
-    if (isStripeIdentityUniqueViolation(error)) {
+    if (
+      error instanceof StripeIdentityOwnershipConflictError
+      || isStripeIdentityUniqueViolation(error)
+    ) {
       console.error(
         "❌ [subscription] Refusing activation: database rejected a duplicate Stripe identity claim",
       );
@@ -149,13 +175,6 @@ export async function updateUserSubscription(opts: {
     }
     throw error;
   }
-
-  console.log(`✅ [subscription] Activated user ${userId} on plan ${lookupKey} — ${entitlements.length} entitlements`);
-
-  if (result.length === 0) {
-    console.warn(`⚠️ [subscription] Activation ignored as stale or missing: ${userId}`);
-  }
-  return { updated: result.length === 1, reason: result.length === 1 ? undefined : "STALE_EVENT" as const };
 }
 
 export async function cancelUserSubscription(

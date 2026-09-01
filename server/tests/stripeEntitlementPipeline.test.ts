@@ -116,12 +116,11 @@ describe("trusted Stripe entitlement pipeline", () => {
 
   it("keeps Clinical Business renewals out of the owner's personal plan snapshot", () => {
     const webhook = source("server/routes/stripeWebhook.ts");
-    const service = source("server/services/subscriptionService.ts");
+    const service = source("server/services/businessSubscriptionService.ts");
 
-    expect(webhook).toContain("storesAsPersonalPlan");
-    expect(webhook).toContain('planLookupKey !== "clinical_business_monthly"');
-    expect(webhook).toContain("syncBusinessBillingState");
-    expect(webhook).toContain("Deliberately do not mutate businessMembers");
+    expect(webhook).toContain("applyBusinessSubscriptionTransition");
+    expect(service).not.toContain("stripeCustomerId: input.stripeCustomerId,\n          stripeSubscriptionId");
+    expect(service).toContain("planLookupKey: users.personalPlanLookupKey");
     expect(service).toContain("planLookupKey: users.personalPlanLookupKey");
     expect(service).toContain("personalEntitlements");
   });
@@ -130,7 +129,7 @@ describe("trusted Stripe entitlement pipeline", () => {
     const webhook = source("server/routes/stripeWebhook.ts");
 
     expect(webhook).toContain("stale event ignored without side effects");
-    expect(webhook).toContain("mutationResult.updated\n            && trustedPlan.planLookupKey");
+    expect(webhook).toContain('transition.reason !== "STALE_EVENT"');
   });
 
   it("routes business checkout through the same trusted catalog as consumer checkout", () => {
@@ -152,6 +151,97 @@ describe("trusted Stripe entitlement pipeline", () => {
     expect(migration).toContain("businesses_stripe_subscription_id_uniq");
     expect(service).toContain('code === "23505"');
     expect(service).toContain('"IDENTITY_CONFLICT"');
+  });
+
+  it("prevents generic user routes from becoming a paid-entitlement authority", () => {
+    const routes = source("server/routes.ts");
+    const genericPatch = routes.slice(
+      routes.indexOf('app.patch("/api/users/:id"'),
+      routes.indexOf("// User badges endpoint"),
+    );
+    const subscriptionPatch = routes.slice(
+      routes.indexOf('app.patch("/api/users/:id/subscription"'),
+      routes.indexOf("// User preferences routes"),
+    );
+
+    expect(genericPatch).toContain("requireAuth");
+    expect(genericPatch).toContain("authReq.authUser.id");
+    expect(genericPatch).toContain("GENERIC_USER_PROFILE_FIELDS");
+    expect(genericPatch).not.toContain("const updates = req.body");
+    expect(subscriptionPatch).toContain("requireAuth");
+    expect(subscriptionPatch).toContain("SUBSCRIPTION_MUTATION_RETIRED");
+    expect(subscriptionPatch).not.toContain(".update(users)");
+  });
+
+  it("fails closed instead of trusting client-supplied iOS purchase claims", () => {
+    const ios = source("server/routes/iosVerify.ts");
+
+    expect(ios).toContain("APP_STORE_SERVER_VERIFICATION_REQUIRED");
+    expect(ios).toContain("requireAuth");
+    expect(ios).not.toContain(".update(users)");
+    expect(ios).not.toContain("internalSku");
+    expect(ios).not.toContain("transactionId");
+    expect(ios).not.toContain("entitlements:");
+  });
+
+  it("serializes business checkout and atomically binds organization billing", () => {
+    const checkout = source("server/routes/stripeCheckout.ts");
+    const webhook = source("server/routes/stripeWebhook.ts");
+    const service = source("server/services/businessSubscriptionService.ts");
+    const migration = source("server/db/migrations/runStripeBillingMigration.ts");
+
+    expect(checkout).toContain("stripeCheckoutReservationId");
+    expect(checkout).toContain("COALESCE");
+    expect(checkout).toContain("idempotencyKey: `mpm-business-checkout:");
+    expect(checkout).toContain("checkoutReservationId");
+    expect(webhook).toContain("applyBusinessSubscriptionTransition");
+    expect(service).toContain("db.transaction");
+    expect(service).toContain("FOR UPDATE");
+    expect(service).toContain("IDENTITY_CONFLICT");
+    expect(service).toContain("RESERVATION_CONFLICT");
+    expect(migration).toContain("stripe_checkout_reservation_id");
+    expect(migration).toContain("stripe_checkout_session_id");
+  });
+
+  it("uses one cross-table registry for immutable Stripe identity ownership", () => {
+    const schema = source("server/db/schema/stripeBilling.ts");
+    const migration = source("server/db/migrations/runStripeBillingMigration.ts");
+    const ownership = source("server/services/stripeIdentityOwnershipService.ts");
+    const personal = source("server/services/subscriptionService.ts");
+    const business = source("server/services/businessSubscriptionService.ts");
+
+    expect(schema).toContain('pgTable("stripe_identity_owners"');
+    expect(migration).toContain("PRIMARY KEY (identity_type, identity_value)");
+    expect(migration).toContain("Conflicting Stripe identity ownership requires manual review");
+    expect(migration).toContain("OR sio.business_id IS NOT NULL");
+    expect(ownership).toContain(".onConflictDoNothing()");
+    expect(ownership).toContain("stored.ownerUserId !== input.ownerUserId");
+    expect(personal).toContain("claimStripeIdentityOwnership");
+    expect(business).toContain("claimStripeIdentityOwnership");
+    expect(business).toContain("stripeCustomerId: null");
+    expect(business).toContain("stripeSubscriptionId: null");
+  });
+
+  it("routes business checkout reconciliation through the atomic business transition", () => {
+    const reconciliation = source("server/services/stripeReconciliationService.ts");
+
+    expect(reconciliation).toContain('trustedPlan.planLookupKey === "clinical_business_monthly"');
+    expect(reconciliation).toContain("applyBusinessSubscriptionTransition");
+    expect(reconciliation).toContain("checkoutReservationId");
+    expect(reconciliation).toContain("checkoutSessionId: session.id");
+  });
+
+  it("retires the self-service ProCare paid-entitlement grant", () => {
+    const auth = source("server/routes/auth.session.ts");
+    const route = auth.slice(
+      auth.indexOf('router.post("/api/auth/upgrade-to-procare"'),
+      auth.indexOf("/**\n * POST /api/auth/login"),
+    );
+
+    expect(route).toContain("PROCARE_SELF_UPGRADE_RETIRED");
+    expect(route).not.toContain("isProCare: true");
+    expect(route).not.toContain("planLookupKey");
+    expect(route).not.toContain(".update(users)");
   });
 
   it("keeps checkout success client data non-authoritative", () => {

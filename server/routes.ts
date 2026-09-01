@@ -3377,9 +3377,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", async (req, res) => {
+  const GENERIC_USER_PROFILE_FIELDS = new Set([
+    "firstName",
+    "lastName",
+    "nickname",
+    "age",
+    "height",
+    "weight",
+    "activityLevel",
+    "bodyType",
+    "birthday",
+    "fitnessGoal",
+    "dietaryRestrictions",
+    "healthConditions",
+    "allergies",
+    "dislikedFoods",
+    "likedFoods",
+    "avoidedFoods",
+    "preferredSweeteners",
+    "avoidSweeteners",
+    "timezone",
+  ]);
+
+  app.patch("/api/users/:id", requireAuth, async (req: any, res) => {
     try {
-      const updates = req.body;
+      const authReq = req as AuthenticatedRequest;
+      if (req.params.id !== authReq.authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? req.body
+        : {};
+      const updates = Object.fromEntries(
+        Object.entries(body).filter(([key]) => GENERIC_USER_PROFILE_FIELDS.has(key)),
+      );
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({
+          code: "NO_EDITABLE_PROFILE_FIELDS",
+          error: "No editable profile fields were provided.",
+        });
+      }
       const [user] = await db.update(users).set(updates).where(eq(users.id, req.params.id)).returning();
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -3421,29 +3459,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id/subscription", async (req, res) => {
-    try {
-      const { plan, status, expiresAt } = req.body;
-      const updates = {
-        subscriptionPlan: plan,
-        subscriptionStatus: status,
-        subscriptionExpiresAt: expiresAt
-      };
-
-      const [user] = await db.update(users).set(updates).where(eq(users.id, req.params.id)).returning();
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      res.json({
-        plan: user.subscriptionPlan,
-        status: user.subscriptionStatus,
-        expiresAt: user.subscriptionExpiresAt,
-        features: getFeaturesByPlan(user.subscriptionPlan || "basic")
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+  app.patch("/api/users/:id/subscription", requireAuth, async (req: any, res) => {
+    const authReq = req as AuthenticatedRequest;
+    if (req.params.id !== authReq.authUser.id) {
+      return res.status(403).json({ error: "Forbidden" });
     }
+    return res.status(410).json({
+      code: "SUBSCRIPTION_MUTATION_RETIRED",
+      error: "Subscriptions can only be changed through a verified billing provider.",
+    });
   });
 
   // User preferences routes (notification settings only)
