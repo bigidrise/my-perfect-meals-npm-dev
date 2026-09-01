@@ -178,7 +178,7 @@ export default function Auth() {
           };
         }
         const professionalSetupPending = !!procareData && !isBusinessSignup;
-        u = await signUp(email.trim(), pwd, procareData, isBusinessSignup, signupSource);
+        u = await signUp(email.trim(), pwd, procareData, isBusinessSignup, signupSource, urlInvite);
         await proceedAfterLogin(u, { professionalSetupPending });
         return;
       } else {

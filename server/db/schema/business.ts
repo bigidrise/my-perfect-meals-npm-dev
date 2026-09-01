@@ -68,7 +68,7 @@ export const businessMembers = pgTable("business_members", {
   id: uuid("id").defaultRandom().primaryKey(),
   businessId: uuid("business_id").notNull(),
   userId: text("user_id").notNull(),
-  role: text("role").$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "staff">().notNull().default("staff"),
+  role: text("role").$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
   status: text("status").$type<"active" | "removed">().notNull().default("active"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
   removedAt: timestamp("removed_at", { withTimezone: true }),
@@ -86,7 +86,10 @@ export const businessInvitations = pgTable("business_invitations", {
   businessId: uuid("business_id").notNull(),
   email: text("email").notNull(),
   token: text("token").notNull().unique(),
-  role: text("role").$type<"admin" | "coach" | "trainer" | "physician" | "staff">().notNull().default("staff"),
+  /** New pilot invitations use a digest in both token fields; raw legacy
+   * tokens remain supported by the existing paid-business flow. */
+  tokenHash: text("token_hash"),
+  role: text("role").$type<"admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
   status: text("status").$type<"pending" | "accepted" | "cancelled" | "expired">().notNull().default("pending"),
   invitedByUserId: text("invited_by_user_id").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -97,6 +100,10 @@ export const businessInvitations = pgTable("business_invitations", {
   trialDays: integer("trial_days"),
   programName: text("program_name"),
   partnerRecordId: text("partner_record_id"),
+  organizationalPilotId: uuid("organizational_pilot_id"),
+  populationType: text("population_type").$type<"professional" | "client">(),
+  participantRole: text("participant_role"),
+  assignedProfessionalUserId: text("assigned_professional_user_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
