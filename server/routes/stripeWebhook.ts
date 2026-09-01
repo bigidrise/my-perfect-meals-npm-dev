@@ -565,9 +565,11 @@ router.post("/", async (req, res) => {
           eventRank: eventRank(event.type),
           source: "webhook",
         }, storesAsPersonalPlan(cancelledLookupKey));
-        if (!cancellation.updated && cancellation.reason !== "STALE_EVENT") {
+        if (!cancellation.updated) {
           console.warn(
-            `[webhook] customer.subscription.deleted — no exact stored owner (${cancellation.reason})`,
+            cancellation.reason === "STALE_EVENT"
+              ? `[webhook] customer.subscription.deleted — stale event ignored without side effects`
+              : `[webhook] customer.subscription.deleted — no exact stored owner (${cancellation.reason})`,
           );
           break;
         }
@@ -648,7 +650,10 @@ router.post("/", async (req, res) => {
               : `ℹ️ [webhook] ${event.type} — stale event ignored for user ${user.id}`,
           );
 
-          if (trustedPlan.planLookupKey === "clinical_business_monthly") {
+          if (
+            mutationResult.updated
+            && trustedPlan.planLookupKey === "clinical_business_monthly"
+          ) {
             try {
               const newQty = subscription.items.data[0]?.quantity ?? null;
               await syncBusinessBillingState({

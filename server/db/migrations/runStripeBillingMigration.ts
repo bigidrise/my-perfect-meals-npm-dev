@@ -37,4 +37,24 @@ export async function runStripeBillingMigration(database: {
     CREATE INDEX IF NOT EXISTS stripe_billing_events_status_idx
       ON stripe_billing_events(status, updated_at)
   `);
+  await database.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_stripe_customer_id_uniq
+      ON users(stripe_customer_id)
+      WHERE stripe_customer_id IS NOT NULL
+  `);
+  await database.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_stripe_subscription_id_uniq
+      ON users(stripe_subscription_id)
+      WHERE stripe_subscription_id IS NOT NULL
+  `);
+  await database.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS businesses_stripe_customer_id_uniq
+      ON businesses(stripe_customer_id)
+      WHERE stripe_customer_id IS NOT NULL
+  `);
+  await database.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS businesses_stripe_subscription_id_uniq
+      ON businesses(stripe_subscription_id)
+      WHERE stripe_subscription_id IS NOT NULL
+  `);
 }

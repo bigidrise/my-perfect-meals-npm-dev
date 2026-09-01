@@ -34,6 +34,21 @@ function eventOrderingCondition(context?: SubscriptionMutationContext) {
   );
 }
 
+function isStripeIdentityUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as {
+    code?: string;
+    constraint?: string;
+    cause?: { code?: string; constraint?: string };
+  };
+  const code = candidate.code ?? candidate.cause?.code;
+  const constraint = candidate.constraint ?? candidate.cause?.constraint ?? "";
+  return code === "23505" && (
+    constraint === "users_stripe_customer_id_uniq"
+    || constraint === "users_stripe_subscription_id_uniq"
+  );
+}
+
 /**
  * Derive the entitlements array for any plan lookup key.
  * Uses the shared tier mapping so iOS plans and Stripe plans are both covered.
@@ -118,11 +133,22 @@ export async function updateUserSubscription(opts: {
   if (stripeSubscriptionId !== undefined) updateFields.stripeSubscriptionId = stripeSubscriptionId;
 
   const ordering = eventOrderingCondition(mutation);
-  const result = await db
-    .update(users)
-    .set(updateFields as any)
-    .where(ordering ? and(eq(users.id, verifiedUser.id), ordering) : eq(users.id, verifiedUser.id))
-    .returning({ id: users.id });
+  let result: Array<{ id: string }>;
+  try {
+    result = await db
+      .update(users)
+      .set(updateFields as any)
+      .where(ordering ? and(eq(users.id, verifiedUser.id), ordering) : eq(users.id, verifiedUser.id))
+      .returning({ id: users.id });
+  } catch (error) {
+    if (isStripeIdentityUniqueViolation(error)) {
+      console.error(
+        "❌ [subscription] Refusing activation: database rejected a duplicate Stripe identity claim",
+      );
+      return { updated: false, reason: "IDENTITY_CONFLICT" as const };
+    }
+    throw error;
+  }
 
   console.log(`✅ [subscription] Activated user ${userId} on plan ${lookupKey} — ${entitlements.length} entitlements`);
 
