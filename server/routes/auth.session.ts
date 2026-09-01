@@ -17,6 +17,7 @@ import {
   resolveSignupTrial,
 } from "../services/preRegistrationAccess";
 import { findOrganizationalPilotInvitation } from "../services/organizationalPilotInvitationService";
+import { inspectPilotAuthorizationToken } from "../services/organizationalPilotAuthorizationService";
 
 const router = Router();
 
@@ -153,6 +154,26 @@ router.post("/api/auth/signup", async (req, res) => {
       pilotInvite.expiresAt > new Date(),
     );
     const isPilotClientSignup = isValidPilotSignup && pilotInvite?.populationType === "client";
+    const pilotAuthorizationToken = typeof req.body.pilotAuthorizationToken === "string"
+      ? req.body.pilotAuthorizationToken
+      : null;
+    const pilotAuthorization = pilotAuthorizationToken
+      ? await inspectPilotAuthorizationToken(pilotAuthorizationToken)
+      : null;
+    if (pilotAuthorizationToken && !pilotAuthorization) {
+      return res.status(404).json({ error: "Organizational authorization not found.", code: "AUTHORIZATION_NOT_FOUND" });
+    }
+    if (pilotAuthorization && normalizeEmailIdentity(pilotAuthorization.championEmail) !== normalizeEmailIdentity(email)) {
+      return res.status(403).json({ error: "This organizational authorization was issued to a different email address.", code: "EMAIL_MISMATCH" });
+    }
+    const isValidPilotAuthorizationSignup = Boolean(
+      pilotAuthorization &&
+      pilotAuthorization.status === "approved" &&
+      (!pilotAuthorization.claimTokenExpiresAt || pilotAuthorization.claimTokenExpiresAt > new Date()),
+    );
+    if (pilotAuthorizationToken && !isValidPilotAuthorizationSignup) {
+      return res.status(410).json({ error: "This organizational authorization is no longer available.", code: "AUTHORIZATION_NOT_AVAILABLE" });
+    }
     const professionalSetupRequested = !!procare?.professionalCategory;
 
     // Tester accounts get immediate full access via planLookupKey. Normal
@@ -160,7 +181,11 @@ router.post("/api/auth/signup", async (req, res) => {
     // pre-registration access record. Pilot/Client records grant 30 days by
     // default, but their clock still starts only here at account activation.
     // ProCare accounts get their plan directly and do not receive a trial.
-    const isNormalConsumer = !isTester && !professionalSetupRequested && !isValidPilotSignup && !isBusinessAccount;
+    const isNormalConsumer = !isTester
+      && !professionalSetupRequested
+      && !isValidPilotSignup
+      && !isValidPilotAuthorizationSignup
+      && !isBusinessAccount;
     const trialNow = isNormalConsumer ? new Date() : null;
     const pendingPreRegistrationAccess = isNormalConsumer
       ? await findPendingPreRegistrationAccess(email)

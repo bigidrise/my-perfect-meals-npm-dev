@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Briefcase, Crown, Loader2 } from "lucide-react";
+import { Home, Briefcase, Crown, Loader2, Building2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface WorkspaceChooserProps {
   onChoose: (choice: "personal" | "workspace") => void;
@@ -16,6 +17,26 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
   const [checking, setChecking] = useState(false);
   const { t } = useTranslation();
   const { t: td } = useTranslation("desktopNav");
+  const [organizationWorkspaces, setOrganizationWorkspaces] = useState<Array<{
+    authorizationId: string | null;
+    businessId: string | null;
+    organizationName: string;
+    action: "setup" | "open";
+  }>>([]);
+  const [organizationError, setOrganizationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/business/workspaces", {
+      headers: getAuthHeaders(),
+      credentials: "include",
+    })
+      .then(async (response) => {
+        if (!response.ok) return { workspaces: [] };
+        return response.json();
+      })
+      .then((body) => setOrganizationWorkspaces(Array.isArray(body.workspaces) ? body.workspaces : []))
+      .catch(() => setOrganizationWorkspaces([]));
+  }, []);
 
   localStorage.removeItem("mpm_workspace_preference");
 
@@ -62,6 +83,30 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
     }
   };
 
+  const handleOrganizationChoice = async (workspace: typeof organizationWorkspaces[number]) => {
+    setChecking(true);
+    setOrganizationError(null);
+    try {
+      if (workspace.action === "setup" && workspace.authorizationId) {
+        const response = await fetch("/api/business/pilot-authorizations/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({ authorizationId: workspace.authorizationId }),
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not claim this organization.");
+        setLocation("/business/setup?pilot=1");
+        return;
+      }
+      setLocation("/business-dashboard");
+    } catch (error: any) {
+      setOrganizationError(error?.message || "Could not open this organization.");
+    } finally {
+      setChecking(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -101,6 +146,34 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
               </div>
             </div>
           </button>
+
+          {organizationWorkspaces.map((workspace) => (
+            <button
+              key={workspace.authorizationId ?? workspace.businessId}
+              onClick={() => handleOrganizationChoice(workspace)}
+              disabled={checking}
+              className="w-full p-5 rounded-2xl bg-orange-500/10 border border-orange-400/30 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/20">
+                  <Building2 className="h-5 w-5 text-orange-300" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-base">Business / Organization</h3>
+                  <p className="text-orange-200 text-sm mt-0.5">{workspace.organizationName}</p>
+                  <p className="text-white/50 text-xs mt-1">
+                    {workspace.action === "setup" ? "Set Up Organization" : "Open Business Suite"}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ))}
+
+          {organizationError && (
+            <p className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-center text-sm text-red-200">
+              {organizationError}
+            </p>
+          )}
 
           <button
             onClick={() => handleChoice("workspace")}
