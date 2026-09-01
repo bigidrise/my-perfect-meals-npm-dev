@@ -133,7 +133,22 @@ export default function DashboardNew() {
   const mobilePlanBadge = getMobilePlanBadge(user);
   const isCoach = !!(user?.professionalRole);
   const isProCareClient = !!user?.isProCare && !isCoach;
-  const hasProviderConnection = !!user?.isProCare;
+  const { data: providerConnection } = useQuery<{ connected: boolean }>({
+    queryKey: ["/api/pro/connection-status", user?.id],
+    queryFn: async () => {
+      const response = await fetch(apiUrl("/api/pro/connection-status"), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!response.ok) return { connected: false };
+      return response.json();
+    },
+    enabled: !!user?.id && isCoach,
+    staleTime: 30_000,
+    retry: false,
+  });
+  const hasProviderConnection = providerConnection?.connected === true;
   const proUnreadCount = useProUnreadCount();
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const [tabletOpen, setTabletOpen] = useState(false);
@@ -1415,25 +1430,13 @@ export default function DashboardNew() {
                         }}
                       />
                       <div className="flex flex-col gap-1.5 self-end">
-                        <button
-                          onClick={startTabletRecording}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 text-white/60"
-                          title={t("sendVoice")}
-                        >
-                          <Mic className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setTabletVideoMode(true)}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-violet-500/20 text-violet-200"
-                          title="Send video"
-                        >
-                          <Video className="w-4 h-4" />
-                        </button>
                         <Button
                           size="sm"
                           disabled={!tabletInput.trim() || tabletSending}
                           onClick={handleTabletSend}
-                          className="bg-orange-600 px-3"
+                          className="bg-purple-600 hover:bg-purple-700 px-3"
+                          title="Send message"
+                          aria-label="Send message"
                         >
                           {tabletSending ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1441,6 +1444,22 @@ export default function DashboardNew() {
                             <Send className="w-3.5 h-3.5" />
                           )}
                         </Button>
+                        <button
+                          onClick={startTabletRecording}
+                          className="flex items-center justify-center p-1.5 rounded-md bg-orange-600 border border-orange-400 text-white hover:bg-orange-700"
+                          title={t("sendVoice")}
+                          aria-label={t("sendVoice")}
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setTabletVideoMode(true)}
+                          className="flex items-center justify-center p-1.5 rounded-md bg-red-600 border border-red-400 text-white hover:bg-red-700 shadow-sm shadow-red-950/40"
+                          title="Video message"
+                          aria-label="Video message"
+                        >
+                          <Video className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   )}

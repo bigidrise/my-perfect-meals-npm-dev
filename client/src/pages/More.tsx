@@ -118,6 +118,14 @@ export default function MorePage() {
   useEffect(() => {
     document.title = "More | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
+
+    // Preserve explicit consent: invite deep links prefill the code but never
+    // connect automatically. The user must still press Connect and complete
+    // the applicable client or patient legal flow.
+    const codeFromUrl = new URLSearchParams(window.location.search).get("code");
+    if (codeFromUrl) {
+      setAccessCode(codeFromUrl.trim());
+    }
   }, []);
 
   useEffect(() => {
