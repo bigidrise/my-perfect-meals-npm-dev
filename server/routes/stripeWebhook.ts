@@ -7,8 +7,10 @@ import {
   updateUserSubscription,
   cancelUserSubscription,
   resolveSubscriptionUser,
+  resolveStripeEventUser,
 } from "../services/subscriptionService";
 import { clientLinks } from "../db/schema/procare";
+import { businesses } from "../db/schema/business";
 import { deactivateProCareClient } from "../services/procareActivation";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { isProCarePlanKey } from "@shared/planFeatures";
@@ -46,6 +48,46 @@ function eventRank(type: string): number {
     case "checkout.session.completed": return 50;
     default: return 0;
   }
+}
+
+function stripeObjectId(value: string | { id: string } | null | undefined): string | null {
+  if (typeof value === "string") return value;
+  return value?.id ?? null;
+}
+
+function storesAsPersonalPlan(planLookupKey: string): boolean {
+  return planLookupKey !== "clinical_business_monthly";
+}
+
+async function syncBusinessBillingState(input: {
+  ownerUserId: string;
+  subscriptionId: string;
+  status: "active" | "cancelled" | "past_due";
+  seatLimit?: number | null;
+}): Promise<void> {
+  const update: {
+    status: "active" | "cancelled" | "past_due";
+    updatedAt: Date;
+    seatLimit?: number;
+  } = {
+    status: input.status,
+    updatedAt: new Date(),
+  };
+  if (input.seatLimit != null && input.seatLimit > 0) {
+    update.seatLimit = input.seatLimit;
+  }
+
+  await db
+    .update(businesses)
+    .set(update)
+    .where(and(
+      eq(businesses.ownerUserId, input.ownerUserId),
+      eq(businesses.stripeSubscriptionId, input.subscriptionId),
+    ));
+
+  // Deliberately do not mutate businessMembers here. Billing recovery restores
+  // organization availability only; removed members may be restored solely by
+  // the explicit clearRemovalNotice flow in businessRoutes.ts.
 }
 
 function eventObjectIdentity(event: Stripe.Event): {
@@ -172,12 +214,15 @@ router.post("/", async (req, res) => {
           break;
         }
 
-        const subscriptionId = session.subscription as string;
-        const customerId = session.customer as string;
+        const subscriptionId = stripeObjectId(session.subscription as any);
+        const customerId = stripeObjectId(session.customer as any);
         if (!subscriptionId || !customerId) {
           throw new Error("Completed checkout is missing subscription or customer identity");
         }
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        if (subscription.metadata?.userId !== userId) {
+          throw new Error("Completed checkout subscription identity does not match the MPM user");
+        }
         const trustedPlan = planFromSubscription(subscription, sku);
         if (!trustedPlan) {
           throw new Error("Completed checkout price is not mapped to the supplied trusted SKU");
@@ -204,6 +249,11 @@ router.post("/", async (req, res) => {
         });
         processedUserId = userId;
         if (!mutationResult.updated) {
+          if (mutationResult.reason !== "STALE_EVENT") {
+            throw new Error(
+              `Completed checkout could not be assigned safely (${mutationResult.reason})`,
+            );
+          }
           await completeBillingEvent(event.id, "ignored", userId);
           return res.json({ received: true, ignored: "stale_event" });
         }
@@ -380,7 +430,7 @@ router.post("/", async (req, res) => {
       // ── Renewal or recovery: restore access if it was revoked ────────────
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
-        const customerId = invoice.customer as string;
+        const customerId = stripeObjectId(invoice.customer as any);
         const subscriptionId = (invoice as any).subscription as string | null;
 
         if (!customerId || !subscriptionId) {
@@ -388,16 +438,21 @@ router.post("/", async (req, res) => {
           break;
         }
 
-        const user = await resolveSubscriptionUser(customerId, subscriptionId);
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const user = await resolveStripeEventUser({
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscriptionId,
+          metadataUserId: subscription.metadata?.userId,
+          allowMetadataBootstrap: true,
+        });
         if (!user) {
           console.warn(`[webhook] invoice.payment_succeeded — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
 
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const trustedPlan = planFromSubscription(subscription);
         if (trustedPlan && (subscription.status === "active" || subscription.status === "trialing")) {
-            await updateUserSubscription({
+            const mutationResult = await updateUserSubscription({
               userId: user.id,
               lookupKey: trustedPlan.planLookupKey,
               stripeCustomerId: customerId,
@@ -408,9 +463,30 @@ router.post("/", async (req, res) => {
                 eventRank: eventRank(event.type),
                 source: "webhook",
               },
+              storeAsPersonalPlan: storesAsPersonalPlan(trustedPlan.planLookupKey),
             });
+            if (!mutationResult.updated && mutationResult.reason !== "STALE_EVENT") {
+              throw new Error(
+                `Invoice payment could not be assigned safely (${mutationResult.reason})`,
+              );
+            }
             processedUserId = user.id;
-            console.log(`✅ [webhook] invoice.payment_succeeded — access synchronized for user ${user.id} → ${trustedPlan.planLookupKey}`);
+            if (
+              mutationResult.updated
+              && trustedPlan.planLookupKey === "clinical_business_monthly"
+            ) {
+              await syncBusinessBillingState({
+                ownerUserId: user.id,
+                subscriptionId,
+                status: "active",
+                seatLimit: subscription.items.data[0]?.quantity,
+              });
+            }
+            console.log(
+              mutationResult.updated
+                ? `✅ [webhook] invoice.payment_succeeded — access synchronized for user ${user.id} → ${trustedPlan.planLookupKey}`
+                : `ℹ️ [webhook] invoice.payment_succeeded — stale event ignored for user ${user.id}`,
+            );
         } else {
           console.log(`[webhook] invoice.payment_succeeded — subscription not active or price not trusted`);
         }
@@ -420,41 +496,95 @@ router.post("/", async (req, res) => {
       // ── Payment failed: revoke access ────────────────────────────────────
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        const customerId = invoice.customer as string;
+        const customerId = stripeObjectId(invoice.customer as any);
         const subscriptionId = (invoice as any).subscription as string | null;
+        if (!customerId || !subscriptionId) {
+          console.warn("[webhook] invoice.payment_failed — missing customer or subscription identity");
+          break;
+        }
 
+        const failedSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const failedPlan = planFromSubscription(failedSubscription);
+        if (!failedPlan) {
+          console.warn(
+            "[webhook] invoice.payment_failed — subscription price is not mapped to a trusted plan",
+          );
+          break;
+        }
         const cancelled = await cancelUserSubscription(customerId, subscriptionId, {
           eventId: event.id,
           eventCreatedAt: new Date(event.created * 1000),
           eventRank: eventRank(event.type),
           source: "webhook",
-        });
+        }, storesAsPersonalPlan(failedPlan.planLookupKey));
         processedUserId = cancelled.user?.id ?? null;
-        console.warn(`⚠️ [webhook] invoice.payment_failed — access revoked for customer ${customerId}`);
+        if (
+          cancelled.updated
+          && cancelled.user
+          && failedPlan.planLookupKey === "clinical_business_monthly"
+        ) {
+          await syncBusinessBillingState({
+            ownerUserId: cancelled.user.id,
+            subscriptionId,
+            status: "past_due",
+          });
+        }
+        console.warn(
+          cancelled.updated
+            ? `⚠️ [webhook] invoice.payment_failed — access revoked for customer ${customerId}`
+            : `ℹ️ [webhook] invoice.payment_failed — no eligible entitlement mutation (${cancelled.reason})`,
+        );
         break;
       }
 
       // ── Subscription deleted: revoke access + terminate ProCare relationships ──
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
-        const cancelledLookupKey = planFromSubscription(subscription)?.planLookupKey ?? null;
+        const customerId = stripeObjectId(subscription.customer as any);
+        if (!customerId) {
+          console.warn("[webhook] customer.subscription.deleted — missing customer identity");
+          break;
+        }
+        const cancelledPlan = planFromSubscription(subscription);
+        if (!cancelledPlan) {
+          console.warn(
+            "[webhook] customer.subscription.deleted — subscription price is not mapped to a trusted plan",
+          );
+          break;
+        }
+        const cancelledLookupKey = cancelledPlan.planLookupKey;
         const affectedUser = await resolveSubscriptionUser(customerId, subscription.id);
         if (!affectedUser) {
           console.warn(`[webhook] customer.subscription.deleted — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
 
-        await cancelUserSubscription(customerId, subscription.id, {
+        const cancellation = await cancelUserSubscription(customerId, subscription.id, {
           eventId: event.id,
           eventCreatedAt: new Date(event.created * 1000),
           eventRank: eventRank(event.type),
           source: "webhook",
-        });
+        }, storesAsPersonalPlan(cancelledLookupKey));
+        if (!cancellation.updated && cancellation.reason !== "STALE_EVENT") {
+          console.warn(
+            `[webhook] customer.subscription.deleted — no exact stored owner (${cancellation.reason})`,
+          );
+          break;
+        }
         processedUserId = affectedUser.id;
+        if (
+          cancellation.updated
+          && cancelledLookupKey === "clinical_business_monthly"
+        ) {
+          await syncBusinessBillingState({
+            ownerUserId: affectedUser.id,
+            subscriptionId: subscription.id,
+            status: "cancelled",
+          });
+        }
         console.log(`⚠️ [webhook] customer.subscription.deleted — access revoked for customer ${customerId}`);
 
-        const planKey = cancelledLookupKey ?? affectedUser.planLookupKey ?? "";
+        const planKey = cancelledLookupKey;
         if (CLINICAL_PLAN_KEYS.includes(planKey) && affectedUser.isProCare) {
           console.log(`🔌 [webhook] Clinical cancelled — terminating ProCare client relationships for user ${affectedUser.id}`);
           await terminateProCareRelationships(affectedUser.id, "client");
@@ -469,7 +599,11 @@ router.post("/", async (req, res) => {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
+        const customerId = stripeObjectId(subscription.customer as any);
+        if (!customerId) {
+          console.warn(`[webhook] ${event.type} — missing customer identity`);
+          break;
+        }
         const trustedPlan = planFromSubscription(subscription);
 
         if (!trustedPlan) {
@@ -477,20 +611,12 @@ router.post("/", async (req, res) => {
           break;
         }
 
-        const metadataUserId = subscription.metadata?.userId;
-        const [metadataUser] = metadataUserId
-          ? await db
-              .select({
-                id: users.id,
-                planLookupKey: users.planLookupKey,
-                subscriptionStatus: users.subscriptionStatus,
-                isProCare: users.isProCare,
-              })
-              .from(users)
-              .where(eq(users.id, metadataUserId))
-              .limit(1)
-          : [];
-        const user = metadataUser ?? await resolveSubscriptionUser(customerId, subscription.id);
+        const user = await resolveStripeEventUser({
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscription.id,
+          metadataUserId: subscription.metadata?.userId,
+          allowMetadataBootstrap: true,
+        });
         if (!user) {
           console.warn(`[webhook] ${event.type} — ambiguous or missing owner for customer ${customerId}`);
           break;
@@ -498,7 +624,7 @@ router.post("/", async (req, res) => {
         processedUserId = user.id;
 
         if (subscription.status === "active" || subscription.status === "trialing") {
-          await updateUserSubscription({
+          const mutationResult = await updateUserSubscription({
             userId: user.id,
             lookupKey: trustedPlan.planLookupKey,
             stripeCustomerId: customerId,
@@ -509,31 +635,52 @@ router.post("/", async (req, res) => {
               eventRank: eventRank(event.type),
               source: "webhook",
             },
+            storeAsPersonalPlan: storesAsPersonalPlan(trustedPlan.planLookupKey),
           });
-          console.log(`✅ [webhook] ${event.type} — user ${user.id} → ${trustedPlan.planLookupKey} (${subscription.status})`);
+          if (!mutationResult.updated && mutationResult.reason !== "STALE_EVENT") {
+            throw new Error(
+              `${event.type} could not be assigned safely (${mutationResult.reason})`,
+            );
+          }
+          console.log(
+            mutationResult.updated
+              ? `✅ [webhook] ${event.type} — user ${user.id} → ${trustedPlan.planLookupKey} (${subscription.status})`
+              : `ℹ️ [webhook] ${event.type} — stale event ignored for user ${user.id}`,
+          );
 
           if (trustedPlan.planLookupKey === "clinical_business_monthly") {
             try {
-              const { businesses } = await import("../db/schema/business");
               const newQty = subscription.items.data[0]?.quantity ?? null;
-              if (newQty !== null && newQty > 0) {
-                await db
-                  .update(businesses)
-                  .set({ seatLimit: newQty, updatedAt: new Date() })
-                  .where(eq(businesses.ownerUserId, user.id));
-                console.log(`✅ [webhook] business seatLimit synced → ${newQty} | owner=${user.id}`);
-              }
+              await syncBusinessBillingState({
+                ownerUserId: user.id,
+                subscriptionId: subscription.id,
+                status: "active",
+                seatLimit: newQty,
+              });
+              console.log(`✅ [webhook] business state synchronized | owner=${user.id}`);
             } catch (seatErr) {
-              console.error("❌ [webhook] failed to sync business seatLimit:", seatErr);
+              console.error("❌ [webhook] failed to sync business billing state:", seatErr);
+              throw seatErr;
             }
           }
         } else if (subscription.status === "canceled" || subscription.status === "unpaid") {
-          await cancelUserSubscription(customerId, subscription.id, {
+          const cancellation = await cancelUserSubscription(customerId, subscription.id, {
             eventId: event.id,
             eventCreatedAt: new Date(event.created * 1000),
             eventRank: eventRank(event.type),
             source: "webhook",
-          });
+          }, storesAsPersonalPlan(trustedPlan.planLookupKey));
+          if (
+            cancellation.updated
+            && cancellation.user
+            && trustedPlan.planLookupKey === "clinical_business_monthly"
+          ) {
+            await syncBusinessBillingState({
+              ownerUserId: cancellation.user.id,
+              subscriptionId: subscription.id,
+              status: subscription.status === "unpaid" ? "past_due" : "cancelled",
+            });
+          }
           console.log(`⚠️ [webhook] customer.subscription.updated — user ${user.id} revoked (status: ${subscription.status})`);
         } else {
           console.log(`[webhook] customer.subscription.updated — user ${user.id} status ${subscription.status}, no action`);

@@ -40,10 +40,7 @@ export async function reconcileCheckoutSession(args: {
     throw new Error("Checkout session subscription was not available");
   }
 
-  if (
-    subscription.metadata?.userId
-    && subscription.metadata.userId !== args.userId
-  ) {
+  if (subscription.metadata?.userId !== args.userId) {
     throw new Error("Subscription identity does not match the authenticated user");
   }
 

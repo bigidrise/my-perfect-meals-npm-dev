@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, lt, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import { stripeBillingEvents } from "../db/schema/stripeBilling";
 import { runStripeBillingMigration } from "../db/migrations/runStripeBillingMigration";
@@ -43,6 +43,7 @@ export async function claimBillingEvent(
 
   if (inserted) return "claimed";
 
+  const staleProcessingCutoff = new Date(Date.now() - 10 * 60 * 1000);
   const [reclaimed] = await db
     .update(stripeBillingEvents)
     .set({
@@ -53,7 +54,13 @@ export async function claimBillingEvent(
     })
     .where(and(
       eq(stripeBillingEvents.eventId, event.eventId),
-      eq(stripeBillingEvents.status, "failed"),
+      or(
+        eq(stripeBillingEvents.status, "failed"),
+        and(
+          eq(stripeBillingEvents.status, "processing"),
+          lt(stripeBillingEvents.updatedAt, staleProcessingCutoff),
+        ),
+      ),
     ))
     .returning({ eventId: stripeBillingEvents.eventId });
 
