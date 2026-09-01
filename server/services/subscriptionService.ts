@@ -3,7 +3,7 @@ import { users } from "@shared/schema";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { getEntitlementsForPlan } from "../entitlements";
 import { getTierForLookupKey } from "@shared/planFeatures";
-import { and, eq, isNull, lt, or } from "drizzle-orm";
+import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 
 export interface SubscriptionMutationContext {
   eventId: string;
@@ -71,6 +71,28 @@ export async function updateUserSubscription(opts: {
     return { updated: false, reason: "USER_NOT_FOUND" as const };
   }
 
+  if (stripeCustomerId || stripeSubscriptionId) {
+    const identityConditions = [];
+    if (stripeCustomerId) {
+      identityConditions.push(eq(users.stripeCustomerId, stripeCustomerId));
+    }
+    if (stripeSubscriptionId) {
+      identityConditions.push(eq(users.stripeSubscriptionId, stripeSubscriptionId));
+    }
+
+    const claimedIdentities = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(or(...identityConditions))
+      .limit(2);
+    if (claimedIdentities.some((claimed) => claimed.id !== verifiedUser.id)) {
+      console.error(
+        `❌ [subscription] Refusing activation: Stripe identity is already linked to another account`,
+      );
+      return { updated: false, reason: "IDENTITY_CONFLICT" as const };
+    }
+  }
+
   const entitlements = entitlementsForSubscriptionLookupKey(lookupKey);
 
   const updateFields: Record<string, unknown> = {
@@ -114,22 +136,43 @@ export async function cancelUserSubscription(
   stripeCustomerId: string,
   stripeSubscriptionId?: string | null,
   mutation?: SubscriptionMutationContext,
+  storeAsPersonalPlan = true,
 ) {
   const user = await resolveSubscriptionUser(stripeCustomerId, stripeSubscriptionId);
   if (!user) return { updated: false, reason: "AMBIGUOUS_OR_NOT_FOUND" as const, user: null };
 
   const ordering = eventOrderingCondition(mutation);
+  const cancellationFields: Record<string, unknown> = storeAsPersonalPlan
+    ? {
+        planLookupKey: null,
+        subscriptionPlan: "basic",
+        entitlements: [],
+        subscriptionStatus: "cancelled",
+        personalPlanLookupKey: null,
+        personalEntitlements: [],
+        personalSubscriptionStatus: "cancelled",
+      }
+    : {
+        planLookupKey: users.personalPlanLookupKey,
+        subscriptionPlan: sql`
+          CASE
+            WHEN ${users.personalPlanLookupKey} IS NULL THEN 'basic'
+            WHEN ${users.personalPlanLookupKey} LIKE '%ultimate%' THEN 'ultimate'
+            WHEN ${users.personalPlanLookupKey} LIKE '%premium%'
+              OR ${users.personalPlanLookupKey} LIKE '%upgrade%'
+              OR ${users.personalPlanLookupKey} = 'mpm_guidance' THEN 'premium'
+            ELSE 'basic'
+          END
+        `,
+        entitlements: users.personalEntitlements,
+        subscriptionStatus: users.personalSubscriptionStatus,
+      };
+
   const result = await db
     .update(users)
     .set({
-      planLookupKey: null,
-      subscriptionPlan: "basic",
       stripeSubscriptionId: null,
-      entitlements: [],
-      subscriptionStatus: "cancelled",
-      personalPlanLookupKey: null,
-      personalEntitlements: [],
-      personalSubscriptionStatus: "cancelled",
+      ...cancellationFields,
       ...(mutation ? {
         stripeLastEventCreatedAt: mutation.eventCreatedAt,
         stripeLastEventRank: mutation.eventRank,
@@ -176,4 +219,63 @@ export async function resolveSubscriptionUser(
   }
 
   return matches[0];
+}
+
+export async function resolveStripeEventUser(input: {
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  metadataUserId?: string | null;
+  allowMetadataBootstrap?: boolean;
+}) {
+  const exactOwner = await resolveSubscriptionUser(
+    input.stripeCustomerId,
+    input.stripeSubscriptionId,
+  );
+  if (exactOwner) {
+    if (input.metadataUserId && input.metadataUserId !== exactOwner.id) {
+      console.error(
+        `❌ [subscription] Refusing billing mutation: Stripe metadata conflicts with the stored owner`,
+      );
+      return null;
+    }
+    return exactOwner;
+  }
+
+  if (!input.allowMetadataBootstrap || !input.metadataUserId) {
+    return null;
+  }
+
+  const [metadataUser] = await db
+    .select({
+      id: users.id,
+      planLookupKey: users.planLookupKey,
+      subscriptionStatus: users.subscriptionStatus,
+      isProCare: users.isProCare,
+    })
+    .from(users)
+    .where(eq(users.id, input.metadataUserId))
+    .limit(1);
+  if (!metadataUser) {
+    console.error(
+      `❌ [subscription] Refusing billing mutation: metadata names an unknown account`,
+    );
+    return null;
+  }
+
+  const identityClaims = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(or(
+      eq(users.stripeCustomerId, input.stripeCustomerId),
+      eq(users.stripeSubscriptionId, input.stripeSubscriptionId),
+    ))
+    .limit(2);
+  if (identityClaims.some((claim) => claim.id !== metadataUser.id)) {
+    console.error(
+      `❌ [subscription] Refusing billing mutation: Stripe identity is already linked to another account`,
+    );
+    return null;
+  }
+
+  return metadataUser;
 }

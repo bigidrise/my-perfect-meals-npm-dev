@@ -7,15 +7,53 @@ export interface TrustedStripePlan {
   priceId: string;
 }
 
+export interface StripePriceConfigurationStatus {
+  configured: TrustedStripePlan[];
+  missingPlanLookupKeys: CheckoutLookupKey[];
+  duplicatePriceIds: Array<{
+    priceId: string;
+    planLookupKeys: CheckoutLookupKey[];
+  }>;
+  valid: boolean;
+}
+
 function configuredPlans(): TrustedStripePlan[] {
   return Object.entries(STRIPE_PRICE_IDS)
     .filter((entry): entry is [CheckoutLookupKey, string] => Boolean(entry[1]))
     .map(([planLookupKey, priceId]) => ({ planLookupKey, priceId }));
 }
 
+export function getStripePriceConfigurationStatus(): StripePriceConfigurationStatus {
+  const configured = configuredPlans();
+  const allPlanLookupKeys = Object.keys(STRIPE_PRICE_IDS) as CheckoutLookupKey[];
+  const missingPlanLookupKeys = allPlanLookupKeys.filter(
+    (planLookupKey) => !STRIPE_PRICE_IDS[planLookupKey],
+  );
+  const plansByPriceId = new Map<string, CheckoutLookupKey[]>();
+
+  for (const plan of configured) {
+    const keys = plansByPriceId.get(plan.priceId) ?? [];
+    keys.push(plan.planLookupKey);
+    plansByPriceId.set(plan.priceId, keys);
+  }
+
+  const duplicatePriceIds = [...plansByPriceId.entries()]
+    .filter(([, planLookupKeys]) => planLookupKeys.length > 1)
+    .map(([priceId, planLookupKeys]) => ({ priceId, planLookupKeys }));
+
+  return {
+    configured,
+    missingPlanLookupKeys,
+    duplicatePriceIds,
+    valid: duplicatePriceIds.length === 0,
+  };
+}
+
 export function getTrustedCheckoutPlan(planLookupKey: string): TrustedStripePlan | null {
   const match = configuredPlans().find((plan) => plan.planLookupKey === planLookupKey);
-  return match ?? null;
+  if (!match) return null;
+  const priceMatches = configuredPlans().filter((plan) => plan.priceId === match.priceId);
+  return priceMatches.length === 1 ? match : null;
 }
 
 export function resolveTrustedStripePlan(input: {
@@ -31,7 +69,6 @@ export function resolveTrustedStripePlan(input: {
   if (input.metadataSku && input.metadataSku !== trusted.planLookupKey) return null;
   if (
     input.stripeLookupKey
-    && getTrustedCheckoutPlan(input.stripeLookupKey)
     && input.stripeLookupKey !== trusted.planLookupKey
   ) {
     return null;

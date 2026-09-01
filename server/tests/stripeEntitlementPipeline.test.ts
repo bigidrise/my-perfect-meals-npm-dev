@@ -3,6 +3,7 @@ import path from "path";
 import type Stripe from "stripe";
 import { STRIPE_PRICE_IDS } from "../config/stripePrices";
 import {
+  getStripePriceConfigurationStatus,
   planFromSubscription,
   resolveTrustedStripePlan,
 } from "../services/stripePlanCatalog";
@@ -47,6 +48,31 @@ describe("trusted Stripe entitlement pipeline", () => {
       .toBe("mpm_premium");
   });
 
+  it("rejects a conflicting Stripe lookup_key even when the price ID is configured", () => {
+    expect(resolveTrustedStripePlan({
+      priceId: STRIPE_PRICE_IDS.mpm_premium,
+      metadataSku: "mpm_premium",
+      stripeLookupKey: "unexpected_lookup_key",
+    })).toBeNull();
+  });
+
+  it("exposes duplicate configured price mappings as invalid configuration", () => {
+    const originalUltimate = STRIPE_PRICE_IDS.mpm_ultimate;
+    try {
+      STRIPE_PRICE_IDS.mpm_ultimate = STRIPE_PRICE_IDS.mpm_premium;
+      const status = getStripePriceConfigurationStatus();
+      expect(status.valid).toBe(false);
+      expect(status.duplicatePriceIds).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          priceId: STRIPE_PRICE_IDS.mpm_premium,
+          planLookupKeys: expect.arrayContaining(["mpm_premium", "mpm_ultimate"]),
+        }),
+      ]));
+    } finally {
+      STRIPE_PRICE_IDS.mpm_ultimate = originalUltimate;
+    }
+  });
+
   it("blocks a live Stripe key outside the production billing owner", () => {
     const previousDeployment = process.env.REPLIT_DEPLOYMENT;
     const previousOwner = process.env.STRIPE_LIVE_BILLING_OWNER;
@@ -78,11 +104,26 @@ describe("trusted Stripe entitlement pipeline", () => {
     expect(webhook).toContain("completeBillingEvent");
     expect(webhook).toContain("failBillingEvent");
     expect(events).toContain(".onConflictDoNothing()");
+    expect(events).toContain("staleProcessingCutoff");
     expect(service).toContain("stripeLastEventCreatedAt");
     expect(service).toContain("eventOrderingCondition");
+    expect(service).toContain("IDENTITY_CONFLICT");
+    expect(service).toContain("metadata conflicts with the stored owner");
     expect(legacy).toContain("LEGACY_WEBHOOK_RETIRED");
     expect(legacy).not.toContain("customers.list({");
     expect(legacy).not.toContain(".where(eq(users.email");
+  });
+
+  it("keeps Clinical Business renewals out of the owner's personal plan snapshot", () => {
+    const webhook = source("server/routes/stripeWebhook.ts");
+    const service = source("server/services/subscriptionService.ts");
+
+    expect(webhook).toContain("storesAsPersonalPlan");
+    expect(webhook).toContain('planLookupKey !== "clinical_business_monthly"');
+    expect(webhook).toContain("syncBusinessBillingState");
+    expect(webhook).toContain("Deliberately do not mutate businessMembers");
+    expect(service).toContain("planLookupKey: users.personalPlanLookupKey");
+    expect(service).toContain("personalEntitlements");
   });
 
   it("keeps checkout success client data non-authoritative", () => {
