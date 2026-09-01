@@ -711,6 +711,8 @@ async function initializeApp() {
           await runTrialGrantsMigration(database as any);
           const { runPilotProcareMigration } = await import("./db/migrations/runPilotProcareMigration");
           await runPilotProcareMigration(database as any);
+          const { runPilotProgramMigration } = await import("./db/migrations/runPilotProgramMigration");
+          await runPilotProgramMigration(database as any);
           const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
           await runStripeBillingMigration(database as any);
            const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
@@ -747,6 +749,7 @@ async function initializeApp() {
       const { db: dbSyncMig } = await import("./db");
       const { runTrialGrantsMigration } = await import("./db/migrations/runTrialGrantsMigration");
       const { runPilotProcareMigration } = await import("./db/migrations/runPilotProcareMigration");
+      const { runPilotProgramMigration } = await import("./db/migrations/runPilotProgramMigration");
       const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
       const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
       const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
@@ -755,6 +758,7 @@ async function initializeApp() {
       const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
       await runTrialGrantsMigration(dbSyncMig as any);
       await runPilotProcareMigration(dbSyncMig as any);
+      await runPilotProgramMigration(dbSyncMig as any);
       await runStripeBillingMigration(dbSyncMig as any);
       await runHydrationHubMigration(dbSyncMig as any);
       await runProcareTrainingMigration(dbSyncMig as any);

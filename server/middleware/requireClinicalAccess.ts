@@ -30,11 +30,21 @@ export function requireClinicalAccess(
 
   if (!BILLING_ENFORCED) return next();
 
-  const { accessTier, planLookupKey } = authReq.authUser;
+  const { accessTier, planLookupKey, pilotFullAccess } = authReq.authUser;
 
   if (accessTier !== "PAID_FULL") {
     res.status(403).json({
       error: "This feature requires a Clinical subscription",
+      code: "CLINICAL_REQUIRED",
+      requiredTier: "clinical",
+      accessTier,
+    });
+    return;
+  }
+
+  if (pilotFullAccess && !planLookupKey) {
+    res.status(403).json({
+      error: "Clinical features require an independently verified Clinical subscription.",
       code: "CLINICAL_REQUIRED",
       requiredTier: "clinical",
       accessTier,

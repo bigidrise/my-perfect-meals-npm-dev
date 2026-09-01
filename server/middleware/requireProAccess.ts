@@ -33,7 +33,7 @@ export function requireProAccess(
   // Pre-launch bypass: when billing isn't enforced, everyone gets full access
   if (!BILLING_ENFORCED) return next();
 
-  const { accessTier, planLookupKey } = authReq.authUser;
+  const { accessTier, planLookupKey, pilotFullAccess } = authReq.authUser;
 
   // Must have an active paid subscription
   if (accessTier !== "PAID_FULL") {
@@ -45,6 +45,8 @@ export function requireProAccess(
     });
     return;
   }
+
+  if (pilotFullAccess) return next();
 
   // No planLookupKey with PAID_FULL = internal account (founder, etc.) — grant access
   if (!planLookupKey) return next();
