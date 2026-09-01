@@ -650,6 +650,8 @@ export const users = pgTable("users", {
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
+  stripeCustomerIdUnique: uniqueIndex("users_stripe_customer_id_uniq").on(t.stripeCustomerId),
+  stripeSubscriptionIdUnique: uniqueIndex("users_stripe_subscription_id_uniq").on(t.stripeSubscriptionId),
   organizationIdx: index("idx_users_organization_id").on(t.organizationId),
 }));
 

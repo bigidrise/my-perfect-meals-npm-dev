@@ -126,6 +126,34 @@ describe("trusted Stripe entitlement pipeline", () => {
     expect(service).toContain("personalEntitlements");
   });
 
+  it("makes stale subscription events no-ops for destructive and business side effects", () => {
+    const webhook = source("server/routes/stripeWebhook.ts");
+
+    expect(webhook).toContain("stale event ignored without side effects");
+    expect(webhook).toContain("mutationResult.updated\n            && trustedPlan.planLookupKey");
+  });
+
+  it("routes business checkout through the same trusted catalog as consumer checkout", () => {
+    const checkout = source("server/routes/stripeCheckout.ts");
+    const businessHandler = checkout.slice(checkout.indexOf('router.post("/checkout/business"'));
+
+    expect(businessHandler).toContain('getTrustedCheckoutPlan("clinical_business_monthly")');
+    expect(businessHandler).toContain("price: trustedBusinessPlan.priceId");
+    expect(businessHandler).not.toContain("process.env.STRIPE_CLINICAL_BUSINESS_MONTHLY_PRICE_ID");
+  });
+
+  it("database-enforces unique Stripe ownership for users and businesses", () => {
+    const migration = source("server/db/migrations/runStripeBillingMigration.ts");
+    const service = source("server/services/subscriptionService.ts");
+
+    expect(migration).toContain("users_stripe_customer_id_uniq");
+    expect(migration).toContain("users_stripe_subscription_id_uniq");
+    expect(migration).toContain("businesses_stripe_customer_id_uniq");
+    expect(migration).toContain("businesses_stripe_subscription_id_uniq");
+    expect(service).toContain('code === "23505"');
+    expect(service).toContain('"IDENTITY_CONFLICT"');
+  });
+
   it("keeps checkout success client data non-authoritative", () => {
     const checkout = source("server/routes/stripeCheckout.ts");
     const legacy = source("server/routes/stripe.ts");

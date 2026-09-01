@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, unique } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, unique, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const businesses = pgTable("businesses", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -42,7 +42,10 @@ export const businesses = pgTable("businesses", {
   welcomeEmailSentAt: timestamp("welcome_email_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => ({
+  stripeCustomerIdUnique: uniqueIndex("businesses_stripe_customer_id_uniq").on(t.stripeCustomerId),
+  stripeSubscriptionIdUnique: uniqueIndex("businesses_stripe_subscription_id_uniq").on(t.stripeSubscriptionId),
+}));
 
 export type Business = typeof businesses.$inferSelect;
 export type InsertBusiness = typeof businesses.$inferInsert;

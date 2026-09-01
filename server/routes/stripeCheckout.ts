@@ -219,7 +219,8 @@ router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
 /**
  * POST /api/stripe/checkout/business
  * Creates a Stripe Checkout Session for Clinical Business (multi-seat).
- * Seat count is validated server-side (1–250). Price ID is read from env only.
+ * Seat count is validated server-side (1–250). Price ID is resolved through
+ * the same server-owned trusted catalog used by consumer checkout.
  * Soft tier guidance (11-50: recommend call; 51+: contact sales) is enforced in UI only —
  * the backend accepts any value up to 250 so enterprise orders via sales can still proceed.
  */
@@ -274,9 +275,9 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     });
   }
 
-  const priceId = process.env.STRIPE_CLINICAL_BUSINESS_MONTHLY_PRICE_ID?.trim();
-  if (!priceId) {
-    console.error("❌ Missing STRIPE_CLINICAL_BUSINESS_MONTHLY_PRICE_ID");
+  const trustedBusinessPlan = getTrustedCheckoutPlan("clinical_business_monthly");
+  if (!trustedBusinessPlan) {
+    console.error("❌ Business checkout price is missing or conflicts with another trusted plan");
     return res.status(500).json({
       error: "Business subscription not configured. Please contact support.",
     });
@@ -299,7 +300,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       mode: "subscription",
       line_items: [
         {
-          price: priceId,
+          price: trustedBusinessPlan.priceId,
           quantity: requestedSeats,
         },
       ],
