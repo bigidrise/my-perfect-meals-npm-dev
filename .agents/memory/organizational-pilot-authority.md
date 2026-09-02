@@ -13,6 +13,8 @@ Pilot Champion authority is an exact-user organizational authorization, not a pa
 
 An active organizational-pilot membership may elevate commercial product entitlements only. It must not infer ProCare, clinical credentials, care relationships, or Business administration; owner/admin membership remains the separate management authority.
 
+Business Suite is a provisioned organization workspace, not a personal-plan feature. Visibility and entry require an individual account, active organization membership, an entry-eligible role, and an active pilot window or verified paid Business state. Personal plans, trials, affiliates, Professional access, ProCare, and client relationships never unlock it. Generic Business Solutions discovery remains separate.
+
 **Why:** Clinics and gyms can support far more clients than professionals, and participant-level clocks, placeholder users, synthetic paid plans, or email-domain administration do not scale or preserve billing and administrative authority.
 
-**How to apply:** Keep Stripe and paid Business flows unchanged. Store pending invitations without users, associate real accounts only on acceptance, require Champions to claim approved organizational authorizations, and leave role, ProCare, care-team, and client relationships as independent authorities.
+**How to apply:** Resolve workspace visibility, organization selection, commercial state, and entry on the server. Store pending invitations without users, associate real accounts only on acceptance, and leave role, ProCare, care-team, and client relationships as independent authorities.

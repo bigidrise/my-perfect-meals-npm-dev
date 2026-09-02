@@ -101,6 +101,8 @@ export async function apiRequest<T = any>(
   if (authToken) {
     fetchHeaders["x-auth-token"] = authToken;
   }
+  const businessId = sessionStorage.getItem("mpm_active_business_id");
+  if (businessId) fetchHeaders["x-business-id"] = businessId;
 
   const startedAt = Date.now();
   const res = await fetch(fullUrl, {
@@ -134,6 +136,8 @@ export const getQueryFn: <T>(options: {
     if (token) {
       headers["x-auth-token"] = token;
     }
+    const businessId = sessionStorage.getItem("mpm_active_business_id");
+    if (businessId) headers["x-business-id"] = businessId;
 
     const res = await fetch(fullUrl, {
       credentials: "include",
