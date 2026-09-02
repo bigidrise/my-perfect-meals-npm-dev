@@ -23,6 +23,7 @@ import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { getDishAdaptationDirective, buildGuardrailContext } from "../services/dishAdaptation/dishAdaptationLayer";
 import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
 import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -96,6 +97,7 @@ const isDev = process.env.NODE_ENV === "development";
 dessertCreatorRouter.post("/", async (req, res) => {
   if (isDev) console.log("[DESSERT] POST request received");
   try {
+    const userId = getAuthUserId(req);
     const {
       dessertCategory,
       flavorFamily,
@@ -105,7 +107,6 @@ dessertCreatorRouter.post("/", async (req, res) => {
       cakeType,
       dietaryPreferences,
       dietOverride,           // builder hub diet override — replaces profile primary diet
-      userId,
       safetyMode,
       overrideToken,
       skipPalate,
@@ -116,8 +117,6 @@ dessertCreatorRouter.post("/", async (req, res) => {
     } = req.body ?? {};
 
     const hasCustomDescription = !!(customDessertDescription && typeof customDessertDescription === 'string' && customDessertDescription.trim().length > 0);
-
-    if (isDev) console.log("[DESSERT] Request params:", { dessertCategory, flavorFamily, servingSize, cakeStyle, cakeType, hasCustomDescription });
 
     if (!hasCustomDescription && !dessertCategory) {
       return res.status(400).json({ error: "Dessert category is required" });
@@ -140,7 +139,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
         correlationId: (req as any).id
       });
       if (safetyCheck.result === "BLOCKED") {
-        console.log(`🚫 [SAFETY] Blocked dessert for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+        console.log(`[DESSERT] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
         return res.status(400).json({
           success: false,
           error: safetyCheck.message,
@@ -164,7 +163,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
       }
       if (safetyCheck.overriddenAllergen) {
         _overriddenDessertAllergens = [safetyCheck.overriddenAllergen];
-        console.log(`[AllergyOverride] Dessert-creator request-scoped override — allergen: ${safetyCheck.overriddenAllergen}`);
+        console.log(`[DESSERT] Request-scoped safety override applied; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -218,7 +217,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
               medicalConditions: (user.medicalConditions as string[]) || [],
             };
             palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
-            console.log(`🎨 [DESSERT] Loaded palate preferences: flavor=${user.flavorPreference}, heat=${user.heatPreference}`);
+            console.log(`[DESSERT] Palate preferences loaded; requestId=${(req as any).id ?? "unavailable"}`);
           }
           // Sweetener allowlist — always enforced regardless of skipPalate
           // resolveSweetenerAllowlist falls back to sweetenerPreferences column
@@ -231,14 +230,14 @@ dessertCreatorRouter.post("/", async (req, res) => {
           const block = buildSweetenerAllowlistBlock(preferred, avoidAll);
           if (block) {
             sweetenerGuidance = `\n${block}`;
-            console.log(`🍯 [DESSERT] Sweetener allowlist: preferred=[${preferred.join(",")}] avoidAll=${avoidAll}`);
+            console.log(`[DESSERT] Sweetener policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
           }
         }
       } catch (err) {
-        console.log("[DESSERT] Could not fetch user preferences:", err);
+        console.warn(`[DESSERT] PROFILE_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     } else if (skipPalate) {
-      console.log(`🎨 [DESSERT] Palate preferences skipped - using neutral flavoring for shared dessert`);
+      console.log(`[DESSERT] Neutral flavor policy applied; requestId=${(req as any).id ?? "unavailable"}`);
     }
 
     const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;
@@ -258,7 +257,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
         ? dietaryPreferences.map((d: string) => d.replace(/-/g, " ")).join(", ")
         : "none specified";
     if (dietOverride) {
-      console.log(`🔀 [DESSERT] Diet override: "${dietOverride}" → dietaryRules="${dietaryRules}"`);
+      console.log(`[DESSERT] Diet override applied; requestId=${(req as any).id ?? "unavailable"}`);
     }
 
     const isWeddingCake = cakeType === "wedding-cake";
@@ -331,13 +330,10 @@ CELEBRATION CAKE REQUIREMENTS:
           "first_pass",
         );
         if (_dessertDishDirective) {
-          console.log(
-            `🍽️ [DAL/Dessert] Directive ready for "${dessertIdentifier}" — ` +
-            `${_dessertDishDirective.conflicts.length} guardrail conflict(s)`,
-          );
+          console.log(`[DESSERT] Dish adaptation policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
         }
       } catch (dalErr) {
-        console.warn("⚠️ [DAL/Dessert] Directive build failed — generation proceeds unenriched:", dalErr);
+        console.warn(`[DESSERT] DISH_ADAPTATION_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -356,10 +352,10 @@ CELEBRATION CAKE REQUIREMENTS:
         const behavioralProfile = await derivePreferenceProfile(userId);
         if (behavioralProfile) {
           dessertBehavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
-          console.log(`🧠 [BehavioralMemory/Dessert] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals`);
+          console.log(`[DESSERT] Behavioral preferences loaded; requestId=${(req as any).id ?? "unavailable"}`);
         }
       } catch (err) {
-        console.warn("⚠️ [BehavioralMemory/Dessert] Could not derive preference profile:", err);
+        console.warn(`[DESSERT] BEHAVIORAL_PROFILE_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -437,7 +433,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     try {
       const rawText = completion.choices[0]?.message?.content || "{}";
       meal = JSON.parse(rawText);
-      if (isDev) console.log("[DESSERT] Parsed meal:", meal.name);
+      if (isDev) console.log("[DESSERT] Generated response parsed");
     } catch (parseErr) {
       console.error("Dessert Creator JSON parse error:", parseErr);
       return res
@@ -452,7 +448,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       overriddenAllergens: _overriddenDessertAllergens.length > 0 ? _overriddenDessertAllergens : undefined,
     });
     if (!dessertScan.passed) {
-      console.log(`🚫 [DESSERT] Post-gen protocol violation: ${dessertScan.message}`);
+        console.log(`[DESSERT] Generated result rejected by protocol; requestId=${(req as any).id ?? "unavailable"}`);
       return res.status(400).json({
         error: "PROTOCOL_VIOLATION",
         message: dessertScan.message,
@@ -467,9 +463,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       try {
         const identityResult = validateDishIdentity(dessertIdentifier, meal, _dessertDishDirective);
         if (identityResult.catastrophicDeviation) {
-          console.error(
-            `🚫 [DishIdentity/Dessert] "${meal.name}" is not "${dessertIdentifier}" — rejecting (score=${identityResult.score})`,
-          );
+          console.error(`[DESSERT] DISH_IDENTITY_REJECTED; requestId=${(req as any).id ?? "unavailable"}`);
           const conflictSummary = (_dessertDishDirective?.conflicts ?? [])
             .map(c => `${c.component} (${c.guardrail})`)
             .join(", ");
@@ -484,11 +478,9 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
             retryable: true,
           });
         }
-        console.log(
-          `✅ [DishIdentity/Dessert] "${meal.name}" identity OK (score=${identityResult.score})`,
-        );
+        console.log(`[DESSERT] Dish identity validated; requestId=${(req as any).id ?? "unavailable"}`);
       } catch (e) {
-        console.warn("⚠️ [DishIdentity/Dessert] Validation error — proceeding:", e);
+        console.warn(`[DESSERT] DISH_IDENTITY_VALIDATION_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -507,10 +499,10 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
           userConditions = dbUser.healthConditions;
-          console.log("[DESSERT] User medical profile loaded");
+          console.log(`[DESSERT] Medical policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
         }
       } catch (err) {
-        console.log("[DESSERT] Could not fetch user health conditions:", err);
+        console.warn(`[DESSERT] MEDICAL_POLICY_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -564,7 +556,6 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       complianceSection: dessertCompliance,
       dietClassification: dessertDietClass,
       meta: {
-        userId: userId ?? "1",
         dessertCategory,
         flavorFamily,
         specificDessert,

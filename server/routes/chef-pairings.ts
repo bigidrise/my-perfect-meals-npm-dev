@@ -2,6 +2,7 @@ import { Router } from "express";
 import OpenAI from "openai";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -18,12 +19,12 @@ const chefPairingsRouter = Router();
 
 chefPairingsRouter.post("/", async (req, res) => {
   try {
+    const userId = getAuthUserId(req);
     const {
       foodItem,
       cuisine,
       occasion,
       priceRange,
-      userId,
       safetyMode,
       overrideToken,
     } = req.body ?? {};
@@ -40,7 +41,7 @@ chefPairingsRouter.post("/", async (req, res) => {
         correlationId: (req as any).id,
       });
       if (safetyCheck.result === "BLOCKED") {
-        console.log(`[CHEF-PAIRINGS] Blocked for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+        console.log(`[CHEF-PAIRINGS] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
         return res.status(400).json({
           success: false,
           error: safetyCheck.message,
