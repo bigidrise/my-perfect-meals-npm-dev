@@ -580,6 +580,7 @@ import FoundersPage from "@/pages/Founders";
 import CoachesComingSoon from "@/pages/CoachesComingSoon";
 import BusinessCenter from "@/pages/BusinessCenter";
 import { BusinessSuiteGate } from "@/components/BusinessSuiteGate";
+import { BusinessWorkspaceGate } from "@/components/BusinessWorkspaceGate";
 import BusinessCenterSection from "@/pages/BusinessCenterSection";
 import PartnerCenter from "@/pages/PartnerCenter";
 import PromotionsHub from "@/pages/business/PromotionsHub";
@@ -804,6 +805,18 @@ const GatedPublicHealthcarePartnerships = () => <BusinessSuiteGate><PublicHealth
 const GatedWhiteLabelSolutions = () => <BusinessSuiteGate><WhiteLabelSolutions /></BusinessSuiteGate>;
 const GatedBusinessCenterSection = () => <BusinessSuiteGate><BusinessCenterSection /></BusinessSuiteGate>;
 const GatedPartnerCenter = () => <BusinessSuiteGate><PartnerCenter /></BusinessSuiteGate>;
+const BusinessDashboardPage = lazy(() => import("@/pages/BusinessDashboard"));
+const BusinessSetupPage = lazy(() => import("@/pages/BusinessSetup"));
+const GatedBusinessDashboard = () => (
+  <BusinessWorkspaceGate>
+    <BusinessDashboardPage />
+  </BusinessWorkspaceGate>
+);
+const GatedBusinessSetup = () => (
+  <BusinessWorkspaceGate mode="setup">
+    <BusinessSetupPage />
+  </BusinessWorkspaceGate>
+);
 
 // Stable module-level wrappers for AdminGuard routes — must stay at module scope.
 const GuardedAdminCertifications = () => <AdminGuard component={AdminCertifications} />;
@@ -1040,9 +1053,9 @@ export default function Router() {
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
         <Route path="/business/start" component={lazy(() => import("@/pages/BusinessStart"))} />
-        <Route path="/business/setup" component={lazy(() => import("@/pages/BusinessSetup"))} />
-        <Route path="/business/dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
-        <Route path="/business-dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
+        <Route path="/business/setup" component={GatedBusinessSetup} />
+        <Route path="/business/dashboard" component={GatedBusinessDashboard} />
+        <Route path="/business-dashboard" component={GatedBusinessDashboard} />
         <Route path="/business/join/:token" component={lazy(() => import("@/pages/BusinessInviteAccept"))} />
         <Route path="/org-success-center" component={lazy(() => import("@/pages/OrganizationSuccessCenter"))} />
         <Route path="/family-info" component={FamilyInfoPage} />

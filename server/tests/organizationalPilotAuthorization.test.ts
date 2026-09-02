@@ -69,9 +69,10 @@ describe("organizational pilot Champion authorization contract", () => {
     expect(auth).toContain("&& !isValidPilotAuthorizationSignup");
   });
 
-  test("Workspace Chooser only receives exact pending authorizations or owner/admin memberships", () => {
+  test("Workspace Chooser receives exact pending authorizations or resolver-approved memberships", () => {
     expect(service).toContain("normalizedChampionEmail, normalizedEmail");
-    expect(service).toContain('inArray(businessMembers.role, ["owner", "admin"])');
+    expect(service).toContain("resolveBusinessSuiteEligibility({ userId })");
+    expect(service).toContain("eligibility.organizations.filter((row) => row.canEnter)");
     expect(chooser).toContain("authorizationId: workspace.authorizationId");
   });
 

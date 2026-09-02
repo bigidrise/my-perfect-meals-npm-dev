@@ -336,7 +336,11 @@ export function clearAuthToken(): void {
 
 export function getAuthHeaders(): Record<string, string> {
   const token = getAuthToken();
-  return token ? { "x-auth-token": token } : {};
+  const businessId = sessionStorage.getItem("mpm_active_business_id");
+  return {
+    ...(token ? { "x-auth-token": token } : {}),
+    ...(businessId ? { "x-business-id": businessId } : {}),
+  };
 }
 
 // API-based authentication with database persistence
