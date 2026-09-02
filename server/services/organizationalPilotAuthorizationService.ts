@@ -8,7 +8,6 @@ import {
   organizationalPilots,
 } from "../db/schema/pilotProgram";
 import { normalizeEmailIdentity, resolveEmailIdentityForUser } from "./emailIdentityService";
-import { resolveBusinessSuiteEligibility } from "./businessSuiteEligibility";
 
 export class PilotAuthorizationError extends Error {
   constructor(
@@ -262,26 +261,28 @@ export async function getOrganizationWorkspaceOptions(userId: string) {
     ),
   ));
 
-  const eligibility = await resolveBusinessSuiteEligibility({ userId });
+  const memberships = await db.select({
+    businessId: businesses.id,
+    organizationName: businesses.name,
+    membershipRole: businessMembers.role,
+    pilotStatus: organizationalPilots.status,
+  }).from(businessMembers)
+    .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
+    .leftJoin(organizationalPilots, eq(organizationalPilots.businessId, businesses.id))
+    .where(and(
+      eq(businessMembers.userId, userId),
+      eq(businessMembers.status, "active"),
+      inArray(businessMembers.role, ["owner", "admin"]),
+    ));
 
   return [
     ...pending.map((row) => ({ ...row, businessId: null, action: "setup" as const })),
-    ...eligibility.organizations.filter((row) => row.canEnter).map((row) => ({
+    ...memberships.map((row) => ({
       authorizationId: null,
       businessId: row.businessId,
       organizationName: row.organizationName,
-      status: row.commercialState,
-      role: row.role,
+      status: row.pilotStatus ?? "business",
       action: "open" as const,
-    })),
-    ...eligibility.pendingInvitations.map((row) => ({
-      authorizationId: null,
-      businessId: row.businessId,
-      organizationName: row.organizationName,
-      status: "invitation_pending",
-      role: row.role,
-      invitationId: row.invitationId,
-      action: "pending" as const,
     })),
   ];
 }

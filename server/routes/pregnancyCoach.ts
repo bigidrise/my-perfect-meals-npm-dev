@@ -649,7 +649,7 @@ router.post("/setup", async (req, res) => {
       .where(eq(users.id, userId));
 
     console.log(
-      `[PregnancyCoach] Setup saved for user ${userId}: stage=${stage}, trackingMode=${trackingMode}, symptoms=${symptoms.join(",")}`
+      `[PregnancyCoach] Setup saved; requestId=${(req as any).id ?? "unavailable"}`
     );
 
     return res.json({ success: true });
@@ -690,7 +690,7 @@ router.delete("/setup", async (req, res) => {
       .where(eq(users.id, userId));
 
     console.log(
-      `[PregnancyCoach] Pregnancy support deactivated for user ${userId}`
+      `[PregnancyCoach] Pregnancy support deactivated; requestId=${(req as any).id ?? "unavailable"}`
     );
     return res.json({ success: true });
   } catch (error: any) {

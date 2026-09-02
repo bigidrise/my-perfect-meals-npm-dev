@@ -154,7 +154,6 @@ export default function BeverageCreator() {
   const { t: tc } = useTranslation("common");
   const quickTour = useQuickTour("beverage-creator");
   const { user } = useAuth();
-  const userId = user?.id || "";
   const hydrationHandoff = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("hydrationHandoff");
@@ -430,7 +429,6 @@ export default function BeverageCreator() {
               : []),
             ...(customDietary.trim() ? [customDietary.trim()] : []),
           ],
-          userId: userId,
           safetyMode:
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,

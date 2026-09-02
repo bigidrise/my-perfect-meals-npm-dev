@@ -165,7 +165,6 @@ export default function AthleteBeverageCreator() {
   const quickTour = useQuickTour("athlete-beverage-creator");
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
-  const userId = user?.id || "";
   const hydrationHandoff = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("hydrationHandoff");
@@ -389,7 +388,6 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
               : []),
             ...(customDietary.trim() ? [customDietary.trim()] : []),
           ],
-          userId: userId,
           safetyMode:
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,

@@ -805,13 +805,6 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-32"
-      // Leave enough scroll room on mobile for the schedule card's Edit button
-      // to clear the bottom navigation and safe-area inset.
-      style={{
-        paddingBottom: isDesktop
-          ? "8rem"
-          : "max(12rem, calc(env(safe-area-inset-bottom, 0px) + 10rem))",
-      }}
     >
       {/* Header — mobile only; DesktopHeader shows the title on desktop */}
       {!isDesktop && (

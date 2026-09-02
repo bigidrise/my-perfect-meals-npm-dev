@@ -48,6 +48,7 @@ import {
   buildLiquidNutritionPromptBlock,
   validateLiquidNutritionOutput,
 } from "../services/hydration/hydrationContextService";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -121,6 +122,7 @@ function classifyBeverageIntent(text: string): string {
 beverageCreatorRouter.post("/", async (req, res) => {
   if (isDev) console.log("[BEVERAGE] POST request received");
   try {
+    const userId = getAuthUserId(req);
     const {
       beverageCategory,
       flavorFamily,
@@ -128,7 +130,6 @@ beverageCreatorRouter.post("/", async (req, res) => {
       customBeverageDescription,
       servingSize,
       dietaryPreferences,
-      userId: _bodyUserId, // ignored — safety/clinical identity always comes from req.authUser
       safetyMode,
       overrideToken,
       skipPalate,
@@ -140,9 +141,6 @@ beverageCreatorRouter.post("/", async (req, res) => {
       hydrationHandoff,
     } = req.body ?? {};
 
-    // Always use the authenticated identity for all clinical, safety, and profile
-    // lookups — the body-supplied userId is discarded to prevent IDOR.
-    const userId = String((req as any).authUser?.id ?? "");
     let trustedHydrationHandoff: ReturnType<typeof verifyHydrationHandoff> | null = null;
     if (hydrationHandoff) {
       try {
@@ -168,8 +166,6 @@ beverageCreatorRouter.post("/", async (req, res) => {
     // Accept either key name — some clients send cuisineOverride, others cultureOverride
     const cultureOverride: string | undefined = (_cultureOverride || _cuisineOverride) ?? undefined;
 
-    if (isDev) console.log("[BEVERAGE] Request params:", { beverageCategory, flavorFamily, servingSize, hasCustomDesc: typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0 });
-
     const hasCustomDesc = typeof customBeverageDescription === "string" && customBeverageDescription.trim().length > 0;
 
     if (!hasCustomDesc && !beverageCategory) {
@@ -192,7 +188,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
         correlationId: (req as any).id
       });
       if (safetyCheck.result === "BLOCKED") {
-        console.log(`🚫 [SAFETY] Blocked beverage for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+        console.log(`[BEVERAGE] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
         return res.status(400).json({
           success: false,
           error: safetyCheck.message,
@@ -216,7 +212,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       }
       if (safetyCheck.overriddenAllergen) {
         _overriddenBeverageAllergens = [safetyCheck.overriddenAllergen];
-        console.log(`[AllergyOverride] Beverage-creator request-scoped override — allergen: ${safetyCheck.overriddenAllergen}`);
+        console.log(`[BEVERAGE] Request-scoped safety override applied; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -224,7 +220,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const beverageContext = await getActiveNutritionContext(userId);
     const beverageEnvelope = beverageContext.envelope;
     const beverageProtocolBlock = beverageContext.combinedBlock;
-    console.log(`🔒 [BEVERAGE] Nutrition context: diet=[${beverageContext.diet.join(",")}] medical=[${beverageContext.medical.length} flags] builder=${beverageContext.builder ?? "none"}`);
+    console.log(`[BEVERAGE] Nutrition policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
     const hydrationDay = await resolveHydrationDay({ subjectUserId: userId });
     const activeLiquidProtocol = await getCurrentLiquidNutritionProtocol({
       userId,
@@ -262,7 +258,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     let activeRestrictions: string[] = beverageEnvelope.dietaryIdentity;
     if (dietOverride && typeof dietOverride === "string" && dietOverride.trim()) {
       activeRestrictions = [dietOverride.trim()];
-      console.log(`🔀 [BEVERAGE] Diet override active: "${dietOverride.trim()}" replaces profile diet [${beverageEnvelope.dietaryIdentity.join(",")}]`);
+      console.log(`[BEVERAGE] Diet override applied; requestId=${(req as any).id ?? "unavailable"}`);
     }
     let beverageMeasurementSystem: MeasurementSystem = "imperial";
 
@@ -284,14 +280,14 @@ beverageCreatorRouter.post("/", async (req, res) => {
               palateFlavorStyle: user.palateFlavorStyle as PalatePreferences['palateFlavorStyle'],
             };
             palateGuidance = `\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}`;
-            console.log(`🎨 [BEVERAGE] Loaded palate preferences for user`);
+            console.log(`[BEVERAGE] Palate preferences loaded; requestId=${(req as any).id ?? "unavailable"}`);
           }
         }
       } catch (err) {
-        console.log("[BEVERAGE] Could not fetch user preferences:", err);
+        console.warn(`[BEVERAGE] PROFILE_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     } else if (skipPalate) {
-      console.log(`🎨 [BEVERAGE] Palate preferences skipped - using neutral flavoring for shared drink`);
+      console.log(`[BEVERAGE] Neutral flavor policy applied; requestId=${(req as any).id ?? "unavailable"}`);
     }
 
     // Merge body-sent dietaryPreferences into active restrictions as fallback
@@ -308,7 +304,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     if (activeRestrictions.length > 0) {
       dietCategoryStrategy = resolveDietCategoryStrategy(activeRestrictions, beverageCategory);
       if (dietCategoryStrategy.conflictLevel !== 'none') {
-        console.log(`🔀 [BEVERAGE] Diet-category ${dietCategoryStrategy.conflictLevel}: ${beverageCategory} → ${dietCategoryStrategy.effectiveCategory} (diet: ${activeRestrictions.join("|")})`);
+        console.log(`[BEVERAGE] Diet-category adaptation applied; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -404,10 +400,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
         const behavioralProfile = await derivePreferenceProfile(userId);
         if (behavioralProfile) {
           beverageBehavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
-          console.log(`🧠 [BehavioralMemory/Beverage] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals`);
+          console.log(`[BEVERAGE] Behavioral preferences loaded; requestId=${(req as any).id ?? "unavailable"}`);
         }
       } catch (err) {
-        console.warn("⚠️ [BehavioralMemory/Beverage] Could not derive preference profile:", err);
+        console.warn(`[BEVERAGE] BEHAVIORAL_PROFILE_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -431,7 +427,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       ? `\n🌍 CUISINE STYLE (${beverageCuisineIntensity.toUpperCase()}): Create a ${cultureOverride.trim()}-influenced beverage.\n${BEVERAGE_INTENSITY_DEPTH[beverageCuisineIntensity] ?? BEVERAGE_INTENSITY_DEPTH.balanced}\n`
       : "";
 
-    console.log(`🌍 [BEVERAGE] Cuisine: override=${cultureOverride ?? "none"} intensity=${beverageCuisineIntensity}`);
+    console.log(`[BEVERAGE] Cuisine policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
 
     // ── Medical beverage enforcement — ingredient-level rules for every active condition ──
     // buildBeveragePromptBlocks() uses the same structured rule registry as the
@@ -490,12 +486,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
               ? `- NOTE: ${glp1Ctx.compositionNote}\n`
               : "") +
             `These targets are patient-specific and take precedence over generic GLP-1 defaults above.\n`;
-          console.log(
-            `💊 [GLP-1/Beverage] Canonical targets injected: ` +
-              `${t.resolvedSnackCalories}kcal / ${t.targetProteinGrams}g prot / ` +
-              `${t.maximumToleratedFatGrams}g fat-ceiling ` +
-              `[phase: ${t.treatmentPhase}] [sources: ${glp1Ctx.activationSources.join(",")}]`,
-          );
+          console.log(`[BEVERAGE] GLP-1 policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
         }
       } catch (err: any) {
         // Always re-throw: without confirmed GLP-1 status the generation must
@@ -528,13 +519,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
           "first_pass",
         );
         if (_beverageDishDirective) {
-          console.log(
-            `🍽️ [DAL/Beverage] Directive ready for "${_beverageIdentifier}" — ` +
-            `${_beverageDishDirective.conflicts.length} guardrail conflict(s)`,
-          );
+          console.log(`[BEVERAGE] Dish adaptation policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
         }
       } catch (dalErr) {
-        console.warn("⚠️ [DAL/Beverage] Directive build failed — generation proceeds unenriched:", dalErr);
+        console.warn(`[BEVERAGE] DISH_ADAPTATION_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -547,13 +535,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
         const aceResult = await buildAcePromptBlock(userId);
         if (aceResult) {
           aceBlock = `\n${aceResult.block}\n`;
-          const { meta } = aceResult;
-          console.log(
-            `🧠 [ACE/Beverage] enabled | signals=${meta.signalCount} | intervention=${meta.interventionKey ?? "balanced"} | chars=${meta.charCount}`
-          );
+          console.log(`[BEVERAGE] Coaching policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
         }
       } catch (err) {
-        console.warn("⚠️ [ACE/Beverage] Could not build coaching block — skipping:", err);
+        console.warn(`[BEVERAGE] COACHING_POLICY_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -620,7 +605,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 `;
 
     if (hasCustomDesc && inferredCategory) {
-      console.log(`🍹 [BEVERAGE] Free-text classified as "${inferredCategory}" (input: "${customBeverageDescription.substring(0, 60)}")`);
+      console.log(`[BEVERAGE] Free-text request classified; requestId=${(req as any).id ?? "unavailable"}`);
     }
 
     // ── Solid-food guard — fast-fail before sending bad output ─────────────────
@@ -814,7 +799,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       try {
         const rawText = completion.choices[0]?.message?.content || "{}";
         meal = JSON.parse(rawText);
-        if (isDev) console.log("[BEVERAGE] Parsed beverage:", meal.name);
+        if (isDev) console.log("[BEVERAGE] Generated response parsed");
       } catch (parseErr) {
         console.error("Beverage Creator JSON parse error:", parseErr);
         return res.status(500).json({ error: "AI returned invalid JSON for beverage" });
@@ -822,7 +807,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
       // ── Layer 1: Solid-food fast-fail guard ───────────────────────────────
       if (isSolidFood(meal)) {
-        console.warn(`🚨 [BEVERAGE] Solid food detected in output ("${meal.name}") — attempt ${attempt}. Forcing retry.`);
+        console.warn(`[BEVERAGE] Generated non-beverage result rejected; requestId=${(req as any).id ?? "unavailable"}`);
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
           return res.status(400).json({
             error: "INVALID_BEVERAGE",
@@ -853,7 +838,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         const KETO_BEVERAGE_CARB_CEILING = 15;
         if (generatedCarbs > KETO_BEVERAGE_CARB_CEILING) {
           const carbMsg = `Generated beverage has ${generatedCarbs}g carbs — exceeds the keto limit of ${KETO_BEVERAGE_CARB_CEILING}g per serving. Regenerate using lower-carb ingredients (avoid high-sugar fruit, coconut water in large amounts, sweetened bases).`;
-          console.log(`🚫 [BEVERAGE] Keto carb ceiling exceeded (attempt ${attempt}): ${generatedCarbs}g carbs`);
+          console.log(`[BEVERAGE] Generated result rejected by nutrition policy; requestId=${(req as any).id ?? "unavailable"}`);
           beverageScan = { passed: false, message: carbMsg, violations: [], instructionViolations: [] } as any;
         }
       }
@@ -863,7 +848,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           passed: false,
           message: "The generated beverage could not be verified against your nutrition settings.",
         };
-        console.log(`🚫 [BEVERAGE] Protocol violation (attempt ${attempt}): ${failedScan.message}`);
+        console.log(`[BEVERAGE] Generated result rejected by protocol; requestId=${(req as any).id ?? "unavailable"}`);
         beverageValidation = null;
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
           finalRejection = {
@@ -899,10 +884,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       );
 
       if (!beverageValidation.passed) {
-        console.warn(
-          `🚨 [BEVERAGE] Clinical validation failed (attempt ${attempt}): ` +
-          beverageValidation.violations.map(v => `[${v.condition}] ${v.ingredient}`).join("; ")
-        );
+        console.warn(`[BEVERAGE] Generated result rejected by clinical policy; requestId=${(req as any).id ?? "unavailable"}`);
 
         // ── Auto-fix: surgical ingredient swap before burning an OpenAI retry ──
         // Only fires for simple non-alcohol violations with a known safe swap.
@@ -912,7 +894,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         if (autoFix) {
           const fixedValidation = validateBeverageOutput(meal, beverageEnvelope, beverageContext.builder);
           if (fixedValidation.passed) {
-            console.log(`✅ [BEVERAGE] Auto-fixed ${autoFix.fixes.length} violation(s): ${autoFix.note}`);
+            console.log(`[BEVERAGE] Generated result adjusted to satisfy policy; requestId=${(req as any).id ?? "unavailable"}`);
             beverageValidation = fixedValidation;
             break;
           }
@@ -965,9 +947,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       try {
         const identityResult = validateDishIdentity(_beverageIdentifier, meal, _beverageDishDirective);
         if (identityResult.catastrophicDeviation) {
-          console.error(
-            `🚫 [DishIdentity/Beverage] "${meal.name}" is not "${_beverageIdentifier}" — rejecting (score=${identityResult.score})`,
-          );
+          console.error(`[BEVERAGE] DISH_IDENTITY_REJECTED; requestId=${(req as any).id ?? "unavailable"}`);
           const conflictSummary = (_beverageDishDirective?.conflicts ?? [])
             .map(c => `${c.component} (${c.guardrail})`)
             .join(", ");
@@ -982,11 +962,9 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             retryable: true,
           });
         }
-        console.log(
-          `✅ [DishIdentity/Beverage] "${meal.name}" identity OK (score=${identityResult.score})`,
-        );
+        console.log(`[BEVERAGE] Dish identity validated; requestId=${(req as any).id ?? "unavailable"}`);
       } catch (e) {
-        console.warn("⚠️ [DishIdentity/Beverage] Validation error — proceeding:", e);
+        console.warn(`[BEVERAGE] DISH_IDENTITY_VALIDATION_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -1030,10 +1008,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         beverageGlp1ResolvedTargets,
       );
       if (!bevGlp1Check.isValid) {
-        console.error(
-          `🚫 [BEVERAGE/GLP-1] Post-gen validation FAILED — ${bevGlp1Check.violations.join('; ')} | ` +
-          `generated: ${meal.calories}kcal / ${meal.protein}g prot / ${meal.fat}g fat`
-        );
+        console.error(`[BEVERAGE] Generated result rejected by GLP-1 policy; requestId=${(req as any).id ?? "unavailable"}`);
         const finalGlp1Rejection: BeverageProtocolRejection = {
           error: "PROTOCOL_VIOLATION",
           message: `Generated beverage exceeds GLP-1 clinical limits: ${bevGlp1Check.violations[0]}. Please try again.`,
@@ -1056,10 +1031,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           alternatives,
         });
       }
-      console.log(
-        `✅ [BEVERAGE/GLP-1] Post-gen PASSED — "${meal.name}" ` +
-        `${meal.calories}kcal / ${meal.protein}g prot / ${meal.fat}g fat`
-      );
+      console.log(`[BEVERAGE] Generated result passed GLP-1 policy; requestId=${(req as any).id ?? "unavailable"}`);
     }
 
     let userConditions: string[] = [];
@@ -1068,10 +1040,10 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
           userConditions = dbUser.healthConditions;
-          console.log("[BEVERAGE] User medical profile loaded");
+          console.log(`[BEVERAGE] Medical policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
         }
       } catch (err) {
-        console.log("[BEVERAGE] Could not fetch user health conditions:", err);
+        console.warn(`[BEVERAGE] MEDICAL_POLICY_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
       }
     }
 
@@ -1140,7 +1112,6 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         effectiveCategory: dietCategoryStrategy.effectiveCategory,
       }),
       meta: {
-        userId: userId ?? "1",
         beverageCategory,
         flavorFamily,
         specificDrink,
@@ -1149,7 +1120,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       },
     });
   } catch (err: any) {
-    console.error("Beverage Creator Error:", err);
+    console.error(`[BEVERAGE] REQUEST_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
     return res.status(500).json({ error: "Failed to create beverage" });
   }
 });

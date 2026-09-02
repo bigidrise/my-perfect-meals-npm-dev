@@ -199,7 +199,7 @@ export async function loadSafetyProfile(userId: string): Promise<SafetyProfile |
     }).from(users).where(eq(users.id, userId));
 
     if (!user) {
-      console.warn(`⚠️ [SAFETY] User not found: ${userId}`);
+      console.warn("[SafetyGuard] PROFILE_NOT_FOUND");
       return null;
     }
 
@@ -214,7 +214,7 @@ export async function loadSafetyProfile(userId: string): Promise<SafetyProfile |
       ],
     };
   } catch (error) {
-    console.error("Error loading safety profile:", error);
+    console.error("[SafetyGuard] PROFILE_LOAD_FAILED");
     return null;
   }
 }
@@ -467,10 +467,10 @@ export async function enforceSafetyProfile(
           commitOverrideToken(overrideToken);
         } catch (auditErr) {
           rollbackOverrideToken(overrideToken);
-          console.error(`[SafetyGuard] AUDIT INSERT FAILED for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId} — token rolled back for retry`, auditErr);
+          console.error(`[SafetyGuard] AUDIT_INSERT_FAILED; requestId=${correlationId ?? "unavailable"}`);
           throw auditErr;
         }
-        console.log(`[SafetyGuard] Authenticated override used for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`);
+        console.log(`[SafetyGuard] Authenticated override used; requestId=${correlationId ?? "unavailable"}`);
         return {
           result: "SAFE",
           blockedTerms: [],
@@ -481,7 +481,7 @@ export async function enforceSafetyProfile(
           correlationId,
         };
       } else {
-        console.log(`[SafetyGuard] Invalid/expired override token for user ${userId}`);
+        console.log(`[SafetyGuard] Invalid or expired override token; requestId=${correlationId ?? "unavailable"}`);
       }
     }
 
@@ -519,10 +519,10 @@ export async function enforceSafetyProfile(
           commitOverrideToken(overrideToken);
         } catch (auditErr) {
           rollbackOverrideToken(overrideToken);
-          console.error(`[SafetyGuard] AUDIT INSERT FAILED (ambiguous path) for user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId} — token rolled back for retry`, auditErr);
+          console.error(`[SafetyGuard] AMBIGUOUS_AUDIT_INSERT_FAILED; requestId=${correlationId ?? "unavailable"}`);
           throw auditErr;
         }
-        console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}, correlationId: ${correlationId}`);
+        console.log(`[SafetyGuard] Authenticated ambiguous-dish override used; requestId=${correlationId ?? "unavailable"}`);
         return {
           result: "SAFE",
           blockedTerms: [],
@@ -533,7 +533,7 @@ export async function enforceSafetyProfile(
           correlationId,
         };
       } else {
-        console.log(`[SafetyGuard] Invalid/expired override token for AMBIGUOUS check, user ${userId}`);
+        console.log(`[SafetyGuard] Invalid or expired ambiguous-dish override token; requestId=${correlationId ?? "unavailable"}`);
       }
     }
 
@@ -555,7 +555,7 @@ export async function enforceSafetyProfile(
 
     if (dietMatches.length > 0) {
       const primaryDiet = profile.dietaryRestrictions[0];
-      console.log(`🔄 [DIET ADAPT] User ${userId} — "${userText}" conflicts with ${primaryDiet} diet (${dietMatches.join(", ")}) — routing to DietGuard`);
+      console.log(`[SafetyGuard] Diet adaptation required; requestId=${correlationId ?? "unavailable"}`);
       return {
         result: "DIET_ADAPT",
         blockedTerms: dietMatches,

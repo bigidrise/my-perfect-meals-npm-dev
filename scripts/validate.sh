@@ -11,7 +11,7 @@
 #   1. Server + shared TypeScript type errors (server-only tsconfig, warns on pre-existing TS debt)
 #   2. Core server and shared files are present (no critical file deleted or moved)
 #   3. No raw fetch() calls to auth-protected routes in client code
-#   4. Server starts without crashing and /api/health responds within 20s
+#   4. Server starts without crashing and /api/health responds within a bounded 60s window
 #   5. No crash patterns (uncaughtException, UnhandledPromiseRejection, etc.) in startup log
 #
 # Exit codes:
@@ -66,7 +66,7 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "${BOLD}║   MPM Pre-Push Validation                    ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  Run before every ${CYAN}git push${NC} to GitHub. Takes ~15–20 seconds."
+echo -e "  Run before every ${CYAN}git push${NC} to GitHub. Takes under a minute in normal conditions."
 echo ""
 
 # ──────────────────────────────────────────────────
@@ -301,8 +301,23 @@ TMPLOG=$(mktemp /tmp/mpm-validate-XXXXXX.log)
 PORT=$VALIDATE_PORT NODE_ENV=development tsx server/index.ts >"$TMPLOG" 2>&1 &
 SERVER_PID=$!
 
-# Poll /api/health on VALIDATE_PORT for up to 25 seconds
-MAX_WAIT=25
+# Poll /api/health on VALIDATE_PORT for a bounded, configurable startup window.
+# Cold starts have been observed above 25 seconds, so keep the default at 60s
+# while preventing an accidental validation run from waiting indefinitely.
+DEFAULT_MAX_WAIT=60
+MIN_MAX_WAIT=25
+MAX_ALLOWED_WAIT=90
+CONFIGURED_MAX_WAIT="${MPM_VALIDATE_STARTUP_TIMEOUT_SECONDS:-$DEFAULT_MAX_WAIT}"
+if [[ "$CONFIGURED_MAX_WAIT" =~ ^[0-9]+$ ]]; then
+  MAX_WAIT=$((10#$CONFIGURED_MAX_WAIT))
+else
+  MAX_WAIT=0
+fi
+if (( MAX_WAIT < MIN_MAX_WAIT || MAX_WAIT > MAX_ALLOWED_WAIT )); then
+  fail "Startup health timeout must be an integer between ${MIN_MAX_WAIT}s and ${MAX_ALLOWED_WAIT}s; using ${DEFAULT_MAX_WAIT}s"
+  MAX_WAIT=$DEFAULT_MAX_WAIT
+fi
+echo "  Startup health timeout: ${MAX_WAIT}s"
 ELAPSED=0
 STARTED=false
 

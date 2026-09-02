@@ -21,7 +21,7 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
     authorizationId: string | null;
     businessId: string | null;
     organizationName: string;
-    action: "setup" | "open" | "pending";
+    action: "setup" | "open";
   }>>([]);
   const [organizationError, setOrganizationError] = useState<string | null>(null);
 
@@ -84,7 +84,6 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
   };
 
   const handleOrganizationChoice = async (workspace: typeof organizationWorkspaces[number]) => {
-    if (workspace.action === "pending") return;
     setChecking(true);
     setOrganizationError(null);
     try {
@@ -100,12 +99,7 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
         setLocation("/business/setup?pilot=1");
         return;
       }
-      if (workspace.businessId) {
-        sessionStorage.setItem("mpm_active_business_id", workspace.businessId);
-      }
-      setLocation(workspace.businessId
-        ? `/business-dashboard?businessId=${encodeURIComponent(workspace.businessId)}`
-        : "/business-dashboard");
+      setLocation("/business-dashboard");
     } catch (error: any) {
       setOrganizationError(error?.message || "Could not open this organization.");
     } finally {
@@ -157,7 +151,7 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
             <button
               key={workspace.authorizationId ?? workspace.businessId}
               onClick={() => handleOrganizationChoice(workspace)}
-              disabled={checking || workspace.action === "pending"}
+              disabled={checking}
               className="w-full p-5 rounded-2xl bg-orange-500/10 border border-orange-400/30 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
             >
               <div className="flex items-start gap-4">
@@ -168,11 +162,7 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
                   <h3 className="text-white font-semibold text-base">Business / Organization</h3>
                   <p className="text-orange-200 text-sm mt-0.5">{workspace.organizationName}</p>
                   <p className="text-white/50 text-xs mt-1">
-                    {workspace.action === "setup"
-                      ? "Set Up Organization"
-                      : workspace.action === "pending"
-                        ? "Invitation pending — accept from your secure invitation"
-                        : "Open Business Suite"}
+                    {workspace.action === "setup" ? "Set Up Organization" : "Open Business Suite"}
                   </p>
                 </div>
               </div>
