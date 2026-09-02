@@ -6208,51 +6208,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Pregnancy meal plan generation
   app.post("/api/users/:userId/pregnancy-meal-plan", async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const { trimester, weekOfPregnancy, symptoms } = req.body;
-
-      // Get user data for medical personalization
-      let user = null;
-      if (userId) {
-        try {
-          const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-          user = dbUser || null;
-        } catch (error) {
-          console.log("Could not fetch user for pregnancy meal personalization:", error);
-        }
-      }
-
-      const { generatePregnancyMealPlan } = await import("./services/pregnancyNutritionGenerator");
-      const mealPlan = await generatePregnancyMealPlan({
-        trimester: parseInt(trimester) || 2,
-        weekOfPregnancy: parseInt(weekOfPregnancy) || 20,
-        symptoms: symptoms || [],
-        user: user || undefined
-      });
-
-      // Add ingredients from all generated meals to shopping list
-      for (const meal of mealPlan.meals) {
-        if (meal.ingredients) {
-          const convertedIngredients = meal.ingredients.map(ing => ({
-            name: ing.name,
-            amount: parseFloat(ing.amount) || 1,
-            unit: ing.unit,
-            notes: ""
-          }));
-          // TODO: Implement shopping list service integration
-          console.log("Would add pregnancy nutrition ingredients to shopping list:", convertedIngredients);
-        }
-      }
-
-      console.log("🤱 Pregnancy meal plan generated:", mealPlan.meals.length, "meals for trimester", trimester);
-      console.log("🏥 Medical badges:", mealPlan.meals.reduce((total, meal) => total + meal.medicalBadges.length, 0));
-
-      res.json(mealPlan);
-    } catch (error: any) {
-      console.error("❌ Pregnancy meal plan error:", error);
-      res.status(500).json({ error: "Failed to generate pregnancy meal plan" });
-    }
+    return res.status(410).json({
+      error: "This endpoint is no longer available",
+      code: "ENDPOINT_RETIRED",
+    });
   });
 
   // Holiday Feast route removed - handled by dedicated router

@@ -905,10 +905,6 @@ async function initializeApp() {
 
     // Import and mount routers
     console.log("📋 [INIT] Loading routes...");
-    const dessertCreatorRouter = (await import("./routes/dessert-creator"))
-      .default;
-    const beverageCreatorRouter = (await import("./routes/beverage-creator"))
-      .default;
     const restaurantRoutes = (await import("./routes/restaurants")).default;
     const manualMacrosRouter = (await import("./routes/manualMacros")).default;
     const clinicalLabsRouter = (await import("./routes/clinicalLabs")).default;
@@ -922,8 +918,6 @@ async function initializeApp() {
       "./middleware/requireActiveAccess"
     );
 
-    app.use("/api/meals/dessert-creator", dessertCreatorRouter);
-    app.use("/api/meals/beverage-creator", beverageCreatorRouter);
     app.use("/api/meals", mealsRouter);
     app.use("/api/restaurants", requireAuth, resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
