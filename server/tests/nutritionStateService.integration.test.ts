@@ -156,7 +156,10 @@ jest.mock("../db/schema/dailyNutritionPrescriptions", () => ({
 }));
 
 // ── NOW import the module under test (after all mocks are registered) ─────────
-import { resolveDailyNutritionState } from "../services/nutritionStateService";
+import {
+  deriveGenerationContext,
+  resolveDailyNutritionState,
+} from "../services/nutritionStateService";
 
 // Reset both queues before every test to prevent cross-test leakage.
 beforeEach(() => {
@@ -609,5 +612,78 @@ describe("resolveDailyNutritionState — mid-day prescription source transitions
     const state = await resolveDailyNutritionState(USER_ID, DATE);
 
     expect(state.prescriptionChangedMidDay).toBeUndefined();
+  });
+});
+
+describe("daily nutrition state authority contract", () => {
+  beforeEach(() => {
+    mockUserRow = makeUserRow();
+    mockPrescription = makePrescription({
+      starchyCarbsTarget: 40,
+      starchMealsAllowed: 2,
+    });
+    resetSelectQueue(null);
+  });
+
+  test("planned starch creates projected conflict without consumed exhaustion", async () => {
+    resetExecuteQueue(
+      makeConsumedRow({
+        confirmed_starchy_carbs: 0,
+        uncertain_starchy_carbs: 0,
+        confirmed_starch_meal_count: 0,
+        uncertain_classification_count: 0,
+      }),
+      {
+        ...zeroPlanRow(),
+        starchy_carbs: 40,
+        starch_meal_count: 1,
+        reservation_count: 1,
+      },
+    );
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+    expect(state.starch?.consumed.exhausted).toBe(false);
+    expect(state.starch?.projected.projectedConflict).toBe(true);
+    expect(state.consumedRemaining?.starchyCarbs).toBe(40);
+    expect(state.projectedRemaining?.starchyCarbs).toBe(0);
+  });
+
+  test("uncertain classification produces NEEDS_REVIEW only when it can change exhaustion", async () => {
+    resetExecuteQueue(makeConsumedRow({
+      starchy_carbs: 45,
+      confirmed_starchy_carbs: 20,
+      uncertain_starchy_carbs: 25,
+      confirmed_starch_meal_count: 1,
+      uncertain_classification_count: 1,
+    }));
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+    expect(state.starch?.consumed.exhausted).toBe(false);
+    expect(state.resolution?.status).toBe("NEEDS_REVIEW");
+    expect(state.starch?.consumed.classificationStatus).toBe("MIXED");
+  });
+
+  test("fibrous carbs do not exhaust the authorized starch allowance", async () => {
+    resetExecuteQueue(makeConsumedRow({
+      carbs: 90,
+      fibrous_carbs: 90,
+      starchy_carbs: 0,
+      confirmed_starchy_carbs: 0,
+      uncertain_starchy_carbs: 0,
+      uncertain_classification_count: 0,
+    }));
+
+    const state = await resolveDailyNutritionState(USER_ID, DATE);
+    expect(state.starch?.consumed.exhausted).toBe(false);
+    expect(state.consumedRemaining?.starchyCarbs).toBe(40);
+  });
+
+  test("client performance context cannot activate performance nutrition", () => {
+    expect(deriveGenerationContext({
+      generationContext: "standard",
+      starchSlotsExhausted: false,
+      calorieBudgetExhausted: false,
+      proteinBudgetMet: false,
+    }, "performance_training_day")).toBe("standard");
   });
 });
