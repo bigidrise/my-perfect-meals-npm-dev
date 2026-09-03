@@ -103,7 +103,17 @@ router.post('/meal-finder', async (req, res) => {
           const [dailyState] = await Promise.all([
             resolveDailyNutritionState(userId, todayISO).catch(() => null),
           ]);
-          if (dailyState) remainingMacrosBlock = buildRemainingMacrosBlock(dailyState.remaining);
+          if (dailyState) {
+            remainingMacrosBlock = buildRemainingMacrosBlock(
+              dailyState.consumedRemaining ?? dailyState.remaining,
+            );
+            if (dailyState.resolution?.status === "NEEDS_REVIEW") {
+              remainingMacrosBlock += "\nNUTRITION STATE NEEDS REVIEW: Do not claim starch is available or exhausted.";
+            }
+          } else {
+            remainingMacrosBlock =
+              "NUTRITION STATE UNAVAILABLE: Provide nonnumeric guidance only. Do not make remaining-macro or starch-availability claims.";
+          }
           // Combine GLP-1 recommendation block with existing protocol block
           const glp1Block = mealFinderGlp1Ctx ? buildGLP1RecommendationBlock(mealFinderGlp1Ctx) : "";
           if (glp1Block) {

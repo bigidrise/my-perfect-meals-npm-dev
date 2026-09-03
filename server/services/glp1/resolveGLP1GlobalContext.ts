@@ -228,10 +228,10 @@ export async function resolveGLP1GlobalContext(
       resolvedTargets = await loadGLP1ResolvedTargets(userId, {
         mealType,
         remainingMacros: {
-          calories: dailyNutritionState.remaining.calories,
-          protein:  dailyNutritionState.remaining.protein,
-          fat:      dailyNutritionState.remaining.fat,
-          carbs:    dailyNutritionState.remaining.carbs,
+          calories: (dailyNutritionState.consumedRemaining ?? dailyNutritionState.remaining).calories,
+          protein:  (dailyNutritionState.consumedRemaining ?? dailyNutritionState.remaining).protein,
+          fat:      (dailyNutritionState.consumedRemaining ?? dailyNutritionState.remaining).fat,
+          carbs:    (dailyNutritionState.consumedRemaining ?? dailyNutritionState.remaining).carbs,
         },
       });
     } catch {

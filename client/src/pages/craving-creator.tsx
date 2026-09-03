@@ -623,7 +623,6 @@ export default function CravingCreator() {
           // The server uses this to prevent the profile's vegan/keto from conflicting
           // with the user's temporary builder selection.
           dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
-          userId: userId,
           servings: servings,
           sweetenerPreferences,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
@@ -636,6 +635,7 @@ export default function CravingCreator() {
           userDietOverride,
           cookMethod: cookMethod || undefined,
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          humanFoodCreator: "craving_creator",
         }),
       });
 

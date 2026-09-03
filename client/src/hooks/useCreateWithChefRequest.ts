@@ -168,7 +168,6 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string):
           type: "create-with-chef",
           mealType,
           input: description,
-          userId,
           count: 1,
           dietType: dietType || null,
           dietPhase: dietPhase || null,

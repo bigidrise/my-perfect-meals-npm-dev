@@ -544,7 +544,6 @@ export default function SushiCreator() {
             ? dietOverrideValue
             : (selectedDiet || dietaryRestrictions),
           dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
-          userId: userId,
           servings: servings,
           sweetenerPreferences,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
@@ -557,6 +556,7 @@ export default function SushiCreator() {
           userDietOverride,
           cookMethod: cookMethod || undefined,
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          humanFoodCreator: "sushi_creator",
         }),
       });
 

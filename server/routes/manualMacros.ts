@@ -71,6 +71,8 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       fiber: fiberVal,
       starchyCarbs: starchyVal,
       fibrousCarbs: fibrousVal,
+      classificationSource:
+        starchyVal != null || fibrousVal != null ? "user_input" : undefined,
       source: source || "manual",
       mealType,
       dateIso: loggedAt,

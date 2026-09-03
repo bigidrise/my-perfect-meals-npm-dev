@@ -176,6 +176,32 @@ beverageCreatorRouter.post("/", async (req, res) => {
       return res.status(400).json({ error: "Flavor family is required" });
     }
 
+    const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
+    const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
+    const humanFoodRequestScope = createHumanFoodRequestScope({
+      actorUserId: userId,
+      subjectUserId: userId,
+      creator: "beverage_creator",
+      correlationId: (req as any).id,
+      dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+      cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
+      cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+    });
+    const humanFoodContext = await humanFoodRequestScope.resolve();
+    const humanFoodExecutionState = humanFoodRequestScope.executionState;
+    const {
+      recordRejectedHumanFoodCandidate,
+      buildRejectedCandidatePrompt,
+    } = await import("../services/humanFoodContext/requestExecutionState");
+    if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
+      return res.status(409).json({
+        code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+        status: humanFoodContext.status,
+        message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
+      });
+    }
+    const humanFoodPrompt = buildCreatorHumanFoodPrompt("beverage_creator", humanFoodContext);
+
     let dietAdapted = false;
     let dietNotice = "";
     // Allergen-specific override for this request only. All other allergies remain enforced.
@@ -411,7 +437,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
     // This is the same intensity the user set for meals. "light" means same drink,
     // lighter base ingredients (plant milk over whole milk, yogurt over ice cream,
     // minimal sweetener). "authentic" means traditional ingredients from that culture.
-    const beverageCuisineIntensity = beverageEnvelope.cuisineIntensity ?? "balanced";
+    const beverageCuisineIntensity =
+      humanFoodContext.flavor.cuisineIntensity.value
+      ?? beverageEnvelope.cuisineIntensity
+      ?? "balanced";
 
     const BEVERAGE_INTENSITY_DEPTH: Record<string, string> = {
       light: `Apply the cultural FLAVOR identity fully (spices, fruits, herbs, aromatics, teas) — but lighten the BASE ingredients only.
@@ -545,11 +574,11 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const rawLang = (req as any).authUser?.preferredLanguage || "auto";
     const langInstruction = getLanguageInstruction(rawLang);
     const beverageLangPrefix = langInstruction ? `${langInstruction}\n\n` : "";
-    const prompt = `${beverageLangPrefix}
-You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
+    const prompt = `${beverageLangPrefix}You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
 ${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${_beverageDishDirective ? `\n${_beverageDishDirective.adaptationBlock}\n` : ""}${medicalBeverageBlock}${glp1CanonicalBlock}${liquidNutritionBlock}${hydrationHandoffBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
 The result MUST be a drink. Never generate solid food, meals, or desserts.
+${humanFoodPrompt}
 
 Return JSON ONLY, following this exact schema:
 
@@ -568,6 +597,7 @@ Return JSON ONLY, following this exact schema:
     "calories": 0,
     "protein": 0,
     "carbs": 0,
+    "starchyCarbs": 0,
     "fat": 0
   },
   "servingSize": "${serving.label}",
@@ -634,7 +664,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       rejection: BeverageProtocolRejection,
     ): Promise<any[]> {
       try {
-        const alternativePrompt = buildBeverageAlternativePrompt({
+        const alternativePrompt = `${buildBeverageAlternativePrompt({
           originalPrompt: prompt,
           requestedCategoryLabel,
           effectiveCategoryLabel: categoryLabel,
@@ -644,7 +674,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             ? customBeverageDescription.trim()
             : undefined,
           rejection,
-        });
+        })}\n\n${humanFoodPrompt}\n${buildRejectedCandidatePrompt(humanFoodExecutionState)}`;
         const completion = await getOpenAI().chat.completions.create({
           model: "gpt-4o",
           messages: [{ role: "user", content: alternativePrompt }],
@@ -694,6 +724,14 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             beverageContext.builder,
           );
           if (!candidateMedicalValidation.passed) continue;
+          if (!validateCreatorHumanFoodResult(
+            "beverage_creator",
+            candidate,
+            humanFoodContext,
+          ).valid) {
+            recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate);
+            continue;
+          }
 
           if (_beverageIsNamed) {
             const candidateIdentity = validateDishIdentity(
@@ -786,6 +824,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             `${beverageScan.message}\n` +
             `Ensure every ingredient and the drink name are fully compliant with the dietary rules above.`;
         }
+        retryHint += `\n\n${buildRejectedCandidatePrompt(humanFoodExecutionState)}`;
       }
 
       if (isDev) console.log(`[BEVERAGE] Calling OpenAI GPT-4o (attempt ${attempt})...`);
@@ -807,6 +846,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
       // ── Layer 1: Solid-food fast-fail guard ───────────────────────────────
       if (isSolidFood(meal)) {
+        recordRejectedHumanFoodCandidate(humanFoodExecutionState, meal);
         console.warn(`[BEVERAGE] Generated non-beverage result rejected; requestId=${(req as any).id ?? "unavailable"}`);
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
           return res.status(400).json({
@@ -844,6 +884,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       }
 
       if (!beverageScan?.passed) {
+        recordRejectedHumanFoodCandidate(humanFoodExecutionState, meal);
         const failedScan = beverageScan ?? {
           passed: false,
           message: "The generated beverage could not be verified against your nutrition settings.",
@@ -884,6 +925,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       );
 
       if (!beverageValidation.passed) {
+        recordRejectedHumanFoodCandidate(humanFoodExecutionState, meal);
         console.warn(`[BEVERAGE] Generated result rejected by clinical policy; requestId=${(req as any).id ?? "unavailable"}`);
 
         // ── Auto-fix: surgical ingredient swap before burning an OpenAI retry ──
@@ -914,6 +956,31 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             ),
             protocolName: knownProtocolName,
             violations: beverageValidation.violations.map((violation) => violation.rule),
+          };
+          break;
+        }
+        continue;
+      }
+
+      const humanFoodValidation = validateCreatorHumanFoodResult(
+        "beverage_creator",
+        meal,
+        humanFoodContext,
+      );
+      if (!humanFoodValidation.valid) {
+        recordRejectedHumanFoodCandidate(humanFoodExecutionState, meal);
+        beverageScan = {
+          passed: false,
+          message: `Human Food Context validation failed: ${humanFoodValidation.violations.join(", ")}`,
+        } as any;
+        beverageValidation = null;
+        if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
+          finalRejection = {
+            error: "PROTOCOL_VIOLATION",
+            message: "The beverage could not be verified against today's nutrition requirements.",
+            retryable: true,
+            rejectionKind: getBeverageRejectionKind(undefined, "protocol"),
+            protocolName: knownProtocolName,
           };
           break;
         }
@@ -1092,6 +1159,13 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
     const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
       buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
+    const humanFoodValidation = validateCreatorHumanFoodResult("beverage_creator", meal, humanFoodContext);
+    if (!humanFoodValidation.valid) {
+      return res.status(422).json({
+        code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+        message: "The beverage did not pass final food-context validation.",
+      });
+    }
     return res.json({
       ...meal,
       imageUrl,
@@ -1121,7 +1195,11 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     });
   } catch (err: any) {
     console.error(`[BEVERAGE] REQUEST_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
-    return res.status(500).json({ error: "Failed to create beverage" });
+    const status = Number.isInteger(err?.status) ? err.status : 500;
+    return res.status(status).json({
+      error: status === 500 ? "Failed to create beverage" : err.message,
+      ...(err?.code ? { code: err.code } : {}),
+    });
   }
 });
 

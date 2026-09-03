@@ -560,7 +560,6 @@ export default function CreateDishPage() {
           dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
             ? dietOverrideValue
             : normalizeDiet(user?.dietaryRestrictions),
-          userId,
           servings,
           sweetenerPreferences,
           skipPalate: !flavorPersonal,
@@ -572,6 +571,7 @@ export default function CreateDishPage() {
           ...(overrideToken ? { overrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
+          humanFoodCreator: "create_a_dish",
         }),
       });
 
