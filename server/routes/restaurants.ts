@@ -184,9 +184,15 @@ router.post("/guide", async (req, res) => {
         // Load remaining daily budget so the AI can guide preparation and sides
         try {
           const state = await resolveDailyNutritionState(userId, todayISO);
-          fallbackRemainingMacrosBlock = buildRemainingMacrosBlock(state?.remaining ?? null);
+          fallbackRemainingMacrosBlock = buildRemainingMacrosBlock(
+            state?.consumedRemaining ?? state?.remaining ?? null,
+          );
+          if (state.resolution?.status === "NEEDS_REVIEW") {
+            fallbackRemainingMacrosBlock += "\nNUTRITION STATE NEEDS REVIEW: Do not claim starch is available or exhausted.";
+          }
         } catch {
-          // Non-fatal — remaining macros block simply omitted
+          fallbackRemainingMacrosBlock =
+            "NUTRITION STATE UNAVAILABLE: Continue with nonnumeric dietary and allergy guidance only. Do not make remaining-macro or starch-availability claims.";
         }
         console.log(
           `🔒 [Guide/AI] Nutrition context: diet=[${fallbackContext.diet.join(",")}] ` +

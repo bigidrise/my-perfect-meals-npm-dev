@@ -68,6 +68,9 @@ router.get("/:dateISO", requireAuth, async (req, res) => {
     }
 
     const state = await resolveDailyNutritionState(userId, dateISO);
+    if (state.subject) {
+      state.subject.accessMode = userId === authUserId ? "self" : "delegated";
+    }
     res.set({
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
       "Pragma": "no-cache",

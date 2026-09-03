@@ -61,7 +61,17 @@ router.post("/recommend", async (req, res) => {
     const [dailyState] = await Promise.all([
       resolveDailyNutritionState(userId, todayISO).catch(() => null),
     ]);
-    if (dailyState) remainingMacrosBlock = buildRemainingMacrosBlock(dailyState.remaining);
+    if (dailyState) {
+      remainingMacrosBlock = buildRemainingMacrosBlock(
+        dailyState.consumedRemaining ?? dailyState.remaining,
+      );
+      if (dailyState.resolution?.status === "NEEDS_REVIEW") {
+        remainingMacrosBlock += "\nNUTRITION STATE NEEDS REVIEW: Do not claim starch is available or exhausted.";
+      }
+    } else {
+      remainingMacrosBlock =
+        "NUTRITION STATE UNAVAILABLE: Provide nonnumeric guidance only. Do not make remaining-macro or starch-availability claims.";
+    }
     if (glp1Ctx) glp1Block = buildGLP1RecommendationBlock(glp1Ctx);
 
     const recommendations = await generateBuffetRecommendations({

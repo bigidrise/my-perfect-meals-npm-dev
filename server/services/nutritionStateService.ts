@@ -21,6 +21,7 @@ import type {
   DailyNutritionState,
   GenerationContext,
   PrescriptionSource,
+  StarchClassificationStatus,
 } from "../../shared/dailyNutritionPrescription";
 
 /**
@@ -71,11 +72,27 @@ export async function resolveDailyNutritionState(
       COALESCE(SUM(protein::numeric),       0) AS protein,
       COALESCE(SUM(carbs::numeric),         0) AS carbs,
       COALESCE(SUM(starchy_carbs::numeric), 0) AS starchy_carbs,
+      COALESCE(SUM(
+        CASE WHEN classification_source IN ('user_input', 'ingredient')
+          THEN starchy_carbs::numeric ELSE 0 END
+      ), 0) AS confirmed_starchy_carbs,
+      COALESCE(SUM(
+        CASE WHEN classification_source IN ('conservative_fallback', 'unclassified')
+          THEN starchy_carbs::numeric ELSE 0 END
+      ), 0) AS uncertain_starchy_carbs,
       COALESCE(SUM(fibrous_carbs::numeric), 0) AS fibrous_carbs,
       COALESCE(SUM(fat::numeric),           0) AS fat,
       COUNT(*) FILTER (
         WHERE starchy_carbs::numeric > 0 AND source != 'alcohol'
       )                                        AS starch_meal_count,
+      COUNT(*) FILTER (
+        WHERE starchy_carbs::numeric > 0
+          AND source != 'alcohol'
+          AND classification_source IN ('user_input', 'ingredient')
+      )                                        AS confirmed_starch_meal_count,
+      COUNT(*) FILTER (
+        WHERE classification_source IN ('conservative_fallback', 'unclassified')
+      )                                        AS uncertain_classification_count,
       COUNT(*) FILTER (
         WHERE source != 'alcohol'
       )                                        AS meal_count
@@ -87,6 +104,15 @@ export async function resolveDailyNutritionState(
   `);
 
   const cr = (consumedRows.rows?.[0] ?? {}) as Record<string, unknown>;
+  const confirmedStarchyCarbs = Number(cr.confirmed_starchy_carbs ?? 0);
+  const uncertainStarchyCarbs = Number(cr.uncertain_starchy_carbs ?? 0);
+  const uncertainClassificationCount = Number(cr.uncertain_classification_count ?? 0);
+  const classificationStatus: StarchClassificationStatus =
+    uncertainClassificationCount === 0
+      ? "VERIFIED"
+      : confirmedStarchyCarbs > 0
+        ? "MIXED"
+        : "UNCLASSIFIED";
 
   // Field names must match DailyNutritionState["consumed"]
   const consumed: DailyNutritionState["consumed"] = {
@@ -98,6 +124,10 @@ export async function resolveDailyNutritionState(
     fibrousCarbs:      Number(cr.fibrous_carbs      ?? 0),
     starchMealsLogged: Number(cr.starch_meal_count  ?? 0),
     mealCount:         Number(cr.meal_count         ?? 0),
+    confirmedStarchyCarbs,
+    uncertainStarchyCarbs,
+    confirmedStarchMealsLogged: Number(cr.confirmed_starch_meal_count ?? 0),
+    classificationStatus,
   };
 
   // ── Planned: board reservations not yet converted to logs ────────────────
@@ -144,6 +174,33 @@ export async function resolveDailyNutritionState(
   // ── Remaining = prescription − consumed − planned (clamped ≥ 0) ──────────
   const clamp = (n: number) => Math.max(0, Math.round(n));
 
+  const confirmedStarchMeals = consumed.confirmedStarchMealsLogged ?? 0;
+  const consumedRemaining: NonNullable<DailyNutritionState["consumedRemaining"]> = {
+    calories: clamp(prescription.caloriesTarget - consumed.calories),
+    protein: clamp(prescription.proteinTarget - consumed.protein),
+    carbs: clamp(prescription.carbsTarget - consumed.carbs),
+    fat: clamp(prescription.fatTarget - consumed.fat),
+    starchyCarbs: clamp(prescription.starchyCarbsTarget - confirmedStarchyCarbs),
+    fibrousCarbs: clamp(prescription.fibrousCarbsTarget - consumed.fibrousCarbs),
+    starchMealsRemaining: Math.max(
+      0,
+      prescription.starchMealsAllowed - confirmedStarchMeals,
+    ),
+  };
+
+  const projectedRemaining: NonNullable<DailyNutritionState["projectedRemaining"]> = {
+    calories: clamp(consumedRemaining.calories - planned.calories),
+    protein: clamp(consumedRemaining.protein - planned.protein),
+    carbs: clamp(consumedRemaining.carbs - planned.carbs),
+    fat: clamp(consumedRemaining.fat - planned.fat),
+    starchyCarbs: clamp(consumedRemaining.starchyCarbs - planned.starchyCarbs),
+    fibrousCarbs: consumedRemaining.fibrousCarbs,
+    starchMealsRemaining: Math.max(
+      0,
+      consumedRemaining.starchMealsRemaining - planned.starchMealsPlanned,
+    ),
+  };
+
   const remaining: DailyNutritionState["remaining"] = {
     calories:     clamp(prescription.caloriesTarget    - consumed.calories     - planned.calories),
     protein:      clamp(prescription.proteinTarget     - consumed.protein      - planned.protein),
@@ -158,6 +215,26 @@ export async function resolveDailyNutritionState(
         - planned.starchMealsPlanned,
     ),
   };
+
+  const prescribedStarchTarget = Math.max(0, prescription.starchyCarbsTarget);
+  const consumedStarchExhausted =
+    prescribedStarchTarget > 0 && confirmedStarchyCarbs >= prescribedStarchTarget;
+  const projectedStarchGrams = confirmedStarchyCarbs + planned.starchyCarbs;
+  const projectedStarchConflict =
+    (prescribedStarchTarget > 0 && projectedStarchGrams >= prescribedStarchTarget)
+    || (prescription.starchMealsAllowed > 0
+      && confirmedStarchMeals + planned.starchMealsPlanned >= prescription.starchMealsAllowed);
+  const uncertaintyCouldChangeExhaustion =
+    uncertainStarchyCarbs > 0
+    && !consumedStarchExhausted
+    && confirmedStarchyCarbs + uncertainStarchyCarbs >= prescribedStarchTarget;
+  const resolutionStatus =
+    prescription.source === "fallback"
+      ? "INSUFFICIENT_DATA"
+      : uncertaintyCouldChangeExhaustion
+        ? "NEEDS_REVIEW"
+        : "RESOLVED";
+  const resolvedAt = new Date().toISOString();
 
   const mealsPerDay       = (user as any).macroMealsPerDay         ?? 4;
   const starchMealsPerDay = (user as any).defaultStarchMealsPerDay ?? 2;
@@ -207,11 +284,33 @@ export async function resolveDailyNutritionState(
   }
 
   return {
+    contractVersion: "daily-nutrition-state.v1",
+    authority: "nutritionStateService",
+    subject: { userId, accessMode: "self" },
+    localDay: { date: dateISO, timezone: tz },
+    resolution: {
+      status: resolutionStatus,
+      reasonCodes: [
+        ...(prescription.source === "fallback" ? ["fallback_prescription"] : []),
+        ...(uncertaintyCouldChangeExhaustion ? ["starch_classification_uncertain"] : []),
+      ],
+    },
     date:       dateISO,
-    resolvedAt: new Date().toISOString(),
+    resolvedAt,
     prescription,
     consumed,
+    consumedRemaining,
     planned,
+    reservedAllocation: {
+      calories: planned.calories,
+      protein: planned.protein,
+      carbs: planned.carbs,
+      fat: planned.fat,
+      starchyCarbs: planned.starchyCarbs,
+      starchMealsReserved: planned.starchMealsPlanned,
+      reservationCount: planned.reservationCount,
+    },
+    projectedRemaining,
     remaining,
     mealPlanConfig: {
       mealsPerDay,
@@ -224,6 +323,46 @@ export async function resolveDailyNutritionState(
       calorieBudgetExhausted:  remaining.calories <= 0,
       proteinBudgetMet:
         consumed.protein + planned.protein >= prescription.proteinTarget,
+      consumedStarchExhausted,
+      projectedStarchConflict,
+      resolutionStatus,
+    },
+    starch: {
+      consumed: {
+        targetGrams: prescribedStarchTarget,
+        confirmedGrams: confirmedStarchyCarbs,
+        uncertainGrams: uncertainStarchyCarbs,
+        remainingGrams: consumedRemaining.starchyCarbs,
+        mealsUsed: confirmedStarchMeals,
+        mealsRemaining: consumedRemaining.starchMealsRemaining,
+        exhausted: consumedStarchExhausted,
+        classificationStatus,
+      },
+      projected: {
+        reservedGrams: planned.starchyCarbs,
+        projectedGrams: projectedStarchGrams,
+        projectedRemainingGrams: projectedRemaining.starchyCarbs,
+        projectedMealsUsed: confirmedStarchMeals + planned.starchMealsPlanned,
+        projectedConflict: projectedStarchConflict,
+      },
+    },
+    modifiers: {
+      glp1: glp1Active,
+      performance: performanceActive,
+      clinical: prescription.source === "clinical" || diabeticActive,
+      prescriptionSource: prescription.source,
+    },
+    provenance: {
+      consumptionSource: "macro_logs",
+      plannedSource: "meal_board_items",
+      prescriptionSource: prescription.source,
+      calculationTimestamp: resolvedAt,
+      classificationSources:
+        classificationStatus === "VERIFIED"
+          ? ["user_input", "ingredient"]
+          : classificationStatus === "MIXED"
+            ? ["user_input", "ingredient", "conservative_fallback_or_unclassified"]
+            : ["conservative_fallback_or_unclassified"],
     },
     ...(prescriptionChangedMidDay && {
       prescriptionChangedMidDay,
@@ -241,15 +380,10 @@ export async function resolveDailyNutritionState(
  */
 export function deriveGenerationContext(
   constraints: DailyNutritionState["activeConstraints"],
-  clientContext?: string,
+  _clientContext?: string,
 ): GenerationContext {
-  // Client may explicitly signal a performance training day for standard users.
-  if (
-    constraints.generationContext === "standard" &&
-    clientContext === "performance_training_day"
-  ) {
-    return "performance_training_day";
-  }
+  // Client context describes interaction intent only. Performance activation is
+  // resolved from authorized server state above and can never be upgraded here.
   return constraints.generationContext;
 }
 
