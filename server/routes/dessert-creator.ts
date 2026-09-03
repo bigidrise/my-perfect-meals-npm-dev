@@ -515,7 +515,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       if (attempt >= MAX_DESSERT_ATTEMPTS) {
         return res.status(400).json({
           error: "PROTOCOL_VIOLATION",
-          message: dessertScan.message,
+          message: dessertScan?.message ?? "The dessert could not be verified against your food safety requirements.",
           retryable: true,
         });
       }
