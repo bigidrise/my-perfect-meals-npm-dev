@@ -176,6 +176,28 @@ beverageCreatorRouter.post("/", async (req, res) => {
       return res.status(400).json({ error: "Flavor family is required" });
     }
 
+    const { resolveHumanFoodContext, issueHumanFoodContextMeta } = await import("../services/humanFoodContext/resolveHumanFoodContext");
+    const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
+    const humanFoodContext = await resolveHumanFoodContext({
+      actorUserId: userId,
+      subjectUserId: userId,
+      creator: "beverage_creator",
+      correlationId: (req as any).id,
+      receipt: typeof req.body.humanFoodContextReceipt === "string" ? req.body.humanFoodContextReceipt : null,
+      generationChainId: typeof req.body.humanFoodGenerationChainId === "string" ? req.body.humanFoodGenerationChainId : null,
+      dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+      cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
+      cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+    });
+    if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
+      return res.status(409).json({
+        code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+        status: humanFoodContext.status,
+        message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
+      });
+    }
+    const humanFoodPrompt = buildCreatorHumanFoodPrompt("beverage_creator", humanFoodContext);
+
     let dietAdapted = false;
     let dietNotice = "";
     // Allergen-specific override for this request only. All other allergies remain enforced.
@@ -545,7 +567,8 @@ beverageCreatorRouter.post("/", async (req, res) => {
     const rawLang = (req as any).authUser?.preferredLanguage || "auto";
     const langInstruction = getLanguageInstruction(rawLang);
     const beverageLangPrefix = langInstruction ? `${langInstruction}\n\n` : "";
-    const prompt = `${beverageLangPrefix}
+    const prompt = `${beverageLangPrefix}${humanFoodPrompt}
+
 You are a professional mixologist, nutritionist, and beverage chef inside the My Perfect Meals system.
 Generate a FULL structured beverage recipe.
 ${beverageProtocolBlock ? `\n${beverageProtocolBlock}\n` : ""}${_beverageDishDirective ? `\n${_beverageDishDirective.adaptationBlock}\n` : ""}${medicalBeverageBlock}${glp1CanonicalBlock}${liquidNutritionBlock}${hydrationHandoffBlock}${cuisineOverrideBlock}${beverageBehavioralMemorySection ? `\n${beverageBehavioralMemorySection}\n` : ""}${dietCategoryStrategy.coachingBlock ? `\n${dietCategoryStrategy.coachingBlock}\n` : ""}${softOverrideBlock}${aceBlock}
@@ -1092,10 +1115,18 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
     const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
       buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
+    const humanFoodValidation = validateCreatorHumanFoodResult("beverage_creator", meal, humanFoodContext);
+    if (!humanFoodValidation.valid) {
+      return res.status(422).json({
+        code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+        message: "The beverage did not pass final food-context validation.",
+      });
+    }
     return res.json({
       ...meal,
       imageUrl,
       medicalBadges,
+      humanFoodContext: issueHumanFoodContextMeta(humanFoodContext),
       ...(alphaGalBadge && { alphaGalBadge }),
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
       complianceSection: bevCompliance,
@@ -1121,7 +1152,11 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     });
   } catch (err: any) {
     console.error(`[BEVERAGE] REQUEST_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
-    return res.status(500).json({ error: "Failed to create beverage" });
+    const status = Number.isInteger(err?.status) ? err.status : 500;
+    return res.status(status).json({
+      error: status === 500 ? "Failed to create beverage" : err.message,
+      ...(err?.code ? { code: err.code } : {}),
+    });
   }
 });
 

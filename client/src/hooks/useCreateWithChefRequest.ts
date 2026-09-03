@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { DiversityContext } from "@/lib/diversityContext";
+import { getHumanFoodContextRetryFields, rememberHumanFoodContextReceipt } from "@/lib/humanFoodContextReceipt";
 
 export type DietType = 
   | 'anti-inflammatory'
@@ -161,6 +162,7 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string):
     abortControllerRef.current = new AbortController();
 
     try {
+      const humanFoodSignature = JSON.stringify([description, mealType, dietType, dietOverride, builderMode, servings]);
       const response = await fetch(apiUrl("/api/meals/generate"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -186,11 +188,13 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string):
           dietOverride: dietOverride || null,
           servings: servings || 1,
           proClientId: proClientId || undefined,
+          ...getHumanFoodContextRetryFields("recipe_maker", humanFoodSignature),
         }),
         signal: abortControllerRef.current.signal,
       });
 
       const data = await response.json();
+      rememberHumanFoodContextReceipt("recipe_maker", humanFoodSignature, data?.humanFoodContext);
       
       if (!response.ok || !data.success) {
         if (data.safetyBlocked && data.error) {

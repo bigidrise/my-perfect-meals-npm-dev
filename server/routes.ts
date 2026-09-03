@@ -1192,6 +1192,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // caller that submits another user's ID receives a meal generated for the
       // caller's own identity, preventing IDOR on PHI-adjacent health data.
       const effectiveUserId: string = delegatedClientId ?? authUserId;
+      let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
+      if (type === "create-with-chef") {
+        const { resolveHumanFoodContext } = await import("./services/humanFoodContext/resolveHumanFoodContext");
+        const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
+        humanFoodContext = await resolveHumanFoodContext({
+          actorUserId: authUserId,
+          subjectUserId: effectiveUserId,
+          creator: "recipe_maker",
+          correlationId: (req as any).id,
+          receipt: typeof req.body.humanFoodContextReceipt === "string" ? req.body.humanFoodContextReceipt : null,
+          generationChainId: typeof req.body.humanFoodGenerationChainId === "string" ? req.body.humanFoodGenerationChainId : null,
+          dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+          cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
+          cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+        });
+        if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
+          return res.status(409).json({
+            success: false,
+            code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+            status: humanFoodContext.status,
+            message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
+          });
+        }
+        const contextBlock = buildCreatorHumanFoodPrompt("recipe_maker", humanFoodContext);
+        req.body.generationContext = [generationContext, contextBlock].filter(Boolean).join("\n\n");
+      }
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       // Uses effectiveUserId — never the untrusted body userId — so a tampered ID
@@ -1484,7 +1510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         safetyAlreadyChecked: true,
         explicitOverride: explicitOverride || null,
         performanceSessionContext: performanceSessionContext || undefined,
-        generationContext: typeof generationContext === 'string' ? generationContext : undefined,
+        generationContext: typeof req.body.generationContext === 'string' ? req.body.generationContext : undefined,
         glp1Targets: serverGlp1Targets,
         // Server-authoritative clinical context from the budget resolver —
         // activates the clinical adaptation retry path in the generator for
@@ -1802,6 +1828,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // ─────────────────────────────────────────────────────────────────────────────
 
+      if (humanFoodContext && result.success) {
+        const { validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+        const { issueHumanFoodContextMeta } = await import("./services/humanFoodContext/resolveHumanFoodContext");
+        const outgoing = [
+          ...(result.meal ? [result.meal] : []),
+          ...(result.meals ?? []),
+        ];
+        const invalid = outgoing.find((meal: any) =>
+          !validateCreatorHumanFoodResult("recipe_maker", meal, humanFoodContext!).valid
+        );
+        if (invalid) {
+          return res.status(422).json({
+            success: false,
+            code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+            error: "The generated recipe did not pass final food-context validation.",
+          });
+        }
+        (result as any).humanFoodContext = issueHumanFoodContextMeta(humanFoodContext);
+      }
       res.json(result);
 
     } catch (error: any) {
@@ -1810,9 +1855,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { recordGeneration } = await import("./services/aiHealthMetrics");
       recordGeneration('/api/meals/generate', 'error', Date.now() - startTime, error.message);
       
-      res.status(500).json({ 
+      const status = Number.isInteger(error?.status) ? error.status : 500;
+      res.status(status).json({
         success: false, 
-        error: error.message || "Failed to generate meal",
+        error: status === 500 ? (error.message || "Failed to generate meal") : error.message,
+        ...(error?.code ? { code: error.code } : {}),
         source: 'error'
       });
     }
@@ -5364,6 +5411,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Final fallback: body-provided userId (legacy / admin callers only)
       if (!userId && bodyUserId) userId = bodyUserId;
 
+      const requestedCreator = req.body.humanFoodCreator;
+      const humanFoodCreator: import("@shared/humanFoodContext").HumanFoodCreator =
+        requestedCreator === "create_a_dish"
+          ? "create_a_dish"
+          : requestedCreator === "sushi_creator"
+            ? "sushi_creator"
+            : "craving_creator";
+      if (!serverAuthUserId) {
+        return res.status(401).json({
+          success: false,
+          code: "HUMAN_FOOD_CONTEXT_AUTH_REQUIRED",
+          error: "Authentication is required to resolve food context.",
+        });
+      }
+      const { resolveHumanFoodContext, issueHumanFoodContextMeta } = await import("./services/humanFoodContext/resolveHumanFoodContext");
+      const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+      const humanFoodContext = await resolveHumanFoodContext({
+        actorUserId: serverAuthUserId,
+        subjectUserId: serverAuthUserId,
+        creator: humanFoodCreator,
+        correlationId: (req as any).id,
+        receipt: typeof req.body.humanFoodContextReceipt === "string" ? req.body.humanFoodContextReceipt : null,
+        generationChainId: typeof req.body.humanFoodGenerationChainId === "string" ? req.body.humanFoodGenerationChainId : null,
+        dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+        cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
+        cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+      });
+      if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
+        return res.status(409).json({
+          success: false,
+          code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+          status: humanFoodContext.status,
+          message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
+        });
+      }
+      cravingInput = `${cravingInput || ""}\n\n${buildCreatorHumanFoodPrompt(humanFoodCreator, humanFoodContext)}`.trim();
+
       // ── Load protocol envelope (single DB query — drives all enforcement) ──
       const protocolEnvelope = userId
         ? (await loadUserProtocolEnvelope(userId)) ?? buildGuestEnvelope()
@@ -6042,6 +6126,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
         } catch { return formattedOptions; } // pipeline failure non-fatal
       })();
+      const invalidHumanFoodResult = imagedOptions.find((meal: any) =>
+        !validateCreatorHumanFoodResult(humanFoodCreator, meal, humanFoodContext).valid
+      );
+      if (invalidHumanFoodResult) {
+        return res.status(422).json({
+          success: false,
+          code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+          message: "The generated food did not pass final food-context validation.",
+        });
+      }
       // ─────────────────────────────────────────────────────────────────────────────────────
 
       console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);
@@ -6054,10 +6148,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         meals: imagedOptions,
         generationSource: 'ai',
+        humanFoodContext: issueHumanFoodContextMeta(humanFoodContext),
         ...(dietAdapted && { dietAdapted: true, dietNotice })
       });
     } catch (error: any) {
       console.error("❌ Craving creator error:", error);
+      if (Number.isInteger(error?.status)) {
+        return res.status(error.status).json({
+          status: "unable_to_generate",
+          reasonCode: error.code || "human_food_context_error",
+          message: error.message,
+        });
+      }
       // Classify known transient failures into a typed response the client can act on.
       // Unknown / truly unexpected errors still surface a reasonCode so the UI can
       // display something useful instead of a blank card or raw stack trace.

@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { getHumanFoodContextRetryFields, rememberHumanFoodContextReceipt } from "@/lib/humanFoodContextReceipt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import {
@@ -413,6 +414,7 @@ export default function BeverageCreator() {
       setGenerationFailure(HIDDEN_FAILURE);
       setProtocolFailure(null);
       console.log("🍹 [BEVERAGE] Calling API...");
+      const humanFoodSignature = JSON.stringify([beverageCategory, flavorFamily, specificDrink, customBeverageDescription, dietOverrideValue, cuisineOverrideValue, servingSize]);
       const res = await fetch(apiUrl("/api/meals/beverage-creator"), {
         method: "POST",
         credentials: "include",
@@ -438,12 +440,14 @@ export default function BeverageCreator() {
           dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
           cultureOverride: cuisineOverrideEnabled && cuisineOverrideValue ? cuisineOverrideValue : undefined,
           hydrationHandoff: hydrationHandoff || undefined,
+          ...getHumanFoodContextRetryFields("beverage_creator", humanFoodSignature),
         }),
       });
 
       console.log("🍹 [BEVERAGE] API response received:", res.status);
 
       const data = await res.json().catch(() => null);
+      rememberHumanFoodContextReceipt("beverage_creator", humanFoodSignature, data?.humanFoodContext);
 
       if (data?.safetyBlocked || data?.safetyAmbiguous) {
         stopProgressTicker();

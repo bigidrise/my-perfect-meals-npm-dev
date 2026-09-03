@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 import { writeChefPrepareHandoff } from "@/lib/safeChefHandoff";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getHumanFoodContextRetryFields, rememberHumanFoodContextReceipt } from "@/lib/humanFoodContextReceipt";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import { useMealImages } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -531,6 +532,7 @@ export default function SushiCreator() {
     try {
       setGenerationFailure(HIDDEN_FAILURE);
       const url = apiUrl("/api/meals/craving-creator");
+      const humanFoodSignature = JSON.stringify([sushiStyle, cravingInput, dietOverrideValue, cuisineOverrideValue, servings, generationMode]);
       console.log("📡 Fetching:", url);
       const response = await fetch(url, {
         method: "POST",
@@ -557,10 +559,13 @@ export default function SushiCreator() {
           userDietOverride,
           cookMethod: cookMethod || undefined,
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          humanFoodCreator: "sushi_creator",
+          ...getHumanFoodContextRetryFields("sushi_creator", humanFoodSignature),
         }),
       });
 
       const data = await response.json();
+      rememberHumanFoodContextReceipt("sushi_creator", humanFoodSignature, data?.humanFoodContext);
       console.log("🔥 SUSHI RESPONSE:", data);
 
       // Check for safety blocks/ambiguous - show banner instead of error
