@@ -13,6 +13,7 @@ import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSna
 import ProClientProgramHistory from "@/components/pro/ProClientProgramHistory";
 import CycleProtocolControl from "@/components/pro/CycleProtocolControl";
 import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard";
+import ProBloodGlucosePanel from "@/components/pro/ProBloodGlucosePanel";
 import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -1509,6 +1510,8 @@ export default function ProClientFolderModal({
             {clientId && <ProClientProgramHistory clientId={clientId} />}
 
             {clientId && <ProClientWeightSnapshot clientId={clientId} />}
+
+            {clientId && isPhysician && <ProBloodGlucosePanel clientId={clientId} />}
 
             {clientId && isPhysician && <ProClientLabsSnapshot clientId={clientId} />}
 

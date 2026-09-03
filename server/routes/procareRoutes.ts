@@ -35,6 +35,18 @@ import {
 } from "../services/nutritionSummary/buildNutritionSummary";
 import { filterNutritionSummaryForProvider } from "../services/procareClientDataPolicy";
 import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
+import {
+  professionalGlucosePeriodSchema,
+  type ProfessionalGlucoseContext,
+} from "@shared/professionalGlucose";
+import {
+  queryProfessionalGlucoseClientSummaries,
+  resolveProfessionalGlucoseAccess,
+} from "../services/professionalGlucoseAccess";
+import {
+  buildProfessionalGlucoseHistory,
+  getProfessionalGlucoseWindowStart,
+} from "../services/professionalGlucoseHistory";
 
 const router = Router();
 
@@ -62,6 +74,47 @@ function getUserId(req: any): string {
   if (authUser?.id) return authUser.id;
   if (req.session?.userId) return req.session.userId as string;
   return "";
+}
+
+function auditProfessionalGlucoseRejectedResponse(
+  req: any,
+  res: any,
+  next: any,
+) {
+  const parsedRequestedPeriod = professionalGlucosePeriodSchema.safeParse(
+    req.query?.period ?? 14,
+  );
+  res.on("finish", () => {
+    if (
+      res.statusCode >= 400 &&
+      res.statusCode < 500 &&
+      !res.locals.professionalGlucoseAccessAudited
+    ) {
+      logAudit({
+        actor: getUserId(req),
+        target: req.params?.clientId,
+        orgId: req.authUser?.organizationId ?? null,
+        action: "READ",
+        resourceType: "professional_glucose_access",
+        table: "none",
+        route: req.path,
+        ip: getClientIp(req),
+        meta: {
+          professionalRole:
+            req.authUser?.professionalRole ?? req.authUser?.role ?? "unknown",
+          requestedPeriod: parsedRequestedPeriod.success
+            ? parsedRequestedPeriod.data
+            : "invalid",
+          outcome: "denied",
+          reason:
+            res.statusCode === 400
+              ? "invalid_request"
+              : "route_middleware_denied",
+        },
+      });
+    }
+  });
+  next();
 }
 
 /**
@@ -835,58 +888,56 @@ router.get("/clients/:clientId/nutrition-strategy", requireAuth, requireProAcces
       .where(eq(users.id, callerId))
       .limit(1);
 
-    const isAdmin = callerUser?.role === "admin";
     const isPhysician = callerUser?.professionalRole === "physician";
-
-    if (!isAdmin) {
-      // Org boundary — caller and client must share the same organization
-      try { await assertSameOrg(callerId, clientId); } catch (err) {
-        if (handleOrgIsolationError(err, res)) return; throw err;
-      }
-
-      // Must be a coach/trainer/physician with an active link to this client
-      const [link] = await db
-        .select()
-        .from(clientLinks)
-        .where(and(eq(clientLinks.proUserId, callerId), eq(clientLinks.clientUserId, clientId), eq(clientLinks.active, true)))
-        .limit(1);
-
-      if (!link) {
-        return res.status(403).json({ error: "No active ProCare link to this client" });
-      }
+    try { await assertSameOrg(callerId, clientId); } catch (err) {
+      if (handleOrgIsolationError(err, res)) return; throw err;
     }
+    const [link] = await db
+      .select()
+      .from(clientLinks)
+      .where(and(eq(clientLinks.proUserId, callerId), eq(clientLinks.clientUserId, clientId), eq(clientLinks.active, true)))
+      .limit(1);
+    if (!link) {
+      return res.status(403).json({ error: "No active ProCare link to this client" });
+    }
+
+    const glucoseAccess = await resolveProfessionalGlucoseAccess(callerId, clientId);
 
     // ── Parallel data fetch ────────────────────────────────────────────────
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
     const [diabeticProfile, glycemicRow, recentGlucose, lastShot] = await Promise.all([
-      db.select().from(diabetesProfile).where(eq(diabetesProfile.userId, clientId)).limit(1).then(r => r[0] ?? null),
-      db.select({ preferredCarbs: userGlycemicSettings.preferredCarbs })
-        .from(userGlycemicSettings)
-        .where(eq(userGlycemicSettings.userId, clientId))
-        .limit(1)
-        .then(r => r[0] ?? null),
-      db.select()
-        .from(glucoseLogs)
-        .where(and(eq(glucoseLogs.userId, clientId), gte(glucoseLogs.recordedAt, fourteenDaysAgo)))
-        .orderBy(desc(glucoseLogs.recordedAt))
-        .limit(20),
-      db.select()
-        .from(glp1Shots)
-        .where(eq(glp1Shots.userId, clientId))
-        .orderBy(desc(glp1Shots.dateUtc))
-        .limit(1)
-        .then(rows => rows[0] ?? null)
+      glucoseAccess.allowed
+        ? db.select().from(diabetesProfile).where(eq(diabetesProfile.userId, clientId)).limit(1).then(r => r[0] ?? null)
+        : Promise.resolve(null),
+      glucoseAccess.allowed
+        ? db.select({ preferredCarbs: userGlycemicSettings.preferredCarbs })
+            .from(userGlycemicSettings)
+            .where(eq(userGlycemicSettings.userId, clientId))
+            .limit(1)
+            .then(r => r[0] ?? null)
+        : Promise.resolve(null),
+      glucoseAccess.allowed
+        ? db.select()
+            .from(glucoseLogs)
+            .where(and(eq(glucoseLogs.userId, clientId), gte(glucoseLogs.recordedAt, fourteenDaysAgo)))
+            .orderBy(desc(glucoseLogs.recordedAt))
+            .limit(20)
+        : Promise.resolve([]),
+      glucoseAccess.allowed
+        ? db.select()
+            .from(glp1Shots)
+            .where(eq(glp1Shots.userId, clientId))
+            .orderBy(desc(glp1Shots.dateUtc))
+            .limit(1)
+            .then(rows => rows[0] ?? null)
+        : Promise.resolve(null)
     ]);
 
     // ── Determine active hubs ──────────────────────────────────────────────
     const hasDiabeticHub = diabeticProfile && diabeticProfile.type !== "NONE";
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const hasGlp1Hub = lastShot && new Date(lastShot.dateUtc) > thirtyDaysAgo;
-
-    if (!hasDiabeticHub && !hasGlp1Hub) {
-      return res.json({ hasData: false });
-    }
 
     // ── Guardrails (from diabetes profile) ────────────────────────────────
     const guardrails = diabeticProfile?.guardrails as any;
@@ -933,28 +984,31 @@ router.get("/clients/:clientId/nutrition-strategy", requireAuth, requireProAcces
       }
     }
 
+    const visibleDiabeticHub = hasDiabeticHub && glucoseAccess.allowed;
+    const visibleGlp1Hub = hasGlp1Hub && glucoseAccess.allowed;
+
     // ── Strategy summary line ──────────────────────────────────────────────
     const parts: string[] = [];
-    if (hasDiabeticHub && hasGlp1Hub) {
+    if (visibleDiabeticHub && visibleGlp1Hub) {
       parts.push("Dual protocol — GLP-1 phase management with diabetic carb control");
-    } else if (hasDiabeticHub) {
+    } else if (visibleDiabeticHub) {
       if (trendLabel === "High variability") parts.push("Active glucose management — tightened carb protocol");
       else if (trendLabel === "Elevated") parts.push("Elevated glucose — reduced carb focus");
       else parts.push("Stable diabetic management — moderate carb control");
-    } else if (hasGlp1Hub) {
+    } else if (visibleGlp1Hub) {
       parts.push("GLP-1 phase management — small portions, high protein priority");
     }
-    if (diabeticProfile?.hypoHistory) parts.push("with hypoglycemia precautions");
+    if (visibleDiabeticHub && diabeticProfile?.hypoHistory) parts.push("with hypoglycemia precautions");
     const strategySummary = parts.join(" ");
 
     // ── Build response ─────────────────────────────────────────────────────
     const payload: Record<string, unknown> = {
-      hasData: true,
+      hasData: visibleDiabeticHub || visibleGlp1Hub,
       activeHubs: [
-        ...(hasDiabeticHub ? ["diabetic"] : []),
-        ...(hasGlp1Hub ? ["glp1"] : []),
+        ...(visibleDiabeticHub ? ["diabetic"] : []),
+        ...(visibleGlp1Hub ? ["glp1"] : []),
       ],
-      diabetic: hasDiabeticHub ? {
+      diabetic: visibleDiabeticHub ? {
         type: diabeticProfile!.type,
         a1cPercent: diabeticProfile?.a1cPercent ?? null,
         hypoRisk: diabeticProfile?.hypoHistory ?? false,
@@ -962,30 +1016,47 @@ router.get("/clients/:clientId/nutrition-strategy", requireAuth, requireProAcces
         mealFrequency,
         preferredCarbs,
       } : null,
-      glp1: hasGlp1Hub ? {
+      glp1: visibleGlp1Hub ? {
         lastShotDate: lastShot!.dateUtc,
         daysSinceShot: Math.floor((Date.now() - new Date(lastShot!.dateUtc).getTime()) / (1000 * 60 * 60 * 24)),
         ...(isPhysician ? { doseMg: lastShot!.doseMg, injectionSite: lastShot!.location } : {}),
       } : null,
-      glucose: {
-        sparkline,
-        avgMgdl: avgGlucose,
-        trendLabel,
-        readingCount: recentGlucose.length,
-      },
       strategySummary,
     };
 
+    if (glucoseAccess.allowed) {
+      payload.glucose = {
+          sparkline,
+          avgMgdl: avgGlucose,
+          trendLabel,
+          readingCount: recentGlucose.length,
+        };
+    }
+
     // Physician-only additions
-    if (isPhysician) {
+    if (isPhysician && glucoseAccess.allowed) {
       payload.physicianOnly = {
         insulinPattern,
         medications: diabeticProfile?.medications ?? [],
       };
     }
 
-    console.log(`📊 [nutrition-strategy] Returned data for client ${clientId.substring(0, 8)}... | caller=${isPhysician ? "physician" : "coach"} | hubs=${(payload.activeHubs as string[]).join(",")}`);
-    logAudit({ actor: callerId, target: clientId, orgId: (req as any).authUser?.organizationId ?? null, action: "READ", resourceType: "nutrition_strategy", table: "users,clinical_labs,glucose_logs,glp1_shots", route: req.path, ip: getClientIp(req as any), meta: { activeHubs: payload.activeHubs, callerRole: isPhysician ? "physician" : "coach" } });
+    logAudit({
+      actor: callerId,
+      target: clientId,
+      orgId: glucoseAccess.organizationId,
+      action: "READ",
+      resourceType: "nutrition_strategy",
+      table: glucoseAccess.allowed ? "users,clinical_labs,glucose_logs,glp1_shots" : "users",
+      route: req.path,
+      ip: getClientIp(req as any),
+      meta: {
+        activeHubs: payload.activeHubs,
+        callerRole: callerUser?.professionalRole ?? callerUser?.role ?? "unknown",
+        glucoseAccess: glucoseAccess.allowed ? "allowed" : "denied",
+        glucoseAccessReason: glucoseAccess.reason,
+      },
+    });
     return res.json(payload);
 
   } catch (error) {
@@ -993,6 +1064,168 @@ router.get("/clients/:clientId/nutrition-strategy", requireAuth, requireProAcces
     return res.status(500).json({ error: "Failed to fetch nutrition strategy" });
   }
 });
+
+router.get(
+  "/clients/:clientId/glucose-history",
+  requireAuth,
+  auditProfessionalGlucoseRejectedResponse,
+  requireProAccess,
+  requirePhase1Cert,
+  requirePhase2Training,
+  async (req, res) => {
+    const callerId = getUserId(req);
+    const clientId = req.params.clientId;
+    const parsedPeriod = professionalGlucosePeriodSchema.safeParse(
+      req.query.period ?? 14,
+    );
+    if (!parsedPeriod.success) {
+      return res.status(400).json({
+        error: "INVALID_PERIOD",
+        message: "Period must be one of 7, 14, 30, or 90 days.",
+      });
+    }
+
+    const access = await resolveProfessionalGlucoseAccess(callerId, clientId);
+    const audit = (outcome: "success" | "denied", reason: string) => {
+      res.locals.professionalGlucoseAccessAudited = true;
+      logAudit({
+        actor: callerId,
+        target: clientId,
+        orgId: access.organizationId,
+        action: "READ",
+        resourceType: "professional_glucose_history",
+        table: "glucose_logs,diabetes_profile",
+        route: req.path,
+        ip: getClientIp(req as any),
+        meta: {
+          studioId: access.studioId,
+          professionalRole: access.professionalRole,
+          periodDays: parsedPeriod.data,
+          outcome,
+          reason,
+        },
+      });
+    };
+
+    if (!access.allowed) {
+      audit("denied", access.reason);
+      return res.status(403).json({
+        error: "GLUCOSE_ACCESS_DENIED",
+        message: "You are not authorized to access this client's glucose history.",
+      });
+    }
+
+    try {
+      const since = getProfessionalGlucoseWindowStart(parsedPeriod.data);
+      const [readings, profile, client] = await Promise.all([
+        db
+          .select({
+            valueMgdl: glucoseLogs.valueMgdl,
+            context: glucoseLogs.context,
+            recordedAt: glucoseLogs.recordedAt,
+            notes: glucoseLogs.notes,
+          })
+          .from(glucoseLogs)
+          .where(
+            and(
+              eq(glucoseLogs.userId, clientId),
+              gte(glucoseLogs.recordedAt, since),
+            ),
+          )
+          .orderBy(desc(glucoseLogs.recordedAt)),
+        db
+          .select({ guardrails: diabetesProfile.guardrails })
+          .from(diabetesProfile)
+          .where(eq(diabetesProfile.userId, clientId))
+          .limit(1)
+          .then((rows) => rows[0] ?? null),
+        db
+          .select({ timeZone: users.timezone })
+          .from(users)
+          .where(eq(users.id, clientId))
+          .limit(1)
+          .then((rows) => rows[0] ?? null),
+      ]);
+
+      const data = buildProfessionalGlucoseHistory(
+        readings.map((reading) => ({
+          ...reading,
+          context: reading.context as ProfessionalGlucoseContext,
+        })),
+        {
+          periodDays: parsedPeriod.data,
+          timeZone: client?.timeZone,
+          guardrails: profile?.guardrails,
+        },
+      );
+      audit("success", "allowed");
+      return res.json(data);
+    } catch (error) {
+      audit("denied", "data_read_failed");
+      console.error("[professional-glucose-history] Read failed:", error);
+      return res.status(500).json({ error: "Failed to fetch glucose history" });
+    }
+  },
+);
+
+router.get(
+  "/glucose/client-summaries",
+  requireAuth,
+  auditProfessionalGlucoseRejectedResponse,
+  requireProAccess,
+  requirePhase1Cert,
+  requirePhase2Training,
+  async (req, res) => {
+    const callerId = getUserId(req);
+    try {
+      const result = await queryProfessionalGlucoseClientSummaries(callerId);
+      res.locals.professionalGlucoseAccessAudited = true;
+      if ("reason" in result) {
+        logAudit({
+          actor: callerId,
+          orgId: result.organizationId,
+          action: "READ",
+          resourceType: "professional_glucose_client_summaries",
+          table: "glucose_logs,studio_memberships,client_links",
+          route: req.path,
+          ip: getClientIp(req as any),
+          meta: {
+            studioId: result.studioId,
+            professionalRole: result.professionalRole,
+            requestedPeriod: "latest",
+            outcome: "denied",
+            reason: result.reason,
+          },
+        });
+        return res.status(403).json({
+          error: "GLUCOSE_ACCESS_DENIED",
+          message: "You are not authorized to access glucose summaries.",
+        });
+      }
+
+      logAudit({
+        actor: callerId,
+        orgId: result.organizationId,
+        action: "READ",
+        resourceType: "professional_glucose_client_summaries",
+        table: "glucose_logs,studio_memberships,client_links",
+        route: req.path,
+        ip: getClientIp(req as any),
+        meta: {
+          studioId: result.studioId,
+          professionalRole: result.professionalRole,
+          requestedPeriod: "latest",
+          outcome: "success",
+          resultCount: result.data.summaries.length,
+        },
+      });
+      return res.json(result.data);
+    } catch (error) {
+      console.error("[professional-glucose-summaries] Read failed:", error);
+      return res.status(500).json({ error: "Failed to fetch glucose summaries" });
+    }
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/pro/clients/:clientId/nutrition-summary
