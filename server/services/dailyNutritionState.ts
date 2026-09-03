@@ -31,6 +31,7 @@ import {
   PerformanceProtocolConfig,
   MacroBaseline,
 } from "./protocol/performanceProtocolResolver";
+import { resolveDailyNutritionState as resolveCanonicalNutritionState } from "./nutritionStateService";
 
 export type StarchPolicy = "zero" | "restricted" | "moderate" | "generous" | "unlimited";
 export type LedgerReliability = "high" | "medium" | "low";
@@ -377,65 +378,61 @@ export function computeDailyNutritionState(
 export async function resolveDailyNutritionState(
   input: DailyStateInput,
 ): Promise<DailyNutritionState> {
-  const now      = input.now ?? new Date();
+  const now = input.now ?? new Date();
   const timezone = input.timezone || "America/Chicago";
+  const localDate = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(now);
+  const canonical = await resolveCanonicalNutritionState(
+    input.userId,
+    localDate,
+    input.excludeItemId,
+  );
 
-  const resolvedAt    = now.toISOString();
-  // Intl.DateTimeFormat("en-CA") produces YYYY-MM-DD — always user's local date.
-  const localDateStr  = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(now);
+  const classification = canonical.consumed.classificationStatus ?? "UNCLASSIFIED";
+  const ledgerReliability: LedgerReliability =
+    classification === "VERIFIED" ? "high" :
+    classification === "MIXED" ? "medium" :
+    "low";
+  const trainingDayType = canonical.prescription.trainingDayType;
+  const sessionType: SessionType | null =
+    trainingDayType === "rest" ? "off" :
+    trainingDayType === "light" ? "recovery" :
+    trainingDayType === "moderate" ? "strength" :
+    trainingDayType === "heavy" ? "endurance" :
+    trainingDayType === "competition" ? "competition" :
+    null;
 
-  // Build a Date whose UTC day-of-week matches the user's local date.
-  // resolveTodayTargets → getDayKey → date.getDay() uses server-local time.
-  // Passing noon UTC on the user's local date ensures the correct weekday is returned
-  // on any server at UTC±11 (all practical deployment environments).
-  const [ly, lm, ld]  = localDateStr.split("-").map(Number);
-  const localNoonAsUTC = new Date(Date.UTC(ly, lm - 1, ld, 12, 0, 0));
-
-  // Early return for inactive or unconfigured users — no DB query needed.
-  if (!input.performanceActive || !input.schedule || !input.config) {
-    return computeDailyNutritionState(
-      input,
-      { rowCount: 0, nonZeroStarchy: 0, starchyCarbsG: 0, fibrousCarbsG: 0, totalCarbsG: 0 },
-      localDateStr,
-      resolvedAt,
-      localNoonAsUTC,
-    );
-  }
-
-  // Timezone-correct UTC bounds for the user's local day.
-  const { start: logStart, end: logEnd } = localDayUTCBounds(localDateStr, timezone);
-
-  // Build the WHERE predicate. When excludeItemId is provided, omit any
-  // macro_log row whose board_item_reference matches that board item so its
-  // macros are not counted against the replacement's own budget.
-  const baseWhere = sql`${macroLogs.userId} = ${input.userId}
-    AND ${macroLogs.at} >= ${logStart.toISOString()}
-    AND ${macroLogs.at} <= ${logEnd.toISOString()}`;
-
-  const whereClause = input.excludeItemId
-    ? sql`${baseWhere}
-        AND (${macroLogs.boardItemReference} IS NULL
-             OR ${macroLogs.boardItemReference} != ${input.excludeItemId})`
-    : baseWhere;
-
-  const [logged] = await db
-    .select({
-      starchyCarbsG:  sql<number>`COALESCE(SUM(${macroLogs.starchyCarbs}::numeric), 0)`,
-      fibrousCarbsG:  sql<number>`COALESCE(SUM(${macroLogs.fibrousCarbs}::numeric), 0)`,
-      totalCarbsG:    sql<number>`COALESCE(SUM(${macroLogs.carbs}::numeric), 0)`,
-      rowCount:       sql<number>`COUNT(*)`,
-      nonZeroStarchy: sql<number>`COUNT(*) FILTER (WHERE ${macroLogs.starchyCarbs}::numeric > 0)`,
-    })
-    .from(macroLogs)
-    .where(whereClause);
-
-  const logData: DailyLogSummary = {
-    rowCount:       Number(logged?.rowCount       ?? 0),
-    nonZeroStarchy: Number(logged?.nonZeroStarchy ?? 0),
-    starchyCarbsG:  Number(logged?.starchyCarbsG  ?? 0),
-    fibrousCarbsG:  Number(logged?.fibrousCarbsG  ?? 0),
-    totalCarbsG:    Number(logged?.totalCarbsG    ?? 0),
+  const state: DailyNutritionState = {
+    userId: input.userId,
+    resolvedAt: canonical.resolvedAt,
+    localDate: canonical.localDay?.date ?? canonical.date,
+    timezone: canonical.localDay?.timezone ?? timezone,
+    performanceActive: canonical.modifiers?.performance ?? input.performanceActive,
+    scheduleConfigured: sessionType !== null,
+    sessionType,
+    sessionLabel: trainingDayType,
+    trainingPhase: null,
+    starchyCarbsTargetG: canonical.prescription.starchyCarbsTarget,
+    fibrousCarbsTargetG: canonical.prescription.fibrousCarbsTarget,
+    totalCarbsTargetG: canonical.prescription.carbsTarget,
+    starchyCarbsConsumedG:
+      canonical.consumed.confirmedStarchyCarbs ?? canonical.consumed.starchyCarbs,
+    totalCarbsConsumedG: canonical.consumed.carbs,
+    starchyCarbsRemainingG:
+      canonical.consumedRemaining?.starchyCarbs ?? canonical.remaining.starchyCarbs,
+    starchyBudgetExhausted:
+      canonical.starch?.consumed.exhausted
+      ?? canonical.activeConstraints.consumedStarchExhausted
+      ?? false,
+    starchPolicy: "unlimited",
+    ledgerReliability,
+    preGenerationConstraint: null,
   };
-
-  return computeDailyNutritionState(input, logData, localDateStr, resolvedAt, localNoonAsUTC);
+  state.starchPolicy = deriveStarchPolicy(
+    state.sessionType,
+    state.starchyCarbsTargetG,
+    state.starchyBudgetExhausted,
+    state.ledgerReliability,
+  );
+  state.preGenerationConstraint = buildPreGenerationConstraint(state);
+  return state;
 }

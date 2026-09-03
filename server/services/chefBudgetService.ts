@@ -19,7 +19,10 @@
 
 import { resolveDailyNutritionState, deriveGenerationContext } from "./nutritionStateService";
 import { computeNextMealBudget, type MealBudget } from "./nutritionBudget";
-import type { GenerationContext } from "../../shared/dailyNutritionPrescription";
+import type {
+  DailyNutritionState,
+  GenerationContext,
+} from "../../shared/dailyNutritionPrescription";
 
 export interface ChefBudgetResult {
   remainingMacros: {
@@ -52,6 +55,9 @@ export interface ChefBudgetResult {
    */
   clinicalNotes: string[];
   budget: MealBudget;
+  /** Planning forecast; never represents confirmed consumption. */
+  projectedRemaining?: DailyNutritionState["projectedRemaining"];
+  resolutionStatus?: NonNullable<DailyNutritionState["resolution"]>["status"];
 }
 
 /**
@@ -85,13 +91,13 @@ export async function resolveChefBudget(
 
   const budget = computeNextMealBudget(nutritionState, mealsLeft);
 
-  const { remaining } = nutritionState;
+  const consumedRemaining = nutritionState.consumedRemaining ?? nutritionState.remaining;
 
   // gramsPerRemainingStarchMeal: divide remaining starchy carbs evenly across
   // remaining starch slots. undefined when no starch slots remain.
   const gramsPerRemainingStarchMeal: number | undefined =
-    remaining.starchMealsRemaining > 0
-      ? Math.round(remaining.starchyCarbs / remaining.starchMealsRemaining)
+    consumedRemaining.starchMealsRemaining > 0
+      ? Math.round(consumedRemaining.starchyCarbs / consumedRemaining.starchMealsRemaining)
       : undefined;
 
   const generationContext = deriveGenerationContext(nutritionState.activeConstraints, clientCtx);
@@ -104,11 +110,13 @@ export async function resolveChefBudget(
       fat:      budget.fatTarget,
     },
     starchAllowed:               budget.starchSlotAvailable,
-    starchMealsRemaining:        remaining.starchMealsRemaining,
-    starchyCarbsRemaining:       remaining.starchyCarbs,
+    starchMealsRemaining:        consumedRemaining.starchMealsRemaining,
+    starchyCarbsRemaining:       consumedRemaining.starchyCarbs,
     gramsPerRemainingStarchMeal,
     generationContext,
     clinicalNotes:               budget.clinicalNotes,
     budget,
+    projectedRemaining:          nutritionState.projectedRemaining,
+    resolutionStatus:            nutritionState.resolution?.status,
   };
 }

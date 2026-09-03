@@ -129,6 +129,28 @@ export type GenerationContext =
   | "cardiac"
   | "pregnancy";
 
+export type DailyNutritionResolutionStatus =
+  | "RESOLVED"
+  | "TRACK_ONLY"
+  | "INSUFFICIENT_DATA"
+  | "NEEDS_REVIEW"
+  | "UNAVAILABLE";
+
+export type StarchClassificationStatus =
+  | "VERIFIED"
+  | "MIXED"
+  | "UNCLASSIFIED";
+
+export interface DailyMacroBalance {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  starchyCarbs: number;
+  fibrousCarbs: number;
+  starchMealsRemaining: number;
+}
+
 // ── Daily Nutrition State ─────────────────────────────────────────────────────
 
 /**
@@ -148,6 +170,21 @@ export type GenerationContext =
  *   counts in "consumed" ONLY — never in both consumed and planned.
  */
 export interface DailyNutritionState {
+  /** Additive contract metadata. Existing fields remain for compatibility. */
+  contractVersion?: "daily-nutrition-state.v1";
+  authority?: "nutritionStateService";
+  subject?: {
+    userId: string;
+    accessMode: "self" | "household" | "delegated";
+  };
+  localDay?: {
+    date: string;
+    timezone: string;
+  };
+  resolution?: {
+    status: DailyNutritionResolutionStatus;
+    reasonCodes: string[];
+  };
   /** Calendar date (YYYY-MM-DD) */
   date: string;
   /** ISO timestamp when this state was computed */
@@ -168,7 +205,17 @@ export interface DailyNutritionState {
     starchMealsLogged: number;
     /** Total number of macro_log rows for this date */
     mealCount: number;
+    /** Starch grams backed by user_input or ingredient classification. */
+    confirmedStarchyCarbs?: number;
+    /** Starch grams stored with conservative_fallback or unclassified provenance. */
+    uncertainStarchyCarbs?: number;
+    /** Starch-meal rows backed by a reliable classification. */
+    confirmedStarchMealsLogged?: number;
+    classificationStatus?: StarchClassificationStatus;
   };
+
+  /** Prescription minus confirmed consumption only. Planning never reduces this. */
+  consumedRemaining?: DailyMacroBalance;
 
   /**
    * Board reservations for today that have NOT yet been converted to logs.
@@ -185,6 +232,20 @@ export interface DailyNutritionState {
     /** Count of unlogged board items for today */
     reservationCount: number;
   };
+
+  /** Explicit alias for unconsumed board nutrition reserved for this local day. */
+  reservedAllocation?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    starchyCarbs: number;
+    starchMealsReserved: number;
+    reservationCount: number;
+  };
+
+  /** Prescription minus confirmed consumption and unconsumed board reservations. */
+  projectedRemaining?: DailyMacroBalance;
 
   /**
    * Remaining macro budget = prescription − consumed − planned.
@@ -220,6 +281,46 @@ export interface DailyNutritionState {
     calorieBudgetExhausted: boolean;
     /** True when consumed.protein + planned.protein ≥ prescription.proteinTarget */
     proteinBudgetMet: boolean;
+    /** Actual exhaustion based on reliably classified confirmed intake only. */
+    consumedStarchExhausted?: boolean;
+    /** Forecast conflict caused by confirmed intake plus planned reservations. */
+    projectedStarchConflict?: boolean;
+    resolutionStatus?: DailyNutritionResolutionStatus;
+  };
+
+  starch?: {
+    consumed: {
+      targetGrams: number;
+      confirmedGrams: number;
+      uncertainGrams: number;
+      remainingGrams: number;
+      mealsUsed: number;
+      mealsRemaining: number;
+      exhausted: boolean;
+      classificationStatus: StarchClassificationStatus;
+    };
+    projected: {
+      reservedGrams: number;
+      projectedGrams: number;
+      projectedRemainingGrams: number;
+      projectedMealsUsed: number;
+      projectedConflict: boolean;
+    };
+  };
+
+  modifiers?: {
+    glp1: boolean;
+    performance: boolean;
+    clinical: boolean;
+    prescriptionSource: PrescriptionSource;
+  };
+
+  provenance?: {
+    consumptionSource: "macro_logs";
+    plannedSource: "meal_board_items";
+    prescriptionSource: PrescriptionSource;
+    calculationTimestamp: string;
+    classificationSources: string[];
   };
 
   /**

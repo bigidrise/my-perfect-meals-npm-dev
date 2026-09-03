@@ -60,14 +60,21 @@ export function computeNextMealBudget(
 ): MealBudget {
   const divisor = Math.max(1, mealsLeft);
 
-  const { remaining, activeConstraints, mealPlanConfig, prescription } = state;
+  const remaining = state.projectedRemaining ?? state.remaining;
+  const consumedRemaining = state.consumedRemaining ?? state.remaining;
+  const { activeConstraints, mealPlanConfig, prescription } = state;
 
   const clinicalNotes: string[] = [];
 
-  const starchSlotAvailable = remaining.starchMealsRemaining > 0;
+  const starchSlotAvailable =
+    !(state.starch?.consumed.exhausted ?? activeConstraints.consumedStarchExhausted ?? false)
+    && consumedRemaining.starchMealsRemaining > 0
+    && !prescription.isZeroStarchDay;
 
   if (!starchSlotAvailable) {
     clinicalNotes.push("starch_slots_exhausted_rerouted_to_fibrous");
+  } else if (state.starch?.projected.projectedConflict) {
+    clinicalNotes.push("projected_starch_conflict");
   }
 
   // When starch budget is exhausted the generator must not produce starchy carbs.
