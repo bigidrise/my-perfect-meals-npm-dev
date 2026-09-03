@@ -5562,7 +5562,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : "lunch",
           );
           if (glp1Ctx.isActive) {
-            _cravingGlp1Targets = glp1Ctx.resolvedTargets ?? undefined;
+            if (!glp1Ctx.resolvedTargets) {
+              console.error("🚫 [GLP-1/CravingCreator] Active context returned without resolved targets.");
+              return res.status(503).json({
+                status: "review_required",
+                reasonCode: "glp1_context_unavailable",
+                retryable: true,
+                message: "We couldn't safely verify your current GLP-1 meal targets. Please try again shortly.",
+              });
+            }
+            _cravingGlp1Targets = glp1Ctx.resolvedTargets;
             console.log(
               `💊 [GLP-1/CravingCreator] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
               (_cravingGlp1Targets
@@ -5858,6 +5867,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (cleanOptions.length === 0 && _bglGatedOptions.length > 0) {
+        if (_cravingGlp1Targets) {
+          console.error("🚫 [GLP-1/CravingCreator] Protocol filtering removed every clinically validated option; refusing unvalidated emergency fallback.");
+          return res.status(422).json({
+            status: "unable_to_generate",
+            reasonCode: "glp1_compliance_retry_exhausted",
+            retryable: true,
+            message: "We couldn't safely adapt this dish to your current GLP-1 targets and dietary protections. Try a lighter preparation or a smaller portion.",
+          });
+        }
         console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
         // Fallback directive carries MORE explicit dish-identity language, not less.
         let _fallbackDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
@@ -6043,7 +6061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Creator System 2-pass transformation — applied AFTER all safety/protocol filters.
       // If kitchenSlug is provided, the kitchen config takes priority over the user's own active system.
       // Modifies only name, description, instructions. Macros, ingredients, servings NEVER touched.
-      if (user) {
+      if (user && !_cravingGlp1Targets) {
         try {
           const { resolveActiveSystem } = await import("./services/creatorSystems/resolver");
           const { applyCreatorTransformation } = await import("./services/creatorSystems/applyCreatorTransformation");
@@ -6070,6 +6088,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (err) {
           console.error("[CreatorSystem] Transformation failed in craving-creator — using base options:", err);
         }
+      } else if (user && _cravingGlp1Targets) {
+        console.log("[CreatorSystem] Skipped for GLP-1-active request so no unvalidated transformation runs after the clinical gate.");
       }
 
       // Format and optionally scale each option

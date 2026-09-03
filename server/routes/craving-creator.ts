@@ -90,6 +90,13 @@ router.post('/generate', requireAuth, async (req, res) => {
   try {
     const { craving, mealType = 'dinner', macroTargets, servings = 2 } = req.body;
     const userId = resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        status: "unable_to_generate",
+        reasonCode: "authentication_required",
+        message: "Authentication is required.",
+      });
+    }
     
     console.log('🔥 CRAVING ROUTE HIT', Date.now());
     console.log('🍳 Craving Creator generating meal:', { craving, mealType, userId, servings });
@@ -148,6 +155,15 @@ router.post('/generate', requireAuth, async (req, res) => {
         const dateISO = new Date().toISOString().split("T")[0];
         glp1CravingCtx = await resolveGLP1GlobalContext(userId, dateISO, normalizedMealType);
         if (glp1CravingCtx.isActive) {
+          if (!glp1CravingCtx.resolvedTargets) {
+            console.error("🚫 [GLP-1/CravingCreator] Active legacy context returned without resolved targets.");
+            return res.status(503).json({
+              status: "review_required",
+              reasonCode: "glp1_context_unavailable",
+              retryable: true,
+              message: "We couldn't safely verify your current GLP-1 meal targets. Please try again shortly.",
+            });
+          }
           glp1CravingTargets = glp1CravingCtx.resolvedTargets;
           console.log(
             `💊 [GLP-1/CravingCreator] Active — sources=[${glp1CravingCtx.activationSources.join(",")}]` +
@@ -307,7 +323,7 @@ router.post('/generate', requireAuth, async (req, res) => {
 
     // Creator System 2-pass transformation — runs AFTER all safety/avoidance checks.
     // If kitchenSlug is set, the kitchen overlay takes priority over the user's active system.
-    if (user) {
+    if (user && !glp1CravingCtx?.isActive) {
       const kitchenSlug = req.body.kitchenSlug as string | undefined;
       let creatorSystem = resolveActiveSystem(user);
       if (kitchenSlug) {
@@ -320,6 +336,8 @@ router.post('/generate', requireAuth, async (req, res) => {
         }
       }
       generatedMeal = await applyCreatorTransformation(generatedMeal, creatorSystem, "meal");
+    } else if (user && glp1CravingCtx?.isActive) {
+      console.log("[CreatorSystem] Skipped for GLP-1-active legacy request so no unvalidated transformation runs after the clinical gate.");
     }
 
     // Evaluate the final recommendation only after existing allergy, dietary,
