@@ -326,6 +326,7 @@ export interface MealGenerationRequest {
    */
 
   generationContext?: string;
+  humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState;
   /**
    * Patient-specific GLP-1 resolved targets from the canonical context resolver.
    * When provided, applyGuardrails() and validateMealForDiet() use personalized
@@ -669,6 +670,7 @@ export async function generateCravingMealUnified(
   preferredLanguage?: string,
   /** Allergens authorized by a valid Safety PIN override for this request only. */
   overriddenAllergens?: string[],
+  humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
 ): Promise<MealGenerationResponse> {
   const result = await generateCravingMealUnifiedInternal(
     cravingInput, mealType, userId, dietaryRestrictionsOverride,
@@ -3279,6 +3281,7 @@ export async function generateFromDescriptionUnified(
   /** Allergens authorized by a valid Safety PIN override for this request only.
    *  Excluded from the allergy prompt block and from post-gen re-blocking. */
   overriddenAllergens?: string[],
+  humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   const requestedServings = Math.max(1, Math.min(10, Math.round(servings ?? 1)));
@@ -3670,6 +3673,10 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     let finalMealData: any = null;
     let attemptCount = 0;
     let lastFixHint: string | null = null;
+    let previousRejectedCandidate: UnifiedMeal | null = null;
+    const rejectionTools = humanFoodExecutionState
+      ? await import("./humanFoodContext/requestExecutionState")
+      : null;
     let substitutionPassUsed = false;
     // undefined = no validation context (non-vegan/vegetarian/pescatarian or legacy path)
     // true  = compliance confirmed   false = compliance failed / unresolvable
@@ -3677,6 +3684,17 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
 
     while (attemptCount < MAX_REGENERATION_ATTEMPTS) {
       attemptCount++;
+      if (previousRejectedCandidate && humanFoodExecutionState && rejectionTools) {
+        rejectionTools.recordRejectedHumanFoodCandidate(
+          humanFoodExecutionState,
+          previousRejectedCandidate,
+        );
+        lastFixHint = [
+          lastFixHint,
+          rejectionTools.buildRejectedCandidatePrompt(humanFoodExecutionState),
+        ].filter(Boolean).join(" ");
+        previousRejectedCandidate = null;
+      }
 
       // On the last retry for BeachBody with remaining macros: switch to the relaxed prompt
       // (no budget ceilings) so the AI can still produce a clean compliant meal even when
@@ -3761,6 +3779,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         medicalBadges: [],
         source: 'ai'
       };
+      previousRejectedCandidate = tempMeal;
 
       // ── Ingredient quantity sanity (dish-class-aware) ─────────────────────
       // Catches catastrophic quantities (2 cups oil for a 2-serving cake) before
@@ -4939,6 +4958,7 @@ export async function generateMealUnified(
         request.servings,
         request.clinicalGenerationContext,
         request.overriddenAllergens,
+        request.humanFoodExecutionState,
       );
       break;
 

@@ -15,7 +15,6 @@ import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { getHumanFoodContextRetryFields, rememberHumanFoodContextReceipt } from "@/lib/humanFoodContextReceipt";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -610,7 +609,6 @@ export default function CravingCreator() {
 
     try {
       const url = apiUrl("/api/meals/craving-creator");
-      const humanFoodSignature = JSON.stringify([cravingInput, dietOverrideValue, cuisineOverrideValue, servings]);
       console.log("📡 Fetching:", url);
       const response = await fetch(url, {
         method: "POST",
@@ -625,7 +623,6 @@ export default function CravingCreator() {
           // The server uses this to prevent the profile's vegan/keto from conflicting
           // with the user's temporary builder selection.
           dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
-          userId: userId,
           servings: servings,
           sweetenerPreferences,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
@@ -639,12 +636,10 @@ export default function CravingCreator() {
           cookMethod: cookMethod || undefined,
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           humanFoodCreator: "craving_creator",
-          ...getHumanFoodContextRetryFields("craving_creator", humanFoodSignature),
         }),
       });
 
       const data = await response.json();
-      rememberHumanFoodContextReceipt("craving_creator", humanFoodSignature, data?.humanFoodContext);
 
       // Check for safety blocks/ambiguous - show banner instead of error
       if (data.safetyBlocked || data.safetyAmbiguous) {

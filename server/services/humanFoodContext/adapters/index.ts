@@ -1,6 +1,8 @@
 import type { HumanFoodContext, HumanFoodCreator } from "../../../../shared/humanFoodContext";
 import { buildHumanFoodPromptBlock } from "../buildHumanFoodPromptBlock";
 import { validateHumanFoodResult } from "../validateHumanFoodResult";
+import type { HumanFoodRequestExecutionState } from "../requestExecutionState";
+import { buildRejectedCandidatePrompt } from "../requestExecutionState";
 
 const CREATOR_DIRECTIVES: Record<HumanFoodCreator, string> = {
   recipe_maker: "Build a complete recipe while preserving the chosen meal-builder intent.",
@@ -14,8 +16,14 @@ const CREATOR_DIRECTIVES: Record<HumanFoodCreator, string> = {
 export function buildCreatorHumanFoodPrompt(
   creator: HumanFoodCreator,
   context: HumanFoodContext,
+  executionState?: HumanFoodRequestExecutionState,
 ): string {
-  return `${buildHumanFoodPromptBlock(context)}\n- Creator rule: ${CREATOR_DIRECTIVES[creator]}`;
+  const rejected = executionState ? buildRejectedCandidatePrompt(executionState) : "";
+  return [
+    buildHumanFoodPromptBlock(context),
+    `- Creator rule: ${CREATOR_DIRECTIVES[creator]}`,
+    rejected ? `- ${rejected}` : "",
+  ].filter(Boolean).join("\n");
 }
 
 export function validateCreatorHumanFoodResult(

@@ -21,6 +21,11 @@ function ingredientText(result: unknown): string {
   );
 }
 
+function finiteNumber(value: unknown): number | null {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 export function validateHumanFoodResult(
   result: unknown,
   context: HumanFoodContext,
@@ -35,6 +40,33 @@ export function validateHumanFoodResult(
     const term = normalize(forbidden);
     if (term.length >= 3 && text.includes(term)) {
       violations.push(`forbidden_ingredient:${term}`);
+    }
+  }
+
+  const object = result as any;
+  const nutrition = object?.nutrition ?? object ?? {};
+  const remaining = context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
+  const calories = finiteNumber(nutrition.calories ?? nutrition.kcal);
+  const carbs = finiteNumber(nutrition.carbs ?? nutrition.carbs_g);
+  const fat = finiteNumber(nutrition.fat ?? nutrition.fat_g);
+  const starchyCarbs = finiteNumber(nutrition.starchyCarbs ?? nutrition.starchy_carbs);
+  if (context.nutrition && calories == null) violations.push("verified_calories_missing");
+  if (context.nutrition && carbs == null) violations.push("verified_carbs_missing");
+  if (context.nutrition && fat == null) violations.push("verified_fat_missing");
+  if (remaining && calories != null && calories > remaining.calories) {
+    violations.push("projected_calorie_budget_exceeded");
+  }
+  if (remaining && carbs != null && carbs > remaining.carbs) {
+    violations.push("projected_carb_budget_exceeded");
+  }
+  if (remaining && fat != null && fat > remaining.fat) {
+    violations.push("projected_fat_budget_exceeded");
+  }
+  if (context.nutrition?.activeConstraints.consumedStarchExhausted) {
+    if (starchyCarbs == null) {
+      violations.push("verified_starchy_carbs_missing");
+    } else if (starchyCarbs > 0) {
+      violations.push("consumed_starch_budget_exhausted");
     }
   }
 
