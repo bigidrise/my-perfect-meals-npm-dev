@@ -8,7 +8,7 @@
 import { apiUrl } from '@/lib/resolveApiBase';
 import { getAuthHeaders } from '@/lib/auth';
 
-export type VoiceStatus = 'not_ready' | 'ready' | 'loading' | 'speaking' | 'error';
+export type VoiceStatus = 'not_ready' | 'ready' | 'loading' | 'speaking' | 'paused' | 'error';
 
 export interface SpeakResult {
   status: 'playing' | 'queued' | 'not_ready' | 'failed' | 'silent';
@@ -190,8 +190,38 @@ class VoiceManagerSingleton {
       this.state.currentAudio = null;
     }
     this.state.queue = [];
-    if (this.state.status === 'speaking') {
+    if (this.state.status === 'speaking' || this.state.status === 'paused') {
       this.setStatus('ready');
+    }
+  }
+
+  /**
+   * Pause current speech without losing position
+   */
+  pause() {
+    if (this.state.currentAudio && this.state.status === 'speaking') {
+      this.state.currentAudio.pause();
+      this.setStatus('paused');
+    }
+  }
+
+  /**
+   * Resume paused speech from current position
+   */
+  resume() {
+    if (this.state.currentAudio && this.state.status === 'paused') {
+      this.state.currentAudio.play();
+      this.setStatus('speaking');
+    }
+  }
+
+  /**
+   * Skip forward N seconds in current audio
+   */
+  skipForward(seconds: number = 10) {
+    if (this.state.currentAudio) {
+      const audio = this.state.currentAudio;
+      audio.currentTime = Math.min(audio.currentTime + seconds, audio.duration || audio.currentTime + seconds);
     }
   }
 
@@ -200,6 +230,13 @@ class VoiceManagerSingleton {
    */
   isSpeaking(): boolean {
     return this.state.status === 'speaking';
+  }
+
+  /**
+   * Check if currently paused
+   */
+  isPaused(): boolean {
+    return this.state.status === 'paused';
   }
 }
 

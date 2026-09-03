@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { TEMPLATE_SETS } from "@/data/templateSets";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,7 @@ export function MealPickerDrawer({
   onPick: (meal: Meal)=>void;
   useAntiInflammatory?: boolean;
 }){
+  const { t } = useTranslation();
   const [loading, setLoading] = React.useState<"cafeteria"|"generate"|null>(null);
   const [templates, setTemplates] = React.useState<Meal[]>([]);
   const [showInfoModal, setShowInfoModal] = React.useState(false);
@@ -88,7 +90,7 @@ export function MealPickerDrawer({
       // last-resort stub to avoid UI failure
       pick = {
         id: "caf_stub",
-        title: `Quick ${list} Meal`,
+        title: t("mealPicker.quickMeal", { slot: list }),
         servings: 1,
         ingredients: [{ item: "egg", amount: "2" }],
         instructions: ["Scramble eggs (2) 3–4 min."],
@@ -176,6 +178,16 @@ export function MealPickerDrawer({
   // For snacks: items are already complete snacks, not ingredients to combine
   const isSnackList = list === "snacks";
 
+  // Translate the fixed meal category labels; snack category keys come from data
+  // and are left as-is.
+  const MEAL_CATEGORY_LABELS: Record<string, string> = {
+    "Proteins": t("mealPicker.categories.proteins"),
+    "Starchy Carbs": t("mealPicker.categories.starchyCarbs"),
+    "Fibrous Carbs": t("mealPicker.categories.fibrousCarbs"),
+    "Fats": t("mealPicker.categories.fats"),
+    "Fruit": t("mealPicker.categories.fruit"),
+  };
+
   return (
     <>
     <Drawer open={open} onOpenChange={(v)=>!v && onClose()}>
@@ -183,11 +195,11 @@ export function MealPickerDrawer({
         {/* Sticky header with iOS safe-area padding */}
         <div className="sticky top-0 z-10 backdrop-blur bg-zinc-900/90 border-b border-zinc-800 pt-2 sm:pt-[calc(env(safe-area-inset-top,0px)+12px)] px-3 sm:px-4 pb-2 sm:pb-3">
           <div className="flex items-center justify-between">
-            <DrawerTitle className="text-sm sm:text-base font-semibold">Add to {list}</DrawerTitle>
+            <DrawerTitle className="text-sm sm:text-base font-semibold">{t("mealPicker.addTo", { slot: list })}</DrawerTitle>
             <button
               onClick={() => setShowInfoModal(true)}
               className="bg-lime-700 hover:bg-lime-800 border-2 border-lime-600 text-white rounded-xl w-5 h-5 flex items-center justify-center text-sm font-bold flash-border"
-              aria-label="How to use Meal Picker"
+              aria-label={t("mealPicker.howToAria")}
             >
               ?
             </button>
@@ -219,7 +231,7 @@ export function MealPickerDrawer({
                   className="bg-purple-600/80 hover:bg-purple-600 rounded-2xl text-xs sm:text-sm px-2 sm:px-3"
                   data-testid="button-generate"
                 >
-                  {loading==="generate" ? "Generating…" : `Generate${selectedIngredients.length > 0 ? ` (${selectedIngredients.length})` : ""}`}
+                  {loading==="generate" ? t("mealPicker.generating") : (selectedIngredients.length > 0 ? t("mealPicker.generateCount", { count: selectedIngredients.length }) : t("mealPicker.generate"))}
                 </Button>
               )}
               <Button
@@ -229,9 +241,9 @@ export function MealPickerDrawer({
                 className="bg-emerald-600/80 hover:bg-emerald-600 rounded-2xl text-xs sm:text-sm px-2 sm:px-3"
                 data-testid="button-cafeteria"
               >
-                {loading==="cafeteria" ? "Generating…" : "Cafeteria"}
+                {loading==="cafeteria" ? t("mealPicker.generating") : t("mealPicker.cafeteria")}
               </Button>
-              <Button size="sm" variant="ghost" onClick={onClose} className="text-white/80 hover:bg-white/10 rounded-2xl text-xs sm:text-sm px-2 sm:px-3" data-testid="button-close">Close</Button>
+              <Button size="sm" variant="ghost" onClick={onClose} className="text-white/80 hover:bg-white/10 rounded-2xl text-xs sm:text-sm px-2 sm:px-3" data-testid="button-close">{t("mealPicker.close")}</Button>
             </div>
           </div>
 
@@ -250,7 +262,7 @@ export function MealPickerDrawer({
                       : "bg-white/10 hover:bg-white/20 text-white/80"
                   )}
                 >
-                  {cat}
+                  {MEAL_CATEGORY_LABELS[cat] ?? cat}
                 </button>
               )
             )}
@@ -322,7 +334,7 @@ export function MealPickerDrawer({
                             ? "text-emerald-200 border-emerald-300/30 bg-emerald-500/10"
                             : "text-amber-200 border-amber-300/30 bg-amber-500/10"
                         )}
-                        title={fruitItem.gi === "Low GI" ? "Lower glycemic impact" : "Regular GI"}
+                        title={fruitItem.gi === "Low GI" ? t("mealPicker.lowerGlycemic") : t("mealPicker.regularGi")}
                       >
                         {fruitItem.gi}
                       </span>
@@ -377,22 +389,22 @@ export function MealPickerDrawer({
     {showInfoModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
         <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
-          <h3 className="text-xl font-bold text-white mb-4">How to Use Meal Picker</h3>
+          <h3 className="text-xl font-bold text-white mb-4">{t("mealPicker.info.title")}</h3>
 
           <div className="space-y-4 text-white/90 text-sm">
-            <p>Quick and easy way to add pre-made meals to your plan.</p>
+            <p>{t("mealPicker.info.intro")}</p>
 
             <ul className="space-y-2 text-white/80 text-sm">
-              <li><strong className="text-white">Browse meals:</strong> Scroll through our curated meal templates</li>
-              <li><strong className="text-white">Cafeteria option:</strong> Click "Cafeteria" for a quick random meal suggestion</li>
-              <li><strong className="text-white">Click to add:</strong> Tap any meal card to add it instantly to your {list} slot</li>
-              <li><strong className="text-white">Personalized:</strong> Meals are filtered based on your allergies and preferences</li>
+              <li><strong className="text-white">{t("mealPicker.info.browseLabel")}</strong> {t("mealPicker.info.browseText")}</li>
+              <li><strong className="text-white">{t("mealPicker.info.cafeteriaLabel")}</strong> {t("mealPicker.info.cafeteriaText")}</li>
+              <li><strong className="text-white">{t("mealPicker.info.addLabel")}</strong> {t("mealPicker.info.addText", { slot: list })}</li>
+              <li><strong className="text-white">{t("mealPicker.info.personalizedLabel")}</strong> {t("mealPicker.info.personalizedText")}</li>
             </ul>
 
             <div className="bg-black/20 border border-white/10 rounded-lg p-3">
-              <p className="font-semibold text-white mb-1">💡 Tip:</p>
+              <p className="font-semibold text-white mb-1">{t("mealPicker.info.tipLabel")}</p>
               <p className="text-white/70">
-                Use the Cafeteria button when you want a quick healthy suggestion without browsing!
+                {t("mealPicker.info.tipText")}
               </p>
             </div>
           </div>
@@ -401,7 +413,7 @@ export function MealPickerDrawer({
             onClick={() => setShowInfoModal(false)}
             className="mt-6 w-full bg-lime-700 hover:bg-lime-800 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            got it!
+            {t("mealPicker.gotIt")}
           </button>
         </div>
       </div>

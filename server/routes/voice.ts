@@ -18,7 +18,7 @@ router.post('/transcribe', upload.single('audio'), async (req, res) => {
 
   const { buffer } = req.file;
   const voiceCommandParser = new VoiceCommandParser();
-  const transcript = await voiceCommandParser.transcribeAudio(buffer);
+  const transcript = await (voiceCommandParser as any).transcribeAudio(buffer);
 
   res.json({ transcript });
 });
@@ -34,7 +34,7 @@ router.post('/parse', async (req, res) => {
 
   const { transcript } = req.body;
   const voiceCommandParser = new VoiceCommandParser();
-  const command = voiceCommandParser.parseTranscript(transcript);
+  const command = (voiceCommandParser as any).parseTranscript(transcript);
 
   res.json({ command });
 });

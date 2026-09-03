@@ -274,7 +274,7 @@ body.hide-bottom-nav nav[class*="bottom-0"] {
   --background: hsl(222, 84%, 4.9%);
   --foreground: hsl(210, 40%, 98%);
   --muted: hsl(217, 32%, 17%);
-  --muted-foreground: hsl(215, 16%, 46.9%);
+  --muted-foreground: hsl(215, 20%, 78%);
   --popover: hsl(222, 84%, 4.9%);
   --popover-foreground: hsl(210, 40%, 98%);
   --card: hsl(222, 84%, 4.9%);
@@ -557,8 +557,9 @@ a {
       overflow-x: hidden;
     }
 
-    /* Fix flex layouts */
-    .flex {
+    /* Fix flex layouts — exclude Radix dialog portals which manage their
+       own flex-direction / flex-wrap and must never wrap children */
+    .flex:not([role="dialog"]) {
       flex-wrap: wrap;
       overflow-x: hidden;
     }
@@ -857,7 +858,7 @@ a {
   --input: 0 0% 20%; /* Dark input background */
   --border: 0 0% 80%; /* Light borders */
   --ring: 0 0% 80%; /* Light focus ring */
-  --muted-foreground: 0 0% 60%; /* Muted text/placeholders */
+  --muted-foreground: 0 0% 78%; /* Muted text/placeholders — readable on dark backgrounds */
 }
 
 /* Additional input styling for glass effect */
@@ -1315,6 +1316,19 @@ button, a, [role="button"], .interactive {
   display: none !important;
 }
 
+/* Academy and certification pages own contextual navigation that must remain
+   visible on desktop. Their mobile headers are fixed, but inside DesktopLayout
+   they participate in the page flow as sticky course-navigation bars. */
+@media (min-width: 1024px) {
+  .desktop-content .fixed.top-0.z-50.academy-navigation-header {
+    display: block !important;
+    position: sticky !important;
+    top: 0 !important;
+    left: auto !important;
+    right: auto !important;
+  }
+}
+
 .desktop-content {
   --safe-area-inset-top: 0px;
   --safe-area-inset-bottom: 0px;
@@ -1329,3 +1343,163 @@ button, a, [role="button"], .interactive {
 .desktop-content > .desktop-page-reset > div > div {
   padding-top: 0 !important;
 }
+
+@keyframes mpm-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ============================================
+   DESKTOP ANIMATION TONE-DOWN (FINAL PASS)
+   Prefer-reduced-motion-lite:
+   Desktop gets 50-70% less idle animation.
+   Only interaction-triggered motion on pointer devices.
+   ============================================ */
+@media (hover: hover) and (pointer: fine) {
+  /* --- Flash-border: disable continuous pulse, static glow only ---
+     Used on AI buttons, chef buttons, and chef AI meal cards.
+     On desktop: still, activates subtly on hover. */
+  .flash-border {
+    animation: none !important;
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.35);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+  }
+  .flash-border:hover {
+    box-shadow: 0 0 18px rgba(249, 115, 22, 0.45);
+    border-color: rgba(249, 115, 22, 0.72);
+    transform: scale(1.01);
+  }
+
+  /* --- Critical border: keep pulse (signals urgency) but slow it down --- */
+  .flash-border-critical {
+    animation-duration: 2.4s !important;
+  }
+
+  /* --- Shimmer: slower on desktop = calmer loading feel --- */
+  .mpm-shimmer-bar {
+    animation-duration: 2.5s !important;
+  }
+
+  /* --- Soft macro-limit pulse: static on desktop --- */
+  .animate-mpm-pulse-soft {
+    animation: none !important;
+  }
+
+  /* --- Chef motivation card sparkles: no continuous pulse on desktop.
+     Four icons pulsing simultaneously violates the "one animated element
+     per section" rule. Fade them to a soft static opacity instead. --- */
+  .chef-decoration-pulse {
+    animation: none !important;
+    opacity: 0.55;
+  }
+
+  /* --- Guided tour lime pulse: keep but slow down (tour is intentional) --- */
+  .pulse-lime-border {
+    animation-duration: 2s !important;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY: GLOBAL ANIMATION SUPPRESSION
+   Continuous pulsing/glowing borders are
+   disorienting for users with ADHD/ADD.
+   All ambient animation classes are silenced
+   here. Static glow values replace them so
+   buttons still look visually distinct.
+
+   To KEEP animate-pulse on a specific element,
+   add the `pulse-keep` class alongside it.
+   Reserved for: voice recording, copilot audio,
+   loading skeletons, and critical medical alerts.
+   ============================================ */
+
+/* ── Tailwind animate-pulse ── */
+.animate-pulse:not(.pulse-keep) {
+  animation: none !important;
+}
+.animate-pulse.pulse-keep {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+/* ── flash-border (aiButtonPulse) ── */
+/* Freeze at a static mid-glow — no movement */
+.flash-border {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(249, 115, 22, 0.28);
+  border-color: rgba(249, 115, 22, 0.55);
+}
+
+/* ── Pill button inactive glow (pill-pulse) ── */
+/* Freeze at soft base state */
+.animate-pill-pulse {
+  animation: none !important;
+  box-shadow: 0 0 6px 2px var(--pill-glow-soft, rgba(234, 179, 8, 0.2));
+  border-color: var(--pill-border-low, rgba(250, 204, 21, 0.45));
+}
+
+/* ── Active pill button glow variants ── */
+/* Freeze at a visible but calm static glow */
+.animate-pulse-glow-green {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(52, 211, 153, 0.5), 0 0 18px 5px rgba(16, 185, 129, 0.25);
+  border-color: rgba(110, 231, 183, 0.85);
+}
+.animate-pulse-glow-amber {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(245, 158, 11, 0.5), 0 0 18px 5px rgba(217, 119, 6, 0.25);
+  border-color: rgba(251, 191, 36, 0.85);
+}
+.animate-pulse-glow-orange {
+  animation: none !important;
+  box-shadow: 0 0 12px 4px rgba(249, 115, 22, 0.45), 0 0 22px 7px rgba(234, 88, 12, 0.2);
+  border-color: rgba(251, 146, 60, 0.85);
+}
+.animate-pulse-glow-blue {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(59, 130, 246, 0.45), 0 0 18px 5px rgba(37, 99, 235, 0.2);
+  border-color: rgba(96, 165, 250, 0.85);
+}
+.animate-pulse-glow-rose {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(244, 63, 94, 0.45), 0 0 18px 5px rgba(225, 29, 72, 0.2);
+  border-color: rgba(253, 164, 175, 0.85);
+}
+.animate-pulse-glow-violet {
+  animation: none !important;
+  box-shadow: 0 0 10px 3px rgba(139, 92, 246, 0.45), 0 0 18px 5px rgba(109, 40, 217, 0.2);
+  border-color: rgba(196, 181, 253, 0.85);
+}
+
+/* ==========================================
+   DARK MODE TEXT VISIBILITY — GLOBAL RULE
+   All gray/zinc/slate text classes that are
+   unreadable on dark backgrounds are rescued
+   here. Do NOT use text-gray-500/600 or
+   text-muted-foreground expecting it to be
+   subtle — on dark it must still be legible.
+   ========================================== */
+.dark .text-gray-400,
+.dark .text-zinc-400,
+.dark .text-slate-400 {
+  color: hsl(215, 15%, 75%) !important;
+}
+
+.dark .text-gray-500,
+.dark .text-zinc-500,
+.dark .text-slate-500 {
+  color: hsl(215, 15%, 72%) !important;
+}
+
+.dark .text-gray-600,
+.dark .text-zinc-600,
+.dark .text-slate-600 {
+  color: hsl(215, 15%, 68%) !important;
+}
+
+.dark .text-gray-700,
+.dark .text-zinc-700,
+.dark .text-slate-700 {
+  color: hsl(215, 15%, 65%) !important;
+}
+

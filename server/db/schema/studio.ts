@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb, index, uniqueIndex, boolean, integer } from "drizzle-orm/pg-core";
+import type { StudioVideoMediaState } from "@shared/studioVideoMessages";
 
 export const professionalSpaceTypeEnum = pgEnum("professional_space_type", ["studio", "clinic"]);
 
@@ -14,6 +15,7 @@ export const activityActionEnum = pgEnum("activity_action", [
   "membership_created",
   "membership_activated", 
   "membership_paused",
+  "membership_disconnected",
   "builder_assigned",
   "board_created",
   "board_updated",
@@ -28,12 +30,17 @@ export const activityActionEnum = pgEnum("activity_action", [
   "message_deleted",
   "note_deleted",
   "message_blocked",
-  "message_flagged"
+  "message_flagged",
+  "cycle_protocol_updated",
+  "nutrition_strategy_viewed",
+  "nutrition_strategy_acknowledged",
+  "board_access_changed"
 ]);
 
 export const studios = pgTable("studios", {
   id: uuid("id").defaultRandom().primaryKey(),
   ownerUserId: text("owner_user_id").notNull().unique(),
+  orgId: uuid("org_id"),
   type: professionalSpaceTypeEnum("type").notNull().default("studio"),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
@@ -86,6 +93,7 @@ export const studioInvites = pgTable("studio_invites", {
   studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
   inviteCode: text("invite_code").notNull().unique(),
+  urlToken: text("url_token").unique(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -122,11 +130,118 @@ export const clientNotes = pgTable("client_notes", {
   tags: jsonb("tags").$type<string[]>().default([]),
   entryType: entryTypeEnum("entry_type").notNull().default("note"),
   sender: senderTypeEnum("sender").notNull().default("pro"),
+  contentType: text("content_type").$type<"text" | "voice">().notNull().default("text"),
+  audioObjectKey: text("audio_object_key"),
+  // New voice notes use the private Replit media store. Existing rows default
+  // to the legacy S3 adapter so their storage location is never guessed from a
+  // filename or object-key prefix.
+  audioStorageBackend: text("audio_storage_backend").$type<"replit" | "s3_legacy">().notNull().default("s3_legacy"),
+  audioMimeType: text("audio_mime_type"),
+  audioDurationSec: integer("audio_duration_sec"),
+  transcript: text("transcript"),
+  transcriptStatus: text("transcript_status").$type<"pending" | "completed" | "failed" | "blocked">(),
+  moderationStatus: text("moderation_status").$type<"pending" | "approved" | "blocked">(),
+  transcribedAt: timestamp("transcribed_at", { withTimezone: true }),
+  moderatedAt: timestamp("moderated_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   studioClientIdx: index("idx_client_notes_studio_client").on(table.studioId, table.clientUserId),
   authorIdx: index("idx_client_notes_author").on(table.authorUserId),
+  voiceRecoveryIdx: index("idx_client_notes_voice_recovery").on(table.contentType, table.transcriptStatus),
+}));
+export const tabletVoiceJobs = pgTable("tablet_voice_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  noteId: uuid("note_id").notNull().references(() => clientNotes.id, { onDelete: "cascade" }),
+  status: text("status").$type<"pending" | "processing" | "completed" | "failed">().notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  processingClaimToken: text("processing_claim_token"),
+  processingLeaseExpiresAt: timestamp("processing_lease_expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+}, (table) => ({
+  statusIdx: index("idx_tablet_voice_jobs_status").on(table.status),
+  processingLeaseIdx: index("idx_tablet_voice_jobs_processing_lease").on(table.status, table.processingLeaseExpiresAt),
+}));
+
+/**
+ * Private Studio video messages use their own parent/media records so the
+ * permanent communication record can retain a transcript after the temporary
+ * media object is purged. Do not add public URL columns here.
+ */
+export const studioVideoMessages = pgTable("studio_video_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+  clientUserId: text("client_user_id").notNull(),
+  authorUserId: text("author_user_id").notNull(),
+  recipientUserId: text("recipient_user_id").notNull(),
+  sender: senderTypeEnum("sender").notNull(),
+  visibility: noteVisibilityEnum("visibility").notNull().default("shared_with_client"),
+  contentType: text("content_type").$type<"video">().notNull().default("video"),
+  body: text("body").notNull().default("Video message"),
+  transcript: text("transcript"),
+  transcriptStatus: text("transcript_status").$type<"pending" | "completed" | "failed" | "blocked">().notNull().default("completed"),
+  transcribedAt: timestamp("transcribed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  studioClientIdx: index("idx_studio_video_messages_studio_client").on(table.studioId, table.clientUserId),
+  authorIdx: index("idx_studio_video_messages_author").on(table.authorUserId),
+  createdIdx: index("idx_studio_video_messages_created").on(table.createdAt),
+}));
+
+/**
+ * A participant-specific Studio history tombstone. The underlying shared
+ * message remains intact for the other participant and for retention rules.
+ * Exactly one of the two message references is populated by the migration.
+ */
+export const studioMessageViewerDeletions = pgTable("studio_message_viewer_deletions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+  clientUserId: text("client_user_id").notNull(),
+  viewerUserId: text("viewer_user_id").notNull(),
+  clientNoteId: uuid("client_note_id").references(() => clientNotes.id, { onDelete: "cascade" }),
+  studioVideoMessageId: uuid("studio_video_message_id").references(() => studioVideoMessages.id, { onDelete: "cascade" }),
+  hiddenAt: timestamp("hidden_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  viewerIdx: index("idx_studio_message_viewer_deletions_viewer").on(table.viewerUserId, table.studioId),
+  clientNoteIdx: index("idx_studio_message_viewer_deletions_client_note").on(table.clientNoteId),
+  videoMessageIdx: index("idx_studio_message_viewer_deletions_video_message").on(table.studioVideoMessageId),
+}));
+
+export const studioVideoMedia = pgTable("studio_video_media", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  messageId: uuid("message_id").notNull().references(() => studioVideoMessages.id, { onDelete: "cascade" }).unique(),
+  state: text("state").$type<StudioVideoMediaState>().notNull().default("draft"),
+  objectKey: text("object_key"),
+  mimeType: text("mime_type").notNull(),
+  durationSec: integer("duration_sec").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  temporaryDerivativeKeys: jsonb("temporary_derivative_keys").$type<string[]>().notNull().default([]),
+  watchProgress: jsonb("watch_progress").$type<{
+    durationSec: number;
+    watchedIntervals: Array<[number, number]>;
+    lastPositionSec: number | null;
+    lastObservedAtMs: number | null;
+    maxVerifiedPositionSec: number;
+    rejectedSampleCount: number;
+  } | null>(),
+  watchCompletedAt: timestamp("watch_completed_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  moderationStatus: text("moderation_status").$type<"pending" | "approved" | "blocked">().notNull().default("approved"),
+  moderatedAt: timestamp("moderated_at", { withTimezone: true }),
+  deletionAttempts: integer("deletion_attempts").notNull().default(0),
+  deletionClaimToken: text("deletion_claim_token"),
+  deletionLeaseExpiresAt: timestamp("deletion_lease_expires_at", { withTimezone: true }),
+  lastDeletionError: text("last_deletion_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  stateIdx: index("idx_studio_video_media_state").on(table.state),
+  expiresIdx: index("idx_studio_video_media_expires").on(table.expiresAt),
+  purgeIdx: index("idx_studio_video_media_purge").on(table.state, table.expiresAt),
 }));
 
 export type Studio = typeof studios.$inferSelect;
@@ -141,6 +256,11 @@ export type ClientSubscription = typeof clientSubscriptions.$inferSelect;
 export type InsertClientSubscription = typeof clientSubscriptions.$inferInsert;
 export type ClientNote = typeof clientNotes.$inferSelect;
 export type InsertClientNote = typeof clientNotes.$inferInsert;
+export type StudioVideoMessage = typeof studioVideoMessages.$inferSelect;
+export type InsertStudioVideoMessage = typeof studioVideoMessages.$inferInsert;
+export type StudioMessageViewerDeletion = typeof studioMessageViewerDeletions.$inferSelect;
+export type StudioVideoMedia = typeof studioVideoMedia.$inferSelect;
+export type InsertStudioVideoMedia = typeof studioVideoMedia.$inferInsert;
 
 export const coachingInvites = pgTable("coaching_invites", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -180,3 +300,76 @@ export const clientActivityLog = pgTable("client_activity_log", {
 
 export type ClientActivityLog = typeof clientActivityLog.$inferSelect;
 export type InsertClientActivityLog = typeof clientActivityLog.$inferInsert;
+
+export const STRATEGY_TYPES = [
+  "Lower Carb Phase",
+  "Higher Carb Push",
+  "Carb Refeed",
+  "Lower Fat Phase",
+  "Higher Fat Adjustment",
+  "Maintenance Hold",
+  "Custom Strategy",
+] as const;
+
+export type StrategyType = typeof STRATEGY_TYPES[number];
+
+export const clientCycleProtocols = pgTable("client_cycle_protocols", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+  clientUserId: text("client_user_id").notNull().unique(),
+  strategyType: text("strategy_type").notNull().default("Custom Strategy"),
+  coachInstructions: text("coach_instructions"),
+  watchFor: text("watch_for"),
+  strategyVersion: integer("strategy_version").notNull().default(1),
+  updatedByUserId: text("updated_by_user_id").notNull(),
+  updatedByRole: text("updated_by_role").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }),
+  lastViewedByUserId: text("last_viewed_by_user_id"),
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+  acknowledgedByUserId: text("acknowledged_by_user_id"),
+  acknowledgedVersion: integer("acknowledged_version"),
+}, (table) => ({
+  studioIdx: index("idx_cycle_protocols_studio").on(table.studioId),
+  clientIdx: index("idx_cycle_protocols_client").on(table.clientUserId),
+}));
+
+export type ClientCycleProtocol = typeof clientCycleProtocols.$inferSelect;
+export type InsertClientCycleProtocol = typeof clientCycleProtocols.$inferInsert;
+
+// ─── Check-in Schedules ──────────────────────────────────────────────────────
+// Persists the follow-up dates the coach sets so the server background job
+// can fire alerts to both the coach and the client at the right time.
+
+export const checkInSchedules = pgTable("check_in_schedules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }),
+  clientUserId: text("client_user_id").notNull(),
+  proUserId: text("pro_user_id").notNull(),
+  dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+  note: text("note"),
+  done: boolean("done").notNull().default(false),
+  alertsSent: jsonb("alerts_sent").$type<Record<string, boolean>>().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  studioClientIdx: index("idx_checkin_studio_client").on(table.studioId, table.clientUserId),
+  dueAtIdx: index("idx_checkin_due_at").on(table.dueAt),
+}));
+
+export type CheckInSchedule = typeof checkInSchedules.$inferSelect;
+export type InsertCheckInSchedule = typeof checkInSchedules.$inferInsert;
+
+// ─── Check-in Alert Preferences ──────────────────────────────────────────────
+// Stored per studio (coach/physician). Intervals are: "2h" | "24h" | "48h" | "1w"
+
+export const checkInAlertPrefs = pgTable("check_in_alert_prefs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studioId: uuid("studio_id").notNull().references(() => studios.id, { onDelete: "cascade" }).unique(),
+  intervals: jsonb("intervals").$type<string[]>().notNull().default(["24h", "1w"]),
+  enabled: boolean("enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type CheckInAlertPrefs = typeof checkInAlertPrefs.$inferSelect;
+export type InsertCheckInAlertPrefs = typeof checkInAlertPrefs.$inferInsert;

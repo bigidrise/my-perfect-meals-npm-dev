@@ -84,12 +84,12 @@ export default {
         },
         "pill-pulse": {
           "0%, 100%": {
-            boxShadow: "0 0 4px 1px rgba(234, 179, 8, 0.2)",
-            borderColor: "rgba(250, 204, 21, 0.4)",
+            boxShadow: "0 0 4px 1px var(--pill-glow-soft, rgba(234, 179, 8, 0.2))",
+            borderColor: "var(--pill-border-low, rgba(250, 204, 21, 0.4))",
           },
           "50%": {
-            boxShadow: "0 0 12px 4px rgba(234, 179, 8, 0.5), 0 0 20px 6px rgba(234, 179, 8, 0.25)",
-            borderColor: "rgba(250, 204, 21, 0.9)",
+            boxShadow: "0 0 12px 4px var(--pill-glow-strong, rgba(234, 179, 8, 0.5)), 0 0 20px 6px var(--pill-glow-soft, rgba(234, 179, 8, 0.25))",
+            borderColor: "var(--pill-border-high, rgba(250, 204, 21, 0.9))",
           },
         },
         "pulse-glow-green": {
@@ -132,15 +132,37 @@ export default {
             borderColor: "rgba(96, 165, 250, 0.9)",
           },
         },
+        "pulse-glow-rose": {
+          "0%, 100%": {
+            boxShadow: "0 0 8px 2px rgba(244, 63, 94, 0.3), 0 0 16px 4px rgba(225, 29, 72, 0.15)",
+            borderColor: "rgba(251, 113, 133, 0.5)",
+          },
+          "50%": {
+            boxShadow: "0 0 14px 5px rgba(244, 63, 94, 0.5), 0 0 28px 10px rgba(225, 29, 72, 0.25)",
+            borderColor: "rgba(253, 164, 175, 0.9)",
+          },
+        },
+        "pulse-glow-violet": {
+          "0%, 100%": {
+            boxShadow: "0 0 8px 2px rgba(139, 92, 246, 0.3), 0 0 16px 4px rgba(109, 40, 217, 0.15)",
+            borderColor: "rgba(167, 139, 250, 0.5)",
+          },
+          "50%": {
+            boxShadow: "0 0 14px 5px rgba(139, 92, 246, 0.5), 0 0 28px 10px rgba(109, 40, 217, 0.25)",
+            borderColor: "rgba(196, 181, 253, 0.9)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "pill-pulse": "pill-pulse 2s ease-in-out infinite",
-        "pulse-glow-green": "pulse-glow-green 2s ease-in-out infinite",
-        "pulse-glow-amber": "pulse-glow-amber 2s ease-in-out infinite",
-        "pulse-glow-orange": "pulse-glow-orange 2s ease-in-out infinite",
-        "pulse-glow-blue": "pulse-glow-blue 2s ease-in-out infinite",
+        "pill-pulse": "none",
+        "pulse-glow-green": "none",
+        "pulse-glow-amber": "none",
+        "pulse-glow-orange": "none",
+        "pulse-glow-blue": "none",
+        "pulse-glow-rose": "none",
+        "pulse-glow-violet": "none",
       },
     },
   },

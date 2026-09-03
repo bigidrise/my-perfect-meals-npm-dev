@@ -63,7 +63,7 @@ export default function PrivacyPolicy() {
             <h4 className="text-md font-medium text-white/90 mt-4">1.1 Information You Provide</h4>
             <div className="text-white/70 text-sm space-y-2">
               <p><strong>Account Information:</strong> Name, Email, Password, Birthday (for personalization + birthday greetings)</p>
-              <p><strong>Health & Nutrition Preferences:</strong> Dietary focus (Diabetes, GLP-1, Cardiac, Anti-Inflammatory, General Nutrition), Sex, age, height, weight, Allergies, Activity level, Glycemic preferences, Macro goals and meal preferences, Cravings and food preferences, Fridge items you enter manually</p>
+              <p><strong>Health & Nutrition Preferences:</strong> Dietary focus (Diabetes, Metabolic Medication, Cardiac, Anti-Inflammatory, General Nutrition), Sex, age, height, weight, Allergies, Activity level, Glycemic preferences, Macro goals and meal preferences, Cravings and food preferences, Fridge items you enter manually</p>
               <p><strong>Coaching / ProCare Data:</strong> If you connect with a trainer, coach, or physician through My Perfect Meals ProCare, we collect goals and assigned nutrition plans, coach-assigned adjustments, and progress notes.</p>
             </div>
 
@@ -81,7 +81,7 @@ export default function PrivacyPolicy() {
             <h3 className="text-lg font-semibold text-white">2. How We Use Your Information</h3>
             <ul className="text-white/70 text-sm list-disc list-inside space-y-1">
               <li>Personalize meals, macros, and AI recommendations</li>
-              <li>Provide Diabetes, GLP-1, Cardiac, and Anti-Inflammatory guardrails</li>
+              <li>Provide Diabetes, Metabolic Medication, Cardiac, and Anti-Inflammatory guardrails</li>
               <li>Build shopping lists and automate meal planning</li>
               <li>Provide birthday greetings</li>
               <li>Improve AI accuracy</li>
@@ -128,7 +128,7 @@ export default function PrivacyPolicy() {
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-white">6. Your Rights</h3>
             <p className="text-white/70 text-sm">Depending on your region, you may request a copy of your data, update or delete your data, withdraw consent, or close your account at any time.</p>
-            <p className="text-white/70 text-sm">Contact us at <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a> for requests.</p>
+            <p className="text-white/70 text-sm">Contact us at <a href="mailto:support@myperfectmeals.ai" className="text-lime-400 underline">support@myperfectmeals.ai</a> for requests.</p>
           </section>
 
           <section className="space-y-3">
@@ -149,7 +149,7 @@ export default function PrivacyPolicy() {
           <section className="space-y-3 border-t border-white/10 pt-4">
             <h3 className="text-lg font-semibold text-white">10. Contact Us</h3>
             <p className="text-white/70 text-sm">My Perfect Meals</p>
-            <p className="text-white/70 text-sm">Support Email: <a href="mailto:support@myperfectmeals.com" className="text-lime-400 underline">support@myperfectmeals.com</a></p>
+            <p className="text-white/70 text-sm">Support Email: <a href="mailto:support@myperfectmeals.ai" className="text-lime-400 underline">support@myperfectmeals.ai</a></p>
           </section>
         </div>
 

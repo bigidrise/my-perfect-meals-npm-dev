@@ -32,7 +32,7 @@ export const VoiceCommandInterface = () => {
             {isProcessing ? (
               <LoaderCircle className="animate-spin text-orange-500" />
             ) : isListening ? (
-              <Mic className="text-orange-500 animate-pulse" />
+              <Mic className="text-orange-500 animate-pulse pulse-keep" />
             ) : error ? (
               <MicOff className="text-red-500" />
             ) : null}

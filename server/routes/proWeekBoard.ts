@@ -10,7 +10,7 @@ import { pushToUser } from "../services/pushNotify";
 type WeekBoard = {
   id: string;
   version: number;
-  lists: { breakfast: any[]; lunch: any[]; dinner: any[]; snacks: any[] };
+  lists: { breakfast: any[]; lunch: any[]; dinner: any[]; snacks: any[]; meal4: any[]; meal5: any[]; meal6: any[] };
   meta: { createdAt: string; lastUpdatedAt: string };
 };
 
@@ -18,7 +18,7 @@ function getOrCreateWeek(weekStartISO: string): WeekBoard {
   return {
     id: `week-${weekStartISO}`,
     version: 1,
-    lists: { breakfast: [], lunch: [], dinner: [], snacks: [] },
+    lists: { breakfast: [], lunch: [], dinner: [], snacks: [], meal4: [], meal5: [], meal6: [] },
     meta: {
       createdAt: new Date().toISOString(),
       lastUpdatedAt: new Date().toISOString(),
@@ -67,6 +67,9 @@ function normalizeBoard(raw: any): any {
       medicalBadges: Array.isArray(m?.medicalBadges)
         ? m.medicalBadges
         : undefined,
+
+      // Diabetic Meal Memory — BGL context stamped at meal birth, must survive round-trip
+      diabeticMemory: (m?.diabeticMemory && typeof m.diabeticMemory === 'object') ? m.diabeticMemory : undefined,
     }));
   };
 
@@ -78,6 +81,9 @@ function normalizeBoard(raw: any): any {
       lunch: normalizeMealArray(lists.lunch),
       dinner: normalizeMealArray(lists.dinner),
       snacks: normalizeMealArray(lists.snacks),
+      meal4: normalizeMealArray(lists.meal4),
+      meal5: normalizeMealArray(lists.meal5),
+      meal6: normalizeMealArray(lists.meal6),
     },
     meta: {
       ...(base.meta ?? {}),
@@ -94,6 +100,9 @@ function normalizeBoard(raw: any): any {
         lunch: normalizeMealArray(dayVal?.lunch),
         dinner: normalizeMealArray(dayVal?.dinner),
         snacks: normalizeMealArray(dayVal?.snacks),
+        meal4: normalizeMealArray(dayVal?.meal4),
+        meal5: normalizeMealArray(dayVal?.meal5),
+        meal6: normalizeMealArray(dayVal?.meal6),
       };
     }
   }
@@ -111,12 +120,27 @@ async function processAllMealImagesForSave(
     for (const meal of meals) {
       if (meal.imageUrl) {
         try {
-          const result = await processMealImageForSave(meal.imageUrl);
-          if (result.processed) {
-            meal.imageUrl = result.url;
-            imagesProcessed++;
+          const mealName = meal.title || meal.name || 'Meal';
+          // Guard: strip base64 data URIs before the lifecycle gate — client-side
+          // localStorage may cache meals with raw base64 before the permanent URL
+          // is available.  Null it out here so the meal saves with no image rather
+          // than producing a lifecycle_violation ERROR log.
+          const rawProMealImageUrl: string = meal.imageUrl;
+          if (rawProMealImageUrl.startsWith("data:")) {
+            console.warn(
+              `[proWeekBoard/processAllMealImagesForSave] Stripped base64 imageUrl for "${mealName}" — client sent stale localStorage data`,
+            );
+            meal.imageUrl = undefined;
+            imagesPending++;
+            continue;
           }
-          if (result.pending) imagesPending++;
+          const result = await processMealImageForSave(meal.imageUrl, mealName);
+          if (result.ingestionAttempted && result.imageUrl) {
+            meal.imageUrl = result.imageUrl;
+            imagesProcessed++;
+          } else if (result.imagePending) {
+            imagesPending++;
+          }
         } catch {
           imagesPending++;
         }
@@ -129,6 +153,9 @@ async function processAllMealImagesForSave(
     await processMeals(board.lists.lunch || []);
     await processMeals(board.lists.dinner || []);
     await processMeals(board.lists.snacks || []);
+    await processMeals(board.lists.meal4 || []);
+    await processMeals(board.lists.meal5 || []);
+    await processMeals(board.lists.meal6 || []);
   }
 
   if (board.days) {
@@ -137,6 +164,9 @@ async function processAllMealImagesForSave(
       await processMeals(dayVal?.lunch || []);
       await processMeals(dayVal?.dinner || []);
       await processMeals(dayVal?.snacks || []);
+      await processMeals(dayVal?.meal4 || []);
+      await processMeals(dayVal?.meal5 || []);
+      await processMeals(dayVal?.meal6 || []);
     }
   }
 
@@ -154,11 +184,12 @@ router.get(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const weekStartISO = getWeekStartISO();
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
-      let board = await getWeekBoard(clientUserId, weekStartISO);
+      let board = await getWeekBoard(clientUserId, weekStartISO, builderType);
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
-        await upsertWeekBoard(clientUserId, weekStartISO, board);
+        await upsertWeekBoard(clientUserId, weekStartISO, board, builderType);
       }
 
       return res.json({ weekStartISO, week: normalizeBoard(board), source: "db" });
@@ -178,15 +209,16 @@ router.get(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const { weekStartISO } = req.params;
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
       if (!isValidISODate(weekStartISO)) {
         return res.status(400).json({ error: "Invalid weekStartISO format (YYYY-MM-DD)" });
       }
 
-      let board = await getWeekBoard(clientUserId, weekStartISO);
+      let board = await getWeekBoard(clientUserId, weekStartISO, builderType);
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
-        await upsertWeekBoard(clientUserId, weekStartISO, board);
+        await upsertWeekBoard(clientUserId, weekStartISO, board, builderType);
       }
 
       return res.json({ weekStartISO, week: normalizeBoard(board), source: "db" });
@@ -206,15 +238,15 @@ router.get(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const weekParam = req.query.week as string | undefined;
-      const weekStartISO =
-        weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
-      let board = await getWeekBoard(clientUserId, weekStartISO);
+      let board = await getWeekBoard(clientUserId, weekStartISO, builderType);
       let source = "db";
 
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
-        await upsertWeekBoard(clientUserId, weekStartISO, board);
+        await upsertWeekBoard(clientUserId, weekStartISO, board, builderType);
         source = "seed";
       }
 
@@ -235,6 +267,7 @@ router.put(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const { weekStartISO } = req.params;
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
       if (!isValidISODate(weekStartISO)) {
         return res.status(400).json({ error: "Invalid weekStartISO format (YYYY-MM-DD)" });
@@ -255,7 +288,7 @@ router.put(
       }
 
       const now = new Date().toISOString();
-      const existingBoard = await getWeekBoard(clientUserId, weekStartISO);
+      const existingBoard = await getWeekBoard(clientUserId, weekStartISO, builderType);
       const saved: WeekBoard = {
         ...processedBoard,
         id: `week-${weekStartISO}`,
@@ -264,10 +297,17 @@ router.put(
           ...processedBoard.meta,
           createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
+          providerUpdatedAt: now,
         },
       };
 
-      await upsertWeekBoard(clientUserId, weekStartISO, saved);
+      await upsertWeekBoard(clientUserId, weekStartISO, saved, builderType);
+
+      // Publish to default (patient-facing) namespace so the patient's
+      // WeeklyMealBoard always reflects the latest provider plan.
+      if (builderType) {
+        await upsertWeekBoard(clientUserId, weekStartISO, saved, '');
+      }
 
       logActivityFireAndForget(
         access.proUserId,
@@ -275,7 +315,7 @@ router.put(
         "board_updated",
         "weekly_board",
         `week-${weekStartISO}`,
-        { weekStartISO, imagesProcessed, imagesPending, updatedBy: "pro" }
+        { weekStartISO, builderType, imagesProcessed, imagesPending, updatedBy: "pro" }
       );
 
       pushToUser(clientUserId, {
@@ -307,8 +347,8 @@ router.put(
       const access = (req as BoardAccessRequest).boardAccess!;
       const clientUserId = access.clientUserId;
       const weekParam = req.query.week as string | undefined;
-      const weekStartISO =
-        weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
+      const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
 
       const incoming = normalizeBoard(req.body?.week ?? req.body);
 
@@ -325,7 +365,7 @@ router.put(
       }
 
       const now = new Date().toISOString();
-      const existingBoard = await getWeekBoard(clientUserId, weekStartISO);
+      const existingBoard = await getWeekBoard(clientUserId, weekStartISO, builderType);
       const saved: WeekBoard = {
         ...processedBoard,
         id: `week-${weekStartISO}`,
@@ -334,10 +374,17 @@ router.put(
           ...processedBoard.meta,
           createdAt: existingBoard?.meta?.createdAt ?? now,
           lastUpdatedAt: now,
+          providerUpdatedAt: now,
         },
       };
 
-      await upsertWeekBoard(clientUserId, weekStartISO, saved);
+      await upsertWeekBoard(clientUserId, weekStartISO, saved, builderType);
+
+      // Publish to default (patient-facing) namespace so the patient's
+      // WeeklyMealBoard always reflects the latest provider plan.
+      if (builderType) {
+        await upsertWeekBoard(clientUserId, weekStartISO, saved, '');
+      }
 
       logActivityFireAndForget(
         access.proUserId,
@@ -345,7 +392,7 @@ router.put(
         "board_updated",
         "weekly_board",
         `week-${weekStartISO}`,
-        { weekStartISO, imagesProcessed, imagesPending, updatedBy: "pro" }
+        { weekStartISO, builderType, imagesProcessed, imagesPending, updatedBy: "pro" }
       );
 
       pushToUser(clientUserId, {

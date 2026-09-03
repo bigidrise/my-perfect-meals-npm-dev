@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertTriangle, RotateCcw, Plus, Clock, Users, Eye } from "lucide-react";
-import { Meal, UserProfile } from "@/services/mealEngineService";
+import { EngineMeal, UserProfile } from "@/services/mealEngineService";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 interface MedicalBadge {
   badge: string;
@@ -13,7 +14,7 @@ interface MedicalBadge {
 }
 
 // Dynamic Medical Badge System - generates badges based on onboarding data
-function generateDynamicMedicalBadges(meal: Meal, userProfile: UserProfile): MedicalBadge[] {
+function generateDynamicMedicalBadges(meal: EngineMeal, userProfile: UserProfile): MedicalBadge[] {
   const badges: MedicalBadge[] = [];
 
   const allergies = userProfile?.allergies || [];
@@ -99,7 +100,7 @@ function generateDynamicMedicalBadges(meal: Meal, userProfile: UserProfile): Med
 }
 
 interface MealCardDynamicProps {
-  meal: Meal;
+  meal: EngineMeal;
   userProfile: UserProfile;
   onDelete: (mealId: string) => void;
   onReplace: (mealId: string) => void;
@@ -196,13 +197,21 @@ const MealCardDynamic: React.FC<MealCardDynamicProps> = ({
 
       {/* Image */}
       {meal.imageUrl && (
-        <img
-          src={meal.imageUrl}
-          alt={meal.name}
-          className="w-full h-48 object-cover rounded-lg"
-          loading="lazy"
+        <MealImageSlot
+          imageUrl={meal.imageUrl}
+          mealName={meal.name}
+          ingredients={meal.ingredients}
+          height="h-48"
+          className="!mb-0 !rounded-lg"
         />
       )}
+
+      {/* Coaching line */}
+      <div className="px-1 pt-2 pb-0">
+        <p className="text-xs text-slate-500 dark:text-white/55 leading-relaxed border-l-2 border-slate-200 dark:border-white/20 pl-2.5">
+          Built for your current plan and targets.
+        </p>
+      </div>
 
       {/* Nutrition & Meta */}
       <div className="grid grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">

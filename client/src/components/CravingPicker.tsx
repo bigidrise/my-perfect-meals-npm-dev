@@ -2,26 +2,20 @@
 // Full-screen modal that uses the same backend as Craving Creator
 // and returns a meal object to the caller without leaving the page.
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
 import { X, RefreshCcw } from "lucide-react";
-import MealCard from "@/components/MealCard";
+import { MealCard } from "@/components/MealCard";
+import { useToast } from "@/hooks/use-toast";
+import {
+  fromMealCardMeal,
+  getMealCardSlot,
+  toMealCardMeal,
+  type PickerMealCardData,
+} from "@/lib/pickerMealCardAdapter";
 
-type Ingredient = { name: string; amount: string };
-
-export type PickerMeal = {
-  name: string; 
-  description?: string; 
-  imageUrl?: string;
-  ingredients: Ingredient[]; 
-  instructions: string[];
-  calories?: number; 
-  protein?: number; 
-  carbs?: number; 
-  fats?: number;
-  labels?: string[]; 
-  badges: string[];
-};
+export type PickerMeal = PickerMealCardData;
 
 export default function CravingPicker({
   open,
@@ -36,6 +30,8 @@ export default function CravingPicker({
   onUse: (meal: PickerMeal) => void;
   userId?: string;
 }) {
+  const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [meal, setMeal] = useState<PickerMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,12 +60,25 @@ export default function CravingPicker({
         }),
       });
       
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        let errData: any = {};
+        try { errData = await res.json(); } catch { /* non-JSON response */ }
+        if (errData.reasonCode === "constraint_conflict") {
+          toast({
+            title: t("mealPicker.noOptionsFitPlan"),
+            description: errData.message || errData.error || "Your health protocol eliminated all generated options. Try a different meal type or adjust your settings.",
+            duration: 8000,
+          });
+          return;
+        }
+        throw new Error(errData.error || errData.message || `HTTP ${res.status}`);
+      }
       
       const data = await res.json();
       const m = data.meal || data;
       
       const normalized: PickerMeal = {
+        id: String(m?.id ?? m?.mealId ?? `picker-${Date.now()}-${Math.random().toString(36).slice(2)}`),
         name: String(m?.name ?? m?.title ?? "Chef's Choice"),
         description: m?.description ?? m?.summary ?? undefined,
         imageUrl: m?.imageUrl ?? m?.imageURL ?? m?.image ?? undefined,
@@ -92,7 +101,8 @@ export default function CravingPicker({
       
       setMeal(normalized);
     } catch (e: any) {
-      setError(e.message || "Failed to generate meal");
+      const detail = e?.message ? ` ${e.message}` : "";
+      setError(`Meal generation failed.${detail} Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -135,7 +145,7 @@ export default function CravingPicker({
                     Generating...
                   </>
                 ) : (
-                  <>Generate {slotLabel} Option</>
+                  <>{error ? "Try Again" : `Generate ${slotLabel} Option`}</>
                 )}
               </Button>
               {error && (
@@ -147,17 +157,19 @@ export default function CravingPicker({
           ) : (
             <>
               <MealCard
-                item={{
-                  ...meal,
-                  slot: "meal" as const,
-                  label: slotLabel,
-                  time: "",
-                  dayIndex: 0,
-                  order: 0,
-                  badges: meal.badges ?? [],
+                date="board"
+                slot={getMealCardSlot(slotLabel)}
+                meal={toMealCardMeal(meal)}
+                onUpdated={(updatedMeal) => {
+                  if (updatedMeal === null) {
+                    setMeal(null);
+                    return;
+                  }
+
+                  setMeal((currentMeal) => currentMeal
+                    ? fromMealCardMeal(updatedMeal, currentMeal)
+                    : currentMeal);
                 }}
-                onRegenerate={generate}
-                cravingCreatorHref="#"
               />
               <div className="flex justify-end gap-3 pt-2">
                 <Button variant="outline" onClick={generate} disabled={loading}>

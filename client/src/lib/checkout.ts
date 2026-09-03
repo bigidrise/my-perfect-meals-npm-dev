@@ -1,4 +1,4 @@
-import type { LookupKey } from "@/data/planSkus";
+import type { CheckoutLookupKey } from "@shared/planFeatures";
 import { isIosNativeShell } from "@/lib/platform";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -12,6 +12,21 @@ export const IOS_BLOCK_ERROR = "IOS_APP_EXTERNAL_PAYMENTS_BLOCKED";
 export interface CheckoutOptions {
   customerEmail?: string;
   context?: string;
+}
+
+function getRewardfulReferral(): string | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const rw = (window as any).rewardful;
+    if (typeof rw !== "function") return null;
+    let referralId: string | null = null;
+    rw("referral", (r: string | null) => {
+      referralId = r || null;
+    });
+    return referralId || null;
+  } catch {
+    return null;
+  }
 }
 
 function getCurrentUser() {
@@ -29,7 +44,7 @@ function getCurrentUser() {
 }
 
 export async function startCheckout(
-  priceLookupKey: LookupKey,
+  priceLookupKey: CheckoutLookupKey,
   opts?: CheckoutOptions,
 ) {
   // iOS native shell handling
@@ -69,6 +84,29 @@ export async function startCheckout(
       throw new Error("Please log in to checkout");
     }
 
+    const rewardfulReferralId = getRewardfulReferral();
+
+    // Pick up any discount promo code stored by the Promotion Engine redemption flow
+    const pendingStripePromoCodeId = sessionStorage.getItem("pendingStripePromoCodeId") || undefined;
+    if (pendingStripePromoCodeId) {
+      sessionStorage.removeItem("pendingStripePromoCodeId");
+      console.log("[Checkout] Promo code pre-applied from Promotion Engine:", pendingStripePromoCodeId);
+    }
+
+    const checkoutBody: Record<string, unknown> = {
+      priceLookupKey,
+      context: opts?.context || "unknown",
+    };
+
+    if (rewardfulReferralId) {
+      checkoutBody.rewardfulReferralId = rewardfulReferralId;
+      console.log("[Checkout] Rewardful referral captured:", rewardfulReferralId);
+    }
+
+    if (pendingStripePromoCodeId) {
+      checkoutBody.stripePromoCodeId = pendingStripePromoCodeId;
+    }
+
     const response = await fetch(apiUrl("/api/stripe/checkout"), {
       method: "POST",
       headers: {
@@ -76,10 +114,7 @@ export async function startCheckout(
         ...getAuthHeaders(),
       },
       credentials: "include",
-      body: JSON.stringify({
-        priceLookupKey,
-        context: opts?.context || "unknown",
-      }),
+      body: JSON.stringify(checkoutBody),
     });
 
     const data = await response.json();
@@ -107,7 +142,7 @@ export async function startCheckout(
 }
 
 export async function openCustomerPortal(
-  customerId: string,
+  _customerId: string,
   returnUrl?: string,
 ) {
   if (isIosNativeShell()) {
@@ -127,7 +162,6 @@ export async function openCustomerPortal(
       },
       credentials: "include",
       body: JSON.stringify({
-        customerId,
         returnUrl: returnUrl || window.location.href,
       }),
     });

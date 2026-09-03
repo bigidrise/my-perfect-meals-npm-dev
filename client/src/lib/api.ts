@@ -2,29 +2,12 @@
 import { getDeviceId } from "@/utils/deviceId";
 import { Capacitor } from "@capacitor/core";
 import { getAuthHeaders } from "@/lib/auth";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import { apiUrl, resolveApiBase } from "@/lib/resolveApiBase";
 
 type Json = Record<string, any>;
 
-// Production API base for iOS/native apps - must match capacitor.config.ts server.url
-const NATIVE_API_BASE = "https://my-perfect-meals-npm-dev.replit.app";
-
-const isDev = import.meta.env.DEV;
-const ENV_BASE =
-  (import.meta as any).env?.VITE_API_BASE?.trim() ||
-  (import.meta as any).env?.VITE_API_BASE_URL?.trim();
-
-function normalize(u?: string | null) {
-  return u ? u.replace(/\/+$/, "") : "";
-}
-
-function getApiBase(): string {
-  if (ENV_BASE) return normalize(ENV_BASE);
-  if (Capacitor.isNativePlatform()) return NATIVE_API_BASE;
-  if (isDev) return normalize(`http://${location.hostname}:5000`);
-  return "";
-}
-
-export const API_BASE = getApiBase();
+export const API_BASE = resolveApiBase();
 
 // Environment fingerprint for iOS debugging
 export function logEnvironmentFingerprint(
@@ -78,13 +61,7 @@ export class ApiError extends Error {
 // Build a full URL safely
 function url(path: string) {
   if (/^https?:\/\//i.test(path)) return path; // already absolute
-  const p = path.startsWith("/") ? path : `/${path}`;
-  // Native platforms always need absolute URLs
-  if (Capacitor.isNativePlatform()) return `${API_BASE}${p}`;
-  // In development on Replit, frontend and backend are on same origin (both served from port 5000)
-  // Use relative URLs so it works correctly
-  if (isDev && !ENV_BASE) return p;
-  return `${API_BASE}${p}`;
+  return apiUrl(path);
 }
 
 export async function apiJSON<T = any>(
@@ -167,8 +144,8 @@ export const put = <T = any>(
   init: RequestInit = {},
 ) => apiJSON<T>(path, { ...init, method: "PUT", json });
 
-export const del = <T = any>(path: string, init: RequestInit = {}) =>
-  apiJSON<T>(path, { ...init, method: "DELETE" });
+export const del = <T = any>(path: string, json?: Json, init: RequestInit = {}) =>
+  apiJSON<T>(path, { ...init, method: "DELETE", json });
 
 export const patch = <T = any>(
   path: string,
@@ -186,7 +163,7 @@ export async function apiPost<T = any>(urlPath: string, body: any): Promise<T> {
 }
 
 // Weekly Calendar API functions
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 
 export async function getWeekPlan(): Promise<
   Record<string, Record<string, Meal | null>>
@@ -225,32 +202,42 @@ export async function addMealToMacros({
   slot: string;
   meal: Meal;
 }) {
+  const nutrition = meal.nutrition;
+  if (!nutrition) {
+    throw new Error("A meal needs nutrition details before it can be added to macros.");
+  }
+
   // Use the same working pattern as craving creator
   console.log("📊 Adding meal to macros:", { date, slot, meal: meal.title });
 
+  // AI-generated meals carry split carbs at the top level or inside nutrition.
+  // Template/premade meals may not — derive from ingredients using the same
+  // classifier the server pipeline uses.
+  const existingStarchy = meal.starchyCarbs ?? nutrition.starchyCarbs;
+  const existingFibrous = meal.fibrousCarbs ?? nutrition.fibrousCarbs;
+  const hasSplit = typeof existingStarchy === "number" && typeof existingFibrous === "number"
+    && (existingStarchy > 0 || existingFibrous > 0);
+
+  const { starchyCarbs, fibrousCarbs } = hasSplit
+    ? { starchyCarbs: existingStarchy!, fibrousCarbs: existingFibrous! }
+    : deriveSplitCarbs(meal.ingredients ?? [], nutrition.carbs);
+
   const logEntry = {
-    id: meal.id || crypto.randomUUID(),
-    name: `${meal.title} (${meal.servings || 1} serving${meal.servings !== 1 ? "s" : ""})`,
-    date: date || new Date().toISOString().split("T")[0], // YYYY-MM-DD format
-    time: new Date().toLocaleTimeString("en-US", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-    calories: meal.nutrition.calories,
-    protein: meal.nutrition.protein,
-    carbs: meal.nutrition.carbs,
-    fat: meal.nutrition.fat,
-    fiber: 0, // Default values for missing fields
-    sugar: 0,
-    sodium: 0,
-    meal_type: slot || "lunch",
-    timestamp: new Date().toISOString(),
+    mealId: meal.id,
+    loggedAt: new Date().toISOString(),
+    mealType: slot || "lunch",
+    kcal: nutrition.calories,
+    protein: nutrition.protein,
+    carbs: nutrition.carbs,
+    fat: nutrition.fat,
+    starchyCarbs,
+    fibrousCarbs,
+    source: "weekly-meal-board",
   };
 
   console.log("📝 Sending log entry:", logEntry);
 
-  const result = await post("/api/food-logs", logEntry);
+  const result = await post("/api/macros/log", logEntry);
 
   // Trigger macro refresh in Biometrics dashboard
   if (typeof window !== "undefined") {

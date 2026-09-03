@@ -2,7 +2,7 @@ import { pgTable, uuid, text, integer, timestamp, boolean, jsonb, numeric, pgEnu
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const diabetesTypeEnum = pgEnum("diabetes_type", ["NONE", "T1D", "T2D"]);
+export const diabetesTypeEnum = pgEnum("diabetes_type", ["NONE", "T1D", "T2D", "PRE_D"]);
 export const glucoseContextEnum = pgEnum("glucose_context", [
   "FASTED",
   "PRE_MEAL",
@@ -107,7 +107,7 @@ export const insertGlucoseLogSchema = createInsertSchema(glucoseLogs, {
   relatedMealId: z.string().uuid().optional(),
   insulinUnits: z.number().optional(),
   notes: z.string().optional(),
-}).omit({ id: true, recordedAt: true });
+});
 
 export type InsertGlucoseLog = z.infer<typeof insertGlucoseLogSchema>;
 export type GlucoseLog = typeof glucoseLogs.$inferSelect;

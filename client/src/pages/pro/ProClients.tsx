@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -27,9 +30,13 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Link2Off,
 } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
 import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
+import { InformationModal } from "@/components/ui/universal-modal";
+import CheckInAlertPreferences from "@/components/pro/CheckInAlertPreferences";
+import CheckInOverviewPanel from "@/components/pro/CheckInOverviewPanel";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 
@@ -54,6 +61,7 @@ interface ProClientsProps {
 }
 
 export default function ProClients({ workspace }: ProClientsProps = {}) {
+  const { t } = useTranslation("pro");
   const resolvedWorkspace = workspace || "trainer";
   const isPhysician = resolvedWorkspace === "clinician";
 
@@ -65,6 +73,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const [dbSynced, setDbSynced] = useState(false);
   const [folderClient, setFolderClient] = useState<ClientProfile | null>(null);
   const [folderOpen, setFolderOpen] = useState(false);
+  const [archivePendingClient, setArchivePendingClient] = useState<ClientProfile | null>(null);
 
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [totalUnread, setTotalUnread] = useState(0);
@@ -75,6 +84,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const prevTotalUnread = useRef(0);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const isMobile = useIsMobile();
+  const [mobileGateOpen, setMobileGateOpen] = useState(false);
   const defaultRole: ProRole = isPhysician ? "doctor" : "trainer";
 
   const showToast = useCallback((msg: string) => {
@@ -138,17 +149,30 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       const headers: Record<string, string> = { ...getAuthHeaders() };
 
       const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers });
-      if (!studioRes.ok) return;
+      if (!studioRes.ok) {
+        console.warn(`[ProClients] my-studio fetch failed: ${studioRes.status}`);
+        return;
+      }
       const { studio } = await studioRes.json();
-      if (!studio) return;
+      if (!studio) {
+        console.warn("[ProClients] my-studio returned null studio");
+        return;
+      }
 
       const clientsRes = await fetch(
         apiUrl(`/api/studios/${studio.id}/clients?workspace=${resolvedWorkspace}`),
         { headers },
       );
-      if (!clientsRes.ok) return;
+      if (!clientsRes.ok) {
+        console.warn(`[ProClients] clients fetch failed: ${clientsRes.status}`);
+        return;
+      }
       const { clients: dbClients } = await clientsRes.json();
-      if (!dbClients || dbClients.length === 0) return;
+      if (!dbClients) {
+        console.warn("[ProClients] DB returned invalid response for workspace:", resolvedWorkspace);
+        return;
+      }
+      console.log(`[ProClients] DB returned ${dbClients.length} active client(s) for workspace: ${resolvedWorkspace}`);
 
       const localClients = proStore.listClients(resolvedWorkspace);
 
@@ -205,6 +229,33 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         proStore.upsertClient(profile);
       }
 
+      // Prune: server is the authority for dbBacked ProCare clients in this workspace.
+      // Any dbBacked client absent from the server response has left the studio
+      // (disconnected, revoked, or archived). Remove them from the local cache now
+      // so stale folders never persist across refreshes.
+      //
+      // Scope: only clients in resolvedWorkspace are evaluated. Clients from other
+      // workspaces (trainer vs clinician) and local-only (non-dbBacked) clients
+      // are always preserved.
+      const serverClientIds = new Set<string>(
+        (dbClients as Array<{ clientUserId?: string }>)
+          .map((c) => c.clientUserId)
+          .filter((id): id is string => Boolean(id))
+      );
+      const allLocal = proStore.listClients();
+      const afterPrune = allLocal.filter((c) => {
+        if ((c.workspace || "trainer") !== resolvedWorkspace) return true;
+        if (!c.dbBacked) return true;
+        if (!c.clientUserId) return true;
+        return serverClientIds.has(c.clientUserId);
+      });
+      if (afterPrune.length !== allLocal.length) {
+        proStore.saveClients(afterPrune);
+        console.log(
+          `[ProClients] Pruned ${allLocal.length - afterPrune.length} stale client(s) from local cache (workspace: ${resolvedWorkspace})`
+        );
+      }
+
       const wsClients = proStore.listClients(resolvedWorkspace);
       const deduped: ClientProfile[] = [];
       const seenByClientUserId = new Map<string, number>();
@@ -243,8 +294,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     const client = proStore.getClient(id);
     if (client?.studioId && client?.clientUserId) {
       try {
-        const headers: Record<string, string> = { "Content-Type": "application/json", ...getAuthHeaders() };
-        await fetch(apiUrl(`/api/studios/${client.studioId}/clients/${client.clientUserId}/archive`), { method: "PATCH", headers });
+        await apiRequest(`/api/studios/${client.studioId}/clients/${client.clientUserId}/archive`, { method: "PATCH" });
       } catch { }
     }
   };
@@ -255,8 +305,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     const client = proStore.getClient(id);
     if (client?.studioId && client?.clientUserId) {
       try {
-        const headers: Record<string, string> = { "Content-Type": "application/json", ...getAuthHeaders() };
-        await fetch(apiUrl(`/api/studios/${client.studioId}/clients/${client.clientUserId}/restore`), { method: "PATCH", headers });
+        await apiRequest(`/api/studios/${client.studioId}/clients/${client.clientUserId}/restore`, { method: "PATCH" });
       } catch { }
     }
   };
@@ -271,6 +320,10 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   };
 
   const openFolder = async (c: ClientProfile) => {
+    if (isMobile) {
+      setMobileGateOpen(true);
+      return;
+    }
     if (!c.clientUserId && !c.userId && c.email) {
       try {
         const headers: Record<string, string> = { ...getAuthHeaders() };
@@ -319,7 +372,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     performance: "Performance & Competition",
     performance_competition: "Performance & Competition",
     diabetic: "Diabetic",
-    glp1: "GLP-1",
+    glp1: "Metabolic Med",
     "anti-inflammatory": "Anti-Inflammatory",
     anti_inflammatory: "Anti-Inflammatory",
     weekly: "Weekly",
@@ -363,18 +416,18 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const PRO_CLIENTS_TOUR_STEPS: TourStep[] = [
     {
       icon: "1",
-      title: `Pending Activation`,
-      description: `${isPhysician ? "Patients" : "Clients"} who have completed payment appear here. Tap Activate to move them to your active roster.`,
+      title: t("clients.tour.step1Title"),
+      description: t("clients.tour.step1Desc"),
     },
     {
       icon: "2",
-      title: `Open ${isPhysician ? "Patient" : "Client"}`,
-      description: `Click Open to access the ${entityLabel} workspace and begin setting macros or plans.`,
+      title: t("clients.tour.step2Title"),
+      description: t("clients.tour.step2Desc"),
     },
     {
       icon: "3",
-      title: `Archived ${isPhysician ? "Patients" : "Clients"}`,
-      description: `Archived ${entityLabel}s are hidden from your active list but can be restored anytime.`,
+      title: t("clients.tour.step3Title"),
+      description: t("clients.tour.step3Desc"),
     },
   ];
 
@@ -397,10 +450,11 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
             data-testid="button-back"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium">{t("clients.back")}</span>
           </button>
           <h1 className="text-lg font-bold text-white flex-1 truncate min-w-0">{portalTitle}</h1>
           <div className="flex-shrink-0 flex items-center gap-2">
+            <CheckInAlertPreferences />
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
@@ -412,6 +466,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <PendingActivationQueue onActivated={() => syncDbClients()} />
+
+        <CheckInOverviewPanel />
 
         {totalUnread > 0 && (
           <motion.div
@@ -428,7 +484,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
               <p className="text-sm font-semibold text-orange-300">
                 {totalUnread} unread client message{totalUnread > 1 ? "s" : ""}
               </p>
-              <p className="text-xs text-white/50">Tap to view ProCare inbox</p>
+              <p className="text-xs text-white/50">{t("clients.tapInbox")}</p>
             </div>
             {showInbox ? (
               <ChevronUp className="h-4 w-4 text-white/40" />
@@ -449,14 +505,14 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
               <div className="bg-black/40 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-purple-400" />
-                  <h2 className="text-sm font-bold text-white">ProCare Messages Inbox</h2>
-                  <span className="ml-auto text-xs text-white/40">All client messages</span>
+                  <h2 className="text-sm font-bold text-white">{t("clients.inboxTitle")}</h2>
+                  <span className="ml-auto text-xs text-white/40">{t("clients.inboxSubtitle")}</span>
                 </div>
 
                 {inboxLoading ? (
-                  <div className="px-4 py-6 text-center text-white/40 text-sm">Loading messages…</div>
+                  <div className="px-4 py-6 text-center text-white/40 text-sm">{t("clients.inboxLoading")}</div>
                 ) : inboxMessages.length === 0 ? (
-                  <div className="px-4 py-6 text-center text-white/40 text-sm">No client messages yet.</div>
+                  <div className="px-4 py-6 text-center text-white/40 text-sm">{t("clients.inboxEmpty")}</div>
                 ) : (
                   <div className="divide-y divide-white/5 max-h-80 overflow-y-auto">
                     {inboxMessages.map((msg) => {
@@ -486,7 +542,9 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                                 {formatRelativeTime(msg.createdAt)}
                               </span>
                             </div>
-                            <p className="text-xs text-white/60 truncate mt-0.5">{msg.body}</p>
+                            <p className="text-xs text-white/60 truncate mt-0.5">
+                              {msg.contentType === "voice" ? "🎤 Voice message" : msg.body}
+                            </p>
                           </div>
                         </div>
                       );
@@ -505,9 +563,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
             size="sm"
             className="bg-white/5 border-white/20 text-white"
           >
-            {showArchived
-              ? `Show Active ${isPhysician ? "Patients" : "Clients"}`
-              : `Show Archived ${isPhysician ? "Patients" : "Clients"}`}
+            {showArchived ? t("clients.hideArchived") : t("clients.showArchived")}
           </Button>
         </div>
 
@@ -556,7 +612,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                               data-testid={`button-restore-client-${c.id}`}
                             >
                               <RotateCcw className="h-4 w-4 mr-1" />
-                              Restore
+                              {t("clients.restore")}
                             </Button>
                             <TrashButton
                               onClick={() => deleteClient(c.id, c.name)}
@@ -570,7 +626,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                         ) : (
                           <>
                             <Button
-                              onClick={() => archiveClient(c.id)}
+                              onClick={() => setArchivePendingClient(c)}
                               variant="outline"
                               size="sm"
                               className="bg-orange-600/20 border-orange-500/30 text-orange-300"
@@ -638,25 +694,32 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
             initial={{ opacity: 0, y: 40, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            className="fixed bottom-24 left-1/2 z-50 flex items-center gap-3 bg-black/90 border border-orange-500/40 rounded-full px-4 py-3 shadow-2xl"
-            style={{ transform: "translateX(-50%)", maxWidth: "calc(100vw - 32px)" }}
+            className="fixed bottom-24 z-50 flex items-center gap-3 bg-black/90 border border-orange-500/40 rounded-full px-4 py-3 shadow-2xl"
+            style={{ left: "50%", transform: "translateX(-50%)", maxWidth: "calc(100vw - 32px)" }}
           >
-            <div className="relative">
+            <div className="relative shrink-0">
               <MessageSquare className="h-4 w-4 text-orange-400" />
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
             </div>
             <span className="text-sm text-white font-medium whitespace-nowrap">{toast}</span>
-            <button onClick={() => setToast(null)} className="text-white/40 hover:text-white ml-1">
+            <button onClick={() => setToast(null)} className="text-white/40 active:text-white ml-1 shrink-0">
               <X className="h-3.5 w-3.5" />
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
+      <InformationModal
+        open={mobileGateOpen}
+        onOpenChange={setMobileGateOpen}
+        title={t("clients.desktopRequired")}
+        description="Client folders are designed for desktop or tablet view. Please use a wider screen, switch to desktop view, or rotate your device to landscape to open this folder."
+      />
+
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title={`${portalTitle} Guide`}
+        title={t("clients.tourTitle")}
         steps={PRO_CLIENTS_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
@@ -673,6 +736,42 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         onNavigate={setLocation}
         isPhysician={isPhysician}
       />
+
+      {archivePendingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full flex flex-col gap-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
+                <Link2Off className="h-5 w-5 text-orange-400" />
+              </div>
+              <div>
+                <div className="text-white font-bold text-base">{t("clients.archiveTitle", { name: archivePendingClient.name })}</div>
+                <div className="text-white/50 text-xs mt-0.5">{t("clients.archiveSubtitle")}</div>
+              </div>
+            </div>
+            <p className="text-white/70 text-sm leading-relaxed">
+              {t("clients.archiveBody", { name: archivePendingClient.name })}
+            </p>
+            <div className="flex gap-3">
+              <Button
+                className="flex-1 bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                onClick={() => setArchivePendingClient(null)}
+              >
+                {t("clients.cancel")}
+              </Button>
+              <Button
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                onClick={() => {
+                  archiveClient(archivePendingClient.id);
+                  setArchivePendingClient(null);
+                }}
+              >
+                {t("clients.archiveConfirm")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

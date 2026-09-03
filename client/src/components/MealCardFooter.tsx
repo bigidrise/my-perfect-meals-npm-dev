@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, RotateCcw, Plus, Loader2, Undo2 } from "lucide-react";
+import { TrendingUp, RotateCcw, Plus, Loader2, Undo2, Check } from "lucide-react";
 import type { MealTemplateBase } from "@/data/models";
 import ReplacePicker from "./ReplacePicker";
 import { buildMacroLogEntryFromMeal } from "@/utils/macros";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import { useAuth } from "@/contexts/AuthContext";
+import { canLogMealToMacros, markMealLogged, fingerprintMeal } from "@/lib/macroLogGuard";
 
 interface MealCardFooterProps {
   meal: MealTemplateBase;
@@ -25,12 +28,27 @@ export default function MealCardFooter({
 }: MealCardFooterProps) {
   const [isReplacePickerOpen, setIsReplacePickerOpen] = useState(false);
   const [isLogging, setIsLogging] = useState(false);
+  const [isLogged, setIsLogged] = useState(false);
   const [lastReplacedMeal, setLastReplacedMeal] = useState<MealTemplateBase | null>(null);
   const [showUndo, setShowUndo] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const userId = user?.id || "";
+  const mealGuardId = meal.id || fingerprintMeal(
+    meal.name || "meal",
+    meal.nutritionPerServing?.calories ?? 0,
+    meal.nutritionPerServing?.protein ?? 0,
+  );
+
+  useEffect(() => {
+    if (!canLogMealToMacros(userId, mealGuardId)) {
+      setIsLogged(true);
+    }
+  }, [userId, mealGuardId]);
 
   const handleLogToMacros = async () => {
-    if (!meal.nutritionPerServing || isLogging) return;
+    if (!meal.nutritionPerServing || isLogging || isLogged) return;
     
     setIsLogging(true);
     try {
@@ -38,20 +56,35 @@ export default function MealCardFooter({
         await onLog();
       } else {
         // Default logging behavior - POST to database API
+        const scaledCarbs = Math.round(meal.nutritionPerServing.carbs * servings);
+
+        // Prefer stored split carbs on the nutrition object; derive from
+        // ingredients using the same classifier the server uses if absent.
+        const storedStarchy = meal.nutritionPerServing.starchyCarbs;
+        const storedFibrous = meal.nutritionPerServing.fibrousCarbs;
+        const hasSplit = typeof storedStarchy === "number" && typeof storedFibrous === "number"
+          && (storedStarchy > 0 || storedFibrous > 0);
+
+        const { starchyCarbs, fibrousCarbs } = hasSplit
+          ? { starchyCarbs: Math.round(storedStarchy! * servings), fibrousCarbs: Math.round(storedFibrous! * servings) }
+          : deriveSplitCarbs(meal.ingredients ?? [], scaledCarbs);
+
         const logEntry = {
-          timestamp: new Date().toISOString(),
+          loggedAt: new Date().toISOString(),
           mealType: meal.mealType || "snack",
-          calories: Math.round(meal.nutritionPerServing.calories * servings),
+          kcal: Math.round(meal.nutritionPerServing.calories * servings),
           protein: Math.round(meal.nutritionPerServing.protein * servings),
-          carbs: Math.round(meal.nutritionPerServing.carbs * servings),
+          carbs: scaledCarbs,
           fat: Math.round(meal.nutritionPerServing.fat * servings),
+          starchyCarbs,
+          fibrousCarbs,
           source: source === "template" ? "plan" : source,
           mealId: meal.id,
         };
         
-        // POST to the correct API endpoint
+        // POST to the canonical macro logging endpoint
         const { post } = await import("@/lib/api");
-        const result = await post("/api/food-logs", logEntry);
+        const result = await post("/api/macros/log", logEntry);
         console.log("✅ Meal logged successfully:", result);
         
         // Emit the macros:updated event for dashboard refresh
@@ -60,6 +93,8 @@ export default function MealCardFooter({
         }));
       }
       
+      markMealLogged(userId, mealGuardId);
+      setIsLogged(true);
       toast({
         title: "Logged to Macros!",
         description: `${meal.name} (${servings} serving${servings !== 1 ? 's' : ''}) added to your daily tracking.`,
@@ -147,15 +182,16 @@ export default function MealCardFooter({
           <Button
             size="sm"
             onClick={handleLogToMacros}
-            disabled={!hasNutrition || isLogging || disabled}
-            className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs overflow-hidden text-ellipsis whitespace-nowrap"
+            disabled={!hasNutrition || isLogging || isLogged || disabled}
+            className={`${isLogged ? "bg-emerald-500" : "bg-green-600 hover:bg-green-700"} text-white disabled:opacity-60 disabled:cursor-not-allowed text-xs overflow-hidden text-ellipsis whitespace-nowrap`}
           >
-            {isLogging ? (
+            {isLogged ? (
+              <><Check className="h-3 w-3 mr-1" />Logged</>
+            ) : isLogging ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <TrendingUp className="h-3 w-3 mr-1" />
+              <><TrendingUp className="h-3 w-3 mr-1" />Log</>
             )}
-            {isLogging ? "Logging..." : "Log"}
           </Button>
 
           {/* Replace */}

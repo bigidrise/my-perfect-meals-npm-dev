@@ -1,12 +1,23 @@
 import { Router } from "express";
 import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { trialAccessInvites, users } from "@shared/schema";
+import { eq, sql, and, isNotNull, gt, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { autoAcceptPendingInvites, lookupExistingMembership } from "../services/inviteAutoAccept";
+import { selfHealProCareState } from "../services/procareActivation";
 import { checkLegalAcceptance } from "../services/legalCheck";
+import { logAudit, getClientIp } from "../lib/auditLog";
+import { emailServiceAvailable } from "../middleware/requireEmailService";
+import { sendTrialStartEmail } from "../services/emailService";
+import { normalizeEmailIdentity, resolveEmailIdentityForEmail } from "../services/emailIdentityService";
+import {
+  findPendingPreRegistrationAccess,
+  resolveSignupTrial,
+} from "../services/preRegistrationAccess";
+import { findOrganizationalPilotInvitation } from "../services/organizationalPilotInvitationService";
+import { inspectPilotAuthorizationToken } from "../services/organizationalPilotAuthorizationService";
 
 const router = Router();
 
@@ -14,10 +25,83 @@ function generateAuthToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-function isTesterEmail(_email: string): boolean {
-  // PRE_LAUNCH: All new signups get tester access (Ultimate tier, no paywalls).
-  // When launching, replace with: check process.env.MPM_TESTER_EMAILS allowlist.
-  return true;
+// ─── Account lockout (in-memory, resets on server restart) ───────────────────
+// Protects against brute-force credential stuffing.
+// Using email as key so unauthenticated callers can't enumerate by userId.
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+interface LockoutEntry { count: number; lockedUntil: number | null }
+const loginAttempts = new Map<string, LockoutEntry>();
+
+function getLockoutEntry(email: string): LockoutEntry {
+  return loginAttempts.get(email) ?? { count: 0, lockedUntil: null };
+}
+
+function isLockedOut(email: string): boolean {
+  const entry = getLockoutEntry(email);
+  if (!entry.lockedUntil) return false;
+  if (Date.now() < entry.lockedUntil) return true;
+  loginAttempts.delete(email);
+  return false;
+}
+
+function recordFailedAttempt(email: string): { locked: boolean } {
+  const entry = getLockoutEntry(email);
+  const count = entry.count + 1;
+  if (count >= MAX_LOGIN_ATTEMPTS) {
+    loginAttempts.set(email, { count, lockedUntil: Date.now() + LOCKOUT_DURATION_MS });
+    return { locked: true };
+  }
+  loginAttempts.set(email, { count, lockedUntil: null });
+  return { locked: false };
+}
+
+function clearLockout(email: string): void {
+  loginAttempts.delete(email);
+}
+
+// ─── Password policy (NIST SP 800-63B aligned) ───────────────────────────────
+const MIN_PASSWORD_LENGTH = 12;
+const MAX_PASSWORD_LENGTH = 128;
+
+function validatePassword(password: string): string | null {
+  if (typeof password !== "string") return "Password must be a string";
+  if (password.length < MIN_PASSWORD_LENGTH) return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+  if (password.length > MAX_PASSWORD_LENGTH) return `Password must be at most ${MAX_PASSWORD_LENGTH} characters`;
+  return null;
+}
+
+// Common/compromised passwords block-list (basic subset — extend as needed)
+const COMMON_PASSWORDS = new Set([
+  "password123456", "qwerty123456789", "123456789012", "iloveyou123456",
+  "password1234567", "admin12345678", "welcome12345678", "monkey12345678",
+]);
+
+function isCommonPassword(password: string): boolean {
+  return COMMON_PASSWORDS.has(password.toLowerCase());
+}
+
+function isTesterEmail(email: string): boolean {
+  // Allowlist-based: only explicit emails get isTester=true at signup.
+  // Set MPM_TESTER_EMAILS as a comma-separated list in env.
+  // Example: "coach@example.com,partner@example.com"
+  const allowlist = (process.env.MPM_TESTER_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(email.toLowerCase().trim());
+}
+
+function isAdminEmail(email: string): boolean {
+  // Allowlist-based: emails listed here get isAdmin=true at signup.
+  // Set MPM_ADMIN_EMAILS as a comma-separated list in env.
+  // Example: "amber@dramie.com,partner@example.com"
+  const allowlist = (process.env.MPM_ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(email.toLowerCase().trim());
 }
 
 /**
@@ -26,19 +110,20 @@ function isTesterEmail(_email: string): boolean {
  */
 router.post("/api/auth/signup", async (req, res) => {
   try {
-    const { email, password, procare } = req.body;
+    const { password, procare } = req.body;
+    const email = typeof req.body.email === "string" ? req.body.email.toLowerCase().trim() : req.body.email;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
-    }
+    const pwError = validatePassword(password);
+    if (pwError) return res.status(400).json({ error: pwError });
+    if (isCommonPassword(password)) return res.status(400).json({ error: "This password is too common. Please choose a stronger passphrase." });
 
-    // Check if user already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    if (existingUser.length > 0) {
+    // Do not create another case-variant account when a legacy spelling exists.
+    const existingIdentity = await resolveEmailIdentityForEmail(email);
+    if (existingIdentity.status !== "not_found") {
       return res.status(400).json({ error: "User already exists" });
     }
 
@@ -48,10 +133,66 @@ router.post("/api/auth/signup", async (req, res) => {
     // Generate auth token
     const authToken = generateAuthToken();
     
-    // Check if email is in tester allowlist
+    // Check if email is in tester/admin allowlists
     const isTester = isTesterEmail(email);
+    const isAdmin = isAdminEmail(email);
 
-    // Build user values with optional ProCare professional fields
+    // Build user values. Professional signup intent is deliberately kept
+    // pending until the new account is authenticated and has recorded the
+    // current versioned legal acceptances through upgrade-to-procare.
+    const isBusinessAccount = req.body.businessAccount === true;
+    const inviteToken = typeof req.body.inviteToken === "string" ? req.body.inviteToken : null;
+    const pilotInvite = inviteToken
+      ? await findOrganizationalPilotInvitation(inviteToken)
+      : null;
+    if (pilotInvite && normalizeEmailIdentity(pilotInvite.email) !== normalizeEmailIdentity(email)) {
+      return res.status(403).json({ error: "This invitation was issued to a different email address.", code: "EMAIL_MISMATCH" });
+    }
+    const isValidPilotSignup = Boolean(
+      pilotInvite &&
+      pilotInvite.status === "pending" &&
+      pilotInvite.expiresAt > new Date(),
+    );
+    const isPilotClientSignup = isValidPilotSignup && pilotInvite?.populationType === "client";
+    const pilotAuthorizationToken = typeof req.body.pilotAuthorizationToken === "string"
+      ? req.body.pilotAuthorizationToken
+      : null;
+    const pilotAuthorization = pilotAuthorizationToken
+      ? await inspectPilotAuthorizationToken(pilotAuthorizationToken)
+      : null;
+    if (pilotAuthorizationToken && !pilotAuthorization) {
+      return res.status(404).json({ error: "Organizational authorization not found.", code: "AUTHORIZATION_NOT_FOUND" });
+    }
+    if (pilotAuthorization && normalizeEmailIdentity(pilotAuthorization.championEmail) !== normalizeEmailIdentity(email)) {
+      return res.status(403).json({ error: "This organizational authorization was issued to a different email address.", code: "EMAIL_MISMATCH" });
+    }
+    const isValidPilotAuthorizationSignup = Boolean(
+      pilotAuthorization &&
+      pilotAuthorization.status === "approved" &&
+      (!pilotAuthorization.claimTokenExpiresAt || pilotAuthorization.claimTokenExpiresAt > new Date()),
+    );
+    if (pilotAuthorizationToken && !isValidPilotAuthorizationSignup) {
+      return res.status(410).json({ error: "This organizational authorization is no longer available.", code: "AUTHORIZATION_NOT_AVAILABLE" });
+    }
+    const professionalSetupRequested = !!procare?.professionalCategory;
+
+    // Tester accounts get immediate full access via planLookupKey. Normal
+    // consumers get a 7-day signup trial unless their email has a pending
+    // pre-registration access record. Pilot/Client records grant 30 days by
+    // default, but their clock still starts only here at account activation.
+    // ProCare accounts get their plan directly and do not receive a trial.
+    const isNormalConsumer = !isTester
+      && !professionalSetupRequested
+      && !isValidPilotSignup
+      && !isValidPilotAuthorizationSignup
+      && !isBusinessAccount;
+    const trialNow = isNormalConsumer ? new Date() : null;
+    const pendingPreRegistrationAccess = isNormalConsumer
+      ? await findPendingPreRegistrationAccess(email)
+      : null;
+    const signupTrial = trialNow
+      ? resolveSignupTrial(trialNow, pendingPreRegistrationAccess)
+      : null;
     const userValues: any = {
       email,
       username: email.split("@")[0],
@@ -59,41 +200,80 @@ router.post("/api/auth/signup", async (req, res) => {
       authToken,
       authTokenCreatedAt: new Date(),
       isTester,
-      planLookupKey: "mpm_ultimate_monthly",
+      isAdmin,
+      isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
+      ...(isTester ? { planLookupKey: 'mpm_ultimate_monthly' } : {}),
+      ...(signupTrial ? {
+        trialStartedAt: signupTrial.trialStartedAt,
+        trialEndsAt: signupTrial.trialEndsAt,
+        trialSource: signupTrial.trialSource,
+        trialAccessType: signupTrial.trialAccessType,
+      } : {}),
     };
 
-    if (procare && procare.professionalCategory) {
-      const validRoles = ["trainer", "physician"];
+    // Business / Organization account — not a ProCare practitioner.
+    // Gets professionalRole="business" only; no isProCare, no role=coach, no plan override.
+    if (isBusinessAccount && !isPilotClientSignup) {
+      userValues.professionalRole = "business";
+    }
+
+    // Acquisition source — optional, captured from ?source= or ?ref= URL param
+    const signupSource = typeof req.body.signupSource === "string" ? req.body.signupSource.trim().slice(0, 100) : null;
+    if (signupSource) {
+      userValues.signupSource = signupSource;
+    }
+
+    if (professionalSetupRequested) {
+      const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
       const validCategories = ["certified", "experienced", "non_certified"];
+      const licensedRoles = ["physician", "dietitian", "nurse_practitioner"];
       if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
-        return res.status(400).json({ error: "Professional role (trainer or physician) is required" });
+        return res.status(400).json({ error: "Invalid professional role" });
       }
       if (!validCategories.includes(procare.professionalCategory)) {
         return res.status(400).json({ error: "Invalid professional category" });
       }
-      if (!procare.attestationText || !procare.attestedAt) {
-        return res.status(400).json({ error: "Attestation is required for professional accounts" });
+      // Licensed roles (physician / dietitian / NP-PA) must supply license number + state
+      if (licensedRoles.includes(procare.professionalRole) && procare.professionalCategory === "certified") {
+        if (!procare.credentialNumber?.trim()) {
+          return res.status(400).json({ error: "License number is required for licensed professionals" });
+        }
+        if (!procare.credentialBody?.trim()) {
+          return res.status(400).json({ error: "License state is required for licensed professionals" });
+        }
       }
-      userValues.role = "coach";
-      userValues.isProCare = true;
-      userValues.professionalRole = procare.professionalRole;
-      userValues.professionalCategory = procare.professionalCategory;
-      userValues.procareEntryPath = procare.procareEntryPath || procare.professionalCategory;
-      userValues.attestationText = procare.attestationText;
-      userValues.attestedAt = new Date(procare.attestedAt);
-      userValues.plan = "procare";
-      userValues.subscriptionPlan = "procare";
-      userValues.subscriptionStatus = "active";
-      userValues.planLookupKey = "mpm_procare_monthly";
-      userValues.entitlements = ["procare", "care_team", "lab_metrics"];
-      if (procare.credentialType) userValues.credentialType = procare.credentialType;
-      if (procare.credentialBody) userValues.credentialBody = procare.credentialBody;
-      if (procare.credentialNumber) userValues.credentialNumber = procare.credentialNumber;
-      if (procare.credentialYear) userValues.credentialYear = procare.credentialYear;
+      // Do not activate ProCare here. This unauthenticated endpoint cannot
+      // create legal acceptance records on the user's behalf. The authenticated
+      // upgrade endpoint is the sole professional activation boundary.
     }
 
-    // Create user in database with auth token
-    const [newUser] = await db.insert(users).values(userValues).returning();
+    // Create the user and claim any pre-registration record atomically. If the
+    // record was claimed by another request, the user insert rolls back rather
+    // than issuing an untracked 30-day entitlement.
+    const newUser = await db.transaction(async (tx) => {
+      const [createdUser] = await tx.insert(users).values(userValues).returning();
+
+      if (pendingPreRegistrationAccess) {
+        const [claimed] = await tx
+          .update(trialAccessInvites)
+          .set({
+            activatedAt: trialNow!,
+            activatedUserId: createdUser.id,
+          })
+          .where(and(
+            eq(trialAccessInvites.id, pendingPreRegistrationAccess.id),
+            isNull(trialAccessInvites.activatedAt),
+            isNull(trialAccessInvites.revokedAt),
+          ))
+          .returning({ id: trialAccessInvites.id });
+
+        if (!claimed) {
+          throw new Error("Pre-registration access was already activated");
+        }
+      }
+
+      return createdUser;
+    });
 
   // Set session cookie for mobile compatibility (guard for prod where session may be undefined)
   if (req.session) {
@@ -101,8 +281,37 @@ router.post("/api/auth/signup", async (req, res) => {
   }
 
   console.log("✅ Created new user ID:", newUser.id);
+  logAudit({
+    actor: newUser.id,
+    action: "AUTH_SIGNUP",
+    resourceType: "auth",
+    route: "/api/auth/signup",
+    ip: getClientIp(req as any),
+    meta: {
+      isProCare: newUser.isProCare || false,
+        professionalSetupRequested,
+      trialAccessType: signupTrial?.trialAccessType ?? null,
+    },
+  });
+
+    // Send trial-start confirmation email for standard consumer trial (non-fatal)
+    if (isNormalConsumer && signupTrial && emailServiceAvailable()) {
+      sendTrialStartEmail({
+        to: newUser.email,
+        userName: newUser.username || newUser.email.split('@')[0],
+        trialSource: signupTrial.trialSource,
+        durationDays: signupTrial.durationDays,
+        trialEndsAt: signupTrial.trialEndsAt,
+      }).catch((err) =>
+        console.error('[signup] Trial start email failed (non-fatal):', err)
+      );
+    }
 
     const inviteResult = await autoAcceptPendingInvites(newUser.id, newUser.email);
+
+    if (!inviteResult.accepted) {
+      await selfHealProCareState(newUser.id);
+    }
 
     const membership = inviteResult.membership || await lookupExistingMembership(newUser.id);
 
@@ -114,6 +323,10 @@ router.post("/api/auth/signup", async (req, res) => {
       isProCare: newUser.isProCare || false,
       professionalRole: newUser.professionalRole || null,
       role: newUser.role || "client",
+      isTester: newUser.isTester || false,
+      isFounder: newUser.isFounder || false,
+      planLookupKey: newUser.planLookupKey || null,
+      professionalSetupRequired: professionalSetupRequested,
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
@@ -124,83 +337,15 @@ router.post("/api/auth/signup", async (req, res) => {
 
 /**
  * POST /api/auth/upgrade-to-procare
- * Upgrades an existing authenticated user to coach/ProCare role
+ * Retired: professional profile assertions and legal acceptance are not
+ * payment authority. ProCare access is granted only by verified billing or
+ * an explicit audited administrative/pilot entitlement path.
  */
 router.post("/api/auth/upgrade-to-procare", requireAuth, async (req: any, res) => {
-  try {
-    const userId = req.authUser.id;
-    const { procare } = req.body;
-
-    if (!procare || !procare.professionalCategory) {
-      return res.status(400).json({ error: "Professional category is required" });
-    }
-
-    const validRoles = ["trainer", "physician"];
-    const validCategories = ["certified", "experienced", "non_certified"];
-
-    if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
-      return res.status(400).json({ error: "Professional role (trainer or physician) is required" });
-    }
-    if (!validCategories.includes(procare.professionalCategory)) {
-      return res.status(400).json({ error: "Invalid professional category" });
-    }
-    if (!procare.attestationText || !procare.attestedAt) {
-      return res.status(400).json({ error: "Attestation is required for professional accounts" });
-    }
-
-    const proFlow = procare.professionalRole === "physician" ? "physician" : "professional";
-    const attestationCheck = await checkLegalAcceptance(userId, "attestation");
-    const professionalCheck = await checkLegalAcceptance(userId, proFlow);
-    const allMissing = [...attestationCheck.missing, ...professionalCheck.missing];
-    if (allMissing.length > 0) {
-      return res.status(409).json({
-        code: "LEGAL_REACCEPT_REQUIRED",
-        missing: allMissing,
-        flow: proFlow,
-        error: "Please accept all required legal documents before upgrading.",
-      });
-    }
-
-    const updateValues: any = {
-      role: "coach",
-      isProCare: true,
-      professionalRole: procare.professionalRole,
-      professionalCategory: procare.professionalCategory,
-      procareEntryPath: procare.procareEntryPath || procare.professionalCategory,
-      attestationText: procare.attestationText,
-      attestedAt: new Date(procare.attestedAt),
-      plan: "procare",
-      subscriptionPlan: "procare",
-      subscriptionStatus: "active",
-      planLookupKey: "mpm_procare_monthly",
-      entitlements: ["procare", "care_team", "lab_metrics"],
-    };
-
-    if (procare.credentialType) updateValues.credentialType = procare.credentialType;
-    if (procare.credentialBody) updateValues.credentialBody = procare.credentialBody;
-    if (procare.credentialNumber) updateValues.credentialNumber = procare.credentialNumber;
-    if (procare.credentialYear) updateValues.credentialYear = procare.credentialYear;
-
-    const [updatedUser] = await db
-      .update(users)
-      .set(updateValues)
-      .where(eq(users.id, userId))
-      .returning();
-
-    console.log("✅ Upgraded user to ProCare, ID:", updatedUser.id);
-
-    res.json({
-      success: true,
-      id: updatedUser.id,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      isProCare: updatedUser.isProCare,
-      professionalRole: updatedUser.professionalRole,
-    });
-  } catch (error: any) {
-    console.error("ProCare upgrade error:", error);
-    res.status(500).json({ error: "Failed to upgrade account" });
-  }
+  return res.status(410).json({
+    code: "PROCARE_SELF_UPGRADE_RETIRED",
+    error: "ProCare access can only be activated through verified billing.",
+  });
 });
 
 /**
@@ -211,37 +356,78 @@ router.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("🔐 Login attempt received");
-
     if (!email || !password) {
-      console.log("❌ Missing email or password");
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    // Find user by email (case-insensitive)
-    const normalizedEmail = email.toLowerCase().trim();
-    const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
+    const normalizedEmail = (email as string).toLowerCase().trim();
+
+    const identity = await resolveEmailIdentityForEmail(email);
+    const [user] = identity.status === "unique" || identity.status === "legacy_exact"
+      ? await db.select().from(users).where(eq(users.id, identity.user.id)).limit(1)
+      : [];
+    const lockoutKey = user ? `user:${user.id}` : normalizedEmail;
+
+    // A normalized address with multiple legacy accounts cannot select one by
+    // position. The caller must use the precise stored spelling or seek review.
+    if (identity.status === "ambiguous") {
+      return res.status(409).json({
+        error: "Multiple accounts use this email address. Sign in using the exact email capitalization for this account or contact support.",
+      });
+    }
+
+    // ── Lockout check ─────────────────────────────────────────────────────────
+    if (isLockedOut(lockoutKey)) {
+      return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
+    }
     
     if (!user) {
-      console.log("❌ User not found");
+      const result = recordFailedAttempt(lockoutKey);
+      logAudit({ actor: "anonymous", action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "user_not_found" } });
+      if (result.locked) {
+        logAudit({ actor: "anonymous", action: "AUTH_LOCKOUT", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
+      }
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      console.log("❌ Password mismatch for user ID:", user.id);
+      const result = recordFailedAttempt(lockoutKey);
+      logAudit({ actor: user.id, action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "bad_password", attempt: getLockoutEntry(lockoutKey).count } });
+      if (result.locked) {
+        logAudit({ actor: user.id, action: "AUTH_LOCKOUT", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
+        return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
+      }
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const isTester = isTesterEmail(email);
+    // Successful login — clear failed attempt counter
+    clearLockout(lockoutKey);
+
+    // ── MFA gate ──────────────────────────────────────────────────────────────
+    // If the user has MFA enabled, pause here and require a TOTP challenge.
+    // Set pendingMfaUserId on the session so the /mfa/challenge endpoint can
+    // verify the code and promote to a full session.
+    if (user.mfaEnabled) {
+      if (req.session) {
+        (req.session as any).pendingMfaUserId = user.id;
+        delete (req.session as any).userId; // no full session until TOTP verified
+      }
+      logAudit({ actor: user.id, action: "AUTH_LOGIN", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { mfaRequired: true } });
+      return res.json({ mfaRequired: true });
+    }
+
+    // Login: only regenerate auth token if missing — never overwrite isTester from login
     const authToken = user.authToken || generateAuthToken();
-    const updateFields: any = { isTester };
+    const updateFields: any = {};
     if (!user.authToken) {
       updateFields.authToken = authToken;
       updateFields.authTokenCreatedAt = new Date();
     }
-    await db.update(users).set(updateFields).where(eq(users.id, user.id));
+    if (Object.keys(updateFields).length > 0) {
+      await db.update(users).set(updateFields).where(eq(users.id, user.id));
+    }
 
     // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
     if (req.session) {
@@ -249,8 +435,13 @@ router.post("/api/auth/login", async (req, res) => {
     }
 
     console.log("✅ User logged in, ID:", user.id);
+    logAudit({ actor: user.id, action: "AUTH_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
 
     const inviteResult = await autoAcceptPendingInvites(user.id, user.email);
+
+    if (!inviteResult.accepted) {
+      await selfHealProCareState(user.id);
+    }
 
     const membership = inviteResult.membership || await lookupExistingMembership(user.id);
 
@@ -265,6 +456,9 @@ router.post("/api/auth/login", async (req, res) => {
       selectedMealBuilder: user.selectedMealBuilder || null,
       activeBoard: user.activeBoard || null,
       onboardingCompletedAt: user.onboardingCompletedAt || null,
+      isTester: user.isTester || false,
+      isFounder: user.isFounder || false,
+      planLookupKey: user.planLookupKey || null,
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
@@ -296,10 +490,36 @@ router.get("/api/auth/session", async (req: any, res) => {
       id: user.id,
       email: user.email,
       username: user.username,
+      isTester: user.isTester || false,
+      isFounder: user.isFounder || false,
+      planLookupKey: user.planLookupKey || null,
+      role: user.role || "client",
+      isProCare: user.isProCare || false,
     });
   } catch (error) {
     console.error("Session validation error:", error);
     res.status(500).json({ error: "Session validation failed" });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Invalidates the auth token in the database so it cannot be reused after sign-out.
+ * Client must also clear localStorage regardless of whether this call succeeds.
+ */
+router.post("/api/auth/logout", requireAuth, async (req: any, res) => {
+  const userId = req.authUser.id;
+  try {
+    await db.update(users).set({ authToken: null, authTokenCreatedAt: null }).where(eq(users.id, userId));
+    if (req.session) {
+      req.session.destroy?.(() => {});
+    }
+    console.log(`✅ [logout] Token invalidated for user ${userId}`);
+    logAudit({ actor: userId, action: "AUTH_LOGOUT", resourceType: "auth", route: "/api/auth/logout", ip: getClientIp(req as any) });
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error(`[logout] DB error for user ${userId}:`, err.message);
+    return res.status(500).json({ error: "Logout failed" });
   }
 });
 
@@ -315,6 +535,7 @@ router.delete("/api/auth/delete-account", requireAuth, async (req, res) => {
 
   try {
     console.log(`🗑️ Account deletion requested for user ID: ${userId}`);
+    logAudit({ actor: userId, action: "AUTH_ACCOUNT_DELETED", resourceType: "auth", route: "/api/auth/delete-account", ip: getClientIp(req as any) });
 
     await db.delete(users).where(eq(users.id, userId));
 
@@ -344,7 +565,10 @@ router.post("/api/auth/forgot-password", async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     console.log(`📧 [FORGOT-PASSWORD] Email normalized`);
 
-    const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
+    const identity = await resolveEmailIdentityForEmail(email);
+    const [user] = identity.status === "unique" || identity.status === "legacy_exact"
+      ? await db.select().from(users).where(eq(users.id, identity.user.id)).limit(1)
+      : [];
     console.log(`📧 [FORGOT-PASSWORD] User found: ${user ? 'YES' : 'NO'}`);
 
     if (user) {
@@ -356,6 +580,7 @@ router.post("/api/auth/forgot-password", async (req, res) => {
         resetTokenHash,
         resetTokenExpires,
       }).where(eq(users.id, user.id));
+      logAudit({ actor: user.id, action: "AUTH_RESET_REQUESTED", resourceType: "auth", route: "/api/auth/forgot-password", ip: getClientIp(req as any) });
       console.log(`📧 [FORGOT-PASSWORD] Token saved to database`);
 
       const fwdProto = req.headers["x-forwarded-proto"];
@@ -373,17 +598,21 @@ router.post("/api/auth/forgot-password", async (req, res) => {
       const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
       console.log(`📧 [FORGOT-PASSWORD] Reset link generated`);
 
-      try {
-        const { sendPasswordResetEmail } = await import("../services/emailService");
-        console.log(`📧 [FORGOT-PASSWORD] Calling sendPasswordResetEmail...`);
-        await sendPasswordResetEmail({
-          to: normalizedEmail,
-          resetLink,
-          userName: user.username || user.email.split("@")[0],
-        });
-        console.log(`✅ [FORGOT-PASSWORD] Email sent successfully`);
-      } catch (emailError: any) {
-        console.error(`❌ [FORGOT-PASSWORD] Email sending failed:`, emailError.message);
+      if (!emailServiceAvailable()) {
+        console.warn(`⚠️ [FORGOT-PASSWORD] RESEND_API_KEY not configured — password reset email skipped for ${normalizedEmail}`);
+      } else {
+        try {
+          const { sendPasswordResetEmail } = await import("../services/emailService");
+          console.log(`📧 [FORGOT-PASSWORD] Calling sendPasswordResetEmail...`);
+          await sendPasswordResetEmail({
+            to: normalizedEmail,
+            resetLink,
+            userName: user.username || user.email.split("@")[0],
+          });
+          console.log(`✅ [FORGOT-PASSWORD] Email sent successfully`);
+        } catch (emailError: any) {
+          console.error(`❌ [FORGOT-PASSWORD] Email sending failed:`, emailError.message);
+        }
       }
     } else {
       console.log(`⚠️ [FORGOT-PASSWORD] Email not found in database`);
@@ -408,13 +637,18 @@ router.post("/api/auth/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Token and password are required" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
-    }
+    const pwResetError = validatePassword(password);
+    if (pwResetError) return res.status(400).json({ error: pwResetError });
+    if (isCommonPassword(password)) return res.status(400).json({ error: "This password is too common. Please choose a stronger passphrase." });
 
+    const now = new Date();
     const usersWithValidExpiry = await db.select().from(users).where(
-      sql`${users.resetTokenHash} IS NOT NULL AND ${users.resetTokenExpires} > NOW()`
+      and(
+        isNotNull(users.resetTokenHash),
+        gt(users.resetTokenExpires!, now)
+      )
     );
+    console.log(`🔑 [RESET-PASSWORD] Users with valid tokens: ${usersWithValidExpiry.length}`);
 
     let matchedUser = null;
     for (const user of usersWithValidExpiry) {
@@ -431,7 +665,7 @@ router.post("/api/auth/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired reset token" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
     const newAuthToken = generateAuthToken();
 
     await db.update(users).set({
@@ -442,7 +676,15 @@ router.post("/api/auth/reset-password", async (req, res) => {
       resetTokenExpires: null,
     }).where(eq(users.id, matchedUser.id));
 
-    console.log(`✅ Password reset successful for user ID: ${matchedUser.id}`);
+    // Verify the update actually landed
+    const [verify] = await db.select({ password: users.password })
+      .from(users)
+      .where(eq(users.id, matchedUser.id))
+      .limit(1);
+
+    const verifyOk = verify && await bcrypt.compare(password, verify.password);
+    console.log(`✅ Password reset for user ${matchedUser.id} — verify bcrypt: ${verifyOk}`);
+    logAudit({ actor: matchedUser.id, action: "AUTH_RESET_COMPLETED", resourceType: "auth", route: "/api/auth/reset-password", ip: getClientIp(req as any) });
 
     res.json({
       message: "Password reset successful",

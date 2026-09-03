@@ -1,6 +1,7 @@
 import { classify, parseAddToList, parseNavigation } from "./intent";
 import { retrieve } from "./rag";
 import { Tools, validateToolCall } from "./tools";
+import { getInternalApiBase } from "../utils/internalApiBase";
 // Node.js has fetch built-in from v18+
 
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
@@ -23,7 +24,7 @@ interface AssistantResponse {
 
 async function fetchAvatarContext(userId: string) {
   try {
-    const response = await fetch(`http://localhost:5000/api/avatar/context`, {
+    const response = await fetch(`${getInternalApiBase()}/api/avatar/context`, {
       headers: { 'x-user-id': userId },
     });
     return response.ok ? response.json() : {};
@@ -177,5 +178,5 @@ export async function processAssistantRequest(req: AssistantRequest): Promise<As
     captions: finalText,
     navigateTo: navigateTo,
     clientEvent: clientEvent
-  };
+  } as any;
 }

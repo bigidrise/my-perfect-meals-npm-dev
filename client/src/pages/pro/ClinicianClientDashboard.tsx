@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,11 @@ import {
   Target,
   Check,
   Calendar,
+  CalendarCheck,
   LayoutGrid,
   Trophy,
   Dumbbell,
+  Trash2,
 } from "lucide-react";
 import {
   PROFESSIONAL_BUILDER_MAP,
@@ -30,55 +33,25 @@ import {
   type ProfessionalBuilderKey,
 } from "@/lib/professionalBuilderMap";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
+import AddToCalendarButtons from "@/components/AddToCalendarButtons";
 import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
 import { useToast } from "@/hooks/use-toast";
+import { PillButton } from "@/components/ui/pill-button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
+import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
+import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
+import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPanel";
+import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
 
-const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Physicians Clinic",
-    description:
-      "Welcome to your clinical workspace. Set macro targets, clinical context, and guide patient nutrition with medical oversight.",
-  },
-  {
-    icon: "2",
-    title: "Macro Targets",
-    description:
-      "Set protein, carbs, and fats for your patient. These targets drive every meal they see in the app.",
-  },
-  {
-    icon: "3",
-    title: "Medical Directives",
-    description:
-      "Toggle clinical dietary flags like Diabetes-Friendly, Low-Sodium, GLP-1 Support, and more to guide meal generation.",
-  },
-  {
-    icon: "4",
-    title: "Clinical Context",
-    description:
-      "Document diagnosis, clinical tags, and patient notes for comprehensive medical nutrition therapy.",
-  },
-  {
-    icon: "5",
-    title: "Patient Meal Board",
-    description:
-      "View and edit your patient's weekly meal plan directly. Add meals, remove items, or repeat a day across the week. Every change is tracked so the patient knows who updated their plan.",
-  },
-  {
-    icon: "6",
-    title: "Medical Hubs",
-    description:
-      "Access condition-specific meal builders like Diabetic, GLP-1, and Anti-Inflammatory to guide patient nutrition safely.",
-  },
-];
 
 export default function ClinicianClientDashboard() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/pro/clients/:id/clinician");
@@ -86,9 +59,40 @@ export default function ClinicianClientDashboard() {
 
   const quickTour = useQuickTour("clinician-client-dashboard");
 
+  const CLINICIAN_DASHBOARD_TOUR_STEPS: TourStep[] = [
+    {
+      icon: "1",
+      title: t("pro.clinicianDashboard.tour.step1Title"),
+      description: t("pro.clinicianDashboard.tour.step1Desc"),
+    },
+    {
+      icon: "2",
+      title: t("pro.clinicianDashboard.tour.step2Title"),
+      description: t("pro.clinicianDashboard.tour.step2Desc"),
+    },
+    {
+      icon: "3",
+      title: t("pro.clinicianDashboard.tour.step3Title"),
+      description: t("pro.clinicianDashboard.tour.step3Desc"),
+    },
+    {
+      icon: "4",
+      title: t("pro.clinicianDashboard.tour.step4Title"),
+      description: t("pro.clinicianDashboard.tour.step4Desc"),
+    },
+    {
+      icon: "5",
+      title: t("pro.clinicianDashboard.tour.step5Title"),
+      description: t("pro.clinicianDashboard.tour.step5Desc"),
+    },
+  ];
+
   const [client, setClient] = useState(() => proStore.getClient(clientId));
-  const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
+  const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() => proStore.getContext(clientId));
+  const [isDirty, setIsDirty] = useState(false);
+  const updateMacros = (next: Targets) => { setMacros(next); setIsDirty(true); };
+  const updateCtx = (next: ClinicalContext) => { setCtx(next); setIsDirty(true); };
   const PHYSICIAN_BUILDER_KEYS = getBuilderKeys("physician");
   const [assignedBuilder, setAssignedBuilder] = useState<ProfessionalBuilderKey | undefined>(
     () => client?.assignedBuilder as ProfessionalBuilderKey | undefined
@@ -101,10 +105,10 @@ export default function ClinicianClientDashboard() {
   const activeProtocolLabel = useMemo(() => {
     if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder]) return null;
     if (assignedBuilder === 'anti_inflammatory') {
-      return resolveClinicalProtocolLabel(t.flags);
+      return resolveClinicalProtocolLabel(macros.flags);
     }
     return PROFESSIONAL_BUILDER_MAP[assignedBuilder].label;
-  }, [assignedBuilder, t.flags]);
+  }, [assignedBuilder, macros.flags]);
 
   interface LabsSummary {
     a1c: number | null;
@@ -115,6 +119,7 @@ export default function ClinicianClientDashboard() {
     ejection_fraction: number | null;
   }
   const [labs, setLabs] = useState<LabsSummary | null>(null);
+  const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
 
   interface BodyCompEntry {
     id: number;
@@ -127,9 +132,14 @@ export default function ClinicianClientDashboard() {
   const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
   const [bodyCompSource, setBodyCompSource] = useState<string | null>(null);
   const [clientGoal, setClientGoal] = useState<{ goalType?: string | null; goalTarget?: string | null; goalTimelineWeeks?: number | null } | null>(null);
+  const [nutritionSummary, setNutritionSummary] = useState<any>(null);
+  const [nutritionSummaryLoading, setNutritionSummaryLoading] = useState(false);
+
+  // Must be defined BEFORE any useEffect that references it in deps or body.
+  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
 
   useEffect(() => {
-    setT(proStore.getTargets(clientId));
+    setMacros(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
     const c = proStore.getClient(clientId);
     if (c) {
@@ -139,6 +149,40 @@ export default function ClinicianClientDashboard() {
       if (uid) ensureClientMapping(uid, clientId);
       ensureClientMapping(clientId, clientId);
     }
+  }, [clientId]);
+
+  useEffect(() => {
+    if (!resolvedClientUserId) return;
+    setNutritionSummaryLoading(true);
+    fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/nutrition-summary`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setNutritionSummary(data); })
+      .catch(() => {})
+      .finally(() => setNutritionSummaryLoading(false));
+  }, [resolvedClientUserId]);
+
+  // Step 3: Prefill macro targets from the canonical API on first visit.
+  // If proStore already has physician-set targets for this client, those are shown instead.
+  useEffect(() => {
+    const c = proStore.getClient(clientId);
+    const uid = c?.clientUserId || c?.userId;
+    if (!uid || uid === clientId) return;
+    if (proStore.hasTargets(clientId)) return;
+    apiRequest(`/api/users/${uid}/macro-targets`)
+      .then((data) => {
+        if (!data || !data.hasTargets) return;
+        setMacros((prev) => ({
+          ...prev,
+          protein: data.protein_g || prev.protein,
+          fat: data.fat_g || prev.fat,
+          starchyCarbs: data.starchyCarbs_g || prev.starchyCarbs,
+          fibrousCarbs: data.fibrousCarbs_g || prev.fibrousCarbs,
+        }));
+      })
+      .catch(() => {});
   }, [clientId]);
 
   useEffect(() => {
@@ -153,46 +197,78 @@ export default function ClinicianClientDashboard() {
         }
       })
       .catch(() => {});
-    fetch(apiUrl(`/api/biometrics/labs/${uid}`), {
+    apiRequest(`/api/biometrics/labs/${uid}`)
+      .then((data) => {
+        if (data?.labs) setLabs(data.labs);
+        // Derive active conditions from lab signal + user specialty selections
+        const derived: string[] = [];
+        if (data?.protocolSignal?.protocol) derived.push(data.protocolSignal.protocol);
+        const scMap: Record<string, string> = {
+          cardiac: 'heart-failure', renal: 'kidney-disease',
+          'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
+          'oncology-support': 'oncology-support',
+        };
+        const scArr: string[] = data?.specialtyConditions ?? (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        for (const sc of scArr) {
+          const mapped = scMap[sc];
+          if (mapped && !derived.includes(mapped)) derived.push(mapped);
+        }
+        setLabDerivedConditions(derived);
+      })
+      .catch(() => {});
+    // Load physician-assigned oncology support state from DB
+    fetch(apiUrl(`/api/pro/oncology-support/${uid}`), {
       headers: { ...getAuthHeaders() },
       credentials: "include",
     })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data?.labs) setLabs(data.labs);
+        if (data?.oncologySupportContext?.enabled) {
+          setMacros((prev) => ({ ...prev, flags: { ...prev.flags, oncologySupport: true } }));
+        }
       })
       .catch(() => {});
-    fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
+    // Load physician-assigned GLP-1 protocol state from DB
+    fetch(apiUrl(`/api/pro/glp1-protocol/${uid}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
       .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.glp1Active) {
+          setMacros((prev) => ({ ...prev, flags: { ...prev.flags, glp1: true } }));
+        }
+      })
+      .catch(() => {});
+    apiRequest(`/api/users/${uid}/goal`)
       .then((data) => { if (data) setClientGoal(data); })
       .catch(() => {});
   }, [clientId]);
 
   const saveTargets = async () => {
-    proStore.setTargets(clientId, t);
+    proStore.setTargets(clientId, macros);
     const _uid = client?.clientUserId || client?.userId || clientId;
     ensureClientMapping(_uid, clientId);
 
-    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-    const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
+    const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
+    const totalCal = (macros.protein * 4) + (totalCarbs * 4) + (macros.fat * 9);
     const dbUserId = client?.clientUserId || client?.userId;
 
     if (dbUserId) {
       try {
-        const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
+        await apiRequest(`/api/users/${dbUserId}/macro-targets`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
           body: JSON.stringify({
             calories: totalCal,
-            protein_g: t.protein,
+            protein_g: macros.protein,
             carbs_g: totalCarbs,
-            fat_g: t.fat,
+            fat_g: macros.fat,
+            starchyCarbs_g: macros.starchyCarbs,
+            fibrousCarbs_g: macros.fibrousCarbs,
           }),
+        }).catch((e: unknown) => {
+          console.error("Failed to sync macro targets to database:", e);
         });
-        if (!res.ok) {
-          console.error("Failed to sync macro targets to database:", res.status);
-        }
       } catch (e) {
         console.error("Failed to sync macro targets to database:", e);
       }
@@ -202,7 +278,14 @@ export default function ClinicianClientDashboard() {
       try {
         const { setMacroTargets } = await import("@/lib/dailyLimits");
         await setMacroTargets(
-          { calories: totalCal, protein_g: t.protein, carbs_g: totalCarbs, fat_g: t.fat },
+          {
+            calories: totalCal,
+            protein_g: macros.protein,
+            carbs_g: totalCarbs,
+            fat_g: macros.fat,
+            starchyCarbs_g: macros.starchyCarbs,
+            fibrousCarbs_g: macros.fibrousCarbs,
+          },
           dbUserId,
         );
       } catch (e) {
@@ -210,11 +293,49 @@ export default function ClinicianClientDashboard() {
       }
     }
 
+    // Persist oncology support flag to DB whenever save is triggered
+    if (dbUserId) {
+      try {
+        await fetch(apiUrl(`/api/pro/oncology-support/${dbUserId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            enabled: !!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport,
+            symptoms: [],
+            emphasis: {
+              highProteinNutrientDensity: !!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport,
+            },
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to sync oncology support to database:", e);
+      }
+    }
+
+    // Persist GLP-1 protocol flag — writes to client's medicalConditions so the
+    // protocol envelope stacks GLP-1 guidance automatically on the next generation call
+    if (dbUserId) {
+      try {
+        await fetch(apiUrl(`/api/pro/glp1-protocol/${dbUserId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            enabled: !!(macros.flags as Record<string, boolean> | undefined)?.glp1,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to sync GLP-1 protocol to database:", e);
+      }
+    }
+
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
     }
+    setIsDirty(false);
     toast({
-      title: "Targets saved",
+      title: t("pro.clinicianDashboard.saved"),
       description: "Macro targets updated successfully.",
     });
   };
@@ -232,20 +353,113 @@ export default function ClinicianClientDashboard() {
   ) => {
     const current = ctx.clinicalTags || [];
     const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
-    setCtx({ ...ctx, clinicalTags: next });
+    updateCtx({ ...ctx, clinicalTags: next });
   };
 
-  const scheduleFollowUp = () => {
-    if (!ctx.followupWeeks) {
-      toast({ title: "Select weeks", description: "Choose 4, 8, or 12 weeks for follow-up." });
+  const scheduleFollowUp = async () => {
+    const dateStr = ctx.followupDate;
+    if (!dateStr) {
+      toast({ title: "Select a date", description: "Pick a follow-up date above." });
       return;
     }
-    proStore.scheduleFollowUp(clientId, ctx.followupWeeks, ctx.patientNote || "Follow-up scheduled");
-    toast({ title: "Follow-up scheduled", description: `${ctx.followupWeeks}-week follow-up added.` });
-    setCtx({ ...ctx, followupWeeks: undefined });
+    const linkedUserId = resolvedClientUserId !== clientId ? resolvedClientUserId : undefined;
+    if (!linkedUserId) {
+      toast({
+        title: "Client not linked",
+        description: "This patient must connect their account before check-ins can be scheduled.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const due = new Date(dateStr + "T12:00:00");
+    const label = due.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+    try {
+      const res = await fetch(apiUrl("/api/check-in-schedules"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          clientUserId: linkedUserId,
+          dueAt: due.toISOString(),
+          note: ctx.patientNote?.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error((errBody as { error?: string }).error || "Failed to schedule follow-up");
+      }
+      proStore.setContext(clientId, { ...ctx, followupDate: undefined, patientNote: undefined });
+      fetchUpcomingCheckIns();
+      toast({ title: t("pro.clinicianDashboard.followUpScheduled"), description: `Follow-up set for ${label}. Patient has been notified.` });
+      setCtx({ ...ctx, followupDate: undefined, patientNote: undefined });
+    } catch (err) {
+      toast({
+        title: t("pro.clinicianDashboard.schedulingFailed"),
+        description: err instanceof Error ? err.message : "Could not schedule follow-up. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
+  interface CheckInSchedule {
+    id: string;
+    dueAt: string;
+    done: boolean;
+    note: string | null;
+    coachDisplayName: string;
+  }
+  const [upcomingCheckIns, setUpcomingCheckIns] = useState<CheckInSchedule[]>([]);
+
+  useEffect(() => {
+    const c = proStore.getClient(clientId);
+    const uid = c?.clientUserId || c?.userId;
+    if (!uid) {
+      setUpcomingCheckIns([]);
+      return;
+    }
+    fetch(apiUrl(`/api/check-in-schedules?clientId=${encodeURIComponent(uid)}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => {
+        if (!r.ok) { setUpcomingCheckIns([]); return null; }
+        return r.json();
+      })
+      .then((data) => {
+        setUpcomingCheckIns(data?.schedules ?? []);
+      })
+      .catch(() => { setUpcomingCheckIns([]); });
+  }, [clientId]);
+
+  const fetchUpcomingCheckIns = () => {
+    const c = proStore.getClient(clientId);
+    const uid = c?.clientUserId || c?.userId;
+    if (!uid) { setUpcomingCheckIns([]); return; }
+    fetch(apiUrl(`/api/check-in-schedules?clientId=${encodeURIComponent(uid)}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => { if (!r.ok) { setUpcomingCheckIns([]); return null; } return r.json(); })
+      .then((data) => { setUpcomingCheckIns(data?.schedules ?? []); })
+      .catch(() => { setUpcomingCheckIns([]); });
+  };
+
+  const cancelCheckIn = async (id: string) => {
+    try {
+      const res = await fetch(apiUrl(`/api/check-in-schedules/${id}`), {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to cancel");
+      setUpcomingCheckIns((prev) => prev.filter((ci) => ci.id !== id));
+      toast({ title: t("pro.clinicianDashboard.checkInCancelled"), description: "The scheduled check-in has been removed." });
+    } catch {
+      toast({ title: "Error", description: t("pro.clinicianDashboard.checkInCancelFailed"), variant: "destructive" });
+    }
+  };
 
   const handlePhysicianBuilderAssignment = async (builderKey: ProfessionalBuilderKey) => {
     if (!resolvedClientUserId) {
@@ -310,14 +524,58 @@ export default function ClinicianClientDashboard() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
-          <p className="text-white/90 text-lg font-semibold">
-            {client?.name || "Patient"}
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-white/90 text-lg font-semibold">
+              {client?.name || "Patient"}
+            </p>
+            <PillButton onClick={quickTour.openTour} className="shrink-0">How to Use</PillButton>
+          </div>
           {activeProtocolLabel && (
             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
               Active Protocol: {activeProtocolLabel}
             </div>
           )}
+          {/* Active Clinical Supports */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+            <span className="font-medium text-white/70">Active Clinical Supports:</span>
+            {[
+              { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                        activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+              { key: "cardiac",            label: "Cardiac Health",    isActive: !!macros?.flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+              { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!macros?.flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+              { key: "liver-support",      label: "Liver Support",     isActive: !!macros?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+              { key: "liver-disease",      label: "Liver Disease",     isActive: !!macros?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+              { key: "oncology-support",   label: "Oncology Support",  isActive: !!macros?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+              { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!macros?.flags?.thyroidSupport,                                                                                                                                    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+              { key: "hormone-optimization", label: "Hormone Opt.",  isActive: !!((client as any)?.specialtyConditions as string[] | undefined)?.includes("hormone-optimization"), activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]" },
+            ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+              <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                {label}
+              </span>
+            ))}
+          </div>
+          {/* Hormonal & Metabolic — Second Row */}
+          {(() => {
+            const clientSc: string[] = ((client as any)?.specialtyConditions as string[] | undefined) ?? [];
+            return (
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                {[
+                  { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                  { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  { key: "hyperthyroid",       label: "Hyperthyroid",      activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                  { key: "menopause",          label: "Menopause",         activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                  { key: "perimenopause",      label: "Perimenopause",     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                  { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
+                  <span key={key} className={`flex items-center gap-1 ${clientSc.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${clientSc.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
           {clientGoal?.goalType && (
             <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
               <span className="text-2xl">
@@ -339,6 +597,17 @@ export default function ClinicianClientDashboard() {
             Set macro targets, clinical context, and physician notes for your patient.
           </p>
         </div>
+
+        {/* Option C — ProCare Clinical Protocol Card */}
+        {client && (
+          <ClinicalProtocolCard
+            clientUserId={clientId}
+            specialtyConditions={(client as any)?.specialtyConditions ?? []}
+            thyroidType={(client as any)?.thyroidType ?? null}
+            thyroidMedication={(client as any)?.thyroidMedication ?? null}
+            onUpdate={() => { setClient({ ...proStore.getClient(clientId) } as any); }}
+          />
+        )}
 
         {(labs?.ldl != null || labs?.a1c != null || labs?.blood_pressure_systolic != null || labs?.ejection_fraction != null) && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -364,57 +633,74 @@ export default function ClinicianClientDashboard() {
           </div>
         )}
 
+        {nutritionSummary && (
+          <NutritionPersonalizationSummaryCard
+            summary={nutritionSummary}
+            isLoading={nutritionSummaryLoading}
+            defaultExpanded={false}
+          />
+        )}
+
+        <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
+
+        <ProHydrationControls clientUserId={resolvedClientUserId} mode="clinical" />
+
+        {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
+        {client && (
+          <ClinicalInterventionPanel clientUserId={clientId} />
+        )}
+
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Settings className="h-5 w-5" /> Macro Targets
+            <CardTitle className="text-white/90 flex items-center gap-2 text-lg font-semibold">
+              <Settings className="h-5 w-5" /> {t("pro.clinicianDashboard.macroTargets")}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label className="text-sm text-white/70 mb-1 block">Protein (g)</label>
+              <label className="text-sm text-white/70 mb-1 block">{t("pro.clinicianDashboard.protein")} (g)</label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.protein || ""}
-                onChange={(e) => setT({ ...t, protein: e.target.value === "" ? 0 : Number(e.target.value) })}
+                value={macros.protein || ""}
+                onChange={(e) => updateMacros({ ...macros, protein: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="protein"
               />
             </div>
             <div>
-              <label className="text-sm text-white/70 mb-1 block">Starchy Carbs (g)</label>
+              <label className="text-sm text-white/70 mb-1 block">{t("pro.clinicianDashboard.carbs")} (g)</label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.starchyCarbs || ""}
-                onChange={(e) => setT({ ...t, starchyCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
+                value={macros.starchyCarbs || ""}
+                onChange={(e) => updateMacros({ ...macros, starchyCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="starchy carbs"
               />
             </div>
             <div>
-              <label className="text-sm text-white/70 mb-1 block">Fibrous Carbs (g)</label>
+              <label className="text-sm text-white/70 mb-1 block">{t("pro.clinicianDashboard.fibrousCarbs")} (g)</label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fibrousCarbs || ""}
-                onChange={(e) => setT({ ...t, fibrousCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
+                value={macros.fibrousCarbs || ""}
+                onChange={(e) => updateMacros({ ...macros, fibrousCarbs: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="fibrous carbs"
               />
             </div>
             <div>
-              <label className="text-sm text-white/70 mb-1 block">Fat (g)</label>
+              <label className="text-sm text-white/70 mb-1 block">{t("pro.clinicianDashboard.fat")} (g)</label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fat || ""}
-                onChange={(e) => setT({ ...t, fat: e.target.value === "" ? 0 : Number(e.target.value) })}
+                value={macros.fat || ""}
+                onChange={(e) => updateMacros({ ...macros, fat: e.target.value === "" ? 0 : Number(e.target.value) })}
                 placeholder="fat"
               />
             </div>
 
             <div className="col-span-full mt-3">
               <label className="text-sm font-medium text-white/90 mb-2 block">
-                Medical Dietary Directives
+                {t("pro.clinicianDashboard.medicalDietaryDirectives")}
               </label>
               <div className="flex flex-wrap gap-2">
                 {([
@@ -425,12 +711,12 @@ export default function ClinicianClientDashboard() {
                   { key: "lowSodium",      label: "Low-Sodium"       },
                   { key: "postBariatric",  label: "Post-Bariatric"   },
                 ] as const).map(({ key, label }) => {
-                  const isOn = !!(t.flags as Record<string, boolean> | undefined)?.[key];
+                  const isOn = !!(macros.flags as Record<string, boolean> | undefined)?.[key];
                   return (
                     <button
                       key={key}
                       type="button"
-                      onClick={() => setT({ ...t, flags: { ...t.flags, [key]: !isOn } })}
+                      onClick={() => updateMacros({ ...macros, flags: { ...macros.flags, [key]: !isOn } })}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
                         isOn
                           ? "bg-teal-600 border-teal-400 text-white"
@@ -443,10 +729,58 @@ export default function ClinicianClientDashboard() {
                   );
                 })}
               </div>
+
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="text-xs text-white/50 mb-2">Physician-Initiated Protocol</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {(() => {
+                    const isOn = !!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => updateMacros({ ...macros, flags: { ...macros.flags, oncologySupport: !isOn } })}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
+                          isOn
+                            ? "bg-rose-600 border-rose-400 text-white"
+                            : "bg-black/30 border-rose-900/40 text-white/70 hover:bg-rose-950/40 hover:text-white"
+                        }`}
+                      >
+                        {isOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                        🎗️ Oncology Support
+                      </button>
+                    );
+                  })()}
+                  {(() => {
+                    const isOn = !!(macros.flags as Record<string, boolean> | undefined)?.glp1;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => updateMacros({ ...macros, flags: { ...macros.flags, glp1: !isOn } })}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
+                          isOn
+                            ? "bg-orange-600 border-orange-400 text-white"
+                            : "bg-black/30 border-orange-900/40 text-white/70 hover:bg-orange-950/40 hover:text-white"
+                        }`}
+                      >
+                        {isOn && <Check className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                        💉 Metabolic Med Active
+                      </button>
+                    );
+                  })()}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
+                  {!!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport && (
+                    <span className="text-xs text-rose-300/80">Oncology overlay active — save to persist</span>
+                  )}
+                  {!!(macros.flags as Record<string, boolean> | undefined)?.glp1 && (
+                    <span className="text-xs text-orange-300/80">Metabolic Med protocol active — stacks with diabetic builder on save</span>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="col-span-full mt-3">
-              <label className="text-sm font-medium text-white/90 mb-2 block">
+              <label className="text-lg font-semibold text-white/90 mb-2 block">
                 Starch Game Plan
               </label>
               <p className="text-xs text-white/60 mb-3">
@@ -455,33 +789,33 @@ export default function ClinicianClientDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setT({ ...t, starchStrategy: 'one' })}
+                  onClick={() => updateMacros({ ...macros, starchStrategy: 'one' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    (t.starchStrategy || 'one') === 'one'
+                    (macros.starchStrategy || 'one') === 'one'
                       ? 'bg-orange-600/30 border-orange-400'
                       : 'bg-black/30 border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🥔</span>
-                    <span className="font-semibold text-white">One Starch Meal</span>
-                    {(t.starchStrategy || 'one') === 'one' && <Check className="h-4 w-4 text-orange-400 ml-auto" />}
+                    <span className="font-medium text-md text-white">One Starch Meal</span>
+                    {(macros.starchStrategy || 'one') === 'one' && <Check className="h-4 w-4 text-orange-400 ml-auto" />}
                   </div>
                   <p className="text-xs text-white/70">All starch in one meal. Best for appetite control and fat loss.</p>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setT({ ...t, starchStrategy: 'flex' })}
+                  onClick={() => updateMacros({ ...macros, starchStrategy: 'flex' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    t.starchStrategy === 'flex'
+                    macros.starchStrategy === 'flex'
                       ? 'bg-yellow-600/30 border-yellow-400'
                       : 'bg-black/30 border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🥗</span>
-                    <span className="font-semibold text-white">Flex Split</span>
-                    {t.starchStrategy === 'flex' && <Check className="h-4 w-4 text-yellow-400 ml-auto" />}
+                    <span className="font-medium text-md text-white">Flex Split</span>
+                    {macros.starchStrategy === 'flex' && <Check className="h-4 w-4 text-yellow-400 ml-auto" />}
                   </div>
                   <p className="text-xs text-white/70">Divide starch across two meals for flexibility.</p>
                 </button>
@@ -491,42 +825,48 @@ export default function ClinicianClientDashboard() {
             <div className="col-span-full mt-4">
               <ClinicalAdvisoryDrawer
                 advisory={ctx.advisory}
-                targets={t}
+                targets={macros}
                 onAdvisoryChange={(advisory: ClinicalAdvisory) => {
-                  setCtx({ ...ctx, advisory });
+                  updateCtx({ ...ctx, advisory });
                   proStore.setContext(clientId, { ...ctx, advisory });
                 }}
                 onApplySuggestions={(deltas) => {
-                  const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                  const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
                   const newTotalCarbs = Math.max(0, totalCarbs + deltas.carbs);
-                  const starchyRatio = totalCarbs > 0 ? (t.starchyCarbs || 0) / totalCarbs : 0.5;
-                  setT({
-                    ...t,
-                    protein: Math.max(0, (t.protein || 0) + deltas.protein),
+                  const starchyRatio = totalCarbs > 0 ? (macros.starchyCarbs || 0) / totalCarbs : 0.5;
+                  updateMacros({
+                    ...macros,
+                    protein: Math.max(0, (macros.protein || 0) + deltas.protein),
                     starchyCarbs: Math.round(newTotalCarbs * starchyRatio),
                     fibrousCarbs: Math.round(newTotalCarbs * (1 - starchyRatio)),
-                    fat: Math.max(0, (t.fat || 0) + deltas.fat),
+                    fat: Math.max(0, (macros.fat || 0) + deltas.fat),
                   });
                   toast({ title: "Advisory Applied", description: "Macro targets adjusted. Review and save when ready." });
                 }}
               />
             </div>
 
+            {isDirty && (
+              <p className="col-span-full text-xs text-orange-400 font-semibold flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-ping" />
+                Unsaved changes — press Save Targets &amp; Directives
+              </p>
+            )}
             <div className="col-span-full flex gap-2">
-              <Button onClick={saveTargets} className="bg-lime-600 border border-white/20 text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 active:scale-[0.98] flex-1">
-                Save Targets &amp; Dietary Directives
+              <Button onClick={saveTargets} className={`border border-white/20 text-white font-medium px-8 py-3 shadow-2xl transition-all duration-300 active:scale-[0.98] flex-1 ${isDirty ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}>
+                {t("pro.clinicianDashboard.save")}
               </Button>
               <Button
                 onClick={async () => {
-                  const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-                  const calcKcal = (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
+                  const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
+                  const calcKcal = (macros.protein || 0) * 4 + totalCarbs * 4 + (macros.fat || 0) * 9;
                   if (calcKcal < 100) {
                     toast({ title: "Cannot Set Empty Macros", description: "Please set macro targets first", variant: "destructive" });
                     return;
                   }
                   try {
                     const { setMacroTargets } = await import("@/lib/dailyLimits");
-                    await setMacroTargets({ calories: calcKcal, protein_g: t.protein, carbs_g: totalCarbs, fat_g: t.fat }, clientId);
+                    await setMacroTargets({ calories: calcKcal, protein_g: macros.protein, carbs_g: totalCarbs, fat_g: macros.fat }, clientId);
                     const { linkUserToClient } = await import("@/lib/macroResolver");
                     linkUserToClient(clientId, clientId);
                     toast({ title: "Macros Set to Biometrics!", description: `${calcKcal} kcal physician-set targets saved for ${client?.name}` });
@@ -535,9 +875,9 @@ export default function ClinicianClientDashboard() {
                     toast({ title: "Failed to Set Macros", description: "Please try again", variant: "destructive" });
                   }
                 }}
-                className="bg-black text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 flash-border active:scale-[0.98]"
+                className="bg-black text-white font-medium px-8 py-3 shadow-2xl transition-all duration-200 flash-border active:scale-[0.98]"
               >
-                <Target className="h-5 w-5 mr-2" />
+                
                 Send Macros to Biometrics
               </Button>
             </div>
@@ -546,7 +886,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white/90 flex items-center gap-2 text-lg font-semibold">
               <Stethoscope className="h-5 w-5" /> Clinical Context
             </CardTitle>
           </CardHeader>
@@ -557,7 +897,7 @@ export default function ClinicianClientDashboard() {
                 className="bg-black/30 border-white/30 text-white"
                 placeholder="e.g., Type 2 Diabetes, Post-Bariatric"
                 value={ctx.diagnosis || ""}
-                onChange={(e) => setCtx({ ...ctx, diagnosis: e.target.value })}
+                onChange={(e) => updateCtx({ ...ctx, diagnosis: e.target.value })}
               />
             </div>
 
@@ -586,7 +926,7 @@ export default function ClinicianClientDashboard() {
                 className="bg-black/30 border-white/30 text-white min-h-[80px]"
                 placeholder="Clinical observations, medication notes, dietary restrictions..."
                 value={ctx.patientNote || ""}
-                onChange={(e) => setCtx({ ...ctx, patientNote: e.target.value })}
+                onChange={(e) => updateCtx({ ...ctx, patientNote: e.target.value })}
               />
             </div>
 
@@ -596,26 +936,8 @@ export default function ClinicianClientDashboard() {
                 className="bg-black/30 border-white/30 text-white min-h-[80px]"
                 placeholder="Internal physician notes for this patient..."
                 value={ctx.coachNote || ""}
-                onChange={(e) => setCtx({ ...ctx, coachNote: e.target.value })}
+                onChange={(e) => updateCtx({ ...ctx, coachNote: e.target.value })}
               />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-white/70">Follow-up</label>
-              <select
-                className="bg-black/30 border border-white/30 text-white rounded-lg px-3 py-1.5 text-sm"
-                value={ctx.followupWeeks || ""}
-                onChange={(e) => setCtx({ ...ctx, followupWeeks: e.target.value ? (Number(e.target.value) as 4 | 8 | 12) : undefined })}
-              >
-                <option value="">Select</option>
-                <option value="4">4 weeks</option>
-                <option value="8">8 weeks</option>
-                <option value="12">12 weeks</option>
-              </select>
-              <Button onClick={scheduleFollowUp} className="bg-blue-600 text-white text-sm active:scale-[0.98]">
-                <Calendar className="h-4 w-4 mr-1" />
-                Schedule
-              </Button>
             </div>
 
             <Button onClick={saveContext} className="bg-lime-600 border border-white/20 text-white active:scale-[0.98]">
@@ -626,8 +948,8 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Ruler className="h-5 w-5" /> Body Composition
+            <CardTitle className="text-white/90 flex items-center gap-2 text-lg font-semibold">
+              <Ruler className="h-5 w-5" /> {t("pro.clinicianDashboard.bodyComposition")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -635,7 +957,7 @@ export default function ClinicianClientDashboard() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                    <div className="text-xs text-white/60">Body Fat</div>
+                    <div className="text-xs text-white/60">{t("pro.clinicianDashboard.bodyFat")}</div>
                     <div className="text-lg font-bold text-white">{parseFloat(bodyComp.currentBodyFatPct).toFixed(1)}%</div>
                   </div>
                   {bodyComp.goalBodyFatPct && (
@@ -659,7 +981,7 @@ export default function ClinicianClientDashboard() {
                 </div>
               </div>
             ) : (
-              <p className="text-white/50 text-sm">No body composition data recorded for this patient yet.</p>
+              <p className="text-white/50 text-md">{t("pro.clinicianDashboard.noBodyComp")}</p>
             )}
           </CardContent>
         </Card>
@@ -668,8 +990,8 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-teal-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-teal-400" /> Assign Clinical Builder
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+              <Trophy className="h-5 w-5 text-teal-400" /> {t("pro.clinicianDashboard.assignClinicalBuilder")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -677,7 +999,7 @@ export default function ClinicianClientDashboard() {
               Choose which meal builder this patient will use. The assignment is saved to their record.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {PHYSICIAN_BUILDER_KEYS.map((key) => {
+              {PHYSICIAN_BUILDER_KEYS.filter((k) => k !== "performance_competition" && k !== "weekly").map((key) => {
                 const entry = PROFESSIONAL_BUILDER_MAP[key];
                 const isActive = assignedBuilder === key;
                 return (
@@ -694,7 +1016,6 @@ export default function ClinicianClientDashboard() {
                       {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
                       <span className="font-bold text-sm">{entry.label}</span>
                     </div>
-                    <span className="text-xs text-white/60 font-normal leading-snug">{entry.description}</span>
                   </Button>
                 );
               })}
@@ -704,7 +1025,7 @@ export default function ClinicianClientDashboard() {
 
         <Card className="bg-white/5 border border-amber-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <Dumbbell className="h-5 w-5 text-amber-400" /> Open Patient Builder
             </CardTitle>
           </CardHeader>
@@ -721,10 +1042,31 @@ export default function ClinicianClientDashboard() {
                   toast({ title: "No Builder Assigned", description: "Please assign a builder above first.", variant: "destructive" });
                   return;
                 }
+                // Workspace identity guard — real UUID required.
+                // Never navigate with a proStore record ID; that would load the pro's own data.
+                const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (!UUID_RE.test(resolvedClientUserId)) {
+                  toast({
+                    title: "Client not connected",
+                    description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
+                // Builders that have a hub: send the physician to the hub first so they
+                // can review/set patient parameters before entering the builder.
+                if (assignedBuilder === "diabetic") {
+                  setLocation("/diabetic-hub");
+                  return;
+                }
+                if (assignedBuilder === "glp1") {
+                  setLocation("/glp1-hub");
+                  return;
+                }
                 setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}
-              className="w-full sm:w-[400px] bg-amber-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
+              className="w-full sm:w-[400px] bg-lime-600 border border-amber-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <LayoutGrid className="h-4 w-4 mr-2" />
               {activeProtocolLabel
@@ -733,12 +1075,116 @@ export default function ClinicianClientDashboard() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Schedule Follow-Up */}
+        <Card className="bg-white/5 border border-blue-500/30">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+              <CalendarCheck className="h-5 w-5 text-blue-400" /> Schedule Follow-Up
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {upcomingCheckIns.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-blue-400 font-semibold uppercase tracking-wide">Upcoming Appointments</p>
+                {upcomingCheckIns.map((ci) => (
+                  <div key={ci.id} className="p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
+                    <div className="flex items-center gap-3">
+                      <CalendarCheck className="h-4 w-4 text-blue-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white">
+                          {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                        </p>
+                        <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => cancelCheckIn(ci.id)}
+                        className="shrink-0 p-1.5 rounded-lg text-red-400/60 active:text-red-400 active:bg-red-900/30"
+                        title="Cancel appointment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <AddToCalendarButtons
+                      accentClass="text-blue-400/60"
+                      event={{
+                        title: `Follow-Up — ${client?.name || "Patient"}`,
+                        startAt: new Date(ci.dueAt),
+                        durationMinutes: 60,
+                        description: `Follow-up appointment scheduled via My Perfect Meals.\nPhysician: ${ci.coachDisplayName}`,
+                        meta: {
+                          type: "followup",
+                          source: "coach",
+                          priority: "normal",
+                          escalationEligible: true,
+                          linkedMetrics: ["macro_consistency", "weight_trend", "lab_values"],
+                        },
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-white/70 text-sm">
+              Set a follow-up appointment for this patient. Pick a date or use a quick preset.
+            </p>
+            <div>
+              <p className="text-xs text-white/50 mb-2">Quick presets</p>
+              <div className="flex gap-2 flex-wrap mb-3">
+                {([2, 4, 8] as const).map((w) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + w * 7);
+                  const iso = d.toISOString().split("T")[0];
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setCtx({ ...ctx, followupDate: iso })}
+                      className={`px-4 py-1.5 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
+                        ctx.followupDate === iso
+                          ? "bg-blue-600 border-blue-400 text-white"
+                          : "bg-black/30 border-white/20 text-white/70"
+                      }`}
+                    >
+                      {w}w
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                type="date"
+                value={ctx.followupDate || ""}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setCtx({ ...ctx, followupDate: e.target.value })}
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
+            </div>
+            <div>
+              <p className="text-xs text-white/50 mb-1">Notes for this appointment</p>
+              <textarea
+                value={ctx.patientNote || ""}
+                onChange={(e) => setCtx({ ...ctx, patientNote: e.target.value })}
+                placeholder="Goals, focus areas, or session notes..."
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none"
+                rows={3}
+              />
+            </div>
+            <Button
+              onClick={scheduleFollowUp}
+              className="bg-blue-600 border border-blue-400/30 text-white active:scale-[0.98]"
+            >
+              <CalendarCheck className="h-4 w-4 mr-2" />
+              {t("pro.clinicianDashboard.scheduleFollowUpBtn")}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Physicians Clinic Guide"
+        title={t("pro.clinicianDashboard.tourTitle")}
         steps={CLINICIAN_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />

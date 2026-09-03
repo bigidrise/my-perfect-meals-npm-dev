@@ -22,7 +22,7 @@ Assumptions:
 import fs from 'fs';
 import path from 'path';
 
-const IMAGES_DIR = path.resolve(process.cwd(), 'public/images/cravings');
+const IMAGES_DIR = path.resolve(process.cwd(), 'client/public/images/cravings');
 const DATA_FILE = path.resolve(process.cwd(), 'client/src/data/cravingsPresetsData.ts');
 const BACKUP_FILE = DATA_FILE + '.bak';
 const DRY = process.argv.includes('--dry');

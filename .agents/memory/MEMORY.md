@@ -1,0 +1,67 @@
+- [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
+- [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
+- [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
+- [Studio message composer controls](studio-message-composer-controls.md) — client-facing composers share purple Send, orange Voice, and prominent red Video controls.
+- [Allergy adaptation layer](allergy-adaptation-layer.md) — classify adaptable conflicts before generation and rescan every final output.
+- [Allergen override matching](allergen-override-exact-match.md) — safety PINs use canonical key and alias matching, never substrings.
+- [Dish adaptation layer](dish-adaptation-layer.md) — never silently substitute requested dishes; keep prompt substitution maps synchronized.
+- [LMS boot migrations](lms-boot-migrations.md) — every boot migration must run in development and production entrypoints.
+- [Production route parity](prod-route-parity.md) — routes mounted in development need explicit production mounting too.
+- [Subscription enforcement](subscription-tier-middleware.md) — plan lookup keys drive access; disabled billing is the sole global bypass.
+- [ProCare effective access](business-effective-access.md) — compute access at runtime from membership or personal plan; never persist merged entitlement.
+- [Universal modal system](universal-modal-system.md) — use typed universal modals and follow the DialogContent import rule.
+- [Coaching engine contracts](coaching-engine-phase1.md) — coaching evidence and typed contracts are the shared foundation for its observers and UI.
+- [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — confidence.ts is the authoritative LLM control surface for coaching tone.
+- [Object storage architecture](object-storage-architecture.md) — Object Storage Client is the working server upload path; do not rely on signed URL sidecars.
+- [Canonical media assets](media-asset-architecture.md) — media lifecycle gates must protect every referencing surface before object deletion.
+- [Meal image fidelity](meal-image-ingredient-contract.md) — image prompts and cache keys derive from full recipes, not only dish labels.
+- [Daily prescription hierarchy](daily-prescription-hierarchy.md) — one endpoint owns macro targets; clinical overlays are applied in documented order.
+- [Nutrition decision engine entry points](nde-food-entry-points.md) — all food intake surfaces must consult NDE before presenting results.
+- [GLP-1 canonical context](glp1-canonical-context.md) — server-resolved global context is the only GLP-1 activation source.
+- [GLP-1 daily tolerance boot](glp1-daily-tolerance-boot.md) — feature-table alters must first create the table for fresh environments.
+- [Professional context architecture](professional-context-architecture.md) — preserve the separation between personal and professional product worlds.
+- [Performance nutrition](performance-nutrition.md) — the MacroCalculator remains the always-live baseline beneath session modifiers.
+- [Shared resolver ownership](nutrition-resolver-ownership.md) — workflow pages resolve once and pass data into shared components.
+- [Production media delivery](production-image-differential-diagnosis.md) — diagnose image records on their exact saved-object path.
+- [Override propagation](override-propagation-pattern.md) — successful allergy PIN overrides must reach every post-generation validation path.
+- [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
+- [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
+- [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
+- [Studio video purge retention](studio-video-purge-retention.md) — private media purge needs a renewable token lease and immutable retained transcript before references clear.
+- [Studio video MIME compatibility](studio-video-mime-compatibility.md) — use browser capability selection and server MIME normalization across WebM, MP4, and QuickTime.
+- [Failed Studio video deletion](failed-studio-video-deletion.md) — failed-transcription media is deletable without creating a transcript or weakening playback gates.
+- [Studio participant deletion lifecycle](studio-transcript-deletion-lifecycle.md) — normal trash hides shared Studio history per viewer; private video media deletion stays separate and global.
+- [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
+- [Studio route result scope](studio-route-result-scope.md) — keep transcription results at handler scope when later moderation and response code runs outside the processing try block.
+- [Voice message queue integrity](voice-message-queue-integrity.md) — pending voice notes require stored audio and a transcription job; otherwise show failure.
+- [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
+- [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
+- [Runtime database identity](runtime-database-identity.md) — compare active connection fingerprints when the platform inspector cannot identify the deployed database.
+- [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
+- [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
+- [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
+- [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
+- [Legacy Hydration intake bridge](legacy-hydration-intake-bridge.md) — until migration approval, canonical Hydration reads project from water_logs without a second stored copy.
+- [Hydration modifier governance](hydration-modifier-governance.md) — context sources emit nonnumeric claims; one deterministic resolver owns precedence, suppression, and review.
+- [Hydration planning eligibility](hydration-planning-eligibility.md) — eligibility is nonnumeric; validate every registry claim before resolver status filtering.
+- [Hydration local-day authority](hydration-local-day-authority.md) — hydration totals and rolling windows follow the subject's IANA timezone, including DST and backdated intake.
+- [Hydration numeric policy v0.1](hydration-numeric-policy-v01.md) — only current clinician directives permit numbers; production stays inactive until the full activation gate opens.
+- [Hydration four-door product boundary](daily-hydration-plan-architecture.md) — keep Everyday, Athletic, Sick-Day, and Liquid Nutrition Support distinct while one Hub organizes explicit instructions.
+- [Hydration product recommendation boundary](hydration-product-recommendation-boundary.md) — commercial relationships never determine eligibility; qualify and verify products first.
+- [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
+- [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.
+- [Academy progression authority](academy-progression-authority.md) — Phase 1 is educational; Phase 2 earns the core Specialist credential; ProCare is optional and role-gated.
+- [Academy contextual navigation](academy-contextual-navigation.md) — ProCare back controls should return to the logical course parent, not rely on browser history.
+- [Frontend static asset location](frontend-static-asset-location.md) — browser-facing images belong in client/public; verify the exact served asset before changing page layering.
+- [Production-mode dev dependencies](production-mode-dev-dependencies.md) — NODE_ENV=production can omit declared TypeScript types and create false LSP cascades.
+- [Crawler-visible SPA pages](crawler-visible-spa-pages.md) — public HTML snapshots must precede every SPA fallback and remain public after the client mounts.
+- [Nutrition consistency score boundary](nutrition-consistency-score-boundary.md) — score observable user behavior, never rules the platform enforces automatically.
+- [Hydration Creator handoffs](hydration-creator-handoffs.md) — Creator handoffs carry signed intent only; current safety context is always re-resolved server-side.
+- [Professional Hydration role split](professional-hydration-role-split.md) — clinical professionals own numeric directives; trainers only own bounded nonclinical coaching.
+- [Hydration Hub entry experience](hydration-hub-entry-experience.md) — render the four-door shell immediately and keep Everyday/Athletic Creator handoffs obvious.
+- [Hydration Center strict paywall](hydration-center-strict-paywall.md) — Free and Essential stay blocked even when internal pre-launch/test bypasses are enabled.
+- [Whole-Food governance](whole-food-governance.md) — central evidence-aware policy gates every active human recommendation; a clean coverage matrix is required for platform-wide claims.
+- [Consumer ProCare role split](consumer-procare-role-split.md) — Pro opens coach/trainer relationships; Clinical remains required for clinical professionals and data.
+- [Stripe entitlement authority](stripe-entitlement-authority.md) — web access requires Stripe verification plus immutable user identity; email and client returns never grant it.
+- [Organizational pilot authority](organizational-pilot-authority.md) — Business owns one shared pilot clock; professional seats and client capacity stay separate.
+- [Stateless Human Food retries](stateless-human-food-retries.md) — resolve fresh authoritative context per request; retry state never crosses requests or reaches clients.

@@ -54,13 +54,60 @@ export async function chatJson(opts: {
   throw lastErr ?? new Error("LLM failed");
 }
 
+const IMAGE_TIMEOUT_MS = Number(process.env.IMAGE_TIMEOUT_MS ?? 90000);
+
+function b64ToDataUrl(b64: string): string {
+  return `data:image/png;base64,${b64}`;
+}
+
 export async function genImage(prompt: string, size: "1024x1024" | "1024x1536" | "1536x1024" = "1024x1024"): Promise<string | undefined> {
   if (process.env.DISABLE_IMAGE_GEN === "true") return undefined;
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort("image-timeout"), IMAGE_TIMEOUT_MS);
   try {
-    const res = await openai.images.generate({ model: "dall-e-3", prompt, size, n: 1 });
-    return res.data?.[0]?.url ?? undefined;
-  } catch (e) {
-    console.error("image gen failed:", e);
+    const res = await (openai.images.generate as any)(
+      { model: "gpt-image-1", prompt, size, n: 1 },
+      { signal: ac.signal }
+    );
+    clearTimeout(t);
+    const item = res.data?.[0];
+    if (item?.url) return item.url;
+    if (item?.b64_json) return b64ToDataUrl(item.b64_json);
+    return undefined;
+  } catch (e: any) {
+    clearTimeout(t);
+    if (e?.name === "AbortError" || String(e).includes("image-timeout")) {
+      console.warn(`[genImage] timed out after ${IMAGE_TIMEOUT_MS}ms for: "${prompt.slice(0, 60)}"`);
+    } else {
+      console.error("image gen failed:", e);
+    }
+    return undefined;
+  }
+}
+
+// Fast image generation for card previews — gpt-image-1 at 1024×1024.
+// Does NOT touch the permanent storage path.
+export async function genImageFast(prompt: string): Promise<string | undefined> {
+  if (process.env.DISABLE_IMAGE_GEN === "true") return undefined;
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort("image-timeout"), IMAGE_TIMEOUT_MS);
+  try {
+    const res = await (openai.images.generate as any)(
+      { model: "gpt-image-1", prompt, size: "1024x1024", n: 1 },
+      { signal: ac.signal }
+    );
+    clearTimeout(t);
+    const item = res.data?.[0];
+    if (item?.url) return item.url;
+    if (item?.b64_json) return b64ToDataUrl(item.b64_json);
+    return undefined;
+  } catch (e: any) {
+    clearTimeout(t);
+    if (e?.name === "AbortError" || String(e).includes("image-timeout")) {
+      console.warn(`[genImageFast] timed out after ${IMAGE_TIMEOUT_MS}ms for: "${prompt.slice(0, 60)}"`);
+    } else {
+      console.error("genImageFast failed:", e);
+    }
     return undefined;
   }
 }

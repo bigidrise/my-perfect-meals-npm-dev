@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from '@/lib/resolveApiBase';
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 export type GalleryItem = {
   id: string;
@@ -64,10 +65,11 @@ export default function LatestRecipesStrip() {
             data-testid={`recipe-thumbnail-${item.id}`}
           >
             {item.imageUrl ? (
-              <img 
-                src={item.imageUrl} 
-                alt={item.title} 
-                className="w-full h-20 object-cover"
+              <MealImageSlot
+                imageUrl={item.imageUrl}
+                mealName={item.title}
+                height="h-20"
+                className="!mb-0 !rounded-none"
               />
             ) : (
               <div className="w-full h-20 bg-black/30 flex items-center justify-center text-xs">

@@ -3,6 +3,7 @@
 import OpenAI from "openai";
 import { storage } from "../storage";
 import { enforceMeasuredIngredients } from "./mealgenV2";
+import { generateMealImageUnified } from "./mealImageGenerator";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -15,6 +16,74 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
+export interface IntelligentMealRequest {
+  userId: string;
+  description: string;
+  mealType?: string;
+  mode?: "generate" | "suggest";
+  preferences?: {
+    calories?: number;
+    protein?: number;
+    restrictions?: string[];
+    allergies?: string[];
+  };
+}
+
+export interface IntelligentMealResponse {
+  conversationalResponse?: string;
+  suggestions?: string[];
+  followUpQuestions?: string[];
+  meal?: {
+    name: string;
+    description: string;
+    ingredients: Array<{ name: string; quantity: string; unit: string }>;
+    instructions: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    imageUrl?: string;
+  };
+}
+
+export async function generateIntelligentMeal(request: IntelligentMealRequest): Promise<IntelligentMealResponse> {
+  try {
+    const user = await storage.getUser(request.userId);
+    const userContext = buildUserContext(user);
+
+    const langNames: Record<string, string> = {
+      es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese",
+      zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean", ar: "Arabic",
+      hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
+    };
+    const rawLang = (user as any)?.preferredLanguage || "auto";
+    const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
+    const langInstr = baseLang !== "en" && langNames[baseLang]
+      ? `\n\n🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langNames[baseLang]}. Every word must be in ${langNames[baseLang]}.`
+      : "";
+
+    const systemPrompt = `You are an expert nutritionist and chef AI. Generate personalized meal recommendations based on user profiles.
+
+USER PROFILE:
+${userContext}
+
+Provide responses in JSON format with:
+- conversationalResponse: friendly, conversational explanation
+- meal: complete meal with ingredients, instructions, macros
+- suggestions: 2-3 alternative options
+- followUpQuestions: relevant questions to refine the recommendation${langInstr}`;
+
+    const response = await getOpenAI().chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: request.description }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
     const result = JSON.parse(response.choices[0].message.content || "{}");
     
     // Post-process to ensure quality
@@ -22,17 +91,17 @@ function getOpenAI(): OpenAI {
       result.meal.ingredients = enforceMeasuredIngredients(result.meal.ingredients);
     }
 
-    // Generate image if requested
+    // Generate image if requested — routes through unified pipeline (cache → S3 → DALL-E)
     if (request.mode === "generate" && result.meal) {
       try {
-        const imageResponse = await getOpenAI().images.generate({
-          model: "dall-e-3",
-          prompt: `Professional food photography of ${result.meal.name}: ${result.meal.description}. Clean, appetizing, restaurant-quality presentation.`,
-          size: "1024x1024",
-          quality: "standard",
-          n: 1
-        });
-        result.meal.imageUrl = imageResponse.data?.[0]?.url;
+        const ingredients = (result.meal.ingredients || []).map((i: any) =>
+          typeof i === "string" ? i : i.name || i.item || ""
+        );
+        result.meal.imageUrl = await generateMealImageUnified(
+          result.meal.name,
+          ingredients,
+          "meal"
+        );
       } catch (imageError) {
         console.warn("Image generation failed:", imageError);
       }

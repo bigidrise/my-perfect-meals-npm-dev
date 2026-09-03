@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Trophy, TrendingUp, Star, Users, Flame, ChevronDown, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
+// i18n: leave for content team
 const TIERS = [
   {
     name: "Bronze Coach",
@@ -49,6 +51,7 @@ type Founder = {
   credentials: string[];
 };
 
+// i18n: leave for content team
 const FOUNDERS: Founder[] = [
   {
     name: "Coach Idrise",
@@ -78,22 +81,11 @@ const FOUNDERS: Founder[] = [
       "Medical Compliance & Regulatory Oversight",
     ],
   },
-  {
-    name: "Kristen Bogan",
-    title: "Founding Coach",
-    photo: "/assets/kristen-bogan-2.jpg",
-    initials: "KB",
-    bio: "As a dedicated personal trainer, I specialize in helping clients build strength, lose weight, and recover safely and effectively from surgery or injury. My approach is rooted in functional and lifestyle-based training—focusing on movements that make everyday life easier, safer, and more enjoyable. With a background in muscle development and corrective exercise, I design programs that improve mobility, stability, and overall body mechanics. I believe fitness should support the way you live, whether that means lifting with confidence, moving without pain, or having the energy to take on your day. Recovery and longevity are at the core of my philosophy—to empower you with the strength, confidence, and resilience you need to thrive in both the gym and everyday life.",
-    credentials: [
-      "CPT · Corrective Exercise",
-      "Strength & Recovery Coaching",
-      "Founding Platform Coach",
-    ],
-  },
 ];
 
 export default function ProCareRewards() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const [selectedFounder, setSelectedFounder] = useState<Founder | null>(null);
   const [systemExpanded, setSystemExpanded] = useState(false);
 
@@ -106,7 +98,7 @@ export default function ProCareRewards() {
             className="flex items-center gap-1 text-white/60 text-sm mb-4 active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t("procare.rewards.back")}
           </button>
 
           <div className="text-center mb-6">
@@ -199,7 +191,7 @@ export default function ProCareRewards() {
             className="w-full flex items-center gap-3 px-4 py-4 active:scale-[0.98] transition-transform text-left"
           >
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-white">Coaching System</h3>
+              <h3 className="text-sm font-semibold text-white">{t("procare.rewards.background")}</h3>
               <p className="text-xs text-white/40 mt-0.5">Tap to learn how we coach</p>
             </div>
             <ChevronDown

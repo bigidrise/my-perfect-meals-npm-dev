@@ -1,26 +1,21 @@
 // client/src/components/FixedMenuPicker.tsx
 // Lets users select 2–6 specific meals that cycle across the plan when mode === "fixed_menu".
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Button } from "@/components/ui/button";
 import { X, Plus, RefreshCw } from "lucide-react";
-import MealCard from "@/components/MealCard";
+import { MealCard } from "@/components/MealCard";
 import TrashButton from "@/components/ui/TrashButton";
+import { useToast } from "@/hooks/use-toast";
+import {
+  fromMealCardMeal,
+  getMealCardSlot,
+  toMealCardMeal,
+  type PickerMealCardData,
+} from "@/lib/pickerMealCardAdapter";
 
-type Ingredient = { name: string; amount: string };
-export type FixedMeal = {
-  name: string; 
-  description?: string; 
-  imageUrl?: string;
-  ingredients: Ingredient[]; 
-  instructions: string[];
-  calories?: number; 
-  protein?: number; 
-  carbs?: number; 
-  fats?: number;
-  labels?: string[]; 
-  badges: string[];
-};
+export type FixedMeal = PickerMealCardData;
 
 export default function FixedMenuPicker({ 
   open, 
@@ -35,6 +30,8 @@ export default function FixedMenuPicker({
   slotLabel?: string; 
   userId?: string;
 }) {
+  const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<FixedMeal[]>([]);
   const [error, setError] = useState<string | undefined>();
@@ -58,12 +55,25 @@ export default function FixedMenuPicker({
         })
       });
       
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        let errData: any = {};
+        try { errData = await res.json(); } catch { /* non-JSON response */ }
+        if (errData.reasonCode === "constraint_conflict") {
+          toast({
+            title: t("mealPicker.noOptionsFitPlan"),
+            description: errData.message || errData.error || "Your health protocol eliminated all generated options. Try a different meal type or adjust your settings.",
+            duration: 8000,
+          });
+          return;
+        }
+        throw new Error(errData.error || errData.message || `HTTP ${res.status}`);
+      }
       
       const data = await res.json();
       const m = data.meal || data;
       
       const norm: FixedMeal = {
+        id: String(m?.id ?? m?.mealId ?? `picker-${Date.now()}-${Math.random().toString(36).slice(2)}`),
         name: String(m?.name ?? m?.title ?? "Chef's Choice"),
         description: m?.description ?? m?.summary ?? undefined,
         imageUrl: m?.imageUrl ?? m?.imageURL ?? m?.image ?? undefined,
@@ -88,7 +98,8 @@ export default function FixedMenuPicker({
       
       setItems(prev => [...prev, norm]);
     } catch (e: any) {
-      setError(e.message || "Failed to generate meal");
+      const detail = e?.message ? ` ${e.message}` : "";
+      setError(`Meal generation failed.${detail} Please try again.`);
     } finally { 
       setLoading(false); 
     }
@@ -138,7 +149,7 @@ export default function FixedMenuPicker({
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Meal
+                  {error ? "Try Again" : "Add Meal"}
                 </>
               )}
             </Button>
@@ -156,16 +167,20 @@ export default function FixedMenuPicker({
             {items.map((m, idx) => (
               <div key={idx} className="relative">
                 <MealCard 
-                  item={{ 
-                    ...m, 
-                    slot: "meal" as const, 
-                    label: slotLabel, 
-                    time: "", 
-                    dayIndex: 0,
-                    order: idx + 1,
-                    badges: m.badges ?? [] 
-                  }} 
-                  cravingCreatorHref="#" 
+                  date="board"
+                  slot={getMealCardSlot(slotLabel)}
+                  meal={toMealCardMeal(m)}
+                  onUpdated={(updatedMeal) => {
+                    if (updatedMeal === null) {
+                      removeMeal(idx);
+                      return;
+                    }
+
+                    setItems((currentItems) => currentItems.map((item, itemIndex) => {
+                      if (itemIndex !== idx) return item;
+                      return fromMealCardMeal(updatedMeal, item);
+                    }));
+                  }}
                 />
                 <div className="absolute top-2 right-2">
                   <TrashButton

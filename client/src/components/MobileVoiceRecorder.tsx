@@ -170,7 +170,7 @@ export const MobileVoiceRecorder = () => {
         <Card className="shadow-xl border-red-500 border-2">
           <CardContent className="p-4 text-center">
             <div className="flex items-center gap-2">
-              <Mic className="w-6 h-6 text-red-500 animate-pulse" />
+              <Mic className="w-6 h-6 text-red-500 animate-pulse pulse-keep" />
               <div>
                 <h4 className="font-bold text-red-600">Recording</h4>
                 <p className="text-xs text-gray-600">Say "Hey Chef" + command</p>
@@ -236,7 +236,7 @@ export const MobileVoiceRecorder = () => {
         onClick={isRecording ? stopRecording : startRecording}
         className={`w-24 h-24 rounded-full shadow-xl transition-all ${
           isRecording 
-            ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
+            ? 'bg-red-500 hover:bg-red-600 animate-pulse pulse-keep' 
             : 'bg-blue-500 hover:bg-blue-600'
         }`}
         title={isRecording ? 'Tap to stop recording' : 'Tap to start recording'}

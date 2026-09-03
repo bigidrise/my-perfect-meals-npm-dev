@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, Calendar, Trash2, Copy, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -37,14 +38,9 @@ interface Board {
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SLOTS = ["breakfast", "lunch", "dinner", "snacks"] as const;
-const SLOT_LABELS: Record<string, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-  snacks: "Snacks",
-};
 
 export default function ProBoardViewer() {
+  const { t } = useTranslation("pro");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/pro/clients/:clientId/board/:program");
@@ -53,6 +49,13 @@ export default function ProBoardViewer() {
 
   const client = proStore.getClient(clientId);
   const clientName = client?.name || "Client";
+
+  const slotLabels: Record<string, string> = {
+    breakfast: t("boardViewer.slots.breakfast"),
+    lunch: t("boardViewer.slots.lunch"),
+    dinner: t("boardViewer.slots.dinner"),
+    snacks: t("boardViewer.slots.snacks"),
+  };
 
   const [board, setBoard] = useState<Board | null>(null);
   const [items, setItems] = useState<BoardItem[]>([]);
@@ -77,7 +80,7 @@ export default function ProBoardViewer() {
       setAccessRole(data.accessRole);
       setPermissions(data.permissions);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("boardViewer.error"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -87,19 +90,26 @@ export default function ProBoardViewer() {
     fetchBoard();
   }, [fetchBoard]);
 
+  /**
+   * Remove an item from the Pro board.
+   *
+   * Does NOT pass releaseLog so the server preserves any associated macro_log.
+   * releaseLog: true is reserved for an explicit replacement/undo flow where the
+   * user deliberately wants to un-log the meal and re-plan — not a plain trash action.
+   */
   const deleteItem = async (itemId: string) => {
     if (!board) return;
     try {
       const headers = getAuthHeaders();
       const res = await fetch(apiUrl(`/api/pro/board/clients/${clientId}/boards/${board.id}/items/${itemId}`), {
         method: "DELETE",
-        headers: { ...headers },
+        headers: { "Content-Type": "application/json", ...headers },
       });
       if (!res.ok) throw new Error("Failed to delete");
       setItems((prev) => prev.filter((i) => i.id !== itemId));
-      toast({ title: "Removed", description: "Meal removed from board." });
+      toast({ title: t("boardViewer.removed"), description: t("boardViewer.removedDesc") });
     } catch {
-      toast({ title: "Error", description: "Could not remove item.", variant: "destructive" });
+      toast({ title: t("boardViewer.error"), description: "Could not remove item.", variant: "destructive" });
     }
   };
 
@@ -129,10 +139,10 @@ export default function ProBoardViewer() {
       case "smart": return "General Nutrition";
       case "athlete": return "Performance & Competition";
       case "diabetic": return "Diabetic";
-      case "glp1": return "GLP-1";
+      case "glp1": return "Metabolic Med";
       case "medical": return "Anti-Inflammatory";
       case "weekly": return "Weekly";
-      case "beach_body": return "Beach Body";
+      case "beach_body": return "Performance Nutrition";
       default: return program;
     }
   })();
@@ -225,11 +235,11 @@ export default function ProBoardViewer() {
           return (
             <div key={slot}>
               <h3 className="text-sm font-semibold text-white/80 mb-2 uppercase tracking-wide">
-                {SLOT_LABELS[slot]}
+                {slotLabels[slot]}
               </h3>
               {slotItems.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-white/20 p-4 text-center text-white/40 text-sm">
-                  No {SLOT_LABELS[slot].toLowerCase()} planned
+                  No {slotLabels[slot].toLowerCase()} planned
                 </div>
               ) : (
                 <div className="space-y-2">

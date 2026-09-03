@@ -1,4 +1,5 @@
 import { apiUrl } from '@/lib/resolveApiBase';
+import { apiRequest } from '@/lib/apiRequest';
 import { getAuthHeaders } from '@/lib/auth';
 
 export type DailyLimits = {
@@ -12,6 +13,11 @@ export type DailyLimits = {
 // Starch Meal Strategy: "one" = 1 starch meal per day (default), "flex" = 2 smaller portions
 export type StarchStrategy = "one" | "flex";
 
+export type CutIntensity = "standard" | "hard";
+export type CutStyle = "balanced" | "lowCarb";
+export type CycleMode = "none" | "carbCycle" | "fatCycle";
+export type CycleDayType = "low" | "moderate" | "high";
+
 export type MacroTargets = {
   calories: number;
   protein_g: number;
@@ -22,6 +28,20 @@ export type MacroTargets = {
   fibrousCarbs_g?: number;
   // Starch Meal Strategy - defaults to "one" if not set
   starchStrategy?: StarchStrategy;
+  // Strategy layer fields
+  cutIntensity?: CutIntensity;
+  cutStyle?: CutStyle;
+  cycleMode?: CycleMode;
+  cycleDayType?: CycleDayType;
+  starchyCarbCap_g?: number | null;
+  allowZeroStarchyOnLowDay?: boolean;
+  fibrousCarbSafetyCap_g?: number;
+  strictMode?: boolean;
+  coachOverrideMode?: boolean;
+  // Vegetable system — meals per day drives fibrous carb prescription
+  mealsPerDay?: number;
+  vegetableCupsPerMeal?: number;
+  vegetableCupsPerDay?: number;
 };
 
 const LS_KEY = (userId?: string) => `mpm.dailyLimits.${userId ?? "anon"}`;
@@ -39,27 +59,15 @@ export async function setMacroTargets(targets: MacroTargets, userId?: string): P
     return;
   }
 
-  // For real users, also save to the database
-  try {
-    const response = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      credentials: 'include',
-      body: JSON.stringify(targets),
-    });
+  // For real users, also save to the database.
+  // NOTE: localStorage was already saved above, so it's safe to throw here —
+  // the data is not lost, it just won't persist across devices/logouts.
+  await apiRequest(`/api/users/${userId}/macro-targets`, {
+    method: 'POST',
+    body: JSON.stringify(targets),
+  });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Database save failed, but localStorage save succeeded:', error);
-      // Don't throw - localStorage save already succeeded
-      return;
-    }
-
-    console.log('✅ Macro targets saved to database and localStorage');
-  } catch (error) {
-    console.error('Failed to save macro targets to database:', error);
-    // Don't throw - localStorage save already succeeded
-  }
+  console.log('✅ Macro targets saved to database and localStorage');
 }
 
 export function getMacroTargets(userId?: string): MacroTargets | null {

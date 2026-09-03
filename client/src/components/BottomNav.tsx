@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Home, CalendarDays, Sparkles, Crown } from "lucide-react";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
@@ -10,11 +11,9 @@ import {
   getGuestSuitePage,
 } from "@/lib/guestSuiteNavigator";
 import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
-import { useAuth } from "@/contexts/AuthContext";
-
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { t } = useTranslation();
   const { open, close, isOpen, setLastResponse } = useCopilot();
 
   const handleNavClick = useCallback(
@@ -70,30 +69,31 @@ export default function BottomNav() {
     return [
       {
         id: "home",
-        label: "Home",
+        label: t("nav.dashboard"),
         icon: Home,
         path: "/dashboard",
       },
       {
-        id: "planner",
-        label: "Planner",
+        id: "builders",
+        label: t("nav.builders"),
         icon: CalendarDays,
-        path: "/planner",
+        path: "/builders",
       },
       {
         id: "lifestyle",
-        label: "Lifestyle",
+        label: t("nav.lifestyle"),
         icon: Sparkles,
         path: "/lifestyle",
       },
       {
         id: "more",
-        label: "More",
+        label: t("nav.more"),
         icon: Crown,
         path: "/more",
       },
     ];
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {

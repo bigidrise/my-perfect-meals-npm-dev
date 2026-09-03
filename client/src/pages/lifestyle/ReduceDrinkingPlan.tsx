@@ -4,13 +4,14 @@ import { useLocation } from "wouter";
 import { ArrowLeft, HeartPulse, AlertTriangle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import CometBar from "@/components/CometBar";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 type Pace = "gentle" | "standard" | "custom";
 
@@ -25,24 +26,12 @@ export default function ReduceDrinkingPlan() {
   const [pace, setPace] = useState<Pace>("standard");
   const [customReductionPct, setCustomReductionPct] = useState(20);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [plan, setPlan] = useState<any>(null);
 
   useEffect(() => {
     document.title = "Reduce Drinking Plan | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isGenerating) {
-      setProgress(0);
-      interval = setInterval(() => {
-        setProgress((prev) => (prev >= 90 ? prev : prev + Math.random() * 10));
-      }, 400);
-    }
-    return () => clearInterval(interval);
-  }, [isGenerating]);
 
   async function handleGenerate() {
     setIsGenerating(true);
@@ -67,7 +56,6 @@ export default function ReduceDrinkingPlan() {
       }
 
       const data = await res.json();
-      setProgress(100);
       setPlan(data);
     } catch (err: any) {
       toast({ title: err.message || "Something went wrong", variant: "destructive" });
@@ -88,7 +76,12 @@ export default function ReduceDrinkingPlan() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/reduce-drinking-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 20%",
+        }}
       >
         {!isDesktop && (
           <div
@@ -113,11 +106,25 @@ export default function ReduceDrinkingPlan() {
           style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <div className="max-w-2xl mx-auto">
-            <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
+            {isDesktop && (
+              <button
+                onClick={() => setLocation("/lifestyle/pairings-hub")}
+                className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-sm font-medium">Pairings Hub</span>
+              </button>
+            )}
+            <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg text-white">
                   <HeartPulse className="h-5 w-5 text-orange-400" />
                   Build Your Plan
+                  <div className="flex-grow" />
+                  <HowThisWorksLink
+                    videoUrl="https://youtube.com/shorts/ttk0Mb6mcN8?feature=share"
+                    label="How It Works"
+                  />
                 </CardTitle>
               </CardHeader>
 
@@ -190,12 +197,8 @@ export default function ReduceDrinkingPlan() {
                 </div>
 
                 {isGenerating ? (
-                  <div className="max-w-md mx-auto mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">Creating Your Plan</span>
-                      <span className="text-sm text-white/80">{Math.round(progress)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-3 bg-black/30 border border-white/20" />
+                  <div className="max-w-md mx-auto mb-4 flex justify-center">
+                    <CometBar label="Creating Your Plan…" />
                   </div>
                 ) : (
                   <GlassButton

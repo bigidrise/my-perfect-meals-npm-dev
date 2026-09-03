@@ -13,6 +13,8 @@ export interface DietGuardAlertState {
   matchedTerms: string[];
   message: string;
   diet: SupportedDiet | null;
+  isAdaptable?: boolean;
+  suggestedSubstitute?: string;
 }
 
 export const EMPTY_DIET_ALERT: DietGuardAlertState = {
@@ -20,10 +22,12 @@ export const EMPTY_DIET_ALERT: DietGuardAlertState = {
   matchedTerms: [],
   message: "",
   diet: null,
+  isAdaptable: undefined,
+  suggestedSubstitute: undefined,
 };
 
 // Advisory decisions — DietGuard never blocks permanently
-export type DietGuardDecision = "pending" | "pick_something_else" | "let_chef_adapt";
+export type DietGuardDecision = "pending" | "pick_something_else" | "let_chef_adapt" | "continue_anyway";
 
 interface UseDietGuardPrecheckResult {
   checking: boolean;
@@ -37,6 +41,8 @@ interface UseDietGuardPrecheckResult {
   shouldShowIntercept: boolean;
   canProceed: boolean;
 }
+
+const CULTURAL_PROTOCOLS: SupportedDiet[] = ["kosher", "halal"];
 
 export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
   const [checking, setChecking] = useState(false);
@@ -62,14 +68,20 @@ export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
           return true;
         }
 
+        const isCultural = CULTURAL_PROTOCOLS.includes(activeDiet);
         const termsList = result.matchedTerms.slice(0, 3).join(", ");
-        const message = `You requested "${termsList}" which isn't typically part of a ${activeDiet} diet.`;
+
+        const message = isCultural
+          ? result.conflictMessage ?? `"${termsList}" conflicts with your ${activeDiet} protocol.`
+          : `You requested "${termsList}" which isn't typically part of a ${activeDiet} diet.`;
 
         setAlert({
           show: true,
           matchedTerms: result.matchedTerms,
           message,
           diet: activeDiet,
+          isAdaptable: result.isAdaptable,
+          suggestedSubstitute: result.suggestedSubstitute,
         });
 
         setDecisionState("pending");
@@ -85,7 +97,7 @@ export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
   const triggerAlert = useCallback(
     (matchedTerms: string[], message: string) => {
       if (!activeDiet) return;
-      setAlert({ show: true, matchedTerms, message, diet: activeDiet });
+      setAlert({ show: true, matchedTerms, message, diet: activeDiet, isAdaptable: true });
       setDecisionState("pending");
     },
     [activeDiet],
@@ -105,7 +117,7 @@ export function useDietGuardPrecheck(): UseDietGuardPrecheckResult {
 
   // Advisory flags — DietGuard never hard-blocks the user
   const shouldShowIntercept = alert.show && decision === "pending";
-  const canProceed = !alert.show || decision === "let_chef_adapt";
+  const canProceed = !alert.show || decision === "let_chef_adapt" || decision === "continue_anyway";
 
   return {
     checking,

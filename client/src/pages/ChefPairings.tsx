@@ -230,8 +230,8 @@ export default function ChefPairings() {
   return (
     <PhaseGate phase="PHASE_1_CORE" feature="chef-pairings">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
         className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
       >

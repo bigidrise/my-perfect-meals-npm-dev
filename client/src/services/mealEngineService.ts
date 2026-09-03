@@ -1,15 +1,13 @@
 import { apiUrl } from '@/lib/resolveApiBase';
+import { apiRequest } from '@/lib/apiRequest';
 
-// Service layer for meal plan operations
-export interface MealPlan {
-  meals: Meal[];
-  totalCalories?: number;
-  totalProtein?: number;
-  totalCarbs?: number;
-  totalFat?: number;
-}
-
-export interface Meal {
+/**
+ * EngineMeal — the raw shape returned by the Meal Engine service layer.
+ * Nutrition fields use the `_g` suffix (protein_g / carbs_g / fat_g).
+ * Do NOT use this type for board / UI-layer components; import Meal from
+ * "@/types/meal" instead (which uses protein / carbs / fat without suffix).
+ */
+export interface EngineMeal {
   id: string;
   name: string;
   description?: string;
@@ -36,6 +34,15 @@ export interface Meal {
     medicalCleared: boolean;
     unitsStandardized: boolean;
   };
+}
+
+// Service layer for meal plan operations
+export interface MealPlan {
+  meals: EngineMeal[];
+  totalCalories?: number;
+  totalProtein?: number;
+  totalCarbs?: number;
+  totalFat?: number;
 }
 
 export interface UserProfile {
@@ -67,7 +74,7 @@ export const deleteMeal = async (userId: string, mealId: string): Promise<void> 
   }
 };
 
-export const replaceMeal = async (userId: string, mealId: string): Promise<Meal> => {
+export const replaceMeal = async (userId: string, mealId: string): Promise<EngineMeal> => {
   const response = await fetch(apiUrl('/api/meal-engine/replace'), {
     method: 'POST',
     body: JSON.stringify({ userId, mealId }),
@@ -90,10 +97,5 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile> => 
   }
 
   // Fallback to API if localStorage is empty
-  const response = await fetch(apiUrl(`/api/users/${userId}`));
-  if (!response.ok) {
-    throw new Error('Failed to fetch user profile');
-  }
-
-  return response.json();
+  return apiRequest(`/api/users/${userId}`);
 };

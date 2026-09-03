@@ -314,6 +314,8 @@ export const weeklyMealPlanningServiceA = {
     // 2) Assemble weeks → days → meals with variety prevention
     const daysPerWeek = 7;
     const plan: any[] = [];
+    const safe: any[] = [...byType.breakfast, ...byType.lunch, ...byType.dinner, ...byType.snack];
+    const addCarbSplit = (t: any) => ({ ...t, imageUrl: `/meal-images/${t.slug}.jpg` });
     
     // Smart picker that avoids recent selections
     function sampleNoRecent<T extends { slug: string }>(
@@ -432,10 +434,10 @@ export const weeklyMealPlanningServiceA = {
 
     // Add summary report for QA
     const templateCounts = {
-      breakfast: new Set(week0.filter(meals => meals.some((m: any) => m.type === "breakfast")).flat().map((m: any) => m.slug)).size,
-      lunch: new Set(week0.filter(meals => meals.some((m: any) => m.type === "lunch")).flat().map((m: any) => m.slug)).size,
-      dinner: new Set(week0.filter(meals => meals.some((m: any) => m.type === "dinner")).flat().map((m: any) => m.slug)).size,
-      snack: new Set(week0.filter(meals => meals.some((m: any) => m.type === "snack")).flat().map((m: any) => m.slug)).size
+      breakfast: new Set(week0.filter((meals: any[]) => meals.some((m: any) => m.type === "breakfast")).flat().map((m: any) => m.slug)).size,
+      lunch: new Set(week0.filter((meals: any[]) => meals.some((m: any) => m.type === "lunch")).flat().map((m: any) => m.slug)).size,
+      dinner: new Set(week0.filter((meals: any[]) => meals.some((m: any) => m.type === "dinner")).flat().map((m: any) => m.slug)).size,
+      snack: new Set(week0.filter((meals: any[]) => meals.some((m: any) => m.type === "snack")).flat().map((m: any) => m.slug)).size
     };
     
     console.log(`[A] summary: breakfast ${templateCounts.breakfast} templates used, lunch ${templateCounts.lunch}, dinner ${templateCounts.dinner}, snack ${templateCounts.snack} | repeats: ${variety.repeats} | cuisines: ${variety.cuisines}`);

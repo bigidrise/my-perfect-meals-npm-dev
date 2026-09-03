@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { mealInstances, userRecipes, users } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { processMealImageForSave } from "../services/imageLifecycle";
 import { 
   preCheckRequest, 
   extractSafetyProfile, 
@@ -36,6 +37,7 @@ const logMealSchema = z.object({
     ingredients: z.any(),
     instructions: z.string(),
     nutrition: z.any().optional(),
+    imageUrl: z.string().optional(),
   }),
   mealInstanceId: z.string().optional(),
   logNow: z.boolean().default(true),
@@ -115,13 +117,42 @@ router.post('/log', requireAuth, async (req: any, res) => {
     const input = logMealSchema.parse(req.body);
     const userId = req.user?.id || "1";
 
-    // Save recipe to user_recipes  
+    // Ingest temp image URL to permanent storage before saving.
+    // Guard: strip base64 data URIs before the lifecycle gate — client-side
+    // localStorage may cache meals with raw base64 before the permanent URL is
+    // available.  Passing base64 to processMealImageForSave triggers a
+    // lifecycle_violation ERROR log.  Null it out here so the meal saves with
+    // no image rather than producing a false-alarm error.
+    const rawFridgeImageUrl = input.recipePayload.imageUrl ?? null;
+    const sanitisedFridgeImageUrl =
+      rawFridgeImageUrl?.startsWith("data:") ? null : rawFridgeImageUrl;
+    if (rawFridgeImageUrl && !sanitisedFridgeImageUrl) {
+      console.warn(
+        `[fridge-rescue/log] Stripped base64 imageUrl from client payload for "${input.recipePayload.title}" — client sent stale localStorage data`,
+      );
+    }
+    let persistedImageUrl: string | null = null;
+    try {
+      const imgResult = await processMealImageForSave(
+        sanitisedFridgeImageUrl,
+        input.recipePayload.title
+      );
+      persistedImageUrl = imgResult.imageUrl;
+      if (imgResult.ingestionAttempted && !imgResult.imageUrl) {
+        console.warn(`[fridge-rescue/log] Image ingestion returned no URL for "${input.recipePayload.title}"`);
+      }
+    } catch (imgErr) {
+      console.error(`[fridge-rescue/log] processMealImageForSave failed for "${input.recipePayload.title}":`, imgErr);
+    }
+
+    // Save recipe to user_recipes
     const [savedRecipe] = await db.insert(userRecipes).values({
       userId,
       title: input.recipePayload.title,
       ingredients: input.recipePayload.ingredients,
       instructions: input.recipePayload.instructions,
-      nutrition: input.recipePayload.nutrition
+      nutrition: input.recipePayload.nutrition,
+      imageUrl: persistedImageUrl,
     }).returning({ id: userRecipes.id });
 
     // If replacing an existing meal instance
@@ -153,6 +184,7 @@ router.post('/log', requireAuth, async (req: any, res) => {
         recipeId: savedRecipe.id,
         source: 'fridge-rescue',
         status: input.logNow ? 'eaten' : 'planned',
+        statusChangedAt: input.logNow ? sql`now()` : null,
         loggedAt: input.logNow ? sql`now()` : null,
         notes: input.note || null
       }).returning();

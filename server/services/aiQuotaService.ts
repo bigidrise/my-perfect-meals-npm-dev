@@ -12,9 +12,7 @@ export enum AiFeature {
   MEAL_BUILDER = "MEAL_BUILDER",
 }
 
-const FREE_DAILY_LIMITS: Record<string, number> = {
-  [AiFeature.FRIDGE_RESCUE]: 1,
-};
+const FREE_DAILY_LIMITS: Record<string, number> = {};
 
 export interface QuotaCheckResult {
   allowed: boolean;

@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasFeature, Entitlement } from "@/lib/entitlements";
-import { isOnTrial } from "@/lib/auth";
 
 interface PageGuardProps {
   feature: Entitlement;
@@ -15,18 +14,12 @@ export function PageGuard({ feature, children }: PageGuardProps) {
 
   useEffect(() => {
     if (loading) return;
-    
+
     if (!user) {
       setLocation("/welcome");
       return;
     }
 
-    // During trial, user has full access to all features
-    if (isOnTrial(user)) {
-      return;
-    }
-
-    // After trial, check entitlements
     if (!hasFeature(user, feature)) {
       setLocation("/paywall");
     }
@@ -38,11 +31,6 @@ export function PageGuard({ feature, children }: PageGuardProps) {
         <div className="text-white/60">Loading...</div>
       </div>
     );
-  }
-
-  // During trial, allow access
-  if (user && isOnTrial(user)) {
-    return <>{children}</>;
   }
 
   if (!user || !hasFeature(user, feature)) {

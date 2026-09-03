@@ -16,9 +16,9 @@ export function HubControlIcon({ size = "md" }: HubControlIconProps) {
       className={[
         wrapperSize,
         "rounded-full",
-        "bg-white/5",
+        "bg-orange-500/10",
         "border",
-        "border-white/15",
+        "border-orange-500/25",
         "backdrop-blur-lg",
         "flex",
         "items-center",
@@ -26,7 +26,7 @@ export function HubControlIcon({ size = "md" }: HubControlIconProps) {
         "shadow-[0_0_20px_rgba(0,0,0,0.65)]",
       ].join(" ")}
     >
-      <Settings className={`${iconSize} text-white/90`} strokeWidth={1.9} />
+      <Settings className={`${iconSize} text-orange-400`} strokeWidth={1.9} />
     </div>
   );
 }

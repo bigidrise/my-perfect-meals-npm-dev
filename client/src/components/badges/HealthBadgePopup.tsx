@@ -22,7 +22,7 @@ const MAP: Record<string, { label: string; desc: string }> = {
   protein_high: { label: "High protein", desc: "High in protein" },
   balanced: { label: "Balanced", desc: "Balanced protein, carbs, and fat" },
   allergen: { label: "Allergen", desc: "Contains common allergens" },
-  glp1_friendly: { label: "GLP-1 friendly", desc: "Helps GLP-1 goals" },
+  glp1_friendly: { label: "Metabolic Med friendly", desc: "Supports metabolic medication goals" },
 };
 
 function normalize(
@@ -112,7 +112,7 @@ export default function HealthBadgePopup({
                 data-testid={`badge-row-${item.key}`}
               >
                 <span
-                  className={`inline-flex h-2 w-2 rounded-full ${isCritical(item.key) ? "bg-red-400 animate-pulse" : "bg-yellow-400"} mt-1.5 flex-shrink-0`}
+                  className={`inline-flex h-2 w-2 rounded-full ${isCritical(item.key) ? "bg-red-400 animate-pulse pulse-keep" : "bg-yellow-400"} mt-1.5 flex-shrink-0`}
                 />
                 <div>
                   <div

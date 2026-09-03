@@ -3,13 +3,18 @@ import { clientActivityLog, studioMemberships } from "../db/schema/studio";
 import { eq } from "drizzle-orm";
 
 type ActivityAction =
-  | "membership_created" | "membership_activated" | "membership_paused"
+  | "membership_created" | "membership_activated" | "membership_paused" | "membership_disconnected"
   | "builder_assigned" | "board_created" | "board_updated" | "board_deleted"
   | "program_updated" | "macros_updated" | "settings_changed"
   | "invite_sent" | "invite_accepted" | "note_added"
   | "message_sent" | "message_deleted" | "note_deleted"
   | "message_blocked" | "message_flagged"
-  | "system_recommendation_applied";
+  | "system_recommendation_applied"
+  | "cycle_protocol_updated"
+  | "nutrition_strategy_viewed"
+  | "nutrition_strategy_acknowledged"
+  | "board_access_changed"
+  | "board_item_logged";
 
 export async function logClientActivity(
   studioId: string,
@@ -29,7 +34,7 @@ export async function logClientActivity(
       entityType,
       entityId,
       metadata: metadata || {},
-    });
+    } as any);
   } catch (error) {
     console.error("Failed to log activity:", error);
   }

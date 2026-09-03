@@ -17,6 +17,7 @@ export const glp1Shots = pgTable("glp1_shots", {
   dateUtc: timestamp("date_utc", { withTimezone: true }).notNull(),
   doseMg: numeric("dose_mg", { precision: 10, scale: 2 }).notNull(),
   location: injectionLocationEnum("location"),
+  medicationName: text("medication_name"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -29,11 +30,8 @@ export const insertGlp1ShotSchema = createInsertSchema(glp1Shots, {
   dateUtc: z.string().or(z.date()),
   doseMg: z.string().or(z.number()),
   location: z.enum(["abdomen", "thigh", "upper_arm", "buttock"]).optional(),
+  medicationName: z.string().optional(),
   notes: z.string().optional(),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 export type InsertGlp1Shot = z.infer<typeof insertGlp1ShotSchema>;

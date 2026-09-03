@@ -3,8 +3,9 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Utensils, MapPin } from "lucide-react";
+import { ArrowLeft, Utensils, MapPin, ChefHat } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 interface SocialFeature {
   title: string;
@@ -17,9 +18,10 @@ interface SocialFeature {
 
 export default function SocializingHub() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
-    document.title = "Socializing Hub | My Perfect Meals";
+    document.title = "Meals Away From Home | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
     
     // Phase C.7: Emit "opened" event for hub walkthrough
@@ -33,7 +35,7 @@ export default function SocializingHub() {
 
   const socialFeatures: SocialFeature[] = [
     {
-      title: "Restaurant Guide",
+      title: "Restaurant Assistant",
       description: "Get AI-powered healthy meal options from any restaurant",
       icon: Utensils,
       route: "/social-hub/restaurant-guide",
@@ -47,6 +49,14 @@ export default function SocializingHub() {
       route: "/social-hub/find",
       gradient: "from-orange-500/20 to-orange-600/20",
       testId: "socialhub-find", // Phase C.7 hub anchor
+    },
+    {
+      title: "My Perfect Buffet",
+      description: "Describe what's available — AI builds your best plate",
+      icon: ChefHat,
+      route: "/my-perfect-buffet",
+      gradient: "from-orange-500/20 to-orange-600/20",
+      testId: "socialhub-buffet",
     },
   ];
 
@@ -67,7 +77,12 @@ export default function SocializingHub() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-safe-nav"
+      className="min-h-screen pb-safe-nav"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.48)), url('/images/meals-away-from-home-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
+      }}
     >
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
@@ -79,7 +94,7 @@ export default function SocializingHub() {
           <Utensils className="h-6 w-6 text-orange-500" />
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">Socializing Hub</h1>
+          <h1 className="text-lg font-bold text-white">Meals Away From Home</h1>
         </div>
       </div>
       </MobileHeaderGuard>
@@ -90,24 +105,21 @@ export default function SocializingHub() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
-          {/* Hero Image Section */}
-          <div className="relative h-40 rounded-xl overflow-hidden">
-            <img
-              src="/images/social-hero.png"
-              alt="Eating out with friends"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='160'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23f97316;stop-opacity:0.3' /%3E%3Cstop offset='100%25' style='stop-color:%23ec4899;stop-opacity:0.3' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='160' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='white' font-size='18' font-family='sans-serif' dy='.3em'%3EEat out with confidence%3C/text%3E%3C/svg%3E";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3">
-              <p className="text-white/90 text-sm">
-                Eating out with friends? Make smart choices without missing the fun.
-              </p>
-            </div>
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Smart Dining</h2>
+            <p className="text-sm text-white/70">Personalized food guidance for restaurants, travel, gatherings, and life away from home.</p>
           </div>
+
           {/* Social Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
             {socialFeatures.map((feature) => {

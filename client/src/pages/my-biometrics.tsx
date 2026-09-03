@@ -5,7 +5,7 @@
 // • Simple, readable components; black-glass aesthetic; consistent text colors
 // • Charts use recharts and render from local data
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -16,13 +16,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { InformationModal, ConfirmationModal } from "@/components/ui/universal-modal";
 import {
   Popover,
   PopoverContent,
@@ -63,13 +57,18 @@ import { readDraft, clearDraft } from "@/lib/macrosDraft";
 import { startQueueAutoFlush, queueOrPost } from "@/lib/queue";
 import { normalizeMacros } from "@/lib/macroNormalize";
 import { getQuickView, clearQuickView, QuickView } from "@/lib/macrosQuickView";
+import { parseBiometricsParams, BIOMETRICS_SOURCES, SECTION_IDS } from "@/lib/biometricsNavigation";
 import { getMacroTargets, MacroTargets } from "@/lib/dailyLimits";
 import { getResolvedTargets } from "@/lib/macroResolver";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
-import { launchMacroPhotoCapture } from "@/lib/photoMacroCapture";
+import MacroScanModal from "@/components/MacroScanModal";
+import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import { useTranslation } from "react-i18next";
+import { sendToShoppingList } from "@/lib/shoppingListApi";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -77,11 +76,18 @@ import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { markFirstLoopComplete, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { JustDescribeItModal } from "@/components/JustDescribeItModal";
 import { getCurrentUser } from "@/lib/auth";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
-import { hasFeature } from "@/lib/entitlements";
+import TherapeuticNutritionCard from "@/components/biometrics/TherapeuticNutritionCard";
+import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
+import { purchasedPlanIncludesFeature } from "@/lib/entitlements";
+import { canAccessClinicalLabs, canAccessTherapeuticNutrition } from "@/lib/subscriptionCheck";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { convertWeightLbsDisplay } from "@shared/units";
+import { BasicHydrationLogger } from "@/components/biometrics/BasicHydrationLogger";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -105,7 +111,12 @@ interface WeightRow {
   id: string;
   date: string;
   weight: number;
-  waist?: number;
+}
+interface WaistRow {
+  id: string;
+  date: string;
+  value: number; // always in inches
+  unit: string;
 }
 
 // utils
@@ -135,6 +146,9 @@ const saveJSON = (k: string, v: any) => {
 export default function MyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation("biometrics");
+  const isDesktop = useIsDesktop();
+  const { requestUpgrade } = useUpgradeModal();
   
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
 
@@ -172,13 +186,13 @@ export default function MyBiometrics() {
     {
       title: "Track Your Water",
       description:
-        "Log your daily water intake at the bottom of the page to support hydration and recovery.",
+        "Use Basic Hydration Tracking at the bottom of the page to log fluids and review today's total.",
     },
     {
       icon: "📐",
       title: "Body Composition Tracking",
       description:
-        "Track your body fat percentage from scans like DEXA, BodPod, Calipers, or Smart Scale. Your body composition data syncs with the Macro Calculator and can adjust starchy carb allocation for Beach Body and Performance builders.",
+        "Track your body fat percentage from scans like DEXA, BodPod, Calipers, or Smart Scale. Your body composition data syncs with the Macro Calculator and can adjust starchy carb allocation for Performance Nutrition and Performance builders.",
     },
   ];
 
@@ -213,16 +227,13 @@ export default function MyBiometrics() {
     }
 
     const end = new Date();
+    end.setHours(23, 59, 59, 999); // end-of-day so noon-UTC logged entries are never past the boundary
     const start = new Date();
-    start.setDate(end.getDate() - 90);
+    start.setDate(end.getDate() - 365);
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
-    fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
-      credentials: "include",
-      headers: { ...getAuthHeaders() },
-    })
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    apiRequest(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`)
       .then((rows: any[]) => {
         const mapped: OfflineDay[] = rows.map(r => ({
           day: typeof r.date === "string" ? r.date.slice(0, 10) : r.date,
@@ -248,14 +259,11 @@ export default function MyBiometrics() {
     if (!userId) return;
     const refetch = () => {
       const end = new Date();
+      end.setHours(23, 59, 59, 999); // end-of-day so noon-UTC logged entries are never past the boundary
       const start = new Date();
-      start.setDate(end.getDate() - 90);
-      fetch(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`, {
-        credentials: "include",
-        headers: { ...getAuthHeaders() },
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then((rows: any[] | null) => {
+      start.setDate(end.getDate() - 365);
+      apiRequest(`/api/users/${userId}/macro-logs/daily-with-source?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`)
+        .then((rows: any[]) => {
           if (rows) {
             const mapped: OfflineDay[] = rows.map(r => ({
               day: typeof r.date === "string" ? r.date.slice(0, 10) : r.date,
@@ -276,7 +284,28 @@ export default function MyBiometrics() {
     return () => window.removeEventListener("macros:updated", refetch);
   }, [userId]);
 
-  const today = todayKey();
+  // Persist macroRows to localStorage whenever state changes so optimistic updates
+  // survive a page reload even before the next server fetch completes.
+  // Guard on storageLoaded so the initial empty-state render doesn't wipe the cache.
+  useEffect(() => {
+    if (!storageLoaded) return;
+    saveJSON(LS_MACROS, { rows: macroRows });
+  }, [macroRows, storageLoaded]);
+
+  const [today, setToday] = useState(todayKey);
+
+  // Midnight reset: re-arm a timeout each day so "today" updates and macros reset to zero
+  useEffect(() => {
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 3);
+    const ms = midnight.getTime() - now.getTime();
+    const timer = setTimeout(() => {
+      setToday(todayKey());
+      window.dispatchEvent(new Event("macros:updated"));
+    }, ms);
+    return () => clearTimeout(timer);
+  }, [today]);
+
   const sortedRows = useMemo(
     () => [...macroRows].sort((a, b) => b.day.localeCompare(a.day)),
     [macroRows],
@@ -292,36 +321,6 @@ export default function MyBiometrics() {
   const history7 = sortedRows.slice(0, 7);
   const historyToday = [todayRow];
 
-  // Calories series: continuous (matches Steps pattern)
-  const calories30 = useMemo(() => {
-    const byDay = new Map<string, number>();
-    for (const r of macroRows) byDay.set(r.day, r.kcal || 0);
-    const out: { date: string; kcal: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      out.push({ date: key, kcal: byDay.get(key) ?? 0 });
-    }
-    return out;
-  }, [macroRows]);
-  const calories7 = useMemo(() => {
-    const byDay = new Map<string, number>();
-    for (const r of macroRows) byDay.set(r.day, r.kcal || 0);
-    const out: { date: string; kcal: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      out.push({ date: key, kcal: byDay.get(key) ?? 0 });
-    }
-    return out;
-  }, [macroRows]);
-  const caloriesToday = useMemo(() => {
-    const byDay = new Map<string, number>();
-    for (const r of macroRows) byDay.set(r.day, r.kcal || 0);
-    return [{ date: today, kcal: byDay.get(today) ?? 0 }];
-  }, [macroRows, today]);
 
   const [p, setP] = useState("");
   const [c, setC] = useState("");
@@ -329,6 +328,8 @@ export default function MyBiometrics() {
   const [k, setK] = useState("");
   const [sc, setSc] = useState(""); // starchyCarbs
   const [fc, setFc] = useState(""); // fibrousCarbs
+  const [ingredientSheetOpen, setIngredientSheetOpen] = useState(false);
+  const [ingredientResult, setIngredientResult] = useState<IngredientScanResult | null>(null);
 
   // Check URL params for pre-filled values from photo log
   useEffect(() => {
@@ -404,57 +405,116 @@ export default function MyBiometrics() {
 
   // Macro Targets state (persistent, not date-specific) - now with pro override support
   const [targets, setTargets] = useState<MacroTargets | null>(null);
-  const [targetSource, setTargetSource] = useState<"pro" | "self" | "none">(
+  const [targetsLoading, setTargetsLoading] = useState(true);
+  const [targetSource, setTargetSource] = useState<"pro" | "self" | "performance" | "none">(
     "none",
   );
   const [proName, setProName] = useState<string>("");
 
+  // Always keep a ref to the latest refreshTargets so the event listeners
+  // (registered once at mount with []) never call a stale closure.
+  const refreshTargetsRef = useRef<() => Promise<void>>(async () => {});
+
   const refreshTargets = async () => {
-    const resolved = getResolvedTargets(user?.id);
-    if (resolved.source !== "none") {
-      setTargets({
-        calories: resolved.calories,
-        protein_g: resolved.protein_g,
-        carbs_g: resolved.carbs_g,
-        fat_g: resolved.fat_g,
-      });
-      setTargetSource(resolved.source);
-      if (resolved.source === "pro" && resolved.setBy) {
-        setProName(resolved.setBy);
-      }
+    if (!user?.id) {
+      setTargets(null);
+      setTargetSource("none");
+      setTargetsLoading(false);
       return;
     }
 
-    if (user?.id) {
-      try {
-        const res = await fetch(apiUrl(`/api/users/${user.id}/macro-targets`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.hasTargets) {
-            setTargets({
-              calories: data.calories,
-              protein_g: data.protein_g,
-              carbs_g: data.carbs_g,
-              fat_g: data.fat_g,
-            });
-            setTargetSource("pro");
-            setProName("Your professional");
-            return;
-          }
-        }
-      } catch {
-      }
+    // Signal that a fresh resolution is starting so the UI shows the shimmer
+    // rather than stale or empty values during the async prescription fetch.
+    setTargetsLoading(true);
+
+    // ── 1. ProCare precedence (client-side, always checked first) ─────────────
+    // Professional overrides are stored in localStorage / proStore and are NOT
+    // surfaced by the server-side prescription resolver (which is scoped to the
+    // user's own clinical hierarchy). We must check them before hitting the
+    // server, or a client with an active ProCare override would see their
+    // self-set targets labeled "self" instead of the coach/clinician's targets.
+    const localResolved = getResolvedTargets(user.id);
+    if (localResolved.source === "pro") {
+      setTargets({
+        calories:       localResolved.calories,
+        protein_g:      localResolved.protein_g,
+        carbs_g:        localResolved.carbs_g,
+        fat_g:          localResolved.fat_g,
+        starchyCarbs_g: localResolved.starchyCarbs_g,
+        fibrousCarbs_g: localResolved.fibrousCarbs_g,
+      });
+      setTargetSource("pro");
+      if (localResolved.setBy) setProName(localResolved.setBy);
+      setTargetsLoading(false);
+      return;
     }
 
+    // ── 2. Server prescription (hierarchy-resolved: GLP-1 → Performance) ──────
+    // Only reached when no ProCare override is active. The server resolver
+    // applies: Macro Calculator baseline → GLP-1 clinical overlay → Performance
+    // training-day modifier. All surfaces read the same effective prescription.
+    const storedDate = typeof window !== "undefined"
+      ? localStorage.getItem("mpm.performance.selectedDate") : null;
+    const dateISO = storedDate || new Date().toISOString().slice(0, 10);
+
+    try {
+      const prescRes = await fetch(apiUrl(`/api/prescription/${dateISO}`), {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (prescRes.ok) {
+        const p = await prescRes.json();
+        if (p && p.source !== "fallback" && (p.caloriesTarget > 0 || p.proteinTarget > 0)) {
+          setTargets({
+            calories:       p.caloriesTarget,
+            protein_g:      p.proteinTarget,
+            carbs_g:        p.carbsTarget,
+            fat_g:          p.fatTarget,
+            starchyCarbs_g: p.starchyCarbsTarget ?? 0,
+            fibrousCarbs_g: p.fibrousCarbsTarget ?? 0,
+          });
+          const srcLabel =
+            p.source === "performance" ? "performance"
+            : "self"; // "clinical" (GLP-1) and "user_default" both display as "self"
+          setTargetSource(srcLabel);
+          setTargetsLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // Network failure — fall through to local resolver so we never flash null
+    }
+
+    // ── 3. Local resolver fallback (offline or no prescription targets) ────────
+    if (localResolved.source !== "none") {
+      setTargets({
+        calories:       localResolved.calories,
+        protein_g:      localResolved.protein_g,
+        carbs_g:        localResolved.carbs_g,
+        fat_g:          localResolved.fat_g,
+        starchyCarbs_g: localResolved.starchyCarbs_g,
+        fibrousCarbs_g: localResolved.fibrousCarbs_g,
+      });
+      setTargetSource(localResolved.source);
+      // Note: localResolved.source === "pro" is already handled at step 1 above
+      // and we returned early. TypeScript correctly narrows "pro" out here.
+      setTargetsLoading(false);
+      return;
+    }
+
+    // No targets configured anywhere — user genuinely has no macro setup.
     setTargets(null);
     setTargetSource("none");
+    setTargetsLoading(false);
   };
+
+  // Keep the ref current every render so event listeners always call the latest version.
+  refreshTargetsRef.current = refreshTargets;
 
   useEffect(() => {
     refreshTargets();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   useEffect(() => {
@@ -464,12 +524,12 @@ export default function MyBiometrics() {
         e.key?.includes("targets") ||
         e.key?.includes("pro")
       ) {
-        refreshTargets();
+        refreshTargetsRef.current();
       }
     };
 
     const handleCustomEvent = () => {
-      refreshTargets();
+      refreshTargetsRef.current();
     };
 
     window.addEventListener("storage", handleStorage);
@@ -487,21 +547,32 @@ export default function MyBiometrics() {
   // Summary badges for top display (yellow-only system)
   const summaryBadges = useMemo(() => {
     if (!targets) return [];
+    const hasStarchySplit =
+      (targets.starchyCarbs_g ?? 0) > 0 ||
+      (targets.fibrousCarbs_g ?? 0) > 0 ||
+      ((todayRow as any).starchyCarbs ?? 0) > 0 ||
+      ((todayRow as any).fibrousCarbs ?? 0) > 0;
+    const carbRows = hasStarchySplit
+      ? [
+          { key: "Starchy Carbs", used: (todayRow as any).starchyCarbs ?? 0, max: targets.starchyCarbs_g ?? 0, unit: "g" },
+          { key: "Fibrous Carbs", used: (todayRow as any).fibrousCarbs ?? 0, max: targets.fibrousCarbs_g ?? 0, unit: "g" },
+        ]
+      : [{ key: "Carbs", used: todayRow.carbs, max: targets.carbs_g, unit: "g" }];
     const items = [
-      {
-        key: "Calories",
-        used: todayRow.kcal,
-        max: targets.calories,
-        unit: "kcal",
-      },
       {
         key: "Protein",
         used: todayRow.protein,
         max: targets.protein_g,
         unit: "g",
       },
-      { key: "Carbs", used: todayRow.carbs, max: targets.carbs_g, unit: "g" },
+      ...carbRows,
       { key: "Fat", used: todayRow.fat, max: targets.fat_g, unit: "g" },
+      {
+        key: "Calories",
+        used: todayRow.kcal,
+        max: targets.calories,
+        unit: "kcal",
+      },
     ];
     return items.map((i) => {
       const pct = i.max > 0 ? (i.used / i.max) * 100 : 0;
@@ -541,12 +612,87 @@ export default function MyBiometrics() {
   // Quick View panel state (non-auto-logging preview from meal cards)
   // SAFE: Start with null, load from storage in useEffect
   const [qv, setQv] = useState<QuickView | null>(null);
-  
-  // Load Quick View from storage on mount (deferred read)
+  const [highlightQv, setHighlightQv] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showNextActionModal, setShowNextActionModal] = useState(false);
+  const [showPersistentInfo, setShowPersistentInfo] = useState(false);
+
+  // Return-to-source state (populated from ?from= param on arrival)
+  const [returnSource, setReturnSource] = useState<{ label: string; path: string } | null>(null);
+
+  // Parse inbound nav params (section, from, highlight) once on mount
+  useEffect(() => {
+    const { section, from: fromKey, highlight } = parseBiometricsParams(window.location.search);
+
+    // Persist the return source for the lifetime of this page visit
+    if (fromKey && BIOMETRICS_SOURCES[fromKey]) {
+      setReturnSource(BIOMETRICS_SOURCES[fromKey]);
+    }
+
+    // Activate highlight state
+    if (highlight) {
+      setHighlightQv(true);
+    }
+
+    // Scroll to the correct section (retry until element mounts), or top if no section
+    if (section) {
+      const sectionId = SECTION_IDS[section];
+      const attemptScroll = (attempts = 0) => {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (attempts < 12) {
+          requestAnimationFrame(() => attemptScroll(attempts + 1));
+        }
+      };
+      requestAnimationFrame(() => attemptScroll());
+    } else {
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+    }
+
+    // Strip consumed params from URL (keep ?draft, ?from won't show in address bar)
+    const url = new URL(window.location.href);
+    ["section", "highlight"].forEach((k) => url.searchParams.delete(k));
+    window.history.replaceState(null, "", url.toString());
+  }, []);
+
+  // Auto-clear QuickView highlight after 5 seconds
+  useEffect(() => {
+    if (!highlightQv) return;
+    const t = setTimeout(() => setHighlightQv(false), 5000);
+    return () => clearTimeout(t);
+  }, [highlightQv]);
+
+  // Check for guide modal signal on mount (from MacroBridgeButton or RemainingMacrosFooter)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasUrlFlag = params.get("showGuide") === "1";
+    const hasSessionFlag = sessionStorage.getItem("biometrics:showGuide") === "1";
+    if (hasUrlFlag || hasSessionFlag) {
+      setShowGuideModal(true);
+      sessionStorage.removeItem("biometrics:showGuide");
+      if (hasUrlFlag) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("showGuide");
+        window.history.replaceState(null, "", url.toString());
+      }
+    }
+  }, []);
+
+  // Load Quick View from storage on mount — pre-fill the manual input fields
   useEffect(() => {
     try {
       const stored = getQuickView();
-      if (stored) setQv(stored);
+      if (stored) {
+        setP(String(stored.protein));
+        setC(String(stored.carbs));
+        setF(String(stored.fat));
+        setK(String(stored.calories));
+        if (stored.starchyCarbs) setSc(String(stored.starchyCarbs));
+        if (stored.fibrousCarbs) setFc(String(stored.fibrousCarbs));
+        setQv(stored);
+        clearQuickView();
+      }
     } catch (e) {
       console.error("Failed to load quick view:", e);
     }
@@ -565,6 +711,8 @@ export default function MyBiometrics() {
 
   const addFromQuickView = () => {
     if (!qv) return;
+    setHighlightQv(false);
+    const hasReturn = !!sessionStorage.getItem("biometrics:returnTo");
     
     const P = qv.protein;
     const C = qv.carbs;
@@ -598,20 +746,25 @@ export default function MyBiometrics() {
 
     clearQuickView();
     setQv(null);
+    if (hasReturn) setShowNextActionModal(true);
   };
 
   const dismissQuickView = () => {
+    const hasReturn = !!sessionStorage.getItem("biometrics:returnTo");
     clearQuickView();
     setQv(null);
+    setHighlightQv(false);
+    if (hasReturn) setShowNextActionModal(true);
   };
 
   const addMacros = () => {
     let P = Number(p || 0),
-      C = Number(c || 0),
       F = Number(f || 0);
     const SC = Number(sc || 0); // starchyCarbs
     const FC = Number(fc || 0); // fibrousCarbs
-    
+    // Total carbs always derived from starchy + fibrous split
+    let C = SC + FC;
+
     // If nothing entered, do nothing (silent)
     if (![P, C, F, Number(k || 0)].some(Boolean)) return;
 
@@ -677,57 +830,109 @@ export default function MyBiometrics() {
           source: "manual",
         }),
       })
-        .then((r) => {
-          if (r.ok) window.dispatchEvent(new Event("macros:updated"));
+        .then(async (r) => {
+          if (r.ok) {
+            // Do NOT dispatch "macros:updated" here. The optimistic setMacroRows
+            // update is already applied and correct. Dispatching the event triggers
+            // an immediate server refetch that races with the just-committed write
+            // and can overwrite the graph display with pre-write stale data.
+          } else {
+            const body = await r.json().catch(() => ({}));
+            console.error("[MACROS/LOG] write failed", r.status, body);
+            toast({
+              title: "Macros not saved",
+              description: "Your entry was added locally but couldn't be saved to your account. Check your connection and try again.",
+              variant: "destructive",
+            });
+          }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error("[MACROS/LOG] network error", err);
+          toast({
+            title: "Macros not saved",
+            description: "Network error — your entry wasn't persisted. Please try again.",
+            variant: "destructive",
+          });
+        });
     }
   };
 
-  const resetToday = () => {
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const confirmReset = async () => {
+    setShowResetConfirm(false);
+
+    // Clear local state and input fields immediately (optimistic)
     setMacroRows((prev) => prev.filter((r) => r.day !== today));
-    // Clear any input fields too
     setP("");
     setC("");
     setF("");
     setK("");
     setSc("");
     setFc("");
-    // Show confirmation toast
+
+    // Clear localStorage cache so it doesn't restore on next load
+    try {
+      const stored = loadJSON<{ rows?: OfflineDay[] }>(LS_MACROS, {});
+      if (stored.rows) {
+        const filtered = stored.rows.filter((r: OfflineDay) => r.day !== today);
+        saveJSON(LS_MACROS, { rows: filtered });
+      }
+    } catch {
+      // ignore cache errors
+    }
+
+    // Delete from server so it doesn't come back on reload.
+    // Server reads users.timezone to compute the correct local day boundary.
+    if (userId) {
+      try {
+        const params = new URLSearchParams({ localDateISO: today });
+        await apiRequest(`/api/users/${userId}/macro-logs/today?${params}`, {
+          method: "DELETE",
+        });
+        window.dispatchEvent(new Event("macros:updated"));
+      } catch (e) {
+        console.error("Failed to reset today on server:", e);
+        toast({
+          title: "Reset failed",
+          description: "Could not clear today's macros from the server. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     toast({
       title: "Reset Complete",
       description: "Today's macros have been cleared.",
     });
   };
 
-  const handlePhotoUpload = async () => {
-    await launchMacroPhotoCapture({
+  const resetToday = () => setShowResetConfirm(true);
+
+  const handleIngredientScan = async () => {
+    await launchIngredientPhotoCapture({
       onAnalyzing: () => {
         toast({
-          title: "Analyzing photo...",
-          description: "Please wait while AI estimates the nutrition values.",
+          title: "Analyzing ingredients...",
+          description: "Reading the label and checking your profile — just a moment.",
         });
       },
       onSuccess: (result) => {
-        setP(String(result.protein));
-        setC(String(result.carbs));
-        setF(String(result.fat));
-        setK(String(result.calories));
-
-        toast({
-          title: "AI Estimate Added",
-          description: `Detected ${Math.round(result.calories)} kcal — Protein ${result.protein}g, Carbs ${result.carbs}g, Fat ${result.fat}g.`,
-        });
+        setIngredientResult(result);
+        setIngredientSheetOpen(true);
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: "Scan failed",
           description: error,
           variant: "destructive",
         });
       },
     });
   };
+
+  const handlePhotoUpload = () => setShowMacroModal(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -862,6 +1067,7 @@ export default function MyBiometrics() {
   // Paste support (works with labels or just numbers: "30 40 10 370")
   const [openPaste, setOpenPaste] = useState(false);
   const [openDescribe, setOpenDescribe] = useState(false);
+  const [showMacroModal, setShowMacroModal] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [showBiometricsInfoModal, setShowBiometricsInfoModal] = useState(false);
   const [showTodaysMacrosInfoModal, setShowTodaysMacrosInfoModal] =
@@ -953,10 +1159,27 @@ export default function MyBiometrics() {
           source: "manual",
         }),
       })
-        .then((r) => {
-          if (r.ok) window.dispatchEvent(new Event("macros:updated"));
+        .then(async (r) => {
+          if (r.ok) {
+            window.dispatchEvent(new Event("macros:updated"));
+          } else {
+            const body = await r.json().catch(() => ({}));
+            console.error("[MACROS/LOG] paste write failed", r.status, body);
+            toast({
+              title: "Macros not saved",
+              description: "Your entry was added locally but couldn't be saved to your account. Check your connection and try again.",
+              variant: "destructive",
+            });
+          }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error("[MACROS/LOG] paste network error", err);
+          toast({
+            title: "Macros not saved",
+            description: "Network error — your entry wasn't persisted. Please try again.",
+            variant: "destructive",
+          });
+        });
     }
   }
 
@@ -970,7 +1193,6 @@ export default function MyBiometrics() {
   const activeTargets = targets || defaultTargets;
 
   // View toggles for charts
-  const [caloriesView, setCaloriesView] = useState<"today" | "7" | "30">("30");
   const [weightView, setWeightView] = useState<"7" | "1" | "3" | "6" | "12">(
     "7",
   );
@@ -1019,14 +1241,10 @@ export default function MyBiometrics() {
     if (isNaN(val) || val < 3 || val > 60) return;
     setGoalBFSaving(true);
     try {
-      const res = await fetch(apiUrl(`/api/users/${currentUser.id}/body-composition/goal`), {
+      const data = await apiRequest(`/api/users/${currentUser.id}/body-composition/goal`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
         body: JSON.stringify({ goalBodyFatPct: val }),
       });
-      if (!res.ok) throw new Error("Failed to save");
-      const data = await res.json();
       if (data.entry) {
         setBodyCompLatest(data.entry);
       }
@@ -1118,122 +1336,95 @@ export default function MyBiometrics() {
     fetchWeightHistory();
   }, []); // Fetch once on mount
 
-  // Check for pending weight sync from MacroCounter
-  const [pendingWeightSync, setPendingWeightSync] = useState<{
-    weight: number;
-    units: string;
-    timestamp: number;
-  } | null>(() => {
-    try {
-      const raw = localStorage.getItem("pending-weight-sync");
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch {}
-    return null;
-  });
+  // ── Body stat tab + log-weight input ────────────────────────────────────────
+  const [bodyStatTab, setBodyStatTab] = useState<"weight" | "waist" | "bodyfat">("weight");
+  const [logWeightInput, setLogWeightInput] = useState("");
+  const [logWeightSaving, setLogWeightSaving] = useState(false);
 
-  const [weightLbs, setWeightLbs] = useState("");
-  const [waistIn, setWaistIn] = useState("");
+  // ── Waist history (server) ────────────────────────────────────────────────
+  const [waistHistory, setWaistHistory] = useState<WaistRow[]>([]);
+  const [waistLoaded, setWaistLoaded] = useState(false);
 
-  // Pre-fill weight if pending sync exists
   useEffect(() => {
-    if (pendingWeightSync && !weightLbs) {
-      // Convert to lbs if needed
-      const weightInLbs =
-        pendingWeightSync.units === "imperial"
-          ? pendingWeightSync.weight
-          : Math.round(pendingWeightSync.weight * 2.20462);
-      setWeightLbs(String(weightInLbs));
-    }
-  }, [pendingWeightSync]);
+    const fetchWaistHistory = async () => {
+      try {
+        const res = await fetch(
+          apiUrl("/api/biometrics/history?metric=waist_circumference&range=365d"),
+          { credentials: "include", headers: getAuthHeaders() },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.history)) {
+            setWaistHistory(data.history as WaistRow[]);
+          }
+        }
+      } catch {
+        // fallback: stay with empty — no localStorage migration needed
+      } finally {
+        setWaistLoaded(true);
+      }
+    };
+    fetchWaistHistory();
+  }, []);
 
-  const saveWeight = async () => {
-    const w = weightLbs.trim() ? Number(weightLbs) : undefined;
-    const wst = waistIn.trim() ? Number(waistIn) : undefined;
-    if (!w) return;
-
+  // ── Log Today's Weight (measurement only — does NOT update prescription) ──
+  const logTodayWeight = async () => {
+    const w = Number(logWeightInput.trim());
+    if (!w || w <= 0) return;
+    setLogWeightSaving(true);
     try {
-      // Save to database - use local date string to avoid timezone issues
-      const localDate = today; // YYYY-MM-DD in user's local timezone
-      const response = await fetch(apiUrl("/api/biometrics/weight"), {
+      const localDate = new Date().toLocaleDateString("en-CA");
+      const res = await fetch(apiUrl("/api/biometrics/measurement"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          value: w,
-          unit: "lb",
-          localDate,
-        }),
+        body: JSON.stringify({ metric: "weight", value: w, unit: "lb", localDate }),
       });
+      if (!res.ok) throw new Error("Save failed");
 
-      if (!response.ok) {
-        throw new Error("Failed to save weight");
-      }
-
-      const savedData = await response.json();
-
-      // Update local state with saved data
-      const row: WeightRow = {
-        id: savedData.id || crypto.randomUUID(),
-        date: today,
-        weight: w,
-        waist: wst,
-      };
-      setWeightHistory((prev) => [row, ...prev].slice(0, 365));
-      setWeightLbs("");
-      setWaistIn("");
-
-      // Clear pending sync after saving (but don't redirect - let user confirm save)
-      if (pendingWeightSync) {
-        localStorage.removeItem("pending-weight-sync");
-        setPendingWeightSync(null);
-      }
-
-      // Refresh weight history from database to show the update
-      try {
-        const refreshResponse = await fetch(
-          apiUrl("/api/biometrics/weight?range=365d"),
-          { credentials: "include", headers: getAuthHeaders() },
-        );
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-          if (refreshData.history && refreshData.history.length > 0) {
-            const dbWeights: WeightRow[] = refreshData.history.map(
-              (h: any) => ({
-                id: h.id,
-                date: h.date,
-                weight:
-                  h.unit === "kg" ? Math.round(h.weight * 2.20462) : h.weight,
-                waist: undefined,
-              }),
-            );
-            setWeightHistory(dbWeights);
-          }
-        }
-      } catch (refreshErr) {
-        console.log("Failed to refresh weight history:", refreshErr);
-      }
-
-      toast({
-        title: "✓ Weight saved",
-        description: "Your weight has been saved successfully.",
+      // Optimistic update: replace today's entry if exists, otherwise prepend
+      const row: WeightRow = { id: crypto.randomUUID(), date: localDate, weight: w };
+      setWeightHistory((prev) => {
+        const filtered = prev.filter((r) => r.date !== localDate);
+        return [row, ...filtered].slice(0, 365);
       });
-    } catch (error) {
-      console.error("Error saving weight:", error);
-      toast({
-        title: "Error saving weight",
-        description: "Failed to save weight. Please try again.",
-        variant: "destructive",
-      });
+      setLogWeightInput("");
+      toast({ title: "✓ Weight logged", description: "Your progress has been recorded." });
+
+      const returnTo = sessionStorage.getItem("biometrics:returnTo");
+      if (returnTo) {
+        sessionStorage.removeItem("biometrics:returnTo");
+        setTimeout(() => setLocation(returnTo), 900);
+      }
+    } catch {
+      toast({ title: "Couldn't save weight", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setLogWeightSaving(false);
     }
   };
 
   const latestWeight = useMemo(() => weightHistory[0]?.weight, [weightHistory]);
-  const latestWaist = useMemo(
-    () => weightHistory.find((r) => r.waist)?.waist,
-    [weightHistory],
-  );
+
+  // Waist comes from server history, not from the weight rows (old localStorage pattern removed)
+  const latestWaist     = useMemo(() => waistHistory[0]?.value,                    [waistHistory]);
+  const latestWaistDate = useMemo(() => waistHistory[0]?.date,                     [waistHistory]);
+
+  // Review-macros nudge: appears when the entered log weight differs from the
+  // prescription baseline by ≥ 3 lb.  Reads MacroCalculator localStorage settings.
+  const reviewMacrosNudge = useMemo<string | null>(() => {
+    const w = Number(logWeightInput.trim());
+    if (!w || w <= 0) return null;
+    try {
+      const settings = JSON.parse(localStorage.getItem("mpm_macro_settings") || "{}");
+      const baseline = settings.weightLbs;
+      if (!baseline) return null;
+      const diff = Math.round(Math.abs(w - baseline));
+      if (diff < 3) return null;
+      return `${diff} lb ${w < baseline ? "below" : "above"} your Macro Calculator weight`;
+    } catch {
+      return null;
+    }
+  }, [logWeightInput]);
 
   const bmi = useMemo(() => {
     if (!latestWeight || !body.heightIn) return undefined;
@@ -1365,6 +1556,89 @@ export default function MyBiometrics() {
     return out;
   }, [weightHistory]);
 
+  // ── Waist time-series (mirrors weight pattern, values in inches) ─────────────
+  const buildMetricSeries = (
+    history: { date: string; value: number }[],
+    dayCount: number,
+  ): { date: string; metricAvg: number }[] => {
+    const byDay = new Map<string, number[]>();
+    for (const r of history) {
+      const key = r.date.slice(0, 10);
+      if (!byDay.has(key)) byDay.set(key, []);
+      byDay.get(key)!.push(r.value);
+    }
+    const out: { date: string; metricAvg: number }[] = [];
+    for (let i = dayCount - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const vals = byDay.get(key);
+      const avg  = vals?.length
+        ? parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1))
+        : 0;
+      out.push({ date: key, metricAvg: avg });
+    }
+    return out;
+  };
+
+  const waist7days = useMemo(() => buildMetricSeries(waistHistory, 7),   [waistHistory]);
+  const waist1mo   = useMemo(() => buildMetricSeries(waistHistory, 30),  [waistHistory]);
+  const waist3mo   = useMemo(() => buildMetricSeries(waistHistory, 90),  [waistHistory]);
+  const waist6mo   = useMemo(() => buildMetricSeries(waistHistory, 180), [waistHistory]);
+  const waist12mo  = useMemo(() => buildMetricSeries(waistHistory, 365), [waistHistory]);
+
+  const activeWaistData = useMemo(() => {
+    if (weightView === "7") return waist7days;
+    if (weightView === "1") return waist1mo;
+    if (weightView === "3") return waist3mo;
+    if (weightView === "6") return waist6mo;
+    return waist12mo;
+  }, [weightView, waist7days, waist1mo, waist3mo, waist6mo, waist12mo]);
+
+  // Period change labels for each tab
+  const weightPeriodChange = useMemo(() => {
+    const series = weightView === "7" ? weight7days : weightView === "1" ? weight1mo
+      : weightView === "3" ? weight3mo : weightView === "6" ? weight6mo : weight12mo;
+    const filled = series.filter((r) => r.weightAvg > 0);
+    if (filled.length < 2) return null;
+    return parseFloat((filled[filled.length - 1].weightAvg - filled[0].weightAvg).toFixed(1));
+  }, [weightView, weight7days, weight1mo, weight3mo, weight6mo, weight12mo]);
+
+  const waistPeriodChange = useMemo(() => {
+    const filled = activeWaistData.filter((r) => r.metricAvg > 0);
+    if (filled.length < 2) return null;
+    return parseFloat((filled[filled.length - 1].metricAvg - filled[0].metricAvg).toFixed(1));
+  }, [activeWaistData]);
+
+  // ── Body fat time-series (from body composition entries) ──────────────────
+  const bodyFatRawPoints = useMemo(
+    () =>
+      bodyCompHistory.map((e) => ({
+        date: e.recordedAt.slice(0, 10),
+        value: parseFloat(e.currentBodyFatPct),
+      })),
+    [bodyCompHistory],
+  );
+  const bodyFat7days = useMemo(() => buildMetricSeries(bodyFatRawPoints, 7),   [bodyFatRawPoints]);
+  const bodyFat1mo   = useMemo(() => buildMetricSeries(bodyFatRawPoints, 30),  [bodyFatRawPoints]);
+  const bodyFat3mo   = useMemo(() => buildMetricSeries(bodyFatRawPoints, 90),  [bodyFatRawPoints]);
+  const bodyFat6mo   = useMemo(() => buildMetricSeries(bodyFatRawPoints, 180), [bodyFatRawPoints]);
+  const bodyFat12mo  = useMemo(() => buildMetricSeries(bodyFatRawPoints, 365), [bodyFatRawPoints]);
+
+  const activeBodyFatData = useMemo(() => {
+    if (weightView === "7") return bodyFat7days;
+    if (weightView === "1") return bodyFat1mo;
+    if (weightView === "3") return bodyFat3mo;
+    if (weightView === "6") return bodyFat6mo;
+    return bodyFat12mo;
+  }, [weightView, bodyFat7days, bodyFat1mo, bodyFat3mo, bodyFat6mo, bodyFat12mo]);
+
+  const bodyFatPeriodChange = useMemo(() => {
+    const filled = activeBodyFatData.filter((r) => r.metricAvg > 0);
+    if (filled.length < 2) return null;
+    return parseFloat((filled[filled.length - 1].metricAvg - filled[0].metricAvg).toFixed(1));
+  }, [activeBodyFatData]);
+
   // ------- export CSV -------
   const exportCSV = () => {
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -1386,12 +1660,12 @@ export default function MyBiometrics() {
     }
     out.push("");
     // Weight history
-    out.push("Section,Date,Weight(lb),Waist(in)");
+    out.push("Section,Date,Weight(lb)");
     const weightRows = [...weightHistory].sort((a, b) =>
       a.date.localeCompare(b.date),
     );
     for (const r of weightRows)
-      out.push(["Weight", r.date, r.weight, r.waist ?? ""].map(esc).join(","));
+      out.push(["Weight", r.date, r.weight].map(esc).join(","));
     out.push("");
     // Body snapshot (latest values)
     out.push(
@@ -1508,6 +1782,18 @@ export default function MyBiometrics() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-8 pb-3 flex items-center gap-3">
+          {/* Return to source page (from ?from= param) */}
+          {returnSource && !isProSession && (
+            <Button
+              onClick={() => setLocation(returnSource.path)}
+              variant="ghost"
+              size="sm"
+              className="text-orange-300 hover:bg-orange-500/10 -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back to {returnSource.label}
+            </Button>
+          )}
           {/* Pro Session: Return to Pro Portal */}
           {isProSession && (
             <Button
@@ -1544,7 +1830,7 @@ export default function MyBiometrics() {
           
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            My Biometrics
+            {t("title")}
           </h1>
 
           <div className="flex-grow" />
@@ -1587,6 +1873,7 @@ export default function MyBiometrics() {
 
         {/* MACROS */}
         <Card
+          id="biometrics-macros-section"
           data-testid="biometrics-macro-summary"
           className="bg-black/30 backdrop-blur-lg border border-white/10"
         >
@@ -1604,28 +1891,20 @@ export default function MyBiometrics() {
                   <Target className="h-4 w-4" />
                   {targets ? "Macro Targets Active" : "Today's Macros"}
                 </div>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-orange-600/20 text-orange-200 border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-1 px-3 rounded-full text-xs flex items-center gap-1"
-                      data-testid="button-persistent-explanation"
-                    >
-                      <Info className="h-3 w-3" />
-                      <span>Persistent</span>
-                      <span className="text-orange-300/70 text-[10px]">
-                        (tap)
-                      </span>
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-black/90 backdrop-blur-lg border border-white/20 text-white max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="text-white flex items-center gap-2">
-                        <Info className="h-5 w-5 text-orange-400" />
-                        What Does "Persistent" Mean?
-                      </DialogTitle>
-                    </DialogHeader>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-orange-600/20 text-orange-200 border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-1 px-3 rounded-full text-xs flex items-center gap-1"
+                  data-testid="button-persistent-explanation"
+                  onClick={() => setShowPersistentInfo(true)}
+                >
+                  <Info className="h-3 w-3" />
+                  <span>Persistent</span>
+                  <span className="text-orange-300/70 text-[10px]">
+                    (tap)
+                  </span>
+                </Button>
+                <InformationModal open={showPersistentInfo} onOpenChange={setShowPersistentInfo} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-md" title={<span className="flex items-center gap-2"><Info className="h-5 w-5 text-orange-400" />What Does "Persistent" Mean?</span>}>
                     <div className="space-y-4 pt-4">
                       <p className="text-white/90 text-sm leading-relaxed">
                         <strong className="text-orange-300">
@@ -1676,8 +1955,7 @@ export default function MyBiometrics() {
                         </div>
                       )}
                     </div>
-                  </DialogContent>
-                </Dialog>
+                </InformationModal>
               </div>
 
               {/* Pro-set badge (if targets are set by professional) */}
@@ -1695,7 +1973,22 @@ export default function MyBiometrics() {
                 </div>
               )}
 
-              {targets ? (
+              {targetsLoading ? (
+                /* Skeleton shimmer — shown while the prescription fetch is in flight */
+                <div data-testid="biometrics-progress-bars" aria-busy="true">
+                  {["Protein", "Carbs", "Fat", "Calories"].map((label) => (
+                    <div key={label} className="space-y-2 mb-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white">{label}</span>
+                        <div className="animate-pulse h-4 w-20 rounded bg-white/10" />
+                      </div>
+                      <div className="h-2 w-full rounded bg-white/10 overflow-hidden">
+                        <div className="animate-pulse h-2 w-1/3 bg-white/10 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : targets ? (
                 <>
                   {/* Top summary badges with pulsing effect */}
                   <div className="flex flex-wrap gap-2 mb-3">
@@ -1789,13 +2082,13 @@ export default function MyBiometrics() {
 
             {/* Photo Upload Button */}
             <Button
-              data-wt="bio-scan-button"
-              onClick={handlePhotoUpload}
-              className="w-full bg-lime-600 hover:bg-lime-600 text-md text-white mb-3"
-              data-testid="button-photo-upload"
-            >
-              📸 MacroScan
-            </Button>
+                data-wt="bio-scan-button"
+                onClick={handlePhotoUpload}
+                className="w-full bg-lime-600 hover:bg-lime-600 text-md text-white mb-3"
+                data-testid="button-photo-upload"
+              >
+                📸 MacroScan
+              </Button>
 
             <Button
               onClick={() => setOpenDescribe(true)}
@@ -1805,43 +2098,20 @@ export default function MyBiometrics() {
               ✏️ Just Describe It
             </Button>
 
-            {/* Quick View Panel (display only, no auto-logging) */}
-            {qv && (
-              <div className="rounded-2xl border border-white/20 p-3 mb-3 bg-black/20 backdrop-blur-sm">
-                <div className="text-sm font-semibold mb-2 text-white">
-                  Quick View (not logged)
-                </div>
-                <div className="text-sm text-white/90 mb-2">
-                  Protein <b className="text-white">{qv.protein} g</b> · Carbs{" "}
-                  <b className="text-white">{qv.carbs} g</b> · Fat{" "}
-                  <b className="text-white">{qv.fat} g</b> · Calories{" "}
-                  <b className="text-white">{qv.calories}</b>
-                </div>
-                <div className="text-xs text-white/60 mb-2">
-                  Date: {qv.dateISO}
-                  {qv.mealSlot ? ` · ${qv.mealSlot}` : ""}
-                </div>
-                <div className="flex gap-2 mb-2">
-                  <Button
-                    onClick={addFromQuickView}
-                    className="px-3 py-1 rounded-lg border border-lime-500/30 bg-lime-600/20 text-lime-300 hover:bg-lime-600/30 text-sm"
-                    data-testid="button-add-to-today"
-                  >
-                    Add to Today
-                  </Button>
-                  <Button
-                    onClick={dismissQuickView}
-                    className="px-3 py-1 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 text-sm"
-                    data-testid="button-dismiss-quickview"
-                  >
-                    Dismiss
-                  </Button>
-                </div>
-                <div className="text-[11px] text-white/60">
-                  Tip: Review the values above, then tap <b>Add to Today</b> to log.
-                </div>
-              </div>
-            )}
+            {/* Ingredient Intelligence */}
+            <>
+                <Button
+                  onClick={handleIngredientScan}
+                  className="w-full bg-orange-600/80 text-md text-white mb-1"
+                  data-testid="button-ingredient-intelligence"
+                >
+                  🧾 Ingredient Intelligence
+                </Button>
+                <p className="text-xs text-white/40 text-center leading-snug mb-3 px-2">
+                  Understand packaged foods using your wellness profile, dietary preferences, and health goals.
+                </p>
+              </>
+
 
             <div
               data-testid="biometrics-macro-inputs"
@@ -1862,15 +2132,28 @@ export default function MyBiometrics() {
               </div>
               <div>
                 <label className="text-xs text-white/80 font-medium mb-1 block">
-                  Carbs (g)
+                  Starchy (g)
                 </label>
                 <Input
-                  data-wt="bio-manual-carbs"
+                  data-wt="bio-manual-starchy"
                   type="text"
                   className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
-                  value={c}
-                  onChange={(e) => setC(e.target.value)}
-                  data-testid="input-carbs"
+                  value={sc}
+                  onChange={(e) => setSc(e.target.value)}
+                  data-testid="input-starchy"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/80 font-medium mb-1 block">
+                  Fibrous (g)
+                </label>
+                <Input
+                  data-wt="bio-manual-fibrous"
+                  type="text"
+                  className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+                  value={fc}
+                  onChange={(e) => setFc(e.target.value)}
+                  data-testid="input-fibrous"
                 />
               </div>
               <div>
@@ -2025,65 +2308,11 @@ export default function MyBiometrics() {
           </CardContent>
         </Card>
 
-        {/* Calories chart - continuous 30 days (matches Steps) */}
-        <Card
-          data-testid="biometrics-charts-section"
-          className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl"
-        >
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-white text-xl flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" /> Calories
-            </CardTitle>
-            <ViewToggle value={caloriesView} onChange={setCaloriesView} />
-          </CardHeader>
-          <CardContent>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <LineChart
-                  data={
-                    caloriesView === "today"
-                      ? caloriesToday
-                      : caloriesView === "7"
-                        ? calories7
-                        : calories30
-                  }
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: "#fff" }}
-                    tickFormatter={(v: string) => {
-                      const d = new Date(v + "T12:00:00");
-                      return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-                    }}
-                  />
-                  <YAxis tick={{ fontSize: 10, fill: "#fff" }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "rgba(0,0,0,0.9)",
-                      border: "1px solid #333",
-                      color: "#fff",
-                      borderRadius: 8,
-                    }}
-                    labelFormatter={(l) =>
-                      new Date(l + "T12:00:00").toLocaleDateString()
-                    }
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="kcal"
-                    stroke="#fbbf24"
-                    dot={false}
-                    name="Calories"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Macro Consistency Timeline - replaces standalone Calories chart */}
+        <MacroConsistencyTimeline macroRows={macroRows} />
 
-        {/* BODY with weight history */}
-        <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
+        {/* BODY STATS — tabbed: Weight | Waist */}
+        <Card id="biometrics-weight-section" className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
               <Scale className="h-5 w-5" /> Body Stats
@@ -2091,105 +2320,293 @@ export default function MyBiometrics() {
             <MonthViewToggle value={weightView} onChange={setWeightView} />
           </CardHeader>
           <CardContent>
-            <div
-              data-testid="biometrics-weight-input"
-              className="grid grid-cols-2 gap-3 mb-3"
-            >
-              <div>
-                <div className="text-xs text-white/70">Weight (lb)</div>
-                <Input
-                  inputMode="decimal"
-                  className="bg-black/20 border-white/20 text-white"
-                  value={weightLbs}
-                  onChange={(e) => setWeightLbs(e.target.value)}
-                  data-testid="input-weight"
-                />
-              </div>
-              <div>
-                <div className="text-xs text-white/70">Waist (in)</div>
-                <Input
-                  inputMode="decimal"
-                  className="bg-black/20 border-white/20 text-white"
-                  value={waistIn}
-                  onChange={(e) => setWaistIn(e.target.value)}
-                  data-testid="input-waist"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mb-2">
-              <PillButton
-                id="save-weight-button"
-                data-testid="biometrics-save-weight-button"
-                data-walkthrough="save-weight"
-                onClick={saveWeight}
-                className="!bg-lime-500/20 !border-lime-400 hover:!bg-lime-500/30"
-              >
-                Save
-              </PillButton>
-              <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">Weight</span>
-            </div>
-            <ReadOnlyNote>
-              Track your weight progress here over time. Your weight data
-              automatically syncs with the <strong>Macro Calculator</strong>.
-            </ReadOnlyNote>
-            <div style={{ width: "100%", height: 220 }} className="mt-2">
-              <ResponsiveContainer>
-                <LineChart
-                  data={
-                    weightView === "7"
-                      ? weight7days
-                      : weightView === "1"
-                        ? weight1mo
-                        : weightView === "3"
-                          ? weight3mo
-                          : weightView === "6"
-                            ? weight6mo
-                            : weight12mo
-                  }
+            {/* Metric tabs */}
+            <div className="flex gap-1 bg-black/30 p-1 rounded-lg mb-4 w-fit">
+              {(
+                [
+                  { id: "weight",  label: "Weight"    },
+                  { id: "waist",   label: "Waist"     },
+                  { id: "bodyfat", label: "Body Fat"  },
+                ] as const
+              ).map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => setBodyStatTab(id)}
+                  className={`px-4 py-1.5 rounded text-sm font-medium transition ${
+                    bodyStatTab === id
+                      ? "bg-white/20 text-white"
+                      : "text-white/60 hover:text-white"
+                  }`}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: "#fff" }}
-                    tickFormatter={(v: string) => {
-                      const d = new Date(v + "T12:00:00");
-                      return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-                    }}
-                  />
-                  <YAxis tick={{ fontSize: 10, fill: "#fff" }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "rgba(0,0,0,0.9)",
-                      border: "1px solid #333",
-                      color: "#fff",
-                      borderRadius: 8,
-                    }}
-                    labelFormatter={(l) =>
-                      new Date(l + "T12:00:00").toLocaleDateString()
-                    }
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="weightAvg"
-                    stroke="#10b981"
-                    dot={false}
-                    name="Weight (lb)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                  {label}
+                </button>
+              ))}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mt-4">
-              {latestWeight && (
-                <Summary label="Weight" value={`${latestWeight} lb`} />
-              )}
-              {latestWaist && (
-                <Summary label="Waist" value={`${latestWaist}"`} />
-              )}
-              {bmi && bmiCategory && (
-                <Summary label="BMI*" value={`${bmi} — ${bmiCategory.label}`} sub="*Height from settings" categoryColor={bmiCategory.color} />
-              )}
-              {whr && <Summary label="Waist/Height" value={whr} />}
-            </div>
+
+            {/* ── Weight tab ── */}
+            {bodyStatTab === "weight" && (
+              <>
+                {/* Current value + period delta */}
+                <div className="flex items-baseline gap-3 mb-1">
+                  <span className="text-2xl font-bold text-white">
+                    {latestWeight
+                      ? convertWeightLbsDisplay(latestWeight, (user as any)?.measurementSystem ?? "imperial")
+                      : "—"}
+                  </span>
+                  {weightPeriodChange !== null && (
+                    <span className={`text-sm ${weightPeriodChange < 0 ? "text-emerald-400" : weightPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
+                      {weightPeriodChange > 0 ? "+" : ""}{weightPeriodChange} lb this period
+                    </span>
+                  )}
+                </div>
+                {/* Chart */}
+                <div style={{ width: "100%", height: 200 }} className="mt-2">
+                  <ResponsiveContainer>
+                    <LineChart
+                      data={
+                        weightView === "7" ? weight7days
+                          : weightView === "1" ? weight1mo
+                          : weightView === "3" ? weight3mo
+                          : weightView === "6" ? weight6mo
+                          : weight12mo
+                      }
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 10, fill: "#fff" }}
+                        tickFormatter={(v: string) => {
+                          const d = new Date(v + "T12:00:00");
+                          return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                        }}
+                      />
+                      <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} />
+                      <Tooltip
+                        contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
+                        labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
+                        formatter={(v: any) => [`${v} lb`, "Weight"]}
+                      />
+                      <Line type="monotone" dataKey="weightAvg" stroke="#10b981" dot={false} name="Weight (lb)" connectNulls={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Log Today's Weight — measurement only, does NOT change macros */}
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <div className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">
+                    Log Today's Weight
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      inputMode="decimal"
+                      placeholder="lbs"
+                      className="bg-black/20 border-white/20 text-white w-28"
+                      value={logWeightInput}
+                      onChange={(e) => setLogWeightInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && logTodayWeight()}
+                      data-testid="input-log-weight"
+                    />
+                    <PillButton
+                      id="save-weight-button"
+                      data-testid="biometrics-save-weight-button"
+                      data-walkthrough="save-weight"
+                      onClick={logTodayWeight}
+                      disabled={logWeightSaving || !logWeightInput.trim()}
+                      className="!bg-lime-500/20 !border-lime-400 hover:!bg-lime-500/30 disabled:opacity-40"
+                    >
+                      {logWeightSaving ? "Saving…" : "Save"}
+                    </PillButton>
+                  </div>
+                  {/* Review-macros nudge */}
+                  {reviewMacrosNudge && (
+                    <button
+                      onClick={() => setLocation("/macro-calculator")}
+                      className="mt-2 w-full text-left text-xs px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-400/30 text-orange-300 hover:bg-orange-500/20 transition"
+                    >
+                      ↗ {reviewMacrosNudge} — <span className="underline">Review Macros →</span>
+                    </button>
+                  )}
+                  <div className="mt-2">
+                    <ReadOnlyNote>
+                      Logging here tracks your progress without changing your macro prescription.
+                      To update your macros, go to the{" "}
+                      <button onClick={() => setLocation("/macro-calculator")} className="underline text-white/80">
+                        Macro Calculator
+                      </button>.
+                    </ReadOnlyNote>
+                  </div>
+                </div>
+
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mt-4">
+                  {latestWeight && (
+                    <Summary
+                      label="Weight"
+                      value={convertWeightLbsDisplay(latestWeight, (user as any)?.measurementSystem ?? "imperial")}
+                    />
+                  )}
+                  {bmi && bmiCategory && (
+                    <Summary label="BMI*" value={`${bmi} — ${bmiCategory.label}`} sub="*Height from settings" categoryColor={bmiCategory.color} />
+                  )}
+                  {whr && <Summary label="Waist/Height" value={whr} />}
+                </div>
+              </>
+            )}
+
+            {/* ── Waist tab ── */}
+            {bodyStatTab === "waist" && (
+              <>
+                {/* Current value + period delta */}
+                <div className="flex items-baseline gap-3 mb-1">
+                  <span className="text-2xl font-bold text-white">
+                    {latestWaist ? `${latestWaist}"` : "—"}
+                  </span>
+                  {waistPeriodChange !== null && (
+                    <span className={`text-sm ${waistPeriodChange < 0 ? "text-emerald-400" : waistPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
+                      {waistPeriodChange > 0 ? "+" : ""}{waistPeriodChange}" this period
+                    </span>
+                  )}
+                </div>
+                {latestWaistDate && (
+                  <div className="text-xs text-white/40 mb-3">
+                    Last recorded: {new Date(latestWaistDate + "T12:00:00").toLocaleDateString()}
+                  </div>
+                )}
+                {/* Chart */}
+                {waistLoaded && waistHistory.length > 0 ? (
+                  <div style={{ width: "100%", height: 200 }} className="mt-2">
+                    <ResponsiveContainer>
+                      <LineChart data={activeWaistData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10, fill: "#fff" }}
+                          tickFormatter={(v: string) => {
+                            const d = new Date(v + "T12:00:00");
+                            return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                          }}
+                        />
+                        <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} />
+                        <Tooltip
+                          contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
+                          labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
+                          formatter={(v: any) => [`${v}"`, "Waist"]}
+                        />
+                        <Line type="monotone" dataKey="metricAvg" stroke="#f97316" dot={false} name='Waist (in)' connectNulls={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : waistLoaded ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-white/40 text-sm gap-2">
+                    <span>No waist data yet.</span>
+                    <span className="text-xs text-center">Waist measurements are saved automatically when you use the Macro Calculator.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-8 text-white/40 text-sm">Loading…</div>
+                )}
+                <div className="mt-3">
+                  <ReadOnlyNote>
+                    Waist is saved automatically when you update your stats in the{" "}
+                    <button onClick={() => setLocation("/macro-calculator")} className="underline text-white/80">
+                      Macro Calculator
+                    </button>.
+                  </ReadOnlyNote>
+                </div>
+                {/* Summary */}
+                {(latestWaist || whr) && (
+                  <div className="grid grid-cols-2 gap-3 text-sm mt-4">
+                    {latestWaist && <Summary label="Waist" value={`${latestWaist}"`} />}
+                    {whr && <Summary label="Waist/Height" value={whr} />}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── Body Fat tab ── */}
+            {bodyStatTab === "bodyfat" && (
+              <>
+                {/* Current value + period delta */}
+                <div className="flex items-baseline gap-3 mb-1">
+                  <span className="text-2xl font-bold text-white">
+                    {bodyCompLatest
+                      ? `${parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%`
+                      : "—"}
+                  </span>
+                  {bodyFatPeriodChange !== null && (
+                    <span className={`text-sm ${bodyFatPeriodChange < 0 ? "text-emerald-400" : bodyFatPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
+                      {bodyFatPeriodChange > 0 ? "+" : ""}{bodyFatPeriodChange}% this period
+                    </span>
+                  )}
+                </div>
+                {bodyCompLatest?.recordedAt && (
+                  <div className="text-xs text-white/40 mb-3">
+                    Last recorded: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}
+                  </div>
+                )}
+                {/* Chart */}
+                {bodyFatRawPoints.length > 0 ? (
+                  <div style={{ width: "100%", height: 200 }} className="mt-2">
+                    <ResponsiveContainer>
+                      <LineChart data={activeBodyFatData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10, fill: "#fff" }}
+                          tickFormatter={(v: string) => {
+                            const d = new Date(v + "T12:00:00");
+                            return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                          }}
+                        />
+                        <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} unit="%" />
+                        <Tooltip
+                          contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
+                          labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
+                          formatter={(v: any) => [`${v}%`, "Body Fat"]}
+                        />
+                        <Line type="monotone" dataKey="metricAvg" stroke="#a78bfa" dot={true} name="Body Fat (%)" connectNulls={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-white/40 text-sm gap-2">
+                    <span>No body fat data yet.</span>
+                    <span className="text-xs text-center">Log a body composition scan in the Body Composition section below.</span>
+                  </div>
+                )}
+                <div className="mt-3">
+                  <ReadOnlyNote>
+                    Body fat is logged in the{" "}
+                    <button
+                      onClick={() => {
+                        document.getElementById("biometrics-body-comp-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="underline text-white/80"
+                    >
+                      Body Composition
+                    </button>{" "}
+                    section below. Each scan method (DEXA, BIA, calipers, etc.) is stored separately.
+                  </ReadOnlyNote>
+                </div>
+                {/* Summary */}
+                {bodyCompLatest && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mt-4">
+                    <Summary
+                      label="Body Fat"
+                      value={`${parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%`}
+                    />
+                    {bodyCompLatest.goalBodyFatPct && parseFloat(bodyCompLatest.goalBodyFatPct) > 0 && (
+                      <Summary
+                        label="Goal"
+                        value={`${parseFloat(bodyCompLatest.goalBodyFatPct).toFixed(1)}%`}
+                      />
+                    )}
+                    {bodyCompLatest.scanMethod && (
+                      <Summary label="Method" value={bodyCompLatest.scanMethod} />
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -2323,26 +2740,94 @@ export default function MyBiometrics() {
           </CardContent>
         </Card>
 
-        {/* CLINICAL LABS - physician / lab_metrics entitlement only */}
-        {user && hasFeature(user as any, "lab_metrics") && user.id && (
-          <ClinicalLabsCard userId={user.id} />
+        {/* CLINICAL LABS - visible to all, locked for non-Clinical users (trial excluded) */}
+        {user && user.id && (
+          canAccessClinicalLabs(user) ? (
+            <ClinicalLabsCard userId={user.id} />
+          ) : (
+            <Card
+              className="cursor-pointer active:scale-[0.99] bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl transition-all duration-200"
+              onClick={() => requestUpgrade({ requiredTier: "clinical", featureName: "Lab Values" })}
+            >
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-white text-xl flex items-center gap-2">
+                  🧪 Lab Values
+                </CardTitle>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-[10px] font-bold uppercase tracking-wide">
+                  Clinical
+                </span>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-white/60 leading-relaxed">
+                  Track and manage lab markers and advanced health metrics as part of the Clinical experience. Tap to learn more.
+                </p>
+              </CardContent>
+            </Card>
+          )
         )}
 
-        {/* WATER LOG */}
+        {/* THERAPEUTIC NUTRITION INTELLIGENCE — Clinical only, trial excluded */}
+        {canAccessTherapeuticNutrition(user) ? (
+          <TherapeuticNutritionCard />
+        ) : (
+          <Card
+            className="cursor-pointer active:scale-[0.99] bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl transition-all duration-200"
+            onClick={() => requestUpgrade({ requiredTier: "clinical", featureName: "Therapeutic Nutrition Intelligence" })}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-white text-xl flex items-center gap-2">
+                🧬 Therapeutic Nutrition Intelligence
+              </CardTitle>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-[10px] font-bold uppercase tracking-wide">
+                Clinical
+              </span>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-white/70 leading-relaxed">
+                Log peptides, hormone therapies, medications, and active treatments so My Perfect Meals can adapt your nutrition plan around your clinical protocol. Available with the Clinical plan.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* CANONICAL HYDRATION */}
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
-              💧 Water Log
+              My Perfect Hydration Center
             </CardTitle>
+            <Badge className="border-sky-300/25 bg-sky-500/15 text-sky-100">Pro</Badge>
           </CardHeader>
           <CardContent className="space-y-4">
-            <WaterLog />
+            <p className="text-sm leading-relaxed text-white/65">
+              Build hydration support around activity, nutrition context,
+              preferences, barriers, and verified professional guidance—without
+              relying on a generic one-size-fits-all water target.
+            </p>
+            {user?.id && <BasicHydrationLogger userId={user.id} />}
+            <Button
+              onClick={() => {
+                if (purchasedPlanIncludesFeature(user, "hydration_center")) {
+                  setLocation("/hydration");
+                  return;
+                }
+                requestUpgrade({
+                  requiredTier: "pro",
+                  featureName: "My Perfect Hydration Center",
+                  valueMessage: "Build hydration support around your activity, nutrition context, preferences, barriers, and verified professional guidance—without relying on a generic one-size-fits-all water target.",
+                });
+              }}
+              className="w-full bg-sky-600 text-white hover:bg-sky-500"
+              data-testid="open-hydration-center"
+            >
+              Open My Perfect Hydration Center
+            </Button>
           </CardContent>
         </Card>
 
         {/* Version tag for deployment tracking */}
         <div className="text-[10px] text-white/40 text-center mt-4 mb-2">
-          Build: Biometrics v1.1 • Profiles ON • Water Logger
+          Build: Biometrics v1.1 • Profiles ON • Server-backed Hydration
         </div>
       </div>
 
@@ -2351,7 +2836,7 @@ export default function MyBiometrics() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
             <h3 className="text-xl font-bold text-white mb-4">
-              About My Biometrics
+              {t("aboutTitle")}
             </h3>
 
             <div className="space-y-4 text-white/90 text-sm">
@@ -2381,7 +2866,7 @@ export default function MyBiometrics() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-xl">
             <h3 className="text-xl font-bold text-white mb-4">
-              Your Macro Targets Are Set
+              {t("macroTargetsSet")}
             </h3>
 
             <div className="space-y-4 text-white/90 text-sm">
@@ -2408,6 +2893,61 @@ export default function MyBiometrics() {
         steps={biometricsTourSteps}
         title="How to Use Biometrics"
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
+      />
+
+      <IngredientIntelligenceSheet
+        open={ingredientSheetOpen}
+        result={ingredientResult}
+        onClose={() => setIngredientSheetOpen(false)}
+        onRescan={() => {
+          setIngredientSheetOpen(false);
+          handleIngredientScan();
+        }}
+        onAddProduct={(name) => {
+          sendToShoppingList([{ name, quantity: 1, unit: "" }], { sourceBuilder: "smart-scan" });
+        }}
+      />
+
+      <ConfirmationModal
+        open={showResetConfirm}
+        onOpenChange={(open) => setShowResetConfirm(open)}
+        title="Reset Today's Macros?"
+        description="This will permanently delete all macro entries logged today. Your targets, previous days, weight, and lab data are not affected."
+        className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4"
+        footer={
+          <div className="flex gap-3 w-full">
+            <PillButton
+              onClick={() => setShowResetConfirm(false)}
+              className="flex-1 bg-white/10 text-white border border-white/20"
+            >
+              Cancel
+            </PillButton>
+            <PillButton
+              onClick={confirmReset}
+              className="flex-1 bg-red-600 text-white"
+            >
+              Reset Today
+            </PillButton>
+          </div>
+        }
+      >
+        <span className="sr-only">Confirm whether to reset today's macro entries.</span>
+      </ConfirmationModal>
+
+      <MacroScanModal
+        open={showMacroModal}
+        onOpenChange={setShowMacroModal}
+        onSuccess={(result) => {
+          setShowMacroModal(false);
+          setP(String(result.protein));
+          setC(String(result.carbs));
+          setF(String(result.fat));
+          setK(String(result.calories));
+          toast({
+            title: "Macros Detected",
+            description: `${Math.round(result.calories)} kcal — Protein ${result.protein}g, Carbs ${result.carbs}g, Fat ${result.fat}g.`,
+          });
+        }}
       />
 
       <JustDescribeItModal
@@ -2445,119 +2985,50 @@ export default function MyBiometrics() {
           });
         }}
       />
-    </motion.div>
-  );
-}
 
-// ============================== WATER LOG ==============================
-function WaterLog() {
-  // SAFE: Start with defaults, load from storage in useEffect
-  const today = new Date().toDateString();
-  const [water, setWater] = useState({ date: today, ounces: 0 });
-  const [goal, setGoal] = useState(121); // default: 180 * 0.67
-  
-  // Load water and goal from storage on mount (deferred read)
-  useEffect(() => {
-    try {
-      const savedWater = localStorage.getItem("mpm_bio_water");
-      if (savedWater) {
-        const parsed = JSON.parse(savedWater);
-        const todayStr = new Date().toDateString();
-        if (parsed.date === todayStr) {
-          setWater(parsed);
-        }
-      }
-      
-      const w = Number(localStorage.getItem("latestWeight")) || 180;
-      setGoal(Math.round(w * 0.67));
-    } catch (e) {
-      console.error("Failed to load water data:", e);
-    }
-  }, []);
+      {/* MODAL #1 — Guide modal: shown on arrival from Add to Macros / Save Day */}
+      <ConfirmationModal open={showGuideModal} onOpenChange={setShowGuideModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4" title="Go to Quick View" footer={
+        <Button
+          onClick={() => {
+            setShowGuideModal(false);
+            setHighlightQv(true);
+          }}
+          className="bg-orange-600 hover:bg-orange-700 text-white px-6"
+        >
+          OK
+        </Button>
+      }>
+        <p className="text-white/80 text-sm leading-relaxed">
+          Scroll up to find the <strong className="text-orange-300">Quick View</strong> section, then tap <strong className="text-white">Add to Today</strong> to log your macros.
+        </p>
+      </ConfirmationModal>
 
-  const save = (oz: number) => {
-    const today = new Date().toDateString();
-    const updated = { date: today, ounces: oz };
-    setWater(updated);
-    localStorage.setItem("mpm_bio_water", JSON.stringify(updated));
-  };
-
-  const addWater = (oz: number) => {
-    save(Math.min(goal, water.ounces + oz));
-  };
-
-  const resetWater = () => save(0);
-
-  const pct = Math.min(100, (water.ounces / goal) * 100);
-
-  return (
-    <div
-      data-wt="bio-water-counter"
-      className="flex flex-col items-center space-y-4 text-center"
-    >
-      <div className="relative w-32 h-32">
-        <svg className="w-full h-full -rotate-90">
-          <circle
-            cx="64"
-            cy="64"
-            r="60"
-            stroke="rgba(255,255,255,0.1)"
-            strokeWidth="8"
-            fill="none"
-          />
-          <circle
-            cx="64"
-            cy="64"
-            r="60"
-            stroke="#38bdf8"
-            strokeWidth="8"
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={`${2 * Math.PI * 60}`}
-            strokeDashoffset={`${2 * Math.PI * 60 * (1 - pct / 100)}`}
-            className="transition-all duration-500"
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-white">{water.ounces}</span>
-          <span className="text-sm text-white/70">/ {goal} oz</span>
+      {/* MODAL #2 — Next action modal: shown after Add to Today or Dismiss */}
+      <ConfirmationModal open={showNextActionModal} onOpenChange={setShowNextActionModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4" title="What would you like to do next?">
+        <div className="flex flex-col gap-3 mt-2">
+          <Button
+            onClick={() => {
+              const returnTo = sessionStorage.getItem("biometrics:returnTo");
+              sessionStorage.removeItem("biometrics:returnTo");
+              setShowNextActionModal(false);
+              if (returnTo) {
+                setLocation(returnTo);
+              }
+            }}
+            className="bg-orange-600 hover:bg-orange-700 text-white w-full"
+          >
+            Return to Previous Page
+          </Button>
+          <Button
+            onClick={() => setShowNextActionModal(false)}
+            className="bg-black text-white w-full"
+          >
+            Stay on Biometrics
+          </Button>
         </div>
-      </div>
+      </ConfirmationModal>
 
-      <div className="flex gap-2">
-        <Button
-          data-wt="bio-water-plus8"
-          onClick={() => addWater(8)}
-          className="bg-sky-600 hover:bg-sky-700 text-white"
-          data-testid="button-add-8oz"
-        >
-          +8 oz
-        </Button>
-        <Button
-          data-wt="bio-water-plus16"
-          onClick={() => addWater(16)}
-          className="bg-sky-600 hover:bg-sky-700 text-white"
-          data-testid="button-add-16oz"
-        >
-          +16 oz
-        </Button>
-        <Button
-          onClick={resetWater}
-          className="bg-black/30 border border-white/20 text-white hover:bg-black/50"
-          data-testid="button-reset-water"
-        >
-          Reset
-        </Button>
-      </div>
-
-      <p className="text-xs text-white/60">
-        {pct < 40
-          ? "Stay hydrated — your body loves water!"
-          : pct < 80
-            ? "Looking good — keep sipping 💧"
-            : "Perfect hydration! 💦"}
-      </p>
-    </div>
+    </motion.div>
   );
 }
 

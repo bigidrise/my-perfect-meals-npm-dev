@@ -3,11 +3,18 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
-import { eq, and, desc } from "drizzle-orm";
+import { macroLogs } from "../../shared/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { logActivityFireAndForget } from "../services/activityLog";
 import { enforceBuilderFromParam } from "../middleware/studioAccess";
+import { requireAuth } from "../middleware/requireAuth";
+import { requireEssentialAccess } from "../middleware/requireEssentialAccess";
 
 const router = Router();
+
+// All meal board routes require authentication and at minimum an Essential subscription.
+// ProCare clients with studio membership are authenticated and pass requireAuth.
+router.use(requireAuth, requireEssentialAccess);
 
 // Get or create current board for user/program
 // Studio clients can only access their assigned builder
@@ -89,25 +96,69 @@ router.post("/boards/:boardId/items", async (req, res) => {
 });
 
 // Delete item from board
+//
+// When a board item is removed (replaced or cancelled), its associated macro_log
+// row — if the item was already "logged" via the /log endpoint — must also be
+// deleted so the starch slot is released and the nutrition budget reflects the
+// correct remaining allocation before any replacement meal is generated.
+//
+// Security: board ownership is verified before any mutation. The item lookup is
+// scoped to both itemId AND boardId so a caller cannot delete an item from a
+// different board by supplying a mismatched boardId.  All mutations are wrapped
+// in a transaction so the log and the board item are always removed together.
 router.delete("/boards/:boardId/items/:itemId", async (req, res) => {
   try {
+    const authUserId: string = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!authUserId) return res.status(401).json({ error: "Unauthorized" });
+
     const { boardId, itemId } = req.params;
 
-    await db.delete(mealBoardItems).where(eq(mealBoardItems.id, itemId));
-
+    // 1. Load the board and verify ownership.
     const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
-    if (board) {
-      await db.update(mealBoards).set({
-        lastUpdatedByUserId: board.userId,
+    if (!board) return res.status(404).json({ error: "Board not found" });
+    if (board.userId !== authUserId) return res.status(403).json({ error: "Forbidden" });
+
+    // 2. Verify the item belongs to this board (prevents cross-board deletion).
+    const [item] = await db
+      .select()
+      .from(mealBoardItems)
+      .where(and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId)))
+      .limit(1);
+    if (!item) return res.status(404).json({ error: "Board item not found" });
+
+    // 3. Atomically delete the board item (and optionally its macro_log).
+    //
+    //    releaseLog: true  — "replace" intent: the caller is swapping this meal
+    //    for a different one.  The associated log (if any) is deleted so the
+    //    starch slot it consumed is returned to the remaining budget before the
+    //    replacement is generated.  Pass this only when the product flow
+    //    explicitly means "undo this meal and start over" — not for simple
+    //    board cleanup where nutrition history should be preserved.
+    //
+    //    releaseLog: false (default) — board-item removal only.  Any committed
+    //    macro_log stays intact so the user's nutrition history is preserved.
+    const releaseLog = req.body?.releaseLog === true;
+
+    await db.transaction(async (tx) => {
+      if (releaseLog) {
+        await tx.delete(macroLogs).where(
+          sql`${macroLogs.boardItemReference} = ${itemId}`
+        );
+      }
+      await tx.delete(mealBoardItems).where(
+        and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId))
+      );
+      await tx.update(mealBoards).set({
+        lastUpdatedByUserId: authUserId,
         lastUpdatedByRole: "client",
         updatedAt: new Date(),
       }).where(eq(mealBoards.id, boardId));
-    }
+    });
 
-    res.json({ ok: true });
+    return res.json({ ok: true });
   } catch (error) {
     console.error("Error deleting board item:", error);
-    res.status(500).json({ error: "Failed to delete item" });
+    return res.status(500).json({ error: "Failed to delete item" });
   }
 });
 
@@ -163,6 +214,100 @@ router.post("/boards/:boardId/repeat-day", async (req, res) => {
   } catch (error) {
     console.error("Error repeating day:", error);
     res.status(500).json({ error: "Failed to repeat day" });
+  }
+});
+
+// Log a single board item as a macro_log entry (convert reservation → consumed)
+//
+// POST /boards/:boardId/items/:itemId/log
+//
+// Validates board ownership, then writes a macro_log row with board_item_reference
+// set to itemId. The unique partial index on macro_logs(board_item_reference) ensures
+// only one log can ever reference a given board item. A second call returns 409.
+router.post("/boards/:boardId/items/:itemId/log", requireAuth, async (req, res) => {
+  try {
+    const authUserId: string = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!authUserId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { boardId, itemId } = req.params;
+    const { dateIso, source } = req.body;
+
+    // ── 1. Verify board ownership ────────────────────────────────────────────
+    const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+    if (board.userId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden: board belongs to another user" });
+    }
+
+    // ── 2. Load the board item ────────────────────────────────────────────────
+    const [item] = await db
+      .select()
+      .from(mealBoardItems)
+      .where(and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId)))
+      .limit(1);
+    if (!item) return res.status(404).json({ error: "Board item not found" });
+
+    // ── 3. Check for duplicate log (belt-and-suspenders before DB unique index) ─
+    const [existingLog] = await db
+      .select({ id: macroLogs.id })
+      .from(macroLogs)
+      .where(sql`${macroLogs.boardItemReference} = ${itemId}`)
+      .limit(1);
+
+    if (existingLog) {
+      return res.status(409).json({
+        error: "Board item has already been logged",
+        code: "ALREADY_LOGGED",
+        boardItemReference: itemId,
+        existingLogId: existingLog.id,
+      });
+    }
+
+    // ── 4. Extract macros from the board item ────────────────────────────────
+    const mac = item.macros as Record<string, number> | null ?? {};
+    const calories      = Number(mac.kcal    ?? mac.calories ?? 0);
+    const protein       = Number(mac.protein  ?? 0);
+    const carbs         = Number(mac.carbs    ?? 0);
+    const fat           = Number(mac.fat      ?? 0);
+    const starchyCarbs  = mac.starchyCarbs != null ? Number(mac.starchyCarbs) : null;
+    const fibrousCarbs  = mac.fibrousCarbs != null ? Number(mac.fibrousCarbs) : null;
+
+    // ── 5. Write the macro log with board_item_reference ─────────────────────
+    const { writeMacroLog } = await import("../services/macroLogService");
+    const logRow = await writeMacroLog({
+      userId:               authUserId,
+      calories,
+      protein,
+      carbohydrates:        carbs,
+      fat,
+      starchyCarbs,
+      fibrousCarbs,
+      classificationSource: "ingredient",
+      source:               String(source || "board"),
+      dateIso:              dateIso || new Date().toISOString(),
+      boardItemReference:   itemId,
+    });
+
+    logActivityFireAndForget(
+      authUserId,
+      authUserId,
+      "board_item_logged",
+      "meal_board_item",
+      itemId,
+      { boardId, macros: mac, title: item.title },
+    );
+
+    return res.json({ ok: true, logRow, boardItemReference: itemId });
+  } catch (err: any) {
+    if (err?.code === "ALREADY_LOGGED") {
+      return res.status(409).json({
+        error: "Board item has already been logged",
+        code: "ALREADY_LOGGED",
+        boardItemReference: err.boardItemReference,
+      });
+    }
+    console.error("Error logging board item:", err);
+    return res.status(500).json({ error: "Failed to log board item" });
   }
 });
 

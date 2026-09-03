@@ -65,37 +65,31 @@ export default function PairingsHub() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/pairings-hub-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 30%",
+        }}
       >
-        {!isDesktop && (
-          <div
-            className="fixed top-0 left-0 right-0 z-40 bg-black/80 backdrop-blur-lg border-b border-white/10"
-            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-          >
-            <div className="px-4 py-3 flex items-center gap-2">
-              <button
-                onClick={() => setLocation("/lifestyle")}
-                className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="text-sm font-medium">Back</span>
-              </button>
-              <h1 className="text-lg font-bold text-white truncate">
-                Pairings Hub
-              </h1>
-            </div>
-          </div>
-        )}
-
         <div
           className="flex-1 px-4 py-8"
           style={{
             paddingTop: isDesktop
               ? "0"
-              : "calc(env(safe-area-inset-top, 0px) + 6rem)",
+              : "calc(env(safe-area-inset-top, 0px) + 1rem)",
           }}
         >
           <div className="max-w-2xl mx-auto space-y-4">
+            {!isDesktop && (
+              <button
+                onClick={() => setLocation("/lifestyle")}
+                className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-2 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-sm font-medium">Back</span>
+              </button>
+            )}
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-white mb-2">
                 Drink Intelligence
@@ -111,7 +105,7 @@ export default function PairingsHub() {
                 return (
                   <Card
                     key={feature.testId}
-                    className="cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border border-white/10 hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] hover:border-orange-500/50 rounded-xl shadow-md overflow-hidden"
+                    className="cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/10 backdrop-blur-lg border border-white/10 hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] hover:border-orange-500/50 rounded-xl shadow-md overflow-hidden"
                     onClick={() => setLocation(feature.route)}
                     data-testid={feature.testId}
                   >

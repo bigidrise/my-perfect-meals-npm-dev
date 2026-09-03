@@ -60,7 +60,7 @@ export default function MedicalBadgeCard({
             key={index}
             className={`px-3 py-1.5 text-xs rounded-full border border-white/20 transition-colors 
               ${badge.isCritical 
-                ? 'bg-red-500/20 hover:bg-red-500/30 animate-pulse' 
+                ? 'bg-red-500/20 hover:bg-red-500/30 animate-pulse pulse-keep' 
                 : 'bg-white/10 hover:bg-white/15'}`
             }
             title={badge.description || badge.label}

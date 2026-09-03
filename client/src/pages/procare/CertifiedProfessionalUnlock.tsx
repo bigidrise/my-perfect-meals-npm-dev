@@ -1,0 +1,178 @@
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { motion } from "framer-motion";
+import { Trophy, Star, Users, ClipboardList, Briefcase, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useTranslation } from "react-i18next";
+
+export default function CertifiedProfessionalUnlock() {
+  const [, setLocation] = useLocation();
+  const { user, refreshUser } = useAuth();
+  const isDesktop = useIsDesktop();
+  const { t } = useTranslation();
+
+  const UNLOCKED_ITEMS = [
+    { icon: "🏢", label: t("procare.certifiedUnlock.features.studio") },
+    { icon: "👥", label: t("procare.certifiedUnlock.features.clientMgmt") },
+    { icon: "📋", label: t("procare.certifiedUnlock.features.carePlans") },
+    { icon: "📝", label: t("procare.certifiedUnlock.features.questionnaires") },
+    { icon: "💼", label: t("procare.certifiedUnlock.features.businessCenter") },
+    { icon: "💰", label: t("procare.certifiedUnlock.features.affiliateResources") },
+    { icon: "📣", label: t("procare.certifiedUnlock.features.marketing") },
+    { icon: "🎓", label: t("procare.certifiedUnlock.features.education") },
+  ];
+
+  const NEXT_STEPS = [
+    t("procare.certifiedUnlock.nextStep.profile"),
+    t("procare.certifiedUnlock.nextStep.firstClient"),
+    t("procare.certifiedUnlock.nextStep.inviteClient"),
+    t("procare.certifiedUnlock.nextStep.mealPlan"),
+    t("procare.certifiedUnlock.nextStep.affiliate"),
+    t("procare.certifiedUnlock.nextStep.businessCenter"),
+  ];
+
+  const [refreshing, setRefreshing] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await refreshUser();
+      } catch {}
+      setRefreshing(false);
+    })();
+  }, []);
+
+  const handleEnterStudio = () => {
+    localStorage.setItem("mpm_active_space", "workspace");
+    localStorage.setItem("mpm.studio.firstEntry", "true");
+    const route =
+      user?.professionalRole === "physician" ? "/pro/physician-clients" : "/pro/clients";
+    setLocation(route);
+  };
+
+  if (refreshing) {
+    return (
+      <div className={`${isDesktop ? "flex-1" : "min-h-screen"} bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center`}>
+        <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      className={`${isDesktop ? "" : "min-h-screen"} bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white overflow-y-auto ${isDesktop ? "pb-8" : "pb-36"}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="px-4 pt-16 max-w-lg mx-auto">
+        {/* Hero */}
+        <motion.div
+          className="flex flex-col items-center text-center mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <motion.div
+            className="w-24 h-24 rounded-full bg-orange-500/20 border-2 border-orange-500/40 flex items-center justify-center mb-4"
+            initial={{ scale: 0.7 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          >
+            <Trophy className="w-12 h-12 text-orange-400" />
+          </motion.div>
+
+          <motion.div
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-500/20 rounded-full border border-orange-500/30 mb-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Star className="w-3.5 h-3.5 text-orange-400" />
+            <span className="text-xs font-semibold text-orange-300">{t("procare.certifiedUnlock.badge")}</span>
+            <Star className="w-3.5 h-3.5 text-orange-400" />
+          </motion.div>
+
+          <h1 className="text-3xl font-black leading-tight mb-3">
+            {t("procare.certifiedUnlock.title")}
+          </h1>
+          <p className="text-white/70 text-sm leading-relaxed max-w-xs">
+            {t("procare.certifiedUnlock.subtitle")}
+          </p>
+        </motion.div>
+
+        {/* Unlocked Features */}
+        <motion.div
+          className="mb-6"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">
+            {t("procare.certifiedUnlock.unlockedTitle")}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {UNLOCKED_ITEMS.map((item, i) => (
+              <motion.div
+                key={i}
+                className="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 + i * 0.05 }}
+              >
+                <span className="text-lg">{item.icon}</span>
+                <p className="text-xs font-medium text-white leading-tight">{item.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Next Steps */}
+        <motion.div
+          className="mb-6 p-4 rounded-2xl bg-black/30 border border-white/10"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+        >
+          <p className="text-sm font-bold text-white mb-3">{t("procare.certifiedUnlock.nextStepsTitle")}</p>
+          <div className="space-y-2">
+            {NEXT_STEPS.map((step, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-xs font-bold text-orange-400 mt-0.5 w-4 shrink-0">{i + 1}.</span>
+                <p className="text-xs text-white/70 leading-relaxed">{step}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Cert badge */}
+        <motion.div
+          className="p-4 rounded-2xl bg-orange-900/20 border border-orange-500/20 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.0 }}
+        >
+          <p className="text-xs text-orange-300 leading-relaxed">
+            🏆 <span className="font-semibold">Certified My Perfect Meals Professional</span><br />
+            <span className="text-white/40">Your certification is permanently recorded in your Business Center.</span>
+          </p>
+        </motion.div>
+      </div>
+
+      {/* CTA — fixed on mobile, inline on desktop */}
+      <div className={isDesktop ? "px-4 mt-6 max-w-lg mx-auto" : "fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent"}>
+        <motion.button
+          onClick={handleEnterStudio}
+          className="w-full h-14 font-bold rounded-2xl bg-orange-600 text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.1 }}
+        >
+          {t("procare.certifiedUnlock.enterStudio")}
+          <ArrowRight className="w-5 h-5" />
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}

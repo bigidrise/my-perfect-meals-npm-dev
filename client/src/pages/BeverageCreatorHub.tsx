@@ -1,0 +1,167 @@
+import { useEffect } from "react";
+import { useLocation } from "wouter";
+import { motion } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
+import { Wine, Zap, ArrowLeft, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+
+const ADMIN_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
+
+interface HubCard {
+  title: string;
+  description: string;
+  icon: any;
+  route: string;
+  testId: string;
+  adminOnly: boolean;
+  featured?: boolean;
+}
+
+const HUB_CARDS: HubCard[] = [
+  {
+    title: "Beverage Creator",
+    description: "Smoothies, cocktails, mocktails, coffee drinks, protein shakes, and more — built to your goals.",
+    icon: Wine,
+    route: "/lifestyle/beverage-creator",
+    testId: "beveragehub-creator",
+    adminOnly: false,
+    featured: true,
+  },
+  {
+    title: "Athletes Beverage Creator",
+    description: "Performance drinks engineered for your training phase — pre, intra, and post-workout.",
+    icon: Zap,
+    route: "/lifestyle/athlete-beverage-creator",
+    testId: "beveragehub-athlete",
+    adminOnly: false,
+    featured: false,
+  },
+];
+
+export default function BeverageCreatorHub() {
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const isAdmin = user?.id === ADMIN_ID;
+  const isDesktop = useIsDesktop();
+  usePageTitle("Beverage Creator Hub");
+
+  useEffect(() => {
+    document.title = "Beverage Hub | My Perfect Meals";
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="min-h-screen pb-safe-nav"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.55)), url('/images/beverage-creator-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 40%",
+      }}
+    >
+      <MobileHeaderGuard>
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-8 py-3 flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <Wine className="h-6 w-6 text-blue-400" />
+            <h1 className="text-lg font-bold text-white">Beverage Hub</h1>
+          </div>
+        </div>
+      </MobileHeaderGuard>
+
+      <div
+        className="px-4 pb-8"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+      >
+        <div className="max-w-2xl mx-auto space-y-4">
+
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Drink Design</h2>
+            <p className="text-sm text-white/70">AI-powered drinks for wellness, performance, refreshment, and everyday enjoyment.</p>
+          </div>
+
+          {/* Cards */}
+          <div className="flex flex-col gap-3">
+            {HUB_CARDS.map((card) => {
+              const Icon = card.icon;
+              const isLocked = card.adminOnly && !isAdmin;
+
+              return (
+                <div key={card.testId} className="relative">
+                  {/* Glow blur behind featured card */}
+                  {card.featured && (
+                    <div
+                      className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-80"
+                      style={{
+                        background:
+                          "radial-gradient(120% 120% at 50% 0%, rgba(96,165,250,0.55), rgba(139,92,246,0.25), rgba(0,0,0,0))",
+                      }}
+                    />
+                  )}
+
+                  <Card
+                    className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 bg-black/30 backdrop-blur-lg border rounded-xl shadow-md overflow-hidden ${
+                      card.featured
+                        ? "border-blue-400/30 hover:shadow-[0_0_30px_rgba(96,165,250,0.4)] hover:border-blue-500/50"
+                        : "border-white/10 hover:shadow-[0_0_30px_rgba(167,139,250,0.35)] hover:border-violet-500/50"
+                    } ${isLocked ? "opacity-60 cursor-not-allowed" : ""}`}
+                    onClick={() => !isLocked && setLocation(card.route)}
+                    data-testid={card.testId}
+                  >
+                    {card.adminOnly && isAdmin && (
+                      <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-violet-600 to-black rounded-full border border-violet-400/30 shadow-lg z-10">
+                        <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
+                        <span className="text-white font-semibold text-[8px] tracking-wide">
+                          Admin Preview
+                        </span>
+                      </div>
+                    )}
+                    {isLocked && (
+                      <div className="absolute top-2 right-2 z-10">
+                        <Lock className="h-3.5 w-3.5 text-white/30" />
+                      </div>
+                    )}
+
+                    <CardContent className="p-3">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Icon
+                            className={`h-4 w-4 flex-shrink-0 ${
+                              card.featured ? "text-blue-400" : "text-violet-400"
+                            }`}
+                          />
+                          <h3 className="text-sm font-semibold text-white">
+                            {card.title}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-white/80 ml-6">
+                          {card.description}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </div>
+    </motion.div>
+  );
+}

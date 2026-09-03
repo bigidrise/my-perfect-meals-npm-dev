@@ -27,6 +27,10 @@ export async function mergeStepIntoPreferences(userId: string, stepKey: string, 
       if (Array.isArray(data?.dietaryRestrictions)) update.dietaryRestrictions = data.dietaryRestrictions;
       // Medical conditions
       if (Array.isArray(data?.medicalConditions)) update.healthConditions = data.medicalConditions;
+      // Alpha-gal Syndrome — save JSONB profile when present
+      if (data?.alphaGalProfile && typeof data.alphaGalProfile === "object") {
+        (update as any).alphaGalProfile = data.alphaGalProfile;
+      }
       // GI preferences
       if (Array.isArray(data?.preferredLowGICarbs)) update.preferredLowGICarbs = data.preferredLowGICarbs;
       if (Array.isArray(data?.preferredMidGICarbs)) update.preferredMidGICarbs = data.preferredMidGICarbs;
@@ -35,6 +39,9 @@ export async function mergeStepIntoPreferences(userId: string, stepKey: string, 
       if (data?.palateSpiceTolerance) update.palateSpiceTolerance = data.palateSpiceTolerance;
       if (data?.palateSeasoningIntensity) update.palateSeasoningIntensity = data.palateSeasoningIntensity;
       if (data?.palateFlavorStyle) update.palateFlavorStyle = data.palateFlavorStyle;
+      // Cuisine Identity (stylistic layer)
+      if (data?.cuisinePreference !== undefined) update.cuisinePreference = data.cuisinePreference;
+      if (data?.cuisineIntensity !== undefined) update.cuisineIntensity = data.cuisineIntensity;
       // CRITICAL: Mark onboarding as complete and set active builder
       update.onboardingCompletedAt = new Date();
       if (data?.activeBuilder) {

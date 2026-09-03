@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Stethoscope, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Stethoscope, User, Dumbbell, Building2 } from "lucide-react";
 import { bustImageCache } from "@/utils/imageCache";
 import { startGuestSession, endGuestSession } from "@/lib/guestMode";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,7 +45,7 @@ const slides = [
   },
 ] as const;
 
-type ModalStep = "choose" | "account-type";
+type ModalStep = "choose" | "account-type" | "pro-type";
 
 export default function Welcome() {
   const [, setLocation] = useLocation();
@@ -190,9 +190,19 @@ export default function Welcome() {
     setLocation("/auth?mode=signup");
   };
 
-  const handleProfessionalSignUp = () => {
+  const handleTrainerSignUp = () => {
     closeModal();
-    setLocation("/procare-welcome");
+    setLocation("/auth?mode=signup&role=trainer");
+  };
+
+  const handlePhysicianSignUp = () => {
+    closeModal();
+    setLocation("/auth?mode=signup&role=physician");
+  };
+
+  const handleBusinessSignUp = () => {
+    closeModal();
+    setLocation("/auth?mode=signup&role=business");
   };
 
   const renderModal = () => (
@@ -228,9 +238,9 @@ export default function Welcome() {
                 </button>
               )}
 
-              {modalStep === "account-type" && (
+              {(modalStep === "account-type" || modalStep === "pro-type") && (
                 <button
-                  onClick={() => setModalStep("choose")}
+                  onClick={() => setModalStep(modalStep === "pro-type" ? "account-type" : "choose")}
                   className="absolute top-4 left-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
                   aria-label="Back"
                 >
@@ -238,7 +248,7 @@ export default function Welcome() {
                 </button>
               )}
 
-              {modalStep === "account-type" && (
+              {(modalStep === "account-type" || modalStep === "pro-type") && (
                 <button
                   onClick={closeModal}
                   className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
@@ -248,7 +258,7 @@ export default function Welcome() {
                 </button>
               )}
 
-              {modalStep === "choose" ? (
+              {modalStep === "choose" && (
                 <div className="space-y-5 pt-2">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-white mb-1">Welcome</h2>
@@ -285,11 +295,13 @@ export default function Welcome() {
                     </div>
                   </button>
                 </div>
-              ) : (
+              )}
+
+              {modalStep === "account-type" && (
                 <div className="space-y-5 pt-2">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-white mb-1">Create Account</h2>
-                    <p className="text-white/50 text-sm">What type of account?</p>
+                    <p className="text-white/50 text-sm">What kind of account?</p>
                   </div>
 
                   <button
@@ -301,14 +313,14 @@ export default function Welcome() {
                         <User className="h-5 w-5 text-lime-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Regular Sign Up</h3>
-                        <p className="text-white/50 text-sm mt-0.5">Personal meal planning</p>
+                        <h3 className="text-white font-semibold text-base">Personal Account</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Meal planning for yourself</p>
                       </div>
                     </div>
                   </button>
 
                   <button
-                    onClick={handleProfessionalSignUp}
+                    onClick={() => setModalStep("pro-type")}
                     className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
                   >
                     <div className="flex items-center gap-4">
@@ -316,8 +328,62 @@ export default function Welcome() {
                         <Stethoscope className="h-5 w-5 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Professional Sign Up</h3>
+                        <h3 className="text-white font-semibold text-base">Professional Account</h3>
                         <p className="text-white/50 text-sm mt-0.5">Trainer, coach, or physician</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {modalStep === "pro-type" && (
+                <div className="space-y-5 pt-2">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-white mb-1">Professional Account</h2>
+                    <p className="text-white/50 text-sm">What kind of professional?</p>
+                  </div>
+
+                  <button
+                    onClick={handleTrainerSignUp}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/20">
+                        <Dumbbell className="h-5 w-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Trainer / Coach</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Fitness and nutrition coaching</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={handlePhysicianSignUp}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/20">
+                        <Stethoscope className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Physician / Medical</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Clinical and medical professional</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={handleBusinessSignUp}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/20">
+                        <Building2 className="h-5 w-5 text-orange-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Business / Organization</h3>
+                        <p className="text-white/50 text-sm mt-0.5">Clinic, partner, affiliate, or white label</p>
                       </div>
                     </div>
                   </button>
@@ -335,27 +401,37 @@ export default function Welcome() {
       <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
         {renderModal()}
 
-        <div className="mb-8">
+        <div className="mb-1">
           <img
-            src="/assets/MPMFlameChefLogo.png"
-            alt="My Perfect Meals Logo"
+            src="/icons/ChefMPMLogo-v2.png"
+            alt="My Perfect Meals"
             className="h-40 w-auto mx-auto"
           />
         </div>
 
-        <h1 className="text-2xl md:text-2xl font-bold text-center mb-3">
+        <h1 className="text-2xl font-bold text-center text-white mb-2 tracking-wide">
           My Perfect Meals
         </h1>
 
-        <p className="text-md md:text-xl text-white/80 text-center mb-6 max-w-md">
-          Healthy Meal Planning
+        <p className="text-md md:text-xl text-white/80 text-center mb-1 max-w-md">
+          Adaptive AI Nutrition Platform
         </p>
 
-        <div className="mb-12 flex justify-center">
+        <p className="text-base text-white/60 text-center mb-6 max-w-md tracking-wide">
+          Coach in your pocket.™
+        </p>
+
+        <div className="mb-12 flex flex-col items-center gap-2">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30 shadow-lg">
             <div className="w-2 h-2 bg-orange-400 rounded-2xl animate-pulse"></div>
             <span className="text-white font-semibold text-sm">
-              Powered by Emotion AI
+              Powered by Emotion AI™
+            </span>
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-cyan-700/80 to-black rounded-2xl border border-cyan-400/30 shadow-lg">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+            <span className="text-cyan-200 font-semibold text-sm">
+              Powered by Behavioral AI™
             </span>
           </div>
         </div>

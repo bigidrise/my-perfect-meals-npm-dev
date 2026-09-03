@@ -5,10 +5,19 @@ import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
-import { bridgeToStudio } from "../services/studioBridge";
-import { createLink, endLink, ClientLinkError } from "../services/clientLinkService";
+import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
+import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
+import { providerHasProCareStudioAccess } from "../services/procareProviderAccess";
+import { ensureProviderStudioReady, isStudioProviderRole } from "../services/procareStudioReadiness";
+import { requireMfa } from "../middleware/requireMfa";
+import {
+  findEmailIdentityCandidates,
+  normalizeEmailIdentity,
+  resolveEmailIdentityForUser,
+} from "../services/emailIdentityService";
 
 const router = Router();
 
@@ -28,7 +37,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/invite", requireAuth, async (req, res) => {
+router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -43,17 +52,55 @@ router.post("/invite", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid email format. Please enter a valid email address." });
     }
 
+    const emailCandidates = await findEmailIdentityCandidates(email);
+    if (emailCandidates.length > 1) {
+      return res.status(409).json({
+        error: "This email address belongs to multiple legacy accounts. Ask an administrator to resolve the account identity before sending an invitation.",
+        code: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+      });
+    }
+
+    // Fetch caller info once — used for both self-invite check and pro detection
+    const [callerUser] = await db
+      .select({ email: users.email, professionalRole: users.professionalRole })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    const callerIsPro = isStudioProviderRole(callerUser?.professionalRole);
+
+    // Block self-invites — caller cannot invite their own email address
+    if (callerUser?.email && callerUser.email.trim().toLowerCase() === email) {
+      console.warn(
+        `⚠️ [CareTeam Invite] Self-invite blocked — callerEmail="${callerUser.email}" inviteEmail="${email}" isPro=${callerIsPro} userId=${userId}`
+      );
+      const msg = callerIsPro
+        ? `The email you entered (${email}) matches the email registered to your professional account. Enter your client's email address instead.`
+        : "You cannot send a care team invite to yourself. Enter your provider's email address.";
+      return res.status(400).json({ error: msg });
+    }
+
+    // A provider invite must always have a canonical Studio ready before the
+    // invitation is persisted. This prevents an account from signing up into
+    // an orphaned provider relationship when a legacy provider has no Studio.
+    if (callerIsPro) {
+      const provisioned = await ensureProviderStudioReady(userId);
+      if (!provisioned.ok) {
+        return res.status(403).json({
+          error: provisioned.message,
+          code: provisioned.code,
+          flow: provisioned.flow,
+          missing: provisioned.missing,
+          setupRequired: true,
+        });
+      }
+    }
+
     console.log(`📧 Care Team invite request - role: ${role}`);
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
+    const urlToken = nanoid(32);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
-
-    const [caller] = await db
-      .select({ professionalRole: users.professionalRole })
-      .from(users)
-      .where(eq(users.id, userId));
-    const callerIsPro = ["physician", "trainer"].includes(caller?.professionalRole || "");
 
     let member = null;
     if (!callerIsPro) {
@@ -70,7 +117,7 @@ router.post("/invite", requireAuth, async (req, res) => {
         .returning();
       member = m;
     } else {
-      console.log(`ℹ️ [CareTeam Invite] Pro caller (${caller?.professionalRole}) inviting patient — deferring careTeamMember creation to /connect to ensure correct direction`);
+      console.log(`ℹ️ [CareTeam Invite] Pro caller (${callerUser?.professionalRole}) inviting patient — deferring careTeamMember creation to /connect`);
     }
 
     await db.insert(careInvite).values({
@@ -79,6 +126,7 @@ router.post("/invite", requireAuth, async (req, res) => {
       role,
       permissions,
       inviteCode,
+      urlToken,
       expiresAt,
     });
 
@@ -86,6 +134,7 @@ router.post("/invite", requireAuth, async (req, res) => {
       to: email,
       patientName: "Your client",
       inviteCode,
+      urlToken,
       role,
     });
 
@@ -106,7 +155,7 @@ router.post("/connect", requireAuth, async (req, res) => {
     }
 
     const trimmedCode = String(code).trim();
-    console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}" (original: "${code}")`);
+    console.log(`🔍 [CareTeam Connect] Attempting code: "${trimmedCode}"`);
 
     const [invite] = await db
       .select()
@@ -117,13 +166,76 @@ router.post("/connect", requireAuth, async (req, res) => {
       ? await db.select().from(careAccessCode).where(eq(careAccessCode.code, trimmedCode))
       : [null];
 
-    if (!invite && !accessCodeRow) {
-      console.log(`❌ [CareTeam Connect] Code "${trimmedCode}" not found in careInvite or careAccessCode tables`);
-      return res.status(404).json({ error: "Invalid code" });
+    // An email-delivered invite may be redeemed only by the one verified
+    // account that owns its address. Legacy case-variant rows are deliberately
+    // paused for admin review rather than letting a forwarded code choose one.
+    if (invite) {
+      const identity = await resolveEmailIdentityForUser(userId);
+      if (identity.candidates.length > 1) {
+        return res.status(409).json({
+          error: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+          message: "This email address is linked to multiple legacy accounts. An administrator must review the account before this invitation can be accepted.",
+        });
+      }
+      if (
+        identity.status !== "unique" ||
+        normalizeEmailIdentity(identity.user.email) !== normalizeEmailIdentity(invite.email)
+      ) {
+        return res.status(403).json({
+          error: "This invitation was sent to a different email address. Please sign in with the invited account.",
+        });
+      }
+    }
+    const proUserId = invite ? invite.userId : accessCodeRow!.proUserId;
+
+    // Resolve provider access from their effective plan. A sponsored Clinical
+    // Business professional has no personal ProCare plan key, so reading only
+    // users.planLookupKey would incorrectly reject a valid provider.
+    // Client Clinical access is resolved from req.authUser (via buildAuthUserWithEffectiveAccess).
+    const [pro] = await db
+      .select({
+        id: users.id,
+        professionalRole: users.professionalRole,
+        planLookupKey: users.planLookupKey,
+        personalPlanLookupKey: users.personalPlanLookupKey,
+        isFounder: users.isFounder,
+        isSandbox: users.isSandbox,
+        isTester: users.isTester,
+        trialEndsAt: users.trialEndsAt,
+      })
+      .from(users)
+      .where(eq(users.id, proUserId));
+
+    // ── Subscription gates ────────────────────────────────────────────────────
+    // Consumer eligibility is role-aware: Pro+ may connect to a coach/trainer;
+    // physician and other clinical relationships remain Clinical-only.
+    const authUser = (req as AuthenticatedRequest).authUser;
+    const eligibility = evaluateConsumerProCareAccess({
+      accessTier: authUser.accessTier,
+      planLookupKey: authUser.planLookupKey,
+      providerRole: pro?.professionalRole,
+      isInternalAccount: authUser.isFounder || authUser.isSandbox || authUser.isTester,
+    });
+
+    if (!eligibility.allowed && "code" in eligibility) {
+      console.log(`🔒 [CareTeam Connect] Blocked — client ${userId}; providerRole=${pro?.professionalRole ?? "unknown"}; code=${eligibility.code}; tier=${eligibility.consumerTier}`);
+      return res.status(403).json({
+        error: eligibility.code,
+        code: eligibility.code,
+        requiredTier: eligibility.requiredTier,
+        message: eligibility.message,
+      });
     }
 
-    const proUserId = invite ? invite.userId : accessCodeRow!.proUserId;
-    const [pro] = await db.select({ professionalRole: users.professionalRole }).from(users).where(eq(users.id, proUserId));
+    if (!pro || !(await providerHasProCareStudioAccess(pro))) {
+      console.log(`🔒 [CareTeam Connect] Blocked — coach ${proUserId} lacks active ProCare subscription`);
+      return res.status(403).json({
+        error: "COACH_NOT_SUBSCRIBED",
+        message: "This provider does not have an active ProCare subscription.",
+      });
+    }
+    // ── End subscription gates ────────────────────────────────────────────────
+
     const isPhysician = pro?.professionalRole === "physician";
     const legalFlow = isPhysician ? "patient_physician" : "client";
 
@@ -149,16 +261,22 @@ router.post("/connect", requireAuth, async (req, res) => {
         .select({ professionalRole: users.professionalRole })
         .from(users)
         .where(eq(users.id, invite.userId));
-      const inviterIsPro = ["physician", "trainer"].includes(inviter?.professionalRole || "");
+      const inviterIsPro = isStudioProviderRole(inviter?.professionalRole);
 
       const patientId = inviterIsPro ? userId : invite.userId;
       const resolvedProId = inviterIsPro ? invite.userId : userId;
 
+      let activation;
       try {
-        await createLink(patientId, resolvedProId);
+        activation = await activateProCareClient(patientId, resolvedProId, "care_team_connect_code");
       } catch (err) {
-        if (err instanceof ClientLinkError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
-          return res.status(409).json({ error: err.code, message: err.message });
+        if (err instanceof ActivationError) {
+          if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+            return res.status(409).json({ error: err.code, message: err.message });
+          }
+          if (err.code === "SELF_ACTIVATION") {
+            return res.status(400).json({ error: "You cannot connect to your own provider code." });
+          }
         }
         throw err;
       }
@@ -191,7 +309,7 @@ router.post("/connect", requireAuth, async (req, res) => {
             })
             .returning();
           finalMember = newMember;
-          console.log(`✅ [CareTeam Connect] Replaced inverted careTeamMember with correct direction (userId=patient, proUserId=pro)`);
+          console.log(`✅ [CareTeam Connect] Replaced inverted careTeamMember`);
         } else {
           const [updatedMember] = await db
             .update(careTeamMember)
@@ -214,7 +332,7 @@ router.post("/connect", requireAuth, async (req, res) => {
           })
           .returning();
         finalMember = newMember;
-        console.log(`✅ [CareTeam Connect] Created careTeamMember (no prior record found)`);
+        console.log(`✅ [CareTeam Connect] Created careTeamMember`);
       }
 
       await db
@@ -222,11 +340,16 @@ router.post("/connect", requireAuth, async (req, res) => {
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
-      await db.update(users).set({ isProCare: true, role: "client" }).where(eq(users.id, patientId));
+      await db.update(users).set({ role: "client" }).where(eq(users.id, patientId));
 
-      const bridge = await bridgeToStudio(resolvedProId, patientId, "care_team_connect_code");
-
-      return res.json({ member: finalMember, studio: bridge });
+      return res.json({
+        member: finalMember,
+        studio: {
+          studioId: activation.studioId,
+          studioName: activation.studioName,
+          membershipId: activation.membershipId,
+        },
+      });
     }
 
     if (accessCodeRow) {
@@ -234,36 +357,74 @@ router.post("/connect", requireAuth, async (req, res) => {
         return res.status(400).json({ error: "Code expired" });
       }
 
+      let activation;
       try {
-        await createLink(userId, accessCodeRow.proUserId);
+        activation = await activateProCareClient(userId, accessCodeRow.proUserId, "care_team_access_code");
       } catch (err) {
-        if (err instanceof ClientLinkError && err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
-          return res.status(409).json({ error: err.code, message: err.message });
+        if (err instanceof ActivationError) {
+          if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
+            return res.status(409).json({ error: err.code, message: err.message });
+          }
+          if (err.code === "SELF_ACTIVATION") {
+            return res.status(400).json({ error: "You cannot connect to your own provider code." });
+          }
         }
         throw err;
       }
 
-      const [newMember] = await db
-        .insert(careTeamMember)
-        .values({
-          userId,
-          proUserId: accessCodeRow.proUserId,
-          name: `Linked-${trimmedCode.slice(-4)}`,
-          role: "other",
-          status: "active",
-          permissions: {
-            canViewMacros: true,
-            canAddMeals: false,
-            canEditPlan: false,
-          },
-        })
-        .returning();
+      // Reconnect / provider-switch path for careTeamMember:
+      // 1. Prefer an exact match for this user + this provider
+      // 2. If none found, insert fresh — do NOT randomly grab an unrelated historical row
+      const [exactMatch] = await db
+        .select()
+        .from(careTeamMember)
+        .where(
+          and(
+            eq(careTeamMember.userId, userId),
+            eq(careTeamMember.proUserId, accessCodeRow.proUserId)
+          )
+        );
 
-      await db.update(users).set({ isProCare: true, role: "client" }).where(eq(users.id, userId));
+      let member;
+      if (exactMatch) {
+        // Reactivate the exact relationship for this provider
+        const [updated] = await db
+          .update(careTeamMember)
+          .set({ status: "active", updatedAt: new Date() })
+          .where(eq(careTeamMember.id, exactMatch.id))
+          .returning();
+        member = updated;
+        console.log(`♻️ [CareTeam Connect] Reactivated careTeamMember for ${userId} → ${accessCodeRow.proUserId}`);
+      } else {
+        const [inserted] = await db
+          .insert(careTeamMember)
+          .values({
+            userId,
+            proUserId: accessCodeRow.proUserId,
+            name: `Linked-${trimmedCode.slice(-4)}`,
+            role: "other",
+            status: "active",
+            permissions: {
+              canViewMacros: true,
+              canAddMeals: false,
+              canEditPlan: false,
+            },
+          })
+          .returning();
+        member = inserted;
+        console.log(`✅ [CareTeam Connect] Created careTeamMember for ${userId} → ${accessCodeRow.proUserId}`);
+      }
 
-      const bridge = await bridgeToStudio(accessCodeRow.proUserId, userId, "care_team_access_code");
+      await db.update(users).set({ role: "client" }).where(eq(users.id, userId));
 
-      return res.json({ member: newMember, studio: bridge });
+      return res.json({
+        member,
+        studio: {
+          studioId: activation.studioId,
+          studioName: activation.studioName,
+          membershipId: activation.membershipId,
+        },
+      });
     }
   } catch (error) {
     console.error("❌ Error connecting with code:", error);
@@ -274,15 +435,12 @@ router.post("/connect", requireAuth, async (req, res) => {
 router.post("/:id/approve", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-
     const { id } = req.params;
 
     const [existing] = await db
       .select()
       .from(careTeamMember)
-      .where(
-        and(eq(careTeamMember.id, id), eq(careTeamMember.userId, userId))
-      );
+      .where(and(eq(careTeamMember.id, id), eq(careTeamMember.userId, userId)));
 
     if (!existing) {
       return res.status(404).json({ error: "Member not found" });
@@ -303,27 +461,31 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
 router.post("/:id/revoke", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-
     const { id } = req.params;
 
     const [existing] = await db
       .select()
       .from(careTeamMember)
-      .where(
-        and(eq(careTeamMember.id, id), eq(careTeamMember.userId, userId))
-      );
+      .where(and(eq(careTeamMember.id, id), eq(careTeamMember.userId, userId)));
 
     if (!existing) {
       return res.status(404).json({ error: "Member not found" });
     }
 
+    // Mark careTeamMember as revoked
     await db
       .update(careTeamMember)
       .set({ status: "revoked", updatedAt: new Date() })
       .where(eq(careTeamMember.id, id));
 
+    // Full ProCare deactivation (all 3 invariant records)
     if (existing.proUserId) {
-      await endLink(existing.userId, existing.proUserId);
+      try {
+        await deactivateProCareClient(existing.userId, existing.proUserId, userId, "provider_revoke");
+      } catch (deactivateErr) {
+        // Log but don't fail — careTeamMember was already revoked
+        console.error("⚠️ [CareTeam Revoke] deactivateProCareClient failed:", deactivateErr);
+      }
     }
 
     res.json({ ok: true });

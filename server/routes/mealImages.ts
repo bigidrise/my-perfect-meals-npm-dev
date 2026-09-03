@@ -2,12 +2,44 @@
 // API endpoints for meal image generation
 
 import { Router } from 'express';
+import { requireAuth } from '../middleware/requireAuth';
+import { createApiRateLimit } from '../middleware/rateLimit';
 import { generateMealImage, generateMealImages, getCachedImage, getImageCacheStats } from '../services/mealImageGenerator';
+import { getMealImageRecoveryStatus, queueMealImageRecovery } from '../services/mealImageRecovery';
+
+const imageRateLimit = createApiRateLimit();
 
 export const mealImagesRouter = Router();
 
+// A browser can prove that a permanent Object Storage URL is no longer
+// deliverable. Queue one replacement job and let the image slot poll it once;
+// this never silently falls back to a photograph of another dish.
+mealImagesRouter.post('/meal-images/recover', requireAuth, imageRateLimit, async (req, res) => {
+  try {
+    const result = await queueMealImageRecovery({
+      userId: req.authUser!.id,
+      imageUrl: req.body?.imageUrl,
+      mealName: req.body?.mealName,
+      ingredients: req.body?.ingredients,
+      sourceType: req.body?.sourceType,
+      mediaAssetId: req.body?.mediaAssetId,
+      savedMealId: req.body?.savedMealId,
+    });
+    return res.status(result.accepted ? 202 : 400).json(result);
+  } catch (error: any) {
+    console.error("[IMG-RECOVERY] Could not queue recovery:", error);
+    return res.status(500).json({ accepted: false, reason: "Could not queue image recovery" });
+  }
+});
+
+mealImagesRouter.get('/meal-images/recover/:recoveryId', requireAuth, async (req, res) => {
+  const status = await getMealImageRecoveryStatus(req.params.recoveryId, req.authUser!.id);
+  if (!status) return res.status(404).json({ error: "Image recovery was not found" });
+  return res.json(status);
+});
+
 // Generate single meal image
-mealImagesRouter.post('/meal-images/generate', async (req, res) => {
+mealImagesRouter.post('/meal-images/generate', requireAuth, imageRateLimit, async (req, res) => {
   try {
     const { mealName, ingredients, style, templateRef, mealType } = req.body;
     
@@ -40,7 +72,7 @@ mealImagesRouter.post('/meal-images/generate', async (req, res) => {
 });
 
 // Batch generate images for meal plan
-mealImagesRouter.post('/meal-images/generate-batch', async (req, res) => {
+mealImagesRouter.post('/meal-images/generate-batch', requireAuth, imageRateLimit, async (req, res) => {
   try {
     const { meals } = req.body;
     
@@ -76,7 +108,7 @@ mealImagesRouter.post('/meal-images/generate-batch', async (req, res) => {
 });
 
 // Get cached image if available
-mealImagesRouter.post('/meal-images/cached', (req, res) => {
+mealImagesRouter.post('/meal-images/cached', requireAuth, imageRateLimit, (req, res) => {
   try {
     const { mealName, ingredients, style, mealType } = req.body;
     
@@ -112,7 +144,7 @@ mealImagesRouter.post('/meal-images/cached', (req, res) => {
 });
 
 // Get cache statistics (dev/debug endpoint)
-mealImagesRouter.get('/meal-images/cache-stats', (req, res) => {
+mealImagesRouter.get('/meal-images/cache-stats', requireAuth, (req, res) => {
   try {
     const stats = getImageCacheStats();
     res.json({
@@ -129,7 +161,7 @@ mealImagesRouter.get('/meal-images/cache-stats', (req, res) => {
 });
 
 // Enhanced meal hydration with optional image generation
-mealImagesRouter.post('/meal-images/hydrate-with-image', async (req, res) => {
+mealImagesRouter.post('/meal-images/hydrate-with-image', requireAuth, imageRateLimit, async (req, res) => {
   try {
     const { meal, generateImage = false } = req.body;
     
@@ -145,7 +177,7 @@ mealImagesRouter.post('/meal-images/hydrate-with-image', async (req, res) => {
     
     const { meal: validated } = validateAndFixMeal(meal);
     
-    let imageUrl = validated.imageUrl;
+    let imageUrl = (validated as any).imageUrl;
     
     // Generate image if requested and not already present
     if (generateImage && !imageUrl) {

@@ -233,7 +233,7 @@ export function templateToMeal(
     instructions: template.baseInstructions || `Prepare the ${template.name} using the selected cooking methods.`,
     calories: overrides?.calories || 350,
     protein: overrides?.protein || 25,
-    carbs: overrides?.carbs || 30,
+    carbs: overrides?.carbs ?? null,
     fat: overrides?.fat || 12,
     imageUrl: resolveImageKey(template.imageKey, template.mealType),
     source: 'template' as const

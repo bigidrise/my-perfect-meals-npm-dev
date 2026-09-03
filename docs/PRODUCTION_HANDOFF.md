@@ -225,6 +225,7 @@ This is the critical symptom of the January 2026 bug:
 | `AWS_ACCESS_KEY_ID` | Yes | AWS credentials for S3 |
 | `AWS_SECRET_ACCESS_KEY` | Yes | AWS credentials for S3 |
 | `AWS_REGION` | Yes | AWS region (e.g., us-east-1) |
+| `BILLING_ENFORCED` | **Critical** | Must be `"true"` before any real users onboard. When `false`/unset, ALL users get PAID_FULL access regardless of plan or trial status — a complete paywall bypass. Verify with `curl /api/health \| jq .billingEnforced`. See `docs/billing-enforcement-audit.md`. |
 
 ---
 

@@ -1,6 +1,10 @@
-import { Sparkles, Users, Brain, ChefHat, CalendarPlus } from "lucide-react";
+import { Sparkles, Users, Brain, ChefHat, CalendarPlus, Leaf } from "lucide-react";
+import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
+import { formatAmount } from "@/utils/formatAmount";
 import { useLocation } from "wouter";
+import { useState as useStateCard, useEffect as useEffectCard } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -10,6 +14,12 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import FavoriteButton from "@/components/FavoriteButton";
+import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
+import BuilderSourcePill from "@/components/BuilderSourcePill";
+import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 export interface GeneratedMealData {
   id: string;
@@ -44,6 +54,23 @@ export interface GeneratedMealData {
   servingSize?: string;
   servings?: number;
   reasoning?: string;
+  substitutionNotes?: string[];
+  /**
+   * Populated by the pipeline after post-generation dietary validation.
+   * true  → meal passed vegan/vegetarian/pescatarian validation (show badge)
+   * false → meal failed or could not be verified (suppress badge)
+   * undefined → legacy / non-vegan diet, badge shows per user preference
+   */
+  dietaryComplianceVerified?: boolean;
+  /** Meal-level diet classification from the server (drives secondary pill). */
+  dietClassification?: DietClassification | null;
+  /** Full compliance section — prep rules, pairing guidance, why-this-complies. */
+  complianceSection?: {
+    statusLabel: string;
+    whyThisComplies: string;
+    prepRules: string[];
+    pairingGuidance: string[];
+  } | null;
 }
 
 interface GeneratedMealCardProps {
@@ -66,6 +93,21 @@ export default function GeneratedMealCard({
   macroSource,
 }: GeneratedMealCardProps) {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const userDiet: string = (user as any)?.dietaryRestrictions?.[0] || (user as any)?.dietType || "";
+  const isCarnivore = userDiet === "carnivore";
+  const CARNIVORE_TIPS = [
+    "Higher protein intake works best when hydration is consistent.",
+    "Water helps your body process increased protein and fat.",
+    "Simple meals. Consistent hydration. Better results.",
+  ];
+  const [carnTipIdx, setCarnTipIdx] = useStateCard(0);
+  useEffectCard(() => {
+    if (!isCarnivore) return;
+    const t = setInterval(() => setCarnTipIdx(i => (i + 1) % CARNIVORE_TIPS.length), 7000);
+    return () => clearInterval(t);
+  }, [isCarnivore]);
+
   const profile = getUserMedicalProfile(1);
   const mealForBadges = {
     name: generatedMeal.name,
@@ -92,6 +134,14 @@ export default function GeneratedMealCard({
   const handlePrepareWithChef = () => {
     if (!hasInstructions) return;
 
+    // Strip base64/expired image URLs before storing — they can be 500KB+ and
+    // crash the app with a QuotaExceededError.
+    const safeImageUrl = (() => {
+      const url = generatedMeal.imageUrl;
+      if (!url || url.startsWith("data:") || url.includes("oaidalleapiprodscus")) return null;
+      return url;
+    })();
+
     const mealData = {
       id: generatedMeal.id || crypto.randomUUID(),
       name: generatedMeal.name,
@@ -99,7 +149,7 @@ export default function GeneratedMealCard({
       mealType: generatedMeal.mealType,
       ingredients: generatedMeal.ingredients || [],
       instructions: generatedMeal.instructions,
-      imageUrl: generatedMeal.imageUrl,
+      imageUrl: safeImageUrl,
       calories: generatedMeal.nutrition?.calories || generatedMeal.calories,
       protein: generatedMeal.nutrition?.protein || generatedMeal.protein,
       carbs: generatedMeal.nutrition?.carbs || generatedMeal.carbs,
@@ -109,13 +159,21 @@ export default function GeneratedMealCard({
       medicalBadges: generatedMeal.medicalBadges || [],
     };
 
-    localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    writeChefHandoffMeal(mealData);
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+    localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 
     setLocation("/lifestyle/chefs-kitchen");
   };
 
   const s = Math.max(1, Math.round(servings ?? 1));
+
+  // Derive coaching confirmation line from builder source + meal flags
+  const coachingLine = (() => {
+    const src = (source || "").toLowerCase();
+    const flagsList = (generatedMeal.flags || []).join(" ").toLowerCase();
+    return getClinicalCoachingLine(`${src} ${flagsList}`);
+  })();
 
   const totalProtein = generatedMeal.nutrition?.protein || generatedMeal.protein || 0;
   const totalCarbs = generatedMeal.nutrition?.carbs || generatedMeal.carbs || 0;
@@ -128,6 +186,8 @@ export default function GeneratedMealCard({
   const perServingProtein = Math.round(totalProtein / s);
   const perServingCarbs = Math.round(totalCarbs / s);
   const perServingFat = Math.round(totalFat / s);
+  const perServingStarchyCarbs = Math.round(totalStarchyCarbs / s);
+  const perServingFibrousCarbs = Math.round(totalFibrousCarbs / s);
 
   const handleAddToMacros = () => {
     setQuickView({
@@ -140,6 +200,21 @@ export default function GeneratedMealCard({
       dateISO: new Date().toISOString().slice(0, 10),
       mealSlot: null,
     });
+
+    // Phase 4A: confirmed consumption event
+    import("@/lib/coachEvents").then(({ emitCoachEvent }) =>
+      emitCoachEvent({
+        eventType: "meal_added_to_macros",
+        eventClass: "consumption",
+        sourceFeature: macroSource ?? "meal_builder",
+        entityType: "meal",
+        metadata: {
+          mealName: generatedMeal?.name ?? "",
+          calories: perServingCalories,
+          protein: perServingProtein,
+        },
+      })
+    );
 
     const url = macroSource 
       ? `/biometrics?from=${macroSource}&view=macros`
@@ -177,19 +252,40 @@ export default function GeneratedMealCard({
         </button>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <DietStyleBadge />
+        <BuilderSourcePill source={source} />
+        <MealClassificationPill dietClassification={mealToShow.dietClassification} />
+      </div>
+
       {mealToShow.description && (
         <p className="text-white/90">{mealToShow.description}</p>
       )}
 
       {/* 2. Image */}
       {mealToShow.imageUrl && (
-        <div className="rounded-lg overflow-hidden">
-          <img
-            key={mealToShow.imageUrl}
-            src={mealToShow.imageUrl}
-            alt={mealToShow.name}
-            className="w-full h-64 object-cover"
-          />
+        <MealImageSlot
+          imageUrl={mealToShow.imageUrl}
+          mealName={mealToShow.name}
+          ingredients={mealToShow.ingredients}
+          height="h-64"
+          className="!mb-0 !rounded-lg"
+        />
+      )}
+
+      {/* Coaching confirmation — answers "why should I trust this meal?" */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.06] border border-white/10">
+        <Brain className="h-3.5 w-3.5 text-white/40 shrink-0" />
+        <p className="text-xs text-white/55 leading-relaxed">{coachingLine}</p>
+      </div>
+
+      {/* Carnivore hydration coaching tip — rotates every 7s */}
+      {isCarnivore && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-900/20 border border-sky-400/20">
+          <span className="text-sky-400 text-sm shrink-0">💧</span>
+          <p className="text-xs text-sky-300/80 italic leading-relaxed">
+            {CARNIVORE_TIPS[carnTipIdx]}
+          </p>
         </div>
       )}
 
@@ -227,6 +323,13 @@ export default function GeneratedMealCard({
             {perServingCarbs}g
           </div>
           <div className="text-xs text-white">Carbs</div>
+          {(perServingStarchyCarbs > 0 || perServingFibrousCarbs > 0) && (
+            <div className="text-[10px] mt-0.5">
+              <span className="text-amber-400">{perServingStarchyCarbs}S</span>
+              <span className="text-white/40"> / </span>
+              <span className="text-green-400">{perServingFibrousCarbs}F</span>
+            </div>
+          )}
         </div>
         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
           <div className="text-lg font-bold text-white">
@@ -253,15 +356,15 @@ export default function GeneratedMealCard({
       )}
 
       {/* 6. Ingredients */}
-      {generatedMeal.ingredients?.length > 0 && (
+      {mealToShow.ingredients?.length > 0 && (
         <div>
           <h4 className="font-semibold mb-2 text-white">
             Ingredients{s > 1 ? ` (for ${s} servings)` : ""}:
           </h4>
           <ul className="text-sm text-white/80 space-y-1">
-            {generatedMeal.ingredients.map((ing, i) => (
+            {mealToShow.ingredients.map((ing, i) => (
               <li key={i}>
-                {ing.amount ?? ing.quantity} {ing.unit} {ing.name}
+                {formatAmount(ing.amount ?? ing.quantity)} {ing.unit} {ing.name}
               </li>
             ))}
           </ul>
@@ -294,6 +397,32 @@ export default function GeneratedMealCard({
           </p>
         </div>
       )}
+
+      {/* 8b. Smart Substitutions (if strategy made changes) */}
+      {generatedMeal.substitutionNotes && generatedMeal.substitutionNotes.length > 0 && (
+        <div className="bg-green-950/40 border border-green-500/20 rounded-xl p-3">
+          <h4 className="font-semibold mb-2 flex items-center gap-2 text-green-300 text-sm">
+            <Leaf className="h-4 w-4" />
+            Smart Substitutions
+          </h4>
+          <ul className="space-y-1">
+            {generatedMeal.substitutionNotes.map((note, i) => (
+              <li key={i} className="text-xs text-green-200/80 flex items-start gap-1.5">
+                <span className="mt-0.5 shrink-0 text-green-400">›</span>
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Protocol Visibility */}
+      <ProtocolVisibilityPanel
+        user={user}
+        whyThisComplies={mealToShow.complianceSection?.whyThisComplies}
+        reasoning={mealToShow.reasoning}
+        context="meal"
+      />
 
       {/* 9. Action Buttons - Standardized 3-Row Layout */}
       <div className="space-y-2">
@@ -334,12 +463,12 @@ export default function GeneratedMealCard({
           {isFeatureEnabled('chefsKitchen') && (
             <Button
               size="sm"
-              className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
+              className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5"
               onClick={handlePrepareWithChef}
               disabled={!hasInstructions}
             >
               <ChefHat className="h-4 w-4" />
-              Enter Studio
+              Guided Cooking
             </Button>
           )}
           <ShareRecipeButton
@@ -348,6 +477,7 @@ export default function GeneratedMealCard({
               description: generatedMeal.description,
               nutrition: generatedMeal.nutrition,
               ingredients: normalizedIngredients,
+              instructions: generatedMeal.instructions,
             }}
             className={isFeatureEnabled('chefsKitchen') ? "flex-1" : "col-span-2"}
           />

@@ -9,6 +9,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  componentStack?: string;
 }
 
 export class PageErrorBoundary extends Component<Props, State> {
@@ -22,42 +23,65 @@ export class PageErrorBoundary extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    // Reset error state when navigation occurs (children change)
     if (this.state.hasError && prevProps.children !== this.props.children) {
-      this.setState({ hasError: false, error: undefined });
+      this.setState({ hasError: false, error: undefined, componentStack: undefined });
     }
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error(`[${this.props.pageName || 'Page'}] Error:`, error, errorInfo);
+    const msg = error?.message ?? String(error);
+    const stack = error?.stack ?? '(no stack)';
+    const compStack = errorInfo?.componentStack ?? '(no component stack)';
+    console.error(`[${this.props.pageName || 'Page'}] CRASH — name:`, error?.name ?? 'unknown');
+    console.error(`[${this.props.pageName || 'Page'}] CRASH — message:`, msg);
+    console.error(`[${this.props.pageName || 'Page'}] CRASH — stack:`, stack);
+    console.error(`[${this.props.pageName || 'Page'}] CRASH — componentStack:`, compStack);
+    this.setState({ componentStack: compStack });
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, error: undefined, componentStack: undefined });
   };
 
   render() {
     if (this.state.hasError) {
+      const { error, componentStack } = this.state;
+      const name = error?.name ?? 'Error';
+      const msg = error?.message ?? String(error) ?? '(no message)';
+      const stack = error?.stack ?? '(no stack)';
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
-          <div className="bg-card rounded-lg p-8 max-w-md w-full text-center shadow-lg border">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h1 className="text-2xl font-bold mb-2 text-foreground">
-              Page Error
-            </h1>
-            <p className="text-muted-foreground mb-6">
-              {this.props.pageName || 'This page'} encountered an error. The rest of the app is still working.
-            </p>
-            <div className="flex flex-col gap-3">
+          <div className="bg-card rounded-lg p-6 max-w-2xl w-full shadow-lg border space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">⚠️</span>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">
+                  {this.props.pageName || 'Page'} Crash
+                </h1>
+                <p className="text-sm text-muted-foreground">{name}: {msg}</p>
+              </div>
+            </div>
+
+            <div className="bg-red-950/40 border border-red-500/30 rounded-lg p-3 text-xs font-mono text-red-300 overflow-auto max-h-48 whitespace-pre-wrap break-all">
+              {stack}
+            </div>
+
+            {componentStack && (
+              <div className="bg-zinc-900 border border-white/10 rounded-lg p-3 text-xs font-mono text-white/50 overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                {componentStack}
+              </div>
+            )}
+
+            <div className="flex gap-3">
               <button
                 onClick={this.handleRetry}
-                className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
               >
-                Try Again
+                Retry
               </button>
-              <Link 
+              <Link
                 href="/dashboard"
-                className="block bg-muted text-muted-foreground px-6 py-3 rounded-lg font-semibold hover:bg-muted/80 transition-colors"
+                className="bg-white/10 text-white px-4 py-2 rounded-lg text-sm font-semibold"
               >
                 Go to Dashboard
               </Link>
@@ -71,7 +95,6 @@ export class PageErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Higher-Order Component to wrap pages with error boundary while preserving props
 export function withPageErrorBoundary<P extends object>(
   Component: ComponentType<P>,
   pageName: string

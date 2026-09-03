@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
   ChevronDown,
-  ChevronUp,
   Play,
   Pause,
   Square,
@@ -19,11 +18,38 @@ import {
   FileText,
   Zap,
   Users,
+  Layers,
+  Minus,
+  Flame,
+  Stethoscope,
+  Dna,
+  MapPin,
+  ChefHat,
+  Wine,
+  Refrigerator,
+  Star,
+  ShoppingCart,
+  ListChecks,
+  Activity,
+  Droplets,
+  Fish,
+  Globe,
+  Camera,
+  Dumbbell,
+  Undo2,
+  RotateCcw,
+  ChevronRight,
+  Baby,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { useNarration } from "@/hooks/useNarration";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import {
+  HYDRATION_HUB_ABOUT_SECTIONS,
+  HYDRATION_HUB_DESCRIPTION,
+  HYDRATION_HUB_TITLE,
+} from "@/lib/hydrationHubContent";
 
 interface LibraryTopic {
   id: string;
@@ -39,7 +65,14 @@ interface LibraryTopic {
   };
 }
 
-const libraryTopics: LibraryTopic[] = [
+interface LibrarySection {
+  id: string;
+  label: string;
+  description: string;
+  topics: LibraryTopic[];
+}
+
+const SECTION_START_HERE: LibraryTopic[] = [
   {
     id: "founder-story",
     title: "Why My Perfect Meals Exists",
@@ -49,19 +82,19 @@ const libraryTopics: LibraryTopic[] = [
       sections: [
         {
           heading: "The Problem I Saw For 30 Years",
-          text: "For more than three decades I worked as a coach helping people lose weight, improve health, and rebuild confidence. The pattern was always the same. When clients trained with me, they succeeded. But when they left the gym and went back into real life, everything became harder."
+          text: "For more than three decades I worked as a coach helping people lose weight, improve health, and rebuild confidence. The pattern was always the same. When clients trained with me, they succeeded. But when they left the gym and went back into real life, everything became harder.",
         },
         {
           heading: "Real Life Is Where Diets Fail",
-          text: "Clients struggled at restaurants, on vacation, while traveling for work, or even just going out with friends. Many would tell me the same thing: I wish you were here right now so you could tell me what to eat."
+          text: "Clients struggled at restaurants, on vacation, while traveling for work, or even just going out with friends. Many would tell me the same thing: I wish you were here right now so you could tell me what to eat.",
         },
         {
           heading: "The Phrase That Started Everything",
-          text: "Over time one sentence kept coming up again and again from clients: I wish you were in my pocket. That idea stayed with me for years."
+          text: "Over time one sentence kept coming up again and again from clients: I wish you were in my pocket. That idea stayed with me for years.",
         },
         {
           heading: "What I Saw In Other Nutrition Apps",
-          text: "When I started studying nutrition apps on the market, I realized something frustrating. Most were built by technology companies focused on calorie tracking and generic recipes. They were not built by coaches who actually work with clients every day."
+          text: "When I started studying nutrition apps on the market, I realized something frustrating. Most were built by technology companies focused on calorie tracking and generic recipes. They were not built by coaches who actually work with clients every day.",
         },
         {
           heading: "Why Those Apps Didn't Work",
@@ -70,31 +103,264 @@ const libraryTopics: LibraryTopic[] = [
             "Medical conditions like diabetes were rarely considered",
             "Liver issues, inflammation, and allergies were ignored",
             "Users were left to figure everything out themselves",
-            "Many apps called themselves coaching, but there was no real guidance"
-          ]
+            "Many apps called themselves coaching, but there was no real guidance",
+          ],
         },
         {
           heading: "Real Coaching Works Differently",
-          text: "A real coach does not simply watch and hope the client figures things out. A coach provides structure, direction, and accountability."
+          text: "A real coach does not simply watch and hope the client figures things out. A coach provides structure, direction, and accountability.",
         },
         {
           heading: "The Turning Point",
-          text: "After a neck injury caused by a drunk driver forced me to rethink my career path, I began exploring whether technology could finally solve this problem."
+          text: "After a neck injury caused by a drunk driver forced me to rethink my career path, I began exploring whether technology could finally solve this problem.",
         },
         {
           heading: "Building The System",
-          text: "In June of last year I began building what would become My Perfect Meals."
+          text: "In June of last year I began building what would become My Perfect Meals.",
         },
         {
           heading: "The Mission",
-          text: "The goal is simple. To give people what my clients asked for years ago: a coach in their pocket."
-        }
-      ]
-    }
+          text: "The goal is simple. To give people what my clients asked for years ago: a coach in their pocket.",
+        },
+      ],
+    },
+  },
+  {
+    id: "whole-food-standard",
+    title: "Whole-Food Standard",
+    subtitle: "Better ingredients. Built into every recommendation.",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "What The Standard Does",
+          text: "The Whole-Food Standard is an always-on quality layer behind My Perfect Meals. It helps Meal Board, creators, Restaurant Guide, Grocery Coach, specialized programs, and other recommendation tools prefer recognizable whole and minimally processed foods whenever that is practical and appropriate.",
+        },
+        {
+          heading: "Processed Does Not Automatically Mean Poor Quality",
+          text: "Frozen vegetables, canned beans and fish, plain yogurt, tofu, minimally processed cheese, nut butter, and appropriate whole-grain products can all be useful choices. The standard considers nutritional purpose and product formulation instead of rejecting a food simply because it was processed.",
+        },
+        {
+          heading: "How Recommendations Are Classified",
+          list: [
+            "Preferred — whole or minimally processed foods are the default",
+            "Appropriate — useful processed foods that support the recommendation",
+            "Substitute when practical — a stronger option can serve the same purpose",
+            "Purposeful exception — a processed product is justified for clinical, performance, accessibility, or adequate-intake needs",
+            "Uncertain — there is not enough verified information to make a processing claim",
+          ],
+        },
+        {
+          heading: "Safety And Purpose Always Come First",
+          text: "Clinical safety, allergies, medical nutrition requirements, dietary identity, medication tolerance, hypoglycemia treatment, and legitimate performance fueling take priority. The standard never removes a food or product that is necessary for a higher-priority purpose.",
+        },
+        {
+          heading: "Personalization Stays Under The Standard",
+          text: "My Perfect Meals learns the flavors, textures, cuisines, and convenience you prefer. It learns what you want, not necessarily the lower-quality form in which you previously got it. Learned preferences can rank appropriate options, but they cannot override a Whole-Food substitution decision.",
+        },
+        {
+          heading: "Restaurants And Products",
+          text: "Restaurant preparation and packaged-product ingredients are not always fully available. When the evidence is incomplete, My Perfect Meals treats the classification as uncertain rather than pretending to know how the item was made.",
+        },
+        {
+          heading: "Not Another Diet Or Toggle",
+          text: "The Whole-Food Standard is not a meal builder, restrictive diet, or setting you have to turn on. It is part of how the platform evaluates recommendation quality while preserving cultural food, real-life practicality, and higher-priority nutrition needs.",
+        },
+      ],
+    },
+  },
+  {
+    id: "meal-builder",
+    title: "Your Builders & Why You're on Yours",
+    subtitle: "What each builder does, why it was chosen, and what it's doing for you",
+    icon: Layers,
+    content: {
+      sections: [
+        {
+          heading: "Why Your Builder Matters",
+          text: "A good coach does not give every client the same plan. They look at your goals, your health, your habits, and your body — and then they build a system around you. That is exactly what happens here. When you went through onboarding, the app read your answers and assigned you a builder. That builder is not just a template. It is a set of active rules that shapes every meal the app creates for you, every single time. Understanding why you are on your builder helps you trust the plan and use it the way it was designed.",
+        },
+        {
+          heading: "My Weekly Meal Builder — Why This One",
+          text: "The Weekly Meal Builder is for people who want structure without restrictions. If you came in with a general goal — eating healthier, losing weight, building better habits — this is where you start. A coach would put you here because you need a sustainable, realistic system that works in real life, not a rigid protocol designed for extreme outcomes. The builder takes your macro targets, your dietary preferences, your cuisine style, and your food personality, and it builds meals around all of it. No banned foods. No impossible rules. Just guided, consistent decisions every day that add up to results over time. This builder also serves as the foundation when a coach assigns you a weekly meal plan through ProCare.",
+        },
+        {
+          heading: "Diabetic Hub and Builder — Why This One",
+          text: "If you are managing diabetes, a standard meal plan is not enough. The reason a coach would put you in the Diabetic Hub is because blood sugar management is not just about eating less sugar — it is about understanding how different foods spike your glucose, how meal timing matters, and how to build a daily structure that keeps your levels stable and predictable. The Diabetic Hub does things a generic builder cannot. It enforces a per-meal carbohydrate ceiling so no single meal overwhelms your glucose response. It blocks high-glycemic ingredients — not just reduces them, blocks them entirely. It monitors glycemic index at the ingredient level, not just the meal level. And through GlucoseGuard, it reads your most recent blood glucose log and adjusts your meal generation in real time based on where your numbers actually are right now. If you are running high, the next meal leans lower. If you are in a safe range, the full starch allocation returns. This is the kind of real-time clinical precision that a registered dietitian would apply in a session — the app does it automatically every time you build a meal.",
+        },
+        {
+          heading: "Metabolic Medication Hub and Builder — Why This One",
+          text: "Medications like semaglutide, tirzepatide, and similar GLP-1 agents change how your body handles appetite, digestion, and nutrient absorption. A coach working with someone on these medications would immediately recognize the problem: most meal plans are designed for a normal appetite, but you do not have a normal appetite right now. Eating a standard meal plan while on metabolic medication leads to inadequate protein, skipped meals, and muscle loss — which is the opposite of the goal. The Metabolic Medication Hub and Builder is designed specifically for this environment. Meals are sized to be completable, not just nutritious. Protein minimums are enforced per meal because muscle preservation is the priority when appetite is suppressed. Fat ceilings limit heavy, slow-digesting foods that cause discomfort. Meal count locks to your protocol — if you can realistically eat two meals a day right now, the builder plans for two, not four. The hub also tracks your injection schedule and location so you have a full record alongside your nutrition. This builder exists because people on metabolic medication deserve a system that understands their actual situation.",
+        },
+        {
+          heading: "Anti-Inflammatory Builder — Why This One",
+          text: "Inflammation is the body's response to stress, injury, or immune activity — and when it becomes chronic, it interferes with almost everything: joint health, gut health, hormone balance, energy, recovery, and long-term disease risk. A coach would put you in the Anti-Inflammatory Builder if your profile includes autoimmune conditions, joint issues, inflammatory markers, or a physician recommendation for cleaner dietary patterns. The builder is not a medical treatment — it is a structured nutrition foundation. It selects ingredients known to reduce inflammatory load: fatty fish, leafy greens, olive oil, turmeric, berries, cruciferous vegetables. It limits or avoids ingredients associated with increased inflammation: seed oils, ultra-processed additives, refined sugars, and high-omega-6 fats. Every meal still hits your macro targets — but the ingredients doing that job have been chosen with your inflammatory profile in mind. This builder is also the clinical foundation for users with cardiac concerns, oncology support assignments, or autoimmune protocols, because a clean anti-inflammatory base makes every clinical layer more effective.",
+        },
+        {
+          heading: "Performance Nutrition Hub and Builder — Why This One",
+          text: "If you are training seriously — for a sport, for competition, for a physical performance goal — a standard meal plan leaves performance on the table. The reason a coach would assign you to the Performance Nutrition Hub is because your nutrition needs are not static. They change every day based on what your body is doing. A hard training day requires a fundamentally different fuel load than a rest day. Most apps ignore this entirely. The Performance Nutrition Hub and Builder does not. It reads your sport, your weekly training schedule, and your session type for each day — power, strength, endurance, sport practice, competition, recovery, or rest — and adjusts your carbohydrate targets to match. Power and competition days get the highest carbohydrate support because glycolytic output is at its peak. Recovery and rest days reduce carbs because glycogen does not need full replacement at low training volume. Protein stays consistent every day because muscle protein synthesis does not take days off. Through the hub you can run an ongoing Athletic Performance protocol or a Competition Prep protocol tied to a specific event date, where the hub tracks your weeks out and adjusts your protocol phase automatically as you approach event day. This builder exists because athletes deserve a nutrition system that moves with their training, not a fixed number that ignores what their body is actually demanding.",
+        },
+        {
+          heading: "General Nutrition Builder — Why This One",
+          text: "The General Nutrition Builder is a coach-guided professional-grade tool used inside ProCare, the app's professional platform. If a coach or clinician has assigned you to the General Nutrition Builder, it means your professional is building and managing your plan directly. This builder gives your coach full control over meal structure, macros, protocol assignments, and dietary direction — while the app handles the meal generation on top of those instructions. You receive coach-guided precision in your meals without needing to configure anything yourself. If you see this builder in your library and are not currently connected to a coach through ProCare, it is a tool available for professionals to use with their clients.",
+        },
+        {
+          heading: "How the System Picked Your Builder",
+          text: "During onboarding you answered questions about your health goals, any medical conditions, your dietary identity, your lifestyle, and what you want out of the app. The system read all of those answers simultaneously and matched you to the builder most appropriate for your situation. If you have diabetes, it assigned the Diabetic Hub. If you are on metabolic medication, it assigned the Metabolic Medication Hub and Builder. If you have inflammatory concerns or autoimmune conditions, it leaned toward the Anti-Inflammatory Builder. If you came in as a general health-conscious person with no specific clinical needs, it assigned the Weekly Meal Builder as your starting point. Your builder assignment is not permanent. If your health situation changes, go to Edit Profile and update your information — the system will reflect those changes across all of your meal generation.",
+        },
+        {
+          heading: "Layer 2 — Your Support System",
+          text: "On top of your primary builder, the app applies clinical support layers when your profile calls for them. These are not separate builders — they are additional rules that stack onto your existing plan and shape ingredients, preparation style, and meal structure without changing your macros. You do not have to pick one or the other. If you have multiple conditions, all of them activate simultaneously.",
+        },
+        {
+          heading: "Cardiac Support",
+          text: "A coach would apply this when heart health is a consideration — whether from a diagnosis, a family history, elevated blood pressure, or physician recommendation. The layer emphasizes healthier fat quality, smarter sodium awareness, and heart-supportive ingredient choices across every meal your builder generates.",
+        },
+        {
+          heading: "Liver Support",
+          text: "Applied when liver health needs attention — fatty liver, elevated liver enzymes, or physician guidance. It reduces processed food load, selects cleaner ingredient profiles, and avoids foods that place unnecessary metabolic burden on the liver.",
+        },
+        {
+          heading: "Kidney / Renal Support",
+          text: "Applied when kidney function requires careful management. This is a physician-guided layer. It applies restrictions on potassium, phosphorus, and protein levels based on your specific clinical situation — ingredients that are healthy for most people can be problematic for kidneys under stress.",
+        },
+        {
+          heading: "Lipid Support",
+          text: "Applied when cholesterol or lipid panels need nutritional support. The layer focuses on fat quality — shifting toward monounsaturated and omega-3 sources — increases soluble fiber from foods like oats, legumes, and flaxseed, and reduces saturated fat load across all meals.",
+        },
+        {
+          heading: "Thyroid Support — Hashimoto's, Hypothyroid, and Hyperthyroid",
+          text: "Thyroid support comes in three distinct layers because each condition has different nutritional needs. Hashimoto's is an autoimmune thyroid condition — this layer applies gluten-minimal preference, dairy-light structure, and emphasizes selenium, zinc, and bone broth for autoimmune support. Hypothyroid support emphasizes metabolic regularity and iron, and guides cruciferous vegetables toward cooked preparation to reduce goitrogenic interference — if Levothyroxine is in your medications, breakfast structure also adjusts to protect medication absorption. Hyperthyroid support enforces strict iodine restriction — kelp, seaweed, and high-iodine dairy are blocked — and adds caloric and nutrient-density support to compensate for the elevated metabolic rate. All three layers can activate automatically when your lab values — TSH, Free T4, Free T3, or Reverse T3 — cross established clinical thresholds.",
+        },
+        {
+          heading: "Hormone Optimization",
+          text: "Applied when testosterone, DHEA-S, or general hormone balance is the goal. Healthy fats are required in every meal to support hormone synthesis — avocado, salmon, nuts, olive oil. Seed oils and refined sugars are blocked because they interfere with hormonal signaling. Zinc-rich proteins are prioritized. This layer can activate automatically when lab values for Total Testosterone, Free Testosterone, or DHEA-S fall below clinical thresholds.",
+        },
+        {
+          heading: "Menopause and Perimenopause Support",
+          text: "Menopause support is applied when estrogen levels have dropped and bone density, muscle mass, and hormonal balance are the priority. Every meal targets 25 grams or more of protein to protect lean mass, calcium and Vitamin D are prioritized for bone health, and phytoestrogens from flaxseed, edamame, and soy are actively included. Perimenopause support addresses the transition before menopause — emphasizing blood sugar stability to manage energy and mood fluctuations, and iron-rich foods to address the needs of this hormonal shift. Both layers can activate automatically from lab values.",
+        },
+        {
+          heading: "My Perfect Pregnancy",
+          text: "A full trimester-aware protocol that activates across every meal generator simultaneously when selected. It enforces pregnancy food safety rules in every builder at once — blocking raw fish, high-mercury fish, deli meats, and unpasteurized cheeses. Nutrient priorities shift by trimester: folate and iron in the first, calcium and protein in the second, DHA and choline in the third. Postpartum and breastfeeding have their own distinct protocols. Symptom selections — nausea, heartburn, swelling, fatigue — adjust ingredient choices in real time. Found in the Lifestyle section of your profile.",
+        },
+        {
+          heading: "Metabolic Recovery",
+          text: "Applied when the goal is to repair and restore metabolic function after a period of damage, restriction, or chronic stress. It emphasizes nutrient density, gut health support, and glycemic stability. High-glycemic spikes are actively limited. Works best stacked on top of the Anti-Inflammatory or General Nutrition builder as the primary foundation.",
+        },
+        {
+          heading: "Cancer Support Nutrition (Physician Assigned)",
+          text: "This is a physician-assigned layer — not treatment and not medical care. It is a nutrition support structure built on an anti-inflammatory foundation, with protein prioritized to protect lean mass, meals designed to be easier to tolerate, and structure that adapts to symptoms like low appetite, nausea, food aversions, fatigue, and difficulty chewing. A physician activates this layer for the client through ProCare — it does not appear in self-selection.",
+        },
+        {
+          heading: "All Conditions Stack — None Cancel the Others",
+          text: "If you have more than one condition, every layer activates simultaneously. Cardiac and renal together. Thyroid and oncology together. Any combination you need. The app does not force you to pick one and sacrifice the others. Every active clinical rule runs in parallel across every meal generator at the same time.",
+        },
+        {
+          heading: "With a Coach or Physician",
+          text: "When you connect with a professional through ProCare, they can assign your builder, apply your support layers, and adjust your entire plan in real time from their portal. You still own your plan. They guide it. If your coach has set your builder, the system follows their direction — and you can see exactly what is active in the Nutrition Personalization Summary at the top of your dashboard.",
+        },
+        {
+          heading: "Important",
+          text: "My Perfect Meals provides nutrition guidance only. It does not diagnose, treat, or replace medical care. Always follow your physician's recommendations for any medical condition.",
+        },
+      ],
+    },
+  },
+  {
+    id: "why-different",
+    title: "Why This App Is Different",
+    subtitle:
+      "A coaching app that leads you — not another log-and-hope tracker",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "Every Other App Says Good Luck",
+          text: "Most nutrition apps hand you a log and walk away. You check boxes. You track entries. When motivation runs out — and it always does — there is nothing there to guide you. That is not coaching. That is bookkeeping.",
+        },
+        {
+          heading: "This App Actually Leads You",
+          text: "My Perfect Meals tells you what to eat before you eat it. It builds your week. It adjusts when things change. It guides every decision — breakfast to dinner — so you are never left wondering what to do next. Other apps react after the fact. This one responds before your next decision.",
+        },
+        {
+          heading: "Powered by Behavior AI",
+          text: "The app does not just generate meals. It learns how you eat. It notices what you choose, what you skip, and what you come back to. Over time it adapts — not just to your numbers, but to your actual behavior. That is the part most apps cannot do.",
+        },
+        {
+          heading: "What Makes It Different",
+          list: [
+            "Other apps track what you already ate — this one guides what you eat next",
+            "Other apps show data and leave you to figure it out — this one makes the decision for you",
+            "Other apps are passive — this one leads",
+            "Follow the plan and results are guaranteed — not magic, just the math and structure working",
+          ],
+        },
+        {
+          heading: "A Coach in Your Pocket — Not a Replacement for One",
+          text: "This is not a theory. Clients have gotten results for years following the same principles this app runs on — eat the right things at the right amounts for your body, stay consistent. The app brings that structure to people who do not have a trainer or coach beside them every day. But nothing replaces the nuance, judgment, and relationship of working with a real professional. That is why the app is built to support coaches and clinicians — not compete with them. When a coach is in the picture, the app follows their lead.",
+        },
+      ],
+    },
+  },
+];
+
+const SECTION_CORE_SYSTEMS: LibraryTopic[] = [
+  {
+    id: "nutrition-personalization-summary",
+    title: "How Your Nutrition Is Being Built",
+    subtitle: "The Protocol Envelope explained",
+    icon: Shield,
+    content: {
+      sections: [
+        {
+          heading: "What Is the Nutrition Personalization Summary?",
+          text: "At the top of your dashboard you'll see a card called \"How Your Nutrition Is Being Built.\" This is your window into the Protocol Envelope — the system My Perfect Meals uses to assemble all of your active health inputs before generating any meal.",
+        },
+        {
+          heading: "What It Reads",
+          text: "The card reads every active input from your profile simultaneously:",
+          list: [
+            "Health protocols — diabetes, cardiac, renal, oncology, GLP-1, anti-inflammatory, and more",
+            "Therapeutic protocols — thyroid, hormone optimization, menopause, liver, metabolic recovery",
+            "Performance overlay — athletic fueling, carbohydrate timing, sport-specific demands",
+            "Pregnancy nutrition — trimester-aware nutrients, food safety, prenatal priorities",
+            "Dietary identity — vegan, keto, gluten-free, halal, and all self-selected diet patterns",
+            "Goal — fat loss, muscle building, maintenance",
+            "Macro targets — your daily calorie, protein, carb, and fat numbers",
+          ],
+        },
+        {
+          heading: "Why This Card Always Shows",
+          text: "Even if you have no health protocols active, the card shows your baseline: dietary identity and macro targets. It always tells you what is shaping your meals — never leaves you guessing.",
+        },
+        {
+          heading: "The Protocol Priority Framework",
+          text: "When multiple protocols are active at the same time, the system resolves conflicts using a fixed six-tier hierarchy:",
+          list: [
+            "1 — Clinical Safety: Hard medical limits (kidney, cardiac, oncology, allergy). Never overridden.",
+            "2 — Medical Hard Limits: Blood glucose, sodium, potassium, phosphorus thresholds.",
+            "3 — Therapeutic Protocols: Anti-inflammatory, thyroid, hormone, liver, GLP-1 layers.",
+            "4 — Performance Overlay: Athletic fueling, carbohydrate timing, sport demands.",
+            "5 — Dietary Identity: Vegan, keto, gluten-free, halal, and other self-selected patterns.",
+            "6 — Culinary Preference: Cuisine style, heat level, ingredient likes and dislikes.",
+          ],
+        },
+        {
+          heading: "No New Protocol Logic",
+          text: "The Nutrition Personalization Summary does not create or modify any protocols. It only reads what already exists. Everything you see in that card was already being applied to every meal you generated — the card just makes it visible.",
+        },
+        {
+          heading: "The Conflict Policy",
+          text: "One rule governs all conflicts: clinical safety requirements always take priority. A sodium limit from cardiac protocol will always override a cuisine preference for salty foods. A renal phosphorus cap will always override a high-protein performance target. The hierarchy is fixed and cannot be altered by user settings.",
+        },
+      ],
+    },
   },
   {
     id: "meal-generation",
     title: "How Meal Generation Works",
+    subtitle: "AI, macros, and real-time creation",
     icon: Sparkles,
     content: {
       sections: [
@@ -118,7 +384,7 @@ const libraryTopics: LibraryTopic[] = [
             "Anti-Inflammatory Meal Builder",
             "General Nutrition Meal Builder",
             "Diabetic Meal Builder",
-            "Chef's Kitchen Studio",
+            "Create a Dish",
             "Fridge Rescue & Fridge Rescue Studio",
           ],
         },
@@ -139,12 +405,92 @@ const libraryTopics: LibraryTopic[] = [
           heading: "Quality Control",
           text: "Generated meals go through validation to ensure nutritional accuracy. If something doesn't add up, it gets regenerated.",
         },
+        {
+          heading: "How the Diabetic Hub Changes Meal Generation",
+          text: "When the Diabetic Hub is active, meal generation does not just adjust macros — it enforces a clinical layer on top of every decision the AI makes.",
+          list: [
+            "A per-meal carb ceiling replaces the default starchy carb baseline — the AI cannot exceed it",
+            "High-spike ingredients (white rice, white bread, sugary sauces, high-GI starches) are blocked entirely — not just reduced",
+            "Ingredient validation runs before any meal is accepted — blocked items trigger a full regeneration",
+            "Glycemic index caps are enforced: no ingredient above your set GI ceiling passes validation",
+            "Fiber minimums are enforced per meal to slow glucose absorption",
+            "Meal frequency is locked to your hub setting — the system won't suggest more meals than your protocol allows",
+          ],
+        },
+        {
+          heading: "What This Means in Practice",
+          text: "A meal that looks healthy — like a banana smoothie or honey-glazed chicken — will be blocked if its ingredients spike blood sugar above your safe range. The system checks ingredients, not just meal names. You will never receive a meal that violates your diabetic guardrails, even if it sounds clean on the surface.",
+        },
+        {
+          heading: "How the Metabolic Medication Hub Changes Meal Generation",
+          text: "When the Metabolic Medication Hub is active, the AI generates meals built for a reduced-appetite environment — not just smaller portions, but a fundamentally different composition.",
+          list: [
+            "Maximum meal volume is enforced — meals are designed to be completable, not just nutritious",
+            "Protein minimum per meal is enforced — muscle support is prioritized when appetite is suppressed",
+            "Fat ceiling limits heavy, slow-digesting meals that cause discomfort during the active medication phase",
+            "Carbonated ingredients and alcohol are flagged and removed when those settings are active",
+            "Slow-digesting foods are prioritized when that setting is on — helping sustain fullness between meals",
+            "Meal count is locked to your medication profile setting — the system adapts to how many meals you can realistically eat per day",
+          ],
+        },
+        {
+          heading: "When Both Hubs Are Active",
+          text: "If you have both the Diabetic Hub and Metabolic Medication Hub active at the same time, every generated meal must satisfy both protocols simultaneously. Carb ceilings, GI caps, and blocked ingredients apply from the diabetic layer. Portion limits, protein floors, and volume constraints apply from the metabolic medication layer. The strictest rule from either hub always wins.",
+        },
+      ],
+    },
+  },
+  {
+    id: "taste-memory",
+    title: "Taste Memory — How the App Learns You",
+    subtitle: "The system that gets smarter the more you use it",
+    icon: Brain,
+    content: {
+      sections: [
+        {
+          heading: "The App Remembers What You Like",
+          text: "Every time you save a meal, save a recipe, or log something you ate, the app is paying attention. It is not just storing records — it is building a picture of who you are as an eater. That picture is your Taste Memory, and it gets applied quietly in the background every time a new meal is generated for you.",
+        },
+        {
+          heading: "What It Learns",
+          list: [
+            "Preferred proteins — chicken, salmon, beef, tofu, shrimp, and which ones show up most in your history",
+            "Preferred cuisines — Mediterranean, Asian, Mexican, Italian, and what you keep coming back to",
+            "Preferred cooking methods — grilled, baked, sautéed, slow-cooked, and your tendencies over time",
+            "High-protein tendency — whether you consistently choose meals that are protein-forward",
+            "Quick-prep tendency — whether you favor recipes that come together fast versus more involved cooking",
+          ],
+        },
+        {
+          heading: "How It Works",
+          text: "The system reads your last 90 days of saved meals and recipes and scores them using a recency decay model. Recent choices carry more weight than older ones, with a half-life of about 28 days. That means your Taste Memory is always current — it naturally shifts as your tastes and habits evolve over time.",
+        },
+        {
+          heading: "Where It Is Applied",
+          list: [
+            "All six diet builders — Anti-Inflammatory, Diabetic, Metabolic Med, General Nutrition, Performance, Performance Nutrition",
+            "Weekly AI Meal Planner",
+            "Craving Creator",
+            "Fridge Rescue",
+            "Beverage Creator",
+            "Dessert Creator",
+          ],
+        },
+        {
+          heading: "What It Does NOT Do",
+          text: "Taste Memory is always treated as a soft influence — a set of hints. It never overrides your dietary rules, medical protocols, allergy protections, or macro targets. If your protocol says no refined carbs, Taste Memory cannot put them back in. It only shapes the meal within the boundaries already set for you.",
+        },
+        {
+          heading: "You Do Not Have to Set It Up",
+          text: "There are no buttons, no preference surveys, no profiles to fill out. Taste Memory builds itself automatically from how you actually use the app. The more you save and log, the more accurate it becomes. A new user starts with no memory. A user with six months of history gets meals that feel like they were written specifically for them — because in a sense, they were.",
+        },
       ],
     },
   },
   {
     id: "macro-calculator",
     title: "How the Macro Calculator Works",
+    subtitle: "Science-based, personalized numbers",
     icon: Calculator,
     content: {
       sections: [
@@ -158,7 +504,7 @@ const libraryTopics: LibraryTopic[] = [
             "Age, sex, height, and weight",
             "Activity level and exercise frequency",
             "Your specific goal (lose fat, build muscle, maintain)",
-            "Metabolic considerations like diabetes or GLP-1 use",
+            "Metabolic considerations like diabetes or metabolic medication use",
           ],
         },
         {
@@ -169,9 +515,48 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
+    id: "nutrition-budget",
+    title: "Nutrition Budget — Daily Tracking",
+    subtitle: "Real-time progress through your day",
+    icon: Calculator,
+    content: {
+      sections: [
+        {
+          heading: "What Is the Nutrition Budget?",
+          text: "The Nutrition Budget is a real-time tracking system that shows how much of your daily nutrition targets you've used — and what's left. It focuses on the three nutrients that matter most: Protein, Starchy Carbs, and Fibrous Carbs.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Your targets come from the Macro Calculator — one authoritative source",
+            "As you add meals throughout the day, the budget updates automatically",
+            "A banner at the top of each meal builder shows what's remaining",
+            "When a nutrient is covered, you'll see a checkmark and gentle coaching",
+          ],
+        },
+        {
+          heading: "What You'll See",
+          list: [
+            "Protein, Starchy Carbs, and Fiber remaining for the day",
+            "Helpful coaching when you're running low or covered",
+            "Forward-looking guidance — no judgment, just awareness",
+          ],
+        },
+        {
+          heading: "Works With Starch Guard",
+          text: "When your starchy carb budget is exhausted, Starch Guard steps in to help you substitute with fibrous carbs. See the Starch Guard section for details.",
+        },
+        {
+          heading: "Why It Exists",
+          text: "Most apps show you what you already ate. The Nutrition Budget shows you where you're headed — so every meal decision is informed, not guessed.",
+        },
+      ],
+    },
+  },
+  {
     id: "compliance-system",
     title: "Compliance System",
-    subtitle: "Macro Adherence & Coaching Analytics",
+    subtitle: "Macro adherence & coaching analytics",
     icon: Shield,
     content: {
       sections: [
@@ -182,8 +567,8 @@ const libraryTopics: LibraryTopic[] = [
         {
           heading: "What Gets Measured",
           list: [
-            "Macro adherence \u2014 how closely your protein, carbs, and fat match your targets",
-            "Logging consistency \u2014 how regularly meals are recorded",
+            "Macro adherence — how closely your protein, carbs, and fat match your targets",
+            "Logging consistency — how regularly meals are recorded",
             "Daily averages across the last 7 days",
           ],
         },
@@ -207,77 +592,549 @@ const libraryTopics: LibraryTopic[] = [
     },
   },
   {
-    id: "waist-risk",
-    title: "Waist-to-Height Risk",
-    subtitle: "Metabolic Health Indicator",
-    icon: Heart,
+    id: "smart-shopping",
+    title: "Smart Shopping — Shop Your Way",
+    subtitle: "Send one day, choose multiple days, stop overbuying",
+    icon: ShoppingCart,
     content: {
       sections: [
         {
-          heading: "Why Waist Size Matters",
-          text: "Waist circumference is one of the strongest predictors of metabolic and cardiovascular risk. Fat stored around the abdomen is more strongly linked to insulin resistance and heart disease than overall body weight.",
+          heading: "How Shopping Works Now",
+          text: "Every meal builder has a shopping bar at the bottom of the screen. Instead of always sending your entire week to the grocery list, you now choose exactly how much you want to shop for.",
         },
         {
-          heading: "Waist-to-Height Ratio",
-          text: "A common guideline used in medical research is keeping waist circumference less than half of your height.",
+          heading: "Send This Day",
+          text: "Tap the orange Send button to send only the meals from the day you are currently viewing to your shopping list. This is the fastest way to shop for today or any single day.",
         },
         {
-          heading: "Risk Categories",
+          heading: "Choose Days",
+          text: "Tap the Choose Days button to open a multi-select panel showing every day of your current week. Each day shows its name and how many meals are planned. Check the days you want, then send them all in one tap.",
           list: [
-            "Green: Ratio below 0.50",
-            "Yellow: Ratio between 0.50 and 0.59",
-            "Red: Ratio 0.60 or higher",
+            "Shop for just Monday and Tuesday before mid-week",
+            "Prep for the weekend by selecting Friday through Sunday",
+            "Select all 7 days if you want to shop for the full week",
           ],
         },
         {
-          heading: "How The App Uses This",
+          heading: "Why This Matters",
+          text: "Most people do not shop for a full week at once. Produce goes bad. Plans change. The old system forced you to send everything or nothing. Now you shop for exactly the window you need, which means fresher food, less waste, and a shorter list every trip.",
+        },
+        {
+          heading: "Works Across All Builders",
+          text: "This shopping system is the same across every meal builder in the app — Weekly, Metabolic Med, Anti-Inflammatory, Diabetic, Performance, Performance Nutrition, and General Nutrition. Same experience, no matter which builder you use.",
+        },
+        {
+          heading: "Your List Syncs Automatically",
+          text: "Once items are sent to your shopping list, they sync to your account instantly. You will see the same list whether you are on your phone, tablet, or another device.",
+        },
+      ],
+    },
+  },
+  {
+    id: "my-list",
+    title: "My List — Your Personal Shopping Section",
+    subtitle: "Manually added items and Product Scan results, all in one place",
+    icon: ListChecks,
+    content: {
+      sections: [
+        {
+          heading: "What My List Is",
+          text: "My List is your personal section of the shopping list — completely separate from the AI-generated grocery categories. It holds two types of items: things you add manually by typing them in, and products you scan using Product Scan. Unlike the AI grocery sections that get built from your meal plan, My List is entirely under your control.",
+        },
+        {
+          heading: "Manually Added Items",
+          text: "Tap the Add to My List section at the bottom of the shopping list to type in anything you need — brand name, product name, quantity, unit. Fill in as much or as little as you want, then tap Add to My List and it appears instantly in the My List section above. This is useful for household staples, specialty ingredients, or anything else your meal plan does not automatically include.",
+        },
+        {
+          heading: "Product Scan Items",
+          text: "When you scan a product using Ingredient Intelligence — whether you photographed the label or searched a product by name — the analysis results sheet shows an 'Add [Product Name] to List' button. Tap it and the item lands in My List instantly. You can also add any of the Better Alternatives shown in the results by tapping the individual Add button on each alternative card. All of these items are scanned products, so they belong in your own section rather than the AI grocery categories.",
+        },
+        {
+          heading: "Checking Off Items",
+          text: "Tap the checkbox next to any item to mark it as checked. The item stays visible but is visually marked so you can track what you have already picked up. When you are done shopping, tap Clear Checked to remove everything you marked — the number in parentheses tells you exactly how many items will be cleared.",
+        },
+        {
+          heading: "The Scanned Badge",
+          text: "Items from Product Scan show a small orange Scanned badge with a camera icon. This tells you the item came from a label scan rather than being typed manually. It helps you remember where each item came from, especially when your list is a mix of manual adds and scan results.",
+        },
+        {
+          heading: "How My List Fits Into the Full Shopping List",
+          text: "The full shopping list is organized in layers. The AI-generated sections — Produce, Protein, Dairy, Pantry, and others — are built from your meal plan and live at the top. My List sits below those AI sections, above the Add to My List form. This keeps your AI-planned groceries and your personal items clearly separated so nothing gets confused.",
+        },
+      ],
+    },
+  },
+  {
+    id: "grocery-store-coach",
+    title: "Grocery Store Coach",
+    subtitle: "AI help in the aisle — build a meal or find the right product to buy",
+    icon: ShoppingCart,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Grocery Store Coach is a real-time AI assistant with two modes for the grocery store aisle. Build a Meal: describe what you want — tonight's dinner, a high-protein meal, something heart-healthy, a family dish — and the Coach builds a complete, personalized meal recommendation along with a ready-to-add shopping list and a full recipe card, all in seconds. Find a Product: ask what to buy — 'spaghetti sauce', 'protein bars', 'milk' — and the Coach recommends specific real brands ranked and graded for your exact health profile, with your usual saved pick pinned on top when you have one.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're standing in the store with no plan — or staring at a wall of twenty sauces with no idea which one fits your health profile. Both of those moments are exactly what this is built for.",
+        },
+        {
+          heading: "How It Works",
           list: [
-            "Provides a visual risk indicator",
-            "Helps coaches understand metabolic health trends",
-            "Supports adjustments to nutrition strategies",
+            "Tap the Coach button on the shopping list page",
+            "Pick a mode: Build a Meal for a full recommendation, or Find a Product for brand advice on a single item",
+            "In Find a Product, type or speak what you're shopping for — you get ranked brand picks with grades, personalized reasons, and one-tap Save or Add to List",
+            "In Build a Meal, choose a quick-start option — or type your own request in plain language",
+            "Set how many people you're cooking for using the serving size control",
+            "The Coach builds a full meal recommendation with name, description, macros, and a categorized shopping list",
+            "While you review the recommendation, the Coach automatically generates your complete recipe card — cooking instructions, full nutrition breakdown, and your shopping list",
+            "When the card is ready, a 'Recipe Ready' panel appears — tap 'View Meal Card' to open it directly in Favorites",
+            "Review the shopping list broken down by Produce, Meat, Dairy, Pantry, and more",
+            "Tap Add to Shopping List to send any or all items directly to your list in one tap",
           ],
         },
         {
-          heading: "Medical Sources",
+          heading: "Your Recipe Card Is Created Automatically",
+          text: "You don't have to do anything extra. The moment the Grocery Coach gives you a recommendation, it starts building a full recipe card in the background. That card includes the recipe name and description, step-by-step cooking instructions, complete nutrition details, and the full ingredient list. It's saved to your Favorites under 'Grocery Coach' and is there any time you want to reference it — even after you've closed the Coach.",
+        },
+        {
+          heading: "Quick-Start Options",
           list: [
-            "World Health Organization",
-            "National Institutes of Health",
-            "American Diabetes Association",
+            "What's for dinner tonight?",
+            "Give me something high-protein",
+            "I need something quick",
+            "Family-friendly meal",
+            "Something diabetic-friendly",
+            "Heart-healthy option",
+          ],
+        },
+        {
+          heading: "Your Health Profile Is Always Active",
+          text: "The Coach knows your dietary identity, allergies, health conditions, food avoidances, macro targets, and fitness goal. Every recommendation it builds is automatically shaped by your full health protocol — the same protocol that runs every other meal generator in the app. A diabetic-friendly request means your carb ceiling and blocked ingredients are enforced. A heart-healthy request applies your cardiac support settings. You do not have to remind it of your restrictions.",
+        },
+        {
+          heading: "Conversational Follow-Ups",
+          text: "After a recommendation, the Coach shows follow-up suggestions so you can refine the plan without starting over. Ask for something lighter, higher in protein, or based on a different cuisine — the Coach builds a new result that still respects your full health profile.",
+        },
+        {
+          heading: "Serving Size Control",
+          text: "Use the plus and minus buttons to tell the Coach how many people you're cooking for. Ingredient quantities in the shopping list adjust automatically — whether you're cooking for one or for a group of eight.",
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Shopping List page — look for the Coach button in the top action bar",
+            "Available on Pro and Clinical plans",
           ],
         },
       ],
     },
   },
   {
-    id: "safetyguard",
-    title: "SafetyGuard\u2122 \u2014 Allergy Protection",
-    icon: Shield,
+    id: "biometrics-tracking",
+    title: "My Biometrics — Every Feature Explained",
+    subtitle: "Macros, scanning, body stats, labs, and water tracking",
+    icon: Activity,
     content: {
       sections: [
         {
-          heading: "What Is SafetyGuard?",
-          text: "SafetyGuard is My Perfect Meals' two-layer allergy protection system. It's designed to help prevent meals from being created with ingredients you've marked as unsafe.",
+          heading: "What This Page Is For",
+          text: "My Biometrics is your feedback system — not where you plan meals, but where you see how everything is working. It brings together your daily macros, food logging, calorie trends, body measurements, lab values, and water intake in one place.",
         },
         {
-          heading: "How SafetyGuard Works",
+          heading: "Today's Macros",
+          text: "At the top of the page you will see your macro targets — protein, carbs, fat, and calories — pulled directly from your Macro Calculator. These numbers stay in place until you update your calculator or a coach adjusts them for you. Your logged totals for the day update here in real time as you add entries.",
+        },
+        {
+          heading: "MacroScan — Log From a Photo",
+          text: "Tap MacroScan to open your camera and point it at any nutrition label. The system reads the label and extracts protein, carbs, fat, and calories automatically. This is the fastest way to log packaged foods, restaurant items, or anything with a printed label. No manual typing required.",
+        },
+        {
+          heading: "Just Describe It — AI Logging",
+          text: "No label? No problem. Tap Just Describe It, type or say what you ate — 'a grilled chicken sandwich with fries' or 'two scrambled eggs and toast' — and the AI estimates your macros. It is not as precise as a label scan, but it is accurate enough for everyday tracking and far better than skipping the log entirely.",
+        },
+        {
+          heading: "Manual Macro Entry",
+          text: "If you already know your numbers, you can enter protein, carbs, fat, and calories directly. Type in the values and tap Add to include them in your daily total. This works well when you have exact macro data from a restaurant app, a meal plan, or a nutrition guide.",
+        },
+        {
+          heading: "Macro Consistency — Up to 30 Days",
+          text: "Below your daily totals you will find your Macro Consistency graph. Switch between Today, 7-day, and 30-day views to see how consistently you are staying aligned with your targets over time. This is where real patterns become visible — consistent days, missed logging periods, high-carb stretches, low-protein trends, or strong weekly adherence. Instead of focusing on perfection, this section helps you understand your habits so you can make smarter adjustments and have more productive conversations with your coach or care team.",
+        },
+        {
+          heading: "Body Stats — Up to One Year",
+          text: "Log your weight here by entering a number and tapping Save. The app stores your weight history and displays it as a trend over time, with views going back up to one year. Weekly weigh-ins give you the most reliable picture — daily fluctuations from water, food volume, and sodium are normal and misleading. Look at the direction of the line, not any single point.",
+        },
+        {
+          heading: "Body Composition",
+          text: "Track your estimated body fat percentage using the U.S. Navy Body Fat Formula — a validated method that uses simple tape measurements like waist, neck, height, and hips. You can log these measurements directly in the app and watch your body composition trend over time. If you have more accurate readings from a DEXA scan, InBody, or another source, you can enter those too. You can also set a body fat goal and track your progress toward it.",
+        },
+        {
+          heading: "Clinical Labs — What You Can Track",
+          text: "The clinical labs section lets you log your lab values so everything lives in one place. Markers you can track include:",
+
           list: [
-            "Pre-generation checks stop meals that include known allergens before they're created",
-            "Post-generation validation scans ingredients and nutrition before a meal is shown",
-            "Protection is always on by default",
-            "Temporary overrides require a personal Safety PIN and apply to one meal only",
+            "Blood glucose and HbA1c — blood sugar and diabetes management",
+            "LDL, HDL, total cholesterol, and triglycerides — cardiovascular health",
+            "ALT and AST — liver enzyme markers",
+            "Creatinine and BUN — kidney function markers",
+            "TSH, Free T4, Free T3, and Reverse T3 (rT3) — full thyroid hormone panel including T4→T3 conversion efficiency",
+            "Total Testosterone and Free Testosterone — hormone optimization markers",
+            "DHEA-S — adrenal androgen, used for hormone optimization protocol detection",
+            "Estradiol (E2), Progesterone, FSH, and LH — menopause and perimenopause hormone panel",
+            "SHBG (Sex Hormone Binding Globulin) — hormone transport and bioavailability marker",
+            "Prealbumin (transthyretin) — nutritional status biomarker used in recovery and oncology-supportive care",
           ],
         },
         {
-          heading: "Why It Exists",
-          text: "Food allergies are serious. SafetyGuard is designed to add structure and intentional decision-making at the exact moment meals are created.",
+          heading: "How Lab Values Are Used",
+          text: "When you log a lab value, the system evaluates it against established clinical thresholds. Markers that cross a threshold are flagged so you and your care team are aware. Clinical protocols — including cardiac, renal, thyroid support, thyroid subtypes (Hashimoto's, Hypothyroid, Hyperthyroid), Hormone Optimization, Menopause, and Perimenopause — can activate automatically when the corresponding lab values cross their respective thresholds. Physician-assigned supports like Oncology Support always require direct physician assignment and are never triggered automatically.",
+        },
+        {
+          heading: "Labs and ProCare",
+          text: "If you are working with a physician or coach through ProCare, they can view your logged lab values and factor them into your plan. This makes the clinical labs section most powerful when used alongside ProCare oversight — but logging is always optional and useful on its own as a personal health record.",
+        },
+        {
+          heading: "Water Log — Daily Hydration Tracker",
+          text: "Basic Hydration Tracking lives in Biometrics. Each entry is saved to your server-backed water log so shared nutrition and coaching features can use the same intake history.",
+          list: [
+            "Log common amounts in ounces or milliliters",
+            "Tracking remains available when no numeric target has been authorized",
+            "My Perfect Meals does not create a personal water target from body weight or a population average",
+            "My Perfect Hydration Center adds advanced Pro hydration intelligence",
+            "Expired, incomplete, or safety-conflicting directives are withheld for review",
+          ],
+        },
+        {
+          heading: "Ingredient Intelligence — Personalized Label Scan",
+          text: "Tap Ingredient Intelligence and point your camera at the ingredients list on any packaged food. The system reads the label and then checks every ingredient against your personal health profile — your conditions, dietary protocol, goals, and preferences — to give you a personalized alignment report.",
         },
       ],
     },
   },
+  {
+    id: "ingredient-intelligence",
+    title: "What Is Ingredient Intelligence?",
+    subtitle: "Personalized food label analysis powered by your health profile",
+    icon: Activity,
+    content: {
+      sections: [
+        {
+          heading: "What It Does",
+          text: "Ingredient Intelligence scans the ingredients list on any packaged food and gives you a personalized alignment report based on your unique health profile. Point your camera at the back of a product, and within seconds you get an Alignment Grade (A through D), a plain-English summary, and a breakdown of what aligns with your goals — and what may not.",
+        },
+        {
+          heading: "What It Does NOT Do",
+          text: "Ingredient Intelligence is not a medical tool. It does not diagnose conditions, replace your doctor or dietitian, or tell you whether a food is safe or unsafe for you. Every result comes with an educational framing — not a verdict. The system helps you think, not decide for you.",
+        },
+        {
+          heading: "Why You and a Friend Get Different Results",
+          text: "The same product will produce different guidance for different users. A protein bar that rates B for a general fitness user might rate C for someone on a metabolic medication, or D for someone managing blood sugar closely. This is intentional — the entire analysis is run against your personal protocol, not a generic standard. There is no universal 'good' or 'bad' ingredient list.",
+        },
+        {
+          heading: "What Goes Into the Analysis",
+          list: [
+            "Your medical conditions and any clinical protocols assigned to your account",
+            "Your dietary identity — Kosher, Halal, Vegan, Carnivore, Keto, and others",
+            "Your food allergies and personal avoidances",
+            "Your current wellness goals — fat loss, muscle gain, blood sugar stability, anti-inflammatory eating, and more",
+            "Your metabolic medication, oncology support, diabetes, or thyroid protocol if active",
+            "Household context — dye sensitivities, children in the home, or other family members with different needs",
+          ],
+        },
+        {
+          heading: "The Alignment Grade",
+          text: "Each scan produces a grade from A to D based on how well the product's ingredient profile aligns with your specific health context. A means strong alignment — nothing notable conflicts with your goals or conditions. D means several ingredients are worth paying attention to given your profile. The grade is a starting point for awareness, not a final judgment.",
+        },
+        {
+          heading: "Learn Why",
+          text: "Inside every result you will see 'Learn Why' under certain sections. Tap it to read a plain-English explanation of what that section means and why it matters to you specifically. This turns a scan into a moment of learning — helping you understand food, not just grade it.",
+        },
+        {
+          heading: "Educational, Not Diagnostic",
+          text: "Ingredient Intelligence was designed to make packaged food more understandable for everyday people — not to create fear or replace professional guidance. Results are always framed around your personal goals and context, never as warnings that apply universally. When in doubt about a specific ingredient and your health, talk to your care team.",
+        },
+        {
+          heading: "One-Tap Add to Your Shopping List",
+          text: "After a scan, the main button shows the exact product name — for example 'Add Ragu Pasta Sauce to List'. Tap it once and the item goes directly into your My List section. The sheet stays open so you can keep reading the analysis. A confirmation toast appears so you know it landed. No typing required.",
+        },
+        {
+          heading: "Adding Better Alternatives Directly",
+          text: "Every scan may include a Better Alternatives section — products that may fit your health profile more closely than the one you scanned. Each alternative card has its own orange Add button. Tap any alternative to add it to your shopping list in one tap. The button briefly confirms 'Added' then resets, so you can add multiple alternatives without leaving the sheet.",
+        },
+        {
+          heading: "Save for Review",
+          text: "Not ready to commit? Tap Save for Review instead to hold the item for later without adding it to the list right away. You can come back to it anytime from your saved items.",
+        },
+        {
+          heading: "Where Items Land",
+          text: "All items added through Product Scan — whether the scanned product itself or an alternative — land in My List with an orange Scanned badge and camera icon. My List is the personal, user-controlled part of the shopping list, kept entirely separate from the AI-generated grocery categories like Produce, Protein, and Pantry.",
+        },
+      ],
+    },
+  },
+  {
+    id: "culture-intelligence",
+    title: "Culture Intelligence System",
+    subtitle: "How your food culture shapes every part of the app",
+    icon: Globe,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Your food is more than macros — it's culture, habit, and identity. The Culture Intelligence System allows My Perfect Meals to understand how you actually eat by using your preferred cuisine as a foundation across the entire app.",
+        },
+        {
+          heading: "How It Works",
+          text: "When you select a cuisine in your profile, the system automatically shapes your meals, snacks, desserts, beverages, and cooking styles to feel familiar to you — while still matching your goals, dietary preferences, and health needs.",
+        },
+        {
+          heading: "Where It Applies",
+          list: [
+            "Meals and recipes — ingredient choices, spice profiles, and cooking methods reflect your culture",
+            "Snacks and desserts — familiar flavors are prioritized when the AI builds options",
+            "Beverages and alcohol pairings — pairing style and cultural beverage context are honored",
+            "Cooking styles — techniques and preparation methods that fit your culinary background",
+          ],
+        },
+        {
+          heading: "What It Does Not Do",
+          text: "This system does not restrict you. It guides your food experience. You can always explore other cuisines at any time from within any feature — but your default experience will reflect the way you naturally eat.",
+        },
+        {
+          heading: "Setting Your Culture",
+          text: "Go to your profile and look for the Cuisine Identity section. Select a cuisine, then choose how strongly you want it applied — Light (subtle influence), Balanced (recognizable style), or Authentic (full cultural identity with traditional spices and techniques).",
+        },
+        {
+          heading: "Why This Matters",
+          text: "Without this system, every user gets the same generic output. With it, your meals feel like yours — less guessing, more satisfaction, and food that fits the way you actually eat.",
+        },
+      ],
+    },
+  },
+  {
+    id: "cuisine-intensity",
+    title: "How Cuisine Intensity Works",
+    subtitle: "Light, Balanced, and Authentic — what each mode actually does",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "What Cuisine Intensity Is",
+          text: "When you select a cuisine in your profile, you also choose how strongly you want it applied. This is your Cuisine Intensity setting. It controls how much the AI leans into traditional ingredients, cooking methods, and dish formats when building your meals.",
+        },
+        {
+          heading: "Light — Health-First With Cultural Flavor",
+          text: "The app builds meals around your health goals and macros first, then adds cultural flavor on top. You'll recognize the spice profiles, aromatics, and seasoning familiar to your cuisine — but the structure and ingredients are chosen primarily for nutritional performance. Think of it as your food culture used as seasoning, not as the foundation.",
+        },
+        {
+          heading: "Balanced — Real Dishes, Adjusted Ingredients",
+          text: "The app uses the actual dish formats from your cuisine — traditional meal structures, classic combinations, and recognizable presentations — but adjusts specific ingredients to meet your health needs. A dish will look and feel like it belongs to your culture, while the inside has been adapted. The cultural identity is real. The adaptation is careful.",
+        },
+        {
+          heading: "Authentic — Traditional Recipes as Actually Made",
+          text: "The app generates meals the way they are genuinely prepared in your culture. Traditional fats, cooking methods, sauces, textures, and ingredient pairings are all fully honored. This is not a health-optimized version of your food. It is your food.",
+        },
+        {
+          heading: "Authentic When You Have a Health Condition",
+          text: "If you have active medical conditions, dietary restrictions, or physician-assigned support systems, Authentic mode works differently — and this is intentional. The app preserves the cultural dish structure as closely as possible, but adapts only what your health rules require. When a substitute is needed, the app uses ingredients that belong to your culinary tradition rather than generic Western alternatives. Your food still feels like yours.",
+        },
+        {
+          heading: "Allergies Are Always Enforced",
+          text: "No matter which intensity setting you choose, your saved allergies are always active. Authentic mode does not override allergy protection. This applies to every cuisine, every dish, every creator.",
+        },
+        {
+          heading: "How to Set It",
+          text: "Go to your profile and find the Cuisine Identity section. Select your cuisine, then tap the intensity you want. You can change this at any time and your next generated meal will reflect the new setting.",
+        },
+        {
+          heading: "Which Should You Choose",
+          list: [
+            "Choose Light if your primary goal is fat loss, performance, or medical nutrition — you want familiar flavors but health comes first",
+            "Choose Balanced if you want real cultural dishes that still fit your plan — the structure matters to you but you're comfortable with some adaptation",
+            "Choose Authentic if you want your food to taste and feel genuinely traditional — and you understand the meals reflect how the cuisine is actually eaten",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "diet-cuisine-controls",
+    title: "How Diet & Cuisine Controls Work",
+    subtitle: "Override your saved preferences on any creator page",
+    icon: ChefHat,
+    content: {
+      sections: [
+        {
+          heading: "What These Controls Are",
+          text: "Every creator and lifestyle page in the app shows two pill-toggle controls: My Diet / Different Diet and My Cuisine / Different Cuisine. These let you override your saved profile settings for a single session without changing your profile.",
+        },
+        {
+          heading: "My Diet / Different Diet",
+          text: "When set to My Diet, the AI uses the dietary restriction saved in your profile — vegan, keto, gluten-free, and so on. Tap Different Diet to reveal a dropdown where you can pick any other diet for just this request. Your profile setting stays unchanged.",
+        },
+        {
+          heading: "My Cuisine / Different Cuisine",
+          text: "When set to My Cuisine, the AI uses the cuisine identity from your profile. Tap Different Cuisine to choose any of the 15 supported cuisine styles for just this session — Mexican, Japanese, Mediterranean, West African, and more.",
+        },
+        {
+          heading: "Where You'll Find Them",
+          list: [
+            "Craving Creator — before generating a meal",
+            "Create a Dish — before creating your custom dish",
+            "Fridge Rescue — before scanning your fridge",
+            "Sushi Creator — before building your sushi spread",
+            "Athlete Beverage Creator — before generating a drink plan",
+            "Dessert Creator — before generating your dessert",
+            "Pairings AI — before generating drink pairings",
+            "Social Find Me Meals — in Step 1, before advancing to location",
+            "Fast Food Guide — in Step 1, before advancing to restaurant",
+          ],
+        },
+        {
+          heading: "Why This Is Useful",
+          text: "Sometimes you are cooking for someone else, following a temporary eating plan, or just in the mood for a different cuisine than usual. These controls let you get the right output for the moment without touching your profile settings.",
+        },
+        {
+          heading: "Session-Only Override",
+          text: "These selections are temporary. When you leave the page or start a new session, the controls reset to your saved profile preferences. Nothing you set here affects your profile, your history, or your long-term data.",
+        },
+      ],
+    },
+  },
+  {
+    id: "adaptive-coaching-engine",
+    title: "Adaptive Coaching Engine (ACE)",
+    subtitle: "Deterministic daily coaching · No AI in coaching decisions",
+    icon: Brain,
+    content: {
+      sections: [
+        {
+          heading: "What ACE Is",
+          text: "The Adaptive Coaching Engine is a deterministic coaching system built into your daily dashboard. Every morning when you check in — reporting your energy, mood, stress, sleep, hunger, and hydration — ACE reads those signals and produces a coaching recommendation for the day. There is no AI involved in that decision. The recommendation comes from a fixed set of rules, tested thresholds, and a structured Intervention Library.",
+        },
+        {
+          heading: "Today's Coaching Context",
+          text: "When ACE identifies a meaningful signal — for example, low energy paired with high stress — it activates what is called a coaching intervention. You see this as a card on your dashboard that tells you what the signal means for today's nutrition, gives you a direction, and routes you directly to your assigned meal builder. If all signals are balanced, ACE tells you that too: you are on track, stay consistent.",
+        },
+        {
+          heading: "How Recommendations Are Generated",
+          list: [
+            "You complete your Daily Check-in (energy, mood, stress, sleep, hunger, hydration)",
+            "ACE reads your check-in values and compares them against scoring thresholds",
+            "If a meaningful pattern is detected, ACE selects the appropriate intervention from the Intervention Library",
+            "The intervention produces a coaching message, a direction, and a route to your meal builder",
+            "If no meaningful pattern exists, ACE shows a neutral \"on track\" confirmation",
+            "No AI, no language model, no dynamic generation — the logic is fixed and testable",
+          ],
+        },
+        {
+          heading: "What the AI Does and Does Not Do",
+          list: [
+            "AI does NOT make coaching decisions — ACE is deterministic and rule-based",
+            "AI does NOT score your check-in — thresholds are fixed values in code",
+            "AI does NOT select interventions — the Intervention Library maps signals to outcomes",
+            "AI IS used in your meal builders to generate meals that match today's direction",
+            "The coaching tells you the direction. The meal builder executes it.",
+          ],
+        },
+        {
+          heading: "How the System Learns Over Time",
+          text: "ACE improves its accuracy through your meal history and saved favorites. When you save a meal as a favorite, the system records the context: what your check-in looked like that day, what builder you used, and what worked. Over time, coaching recommendations become more specific to your actual patterns — not just your profile settings. The more you use the app and save what works, the more personalized your coaching becomes.",
+        },
+        {
+          heading: "What Drives Your Recommendations",
+          list: [
+            "Nutrition Profile — your dietary identity, goals, macro targets, and health protocols",
+            "Daily Coaching Context — today's energy, mood, stress, sleep, hunger, and hydration",
+            "Coaching Profile — your check-in history and patterns over time",
+            "Meal History — what you have built and when",
+            "Favorites — meals you have saved and the context in which you saved them",
+            "Intervention Library — a curated set of coaching responses mapped to signal patterns",
+            "Protocol Engine — the clinical and dietary rules that govern every meal you build",
+          ],
+        },
+        {
+          heading: "What ACE Will Never Do",
+          list: [
+            "Diagnose a medical condition",
+            "Recommend medications or supplements",
+            "Override your medical protocols",
+            "Make treatment decisions",
+            "Replace the guidance of your healthcare provider",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "chefs-corner",
+    title: "Chef's Corner",
+    subtitle: "Your conversational nutrition coaching space",
+    icon: ChefHat,
+    content: {
+      sections: [
+        {
+          heading: "What Chef's Corner Is",
+          text: "Chef's Corner is the conversational layer of My Perfect Meals. It is where you go to ask questions, think out loud about your nutrition, and get coaching-level answers that are grounded in your actual plan. It is not a generic chatbot. Every response is aware of your active Nutrition Life Plan, dietary preferences, allergies, health protocols, and any clinical guardrails on your account.",
+        },
+        {
+          heading: "When to Use It",
+          list: [
+            "You want to ask about a specific food, ingredient, or meal choice",
+            "You are unsure whether something fits your plan",
+            "You want to understand why a meal was built a certain way",
+            "You need a substitution or want to explore alternatives",
+            "You have a question about your goals, macros, or daily targets",
+            "You want to learn how to use a feature or get guidance on next steps",
+            "You are eating out and want a quick sanity check",
+          ],
+        },
+        {
+          heading: "How It Works With Your Nutrition Life Plan",
+          text: "Chef's Corner does not operate in isolation. Before it responds, it loads your complete nutrition context — your macro targets, specialty conditions, dietary identity, allergens, and any active clinical protocols. This means you never have to explain your situation from scratch. The coaching adjusts automatically based on who you are and what is active on your account.",
+        },
+        {
+          heading: "What It Respects Automatically",
+          list: [
+            "Your active dietary preferences (vegan, vegetarian, pescatarian, etc.)",
+            "Your allergen and food sensitivity list",
+            "Your macro targets and daily nutrition budget",
+            "Specialty health protocols — diabetic, GLP-1, anti-inflammatory, and others",
+            "Clinical guardrails set by your physician or coach if applicable",
+            "Your performance nutrition protocol if you are in Performance Mode",
+          ],
+        },
+        {
+          heading: "Coaching Profile",
+          text: "The first time you open Chef's Corner, you will be prompted to complete a short coaching profile. These answers shape how Chef's Corner communicates with you — your experience level, how direct you want feedback to be, and what you are focused on right now. You can update this at any time using the Edit Profile button.",
+        },
+        {
+          heading: "What Chef's Corner Does Not Do",
+          list: [
+            "It does not replace your physician or registered dietitian",
+            "It does not override clinical protocols set by your care team",
+            "It does not make medical diagnoses or recommend treatments",
+            "It does not generate meals directly — use your meal builders for that",
+            "It does not store conversation history across sessions beyond what your coaching profile captures",
+          ],
+        },
+        {
+          heading: "How to Get the Best Answers",
+          text: "Be specific. The more context you give — what you ate, what you are trying to do, what is confusing you — the more useful the response will be. Chef's Corner is designed for the kind of real-life questions that come up when you are out in the world trying to make good decisions, not just when you are sitting down to plan.",
+        },
+      ],
+    },
+  },
+];
+
+const SECTION_NUTRITION_STRATEGY: LibraryTopic[] = [
   {
     id: "starchguard",
     title: "Starch Guard — Weight Management",
-    icon: Zap,
+    subtitle: "Portion and frequency control for carbs",
+    icon: Flame,
     content: {
       sections: [
         {
@@ -319,78 +1176,119 @@ const libraryTopics: LibraryTopic[] = [
           heading: "Why This Matters",
           text: "Foods do not cause weight gain. Context does.\n\nYou can gain weight with healthy foods and lose weight while eating foods people call unhealthy. What matters is portion size, frequency, and direction.\n\nStarch Guard removes food guilt and replaces it with structure. It allows enjoyment without loss of control. It helps you eat freely while still moving forward.\n\nThat is the strategy.",
         },
-      ],
-    },
-  },
-  {
-    id: "glucoseguard",
-    title: "GlucoseGuard™",
-    subtitle: "Diabetic Meal Adjustment",
-    icon: Heart,
-    content: {
-      sections: [
         {
-          heading: "What Is GlucoseGuard?",
-          text: "GlucoseGuard is for diabetics only. It reads your actual blood glucose level (mg/dL) from the Diabetic Hub and adjusts meal generation based on your current glucose state.",
+          heading: "Why Timing Matters",
+          text: "The app distributes starchy carbs intentionally — not just how many, but when.\n\nThink of your body like a business. During the day it is open and running operations. It can put starchy carbs to work for energy, focus, and performance. At night it shifts into a different mode — one focused on cleaning, repairing, and resetting.\n\nIf you keep sending energy demands in late at night, it can interfere with that recovery process. This is why concentrating starchy carbs earlier in the day can support your energy during active hours, your recovery while you sleep, and your overall sleep quality.\n\nLate fast-digesting carbs may keep your body metabolically active when it is supposed to be winding down. Shifting them earlier gives your system the space it needs to do its overnight work.",
         },
         {
-          heading: "How GlucoseGuard Works",
-          list: [
-            "Reads your latest glucose log from the Diabetic Hub",
-            "When glucose is low, meals include more carbs to help stabilize",
-            "When glucose is elevated, meals go lower carb to help bring you back into range",
-            "Only appears in the Diabetic Hub and Diabetic Meal Builder",
-          ],
-        },
-        {
-          heading: "This Is Different From Starch Guard",
-          text: "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about real-time glucose monitoring for diabetics. Most users don't need GlucoseGuard — they need Starch Guard.",
-        },
-        {
-          heading: "What It Does Not Do",
-          list: [
-            "Does not diagnose, treat, or manage diabetes",
-            "Does not monitor blood glucose or adjust medications",
-            "Does not replace medical care or professional advice",
-          ],
+          heading: "This Is a Strategy, Not a Restriction",
+          text: "Starch timing is not a rule. It is a framework.\n\nIf you train late in the evening, your body has different energy demands at night. If your schedule works better with carbs distributed differently, that flexibility is built in.\n\nYou can choose One Starch Meal — which concentrates starchy carbs into a single meal — or Flex Split — which spreads them across two meals. Either way, the system adapts to your life.\n\nThe goal is to give your body what it needs, when it needs it. Not to restrict. Not to frustrate. To support.",
         },
       ],
     },
   },
   {
-    id: "nutrition-budget",
-    title: "Nutrition Budget — Daily Tracking",
-    icon: Calculator,
+    id: "vegetable-volume",
+    title: "Vegetable Volume System",
+    subtitle: "Stay full and satisfied, even on low carbs",
+    icon: Utensils,
     content: {
       sections: [
         {
-          heading: "What Is the Nutrition Budget?",
-          text: "The Nutrition Budget is a real-time tracking system that shows how much of your daily nutrition targets you've used — and what's left. It focuses on the three nutrients that matter most: Protein, Starchy Carbs, and Fibrous Carbs.",
+          heading: "The Core Idea",
+          text: "Most nutrition apps reduce your food when carbs or calories go down. That leads to hunger, frustration, and eventually quitting. My Perfect Meals does the opposite. When starchy carbs go down, vegetables go up.",
         },
         {
-          heading: "How It Works",
+          heading: "Why This Works",
           list: [
-            "Your targets come from the Macro Calculator — one authoritative source",
-            "As you add meals throughout the day, the budget updates automatically",
-            "A banner at the top of each meal builder shows what's remaining",
-            "When a nutrient is covered, you'll see a checkmark and gentle coaching",
+            "Vegetables increase fullness without excess calories",
+            "They provide volume so your meals still feel complete",
+            "They support digestion and overall health",
+            "They help you stay consistent instead of feeling restricted",
           ],
         },
         {
-          heading: "What You'll See",
+          heading: "How It Works In Your Plan",
+          text: "Your vegetable intake is based on your nutrition strategy and meals per day. Instead of just tracking fiber, the app assigns a real-world vegetable target per meal.",
+        },
+        {
+          heading: "Typical Vegetable Targets",
           list: [
-            "Protein, Starchy Carbs, and Fiber remaining for the day",
-            "Helpful coaching when you're running low or covered",
-            "Forward-looking guidance — no judgment, just awareness",
+            "Standard plan: about 3–4 cups of vegetables per meal",
+            "Low carb: about 4–5 cups per meal",
+            "Zero starch or hard cut: about 5–6 cups per meal",
           ],
         },
         {
-          heading: "Works With Starch Guard",
-          text: "When your starchy carb budget is exhausted, Starch Guard steps in to help you substitute with fibrous carbs. See the Starch Guard section for details.",
+          heading: "What You'll Notice",
+          list: [
+            "Bigger meals even when carbs are lower",
+            "Less hunger throughout the day",
+            "More vegetables automatically added to meals",
+            "Smart substitutions like cauliflower instead of rice",
+          ],
         },
         {
-          heading: "Why It Exists",
-          text: "Most apps only tell you what you ate. The Nutrition Budget tells you what to eat next. It's coaching in real-time, helping you make smarter choices as your day unfolds.",
+          heading: "How It Connects To Meal Builders",
+          text: "Once your macro calculator sets your strategy, every meal builder follows it automatically. If your plan is low starch, the app will replace foods like rice or potatoes with vegetable-based options while increasing your vegetable portions.",
+        },
+        {
+          heading: "The Bottom Line",
+          text: "You are not eating less food. You are eating smarter. The Vegetable Volume System is how the app keeps you full while still moving toward your goals.",
+        },
+      ],
+    },
+  },
+  {
+    id: "keep-it-simple",
+    title: "Keep It Simple — Ingredient Control",
+    subtitle: "Use only what you listed. Nothing else.",
+    icon: Minus,
+    content: {
+      sections: [
+        {
+          heading: "What Is Keep It Simple?",
+          text: "Keep It Simple is an ingredient control switch. When it is turned on, the AI uses only the ingredients you described — nothing more. No vegetables added. No balancing sides. No pantry staples slipped in. If you did not say it, it does not exist in your meal.",
+        },
+        {
+          heading: "Why This Matters",
+          text: "By default, My Perfect Meals is designed to help you hit your nutrition targets. That means the AI may add vegetables, fibrous carbs, or balancing ingredients to round out your meal. That system works great most of the time. But sometimes you just want exactly what you asked for — eggs, bacon, and toast — and nothing else. Keep It Simple gives you that control.",
+        },
+        {
+          heading: "When To Use It",
+          list: [
+            "You want a specific meal exactly as described with no additions",
+            "You already know what you are eating and just need the recipe",
+            "You have limited ingredients and do not want substitutions",
+            "You are tracking your own macros and do not want the AI adjusting the meal",
+          ],
+        },
+        {
+          heading: "What It Turns Off",
+          list: [
+            "Vegetable Volume System — no automatic vegetable additions",
+            "Fibrous carb enforcement — no sides or balancing greens added",
+            "Nutrition balance guardrails — no wholefood priority adjustments",
+            "Ingredient suggestions — the AI sticks strictly to your description",
+          ],
+        },
+        {
+          heading: "Where To Find It",
+          list: [
+            "Craving Creator — under Ingredient Control",
+            "Fridge Rescue — under Ingredient Control",
+            "Create a Dish — under Ingredient Control",
+            "Dessert Creator — under Ingredient Control",
+            "Create with AI Chef — under Ingredient Control inside the meal builder modal",
+          ],
+        },
+        {
+          heading: "How To Use It",
+          text: "Look for the Keep It Simple toggle in the Ingredient Control section of any generator. Tap it once to turn it on — it lights up sky blue when active. Tap again to turn it off. It resets to off each time you open a new generator session so it never surprises you.",
+        },
+        {
+          heading: "Important",
+          text: "Keep It Simple is not the default. The app is designed to help you reach your goals automatically. This switch exists for moments when you want full control over exactly what goes into your meal — no more, no less.",
         },
       ],
     },
@@ -398,7 +1296,7 @@ const libraryTopics: LibraryTopic[] = [
   {
     id: "palate-preferences",
     title: "Palate Preferences",
-    subtitle: "Flavor Customization",
+    subtitle: "Flavor customization without macro impact",
     icon: Utensils,
     content: {
       sections: [
@@ -433,6 +1331,7 @@ const libraryTopics: LibraryTopic[] = [
   {
     id: "cravings",
     title: "How Cravings Are Handled",
+    subtitle: "Satisfy what you want, stay on plan",
     icon: Heart,
     content: {
       sections: [
@@ -456,121 +1355,143 @@ const libraryTopics: LibraryTopic[] = [
       ],
     },
   },
+];
+
+const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
   {
-    id: "meal-builder",
-    title: "How the Meal Builder Works",
-    icon: Utensils,
+    id: "hydration",
+    title: HYDRATION_HUB_TITLE,
+    subtitle: HYDRATION_HUB_DESCRIPTION,
+    icon: Droplets,
+    content: {
+      sections: HYDRATION_HUB_ABOUT_SECTIONS.map((section) => ({
+        heading: section.heading,
+        ...("text" in section && section.text ? { text: section.text } : {}),
+        ...("list" in section && section.list ? { list: [...section.list] } : {}),
+      })),
+    },
+  },
+  {
+    id: "safetyguard",
+    title: "SafetyGuard™ — Allergy Protection",
+    subtitle: "Two-layer protection, always on",
+    icon: Shield,
     content: {
       sections: [
         {
-          heading: "Build Your Day",
-          text: "The Meal Builder lets you construct a full day of eating that hits your exact macro targets.",
+          heading: "What Is SafetyGuard?",
+          text: "SafetyGuard is My Perfect Meals' two-layer guidance system designed to help reduce the risk of generating meals that conflict with food allergies, dietary restrictions, or medical considerations you've provided.",
         },
         {
-          heading: "How It Works",
+          heading: "Layer 1 — Pre-Generation Safety Check",
+          text: "Before any meal is created, the system checks your safety profile — including allergies, dietary restrictions, and relevant medical considerations — against a structured food and ingredient taxonomy. If a requested meal may conflict with your profile, the request is blocked before generation and you're guided on how to adjust it more safely.",
+        },
+        {
+          heading: "Layer 2 — Post-Generation Validation",
+          text: "After a meal is created, the system performs an additional validation pass to confirm the final ingredients remain within your stated safety constraints. If a potential conflict is detected, the meal may be flagged, adjusted, or rejected.",
+        },
+        {
+          heading: "How SafetyGuard Works",
           list: [
-            "Add breakfast, lunch, dinner, and snacks",
-            "Watch your macro totals update in real-time",
-            "Swap meals until the numbers align",
-            "Save complete meal days for future use",
+            "Protection is always on by default",
+            "Pre-generation checks stop meals that include known allergens before they're created",
+            "Post-generation validation scans ingredients before a meal is shown",
+            "Temporary overrides require a personal Safety PIN and apply to one meal only",
           ],
         },
         {
-          heading: "The Benefit",
-          text: "No more guessing. No more hoping the math works out. You see exactly where you stand before eating a single bite.",
+          heading: "What It's Built On",
+          list: [
+            "Structured food and ingredient taxonomies",
+            "Common allergen classifications recognized by public health organizations",
+            "Clinical nutrition principles for diabetes support, metabolic medication support, anti-inflammatory eating, and oncology-supportive meal planning",
+            "AI-assisted language understanding to interpret user input, ingredient families, compound foods, and common substitutions",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Food allergies are serious. SafetyGuard is designed to add structure and intentional decision-making at the exact moment meals are created.",
+        },
+        {
+          heading: "Important Limitation",
+          text: "SafetyGuard is a software-based guidance tool, not a medical device. It does not diagnose, treat, or replace professional medical advice. All safety checks are based on user-provided information and are intended to support safer food choices, not medical decision-making.",
         },
       ],
     },
   },
   {
-    id: "why-different",
-    title: "Why This App Is Different",
-    icon: Zap,
+    id: "glucoseguard",
+    title: "GlucoseGuard™",
+    subtitle: "Glucose-aware meal context across the platform",
+    icon: Heart,
     content: {
       sections: [
         {
-          heading: "Not Another Calorie Counter",
-          text: "Most nutrition apps track what you ate. My Perfect Meals tells you what to eat—before you eat it.",
+          heading: "What Is GlucoseGuard?",
+          text: "GlucoseGuard is a glucose-awareness feature available across the platform's meal builders and creation tools. When you log a blood glucose reading, the app can show your latest reading and pass that glucose context into meal generation.",
         },
         {
-          heading: "Key Differences",
+          heading: "How GlucoseGuard Works",
           list: [
-            "Proactive meal planning, not reactive tracking",
-            "AI-generated meals tailored to your exact needs",
-            "Behavioral guardrails that prevent diet failures",
-            "Coach voice guidance when you need support",
+            "Reads your latest logged glucose reading",
+            "Shows glucose awareness in supported builders and creation tools, including Create with Chef, Dessert Creator, and Snack Creator",
+            "Uses glucose context alongside the user's active nutrition and clinical settings when generating meals",
+            "The Diabetic Hub provides dedicated glucose logging and glycemic settings",
           ],
         },
         {
-          heading: "The Philosophy",
-          text: "Information alone doesn't change behavior. Structure does. That's what this app provides.",
+          heading: "This Is Different From Starch Guard",
+          text: "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about displaying and using logged glucose context across the platform. The two features can work together when a user's profile supports them.",
+        },
+        {
+          heading: "What It Does Not Do",
+          list: [
+            "Does not diagnose, treat, or manage diabetes",
+            "Does not monitor blood glucose or adjust medications",
+            "Does not replace medical care or professional advice",
+          ],
         },
       ],
     },
   },
   {
-    id: "procare",
-    title: "ProCare",
-    subtitle: "Professional Coaching & Medical Oversight",
-    icon: Users,
+    id: "waist-risk",
+    title: "Waist-to-Height Risk",
+    subtitle: "Metabolic health indicator",
+    icon: Stethoscope,
     content: {
       sections: [
         {
-          heading: "What Is ProCare?",
-          text: "ProCare connects you with certified trainers and licensed physicians right inside My Perfect Meals. Your professional gets their own workspace to set your nutrition targets, assign meal builders, and guide your meal plan — all without leaving the app. Think of it as having a coach in your pocket who can see your plan and adjust it in real time.",
+          heading: "Why Waist Size Matters",
+          text: "Waist circumference is one of the strongest predictors of metabolic and cardiovascular risk. Fat stored around the abdomen is more strongly linked to insulin resistance and heart disease than overall body weight.",
         },
         {
-          heading: "For Trainers & Coaches",
-          text: "Trainers work inside the Trainers Studio — a dedicated workspace where they manage clients one by one.",
+          heading: "Waist-to-Height Ratio",
+          text: "A common guideline used in medical research is keeping waist circumference less than half of your height.",
+        },
+        {
+          heading: "Risk Categories",
           list: [
-            "Set precise macro targets (protein, carbs, fat) tailored to your goals",
-            "Choose your Starch Game Plan — One Starch Meal or Flex Split",
-            "Assign a meal builder — General Nutrition or Performance & Competition",
-            "View and edit your weekly meal board directly",
-            "Track body composition and adjust strategy over time",
+            "Green: Ratio below 0.50",
+            "Yellow: Ratio between 0.50 and 0.59",
+            "Red: Ratio 0.60 or higher",
           ],
         },
         {
-          heading: "For Physicians & Clinicians",
-          text: "Physicians work inside the Physicians Clinic — a clinical workspace designed for medical-grade nutrition oversight.",
+          heading: "How The App Uses This",
           list: [
-            "Access specialized medical hubs — Diabetic, GLP-1, and Anti-Inflammatory builders",
-            "Set clinical macro targets and medical directives",
-            "Configure SafetyGuard allergen restrictions and dietary guardrails",
-            "View and edit your weekly meal board directly",
-            "Provide clinical context notes and advisory guidance",
+            "Provides a visual risk indicator",
+            "Helps coaches understand metabolic health trends",
+            "Supports adjustments to nutrition strategies",
           ],
         },
         {
-          heading: "Shared Meal Boards",
-          text: "When you connect with a trainer or physician, they can view and edit your Meal Board directly. There is one shared board per client — you own it, and your professional is an authorized editor. Every change is tracked so you always know who updated your plan last. Your professional can add meals, remove items, and repeat days — all within the permissions you set.",
-        },
-        {
-          heading: "How to Connect",
+          heading: "Medical Sources",
           list: [
-            "Go to the More tab in the bottom navigation",
-            "Your trainer or physician gives you an access code (e.g. MP-9ZX4-QL)",
-            "Enter the code on the More page to link instantly",
-            "Or your professional can invite you by email",
-            "Once connected, they appear on your active Care Team",
+            "World Health Organization",
+            "National Institutes of Health",
+            "American Diabetes Association",
           ],
-        },
-        {
-          heading: "Permissions You Control",
-          text: "You decide exactly what your professional can see and do. You can update or revoke permissions at any time from your Care Team page.",
-          list: [
-            "Can View Macros — let them see your nutrition numbers",
-            "Can Add Meals — let them add meals to your board",
-            "Can Edit Plan — full control to modify your Meal Board",
-          ],
-        },
-        {
-          heading: "Favorites / Saved Meals",
-          text: "Any meal you love can be saved with a single tap using the heart button. Your saved favorites live on the More page and can be reused anytime — add them back to your macros, share them, translate them, or cook them with the guided Prepare with Chef feature.",
-        },
-        {
-          heading: "Tell Your Trainer or Doctor",
-          text: "ProCare works best when your professional knows about it. Share the app with your trainer, physician, dietitian, or nutritionist — they can sign up, connect with you using an access code, and start managing your nutrition plan from their own professional workspace inside the app.",
         },
       ],
     },
@@ -578,6 +1499,7 @@ const libraryTopics: LibraryTopic[] = [
   {
     id: "medical-sources",
     title: "Medical & Nutrition Sources",
+    subtitle: "Where the guidance comes from",
     icon: FileText,
     content: {
       sections: [
@@ -586,7 +1508,7 @@ const libraryTopics: LibraryTopic[] = [
           text: "All nutritional calculations and recommendations are based on peer-reviewed research and official guidelines.",
         },
         {
-          heading: "Primary Sources",
+          heading: "Primary Nutrition & Medical Sources",
           list: [
             "National Institutes of Health (NIH) — nih.gov",
             "U.S. Department of Agriculture (USDA) — usda.gov",
@@ -597,22 +1519,1573 @@ const libraryTopics: LibraryTopic[] = [
           ],
         },
         {
+          heading: "Behavioral Psychology & Coaching Science",
+          text: "The Adaptive Coaching Engine (ACE) is built on established behavioral psychology principles and evidence-based coaching frameworks. The following sources inform the intervention design, habit formation logic, and daily coaching language used throughout the system.",
+          list: [
+            "Prochaska & DiClemente — Transtheoretical Model (Stages of Change): used to design interventions that meet users at their current behavior stage rather than assuming readiness.",
+            "Bandura — Social Cognitive Theory and Self-Efficacy: coaching language is designed to build perceived capability rather than prescribe rigid outcomes.",
+            "Deci & Ryan — Self-Determination Theory: autonomy-supportive coaching language (\"build what sounds right\") rather than directive commands.",
+            "Michie et al. — Behavior Change Wheel: used to classify intervention functions applied across ACE's Intervention Library.",
+            "Gardner, Lally & Wardle — Habit Formation Research (European Journal of Social Psychology, 2012): informs the consistency-first messaging in neutral-day coaching.",
+            "Teixeira et al. — Motivation and Adherence in Nutrition Interventions (Nutrients, 2020): basis for minimizing prescriptive food lists and favoring direction-first coaching.",
+          ],
+        },
+        {
+          heading: "Sleep & Stress Sources",
+          text: "Sleep and stress inputs in the Daily Check-in are interpreted using the following evidence base.",
+          list: [
+            "Walker — Why We Sleep (2017): foundational reference for the relationship between sleep quality and metabolic function, hunger signaling, and recovery.",
+            "Spiegel, Tasali, et al. — Sleep Curtailment in Healthy Young Men (Annals of Internal Medicine, 2004): basis for the sleep-hunger coaching intervention (ghrelin/leptin disruption).",
+            "Epel et al. — Stress and Body Fat Distribution (Psychosomatic Medicine, 2000): basis for the stress-cortisol-food-choice intervention.",
+            "American Psychological Association — Stress and Eating (Stress in America Survey): supports behavioral context for stress-aware meal coaching.",
+            "National Sleep Foundation — Sleep Recommendations by Age Group: used to define sleep quality thresholds in check-in scoring.",
+          ],
+        },
+        {
+          heading: "Nutrition Behavior Change Sources",
+          list: [
+            "Herman & Polivy — Restraint Theory: informs why the system avoids rigid restriction language and uses recovery-framing for off-plan days.",
+            "Mann et al. — Medicare's Search for Effective Obesity Treatments (American Psychologist, 2007): supports the system's behavioral consistency model over caloric restriction emphasis.",
+            "Rolls — Volumetrics Eating Plan: reference for volume-first coaching interventions on high-hunger days.",
+            "Wansink — Mindless Eating (2006): contextual eating behavior used in travel, stress, and social eating interventions.",
+            "Tribole & Resch — Intuitive Eating (4th ed.): informs satisfaction-focused coaching language and craving-acknowledgment interventions.",
+          ],
+        },
+        {
+          heading: "Coaching Framework Sources",
+          list: [
+            "International Coach Federation (ICF) — Core Competencies: coaching communication principles applied to intervention language design.",
+            "Whitmore — Coaching for Performance (GROW Model): structure underlying the goal–current state–direction framework in active coaching interventions.",
+            "Rollnick & Miller — Motivational Interviewing: the \"explore, don't prescribe\" principle applied to craving-aware and emotional eating interventions.",
+            "Norcross & Wampold — Evidence-Based Therapy Relationships (Psychotherapy, 2011): rationale for autonomy-supportive rather than directive coaching tone.",
+          ],
+        },
+        {
           heading: "Medical Disclaimer",
-          text: "This app provides nutritional information, not medical advice. Always consult a healthcare professional before making significant dietary changes, especially if you have a medical condition.",
+          text: "This app provides nutritional information and behavioral coaching guidance, not medical advice. Coaching recommendations from ACE are informational in nature and do not constitute a diagnosis, treatment plan, or clinical recommendation. Always consult a healthcare professional before making significant dietary changes, especially if you have a medical condition.",
         },
       ],
     },
   },
 ];
 
-function LibraryItem({ topic }: { topic: LibraryTopic }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+const SECTION_SPECIALIZED: LibraryTopic[] = [
+  {
+    id: "my-perfect-pregnancy",
+    title: "My Perfect Pregnancy — How the System Adapts",
+    subtitle: "Trimester-aware · Food safety enforcement · Symptom-responsive",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "My Perfect Pregnancy is a full nutrition protocol layer — not just a reference guide. When you activate it and set your stage, the system begins enforcing pregnancy-specific rules across every meal generator in the app simultaneously. You do not have to remember what to avoid. You do not have to adjust settings in each builder. It runs everywhere at once.",
+        },
+        {
+          heading: "What It Enforces Automatically",
+          list: [
+            "Raw fish and sushi — blocked in every meal generator",
+            "Mercury-heavy fish (shark, swordfish, king mackerel, tilefish, bigeye tuna) — blocked",
+            "Deli meats and cold cuts — blocked",
+            "Soft unpasteurized cheeses — blocked",
+            "Raw or undercooked eggs — blocked",
+            "Alcohol — blocked in all contexts",
+          ],
+        },
+        {
+          heading: "How It Shifts by Stage",
+          text: "The protocol does not stay fixed. As your stage changes — from trying to conceive through each trimester, into postpartum and breastfeeding — the nutrient priorities, calorie guidance, and ingredient focus all update automatically. First trimester emphasizes folate and iron. Second trimester adds protein and calcium. Third trimester prioritizes DHA and choline. Postpartum and breastfeeding are treated as separate protocols with their own distinct rules.",
+        },
+        {
+          heading: "Symptom-Responsive Ingredient Choices",
+          text: "When you report active symptoms — nausea, heartburn, constipation, swelling, fatigue, or food aversions — the AI adjusts in real time. Nausea activates ginger, B6-rich foods, bland grains, and cool or room-temperature options. Heartburn avoids acidic, spicy, and fried ingredients. Swelling reduces sodium and increases potassium-rich foods. Fatigue prioritizes iron and complex carbs. You report once. Every builder responds.",
+        },
+        {
+          heading: "Where It Runs",
+          list: [
+            "Meal Builders — Create a Dish, Fridge Rescue, Snack Creator, Beverage Creator, Dessert Creator",
+            "Grocery Coach — meal suggestions and shopping lists",
+            "Weekly Meal Board and Meal Planner",
+            "Restaurant Guide and Fast Food Guide",
+            "Product Scan — ingredient and food safety screening",
+          ],
+        },
+        {
+          heading: "Stacks With Other Active Protocols",
+          text: "If you also have Thyroid Support, Cardiac Support, or any other clinical protocol active, both run at the same time. The strictest rule from either protocol always wins. My Perfect Pregnancy does not replace your other settings — it adds its layer on top.",
+        },
+        {
+          heading: "Postpartum vs. Breastfeeding",
+          text: "These are not the same stage. Postpartum Recovery focuses on hormone restoration, gut recovery, tissue repair, and protein rebuilding — with a specific block on extreme diets like keto or very low-carb that are contraindicated postpartum. Breastfeeding activates a separate protocol: +500 calorie guidance, iodine and DHA priorities, and stricter avoidance of alcohol and high-mercury fish because they pass directly into breast milk.",
+        },
+        {
+          heading: "How to Activate",
+          text: "Go to your Profile or Onboarding and select My Perfect Pregnancy under Lifestyle. Then open the Lifestyle section and tap My Perfect Pregnancy to complete the setup — enter your stage, due date if applicable, symptoms, and breastfeeding status. The protocol activates immediately and stays active until you remove it.",
+        },
+      ],
+    },
+  },
+  {
+    id: "specialty-diets",
+    title: "Specialty Diets & Protocol System",
+    subtitle: "Kosher · Halal · Vegan · Gluten-Free · and more",
+    icon: Dna,
+    content: {
+      sections: [
+        {
+          heading: "What This System Does",
+          text: "My Perfect Meals doesn't just generate food. It enforces your dietary identity, your health needs, and your preparation rules — all at the same time. The system checks every meal before and after creation, so your protocol is respected at every level.",
+        },
+        {
+          heading: "The Three Levels of Compliance",
+          list: [
+            "Ingredient level — forbidden ingredients are blocked before the AI generates anything",
+            "Combination level — foods that cannot be combined under your protocol are detected, such as meat and dairy for kosher users",
+            "Preparation and instruction level — cooking steps are scanned for phrases that would violate your protocol, such as deglazing with wine for halal users or finishing a meat dish with butter for kosher users",
+          ],
+        },
+        {
+          heading: "How Priority Works",
+          text: "Your dietary identity is the outer wall. Everything else — medical limits, avoidances, and flavor preferences — is applied inside it. No craving, health goal, or preference can override your dietary protocol.",
+        },
+        {
+          heading: "Checked Before and After",
+          text: "Before the AI generates your meal, the full protocol is injected into the system as a structured set of rules. After generation, every result is scanned again — checking ingredient names, derivative terms, and forbidden instruction phrases — before you ever see it.",
+        },
+        {
+          heading: "Dietary Protocol Sources",
+          text: "This system is informed by recognized dietary and certification guidance from sources such as Orthodox Union, Star-K, OK Kosher Certification, and the Islamic Food and Nutrition Council of America (IFANCA).",
+        },
+        {
+          heading: "Important Note",
+          text: "This system is designed to guide compliant meal choices. For strict religious or medical adherence, always follow the guidance of your local religious authority or licensed physician.",
+        },
+      ],
+    },
+  },
+  {
+    id: "therapeutic-nutrition-intelligence",
+    title: "Therapeutic Nutrition Intelligence",
+    subtitle: "Hormone, peptide, and therapy-aware meal generation",
+    icon: Stethoscope,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Therapeutic Nutrition Intelligence is a clinical layer that adjusts every meal the app generates based on the hormones, peptides, medications, and therapies you have active. It does not give medical advice. It adjusts nutrition priorities — protein timing, anti-inflammatory ingredients, gut-protective foods, recovery-focused meals — based on what your protocol requires. You configure it once. Every builder responds.",
+        },
+        {
+          heading: "What It Responds To",
+          list: [
+            "Hormone therapy — testosterone (TRT), estrogen, progesterone, thyroid hormones, and others",
+            "Peptides — BPC-157, TB-500, GHK-Cu, and other recovery-focused compounds",
+            "Medications — corticosteroids like prednisone, GLP-1 medications, immunosuppressants, and others that interact with nutrition",
+            "Therapies — connective tissue recovery, gut support, and other targeted treatment focuses",
+            "Recovery goals — muscle recovery, inflammation reduction, joint health, sleep optimization, stress recovery, and gut healing",
+          ],
+        },
+        {
+          heading: "How It Adjusts Meals",
+          text: "When testosterone therapy is active, meals are built to support hormonal optimization — higher protein adequacy, healthy fats for hormone synthesis, and muscle-supportive timing. When peptides like BPC-157 or TB-500 are active, connective tissue recovery becomes a priority: collagen-supporting foods, anti-inflammatory proteins, and joint-protective ingredients move to the front. When prednisone or corticosteroids are active, the system counteracts known side effects — reducing sodium and refined sugars while boosting potassium, calcium, and anti-inflammatory foods.",
+        },
+        {
+          heading: "Intersection-Aware",
+          text: "This system is built to read your full protocol, not just one setting. If you have testosterone therapy active alongside Diabetes Support and Performance Nutrition, the system understands all three are running at the same time — and builds meals that honor blood sugar management, hormone-supportive protein, and training recovery simultaneously. The strictest rule from any active protocol always wins. Therapeutic guidance is additive — it layers on top, never overriding clinical safety limits.",
+        },
+        {
+          heading: "Where It Runs",
+          list: [
+            "Create a Dish — every custom meal build",
+            "Fridge Rescue — ingredient-to-meal generation",
+            "Snack Creator — snack and between-meal options",
+            "Performance Nutrition Builder — when combined with performance protocols",
+            "Meal Planner and Weekly Meal Board",
+          ],
+        },
+        {
+          heading: "Clinical Safety Always Wins",
+          text: "Therapeutic Nutrition Intelligence sits at Tier 3 in the protocol hierarchy — below Medical Hard Limits and your primary dietary identity. If a therapeutic recommendation conflicts with a medical restriction, the medical restriction wins automatically. You never have to manage conflicts manually.",
+        },
+        {
+          heading: "How to Activate",
+          text: "Open Biometrics and find the Therapeutic Nutrition card. Tap Set Up Protocol to enter your active hormones, peptides, medications, therapies, and recovery goals. The system activates immediately. Return to the same card to update your protocol at any time.",
+        },
+      ],
+    },
+  },
+  {
+    id: "my-favorites",
+    title: "My Favorites — Build Faster With Meals You Already Love",
+    subtitle: "Instant meal recall from your personal saved library",
+    icon: Star,
+    content: {
+      sections: [
+        {
+          heading: "What My Favorites Is",
+          text: "My Favorites is a recall system built into every meal builder. Once you've saved meals you enjoy, you can pull them back into any slot instantly — no rebuilding, no searching, no starting over. It turns your history into a shortcut.",
+        },
+        {
+          heading: "How to Save a Meal",
+          text: "On any meal card, tap the red star icon in the top corner. That meal is now saved to your favorites library, permanently accessible from any builder until you remove it.",
+        },
+        {
+          heading: "Where to Find the Favorites Button",
+          text: "Look for the gold 'My Favorites' pill button with a red star on the action bar below any meal slot in your builder. It appears next to the Create with Chef and AI buttons on every Breakfast, Lunch, Dinner, and Snack slot.",
+        },
+        {
+          heading: "How to Use It",
+          list: [
+            "Tap My Favorites on any meal slot",
+            "Filter by type — Breakfast-style, Mains, Snacks, or Drinks",
+            "Find the meal you want and tap Use This",
+            "The meal drops into that slot immediately and your macros update automatically",
+          ],
+        },
+        {
+          heading: "What Happens After You Select",
+          text: "The selected meal replaces the entire slot. Your Nutrition Budget at the bottom of the screen recalculates instantly to reflect the new totals. No manual entry needed.",
+        },
+        {
+          heading: "Why It Matters",
+          text: "Most people find a handful of meals they like and want to rotate them. Without My Favorites, they have to rebuild those meals from scratch every time. With it, your plan becomes a rotation of meals you already know work — built faster, eaten with confidence.",
+        },
+        {
+          heading: "Pro Tip",
+          text: "The more you save, the more useful this becomes. Start by saving two or three go-to meals for each part of the day. Over time your favorites become a personal library that makes daily planning take seconds instead of minutes.",
+        },
+      ],
+    },
+  },
+  {
+    id: "create-a-dish",
+    title: "Create a Dish",
+    subtitle: "Build any meal you want, on your terms",
+    icon: ChefHat,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Sometimes you're not following a plan — you just want to cook something. Most apps break here because they only work when you already know what you're doing. Create a Dish is built for the moment when you want real food, made your way, without sacrificing your goals.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're in the kitchen thinking: 'I just want to cook something good… but I still want it to fit.' That's exactly what this is for.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell Chef what you want to make — any cuisine, any style, any craving. The app builds a complete recipe with ingredients, instructions, and full nutrition, automatically aligned with your macros, dietary preferences, and health profile.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your active macro targets",
+            "Medical and health guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Create a Dish"],
+        },
+      ],
+    },
+  },
+  {
+    id: "craving-creator",
+    title: "Craving Creator",
+    subtitle: "Satisfy cravings without going off track",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Cravings are where most people fall off — not because they lack discipline, but because they don't have a better option in the moment. Telling someone to just ignore a craving doesn't work. Giving them a version of it that actually fits does.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're thinking about something you know doesn't fit your plan — but you still want it. That's the exact moment this feature was built for.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell the app what you're craving. It builds a version of that food — same satisfaction, same flavors — that stays aligned with your goals, macros, and health profile. You don't have to choose between what you want and what works.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your macro targets",
+            "All medical guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Cravings, Sushi & Desserts Hub"],
+        },
+      ],
+    },
+  },
+  {
+    id: "beverage-creator",
+    title: "Beverage Creator",
+    subtitle: "Drinks that fit your plan, not fight it",
+    icon: Wine,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Drinks quietly derail progress more than most people realize. Smoothies, shakes, coffees, cocktails — they add up fast, and most people never account for them. Beverage Creator solves that by building drinks that are actually built for your goals.",
+        },
+        {
+          heading: "The Moment",
+          text: "You want something to drink besides water, but you don't want to guess whether it's hurting your progress. Or you want to make a great smoothie without the hidden sugar spike.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell the app what type of drink you want — smoothie, protein shake, coffee, mocktail, cocktail, or anything else. It builds a recipe that fits your macros, dietary preferences, and health conditions. No guesswork, no hidden damage.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your macro targets and calorie budget",
+            "Sugar and glycemic considerations",
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Beverage Creator"],
+        },
+      ],
+    },
+  },
+  {
+    id: "pairings-hub",
+    title: "Spirit & Wine Pairing Hub",
+    subtitle: "Smarter alcohol choices for real life",
+    icon: Wine,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "People are going to drink. Pretending they won't is exactly why most nutrition systems fail the moment real social life begins. This feature exists to help you make smarter choices in those moments — not shame you for having them.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're out, you're relaxing, or you're at a dinner and want to make a better call without overthinking it or feeling like you've already failed.",
+        },
+        {
+          heading: "How It Works",
+          text: "The hub includes AI-driven spirit and wine pairing, a wine list translator for restaurant menus, and a reduce-drinking planning tool. Each feature guides you toward choices that minimize damage and stay aligned with your overall goals.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary setup and restrictions",
+            "Your macro and calorie targets",
+            "Your overall health goals",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Spirit & Wine Pairing Hub"],
+        },
+      ],
+    },
+  },
+  {
+    id: "fridge-rescue",
+    title: "Fridge Rescue",
+    subtitle: "Turn what you have into something worth eating",
+    icon: Refrigerator,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "People waste food or eat the same thing on repeat because they don't know what else to do with what's already in the fridge. Fridge Rescue closes that gap — it takes the ingredients you already have and turns them into real meals.",
+        },
+        {
+          heading: "The Moment",
+          text: "You open the fridge and think: 'I've got food… but nothing to eat.' That's the exact problem this solves.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell the app what ingredients you have. It generates multiple meal options built from those ingredients, complete with recipes, instructions, and full nutrition. No grocery run needed. No excuses needed.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your macro targets",
+            "Medical guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Lifestyle → Fridge Rescue",
+            "Free access — available on all plans",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "recipe-scan",
+    title: "Recipe Maker",
+    subtitle: "See it. Say it. Send it. We'll make it yours.",
+    icon: Camera,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "You see food you love everywhere — scrolling TikTok, saving an Instagram reel, pinning something on Pinterest, screenshotting a Facebook recipe, flipping through a cookbook, reading a menu. Most of the time that food stays in your camera roll and never becomes a meal. Recipe Maker changes that. It takes any meal idea you find — or any food you can show or describe — and builds three completely personalized versions of it, made exactly for you.",
+        },
+        {
+          heading: "The Moment",
+          text: "You screenshot a TikTok recipe. You save an Instagram food reel. You see a dish at a restaurant and want to make it at home. You pause a YouTube cooking video. In every one of those moments, you wonder: can I actually eat this? Is it safe for me? Will it work with my goals? Recipe Maker answers all of that automatically. And you do not even need the recipe — if you can show it or describe it, Recipe Maker can create it.",
+        },
+        {
+          heading: "Four Ways to Bring In a Meal",
+          list: [
+            "Choose Photo — pick a screenshot, saved food photo, or any image from your camera roll or gallery (TikTok screenshots, Instagram saves, Pinterest images, Facebook recipes — anything)",
+            "Camera — point your device camera live at a cookbook, menu, food package, or another screen",
+            "Speak — describe the meal out loud the way you would tell a friend about it",
+            "Type — paste a description, a recipe title, or any text about the meal",
+          ],
+        },
+        {
+          heading: "This Is Not a Recipe Import",
+          text: "Recipe Maker does not pull in someone else's recipe and show it to you. It uses what you saw as a starting point — an inspiration trigger — and then rebuilds the meal completely from scratch around your body, your health goals, and your personal protocols. The result is your version of that meal, not a copy of theirs.",
+        },
+        {
+          heading: "Customize Before Generating",
+          text: "After you bring in your recipe idea, you land on a settings screen where you dial in exactly how you want it built — before anything generates.",
+          list: [
+            "Servings — Just Me, 2 People, 3 People, Family (4), or Meal Prep (6)",
+            "Adaptation Style — Authentic keeps it close to the original, Balanced personalizes it to your profile while preserving the spirit, Healthier pushes hard on nutrition",
+            "Protein Level — Standard, High Protein, or Athlete performance",
+            "Prep Style — Original Prep or Easy Prep for simpler, faster cooking",
+            "Cuisine Style — use your saved cuisine preference or switch to a completely different cuisine just for this meal",
+          ],
+        },
+        {
+          heading: "Three Recipes, One Input",
+          text: "Recipe Maker does not give you one result. When you tap Generate, it builds three completely different personalized versions of your idea at the same time — same dish, three distinct takes. Each one is fully built around your nutrition profile: your macro targets, allergies, dietary identity, and every active health protocol on your account. You see all three at once. You can save any of them, all of them, or none. Nothing disappears until you decide.",
+        },
+        {
+          heading: "Your Choices Stay on the Dashboard",
+          text: "After Recipe Maker generates your three options, they are automatically saved and shown on your dashboard — right under the Recipe Maker card. Your choices stay there every time you open the app. The app never clears them on its own. When you are ready to let them go, tap Clear and they are gone. Until then, they are always waiting for you.",
+        },
+        {
+          heading: "What Happens Under the Hood",
+          list: [
+            "Your image or description is sent to GPT-4o vision, which identifies the dish, ingredients, cooking style, and cuisine",
+            "Your full onboarding profile is loaded — macro targets, allergies, dietary restrictions, medical conditions, everything",
+            "Your customize choices are layered on top — servings, adaptation style, protein level, prep style, cuisine",
+            "Three personalized versions are built in parallel by the same unified pipeline that powers every other creator in the app, with full protocol enforcement and allergy guardrails",
+            "A custom meal image is generated by DALL-E to represent your version of each dish",
+          ],
+        },
+        {
+          heading: "Preview Before Saving",
+          text: "All three results come back as full previews — meal card, macros, ingredients, protocol tags — and nothing is saved until you decide you want it. Tap Save to Favorites on any card to keep it, or tap Regenerate to go back to the settings screen, adjust one thing, and generate three new versions.",
+        },
+        {
+          heading: "Where It Shows Up",
+          list: [
+            "Saved to Favorites under Recipe Maker after you confirm",
+            "Full meal card with title, description, ingredients, instructions, macros, and generated image",
+            "Can be added to your Weekly Plan or Shopping List directly from Favorites",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Dashboard — Recipe Maker card",
+            "Available on Essential plans and above",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "my-perfect-gatherings",
+    title: "My Perfect Gatherings",
+    subtitle: "Multi-course AI meal planning for any occasion",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "What Is My Perfect Gatherings?",
+          text: "My Perfect Gatherings is a multi-course meal planner built for intentional eating. Instead of generating a single meal, it designs a complete gathering menu — appetizer, main course, side dishes, and dessert — all connected to the same situation, flavor profile, and occasion.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Choose your situation: holiday, camping, date night, family dinner, or more",
+            "Set the number of people and courses you want",
+            "Pick a flavor direction or let Chef choose for you",
+            "Optionally pin specific dishes to any course or paste in a family recipe",
+            "Chef generates every course as part of a single cohesive meal — not a random collection",
+          ],
+        },
+        {
+          heading: "What Makes It Different",
+          text: "Every course is built with awareness of the others. The system enforces course roles, cooking method diversity, ingredient balance, and strict duplication rules — so you never get three potato dishes in the same meal. The result feels like a chef designed it, not an algorithm.",
+        },
+        {
+          heading: "Supported Situations",
+          list: [
+            "Holidays: Thanksgiving, Christmas, Hanukkah, Easter, Passover, Eid, and more",
+            "Camping: fire-cooked, foil packet, skillet, and no-cook courses",
+            "Great Outdoors: anything you found, caught, harvested, or grew — wild game, fish, foraged items, garden produce, and more",
+            "Date Night: elegant multi-course dining at home",
+            "Family Dinner: comfort food designed for a crowd",
+            "Game Day, Potluck, Backyard BBQ, and more",
+          ],
+        },
+        {
+          heading: "Family Recipes",
+          text: "You can paste in a family recipe during the holiday experience. Chef will use it as the anchor for that course and build the rest of the meal around it — so tradition stays intact while the full experience is elevated.",
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Lifestyle Hub — My Perfect Gatherings card",
+            "Included with Pro and Clinical subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "great-outdoors",
+    title: "Great Outdoors",
+    subtitle: "Nature-to-Table for anything you found, caught, harvested, or grew",
+    icon: Flame,
+    content: {
+      sections: [
+        {
+          heading: "What Is Great Outdoors?",
+          text: "Great Outdoors is an outdoor lifestyle feature inside My Perfect Gatherings. You enter what you found, caught, harvested, or grew — venison, trout, wild mushrooms, blackberries, garden zucchini, eggs, or anything else — choose a cooking method, and the app builds a Nature-to-Table experience personalized to your dietary profile. It is not just for hunters. It is for anyone who starts a meal outdoors.",
+        },
+        {
+          heading: "The Three Modes",
+          list: [
+            "Simple Preparation — the guide IS the result. No meal courses. Just: what you have, how to prep it, and three ways to cook it. Best for: I caught a trout. Now what?",
+            "Complete Meal — one full centerpiece meal built around your ingredient. Best for: I have venison and want a complete dinner.",
+            "Gathering Experience — full multi-course meal. Best for: I want to host a Great Outdoors dinner for a group.",
+          ],
+        },
+        {
+          heading: "The Nature-to-Table Guide",
+          text: "Every Great Outdoors experience begins with a Nature-to-Table Guide specific to what you entered. For Simple Preparation, the guide is the entire result — covering what you have, how to prepare it, three cooking methods, and food safety. For Complete Meal and Gathering modes, it appears as a brief companion above the meal courses.",
+        },
+        {
+          heading: "What You Can Enter",
+          list: [
+            "Wild game: Venison, Elk, Bison, Boar, Rabbit, and more",
+            "Birds: Wild Turkey, Duck, Quail, Pheasant, and others",
+            "Fish & shellfish: Trout, Salmon, Catfish, Walleye, Redfish, and more",
+            "Foraged items: Wild mushrooms, blackberries, ramps, fiddlehead ferns",
+            "Garden produce: Tomatoes, zucchini, basil, peppers, eggs",
+            "Anything else — the AI identifies and adapts to whatever you entered",
+          ],
+        },
+        {
+          heading: "Cooking Methods",
+          list: [
+            "Smoker — low-and-slow for wild game and whole birds",
+            "Dutch Oven — camp-style braises and stews",
+            "Cast Iron — sears, sautés, and pan roasts",
+            "Campfire — true open-fire cooking",
+            "Open Flame — direct flame grilling and charring",
+            "Grill — standard outdoor grill for everyday outdoor meals",
+          ],
+        },
+        {
+          heading: "Your Protocols Still Apply",
+          text: "Every Great Outdoors experience is still built around your dietary identity, medical conditions, allergies, and active protocols. If you are anti-inflammatory, keto, diabetic, or have specific medical guardrails, every result respects those rules automatically. The ingredient changes. The protection does not.",
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Lifestyle Hub — My Perfect Gatherings card",
+            "Select 'Great Outdoors' (🪵) from the occasion selector",
+            "Included with Pro and Clinical subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "restaurant-guide",
+    title: "Restaurant Guide",
+    subtitle: "Know how to order before you sit down",
+    icon: Utensils,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Eating out is where most people lose control — not because they want to, but because they don't know how to order. The menu is overwhelming, the portions are wrong, and the healthy options aren't obvious. Restaurant Guide exists so that's never a problem again.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're at a restaurant staring at a menu, guessing what to get, or you already know where you're going and want to have a plan before you walk in the door.",
+        },
+        {
+          heading: "How It Works",
+          text: "Tell the app where you want to eat and what you're in the mood for. It finds that restaurant or similar options nearby and returns three smart meal choices with ordering guidance — so you know exactly what to get and how to order it before you even sit down.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your macro targets",
+            "Medical and health guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Lifestyle → Meals Away From Home → Restaurant Guide",
+            "Included with Pro and Clinical subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "fast-food-guide",
+    title: "Fast Food Guide",
+    subtitle: "Smart ordering at fast food restaurants",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "What Is the Fast Food Guide?",
+          text: "The Fast Food Guide gives you three smart, goal-aligned meal choices at any fast food restaurant. It uses the same AI engine as the Restaurant Guide, but focused specifically on fast food chains — McDonald's, Chick-fil-A, Taco Bell, and any other chain you're heading to.",
+        },
+        {
+          heading: "How It Works",
+          list: [
+            "Tell the app which fast food restaurant you're going to",
+            "Describe what you're in the mood for — or leave it open",
+            "Enter your location so the app confirms the restaurant exists nearby",
+            "Receive three smart meal options with estimated macros and an ordering tip",
+            "Log any option to your Biometrics with one tap",
+          ],
+        },
+        {
+          heading: "Why It Exists",
+          text: "Fast food is a real part of life — road trips, kids, late nights, busy weeks. The Fast Food Guide exists because ignoring that reality does not help anyone. Knowing how to order smarter at the drive-through does.",
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your dietary preferences from onboarding",
+            "SafetyGuard allergy protections",
+            "Your active macro targets from the Macro Calculator",
+            "Specialty diets like vegan, vegetarian, gluten-free, and others",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Social Hub — Fast Food Guide card",
+            "Included with Pro and Clinical subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "find-meals-near-me",
+    title: "Find Meals Near Me",
+    subtitle: "Real-world dining that fits your diet",
+    icon: MapPin,
+    content: {
+      sections: [
+        {
+          heading: "How It Works",
+          text: "When you use Find Meals Near Me, the app searches for restaurants that match your dietary preferences. This includes both specialized restaurants and locations that offer strong compatible options for your diet. The goal is to give you more real-world choices while still keeping your meals aligned with how you eat.",
+        },
+        {
+          heading: "What That Means",
+          text: "We recommend places where your diet works — not just places labeled for it. Whether you're vegan, keto, pescatarian, gluten-free, or following any other protocol, the app surfaces restaurants and meal options that fit, across both dedicated and general dining spots.",
+        },
+        {
+          heading: "What the App Respects",
+          list: [
+            "Your dietary preferences from onboarding",
+            "SafetyGuard allergy protections",
+            "Your active macro targets",
+            "Stricter filtering for kosher and halal (certification-required diets)",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: [
+            "Social Hub — Find Meals Near Me card",
+            "Included with Pro and Clinical subscriptions",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "procare",
+    title: "ProCare",
+    subtitle: "Professional coaching & medical oversight",
+    icon: Users,
+    content: {
+      sections: [
+        {
+          heading: "What Is ProCare?",
+          text: "ProCare is not just a feature — it is a complete professional ecosystem inside My Perfect Meals. It connects certified trainers and licensed physicians with their clients through a shared workspace where nutrition strategy, clinical protocols, messaging, and accountability all live in one place. Think of it as the operating system that runs between a professional and their client: the professional guides the plan, the client lives it, and the app enforces it in every meal generated.",
+        },
+        {
+          heading: "How Coaches Use It",
+          text: "Trainers and coaches work inside the Trainer Studio — a dedicated workspace where they manage each client individually through a Client Folder.",
+          list: [
+            "Set precise macro targets (protein, carbs, fat, calories) tailored to client goals",
+            "Choose a Starch Game Plan — One Starch Meal concentrates starch into one sitting for appetite control; Flex Split distributes starch across two meals",
+            "Assign a meal builder — General Nutrition, Performance and Competition, or a clinical builder — which determines every meal the client sees in the app",
+            "View and edit the client's weekly meal board directly with full change tracking",
+            "Set Cycle Protocols (Lower Carb Phase, Higher Carb Push, Carb Refeed) that notify and require the client to acknowledge the change",
+            "Message clients directly and add internal Provider Notes that are never visible to the client",
+            "Track body composition, compliance scores, and program history from the Client Folder",
+          ],
+        },
+        {
+          heading: "How Physicians Use It",
+          text: "Physicians and clinicians work inside the Physicians Clinic — a clinical workspace built for medical-grade nutrition oversight. The platform is designed as a compliance partner, not a diagnostic tool. It applies an NIH-based evidence baseline that the physician can adjust or override at any time.",
+          list: [
+            "Access specialized clinical hubs — Diabetic, Metabolic Medication, and Anti-Inflammatory meal builders",
+            "Set clinical macro targets and toggle medical directives (Diabetes-Friendly, Low-Sodium, Metabolic Medication Support, and more)",
+            "View patient lab values — A1C, LDL, blood pressure, ALT, creatinine — and see which have crossed clinical thresholds",
+            "Assign clinical protocols based on lab findings or physician judgment",
+            "Configure SafetyGuard allergen restrictions and dietary guardrails",
+            "Document diagnosis, clinical tags, and patient notes for medical nutrition therapy",
+            "Communicate with patients via the shared Tablet and maintain private Provider Notes",
+          ],
+        },
+        {
+          heading: "The Client Folder",
+          text: "The Client Folder is the operational heart of ProCare. Every client has one, and it contains everything the professional needs in a single place. Opening a Client Folder reveals:",
+          list: [
+            "Active Clinical Supports — color-coded dots showing which protocols are influencing the client's meals right now (tap any dot to see exactly what it does)",
+            "Client Goal — the client's self-defined goal type, target, and timeline",
+            "The Tablet — a shared messaging and documentation space with two tabs: Messages (client-visible) and Provider Notes (internal only)",
+            "Compliance Snapshot — a rolling 30-day score across calorie accuracy, protein adherence, and logging frequency",
+            "Weight Trends — body composition history and trajectory",
+            "Lab Snapshot — lab values with threshold flags (physicians only)",
+            "Program History — which builders have been assigned and when",
+            "Nutrition Strategy and Cycle Protocol control",
+          ],
+        },
+        {
+          heading: "Messages vs. Provider Notes",
+          text: "The Tablet inside every Client Folder has two separate channels with completely different visibility rules. This distinction is important.",
+          list: [
+            "Messages — a real-time conversation that both you and your client can read and reply to. Use it for check-ins, motivation, instructions, and questions. The client receives a notification when you send a message.",
+            "Provider Notes — internal documentation that is never shown to the client under any circumstances. Use notes for clinical observations, progress assessments, protocol rationale, or anything that should stay within your professional records.",
+            "Translation is available on both channels to support clients who communicate in other languages.",
+            "The ProCare Inbox aggregates unread messages from all your clients into a single view so nothing falls through the cracks.",
+          ],
+        },
+        {
+          heading: "How Clinical Supports Stack",
+          text: "My Perfect Meals uses a two-layer architecture for every meal generated. Layer 1 is the primary builder — the overall nutrition philosophy (General Nutrition, Performance, Anti-Inflammatory, etc.). Layer 2 is the clinical support layer — condition-specific overlays that stack on top of the primary builder without replacing it.",
+          list: [
+            "A client can have multiple clinical supports active simultaneously — for example, Anti-Inflammatory as the primary builder with Cardiac Health and Kidney Disease active as clinical overlays",
+            "Each active support modifies meal generation in its specific domain: Cardiac limits sodium and saturated fat, Kidney limits phosphorus and potassium, Oncology removes contraindicated ingredients",
+            "Supports are additive and non-conflicting — the AI applies all active constraints together",
+            "Professionals activate supports through medical directives. Some activate automatically when lab values cross clinical thresholds.",
+            "The colored dots in every Client Folder and dashboard show exactly which supports are active at a glance",
+          ],
+        },
+        {
+          heading: "Lab Integration and Protocol Activation",
+          text: "When a client logs lab values in the app — A1C, LDL, blood pressure, ALT, creatinine, thyroid, and others — the system evaluates them against clinical thresholds and can activate clinical supports automatically.",
+          list: [
+            "LDL ≥ 130 mg/dL activates Cardiac Health support",
+            "Elevated creatinine or specialist assignment activates Kidney Disease support",
+            "Elevated ALT activates Liver Support or Liver Disease depending on severity",
+            "A1C in diabetic range reinforces Metabolic Med and Diabetic builder recommendations",
+            "Physician-assigned Oncology Support is never activated automatically — it requires physician assignment only",
+            "When a protocol activates from labs, the client is informed and a protocol recommendation modal explains the clinical reasoning with source citations",
+            "If a physician has already assigned a protocol, lab-based changes defer to the physician's judgment",
+          ],
+        },
+        {
+          heading: "Accountability and Compliance",
+          text: "ProCare includes a structured accountability system so professionals can see how well clients are following their plan without asking. The Compliance Score is calculated automatically from the last 30 days of activity.",
+          list: [
+            "Calorie Compliance — how accurately the client is hitting their daily calorie target",
+            "Protein Compliance — how consistently they are meeting their protein goal",
+            "Logging Compliance — how many days they actively logged meals in the window",
+            "90%+ is excellent — the client is executing the plan consistently",
+            "70–89% is on track — minor gaps but the system is working",
+            "Below 70% is a check-in signal — something has shifted and a message or strategy review is warranted",
+            "Cycle Protocol acknowledgment is tracked separately — the professional can see whether the client has read and confirmed a new nutrition strategy",
+          ],
+        },
+        {
+          heading: "How Coaches Earn",
+          text: "ProCare includes a built-in affiliate and commission program for professionals who refer new subscribers to the platform.",
+          list: [
+            "Every professional receives a unique referral code to share with clients and their network",
+            "When someone subscribes using that code, the professional earns a commission on every billing cycle — no caps, no limits",
+            "Bronze Coach (0–49 active clients): 25% commission",
+            "Silver Coach (50–99 active clients): 30% commission",
+            "Gold Coach (100+ active clients): 35% commission",
+            "Commissions are paid directly to the professional's bank account",
+            "Tier upgrades happen automatically as your active client count grows",
+          ],
+        },
+        {
+          heading: "How to Connect (For Clients)",
+          list: [
+            "Go to the More tab in the bottom navigation",
+            "Your trainer or physician gives you an access code (e.g. MP-9ZX4-QL)",
+            "Enter the code on the More page to link instantly",
+            "Or your professional can invite you by email directly",
+            "Once connected, they appear on your active Care Team and can begin managing your plan",
+            "You control permissions at any time — you can grant or revoke access to macros, meal board editing, and plan changes",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "sushi-creator",
+    title: "Sushi Creator",
+    subtitle:
+      "Japanese-inspired sushi and bowls — macros tracked, goals respected",
+    icon: Fish,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Sushi is one of the most misunderstood foods in nutrition. It can be an incredibly clean, high-protein meal — or a hidden sugar and sodium bomb depending on how it's built. Sushi Creator gives you full control over every roll, nigiri, sashimi plate, or bowl so you know exactly what you're eating.",
+        },
+        {
+          heading: "The Moment",
+          text: "You want sushi — but you want to know it actually fits your macros. Or you want to recreate a restaurant favorite at home with better ingredients. This is built for both.",
+        },
+        {
+          heading: "How It Works",
+          text: "Describe the sushi you want, choose your style — roll, nigiri, sashimi, or sushi bowl — and the app builds a complete recipe with ingredients, preparation steps, and full nutritional breakdown. Every result is aligned with your dietary preferences and macro targets.",
+        },
+        {
+          heading: "Style Options",
+          list: [
+            "Roll — classic maki and specialty rolls",
+            "Nigiri — hand-pressed rice with fish or protein",
+            "Sashimi — clean protein slices, no rice",
+            "Sushi Bowl — deconstructed bowl with all the flavors",
+            "Chef's Choice — let the AI decide based on your goals",
+          ],
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your macro targets and calorie budget",
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Health conditions and guardrails",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Cravings, Sushi & Desserts Hub → Sushi Creator"],
+        },
+      ],
+    },
+  },
+  {
+    id: "athlete-beverage-creator",
+    title: "Athlete Beverage Creator",
+    subtitle: "Performance drinks built for your training phase",
+    icon: Activity,
+    content: {
+      sections: [
+        {
+          heading: "Why It Exists",
+          text: "Most sports drinks are built for general audiences — not for your body, your training phase, or your actual performance goals. Athlete Beverage Creator builds performance drinks that are specific to how you train, when you train, and what you need to recover.",
+        },
+        {
+          heading: "The Moment",
+          text: "You're about to train, mid-workout, or recovering — and you want a drink that's actually built for that exact moment. Not a generic protein shake, but something calibrated to your phase and goals.",
+        },
+        {
+          heading: "How It Works",
+          text: "Describe what you need — a pre-workout energizer, an intra-workout hydration drink, a post-workout recovery shake, or anything performance-related. The app builds a custom beverage recipe with ingredients, preparation instructions, and a full nutritional breakdown aligned to your training goals.",
+        },
+        {
+          heading: "What It's Built For",
+          list: [
+            "Pre-workout — energy and focus without the crash",
+            "Intra-workout — hydration and electrolyte balance",
+            "Post-workout — recovery, protein synthesis, and replenishment",
+            "Endurance training — sustained fuel for long sessions",
+            "Strength and hypertrophy — protein and creatine-forward builds",
+          ],
+        },
+        {
+          heading: "What It Respects",
+          list: [
+            "Your macro targets and performance goals",
+            "Your dietary preferences and restrictions",
+            "SafetyGuard allergy protections",
+            "Your active training phase",
+          ],
+        },
+        {
+          heading: "Where to Find It",
+          list: ["Lifestyle → Beverage Creator Hub → Athlete Beverage Creator"],
+        },
+      ],
+    },
+  },
+  {
+    id: "creator-studio",
+    title: "Creator Studio — Build Your Own Nutrition System",
+    subtitle: "Chef Studio · Brand Beverage Studio · Custom-built for you",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "What This Is",
+          text: "Creator Studio is a premium build service where our team designs and delivers a fully custom nutrition system under your name. This is not a template you fill out yourself — it is a done-for-you product built by us, handed off to you, and powered by the same AI infrastructure that runs My Perfect Meals.",
+        },
+        {
+          heading: "Two Paths",
+          list: [
+            "Chef Studio — for chefs, trainers, coaches, and nutrition professionals who want their own branded meal planning system. Priced at $2,500 total ($1,250 deposit to start, $1,250 on delivery).",
+            "Brand Beverage Studio — for beverage brands, supplement companies, and product lines that want a custom AI-powered drink creator embedded in their marketing or product experience. Custom pricing based on scope.",
+          ],
+        },
+        {
+          heading: "What You Get With Chef Studio",
+          list: [
+            "A fully branded nutrition system with your name and identity",
+            "Custom AI trained on your food philosophy, cuisine style, and client needs",
+            "Meal builder logic built around your protocols and preferences",
+            "Delivered as a ready-to-use product — not a tool you configure yourself",
+          ],
+        },
+        {
+          heading: "What You Get With Brand Beverage Studio",
+          list: [
+            "A custom AI beverage creator built around your product line or brand",
+            "Recipes and formulations that reflect your brand identity and target audience",
+            "Built for marketing pages, apps, or in-product experiences",
+            "Scoped and priced based on your specific use case",
+          ],
+        },
+        {
+          heading: "How the Process Works",
+          list: [
+            "1. Apply — fill out the intake form explaining your vision, audience, and goals",
+            "2. We review — our team reads your application and confirms fit within a few business days",
+            "3. Confirm and deposit — once accepted, a 50% deposit locks in your build slot",
+            "4. We build — our team constructs your system, brand layer, and AI configuration",
+            "5. Delivered — you receive your finished product and any onboarding you need",
+          ],
+        },
+        {
+          heading: "Who This Is For",
+          text: "Any chef, coach, trainer, nutritionist, wellness brand, or beverage company that wants a custom AI-powered nutrition product without building the technology from scratch. You bring the vision, identity, and audience — we build the system.",
+        },
+        {
+          heading: "Where to Apply",
+          list: [
+            "Lifestyle → Creator Studio → Chef Studio or Brand Beverage Studio",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "language-translation",
+    title: "Language & Translation",
+    subtitle: "Your phone's language. Your meals. No setup required.",
+    icon: Globe,
+    content: {
+      sections: [
+        {
+          heading: "How Language Works",
+          text: "My Perfect Meals is designed to work in your language automatically. The app detects the language on your phone and uses it for every AI-generated result — meal names, descriptions, recipes, instructions, restaurant recommendations, grocery guidance, and coaching responses. You do not need to press a button or change any settings. It just works.",
+        },
+        {
+          heading: "What Gets Generated in Your Language",
+          list: [
+            "Meal names, descriptions, and why a meal was recommended",
+            "Cooking instructions and step-by-step guidance",
+            "Restaurant recommendations and ordering tips",
+            "Grocery lists and shopping suggestions",
+            "Beverage, dessert, and snack recipes",
+            "Coach's Corner responses and nutrition explanations",
+            "Fridge Rescue ideas and weekly meal plans",
+          ],
+        },
+        {
+          heading: "How It Works Under the Hood",
+          text: "Every AI feature in the app runs through a shared system called the Protocol Envelope — the same system that enforces your dietary restrictions, allergies, and medical guardrails. Your preferred language is part of that envelope. When a meal or recommendation is generated, the AI receives your language as an instruction and generates the content natively in that language. There is no translation step that happens afterward. The AI thinks in your language from the start.",
+        },
+        {
+          heading: "Supported Languages",
+          list: [
+            "Spanish, French, German, Italian, Portuguese",
+            "Chinese (Simplified), Japanese, Korean",
+            "Arabic, Hindi, Russian",
+            "Vietnamese, Filipino (Tagalog)",
+            "English — the default when no other language is detected",
+          ],
+        },
+        {
+          heading: "Setting a Language Preference",
+          text: "Your language is set automatically from your device. If you want to use a different language than your phone's default — for example, a bilingual professional who prefers to work in a specific language — you can override it in Settings → Language Preference. Your choice is saved to your profile and travels with you across all devices.",
+        },
+        {
+          heading: "The Translate Button",
+          text: "The Translate button on meal cards and restaurant recommendations serves a different purpose than the automatic language system. It is designed for situations where two people are communicating across different languages.",
+          list: [
+            "A coach writes a message in English — the client reads it in Spanish",
+            "A client replies in Spanish — the coach reads it in English",
+            "A shared meal plan is passed between users who speak different languages",
+            "A recipe created by a chef in one language is read by a client in another",
+          ],
+        },
+        {
+          heading: "Two Separate Capabilities",
+          text: "Language localization and communication translation are separate systems that work together.",
+          list: [
+            "Language Localization — the app adapts to your language automatically. Every AI-generated result arrives in your language without any manual action.",
+            "Communication Translation — the Translate button bridges conversations between people who speak different languages. A coach and client can communicate fluently without sharing a language.",
+          ],
+        },
+        {
+          heading: "What Is Not Yet Translated",
+          text: "The app's navigation, buttons, menus, settings screens, and error messages are currently in English. Language localization for the static parts of the interface is on the product roadmap and will expand in future updates. Everything the AI generates — which is most of what you read while using the app — is already in your language.",
+        },
+      ],
+    },
+  },
+  {
+    id: "companion-nutrition",
+    title: "My Perfect Pets — Companion Nutrition Intelligence",
+    subtitle: "Personalized dog wellness nutrition",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What This Is",
+          text: "My Perfect Pets is a premium wellness nutrition system for dogs, built directly on the same adaptive protocol engine that powers your own meals. It is not a standalone pet app — it is a protocol translation layer that applies everything MPM already built for human nutrition to canine wellness guidance.",
+        },
+        {
+          heading: "The Same Engine, Translated",
+          text: "The core AI generation engine, the protocol envelope system, the condition stacking logic, and the shopping infrastructure are all shared with the human nutrition system. When you improve MPM, you improve My Perfect Pets. This is intentional architecture, not a feature add-on.",
+        },
+        {
+          heading: "The 4-Layer Dog Protocol",
+          list: [
+            "Layer 1 — Safety: Toxic Ingredient Firewall. Hard blocks on chocolate, xylitol, grapes, garlic, onions, macadamia nuts, and all other known canine toxins. Non-negotiable. Cannot be overridden.",
+            "Layer 2 — Wellness: Condition-specific protocol stacking. Senior support, kidney support, anti-inflammatory, joint wellness, diabetic support, skin and coat support, and more — stacked simultaneously when needed.",
+            "Layer 3 — Profile: Dog-specific allergies, food sensitivities, veterinarian-specified dietary restrictions, and current medications (for nutrition awareness only — no drug interaction analysis).",
+            "Layer 4 — Preferences: Activity level, treat frequency, portion context, and behavioral notes.",
+          ],
+        },
+        {
+          heading: "Toxic Ingredient Firewall",
+          text: "Every recipe generated for your dog is screened through the Toxic Ingredient Firewall before you see it. If a generated recipe contains a known canine toxin — even as a trace mention — it is blocked and regenerated. You never see an unsafe recipe. The firewall is not AI-guided: it is a hardcoded list of known toxic ingredients sourced from ASPCA Poison Control and AVMA veterinary safety references.",
+        },
+        {
+          heading: "Controlled Veterinary Citations",
+          text: "All wellness protocols include controlled citations from pre-approved veterinary sources: WSAVA Global Nutrition Guidelines, AAHA Nutritional Assessment Guidelines, Tufts Cummings School of Veterinary Medicine, ASPCA Animal Poison Control, and IRIS. The AI is never permitted to invent veterinary sources. Citations are condition-mapped and injected from a verified library.",
+        },
+        {
+          heading: "Ingredient Safety Scanner",
+          text: "Type any food ingredient to instantly check if it is safe for your dog. The scanner runs the ingredient through the Toxic Ingredient Firewall and returns a safety rating (SAFE, CAUTION, or TOXIC), the reason it is flagged, and a safe substitution. Safe ingredients also receive an AI-generated wellness score and nutritional notes.",
+        },
+        {
+          heading: "Important Limitations",
+          text: "My Perfect Pets provides wellness nutrition guidance only. It is not veterinary medicine, does not diagnose conditions, and does not replace veterinary care. For any health concern, medical condition, or significant dietary change, always consult a licensed veterinarian.",
+        },
+        {
+          heading: "Veterinary Sources",
+          list: [
+            "WSAVA Global Nutrition Guidelines — wsava.org",
+            "AAHA Nutritional Assessment Guidelines for Dogs and Cats — aaha.org",
+            "Tufts Cummings School of Veterinary Medicine, Clinical Nutrition Service — vetnutrition.tufts.edu",
+            "ASPCA Animal Poison Control Center — aspca.org/pet-care/animal-poison-control",
+            "IRIS — International Renal Interest Society — iris-kidney.com",
+            "AVMA — American Veterinary Medical Association — avma.org",
+          ],
+        },
+      ],
+    },
+  },
+];
+
+const SECTION_PERFORMANCE_MODES: LibraryTopic[] = [
+  {
+    id: "performance-modes-overview",
+    title: "What Are Performance Modes?",
+    subtitle: "App-wide metabolic settings for athletic and physique goals",
+    icon: Zap,
+    content: {
+      sections: [
+        {
+          heading: "A Mode That Follows You Everywhere",
+          text: "A Performance Mode is an app-wide metabolic setting that changes how every meal generator in the app approaches your nutrition. When a mode is active, it's not just applied to one builder — it travels with you across Create a Dish, Chef's Kitchen, the Weekly Planner, Fridge Rescue, and every other tool.",
+        },
+        {
+          heading: "Different From Your Meal Builder",
+          text: "Your meal builder (General Nutrition, Anti-Inflammatory, Diabetic, etc.) determines the type and foundation of your meals. A Performance Mode is a layer on top of that foundation — a metabolic direction that shapes macros, ingredient choices, and carb handling without changing your underlying plan.",
+        },
+        {
+          heading: "Standard",
+          text: "Balanced everyday nutrition. No special adjustments. This is the default for most users.",
+        },
+        {
+          heading: "Competition Prep",
+          text: "Tighter carb control and lean-focused meal recommendations. Designed for physique competition prep phases. Hard cut macros, low-carb split, and a 30g cap on starchy carbs per meal.",
+        },
+        {
+          heading: "Where to Set It",
+          text: "Open the Macro Calculator, select your goal, and choose Competition Prep. After calculating, tap the Apply button at the save step. The mode becomes active across the entire app immediately.",
+        },
+      ],
+    },
+  },
+  {
+    id: "competition-prep-mode",
+    title: "Competition Prep Mode — How It Works",
+    subtitle: "What changes across your app when prep mode is active",
+    icon: Flame,
+    content: {
+      sections: [
+        {
+          heading: "This Is Not Just a Cut",
+          text: "Competition Prep is not a standard fat-loss goal. It is a metabolic overlay that changes how the entire app generates food for you. Every tool — not just the macro calculator — operates under competition standards when this mode is active.",
+        },
+        {
+          heading: "The Three Core Changes",
+          list: [
+            "Hard cut — macros are calculated for an aggressive deficit, not a moderate cut",
+            "Low-carb split — carbohydrates are significantly reduced in favor of protein and strategic fats",
+            "30g starchy carb cap — no meal in any builder will exceed 30 grams of starchy carbohydrates",
+          ],
+        },
+        {
+          heading: "Where It Applies",
+          list: [
+            "Create a Dish — dishes are generated lean with low starch",
+            "Chef's Kitchen — chef-guided meals follow prep standards",
+            "Weekly Meal Planner — full week of meals built to competition specs",
+            "Fridge Rescue — ingredient-based meals stay within the carb cap",
+            "Snack Creator — snacks are protein-forward and low-carb",
+            "Beverage Creator — beverages follow low-sugar, performance guidelines",
+          ],
+        },
+        {
+          heading: "How to Activate It",
+          list: [
+            "Open the Macro Calculator",
+            "In the goal step, tap the Competition Prep pill",
+            "Review your calculated macros",
+            "At the save step, tap the Apply button under the results",
+            "The mode is now active app-wide",
+          ],
+        },
+        {
+          heading: "How to Turn It Off",
+          text: "Return to the Macro Calculator, select a different goal (Fat Loss, Maintain, or Build Muscle), recalculate, and save. The overlay automatically reverts to Standard mode.",
+        },
+      ],
+    },
+  },
+  {
+    id: "performance-modes-safety",
+    title: "Works With Your Existing Builder",
+    subtitle: "Medical and dietary protections always stay active",
+    icon: Shield,
+    content: {
+      sections: [
+        {
+          heading: "This Is the Most Important Thing to Understand",
+          text: "Performance Modes work alongside your existing health and dietary settings. Your diabetic guardrails, anti-inflammatory protocols, allergy protections, and physician safety rules always remain active — a Performance Mode cannot override them.",
+        },
+        {
+          heading: "What This Means in Practice",
+          text: "If you are diabetic and activate Competition Prep mode, the app applies the comp prep carb cap AND your diabetic carb ceiling simultaneously — whichever is stricter wins. If you have a tree nut allergy, no Competition Prep meal will ever contain tree nuts. Your safety layer is always the outermost wall.",
+        },
+        {
+          heading: "The Priority Order",
+          list: [
+            "Medical protections (always highest — physician-assigned rules and clinical safety)",
+            "Dietary identity (kosher, halal, vegan, gluten-free — cannot be overridden)",
+            "Health conditions (diabetic, anti-inflammatory, metabolic medication settings)",
+            "Performance Mode (applies within all the above constraints)",
+            "Flavor and behavioral preferences (softest layer, shapes meals within everything above)",
+          ],
+        },
+        {
+          heading: "Why This Matters",
+          text: "Some users worry that activating competition prep will cancel their diabetic or cardiac protections. It will not. The medical guardrails are structural — they run underneath everything else and can never be switched off by a goal selection.",
+        },
+      ],
+    },
+  },
+  {
+    id: "performance-modes-control",
+    title: "Self-Guided vs Coach-Controlled",
+    subtitle: "How performance settings work with and without a coach",
+    icon: Users,
+    content: {
+      sections: [
+        {
+          heading: "Two Ways Performance Modes Can Be Set",
+          text: "Performance Modes can be activated in two ways — self-guided by you directly in the Macro Calculator, or coach-controlled when a professional coach is managing your plan through ProCare.",
+        },
+        {
+          heading: "Self-Guided",
+          text: "You open the Macro Calculator, select your goal, and apply the mode yourself. The app safely automates the macro adjustments based on proven contest prep principles. This works well for general competition prep and gives you full control.",
+        },
+        {
+          heading: "Coach-Controlled",
+          text: "A connected coach can make advanced adjustments such as carb cycling, refeed days, peak week protocols, and competition-specific strategies through the Pro portal. When coach-controlled mode is active, your coach's settings take priority over manual changes — protecting the integrity of their program.",
+        },
+        {
+          heading: "Which Should I Use?",
+          list: [
+            "Self-guided is right if you're prepping independently and understand your own nutrition",
+            "Coach-controlled is right if a competition coach or dietitian is managing your plan",
+            "If a coach is involved, always let them set the mode — they can see your full picture",
+          ],
+        },
+        {
+          heading: "A Note for ProCare Users",
+          text: "If your coach has set your performance mode, you will see it reflected in your macro calculator results. Manual changes you make may be overridden by your coach's program settings if they are actively managing your plan.",
+        },
+      ],
+    },
+  },
+  {
+    id: "performance-nutrition-hub",
+    title: "Performance Nutrition Hub",
+    subtitle: "Sport-specific fueling with daily session-driven carb adjustments",
+    icon: Activity,
+    content: {
+      sections: [
+        {
+          heading: "This Is Not a Fixed Macro Target",
+          text: "The Performance Nutrition Hub does something no other part of the app does: it reads what you are actually doing each day and adjusts your carbohydrate targets to match. Instead of one number that never changes, your carb allocation moves with your training schedule — higher on hard days, lower on recovery and rest days.",
+        },
+        {
+          heading: "Two Protocol Engines",
+          text: "The hub runs two separate tracks. Athletic Performance is designed for ongoing training in a specific sport — MMA, boxing, CrossFit, endurance running, cycling, strength and powerlifting, Olympic lifting, tactical and military, and general athletic fitness. Competition Prep is designed for athletes with a specific event on the calendar — bodybuilding shows, powerlifting meets, fight camps, wrestling seasons, marathons, and triathlons — where the hub counts down your weeks out and adjusts your protocol phase automatically as you approach event day.",
+        },
+        {
+          heading: "How Session-Type Carb Cycling Works",
+          text: "Each day in your weekly schedule carries a session type: power, strength, endurance, sport practice, competition, active recovery, or rest. The hub reads today's session type and sets your carbohydrate target accordingly.",
+          list: [
+            "Power and competition days — highest carbohydrate support. Glycolytic output is at its peak and your muscles need full glycogen loading.",
+            "Endurance days — elevated carbs to sustain aerobic demand across longer training blocks.",
+            "Strength days — moderate carbs, with protein elevated to support mechanical muscle stress.",
+            "Sport practice days — carbs match the intensity level of the sport and its energy system demands.",
+            "Active recovery days — reduced carbs. Glycogen is partially depleted and does not need full replacement.",
+            "Rest days — lowest carbohydrate target. Your body is in repair mode, not fuel-demand mode.",
+            "Protein stays consistent every single day to maintain muscle protein synthesis regardless of session type.",
+          ],
+        },
+        {
+          heading: "The Three Tabs",
+          text: "Once your protocol is active, the hub shows three tabs. Nutrient Plan (for Athletic Performance) or Meal Builder (for Competition Prep) shows today's session type and exactly how your carb targets have been adjusted for it. Carbohydrates breaks down your starchy and fibrous carb targets for the day and explains why they are set where they are. Protocols shows your full sport profile, training phase, weekly session schedule, and all active protocol settings.",
+        },
+        {
+          heading: "Competition Prep Track — Event Countdown",
+          text: "In Competition Prep mode the hub displays your event date, how many weeks out you are, and your current prep phase — base conditioning, intensity phase, peak prep, peak week, or event day. Protocol intensity increases automatically as you get closer to the event. Weight check-in milestones can be set and tracked against your timeline.",
+        },
+        {
+          heading: "Hub Macros vs Macro Calculator",
+          text: "The macros shown in the Performance Hub are your live session-adjusted targets for today. When you open the Performance Nutrition Builder from the hub, it uses those session-adjusted numbers — not your Macro Calculator baseline. Every other tool in the app (Create a Dish, Chef's Kitchen, Fridge Rescue, etc.) continues to use your Macro Calculator baseline. Only the Performance Nutrition Builder responds to the hub's daily adjustments.",
+        },
+        {
+          heading: "How to Get Started",
+          text: "Open the Performance Nutrition Hub from your app library or dashboard. Tap the Setup button in the top right corner and choose your track — Athletic Performance or Competition Prep. Enter your sport, training phase, and weekly session schedule. Once saved, the hub is active and adjusting your carb targets every day based on what you have scheduled.",
+        },
+        {
+          heading: "Medical and Dietary Protections Always Apply",
+          text: "The Performance Hub works within your existing safety layer. If you have diabetic guardrails, anti-inflammatory protocols, allergies, or physician-assigned clinical limits, those always take priority. A rest-day carb target will never drop below your diabetic carb minimum. No performance protocol can override a physician-assigned restriction.",
+        },
+      ],
+    },
+  },
+  {
+    id: "performance-nutrition-builder",
+    title: "Performance Nutrition Builder",
+    subtitle: "Build sport-specific meals with session-driven macro adjustments",
+    icon: Dumbbell,
+    content: {
+      sections: [
+        {
+          heading: "What This Builder Is For",
+          text: "The Performance Nutrition Builder is designed for athletes and serious training individuals who want meals that match what their body is actually doing — not just a generic daily target. It works best when paired with the Performance Nutrition Hub, which feeds session-adjusted carbohydrate targets directly into the builder each day.",
+        },
+        {
+          heading: "How the Hub Connection Works",
+          text: "When a Performance Protocol is active in the hub, the builder reads your protocol before you build a single meal. It knows today's session type — power, strength, endurance, recovery, rest — and adjusts your carbohydrate availability accordingly. You do not have to do anything manually. Open the builder and your carb targets already reflect today's training.",
+        },
+        {
+          heading: "Session-Type Carb Adjustments in the Builder",
+          list: [
+            "Power and competition days — higher starch allocation. Full glycogen loading for peak output.",
+            "Endurance days — elevated carbs distributed across meals to sustain aerobic performance.",
+            "Strength days — moderate carbs, protein prioritized for mechanical muscle repair.",
+            "Recovery days — reduced starch. Glycogen does not need full replacement at lower training volume.",
+            "Rest days — lowest carb allocation. The builder reflects repair and reset priorities, not energy demands.",
+            "Protein target is consistent every day — muscle protein synthesis does not take a day off.",
+          ],
+        },
+        {
+          heading: "Using the Builder Without a Protocol",
+          text: "You can also use the Performance Nutrition Builder without an active hub protocol. In that case, the builder uses your Macro Calculator baseline as the target. You still have access to all the same meal creation tools — the session-type adjustment simply does not apply until a protocol is set up.",
+        },
+        {
+          heading: "The Builder System",
+          text: "The builder works with a flexible Meal 1, Meal 2, Meal 3 structure that you can expand based on your training schedule and daily eating window. At the top you see your daily nutrition targets. At the bottom you see your Nutrition Budget — a live view of protein, starchy carbs, and fiber remaining as you add meals. The starch indicator below the top section shows how many starchy meals you have available based on today's allocation.",
+        },
+        {
+          heading: "Starch Guard",
+          text: "Starch Guard is the builder's carbohydrate management system. It tracks high-glycemic carbs like rice, pasta, bread, and potatoes against your starch allocation for the day. When you have used your starch meals, it steps in and substitutes fibrous carb options or lets the system choose for you. On high-carb training days your starch allocation is larger. On rest days it is smaller. Starch Guard enforces the boundary either way.",
+        },
+        {
+          heading: "Creating Meals",
+          text: "Tap Create with Chef and describe what you want. You can keep the request simple or be very specific about protein targets, carb types, cuisine, and ingredients. The more specific you are about your training context and food choices, the more tailored the result. Use Keep It Simple to limit extra ingredients and keep meals focused and easy to replicate.",
+        },
+        {
+          heading: "Snack Creator and Shopping List",
+          text: "Every builder includes a Snack Creator for structured performance-aligned snacks. When you create your first meal, the Shopping List button appears so you can begin organizing ingredients. Meals can be sent to your Shopping List or logged to Biometrics. Log meals individually — once a meal is logged to Biometrics it cannot be removed.",
+        },
+        {
+          heading: "SafetyGuard Always Active",
+          text: "SafetyGuard protects you from allergens and respects all your dietary preferences automatically across every meal the builder generates. No performance or session-type adjustment can override an allergen block or a dietary identity restriction.",
+        },
+      ],
+    },
+  },
+  {
+    id: "my-perfect-beginning",
+    title: "My Perfect Beginning",
+    subtitle: "Age-appropriate nutrition for infants, toddlers & children",
+    icon: Baby,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "My Perfect Beginning is the child and infant nutrition system inside My Perfect Meals. It is built for parents who want age-appropriate, evidence-based meal guidance for their children — from the earliest stages of introducing solid foods through toddler and early childhood eating. The system generates meals, snacks, and lunchbox ideas calibrated to your child's developmental stage, not generic adult nutrition.",
+        },
+        {
+          heading: "What the System Covers",
+          list: [
+            "Child Nutrition Profiles — personalized profiles for each child, tracking age, stage, allergies, and preferences",
+            "Pediatric nutrition protocols — evidence-based guidance for each developmental milestone",
+            "Child-safe recipe generation — AI-generated recipes sized, textured, and seasoned for children",
+            "Better versions of favorite foods — healthier takes on the meals kids already love",
+            "Lunchbox Builder — build balanced, kid-approved lunchboxes in seconds",
+            "Growth-stage meal planning — weekly plans calibrated to your child's age and needs",
+            "Developmental nutrition guidance — milestone-aware meal planning as your child grows",
+            "Parent's Corner AI — ask child nutrition questions and get answers grounded in pediatric evidence",
+          ],
+        },
+        {
+          heading: "How It Differs From the General Meal Builders",
+          text: "The general meal builders in My Perfect Meals are calibrated to adult macro targets, portion sizes, seasoning levels, and nutritional priorities. My Perfect Beginning operates on a completely separate set of rules — portion sizes are age-scaled, textures are stage-appropriate (purees for early introduction, soft foods for emerging chewers, finger foods for toddlers), sodium is reduced, and nutrient priorities reflect pediatric developmental needs rather than adult fitness goals.",
+        },
+        {
+          heading: "Your Nutrition Life Plan Still Applies",
+          text: "If you have active allergen protections, dietary preferences, or clinical protocols on your account, those guardrails extend into child meal generation. A peanut allergy on your account will block peanut ingredients in every meal generator — including child meals. You do not need to enter restrictions twice.",
+        },
+        {
+          heading: "Current Status",
+          text: "My Perfect Beginning is actively being built out. The hub, child nutrition profiles, Lunchbox Builder, and Parent's Corner AI are in development. The feature page is available now and will expand as each component is completed.",
+        },
+        {
+          heading: "How to Access It",
+          text: "Open the Lifestyle section of the app and tap My Perfect Beginning. You can also access it from the App Library or directly via the navigation menu if it has been added to your shortcuts.",
+        },
+      ],
+    },
+  },
+  {
+    id: "pregnancy-coach",
+    title: "Pregnancy Coach",
+    subtitle: "Conversational pregnancy nutrition coaching · Stage-aware · Symptom-responsive",
+    icon: Heart,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Pregnancy Coach is the conversational coaching layer for My Perfect Pregnancy. It is not a general chatbot — every response is grounded in your current stage, your active protocol, your symptoms, and the food safety rules that are already running across your meal generators. You never have to explain where you are in your pregnancy. The system already knows.",
+        },
+        {
+          heading: "How It Differs From the Meal Builders",
+          text: "The My Perfect Pregnancy protocol enforces food safety and nutrient priorities automatically in every meal generator. Pregnancy Coach is the conversational layer on top of that — it is where you go when you want to understand why, ask a question about a specific food, work through a symptom, or get guidance on navigating meals at a restaurant or social event. The builders generate meals. Pregnancy Coach explains, advises, and answers.",
+        },
+        {
+          heading: "What It Knows About You",
+          list: [
+            "Your current stage — trying to conceive, trimester 1–3, breastfeeding, or postpartum",
+            "Your active symptom profile — nausea, heartburn, swelling, fatigue, food aversions",
+            "Trimester-specific nutrient priorities (folate/iron in T1, calcium/protein in T2, DHA/choline in T3)",
+            "All food safety rules currently enforced by your protocol",
+            "Your allergen protections and dietary preferences",
+            "Any other clinical protocols active on your account",
+          ],
+        },
+        {
+          heading: "What to Ask It",
+          list: [
+            "Whether a specific food is safe at your stage",
+            "What to eat when a symptom is making it hard to keep food down",
+            "How to handle meals at a restaurant or family gathering",
+            "What your nutrient priorities mean in practical food terms",
+            "How postpartum and breastfeeding nutrition differ from pregnancy",
+            "How to stay on track when nothing sounds good",
+          ],
+        },
+        {
+          heading: "Clinical Boundaries",
+          text: "Pregnancy Coach provides nutritional guidance — not medical advice. When something genuinely requires your doctor, midwife, or dietitian, it says so clearly. It will never speculate about medical symptoms, diagnose conditions, or recommend medications. The coaching operates within the clinical guardrails set by your active protocols.",
+        },
+        {
+          heading: "How to Access It",
+          text: "Open the Lifestyle section and tap My Perfect Pregnancy. The coaching interface is on that page. You must have My Perfect Pregnancy activated in your profile for the full coaching context to load.",
+        },
+      ],
+    },
+  },
+  {
+    id: "parents-corner",
+    title: "Parent's Corner",
+    subtitle: "Child nutrition coaching · Child is the subject · Parent is the operator",
+    icon: Users,
+    content: {
+      sections: [
+        {
+          heading: "The Core Architecture",
+          text: "Parent's Corner operates on a fundamental design principle: the selected child is the nutrition subject, not the parent or caregiver asking the question. The parent is the authorized operator — asking questions on the child's behalf. Every response is calibrated to that specific child's developmental stage, profile, allergies, conditions, and feeding context, not to the adult using the app.",
+        },
+        {
+          heading: "What It Knows About the Selected Child",
+          list: [
+            "Developmental stage — early infant, beginning foods, young toddler, toddler, preschool, early school age, growing child",
+            "Age in months derived from date of birth or stage mapping",
+            "Full allergen profile — every allergy and food sensitivity on the child's profile",
+            "Diagnosed medical conditions relevant to nutrition",
+            "Feeding concerns — picky eating, texture issues, refusal patterns",
+            "Sensory issues affecting food acceptance",
+            "Food dislikes and preferences",
+            "Cultural dietary preferences",
+          ],
+        },
+        {
+          heading: "Conversation Persistence Per Child",
+          text: "Conversation history is saved per child profile, not per parent account. If you have multiple children, each has their own separate conversation history. When you switch to a different child profile, the coaching context and conversation switch with it. Start Fresh resets the conversation for the currently selected child only.",
+        },
+        {
+          heading: "What to Ask It",
+          list: [
+            "What foods to introduce next at your child's current stage",
+            "How to handle food refusals and picky eating without creating stress",
+            "Whether a specific food or ingredient is appropriate at their age",
+            "How to manage a diagnosed condition through food choices",
+            "What a balanced day of eating looks like for their developmental stage",
+            "How to build a varied palate in an age-appropriate way",
+            "Lunchbox ideas that fit their age, stage, and preferences",
+          ],
+        },
+        {
+          heading: "Today's Tip and Curated Questions",
+          text: "Each session opens with a stage-appropriate Today's Tip — a brief, practical piece of guidance calibrated to your child's current developmental moment. Nine curated question cards cover the most common parent concerns at each stage, so you can get useful answers quickly without having to know exactly how to phrase a question. Free-text Ask Anything is always available for anything not covered by the cards.",
+        },
+        {
+          heading: "Clinical Boundaries",
+          text: "Parent's Corner provides nutritional guidance — not medical advice. When something requires a pediatrician or registered dietitian — growth concerns, diagnostic questions, medical treatment decisions — it says so directly and does not speculate. Child allergen protections on the child's profile are always active and cannot be overridden.",
+        },
+        {
+          heading: "How to Access It",
+          text: "Open My Perfect Beginning from the Lifestyle section, select a child profile, and tap Parent's Corner. The coaching context loads from the selected child's profile automatically.",
+        },
+      ],
+    },
+  },
+];
+
+const LIBRARY_SECTIONS: LibrarySection[] = [
+  {
+    id: "start-here",
+    label: "START HERE",
+    description: "Guided entry",
+    topics: SECTION_START_HERE,
+  },
+  {
+    id: "core-systems",
+    label: "CORE SYSTEMS",
+    description: "How the app works",
+    topics: SECTION_CORE_SYSTEMS,
+  },
+  {
+    id: "nutrition-strategy",
+    label: "NUTRITION STRATEGY",
+    description: "User-facing systems",
+    topics: SECTION_NUTRITION_STRATEGY,
+  },
+  {
+    id: "performance-modes",
+    label: "PERFORMANCE MODES",
+    description: "Competition prep & athletic overlays",
+    topics: SECTION_PERFORMANCE_MODES,
+  },
+  {
+    id: "health-safety",
+    label: "HEALTH & SAFETY",
+    description: "Trust layer",
+    topics: SECTION_HEALTH_SAFETY,
+  },
+  {
+    id: "specialized",
+    label: "SPECIALIZED SYSTEMS",
+    description: "Advanced differentiators",
+    topics: SECTION_SPECIALIZED,
+  },
+];
+
+function LibraryItem({
+  topic,
+  initialExpanded = false,
+}: {
+  topic: LibraryTopic;
+  initialExpanded?: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [mode, setMode] = useState<"read" | "listen">("read");
+  const [showTranscript, setShowTranscript] = useState(false);
   const narration = useNarration(topic.content.sections);
 
   const handleToggle = () => {
     if (isExpanded) {
       narration.reset();
+      setShowTranscript(false);
     }
     setIsExpanded(!isExpanded);
   };
@@ -620,49 +3093,59 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
   const handleModeChange = (newMode: "read" | "listen") => {
     if (newMode === "read") {
       narration.reset();
+      setShowTranscript(false);
     }
     setMode(newMode);
     narration.toggleMode(newMode);
   };
 
+  const handleStartOver = useCallback(() => {
+    narration.reset();
+    setTimeout(() => narration.play(), 50);
+  }, [narration]);
+
   const Icon = topic.icon;
 
+  useEffect(() => {
+    if (!initialExpanded) return;
+    setIsExpanded(true);
+    window.setTimeout(() => {
+      document
+        .getElementById(`library-topic-${topic.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }, [initialExpanded, topic.id]);
+
   return (
-    <div className="w-full">
+    <div id={`library-topic-${topic.id}`} className="w-full scroll-mt-24">
       <button
         onClick={handleToggle}
-        className={`w-full flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 ${
+        className={`w-full flex items-start gap-3 px-4 py-4 rounded-xl transition-all duration-200 ${
           isExpanded
             ? "bg-black/70 border border-white/20 shadow-lg"
             : "bg-black/50 border border-white/10 hover:bg-black/60 hover:border-white/15"
         }`}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <Icon className="h-4 w-4 text-orange-400 flex-shrink-0" />
-          <div className="flex flex-col min-w-0">
-            <span className="text-white font-medium text-sm leading-tight">
-              {topic.title}
+        <Icon className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
+
+        <div className="flex flex-col flex-1 min-w-0 text-left">
+          <span className="text-white font-medium text-sm leading-tight">
+            {topic.title}
+          </span>
+          {topic.subtitle && (
+            <span className="text-xs text-white/55 mt-0.5 leading-snug line-clamp-1">
+              {topic.subtitle}
             </span>
-            {topic.subtitle && (
-              <span className="text-[11px] text-white/60 leading-tight">
-                {topic.subtitle}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 text-[10px] text-white/50 mr-2">
-          <Headphones className="h-3 w-3" />
-          <span>Audio</span>
-        </div>
-
-        <div className="ml-3 flex-shrink-0">
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-white/60" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-white/60" />
           )}
         </div>
+
+        <motion.div
+          animate={{ rotate: isExpanded ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex-shrink-0 mt-0.5"
+        >
+          <ChevronDown className="h-4 w-4 text-white/50" />
+        </motion.div>
       </button>
 
       <AnimatePresence>
@@ -674,7 +3157,7 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="mt-2 p-4 bg-black/40 rounded-xl border border-white/10">
+            <div className="mt-1 p-4 bg-black/40 rounded-xl border border-white/10">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex gap-2">
                   <PillButton
@@ -694,10 +3177,17 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                 </div>
 
                 {mode === "listen" && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-white/40 font-mono tabular-nums">
+                      {narration.currentSectionIndex + 1}/{narration.totalSections}
+                    </span>
                     <PillButton
                       onClick={
-                        narration.isPlaying ? narration.pause : narration.play
+                        narration.isPlaying
+                          ? narration.pause
+                          : narration.isPaused
+                          ? narration.resume
+                          : narration.play
                       }
                       active={narration.isPlaying}
                     >
@@ -707,16 +3197,58 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
                         <Play className="h-3 w-3" />
                       )}
                     </PillButton>
-                    <PillButton onClick={narration.stop}>
+                    <PillButton onClick={narration.skipBack10} className="flex items-center gap-1">
+                      <Undo2 className="h-3 w-3" />
+                      <span className="text-[10px]">10s</span>
+                    </PillButton>
+                    <PillButton onClick={narration.nextSection} className="flex items-center gap-1">
+                      <ChevronRight className="h-3 w-3" />
+                      <span className="text-[10px]">Next</span>
+                    </PillButton>
+                    <PillButton onClick={handleStartOver} className="flex items-center gap-1">
+                      <RotateCcw className="h-3 w-3" />
+                    </PillButton>
+                    <PillButton
+                      onClick={() => setShowTranscript((v) => !v)}
+                      active={showTranscript}
+                      className="flex items-center gap-1"
+                    >
+                      <FileText className="h-3 w-3" />
+                    </PillButton>
+                    <PillButton
+                      onClick={() => { narration.stop(); setShowTranscript(false); }}
+                      active={false}
+                      className="opacity-60"
+                    >
                       <Square className="h-3 w-3" />
                     </PillButton>
-                    <span className="text-[10px] text-white/50 ml-1">
-                      {narration.currentSectionIndex + 1}/
-                      {narration.totalSections}
-                    </span>
                   </div>
                 )}
               </div>
+
+              {mode === "listen" && showTranscript && (() => {
+                const s = topic.content.sections[narration.currentSectionIndex];
+                return s ? (
+                  <div className="mb-3 p-3 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                    <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider">
+                      {s.heading}
+                    </p>
+                    {s.text && (
+                      <p className="text-xs text-white/70 leading-relaxed">{s.text}</p>
+                    )}
+                    {s.list && (
+                      <ul className="space-y-1 mt-1">
+                        {s.list.map((item, i) => (
+                          <li key={i} className="text-xs text-white/70 flex items-start gap-2">
+                            <span className="text-white/30 mt-0.5">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : null;
+              })()}
 
               <div className="space-y-4">
                 {topic.content.sections.map((section, index) => (
@@ -762,7 +3294,10 @@ function LibraryItem({ topic }: { topic: LibraryTopic }) {
 }
 
 export default function Learn() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const requestedTopic = new URLSearchParams(
+    location.includes("?") ? location.split("?")[1] : "",
+  ).get("topic");
 
   return (
     <motion.div
@@ -770,43 +3305,54 @@ export default function Learn() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white p-4"
     >
-      {/* Fixed Black Glass Navigation Banner */}
       <MobileHeaderGuard>
-      <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="px-4 pb-3 flex items-center gap-3">
-          <Button
-            onClick={() => navigate("/")}
-            className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold text-white">App Library</h1>
-            <p className="text-xs text-white/60">
-              Learn how My Perfect Meals works
-            </p>
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 pb-3 flex items-center gap-3">
+            <Button
+              onClick={() => navigate("/")}
+              className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs font-medium">Back</span>
+            </Button>
+            <div>
+              <h1 className="text-lg font-bold text-white">App Library</h1>
+              <p className="text-xs text-white/60">
+                Learn how My Perfect Meals works
+              </p>
+            </div>
           </div>
         </div>
-      </div>
       </MobileHeaderGuard>
 
-      {/* Content with padding for fixed header */}
       <div
         className="max-w-lg mx-auto pb-24"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
-        <p className="text-xs text-white/60 mb-3 text-center">
-          Start with the founder story to understand why this app exists.
-        </p>
-        <div className="space-y-2">
-          {libraryTopics.map((topic) => (
-            <LibraryItem key={topic.id} topic={topic} />
-          ))}
-        </div>
+        {LIBRARY_SECTIONS.map((section) => (
+          <div key={section.id} className="mb-6">
+            <div className="mb-2 px-1">
+              <h3 className="text-xs font-semibold text-white/45 uppercase tracking-widest">
+                {section.label}
+              </h3>
+              <p className="text-[11px] text-white/30 mt-0.5">
+                {section.description}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {section.topics.map((topic) => (
+                <LibraryItem
+                  key={topic.id}
+                  topic={topic}
+                  initialExpanded={topic.id === requestedTopic}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </motion.div>
   );

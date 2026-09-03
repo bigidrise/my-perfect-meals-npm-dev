@@ -18,6 +18,44 @@ export interface SafetyGuardrails {
 const normalize = (s: string) => s.trim().toLowerCase();
 
 /**
+ * ALLERGEN KEY CLASSIFICATION SETS
+ *
+ * Used by the masking-aware allergen scan to decide which text normalization
+ * applies when checking a term:
+ *
+ *   DAIRY_ALLERGEN_KEYS  — plant-milk masking applies (scanning "milk" for a dairy
+ *                          allergy must not flag "almond milk", "oat milk", etc.)
+ *   NUT_ALLERGEN_KEYS    — plant-milk AND nut-butter masking must NOT apply because
+ *                          "almond milk" IS a real nut-allergy violation (almond term),
+ *                          and "almond butter" IS a real nut-allergy violation.
+ *
+ * Any allergen key not in either set gets nut-butter masking for its "butter" terms.
+ */
+export const DAIRY_ALLERGEN_KEYS = new Set([
+  "dairy", "milk", "lactose", "lactose intolerance", "lactose_intolerance",
+]);
+
+export const NUT_ALLERGEN_KEYS = new Set([
+  // Keys that appear in ALLERGEN_EXPANSION
+  "tree nuts", "tree nut",
+  "nuts", "nut",
+  "peanuts", "peanut",
+  // Variant spellings users may enter (not in expansion map, but mapped via fallback)
+  "tree-nut", "tree_nut", "treenut",
+  // Individual nut names as potential user-entered allergen keys
+  "almond", "almonds",
+  "cashew", "cashews",
+  "walnut", "walnuts",
+  "hazelnut", "hazelnuts",
+  "pistachio", "pistachios",
+  "macadamia",
+  "pecan", "pecans",
+  "brazil nut",
+  "pine nut",
+  "chestnut",
+]);
+
+/**
  * PLANT MILK SAFE LIST
  * These compound phrases are NOT dairy and must not be blocked by the bare "milk" term.
  * Each prefix (e.g. "almond") may still be blocked by its OWN allergen category
@@ -57,12 +95,152 @@ export function maskNutButters(text: string): string {
   return text.replace(NUT_BUTTER_PATTERN, "__NUT_BUTTER__");
 }
 
+/**
+ * CENTRALIZED NORMALIZATION LAYER — single entry point for all dietary scanning.
+ *
+ * Every post-generation scan MUST pass text through this function before
+ * running any term matching. Adding new safe-compound rules belongs here only —
+ * never inline masking calls inside individual scan functions.
+ *
+ * Current normalizations:
+ *   1. Lowercase
+ *   2. Mask plant milks (oat milk, almond milk, etc.) → prevents false dairy flags
+ *   3. Mask nut butters (peanut butter, almond butter, etc.) → prevents false butter flags
+ */
+export function normalizeForDietaryScan(text: string): string {
+  const lowered = text.toLowerCase();
+  const milkMasked = maskPlantMilks(lowered);
+  const butterMasked = maskNutButters(milkMasked);
+  return butterMasked;
+}
+
+
+/**
+ * FOOD AVOIDANCE EXPANSION MAP
+ * Maps user-selected avoidance categories to specific ingredients that must be avoided.
+ * "vegetables" deliberately maps ONLY to fibrous/non-starchy vegetables.
+ * Starchy carbs (potatoes, sweet potatoes, corn, squash) are intentionally excluded
+ * so they remain available in the starch lane for macro planning.
+ */
+export const AVOIDANCE_EXPANSION: Record<string, string[]> = {
+  vegetables: [
+    "broccoli", "spinach", "kale", "asparagus", "zucchini", "green beans",
+    "brussels sprouts", "cauliflower", "cabbage", "arugula", "bok choy",
+    "collard greens", "swiss chard", "watercress", "beet greens",
+    "green peas", "snap peas", "snow peas", "artichoke", "artichokes",
+    "leeks", "celery", "fennel", "endive", "radicchio", "romaine",
+    "mixed greens", "salad greens", "microgreens",
+    "lettuce", "mixed salad", "salad mix",
+    "peppers", "bell pepper", "bell peppers", "red pepper", "green pepper", "yellow pepper",
+    "cucumber", "cucumbers",
+    "eggplant", "aubergine",
+    "mushrooms", "onions",
+  ],
+  mushrooms: [
+    "mushroom", "mushrooms", "portobello", "shiitake", "cremini", "button mushroom",
+    "oyster mushroom", "king oyster", "enoki", "chanterelle", "morel",
+    "porcini", "maitake", "lion's mane", "truffle", "truffles",
+  ],
+  onions: [
+    "onion", "onions", "red onion", "white onion", "yellow onion",
+    "green onion", "scallion", "scallions", "shallot", "shallots",
+    "chives", "leek", "leeks",
+  ],
+  seafood: [
+    "seafood", "fish", "salmon", "tuna", "cod", "tilapia", "shrimp", "prawn",
+    "prawns", "crab", "lobster", "scallop", "scallops", "clam", "clams",
+    "mussel", "mussels", "oyster", "oysters", "squid", "calamari",
+    "octopus", "sardine", "sardines", "anchovy", "anchovies",
+    "halibut", "mahi", "mahi-mahi", "swordfish", "trout", "bass",
+    "mackerel", "snapper", "catfish", "flounder", "haddock",
+  ],
+  pork: [
+    "pork", "bacon", "ham", "prosciutto", "pancetta", "sausage", "salami",
+    "pepperoni", "chorizo", "carnitas", "pulled pork", "pork chop",
+    "pork tenderloin", "pork belly", "ribs", "spare ribs", "pork loin",
+    "pork shoulder", "ground pork", "Italian sausage", "bratwurst",
+    "mortadella", "pork rinds", "chicharron", "lard",
+  ],
+  "red meat": [
+    "beef", "steak", "ground beef", "bison", "lamb", "veal", "venison",
+    "elk", "goat", "mutton", "ribeye", "sirloin", "filet mignon",
+    "flank steak", "skirt steak", "chuck roast", "brisket",
+    "short ribs", "beef ribs", "hamburger", "burger", "meatball",
+    "meat sauce", "bolognese",
+  ],
+  dairy: [
+    "dairy", "milk", "whole milk", "skim milk", "2% milk", "cream",
+    "heavy cream", "half and half", "half-and-half", "butter", "ghee",
+    "cheese", "cheddar", "mozzarella", "parmesan", "feta", "brie",
+    "camembert", "ricotta", "cottage cheese", "cream cheese", "gouda",
+    "swiss cheese", "provolone", "blue cheese", "gorgonzola",
+    "yogurt", "greek yogurt", "kefir", "sour cream", "creme fraiche",
+    "whey", "casein", "lactose", "buttermilk", "custard", "ice cream",
+    "gelato", "whipped cream", "condensed milk", "evaporated milk",
+    "milk powder", "dried milk",
+  ],
+  milk: [
+    "milk", "whole milk", "skim milk", "2% milk", "dairy", "cream",
+    "butter", "cheese", "yogurt", "whey", "casein", "lactose",
+  ],
+};
 
 /**
  * COMPREHENSIVE ALLERGEN EXPANSION MAP
  * Maps user-selected allergies to ALL related ingredients that must be blocked
  * This is the single source of truth for allergen blocking
  */
+// ─────────────────────────────────────────────────────────────────────────────
+// ALLERGEN KEY MATCHING — exact canonical matching for override authorization.
+//
+// A Safety-PIN allergen override authorizes ONE allergen category. Matching an
+// override against a stored allergy must NEVER use substring logic ("fish" is a
+// substring of "shellfish" — a fish override must not unlock shellfish). Instead:
+//   1. Normalize (lowercase, trim, hyphens/underscores → single spaces)
+//   2. Map deliberate aliases that denote the SAME allergy (milk ↔ dairy,
+//      singular/plural variants, alpha-gal spellings)
+//   3. Compare for exact equality (plus strict singular/plural equivalence)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Aliases that genuinely denote the same allergy category — nothing else. */
+const ALLERGEN_KEY_ALIASES: Record<string, string> = {
+  milk: "dairy",                    // "milk allergy" IS a dairy allergy (distinct from lactose intolerance)
+  "shell fish": "shellfish",
+  "tree nut": "tree nuts",
+  treenut: "tree nuts",
+  treenuts: "tree nuts",
+  peanut: "peanuts",
+  egg: "eggs",
+  "alpha gal": "alpha-gal",
+  "alpha gal syndrome": "alpha-gal",
+  "alpha-gal syndrome": "alpha-gal",
+};
+
+/** Normalize an allergen label to its canonical category key. */
+export function canonicalAllergenKey(raw: string): string {
+  const k = (raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+  const aliased = ALLERGEN_KEY_ALIASES[k] ?? k;
+  // Restore canonical hyphenation where the expansion table uses it
+  return aliased === "alpha gal" ? "alpha-gal" : aliased;
+}
+
+/**
+ * True only when two allergen labels denote the SAME allergy category.
+ * Exact canonical equality plus strict singular/plural equivalence
+ * ("peanut" ↔ "peanuts"). Never substring-based: "fish" ≠ "shellfish".
+ */
+export function allergenKeysMatch(a: string, b: string): boolean {
+  const ca = canonicalAllergenKey(a);
+  const cb = canonicalAllergenKey(b);
+  if (!ca || !cb) return false;
+  if (ca === cb) return true;
+  return ca + "s" === cb || cb + "s" === ca;
+}
+
 export const ALLERGEN_EXPANSION: Record<string, string[]> = {
   // Shellfish - CRITICAL: Must block all crustaceans and mollusks + dishes that typically contain them
   shellfish: [
@@ -267,18 +445,55 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "pepper", "peppers", "bell pepper", "chili", "chili pepper",
     "jalapeño", "cayenne", "paprika", "eggplant", "aubergine",
     "goji berry", "goji berries", "tobacco"
-  ]
+  ],
+
+  // Alpha-gal Syndrome (Mammalian Meat Allergy) — IgE-mediated clinical allergy
+  // HARD BLOCK: all mammalian meats, organ meats, mammalian fats, and mammalian stocks.
+  // NOTE: Dairy is intentionally NOT included here — dairy tolerance is individualized.
+  //       Dairy/gelatin conditional guidance is injected via universalMedicalGuidance.ts.
+  "alpha-gal": [
+    "beef", "ground beef", "hamburger", "steak", "ribeye", "sirloin", "brisket", "chuck roast",
+    "veal", "pork", "ham", "bacon", "prosciutto", "pancetta", "salami", "pepperoni", "chorizo",
+    "sausage", "hot dog", "bratwurst", "kielbasa", "lamb", "mutton", "goat", "venison", "deer",
+    "rabbit", "bison", "buffalo", "elk", "moose", "boar", "wild boar",
+    "liver", "beef liver", "pork liver", "kidney", "sweetbreads", "tripe", "intestines", "oxtail", "tongue",
+    "lard", "tallow", "suet", "beef fat", "pork fat", "drippings",
+    "beef broth", "beef stock", "pork broth", "bone broth", "meat gravy", "beef bouillon", "pork bouillon", "meat stock",
+  ],
+  "alpha-gal syndrome": [
+    "beef", "ground beef", "hamburger", "steak", "ribeye", "sirloin", "brisket", "chuck roast",
+    "veal", "pork", "ham", "bacon", "prosciutto", "pancetta", "salami", "pepperoni", "chorizo",
+    "sausage", "hot dog", "bratwurst", "kielbasa", "lamb", "mutton", "goat", "venison", "deer",
+    "rabbit", "bison", "buffalo", "elk", "moose", "boar", "wild boar",
+    "liver", "beef liver", "pork liver", "kidney", "sweetbreads", "tripe", "intestines", "oxtail", "tongue",
+    "lard", "tallow", "suet", "beef fat", "pork fat", "drippings",
+    "beef broth", "beef stock", "pork broth", "bone broth", "meat gravy", "beef bouillon", "pork bouillon", "meat stock",
+  ],
+  "alpha gal": [
+    "beef", "ground beef", "steak", "veal", "pork", "ham", "bacon", "lamb", "venison", "rabbit",
+    "bison", "elk", "moose", "liver", "kidney", "sweetbreads", "tripe", "lard", "tallow", "suet",
+    "beef broth", "beef stock", "pork broth", "bone broth", "meat gravy",
+  ],
+  "alpha gal syndrome": [
+    "beef", "ground beef", "steak", "veal", "pork", "ham", "bacon", "lamb", "venison", "rabbit",
+    "bison", "elk", "moose", "liver", "kidney", "sweetbreads", "tripe", "lard", "tallow", "suet",
+    "beef broth", "beef stock", "pork broth", "bone broth", "meat gravy",
+  ],
 };
 
 /**
- * DIET PRIORITY ORDER — strictest wins when multiple diets are present
+ * DIET PRIORITY ORDER — strictest wins when multiple diets are present.
+ * keto and paleo are strict (filter-first); vegan/vegetarian/pescatarian are flexible (modify-allowed).
  */
-export const DIET_PRIORITY = ["vegan", "vegetarian", "pescatarian"] as const;
+export const DIET_PRIORITY = ["carnivore", "vegan", "vegetarian", "pescatarian", "keto", "paleo"] as const;
 export type DietMode = typeof DIET_PRIORITY[number];
+
+/** Strict diets — invalid meals must be rejected outright, not modified */
+const STRICT_DIETS: DietMode[] = ["carnivore", "keto", "paleo"];
 
 /**
  * Resolve a single primary diet from a dietary restrictions array.
- * Follows priority: vegan > vegetarian > pescatarian
+ * Follows priority: vegan > vegetarian > pescatarian > keto > paleo
  * Returns null if no diet mode is present.
  */
 export function getPrimaryDiet(restrictions: string[]): DietMode | null {
@@ -333,13 +548,98 @@ export const RESTRICTION_EXPANSION: Record<string, string[]> = {
   "no pork": [
     "pork", "bacon", "ham", "prosciutto", "pancetta", "pork chop",
     "pork loin", "pork belly", "chorizo", "sausage", "lard"
+  ],
+
+  keto: [
+    // All grains and grain-based foods
+    "pasta", "spaghetti", "fettuccine", "penne", "linguine", "rigatoni", "lasagna",
+    "ravioli", "tagliatelle", "gnocchi", "noodle", "noodles", "orzo", "macaroni",
+    "rice", "white rice", "brown rice", "fried rice", "risotto",
+    "bread", "toast", "baguette", "roll", "rolls", "sandwich bread", "sourdough",
+    "tortilla", "tortillas", "wrap", "pita", "flatbread", "naan",
+    "corn", "cornmeal", "polenta", "corn tortilla",
+    "oats", "oatmeal", "granola",
+    "wheat", "barley", "rye", "millet", "quinoa",
+    "cereal", "crackers", "pretzels",
+    // Sugars and sweeteners
+    "sugar", "cane sugar", "brown sugar", "powdered sugar", "maple syrup",
+    "honey", "agave", "corn syrup", "high fructose corn syrup",
+    "molasses", "jam", "jelly", "syrup",
+    // Starchy vegetables
+    "potato", "potatoes", "sweet potato", "yam", "parsnip", "beet", "beets",
+    // Legumes
+    "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
+    "lentils", "edamame", "soy beans",
+    // Fruit juice and sugary drinks
+    "fruit juice", "orange juice", "apple juice", "soda", "sweetened beverage",
+    // High-carb whole fruits (not keto-compatible — too high in natural sugar)
+    // Note: low-sugar berries (strawberries, blueberries, raspberries, blackberries) are keto-allowed
+    "banana", "bananas", "mango", "mangos", "mango chunks", "pineapple", "pineapple chunks",
+    "grapes", "grape juice", "dates", "medjool dates", "dried dates", "lychee",
+    "watermelon", "cantaloupe"
+  ],
+
+  paleo: [
+    // All grains
+    "wheat", "oats", "barley", "rye", "corn", "rice", "quinoa",
+    "bread", "pasta", "noodles", "cereal", "crackers", "tortilla", "pita",
+    "oatmeal", "granola", "couscous", "bulgur", "farro",
+    // All dairy
+    "milk", "cheese", "butter", "cream", "yogurt", "ice cream", "whey",
+    "casein", "dairy", "mozzarella", "parmesan", "cheddar", "ricotta",
+    "brie", "feta", "gouda", "sour cream", "cream cheese",
+    // Legumes
+    "beans", "black beans", "kidney beans", "pinto beans", "chickpeas",
+    "lentils", "peanuts", "peanut butter", "soy", "tofu", "tempeh",
+    "edamame", "hummus",
+    // Processed and refined sweeteners
+    "refined sugar", "sugar", "cane sugar", "corn syrup", "agave", "honey",
+    "artificial sweetener", "canola oil", "vegetable oil", "soybean oil",
+    "margarine", "processed food", "refined flour",
+    // Potatoes (white — sweet potatoes are paleo-allowed)
+    "white potato", "white potatoes", "french fries", "mashed potatoes"
+  ],
+
+  carnivore: [
+    // ALL vegetables — hard blocked
+    "spinach", "kale", "lettuce", "arugula", "broccoli", "cauliflower",
+    "zucchini", "squash", "cucumber", "celery", "carrot", "carrots",
+    "onion", "onions", "garlic", "shallot", "leek", "bell pepper", "peppers",
+    "tomato", "tomatoes", "mushroom", "mushrooms", "asparagus", "green beans",
+    "peas", "corn", "eggplant", "cabbage", "bok choy", "brussels sprouts",
+    "artichoke", "beet", "beets", "radish", "turnip", "parsnip", "fennel",
+    "okra", "collard greens", "swiss chard", "watercress", "endive",
+    // ALL fruits — hard blocked
+    "apple", "banana", "orange", "mango", "berries", "blueberries",
+    "strawberries", "raspberries", "grapes", "lemon", "lime", "pineapple",
+    "melon", "watermelon", "peach", "plum", "cherry", "avocado", "coconut",
+    "date", "fig", "pomegranate", "kiwi",
+    // ALL grains — hard blocked
+    "bread", "pasta", "rice", "oats", "wheat", "barley", "rye", "corn",
+    "quinoa", "tortilla", "noodles", "cereal", "crackers", "flour",
+    "couscous", "bulgur", "farro", "granola", "oatmeal",
+    // ALL legumes — hard blocked
+    "beans", "lentils", "chickpeas", "peas", "soy", "tofu", "tempeh",
+    "edamame", "hummus", "peanut", "peanut butter",
+    // ALL plant oils and plant-based fats — hard blocked
+    "olive oil", "vegetable oil", "canola oil", "coconut oil", "avocado oil",
+    "sunflower oil", "sesame oil", "flaxseed oil", "soybean oil",
+    // ALL sugars and sweeteners — hard blocked
+    "sugar", "honey", "maple syrup", "agave", "corn syrup", "molasses",
+    // Herbs and plant-derived spices (basic salt is allowed)
+    "hot sauce", "soy sauce", "worcestershire sauce", "ketchup", "bbq sauce",
+    "vinegar", "mustard", "ranch", "salad dressing",
+    // Nuts and seeds — hard blocked
+    "almonds", "walnuts", "cashews", "pecans", "pistachios", "sunflower seeds",
+    "chia seeds", "flaxseeds", "hemp seeds", "sesame seeds",
   ]
 };
 
 /**
  * Build a CRITICAL DIETARY RULE prompt block for injection into AI generators.
  * Uses word-boundary–safe forbidden lists from RESTRICTION_EXPANSION.
- * Priority: vegan > vegetarian > pescatarian (strictest wins).
+ * Priority: vegan > vegetarian > pescatarian > keto > paleo (strictest wins).
+ * Keto and paleo are STRICT diets — invalid meals are rejected outright, not modified.
  * Returns an empty string when no diet mode applies.
  */
 export function buildDietPromptBlock(restrictions: string[]): string {
@@ -347,16 +647,253 @@ export function buildDietPromptBlock(restrictions: string[]): string {
   if (!diet) return "";
 
   const forbidden = RESTRICTION_EXPANSION[diet] || [];
-  return [
+  const isStrict = STRICT_DIETS.includes(diet);
+
+  const baseBlock = [
     `CRITICAL DIETARY RULE:`,
     `This user strictly follows a ${diet.toUpperCase()} diet. This is NON-NEGOTIABLE.`,
     `STRICTLY FORBIDDEN — NEVER include ANY of these ingredients or derivatives:`,
     forbidden.join(", ") + ".",
     `Meals that contain any forbidden ingredient are INVALID and must not be generated.`,
-    `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
-    `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
-  ].join("\n");
+  ];
+
+  if (isStrict) {
+    // Strict diets: filter-first, no modifications of invalid meals
+    baseBlock.push(
+      `STRICT DIET ENFORCEMENT:`,
+      `Do NOT attempt to modify a non-compliant meal into compliance (e.g., do not suggest "remove the pasta" for a pasta dish).`,
+      `If a dish fundamentally violates this diet, reject it entirely and choose a different, naturally compliant meal.`,
+      `Only return meals that are inherently compliant without requiring modifications to the core dish.`,
+    );
+    if (diet === "carnivore") {
+      baseBlock.push(
+        `CARNIVORE DIET ENFORCEMENT:`,
+        `Meals must consist ONLY of animal-based foods: meat, poultry, seafood, eggs, butter, tallow, lard, and salt.`,
+        `Dairy (cheese, heavy cream, butter) is ALLOWED by default.`,
+        `NO vegetables, fruits, grains, legumes, plant oils, nuts, seeds, or plant-derived sauces of any kind.`,
+        `Herbs and plant-based spices are NOT allowed — use only salt for seasoning.`,
+        `If a requested dish cannot exist without plant ingredients (e.g., a salad), choose a different carnivore-compliant meal instead.`,
+        `CARNIVORE NAMING RULE: If the user's concept uses a misleading word (salad, wrap, bowl, sandwich, smoothie, stir fry, burger), reinterpret the name using the actual animal ingredients only.`,
+        `EXAMPLES OF CORRECT CARNIVORE RENAMING:`,
+        `  "Chicken Salad" → "Sliced Chicken Breast with Egg and Beef Tallow"`,
+        `  "Berry Smoothie" → "Whipped Cream and Egg Yolk Drink"`,
+        `  "Salmon Bowl" → "Pan-Seared Salmon with Butter"`,
+        `  "Carnivore Burger" → "Pan-Seared Beef Patty with Fried Egg and Bacon"`,
+        `The final meal name must reflect what is ACTUALLY on the plate — no plant food references in the name ever.`,
+        `CARNIVORE TONE RULE: Never describe plant foods as beneficial or necessary. Focus on protein quality, animal fats, and simplicity. Avoid any language suggesting vegetables or fiber are needed.`,
+      );
+    } else if (diet === "keto") {
+      baseBlock.push(
+        `KETO TONE RULE: Never describe carbohydrates as beneficial. Focus on protein, healthy fats, satiety, and stable blood sugar. Avoid phrases like "provides energy from carbs" or "carbs for fuel."`,
+      );
+    } else if (diet === "paleo") {
+      baseBlock.push(
+        `PALEO TONE RULE: Never describe grains, dairy, or legumes as beneficial. Focus on whole-food protein, natural fats, vegetable variety, and sustained energy. Avoid phrases like "good source of grains" or "provides dairy protein."`,
+      );
+    }
+  } else {
+    // Flexible diets: compliant alternatives are acceptable
+    baseBlock.push(
+      `If a craving seems to conflict with this diet (e.g., asking for a burger while vegan),`,
+      `create a compliant alternative (e.g., a vegan black-bean burger) — never violate the diet.`,
+    );
+  }
+
+  // Vegetarian / vegan: inject starch-stacking prevention and protein-role rules
+  if (diet === "vegetarian" || diet === "vegan") {
+    baseBlock.push(
+      ``,
+      `VEGETARIAN MACRO STRUCTURE RULES (MANDATORY — follow these as a decision tree):`,
+      ``,
+      `━━━ STARCH HIERARCHY DECISION TREE ━━━`,
+      ``,
+      `STEP 1 — Does this meal contain legumes (beans, lentils, chickpeas, black-eyed peas, edamame)?`,
+      `  → YES: Legumes = protein anchor + primary carb. NO second starch allowed.`,
+      `         Do NOT add: grits, rice, quinoa, bread, polenta, cornmeal, oats, sweet potato, or any grain.`,
+      `         Fill all remaining slots with NON-STARCHY VEGETABLES only.`,
+      `  → NO:  Choose exactly ONE starch: quinoa, brown rice, oats, sweet potato, farro, or whole grain bread.`,
+      `         Do NOT add a second starch alongside it.`,
+      ``,
+      `STEP 2 — FORBIDDEN double-starch combinations (NEVER do any of these):`,
+      `  ❌ Black-eyed peas + grits`,
+      `  ❌ Black beans + rice`,
+      `  ❌ Lentils + bread`,
+      `  ❌ Chickpeas + quinoa`,
+      `  ❌ Any legume + any grain together as equal components`,
+      `  ❌ Quinoa + sweet potato`,
+      `  ❌ Rice + sweet potato`,
+      `  These combinations are INVALID regardless of portion size.`,
+      ``,
+      `STEP 3 — MANDATORY VEGETABLE REQUIREMENT:`,
+      `  Every meal MUST include at least ONE non-starchy vegetable:`,
+      `  spinach, kale, collard greens, broccoli, cauliflower, mushrooms, bell peppers,`,
+      `  zucchini, asparagus, arugula, Swiss chard, or similar.`,
+      `  A meal with ZERO vegetables is INVALID. Do not generate it.`,
+      ``,
+      `━━━ PROTEIN DENSITY REQUIREMENT (≥20g — hard minimum) ━━━`,
+      ``,
+      `Acceptable protein anchors and their contribution:`,
+      `  - Tempeh 4 oz = 22g ✅`,
+      `  - Cottage cheese 1 cup = 25g ✅`,
+      `  - Tofu 6 oz firm = 18g → add 1 egg or 2 oz cheese to reach 20g+ ✅`,
+      `  - Eggs 3 large = 18g → add Greek yogurt to reach 20g+ ✅`,
+      `  - Greek yogurt 1 cup = 17–20g → add cottage cheese or eggs to boost ✅`,
+      `  - Lentils/chickpeas/beans 1 cup cooked = 15–18g → combine with eggs or cheese ✅`,
+      `  Do NOT rely on quinoa alone for protein (only 8g per cup — not a protein source).`,
+      `  If the protein total will be below 20g: change the protein anchor. Do not serve the meal.`,
+      ``,
+      `━━━ PROCESSED PLANT PRODUCTS — DO NOT USE ━━━`,
+      ``,
+      `Do NOT use: vegan sausage, veggie sausage, plant-based sausage, vegan deli slices,`,
+      `mock meats, or other heavily processed plant-based meat alternatives.`,
+      `These are nutritionally inconsistent and are not appropriate for whole-food nutrition.`,
+      `Use whole-food proteins instead: tofu, tempeh, eggs, legumes, Greek yogurt, cottage cheese.`,
+      ``,
+      `━━━ NO ADDED SWEETENERS IN SAVORY MEALS ━━━`,
+      ``,
+      `Do not add maple syrup, honey, agave, corn syrup, or refined sugar to savory meals.`,
+      `Sweet flavors must come from whole foods: sweet potato, berries, fruit, or cinnamon.`,
+    );
+  }
+
+  return baseBlock.join("\n");
 }
+
+// ─── DIET × BEVERAGE CATEGORY INTELLIGENCE ──────────────────────────────────
+
+export type ConflictLevel = 'none' | 'caution' | 'redirect';
+
+export interface DietCategoryStrategy {
+  conflictLevel: ConflictLevel;
+  effectiveCategory: string;   // what the AI should generate (may differ for redirect)
+  requestedCategory: string;   // what the user originally selected
+  coachingBlock: string;       // injected into AI prompt — framed as optimization, never restriction
+}
+
+// High-conflict pairs: category is fundamentally incompatible with diet.
+// AI silently generates effectiveCategory instead.
+const DIET_REDIRECT_MAP: Record<string, Record<string, string>> = {
+  keto:  { milkshake: 'protein-shake' },
+  paleo: { milkshake: 'smoothie' },
+};
+
+// Caution pairs: same category is kept, but AI prompt gets constraint block.
+const DIET_CAUTION_MAP: Record<string, string[]> = {
+  keto:  ['smoothie', 'frozen', 'cocktail', 'dive-bar', 'mocktail', 'coffee', 'protein-shake'],
+  paleo: ['smoothie', 'frozen', 'cocktail', 'dive-bar', 'coffee'],
+  vegan: ['milkshake', 'protein-shake', 'coffee', 'frozen'],
+};
+
+function buildRedirectPromptBlock(diet: string, requestedCategory: string, effectiveCategory: string): string {
+  const effectiveLabel = effectiveCategory.replace(/-/g, ' ');
+  const requestedLabel = requestedCategory.replace(/-/g, ' ');
+  return [
+    `DRINK OPTIMIZATION:`,
+    `The user is looking for a ${requestedLabel} experience. Based on their ${diet} lifestyle, a ${effectiveLabel} is the best-fitting option that delivers a similar level of enjoyment and satisfaction.`,
+    `Generate a ${effectiveLabel} that matches the flavor satisfaction and indulgence they were looking for.`,
+    `Present the result as curated and optimized for them specifically — do NOT mention that their original selection was unavailable or restricted.`,
+    `Frame this as the ideal choice for their goals.`,
+  ].join('\n');
+}
+
+// Per-diet, per-category constraint blocks — optimization framing, not restriction
+const CAUTION_PROMPT_BLOCKS: Record<string, Record<string, string>> = {
+  keto: {
+    smoothie:  `SMOOTHIE OPTIMIZATION FOR KETO:\n- Use low-sugar fruits only: strawberries, blueberries, raspberries, blackberries (no banana, mango, pineapple, grape)\n- No fruit juice bases — use unsweetened almond milk, coconut milk, or water\n- Emphasize healthy fats: avocado, coconut cream, almond butter\n- Add protein: protein powder (whey or plant-based), full-fat Greek yogurt\n- No added sugar, honey, agave, or sweetened bases\n- Each serving should be under 10g net carbs`,
+    frozen:    `FROZEN DRINK OPTIMIZATION FOR KETO:\n- No sugar-based syrups, fruit juice, or sweetened mixers\n- Use heavy cream or coconut cream for richness and texture\n- Flavor with unsweetened cocoa, vanilla extract, cinnamon, or low-carb fruits (berries)\n- Sweeten only with stevia or erythritol if needed — no honey, agave, or sugar`,
+    cocktail:  `COCKTAIL OPTIMIZATION FOR KETO:\n- No sugary mixers, fruit juice, simple syrup, grenadine, or triple sec\n- Use spirits naturally (vodka, gin, tequila, whiskey, rum) — these are keto-friendly\n- Mix with soda water, sparkling water, fresh citrus juice (small amounts), or bitters\n- Garnish with citrus peel, fresh herbs, or a few berries`,
+    'dive-bar': `DIVE BAR OPTIMIZATION FOR KETO:\n- Keep the drink realistic for a standard bar while avoiding sugary mixers, regular juice, simple syrup, grenadine, and triple sec\n- Prefer straight spirits, whiskey and soda, vodka soda, gin and tonic with a sugar-free tonic, or tequila with soda and a small amount of lime\n- Use soda water, diet cola, or other clearly sugar-free common mixers when appropriate\n- Keep garnishes simple: citrus peel, lemon, lime, or fresh herbs`,
+    mocktail:      `MOCKTAIL OPTIMIZATION FOR KETO:\n- No sugar syrups, fruit juice, agave, or honey\n- Build flavor with sparkling water, fresh citrus, herbs (mint, basil, rosemary), cucumber, and bitters\n- A small amount of low-sugar kombucha can add complexity\n- Keep net carbs under 5g per serving`,
+    coffee:        `COFFEE DRINK OPTIMIZATION FOR KETO:\n- No flavored syrups, sweetened creamers, or sugar — use stevia or erythritol only if sweetness is needed\n- No oat milk, regular milk, or sweetened plant milks — use unsweetened almond milk, coconut milk, or heavy cream\n- MCT oil or grass-fed butter (bulletproof-style) adds healthy fats and is keto-ideal\n- Unsweetened cocoa powder, cinnamon, and vanilla extract are keto-safe flavor additions\n- Keep total carbs under 5g per serving`,
+    'protein-shake': `PROTEIN SHAKE OPTIMIZATION FOR KETO:\n- Use whey isolate, casein, or egg white protein — confirm the powder has under 3g carbs per scoop (no maltodextrin, oat flour, or dextrose)\n- Base with unsweetened almond milk, coconut milk, or water — no regular milk or sweetened plant milks\n- No honey, maple syrup, dates, or banana for sweetness — use stevia or erythritol\n- Healthy fat additions are encouraged: MCT oil, almond butter (small amount), coconut cream\n- No high-sugar fruit — berries only (strawberries, blueberries) in small portions\n- Target under 10g net carbs per serving`,
+  },
+  paleo: {
+    smoothie:  `SMOOTHIE OPTIMIZATION FOR PALEO:\n- No dairy milk — use coconut milk, almond milk, or cashew milk\n- STRICTLY NO honey, agave, refined sugar, or any processed sweetener — these are not paleo-compliant\n- Use controlled fruit portions for natural sweetness: small amounts of berries preferred; banana only in very small quantities\n- DO NOT make this fruit-heavy — balance fruit with fats and protein to keep macros structured\n- STRICTLY NO whey protein, casein, or any dairy-derived protein powder — use collagen powder, egg white protein, or nut butter instead\n- No legume-based ingredients (no soy milk, no peanut butter)\n- Target moderate protein (15g+) and controlled carbs — this should feel intentional and performance-aware, not like a basic fruit drink\n- The result should feel premium and designed: rich texture, satisfying, and clearly built for someone who trains and eats with purpose`,
+    frozen:    `FROZEN DRINK OPTIMIZATION FOR PALEO:\n- No dairy or refined sugar\n- STRICTLY NO honey, agave, syrups, or processed sweeteners\n- STRICTLY NO whey or any dairy-derived protein\n- Use coconut cream or coconut milk as the base for richness and creaminess\n- Sweeten only with whole fruit in controlled portions — keep carbs in check\n- This should feel indulgent and crafted, not like a generic blended fruit drink`,
+    cocktail:  `COCKTAIL OPTIMIZATION FOR PALEO:\n- No sugary mixers, heavy juice bases, honey, or agave\n- Wine and quality distilled spirits are generally paleo-acceptable\n- Mix with sparkling water, fresh citrus juice, or herbs\n- Avoid grain-based beers or malt-based drinks`,
+    'dive-bar': `DIVE BAR OPTIMIZATION FOR PALEO:\n- Keep the drink simple and realistic for a neighborhood bar without sugary mixers, heavy juice bases, honey, or agave\n- Prefer quality distilled spirits, dry wine, soda water, fresh citrus, or simple herbs\n- Avoid grain-based beers or malt-based drinks when a spirit-and-soda option fits better\n- Use ordinary bar ingredients and basic preparation rather than specialty syrups or obscure liqueurs`,
+    coffee:    `COFFEE DRINK OPTIMIZATION FOR PALEO:\n- Use coconut milk, almond milk, or cashew milk — no dairy cream or cow's milk\n- STRICTLY NO refined sugar, honey, or artificial sweeteners\n- A small amount of coconut sugar or medjool date is acceptable if sweetness is needed\n- Cinnamon, vanilla, and raw cacao are excellent paleo-friendly additions`,
+  },
+  vegan: {
+    milkshake:       `MILKSHAKE OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, coconut milk, or cashew milk as the base\n- Use dairy-free ice cream or frozen banana for creaminess and body\n- No honey — sweeten with maple syrup, agave, or ripe banana\n- No animal-derived thickeners, gelatin, or additives`,
+    'protein-shake': `PROTEIN SHAKE OPTIMIZATION FOR VEGAN:\n- Use plant-based protein powder only: pea protein, hemp protein, or brown rice protein\n- No whey, casein, or any dairy-derived protein\n- Base with plant milk or water\n- No honey — sweeten naturally with dates, banana, or a touch of maple syrup`,
+    coffee:          `COFFEE DRINK OPTIMIZATION FOR VEGAN:\n- Use oat milk, almond milk, soy milk, or coconut milk — no dairy cream or cow's milk\n- No honey — sweeten with maple syrup, coconut sugar, or leave unsweetened\n- Confirm any syrups used are vegan-certified (some contain dairy derivatives)`,
+    frozen:          `FROZEN DRINK OPTIMIZATION FOR VEGAN:\n- No dairy — use coconut cream, oat milk, or almond milk\n- No honey, gelatin, or animal-derived additives\n- Use fruit, cacao, or plant-based flavoring for character and sweetness`,
+  },
+};
+
+/**
+ * Resolves the best generation strategy when a user's diet conflicts with their selected
+ * beverage category. Returns conflict level, effective category for generation, and a
+ * coaching block to inject into the AI prompt.
+ *
+ * Tone: always framed as optimization and personalization — never as restriction or correction.
+ * Users should feel guided, not corrected.
+ */
+export function resolveDietCategoryStrategy(
+  restrictions: string[],
+  category: string,
+): DietCategoryStrategy {
+  const diet = getPrimaryDiet(restrictions);
+  const base: DietCategoryStrategy = {
+    conflictLevel: 'none',
+    effectiveCategory: category,
+    requestedCategory: category,
+    coachingBlock: '',
+  };
+
+  if (!diet) {
+    // Procedural dietary identities (kosher, halal) are not in DIET_PRIORITY because
+    // they're religious/procedural constraints rather than macro-diet profiles.
+    // Handle their category-level coaching needs here.
+    const normalized = (restrictions || []).map(r => r.trim().toLowerCase());
+    const isKosher = normalized.some(r => r === "kosher" || r === "kosher-halal");
+    const isHalal  = normalized.some(r => r === "halal"  || r === "kosher-halal");
+
+    if ((isKosher || isHalal) && (category === "cocktail" || category === "dive-bar" || category === "mocktail")) {
+      const identity = isKosher ? "kosher" : "halal";
+      const categoryLabel = category === "dive-bar" ? "DIVE BAR" : "COCKTAIL";
+      const coachingBlock = isKosher
+        ? `${categoryLabel} GUIDANCE FOR KOSHER:\n- Only use spirits that are kosher-certified. Most commercial vodka, gin, and tequila require certification — use explicitly kosher-certified brands.\n- Wine, champagne, prosecco, and sake MUST be kosher-certified (mevushal is safest). If certification cannot be guaranteed, omit entirely and use sparkling water or soda water as the base.\n- Beer must be kosher-certified.\n- Mixers, syrups, and juices must also be kosher-certified or clearly pareve.\n- Do NOT mix any dairy-based mixer (cream, milk) with a meat-adjacent spirit garnish.\n- If in doubt about any ingredient's certification, substitute with a clearly kosher-safe alternative.`
+        : `${categoryLabel} GUIDANCE FOR HALAL:\n- No wine, beer, sake, or spirits — alcohol is forbidden.\n- Generate a sophisticated mocktail instead using sparkling water, fresh citrus, herbs, non-alcoholic bitters, or halal-certified kombucha.\n- No vanilla extract (alcohol-based) — use vanilla powder or vanilla bean.\n- Do NOT present this as a cocktail with alcohol removed; present it as a complete, intentional non-alcoholic drink.`;
+      return {
+        conflictLevel: 'caution',
+        effectiveCategory: isHalal ? 'mocktail' : category,
+        requestedCategory: category,
+        coachingBlock,
+      };
+    }
+
+    return base;
+  }
+
+  // Redirect: category is fundamentally incompatible — generate different category silently
+  const redirectTarget = DIET_REDIRECT_MAP[diet]?.[category];
+  if (redirectTarget) {
+    return {
+      conflictLevel: 'redirect',
+      effectiveCategory: redirectTarget,
+      requestedCategory: category,
+      coachingBlock: buildRedirectPromptBlock(diet, category, redirectTarget),
+    };
+  }
+
+  // Caution: same category allowed but needs constraint injection
+  const cautionCategories = DIET_CAUTION_MAP[diet] || [];
+  if (cautionCategories.includes(category)) {
+    const cautionBlock = CAUTION_PROMPT_BLOCKS[diet]?.[category] || '';
+    return {
+      conflictLevel: 'caution',
+      effectiveCategory: category,
+      requestedCategory: category,
+      coachingBlock: cautionBlock,
+    };
+  }
+
+  return base;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Check whether generated text violates the user's primary dietary constraint.
@@ -584,6 +1121,20 @@ function escapeRegex(str: string): string {
 }
 
 /**
+ * Remove only explicit allergen-free label claims for one exact term.
+ * Other occurrences remain visible to safety scanning, so a request such as
+ * "lactose-free cake with milk" still matches the unnegated "milk" term.
+ */
+export function maskExplicitAllergenFreeClaims(text: string, term: string): string {
+  const escaped = escapeRegex(term.trim());
+  if (!escaped) return text;
+
+  return text
+    .replace(new RegExp(`\\b${escaped}\\s*(?:-|\\s)\\s*free\\b`, "gi"), " ")
+    .replace(new RegExp(`\\bfree\\s+of\\s+${escaped}\\b`, "gi"), " ");
+}
+
+/**
  * MAIN VALIDATION FUNCTION
  * Use this in ALL meal generators after generation
  */
@@ -735,6 +1286,205 @@ export function getSafeSubstitute(blockedIngredient: string): string {
   return substitutes[key] || "a suitable alternative";
 }
 
+// ── Allergy Conflict Classification ──────────────────────────────────────────
+/**
+ * Dish names where the allergen is traditional but incidental — the dish can
+ * exist without it, and adaptation preserves dish identity.
+ * A shellfish-free gumbo is still gumbo. A nut-free kung pao is still kung pao.
+ */
+export const ALLERGEN_DISH_EXPANSIONS = new Set<string>([
+  // shellfish dishes — allergen traditional but not defining
+  "paella", "cioppino", "bouillabaisse", "gumbo", "jambalaya", "fra diavolo",
+  "frutti di mare", "gambas", "laksa", "bisque", "tom yum", "seafood boil",
+  // peanut dishes — can be safely swapped
+  "satay", "kung pao", "kung pao chicken", "gado gado", "massaman curry",
+  "dan dan noodles", "african peanut soup", "peanut stew", "indonesian satay",
+  // dairy dishes — plant subs preserve the dish
+  "alfredo", "bechamel", "cream sauce",
+]);
+
+/**
+ * Dish names where the allergen IS the defining ingredient.
+ * Removing it changes what the dish fundamentally is.
+ */
+export const IDENTITY_COLLAPSE_DISH_TERMS = new Set<string>([
+  // shellfish — allergen is the entire dish
+  "shrimp cocktail", "crab cake", "crab cakes", "lobster roll", "clam chowder",
+  "oysters rockefeller", "shrimp scampi", "scampi", "coconut shrimp",
+  "popcorn shrimp", "tempura shrimp", "shrimp tempura",
+  "shrimp fried rice", "pad thai with shrimp",
+  // eggs — allergen IS the dish
+  "deviled eggs", "egg salad", "eggs benedict",
+]);
+
+export type AllergyConflictType = "conflict_adaptable" | "conflict_identity_collapse";
+
+export interface AllergyConflict {
+  type: AllergyConflictType;
+  /** Human-readable allergen category names e.g. ["shellfish"] */
+  allergens: string[];
+  /** Exact terms that triggered the block e.g. ["gumbo"] */
+  matchedTerms: string[];
+  /** The user's original request text */
+  dishName: string;
+}
+
+/**
+ * Given a blocked request, classify whether the conflict is adaptable
+ * (safe version can be made while preserving dish identity) or identity-collapse
+ * (the allergen IS the dish — removing it changes what was requested).
+ *
+ * Defaults to conflict_adaptable when uncertain — the post-adaptation allergen
+ * scan is the safety net that catches any failure to adapt completely.
+ */
+export function classifyAllergyConflict(
+  requestText: string,
+  violations: string[],
+  allergenCategories: string[],
+): AllergyConflict | null {
+  if (violations.length === 0) return null;
+
+  const violationsLower = violations.map((v) => v.toLowerCase());
+
+  // Identity collapse: the allergen IS the dish identity
+  const isIdentityCollapse = violationsLower.some((v) =>
+    IDENTITY_COLLAPSE_DISH_TERMS.has(v),
+  );
+
+  return {
+    type: isIdentityCollapse ? "conflict_identity_collapse" : "conflict_adaptable",
+    allergens: allergenCategories,
+    matchedTerms: violations,
+    dishName: requestText.trim(),
+  };
+}
+
+/**
+ * ADAPTABLE DISH-NAME TERMS
+ * Terms in ALLERGEN_EXPANSION that are pure dish names — cultural dish labels
+ * whose word carries no allergen ingredient by itself. They exist so the
+ * PRE-generation check can flag "gumbo" / "pad thai" requests and show the
+ * AllergyConflictModal. But in ALLERGEN_ADAPT mode the user has explicitly
+ * asked for a safe version of that dish, and identity preservation requires
+ * keeping the name — so the POST-adaptation scan must not condemn a
+ * shellfish-free gumbo just for being called "gumbo".
+ *
+ * STRICT INCLUSION RULES — a term may ONLY be listed here if:
+ *   1. It does not embed an allergen ingredient word (so "shrimp scampi",
+ *      "clam chowder", "peanut noodles", "african peanut soup", "peanut stew"
+ *      are excluded — their ingredient word still matches independently, and
+ *      an adapted dish must be renamed to drop the allergen word).
+ *   2. It is not itself an allergen-bearing preparation or a foreign-language
+ *      ingredient word (so "frangipane" [almond filling], "amaretti" [almond
+ *      cookies], "marzipan", "gambas" [prawns], "scampi" [langoustines],
+ *      "surimi" [fish paste] are excluded).
+ */
+export const ADAPTABLE_DISH_NAME_TERMS = new Set<string>([
+  // shellfish dishes
+  "paella", "cioppino", "bouillabaisse", "gumbo", "jambalaya", "bisque",
+  "ceviche", "fra diavolo", "tom yum", "laksa",
+  // peanut dishes
+  "satay", "pad thai", "kung pao", "kung pao chicken", "gado gado",
+  "dan dan noodles", "massaman curry", "indonesian satay",
+]);
+
+/**
+ * Expand a list of allergen category names into the full set of forbidden terms.
+ * Used by the post-adaptation allergen scan to verify the generated output is safe.
+ */
+export function buildForbiddenTermsFromAllergens(allergens: string[]): string[] {
+  const terms: string[] = [];
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key];
+    if (expanded) {
+      terms.push(...expanded);
+    } else {
+      terms.push(allergen);
+    }
+  }
+  return Array.from(new Set(terms));
+}
+
+/**
+ * Compute the forbidden terms exempt from the ALLERGEN_ADAPT post-scan for a
+ * specific request. A term is exempt ONLY when BOTH hold:
+ *   1. It is a pure dish-name label (ADAPTABLE_DISH_NAME_TERMS) — never an
+ *      ingredient, derivative, or allergen-bearing preparation; AND
+ *   2. It appears (word-bounded) in the dish the user actually requested.
+ *
+ * This means requesting "gumbo" exempts only the word "gumbo"; every
+ * ingredient/derivative term (shrimp, crab, shellfish stock, ...) is still
+ * scanned across the meal name, ingredients, instructions, and description.
+ * A request for "shrimp gumbo" exempts only "gumbo" — "shrimp" can never be
+ * exempted because it is not a dish-name term.
+ */
+export function getRequestedDishExemptTerms(
+  requestedDish: string,
+  allergens: string[],
+): string[] {
+  const dish = (requestedDish || "").toLowerCase().trim();
+  if (!dish) return [];
+  return buildForbiddenTermsFromAllergens(allergens).filter((term) => {
+    if (!ADAPTABLE_DISH_NAME_TERMS.has(term.toLowerCase())) return false;
+    return new RegExp(`\\b${escapeRegex(term)}\\b`, "i").test(dish);
+  });
+}
+
+/**
+ * Build an explicit allergen constraint block for injection into generation prompts
+ * when running in ALLERGEN_ADAPT mode.
+ *
+ * Without this, the LLM receives no allergen-specific instruction and generates
+ * the dish traditionally (e.g. gumbo with shellfish stock), causing Phase 3 to
+ * kill every option. This block names the prohibited categories, lists all their
+ * derivative terms, and instructs the model to preserve dish identity by
+ * replacing the allergen's functional role — not just deleting the ingredient.
+ *
+ * @param allergens  - User's allergen category names (e.g. ["shellfish"])
+ * @param dishName   - The requested dish name (e.g. "gumbo") for identity framing
+ */
+export function buildAllergenAdaptPromptBlock(allergens: string[], dishName?: string): string {
+  if (allergens.length === 0) return "";
+
+  const lines: string[] = [
+    `[ALLERGY ADAPTATION — ACTIVE SAFETY CONSTRAINT]`,
+    `The following allergens are PROHIBITED. You must not use any form of these ingredients,`,
+    `including stocks, broths, pastes, sauces, or preparations derived from them.`,
+  ];
+
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key];
+    const derivativeTerms = expanded
+      ? Array.from(new Set(expanded)).slice(0, 20).join(", ")
+      : allergen;
+    lines.push(`PROHIBITED ALLERGEN — ${allergen.toUpperCase()}: ${derivativeTerms}`);
+  }
+
+  if (dishName && dishName.trim()) {
+    const dish = dishName.trim();
+    const allergenNames = allergens.join(" and ");
+    lines.push(
+      ``,
+      `DISH IDENTITY REQUIREMENT: The requested dish is "${dish}". Preserve the dish's`,
+      `structural identity (base, aromatics, cooking technique, flavor profile) while`,
+      `replacing ${allergenNames} with a safe, compliant protein or component that serves`,
+      `the same functional role. Do NOT rename the dish. Do NOT add any form of ${allergenNames}.`,
+      `A ${allergenNames}-free version of "${dish}" is what is required.`,
+    );
+  }
+
+  lines.push(
+    ``,
+    `HARD RULE: Every ingredient, stock, broth, sauce, and preparation in this recipe`,
+    `must be completely free of the prohibited allergens listed above.`,
+    `[END ALLERGY ADAPTATION CONSTRAINT]`,
+  );
+
+  return lines.join("\n");
+}
+
 /**
  * Log safety enforcement for auditing
  */
@@ -751,4 +1501,623 @@ export function logSafetyEnforcement(
     `${emoji} [SAFETY] ${timestamp} | User: ${userId} | Meal: "${mealName}" | ` +
     `Action: ${action.toUpperCase()}${violations.length > 0 ? ` | Violations: ${violations.join(", ")}` : ''}`
   );
+}
+
+// ─── VEGAN / VEGETARIAN / PESCATARIAN SUBSTITUTION MAP ───────────────────────
+
+/**
+ * Maps each commonly forbidden vegan ingredient to its best plant-based
+ * replacement. Used in the post-generation substitution pass before triggering
+ * an AI regeneration retry.
+ *
+ * Keys must be lowercase and match ingredient names as they appear in recipes.
+ */
+export const VEGAN_SUBSTITUTION_MAP: Record<string, string> = {
+  // Sweeteners
+  'honey':                  'agave syrup',
+  'raw honey':              'agave syrup',
+  'honey drizzle':          'maple syrup drizzle',
+  'honey glaze':            'maple syrup glaze',
+
+  // Dairy — fats
+  'butter':                 'plant-based butter',
+  'unsalted butter':        'plant-based butter',
+  'salted butter':          'plant-based butter',
+  'clarified butter':       'coconut oil',
+  'ghee':                   'coconut oil',
+
+  // Dairy — milks and cream
+  'milk':                   'oat milk',
+  'whole milk':             'oat milk',
+  'skim milk':              'oat milk',
+  '2% milk':                'oat milk',
+  'heavy cream':            'coconut cream',
+  'heavy whipping cream':   'coconut cream',
+  'half and half':          'oat milk creamer',
+  'half & half':            'oat milk creamer',
+  'cream':                  'coconut cream',
+  'condensed milk':         'coconut condensed milk',
+  'evaporated milk':        'coconut evaporated milk',
+  'buttermilk':             'plant-based buttermilk',
+  'sour cream':             'cashew sour cream',
+
+  // Dairy — cheese / yogurt
+  'cheese':                 'nutritional yeast',
+  'parmesan':               'nutritional yeast',
+  'parmesan cheese':        'nutritional yeast',
+  'mozzarella':             'vegan mozzarella',
+  'cheddar':                'vegan cheddar',
+  'feta':                   'vegan feta',
+  'cream cheese':           'cashew cream cheese',
+  'ricotta':                'tofu ricotta',
+  'yogurt':                 'coconut yogurt',
+  'greek yogurt':           'coconut yogurt',
+
+  // Dairy — proteins
+  'whey':                   'pea protein',
+  'whey protein':           'pea protein powder',
+  'whey isolate':           'pea protein powder',
+  'casein':                 'pea protein',
+  'casein protein':         'pea protein powder',
+
+  // Eggs
+  'egg':                    'flax egg',
+  'eggs':                   'flax eggs',
+  'egg white':              'aquafaba',
+  'egg whites':             'aquafaba',
+  'egg yolk':               'silken tofu',
+  'egg yolks':              'silken tofu',
+
+  // Gelling / thickening agents
+  'gelatin':                'agar-agar',
+  'collagen peptides':      'agar-agar',
+  'beef collagen':          'agar-agar',
+  'chicken collagen':       'agar-agar',
+
+  // Animal fats
+  'lard':                   'coconut oil',
+  'suet':                   'plant-based shortening',
+  'tallow':                 'coconut oil',
+  'schmaltz':               'olive oil',
+  'duck fat':               'olive oil',
+
+  // Stocks and broths
+  'chicken stock':          'vegetable broth',
+  'chicken broth':          'vegetable broth',
+  'beef stock':             'vegetable broth',
+  'beef broth':             'vegetable broth',
+  'bone broth':             'vegetable broth',
+  'fish stock':             'seaweed-based broth',
+  'fish sauce':             'soy sauce with nori',
+
+  // Condiments / flavour agents
+  'anchovies':              'capers',
+  'anchovy paste':          'miso paste',
+  'worcestershire sauce':   'vegan worcestershire sauce',
+  'mayonnaise':             'vegan mayonnaise',
+  'mayo':                   'vegan mayonnaise',
+};
+
+/**
+ * Per-diet substitution map selection.
+ * Vegetarian and pescatarian only share a subset of the vegan map.
+ */
+const VEGETARIAN_SUBSTITUTION_MAP: Record<string, string> = {
+  'gelatin':        'agar-agar',
+  'lard':           'plant-based shortening',
+  'suet':           'plant-based shortening',
+  'tallow':         'coconut oil',
+  'chicken stock':  'vegetable broth',
+  'chicken broth':  'vegetable broth',
+  'beef stock':     'vegetable broth',
+  'beef broth':     'vegetable broth',
+  'bone broth':     'vegetable broth',
+  'anchovies':      'capers',
+  'fish sauce':     'soy sauce',
+  'fish stock':     'vegetable broth',
+};
+
+const PESCATARIAN_SUBSTITUTION_MAP: Record<string, string> = {
+  'lard':           'olive oil',
+  'suet':           'plant-based shortening',
+  'tallow':         'coconut oil',
+  'chicken stock':  'vegetable broth',
+  'chicken broth':  'vegetable broth',
+  'beef stock':     'vegetable broth',
+  'beef broth':     'vegetable broth',
+  'bone broth':     'vegetable broth',
+};
+
+type DietaryMode = 'vegan' | 'vegetarian' | 'pescatarian';
+
+function getSubstitutionMap(diet: DietaryMode): Record<string, string> {
+  if (diet === 'vegetarian') return VEGETARIAN_SUBSTITUTION_MAP;
+  if (diet === 'pescatarian') return PESCATARIAN_SUBSTITUTION_MAP;
+  return VEGAN_SUBSTITUTION_MAP;
+}
+
+export interface SubstitutionResult {
+  ingredients: Array<{ name: string; quantity: string; unit: string }>;
+  substitutionsApplied: Array<{ original: string; replacement: string }>;
+}
+
+/**
+ * Apply diet-appropriate ingredient substitutions to a meal's ingredient list.
+ * Returns the updated ingredient list and a log of what was swapped.
+ * Only performs exact-match substitutions to avoid unintended flavor changes.
+ *
+ * IMPORTANT: Call this at most ONCE before triggering an AI regeneration.
+ */
+export function applyDietarySubstitutions(
+  ingredients: Array<{ name: string; quantity: string; unit: string }>,
+  diet: DietaryMode,
+): SubstitutionResult {
+  const map = getSubstitutionMap(diet);
+  const substitutionsApplied: Array<{ original: string; replacement: string }> = [];
+
+  const updated = ingredients.map(ing => {
+    const key = ing.name.toLowerCase().trim();
+    const replacement = map[key];
+    if (replacement) {
+      substitutionsApplied.push({ original: ing.name, replacement });
+      return { ...ing, name: replacement };
+    }
+    return ing;
+  });
+
+  return { ingredients: updated, substitutionsApplied };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HIDDEN INGREDIENT ENFORCEMENT
+// Catches non-obvious violations for kosher, halal, and other dietary rules.
+// These are ingredients that the AI may include without realizing they violate
+// a user's restriction — e.g. gelatin in desserts, lard in pastries,
+// alcohol in sauces, or shellfish derivatives in broths.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface HiddenViolation {
+  term: string;
+  category: string;
+  reason: string;
+}
+
+/**
+ * Hidden animal-derived ingredients that violate vegan law.
+ * Focuses on non-obvious items the AI might slip in: condiment derivatives,
+ * hidden dairy, hidden egg, animal fats, and fish-derived sauces.
+ */
+const VEGAN_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
+  // Hidden dairy derivatives
+  { term: "butter",          reason: "Butter is an animal dairy product — not vegan" },
+  { term: "ghee",            reason: "Ghee is clarified butter — not vegan" },
+  { term: "cream",           reason: "Cream is an animal dairy product — not vegan (use coconut cream or oat cream)" },
+  { term: "heavy cream",     reason: "Heavy cream is an animal dairy product — not vegan" },
+  { term: "cream cheese",    reason: "Cream cheese is an animal dairy product — not vegan" },
+  { term: "sour cream",      reason: "Sour cream is an animal dairy product — not vegan" },
+  { term: "parmesan",        reason: "Parmesan is an animal dairy product — not vegan" },
+  { term: "mozzarella",      reason: "Mozzarella is an animal dairy product — not vegan" },
+  { term: "feta",            reason: "Feta is an animal dairy product — not vegan" },
+  { term: "cheese",          reason: "Cheese is an animal dairy product — not vegan (use plant-based cheese)" },
+  { term: "milk",            reason: "Dairy milk is an animal product — use plant milk instead" },
+  { term: "whey",            reason: "Whey is a dairy derivative — not vegan" },
+  { term: "casein",          reason: "Casein is a dairy protein — not vegan" },
+  // Hidden egg derivatives
+  { term: "egg wash",        reason: "Egg wash uses animal eggs — use plant milk or aquafaba instead" },
+  { term: "mayonnaise",      reason: "Standard mayonnaise contains eggs — use vegan mayonnaise" },
+  // Hidden fish/seafood-derived condiments
+  { term: "fish sauce",      reason: "Fish sauce is made from fermented fish — not vegan" },
+  { term: "oyster sauce",    reason: "Oyster sauce is made from oysters — not vegan" },
+  { term: "worcestershire",  reason: "Worcestershire sauce traditionally contains anchovies — not vegan" },
+  { term: "anchovy paste",   reason: "Anchovy paste is a fish derivative — not vegan" },
+  { term: "anchovy",         reason: "Anchovies are fish — not vegan" },
+  { term: "anchovies",       reason: "Anchovies are fish — not vegan" },
+  { term: "caesar dressing", reason: "Caesar dressing traditionally contains anchovies and egg — not vegan" },
+  { term: "caesar salad",    reason: "Caesar dressing traditionally contains anchovies and egg — not vegan" },
+  // Animal fats and derivatives
+  { term: "lard",            reason: "Lard is rendered pork fat — not vegan" },
+  { term: "gelatin",         reason: "Gelatin is typically animal-derived — use agar-agar instead" },
+  { term: "suet",            reason: "Suet is animal fat — not vegan" },
+  { term: "schmaltz",        reason: "Schmaltz is rendered poultry fat — not vegan" },
+  // Honey
+  { term: "honey",           reason: "Honey is an animal product — use maple syrup or agave instead" },
+];
+
+/**
+ * Hidden animal-derived ingredients that violate vegetarian law.
+ * Focuses on hidden fish/seafood derivatives and animal-based broths/fats
+ * that often appear in sauces, condiments, and soups.
+ */
+const VEGETARIAN_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
+  // Hidden fish/seafood-derived condiments
+  { term: "fish sauce",      reason: "Fish sauce is made from fermented fish — not vegetarian" },
+  { term: "worcestershire",  reason: "Worcestershire sauce traditionally contains anchovies — not vegetarian unless certified" },
+  { term: "anchovy paste",   reason: "Anchovy paste is a fish derivative — not vegetarian" },
+  { term: "anchovy",         reason: "Anchovies are fish — not vegetarian" },
+  { term: "anchovies",       reason: "Anchovies are fish — not vegetarian" },
+  { term: "shrimp paste",    reason: "Shrimp paste is a shellfish derivative — not vegetarian" },
+  { term: "oyster sauce",    reason: "Oyster sauce is made from oysters — not vegetarian" },
+  // Animal-derived gelatin and fats
+  { term: "gelatin",         reason: "Gelatin is typically animal-derived — use agar-agar instead" },
+  { term: "lard",            reason: "Lard is rendered pork fat — not vegetarian" },
+  { term: "suet",            reason: "Suet is animal fat — not vegetarian" },
+  { term: "schmaltz",        reason: "Schmaltz is rendered poultry fat — not vegetarian" },
+  // Hidden meat-based broths (common in soups, risottos, sauces)
+  { term: "chicken broth",   reason: "Chicken broth is an animal stock — use vegetable broth" },
+  { term: "beef broth",      reason: "Beef broth is an animal stock — use vegetable broth" },
+  { term: "bone broth",      reason: "Bone broth is an animal stock — use vegetable broth" },
+  { term: "chicken stock",   reason: "Chicken stock is an animal stock — use vegetable broth" },
+  { term: "beef stock",      reason: "Beef stock is an animal stock — use vegetable broth" },
+  { term: "meat broth",      reason: "Meat broth is an animal stock — use vegetable broth" },
+];
+
+/**
+ * Hidden forms that violate kosher law beyond the obvious ingredient names.
+ * Includes pork derivatives, shellfish derivatives, and meat/dairy mixing signals.
+ */
+const KOSHER_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
+  // Pork-derived additives
+  { term: "gelatin",         reason: "Gelatin is typically pork-derived and not kosher unless certified" },
+  { term: "lard",            reason: "Lard is rendered pork fat — not kosher" },
+  { term: "l-cysteine",     reason: "L-cysteine may be derived from pork bristles or feathers" },
+  { term: "suet",            reason: "Suet is animal fat (often beef or pork) — kosher certification required" },
+  { term: "pork fat",        reason: "Pork fat is not kosher" },
+  { term: "schmaltz",        reason: "Schmaltz may be chicken or pork fat — source must be kosher" },
+  // Shellfish derivatives (may appear as broths/stocks/pastes)
+  { term: "shrimp paste",    reason: "Shrimp paste is a shellfish derivative — not kosher" },
+  { term: "fish sauce",      reason: "Fish sauce often contains shellfish — verify kosher certification" },
+  { term: "oyster sauce",    reason: "Oyster sauce is a shellfish derivative — not kosher" },
+  { term: "clam juice",      reason: "Clam juice is a shellfish derivative — not kosher" },
+  { term: "lobster base",    reason: "Lobster base is a shellfish derivative — not kosher" },
+  { term: "crab base",       reason: "Crab base is a shellfish derivative — not kosher" },
+  { term: "shellfish broth", reason: "Shellfish broth is not kosher" },
+  { term: "seafood stock",   reason: "Seafood stock may contain shellfish — not kosher unless certified" },
+  // Sauce/condiment traps
+  { term: "worcestershire",  reason: "Worcestershire sauce traditionally contains anchovies — not kosher unless certified" },
+  { term: "caesar dressing", reason: "Caesar dressing traditionally contains anchovies — not kosher unless certified" },
+  { term: "caesar salad",    reason: "Caesar dressing traditionally contains anchovies — not kosher unless certified" },
+  { term: "anchovy",         reason: "Anchovies are fish — may violate meat/fish separation in kosher cooking" },
+  { term: "anchovies",       reason: "Anchovies are fish — may violate meat/fish separation in kosher cooking" },
+  { term: "anchovy paste",   reason: "Anchovy paste — may violate meat/fish separation in kosher cooking" },
+  { term: "rennet",          reason: "Rennet in cheese must be kosher-certified" },
+  { term: "mono and diglycerides", reason: "Mono and diglycerides may be animal-derived — kosher certification required" },
+  // Alcoholic beverages — require kosher certification (most wine and beer is not certified)
+  { term: "wine",          reason: "Wine must be kosher-certified (mevushal or certified) — most commercial wine is not" },
+  { term: "red wine",      reason: "Red wine must be kosher-certified — most commercial red wine is not" },
+  { term: "white wine",    reason: "White wine must be kosher-certified — most commercial white wine is not" },
+  { term: "beer",          reason: "Beer must be kosher-certified — verify kosher status before use" },
+  { term: "sake",          reason: "Sake must be kosher-certified — most sake is not" },
+  { term: "champagne",     reason: "Champagne must be kosher-certified — most commercial champagne is not" },
+  { term: "prosecco",      reason: "Prosecco must be kosher-certified — most commercial prosecco is not" },
+];
+
+/**
+ * Hidden forms that violate halal law beyond the obvious ingredient names.
+ */
+const HALAL_HIDDEN_TERMS: Array<{ term: string; reason: string }> = [
+  { term: "gelatin",         reason: "Gelatin is typically pork-derived and not halal unless certified" },
+  { term: "lard",            reason: "Lard is rendered pork fat — not halal" },
+  { term: "l-cysteine",     reason: "L-cysteine may be derived from pork bristles — not halal unless certified" },
+  { term: "pork fat",        reason: "Pork fat is not halal" },
+  { term: "wine",            reason: "Wine contains alcohol — not halal in cooking" },
+  { term: "white wine",      reason: "White wine contains alcohol — not halal" },
+  { term: "red wine",        reason: "Red wine contains alcohol — not halal" },
+  { term: "beer",            reason: "Beer contains alcohol — not halal" },
+  { term: "sake",            reason: "Sake is an alcoholic beverage — not halal" },
+  { term: "rum",             reason: "Rum is alcoholic — not halal in cooking" },
+  { term: "bourbon",         reason: "Bourbon is alcoholic — not halal in cooking" },
+  { term: "brandy",          reason: "Brandy is alcoholic — not halal in cooking" },
+  { term: "cognac",          reason: "Cognac is alcoholic — not halal in cooking" },
+  { term: "mirin",           reason: "Mirin is a sweet rice wine and may contain alcohol — verify halal status" },
+  { term: "oyster sauce",    reason: "Traditional oyster sauce may contain non-halal ingredients — verify certification" },
+  { term: "vanilla extract", reason: "Vanilla extract typically contains alcohol — use halal-certified alternative" },
+  { term: "worcestershire",  reason: "Worcestershire sauce may contain non-halal ingredients" },
+  { term: "mono and diglycerides", reason: "Mono and diglycerides may be pork-derived — halal certification required" },
+];
+
+/**
+ * Meat terms for kosher meat/dairy mixing detection.
+ * Presence of both a meat term AND a dairy term in the same meal is a kosher violation.
+ */
+const KOSHER_MEAT_TERMS = [
+  "beef", "steak", "ground beef", "hamburger", "burger", "brisket", "roast beef",
+  "pastrami", "corned beef", "veal", "lamb", "venison", "bison",
+  "chicken", "turkey", "duck", "goose", "hen", "poultry",
+  "chicken broth", "beef broth", "turkey broth", "meat broth", "bone broth",
+  "chicken stock", "beef stock", "turkey stock",
+  "chicken liver", "beef liver", "chopped liver",
+  "salami", "bologna",
+];
+
+const KOSHER_DAIRY_TERMS = [
+  "milk", "whole milk", "skim milk", "cream", "heavy cream", "half and half",
+  "butter", "cheese", "cheddar", "mozzarella", "parmesan", "feta", "brie",
+  "ricotta", "cottage cheese", "cream cheese", "gouda", "swiss", "provolone",
+  "sour cream", "whipped cream", "yogurt", "kefir", "ghee", "whey",
+  "dairy", "lactose",
+];
+
+/**
+ * Classify the halachic category of a kosher meal.
+ * Returns "meat" (fleishig), "dairy" (milchig), or "pareve" (neither).
+ * Used to power the compliance status label on meal cards.
+ *
+ * A compliant kosher meal should NEVER return both meat and dairy —
+ * if somehow both are detected it defaults to "meat" (the stricter category).
+ */
+export type KosherCategory = "meat" | "dairy" | "pareve";
+
+export function classifyKosherMealCategory(mealText: string): KosherCategory {
+  // CRITICAL: normalize BEFORE term matching.
+  // "oat milk", "almond milk", "cashew milk" etc. contain the bare word "milk"
+  // which would falsely trigger a dairy match. Masking them to __PLANT_MILK__
+  // first prevents pareve dishes from being mis-classified as dairy.
+  const normalized = normalizeForDietaryScan(mealText);
+  const lower = normalized.toLowerCase();
+
+  const hasMeat = KOSHER_MEAT_TERMS.some(t => {
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${esc}\\b`, "i").test(lower);
+  });
+
+  const hasDairy = KOSHER_DAIRY_TERMS.some(t => {
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${esc}\\b`, "i").test(lower);
+  });
+
+  if (hasMeat) return "meat";
+  if (hasDairy) return "dairy";
+  return "pareve";
+}
+
+/**
+ * Detect meat/dairy mixing in a meal (kosher violation — basar b'chalav).
+ * Returns true if both a meat term and a dairy term are found in the same meal text.
+ */
+function detectMeatDairyMixing(mealText: string): boolean {
+  const lower = mealText.toLowerCase();
+  const hasMeat = KOSHER_MEAT_TERMS.some(t => {
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${esc}\\b`, "i").test(lower);
+  });
+  if (!hasMeat) return false;
+  const hasDairy = KOSHER_DAIRY_TERMS.some(t => {
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${esc}\\b`, "i").test(lower);
+  });
+  return hasMeat && hasDairy;
+}
+
+/**
+ * Scan a generated meal for hidden dietary violations based on the user's diet type
+ * and their foods-to-avoid list.
+ *
+ * Returns an array of HiddenViolation objects (empty = no violations found).
+ *
+ * @param mealText  - Full text of the meal (name + description + ingredients + instructions joined)
+ * @param dietTypes - Array of diet type strings from the user profile (e.g. ["kosher"], ["halal"])
+ * @param avoidList - Array of user-specified avoidance categories (e.g. ["seafood", "pork"])
+ */
+export function scanForHiddenDietaryViolations(
+  mealText: string,
+  dietTypes: string[],
+  avoidList: string[] = [],
+  options?: { skipMeatDairyCombinationCheck?: boolean }
+): HiddenViolation[] {
+  const violations: HiddenViolation[] = [];
+  const lower = normalizeForDietaryScan(mealText);
+
+  const normalizedDiets = dietTypes.map(d => d.trim().toLowerCase());
+  const isKosher      = normalizedDiets.some(d => d === "kosher" || d === "kosher-halal");
+  const isHalal       = normalizedDiets.some(d => d === "halal"  || d === "kosher-halal");
+  const isVegan       = normalizedDiets.some(d => d === "vegan");
+  const isVegetarian  = normalizedDiets.some(d => d === "vegetarian");
+
+  // ── Vegan hidden term scan ────────────────────────────────────────────────
+  if (isVegan) {
+    for (const { term, reason } of VEGAN_HIDDEN_TERMS) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        violations.push({ term, category: "vegan", reason });
+      }
+    }
+  }
+
+  // ── Vegetarian hidden term scan ───────────────────────────────────────────
+  if (isVegetarian && !isVegan) {
+    for (const { term, reason } of VEGETARIAN_HIDDEN_TERMS) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        if (!violations.find(v => v.term === term)) {
+          violations.push({ term, category: "vegetarian", reason });
+        }
+      }
+    }
+  }
+
+  // ── Kosher hidden term scan ───────────────────────────────────────────────
+  if (isKosher) {
+    for (const { term, reason } of KOSHER_HIDDEN_TERMS) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        violations.push({ term, category: "kosher", reason });
+      }
+    }
+    // Meat/dairy mixing check — skipped when the user explicitly chose "Let Chef Adapt"
+    // (dietAdaptOverride=true), which means they accepted a pareve substitution
+    if (!options?.skipMeatDairyCombinationCheck && detectMeatDairyMixing(lower)) {
+      violations.push({
+        term: "meat + dairy combination",
+        category: "kosher",
+        reason: "Mixing meat and dairy in the same meal violates kosher law (basar b'chalav)"
+      });
+    }
+  }
+
+  // ── Halal hidden term scan ────────────────────────────────────────────────
+  if (isHalal) {
+    for (const { term, reason } of HALAL_HIDDEN_TERMS) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        // Avoid duplicate if already caught by kosher
+        if (!violations.find(v => v.term === term)) {
+          violations.push({ term, category: "halal", reason });
+        }
+      }
+    }
+  }
+
+  // ── User avoidance hidden scan ────────────────────────────────────────────
+  // Expand each avoided category and look for matches beyond AVOIDANCE_EXPANSION
+  // (which is the prompt-level list — this catches any that slipped through).
+  for (const item of avoidList) {
+    const key = item.trim().toLowerCase();
+
+    // Safety guard: skip the broad "vegetables" category for vegetarian / vegan users.
+    // Avoiding ALL vegetables is incompatible with a plant-based diet — if this
+    // combination exists it is almost certainly a user error, not a real preference.
+    // Specific vegetable avoidances (e.g. "mushrooms", "onions", "broccoli") are honored.
+    if (key === "vegetables" && (isVegetarian || isVegan)) {
+      console.warn(`[ProtocolEnvelope] Skipping broad "vegetables" avoidance for ${isVegan ? "vegan" : "vegetarian"} user — incompatible with plant-based diet, ignored.`);
+      continue;
+    }
+
+    const expanded = AVOIDANCE_EXPANSION[key] || [key];
+    for (const term of expanded) {
+      const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+        if (!violations.find(v => v.term === term)) {
+          violations.push({
+            term,
+            category: key,
+            reason: `"${term}" is in the user's foods-to-avoid list (${key})`
+          });
+        }
+      }
+    }
+  }
+
+  return violations;
+}
+
+export interface AllergenScanMeal {
+  name?: string;
+  ingredients?: Array<string | { name?: string }>;
+  /** Accepts a string or an array of instruction steps — both are scanned. */
+  instructions?: string | string[];
+  description?: string;
+}
+
+export interface AllergenScanResult<T extends AllergenScanMeal> {
+  /** Meals that passed — no forbidden terms found in any field. */
+  safe: T[];
+  /** Meals that failed — at least one forbidden term was found. */
+  unsafe: T[];
+  /** Every forbidden term that was matched across all failing meals. */
+  violations: Set<string>;
+}
+
+/**
+ * Post-generation allergen scan used by the Phase 3 ALLERGEN_ADAPT block in routes.ts.
+ *
+ * Concatenates name + ingredients + instructions + description into a single text
+ * per meal and checks for any term from buildForbiddenTermsFromAllergens(). Meals
+ * that match are excluded and their matched terms are collected for the retry clause.
+ *
+ * Pass `exemptTerms` to skip specific terms that should not trigger a block — for
+ * example, the bare dish-name word that the adaptation intentionally keeps in the
+ * meal title (handled by getRequestedDishExemptTerms in routes.ts).
+ *
+ * This is the canonical implementation — routes.ts delegates here so tests can
+ * cover the exact same logic path without duplicating it.
+ */
+export function scanMealsForAllergenViolations<T extends AllergenScanMeal>(
+  meals: T[],
+  allergens: string[],
+  exemptTerms?: Set<string>,
+): AllergenScanResult<T> {
+  // Build per-allergen term lists so we can apply selective masking per allergen key.
+  // This preserves the allergen-key context that buildForbiddenTermsFromAllergens loses
+  // when it flattens everything into one list.
+  type AllergenEntry = { key: string; terms: string[]; regexes: RegExp[] };
+  const allergenEntries: AllergenEntry[] = [];
+  const seenTerms = new Set<string>(); // deduplicate across allergen keys
+  for (const allergen of allergens) {
+    const key = allergen.toLowerCase();
+    const expanded = ALLERGEN_EXPANSION[key] ? [...ALLERGEN_EXPANSION[key]] : [allergen];
+    const terms = expanded.filter(t => {
+      const tl = t.toLowerCase();
+      if (exemptTerms?.has(tl)) return false;
+      if (seenTerms.has(`${key}::${tl}`)) return false;
+      seenTerms.add(`${key}::${tl}`);
+      return true;
+    });
+    allergenEntries.push({
+      key,
+      terms,
+      regexes: terms.map(
+        t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+      ),
+    });
+  }
+
+  const violations = new Set<string>();
+  const safe: T[] = [];
+  const unsafe: T[] = [];
+
+  for (const meal of meals) {
+    const ingredientText = (meal.ingredients || [])
+      .map(i => (typeof i === "string" ? i : (i?.name || "")))
+      .join(" ");
+
+    const instructionsText = Array.isArray(meal.instructions)
+      ? meal.instructions.join(" ")
+      : (meal.instructions || "");
+
+    const rawMealText = [
+      meal.name || "",
+      ingredientText,
+      instructionsText,
+      meal.description || "",
+    ].join(" ").toLowerCase();
+
+    // Pre-compute masked variants once per meal.
+    const plantMilkMasked = maskPlantMilks(rawMealText);
+    const nutButterMasked = maskNutButters(rawMealText);
+
+    const hits: string[] = [];
+    for (const { key, terms, regexes } of allergenEntries) {
+      const isDairyKey = DAIRY_ALLERGEN_KEYS.has(key);
+      const isNutKey   = NUT_ALLERGEN_KEYS.has(key);
+      for (let i = 0; i < terms.length; i++) {
+        const term = terms[i];
+        const termLower = term.toLowerCase();
+        // Select the appropriate text surface for this allergen key + term:
+        //   • Dairy key + any milk-bearing term → use plant-milk-masked text so
+        //     "almond milk" / "oat milk" don't trigger the dairy "milk" term.
+        //   • Non-nut key + "butter" term        → use nut-butter-masked text so
+        //     "almond butter" doesn't trigger a non-nut "butter" term.
+        //   • Nut key                            → always use raw text; "almond milk"
+        //     and "almond butter" ARE real violations for tree-nut/peanut allergy.
+        let textToScan = rawMealText;
+        if (!isNutKey && isDairyKey) {
+          textToScan = plantMilkMasked;
+        } else if (!isNutKey && termLower === "butter") {
+          textToScan = nutButterMasked;
+        }
+        if (regexes[i].test(textToScan)) {
+          hits.push(term);
+        }
+      }
+    }
+
+    if (hits.length > 0) {
+      hits.forEach(v => violations.add(v));
+      unsafe.push(meal);
+    } else {
+      safe.push(meal);
+    }
+  }
+
+  return { safe, unsafe, violations };
 }

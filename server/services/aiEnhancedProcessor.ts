@@ -12,6 +12,57 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
+export interface ProcessedIngredient {
+  name: string;
+  category: string;
+  standardizedQuantity?: { amount: number; unit: string };
+  nutritionScore?: number;
+  seasonality?: string[];
+  storageAdvice?: string;
+  substitutions?: string[];
+  enhancements: {
+    aiCategorized: boolean;
+    standardized: boolean;
+    nutritionAnalyzed: boolean;
+    smartSubstitutions: boolean;
+  };
+}
+
+export interface SmartConsolidation {
+  canonical: string;
+  variations: string[];
+  totalQuantity: { amount: number; unit: string };
+  confidence: number;
+  reasoning: string;
+}
+
+class EnhancedIngredientProcessor {
+  async processIngredient(rawInput: string): Promise<ProcessedIngredient> {
+    try {
+      const response = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert ingredient analysis AI. For any ingredient input, provide:
+            - Canonical standardized name
+            - Category (Produce, Meats, Dairy, Grains, Pantry, Frozen, Beverages, Other)
+            - Standardized quantity if detectable
+            - Nutrition score (0-10)
+            - Seasonal availability (months)
+            - Storage advice (brief)
+            - Smart substitution suggestions (up to 3)
+            Respond in JSON format.`
+          },
+          {
+            role: "user",
+            content: `Analyze this ingredient: "${rawInput}"`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2
+      });
+
       const analysis = JSON.parse(response.choices[0].message.content || '{}');
       
       return {
@@ -118,7 +169,7 @@ function getOpenAI(): OpenAI {
       console.warn("Route optimization failed:", error);
       return {
         optimizedOrder: items,
-        estimatedTime: Math.ceil(items.length * 1.5), // Fallback: 1.5 min per item
+        estimatedTime: Math.ceil(items.length * 1.5),
         suggestions: ["Shop perimeter first", "Group by store section", "Bring reusable bags"]
       };
     }

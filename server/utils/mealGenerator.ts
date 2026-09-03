@@ -6,6 +6,11 @@ import { normalizeUnits } from "./units";
 import { pickImageForMeal } from "./images";
 import { OnboardingProfile, MealRequest, MealResult } from "../types";
 import { storage } from "../storage";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+  type WholeFoodPurpose,
+} from "../services/wholeFoodStandard";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -17,7 +22,40 @@ function getOpenAI(): OpenAI {
   }
   return _openai;
 }
-  
+
+export async function generateMeal(req: MealRequest): Promise<MealResult> {
+  let meal: MealResult;
+
+  try {
+    meal = await gptFallback(req);
+  } catch (error) {
+    console.error("GPT generation failed, using fallback:", error);
+    meal = fallbackMeal(req);
+  }
+
+  const purposes: WholeFoodPurpose[] = req.onboarding.healthConditions?.length
+    ? ["clinical"]
+    : [];
+  const wholeFoodDecision = evaluateWholeFoodCandidate(meal, {
+    purposes,
+    recommendationSurface: "legacy_meal_generator",
+    practicalAlternativeAvailable: true,
+  });
+  if (wholeFoodDecision.shouldBlock) {
+    console.warn(
+      `[WholeFoodStandard:legacy_meal_generator] Rejected "${meal.name}": ${wholeFoodDecision.reason}`,
+    );
+    meal = fallbackMeal(req);
+    const fallbackDecision = evaluateWholeFoodCandidate(meal, {
+      purposes,
+      recommendationSurface: "legacy_meal_fallback",
+      practicalAlternativeAvailable: true,
+    });
+    if (fallbackDecision.shouldBlock) {
+      throw new Error("No Whole-Food Standard compliant fallback is available");
+    }
+  }
+
   // Fix units
   meal.ingredients = meal.ingredients.map(normalizeUnits);
   
@@ -32,7 +70,7 @@ function getOpenAI(): OpenAI {
 async function gptFallback(req: MealRequest): Promise<MealResult> {
   const { onboarding, mealType, craving } = req;
   
-  const system = `You are a professional chef and nutritionist creating personalized recipes. 
+  const system = appendWholeFoodStandardPrompt(`You are a professional chef and nutritionist creating personalized recipes.
 Return a JSON response with this exact structure:
 {
   "name": "Recipe Name",
@@ -55,7 +93,10 @@ Mediterranean Diet Principles:
 - Limited red meat, processed foods, refined sugars
 - Focus on fresh herbs, tomatoes, olives, feta cheese
 - Cooking methods: grilling, roasting, sautéing with olive oil
-- Signature ingredients: olive oil, lemon, garlic, herbs (oregano, basil, thyme)`;
+- Signature ingredients: olive oil, lemon, garlic, herbs (oregano, basil, thyme)`, {
+    purposes: onboarding.healthConditions?.length ? ["clinical"] : [],
+    recommendationSurface: "legacy_meal_generator",
+  });
 
   const allergiesText = onboarding.allergies?.length ? ` ALLERGIES: ${onboarding.allergies.join(', ')} - MUST AVOID COMPLETELY` : '';
   const restrictionsText = onboarding.dietaryRestrictions?.length ? ` DIET: ${onboarding.dietaryRestrictions.join(', ')}` : '';
@@ -102,11 +143,10 @@ Return ONLY valid JSON - no explanations or extra text.`;
     // Ensure nutrition data is complete
     meal.nutrition = {
       calories: meal.nutrition?.calories || 400,
-      protein_g: meal.nutrition?.protein || meal.nutrition?.protein_g || 25,
-      carbs_g: meal.nutrition?.carbs || meal.nutrition?.carbs_g || 30,
-      fat_g: meal.nutrition?.fat || meal.nutrition?.fat_g || 15,
-      fiber_g: meal.nutrition?.fiber || meal.nutrition?.fiber_g || 8,
-      sugar_g: meal.nutrition?.sugar || meal.nutrition?.sugar_g || 5
+      protein: (meal.nutrition as any)?.protein || (meal.nutrition as any)?.protein_g || 25,
+      carbs: (meal.nutrition as any)?.carbs ?? (meal.nutrition as any)?.carbs_g ?? null,
+      fat: (meal.nutrition as any)?.fat || (meal.nutrition as any)?.fat_g || 15,
+      fiber: (meal.nutrition as any)?.fiber || (meal.nutrition as any)?.fiber_g || 8,
     };
     
     return meal;
@@ -114,8 +154,6 @@ Return ONLY valid JSON - no explanations or extra text.`;
     console.error("Failed to parse GPT response:", error);
     return fallbackMeal(req);
   }
-
-
 }
 
 function fallbackMeal(req: MealRequest): MealResult {
@@ -141,7 +179,7 @@ function fallbackMeal(req: MealRequest): MealResult {
           "Refrigerate overnight",
           "Top with berries and maple syrup before serving"
         ],
-        nutrition: { calories: 320, protein_g: 8, carbs_g: 45, fat_g: 12, fiber_g: 10, sugar_g: 15 }
+        nutrition: { calories: 320, protein: 8, carbs: 45, fat: 12, fiber: 10 }
       };
     }
     return {
@@ -161,7 +199,7 @@ function fallbackMeal(req: MealRequest): MealResult {
         "Pour in eggs and gently scramble until set",
         "Serve eggs with toast"
       ],
-      nutrition: { calories: 380, protein_g: 18, carbs_g: 25, fat_g: 22, fiber_g: 4, sugar_g: 3 }
+      nutrition: { calories: 380, protein: 18, carbs: 25, fat: 22, fiber: 4 }
     };
   }
   
@@ -183,6 +221,6 @@ function fallbackMeal(req: MealRequest): MealResult {
       "Grill for 6-7 minutes per side until internal temperature reaches 165°F",
       "Let rest for 5 minutes before serving"
     ],
-    nutrition: { calories: 280, protein_g: 42, carbs_g: 0, fat_g: 11, fiber_g: 0, sugar_g: 0 }
+    nutrition: { calories: 280, protein: 42, carbs: 0, fat: 11, fiber: 0 }
   };
 }

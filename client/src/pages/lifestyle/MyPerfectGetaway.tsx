@@ -1,0 +1,876 @@
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, MapPin, Send, Plane, Palmtree, Ship, Star, ChevronRight, ChevronDown, X, Search, Loader2 } from "lucide-react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { isProOrAbove } from "@/lib/subscriptionCheck";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+
+interface CatalogZone {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface CatalogVenue {
+  id: string;
+  name: string;
+  type: string;
+  aliases: string[];
+  zones: CatalogZone[];
+}
+
+interface DiscoveryResult {
+  source: "catalog" | "google" | "none";
+  found: boolean;
+  venueId?: string;
+  placeId?: string;
+  name: string;
+  type: string;
+  address?: string;
+  zones: CatalogZone[];
+  confidence: "high" | "medium" | "low";
+}
+
+interface BestChoice {
+  name: string;
+  where: string;
+  why: string;
+}
+
+interface AvoidItem {
+  item: string;
+  reason: string;
+}
+
+interface GetawayResult {
+  venue: string;
+  venueType: string;
+  zone?: string | null;
+  bestChoices: BestChoice[];
+  whyTheyFit: string[];
+  avoid: AvoidItem[];
+  familyNote?: string[];
+  coachNote: string;
+}
+
+interface PersistedState {
+  result: GetawayResult;
+  message: string;
+}
+
+const QUICK_VENUES = [
+  { label: "Disney World", emoji: "🏰", hint: "Magic Kingdom" },
+  { label: "Disneyland", emoji: "🎡", hint: "Anaheim, CA" },
+  { label: "Universal Studios", emoji: "🎬", hint: "Orlando" },
+  { label: "LAX Airport", emoji: "✈️", hint: "Los Angeles" },
+  { label: "DFW Airport", emoji: "✈️", hint: "Dallas/Fort Worth" },
+  { label: "Royal Caribbean Cruise", emoji: "🚢", hint: "Cruise ship" },
+  { label: "Six Flags Over Texas", emoji: "🎢", hint: "Arlington, TX" },
+  { label: "A resort", emoji: "🏖️", hint: "Beach or mountain" },
+];
+
+const VENUE_ALIAS_MAP: Record<string, string> = {
+  "Disney World": "disney-magic-kingdom",
+  "Disneyland": "disneyland-ca",
+  "Universal Studios": "universal-studios-orlando",
+  "LAX Airport": "lax-airport",
+  "DFW Airport": "dfw-airport",
+  "Royal Caribbean Cruise": "royal-caribbean-cruise",
+  "Six Flags Over Texas": "six-flags-over-texas",
+};
+
+const ZONE_TYPE_LABELS: Record<string, string> = {
+  terminal: "terminal",
+  concourse: "concourse",
+  airside: "airside",
+  satellite: "satellite",
+  land: "area",
+  lot: "lot",
+  deck: "dining area",
+  entertainment_district: "area",
+};
+
+const VENUE_TYPE_ZONE_LABEL: Record<string, string> = {
+  airport: "terminal",
+  theme_park: "area",
+  stadium: "section",
+  cruise_ship: "deck",
+  resort: "area",
+  mall: "area",
+  other: "area",
+};
+
+function getStorageKey(userId?: number | string) {
+  return `mpm.getaway.lastResult.v2${userId ? `.${userId}` : ""}`;
+}
+
+export default function MyPerfectGetaway() {
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
+  const isDesktop = useIsDesktop();
+  usePageTitle("My Perfect Getaway");
+
+  useEffect(() => {
+    if (user !== undefined && !isProOrAbove(user)) {
+      requestUpgrade({ requiredTier: "pro", featureName: "My Perfect Getaway" });
+      setLocation("/lifestyle");
+    }
+  }, [user]);
+
+  const [message, setMessage] = useState("");
+  const [followUpMessage, setFollowUpMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<GetawayResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Catalog venues for quick-start pill zone lookup
+  const [venues, setVenues] = useState<CatalogVenue[]>([]);
+
+  // Catalog zone picker state (quick-start pills)
+  const [pendingVenue, setPendingVenue] = useState<CatalogVenue | null>(null);
+  const [pendingVenueLabel, setPendingVenueLabel] = useState<string>("");
+  const [selectedZone, setSelectedZone] = useState<CatalogZone | null>(null);
+  const [showZonePicker, setShowZonePicker] = useState(false);
+
+  // Active venue context — retained across follow-up conversation turns
+  const [activeVenueContext, setActiveVenueContext] = useState<{
+    venueId?: string; zoneId?: string; discoveredVenue?: Record<string, any>;
+  } | null>(null);
+
+  // Venue search — primary entry point (always visible)
+  const [venueSearchText, setVenueSearchText] = useState("");
+  const [venueSearchLoading, setVenueSearchLoading] = useState(false);
+  const [discoveryResult, setDiscoveryResult] = useState<DiscoveryResult | null>(null);
+  const venueSearchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch(apiUrl("/api/getaway/venues"), { headers: getAuthHeaders() })
+      .then(r => r.json())
+      .then(data => { if (data.venues) setVenues(data.venues); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    try {
+      const key = getStorageKey(user?.id);
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        const saved: PersistedState = JSON.parse(raw);
+        if (saved?.result) {
+          setResult(saved.result);
+          setMessage(saved.message || "");
+        }
+      }
+    } catch {}
+  }, [user?.id]);
+
+  useEffect(() => {
+    document.title = "My Perfect Getaway | My Perfect Meals";
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
+  useEffect(() => {
+    if (result && resultsRef.current) {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [result]);
+
+  useEffect(() => {
+    // Auto-focus the search field on mount so users can start typing immediately
+    if (!result && venueSearchRef.current) {
+      setTimeout(() => venueSearchRef.current?.focus(), 150);
+    }
+  }, []);
+
+  const submitMessage = useCallback(async (
+    msg: string,
+    venueId?: string,
+    zoneId?: string,
+    discoveredVenuePayload?: {
+      name: string;
+      type: string;
+      address?: string;
+      placeId?: string;
+      zoneName?: string;
+      zoneType?: string;
+    }
+  ) => {
+    const trimmed = msg.trim();
+    if (!trimmed || loading) return;
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setProgress(0);
+    setShowZonePicker(false);
+    setDiscoveryResult(null);
+
+    const progressInterval = setInterval(() => {
+      setProgress(p => {
+        if (p >= 85) { clearInterval(progressInterval); return p; }
+        return p + Math.random() * 12;
+      });
+    }, 400);
+
+    try {
+      const body: Record<string, any> = { message: trimmed };
+      if (venueId) body.venueId = venueId;
+      if (zoneId) body.zoneId = zoneId;
+      if (discoveredVenuePayload) body.discoveredVenue = discoveredVenuePayload;
+
+      const res = await fetch(apiUrl("/api/getaway/coach"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(body),
+      });
+
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      if (!res.ok) {
+        const body2 = await res.json().catch(() => ({}));
+        throw new Error(body2.error || "Something went wrong");
+      }
+
+      const data: GetawayResult = await res.json();
+      // Capture venue context for follow-up conversation turns
+      setActiveVenueContext({
+        venueId: venueId,
+        zoneId: zoneId,
+        discoveredVenue: discoveredVenuePayload,
+      });
+      setTimeout(() => {
+        setResult(data);
+        setLoading(false);
+        try {
+          const key = getStorageKey(user?.id);
+          sessionStorage.setItem(key, JSON.stringify({ result: data, message: trimmed }));
+        } catch {}
+      }, 300);
+    } catch (err: any) {
+      clearInterval(progressInterval);
+      setLoading(false);
+      setError(err.message || "Could not reach the Getaway Coach. Try again.");
+    }
+  }, [loading, user?.id]);
+
+  const handleQuickVenue = (label: string) => {
+    const venueId = VENUE_ALIAS_MAP[label];
+    const catalogVenue = venueId ? venues.find(v => v.id === venueId) : null;
+
+    if (catalogVenue && catalogVenue.zones.length > 0) {
+      // Catalog venue with structured zones → zone picker (canonical path)
+      setPendingVenue(catalogVenue);
+      setPendingVenueLabel(label);
+      setSelectedZone(null);
+      setShowZonePicker(true);
+      setDiscoveryResult(null);
+      return;
+    }
+
+    // All other quick-starts route through venue discovery — never raw text.
+    // This ensures every entry path uses structured location intelligence.
+    setVenueSearchText(label);
+    setDiscoveryResult(null);
+    handleVenueSearch(label);
+  };
+
+  const handleZoneSelect = (zone: CatalogZone | null) => {
+    if (!pendingVenue) return;
+    setSelectedZone(zone);
+    const venueName = pendingVenueLabel;
+    const zonePart = zone ? `, ${zone.name}` : "";
+    const msg = `I'm at ${venueName}${zonePart}. What should I eat?`;
+    setMessage(msg);
+    submitMessage(msg, pendingVenue.id, zone?.id);
+  };
+
+  const handleDiscoveredZoneSelect = (zone: CatalogZone | null) => {
+    if (!discoveryResult) return;
+    const zonePart = zone ? `, ${zone.name}` : "";
+    const msg = `I'm at ${discoveryResult.name}${zonePart}. What should I eat?`;
+    setMessage(msg);
+
+    if (discoveryResult.source === "catalog" && discoveryResult.venueId) {
+      submitMessage(msg, discoveryResult.venueId, zone?.id);
+    } else {
+      submitMessage(msg, undefined, undefined, {
+        name: discoveryResult.name,
+        type: discoveryResult.type,
+        address: discoveryResult.address,
+        placeId: discoveryResult.placeId,
+        zoneName: zone?.name,
+        zoneType: zone?.type,
+      });
+    }
+  };
+
+  const handleVenueSearch = async (overrideQuery?: string) => {
+    const q = (overrideQuery !== undefined ? overrideQuery : venueSearchText).trim();
+    if (!q || venueSearchLoading) return;
+
+    setVenueSearchLoading(true);
+    setDiscoveryResult(null);
+
+    try {
+      const res = await fetch(
+        apiUrl(`/api/getaway/venues/discover?q=${encodeURIComponent(q)}`),
+        { headers: getAuthHeaders() }
+      );
+      const data: DiscoveryResult = await res.json();
+      setDiscoveryResult(data);
+
+      if (data.found && data.zones.length === 0) {
+        const msg = `I'm at ${data.name}. What should I eat?`;
+        setMessage(msg);
+        if (data.source === "catalog" && data.venueId) {
+          submitMessage(msg, data.venueId);
+        } else {
+          submitMessage(msg, undefined, undefined, {
+            name: data.name,
+            type: data.type,
+            address: data.address,
+            placeId: data.placeId,
+          });
+        }
+      }
+    } catch {
+      setDiscoveryResult({ source: "none", found: false, name: q, type: "other", zones: [], confidence: "low" });
+    } finally {
+      setVenueSearchLoading(false);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleVenueSearch();
+    }
+  };
+
+  const handleSubmit = () => submitMessage(message);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const handleReset = () => {
+    setResult(null);
+    setMessage("");
+    setFollowUpMessage("");
+    setError(null);
+    setProgress(0);
+    setPendingVenue(null);
+    setSelectedZone(null);
+    setShowZonePicker(false);
+    setVenueSearchText("");
+    setDiscoveryResult(null);
+    setActiveVenueContext(null);
+    try {
+      sessionStorage.removeItem(getStorageKey(user?.id));
+    } catch {}
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleFollowUp = () => {
+    const trimmed = followUpMessage.trim();
+    if (!trimmed || loading || !activeVenueContext) return;
+    setFollowUpMessage("");
+    submitMessage(
+      trimmed,
+      activeVenueContext.venueId,
+      activeVenueContext.zoneId,
+      activeVenueContext.discoveredVenue as any,
+    );
+  };
+
+  const handleFollowUpKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleFollowUp();
+    }
+  };
+
+  const zoneTypeLabel = pendingVenue
+    ? ZONE_TYPE_LABELS[pendingVenue.zones[0]?.type] ?? "area"
+    : "area";
+
+  const discoveryZoneLabel = discoveryResult
+    ? VENUE_TYPE_ZONE_LABEL[discoveryResult.type] ?? "area"
+    : "area";
+
+  const venueSourceBadge = discoveryResult?.source === "google"
+    ? "Identified via Google Maps"
+    : discoveryResult?.source === "catalog"
+    ? "In our curated catalog"
+    : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen pb-36"
+      style={{
+        backgroundImage: "linear-gradient(rgba(2,10,8,0.78), rgba(1,6,5,0.74)), url('/images/getaway-hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      <MobileHeaderGuard>
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <Plane className="h-5 w-5 text-orange-400" />
+            <h1 className="text-base font-bold text-white">My Perfect Getaway</h1>
+          </div>
+        </div>
+      </MobileHeaderGuard>
+
+      <div
+        className="max-w-2xl mx-auto px-4"
+        style={{ paddingTop: isDesktop ? "2rem" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
+      >
+        {!isDesktop && (
+          <button
+            onClick={() => setLocation("/lifestyle")}
+            className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        )}
+
+        {/* Hub Intro — matches Pairings Hub pattern */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-white mb-2">Eat Well, Anywhere</h2>
+          <p className="text-sm text-white/70">Your personal nutrition coach at theme parks, airports, cruises, and resorts.</p>
+        </div>
+
+        {!result && !showZonePicker && (
+          <>
+            {/* Primary location entry — single search field */}
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-orange-300 mb-1 ml-1">
+                WHERE ARE YOU EATING?
+              </label>
+              <p className="text-xs text-white/50 mb-3 ml-1">
+                Search any airport, stadium, theme park, resort, cruise ship, or destination.
+              </p>
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-orange-400/70 pointer-events-none" />
+                <input
+                  ref={venueSearchRef}
+                  type="text"
+                  value={venueSearchText}
+                  onChange={e => { setVenueSearchText(e.target.value); setDiscoveryResult(null); }}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Search location or venue…"
+                  className="w-full bg-black/40 border border-orange-500/30 rounded-xl pl-10 pr-14 py-3.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-400/60 focus:ring-1 focus:ring-orange-400/30"
+                  disabled={venueSearchLoading || loading}
+                />
+                <button
+                  onClick={() => handleVenueSearch()}
+                  disabled={!venueSearchText.trim() || venueSearchLoading || loading}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-orange-600 text-white disabled:opacity-40 transition-opacity"
+                >
+                  {venueSearchLoading
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Search className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Discovery result — zone picker (inline) */}
+            {discoveryResult?.found && discoveryResult.zones.length > 0 && (
+              <div className="mb-4 rounded-2xl bg-black/50 border border-orange-500/25 overflow-hidden">
+                <div className="px-4 py-3.5 border-b border-orange-500/15">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-white text-sm font-bold leading-tight">{discoveryResult.name}</p>
+                      {discoveryResult.address && (
+                        <p className="text-white/40 text-xs leading-tight mt-0.5">{discoveryResult.address}</p>
+                      )}
+                    </div>
+                  </div>
+                  {venueSourceBadge && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/8 border border-white/10 mt-2">
+                      <span className="text-white/50 text-[10px]">{venueSourceBadge}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="px-4 py-4">
+                  <p className="text-xs text-orange-200 font-semibold mb-2.5">
+                    Which {discoveryZoneLabel} are you in?
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {discoveryResult.zones.map(zone => (
+                      <button
+                        key={zone.id}
+                        onClick={() => handleDiscoveredZoneSelect(zone)}
+                        className="px-3 py-1.5 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-100 font-medium transition-all active:scale-95 active:bg-orange-600/50"
+                      >
+                        {zone.name}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleDiscoveredZoneSelect(null)}
+                    className="mt-3 w-full py-2.5 rounded-xl bg-white/6 border border-white/10 text-white/55 text-xs"
+                  >
+                    Not sure — skip and show all options
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Discovery result — not found */}
+            {discoveryResult && !discoveryResult.found && (
+              <div className="mb-4 rounded-xl bg-black/40 border border-orange-500/20 px-4 py-4">
+                <p className="text-white/60 text-xs mb-3">
+                  We couldn't find that venue. Your coach can still help — just tap below.
+                </p>
+                <button
+                  onClick={() => {
+                    const msg = `I'm at ${venueSearchText.trim()}. What should I eat?`;
+                    setMessage(msg);
+                    setDiscoveryResult(null);
+                    submitMessage(msg);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-orange-600 text-white text-xs font-semibold active:scale-95 transition-transform"
+                >
+                  Ask the coach anyway
+                </button>
+              </div>
+            )}
+
+            {/* Quick-start pills — shown when not awaiting zone selection */}
+            {!discoveryResult && (
+              <>
+                <div className="mb-6">
+                  <p className="text-xs text-white/50 mb-2 ml-1">QUICK START — TAP TO GO</p>
+                  <div className="flex flex-wrap gap-2">
+                    {QUICK_VENUES.map(v => {
+                      const venueId = VENUE_ALIAS_MAP[v.label];
+                      const hasZones = venueId ? (venues.find(vn => vn.id === venueId)?.zones.length ?? 0) > 0 : false;
+                      return (
+                        <button
+                          key={v.label}
+                          onClick={() => handleQuickVenue(v.label)}
+                          disabled={loading || venueSearchLoading}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/15 rounded-full text-xs text-white/80 transition-all active:scale-95 active:bg-orange-600/20 active:border-orange-500/30 active:text-orange-300 disabled:opacity-40"
+                        >
+                          <span>{v.emoji}</span>
+                          <span>{v.label}</span>
+                          {hasZones && <ChevronDown className="h-3 w-3 text-white/40 flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-black/30 border border-white/8 p-4">
+                  <p className="text-xs font-semibold text-white/50 mb-3">HOW IT WORKS</p>
+                  <div className="space-y-2.5">
+                    {[
+                      { icon: MapPin, text: "Search your venue — airport, stadium, theme park, resort, or cruise" },
+                      { icon: Star, text: "Get picks matched to your health profile, goals, and any medical protocols" },
+                      { icon: Plane, text: "Select your terminal or zone for even more precise recommendations" },
+                    ].map(({ icon: Icon, text }) => (
+                      <div key={text} className="flex items-start gap-2.5">
+                        <div className="p-1 rounded-lg bg-orange-500/15 flex-shrink-0 mt-0.5">
+                          <Icon className="h-3 w-3 text-orange-400" />
+                        </div>
+                        <p className="text-xs text-white/65 leading-relaxed">{text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+
+        {/* Catalog Zone Picker (quick-start pills) */}
+        <AnimatePresence>
+          {showZonePicker && pendingVenue && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.25 }}
+              className="rounded-2xl bg-black/50 border border-orange-500/25 overflow-hidden"
+            >
+              <div className="px-4 py-3.5 border-b border-orange-500/15 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-orange-300 font-semibold uppercase tracking-wide mb-0.5">
+                    {pendingVenueLabel}
+                  </p>
+                  <p className="text-white text-sm font-bold">
+                    Which {zoneTypeLabel} are you in?
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowZonePicker(false);
+                    setPendingVenue(null);
+                  }}
+                  className="p-1.5 rounded-lg bg-white/8 text-white/60"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="px-4 py-4">
+                <div className="flex flex-wrap gap-2">
+                  {pendingVenue.zones.map(zone => (
+                    <button
+                      key={zone.id}
+                      onClick={() => handleZoneSelect(zone)}
+                      className="px-3 py-1.5 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-100 font-medium transition-all active:scale-95 active:bg-orange-600/50"
+                    >
+                      {zone.name}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => handleZoneSelect(null)}
+                  className="mt-3 w-full py-2.5 rounded-xl bg-white/6 border border-white/10 text-white/55 text-xs"
+                >
+                  Not sure — skip and show all options
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Loading */}
+        <AnimatePresence>
+          {loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-6 rounded-2xl bg-black/40 border border-orange-500/20 p-6 text-center"
+            >
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  <Palmtree className="h-10 w-10 text-orange-400 animate-pulse" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-bounce" />
+                </div>
+              </div>
+              <p className="text-white font-medium text-sm mb-1">Your Getaway Coach is on it…</p>
+              <p className="text-white/50 text-xs mb-4">Checking what's available and what fits your profile</p>
+              <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
+                  animate={{ width: `${Math.min(progress, 100)}%` }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Error */}
+        {error && (
+          <div className="mt-4 rounded-xl bg-red-900/20 border border-red-500/30 p-4">
+            <p className="text-red-300 text-sm">{error}</p>
+            <button onClick={handleReset} className="mt-2 text-orange-400 text-xs underline">
+              Try again
+            </button>
+          </div>
+        )}
+
+        {/* Results */}
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              ref={resultsRef}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-4"
+            >
+              {/* Venue + zone badge row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/15 border border-orange-500/30 rounded-full">
+                  <MapPin className="h-3 w-3 text-orange-400" />
+                  <span className="text-orange-200 text-xs font-semibold">{result.venue}</span>
+                </div>
+                {result.zone && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/15 rounded-full">
+                    <span className="text-white/70 text-xs">{result.zone}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Best Choices */}
+              {result.bestChoices?.length > 0 && (
+                <div className="rounded-2xl bg-black/40 border border-orange-500/20 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-orange-500/15 flex items-center gap-2">
+                    <Star className="h-4 w-4 text-orange-400" />
+                    <h3 className="text-sm font-bold text-white">Best Choices For You</h3>
+                  </div>
+                  <div className="divide-y divide-white/8">
+                    {result.bestChoices.map((choice, i) => (
+                      <div key={i} className="px-4 py-3.5">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white text-[10px] font-bold">{i + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-semibold text-sm leading-tight">{choice.name}</p>
+                            {choice.where && (
+                              <p className="text-orange-300/80 text-xs mt-0.5 flex items-center gap-1">
+                                <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+                                {choice.where}
+                              </p>
+                            )}
+                            {choice.why && (
+                              <p className="text-white/60 text-xs mt-1 leading-relaxed">{choice.why}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Why These Fit */}
+              {result.whyTheyFit?.length > 0 && (
+                <div className="rounded-2xl bg-black/30 border border-white/10 px-4 py-4">
+                  <h3 className="text-xs font-bold text-white/60 uppercase tracking-wide mb-3">Why These Fit You</h3>
+                  <div className="space-y-2">
+                    {result.whyTheyFit.map((reason, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <ChevronRight className="h-3.5 w-3.5 text-orange-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-white/75 text-xs leading-relaxed">{reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* What to Avoid */}
+              {result.avoid?.length > 0 && (
+                <div className="rounded-2xl bg-red-950/20 border border-red-500/20 px-4 py-4">
+                  <h3 className="text-xs font-bold text-red-300/70 uppercase tracking-wide mb-3">What To Avoid</h3>
+                  <div className="space-y-2">
+                    {result.avoid.map((item, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400/60 flex-shrink-0 mt-1.5" />
+                        <div>
+                          <span className="text-red-300/80 text-xs font-medium">{item.item}</span>
+                          {item.reason && (
+                            <span className="text-white/40 text-xs"> — {item.reason}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Family Note */}
+              {result.familyNote && result.familyNote.length > 0 && (
+                <div className="rounded-2xl bg-amber-950/20 border border-amber-500/20 px-4 py-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg leading-none">👨‍👩‍👧‍👦</span>
+                    <h3 className="text-xs font-bold text-amber-300/80 uppercase tracking-wide">Family Note</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {result.familyNote.map((tip, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <ChevronRight className="h-3.5 w-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-white/75 text-xs leading-relaxed">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Coach Note */}
+              {result.coachNote && (
+                <div className="rounded-2xl bg-gradient-to-br from-orange-950/40 to-amber-950/20 border border-orange-500/20 px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-lg bg-orange-500/20 flex-shrink-0">
+                      <Ship className="h-4 w-4 text-orange-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-orange-300 mb-1">Coach Note</p>
+                      <p className="text-white/80 text-sm leading-relaxed">{result.coachNote}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Follow-up conversation — retains venue context */}
+              {activeVenueContext && !loading && (
+                <div className="mt-2 mb-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={followUpMessage}
+                      onChange={e => setFollowUpMessage(e.target.value)}
+                      onKeyDown={handleFollowUpKeyDown}
+                      placeholder="Ask a follow-up — location context is retained…"
+                      className="w-full bg-black/40 border border-orange-500/20 rounded-xl pl-4 pr-12 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-400/60 focus:ring-1 focus:ring-orange-400/20"
+                    />
+                    <button
+                      onClick={handleFollowUp}
+                      disabled={!followUpMessage.trim()}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-orange-600 text-white disabled:opacity-40 transition-opacity"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-white/30 mt-1.5 ml-1">
+                    Your venue is still set — or tap New Venue to start over.
+                  </p>
+                </div>
+              )}
+
+              {/* Reset / navigation */}
+              <div className="pt-2 pb-4 flex flex-col gap-2">
+                <button
+                  onClick={handleReset}
+                  className="w-full py-3 rounded-xl bg-orange-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+                >
+                  New Venue
+                </button>
+                <button
+                  onClick={() => setLocation("/lifestyle")}
+                  className="w-full py-2.5 rounded-xl bg-white/8 border border-white/10 text-white/70 text-sm"
+                >
+                  Back to Lifestyle
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}

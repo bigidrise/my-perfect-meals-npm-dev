@@ -66,7 +66,7 @@ export default function TrashButton({
         title={title}
         disabled={disabled}
         data-testid={testId}
-        className={`inline-flex items-center justify-center border border-white/15 bg-black/60 hover:bg-black text-white/90 hover:text-white shadow-sm active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-white/30 !leading-none !text-[14px] ${sizeMap} ${className}`}
+        className={`inline-flex items-center justify-center border border-red-500/60 bg-red-600 hover:bg-red-700 text-white shadow-sm active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-400/40 !leading-none !text-[14px] ${sizeMap} ${className}`}
       >
         <Trash2 className="!h-4 !w-4 shrink-0" />
       </button>

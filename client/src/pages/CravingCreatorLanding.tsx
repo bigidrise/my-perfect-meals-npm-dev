@@ -2,9 +2,10 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Sparkles } from "lucide-react";
+import { Brain, Sparkles, Fish, ArrowLeft } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
-
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 interface CravingFeature {
   title: string;
   description: string;
@@ -15,9 +16,11 @@ interface CravingFeature {
 
 export default function CravingCreatorLanding() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("Craving Hub");
 
   useEffect(() => {
-    document.title = "Craving Creator Hub | My Perfect Meals";
+    document.title = "Cravings, Sushi & Desserts Hub | My Perfect Meals";
     window.scrollTo({ top: 0, behavior: "instant" });
     
     // Phase C.7: Emit "opened" event for hub walkthrough
@@ -44,6 +47,13 @@ export default function CravingCreatorLanding() {
       route: "/craving-desserts",
       testId: "cravinghub-desserts",
     },
+    {
+      title: "Sushi Creator",
+      description: "Japanese-inspired sushi and rice bowls — macros tracked, health goals respected",
+      icon: Fish,
+      route: "/sushi-creator",
+      testId: "cravinghub-sushi",
+    },
   ];
 
   const handleCardClick = (route: string) => {
@@ -60,10 +70,15 @@ export default function CravingCreatorLanding() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-safe-nav"
+      className="min-h-screen pb-safe-nav"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.58)), url('/images/craving-creator-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
+      }}
     >
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
@@ -75,7 +90,7 @@ export default function CravingCreatorLanding() {
           <Sparkles className="h-6 w-6 text-orange-500" />
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">Craving Creator Hub</h1>
+          <h1 className="text-lg font-bold text-white">Cravings, Sushi & Desserts Hub</h1>
 
           
         </div>
@@ -88,25 +103,21 @@ export default function CravingCreatorLanding() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="max-w-2xl mx-auto space-y-4">
-          {/* Hero Image Section */}
-          <div className="relative h-40 rounded-xl overflow-hidden">
-            <img
-              src="/images/cravings/satisfy-cravings.png"
-              alt="Satisfy your cravings"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='160'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23a855f7;stop-opacity:0.3' /%3E%3Cstop offset='100%25' style='stop-color:%23ec4899;stop-opacity:0.3' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='160' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='white' font-size='20' font-family='sans-serif' dy='.3em'%3ESatisfy Smartly%3C/text%3E%3C/svg%3E";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3">
-              <p className="text-white/90 text-sm">
-                Satisfy your cravings without derailing your goals — smarter
-                choices that hit the spot.
-              </p>
-            </div>
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Food Creativity</h2>
+            <p className="text-sm text-white/70">AI-powered meal, dessert, and sushi creation built around what you want right now.</p>
           </div>
+
           {/* Craving Features - Vertical Stack */}
           <div className="flex flex-col gap-3">
             {cravingFeatures.map((feature) => {

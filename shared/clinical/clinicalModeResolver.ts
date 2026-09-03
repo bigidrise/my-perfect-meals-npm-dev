@@ -11,6 +11,8 @@ export interface ClinicalFlags {
   diabetesFriendly?: boolean;
   glp1?: boolean;
   postBariatric?: boolean;
+  oncologySupport?: boolean;
+  thyroidSupport?: boolean;
   [key: string]: boolean | undefined;
 }
 
@@ -32,6 +34,7 @@ const MODE_NAMESPACE_MAP: Record<ClinicalMode, BuilderNamespace> = {
   'kidney-disease':    BUILDER_NS.KIDNEY_DISEASE,
   'heart-failure':     BUILDER_NS.HEART_FAILURE,
   'liver-disease':     BUILDER_NS.LIVER_DISEASE,
+  'oncology-support':  BUILDER_NS.ANTI_INFLAMMATORY_ONCOLOGY,
 };
 
 /**
@@ -68,13 +71,19 @@ export function resolveClinicalModeFromFlags(flags?: ClinicalFlags | null): Reso
   } else if (f.liverSupport) {
     mode = 'liver-support';
     primaryBadge = { label: 'Liver Support', cls: 'bg-emerald-600 text-white' };
+  } else if (f.oncologySupport) {
+    mode = 'oncology-support';
+    primaryBadge = { label: 'Oncology Support', cls: 'bg-rose-600 text-white' };
   }
 
   const modifierBadges: ProtocolBadge[] = [];
   if (f.lowSodium)        modifierBadges.push({ label: 'Low-Sodium',        cls: 'bg-yellow-700 text-yellow-100' });
   if (f.diabetesFriendly) modifierBadges.push({ label: 'Diabetes-Friendly', cls: 'bg-purple-700 text-purple-100' });
-  if (f.glp1)             modifierBadges.push({ label: 'GLP-1 Support',     cls: 'bg-blue-700 text-blue-100'    });
+  if (f.glp1)             modifierBadges.push({ label: 'Metabolic Medication Support', cls: 'bg-blue-700 text-blue-100' });
   if (f.postBariatric)    modifierBadges.push({ label: 'Post-Bariatric',    cls: 'bg-orange-700 text-orange-100' });
+  // Thyroid Support is an ADDITIVE MODIFIER — it blends into the active primary protocol,
+  // never overrides it. Teal distinguishes it visually from oncology (rose) and cardiac (red).
+  if (f.thyroidSupport)   modifierBadges.push({ label: 'Thyroid Support',   cls: 'bg-teal-700 text-teal-100'    });
 
   return {
     mode,

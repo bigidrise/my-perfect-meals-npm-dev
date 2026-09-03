@@ -1,27 +1,25 @@
 PODS:
   - Capacitor (7.4.4):
     - CapacitorCordova
-  - CapacitorApp (8.0.0):
+  - CapacitorApp (7.0.0):
     - Capacitor
-  - CapacitorAppLauncher (8.0.0):
+  - CapacitorAppLauncher (7.0.0):
     - Capacitor
-  - CapacitorCamera (8.0.0):
+  - CapacitorCamera (7.0.0):
     - Capacitor
   - CapacitorCordova (7.4.4)
-  - CapacitorGeolocation (8.0.0):
+  - CapacitorGeolocation (7.0.0):
     - Capacitor
-    - IONGeolocationLib (= 2.0.0)
-  - CapacitorLocalNotifications (8.0.0):
+  - CapacitorLocalNotifications (7.0.0):
     - Capacitor
   - CapacitorNativeSettings (7.0.2):
     - Capacitor
-  - CapacitorPreferences (8.0.0):
+  - CapacitorPreferences (7.0.0):
     - Capacitor
-  - CapacitorShare (8.0.0):
+  - CapacitorShare (7.0.0):
     - Capacitor
-  - CapacitorSplashScreen (8.0.0):
+  - CapacitorSplashScreen (7.0.0):
     - Capacitor
-  - IONGeolocationLib (2.0.0)
   - SquareetlabsCapacitorSubscriptions (1.0.25):
     - Capacitor
 
@@ -38,10 +36,6 @@ DEPENDENCIES:
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "SquareetlabsCapacitorSubscriptions (from `../../node_modules/@squareetlabs/capacitor-subscriptions`)"
-
-SPEC REPOS:
-  trunk:
-    - IONGeolocationLib
 
 EXTERNAL SOURCES:
   Capacitor:
@@ -71,17 +65,16 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Capacitor: 358dd1c3fdd71d969547b17e159fd8a7736cb45f
-  CapacitorApp: 3963a84197280757b84f126afd1520a85ae3b092
-  CapacitorAppLauncher: 7f2330aa2d8a72a4767ab05af9df4bf68166ebf0
-  CapacitorCamera: 592acb7ab9fb748e2d8571eb03af30ec4e1ace12
+  CapacitorApp: 9cb31064a6c6bb2b1438583733a7bf45557fc1da
+  CapacitorAppLauncher: e2c8917b37032e53694869df963e581ddcf112fb
+  CapacitorCamera: 20a37684b81c69c0c33fb5a7216919f135371a6f
   CapacitorCordova: bf648a636f3c153f652d312ae145fb508b6ffced
-  CapacitorGeolocation: 8a405e707de9aff6ac9eca7f408966a370f7ca33
-  CapacitorLocalNotifications: 177cfbf8228d9bd82a147e094cb7984d7afb9e29
+  CapacitorGeolocation: 8c81945cc5da62974d94699c347e7d88888745c0
+  CapacitorLocalNotifications: c9577978cd598af5e2b5615548b8222b3b10d7e2
   CapacitorNativeSettings: 3cd2e2ef431fe471674f381609cfb29154ddfcfa
-  CapacitorPreferences: 443fabe9670226200e595658a87ef0b1566716d4
-  CapacitorShare: 12f1d192170cbcf9f108fd675ac8e343761a4638
-  CapacitorSplashScreen: 422880d7117605c30699eb4b21644b62db42e86c
-  IONGeolocationLib: a5e40b54edc2ee9902036eda5aaa41ddf07bb68d
+  CapacitorPreferences: 8e4bef1f937fc991a19d7ea99330c36a62edd24b
+  CapacitorShare: d94c53d7656f1ce8f6712ae8d19ab0c18a69259f
+  CapacitorSplashScreen: 7e7a0a1113833032f196b3af6fa437baccacf5bc
   SquareetlabsCapacitorSubscriptions: 9ebfcd67efe366bdd10f1e7b5ff15e50aa5cb548
 
 PODFILE CHECKSUM: 86170a419af2f91690b54c9e690ea929c2ce25c7

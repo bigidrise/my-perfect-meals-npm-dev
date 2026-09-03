@@ -1,181 +1,513 @@
-import { useState, useEffect } from "react";
-import { Bell, BellOff, Clock } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  Bell, BellOff, Plus, Trash2, Pencil, Check, X,
+  CheckCircle2, XCircle, Loader2, ChevronDown, ChevronRight, Smartphone, Globe,
+} from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import {
-  loadReminderSchedule,
-  saveReminderSchedule,
-  scheduleReminders,
+  loadRemindersFromServer,
+  saveRemindersToServer,
+  syncToiOS,
+  canceliOSReminders,
   requestNotificationPermission,
   checkNotificationPermission,
-  MealReminderSchedule,
+  enrollWebPush,
+  getWebPushPermission,
+  checkWebPushPipeline,
+  getDefaultSlots,
+  ReminderSlot,
+  PipelineDiagnostic,
+  MAX_SLOTS,
+  setupNotificationListeners,
 } from "@/services/mealReminderService";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
-interface TimePickerProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-}
+// ── TimeRow sub-component ────────────────────────────────────────────────────
 
-function TimePicker({ label, value, onChange, disabled }: TimePickerProps) {
+function TimeRow({
+  slot,
+  index,
+  total,
+  disabled,
+  onToggle,
+  onTimeChange,
+  onLabelChange,
+  onRemove,
+}: {
+  slot: ReminderSlot;
+  index: number;
+  total: number;
+  disabled: boolean;
+  onToggle: () => void;
+  onTimeChange: (t: string) => void;
+  onLabelChange: (l: string) => void;
+  onRemove: () => void;
+}) {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(slot.label);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  function commitLabel() {
+    const trimmed = draft.trim() || t("mealReminders.mealN", { n: index + 1 });
+    onLabelChange(trimmed);
+    setDraft(trimmed);
+    setEditing(false);
+  }
+
   return (
-    <div className="flex items-center justify-between py-2 border-b border-white/10 last:border-b-0">
-      <div className="flex items-center gap-2">
-        <Clock className="w-3.5 h-3.5 text-orange-400" />
-        <span className="text-white text-xs">{label}</span>
-      </div>
-      <input
-        type="time"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+    <div className="flex items-center gap-2 py-2 border-b border-white/10 last:border-b-0">
+      {/* Toggle */}
+      <button
+        onClick={onToggle}
         disabled={disabled}
-        className="bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
-      />
+        aria-pressed={slot.enabled}
+        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+          slot.enabled
+            ? "bg-emerald-600 border border-emerald-400/60"
+            : "bg-white/15 border border-white/30"
+        } disabled:opacity-40`}
+      >
+        {slot.enabled ? (
+          <Bell className="w-3 h-3 text-white" />
+        ) : (
+          <BellOff className="w-3 h-3 text-white/80" />
+        )}
+      </button>
+
+      {/* Label + time stacked vertically */}
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        {/* Label row */}
+        {editing ? (
+          <div className="flex items-center gap-1">
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitLabel();
+                if (e.key === "Escape") { setDraft(slot.label); setEditing(false); }
+              }}
+              maxLength={30}
+              className="bg-white/10 border border-orange-400/60 rounded px-2 py-0.5 text-white text-xs w-full focus:outline-none"
+            />
+            <button onClick={commitLabel} className="text-emerald-400">
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => { setDraft(slot.label); setEditing(false); }} className="text-white/70">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setDraft(slot.label); setEditing(true); }}
+            className="flex items-center gap-1 group text-left"
+          >
+            <span className="text-white text-xs truncate">{slot.label}</span>
+            <Pencil className="w-2.5 h-2.5 text-white/50 flex-shrink-0" />
+          </button>
+        )}
+
+        {/* Time pill — sits below the label */}
+        <input
+          type="time"
+          value={slot.time}
+          onChange={(e) => onTimeChange(e.target.value)}
+          disabled={disabled}
+          className="self-start bg-white/10 border border-white/30 rounded-full px-2 py-[1px] text-white text-[10px] font-semibold tracking-wide focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-40"
+        />
+      </div>
+
+      {/* Remove — always red so it's obvious */}
+      {total > 1 && (
+        <button onClick={onRemove} className="text-red-400 flex-shrink-0">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }
 
+// ── Main component ───────────────────────────────────────────────────────────
+
 export default function MealReminders() {
-  const [schedule, setSchedule] = useState<MealReminderSchedule>({
-    enabled: false,
-    breakfast: "08:00",
-    lunch: "13:00",
-    dinner: "18:00",
-  });
+  const [slots, setSlots] = useState<ReminderSlot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasPermission, setHasPermission] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [webPermission, setWebPermission] = useState<string>("default");
+  const [iOSPermission, setiOSPermission] = useState(false);
+  const [pipeline, setPipeline] = useState<PipelineDiagnostic | null>(null);
+  const [pipelineChecking, setPipelineChecking] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const isNative = Capacitor.isNativePlatform();
+  const anyEnabled = slots.some((s) => s.enabled);
 
+  async function runPipelineCheck() {
+    if (isNative) return;
+    setPipelineChecking(true);
+    try {
+      const result = await checkWebPushPipeline();
+      setPipeline(result);
+      setWebPermission(getWebPushPermission());
+    } finally {
+      setPipelineChecking(false);
+    }
+  }
+
+  // Mount: load reminders + run initial pipeline check
   useEffect(() => {
     async function init() {
+      console.log('[MealReminders] ① mounted — isNative:', isNative);
       try {
-        const saved = await loadReminderSchedule();
-        setSchedule(saved);
+        console.log('[MealReminders] ② calling loadRemindersFromServer');
+        const saved = await loadRemindersFromServer();
+        console.log('[MealReminders] ③ fetch returned — slots:', saved.length);
+        setSlots(saved.length > 0 ? saved : getDefaultSlots());
+        console.log('[MealReminders] ④ slots applied');
         if (isNative) {
-          const perm = await checkNotificationPermission();
-          setHasPermission(perm);
+          console.log('[MealReminders] ⑤ iOS — checking notification permission');
+          setiOSPermission(await checkNotificationPermission());
+          console.log('[MealReminders] ⑥ iOS — permission checked');
+        } else {
+          setWebPermission(getWebPushPermission());
+          const result = await checkWebPushPipeline();
+          setPipeline(result);
+          // Re-read permission after the async pipeline check so the status
+          // badge never lags behind a state change that occurred during the await.
+          setWebPermission(getWebPushPermission());
         }
       } catch (e) {
-        console.error("Failed to initialize meal reminders:", e);
+        console.error('[MealReminders] ✗ init error:', e);
       } finally {
+        console.log('[MealReminders] ⑦ setLoading(false)');
         setLoading(false);
       }
     }
     init();
   }, [isNative]);
 
-  const handleToggle = async () => {
-    const enabled = !schedule.enabled;
-    
-    if (enabled && isNative) {
-      const granted = await requestNotificationPermission();
-      if (!granted) {
-        toast({
-          title: "Notifications Blocked",
-          description: "Go to iPhone Settings > My Perfect Meals > Allow Notifications",
-          variant: "destructive",
-        });
-        return;
-      }
-      setHasPermission(true);
-    }
-
-    const newSchedule = { ...schedule, enabled };
-    setSchedule(newSchedule);
-    await saveReminderSchedule(newSchedule);
-    await scheduleReminders(newSchedule);
-
-    toast({
-      title: enabled ? "Reminders Enabled" : "Reminders Disabled",
-      description: enabled
-        ? "You'll get notifications at your scheduled meal times."
-        : "Meal reminders have been turned off.",
+  // iOS tap-to-route listener
+  useEffect(() => {
+    if (!isNative) return;
+    const cleanup = setupNotificationListeners((path) => {
+      window.location.href = path;
     });
-  };
+    return cleanup;
+  }, [isNative]);
 
-  const handleTimeChange = async (meal: "breakfast" | "lunch" | "dinner", time: string) => {
-    const newSchedule = { ...schedule, [meal]: time };
-    setSchedule(newSchedule);
-    await saveReminderSchedule(newSchedule);
-    if (newSchedule.enabled) {
-      await scheduleReminders(newSchedule);
+  // Re-check on tab focus (user may have changed browser/system settings)
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState !== "visible") return;
+      if (isNative) {
+        // User may have changed iOS notification permission in Settings
+        checkNotificationPermission().then(setiOSPermission);
+      } else {
+        runPipelineCheck();
+      }
     }
-  };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [isNative]);
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  async function persist(next: ReminderSlot[]) {
+    setSaving(true);
+    try {
+      const saved = await saveRemindersToServer(next);
+      setSlots(saved);
+      if (isNative) await syncToiOS(saved);
+    } catch (e) {
+      console.error("[MealReminders] save failed:", e);
+      toast({ title: t("mealReminders.toastSaveFailed"), variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleSlot(index: number) {
+    const slot = slots[index];
+    const willEnable = !slot.enabled;
+
+    if (willEnable) {
+      if (isNative) {
+        const granted = await requestNotificationPermission();
+        if (!granted) {
+          toast({
+            title: t("mealReminders.toastBlockedTitle"),
+            description: t("mealReminders.toastBlockedIosDesc"),
+            variant: "destructive",
+          });
+          return;
+        }
+        setiOSPermission(true);
+      } else {
+        const perm = getWebPushPermission();
+        if (perm === "unsupported") {
+          toast({ title: t("mealReminders.toastNotSupportedTitle"), description: t("mealReminders.toastNotSupportedDesc"), variant: "destructive" });
+          return;
+        }
+        if (perm === "denied") {
+          toast({ title: t("mealReminders.toastBlockedTitle"), description: t("mealReminders.toastBlockedWebDesc"), variant: "destructive" });
+          return;
+        }
+        const result = await enrollWebPush();
+        if (!result.success) {
+          toast({ title: t("mealReminders.toastEnableFailedTitle"), description: result.reason === "denied" ? t("mealReminders.toastPermissionDenied") : t("mealReminders.toastTryAgain"), variant: "destructive" });
+          return;
+        }
+        // Re-run pipeline after enrollment
+        runPipelineCheck();
+      }
+    }
+
+    const next = slots.map((s, i) => i === index ? { ...s, enabled: willEnable } : s);
+    if (!next.some((s) => s.enabled) && isNative) await canceliOSReminders();
+    await persist(next);
+  }
+
+  function handleTimeChange(index: number, time: string) {
+    const next = slots.map((s, i) => i === index ? { ...s, time } : s);
+    setSlots(next);
+    persist(next);
+  }
+
+  function handleLabelChange(index: number, label: string) {
+    persist(slots.map((s, i) => i === index ? { ...s, label } : s));
+  }
+
+  function handleRemove(index: number) {
+    if (slots.length <= 1) return;
+    persist(slots.filter((_, i) => i !== index));
+  }
+
+  function handleAdd() {
+    if (slots.length >= MAX_SLOTS) return;
+    const n = slots.length + 1;
+    const h = Math.min(6 + n * 3, 21);
+    persist([...slots, { label: t("mealReminders.mealN", { n }), time: `${h.toString().padStart(2, "0")}:00`, enabled: false }]);
+  }
+
+  // ── Derived status ─────────────────────────────────────────────────────────
+
+  // For web: derive a simple 3-state user status from the pipeline result
+  function webStatus(): "blocked" | "unsupported" | "ready" | "partial" | "pending" {
+    if (webPermission === "unsupported") return "unsupported";
+    if (webPermission === "denied") return "blocked";
+    if (!pipeline) return "pending";
+    if (pipeline.ready) return "ready";
+    // Permission granted but something else missing
+    if (webPermission === "granted") return "partial";
+    return "pending";
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
       <div className="bg-white/5 rounded-xl p-3 animate-pulse">
-        <div className="h-5 bg-white/10 rounded w-1/2"></div>
+        <div className="h-5 bg-white/10 rounded w-1/2" />
       </div>
     );
   }
 
-  if (!isNative) {
-    return (
-      <div className="bg-white/5 rounded-xl p-3">
-        <div className="flex items-center gap-2">
-          <BellOff className="w-4 h-4 text-gray-400" />
-          <span className="text-white text-sm font-medium">Meal Reminders</span>
-          <span className="text-gray-500 text-xs ml-auto">iOS only</span>
-        </div>
-      </div>
-    );
-  }
+  const status = webStatus();
+  const isBlocked = !isNative && (status === "blocked" || status === "unsupported");
 
   return (
-    <div className="bg-white/5 rounded-xl p-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-orange-400" />
-          <span className="text-white text-sm font-medium">Meal Reminders</span>
-        </div>
-        <button
-  onClick={handleToggle}
-  aria-pressed={schedule.enabled}
-  aria-label={`Meal reminders ${schedule.enabled ? "on" : "off"}`}
-  className={`
-    !min-h-0 !min-w-0
-    inline-flex items-center justify-center
-    px-3 py-px min-w-[32px] rounded-full
-    text-[7px] font-semibold uppercase tracking-wide
-    transition-all duration-150 ease-out whitespace-nowrap
-    ${schedule.enabled
-      ? "bg-emerald-600/80 text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-emerald-400/40"
-      : "bg-amber-500/20 text-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:bg-amber-500/30 border border-amber-400/40"
-    }
-  `}
->
-  {schedule.enabled ? "On" : "Off"}
-</button>
+    <div className="bg-white/5 rounded-xl p-3 space-y-3">
 
+      {/* ── Header ── */}
+      <div className="flex items-center gap-2">
+        <Bell className="w-4 h-4 text-orange-400" />
+        <span className="text-white text-sm font-medium">{t("mealReminders.title")}</span>
+        {saving && <span className="text-white/60 text-[10px] ml-auto">{t("mealReminders.saving")}</span>}
       </div>
 
-      {schedule.enabled && (
-        <div className="mt-3 pt-2 border-t border-white/10">
-          <TimePicker
-            label="Breakfast"
-            value={schedule.breakfast}
-            onChange={(time) => handleTimeChange("breakfast", time)}
-          />
-          <TimePicker
-            label="Lunch"
-            value={schedule.lunch}
-            onChange={(time) => handleTimeChange("lunch", time)}
-          />
-          <TimePicker
-            label="Dinner"
-            value={schedule.dinner}
-            onChange={(time) => handleTimeChange("dinner", time)}
-          />
-          <p className="text-white/50 text-[10px] mt-3 leading-relaxed">
-            Reminders are sent on your iPhone at meal times based on your current Meal Builder.
-          </p>
+      {/* ── Delivery channel badge ── */}
+      <div className="flex items-center gap-1.5">
+        {isNative ? (
+          <Smartphone className="w-3 h-3 text-white/60" />
+        ) : (
+          <Globe className="w-3 h-3 text-white/60" />
+        )}
+        <span className="text-white/60 text-[11px]">
+          {isNative ? t("mealReminders.nativeDelivery") : t("mealReminders.webDelivery")}
+        </span>
+      </div>
+
+      {/* ── iOS permission status badge ── */}
+      {isNative && (
+        <div className="flex items-center gap-2" data-testid="ios-permission-status">
+          {iOSPermission ? (
+            <>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span className="text-emerald-400 text-xs font-medium" data-testid="ios-permission-label">
+                {t("mealReminders.statusConnected")}
+              </span>
+            </>
+          ) : (
+            <>
+              <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+              <span className="text-red-400 text-xs font-medium" data-testid="ios-permission-label">
+                {t("mealReminders.statusBlockedIos")}
+              </span>
+            </>
+          )}
         </div>
       )}
 
+      {/* ── Simple user-facing status ── */}
+      {!isNative && (
+        <div className="flex items-center gap-2">
+          {status === "ready" && (
+            <>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span className="text-emerald-400 text-xs font-medium">{t("mealReminders.statusConnected")}</span>
+            </>
+          )}
+          {status === "partial" && (
+            <>
+              <XCircle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+              <span className="text-white text-xs">{t("mealReminders.statusPartial")}</span>
+            </>
+          )}
+          {status === "pending" && (
+            <>
+              <BellOff className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
+              <span className="text-white/80 text-xs">{t("mealReminders.statusPending")}</span>
+            </>
+          )}
+          {status === "blocked" && (
+            <>
+              <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+              <span className="text-white text-xs font-medium">{t("mealReminders.statusBlocked")}</span>
+            </>
+          )}
+          {status === "unsupported" && (
+            <>
+              <XCircle className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
+              <span className="text-white/80 text-xs">{t("mealReminders.statusUnsupported")}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Blocked: instructions + check again ── */}
+      {status === "blocked" && (
+        <div className="bg-white/5 rounded-lg p-3 space-y-2">
+          <p className="text-white text-[11px] leading-relaxed font-medium">{t("mealReminders.toUnblock")}</p>
+          <ol className="text-white/80 text-[11px] leading-relaxed list-decimal list-inside space-y-0.5">
+            <li>{t("mealReminders.unblockStep1Before")} <strong className="text-white">{t("mealReminders.unblockLock")}</strong> {t("mealReminders.unblockStep1After")}</li>
+            <li>{t("mealReminders.unblockStep2Before")} <strong className="text-white">{t("mealReminders.unblockNotifications")}</strong> {t("mealReminders.unblockStep2Mid")} <strong className="text-white">{t("mealReminders.unblockAllow")}</strong></li>
+            <li>{t("mealReminders.unblockStep3Before")} <strong className="text-white">{t("mealReminders.checkAgain")}</strong> {t("mealReminders.unblockStep3After")}</li>
+          </ol>
+          <button
+            onClick={() => runPipelineCheck()}
+            disabled={pipelineChecking}
+            className="flex items-center gap-1.5 bg-orange-600 text-white text-xs rounded-lg px-3 py-1.5 font-medium disabled:opacity-60"
+          >
+            {pipelineChecking ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+            {t("mealReminders.checkAgain")}
+          </button>
+        </div>
+      )}
+
+      {status === "unsupported" && (
+        <p className="text-white/70 text-[11px] leading-relaxed">
+          {t("mealReminders.unsupportedHint")}
+        </p>
+      )}
+
+      {/* ── Expandable connection diagnostics (for admins / debugging) ── */}
+      {!isNative && pipeline && status !== "unsupported" && (
+        <div>
+          <button
+            onClick={() => setShowDiagnostics((v) => !v)}
+            className="flex items-center gap-1 text-white/50 text-[10px]"
+          >
+            {showDiagnostics ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {t("mealReminders.connectionDiagnostics")}
+          </button>
+
+          {showDiagnostics && (
+            <div className="mt-2 space-y-1.5 pl-1">
+              {pipeline.steps.map((step, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  {step.ok ? (
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <XCircle className="w-3 h-3 text-orange-400 flex-shrink-0 mt-0.5" />
+                  )}
+                  <div className="min-w-0">
+                    <span className={`text-[11px] ${step.ok ? "text-white/70" : "text-white"}`}>
+                      {step.label}
+                    </span>
+                    {!step.ok && step.detail && (
+                      <span className="block text-[10px] text-white/60 leading-tight">{step.detail}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {pipelineChecking && (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="w-3 h-3 text-white/20 animate-spin" />
+                  <span className="text-[11px] text-white/25">{t("mealReminders.checking")}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Slot list ─────────────────────────────────────────────────── */}
+      <div>
+        {slots.map((slot, i) => (
+          <TimeRow
+            key={slot.id || i}
+            slot={slot}
+            index={i}
+            total={slots.length}
+            disabled={saving}
+            onToggle={() => handleToggleSlot(i)}
+            onTimeChange={(t) => handleTimeChange(i, t)}
+            onLabelChange={(l) => handleLabelChange(i, l)}
+            onRemove={() => handleRemove(i)}
+          />
+        ))}
+      </div>
+
+      {/* Add slot */}
+      {slots.length < MAX_SLOTS && (
+        <button
+          onClick={handleAdd}
+          disabled={saving}
+          className="flex items-center gap-1.5 text-orange-400 text-xs transition-colors disabled:opacity-40"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          {t("mealReminders.addReminder")}
+        </button>
+      )}
+
+      {/* Footer hint */}
+      <p className="text-white/60 text-[10px] leading-relaxed">
+        {isNative
+          ? t("mealReminders.footerNative")
+          : isBlocked
+          ? t("mealReminders.footerBlocked")
+          : anyEnabled
+          ? t("mealReminders.footerEnabled")
+          : t("mealReminders.footerDefault")}
+      </p>
     </div>
   );
 }

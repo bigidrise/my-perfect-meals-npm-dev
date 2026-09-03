@@ -6,23 +6,13 @@ import { CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-
-function getCurrentUser() {
-  try {
-    const raw =
-      localStorage.getItem("mpm_current_user") || localStorage.getItem("user");
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error("[Checkout] Failed to parse user from localStorage", err);
-    return null;
-  }
-}
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PendingCoach {
   coachSlug: string;
   clientEmail: string;
   sessionId: string;
+  inviteToken?: string;
   ts: number;
 }
 
@@ -39,8 +29,10 @@ function getPendingCoach(): PendingCoach | null {
 export default function CheckoutSuccess() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user, refreshUser } = useAuth();
   const [isActivating, setIsActivating] = useState(true);
   const [isCoachingPurchase, setIsCoachingPurchase] = useState(false);
+  const [activationPending, setActivationPending] = useState(false);
   const hasRun = useRef(false);
 
   useEffect(() => {
@@ -62,8 +54,6 @@ export default function CheckoutSuccess() {
         return;
       }
 
-      const user = getCurrentUser();
-
       if (!user?.id) {
         console.error("[Checkout] No user found for activation");
         toast({
@@ -76,39 +66,62 @@ export default function CheckoutSuccess() {
       }
 
       try {
-        const response = await fetch(
-          apiUrl(
-            `/api/stripe/checkout-success?session_id=${encodeURIComponent(sessionId)}`,
-          ),
-          {
-            method: "GET",
+        let data: any = null;
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          const response = await fetch(apiUrl("/api/stripe/reconcile-checkout"), {
+            method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-user-id": String(user.id),
+              ...getAuthHeaders(),
             },
-          },
-        );
+            credentials: "include",
+            body: JSON.stringify({ sessionId }),
+          });
 
-        if (!response.ok) {
-          const text = await response.text();
-          console.error("[Checkout] Activation failed:", text);
-          throw new Error("Subscription activation failed");
+          if (response.ok) {
+            data = await response.json();
+            if (data.status === "active") break;
+          } else if (response.status === 403) {
+            throw new Error("Checkout session does not belong to this account");
+          }
+
+          if (attempt < 5) {
+            await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+          }
         }
 
-        const data = await response.json();
-        console.log("[Checkout] Subscription activated:", data);
+        if (!data || data.status !== "active") {
+          setActivationPending(true);
+          return;
+        }
 
-        const updatedUser = {
-          ...user,
-          entitlements: data.entitlements,
-          planLookupKey: data.plan,
-        };
-
-        localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+        await refreshUser();
+        console.log("[Checkout] Subscription verified:", data);
 
         const pendingCoach = getPendingCoach();
-        const isCoaching = data.plan === "mpm_guidance" || pendingCoach !== null;
+        const isCoaching = data.planLookupKey === "mpm_guidance" || pendingCoach !== null;
+        const isOrg = data.planLookupKey === "clinical_business_monthly";
+
+        if (isOrg) {
+          toast({ title: "Organization activated!", description: "Let's get you set up." });
+          setIsActivating(false);
+          setLocation("/business-dashboard?checkout=success");
+          return;
+        }
+
+        // Business / Organization signup return path — send them straight to Business Center
+        const businessReturn = sessionStorage.getItem("mpm_business_return");
+        if (businessReturn) {
+          sessionStorage.removeItem("mpm_business_return");
+          localStorage.removeItem("mpm_purchase_required");
+          toast({
+            title: "Pro access activated!",
+            description: "Welcome to Business Center.",
+          });
+          setIsActivating(false);
+          setLocation(businessReturn);
+          return;
+        }
 
         if (isCoaching) {
           setIsCoachingPurchase(true);
@@ -147,19 +160,14 @@ export default function CheckoutSuccess() {
         });
       } catch (error) {
         console.error("[Checkout] Activation error:", error);
-        toast({
-          title: "Activation Error",
-          description:
-            "There was an issue activating your subscription. Please contact support.",
-          variant: "destructive",
-        });
+        setActivationPending(true);
       } finally {
         setIsActivating(false);
       }
     };
 
     run();
-  }, [setLocation, toast]);
+  }, [refreshUser, setLocation, toast, user?.id]);
 
   if (isActivating) {
     return (
@@ -168,6 +176,25 @@ export default function CheckoutSuccess() {
           <Loader2 className="w-12 h-12 animate-spin mx-auto text-purple-400" />
           <p className="text-lg text-white/80">Activating your subscription...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (activationPending) {
+    return (
+      <div className="min-h-screen py-12 bg-gradient-to-br from-neutral-900 via-black to-black text-white flex items-center justify-center">
+        <Card className="mx-4 max-w-xl bg-black/30 backdrop-blur-lg border border-white/15 text-white">
+          <CardContent className="pt-10 pb-10 text-center space-y-5">
+            <Loader2 className="w-12 h-12 mx-auto text-amber-400" />
+            <h1 className="text-2xl font-bold">Your payment is being verified</h1>
+            <p className="text-white/75">
+              Stripe confirmed your return, but your account update is still pending. Your payment will not be charged again.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Check again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -226,10 +253,10 @@ export default function CheckoutSuccess() {
               <p className="text-sm text-white/60 pt-4">
                 Questions? Contact us at{" "}
                 <a
-                  href="mailto:support@myperfectmeals.com"
+                  href="mailto:support@myperfectmeals.ai"
                   className="text-amber-400 hover:text-amber-300 underline"
                 >
-                  support@myperfectmeals.com
+                  support@myperfectmeals.ai
                 </a>
               </p>
             </CardContent>
@@ -292,10 +319,10 @@ export default function CheckoutSuccess() {
             <p className="text-sm text-white/60 pt-4">
               Need help? Contact us at{" "}
               <a
-                href="mailto:support@myperfectmeals.com"
+                href="mailto:support@myperfectmeals.ai"
                 className="text-purple-400 hover:text-purple-300 underline"
               >
-                support@myperfectmeals.com
+                support@myperfectmeals.ai
               </a>
             </p>
           </CardContent>

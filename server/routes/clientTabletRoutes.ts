@@ -1,14 +1,75 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { clientNotes, studios, studioMemberships } from "../db/schema/studio";
+import {
+  clientNotes,
+  studios,
+  studioMemberships,
+  studioVideoMedia,
+  studioVideoMessages,
+} from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { users } from "../../shared/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, isNull, sql } from "drizzle-orm";
+import multer from "multer";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
-import { moderateContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
+import { moderatePrivateStudioContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyProfessionalOfMessage } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
 import { sendCoachMessageAlert } from "../services/emailService";
+import {
+  getSignedPlaybackUrl,
+  getStudioVoiceObjectAvailability,
+  getStudioVoiceStream,
+  normalizeVoiceMimeType,
+  resolveVoiceStorageBackend,
+} from "../services/tabletVoiceService";
+import {
+  createStudioVoiceNote,
+  isValidStudioVoicePlaybackToken,
+  issueStudioVoicePlaybackToken,
+} from "../services/studioVoiceMessageService";
+import { getOrSet, invalidateClientTabletCache } from "../services/queryCache";
+import { requireClientWorkspaceAccess, WorkspaceRequest } from "../middleware/requireWorkspaceAccess";
+import {
+  assertStudioVideoFeatureEnabled,
+  auditStudioVideoAction,
+  auditStudioVideoListAction,
+  deleteStudioVideoMessage,
+  getStudioVideoMessage,
+  isRetryableStudioVideoDeletionFailure,
+  isValidStudioVideoPlaybackToken,
+  issueStudioVideoPlaybackToken,
+  listStudioVideoMessages,
+} from "../services/studioVideoMessageService";
+import {
+  hideStudioMessageForViewer,
+  isStudioMessageHiddenForViewer,
+} from "../services/studioMessageVisibilityService";
+import {
+  assertStudioVideoReadyForPlayback,
+  assertStudioVideoTransition,
+  canReplayStudioVideo,
+  completeStudioVideoWatch,
+  createVerifiedWatchProgress,
+  recordVerifiedWatchProgress,
+  serializeVerifiedWatchProgress,
+  STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS,
+  type VerifiedWatchProgress,
+} from "@shared/studioVideoMessages";
+import {
+  getStudioVideoStream,
+  getStudioVideoObjectKey,
+  MAX_STUDIO_VIDEO_DURATION_SEC,
+  MAX_STUDIO_VIDEO_SIZE_BYTES,
+  transcribeStudioVideoBuffer,
+  uploadStudioVideoToS3,
+} from "../services/tabletVoiceService";
+import { getStudioVideoTranscriptionFailureMetadata } from "../services/studioVideoTranscriptionDiagnostics";
+
+const CLIENT_TABLET_TTL_MS = 15_000;
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+import { studioVideoUpload } from "../middleware/studioVideoUpload";
 
 const router = Router();
 
@@ -54,41 +115,549 @@ async function resolveStudioId(clientUserId: string): Promise<string | null> {
   return await getStudioIdByMembership(clientUserId);
 }
 
-router.get("/", async (req: Request, res: Response) => {
+function studioVideoError(res: Response, error: unknown): boolean {
+  if (error instanceof Error && error.message.startsWith("STUDIO_VIDEO_MESSAGES_DISABLED")) {
+    res.status(503).json({ error: "Video messages are temporarily unavailable" });
+    return true;
+  }
+  return false;
+}
+
+async function handleClientStudioVideoDeletion(
+  req: Request,
+  res: Response,
+  authUser: AuthenticatedRequest["authUser"],
+  studioId: string,
+  messageId: string,
+): Promise<void> {
+  try {
+    const result = await deleteStudioVideoMessage({
+      req,
+      actorUserId: authUser.id,
+      studioId,
+      clientUserId: authUser.id,
+      messageId,
+    });
+    if (!result.alreadyDeleted) {
+      await logClientActivity(
+        studioId,
+        authUser.id,
+        authUser.id,
+        "message_deleted",
+        "message",
+        messageId,
+        { type: "video", deletedBy: "client", mediaOnly: true },
+      );
+    }
+    invalidateClientTabletCache(authUser.id);
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Video message not found")) {
+      res.status(404).json({ error: "Video message not found" });
+      return;
+    }
+    if (isRetryableStudioVideoDeletionFailure(error)) {
+      res.status(502).json({
+        error: "Video could not be deleted. Please try again.",
+        retryable: true,
+        mediaState: "deletion_failed",
+      });
+      return;
+    }
+    res.status(409).json({
+      error: "This video is no longer eligible for deletion or is already being deleted",
+    });
+  }
+}
+
+async function hideClientStudioMessageForViewer(
+  req: Request,
+  res: Response,
+  authUser: AuthenticatedRequest["authUser"],
+  studioId: string,
+  messageId: string,
+  kind: "client_note" | "video_message",
+): Promise<void> {
+  try {
+    const result = await hideStudioMessageForViewer({
+      studioId,
+      clientUserId: authUser.id,
+      viewerUserId: authUser.id,
+      messageId,
+      kind,
+    });
+    await logClientActivity(
+      studioId,
+      authUser.id,
+      authUser.id,
+      "message_deleted",
+      "message",
+      messageId,
+      { deletedBy: "client", deletionScope: "viewer_only", messageKind: kind },
+    );
+    invalidateClientTabletCache(authUser.id);
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, hidden: true, ...result });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Studio message not found") {
+      res.status(404).json({ error: "Entry not found" });
+      return;
+    }
+    throw error;
+  }
+}
+
+function parseVideoDuration(value: unknown): number | null {
+  const durationSec = typeof value === "string" ? Number(value) : value;
+  if (
+    typeof durationSec !== "number" ||
+    !Number.isFinite(durationSec) ||
+    durationSec <= 0 ||
+    durationSec > MAX_STUDIO_VIDEO_DURATION_SEC
+  ) {
+    return null;
+  }
+  return Math.ceil(durationSec);
+}
+
+function normalizeStudioVideoMimeType(mimeType: string): string {
+  return mimeType.split(";")[0].trim().toLowerCase();
+}
+
+router.post("/video-message", requireClientWorkspaceAccess, studioVideoUpload, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  let transcript: string;
+  let moderation: ReturnType<typeof moderatePrivateStudioContent> | null = null;
+  try {
+    assertStudioVideoFeatureEnabled();
+  } catch (error) {
+    if (studioVideoError(res, error)) return;
+    throw error;
+  }
+  if (!req.file) {
+    res.status(400).json({ error: "video file is required" });
+    return;
+  }
+  const mimeType = normalizeStudioVideoMimeType(req.file.mimetype);
+  if (!["video/webm", "video/mp4", "video/quicktime"].includes(mimeType)) {
+    res.status(400).json({ error: "Video must be WebM, MP4, or MOV" });
+    return;
+  }
+  const durationSec = parseVideoDuration(req.body.durationSec);
+  if (!durationSec) {
+    res.status(400).json({ error: `Video duration must be between 1 and ${MAX_STUDIO_VIDEO_DURATION_SEC} seconds` });
+    return;
+  }
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
+  const [studio] = await db
+    .select({ ownerUserId: studios.ownerUserId })
+    .from(studios)
+    .where(eq(studios.id, studioId))
+    .limit(1);
+  if (!studio) {
+    res.status(404).json({ error: "No active professional connection" });
+    return;
+  }
+
+  const [message] = await db
+    .insert(studioVideoMessages)
+    .values({
+      studioId,
+      clientUserId: authUser.id,
+      authorUserId: authUser.id,
+      recipientUserId: studio.ownerUserId,
+      sender: "client",
+      visibility: "shared_with_client",
+      body: "Video message",
+      transcriptStatus: "pending",
+    })
+    .returning({ id: studioVideoMessages.id, createdAt: studioVideoMessages.createdAt });
+  await db.insert(studioVideoMedia).values({
+    messageId: message.id,
+    state: "draft",
+    mimeType,
+    durationSec,
+    sizeBytes: req.file.size,
+    temporaryDerivativeKeys: [],
+    expiresAt: new Date(Date.now() + STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS),
+    moderationStatus: "pending",
+  });
+  auditStudioVideoAction({
+    req, event: "message_created", actorUserId: authUser.id, targetUserId: authUser.id,
+    studioId, messageId: message.id, metadata: { sender: "client" },
+  });
+
+  assertStudioVideoTransition({ currentState: "draft", nextState: "uploading", now: new Date() });
+  await db.update(studioVideoMedia)
+    .set({ state: "uploading", updatedAt: new Date() })
+    .where(eq(studioVideoMedia.messageId, message.id));
+  auditStudioVideoAction({
+    req, event: "upload_started", actorUserId: authUser.id, targetUserId: authUser.id,
+    studioId, messageId: message.id, metadata: { sizeBytes: req.file.size },
+  });
+
+  try {
+    const objectKey = getStudioVideoObjectKey(message.id, mimeType);
+    await uploadStudioVideoToS3(req.file.buffer, mimeType, objectKey);
+    assertStudioVideoTransition({ currentState: "uploading", nextState: "uploaded", now: new Date() });
+    await db.update(studioVideoMedia)
+      .set({ state: "uploaded", objectKey, updatedAt: new Date() })
+      .where(eq(studioVideoMedia.messageId, message.id));
+    assertStudioVideoTransition({ currentState: "uploaded", nextState: "processing", now: new Date() });
+    await db.update(studioVideoMedia)
+      .set({ state: "processing", updatedAt: new Date() })
+      .where(eq(studioVideoMedia.messageId, message.id));
+    auditStudioVideoAction({
+      req, event: "transcription_requested", actorUserId: authUser.id, targetUserId: authUser.id,
+      studioId, messageId: message.id, metadata: {},
+    });
+    try {
+      ({ transcript } = await transcribeStudioVideoBuffer(req.file.buffer, mimeType));
+      await db.update(studioVideoMessages)
+        .set({ transcript, transcriptStatus: "completed", transcribedAt: new Date(), updatedAt: new Date() })
+        .where(eq(studioVideoMessages.id, message.id));
+      auditStudioVideoAction({
+        req, event: "transcription_completed", actorUserId: authUser.id, targetUserId: authUser.id,
+        studioId, messageId: message.id, metadata: {},
+      });
+    } catch (error) {
+      await db.update(studioVideoMessages)
+        .set({ transcriptStatus: "failed", updatedAt: new Date() })
+        .where(eq(studioVideoMessages.id, message.id));
+      await db.update(studioVideoMedia)
+        .set({ state: "transcription_failed", updatedAt: new Date() })
+        .where(eq(studioVideoMedia.messageId, message.id));
+      auditStudioVideoAction({
+        req,
+        event: "transcription_failed",
+        actorUserId: authUser.id,
+        targetUserId: authUser.id,
+        studioId,
+        messageId: message.id,
+        metadata: getStudioVideoTranscriptionFailureMetadata(error),
+      });
+      res.status(422).json({ error: "We could not verify this video message. Please try recording it again." });
+      return;
+    }
+    moderation = moderatePrivateStudioContent(transcript);
+    if (!moderation.allowed) {
+      await db.update(studioVideoMessages)
+        .set({ transcriptStatus: "blocked", updatedAt: new Date() })
+        .where(eq(studioVideoMessages.id, message.id));
+      await db.update(studioVideoMedia)
+        .set({ state: "moderation_failed", moderationStatus: "blocked", moderatedAt: new Date(), updatedAt: new Date() })
+        .where(eq(studioVideoMedia.messageId, message.id));
+      auditStudioVideoAction({
+        req, event: "moderation_completed", actorUserId: authUser.id, targetUserId: authUser.id,
+        studioId, messageId: message.id, metadata: { approved: false },
+      });
+      res.status(422).json({ error: "This video message could not be sent." });
+      return;
+    }
+    await db.update(studioVideoMedia)
+      .set({ moderationStatus: "approved", moderatedAt: new Date(), updatedAt: new Date() })
+      .where(eq(studioVideoMedia.messageId, message.id));
+    assertStudioVideoTransition({ currentState: "processing", nextState: "ready", now: new Date() });
+    await db.update(studioVideoMedia)
+      .set({ state: "ready", updatedAt: new Date() })
+      .where(eq(studioVideoMedia.messageId, message.id));
+  } catch {
+    await db.update(studioVideoMedia)
+      .set({ state: "upload_failed", updatedAt: new Date() })
+      .where(eq(studioVideoMedia.messageId, message.id));
+    res.status(502).json({ error: "Video upload failed. Please try again." });
+    return;
+  }
+
+  auditStudioVideoAction({
+    req, event: "upload_completed", actorUserId: authUser.id, targetUserId: authUser.id,
+    studioId, messageId: message.id, metadata: { mimeType, durationSec },
+  });
+  auditStudioVideoAction({
+    req, event: "moderation_completed", actorUserId: authUser.id, targetUserId: authUser.id,
+    studioId,
+    messageId: message.id,
+    metadata: {
+      approved: true,
+      flagged: moderation?.severity !== null,
+      severity: moderation?.severity ?? null,
+      category: moderation?.category ?? null,
+      reason: moderation?.reason ?? null,
+    },
+  });
+  logClientActivity(studioId, authUser.id, authUser.id, "message_sent", "message", message.id, { type: "video", sender: "client" });
+  invalidateClientTabletCache(authUser.id);
+  const [clientUser] = await db
+    .select({ firstName: users.firstName, nickname: users.nickname })
+    .from(users)
+    .where(eq(users.id, authUser.id))
+    .limit(1);
+  const clientName = clientUser?.nickname || clientUser?.firstName || "Client";
+  notifyProfessionalOfMessage(authUser.id, clientName);
+
+  res.set("Cache-Control", "no-store");
+  res.status(201).json({
+    entry: {
+      id: message.id,
+      body: "Video message",
+      authorUserId: authUser.id,
+      entryType: "message",
+      visibility: "shared_with_client",
+      sender: "client",
+      contentType: "video",
+      videoMediaState: "ready",
+      videoDurationSec: durationSec,
+      transcript,
+      videoTranscriptStatus: "completed",
+      createdAt: message.createdAt,
+    },
+  });
+});
+
+router.get("/video/:messageId/playback", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
+  if (await isStudioMessageHiddenForViewer({
+    studioId,
+    clientUserId: authUser.id,
+    viewerUserId: authUser.id,
+    messageId: req.params.messageId,
+    kind: "video_message",
+  })) {
+    res.status(404).json({ error: "Video message not found" });
+    return;
+  }
+  const record = await getStudioVideoMessage(studioId, authUser.id, req.params.messageId);
+  if (!record) {
+    res.status(404).json({ error: "Video message not found" });
+    return;
+  }
+  try {
+    assertStudioVideoFeatureEnabled();
+    assertStudioVideoReadyForPlayback({
+      state: record.media.state,
+      transcriptStatus: record.message.transcriptStatus,
+      moderationStatus: record.media.moderationStatus,
+      objectKey: record.media.objectKey,
+    });
+  } catch (error) {
+    if (studioVideoError(res, error)) return;
+    res.status(409).json({ error: "Video is not ready for playback" });
+    return;
+  }
+  if (!canReplayStudioVideo({
+    state: record.media.state,
+    objectKey: record.media.objectKey,
+    createdAt: record.media.createdAt,
+    expiresAt: record.media.expiresAt?.toISOString() ?? null,
+    deletedAt: record.media.deletedAt?.toISOString() ?? null,
+  }, new Date())) {
+    res.status(410).json({ error: "This video is no longer available" });
+    return;
+  }
+  if (req.query.stream === "1") {
+    if (!isValidStudioVideoPlaybackToken(req.query.access, record.message.id, authUser.id)) {
+      res.status(403).json({ error: "Playback access expired" });
+      return;
+    }
+    res.set({ "Cache-Control": "no-store, private", "Content-Type": record.media.mimeType });
+    getStudioVideoStream(record.media.objectKey!).on("error", () => {
+      if (!res.headersSent) res.status(503).end();
+    }).pipe(res);
+    return;
+  }
+  const access = issueStudioVideoPlaybackToken(record.message.id, authUser.id);
+  const url = `/api/client/tablet/video/${record.message.id}/playback?stream=1&access=${encodeURIComponent(access)}`;
+  auditStudioVideoAction({
+    req, event: "playback_authorized", actorUserId: authUser.id, targetUserId: authUser.id,
+    studioId, messageId: record.message.id, metadata: { actorRole: "client" },
+  });
+  res.set("Cache-Control", "no-store, private");
+  res.json({
+    url,
+    mimeType: record.media.mimeType,
+    durationSec: record.media.durationSec,
+    expiresAt: record.media.expiresAt,
+    watchCompletedAt: record.media.watchCompletedAt,
+  });
+});
+
+router.post("/video/:messageId/progress", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
+  if (await isStudioMessageHiddenForViewer({
+    studioId,
+    clientUserId: authUser.id,
+    viewerUserId: authUser.id,
+    messageId: req.params.messageId,
+    kind: "video_message",
+  })) {
+    res.status(404).json({ error: "Video message not found" });
+    return;
+  }
+  const record = await getStudioVideoMessage(studioId, authUser.id, req.params.messageId);
+  if (!record) {
+    res.status(404).json({ error: "Video message not found" });
+    return;
+  }
+  if (record.message.recipientUserId !== authUser.id) {
+    res.status(403).json({ error: "Only the video recipient can record watch completion" });
+    return;
+  }
+  if (!canReplayStudioVideo({
+    state: record.media.state,
+    objectKey: record.media.objectKey,
+    createdAt: record.media.createdAt,
+    expiresAt: record.media.expiresAt?.toISOString() ?? null,
+    deletedAt: record.media.deletedAt?.toISOString() ?? null,
+  }, new Date())) {
+    res.status(410).json({ error: "This video is no longer available" });
+    return;
+  }
+
+  const previous = (record.media.watchProgress ?? createVerifiedWatchProgress(record.media.durationSec)) as VerifiedWatchProgress;
+  const result = recordVerifiedWatchProgress(previous, {
+    durationSec: record.media.durationSec,
+    positionSec: Number(req.body.positionSec),
+    observedAtMs: Number(req.body.observedAtMs),
+    isPlaying: req.body.isPlaying === true,
+    isSeeking: req.body.isSeeking === true,
+    playbackRate: typeof req.body.playbackRate === "number" ? req.body.playbackRate : undefined,
+  });
+  const persistedWatchProgress = serializeVerifiedWatchProgress(result.progress);
+  const update: Record<string, unknown> = { watchProgress: persistedWatchProgress, updatedAt: new Date() };
+  if (result.complete && record.media.state === "ready") {
+    const completedAt = new Date();
+    const completion = completeStudioVideoWatch({
+      currentState: "ready",
+      progress: result.progress,
+      completedAt,
+    });
+    const [persistedCompletion] = await db.update(studioVideoMedia)
+      .set({
+        watchProgress: persistedWatchProgress,
+        state: completion.state,
+        watchCompletedAt: new Date(completion.watchCompletedAt),
+        expiresAt: new Date(completion.expiresAt),
+        updatedAt: completedAt,
+      })
+      .where(and(
+        eq(studioVideoMedia.id, record.media.id),
+        eq(studioVideoMedia.state, "ready"),
+        isNull(studioVideoMedia.watchCompletedAt),
+        sql`COALESCE(
+          ${studioVideoMedia.expiresAt},
+          ${studioVideoMedia.createdAt} + (${STUDIO_VIDEO_MAX_UNOPENED_RETENTION_MS} * INTERVAL '1 millisecond')
+        ) > ${completedAt}`,
+      ))
+      .returning({
+        watchCompletedAt: studioVideoMedia.watchCompletedAt,
+        expiresAt: studioVideoMedia.expiresAt,
+      });
+    if (!persistedCompletion) {
+      res.status(409).json({ error: "Video availability changed before completion could be recorded" });
+      return;
+    }
+    auditStudioVideoAction({
+      req, event: "watch_completion_recorded", actorUserId: authUser.id, targetUserId: authUser.id,
+      studioId, messageId: record.message.id,
+      metadata: { coverageRatio: Number(result.coverageRatio.toFixed(3)), verified: true },
+    });
+    auditStudioVideoAction({
+      req, event: "expiration_started", actorUserId: authUser.id, targetUserId: authUser.id,
+      studioId, messageId: record.message.id, metadata: { windowMinutes: 15 },
+    });
+    res.set("Cache-Control", "no-store, private");
+    res.json({
+      accepted: result.accepted,
+      complete: result.complete,
+      coverageRatio: result.coverageRatio,
+      watchCompletedAt: persistedCompletion.watchCompletedAt,
+      expiresAt: persistedCompletion.expiresAt,
+    });
+    return;
+  }
+  await db.update(studioVideoMedia)
+    .set(update as any)
+    .where(eq(studioVideoMedia.id, record.media.id));
+  res.set("Cache-Control", "no-store, private");
+  res.json({
+    accepted: result.accepted,
+    complete: result.complete,
+    coverageRatio: result.coverageRatio,
+    watchCompletedAt: update.watchCompletedAt ?? record.media.watchCompletedAt,
+    expiresAt: update.expiresAt ?? record.media.expiresAt,
+  });
+});
+
+router.get("/", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
 
-  const studioId = await resolveStudioId(authUser.id);
-  if (!studioId) {
+  const cacheKey = `client-tablet:${authUser.id}`;
+  const payload = await getOrSet(cacheKey, CLIENT_TABLET_TTL_MS, async () => {
+    const studioId = await resolveStudioId(authUser.id);
+    if (!studioId) {
+      return null; // caller handles 404
+    }
+
+    const result = await db.execute(sql`
+      SELECT
+        id,
+        body,
+        author_user_id AS "authorUserId",
+        entry_type     AS "entryType",
+        sender,
+        created_at     AS "createdAt",
+        content_type   AS "contentType",
+        audio_object_key  AS "audioObjectKey",
+        audio_duration_sec AS "audioDurationSec",
+        transcript,
+        transcript_status AS "transcriptStatus"
+      FROM client_notes
+      WHERE client_user_id = ${authUser.id}
+        AND entry_type     = 'message'
+        AND visibility     = 'shared_with_client'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM studio_message_viewer_deletions hidden
+          WHERE hidden.viewer_user_id = ${authUser.id}
+            AND hidden.client_note_id = client_notes.id
+        )
+      ORDER BY created_at ASC
+      LIMIT 200
+    `);
+
+    const videoMessages = await listStudioVideoMessages(studioId, authUser.id, authUser.id);
+    return {
+      messages: [...(result.rows as any[]), ...videoMessages].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      ),
+    };
+  });
+
+  if (payload === null) {
     res.status(404).json({ error: "No active professional connection" });
     return;
   }
 
-  const entries = await db
-    .select({
-      id: clientNotes.id,
-      body: clientNotes.body,
-      authorUserId: clientNotes.authorUserId,
-      entryType: clientNotes.entryType,
-      sender: clientNotes.sender,
-      createdAt: clientNotes.createdAt,
-    })
-    .from(clientNotes)
-    .where(
-      and(
-        eq(clientNotes.clientUserId, authUser.id),
-        eq(clientNotes.entryType, "message"),
-        eq(clientNotes.visibility, "shared_with_client")
-      )
-    )
-    .orderBy(asc(clientNotes.createdAt))
-    .limit(200);
-
+  const videoMessages = (payload.messages as any[]).filter(
+    (message) => message.contentType === "video",
+  );
+  for (const video of videoMessages) {
+    auditStudioVideoListAction({
+      req,
+      actorUserId: authUser.id,
+      targetUserId: authUser.id,
+      messageId: video.id,
+    });
+  }
   res.set("Cache-Control", "no-store");
-  res.json({ messages: entries });
+  res.json(payload);
 });
 
 router.post("/message", async (req: Request, res: Response) => {
@@ -110,7 +679,7 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
-  const moderation = moderateContent(body.trim());
+  const moderation = moderatePrivateStudioContent(body.trim());
   if (!moderation.allowed) {
     logClientActivity(
       studioId,
@@ -130,7 +699,7 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
-  if (moderation.severity === "low") {
+  if (moderation.severity !== null) {
     logClientActivity(
       studioId,
       authUser.id,
@@ -173,6 +742,10 @@ router.post("/message", async (req: Request, res: Response) => {
     { sender: "client" }
   );
 
+  // Invalidate the cached message list so the client sees their own message
+  // on the very next poll, not after the TTL expires.
+  invalidateClientTabletCache(authUser.id);
+
   const [clientUser] = await db
     .select({ firstName: users.firstName, nickname: users.nickname })
     .from(users)
@@ -204,7 +777,7 @@ router.post("/message", async (req: Request, res: Response) => {
         coachName,
         clientName,
         messagePreview: body.trim(),
-        portalUrl: "https://app.myperfectmeals.com/pro/clients",
+        portalUrl: `${process.env.PUBLIC_APP_URL || "https://app.myperfectmeals.ai"}/pro/clients`,
       });
     } catch (err) {
       console.warn("[CoachAlert] Non-fatal email error:", err);
@@ -214,7 +787,112 @@ router.post("/message", async (req: Request, res: Response) => {
   res.status(201).json({ entry });
 });
 
-router.delete("/entry/:entryId", async (req: Request, res: Response) => {
+router.post("/voice-message", requireClientWorkspaceAccess, upload.single("audio"), async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  if (!req.file) {
+    res.status(400).json({ error: "audio file is required" });
+    return;
+  }
+
+  const mimeType = normalizeVoiceMimeType(req.file.mimetype || "audio/webm");
+  if (!mimeType) {
+    res.status(400).json({ error: "Audio must be a supported WebM, MP4, M4A, AAC, MP3, WAV, or OGG file" });
+    return;
+  }
+  const buffer = req.file.buffer;
+
+  if (buffer.length > 15 * 1024 * 1024) {
+    res.status(400).json({ error: "Audio file too large (max 15 MB)" });
+    return;
+  }
+
+  const studioId = await resolveStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No active professional connection" });
+    return;
+  }
+
+  let entry;
+  try {
+    entry = await createStudioVoiceNote({
+      studioId,
+      clientUserId: authUser.id,
+      authorUserId: authUser.id,
+      body: "🎤 Voice message — transcribing…",
+      entryType: "message",
+      visibility: "shared_with_client",
+      sender: "client",
+      mimeType,
+    }, buffer);
+  } catch (error) {
+    console.error("[ClientVoiceMessage] Could not store or queue voice message:", error);
+    res.status(502).json({ error: "Voice message upload failed. Please retry." });
+    return;
+  }
+
+  logClientActivity(
+    studioId,
+    authUser.id,
+    authUser.id,
+    "message_sent",
+    "message",
+    entry.id,
+    { type: "voice", sender: "client" }
+  );
+
+  const [clientUser] = await db
+    .select({ firstName: users.firstName, nickname: users.nickname })
+    .from(users)
+    .where(eq(users.id, authUser.id))
+    .limit(1);
+  const clientName = clientUser?.nickname || clientUser?.firstName || "Client";
+
+  notifyProfessionalOfMessage(authUser.id, clientName);
+
+  (async () => {
+    try {
+      const [studio] = await db
+        .select({ ownerUserId: studios.ownerUserId })
+        .from(studios)
+        .where(eq(studios.id, studioId))
+        .limit(1);
+      if (!studio) return;
+
+      const [coach] = await db
+        .select({ email: users.email, firstName: users.firstName, nickname: users.nickname })
+        .from(users)
+        .where(eq(users.id, studio.ownerUserId))
+        .limit(1);
+      if (!coach?.email) return;
+
+      const coachName = coach.nickname || coach.firstName || "Coach";
+      await sendCoachMessageAlert({
+        to: coach.email,
+        coachName,
+        clientName,
+        messagePreview: "🎤 Sent you a voice message",
+        portalUrl: `${process.env.PUBLIC_APP_URL || "https://app.myperfectmeals.ai"}/pro/clients`,
+      });
+    } catch (err) {
+      console.warn("[CoachAlert] Non-fatal email error:", err);
+    }
+  })();
+
+  res.status(201).json({
+    entry: {
+      ...entry,
+      contentType: "voice",
+      transcriptStatus: "pending",
+    },
+  });
+});
+
+router.delete("/entry/:entryId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
     res.status(401).json({ error: "Authentication required" });
@@ -223,38 +901,141 @@ router.delete("/entry/:entryId", async (req: Request, res: Response) => {
 
   const { entryId } = req.params;
 
-  const studioId = await resolveStudioId(authUser.id);
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
 
-  const [deleted] = await db
-    .delete(clientNotes)
-    .where(
-      and(
-        eq(clientNotes.id, entryId),
-        eq(clientNotes.clientUserId, authUser.id),
-        eq(clientNotes.entryType, "message"),
-        eq(clientNotes.visibility, "shared_with_client")
-      )
-    )
-    .returning({ id: clientNotes.id });
-
-  if (!deleted) {
-    res.status(404).json({ error: "Entry not found" });
+  if (await getStudioVideoMessage(studioId, authUser.id, entryId)) {
+    await hideClientStudioMessageForViewer(
+      req,
+      res,
+      authUser,
+      studioId,
+      entryId,
+      "video_message",
+    );
     return;
   }
 
-  if (studioId) {
-    logClientActivity(
-      studioId,
-      authUser.id,
-      authUser.id,
-      "message_deleted",
-      "message",
-      entryId,
-      { deletedBy: "client" }
-    );
+  await hideClientStudioMessageForViewer(
+    req,
+    res,
+    authUser,
+    studioId,
+    entryId,
+    "client_note",
+  );
+});
+
+router.delete("/video/:messageId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  res.status(410).json({
+    error: "Private video media is managed automatically. Use Delete for me to remove this message from your Studio history.",
+  });
+});
+
+router.delete("/video/:messageId/transcript", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const studioId = (req as WorkspaceRequest).workspace.studioId;
+  await hideClientStudioMessageForViewer(
+    req,
+    res,
+    authUser,
+    studioId,
+    req.params.messageId,
+    "video_message",
+  );
+});
+
+router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request, res: Response) => {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  if (!authUser) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
   }
 
-  res.json({ ok: true });
+  const { entryId } = req.params;
+  const studioId = await resolveStudioId(authUser.id);
+  if (!studioId) {
+    res.status(404).json({ error: "No active professional connection" });
+    return;
+  }
+
+  const result = await db.execute(sql`
+    SELECT id, audio_object_key, audio_storage_backend, audio_mime_type,
+           studio_id, client_user_id, visibility, content_type,
+           transcript_status, moderation_status, transcript
+    FROM client_notes
+    WHERE id = ${entryId}
+      AND studio_id = ${studioId}
+      AND client_user_id = ${authUser.id}
+      AND content_type = 'voice'
+      AND visibility = 'shared_with_client'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM studio_message_viewer_deletions hidden
+        WHERE hidden.viewer_user_id = ${authUser.id}
+          AND hidden.client_note_id = client_notes.id
+      )
+    LIMIT 1
+  `);
+
+  const note = result.rows[0] as any;
+  if (!note?.audio_object_key) {
+    res.status(404).json({ error: "Voice note not found" });
+    return;
+  }
+
+  if (note.moderation_status === "blocked") {
+    res.status(403).json({ error: "This voice note has been removed" });
+    return;
+  }
+
+  if (note.transcript_status !== "completed") {
+    res.status(202).json({ pending: true, message: "Transcript not yet available" });
+    return;
+  }
+
+  const backend = resolveVoiceStorageBackend(note.audio_storage_backend);
+  if (backend === "replit") {
+    const availability = await getStudioVoiceObjectAvailability(note.audio_object_key);
+    if (availability === "missing") {
+      res.status(410).json({ error: "Audio is no longer available" });
+      return;
+    }
+    if (availability === "unavailable") {
+      res.status(503).json({ error: "Audio playback is temporarily unavailable" });
+      return;
+    }
+
+    if (req.query.stream === "1") {
+      if (!isValidStudioVoicePlaybackToken(req.query.access, entryId, authUser.id)) {
+        res.status(403).json({ error: "Playback access expired" });
+        return;
+      }
+      res.set({
+        "Cache-Control": "no-store, private",
+        "Content-Type": note.audio_mime_type || "audio/webm",
+      });
+      getStudioVoiceStream(note.audio_object_key)
+        .on("error", () => {
+          if (!res.headersSent) res.status(503).end();
+        })
+        .pipe(res);
+      return;
+    }
+
+    const access = issueStudioVoicePlaybackToken(entryId, authUser.id);
+    const url = `/api/client/tablet/audio/${entryId}?stream=1&access=${encodeURIComponent(access)}`;
+    res.set("Cache-Control", "no-store, private");
+    res.json({
+      url,
+      privatePlayback: true,
+      transcript: note.transcript,
+      transcriptStatus: note.transcript_status,
+    });
+    return;
+  }
+
+  const url = await getSignedPlaybackUrl(note.audio_object_key);
+  res.json({ url, transcript: note.transcript, transcriptStatus: note.transcript_status });
 });
 
 export default router;

@@ -5,12 +5,14 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, buildForbiddenIngredients, UserSafetyProfile, maskPlantMilks, maskNutButters } from "./allergyGuardrails";
-import { SafetyMode, validateAndConsumeOverrideToken, logSafetyOverride } from "./safetyPinService";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters, maskExplicitAllergenFreeClaims, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
+import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
   safetyMode?: SafetyMode;
   overrideToken?: string;
+  /** Express request correlation ID — stored in the audit row to trace the override back to the generation request */
+  correlationId?: string;
 }
 
 export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED" | "DIET_ADAPT";
@@ -22,6 +24,19 @@ export interface SafetyAssessment {
   ambiguousTerms: string[];
   message: string;
   suggestion?: string;
+  /** The specific allergen the user was authenticated to override, if any.
+   *  Only present when result === "SAFE" and an override token was consumed.
+   *  All other allergy/protocol rules remain fully active for this request. */
+  overriddenAllergen?: string;
+  /** Request correlation ID echoed back from the audit row so callers can log it at the point of use */
+  correlationId?: string;
+  /**
+   * Conflict classification for BLOCKED allergy results.
+   * conflict_adaptable  — allergen is incidental; a safe version can be made.
+   * conflict_identity_collapse — allergen IS the dish; adaptation changes its identity.
+   * Only present when result === "BLOCKED" and the block is allergy-driven.
+   */
+  allergyConflict?: AllergyConflict;
 }
 
 export interface SafetyProfile {
@@ -184,7 +199,7 @@ export async function loadSafetyProfile(userId: string): Promise<SafetyProfile |
     }).from(users).where(eq(users.id, userId));
 
     if (!user) {
-      console.warn(`⚠️ [SAFETY] User not found: ${userId}`);
+      console.warn("[SafetyGuard] PROFILE_NOT_FOUND");
       return null;
     }
 
@@ -199,7 +214,7 @@ export async function loadSafetyProfile(userId: string): Promise<SafetyProfile |
       ],
     };
   } catch (error) {
-    console.error("Error loading safety profile:", error);
+    console.error("[SafetyGuard] PROFILE_LOAD_FAILED");
     return null;
   }
 }
@@ -207,18 +222,29 @@ export async function loadSafetyProfile(userId: string): Promise<SafetyProfile |
 function buildAllergyTermBank(profile: SafetyProfile): Set<string> {
   const terms = new Set<string>();
 
+  // ALLERGIES ONLY — avoidances are prompt-level preferences, not hard safety blocks
   for (const allergy of profile.allergies) {
     const key = normalize(allergy);
     const expanded = ALLERGEN_EXPANSION[key];
     if (expanded) {
       expanded.forEach(term => terms.add(normalize(term)));
     } else {
-      terms.add(key);
+      // Fallback: split by spaces — handles merged entries like "Dairy shellfish"
+      // stored as a single string (e.g. user typed without comma separators)
+      const words = key.split(/\s+/).filter(Boolean);
+      let anyWordMatched = false;
+      for (const word of words) {
+        const wordExpanded = ALLERGEN_EXPANSION[word];
+        if (wordExpanded) {
+          wordExpanded.forEach(term => terms.add(normalize(term)));
+          anyWordMatched = true;
+        }
+      }
+      if (!anyWordMatched) {
+        // Last resort: store the whole key so at least an exact phrase match still works
+        terms.add(key);
+      }
     }
-  }
-
-  for (const avoid of profile.avoidIngredients) {
-    terms.add(normalize(avoid));
   }
 
   return terms;
@@ -279,6 +305,9 @@ function findMatchedTerms(text: string, termBank: Set<string>): string[] {
       textToScan = normalizedText;
       origToScan = text.toLowerCase();
     }
+
+    textToScan = maskExplicitAllergenFreeClaims(textToScan, term);
+    origToScan = maskExplicitAllergenFreeClaims(origToScan, term);
     
     if (pattern.test(textToScan) || pattern.test(origToScan)) {
       matches.push(term);
@@ -293,10 +322,24 @@ function findMatchedCategories(terms: string[], profile: SafetyProfile): string[
   
   for (const allergyCategory of profile.allergies) {
     const key = normalize(allergyCategory);
-    const expanded = ALLERGEN_EXPANSION[key];
-    if (expanded) {
+
+    // Collect all expansion lists for this stored allergy value
+    // (handles merged entries like "Dairy shellfish" → try "dairy" + "shellfish" separately)
+    const expansions: string[][] = [];
+    const direct = ALLERGEN_EXPANSION[key];
+    if (direct) {
+      expansions.push(direct);
+    } else {
+      for (const word of key.split(/\s+/).filter(Boolean)) {
+        const wordExpanded = ALLERGEN_EXPANSION[word];
+        if (wordExpanded) expansions.push(wordExpanded);
+      }
+    }
+
+    for (const expanded of expansions) {
+      const expandedNormalized = expanded.map(e => normalize(e));
       for (const term of terms) {
-        if (expanded.map(e => normalize(e)).includes(normalize(term))) {
+        if (expandedNormalized.includes(normalize(term))) {
           if (!categories.includes(allergyCategory)) {
             categories.push(allergyCategory);
           }
@@ -382,6 +425,7 @@ export async function enforceSafetyProfile(
 ): Promise<SafetyAssessment> {
   const safetyMode = options?.safetyMode || "STRICT";
   const overrideToken = options?.overrideToken;
+  const correlationId = options?.correlationId;
   
   const profile = await loadSafetyProfile(userId);
   
@@ -413,20 +457,34 @@ export async function enforceSafetyProfile(
   if (allergyMatches.length > 0) {
     // Check for authenticated override with valid one-time token
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
-      const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
+      // Atomically claim the token — moves it to reserved so any concurrent
+      // request with the same token is rejected before the audit insert begins.
+      const tokenData = claimOverrideToken(overrideToken, userId);
 
       if (tokenData) {
-        await logSafetyOverride(userId, userText, tokenData.allergen, builderId);
-        console.log(`[SafetyGuard] Authenticated override used for user ${userId}, allergen: ${tokenData.allergen}`);
+        // Audit insert must succeed before the override is authorized.
+        // On success, commit (permanently delete). On failure, roll back so
+        // the token is restored and the user can retry without re-entering PIN.
+        try {
+          await logSafetyOverride(userId, userText, tokenData.allergen, builderId, undefined, correlationId);
+          commitOverrideToken(overrideToken);
+        } catch (auditErr) {
+          rollbackOverrideToken(overrideToken);
+          console.error(`[SafetyGuard] AUDIT_INSERT_FAILED; requestId=${correlationId ?? "unavailable"}`);
+          throw auditErr;
+        }
+        console.log(`[SafetyGuard] Authenticated override used; requestId=${correlationId ?? "unavailable"}`);
         return {
           result: "SAFE",
           blockedTerms: [],
           blockedCategories: [],
           ambiguousTerms: [],
-          message: "Allergen override authorized with Safety PIN - proceeding with user consent"
+          message: "Allergen override authorized with Safety PIN - proceeding with user consent",
+          overriddenAllergen: tokenData.allergen,
+          correlationId,
         };
       } else {
-        console.log(`[SafetyGuard] Invalid/expired override token for user ${userId}`);
+        console.log(`[SafetyGuard] Invalid or expired override token; requestId=${correlationId ?? "unavailable"}`);
       }
     }
 
@@ -442,7 +500,8 @@ export async function enforceSafetyProfile(
       blockedCategories: allergyCategories,
       ambiguousTerms: [],
       message: `🚨 Safety Alert: Your request includes "${primaryTerm}" which conflicts with ${primaryCategory}. For your safety, this meal cannot be generated.`,
-      suggestion: `Try requesting with ${substitute} instead.`
+      suggestion: `Try requesting with ${substitute} instead.`,
+      allergyConflict: classifyAllergyConflict(userText, allergyMatches, allergyCategories) ?? undefined,
     };
   }
 
@@ -451,20 +510,33 @@ export async function enforceSafetyProfile(
 
   if (ambiguousDishes.length > 0) {
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
-      const tokenData = validateAndConsumeOverrideToken(overrideToken, userId);
+      // Atomically claim the token — moves it to reserved so any concurrent
+      // request with the same token is rejected before the audit insert begins.
+      const tokenData = claimOverrideToken(overrideToken, userId);
 
       if (tokenData) {
-        await logSafetyOverride(userId, userText, tokenData.allergen, builderId);
-        console.log(`[SafetyGuard] Authenticated override for AMBIGUOUS dish, user ${userId}, allergen: ${tokenData.allergen}`);
+        // On success, commit (permanently delete). On failure, roll back so
+        // the token is restored and the user can retry without re-entering PIN.
+        try {
+          await logSafetyOverride(userId, userText, tokenData.allergen, builderId, undefined, correlationId);
+          commitOverrideToken(overrideToken);
+        } catch (auditErr) {
+          rollbackOverrideToken(overrideToken);
+          console.error(`[SafetyGuard] AMBIGUOUS_AUDIT_INSERT_FAILED; requestId=${correlationId ?? "unavailable"}`);
+          throw auditErr;
+        }
+        console.log(`[SafetyGuard] Authenticated ambiguous-dish override used; requestId=${correlationId ?? "unavailable"}`);
         return {
           result: "SAFE",
           blockedTerms: [],
           blockedCategories: [],
           ambiguousTerms: [],
-          message: "Ambiguous dish override authorized with Safety PIN - proceeding with user consent"
+          message: "Ambiguous dish override authorized with Safety PIN - proceeding with user consent",
+          overriddenAllergen: tokenData.allergen,
+          correlationId,
         };
       } else {
-        console.log(`[SafetyGuard] Invalid/expired override token for AMBIGUOUS check, user ${userId}`);
+        console.log(`[SafetyGuard] Invalid or expired ambiguous-dish override token; requestId=${correlationId ?? "unavailable"}`);
       }
     }
 
@@ -486,14 +558,14 @@ export async function enforceSafetyProfile(
 
     if (dietMatches.length > 0) {
       const primaryDiet = profile.dietaryRestrictions[0];
-      console.log(`🔄 [DIET ADAPT] User ${userId} — "${userText}" conflicts with ${primaryDiet} diet (${dietMatches.join(", ")}) — AI will adapt`);
+      console.log(`[SafetyGuard] Diet adaptation required; requestId=${correlationId ?? "unavailable"}`);
       return {
         result: "DIET_ADAPT",
-        blockedTerms: [],
+        blockedTerms: dietMatches,
         blockedCategories: [],
         ambiguousTerms: [],
-        message: `Adapting to your ${primaryDiet} preferences`,
-        suggestion: `The AI will create a ${primaryDiet}-friendly version for you.`
+        message: `Your request conflicts with your ${primaryDiet} diet`,
+        suggestion: `Chef can create a ${primaryDiet}-friendly version for you.`
       };
     }
   }
@@ -537,7 +609,8 @@ export function enforceSafetyProfileSync(
       blockedCategories: allergyCategories,
       ambiguousTerms: [],
       message: `🚨 Safety Alert: Your request includes "${primaryTerm}" which conflicts with ${primaryCategory}. For your safety, this meal cannot be generated.`,
-      suggestion: `Try requesting with ${substitute} instead.`
+      suggestion: `Try requesting with ${substitute} instead.`,
+      allergyConflict: classifyAllergyConflict(userText, allergyMatches, allergyCategories) ?? undefined,
     };
   }
 
@@ -565,11 +638,11 @@ export function enforceSafetyProfileSync(
       const primaryDiet = profile.dietaryRestrictions[0];
       return {
         result: "DIET_ADAPT",
-        blockedTerms: [],
+        blockedTerms: dietMatches,
         blockedCategories: [],
         ambiguousTerms: [],
-        message: `Adapting to your ${primaryDiet} preferences`,
-        suggestion: `The AI will create a ${primaryDiet}-friendly version for you.`
+        message: `Your request conflicts with your ${primaryDiet} diet`,
+        suggestion: `Chef can create a ${primaryDiet}-friendly version for you.`
       };
     }
   }

@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, User, Utensils, Shield, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, User, Utensils, Shield, Lock, Unlock, AlertTriangle } from "lucide-react";
+import { AlphaGalProfileModal, type AlphaGalProfileData, type AlphaGalDraft, DEFAULT_ALPHA_GAL_DRAFT } from "@/components/AlphaGalProfileModal";
 import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
-import { LOW_GI, MID_GI, HIGH_GI } from "@/types/glycemic";
+import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 import { getAuthToken } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
@@ -18,6 +21,7 @@ import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanation
 import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 import { isGuestMode } from "@/lib/guestMode";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useTranslation } from "react-i18next";
 
 type StepId = 1 | 2 | 3 | 4 | 5;
 
@@ -92,6 +96,8 @@ type EditProfilePayload = {
   goalTarget?: string | null;
   goalTimelineWeeks?: number | null;
   goalStartDate?: string | null;
+  cuisinePreference?: string | null;
+  cuisineIntensity?: "light" | "balanced" | "authentic" | null;
 };
 
 function StepShell({
@@ -131,11 +137,52 @@ const GOAL_LABELS: Record<FitnessGoal, string> = {
   endurance: "Endurance",
 };
 
+const DIET_OPTIONS = [
+  { label: "No Restriction", value: "none" },
+  { label: "Low Carb", value: "low_carb" },
+  { label: "Keto", value: "keto" },
+  { label: "Carnivore", value: "carnivore" },
+  { label: "Mediterranean", value: "mediterranean" },
+  { label: "Paleo", value: "paleo" },
+  { label: "Vegan", value: "vegan" },
+  { label: "Vegetarian", value: "vegetarian" },
+  { label: "Pescatarian", value: "pescatarian" },
+  { label: "Kosher", value: "kosher" },
+  { label: "Halal", value: "halal" },
+  { label: "Custom", value: "custom" },
+];
+
+const DIETARY_IDENTITY_HINTS: Record<string, string> = {
+  low_carb: "Meals will reduce carbohydrates significantly — no white bread, sugary sauces, pasta, rice, or refined grains. Protein and healthy fats are emphasized.",
+  kosher: "Meals will follow ingredient, preparation, and combination rules — including no meat with dairy and no pork or shellfish.",
+  halal: "Meals will follow ingredient and preparation rules — including no pork, no alcohol in cooking, and certified meat sourcing.",
+  vegan: "All meals will be fully plant-based — no meat, dairy, eggs, or animal byproducts.",
+  vegetarian: "Meals will contain no meat or seafood. Dairy and eggs are included.",
+  pescatarian: "Meals will contain no land-based meat. Fish and seafood are included.",
+  carnivore: "This is a strict animal-only eating style. Every meal will use only meat, seafood, eggs, and animal fats. No plant ingredients will appear. For best results, focus on hydration as you adjust.",
+};
+
+const KNOWN_DIET_VALUES = new Set(DIET_OPTIONS.map((o) => o.value));
+
+function initDietaryStyle(restrictions: string[]): string {
+  if (!restrictions.length) return "none";
+  const first = restrictions[0];
+  return KNOWN_DIET_VALUES.has(first) ? first : "custom";
+}
+
+function initCustomDietInput(restrictions: string[]): string {
+  if (!restrictions.length) return "";
+  const first = restrictions[0];
+  return KNOWN_DIET_VALUES.has(first) ? "" : first;
+}
+
 export default function EditProfilePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("editProfile");
   const { isOpen, open, setLastResponse } = useCopilot();
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState<StepId>(1);
   const [saving, setSaving] = useState(false);
@@ -185,12 +232,17 @@ export default function EditProfilePage() {
       sweetenerPreferences: Array.isArray(u?.sweetenerPreferences)
         ? u.sweetenerPreferences
         : [],
+      cuisinePreference: (u as any)?.cuisinePreference || null,
+      cuisineIntensity: ((u as any)?.cuisineIntensity as "light" | "balanced" | "authentic" | null) || null,
     };
   }, [user]);
 
   const [form, setForm] = useState<EditProfilePayload>(initial);
-  const [dietaryText, setDietaryText] = useState(
-    initial.dietaryRestrictions.join(", "),
+  const [dietaryStyle, setDietaryStyle] = useState(
+    initDietaryStyle(initial.dietaryRestrictions),
+  );
+  const [customDietInput, setCustomDietInput] = useState(
+    initCustomDietInput(initial.dietaryRestrictions),
   );
   const [allergiesText, setAllergiesText] = useState(
     initial.allergies.join(", "),
@@ -200,9 +252,77 @@ export default function EditProfilePage() {
     initial.sweetenerPreferences || []
   );
 
+  const [heatPreference, setHeatPreference] = useState<string>(
+    user?.heatPreference || "unsure"
+  );
+
   const [goalType, setGoalType] = useState<GoalType | null>(((user as any)?.goalType as GoalType) || null);
   const [goalTarget, setGoalTarget] = useState<string>((user as any)?.goalTarget || "");
   const [goalTimelineWeeks, setGoalTimelineWeeks] = useState<number | null>((user as any)?.goalTimelineWeeks || null);
+
+  const [avoidedFoods, setAvoidedFoods] = useState<string[]>(
+    Array.isArray((user as any)?.avoidedFoods) ? (user as any).avoidedFoods : []
+  );
+  const [avoidedFoodInput, setAvoidedFoodInput] = useState("");
+  const CUISINE_PILLS = ["American", "Soul Food", "Mexican", "Italian", "Indian", "Chinese", "Japanese", "Mediterranean", "Thai", "Korean", "Middle Eastern"];
+  const [customCuisineInput, setCustomCuisineInput] = useState(
+    CUISINE_PILLS.map(c => c.toLowerCase()).includes((form.cuisinePreference || "").toLowerCase())
+      ? ""
+      : (form.cuisinePreference || "")
+  );
+
+  const [specialtyConditions, setSpecialtyConditions] = useState<string[]>(
+    (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : [])
+  );
+  const [glp1Active, setGlp1Active] = useState<boolean>(
+    !!((user as any)?.medicalConditions as string[] | undefined)?.includes("glp1")
+  );
+  const [localMeasurementSystem, setLocalMeasurementSystem] = useState<"imperial" | "metric">(
+    ((user as any)?.measurementSystem as "imperial" | "metric") ?? "imperial"
+  );
+  const [localCountryCode, setLocalCountryCode] = useState<string>(
+    (user as any)?.countryCode ?? "US"
+  );
+  const [thyroidMedication, setThyroidMedication] = useState<string>(
+    (user as any)?.thyroidMedication ?? ""
+  );
+  const [thyroidType, setThyroidType] = useState<"hypothyroid" | "hyperthyroid" | "hashimotos" | null>(
+    ((user as any)?.thyroidType as "hypothyroid" | "hyperthyroid" | "hashimotos" | null) ?? null
+  );
+
+  // Alpha-gal Syndrome state
+  const [showAlphaGalModal, setShowAlphaGalModal] = useState(false);
+  const [alphaGalProfile, setAlphaGalProfile] = useState<AlphaGalProfileData | null>(
+    (user as any)?.alphaGalProfile ?? null
+  );
+  const [alphaGalDraft, setAlphaGalDraft] = useState<AlphaGalDraft>(
+    (user as any)?.alphaGalProfile
+      ? {
+          diagnosisStatus: (user as any).alphaGalProfile.diagnosisStatus ?? DEFAULT_ALPHA_GAL_DRAFT.diagnosisStatus,
+          dairyTolerance: (user as any).alphaGalProfile.dairyTolerance ?? DEFAULT_ALPHA_GAL_DRAFT.dairyTolerance,
+          gelatinRestriction: (user as any).alphaGalProfile.gelatinRestriction ?? DEFAULT_ALPHA_GAL_DRAFT.gelatinRestriction,
+          severeReactionHistory: (user as any).alphaGalProfile.severeReactionHistory ?? DEFAULT_ALPHA_GAL_DRAFT.severeReactionHistory,
+        }
+      : DEFAULT_ALPHA_GAL_DRAFT
+  );
+
+  const [antiInflammatorySupport, setAntiInflammatorySupport] = useState(false);
+
+  // Protocol Ownership Model — physician-set oncology context (read from server)
+  const oncologyCtx = user?.oncologySupportContext ?? null;
+  const physicianOncologyActive = !!(oncologyCtx?.enabled && oncologyCtx?.source === "physician");
+  const physicianOncologyLocked = physicianOncologyActive && !!(user?.isProCare);
+  const [physicianProtocolClearing, setPhysicianProtocolClearing] = useState(false);
+
+  // ── Control hierarchy ────────────────────────────────────────────────────
+  // Tier 1 — Physician lock: physician controls everything
+  // Tier 2 — Lab-driven lock: conditions triggered by objective lab values cannot
+  //           be silently removed. User sees them illuminated with a lab indicator.
+  // Tier 3 — Self-select: user controls all non-lab, non-physician conditions.
+  const physicianLocked: boolean = !!(user as any)?.physicianLocked;
+  const labDrivenConditions: string[] = (user as any)?.labDrivenConditions ?? [];
+  const isConditionLocked = (val: string): boolean =>
+    physicianLocked || labDrivenConditions.includes(val);
 
   const [allergiesUnlocked, setAllergiesUnlocked] = useState(false);
   const [allergyEditToken, setAllergyEditToken] = useState<string | null>(null);
@@ -216,27 +336,65 @@ export default function EditProfilePage() {
     isSaving: glycemicSaving,
   } = useGlycemicSettings();
 
-  const [preferredCarbs, setPreferredCarbs] = useState<string[]>(
-    glycemicData.preferredCarbs || []
-  );
+  const [lowRangeCarbs, setLowRangeCarbs] = useState<string[]>(glycemicData.lowRangeCarbs ?? []);
+  const [midRangeCarbs, setMidRangeCarbs] = useState<string[]>(glycemicData.midRangeCarbs ?? []);
+  const [highRangeCarbs, setHighRangeCarbs] = useState<string[]>(glycemicData.highRangeCarbs ?? []);
 
   useEffect(() => {
-    if (glycemicData?.preferredCarbs) {
-      setPreferredCarbs(glycemicData.preferredCarbs);
+    if (glycemicData) {
+      setLowRangeCarbs(glycemicData.lowRangeCarbs ?? []);
+      setMidRangeCarbs(glycemicData.midRangeCarbs ?? []);
+      setHighRangeCarbs(glycemicData.highRangeCarbs ?? []);
     }
   }, [glycemicData]);
 
   useEffect(() => {
     document.title = "Edit Profile | My Perfect Meals";
     setForm(initial);
-    setDietaryText(initial.dietaryRestrictions.join(", "));
+    setDietaryStyle(initDietaryStyle(initial.dietaryRestrictions));
+    setCustomDietInput(initCustomDietInput(initial.dietaryRestrictions));
     setAllergiesText(initial.allergies.join(", "));
     setGoalType(((user as any)?.goalType as GoalType) || null);
     setGoalTarget((user as any)?.goalTarget || "");
     setGoalTimelineWeeks((user as any)?.goalTimelineWeeks ?? null);
+    setAvoidedFoods(Array.isArray((user as any)?.avoidedFoods) ? (user as any).avoidedFoods : []);
     // NOTE: intentionally NOT resetting allergiesUnlocked / allergyEditToken here
     // so that a background user-data refresh doesn't wipe the PIN unlock mid-flow
   }, [initial]);
+
+  // Sync specialtyConditions from user object — handles async load and protocol persistence
+  useEffect(() => {
+    const arr: string[] = (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : []);
+    setSpecialtyConditions(arr);
+  }, [(user as any)?.specialtyConditions, user?.specialtyCondition]);
+
+  // Sync glp1Active from user object
+  useEffect(() => {
+    const mc = (user as any)?.medicalConditions as string[] | undefined;
+    setGlp1Active(!!(mc?.includes("glp1")));
+  }, [(user as any)?.medicalConditions]);
+
+  // Sync alphaGalProfile from user object — handles async load after refreshUser()
+  useEffect(() => {
+    const profile = (user as any)?.alphaGalProfile;
+    if (profile) {
+      setAlphaGalProfile(profile);
+      setAlphaGalDraft({
+        diagnosisStatus: profile.diagnosisStatus ?? DEFAULT_ALPHA_GAL_DRAFT.diagnosisStatus,
+        dairyTolerance: profile.dairyTolerance ?? DEFAULT_ALPHA_GAL_DRAFT.dairyTolerance,
+        gelatinRestriction: profile.gelatinRestriction ?? DEFAULT_ALPHA_GAL_DRAFT.gelatinRestriction,
+        severeReactionHistory: profile.severeReactionHistory ?? DEFAULT_ALPHA_GAL_DRAFT.severeReactionHistory,
+      });
+    }
+  }, [(user as any)?.alphaGalProfile]);
+
+  // Load anti-inflammatory support preference from server (stored in app-preferences)
+  useEffect(() => {
+    if (!user?.id) return;
+    apiRequest(`/api/users/${user.id}/app-preferences`)
+      .then(prefs => { if (prefs?.antiInflammatorySupport) setAntiInflammatorySupport(true); })
+      .catch(() => {});
+  }, [user?.id]);
   
   const verifyPinForAllergies = async () => {
     if (pinInput.length !== 4) {
@@ -285,12 +443,12 @@ export default function EditProfilePage() {
     const builderNames: Record<string, string> = {
       weekly: "Weekly Meal Board",
       diabetic: "Diabetic Builder",
-      glp1: "GLP-1 Builder",
+      glp1: "Metabolic Medication Builder",
       general_nutrition: "General Nutrition Builder",
       performance_competition: "Performance Builder",
       anti_inflammatory: "Anti-Inflammatory",
       "anti-inflammatory": "Anti-Inflammatory",
-      beach_body: "Beach Body",
+      beach_body: "Performance Nutrition",
     };
     
     return builderType ? (builderNames[builderType] || builderType) : "Not Set";
@@ -304,10 +462,14 @@ export default function EditProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const dietaryArray = dietaryText
-        .split(",")
-        .map((s: string) => s.trim())
-        .filter(Boolean);
+      const dietaryArray =
+        dietaryStyle === "none"
+          ? []
+          : [
+              dietaryStyle === "custom"
+                ? customDietInput.trim().toLowerCase()
+                : dietaryStyle,
+            ].filter(Boolean);
       const allergiesArray = allergiesText
         .split(",")
         .map((s: string) => s.trim())
@@ -332,17 +494,28 @@ export default function EditProfilePage() {
       const originalGoalTimelineWeeks = (user as any)?.goalTimelineWeeks || null;
       const goalChanged = goalTarget !== originalGoalTarget || goalTimelineWeeks !== originalGoalTimelineWeeks;
 
-      const payload: EditProfilePayload & { allergyEditToken?: string } = {
+      const payload: EditProfilePayload & { allergyEditToken?: string; heatPreference?: string; avoidedFoods?: string[] } = {
         ...form,
         dietaryRestrictions: dietaryArray,
         allergies: allergiesChanged ? allergiesArray : undefined,
         sweetenerPreferences,
+        heatPreference,
+        avoidedFoods,
         goalType: goalType || null,
         goalTarget: goalTarget.trim() || null,
         goalTimelineWeeks: goalTimelineWeeks,
         goalStartDate: goalChanged && (goalTarget.trim() || goalTimelineWeeks) ? new Date().toISOString() : undefined,
         ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
-      };
+      } as any;
+
+      // Merge glp1Active into medicalConditions — preserve existing values, only toggle 'glp1'
+      const existingMedical: string[] = Array.isArray((user as any)?.medicalConditions)
+        ? (user as any).medicalConditions
+        : [];
+      const medicalWithoutGlp1 = existingMedical.filter((v: string) => v !== "glp1");
+      (payload as any).medicalConditions = glp1Active
+        ? [...medicalWithoutGlp1, "glp1"]
+        : medicalWithoutGlp1;
 
       const authToken = getAuthToken();
       const res = await fetch(apiUrl("/api/users/profile"), {
@@ -360,7 +533,93 @@ export default function EditProfilePage() {
         throw new Error(txt || "Failed to update profile");
       }
 
+      // Save specialty condition — enforces three-tier hierarchy server-side
+      const condRes = await fetch(apiUrl("/api/user/specialty-condition"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "x-auth-token": authToken } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ conditions: specialtyConditions }),
+      });
+      if (!condRes.ok) {
+        const condErr = await condRes.json().catch(() => ({}));
+        if (condErr.error === "lab_driven") {
+          toast({
+            title: "Protocol locked by lab values",
+            description: "One or more protocols are controlled by your lab results. Go to Biometrics → Lab Values to update them.",
+            variant: "destructive",
+          });
+        } else if (condErr.error === "physician_locked") {
+          toast({
+            title: "Protocol controlled by your physician",
+            description: "Contact your care team to make changes to your active protocols.",
+            variant: "destructive",
+          });
+        }
+        // Still allow the rest of the save (profile data saved OK — only conditions were blocked)
+      }
+
+      // Save thyroid type (only relevant when thyroid-support is active, but always sync)
+      if (specialtyConditions.includes("thyroid-support") || thyroidType) {
+        await fetch(apiUrl("/api/user/thyroid-type"), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "x-auth-token": authToken } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ thyroidType }),
+        }).catch(() => {});
+      }
+
+      // Save Alpha-gal profile if condition is active and profile data exists
+      if (specialtyConditions.includes("alpha-gal-syndrome") && alphaGalProfile) {
+        await fetch(apiUrl("/api/user/alpha-gal-profile"), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "x-auth-token": authToken } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ profile: alphaGalProfile }),
+        }).catch(() => {});
+      }
+
+      // Save thyroid medication (only relevant when thyroid-support is active, but always sync)
+      await fetch(apiUrl("/api/user/thyroid-medication"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "x-auth-token": authToken } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ medication: thyroidMedication.trim() || null }),
+      }).catch(() => {});
+
+      // Save measurement preferences (non-blocking)
+      await fetch(apiUrl("/api/user/preferences"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "x-auth-token": authToken } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ measurementSystem: localMeasurementSystem, countryCode: localCountryCode }),
+      }).catch(() => {});
+
+      // Save anti-inflammatory support preference
+      if (user?.id) {
+        await apiRequest(`/api/users/${user.id}/app-preferences`, {
+          method: "PATCH",
+          body: JSON.stringify({ antiInflammatorySupport }),
+        }).catch(() => {});
+      }
+
       await refreshUser?.();
+      window.dispatchEvent(new CustomEvent("mpm:dietaryUpdated"));
+      queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
 
       toast({
         title: "Profile updated",
@@ -396,7 +655,7 @@ export default function EditProfilePage() {
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">Edit Profile</h1>
+          <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">{t("title")}</h1>
 
           <div className="flex-shrink-0 flex items-center gap-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 max-w-[140px]">
@@ -503,7 +762,14 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="space-y-2 pt-3">
+                <Button
+                  className="w-full bg-zinc-700 text-white"
+                  disabled={!canContinueStep1 || saving}
+                  onClick={handleSave}
+                >
+                  {saving ? t("saving") : t("saveExit")}
+                </Button>
                 <Button
                   className="w-full bg-lime-600 text-white"
                   disabled={!canContinueStep1}
@@ -607,21 +873,30 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="w-1/2 bg-black text-white"
-                  onClick={() => setStep(1)}
+                  className="w-full bg-zinc-700 text-white"
+                  disabled={saving}
+                  onClick={handleSave}
                 >
-                  Back
+                  {saving ? t("saving") : t("saveExit")}
                 </Button>
-                <Button
-                  className="w-1/2 bg-lime-600 text-white"
-                  disabled={!canContinueStep2}
-                  onClick={() => setStep(3)}
-                >
-                  Continue
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(1)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={!canContinueStep2}
+                    onClick={() => setStep(3)}
+                  >
+                    Continue
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
@@ -633,16 +908,41 @@ export default function EditProfilePage() {
             subtitle="Optional — leave blank if you don't have any."
           >
             <div className="space-y-3">
-              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <label className="text-white/70 text-xs">
-                  Dietary Restrictions (comma-separated)
-                </label>
-                <textarea
-                  value={dietaryText}
-                  onChange={(e) => setDietaryText(e.target.value)}
-                  className="mt-1 w-full min-h-[90px] bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                  placeholder="e.g. gluten-free, keto, pescatarian..."
-                />
+              <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+                <div className="mb-3">
+                  <p className="text-white font-semibold text-sm">Preferences & restrictions</p>
+                  <p className="text-white/60 text-xs mt-0.5">Pick your eating style — we'll tailor every meal to it automatically.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {DIET_OPTIONS.map((opt) => (
+                    <PillButton
+                      key={opt.value}
+                      active={dietaryStyle === opt.value}
+                      onClick={() => setDietaryStyle(opt.value)}
+                    >
+                      {opt.label}
+                    </PillButton>
+                  ))}
+                </div>
+                {DIETARY_IDENTITY_HINTS[dietaryStyle] && (
+                  <div className="mt-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <p className="text-xs text-white/50 leading-relaxed">
+                      {DIETARY_IDENTITY_HINTS[dietaryStyle]}
+                    </p>
+                  </div>
+                )}
+                {dietaryStyle === "custom" && (
+                  <div className="mt-3">
+                    <input
+                      type="text"
+                      value={customDietInput}
+                      onChange={(e) => setCustomDietInput(e.target.value)}
+                      placeholder="e.g. Whole30, raw food, flexitarian..."
+                      className="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40 placeholder:text-white/30"
+                      autoFocus
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
@@ -699,6 +999,415 @@ export default function EditProfilePage() {
                 </p>
               </div>
 
+              {/* Foods to Avoid Section */}
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">🚫</span>
+                  <span className="text-white/80 font-semibold text-sm">Foods to Avoid</span>
+                </div>
+                <p className="text-white/60 text-xs mb-3">
+                  Foods or categories you never want in your meals. No PIN needed — this is a preference, not a medical safety setting.
+                </p>
+
+                {/* Quick-tap category pills */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {["Vegetables", "Mushrooms", "Onions", "Seafood", "Pork", "Red Meat"].map((cat) => {
+                    const stored = cat.toLowerCase();
+                    return (
+                      <PillButton
+                        key={cat}
+                        active={avoidedFoods.includes(stored)}
+                        onClick={() =>
+                          setAvoidedFoods((prev) =>
+                            prev.includes(stored)
+                              ? prev.filter((f) => f !== stored)
+                              : [...prev, stored]
+                          )
+                        }
+                      >
+                        {cat}
+                      </PillButton>
+                    );
+                  })}
+                </div>
+
+                {/* Custom food input */}
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={avoidedFoodInput}
+                    onChange={(e) => setAvoidedFoodInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const trimmed = avoidedFoodInput.trim().toLowerCase();
+                        if (trimmed && !avoidedFoods.includes(trimmed)) {
+                          setAvoidedFoods((prev) => [...prev, trimmed]);
+                          setAvoidedFoodInput("");
+                        }
+                      }
+                    }}
+                    placeholder="Type a specific food..."
+                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-white/30"
+                  />
+                  <PillButton
+                    active={false}
+                    disabled={!avoidedFoodInput.trim()}
+                    onClick={() => {
+                      const trimmed = avoidedFoodInput.trim().toLowerCase();
+                      if (trimmed && !avoidedFoods.includes(trimmed)) {
+                        setAvoidedFoods((prev) => [...prev, trimmed]);
+                        setAvoidedFoodInput("");
+                      }
+                    }}
+                  >
+                    Add
+                  </PillButton>
+                </div>
+
+                {/* Custom avoided foods — shown as active pills */}
+                {avoidedFoods.filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f)).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {avoidedFoods
+                      .filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f))
+                      .map((food) => (
+                        <PillButton
+                          key={food}
+                          active={true}
+                          onClick={() => setAvoidedFoods((prev) => prev.filter((f) => f !== food))}
+                        >
+                          {food} ×
+                        </PillButton>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Specialty Health Protocol Section */}
+              <div className="rounded-xl border border-sky-500/30 bg-sky-950/20 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">🩺</span>
+                  <span className="text-sky-300 font-semibold text-sm">Specialty Health Protocol</span>
+                </div>
+
+                {/* ── Physician-set oncology protocol banner ─────────────────── */}
+                {physicianOncologyActive && (
+                  <div className={`mb-3 rounded-xl border p-3 ${physicianOncologyLocked ? "border-amber-500/40 bg-amber-950/30" : "border-rose-500/40 bg-rose-950/20"}`}>
+                    <div className="flex items-start gap-2">
+                      <span className="text-base mt-0.5">🎗️</span>
+                      <div className="flex-1">
+                        {physicianOncologyLocked ? (
+                          <>
+                            <p className="text-amber-300 text-xs font-semibold mb-0.5">
+                              Cancer / Oncology Protocol — Managed by Your Care Team
+                            </p>
+                            <p className="text-white/60 text-xs">
+                              {oncologyCtx?.ownerName
+                                ? `Set by ${oncologyCtx.ownerName}.`
+                                : "Set by your physician."}{" "}
+                              This protocol is active and controlled by your care team while you remain connected. To make changes, contact your physician.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-rose-300 text-xs font-semibold mb-0.5">
+                              Cancer / Oncology Protocol — Previously Set by Your Care Team
+                            </p>
+                            <p className="text-white/60 text-xs mb-2">
+                              {oncologyCtx?.ownerName
+                                ? `Originally set by ${oncologyCtx.ownerName}.`
+                                : "Originally set by a physician."}{" "}
+                              You are no longer connected to this provider. You may keep or remove this protocol.
+                            </p>
+                            <button
+                              onClick={async () => {
+                                setPhysicianProtocolClearing(true);
+                                try {
+                                  await fetch("/api/user/physician-protocol/oncology", { method: "DELETE", credentials: "include" });
+                                  window.location.reload();
+                                } catch {
+                                  setPhysicianProtocolClearing(false);
+                                }
+                              }}
+                              disabled={physicianProtocolClearing}
+                              className="text-xs px-3 py-1.5 rounded-lg bg-rose-600/70 hover:bg-rose-600 text-white border border-rose-500/50 transition-colors disabled:opacity-50"
+                            >
+                              {physicianProtocolClearing ? "Removing…" : "Remove This Protocol"}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-white/60 text-xs mb-3">
+                  Select all conditions that apply — you can choose more than one. Each condition activates its full clinical protocol across every meal generator.{labDrivenConditions.length > 0 ? "" : " No lab entry required; you can add labs later for precision."}
+                </p>
+
+                {/* ── Lab-driven lock banner ─────────────────────────────── */}
+                {labDrivenConditions.length > 0 && !physicianLocked && (
+                  <div className="mb-3 rounded-xl border border-sky-500/30 bg-sky-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-sky-400 text-xs mt-0.5">🔬</span>
+                      <p className="text-sky-300/80 text-xs leading-relaxed">
+                        <span className="font-semibold text-sky-300">Lab-activated protocols</span> are shown below with a <span className="font-semibold">🔬</span> indicator. These protocols are active because your lab values support them. To remove them, update your lab values in Biometrics.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── General physician lock banner ──────────────────────── */}
+                {physicianLocked && !physicianOncologyActive && (
+                  <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-950/30 p-3">
+                    <div className="flex items-start gap-2">
+                      <Lock className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-amber-300 text-xs font-semibold mb-0.5">Protocol Controlled by Your Physician</p>
+                        <p className="text-white/60 text-xs leading-relaxed">
+                          Your care team controls your active protocols while you are connected to them. Contact your physician to make changes.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { label: "Kidney / Renal Disease", value: "renal" },
+                    { label: "Cardiac / Heart Disease", value: "cardiac" },
+                    { label: "Liver Disease", value: "liver-disease" },
+                    { label: "Liver Support", value: "liver-support" },
+                    { label: "Cancer / Oncology Support", value: "oncology-support" },
+                    { label: "Thyroid Support", value: "thyroid-support" },
+                    { label: "Hashimoto's", value: "hashimotos" },
+                    { label: "Hypothyroid", value: "hypothyroid" },
+                    { label: "Hyperthyroid", value: "hyperthyroid" },
+                    { label: "Hormone Optimization", value: "hormone-optimization" },
+                    { label: "Menopause", value: "menopause" },
+                    { label: "Perimenopause", value: "perimenopause" },
+                    { label: "Metabolic Recovery", value: "metabolic-recovery" },
+                    { label: "🩷 My Perfect Pregnancy", value: "pregnancy-support" },
+                  ] as const).map((opt) => {
+                    const isLabDriven = labDrivenConditions.includes(opt.value);
+                    const locked = isConditionLocked(opt.value);
+                    const isActive = specialtyConditions.includes(opt.value) || isLabDriven;
+                    return (
+                      <PillButton
+                        key={opt.value}
+                        active={isActive}
+                        onClick={() => {
+                          if (locked) return;
+                          if (physicianOncologyLocked && opt.value === "oncology-support") return;
+                          setSpecialtyConditions((prev) =>
+                            prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
+                          );
+                        }}
+                        className={locked ? "opacity-80 cursor-not-allowed" : ""}
+                      >
+                        {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}
+                      </PillButton>
+                    );
+                  })}
+                  <PillButton
+                    active={glp1Active}
+                    onClick={() => setGlp1Active(prev => !prev)}
+                  >
+                    Metabolic Med Active
+                  </PillButton>
+                  {/* Alpha-gal Syndrome — clinical allergy, handled separately from specialty conditions */}
+                  <PillButton
+                    active={specialtyConditions.includes("alpha-gal-syndrome")}
+                    onClick={() => {
+                      if (physicianLocked) return;
+                      if (specialtyConditions.includes("alpha-gal-syndrome")) {
+                        // Deactivate: remove from conditions.
+                        // Profile data is intentionally preserved in local state + DB
+                        // so it survives accidental unchecks and re-checks.
+                        setSpecialtyConditions(prev => prev.filter(c => c !== "alpha-gal-syndrome"));
+                      } else {
+                        setSpecialtyConditions(prev => [...prev, "alpha-gal-syndrome"]);
+                        // Always open modal when activating so user can verify/update details
+                        setShowAlphaGalModal(true);
+                      }
+                    }}
+                    className={physicianLocked ? "opacity-80 cursor-not-allowed" : ""}
+                  >
+                    🩸 Alpha-gal Syndrome
+                  </PillButton>
+                  {(specialtyConditions.filter(c => !labDrivenConditions.includes(c)).length > 0 || glp1Active) && !physicianOncologyLocked && !physicianLocked && (
+                    <PillButton
+                      active={false}
+                      onClick={() => {
+                        setSpecialtyConditions(prev => prev.filter(c => labDrivenConditions.includes(c)));
+                        setGlp1Active(false);
+                      }}
+                    >
+                      Clear All ×
+                    </PillButton>
+                  )}
+                </div>
+                {specialtyConditions.includes("pregnancy-support") && (
+                  <div className="mt-3 rounded-xl border border-pink-500/40 bg-pink-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-pink-400 text-base mt-0.5">🩷</span>
+                      <div>
+                        <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Activates pregnancy-aware meal generation with trimester-specific nutrients, food safety guidance (mercury, listeria), and symptom support. This is <span className="text-white font-medium">not a medical protocol</span>, not a substitute for your OB/GYN or midwife, and <span className="text-white font-medium">not individualized prenatal care</span>. Set up your stage and due date in the My Perfect Pregnancy hub under Lifestyle.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {specialtyConditions.includes("thyroid-support") && (
+                  <div className="mt-3 rounded-xl border border-teal-500/40 bg-teal-950/30 p-3 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-teal-400 text-base mt-0.5">🦋</span>
+                      <div>
+                        <p className="text-teal-300 text-xs font-semibold mb-1">Thyroid Support — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness — including smart medication timing awareness if you take thyroid medication. This is <span className="text-white font-medium">not a medical diagnosis</span> and is <span className="text-white font-medium">not a substitute for your doctor or endocrinologist's care</span>. Always follow your healthcare provider's recommendations.
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-teal-300/80 text-xs font-medium block mb-1.5">
+                        My thyroid condition <span className="text-white/40 font-normal">(optional — sharpens the protocol)</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          { label: "Hypothyroid", value: "hypothyroid" as const },
+                          { label: "Hyperthyroid", value: "hyperthyroid" as const },
+                          { label: "Hashimoto's", value: "hashimotos" as const },
+                        ]).map((opt) => (
+                          <PillButton
+                            key={opt.value}
+                            active={thyroidType === opt.value}
+                            onClick={() => setThyroidType(prev => prev === opt.value ? null : opt.value)}
+                          >
+                            {opt.label}
+                          </PillButton>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-teal-300/80 text-xs font-medium block mb-1">
+                        Thyroid Medication <span className="text-white/40 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={thyroidMedication}
+                        onChange={(e) => setThyroidMedication(e.target.value)}
+                        placeholder="e.g. Levothyroxine 50mcg"
+                        className="w-full bg-black/40 border border-teal-500/30 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-teal-400/60"
+                      />
+                      <p className="text-white/35 text-[10px] mt-1">Helps the AI suggest appropriate meal timing around your medication schedule.</p>
+                    </div>
+                  </div>
+                )}
+                {specialtyConditions.includes("hormone-optimization") && (
+                  <div className="mt-3 rounded-xl border border-orange-500/40 bg-orange-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-orange-400 text-base mt-0.5">⚡</span>
+                      <div>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">Hormone Optimization — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Activates hormone-supportive meal generation — healthy fats, zinc-rich proteins, minimal processed foods, no refined sugars or seed oils. This is <span className="text-white font-medium">not a medical protocol</span> and is <span className="text-white font-medium">not a substitute for your doctor's care</span>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {specialtyConditions.includes("oncology-support") && !physicianOncologyActive && (
+                  <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-rose-400 text-base mt-0.5">🎗️</span>
+                      <div>
+                        <p className="text-rose-300 text-xs font-semibold mb-1">Important — Not a Medical Diagnosis</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Selecting this activates general nutritional guidance designed to support people going through cancer treatment — things like managing appetite, nausea, and energy needs. This is <span className="text-white font-medium">not a diagnosis</span>, not a treatment plan, and <span className="text-white font-medium">not a substitute for your oncology team's medical care</span>. Always follow your doctor's guidance first.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {glp1Active && (
+                  <div className="mt-3 rounded-xl border border-orange-500/40 bg-orange-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-orange-400 text-base mt-0.5">💉</span>
+                      <div>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">Metabolic Medication Support — Nutritional Guidance Only</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Enabling this activates metabolic medication-aware meal generation — smaller, nutrient-dense portions, high protein floors (≥25g), nausea-safe ingredients, and reduced fat ceilings to match how these medications affect appetite and digestion. If you are on a diabetic protocol, both layers stack automatically. This is <span className="text-white font-medium">not a substitute for your prescribing doctor's guidance</span>. Always follow your physician's instructions.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Alpha-gal Syndrome sub-panel */}
+                {specialtyConditions.includes("alpha-gal-syndrome") && (
+                  <div className="mt-3 rounded-xl border border-red-900/40 bg-red-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-red-400 text-base mt-0.5">🩸</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-red-300 text-xs font-semibold mb-1">Alpha-gal Syndrome — Clinical Allergy Protocol</p>
+                        <p className="text-white/70 text-xs leading-relaxed">
+                          Activates allergy-safe meal generation with mammalian meats (beef, pork, lamb), organ meats, and mammalian fats hard-blocked.
+                          Dairy and gelatin restrictions depend on your profile below. This is <span className="text-white font-medium">a clinical food allergy</span>, not a dietary preference.
+                        </p>
+                      </div>
+                    </div>
+                    {alphaGalProfile?.profileComplete ? (
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5">
+                          <span className="text-green-400 text-xs">✓</span>
+                          <span className="text-green-300 text-xs font-medium">Details saved</span>
+                          <span className="text-white/30 text-xs">·</span>
+                          <span className="text-white/50 text-xs">
+                            Dairy: {alphaGalProfile.dairyTolerance === "yes" ? "tolerated" : alphaGalProfile.dairyTolerance === "no" ? "avoided" : "verify"}
+                          </span>
+                          <span className="text-white/30 text-xs">·</span>
+                          <span className="text-white/50 text-xs">
+                            Gelatin: {alphaGalProfile.gelatinRestriction === "yes" ? "avoided" : alphaGalProfile.gelatinRestriction === "no" ? "no restriction" : "verify"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowAlphaGalModal(true)}
+                          className="text-red-400 text-xs font-medium hover:text-red-300 flex-shrink-0"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowAlphaGalModal(true)}
+                        className="mt-3 flex items-center gap-1.5 text-amber-400 text-xs font-medium hover:text-amber-300"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        Details incomplete — tap to complete
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Anti-Inflammatory Support — independent toggle, not part of specialty condition */}
+              <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
+                <p className="text-white/80 text-xs font-semibold mb-1">Anti-Inflammatory Support</p>
+                <p className="text-white/50 text-xs mb-3 leading-relaxed">
+                  Layer anti-inflammatory nutrition optimization onto any builder — including Metabolic Med and Diabetic. Emphasizes food quality, healthy fats, and reduced ultra-processed ingredients. No medical condition required.
+                </p>
+                <PillButton
+                  active={antiInflammatorySupport}
+                  onClick={() => setAntiInflammatorySupport(prev => !prev)}
+                >
+                  {antiInflammatorySupport ? "Active — Anti-Inflammatory" : "Enable Anti-Inflammatory Support"}
+                </PillButton>
+              </div>
+
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-white/60" />
@@ -708,6 +1417,76 @@ export default function EditProfilePage() {
                   Your PIN protects your allergies and allows meal overrides.
                 </p>
                 <SafetyPinSettings />
+              </div>
+
+              {/* Cuisine Identity Section */}
+              <div className="rounded-xl border border-orange-500/20 bg-orange-950/10 p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🌍</span>
+                  <span className="text-orange-200 font-semibold text-sm">Cuisine Identity</span>
+                </div>
+                <p className="text-white/60 text-xs mb-4">
+                  Every feature honors your cuisine style — meals, pairings, and more. Works alongside your diet, not instead of it.
+                </p>
+
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {CUISINE_PILLS.map((cuisine) => (
+                      <PillButton
+                        key={cuisine}
+                        active={form.cuisinePreference === cuisine.toLowerCase()}
+                        onClick={() => {
+                          if (form.cuisinePreference === cuisine.toLowerCase()) {
+                            setForm((p) => ({ ...p, cuisinePreference: null }));
+                          } else {
+                            setForm((p) => ({ ...p, cuisinePreference: cuisine.toLowerCase() }));
+                            setCustomCuisineInput("");
+                          }
+                        }}
+                      >
+                        {cuisine}
+                      </PillButton>
+                    ))}
+                    <PillButton
+                      active={!!customCuisineInput || (!CUISINE_PILLS.map(c => c.toLowerCase()).includes(form.cuisinePreference || "") && !!form.cuisinePreference)}
+                      onClick={() => {}}
+                    >
+                      Something else…
+                    </PillButton>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="e.g. Armenian, Ethiopian, Caribbean, Filipino…"
+                    value={customCuisineInput}
+                    onChange={(e) => {
+                      setCustomCuisineInput(e.target.value);
+                      setForm((p) => ({ ...p, cuisinePreference: e.target.value.toLowerCase().trim() || null }));
+                    }}
+                    className="w-full bg-black/40 text-white border border-white/20 px-3 py-2 rounded-lg text-sm placeholder:text-white/40"
+                  />
+
+                  {form.cuisinePreference && (
+                    <div className="space-y-2">
+                      <label className="text-white/80 text-xs">How strongly should we follow this style?</label>
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          ["light", "Light Influence"],
+                          ["balanced", "Balanced"],
+                          ["authentic", "Authentic"],
+                        ] as const).map(([value, label]) => (
+                          <PillButton
+                            key={value}
+                            active={form.cuisineIntensity === value}
+                            onClick={() => setForm((p) => ({ ...p, cuisineIntensity: value }))}
+                          >
+                            {label}
+                          </PillButton>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Palate Preferences Section */}
@@ -721,6 +1500,24 @@ export default function EditProfilePage() {
                 </p>
 
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-xs flex items-center gap-1">
+                      <span>🔥</span> Heat Preference
+                    </label>
+                    <p className="text-white/40 text-xs">Separate from flavor style — bold food doesn't have to mean spicy</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(["none", "mild", "medium", "hot", "very-hot", "unsure"] as const).map((level) => (
+                        <PillButton
+                          key={level}
+                          active={heatPreference === level}
+                          onClick={() => setHeatPreference(level)}
+                        >
+                          {level === "none" ? "No Heat" : level === "mild" ? "Mild" : level === "medium" ? "Medium" : level === "hot" ? "Hot" : level === "very-hot" ? "Very Hot" : "Not Sure"}
+                        </PillButton>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-white/80 text-xs flex items-center gap-1">
                       <span>🌶️</span> Spice Tolerance
@@ -805,21 +1602,30 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="w-1/2 bg-black text-white"
-                  onClick={() => setStep(2)}
+                  className="w-full bg-zinc-700 text-white"
+                  disabled={saving}
+                  onClick={handleSave}
                 >
-                  Back
+                  {saving ? t("saving") : t("saveExit")}
                 </Button>
-                <Button
-                  className="w-1/2 bg-lime-600 text-white"
-                  disabled={!canContinueStep3}
-                  onClick={() => setStep(4)}
-                >
-                  Continue
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(2)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={!canContinueStep3}
+                    onClick={() => setStep(4)}
+                  >
+                    Continue
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
@@ -827,36 +1633,82 @@ export default function EditProfilePage() {
 
         {step === 4 && (
           <StepShell
-            title="Glycemic Preferences"
-            subtitle="Select which carbs you prefer — this personalizes your meal recommendations."
+            title="Glucose-Based Carb Choices"
+            subtitle="Your glucose-based carb choices help MPM decide which fruits and carb sources to prioritize when building meals for diabetic support."
           >
             <div className="space-y-4">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-white/70 text-xs">Choose what you prefer to eat when your blood sugar is low, in range, or elevated. MPM will use these choices automatically during meal generation.</p>
+              </div>
+
+              <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <div>
+                    <p className="text-blue-300 text-sm font-semibold flex items-center gap-2">
+                      <span className="text-lg">🔵</span> Low Glucose Range
+                    </p>
+                    <p className="text-blue-200/50 text-xs">What helps you recover when blood sugar is low</p>
+                  </div>
+                  <PillButton
+                    active={LOW_RANGE_OPTIONS.every((f) => lowRangeCarbs.includes(f))}
+                    onClick={() => {
+                      const allSelected = LOW_RANGE_OPTIONS.every((f) => lowRangeCarbs.includes(f));
+                      setLowRangeCarbs((prev) =>
+                        allSelected
+                          ? prev.filter((f) => !LOW_RANGE_OPTIONS.includes(f))
+                          : [...new Set([...prev, ...LOW_RANGE_OPTIONS])]
+                      );
+                    }}
+                  >
+                    {LOW_RANGE_OPTIONS.every((f) => lowRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
+                  </PillButton>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {LOW_RANGE_OPTIONS.map((food) => (
+                    <PillButton
+                      key={food}
+                      active={lowRangeCarbs.includes(food)}
+                      onClick={() =>
+                        setLowRangeCarbs((prev) =>
+                          prev.includes(food) ? prev.filter((f) => f !== food) : [...prev, food]
+                        )
+                      }
+                    >
+                      {food}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+
               <div className="rounded-xl border border-green-500/30 bg-green-950/20 p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-green-300 text-sm font-semibold flex items-center gap-2">
-                    <span className="text-lg">🟢</span> Low Glycemic (Best for stable blood sugar)
-                  </p>
+                  <div>
+                    <p className="text-green-300 text-sm font-semibold flex items-center gap-2">
+                      <span className="text-lg">🟢</span> In-Range Glucose
+                    </p>
+                    <p className="text-green-200/50 text-xs">Balanced carbs for stable blood sugar</p>
+                  </div>
                   <PillButton
-                    active={LOW_GI.every((f) => preferredCarbs.includes(f))}
+                    active={MID_RANGE_OPTIONS.every((f) => midRangeCarbs.includes(f))}
                     onClick={() => {
-                      const allSelected = LOW_GI.every((f) => preferredCarbs.includes(f));
-                      setPreferredCarbs((prev) =>
+                      const allSelected = MID_RANGE_OPTIONS.every((f) => midRangeCarbs.includes(f));
+                      setMidRangeCarbs((prev) =>
                         allSelected
-                          ? prev.filter((f) => !LOW_GI.includes(f))
-                          : [...new Set([...prev, ...LOW_GI])]
+                          ? prev.filter((f) => !MID_RANGE_OPTIONS.includes(f))
+                          : [...new Set([...prev, ...MID_RANGE_OPTIONS])]
                       );
                     }}
                   >
-                    {LOW_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
+                    {MID_RANGE_OPTIONS.every((f) => midRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
                   </PillButton>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {LOW_GI.map((food) => (
+                  {MID_RANGE_OPTIONS.map((food) => (
                     <PillButton
                       key={food}
-                      active={preferredCarbs.includes(food)}
+                      active={midRangeCarbs.includes(food)}
                       onClick={() =>
-                        setPreferredCarbs((prev) =>
+                        setMidRangeCarbs((prev) =>
                           prev.includes(food)
                             ? prev.filter((f) => f !== food)
                             : [...prev, food]
@@ -869,32 +1721,35 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-yellow-500/30 bg-yellow-950/20 p-3">
+              <div className="rounded-xl border border-orange-500/30 bg-orange-950/20 p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-yellow-300 text-sm font-semibold flex items-center gap-2">
-                    <span className="text-lg">🟡</span> Mid Glycemic (Moderate energy release)
-                  </p>
+                  <div>
+                    <p className="text-orange-300 text-sm font-semibold flex items-center gap-2">
+                      <span className="text-lg">🟠</span> High Glucose Range
+                    </p>
+                    <p className="text-orange-200/50 text-xs">Lower-carb choices when blood sugar is elevated</p>
+                  </div>
                   <PillButton
-                    active={MID_GI.every((f) => preferredCarbs.includes(f))}
+                    active={HIGH_RANGE_OPTIONS.every((f) => highRangeCarbs.includes(f))}
                     onClick={() => {
-                      const allSelected = MID_GI.every((f) => preferredCarbs.includes(f));
-                      setPreferredCarbs((prev) =>
+                      const allSelected = HIGH_RANGE_OPTIONS.every((f) => highRangeCarbs.includes(f));
+                      setHighRangeCarbs((prev) =>
                         allSelected
-                          ? prev.filter((f) => !MID_GI.includes(f))
-                          : [...new Set([...prev, ...MID_GI])]
+                          ? prev.filter((f) => !HIGH_RANGE_OPTIONS.includes(f))
+                          : [...new Set([...prev, ...HIGH_RANGE_OPTIONS])]
                       );
                     }}
                   >
-                    {MID_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
+                    {HIGH_RANGE_OPTIONS.every((f) => highRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
                   </PillButton>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {MID_GI.map((food) => (
+                  {HIGH_RANGE_OPTIONS.map((food) => (
                     <PillButton
                       key={food}
-                      active={preferredCarbs.includes(food)}
+                      active={highRangeCarbs.includes(food)}
                       onClick={() =>
-                        setPreferredCarbs((prev) =>
+                        setHighRangeCarbs((prev) =>
                           prev.includes(food)
                             ? prev.filter((f) => f !== food)
                             : [...prev, food]
@@ -907,65 +1762,46 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-red-300 text-sm font-semibold flex items-center gap-2">
-                    <span className="text-lg">🔴</span> High Glycemic (Quick energy, use sparingly)
-                  </p>
-                  <PillButton
-                    active={HIGH_GI.every((f) => preferredCarbs.includes(f))}
-                    onClick={() => {
-                      const allSelected = HIGH_GI.every((f) => preferredCarbs.includes(f));
-                      setPreferredCarbs((prev) =>
-                        allSelected
-                          ? prev.filter((f) => !HIGH_GI.includes(f))
-                          : [...new Set([...prev, ...HIGH_GI])]
-                      );
-                    }}
-                  >
-                    {HIGH_GI.every((f) => preferredCarbs.includes(f)) ? "Clear All" : "Select All"}
-                  </PillButton>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {HIGH_GI.map((food) => (
-                    <PillButton
-                      key={food}
-                      active={preferredCarbs.includes(food)}
-                      onClick={() =>
-                        setPreferredCarbs((prev) =>
-                          prev.includes(food)
-                            ? prev.filter((f) => f !== food)
-                            : [...prev, food]
-                        )
-                      }
-                    >
-                      {food}
-                    </PillButton>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
+              <div className="space-y-2 pt-3">
                 <Button
-                  variant="outline"
-                  className="w-1/2 bg-black text-white"
-                  onClick={() => setStep(3)}
-                >
-                  Back
-                </Button>
-                <Button
-                  className="w-1/2 bg-lime-600 text-white"
-                  disabled={glycemicSaving}
+                  className="w-full bg-zinc-700 text-white"
+                  disabled={saving || glycemicSaving}
                   onClick={async () => {
                     await saveGlycemic({
                       ...glycemicData,
-                      preferredCarbs,
+                      lowRangeCarbs,
+                      midRangeCarbs,
+                      highRangeCarbs,
                     });
-                    setStep(5);
+                    await handleSave();
                   }}
                 >
-                  {glycemicSaving ? "Saving..." : "Continue"}
+                  {(saving || glycemicSaving) ? "Saving..." : "Save & Exit"}
                 </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-black text-white"
+                    onClick={() => setStep(3)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-lime-600 text-white"
+                    disabled={glycemicSaving}
+                    onClick={async () => {
+                      await saveGlycemic({
+                        ...glycemicData,
+                        lowRangeCarbs,
+                        midRangeCarbs,
+                        highRangeCarbs,
+                      });
+                      setStep(5);
+                    }}
+                  >
+                    {glycemicSaving ? "Saving..." : "Continue"}
+                  </Button>
+                </div>
               </div>
             </div>
           </StepShell>
@@ -976,6 +1812,50 @@ export default function EditProfilePage() {
             title="Review & save"
             subtitle="Double-check your info. Save when ready."
           >
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-3">
+              <p className="text-white font-semibold text-sm">Measurement Preferences</p>
+              <div className="space-y-2">
+                <p className="text-white/60 text-xs">Country</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { label: "🇺🇸 US", value: "US" },
+                    { label: "🇨🇦 Canada", value: "CA" },
+                    { label: "🇦🇺 Australia", value: "AU" },
+                    { label: "🇬🇧 UK", value: "UK" },
+                    { label: "🇳🇿 NZ", value: "NZ" },
+                  ] as const).map((c) => (
+                    <PillButton
+                      key={c.value}
+                      active={localCountryCode === c.value}
+                      onClick={() => {
+                        setLocalCountryCode(c.value);
+                        if (c.value !== "US") setLocalMeasurementSystem("metric");
+                        else setLocalMeasurementSystem("imperial");
+                      }}
+                    >
+                      {c.label}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-white/60 text-xs">Measurement System</p>
+                <div className="flex gap-2">
+                  <PillButton
+                    active={localMeasurementSystem === "imperial"}
+                    onClick={() => setLocalMeasurementSystem("imperial")}
+                  >
+                    Imperial (oz, lbs)
+                  </PillButton>
+                  <PillButton
+                    active={localMeasurementSystem === "metric"}
+                    onClick={() => setLocalMeasurementSystem("metric")}
+                  >
+                    Metric (g, kg, ml)
+                  </PillButton>
+                </div>
+              </div>
+            </div>
             <div className="space-y-3">
               <div className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-1">
                 <div className="flex items-center gap-2 text-white">
@@ -1006,10 +1886,18 @@ export default function EditProfilePage() {
                     : "Not set"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Restrictions: {dietaryText.trim() || "None"}
+                  Restrictions:{" "}
+                  {dietaryStyle === "none" || !dietaryStyle
+                    ? "None"
+                    : dietaryStyle === "custom"
+                      ? customDietInput.trim() || "Custom"
+                      : DIET_OPTIONS.find((o) => o.value === dietaryStyle)?.label || dietaryStyle}
                 </p>
                 <p className="text-white/80 text-xs">
                   Allergies: {allergiesText.trim() || "None"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Foods to Avoid: {avoidedFoods.length > 0 ? avoidedFoods.join(", ") : "None"}
                 </p>
                 <p className="text-white/80 text-xs">
                   Flavor: {form.palateSpiceTolerance === "none" ? "No spice" : (form.palateSpiceTolerance?.charAt(0).toUpperCase() ?? "") + (form.palateSpiceTolerance?.slice(1) ?? "")} spice, {form.palateSeasoningIntensity} seasoning
@@ -1018,30 +1906,46 @@ export default function EditProfilePage() {
                   Sweeteners: {sweetenerPreferences.length > 0 ? sweetenerPreferences.join(", ") : "None selected"}
                 </p>
                 <p className="text-white/80 text-xs">
-                  Glycemic Carbs: {preferredCarbs.length > 0 ? preferredCarbs.join(", ") : "None selected"}
+                  Glucose Carb Choices: {[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length > 0 ? `${[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length} foods selected across ranges` : "None selected"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Heat Preference: {heatPreference === "none" ? "No Heat" : heatPreference === "mild" ? "Mild" : heatPreference === "medium" ? "Medium" : heatPreference === "hot" ? "Hot" : heatPreference === "very-hot" ? "Very Hot" : "Not Sure"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Cuisine Identity: {form.cuisinePreference ? `${form.cuisinePreference.charAt(0).toUpperCase() + form.cuisinePreference.slice(1)} — ${form.cuisineIntensity || "balanced"}` : "Not set"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  Special Protocol: {specialtyConditions.length === 0 ? "None" : specialtyConditions.map(c =>
+                    c === "renal" ? "Kidney / Renal Disease" :
+                    c === "cardiac" ? "Cardiac / Heart Disease" :
+                    c === "liver-disease" ? "Liver Disease" :
+                    c === "liver-support" ? "Liver Support" :
+                    c === "oncology-support" ? "Cancer / Oncology Support" :
+                    c === "thyroid-support" ? "Thyroid Support" : c
+                  ).join(", ")}
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3">
                 <Button
                   variant="outline"
-                  className="w-1/2 bg-black text-white"
+                  className="flex-1 bg-black text-white"
                   onClick={() => setStep(4)}
                   disabled={saving}
                 >
                   Back
                 </Button>
                 <Button
-                  className="w-1/2 bg-lime-600 text-white"
+                  className="flex-1 bg-lime-600 text-white"
                   onClick={handleSave}
                   disabled={saving}
                 >
                   {saving ? (
-                    "Saving..."
+                    t("saving")
                   ) : (
                     <span className="inline-flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" />
-                      Save Changes
+                      {t("saveChanges")}
                     </span>
                   )}
                 </Button>
@@ -1103,6 +2007,16 @@ export default function EditProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Alpha-gal Profile Modal — shared with onboarding */}
+      <AlphaGalProfileModal
+        open={showAlphaGalModal}
+        draft={alphaGalDraft}
+        onChange={setAlphaGalDraft}
+        onSave={(profile) => setAlphaGalProfile(profile)}
+        onClose={() => setShowAlphaGalModal(false)}
+        isUpdate={!!alphaGalProfile?.profileComplete}
+      />
     </div>
   );
 }

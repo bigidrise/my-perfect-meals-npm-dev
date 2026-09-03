@@ -1,11 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -194,13 +188,20 @@ export default function QuickAddMacrosModal({
     return Math.round(4 * p + 4 * (sc + fc) + 9 * f + 7 * a);
   };
 
-  const dialogContent = (
-    <DialogContent className="sm:max-w-md bg-black/90 backdrop-blur-xl border border-white/20 text-white">
-      <DialogHeader>
-        <DialogTitle>Quick Add Macros</DialogTitle>
-      </DialogHeader>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
+  return (
+    <>
+      {trigger && (
+        <span style={{ display: "contents" }} onClick={() => setModalOpen(true)}>
+          {trigger}
+        </span>
+      )}
+      <FormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        title="Quick Add Macros"
+        className="bg-black/90 backdrop-blur-xl border-white/20 text-white"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           {[
             { key: "protein", label: "Protein grams" },
@@ -251,14 +252,8 @@ export default function QuickAddMacrosModal({
           </Button>
         </div>
       </form>
-    </DialogContent>
-  );
-
-  return (
-    <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      {dialogContent}
-    </Dialog>
+      </FormModal>
+    </>
   );
 }
 

@@ -1,12 +1,18 @@
 // client/src/components/WeeklyMealCard.tsx
 // Updated to match Fridge Rescue meal card exactly
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+// getMealFallbackImage removed in Phase 1 — image failures show neutral placeholder, never another food
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import HealthBadgesPopover from "./badges/HealthBadgesPopover";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import DietStyleBadge from "@/components/DietStyleBadge";
+import BuilderSourcePill from "@/components/BuilderSourcePill";
+import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
+import { MealRefinementPanel } from "@/components/MealRefinementPanel";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -14,6 +20,14 @@ interface WeeklyMealCardProps {
   meal: any;
   time?: string;
   onRegenerate?: (slot: string, mealType: string) => Promise<void>;
+  builderType?: string;
+  /**
+   * When provided (along with dayISO as a real YYYY-MM-DD), shows the
+   * component-swap Refine panel. Identifies the weekly board for this meal.
+   */
+  weekStartISO?: string;
+  /** Called after a successful component swap so the board can be refreshed. */
+  onRefined?: () => void;
 }
 
 function convertToAmericanUnits(
@@ -86,7 +100,16 @@ function convertToAmericanUnits(
   return { quantity: String(quantity), unit };
 }
 
-export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate }: WeeklyMealCardProps) {
+export default function WeeklyMealCard({
+  dateISO,
+  slot,
+  meal,
+  time,
+  onRegenerate,
+  builderType,
+  weekStartISO,
+  onRefined,
+}: WeeklyMealCardProps) {
   const [regenerating, setRegenerating] = useState(false);
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   
@@ -120,6 +143,8 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
     carbs: meal?.carbs || 0,
     fat: meal?.fat || 0
   };
+  const starchyCarbs = (meal?.nutrition as any)?.starchyCarbs || (meal as any)?.starchyCarbs || 0;
+  const fibrousCarbs = (meal?.nutrition as any)?.fibrousCarbs || (meal as any)?.fibrousCarbs || 0;
 
   const handleRegenerate = async () => {
     if (!onRegenerate) return;
@@ -136,16 +161,12 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
     <Card className="overflow-hidden bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl flex flex-col h-full">
       {/* Image with badges - exactly like Fridge Rescue */}
       <div className="relative">
-        <img
-          src={
-            imageUrl ||
-            `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`
-          }
-          alt={title}
-          className="w-full h-48 object-cover"
-          onError={(e) => {
-            e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
-          }}
+        <MealImageSlot
+          imageUrl={imageUrl}
+          mealName={title}
+          ingredients={meal?.ingredients}
+          height="h-48"
+          className="!mb-0 !rounded-none"
         />
         <div className="absolute top-3 left-3">
           <Badge
@@ -164,8 +185,19 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
         </div>
       </div>
 
+      {/* Coaching line */}
+      <div className="px-4 pt-3 pb-0">
+        <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
+          {getClinicalCoachingLine(builderType || meal?.builderType)}
+        </p>
+      </div>
+
       <CardHeader className="pb-3">
         <CardTitle className="text-lg text-white">{title}</CardTitle>
+        <div className="flex flex-wrap items-center gap-1 mt-1">
+          <DietStyleBadge />
+          <BuilderSourcePill source={builderType || meal?.builderType} />
+        </div>
         {description && (
           <CardDescription className="text-sm text-white/80">
             {description}
@@ -203,6 +235,13 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
               {nutrition?.carbs || 0}g
             </div>
             <div className="text-xs text-white/70">Carbs</div>
+            {(starchyCarbs > 0 || fibrousCarbs > 0) && (
+              <div className="text-[10px] mt-0.5">
+                <span className="text-amber-400">{starchyCarbs}S</span>
+                <span className="text-white/40"> / </span>
+                <span className="text-green-400">{fibrousCarbs}F</span>
+              </div>
+            )}
           </div>
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
             <div className="text-sm font-bold text-purple-400">
@@ -298,6 +337,19 @@ export default function WeeklyMealCard({ dateISO, slot, meal, time, onRegenerate
             <RefreshCw className={`h-3 w-3 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
             {regenerating ? 'Regenerating...' : 'Regenerate Meal'}
           </Button>
+        )}
+
+        {/* Refinement Panel — shown in day mode when weekStartISO is supplied.
+            dateISO must be a real YYYY-MM-DD (not "board") for refinement to be
+            available; slot coords resolved server-side from the weekly board. */}
+        {weekStartISO && /^\d{4}-\d{2}-\d{2}$/.test(dateISO) && (
+          <MealRefinementPanel
+            weekStartISO={weekStartISO}
+            dayISO={dateISO}
+            slot={slot === "snack" ? "snacks" : slot}
+            mealId={String(meal?.id ?? "")}
+            onRefined={onRefined}
+          />
         )}
       </CardContent>
     </Card>

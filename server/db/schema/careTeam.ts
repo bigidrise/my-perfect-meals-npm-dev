@@ -1,4 +1,4 @@
-import { pgTable, varchar, uuid, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, varchar, uuid, timestamp, jsonb, boolean, text } from "drizzle-orm/pg-core";
 
 export type Permissions = {
   canViewMacros: boolean;
@@ -8,6 +8,7 @@ export type Permissions = {
 
 export const careTeamMember = pgTable("care_team_member", {
   id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id"),
   userId: varchar("user_id", { length: 64 }).notNull(),
   proUserId: varchar("pro_user_id", { length: 64 }),
   name: varchar("name", { length: 120 }).notNull(),
@@ -15,6 +16,9 @@ export const careTeamMember = pgTable("care_team_member", {
   role: varchar("role", { length: 32 }).notNull(),
   status: varchar("status", { length: 16 }).notNull().default("pending"),
   permissions: jsonb("permissions").$type<Permissions>().notNull(),
+  clientCanEdit: boolean("client_can_edit").notNull().default(false),
+  clientEditLastChangedAt: timestamp("client_edit_last_changed_at", { withTimezone: true }),
+  clientEditLastChangedByRole: varchar("client_edit_last_changed_by_role", { length: 32 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -26,6 +30,7 @@ export const careInvite = pgTable("care_invite", {
   role: varchar("role", { length: 32 }).notNull(),
   permissions: jsonb("permissions").$type<Permissions>().notNull(),
   inviteCode: varchar("invite_code", { length: 24 }).notNull(),
+  urlToken: text("url_token").unique(),
   expiresAt: timestamp("expires_at").notNull(),
   accepted: boolean("accepted").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -36,6 +41,9 @@ export const careAccessCode = pgTable("care_access_code", {
   proUserId: varchar("pro_user_id", { length: 64 }).notNull(),
   code: varchar("code", { length: 24 }).notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
+  // DEPRECATED: maxUses is stored but never read or enforced anywhere in the application.
+  // Do not rely on this field for access control. If per-code use-limits are needed,
+  // implement a separate `use_count` column with atomic increment + server-side enforcement.
   maxUses: varchar("max_uses", { length: 8 }).notNull().default("1"),
   createdAt: timestamp("created_at").defaultNow(),
 });

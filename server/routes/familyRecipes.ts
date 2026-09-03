@@ -11,6 +11,7 @@ import {
 import { computeNutritionAndBadges, scaleIngredients } from "../services/familyNutrition";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireActiveAccess } from "../middleware/requireActiveAccess";
+import { processMealImageForSave, isFirstPartyImageUrl } from "../services/imageLifecycle";
 
 export const familyRecipesRouter = Router();
 
@@ -42,13 +43,37 @@ familyRecipesRouter.post("/family-recipes", requireAuth, requireActiveAccess, as
       });
     }
 
+    // ── Media lifecycle gate ─────────────────────────────────────────────────
+    // Ensures no base64 or temporary CDN URLs reach the DB.
+    // Guard: strip base64 data URIs before the lifecycle gate — client-side
+    // localStorage may cache meals with raw base64 before the permanent URL is
+    // available.  Passing base64 to processMealImageForSave triggers a
+    // lifecycle_violation ERROR log.  Null it out here so the meal saves with
+    // no image rather than producing a false-alarm error.
+    const rawFamilyImageUrl = imageUrl ?? null;
+    const sanitisedFamilyImageUrl = rawFamilyImageUrl?.startsWith("data:") ? null : rawFamilyImageUrl;
+    if (rawFamilyImageUrl && !sanitisedFamilyImageUrl) {
+      console.warn(
+        `[familyRecipes/create] Stripped base64 imageUrl from client payload for "${title}" — client sent stale localStorage data`,
+      );
+    }
+    let safeImageUrl: string | null = sanitisedFamilyImageUrl;
+    if (sanitisedFamilyImageUrl) {
+      try {
+        const imgResult = await processMealImageForSave(sanitisedFamilyImageUrl, title);
+        safeImageUrl = imgResult.imageUrl;
+      } catch {
+        safeImageUrl = null;
+      }
+    }
+
     // Create recipe
     const [recipe] = await db.insert(familyRecipes).values({
       userId,
       title,
       story,
       servings,
-      imageUrl,
+      imageUrl: safeImageUrl,
       dietaryTags,
       allergens
     }).returning();
@@ -184,6 +209,29 @@ familyRecipesRouter.put("/family-recipes/:id", requireAuth, requireActiveAccess,
       imageUrl 
     } = req.body;
 
+    // ── Media lifecycle gate ─────────────────────────────────────────────────
+    // Guard: strip base64 data URIs before the lifecycle gate — client-side
+    // localStorage may cache meals with raw base64 before the permanent URL is
+    // available.  Passing base64 to processMealImageForSave triggers a
+    // lifecycle_violation ERROR log.  Null it out here so the meal saves with
+    // no image rather than producing a false-alarm error.
+    const rawFamilyUpdateImageUrl = imageUrl ?? null;
+    const sanitisedFamilyUpdateImageUrl = rawFamilyUpdateImageUrl?.startsWith("data:") ? null : rawFamilyUpdateImageUrl;
+    if (rawFamilyUpdateImageUrl && !sanitisedFamilyUpdateImageUrl) {
+      console.warn(
+        `[familyRecipes/update] Stripped base64 imageUrl from client payload for "${title}" — client sent stale localStorage data`,
+      );
+    }
+    let safeImageUrl: string | null = sanitisedFamilyUpdateImageUrl;
+    if (sanitisedFamilyUpdateImageUrl) {
+      try {
+        const imgResult = await processMealImageForSave(sanitisedFamilyUpdateImageUrl, title);
+        safeImageUrl = imgResult.imageUrl;
+      } catch {
+        safeImageUrl = null;
+      }
+    }
+
     // Update recipe
     await db
       .update(familyRecipes)
@@ -193,7 +241,7 @@ familyRecipesRouter.put("/family-recipes/:id", requireAuth, requireActiveAccess,
         servings,
         dietaryTags,
         allergens,
-        imageUrl,
+        imageUrl: safeImageUrl,
         updatedAt: new Date()
       })
       .where(and(

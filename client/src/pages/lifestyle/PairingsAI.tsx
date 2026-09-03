@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { ArrowLeft, Sparkles, Wine, Beer } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
-import { Progress } from "@/components/ui/progress";
+import CometBar from "@/components/CometBar";
 import { useToast } from "@/hooks/use-toast";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -17,6 +19,7 @@ import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import PairingResultCard from "@/components/pairings/PairingResultCard";
 import { PillButton } from "@/components/ui/pill-button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import {
   isAllergyRelatedError,
   formatAllergyAlertDescription,
@@ -51,9 +54,14 @@ export default function PairingsAI() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
+  const { user } = useAuth();
   useCopilotPageExplanation();
 
   const persisted = loadPersistedResults();
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
 
   const [mode, setMode] = useState<Mode>(persisted?.mode ?? "pairing");
   const [category, setCategory] = useState<Category>(persisted?.category ?? "both");
@@ -141,6 +149,8 @@ export default function PairingsAI() {
           category,
           input: input.trim(),
           ...(overrideToken ? { safetyMode: "CUSTOM_AUTHENTICATED", overrideToken } : {}),
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          ...(dietOverrideEnabled && dietOverrideValue ? { dietaryRestrictions: [dietOverrideValue] } : {}),
         }),
       });
 
@@ -153,6 +163,7 @@ export default function PairingsAI() {
               ? formatAllergyAlertDescription(err)
               : err.safety.message || "Safety check failed",
             variant: "destructive",
+            duration: 10000,
           });
           setIsGenerating(false);
           return;
@@ -207,7 +218,12 @@ export default function PairingsAI() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/wine-pairing-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 30%",
+        }}
       >
         {!isDesktop && (
           <div
@@ -232,11 +248,25 @@ export default function PairingsAI() {
           style={{ paddingTop: isDesktop ? "0" : "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <div className="max-w-2xl mx-auto">
-            <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
+            {isDesktop && (
+              <button
+                onClick={() => setLocation("/lifestyle/pairings-hub")}
+                className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-sm font-medium">Pairings Hub</span>
+              </button>
+            )}
+            <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg text-white">
                   <Sparkles className="h-5 w-5 text-orange-400" />
                   What would you like to do?
+                  <div className="flex-grow" />
+                  <HowThisWorksLink
+                    videoUrl="https://youtube.com/shorts/dF7jpiph7_E"
+                    label="How It Works"
+                  />
                 </CardTitle>
               </CardHeader>
 
@@ -298,6 +328,18 @@ export default function PairingsAI() {
                   onOverrideSuccess={(token) => handleGenerate(true, token)}
                 />
 
+                <DietCuisineControlRow
+                  savedCuisine={user?.cuisinePreference}
+                  dietOverrideEnabled={dietOverrideEnabled}
+                  dietOverrideValue={dietOverrideValue}
+                  onDietToggle={setDietOverrideEnabled}
+                  onDietChange={setDietOverrideValue}
+                  cuisineOverrideEnabled={cuisineOverrideEnabled}
+                  cuisineOverrideValue={cuisineOverrideValue}
+                  onCuisineToggle={setCuisineOverrideEnabled}
+                  onCuisineChange={setCuisineOverrideValue}
+                />
+
                 <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
                   <span className="text-xs text-white/60 block mb-2">Safety</span>
                   <SafetyGuardToggle
@@ -309,19 +351,8 @@ export default function PairingsAI() {
                 </div>
 
                 {isGenerating || safetyChecking ? (
-                  <div className="max-w-md mx-auto mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">
-                        {safetyChecking ? "Checking Safety Profile" : "Finding Perfect Pairings"}
-                      </span>
-                      <span className="text-sm text-white/80">
-                        {safetyChecking ? "..." : `${Math.round(progress)}%`}
-                      </span>
-                    </div>
-                    <Progress
-                      value={safetyChecking ? 30 : progress}
-                      className="h-3 bg-black/30 border border-white/20"
-                    />
+                  <div className="max-w-md mx-auto mb-4 flex justify-center">
+                    <CometBar label={safetyChecking ? "Checking safety…" : "Scanning for pairings…"} />
                   </div>
                 ) : (
                   <GlassButton

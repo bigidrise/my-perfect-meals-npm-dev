@@ -45,7 +45,7 @@ export const weeklyMealPlanningServiceB = {
               day: dayIndex + 1,
               meals: dayMeals.map((meal: any) => {
                 const ings = meal.ingredients || [];
-                const carbs = meal.nutrition?.carbs_g || 40;
+                const carbs = meal.nutrition?.carbs_g ?? 0;
                 const { starchyGrams, fibrousGrams } = deriveCarbSplit(ings, carbs);
                 return {
                   id: meal.id,
@@ -148,7 +148,7 @@ export const weeklyMealPlanningServiceB = {
                 prepTime: 10, cookTime: 25, servings: 1, cuisine: "contemporary", difficulty: "medium" as const
               }
             ].slice(0, params.mealsPerDay).concat(
-              Array.from({ length: params.snacksPerDay }, (_, snackIndex) => ({
+              Array.from({ length: params.snacksPerDay ?? 0 }, (_, snackIndex) => ({
                 id: `ai-snack-${dayIndex}-${snackIndex}`,
                 slug: `ai-snack-${dayIndex}-${snackIndex}`,
                 name: "Targeted Macro Snack",
@@ -160,7 +160,7 @@ export const weeklyMealPlanningServiceB = {
                 ],
                 steps: ["Enjoy as needed"],
                 prepTime: 0, cookTime: 0, servings: 1, cuisine: "modern", difficulty: "easy" as const
-              }))
+              })) as any
             )
           }))
         }]

@@ -1,15 +1,11 @@
 import {
   type Entitlement,
   type PlanTier,
-  PLAN_FEATURES,
-  LOOKUP_KEY_TO_TIER,
+  type CheckoutLookupKey,
   getTierForLookupKey,
   getMinTierForEntitlement,
   tierIncludesEntitlement,
-  TRIAL_UNLOCKS_TIER,
 } from "@shared/planFeatures";
-
-import type { LookupKey } from "@/data/planSkus";
 
 export type { Entitlement };
 
@@ -19,7 +15,6 @@ export interface UserWithEntitlements {
   planLookupKey?: string | null;
   accessTier?: string;
   isTester?: boolean;
-  trialEndsAt?: string | null;
   [key: string]: any;
 }
 
@@ -29,13 +24,29 @@ export function hasFeature(
 ): boolean {
   if (!user) return false;
   if (user.isTester) return true;
-  if (user.accessTier === "PAID_FULL" || user.accessTier === "TRIAL_FULL") {
-    const tier = (user.accessTier === "TRIAL_FULL" || !user.planLookupKey)
-      ? TRIAL_UNLOCKS_TIER
+  if (user.accessTier === "PAID_FULL") {
+    const tier = !user.planLookupKey
+      ? "ultimate"
       : getTierForLookupKey(user.planLookupKey);
     return tierIncludesEntitlement(tier, feature);
   }
   return user.entitlements?.includes(feature) || false;
+}
+
+/**
+ * Strict storefront entitlement check.
+ *
+ * Unlike hasFeature(), this does not grant access from tester, founder, trial,
+ * sandbox, or BILLING_ENFORCED bypass state. Use it for features that must be
+ * visibly paywalled by the customer's purchased plan even in QA accounts.
+ */
+export function purchasedPlanIncludesFeature(
+  user: UserWithEntitlements | null | undefined,
+  feature: Entitlement,
+): boolean {
+  if (!user?.planLookupKey) return false;
+  const tier = getTierForLookupKey(user.planLookupKey);
+  return tierIncludesEntitlement(tier, feature);
 }
 
 export function hasPlanFeature(
@@ -45,16 +56,18 @@ export function hasPlanFeature(
   return hasFeature(user, feature);
 }
 
-const TIER_TO_CHEAPEST_LOOKUP: Record<PlanTier, LookupKey> = {
+const TIER_TO_CHEAPEST_LOOKUP: Record<PlanTier, CheckoutLookupKey> = {
   free: "mpm_basic_monthly",
   basic: "mpm_basic_monthly",
   premium: "mpm_premium_monthly",
   ultimate: "mpm_ultimate_monthly",
 };
 
-export function getUpgradePlanForFeature(feature: Entitlement): LookupKey {
+export function getUpgradePlanForFeature(
+  feature: Entitlement,
+): CheckoutLookupKey {
   if (feature === "procare") {
-    return "mpm_procare_monthly";
+    return "mpm_trainer_5";
   }
   const minTier = getMinTierForEntitlement(feature);
   return TIER_TO_CHEAPEST_LOOKUP[minTier];
@@ -62,17 +75,17 @@ export function getUpgradePlanForFeature(feature: Entitlement): LookupKey {
 
 export function getPlanDisplayName(lookupKey: string | null | undefined): string {
   const names: Record<string, string> = {
-    mpm_basic_monthly: "Basic",
-    mpm_upgrade_monthly: "Premium",
-    mpm_upgrade_beta_monthly: "Premium (Beta)",
-    mpm_premium_monthly: "Premium",
-    mpm_premium_beta_monthly: "Premium (Beta)",
-    mpm_ultimate_monthly: "Ultimate",
-    mpm_family_base_monthly: "Family Base",
-    mpm_family_premium: "Family Premium",
-    mpm_family_all_upgrade_monthly: "Family Premium",
-    mpm_family_all_premium_monthly: "Family Premium",
-    mpm_family_all_ultimate_monthly: "Family All-Ultimate",
+    mpm_basic_monthly: "Essential",
+    mpm_upgrade_monthly: "Pro",
+    mpm_upgrade_beta_monthly: "Pro (Beta)",
+    mpm_premium_monthly: "Pro",
+    mpm_premium_beta_monthly: "Pro (Beta)",
+    mpm_ultimate_monthly: "Clinical",
+    mpm_family_base_monthly: "Family Essential",
+    mpm_family_premium: "Family Pro",
+    mpm_family_all_upgrade_monthly: "Family Pro",
+    mpm_family_all_premium_monthly: "Family Pro",
+    mpm_family_all_ultimate_monthly: "Family Clinical",
     mpm_procare_monthly: "ProCare",
   };
 
@@ -82,7 +95,6 @@ export function getPlanDisplayName(lookupKey: string | null | undefined): string
 export function getUserTier(user: UserWithEntitlements | null | undefined): PlanTier {
   if (!user) return "free";
   if (user.isTester) return "ultimate";
-  if (user.accessTier === "TRIAL_FULL") return TRIAL_UNLOCKS_TIER;
   if (user.accessTier === "PAID_FULL") {
     return user.planLookupKey ? getTierForLookupKey(user.planLookupKey) : "ultimate";
   }

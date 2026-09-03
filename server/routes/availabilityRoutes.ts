@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
@@ -12,6 +12,7 @@ const ALLOWED_STATUSES = ["available", "busy", "away", "offline"] as const;
 const AvailabilitySchema = z.object({
   status: z.enum(ALLOWED_STATUSES),
   backAt: z.string().optional().nullable(),
+  awayFrom: z.string().optional().nullable(),
 });
 
 // PATCH /api/professionals/me/availability
@@ -42,14 +43,15 @@ router.patch("/me/availability", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
     }
 
-    const { status, backAt } = parsed.data;
+    const { status, backAt, awayFrom } = parsed.data;
 
     await db.update(users).set({
       availabilityStatus: status,
       backAt: backAt ? new Date(backAt) : null,
+      awayFrom: awayFrom ? new Date(awayFrom) : null,
     } as any).where(eq(users.id, userId));
 
-    console.log(`📡 [AVAILABILITY] ${userId} → ${status}${backAt ? ` (back: ${backAt})` : ""}`);
+    console.log(`📡 [AVAILABILITY] ${userId} → ${status}${awayFrom ? ` (from: ${awayFrom})` : ""}${backAt ? ` (until: ${backAt})` : ""}`);
 
     // Notify linked clients via in-app tablet message (reuses existing tablet system)
     try {
@@ -58,7 +60,7 @@ router.patch("/me/availability", requireAuth, async (req, res) => {
       console.warn("[AVAILABILITY] Client notification failed (non-fatal):", notifyErr);
     }
 
-    return res.json({ ok: true, availabilityStatus: status, backAt: backAt ?? null });
+    return res.json({ ok: true, availabilityStatus: status, backAt: backAt ?? null, awayFrom: awayFrom ?? null });
   } catch (e) {
     console.error("Availability update error:", e);
     return res.status(500).json({ error: "Failed to update availability" });
@@ -67,7 +69,7 @@ router.patch("/me/availability", requireAuth, async (req, res) => {
 
 // GET /api/providers
 // Public — returns real availability status for coaches listed on the Meet the Providers page.
-// Only exposes id, name, availabilityStatus, backAt — no private data.
+// Only exposes id, coachSlug, availabilityStatus, backAt, awayFrom — no private data.
 router.get("/providers", async (_req, res) => {
   try {
     const rows = await db
@@ -78,11 +80,33 @@ router.get("/providers", async (_req, res) => {
         professionalRole: users.professionalRole,
         availabilityStatus: users.availabilityStatus,
         backAt: users.backAt,
+        awayFrom: (users as any).awayFrom,
       })
       .from(users)
-      .where(inArray(users.professionalRole, ["trainer", "physician"] as any[]));
+      .where(
+        or(
+          inArray(users.professionalRole, ["trainer", "physician"] as any[]),
+          inArray(users.role, ["coach", "admin"] as any[]),
+        ),
+      );
 
-    return res.json({ providers: rows });
+    // Build userId → coachSlug reverse map from server coach config
+    const { coaches: coachConfigs } = await import("../config/coaches");
+    const userIdToSlug: Record<string, string> = {};
+    for (const [slug, config] of Object.entries(coachConfigs)) {
+      const uid = process.env[config.userIdEnv];
+      if (uid) userIdToSlug[uid] = slug;
+    }
+
+    const enrichedRows = rows.map((r) => ({
+      id: r.id,
+      coachSlug: userIdToSlug[r.id] ?? null,
+      availabilityStatus: r.availabilityStatus,
+      backAt: r.backAt,
+      awayFrom: (r as any).awayFrom ?? null,
+    }));
+
+    return res.json({ providers: enrichedRows });
   } catch (e) {
     console.error("Providers fetch error:", e);
     return res.status(500).json({ error: "Failed to fetch providers" });

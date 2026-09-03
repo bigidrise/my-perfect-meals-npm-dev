@@ -1,24 +1,35 @@
 import express from "express";
 import { db } from "../db";
-import { foodDiary, foods, insertFoodDiarySchema } from "../../shared/schema";
+import { foodDiary, insertFoodDiarySchema } from "../../shared/schema";
 import { and, eq, gte, lte, desc } from "drizzle-orm";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = express.Router();
 
-router.post("/food-logs", async (req, res) => {
+/**
+ * POST /api/food-logs
+ * Creates a food diary entry. userId is always sourced from the authenticated
+ * session — any userId in the body is overridden with the caller's own id.
+ */
+router.post("/food-logs", requireAuth, async (req, res) => {
   try {
-    const validation = insertFoodDiarySchema.safeParse(req.body);
-    
+    const callerUserId = (req as AuthenticatedRequest).authUser.id;
+
+    const validation = insertFoodDiarySchema.safeParse({
+      ...req.body,
+      userId: callerUserId,
+    });
+
     if (!validation.success) {
-      return res.status(400).json({ 
-        error: "Validation failed", 
-        details: validation.error.issues 
+      return res.status(400).json({
+        error: "Validation failed",
+        details: validation.error.issues,
       });
     }
 
-    const [row] = await db.insert(foodDiary).values(validation.data).returning();
+    const [row] = await db.insert(foodDiary).values(validation.data as any).returning();
     console.log("[food-log][create]", { saved: row });
-    
+
     res.json(row);
   } catch (e: any) {
     console.error("create food-log error", e);
@@ -26,10 +37,23 @@ router.post("/food-logs", async (req, res) => {
   }
 });
 
-router.get("/food-logs", async (req, res) => {
+/**
+ * GET /api/food-logs
+ * Returns food diary entries for the authenticated user only.
+ * The userId query param is accepted for compatibility but must equal the
+ * caller's own id — cross-user reads are rejected with 403.
+ */
+router.get("/food-logs", requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId || "");
-    if (!userId) return res.status(400).json({ error: "userId required" });
+    const callerUserId = (req as AuthenticatedRequest).authUser.id;
+
+    const requestedUserId = String(req.query.userId || callerUserId);
+    if (requestedUserId !== callerUserId) {
+      return res.status(403).json({
+        error: "Access denied: you may only read your own food logs.",
+        code: "FOOD_LOG_AUTH_FORBIDDEN",
+      });
+    }
 
     const fromStr = (req.query.from as string) || null;
     const toStr = (req.query.to as string) || null;
@@ -39,12 +63,14 @@ router.get("/food-logs", async (req, res) => {
     const to = toStr || "2999-12-31";
 
     const whereParts: any[] = [
-      eq(foodDiary.userId, userId),
+      eq(foodDiary.userId, callerUserId),
       gte(foodDiary.dateLocal, from),
-      lte(foodDiary.dateLocal, to)
+      lte(foodDiary.dateLocal, to),
     ];
 
-    const rows = await db.select().from(foodDiary)
+    const rows = await db
+      .select()
+      .from(foodDiary)
       .where(and(...whereParts))
       .orderBy(desc(foodDiary.dateLocal))
       .limit(limit);

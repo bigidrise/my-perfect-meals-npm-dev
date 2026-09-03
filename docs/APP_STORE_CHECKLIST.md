@@ -101,9 +101,9 @@ This checklist tracks all requirements for Apple App Store submission. Target la
 - [ ] App Information filled out
 - [ ] Pricing set (Free with In-App Purchases)
 - [ ] In-App Purchases configured:
-  - [ ] Basic tier ($9.99/month)
-  - [ ] Premium tier ($19.99/month)
-  - [ ] Ultimate tier ($29.99/month)
+  - [ ] Essential tier ($19.99/month) — product ID: mpm.sub.basic.monthly.v1
+  - [ ] Pro tier ($29.99/month) — product ID: mpm.sub.premium.monthly.v1
+  - [ ] Clinical tier ($44.99/month) — product ID: mpm.sub.ultimate.monthly.v1
 - [ ] Age rating completed
 - [ ] App Review Information provided
 
@@ -140,9 +140,9 @@ This checklist tracks all requirements for Apple App Store submission. Target la
 
 ### Subscription Model
 - 7-day free trial
-- Basic: $9.99/month
-- Premium: $19.99/month  
-- Ultimate: $29.99/month
+- Essential: $19.99/month
+- Pro: $29.99/month
+- Clinical: $44.99/month
 
 ### Apple's Cut
 - 30% standard commission

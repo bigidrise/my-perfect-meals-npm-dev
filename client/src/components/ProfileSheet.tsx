@@ -1,4 +1,7 @@
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { useOrgBranding } from "@/hooks/useOrgBranding";
+import { useOrgFlag } from "@/contexts/OrgContext";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
@@ -37,12 +40,19 @@ import {
   Loader2,
   ImageIcon,
   Users,
+  LifeBuoy,
+  Sparkles,
+  Globe,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFontSize } from "@/contexts/FontSizeContext";
+import { useNarrationSpeed, type NarrationSpeed } from "@/contexts/NarrationSpeedContext";
 import { useToast } from "@/hooks/use-toast";
-import IOSMealReminders from "@/components/ios/IOSMealReminders";
+import MealReminders from "@/components/MealReminders";
+import { useUpdateState } from "@/contexts/UpdateContext";
+import { canAccessMealBuilders } from "@/lib/subscriptionCheck";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { Capacitor } from "@capacitor/core";
 import {
   Camera as CapacitorCamera,
@@ -56,13 +66,20 @@ interface ProfileSheetProps {
 
 export function ProfileSheet({ children }: ProfileSheetProps) {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const { user, setUser, refreshUser } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
   const { fontSize, setFontSize } = useFontSize();
+  const { narrationSpeed, setNarrationSpeed } = useNarrationSpeed();
+  const { supportEmail, appName } = useOrgBranding();
   const { toast } = useToast();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { hasUpdate, currentVersionLabel } = useUpdateState();
 
   const userName = user?.name || user?.username || "User";
   const userEmail = user?.email || "";
@@ -72,8 +89,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   const uploadPhoto = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast({
-        title: "Invalid file",
-        description: "Please select an image file.",
+        title: t("profileSheet.invalidFileTitle"),
+        description: t("profileSheet.invalidFileDesc"),
         variant: "destructive",
       });
       return;
@@ -81,8 +98,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please select an image under 5MB.",
+        title: t("profileSheet.fileTooLargeTitle"),
+        description: t("profileSheet.fileTooLargeDesc"),
         variant: "destructive",
       });
       return;
@@ -151,14 +168,14 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       await refreshUser();
 
       toast({
-        title: "Photo updated",
-        description: "Your profile photo has been updated.",
+        title: t("profileSheet.photoUpdatedTitle"),
+        description: t("profileSheet.photoUpdatedDesc"),
       });
     } catch (error: any) {
       console.error("Photo upload error:", error);
       toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload photo.",
+        title: t("profileSheet.uploadFailedTitle"),
+        description: error.message || t("profileSheet.uploadFailedDesc"),
         variant: "destructive",
       });
     } finally {
@@ -188,8 +205,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       if (error.message !== "User cancelled photos app") {
         console.error("Camera error:", error);
         toast({
-          title: "Camera error",
-          description: "Could not access camera or photos.",
+          title: t("profileSheet.cameraErrorTitle"),
+          description: t("profileSheet.cameraErrorDesc"),
           variant: "destructive",
         });
       }
@@ -225,8 +242,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
   const handleRestorePurchases = async () => {
     toast({
-      title: "Restoring Purchases...",
-      description: "Looking for active subscriptions...",
+      title: t("profileSheet.restoringTitle"),
+      description: t("profileSheet.restoringDesc"),
     });
 
     try {
@@ -235,30 +252,42 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       const successful = results.filter((r) => r.success);
       if (successful.length > 0) {
         toast({
-          title: "Purchases Restored",
-          description: "Your subscription has been restored successfully.",
+          title: t("profileSheet.restoredTitle"),
+          description: t("profileSheet.restoredDesc"),
         });
       } else {
         toast({
-          title: "Restore Complete",
-          description:
-            "No active subscription found. If you believe this is an error, please contact support.",
+          title: t("profileSheet.restoreCompleteTitle"),
+          description: t("profileSheet.restoreCompleteDesc"),
         });
       }
     } catch (error) {
       toast({
-        title: "Restore Failed",
-        description: "Unable to restore purchases. Please try again.",
+        title: t("profileSheet.restoreFailedTitle"),
+        description: t("profileSheet.restoreFailedDesc"),
         variant: "destructive",
       });
     }
   };
 
+  const LEGAL_ROUTES = ["/privacy-policy", "/terms", "/terms-of-service"];
+
   const handleMenuItemClick = (item: (typeof menuItems)[0]) => {
     if (item.action === "restorePurchases") {
       handleRestorePurchases();
+    } else if (item.action === "contactSupport") {
+      window.open(`mailto:${supportEmail}?subject=${appName} Feedback`, "_blank");
     } else if (item.route) {
-      setLocation(item.route);
+      if (item.route === "/select-builder" && !canAccessMealBuilders(user)) {
+        requestUpgrade({ requiredTier: "meal-builders", featureName: t("menu.mealBuilderExchange") });
+        return;
+      }
+      setSheetOpen(false);
+      if (LEGAL_ROUTES.includes(item.route)) {
+        window.location.href = item.route;
+      } else {
+        setLocation(item.route);
+      }
     }
   };
 
@@ -280,15 +309,15 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       setLocation("/welcome");
 
       toast({
-        title: "Account Deleted",
-        description: "Your account and all data have been permanently deleted.",
+        title: t("profileSheet.accountDeletedTitle"),
+        description: t("profileSheet.accountDeletedDesc"),
       });
     } catch (error: any) {
       console.error("Delete account error:", error);
       toast({
-        title: "Error",
+        title: t("common.error"),
         description:
-          error.message || "Failed to delete account. Please try again.",
+          error.message || t("profileSheet.deleteFailedDesc"),
         variant: "destructive",
       });
     } finally {
@@ -303,22 +332,46 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       user?.professionalRole || user?.role || "",
     );
 
+  // Hide MPM coach marketplace for members of partner orgs with partnerMarketplace: false
+  const showMarketplace = useOrgFlag("partnerMarketplace");
+
   const menuItems = [
     // Personal
     {
-      title: "My Profile",
-      description: "Update your personal info & preferences",
+      title: t("menu.myProfile"),
+      description: t("menu.myProfileDesc"),
       icon: User,
       route: "/profile",
       testId: "menu-my-profile",
+    },
+    {
+      title: t("menu.aiCoaching"),
+      description: t("menu.aiCoachingDesc"),
+      icon: Sparkles,
+      route: "/coaching-preferences",
+      testId: "menu-coaching-preferences",
+    },
+    {
+      title: t("menu.language"),
+      description: t("menu.languageDesc"),
+      icon: Globe,
+      route: "/language-preferences",
+      testId: "menu-language-preferences",
+    },
+    {
+      title: t("menu.contactSupport"),
+      description: t("menu.contactSupportDesc"),
+      icon: LifeBuoy,
+      action: "contactSupport",
+      testId: "menu-contact-support",
     },
 
     // Product
     ...(!isProCareClient
       ? [
           {
-            title: "Meal Builder Exchange",
-            description: "Switch to a different dietary focus",
+            title: t("menu.mealBuilderExchange"),
+            description: t("menu.mealBuilderExchangeDesc"),
             icon: Utensils,
             route: "/select-builder",
             testId: "menu-change-builder",
@@ -327,40 +380,31 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
       : []),
 
     {
-      title: "App Library",
-      description:
-        "Learn how Emotion AI, Safety Guard™, Glucose Guard™, Starch Guard™, and all core systems work.",
+      title: t("menu.appLibrary"),
+      description: t("menu.appLibraryDesc"),
       icon: Video,
       route: "/learn",
       testId: "menu-app-library",
     },
     {
-      title: "Team My Perfect Meals",
-      description: "Meet the team that built My Perfect Meals.",
+      title: t("menu.teamMPM"),
+      description: t("menu.teamMPMDesc"),
       icon: MessageCircle,
       route: "/founders",
       testId: "menu-about",
     },
-    {
-      title: "Find a Professional",
-      description: "Browse certified, professional coaches and physicians.",
-      icon: Users,
-      route: "/coaches",
-      testId: "menu-find-coach",
-    },
-
     // Billing
     {
-      title: "Subscription",
-      description: "Manage your plan & billing",
+      title: t("menu.subscription"),
+      description: t("menu.subscriptionDesc"),
       icon: CreditCard,
       route: "/pricing",
       testId: "menu-subscription",
     },
 
     {
-      title: "Restore Purchases",
-      description: "Restore an active subscription on this device",
+      title: t("menu.restorePurchases"),
+      description: t("restoreDesc"),
       icon: RefreshCcw,
       action: "restorePurchases",
       testId: "menu-restore-purchases",
@@ -368,16 +412,16 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
     // Legal
     {
-      title: "Privacy & Security",
-      description: "Manage your privacy settings",
+      title: t("privacySecurity"),
+      description: t("managePrivacy"),
       icon: Shield,
       route: "/privacy",
       testId: "menu-privacy",
     },
 
     {
-      title: "Terms of Service",
-      description: "Review our terms and conditions",
+      title: t("termsOfService"),
+      description: t("reviewTerms"),
       icon: FileText,
       route: "/terms",
       testId: "menu-terms",
@@ -385,50 +429,53 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
   ];
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>{children}</SheetTrigger>
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <SheetTrigger asChild onClick={() => setSheetOpen(true)}>{children}</SheetTrigger>
       <SheetContent className="bg-gradient-to-br from-black/75 via-orange-900/80 to-black/75 border-l border-white/10 backdrop-blur-xl overflow-y-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
-          <SheetTitle className="text-white">My Hub</SheetTitle>
+          <SheetTitle className="text-white">{t("shell.myHub")}</SheetTitle>
           <SheetDescription className="text-white/70">
-            Your personal space
+            {t("yourPersonalSpace")}
           </SheetDescription>
         </SheetHeader>
 
-        {/* Hidden file input for web */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileInput}
-          className="hidden"
-        />
-
         {/* User Info Section */}
         <div className="mt-6 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="relative h-20 w-20 rounded-full bg-black/40 border-2 border-orange-400/30 overflow-hidden shadow-lg ring-2 ring-orange-500/30">
-              <div className="w-full h-full flex items-center justify-center">
-                <User className="h-9 w-9 text-white/70" />
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold truncate">{userName}</h3>
-              {userEmail && (
-                <p className="text-white/70 text-sm truncate">{userEmail}</p>
-              )}
-            </div>
+          <h3 className="text-white font-semibold truncate">{userName}</h3>
+          {userEmail && (
+            <p className="text-white/70 text-sm truncate">{userEmail}</p>
+          )}
+
+          {/* App Version — web shows update awareness, native shows quiet date only */}
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="text-[11px] text-green-400 font-semibold">{t("appVersion")}</span>
+            {isNative ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-lime-500/20 border border-lime-500/50 text-lime-300">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-lime-400" />
+                {t("upToDate")}
+              </span>
+            ) : hasUpdate ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                {t("updateAvailable")}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-lime-500/15 border border-lime-500/30 text-lime-400">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-lime-400" />
+                {t("upToDate")}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Meal Reminders */}
         <div className="mt-4">
-          <IOSMealReminders />
+          <MealReminders />
         </div>
 
         {/* Menu Items */}
         <div className="mt-6 space-y-2">
-          {menuItems.map((item) => {
+          {menuItems.filter((item) => item.testId !== "menu-find-coach" || showMarketplace).map((item) => {
             const Icon = item.icon;
             return (
               <button
@@ -452,7 +499,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
         {/* Font Size Selector */}
         <div className="mt-4 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
-          <p className="text-sm text-white/70 mb-3">Text Size</p>
+          <p className="text-sm text-white/70 mb-3">{t("textSize")}</p>
           <div className="flex gap-2">
             {(["standard", "large", "xl"] as const).map((size) => (
               <button
@@ -461,10 +508,30 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
                 className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                   fontSize === size
                     ? "bg-orange-500 text-white"
-                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                    : "bg-white/10 text-white/70"
                 }`}
               >
                 {size === "standard" ? "A" : size === "large" ? "A+" : "A++"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Narration Speed Selector */}
+        <div className="mt-3 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
+          <p className="text-sm text-white/70 mb-3">{t("narrationSpeed")}</p>
+          <div className="flex gap-2">
+            {(["0.75", "1.0", "1.25", "1.5"] as const).map((speed) => (
+              <button
+                key={speed}
+                onClick={() => setNarrationSpeed(speed as NarrationSpeed)}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  narrationSpeed === speed
+                    ? "bg-orange-500 text-white"
+                    : "bg-white/10 text-white/70"
+                }`}
+              >
+                {speed === "1.0" ? "1×" : `${speed}×`}
               </button>
             ))}
           </div>
@@ -479,7 +546,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
             data-testid="button-logout"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
+            {t("menu.signOut")}
           </Button>
 
           {/* Delete Account */}
@@ -491,29 +558,29 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
                 data-testid="button-delete-account"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
+                {t("profileSheet.deleteAccount")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent className="bg-black/95 border border-white/20 text-white">
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-white">
-                  Delete Account Permanently?
+                  {t("profileSheet.deleteDialogTitle")}
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-white/70 space-y-2">
                   <p>
-                    This action cannot be undone. This will permanently delete:
+                    {t("profileSheet.deleteDialogIntro")}
                   </p>
                   <ul className="list-disc list-inside text-sm space-y-1 mt-2">
-                    <li>Your account and profile information</li>
-                    <li>All meal plans and saved recipes</li>
-                    <li>Biometrics and health tracking data</li>
-                    <li>Subscription and payment history</li>
+                    <li>{t("profileSheet.deleteItemAccount")}</li>
+                    <li>{t("profileSheet.deleteItemMeals")}</li>
+                    <li>{t("profileSheet.deleteItemBiometrics")}</li>
+                    <li>{t("profileSheet.deleteItemBilling")}</li>
                   </ul>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-                  Cancel
+                  {t("common.cancel")}
                 </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDeleteAccount}
@@ -521,7 +588,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
                   className="bg-red-600 hover:bg-red-700 text-white"
                   data-testid="button-confirm-delete"
                 >
-                  {isDeleting ? "Deleting..." : "Delete My Account"}
+                  {isDeleting ? t("profileSheet.deleting") : t("profileSheet.deleteMyAccount")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

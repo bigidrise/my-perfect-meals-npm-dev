@@ -11,6 +11,8 @@ import {
   getSafeSubstitute,
   logSafetyEnforcement 
 } from "../services/allergyGuardrails";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
+import { resolveActiveSystem } from "../services/creatorSystems/resolver";
 
 const router = Router();
 const engine = new MealEngineService();
@@ -21,8 +23,12 @@ router.get("/meal-engine/health", (req, res) => {
 });
 
 // Generate a single meal (Craving Creator / Replace This Meal / Fridge Rescue single)
-router.post("/meal-engine/generate", async (req, res) => {
+router.post("/meal-engine/generate", requireAuth, async (req, res) => {
   try {
+    const authReq = req as AuthenticatedRequest;
+    const system = resolveActiveSystem(authReq.authUser);
+    console.log(`[CreatorSystem] active system: ${system.name} (${system.id}) for user ${authReq.authUser.id}`);
+
     const { userId, craving, ingredients, mealType } = req.body;
     
     // 🚨 CRITICAL SAFETY CHECK: Block requests with forbidden ingredients
@@ -54,7 +60,10 @@ router.post("/meal-engine/generate", async (req, res) => {
       }
     }
     
-    const meal = await engine.generateSingleMeal(req.body);
+    const meal = await engine.generateSingleMeal({
+      ...req.body,
+      creatorSystem: system,
+    });
     // Wrap response for client consistency (client expects { meal: ... })
     res.json({ meal });
   } catch (e: any) {

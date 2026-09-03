@@ -1,82 +1,172 @@
-import React, { useState, useCallback, useRef } from "react";
-import { ttsService } from "@/lib/tts";
-import { PRO_TIP_SCRIPT } from "@/components/copilot/scripts/proTipScript";
+import React, { useState, useCallback } from "react";
+import { PRO_TIP_SECTIONS } from "@/components/copilot/scripts/proTipScript";
+import { useNarration } from "@/hooks/useNarration";
 import { PillButton } from "@/components/ui/pill-button";
+import { Play, Pause, RotateCcw, FileText, Undo2 } from "lucide-react";
 
 export const ProTipCard: React.FC = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
 
-  const handleToggle = useCallback(async () => {
-    if (isPlaying) {
-      ttsService.stop();
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setIsPlaying(false);
-      return;
-    }
+  const {
+    isPlaying,
+    currentSectionIndex,
+    totalSections,
+    play,
+    pause,
+    resume,
+    stop,
+    reset,
+    skipBack10,
+  } = useNarration(PRO_TIP_SECTIONS, {
+    onEnd: () => setHasStarted(false),
+  });
 
-    setIsPlaying(true);
+  const isActive = hasStarted;
 
-    try {
-      const result = await ttsService.speak(PRO_TIP_SCRIPT, {
-        onStart: () => setIsPlaying(true),
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
+  const handleListen = () => {
+    setHasStarted(true);
+    play();
+  };
 
-      if (result.audioUrl) {
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(result.audioUrl!);
-        };
-        await audio.play();
-      }
-    } catch {
-      setIsPlaying(false);
-    }
-  }, [isPlaying]);
+  const handleStop = () => {
+    stop();
+    setHasStarted(false);
+    setShowTranscript(false);
+  };
+
+  const handleStartOver = useCallback(() => {
+    reset();
+    setHasStarted(true);
+    setTimeout(() => play(), 50);
+  }, [reset, play]);
+
+  const currentSection = PRO_TIP_SECTIONS[currentSectionIndex];
 
   return (
     <div className="col-span-full">
-      <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
-              Pro Tip
-            </span>
-            <p className="text-sm text-white/80 mt-1">
-              Learn how to use the Meal Builder for maximum accuracy.
-            </p>
+      <div
+        className="rounded-2xl p-px mb-4"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(251,191,36,0.7) 0%, rgba(245,158,11,0.3) 40%, rgba(251,191,36,0.5) 100%)",
+          boxShadow: "0 0 18px 2px rgba(251,191,36,0.18), 0 2px 12px rgba(0,0,0,0.4)",
+        }}
+      >
+        <div
+          className="rounded-2xl p-4 backdrop-blur-lg"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(30,20,0,0.85) 0%, rgba(20,15,0,0.92) 100%)",
+          }}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className="text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "linear-gradient(90deg, rgba(251,191,36,0.25) 0%, rgba(245,158,11,0.15) 100%)",
+                    color: "#fbbf24",
+                    border: "1px solid rgba(251,191,36,0.4)",
+                    letterSpacing: "0.12em",
+                    textShadow: "0 0 8px rgba(251,191,36,0.6)",
+                  }}
+                >
+                  ★ Pro Tip
+                </span>
+
+                {isActive && (
+                  <span className="text-xs text-white/35">
+                    {currentSectionIndex + 1} / {totalSections}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.85)" }}>
+                {isActive
+                  ? currentSection?.heading
+                  : "Learn how to use the Meal Builder for maximum accuracy."}
+              </p>
+
+              {isActive && (
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  {isPlaying ? (
+                    <PillButton onClick={pause} active className="flex items-center gap-1.5">
+                      <Pause className="h-3.5 w-3.5" />
+                      Pause
+                    </PillButton>
+                  ) : (
+                    <PillButton onClick={resume} active className="flex items-center gap-1.5">
+                      <Play className="h-3.5 w-3.5" />
+                      Resume
+                    </PillButton>
+                  )}
+                  <PillButton onClick={skipBack10} className="flex items-center gap-1.5">
+                    <Undo2 className="h-3.5 w-3.5" />
+                    10s Back
+                  </PillButton>
+                  <PillButton onClick={handleStartOver} className="flex items-center gap-1.5">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Start Over
+                  </PillButton>
+                  <PillButton
+                    onClick={() => setShowTranscript((v) => !v)}
+                    active={showTranscript}
+                    className="flex items-center gap-1.5"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {showTranscript ? "Hide Transcript" : "Transcript"}
+                  </PillButton>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <div
+                className="rounded-full overflow-hidden"
+                style={{
+                  width: 36,
+                  height: 36,
+                  backgroundImage: "url(/icons/chef.png?v=2026c)",
+                  backgroundSize: "130%",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  boxShadow: "0 0 8px rgba(251,191,36,0.35)",
+                }}
+              />
+              {!isActive ? (
+                <PillButton onClick={handleListen}>
+                  Listen
+                </PillButton>
+              ) : (
+                <PillButton onClick={handleStop}>
+                  Stop
+                </PillButton>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col items-center gap-1">
+          {/* Transcript panel — audio keeps playing when toggled */}
+          {isActive && showTranscript && currentSection && (
             <div
-              className="rounded-full overflow-hidden"
-              style={{
-                width: 36,
-                height: 36,
-                backgroundImage: "url(/icons/chef.png?v=2026c)",
-                backgroundSize: "130%",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-              }}
-            />
-            <PillButton
-              onClick={handleToggle}
-              active={isPlaying}
+              className="mt-4 pt-4 border-t"
+              style={{ borderColor: "rgba(251,191,36,0.15)" }}
             >
-              {isPlaying ? "Stop" : "Listen"}
-            </PillButton>
-          </div>
+              <p
+                className="text-xs font-semibold uppercase tracking-widest mb-2"
+                style={{ color: "rgba(251,191,36,0.6)" }}
+              >
+                Transcript
+              </p>
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: "rgba(255,255,255,0.75)" }}
+              >
+                {currentSection.text}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

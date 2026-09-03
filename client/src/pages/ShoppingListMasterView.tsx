@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   Mic,
   ListPlus,
+  ExternalLink,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import TrashButton from "@/components/ui/TrashButton";
@@ -16,10 +17,12 @@ import {
   useShoppingListStore,
   ShoppingListItem,
 } from "@/stores/shoppingListStore";
+import { buildConsolidatedItems, ConsolidatedItem } from "@/lib/shoppingConsolidation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import {
   Select,
   SelectContent,
@@ -28,20 +31,69 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
+import { getRetailQuantity } from "@/lib/retailIntelligence";
 import AddOtherItems from "@/components/AddOtherItems";
-import { readOtherItems } from "@/stores/otherItemsStore";
-import { buildWalmartSearchUrl } from "@/lib/walmartLinkBuilder";
+import { readOtherItems, addOtherItem } from "@/stores/otherItemsStore";
+import { GROCERY_RETAILERS, type GroceryRetailerId } from "@/lib/groceryRetailers";
+import GroceryExportModal from "@/components/shopping/GroceryExportModal";
 import { formatQuantity } from "@/lib/formatQuantity";
+import { convertServingDisplay } from "@shared/units";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { apiRequest } from "@/lib/queryClient";
+import InspirationCaptureModal from "@/components/InspirationCaptureModal";
+import GroceryStoreCoachSheet from "@/components/shopping/GroceryStoreCoachSheet";
+import SavedGroceriesSheet from "@/components/shopping/SavedGroceriesSheet";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
+import MobileBarcodeCamera from "@/components/MobileBarcodeCamera";
+
+import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
+import RecentScans from "@/components/shopping/RecentScans";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+
+const CATEGORY_ORDER = [
+  'Produce',
+  'Meat',
+  'Plant Proteins',
+  'Dairy & Eggs',
+  'Grains & Packaged',
+  'Pantry',
+  'Frozen',
+  'Bakery',
+  'Other',
+];
+
+function sortedEntries<T>(grouped: Record<string, T>): [string, T][] {
+  const entries = Object.entries(grouped);
+  return entries.sort(([a], [b]) => {
+    const ai = CATEGORY_ORDER.indexOf(a);
+    const bi = CATEGORY_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
 
 export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("shopping");
+  const { user } = useAuth();
+  const { requestUpgrade } = useUpgradeModal();
+  const measurementSystem = ((user as any)?.measurementSystem ?? "imperial") as "imperial" | "metric";
+  const entitlements: string[] = (user as any)?.entitlements || [];
+  const hasGroceryCoachAccess =
+    entitlements.includes("grocery_coach") || entitlements.includes("FULL_ACCESS");
   
   useGuestNavigationGuard("shopping-list");
 
@@ -53,6 +105,8 @@ export default function ShoppingListMasterView() {
 
   // Subscribe to Zustand store
   const items = useShoppingListStore((s) => s.items);
+  const isHydrating = useShoppingListStore((s) => s.isHydrating);
+  const hydrate = useShoppingListStore((s) => s.hydrate);
   const addItem = useShoppingListStore((s) => s.addItem);
   const toggleItem = useShoppingListStore((s) => s.toggleItem);
   const removeItem = useShoppingListStore((s) => s.removeItem);
@@ -60,6 +114,15 @@ export default function ShoppingListMasterView() {
   const clearAll = useShoppingListStore((s) => s.clearAll);
   const updateItem = useShoppingListStore((s) => s.updateItem);
   const replaceItems = useShoppingListStore((s) => s.replaceItems);
+
+  // Guardrail 3: Hydrate from server on mount (no empty flicker — local items show immediately)
+  // Also clear any shopping scans from previous days — they are session memory, not permanent archive.
+  useEffect(() => {
+    hydrate();
+    clearExpiredShoppingScans();
+  }, [hydrate]);
+
+  const isDesktop = useIsDesktop();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -83,14 +146,133 @@ export default function ShoppingListMasterView() {
   });
   
   const [purchasedOpen, setPurchasedOpen] = useState(true);
+  const [groceryExportOpen, setGroceryExportOpen] = useState(false);
+  const [groceryExportRetailer, setGroceryExportRetailer] = useState<GroceryRetailerId>("walmart");
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
-  const [voiceText, setVoiceText] = useState("");
+  const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
+  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(() => {
+    try {
+      const saved = localStorage.getItem('mpm.shopping.activeScan');
+      return saved ? (JSON.parse(saved) as IngredientScanResult) : null;
+    } catch { return null; }
+  });
+  const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
+  const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [groceryCoachOpen, setGroceryCoachOpen] = useState(false);
+  const [savedGroceriesOpen, setSavedGroceriesOpen] = useState(false);
+  const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [bulkText, setBulkText] = useState("");
   const [barcodeText, setBarcodeText] = useState("");
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any | null>(null);
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [barcodeScanMode, setBarcodeScanMode] = useState<"manual" | "camera">("manual");
+
+  const persistScan = useCallback((result: IngredientScanResult) => {
+    try { localStorage.setItem('mpm.shopping.activeScan', JSON.stringify(result)); } catch {}
+    setShoppingSheetResult(result);
+  }, []);
+
+  const clearScan = useCallback(() => {
+    try { localStorage.removeItem('mpm.shopping.activeScan'); } catch {}
+    setShoppingSheetResult(null);
+  }, []);
+
+  /**
+   * Shared barcode lookup used by BOTH the manual-entry path and the camera-scan
+   * path.  Stamps `barcode`, `resolvedFromDb`, and `resolvedName` onto the result
+   * before handing it to the intelligence sheet so BarcodeDatabaseBadge always
+   * has the data it needs regardless of how the barcode was captured.
+   */
+  const lookupAndOpenBarcode = useCallback(async (barcode: string) => {
+    if (!barcode || barcodeLoading) return;
+    setBarcodeLoading(true);
+    try {
+      const data = await apiRequest(
+        "/api/biometrics/ingredient-scan-by-barcode",
+        {
+          method: "POST",
+          body: JSON.stringify({ barcode }),
+          headers: { "Content-Type": "application/json" },
+        },
+      ) as { ok: boolean; result: IngredientScanResult; resolvedFromDb: boolean; resolvedName: string };
+
+      if (data?.ok && data?.result && data.result.productName?.trim()) {
+        // Stamp barcode + DB-resolution metadata so BarcodeDatabaseBadge renders
+        // correctly regardless of whether the user typed or camera-scanned the code.
+        const resultWithBarcode: IngredientScanResult = {
+          ...data.result,
+          barcode,
+          resolvedFromDb: data.resolvedFromDb,
+          resolvedName: data.resolvedName,
+        };
+        persistScan(resultWithBarcode);
+        setBarcodeModalOpen(false);
+        setBarcodeText("");
+        setBarcodeScanMode("manual");
+        setShoppingSheetOpen(true);
+        setScanRefreshKey((k) => k + 1);
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("walkthrough:event", {
+            detail: { testId: "shopping-list-interacted", event: "interacted" },
+          }));
+        }, 300);
+      } else {
+        // Product unknown — fall back to adding by barcode note with a clear label
+        addItem({
+          name: `Unknown product — Barcode: ${barcode}`,
+          quantity: 1,
+          unit: "",
+          notes: `Barcode: ${barcode}`,
+        });
+        setBarcodeText("");
+        setBarcodeModalOpen(false);
+        setBarcodeScanMode("manual");
+        toast({
+          title: `Barcode ${barcode} not found`,
+          description: "This product isn't in our database. Try scanning the label for a photo-based lookup.",
+          action: (
+            <ToastAction
+              altText="Scan label"
+              onClick={() => setScanModalOpen(true)}
+            >
+              Scan label
+            </ToastAction>
+          ),
+        });
+      }
+    } catch {
+      // Network / server error — fall back gracefully
+      addItem({
+        name: `Unknown product — Barcode: ${barcode}`,
+        quantity: 1,
+        unit: "",
+        notes: `Barcode: ${barcode}`,
+      });
+      setBarcodeText("");
+      setBarcodeModalOpen(false);
+      setBarcodeScanMode("manual");
+      toast({
+        title: "Couldn't look up product",
+        description: "Added to your list. Check your connection and try again.",
+      });
+    } finally {
+      setBarcodeLoading(false);
+    }
+  }, [barcodeLoading, persistScan, addItem, toast]);
+
+  /**
+   * Test hook — allows Playwright to simulate a camera barcode scan without
+   * real hardware or the BarcodeDetector API.  Wires into lookupAndOpenBarcode
+   * (the same function MobileBarcodeCamera's onBarcode callback invokes) so
+   * badge rendering and all downstream logic are exercised identically.
+   * Only exposed when navigator.webdriver === true (Playwright automation flag).
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.webdriver) return;
+    (window as any).__mpmFireCameraBarcode = (code: string) => lookupAndOpenBarcode(code);
+    return () => { delete (window as any).__mpmFireCameraBarcode; };
+  }, [lookupAndOpenBarcode]);
 
   type ShoppingOpts = typeof opts;
   
@@ -114,26 +296,34 @@ export default function ShoppingListMasterView() {
     });
   }, []);
 
-  // Wrapper for toggleItem with walkthrough event
-  const handleToggleItem = useCallback(
-    (id: string) => {
-      // Check current state before toggling
-      const item = items.find((i) => i.id === id);
-      const wasUnchecked = item && !item.isChecked;
+  const handleShoppingScan = () => setScanModalOpen(true);
 
-      toggleItem(id);
-
-      // Only dispatch event if item was unchecked and is now being checked
-      if (wasUnchecked) {
+  // Toggle all underlying source items at once (for consolidated rows)
+  const handleToggleConsolidated = useCallback(
+    (allIds: string[], currentlyChecked: boolean) => {
+      const newChecked = !currentlyChecked;
+      if (newChecked) {
         setTimeout(() => {
-          const event = new CustomEvent("walkthrough:event", {
+          window.dispatchEvent(new CustomEvent("walkthrough:event", {
             detail: { testId: "shopping-item-checked", event: "done" },
-          });
-          window.dispatchEvent(event);
+          }));
         }, 500);
       }
+      const updated = items.map((i) =>
+        allIds.includes(i.id) ? { ...i, isChecked: newChecked } : i,
+      );
+      replaceItems(updated);
     },
-    [items, toggleItem],
+    [items, replaceItems],
+  );
+
+  // Remove all underlying source items at once (for consolidated rows)
+  const removeConsolidatedItem = useCallback(
+    (allIds: string[]) => {
+      const idSet = new Set(allIds);
+      replaceItems(items.filter((i) => !idSet.has(i.id)));
+    },
+    [items, replaceItems],
   );
 
   const counts = useMemo(
@@ -234,43 +424,35 @@ export default function ShoppingListMasterView() {
     }
   }, [items, toast]);
 
+  // Consolidated unchecked: one row per unique ingredient, quantities summed
   const uncheckedItems = useMemo(() => {
-    let filtered = items.filter((i) => !i.isChecked);
-    if (opts.excludePantryStaples) {
-      filtered = filtered.filter((i) => !i.isPantryStaple);
-    }
-    return filtered;
+    const base = opts.excludePantryStaples
+      ? items.filter((i) => !i.isPantryStaple)
+      : items;
+    return buildConsolidatedItems(base, { excludeChecked: true });
   }, [items, opts.excludePantryStaples]);
 
+  // Consolidated checked: one row per unique purchased ingredient
   const checkedItems = useMemo(() => {
-    let filtered = items.filter((i) => i.isChecked);
-    if (opts.excludePantryStaples) {
-      filtered = filtered.filter((i) => !i.isPantryStaple);
-    }
-    return filtered;
+    const checkedOnly = items.filter(
+      (i) => i.isChecked && (!opts.excludePantryStaples || !i.isPantryStaple),
+    );
+    return buildConsolidatedItems(checkedOnly, { excludeChecked: false });
   }, [items, opts.excludePantryStaples]);
 
-  const handleShopAtWalmart = useCallback(() => {
+  const handleGroceryDelivery = useCallback((retailerId: GroceryRetailerId) => {
     const activeItems = items.filter((i) => !i.isChecked);
 
     if (activeItems.length === 0) {
       toast({
         title: "No items to send",
-        description:
-          "Add items to your shopping list before sending to Walmart.",
+        description: "Add items to your list or uncheck items you haven't bought yet.",
       });
       return;
     }
 
-    const url = buildWalmartSearchUrl(activeItems);
-
-    // fail-safe: if something goes wrong, just land them on walmart.com
-    if (!url || typeof url !== "string") {
-      window.open("https://www.walmart.com/", "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    window.open(url, "_blank", "noopener,noreferrer");
+    setGroceryExportRetailer(retailerId);
+    setGroceryExportOpen(true);
   }, [items, toast]);
 
   const parseItemsFromText = useCallback((raw: string): string[] => {
@@ -321,64 +503,25 @@ export default function ShoppingListMasterView() {
     [addItem, parseItemsFromText, toast],
   );
 
-  const startListening = useCallback(() => {
-    try {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        toast({
-          title: "Voice not supported",
-          description:
-            "Your browser does not support voice input. You can type items instead.",
-        });
-        return;
-      }
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = "en-US";
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript as string;
-        setVoiceText((prev) => (prev ? `${prev}, ${transcript}` : transcript));
-      };
-
-      recognition.onerror = () => {
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-      setIsListening(true);
-    } catch {
-      toast({
-        title: "Voice error",
-        description: "Unable to start voice recognition.",
+  const handleVoiceConfirm = useCallback(
+    (items: { name: string; quantity: number; unit: string }[]) => {
+      items.forEach(({ name, quantity, unit }) => {
+        addItem({ name, quantity, unit: unit || "", category: "Other" });
       });
-      setIsListening(false);
-    }
-  }, [toast]);
-
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {
-        // ignore
-      }
-    }
-    setIsListening(false);
-  }, []);
+      toast({
+        title: "Items added",
+        description: `${items.length} item${items.length !== 1 ? "s" : ""} added to your list.`,
+      });
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("walkthrough:event", { detail: { testId: "shopping-list-interacted", event: "interacted" } }));
+      }, 300);
+    },
+    [addItem, toast],
+  );
 
   const groupedUnchecked = useMemo(() => {
     if (!opts.groupByAisle) return { All: uncheckedItems };
-    const map: Record<string, ShoppingListItem[]> = {};
+    const map: Record<string, ConsolidatedItem[]> = {};
     for (const it of uncheckedItems) {
       const k = it.category || "Other";
       (map[k] ||= []).push(it);
@@ -388,7 +531,7 @@ export default function ShoppingListMasterView() {
 
   const groupedChecked = useMemo(() => {
     if (!opts.groupByAisle) return { All: checkedItems };
-    const map: Record<string, ShoppingListItem[]> = {};
+    const map: Record<string, ConsolidatedItem[]> = {};
     for (const it of checkedItems) {
       const k = it.category || "Other";
       (map[k] ||= []).push(it);
@@ -431,7 +574,10 @@ export default function ShoppingListMasterView() {
 
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            Smart Grocery List
+            {t("pageTitle")}
+            {isHydrating && (
+              <span className="text-xs font-normal text-white/50 animate-pulse">syncing…</span>
+            )}
           </h1>
         </div>
       </div>
@@ -455,7 +601,6 @@ export default function ShoppingListMasterView() {
             data-testid="shopping-add-buttons"
             className="mt-4 flex flex-wrap gap-2"
           >
-            {/* Barcode button hidden - feature not working */}
             <Button
               data-wt="msl-voice-add-button"
               onClick={() => setVoiceModalOpen(true)}
@@ -478,6 +623,147 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
 
+          {/* Grocery Store Coach */}
+          <div className="relative mt-2">
+            <div className="absolute inset-0 rounded-2xl bg-orange-500/10 blur-md scale-105" />
+            <Button
+              onClick={() => hasGroceryCoachAccess
+                ? setGroceryCoachOpen(true)
+                : requestUpgrade({ requiredTier: "pro", featureName: "Grocery Coach" })}
+              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-950/80 to-black/80 rounded-2xl py-3 h-auto border border-orange-500/40 text-left"
+              data-testid="button-grocery-store-coach"
+            >
+              <span className="text-xl">🧑‍🍳</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-semibold text-sm leading-tight">Grocery Store Coach</span>
+                <span className="block text-orange-300/60 text-xs mt-0.5">
+                  {hasGroceryCoachAccess ? "Recommends a meal + saves a full recipe card to Favorites." : "Upgrade to Pro to unlock"}
+                </span>
+              </span>
+              <span className="bg-orange-500/20 border border-orange-400/20 rounded-lg px-2 py-0.5 text-[10px] text-orange-300 font-semibold uppercase tracking-wide flex-shrink-0">
+                {hasGroceryCoachAccess ? "Pro" : "🔒 Pro"}
+              </span>
+            </Button>
+          </div>
+
+          {/* Saved Groceries */}
+          <div className="relative mt-2">
+            <Button
+              onClick={() => setSavedGroceriesOpen(true)}
+              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-900/40 to-black/60 rounded-2xl py-3 h-auto border border-orange-500/20 text-left"
+              data-testid="button-saved-groceries"
+            >
+              <span className="text-xl">🔖</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-semibold text-sm leading-tight">Saved Groceries</span>
+                <span className="block text-orange-300/50 text-xs mt-0.5">Products you've saved — Coach remembers these</span>
+              </span>
+            </Button>
+          </div>
+
+          {/* Smart Scan — Ingredient Intelligence */}
+          <div className="relative mt-2">
+              <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
+              <Button
+                onClick={handleShoppingScan}
+                className="relative w-full flex items-center gap-3 bg-gradient-to-r from-cyan-900/70 to-blue-950/80 rounded-2xl py-3 h-auto border border-cyan-500/30 text-left"
+                data-testid="button-shopping-smart-scan"
+              >
+                <span className="text-xl">🧾</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-white font-semibold text-sm leading-tight">Product Scan</span>
+                  <span className="block text-cyan-300/60 text-xs mt-0.5">Analyze ingredients before you buy</span>
+                </span>
+                <span className="bg-cyan-500/20 border border-cyan-400/20 rounded-lg px-2 py-0.5 text-[10px] text-cyan-300 font-semibold uppercase tracking-wide flex-shrink-0">
+                  New
+                </span>
+              </Button>
+            </div>
+
+          {/* Last Analysis — persists across navigation until cleared or replaced */}
+          {shoppingSheetResult && !shoppingSheetOpen && (
+            <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+              <div className="w-full flex items-center gap-3 px-3 pt-3 pb-2">
+                {shoppingSheetResult.isFrontLabel ? (
+                  /* Front-label state — no grade, just a prompt */
+                  <>
+                    <div className="text-2xl shrink-0">📦</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">Last Scan</p>
+                      <p className="text-sm text-white font-semibold truncate leading-snug">
+                        {shoppingSheetResult.productName || 'Scanned Product'}
+                      </p>
+                      <p className="text-xs text-amber-400 font-medium truncate leading-snug">Flip to the back to scan ingredients</p>
+                    </div>
+                  </>
+                ) : shoppingSheetResult.fallbackUsed ? (
+                  /* Unreadable / failed scan — no grade */
+                  <>
+                    <div className="text-2xl shrink-0">🔍</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">Last Scan</p>
+                      <p className="text-sm text-white font-semibold truncate leading-snug">
+                        {shoppingSheetResult.productName || 'Scanned Product'}
+                      </p>
+                      <p className="text-xs text-white/40 font-medium truncate leading-snug">Analysis incomplete</p>
+                    </div>
+                  </>
+                ) : (
+                  /* Normal result with a calculated grade */
+                  <>
+                    <div className={`text-2xl font-black leading-none shrink-0 ${
+                      shoppingSheetResult.alignmentGrade === 'A' ? 'text-emerald-400'
+                      : shoppingSheetResult.alignmentGrade === 'B' ? 'text-lime-400'
+                      : shoppingSheetResult.alignmentGrade === 'C' ? 'text-amber-400'
+                      : 'text-rose-400'
+                    }`}>
+                      {shoppingSheetResult.alignmentGrade}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">Last Analysis</p>
+                      <p className="text-sm text-white font-semibold truncate leading-snug">
+                        {shoppingSheetResult.productName || 'Scanned Product'}
+                      </p>
+                      <p className={`text-xs font-medium truncate leading-snug ${
+                        shoppingSheetResult.verdictLevel === 'buy' ? 'text-emerald-400'
+                        : shoppingSheetResult.verdictLevel === 'skip' ? 'text-rose-400'
+                        : 'text-amber-400'
+                      }`}>
+                        {shoppingSheetResult.verdictLevel === 'buy' ? 'Chef says: Go for it!'
+                          : shoppingSheetResult.verdictLevel === 'skip' ? 'Chef says: Maybe think twice'
+                          : 'Chef says: Just a heads up…'}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="px-3 pb-3 flex gap-2">
+                <button
+                  onClick={() => setShoppingSheetOpen(true)}
+                  className="flex-1 text-xs text-white/70 bg-white/5 border border-white/10 rounded-xl py-2 font-semibold active:bg-white/10"
+                >
+                  View Last Scan
+                </button>
+                <button
+                  onClick={() => { clearScan(); setScanModalOpen(true); }}
+                  className="flex-1 text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded-xl py-2 font-semibold active:bg-cyan-500/20"
+                >
+                  New Scan
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Recent Scans */}
+          <RecentScans
+              key={scanRefreshKey}
+              refreshKey={scanRefreshKey}
+              onReopen={(result) => {
+                setShoppingSheetResult(result);
+                setShoppingSheetOpen(true);
+              }}
+            />
+
           {/* Options - Group by aisle is default ON, rounding hidden */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
             <Button
@@ -494,36 +780,58 @@ export default function ShoppingListMasterView() {
             </Button>
           </div>
         </div>
-        {/* Add Other Items Section */}
-        <AddOtherItems />
-        {/* Walmart Card - Coming Soon */}
-        <div className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-5 opacity-70">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-lg font-semibold flex items-center gap-2">
-                Walmart Grocery
-                <span className="rounded-full px-2 py-0.5 bg-amber-500/30 border border-amber-400/50 text-amber-200 text-[10px] font-medium">
-                  Coming Soon
-                </span>
+        {/* Add Other Items — feeds the Other section in the main list */}
+        <AddOtherItems
+          prefillName={addOtherPrefill}
+          onPrefillConsumed={() => setAddOtherPrefill(undefined)}
+        />
+        {/* Order Groceries Online — tablet/desktop only */}
+        {uncheckedItems.length > 0 && (
+          <>
+            {/* Full retailer card: md and up */}
+            <div className="hidden md:block rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <div className="text-white font-semibold text-sm leading-tight">
+                    Order Groceries Online
+                  </div>
+                  <div className="text-white/50 text-xs mt-0.5">
+                    {uncheckedItems.length} item{uncheckedItems.length !== 1 ? "s" : ""} · opens in your browser
+                  </div>
+                </div>
+                <ExternalLink className="h-4 w-4 text-white/30 flex-shrink-0" />
               </div>
-              <div className="text-xs text-white/60 mt-1">
-                Full cart & delivery integration pending Walmart approval
+              <div className="flex flex-col gap-2">
+                {GROCERY_RETAILERS.map((retailer) => (
+                  <Button
+                    key={retailer.id}
+                    data-testid={`grocery-delivery-${retailer.id}`}
+                    onClick={() => handleGroceryDelivery(retailer.id)}
+                    className={`w-full ${retailer.color} border text-white h-11 text-sm font-medium`}
+                  >
+                    {retailer.name}
+                  </Button>
+                ))}
               </div>
-              <div className="text-xs text-white/50 mt-2 max-w-md">
-                Soon you'll be able to send your shopping list directly to
-                Walmart for pickup or delivery.
-              </div>
+              <p className="text-white/25 text-[10px] leading-tight">
+                Each item opens a separate search on the retailer's site. My Perfect Meals does not process payments or handle delivery.
+              </p>
             </div>
 
-            <Button
-              data-testid="shopping-send-to-store"
-              disabled
-              className="rounded-xl px-4 py-2 border border-white/20 bg-zinc-700/50 text-white/50 text-sm whitespace-nowrap cursor-not-allowed"
-            >
-              Shop on Walmart
-            </Button>
-          </div>
-        </div>
+            {/* Mobile nudge: phones only */}
+            <div className="md:hidden rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 flex items-start gap-3">
+              <ExternalLink className="h-4 w-4 text-orange-400/60 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="text-white/80 text-sm font-medium leading-tight">
+                  Online grocery ordering available on tablet &amp; desktop
+                </div>
+                <div className="text-white/40 text-xs mt-1 leading-snug">
+                  Visit My Perfect Meals on a larger screen to order directly from Instacart, Walmart, and more.
+                </div>
+              </div>
+            </div>
+          </>
+        )}
         {/* Actions */}
         {(counts.checked > 0 || counts.total > 0) && (
           <div
@@ -556,14 +864,14 @@ export default function ShoppingListMasterView() {
         {uncheckedItems.length === 0 && checkedItems.length === 0 ? (
           <div className="rounded-2xl bg-white/5 border border-white/20 p-12 text-center backdrop-blur">
             <ShoppingCart className="h-16 w-16 text-white/30 mx-auto mb-4" />
-            <p className="text-white/60 text-lg">Your shopping list is empty</p>
+            <p className="text-white/60 text-lg">{t("emptyList")}</p>
             <p className="text-white/40 text-sm mt-2">
-              Paste items or quick add to get started
+              {t("emptyListHint")}
             </p>
           </div>
         ) : (
           <div data-testid="shopping-list" className="space-y-4">
-            {Object.entries(groupedUnchecked).map(([cat, arr]) => (
+            {sortedEntries(groupedUnchecked).map(([cat, arr]) => (
               <div
                 key={cat}
                 className="rounded-2xl bg-white/5 border border-white/20 p-4 backdrop-blur"
@@ -612,7 +920,7 @@ export default function ShoppingListMasterView() {
                   {arr.map((item, idx) => (
                     <div
                       data-testid={
-                        idx === 0 && cat === Object.keys(groupedUnchecked)[0]
+                        idx === 0 && cat === sortedEntries(groupedUnchecked)[0]?.[0]
                           ? "shopping-first-item"
                           : undefined
                       }
@@ -624,7 +932,7 @@ export default function ShoppingListMasterView() {
                     >
                       <Button
                         data-wt="msl-item-checkoff"
-                        onClick={() => handleToggleItem(item.id)}
+                        onClick={() => handleToggleConsolidated((item as ConsolidatedItem).allIds, item.isChecked)}
                         aria-pressed={item.isChecked || false}
                         size="sm"
                         className={`h-8 w-8 p-0 flex-shrink-0 transition-all ${
@@ -703,9 +1011,15 @@ export default function ShoppingListMasterView() {
                           >
                             {item.name}
                           </div>
-                          <div className="text-white/70 text-sm shrink-0">
-                            {formatQuantity(item.quantity, item.unit)}
-                          </div>
+                          {(() => {
+                            const qty = getRetailQuantity(item);
+                            if (!qty) return null;
+                            return (
+                              <div className="text-white/70 text-sm shrink-0">
+                                {qty}
+                              </div>
+                            );
+                          })()}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -718,7 +1032,7 @@ export default function ShoppingListMasterView() {
                           <TrashButton
                             data-wt="msl-item-trash"
                             size="sm"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
                             confirm
                             confirmMessage="Delete this shopping list item?"
                             ariaLabel="Delete item"
@@ -754,7 +1068,7 @@ export default function ShoppingListMasterView() {
                 </button>
                 {purchasedOpen && (
                   <div className="p-4 pt-0 space-y-4">
-                    {Object.entries(groupedChecked).map(([cat, arr]) => (
+                    {sortedEntries(groupedChecked).map(([cat, arr]) => (
                       <div key={cat}>
                         <h4 className="text-white/70 text-sm font-semibold mb-2">
                           {cat}
@@ -766,7 +1080,7 @@ export default function ShoppingListMasterView() {
                               className="flex items-center gap-3 p-2 rounded-lg bg-white/5 opacity-60"
                             >
                               <Button
-                                onClick={() => handleToggleItem(item.id)}
+                                onClick={() => handleToggleConsolidated((item as ConsolidatedItem).allIds, item.isChecked)}
                                 aria-pressed={item.isChecked || false}
                                 size="sm"
                                 className="h-8 w-8 p-0 flex-shrink-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
@@ -777,12 +1091,18 @@ export default function ShoppingListMasterView() {
                               <div className="flex-1 text-white line-through">
                                 {item.name}
                               </div>
-                              <div className="text-white/70 text-sm shrink-0">
-                                {formatQuantity(item.quantity, item.unit)}
-                              </div>
+                              {(() => {
+                                const qty = getRetailQuantity(item);
+                                if (!qty) return null;
+                                return (
+                                  <div className="text-white/70 text-sm shrink-0">
+                                    {qty}
+                                  </div>
+                                );
+                              })()}
                               <TrashButton
                                 size="sm"
-                                onClick={() => removeItem(item.id)}
+                                onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
                                 confirm
                                 confirmMessage="Delete this purchased item?"
                                 ariaLabel="Delete item"
@@ -800,162 +1120,189 @@ export default function ShoppingListMasterView() {
             )}
           </div>
         )}
+        {/* Grocery Store Coach */}
+        <GroceryStoreCoachSheet
+          open={groceryCoachOpen}
+          onOpenChange={setGroceryCoachOpen}
+        />
+
+        {/* Saved Groceries */}
+        <SavedGroceriesSheet
+          open={savedGroceriesOpen}
+          onOpenChange={setSavedGroceriesOpen}
+        />
+
+        {/* Smart Scan — Ingredient Intake Modal */}
+        <InspirationCaptureModal
+          open={scanModalOpen}
+          onOpenChange={setScanModalOpen}
+          destination="smart-scan"
+          profileType="human"
+          onScanResult={(result) => {
+            persistScan(result);
+            setShoppingSheetOpen(true);
+            setScanRefreshKey((k) => k + 1);
+          }}
+        />
+
+        {/* Shopping Ingredient Intelligence Sheet */}
+        <IngredientIntelligenceSheet
+          open={shoppingSheetOpen}
+          result={shoppingSheetResult}
+          onClose={() => setShoppingSheetOpen(false)}
+          onAddProduct={(name) => {
+            addItem({
+              name,
+              quantity: 1,
+              unit: "",
+              category: "Other",
+            });
+            toast({ title: "Added to shopping list", description: name });
+          }}
+          onResultRefined={(refined) => persistScan(refined)}
+          onSaveForReview={() => {
+            if (shoppingSheetResult) {
+              saveProductScan({
+                productName: shoppingSheetResult.productName || "Scanned Product",
+                ingredients: shoppingSheetResult.extractedIngredients,
+                score: shoppingSheetResult.alignmentGrade,
+                gradeCalculated: !shoppingSheetResult.fallbackUsed,
+                householdFlags: shoppingSheetResult.householdNotes,
+                scanDate: new Date().toISOString(),
+                userDecision: "saved",
+                scanSource: "shopping",
+                overallSummary: shoppingSheetResult.overallSummary,
+                considerations: shoppingSheetResult.ingredientConsiderations,
+                fullResult: JSON.stringify(shoppingSheetResult),
+              });
+            }
+            setShoppingSheetOpen(false);
+            setScanRefreshKey((k) => k + 1);
+            toast({ title: "Saved for review", description: "You can revisit this scan anytime from this page." });
+          }}
+        />
+
         {/* Voice Add Modal */}
-        {voiceModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-            <div className="w-full max-w-md rounded-2xl bg-black/90 border border-white/20 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-white text-lg font-semibold">
-                  Voice Add Items
-                </h2>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10"
-                  onClick={() => {
-                    stopListening();
-                    setVoiceModalOpen(false);
-                  }}
-                >
-                  ✕
-                </Button>
-              </div>
-              <p className="text-xs text-white/70">
-                Speak your items naturally, like:{" "}
-                <span className="italic">
-                  "milk, eggs, chicken breast, spinach"
-                </span>
-                . You can also edit the text below before adding.
-              </p>
-              <textarea
-                value={voiceText}
-                onChange={(e) => setVoiceText(e.target.value)}
-                rows={4}
-                className="w-full rounded-xl bg-black/60 border border-white/25 text-white text-sm p-2 focus:outline-none focus:ring-1 focus:ring-white/50"
-                placeholder="milk, eggs, chicken breast, spinach..."
-              />
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-white/60">
-                  {isListening
-                    ? "Listening..."
-                    : "Tap Start to capture your voice."}
-                </div>
-                <div className="flex gap-2">
-                  {!isListening ? (
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600/30 border border-emerald-400/40 text-emerald-100 hover:bg-emerald-600/40"
-                      onClick={startListening}
-                      data-testid="button-voice-start"
-                    >
-                      <Mic className="h-4 w-4 mr-1" />
-                      Start
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="bg-red-600/30 border border-red-400/40 text-red-100 hover:bg-red-600/40"
-                      onClick={stopListening}
-                      data-testid="button-voice-stop"
-                    >
-                      Stop
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    className="bg-blue-600/30 border border-blue-400/40 text-blue-100 hover:bg-blue-600/40"
-                    onClick={() => {
-                      addManyItems(voiceText);
-                      setVoiceText("");
-                      stopListening();
-                      setVoiceModalOpen(false);
-                    }}
-                    disabled={!voiceText.trim()}
-                    data-testid="button-voice-add-items"
-                  >
-                    Add Items
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+        <VoiceShoppingModal
+          open={voiceModalOpen}
+          onClose={() => setVoiceModalOpen(false)}
+          onConfirm={handleVoiceConfirm}
+        />
+
+        {/* Grocery Export Modal — one item per retailer search */}
+        {groceryExportOpen && (
+          <GroceryExportModal
+            items={items}
+            defaultRetailerId={groceryExportRetailer}
+            onClose={() => setGroceryExportOpen(false)}
+          />
         )}
-        {/* Barcode Manual Entry Modal */}
+        {/* Barcode Scan Modal — camera + manual entry, both paths stamp resolvedFromDb/resolvedName */}
         {barcodeModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-black/90 border border-white/20 rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <h3 className="text-white text-xl font-semibold">
-                Enter Barcode
-              </h3>
-              <Input
-                value={barcodeText}
-                onChange={(e) => setBarcodeText(e.target.value)}
-                placeholder="Type barcode number..."
-                className="bg-black/40 border-white/30 text-white placeholder:text-white/40"
-                data-testid="input-barcode"
-              />
+              <h3 className="text-white text-xl font-semibold">Scan Barcode</h3>
+              <p className="text-white/50 text-sm -mt-2">
+                We'll look up the product and show you a full ingredient analysis.
+              </p>
+
+              {/* Mode toggle */}
+              <div className="flex rounded-xl overflow-hidden border border-white/15">
+                <button
+                  onClick={() => setBarcodeScanMode("camera")}
+                  className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+                    barcodeScanMode === "camera"
+                      ? "bg-orange-600/70 text-white"
+                      : "bg-white/5 text-white/50"
+                  }`}
+                >
+                  <ScanLine className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
+                  Camera
+                </button>
+                <button
+                  onClick={() => setBarcodeScanMode("manual")}
+                  className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+                    barcodeScanMode === "manual"
+                      ? "bg-orange-600/70 text-white"
+                      : "bg-white/5 text-white/50"
+                  }`}
+                >
+                  Type Manually
+                </button>
+              </div>
+
+              {/* Camera scan mode — MobileBarcodeCamera fires onBarcode which goes
+                  through the same lookupAndOpenBarcode path as manual entry, so
+                  resolvedFromDb + resolvedName are always stamped on the result. */}
+              {barcodeScanMode === "camera" && (
+                <div className="space-y-2">
+                  <MobileBarcodeCamera
+                    onBarcode={(code) => {
+                      // Camera detected a barcode — run the shared lookup so the
+                      // BarcodeDatabaseBadge gets the metadata it needs.
+                      lookupAndOpenBarcode(code);
+                    }}
+                    scanIntervalMs={250}
+                  />
+                  {barcodeLoading && (
+                    <div className="flex items-center justify-center gap-2 py-2 text-sm text-white/60">
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Looking up barcode…
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Manual entry mode */}
+              {barcodeScanMode === "manual" && (
+                <Input
+                  value={barcodeText}
+                  onChange={(e) => setBarcodeText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && barcodeText.trim() && !barcodeLoading) {
+                      e.currentTarget.blur();
+                      lookupAndOpenBarcode(barcodeText.trim());
+                    }
+                  }}
+                  placeholder="Type barcode number..."
+                  className="bg-black/40 border-white/30 text-white placeholder:text-white/40"
+                  data-testid="input-barcode"
+                  disabled={barcodeLoading}
+                  autoFocus
+                />
+              )}
 
               <div className="flex justify-end gap-3">
                 <Button
                   onClick={() => {
+                    if (barcodeLoading) return;
                     setBarcodeModalOpen(false);
                     setBarcodeText("");
+                    setBarcodeScanMode("manual");
                   }}
                   className="bg-white/10 border border-white/20 text-white"
+                  disabled={barcodeLoading}
                 >
                   Cancel
                 </Button>
 
-                <Button
-                  onClick={() => {
-                    if (barcodeText.trim()) {
-                      // Dispatch "interacted" event
-                      setTimeout(() => {
-                        const interactedEvent = new CustomEvent(
-                          "walkthrough:event",
-                          {
-                            detail: {
-                              testId: "shopping-list-interacted",
-                              event: "interacted",
-                            },
-                          },
-                        );
-                        window.dispatchEvent(interactedEvent);
-                      }, 300);
-
-                      addItem({
-                        name: "Unknown Item",
-                        quantity: 1,
-                        unit: "",
-                        notes: `Barcode: ${barcodeText.trim()}`,
-                      });
-                      setBarcodeText("");
-                      setBarcodeModalOpen(false);
-                      toast({
-                        title: "Item added",
-                        description: `Barcode ${barcodeText.trim()} added`,
-                      });
-
-                      // Dispatch "completed" event
-                      setTimeout(() => {
-                        const completedEvent = new CustomEvent(
-                          "walkthrough:event",
-                          {
-                            detail: {
-                              testId: "shopping-list-completed",
-                              event: "completed",
-                            },
-                          },
-                        );
-                        window.dispatchEvent(completedEvent);
-                      }, 500);
-                    }
-                  }}
-                  className="bg-blue-600/40 border border-blue-300/40 text-blue-100 hover:bg-blue-600/50"
-                  data-testid="button-add-barcode"
-                >
-                  Add
-                </Button>
+                {barcodeScanMode === "manual" && (
+                  <Button
+                    onClick={() => lookupAndOpenBarcode(barcodeText.trim())}
+                    className="bg-orange-600/60 border border-orange-400/40 text-white hover:bg-orange-600/70 disabled:opacity-50"
+                    data-testid="button-add-barcode"
+                    disabled={!barcodeText.trim() || barcodeLoading}
+                  >
+                    {barcodeLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Looking up…
+                      </span>
+                    ) : (
+                      "Look Up"
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           </div>

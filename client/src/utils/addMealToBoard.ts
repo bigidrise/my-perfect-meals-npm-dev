@@ -11,7 +11,7 @@ import {
   cloneDayLists,
 } from "@/lib/boardApi";
 
-export type ListType = "breakfast" | "lunch" | "dinner" | "snacks";
+export type ListType = "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6" | "snacks";
 
 export type AddMealParams = {
   sourceMeal: BoardMeal | {
@@ -30,10 +30,17 @@ export type AddMealParams = {
   dateISO?: string | null; // if provided, add to that day within the week; if null/omitted, legacy single-day
 };
 
+// UUID v4 guard — used to identify saved-meal sources so their UUID is preserved
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function toBoardMeal(src: AddMealParams["sourceMeal"]): BoardMeal {
   const base = src as any;
+  // Preserve the saved-meal UUID so MealCard can request a content translation later
+  const savedMealId =
+    typeof base.id === "string" && UUID_RE.test(base.id) ? base.id : undefined;
   return {
     id: `fr-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+    ...(savedMealId ? { savedMealId } : {}),
     title: base.name ?? base.title ?? "Untitled",
     servings: Number(base.servings ?? 1),
     ingredients: Array.isArray(base.ingredients) 
@@ -58,9 +65,7 @@ function toBoardMeal(src: AddMealParams["sourceMeal"]): BoardMeal {
     starchyCarbs: Number(base?.starchyCarbs ?? base?.nutrition?.starchyCarbs ?? 0),
     fibrousCarbs: Number(base?.fibrousCarbs ?? base?.nutrition?.fibrousCarbs ?? 0),
     badges: base.badges,
-    technique: base.technique,
-    cuisine: base.cuisine,
-  };
+  } as BoardMeal;
 }
 
 /** Adds a meal to a week (and optional day). Creates day buckets if needed. */
@@ -85,7 +90,7 @@ export async function addMealToBoard(params: AddMealParams) {
     board = setDayLists(board, dateISO, updatedForDay);
   } else {
     // Legacy single-day path
-    const lists = board.lists ?? { breakfast: [], lunch: [], dinner: [], snacks: [] };
+    const lists = board.lists ?? { breakfast: [], lunch: [], dinner: [], snacks: [], meal4: [], meal5: [], meal6: [] };
     board = {
       ...board,
       lists: {

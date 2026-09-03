@@ -9,7 +9,7 @@ export const SAFETY_GUARD_SCRIPTS: Record<string, SafetyGuardScript> = {
     id: "blocked_allergy",
     title: "SafetyGuard™ Allergy Block",
     spokenText:
-      "SafetyGuard stopped this meal because it includes an ingredient you've marked as an allergy. You can adjust the request to avoid that ingredient, or—if you're intentionally customizing—use the SafetyGuard Override to continue for this meal.",
+      "SafetyGuard stopped this meal because it includes an ingredient you've marked as an allergy. You can adjust the request to avoid that ingredient, or if you're intentionally customizing, use the SafetyGuard Override to continue for this meal.",
   },
 
   override_tapped: {

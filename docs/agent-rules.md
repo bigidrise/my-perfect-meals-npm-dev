@@ -50,3 +50,44 @@ These rules are mandatory for all agents working on this codebase.
 - After any change, verify the app compiles and starts without errors.
 - Check deployment logs after publishing for 404s, 500s, or missing routes.
 - The route audit log at startup must show all critical routes as mounted.
+
+## Async Auth / Sub-Router Safety Rule
+
+**Any route mounted as `app.use(path, asyncMiddleware, router)` is unsafe.**
+
+Express v4 does not await async middleware Promises when chained with a sub-router in `app.use`. The sub-router can begin executing before the async middleware's DB queries complete, leaving `req.authUser` undefined in handlers.
+
+**Required pattern — add `requireAuth` as the FIRST `router.use()` inside every protected sub-router:**
+
+```typescript
+// Inside the sub-router file:
+router.use(requireAuth); // guarantees req.authUser before any handler runs
+```
+
+The app-level mount (`app.use(path, requireAuth, router)`) may remain for defense-in-depth but CANNOT be relied on alone.
+
+**Additionally:** Never trust `req.body.userId` or `req.params.userId` for identity on write operations. Always use `(req as AuthenticatedRequest).authUser.id`.
+
+## Feature Impact Assessment (Mandatory)
+
+Before marking any feature complete, read `.local/skills/feature-impact/SKILL.md` and
+emit a Feature Completion Report covering all 12 areas defined in
+`docs/feature-impact-system.md`.
+
+This applies to every new feature, enhancement, or user-facing change. It does NOT
+apply to typo fixes, pure CSS tweaks, or dependency bumps.
+
+A feature with unresolved ⚠️ items is NOT production-ready. Deferred items must be
+explicitly named and the deferral reason stated.
+
+## Smoke Test Gate
+
+Before marking any change "done" that touches the following surfaces, a smoke test MUST pass:
+
+- Auth / user identity
+- Diabetes routes
+- ProCare / studio access
+- Saved meals / favorites
+- Subscriptions / billing
+
+No smoke test = not done. The smoke test for diabetes lives at `scripts/smoke-diabetes.sh`.

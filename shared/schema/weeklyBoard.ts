@@ -9,13 +9,20 @@ const IngredientSchema = z.object({
   unit: z.string().optional(),
 }).passthrough();
 
+// The board API historically accepted a newline-delimited instruction string.
+// Normalize it while validating so every board consumer receives renderable steps.
+const InstructionsSchema = z.preprocess(
+  (value) => (typeof value === "string" ? [value] : value),
+  z.array(z.string()).optional(),
+);
+
 // Meal schema with all fields - extended to support Create With Chef and Fridge Rescue data
 export const MealSchema = z.object({
   id: z.string(),
   title: z.string().optional(),
   servings: z.number().optional(),
   ingredients: z.array(IngredientSchema).optional(),
-  instructions: z.union([z.string(), z.array(z.string())]).optional(),
+  instructions: InstructionsSchema,
   nutrition: z.object({
     calories: z.number(),
     protein: z.number(),
@@ -29,7 +36,7 @@ export const MealSchema = z.object({
   cuisine: z.string().optional(),
   orderIndex: z.number().optional(),
   name: z.string().optional(),
-  entryType: z.enum(["quick", "recipe"]).optional(),
+  entryType: z.enum(["quick", "recipe"]).catch("quick" as any).optional(),
   brand: z.string().optional(),
   servingDesc: z.string().optional(),
   includeInShoppingList: z.boolean().optional(),
@@ -37,7 +44,7 @@ export const MealSchema = z.object({
   imageUrl: z.string().optional(),
   description: z.string().optional(),
   cookingTime: z.string().optional(),
-  difficulty: z.enum(["Easy", "Medium", "Hard"]).optional(),
+  difficulty: z.string().optional(),
   medicalBadges: z.array(z.any()).optional(),
   // Top-level macro fields (alternative to nutrition object)
   calories: z.number().optional(),
@@ -56,6 +63,9 @@ export const DayListsSchema = z.object({
   lunch: z.array(MealSchema),
   dinner: z.array(MealSchema),
   snacks: z.array(MealSchema),
+  meal4: z.array(MealSchema).default([]),
+  meal5: z.array(MealSchema).default([]),
+  meal6: z.array(MealSchema).default([]),
 });
 
 export type DayLists = z.infer<typeof DayListsSchema>;
@@ -70,8 +80,15 @@ export const WeekBoardSchema = z.object({
     createdAt: z.string(),
     lastUpdatedAt: z.string(),
     excludedItems: z.array(z.string()).optional(),
-    clinicalMode: z.enum(["anti-inflammatory", "liver-support", "kidney-disease", "heart-failure", "liver-disease"]).optional(),
-  }),
+    clinicalMode: z.enum([
+      "anti-inflammatory",
+      "liver-support",
+      "kidney-disease",
+      "heart-failure",
+      "liver-disease",
+      "oncology-support",
+    ]).catch(undefined as any).optional(),
+  }).passthrough(),
 });
 
 export type WeekBoard = z.infer<typeof WeekBoardSchema>;
@@ -100,6 +117,9 @@ export function createEmptyWeekStructure(weekStartISO: string): WeekBoardRespons
       lunch: [],
       dinner: [],
       snacks: [],
+      meal4: [],
+      meal5: [],
+      meal6: [],
     };
   }
 
@@ -163,7 +183,7 @@ export function getMondayISOFromString(dateISO: string): string {
   return getMondayISO(d);
 }
 
-export type ClinicalMode = "anti-inflammatory" | "liver-support" | "kidney-disease" | "heart-failure" | "liver-disease";
+export type ClinicalMode = "anti-inflammatory" | "liver-support" | "kidney-disease" | "heart-failure" | "liver-disease" | "oncology-support";
 
 export function resolveClinicalMode(board: WeekBoard | null | undefined): ClinicalMode {
   return board?.meta?.clinicalMode || "anti-inflammatory";

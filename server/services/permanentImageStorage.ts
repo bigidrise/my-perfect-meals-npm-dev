@@ -1,8 +1,15 @@
 // server/services/permanentImageStorage.ts
-// Service for permanently storing DALL-E generated images to Amazon S3
+// Service for permanently storing DALL-E generated images
+// Primary: Amazon S3 | Fallback: Replit Object Storage (@replit/object-storage Client)
 
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { Client as ReplitStorageClient } from "@replit/object-storage";
 import crypto from 'crypto';
+import {
+  assertActiveMealImageWriteBucket,
+  getActiveMealImageBucket,
+  publicMealImageUrl,
+} from "./mealImageBucket";
 
 function getS3Client(): S3Client {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -36,36 +43,91 @@ interface UploadResult {
   uploadedAt: string;
 }
 
-/**
- * Downloads an image from a URL and uploads it to S3
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// REPLIT OBJECT STORAGE FALLBACK
+// Uses @replit/object-storage Client which auto-discovers the active bucket
+// via the sidecar's /object-storage/default-bucket endpoint.
+// The signed-URL sidecar path (/object-storage/signed-object-url) returns 401
+// and must NOT be used. This Client path is proven working.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Lazy singleton — the runtime storage context selects a DEV-only or
+// production-only bucket; DEV never falls through to production storage.
+let _replitStorageClient: ReplitStorageClient | null = null;
+function getReplitStorageClient(): ReplitStorageClient {
+  if (!_replitStorageClient) {
+    const bucketId = getActiveMealImageBucket();
+    _replitStorageClient = new ReplitStorageClient({
+      bucketId: assertActiveMealImageWriteBucket(bucketId),
+    });
+  }
+  return _replitStorageClient;
+}
+
+async function uploadToReplitObjectStorage(
+  imageBuffer: Buffer,
+  contentType: string,
+  fileName: string,
+): Promise<string> {
+  const objectName = `meal-images/${fileName}`;
+  const client = getReplitStorageClient();
+
+  // Note: UploadOptions only exposes { compress?: boolean } — contentType is not
+  // a supported option in this SDK version. Omit it; the server infers it.
+  const result = await client.uploadFromBytes(objectName, imageBuffer);
+
+  if (!result.ok) {
+    throw new Error(`Replit Object Storage upload failed: ${result.error?.message ?? "unknown error"}`);
+  }
+
+  const publicUrl = publicMealImageUrl(objectName);
+  console.log(`✅ Image uploaded to Replit Object Storage: ${publicUrl}`);
+  return publicUrl;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN UPLOAD FUNCTION
+// Downloads an image from a URL (or decodes base64) and uploads to S3.
+// Falls back to Replit Object Storage if S3 fails.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function uploadImageToPermanentStorage(
   options: UploadImageOptions
 ): Promise<UploadResult> {
   const { imageUrl, mealName, imageHash } = options;
 
-  try {
-    console.log(`📦 Uploading image to S3: ${mealName}`);
+  // ── DECODE IMAGE ────────────────────────────────────────────────────────────
+  let imageBuffer: Buffer;
+  let contentType: string;
 
-    // Download the image from DALL-E's temporary URL
+  if (imageUrl.startsWith('data:')) {
+    const commaIdx = imageUrl.indexOf(',');
+    const meta = imageUrl.substring(5, commaIdx);
+    contentType = meta.split(';')[0] || 'image/png';
+    const b64 = imageUrl.substring(commaIdx + 1);
+    imageBuffer = Buffer.from(b64, 'base64');
+  } else {
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
       throw new Error(`Failed to download image: ${imageResponse.statusText}`);
     }
+    imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    contentType = imageResponse.headers.get('content-type') || 'image/png';
+  }
 
-    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-    const contentType = imageResponse.headers.get('content-type') || 'image/png';
+  // ── BUILD FILENAME ──────────────────────────────────────────────────────────
+  const fileExtension = contentType.includes('png') ? 'png' : 'jpg';
+  const uniqueId = imageHash || crypto.randomUUID().substring(0, 16);
+  const sanitizedName = mealName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .substring(0, 50);
+  const fileName = `${sanitizedName}-${uniqueId}.${fileExtension}`;
 
-    // Generate a unique filename using hash or random ID
-    const fileExtension = contentType.includes('png') ? 'png' : 'jpg';
-    const uniqueId = imageHash || crypto.randomUUID().substring(0, 16);
-    const sanitizedName = mealName
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '-')
-      .substring(0, 50);
-    const key = `meal-images/${sanitizedName}-${uniqueId}.${fileExtension}`;
-
-    // Upload to S3
+  // ── ATTEMPT S3 ──────────────────────────────────────────────────────────────
+  try {
+    console.log(`📦 Uploading image to S3: ${mealName}`);
+    const key = `meal-images/${fileName}`;
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
@@ -76,9 +138,7 @@ export async function uploadImageToPermanentStorage(
 
     await getS3Client().send(command);
 
-    // Generate absolute HTTPS URL
     const permanentUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-2'}.amazonaws.com/${key}`;
-    
     console.log(`✅ Image uploaded to S3: ${permanentUrl}`);
 
     return {
@@ -86,10 +146,30 @@ export async function uploadImageToPermanentStorage(
       objectPath: key,
       uploadedAt: new Date().toISOString(),
     };
+  } catch (s3Error: any) {
+    const httpStatus = s3Error.$metadata?.httpStatusCode ?? 'no-http-status';
+    const s3Code = s3Error.Code ?? s3Error.code ?? s3Error.name ?? 'unknown-code';
+    const s3Msg = s3Error.message?.substring(0, 120) ?? 'no-message';
+    console.error(
+      `❌ S3 upload failed for "${mealName}" | HTTP ${httpStatus} | code: ${s3Code} | msg: ${s3Msg} | bucket: ${BUCKET_NAME} | key: meal-images/${fileName}`
+    );
+  }
 
-  } catch (error: any) {
-    console.error(`❌ Failed to upload image to S3:`, error.message);
-    throw error;
+  // ── FALLBACK: REPLIT OBJECT STORAGE ─────────────────────────────────────────
+  try {
+    const permanentUrl = await uploadToReplitObjectStorage(imageBuffer, contentType, fileName);
+    return {
+      permanentUrl,
+      objectPath: `meal-images/${fileName}`,
+      uploadedAt: new Date().toISOString(),
+    };
+  } catch (gcsError: any) {
+    const gcsCode = gcsError.code ?? gcsError.statusCode ?? 'no-code';
+    const gcsMsg = gcsError.message?.substring(0, 120) ?? 'no-message';
+    console.error(
+      `❌ GCS upload also failed for "${mealName}" | code: ${gcsCode} | msg: ${gcsMsg} | object: meal-images/${fileName}`
+    );
+    throw gcsError;
   }
 }
 
@@ -98,10 +178,6 @@ export async function uploadImageToPermanentStorage(
  */
 export async function checkImageExists(imageHash: string): Promise<string | null> {
   try {
-    // We can't easily search S3 by partial key, so we construct the expected key pattern
-    // and check if any file with this hash exists
-    // For now, return null to force regeneration - this is simpler and more reliable
-    // Images are cached in memory anyway, so this is only called on cold starts
     return null;
   } catch (error) {
     console.error('Error checking S3 image existence:', error);

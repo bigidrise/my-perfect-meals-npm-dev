@@ -1,5 +1,5 @@
 {
-  "appId": "com.myperfectmeals.mobile",
+  "appId": "com.myperfectmeals.app",
   "appName": "My Perfect Meals",
   "webDir": "client/dist",
   "ios": {
@@ -9,11 +9,17 @@
   },
   "plugins": {
     "SplashScreen": {
-      "launchAutoHide": false,
+      "launchAutoHide": true,
+      "launchShowDuration": 5000,
       "backgroundColor": "#000000",
       "androidScaleType": "CENTER_CROP",
       "fadeOutDuration": 300,
       "showSpinner": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#FF6B00",
+      "sound": "default"
     }
   }
 }

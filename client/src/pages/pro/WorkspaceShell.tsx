@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Activity, Target, UtensilsCrossed, CheckCircle2 } f
 import { getAuthToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 interface WorkspaceClient {
   firstName: string | null;
@@ -40,42 +41,51 @@ export default function WorkspaceShell() {
   const { clientId } = useParams<{ clientId: string }>();
   const [, navigate] = useLocation();
   const token = getAuthToken();
+  const { t } = useTranslation("workspace");
   const [client, setClient] = useState<WorkspaceClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!clientId || !token) {
+    if (!clientId) {
       setLoading(false);
-      setError("Authentication required.");
+      setError(t("errorNoClient"));
       return;
     }
 
     async function fetchWorkspace() {
       try {
+        const headers: Record<string, string> = {};
+        if (token) headers["x-auth-token"] = token;
         const res = await fetch(apiUrl(`/api/pro/workspace/${clientId}`), {
-          headers: { "x-auth-token": token! },
+          headers,
+          credentials: "include",
         });
 
+        if (res.status === 401) {
+          setError(t("errorSignIn"));
+          return;
+        }
+
         if (res.status === 403) {
-          setError("You do not have access to this client's workspace.");
+          setError(t("errorNoAccess"));
           return;
         }
 
         if (res.status === 404) {
-          setError("Client not found.");
+          setError(t("errorNotFound"));
           return;
         }
 
         if (!res.ok) {
-          setError("Failed to load workspace.");
+          setError(t("errorLoadFailed"));
           return;
         }
 
         const data = await res.json();
         setClient(data.client);
       } catch {
-        setError("Failed to load workspace.");
+        setError(t("errorLoadFailed"));
       } finally {
         setLoading(false);
       }
@@ -102,7 +112,7 @@ export default function WorkspaceShell() {
           className="bg-white/10 border-white/30 text-white"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Clients
+          {t("backToClients")}
         </Button>
       </div>
     );
@@ -111,7 +121,7 @@ export default function WorkspaceShell() {
   if (!client) return null;
 
   const clientName = [client.firstName, client.lastName].filter(Boolean).join(" ") || "Unknown Client";
-  const builderLabel = client.selectedMealBuilder || client.activeBoard || "None assigned";
+  const builderLabel = client.selectedMealBuilder || client.activeBoard || t("noneAssigned");
   const hasMacros = client.dailyCalorieTarget || client.dailyProteinTarget || client.dailyCarbsTarget || client.dailyFatTarget;
   const conditions = (client.medicalConditions || []).filter((c) => c !== "none");
 
@@ -129,11 +139,11 @@ export default function WorkspaceShell() {
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">{clientName}</h1>
-            <p className="text-sm text-white/50">Client Workspace</p>
+            <p className="text-sm text-white/50">{t("clientWorkspace")}</p>
           </div>
           <div className="flex items-center gap-1.5 text-emerald-400 text-xs">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Active</span>
+            <span>{t("active")}</span>
           </div>
         </div>
       </div>
@@ -142,7 +152,7 @@ export default function WorkspaceShell() {
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
           <div className="flex items-center gap-2 mb-3">
             <UtensilsCrossed className="w-4 h-4 text-orange-400" />
-            <h2 className="text-sm font-medium text-white/50">Active Builder</h2>
+            <h2 className="text-sm font-medium text-white/50">{t("activeBuilder")}</h2>
           </div>
           <p className="text-lg font-semibold">{formatBuilder(builderLabel)}</p>
           {conditions.length > 0 && (
@@ -159,21 +169,21 @@ export default function WorkspaceShell() {
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="w-4 h-4 text-blue-400" />
-            <h2 className="text-sm font-medium text-white/50">Biometrics</h2>
+            <h2 className="text-sm font-medium text-white/50">{t("biometrics")}</h2>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-white/40">Age</p>
+              <p className="text-xs text-white/40">{t("age")}</p>
               <p className="text-lg font-semibold">{client.age ?? "—"}</p>
             </div>
             <div>
-              <p className="text-xs text-white/40">Height</p>
+              <p className="text-xs text-white/40">{t("height")}</p>
               <p className="text-lg font-semibold">
                 {client.height ? cmToFeetInches(client.height) : "—"}
               </p>
             </div>
             <div>
-              <p className="text-xs text-white/40">Weight</p>
+              <p className="text-xs text-white/40">{t("weight")}</p>
               <p className="text-lg font-semibold">
                 {client.weight ? `${client.weight} lbs` : "—"}
               </p>
@@ -184,44 +194,44 @@ export default function WorkspaceShell() {
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
           <div className="flex items-center gap-2 mb-3">
             <Target className="w-4 h-4 text-green-400" />
-            <h2 className="text-sm font-medium text-white/50">Macro Targets</h2>
+            <h2 className="text-sm font-medium text-white/50">{t("macroTargets")}</h2>
           </div>
           {hasMacros ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-white/40">Calories</p>
+                <p className="text-xs text-white/40">{t("calories")}</p>
                 <p className="text-lg font-semibold">{client.dailyCalorieTarget ?? "—"}</p>
               </div>
               <div>
-                <p className="text-xs text-white/40">Protein</p>
+                <p className="text-xs text-white/40">{t("protein")}</p>
                 <p className="text-lg font-semibold">
                   {client.dailyProteinTarget ? `${client.dailyProteinTarget}g` : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-white/40">Carbs</p>
+                <p className="text-xs text-white/40">{t("carbs")}</p>
                 <p className="text-lg font-semibold">
                   {client.dailyCarbsTarget ? `${client.dailyCarbsTarget}g` : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-white/40">Fat</p>
+                <p className="text-xs text-white/40">{t("fat")}</p>
                 <p className="text-lg font-semibold">
                   {client.dailyFatTarget ? `${client.dailyFatTarget}g` : "—"}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-white/30">No macro targets set</p>
+            <p className="text-sm text-white/30">{t("noMacroTargets")}</p>
           )}
         </div>
 
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
           <div className="flex items-center gap-2 mb-3">
             <UtensilsCrossed className="w-4 h-4 text-amber-400" />
-            <h2 className="text-sm font-medium text-white/50">Meal Boards</h2>
+            <h2 className="text-sm font-medium text-white/50">{t("mealBoards")}</h2>
           </div>
-          <p className="text-sm text-white/30">Read-only view coming in Phase 4</p>
+          <p className="text-sm text-white/30">{t("mealBoardsPhase4")}</p>
         </div>
       </div>
     </div>

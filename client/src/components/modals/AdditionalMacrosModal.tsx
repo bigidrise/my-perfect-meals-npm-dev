@@ -8,19 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FormModal } from "@/components/ui/universal-modal";
 import {
   MacroProfile,
   MACRO_PROFILES,
   computeMacrosFromProfile,
   getProfileById,
 } from "@/lib/macroProfiles";
-import { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { v4 as uuidv4 } from "uuid";
 
 interface AdditionalMacrosModalProps {
@@ -88,14 +83,30 @@ export default function AdditionalMacrosModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="bg-neutral-900 border border-white/20 text-white max-w-md mx-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-center">
-            Quick Add Protein/Carbs
-          </DialogTitle>
-        </DialogHeader>
-
+    <FormModal
+      open={open}
+      onOpenChange={(o) => !o && handleClose()}
+      title="Quick Add Protein/Carbs"
+      className="bg-neutral-900 border-white/20 text-white max-w-md"
+      footer={
+        <div className="flex gap-3 w-full">
+          <Button
+            onClick={handleAdd}
+            className="flex-1 bg-lime-500 hover:bg-lime-700 text-white font-semibold"
+            aria-label="Add to today"
+          >
+            Add to Today
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            Cancel
+          </Button>
+        </div>
+      }
+    >
         <div className="space-y-4 pt-2">
           <p className="text-sm text-white/70 text-center">
             Need more protein or carbs? Enter the amount you want and pick a source.
@@ -174,24 +185,7 @@ export default function AdditionalMacrosModal({
             <p className="text-red-400 text-sm text-center">{error}</p>
           )}
 
-          <div className="flex gap-3 pt-2">
-            <Button
-              onClick={handleAdd}
-              className="flex-1 bg-lime-500 hover:bg-lime-700 text-white font-semibold"
-              aria-label="Add to today"
-            >
-              Add to Today
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              className="flex-3 bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              Cancel
-            </Button>
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </FormModal>
   );
 }

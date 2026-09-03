@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useOrgFlag } from "@/contexts/OrgContext";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
@@ -19,54 +20,42 @@ type Coach = {
   availableDate?: string;
   isFounder?: boolean;
   isCMCO?: boolean;
+  isVeteran?: boolean;
   isPlaceholder?: boolean;
+  lookupName?: string;
 };
 
 const FOUNDER_BIO =
   "I have spent over 25 years helping people transform their bodies, their health, and the way they live.\n\nMy background is built on real-world experience and discipline—from serving in the United States Air Force and working in critical care as an EMT, to competing as a professional bodybuilder and earning the Mr. USA title in 2002. I have also spent years in front of the camera, hosting a daily fitness segment where I taught practical, results-driven strategies to a broad audience.\n\nOver the years, I have worked with hundreds of clients, helping people lose significant weight, rebuild strength, and take control of their health in a way that fits their life.\n\nMy approach is simple: results come from consistency, not restriction. I do not believe in forcing people into rigid diets that do not match how they live. Instead, I focus on helping people make smarter decisions within the foods they already enjoy—so they can stay consistent, see results, and maintain them long term.\n\nThat philosophy is what led me to build My Perfect Meals—an AI-powered coaching system designed to guide real food decisions in real time. It is an extension of the same system I have used for years, now structured in a way that allows more people to experience it.\n\nMy goal is to help you build strength, move with confidence, and create a way of eating that works in the real world—not just for a few weeks, but for life.";
 
-const LINDSEY_BIO =
-  "Dr. Lindsey Prescher brings clinical precision to the My Perfect Meals platform. As Chief Medical Advisor, she ensures our nutrition protocols align with evidence-based medicine, oversees physician-supervised programs, and provides the clinical framework that separates structured meal design from guesswork.";
+const MONICA_BIO =
+  "Monica Brant is an internationally recognized fitness icon, world champion, coach, and motivational leader whose influence has shaped the fitness industry for more than three decades. Known worldwide for her authenticity, discipline, faith, and longevity in health and wellness, Monica has appeared on more than 130 magazine covers since first rising to prominence on the cover of Muscle & Fitness magazine in 1994.\n\nThroughout her legendary competitive career, she earned multiple top placements at the Olympia and Arnold Festival stages and captured three world championship titles, including the IFBB Fitness Olympia Championship in 1998 and two WBFF World Championships in 2010 and 2013, before finishing her final competition season with an overall victory in the United Kingdom in 2016.\n\nBeyond competition, Monica has continued to inspire people around the world through coaching, consulting, speaking engagements, and faith-driven wellness leadership focused on helping individuals strengthen themselves physically, mentally, and spiritually. From Spartan races and Masters track events to decades of hands-on coaching experience, Monica continues to lead by example with a lifestyle centered around resilience, purpose, and sustainable health.\n\nThrough My Perfect Meals, Monica brings her decades of experience, encouragement, and real-world fitness wisdom to help clients build confidence, consistency, strength, and a healthier relationship with both food and life.";
 
-const CHEF_LOGO = "/assets/MPMFlameChefLogo.png";
+
+const CHEF_LOGO = "/icons/MPMFlameChefLogo.jpg";
 
 const coaches: Coach[] = [
   {
     id: "idrise",
-    name: "Coach Idrise (Nutrition / Behavior Change)",
+    name: "Coach Idrise (Nutrition Coach & Behavior Change Coach)",
     title: "Founder",
     credentials: "NASM-CPT · WFS · CNC · BCS",
-    image: "/assets/founder-photo.jpg",
+    image: "/assets/idrise-coach.png",
     bio: FOUNDER_BIO,
     availabilityStatus: "available",
     isFounder: true,
+    lookupName: "Idrise",
   },
   {
-    id: "lindsey",
-    name: "Dr. Lindsey Prescher (Cardiothoracic Surgeon)",
-    title: "CMO",
-    credentials: "DO FASC FACC · Ret. CDR USN MC",
-    image: "/assets/dr-lindsey.jpg",
-    bio: LINDSEY_BIO,
+    id: "monica",
+    name: "Monica Brant (Body Composition & Elite Performance)",
+    title: "Elite Coach",
+    credentials: "IFBB Fitness World Champion · 30+ Years Coaching",
+    image: "/assets/monica-brant-coach.png",
+    bio: MONICA_BIO,
     availabilityStatus: "available",
-    isCMCO: true,
-  },
-  {
-    id: "kristen",
-    name: "Kristen Bogan (Performance & Nutrition)",
-    title: "Founding Coach",
-    credentials: "CPT · Corrective Exercise · Strength & Recovery",
-    image: "/assets/kristen-bogan-2.jpg",
-    bio: "I help clients build strength, lose weight, and recover safely from injury or surgery through structured, real-world training.\n\nMy approach is rooted in functional movement and lifestyle-based coaching—focusing on improving how your body moves so everyday life feels easier, safer, and more controlled.\n\nWith a background in muscle development and corrective exercise, I design programs that enhance mobility, stability, and overall body mechanics. Whether your goal is to move without pain, build confidence in your strength, or simply feel better day to day, everything is built to support how you live.\n\nRecovery and longevity are at the core of my philosophy. My goal is to help you develop the strength, confidence, and resilience to perform at your best—both in and out of the gym.",
-    availabilityStatus: "available",
-  },
-  {
-    id: "placeholder-2",
-    name: "Coming Soon",
-    image: CHEF_LOGO,
-    bio: "",
-    availabilityStatus: "unavailable",
-    isPlaceholder: true,
+    isVeteran: true,
+    lookupName: "Monica",
   },
   {
     id: "placeholder-3",
@@ -84,6 +73,22 @@ const coaches: Coach[] = [
     availabilityStatus: "unavailable",
     isPlaceholder: true,
   },
+  {
+    id: "placeholder-5",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    availabilityStatus: "unavailable",
+    isPlaceholder: true,
+  },
+  {
+    id: "placeholder-6",
+    name: "Coming Soon",
+    image: CHEF_LOGO,
+    bio: "",
+    availabilityStatus: "unavailable",
+    isPlaceholder: true,
+  },
 ];
 
 const DEFAULT_AGREED = {
@@ -95,55 +100,75 @@ const DEFAULT_AGREED = {
 
 export default function MeetYourCoach() {
   const [, setLocation] = useLocation();
+  const showMarketplace = useOrgFlag("partnerMarketplace");
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
   const [agreed, setAgreed] = useState(DEFAULT_AGREED);
 
+  // Partner org guard: members of orgs with partnerMarketplace: false are redirected
+  useEffect(() => {
+    if (!showMarketplace) {
+      setLocation("/dashboard");
+    }
+  }, [showMarketplace]);
+
   const [liveCoaches, setLiveCoaches] = useState<Coach[]>(coaches);
 
+  type ProviderRow = {
+    id?: string;
+    coachSlug?: string | null;
+    availabilityStatus?: string;
+    backAt?: string | null;
+    awayFrom?: string | null;
+  };
+
+  function applyProviderStatus(c: Coach, p: ProviderRow): Coach {
+    const liveStatus = p.availabilityStatus;
+    let availableDate: string | undefined;
+    if (liveStatus === "away") {
+      const fmt: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+      if (p.awayFrom && p.backAt) {
+        availableDate = `${new Date(p.awayFrom).toLocaleDateString(undefined, fmt)} – ${new Date(p.backAt).toLocaleDateString(undefined, fmt)}`;
+      } else if (p.backAt) {
+        availableDate = `Until ${new Date(p.backAt).toLocaleDateString(undefined, fmt)}`;
+      }
+    }
+    return {
+      ...c,
+      availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
+      availableDate,
+    };
+  }
+
   useEffect(() => {
-    (async () => {
+    const fetchProviders = async () => {
       try {
-        const res = await fetch(apiUrl("/api/providers"), {
+        const res = await fetch(apiUrl("/api/professionals/providers"), {
           headers: { ...getAuthHeaders() },
           credentials: "include",
         });
         if (!res.ok) return;
-        const data: Array<{
-          professionalRole?: string;
-          availabilityStatus?: string;
-          backAt?: string | null;
-        }> = await res.json();
-
-        const firstTrainer = data.find((p) => p.professionalRole === "trainer");
-        const firstPhysician = data.find((p) => p.professionalRole === "physician");
-
+        const json: { providers: ProviderRow[] } = await res.json();
+        const data = json.providers ?? [];
         setLiveCoaches((prev) =>
           prev.map((c) => {
-            if (c.isFounder && firstTrainer) {
-              const liveStatus = firstTrainer.availabilityStatus;
-              return {
-                ...c,
-                availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
-                availableDate: (liveStatus === "busy" || liveStatus === "away") && firstTrainer.backAt
-                  ? new Date(firstTrainer.backAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                  : undefined,
-              };
-            }
-            if (c.isCMCO && firstPhysician) {
-              const liveStatus = firstPhysician.availabilityStatus;
-              return {
-                ...c,
-                availabilityStatus: liveStatus === "available" ? "available" : "unavailable",
-                availableDate: (liveStatus === "busy" || liveStatus === "away") && firstPhysician.backAt
-                  ? new Date(firstPhysician.backAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                  : undefined,
-              };
-            }
+            if (!c.lookupName || c.isPlaceholder) return c;
+            const match = data.find((p) => p.coachSlug === c.id);
+            if (match) return applyProviderStatus(c, match);
             return c;
           }),
         );
       } catch {}
-    })();
+    };
+
+    fetchProviders();
+    const onFocus = () => fetchProviders();
+    const onVisibility = () => { if (!document.hidden) fetchProviders(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const allChecked = Object.values(agreed).every(Boolean);
@@ -212,6 +237,11 @@ export default function MeetYourCoach() {
                   Founder
                 </div>
               )}
+              {coach.isVeteran && (
+                <div className="absolute top-1.5 left-1.5 bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold shadow">
+                  30+ Yrs
+                </div>
+              )}
               {coach.isCMCO && (
                 <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[9px] px-1.5 py-1 rounded-lg font-semibold shadow leading-tight max-w-[80%]">
                   Chief Medical Officer
@@ -235,7 +265,7 @@ export default function MeetYourCoach() {
                   {coach.availabilityStatus === "available"
                     ? "Available now"
                     : coach.availableDate
-                      ? `Returns ${coach.availableDate}`
+                      ? `Away ${coach.availableDate}`
                       : "Unavailable"}
                 </p>
               )}
@@ -275,6 +305,11 @@ export default function MeetYourCoach() {
                   Founder
                 </p>
               )}
+              {selectedCoach.isVeteran && (
+                <p className="text-amber-400 text-sm font-medium mt-1">
+                  Elite Coach · 30+ Years Experience
+                </p>
+              )}
               {selectedCoach.isCMCO && (
                 <p className="text-blue-400 text-sm font-medium mt-1">
                   Chief Medical Officer
@@ -301,7 +336,7 @@ export default function MeetYourCoach() {
               ) : (
                 <p className="text-white/60 text-sm mb-5">
                   {selectedCoach.availableDate
-                    ? `Returns ${selectedCoach.availableDate}. Your plan will begin once they activate your program.`
+                    ? `Away ${selectedCoach.availableDate}. You can still reach out — your plan will begin when they return.`
                     : "This professional is currently unavailable."}
                 </p>
               )}

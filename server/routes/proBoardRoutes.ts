@@ -1,10 +1,14 @@
 import { Router } from "express";
 import { db } from "../db";
 import { mealBoards, mealBoardItems } from "../db/schema/mealBoards";
-import { eq, and, desc } from "drizzle-orm";
+import { macroLogs } from "../../shared/schema";
+import { careTeamMember } from "../db/schema/careTeam";
+import { clientNotes, studios } from "../db/schema/studio";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireBoardAccess, BoardAccessRequest } from "../middleware/requireBoardAccess";
 import { logActivityFireAndForget } from "../services/activityLog";
+import { pushToUser } from "../services/pushNotify";
 
 const router = Router();
 
@@ -149,6 +153,7 @@ router.delete(
 
       const { boardId, itemId } = req.params;
 
+      // 1. Load board and verify it belongs to the expected client.
       const [board] = await db
         .select()
         .from(mealBoards)
@@ -159,16 +164,46 @@ router.delete(
         return res.status(404).json({ error: "Board not found or access denied" });
       }
 
-      await db.delete(mealBoardItems).where(eq(mealBoardItems.id, itemId));
+      // 2. Verify the item belongs to this board (prevents cross-board deletion).
+      const [item] = await db
+        .select()
+        .from(mealBoardItems)
+        .where(and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId)))
+        .limit(1);
 
-      await db
-        .update(mealBoards)
-        .set({
-          lastUpdatedByUserId: authUser.id,
-          lastUpdatedByRole: access.role,
-          updatedAt: new Date(),
-        })
-        .where(eq(mealBoards.id, boardId));
+      if (!item) {
+        return res.status(404).json({ error: "Board item not found" });
+      }
+
+      // 3. Atomically delete the board item (and optionally its macro_log).
+      //
+      //    releaseLog: true  — "replace" intent: the caller is swapping this meal.
+      //    The associated log is deleted so the client's starch slot is returned
+      //    to the remaining budget before the replacement meal is generated.
+      //    Use this only when the product flow explicitly means "undo and re-plan".
+      //
+      //    releaseLog: false (default) — remove the board item only; preserve the
+      //    committed macro_log so the client's nutrition history is not erased.
+      const releaseLog = req.body?.releaseLog === true;
+
+      await db.transaction(async (tx) => {
+        if (releaseLog) {
+          await tx.delete(macroLogs).where(
+            sql`${macroLogs.boardItemReference} = ${itemId}`
+          );
+        }
+        await tx.delete(mealBoardItems).where(
+          and(eq(mealBoardItems.id, itemId), eq(mealBoardItems.boardId, boardId))
+        );
+        await tx
+          .update(mealBoards)
+          .set({
+            lastUpdatedByUserId: authUser.id,
+            lastUpdatedByRole: access.role,
+            updatedAt: new Date(),
+          })
+          .where(eq(mealBoards.id, boardId));
+      });
 
       res.json({ ok: true });
     } catch (error) {
@@ -249,6 +284,141 @@ router.post(
     } catch (error) {
       console.error("Error repeating day on pro board:", error);
       res.status(500).json({ error: "Failed to repeat day" });
+    }
+  }
+);
+
+router.patch(
+  "/clients/:clientId/board-access",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const authUser = (req as AuthenticatedRequest).authUser;
+      const { clientId } = req.params;
+      const { clientCanEdit } = req.body as { clientCanEdit: boolean };
+
+      if (typeof clientCanEdit !== "boolean") {
+        return res.status(400).json({ error: "clientCanEdit must be a boolean" });
+      }
+
+      const [relation] = await db
+        .select()
+        .from(careTeamMember)
+        .where(
+          and(
+            eq(careTeamMember.userId, clientId),
+            eq(careTeamMember.proUserId, authUser.id),
+            eq(careTeamMember.status, "active")
+          )
+        )
+        .limit(1);
+
+      if (!relation) {
+        return res.status(403).json({ error: "No active relationship with this client" });
+      }
+
+      const now = new Date();
+      const changedByRole = relation.role;
+
+      await db
+        .update(careTeamMember)
+        .set({
+          clientCanEdit,
+          clientEditLastChangedAt: now,
+          clientEditLastChangedByRole: changedByRole,
+          updatedAt: now,
+        })
+        .where(eq(careTeamMember.id, relation.id));
+
+      const accessLabel = clientCanEdit ? "Collaborative" : "Coach Managed";
+      const notifyBody = clientCanEdit
+        ? "Your coach enabled editing access on your shared meal plan."
+        : "Your meal plan is now coach-managed.";
+
+      const [studio] = await db
+        .select({ id: studios.id })
+        .from(studios)
+        .where(eq(studios.ownerUserId, authUser.id))
+        .limit(1);
+
+      if (studio) {
+        await db.insert(clientNotes).values({
+          studioId: studio.id,
+          clientUserId: clientId,
+          authorUserId: authUser.id,
+          entryType: "message",
+          sender: "pro",
+          visibility: "shared_with_client",
+          body: notifyBody,
+          tags: ["system:board_access_changed"],
+        });
+      }
+
+      logActivityFireAndForget(
+        clientId,
+        authUser.id,
+        "board_access_changed",
+        "meal_board",
+        relation.id,
+        { clientCanEdit, accessLabel, changedByRole }
+      );
+
+      pushToUser(clientId, {
+        title: "Shared Plan Access Updated",
+        body: notifyBody,
+        url: "/care-team/trainer",
+      }).catch(() => {});
+
+      return res.json({
+        ok: true,
+        clientCanEdit,
+        clientEditLastChangedAt: now,
+        clientEditLastChangedByRole: changedByRole,
+      });
+    } catch (error) {
+      console.error("Error updating board access:", error);
+      return res.status(500).json({ error: "Failed to update board access" });
+    }
+  }
+);
+
+router.get(
+  "/clients/:clientId/board-access",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const authUser = (req as AuthenticatedRequest).authUser;
+      const { clientId } = req.params;
+
+      const [relation] = await db
+        .select({
+          clientCanEdit: careTeamMember.clientCanEdit,
+          clientEditLastChangedAt: careTeamMember.clientEditLastChangedAt,
+          clientEditLastChangedByRole: careTeamMember.clientEditLastChangedByRole,
+          role: careTeamMember.role,
+        })
+        .from(careTeamMember)
+        .where(
+          and(
+            eq(careTeamMember.userId, clientId),
+            eq(careTeamMember.proUserId, authUser.id),
+            eq(careTeamMember.status, "active")
+          )
+        )
+        .limit(1);
+
+      if (!relation) {
+        return res.status(403).json({ error: "No active relationship with this client" });
+      }
+
+      return res.json({
+        clientCanEdit: relation.clientCanEdit,
+        clientEditLastChangedAt: relation.clientEditLastChangedAt,
+        clientEditLastChangedByRole: relation.clientEditLastChangedByRole,
+      });
+    } catch (error) {
+      console.error("Error fetching board access:", error);
+      return res.status(500).json({ error: "Failed to fetch board access" });
     }
   }
 );

@@ -7,6 +7,7 @@ import { explainFeature } from "./commands/explainFeature";
 import { shouldAllowAutoOpen } from "./CopilotRespectGuard";
 import { interpretFoodCommand } from "./NLEngine";
 import { FEATURES } from "@/featureFlags";
+import { addHydrationWater } from "@/lib/hydrationApi";
 import { findFeatureFromKeywords } from "./KeywordFeatureMap";
 import {
   findFeatureFromRegistry,
@@ -129,7 +130,7 @@ export function startCopilotIntro(force = false) {
 
   // Intro script (voice + text)
   const introScript =
-    "Welcome to My Perfect Copilot. I’m here to help you understand how the app works and guide you as you use each feature. You’re on the home page. From here, you can build and manage your master shopping list, log meals from a photo, calculate your macros, check your biometrics, or get inspiration — whether that’s a quick motivational message or leave a thought in your daily journal. Anytime you need help, just tap the listen button. I’ll explain what the page is for, how the features work, and how to use everything with confidence. You’re always in control — and I’m right here when you need me.";
+    "Welcome to My Perfect Copilot. I’m here to help you understand how the app works and guide you as you use each feature. You’re on the home page. From here, you can build and manage your master shopping list, log meals from a photo, calculate your macros, check your biometrics, or get inspiration, whether that’s a quick motivational message or leave a thought in your daily journal. Anytime you need help, just tap the listen button. I’ll explain what the page is for, how the features work, and how to use everything with confidence. You’re always in control, and I’m right here when you need me.";
 
   // Send intro response through existing pipeline
   if (responseCallback) {
@@ -590,19 +591,28 @@ const Commands: Record<string, CommandHandler> = {
   "biometrics.logWater": async (payload?: { amount: number }) => {
     if (!responseCallback) return;
     const amount = payload?.amount || 8;
-    responseCallback({
-      title: "Water Logged",
-      description: `${amount} ounces of water added.`,
-      spokenText: `Adding ${amount} ounces of water.`,
-    });
+    try {
+      await addHydrationWater({ amount, unit: "oz" });
+      responseCallback({
+        title: "Water Logged",
+        description: `${amount} ounces of water was added to your server-backed Basic Hydration Tracking.`,
+        spokenText: `${amount} ounces of water was logged.`,
+      });
+    } catch {
+      responseCallback({
+        title: "Water Was Not Logged",
+        description: "Basic Hydration Tracking could not save this entry. Open Biometrics and try again.",
+        spokenText: "I could not log that water. Please open Biometrics and try again.",
+      });
+    }
   },
 
   "biometrics.resetWater": async () => {
     if (!responseCallback) return;
     responseCallback({
-      title: "Water Reset",
-      description: "Water tracker has been reset.",
-      spokenText: "Resetting water tracker.",
+      title: "Water Reset Is Unavailable",
+      description: "Saved hydration history cannot be reset. Correction and void controls require a separately approved audited workflow.",
+      spokenText: "Water reset is unavailable because saved hydration history is not deleted.",
     });
   },
 
@@ -613,6 +623,52 @@ const Commands: Record<string, CommandHandler> = {
     if (!responseCallback) return;
     const response = await explainFeature("macro-calculator");
     responseCallback(response);
+  },
+
+  "explain.performance-modes": async () => {
+    if (!responseCallback) return;
+    responseCallback({
+      title: "Performance Modes",
+      description:
+        "Performance Modes are app-wide metabolic settings that change how every meal generator approaches your nutrition. When active, the mode travels with you across every builder — from Create a Dish to the Weekly Planner.",
+      spokenText:
+        "Performance Modes are app-wide metabolic settings. When a mode is active, it doesn't just change your macro calculator — it changes how every single meal generator in the app works. Competition Prep mode applies a hard cut, a low-carb split, and a 30-gram starchy carb cap to every meal in every builder. Importantly, your medical protections always stay active. Diabetic guardrails, allergy protections, anti-inflammatory rules — none of those are touched. A Performance Mode works inside all of those safety layers, never on top of them. To activate Competition Prep, open the Macro Calculator, select Competition Prep as your goal, calculate your macros, and tap the Apply button at the save step. That's it — the mode goes live across the whole app.",
+      howTo: [
+        "Open the Macro Calculator from the home screen",
+        "Select Competition Prep in the goal step",
+        "Calculate your macros",
+        "Tap the Apply button at the save step",
+        "The mode is now active across every meal builder",
+      ],
+      tips: [
+        "Your diabetic, allergy, and medical protections are never affected by a Performance Mode",
+        "To turn it off, select a different goal in the Macro Calculator and save",
+        "If a coach is managing your plan, let them set the mode — they can see your full picture",
+      ],
+    });
+  },
+
+  "explain.competition-prep": async () => {
+    if (!responseCallback) return;
+    responseCallback({
+      title: "Competition Prep Mode",
+      description:
+        "Competition Prep is a metabolic overlay that puts every meal generator into competition standards — hard cut macros, low-carb split, and a 30g starchy carb cap per meal.",
+      spokenText:
+        "Competition Prep mode is not just a fat-loss goal. It's a metabolic overlay that changes how the entire app generates food for you. Three things change when it's active: your macros shift to a hard deficit cut, your carbohydrate split drops significantly in favor of protein and strategic fats, and every meal across every builder is capped at 30 grams of starchy carbs. This applies to Create a Dish, Chef's Kitchen, your Weekly Planner, Fridge Rescue, the Snack Creator — every tool. Your medical and allergy protections always remain active. To turn it on, go to the Macro Calculator, select Competition Prep, calculate, and tap Apply.",
+      howTo: [
+        "Open the Macro Calculator",
+        "Tap Competition Prep in the goal step",
+        "Review the orange callout explaining exactly what changes",
+        "Tap Got it, continue",
+        "Complete the calculator and tap Apply at the save step",
+      ],
+      tips: [
+        "The 30g starchy carb cap applies to every meal builder in the app — not just the calculator",
+        "Medical protections stack with this mode — whichever rule is stricter always wins",
+        "To exit Competition Prep, select Fat Loss or another goal and recalculate",
+      ],
+    });
   },
 
   "walkthrough.start.macro-calculator": async () => {
@@ -884,8 +940,8 @@ const Commands: Record<string, CommandHandler> = {
     if (!responseCallback) return;
     responseCallback({
       title: "Dose Logged",
-      description: "GLP-1 dose saved to history.",
-      spokenText: "Logging GLP-1 dose.",
+      description: "Medication dose saved to history.",
+      spokenText: "Logging medication dose.",
     });
   },
 
@@ -893,17 +949,17 @@ const Commands: Record<string, CommandHandler> = {
     if (!responseCallback) return;
     responseCallback({
       title: "Guardrails Saved",
-      description: "GLP-1 guardrails activated.",
-      spokenText: "Saving GLP-1 guardrails.",
+      description: "Medication guardrails activated.",
+      spokenText: "Saving medication guardrails.",
     });
   },
 
   "glp1.goToMenuBuilder": async () => {
     if (!responseCallback) return;
     responseCallback({
-      title: "GLP-1 Menu Builder",
-      description: "Opening GLP-1 Menu Builder.",
-      spokenText: "Opening GLP-1 Menu Builder.",
+      title: "Metabolic Medication Builder",
+      description: "Opening Metabolic Medication Builder.",
+      spokenText: "Opening Metabolic Medication Builder.",
     });
   },
 };
@@ -997,11 +1053,15 @@ async function handleVoiceQuery(transcript: string) {
     currentHub = null;
 
     if (responseCallback) {
-      responseCallback({
-        title: `Opening ${registryFeature.id.replace(/_/g, " ")}`,
-        description: `Navigating to ${registryFeature.primaryRoute}`,
-        spokenText: `Opening ${registryFeature.id.replace(/_/g, " ").toLowerCase()}`,
-      });
+      if (registryFeature.id === "HYDRATION") {
+        responseCallback(await explainFeature(registryFeature.legacyId || registryFeature.id));
+      } else {
+        responseCallback({
+          title: `Opening ${registryFeature.id.replace(/_/g, " ")}`,
+          description: `Navigating to ${registryFeature.primaryRoute}`,
+          spokenText: `Opening ${registryFeature.id.replace(/_/g, " ").toLowerCase()}`,
+        });
+      }
     }
 
     return;

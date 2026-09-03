@@ -1,5 +1,16 @@
 // server/services/holidayFeastService.ts
 import OpenAI from "openai";
+import { generateMealImageUnified } from "./mealImageGenerator";
+import {
+  appendWholeFoodStandardPrompt,
+} from "./wholeFoodStandard";
+import type { WholeFoodDecision } from "./wholeFoodStandard";
+import {
+  buildGuestEnvelope,
+  enforceBeforeGenerate,
+  scanGeneratedOutput,
+} from "./protocolEnvelope";
+import type { UserProtocolEnvelope } from "./protocolEnvelope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -22,6 +33,7 @@ export type MealOut = {
   nutrition?: { calories?: number; protein?: number; carbs?: number; fat?: number };
   imagePrompt?: string;
   imageUrl?: string;
+  wholeFoodDecision?: WholeFoodDecision;
 };
 
 export type HolidayFeastInput = {
@@ -43,6 +55,8 @@ export type HolidayFeastInput = {
     servings?: number;
     instructions?: string[];
   };
+  protocolEnvelope?: UserProtocolEnvelope;
+  protocolBlock?: string;
 };
 
 export type HolidayFeastOutput = {
@@ -51,10 +65,67 @@ export type HolidayFeastOutput = {
   colorTheme: { primary: string; secondary: string; accent: string };
 };
 
+export class HolidayFeastCompletenessError extends Error {
+  readonly code = "HOLIDAY_FEAST_COMPLETENESS_UNMET";
+
+  constructor(
+    public readonly expectedCounts: HolidayFeastInput["counts"],
+    public readonly actualCounts: HolidayFeastInput["counts"],
+  ) {
+    super("Holiday feast generation could not produce every requested course after a corrective attempt.");
+    this.name = "HolidayFeastCompletenessError";
+  }
+}
+
+export function evaluateHolidayFeastDishes(
+  dishes: MealOut[],
+  envelope: UserProtocolEnvelope,
+  recommendationSurface = "holiday_feast",
+): MealOut[] {
+  return dishes.flatMap((dish) => {
+    // Protocol scan is deliberately first: dietary identity, allergy,
+    // intolerance, medical, and procedural failures always outrank WFS.
+    const protocolScan = scanGeneratedOutput(dish, envelope, {
+      generatorName: recommendationSurface,
+    });
+    const wholeFoodDecision = protocolScan.wholeFoodDecision;
+    const safetyViolations = protocolScan.violations.filter(
+      (violation) => violation.category !== "whole-food-standard",
+    );
+    const hasProtocolViolation =
+      safetyViolations.length > 0 ||
+      protocolScan.instructionViolations.length > 0 ||
+      (!protocolScan.passed && !wholeFoodDecision?.shouldBlock);
+    if (hasProtocolViolation) {
+      console.warn(`[HolidayFeast] Excluding "${dish.name}" for protocol violation: ${protocolScan.message}`);
+      return [];
+    }
+    if (!wholeFoodDecision) {
+      console.warn(`[HolidayFeast] Excluding "${dish.name}" because central WFS evaluation was unavailable.`);
+      return [];
+    }
+    if (wholeFoodDecision.shouldBlock) {
+      console.warn(`[HolidayFeast] Excluding "${dish.name}" under ${wholeFoodDecision.policyVersion}: ${wholeFoodDecision.reason}`);
+      return [];
+    }
+    return [{ ...dish, wholeFoodDecision }];
+  });
+}
+
 export async function generateHolidayFeast(input: HolidayFeastInput): Promise<HolidayFeastOutput> {
   const { occasion, servings, counts, dietaryRestrictions = [], cuisineType, budgetLevel = "moderate", familyRecipe } = input;
+  const protocolEnvelope = input.protocolEnvelope ?? buildGuestEnvelope();
+  const protocolBlock = input.protocolBlock ?? enforceBeforeGenerate(
+    protocolEnvelope,
+    { generatorName: "holiday_feast" },
+  ).combined;
 
-  const systemPrompt = `You are a professional chef specializing in holiday feast planning. Create delicious, practical recipes with accurate nutrition estimates. Respond ONLY with valid JSON.`;
+  const systemPrompt = appendWholeFoodStandardPrompt(
+    `You are a professional chef specializing in holiday feast planning. Create delicious, practical recipes with accurate nutrition estimates. Respond ONLY with valid JSON.
+
+${protocolBlock}`,
+    { recommendationSurface: "holiday_feast" },
+  );
 
   const userPrompt = `Create a ${occasion} feast menu for ${servings} guests.
 
@@ -165,27 +236,66 @@ Respond with this exact JSON structure:
     imagePrompt: d.imagePrompt ? String(d.imagePrompt) : undefined,
   });
 
-  let feast: MealOut[] = Array.isArray(parsed.feast)
-    ? parsed.feast.map(coerceDish)
-    : [];
+  const countCourses = (dishes: MealOut[]): HolidayFeastInput["counts"] => ({
+    appetizers: dishes.filter(d => d.course === "appetizers").length,
+    mainDishes: dishes.filter(d => d.course === "mainDishes").length,
+    sideDishes: dishes.filter(d => d.course === "sideDishes").length,
+    desserts: dishes.filter(d => d.course === "desserts").length,
+  });
+  const isComplete = (actual: HolidayFeastInput["counts"]) =>
+    actual.appetizers === counts.appetizers &&
+    actual.mainDishes === counts.mainDishes &&
+    actual.sideDishes === counts.sideDishes &&
+    actual.desserts === counts.desserts;
 
-  const actualCounts = {
-    appetizers: feast.filter(d => d.course === "appetizers").length,
-    mainDishes: feast.filter(d => d.course === "mainDishes").length,
-    sideDishes: feast.filter(d => d.course === "sideDishes").length,
-    desserts: feast.filter(d => d.course === "desserts").length,
-  };
-  
+  let feast = evaluateHolidayFeastDishes(
+    Array.isArray(parsed.feast) ? parsed.feast.map(coerceDish) : [],
+    protocolEnvelope,
+  );
+  let actualCounts = countCourses(feast);
+
+  // WFS selection can correctly remove an unsuitable generated dish. Never
+  // silently turn that into a shorter feast: make one fully constrained
+  // corrective generation attempt using the same central WFS system prompt.
+  if (!isComplete(actualCounts)) {
+    console.warn("⚠️ Holiday feast incomplete after generation/WFS selection; requesting one corrective full menu.");
+    try {
+      const correctivePrompt = `${userPrompt}
+
+CORRECTIVE REGENERATION — REQUIRED:
+The previous menu was incomplete after deterministic quality selection. Return a complete replacement menu with EXACTLY ${counts.appetizers} appetizers, ${counts.mainDishes} main dishes, ${counts.sideDishes} side dishes, and ${counts.desserts} desserts. Do not omit a requested course. Respond with the same JSON structure only.`;
+      const correctiveResponse = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        temperature: 0.5,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: correctivePrompt },
+        ],
+      });
+      const correctiveRaw = correctiveResponse.choices?.[0]?.message?.content || "{}";
+      const correctiveParsed = JSON.parse(correctiveRaw);
+      feast = evaluateHolidayFeastDishes(
+        Array.isArray(correctiveParsed.feast)
+          ? correctiveParsed.feast.map(coerceDish)
+          : [],
+        protocolEnvelope,
+      );
+      actualCounts = countCourses(feast);
+    } catch (error) {
+      console.warn("⚠️ Holiday feast corrective regeneration failed:", error);
+    }
+  }
+
+  if (!isComplete(actualCounts)) {
+    throw new HolidayFeastCompletenessError(counts, actualCounts);
+  }
+
   console.log("🔍 Expected counts:", counts);
   console.log("🔍 Actual counts:", actualCounts);
   console.log("🔍 Total dishes generated:", feast.length);
   
-  const totalExpected = counts.appetizers + counts.mainDishes + counts.sideDishes + counts.desserts;
-  if (feast.length !== totalExpected) {
-    console.warn(`⚠️ Generated ${feast.length} dishes but expected ${totalExpected}!`);
-  }
-
-  const recipes: MealOut[] = [];
+  let recipes: MealOut[] = [];
   if (familyRecipe?.name) {
     recipes.push({
       name: familyRecipe.name,
@@ -210,27 +320,23 @@ Respond with this exact JSON structure:
       imagePrompt: `${familyRecipe.name}, plated holiday style`,
     });
   }
+  recipes = evaluateHolidayFeastDishes(
+    recipes,
+    protocolEnvelope,
+    "holiday_feast_family_recipe",
+  );
 
   console.log(`🎨 Generating images for ${feast.length} dishes...`);
-  
-  const { generateImage } = await import("./imageService");
   
   for (const dish of feast) {
     if (dish.imagePrompt) {
       console.log(`🎨 Generating image for: ${dish.name}`);
-      const imageUrl = await generateImage({
-        name: dish.name,
-        description: dish.description,
-        type: 'meal',
-        style: 'holiday feast photography'
-      });
-      
-      if (imageUrl) {
-        (dish as any).imageUrl = imageUrl;
-        console.log(`✅ Generated image for: ${dish.name}`);
-      } else {
-        console.log(`⚠️ No image generated for: ${dish.name}`);
-      }
+      (dish as any).imageUrl = await generateMealImageUnified(
+        dish.name,
+        (dish as any).ingredients || [],
+        'meal'
+      );
+      console.log(`✅ Generated image for: ${dish.name}`);
     }
   }
 

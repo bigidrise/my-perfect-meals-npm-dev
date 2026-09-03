@@ -1,0 +1,268 @@
+uploads = []
+
+[[generated]]
+id = "rxxFP5EzX0xWj3Kt6ReiB"
+uri = "file://client/public/images/beverage-hub-hero.png"
+type = "image"
+title = "beverage hub hero drinks"
+
+[[generated]]
+id = "_tbWilsC-cWSK7GY-Et-f"
+uri = "file://artifacts/mockup-sandbox/public/images/chef-nolan-avatar.png"
+type = "image"
+title = "Chef Nolan Avatar"
+
+[[generated]]
+id = "-azCgNRHc3Jee99j1w9H9"
+uri = "file://artifacts/mockup-sandbox/public/images/southern-kitchen-bg.png"
+type = "image"
+title = "Southern Comfort Kitchen Background"
+
+[[generated]]
+id = "JmP9b4K88O0vAUA2tEbtP"
+uri = "file://artifacts/mockup-sandbox/public/images/brisket-mac.png"
+type = "image"
+title = "Smoked Brisket Mac and Cheese"
+
+[[generated]]
+id = "9l1F3d_R_WmozOCCCQczz"
+uri = "file://artifacts/mockup-sandbox/public/images/glazed-salmon.png"
+type = "image"
+title = "Peach Bourbon Glazed Salmon"
+
+[[generated]]
+id = "eOK6NtuPHgJ0i2zabEyGJ"
+uri = "file://artifacts/mockup-sandbox/public/images/cornbread.png"
+type = "image"
+title = "Cast Iron Cornbread"
+
+[[generated]]
+id = "ejrmDPaX7teNlC5EiGZcW"
+uri = "file://artifacts/mockup-sandbox/public/images/chef-nolan.png"
+type = "image"
+title = "Southern comfort chef avatar"
+
+[[generated]]
+id = "0JW5RA8M7haRCQE9jvApz"
+uri = "file://artifacts/mockup-sandbox/public/images/chef-rush.png"
+type = "image"
+title = "Performance athlete chef avatar"
+
+[[generated]]
+id = "Idfro1aZexyAJR9R70EXL"
+uri = "file://server/assets/cert-signature.png"
+type = "image"
+title = "Idrise Ward-EL signature"
+
+[[generated]]
+id = "E21-DmWyjpM6JgHoWcuUy"
+uri = "file://public/images/dog-wellness-hero.png"
+type = "image"
+title = "dog walker trail medium shot hero"
+
+[[generated]]
+id = "i8oG0gX1s7HBifb2175jQ"
+uri = "file://public/images/cat-wellness-hero.png"
+type = "image"
+title = "cat wellness hero cozy window"
+
+[[outputs]]
+id = "-FON7OPnx1Y51w6BHr36p"
+uri = "file://downloads/Chef-Nolan-Kitchen-Landing.png"
+type = "image"
+title = "Chef Nolan's Kitchen — Landing Page"
+
+[[outputs]]
+id = "LNGGDPjklBfjH--Xgmu2T"
+uri = "file://downloads/Lifestyle-Featured-Kitchens.png"
+type = "image"
+title = "Lifestyle Page — Featured Kitchens"
+
+[[outputs]]
+id = "LoVPGkLi5Aq1xOhljHJ8K"
+uri = "file://docs/company-overview.md"
+type = "text"
+title = "My Perfect Meals — Company Overview"
+
+[[outputs]]
+id = "usCgdCcRFV_HBArHXAIWk"
+uri = "file://docs/product-features-implementation-status.md"
+type = "text"
+title = "My Perfect Meals — Product Features & Implementation Status"
+
+[[outputs]]
+id = "ftmBs9P6ilhTMN91TNH0K"
+uri = "file://docs/educational-integration-curriculum-implementation.md"
+type = "text"
+title = "My Perfect Meals — Educational Integration & Curriculum Implementation"
+
+[[outputs]]
+id = "VgknTPrm5OHlNKwWW6LZi"
+uri = "file://docs/legal-compliance-overview.md"
+type = "text"
+title = "My Perfect Meals — Legal & Compliance Overview"
+
+[[outputs]]
+id = "9hHiWH4S6rYjLXpGWerUe"
+uri = "file://docs/marketing-branding-overview.md"
+type = "text"
+title = "My Perfect Meals — Marketing & Branding Overview"
+
+[[outputs]]
+id = "jDQCvLnGk8PcUipuT75xM"
+uri = "file://docs/technical-architecture-overview.md"
+type = "text"
+title = "My Perfect Meals — Technical Architecture Overview"
+
+[[outputs]]
+id = "SE_54swVRupBRN2mljiRW"
+uri = "file://docs/devops-operations-overview.md"
+type = "text"
+title = "My Perfect Meals — Development & Operations Overview"
+
+[[outputs]]
+id = "d8cu4qXMWLXDM7kDsL02D"
+uri = "file://docs/curriculum/MPM-Certification-Curriculum.md"
+type = "text"
+title = "MPM Certification Curriculum — NASM / ISSA Partnership Proposal"
+
+[[outputs]]
+id = "eKYWelhqAq5y5yuQcFBdI"
+uri = "file://mpm_user_export_2026-05-31.csv"
+type = "table"
+title = "MPM User Export — May 31, 2026"
+
+[[outputs]]
+id = "33KUrQ1_sMkySYLiKWvPI"
+uri = "file://mpm_launch_roster_2026-05-31.csv"
+type = "table"
+title = "MPM Cleaned Launch Roster — May 31, 2026"
+
+[[outputs]]
+id = "dhirxpIDylvj0paqU4HC1"
+uri = "file://server/assets/cert-signature.png"
+type = "image"
+title = "Coach Idrise Ward-EL — Certificate Signature"
+
+[[outputs]]
+id = "d69u1DqHwlFmE2qic5aVB"
+uri = "file://attached_assets/image_search/dog_hero_1.jpg"
+type = "image"
+title = "Happy family walking on a path in the woods Family walking on woodland path smiling walking trail stock pictures, royalty-free photos & images"
+
+[[outputs]]
+id = "LL58s5bEKJMJATre1-rte"
+uri = "file://attached_assets/image_search/dog_hero_2.jpg"
+type = "image"
+title = "Diverse Couple Walking Fitness A black man and Latina woman walking on a trail after a workout walking trail stock pictures, royalty-free photos & images"
+
+[[outputs]]
+id = "vMSyQtb3Lt3ubw0Nk7aUG"
+uri = "file://attached_assets/image_search/dog_hero_3.jpg"
+type = "image"
+title = "Leather hiking boots walking on mountain trail Hiking boot. Legs on mountain trail during trekking in forest. Leather ankle shoes walking trail stock pictures, royalty-free photos & images"
+
+[[outputs]]
+id = "lBE1Qk4ItTht6G-4HhBGa"
+uri = "file://attached_assets/image_search/dog_hero_4.jpg"
+type = "image"
+title = "Walking in dramatic sunlight in a misty forest Male hiker walking into the bright gold rays of light in a misty forest, landscape shot with dramatic beautiful lighting mood walking trail stock pictures, royalty-free photos & images"
+
+[[outputs]]
+id = "N4l7MW91N3bkoydNxLaJw"
+uri = "file://attached_assets/image_search/dog_hero_b1.jpg"
+type = "image"
+title = "Young happy dog walkers walking pack of dogs on a leash in the park"
+
+[[outputs]]
+id = "GgQTx9Tv75zCrOzpjHjM5"
+uri = "file://attached_assets/image_search/dog_hero_b2.jpg"
+type = "image"
+title = "Dog park Editable vector illustration of dogs and their owners in a park with all elements as separate objects multiple-dog-walker stock illustrations"
+
+[[outputs]]
+id = "oBtfPyg1yNPiBll5QwzOl"
+uri = "file://attached_assets/image_search/dog_hero_b3.jpg"
+type = "image"
+title = "Dog walking. Professional dog walker walking dogs in autumn sunset park. Walking the pack array of pugs on city park Dog walking. Professional dog walker walking dogs in autumn sunset park. Walking the pack array of pugs on city park. multiple-dog-walker stock pictures, royalty-free photos & images"
+
+[[outputs]]
+id = "O4lPIGTz3ZSbXTOsJMj4E"
+uri = "file://attached_assets/image_search/dog_hero_b4.jpg"
+type = "image"
+title = "Happy young dog walker walking dogs on the street"
+
+[[outputs]]
+id = "pAJ65Y_M19Nj9Kabx9exm"
+uri = "file://attached_assets/image_search/dog_hero_c1.jpg"
+type = "image"
+title = "Happy dog running through golden grass during sunset in a serene outdoor setting. Joyful dog running golden field sunset stock images, royalty-free photos and pictures"
+
+[[outputs]]
+id = "AHL7ElwA-_fgLvMeY_P5U"
+uri = "file://attached_assets/image_search/dog_hero_c2.jpg"
+type = "image"
+title = "Happy dog running through golden grass at sunset in mountainous landscape. Joyful dog running golden field sunset stock images, royalty-free photos and pictures"
+
+[[outputs]]
+id = "7A0ASg9KUj7jBIVVLOHtL"
+uri = "file://attached_assets/image_search/dog_hero_d1.jpg"
+type = "image"
+title = "Happy young woman with a dog on a walk outdoors in summer nature."
+
+[[outputs]]
+id = "uO_PMefbNy3fvzvSfwrwb"
+uri = "file://attached_assets/image_search/dog_hero_d2.jpg"
+type = "image"
+
+[[outputs]]
+id = "7XUmsh_W9-c-IzMw0bQsP"
+uri = "file://attached_assets/image_search/dog_hero_d3.jpg"
+type = "image"
+
+[[outputs]]
+id = "q2nMyNBoi41IQ11-tj9t6"
+uri = "file://attached_assets/image_search/dog_hero_d4.jpg"
+type = "image"
+title = "Attractive young woman with dog outdoors. Gril on a green grass with labrador retriever."
+
+[[outputs]]
+id = "kwnLilPbPAX4KRaGlzAeY"
+uri = "file://public/images/dog-wellness-hero.png"
+type = "image"
+title = "Dog Hero — Tighter Composition"
+
+[[outputs]]
+id = "KuZT3hvWcCDBofXLjz8lz"
+uri = "file://client/public/images/mpb-hero-bg.jpg"
+type = "image"
+title = "My Perfect Beginnings — Background Concept"
+description = "Kids silhouettes walking toward a warm golden sunset. This would sit behind all MPB pages (hub, profile, create a meal, parent's corner) with a dark overlay to keep the glass cards and text readable."
+
+[[outputs]]
+id = "qpHdQovCbVW7fjS3pKJNU"
+uri = "file://client/public/images/chef-copilot-cooking-bg.png"
+type = "image"
+title = "Chef Copilot Kitchen Background"
+description = "AI-generated background for the Create a Dish page — Chef Copilot plating a gourmet dish in a cinematic kitchen."
+
+[[outputs]]
+id = "904mOzTYw5RSRSfz4bj_K"
+uri = "file://research/notes.md"
+type = "text"
+title = "Hydration Numeric Policy Research Notes"
+description = "Live research plan, source coverage, conflicts, and approval checklist for the Hydration Formula & Numeric Safety Policy."
+
+[[outputs]]
+id = "vsZpRSdUW1jZBlud3WkPF"
+uri = "file://research/hydration-formula-numeric-safety-policy.md"
+type = "text"
+title = "Hydration Formula & Numeric Safety Policy"
+description = "Proposed v0.1 policy with exact permitted arithmetic, no-number states, activation boundaries, implementation acceptance criteria, and a 32-source evidence registry."
+
+[[outputs]]
+id = "vTDPMSijAfjudo-hJm0c-"
+uri = "file://attached_assets/generated_images/hydration-hub-bg.png"
+type = "image"
+title = "Hydration Hub underwater background"
+description = "Blue underwater wellness background with surface light, subtle fish silhouettes, and a waterfall-like current, now integrated behind Hydration Hub content."

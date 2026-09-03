@@ -15,7 +15,7 @@ export interface PatientSummaryExtended extends PatientSummary {
 export function usePatients() {
   return useQuery({
     queryKey: ["patients"],
-    queryFn: () => apiRequest("GET", "/api/patients") as Promise<PatientSummaryExtended[]>,
+    queryFn: () => apiRequest<PatientSummaryExtended[]>("/api/patients"),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -24,7 +24,7 @@ export function usePatients() {
 export function usePatient(patientId: string) {
   return useQuery({
     queryKey: ["patient", patientId],
-    queryFn: () => apiRequest("GET", `/api/patients/${patientId}`) as Promise<{
+    queryFn: () => apiRequest<{
       profile: { guardrails?: Guardrails | null } | null;
       guardrails: Guardrails | null;
       diabetesType: string | null;
@@ -35,7 +35,7 @@ export function usePatient(patientId: string) {
       glp1Guardrails: GLP1Guardrails | null;
       lastShot: string | null;
       clinicianRole: string | null;
-    }>,
+    }>(`/api/patients/${patientId}`),
     enabled: !!patientId,
   });
 }
@@ -44,7 +44,10 @@ export function useUpdatePatientGuardrails(patientId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (guardrails: Guardrails) => {
-      await apiRequest("PUT", `/api/patients/${patientId}/guardrails`, { guardrails });
+      await apiRequest(`/api/patients/${patientId}/guardrails`, {
+        method: "PUT",
+        body: JSON.stringify({ guardrails }),
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["patients"] });
@@ -56,7 +59,8 @@ export function useUpdatePatientGuardrails(patientId: string) {
 export function usePatientAudit(patientId: string) {
   return useQuery({
     queryKey: ["patient-audit", patientId],
-    queryFn: () => apiRequest("GET", `/api/patients/${patientId}/audit`) as Promise<GuardrailAuditRow[]>,
+    queryFn: () =>
+      apiRequest<GuardrailAuditRow[]>(`/api/patients/${patientId}/audit`),
     enabled: !!patientId,
   });
 }

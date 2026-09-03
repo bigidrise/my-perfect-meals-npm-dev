@@ -18,8 +18,8 @@ export default function FridgeRescueCard({
       </p>
 
       <ul className="text-xs opacity-90 space-y-1 mb-3">
-        <li>• Free users get 1 AI meal idea per day</li>
-        <li>• Premium unlocks unlimited meal generation</li>
+        <li>• Free users get limited Fridge Rescue per week</li>
+        <li>• Essential unlocks unlimited meal generation</li>
       </ul>
 
       <div className="text-xs bg-amber-100 text-gray-800 px-2 py-1 rounded">

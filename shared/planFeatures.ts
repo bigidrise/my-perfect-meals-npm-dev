@@ -4,6 +4,7 @@ export type Entitlement =
   | "smart_menu_builder"
   | "weekly_meal_board"
   | "shopping_list"
+  | "saved_meals"
   | "biometrics"
   | "alcohol_hub"
   | "hormones_women"
@@ -15,7 +16,12 @@ export type Entitlement =
   | "learn_cook"
   | "lab_metrics"
   | "care_team"
-  | "procare";
+  | "procare"
+  | "pregnancy"
+  | "getaway"
+  | "grocery_coach"
+  | "hydration_center"
+  | "performance_nutrition";
 
 export interface PlanDefinition {
   tier: PlanTier;
@@ -27,15 +33,14 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   free: {
     tier: "free",
     displayFeatures: [
-      "AI Fridge Rescue (1/day)",
       "Macro Calculator",
-      "MacroScan",
+      "MacroScan — scan any nutrition label for an instant macro breakdown",
+      "AI Fridge Rescue",
       "Biometrics Tracking",
-      "Copilot Voice Guidance",
+      "Copilot Voice Guidance (limited)",
       "Daily Journal",
     ],
     entitlements: [
-      "shopping_list",
       "biometrics",
       "fridge_rescue",
     ],
@@ -44,41 +49,58 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     tier: "basic",
     displayFeatures: [
       "Everything in Free",
-      "Copilot Voice Guidance",
-      "Multi-Language Voice Input & Translation",
-      "Weekly Meal Builder",
-      "GLP-1 Hub and Meal Builder",
+      "Create a Dish — AI meal generator built around your full nutritional profile",
+      "Recipe Maker — Import any recipe from a photo, text, or image description and instantly rebuild it around your dietary needs, nutrition goals, and active protocols.",
+      "Smart Scan — Analyze ingredients, detect safety concerns, explain food quality, and recommend healthier alternatives based on your nutrition profile.",
+      "Master Shopping List & Grocery Organization",
+      "Saved Meals & Favorites — save any AI-generated meal to your personal collection",
+      "Weekly Meal Planner",
+      "Snack Creator (built into every Meal Builder)",
+      "Metabolic Medication Hub and Meal Builder",
       "Diabetic Hub and Meal Builder",
       "Anti-Inflammatory Meal Builder",
-      "SafeGuard Allergy Protection",
-      "Master Shopping List",
+      "SafeGuard Allergy Protection (2-layer enforcement)",
+      "Multi-Language Voice Input & Translation",
     ],
     entitlements: [
       "smart_menu_builder",
       "weekly_meal_board",
       "shopping_list",
+      "saved_meals",
       "biometrics",
       "alcohol_hub",
       "hormones_women",
       "hormones_men",
+      "fridge_rescue",
     ],
   },
   premium: {
     tier: "premium",
     displayFeatures: [
-      "Everything in Basic",
-      "Chef's Kitchen Studio (create & customize meals)",
-      "Craving Presets (healthy AI-created favorites)",
-      "Craving Creator plus Studio (healthy versions of your favorite cravings)",
-      "Dessert Creator plus Studio (healthy versions of your favorite desserts)",
-      "Fridge Rescue plus Studio (turn what you have into meals)",
-      "Restaurant Guide",
+      "Everything in Essential",
+      "Craving Creator — healthy versions of any craving, built around your protocols",
+      "Dessert Creator",
+      "Beverage Creator",
+      "Sushi Creator (rolls, nigiri, sashimi & bowls)",
+      "Spirits & Wine Pairing Hub",
+      "Restaurant Guide with protocol-aware ordering",
+      "Fast Food Guide (smart ordering at McDonald's, Chick-fil-A, and more)",
       "Find Meals Near Me",
+      "My Perfect Gatherings — AI meal planning for holidays, parties, camping, date nights, tailgates, and special occasions.",
+      "My Perfect Pets — AI-generated nutrition and meal plans for your pets",
+      "My Perfect Beginning — age-appropriate nutrition guidance and meal support for children from infancy through the early years.",
+      "Grocery Store Coach — AI grocery advisor personalized to your full nutrition protocol",
+      "My Perfect Hydration Center — personalized hydration intelligence for activity, nutrition context, barriers, and verified professional guidance",
+      "Athlete Beverage Creator — performance drinks calibrated to your training phase, sport, and recovery goals.",
+      "ProCare Coaching — connect and work with an authorized ProCare coach or trainer.",
+      "My Perfect Getaway™ — stay on track anywhere: theme parks, airports, resorts, and cruises with venue-specific, protocol-aware dining recommendations.",
+      "Business Center — access partner programs, referral and marketing tools, organization setup, team management, and business growth resources.",
     ],
     entitlements: [
       "smart_menu_builder",
       "weekly_meal_board",
       "shopping_list",
+      "saved_meals",
       "biometrics",
       "alcohol_hub",
       "hormones_women",
@@ -88,21 +110,28 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "potluck_planner",
       "holiday_feast",
       "learn_cook",
+      "grocery_coach",
+      "hydration_center",
+      "getaway",
     ],
   },
   ultimate: {
     tier: "ultimate",
     displayFeatures: [
-      "Everything in Premium",
-      "Physicians Care Team / Pro Access",
-      "Trainers Care Team / Pro Access",
-      "Beach Body / Hard Body Meal Builder",
-      "Clinical Lab Results",
+      "Everything in Pro",
+      "Clinical Lab Results Integration — connect your blood work and let the system adjust your meal protocols automatically based on your biomarkers",
+      "Clinical Care Team Access — everything in Pro, plus physician and clinical Care Team collaboration.",
+      "Hormone Biomarker Integration — Track hormone values and incorporate them into your Clinical nutrition profile and personalized guidance.",
+      "Performance Nutrition Builder — sport-specific fueling protocols, starch cycling, and competition prep meal builder",
+      "Clinical Advisory System — AI that continuously interprets your health data, medications, biomarkers, and nutrition history to deliver personalized clinical guidance.",
+      "My Perfect Pregnancy™ — trimester-aware nutrition, Pregnancy Coach, food safety guidance (mercury, listeria, raw foods), and pregnancy-support meal generation",
+      "Therapeutic Nutrition Intelligence — hormone, peptide, and medication-aware meal generation that adapts to your active therapies and recovery goals",
     ],
     entitlements: [
       "smart_menu_builder",
       "weekly_meal_board",
       "shopping_list",
+      "saved_meals",
       "biometrics",
       "alcohol_hub",
       "hormones_women",
@@ -114,49 +143,85 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "learn_cook",
       "lab_metrics",
       "care_team",
+      "pregnancy",
+      "getaway",
+      "grocery_coach",
+      "hydration_center",
+      "performance_nutrition",
     ],
   },
 };
 
 export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
   basic: [
+    "Create a Dish (AI meal generator)",
+    "Recipe Maker — Import any recipe from a photo, text, or image description and instantly rebuild it around your dietary needs, nutrition goals, and active protocols.",
+    "Smart Scan — Analyze ingredients, detect safety concerns, explain food quality, and recommend healthier alternatives based on your nutrition profile.",
     "Copilot Voice Guidance",
     "Multi-Language Voice Input & Translation",
-    "Weekly Meal Board",
-    "GLP-1 & Diabetic Support",
+    "Weekly Meal Planner",
+    "Snack Creator (built into every Meal Builder)",
+    "Saved Meals & Favorites",
+    "Master Shopping List & Grocery Organization",
+    "Metabolic Medication & Diabetic Support",
     "Anti-Inflammatory Builder",
-    "Daily Macro Calculator",
-    "Master Shopping Lists",
+    "Macro Calculator",
+    "MacroScan",
     "Biometrics Tracking",
     "Spirits & Alcohol Hub",
-    "SafetyGuard Allergy Protection",
+    "SafeGuard Allergy Protection",
   ],
   premium: [
-    "Everything in Basic, plus:",
-    "Chef's Kitchen Studio",
-    "Craving Creator / Studio",
-    "Craving Presets",
-    "Dessert Creator / Studio",
-    "Fridge Rescue / Studio",
-    "Restaurant Guide",
+    "Everything in Essential, plus:",
+    "Craving Creator",
+    "Dessert Creator",
+    "Beverage Creator",
+    "Sushi Creator",
+    "Spirits & Wine Pairing Hub",
+    "Restaurant Guide with protocol-aware ordering",
+    "Fast Food Guide",
     "Find Meals Near Me",
-    "Spirits & Alcohol Hub",
+    "My Perfect Gatherings (incl. Great Outdoors)",
     "Kids & Toddler Meals",
+    "My Perfect Pets",
+    "Grocery Store Coach (AI grocery advisor, protocol-aware)",
+    "My Perfect Hydration Center — personalized hydration intelligence for activity, nutrition context, barriers, and verified professional guidance",
+    "Athlete Beverage Creator — performance drinks calibrated to your training phase, sport, and recovery goals.",
+    "My Perfect Getaway™ (stay on track at theme parks, airports, resorts & cruises)",
+    "Business Center (partner programs, referral tools, organization setup & team management)",
   ],
   ultimate: [
-    "Everything in Premium, plus:",
-    "Pro Care Team Access",
-    "Beach Body Meal Builder",
-    "Competition Prep Builder",
-    "Lab Metrics Integration",
+    "Everything in Pro, plus:",
+    "Clinical Lab Results Integration (biomarker-aware meal protocols)",
+    "Physicians & Trainers Care Team Access",
+    "Hormone Biomarker Integration — Track hormone values and incorporate them into your Clinical nutrition profile.",
+    "Performance Nutrition Builder (sport fueling protocols + starch cycling)",
+    "Clinical Advisory System — AI that continuously interprets your health data, medications, biomarkers, and nutrition history to deliver personalized clinical guidance.",
+    "My Perfect Pregnancy™ (trimester nutrition + Pregnancy Coach)",
+    "Therapeutic Nutrition Intelligence (hormone, peptide & therapy-aware meal generation)",
     "Priority Support",
-    "Coach Workspace",
-    "Clinical Advisory System",
   ],
 };
 
 export type PlanLookupKey =
   | "mpm_free"
+  // Current storefront keys
+  | "mpm_basic"
+  | "mpm_premium"
+  | "mpm_ultimate"
+  | "mpm_family_base"
+  | "mpm_family_ultimate"
+  | "mpm_trainer_5"
+  | "mpm_trainer_10"
+  | "mpm_trainer_25"
+  | "mpm_trainer_50"
+  | "mpm_physician_50"
+  | "mpm_physician_150"
+  | "mpm_guidance"
+  | "signature_kitchen_starter_monthly"
+  | "signature_kitchen_pro_monthly"
+  | "signature_kitchen_partner_monthly"
+  | "clinical_business_monthly"
   | "mpm_basic_monthly"
   | "mpm_upgrade_monthly"
   | "mpm_upgrade_beta_monthly"
@@ -173,10 +238,40 @@ export type PlanLookupKey =
   | "mpm_procare_trainer_10"
   | "mpm_procare_trainer_25"
   | "mpm_procare_trainer_50"
-  | "mpm_procare_trainer_150";
+  | "mpm_procare_trainer_150"
+  // Legacy Stripe metadata keys that may still be attached to active plans.
+  | "mpm_basic_plan_999"
+  | "mpm_premium_plan_1999"
+  | "mpm_ultimate_plan_2999"
+  | "mpm_contributor"
+  | "mpm_special_access";
+
+/**
+ * Lookup keys accepted by Stripe checkout. This intentionally excludes legacy,
+ * internal, and entitlement-only plan keys that do not have a Stripe price.
+ */
+export type CheckoutLookupKey =
+  | "mpm_basic"
+  | "mpm_premium"
+  | "mpm_ultimate"
+  | "mpm_family_base"
+  | "mpm_family_premium"
+  | "mpm_family_ultimate"
+  | "mpm_trainer_5"
+  | "mpm_trainer_10"
+  | "mpm_trainer_25"
+  | "mpm_trainer_50"
+  | "mpm_physician_50"
+  | "mpm_physician_150"
+  | "mpm_guidance"
+  | "signature_kitchen_starter_monthly"
+  | "signature_kitchen_pro_monthly"
+  | "signature_kitchen_partner_monthly"
+  | "clinical_business_monthly";
 
 export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_free: "free",
+  // Legacy / _monthly-suffixed keys (kept for backward compatibility)
   mpm_basic_monthly: "basic",
   mpm_upgrade_monthly: "premium",
   mpm_upgrade_beta_monthly: "premium",
@@ -194,7 +289,40 @@ export const LOOKUP_KEY_TO_TIER: Record<string, PlanTier> = {
   mpm_procare_trainer_25: "ultimate",
   mpm_procare_trainer_50: "ultimate",
   mpm_procare_trainer_150: "ultimate",
+  // Frontend short keys — written to DB by checkout.session.completed webhook via metadata.sku
+  mpm_basic: "basic",
+  mpm_premium: "premium",
+  mpm_ultimate: "ultimate",
+  mpm_family_base: "basic",
+  mpm_family_ultimate: "ultimate",
+  mpm_trainer_5: "ultimate",
+  mpm_trainer_10: "ultimate",
+  mpm_trainer_25: "ultimate",
+  mpm_trainer_50: "ultimate",
+  mpm_physician_50: "ultimate",
+  mpm_physician_150: "ultimate",
+  mpm_guidance: "premium",
+  // Legacy price-ID-style keys (kept for backward compatibility)
+  mpm_basic_plan_999: "basic",
+  mpm_premium_plan_1999: "premium",
+  mpm_ultimate_plan_2999: "ultimate",
+  // Clinical Business — same Clinical (ultimate) access, business billing type
+  clinical_business_monthly: "ultimate",
+  // Internal / contributor / special-access — full Clinical access, no Stripe subscription
+  mpm_contributor: "ultimate",
+  mpm_special_access: "ultimate",
 };
+
+/**
+ * Every plan key that grants PAID_FULL access on the server.
+ * Derived directly from LOOKUP_KEY_TO_TIER so the two lists can never drift.
+ * Import this in server/lib/accessTier.ts instead of maintaining a separate array.
+ */
+export const PAID_PLAN_KEYS: ReadonlySet<string> = new Set(
+  Object.entries(LOOKUP_KEY_TO_TIER)
+    .filter(([, tier]) => tier !== "free")
+    .map(([key]) => key),
+);
 
 export const TRIAL_UNLOCKS_TIER: PlanTier = "ultimate";
 
@@ -226,3 +354,103 @@ export function getMinTierForEntitlement(entitlement: Entitlement): PlanTier {
 }
 
 export const PROCARE_ENTITLEMENTS: Entitlement[] = ["procare", "care_team", "lab_metrics"];
+
+/**
+ * All planLookupKey values that represent an active ProCare subscription.
+ * Used by requireProCareAccess and the profile endpoint to compute proCareEligible.
+ * Rule: certification completion is NOT a substitute for subscription entitlement.
+ */
+export const PROCARE_PLAN_KEYS: ReadonlySet<string> = new Set([
+  // Clinical Business includes the ProCare Studio for its professional owner.
+  "clinical_business_monthly",
+  // Full canonical keys
+  "mpm_procare_monthly",
+  "mpm_procare_trainer_5",
+  "mpm_procare_trainer_10",
+  "mpm_procare_trainer_25",
+  "mpm_procare_trainer_50",
+  "mpm_procare_trainer_150",
+  // Short keys written by Stripe webhook via metadata.sku
+  "mpm_trainer_5",
+  "mpm_trainer_10",
+  "mpm_trainer_25",
+  "mpm_trainer_50",
+  "mpm_physician_50",
+  "mpm_physician_150",
+]);
+
+export function isProCarePlanKey(lookupKey: string | null | undefined): boolean {
+  if (!lookupKey) return false;
+  return PROCARE_PLAN_KEYS.has(lookupKey);
+}
+
+/**
+ * Canonical Studio-access policy. Keep this separate from the plan tier:
+ * personal Ultimate includes clinical features, but it does not include a
+ * professional ProCare Studio.
+ *
+ * Both API gates and eligibility payloads must use this function so the UI
+ * cannot advertise Studio access that the route middleware will reject.
+ */
+export function canAccessProCareStudio({
+  billingEnforced,
+  accessTier,
+  planLookupKey,
+  sponsoredByBusinessId,
+  sponsoredProCareAccess,
+  pilotProCareAccess,
+  isInternalAccount,
+}: {
+  billingEnforced: boolean;
+  accessTier: string | null | undefined;
+  planLookupKey: string | null | undefined;
+  sponsoredByBusinessId?: string | null;
+  sponsoredProCareAccess?: boolean;
+  pilotProCareAccess?: boolean;
+  isInternalAccount?: boolean;
+}): boolean {
+  if (!billingEnforced) return true;
+  if (accessTier !== "PAID_FULL") return false;
+
+  // Effective access represents no-plan founders with a synthetic Ultimate
+  // key. Retain the explicit internal marker so that transformation cannot
+  // remove their intended Studio access.
+  if (isInternalAccount) return true;
+
+  // Founder-controlled private exception. This is authoritative grant state,
+  // never a role, certification, affiliate flag, generic trial, or fake plan.
+  if (pilotProCareAccess === true) return true;
+
+  // Generic no-plan PAID_FULL states (including trials) are not ProCare.
+  if (!planLookupKey) return false;
+
+  // A Clinical Business plan grants Studio access to clinical professionals,
+  // not every sponsored organization seat. Personal owners with this plan are
+  // not sponsored and remain eligible through the product entitlement.
+  if (planLookupKey === "clinical_business_monthly" && sponsoredByBusinessId) {
+    return sponsoredProCareAccess === true;
+  }
+
+  return isProCarePlanKey(planLookupKey);
+}
+
+// ── Household / Family Plan Helpers ──────────────────────────────────────────
+
+const HOUSEHOLD_PLAN_KEYS = new Set([
+  "mpm_family_base",
+  "mpm_family_base_monthly",
+  "mpm_family_premium",
+  "mpm_family_all_upgrade_monthly",
+  "mpm_family_all_premium_monthly",
+  "mpm_family_ultimate",
+  "mpm_family_all_ultimate_monthly",
+]);
+
+export function isHouseholdPlan(lookupKey: string | null | undefined): boolean {
+  if (!lookupKey) return false;
+  return HOUSEHOLD_PLAN_KEYS.has(lookupKey);
+}
+
+export function getMaxHouseholdProfiles(lookupKey: string | null | undefined): number {
+  return isHouseholdPlan(lookupKey) ? 4 : 1;
+}

@@ -23,6 +23,8 @@ export interface NutritionInfo {
   protein: number;
   carbs: number;
   fat: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
 }
 
 export type MealArchetype = 

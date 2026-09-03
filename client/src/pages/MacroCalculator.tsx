@@ -8,6 +8,7 @@ import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
 import {
   MACRO_CALC_ENTRY,
   MACRO_CALC_GOAL,
+  MACRO_CALC_COMMITMENT_LEVEL,
   MACRO_CALC_BODY_TYPE,
   MACRO_CALC_UNITS,
   MACRO_CALC_SEX,
@@ -20,8 +21,12 @@ import {
   MACRO_CALC_METABOLIC,
   MACRO_CALC_RESULTS,
   MACRO_CALC_STARCH,
+  MACRO_CALC_STARCH_COUNT,
+  MACRO_CALC_CLINICAL_CONTEXT,
   MACRO_CALC_BODY_COMPOSITION,
   MACRO_CALC_SAVE,
+  MACRO_CALC_SAVE_CONTEST_PREP,
+  MACRO_CALC_CONTEST_PREP,
   MACRO_CALC_DONE,
 } from "@/components/copilot/scripts/macroCalculatorScripts";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -60,12 +65,14 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Save,
 } from "lucide-react";
 
 // Guided flow step type
 type GuidedStep =
   | "entry"
   | "goal"
+  | "commitmentLevel"
   | "bodyType"
   | "units"
   | "sex"
@@ -77,7 +84,9 @@ type GuidedStep =
   | "syncWeight"
   | "metabolic"
   | "results"
+  | "nutritionStrategy"
   | "starch"
+  | "clinicalContext"
   | "bodyComposition"
   | "save"
   | "done";
@@ -86,12 +95,14 @@ import {
   setMacroTargets,
   getMacroTargets,
   type StarchStrategy,
+  type CutIntensity,
+  type CutStyle,
 } from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
+import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
-import { TrialBanner } from "@/components/TrialBanner";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
@@ -99,11 +110,14 @@ import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import BodyCompositionSection from "@/components/macro-targeting/BodyCompositionSection";
 import WaistRiskSection from "@/components/macro-targeting/WaistRiskSection";
+import { useTranslation } from "react-i18next";
 import {
   MacroDeltas,
   AdvisorySources,
+  ClinicalAdvisoryState,
   sumAdvisorySources,
   capCombinedDeltas,
+  loadUserAdvisory,
 } from "@/lib/clinicalAdvisory";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import {
@@ -115,11 +129,32 @@ import { calculateWaistHeightRatio, classifyWaistRisk } from "@shared/waistRisk"
 import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
 import { getCurrentUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 
-type Goal = "loss" | "maint" | "gain";
+type Goal = "loss" | "maint" | "gain" | "contest_prep";
 type Sex = "male" | "female";
 type Units = "imperial" | "metric";
-type BodyType = "ecto" | "meso" | "endo";
+type BodyType = "ecto" | "meso" | "endo" | "mix";
+type UserType = "flexible" | "consistent" | "performance";
+type CutIntensity = "hard" | "moderate" | "none";
+type CutStyle = "balanced" | "lowCarb";
+type ActivityLevel = "sedentary" | "light" | "moderate" | "very" | "extra";
+
+type MacroComputeResult = {
+  bmr: number;
+  tdee: number;
+  target: number;
+  macros: {
+    calories: number;
+    protein: { g: number; kcal: number };
+    fat: { g: number; kcal: number };
+    carbs: { g: number; kcal: number; starchy: number; fibrous: number };
+    vegetableCupsPerMeal?: number;
+    vegetableCupsPerDay?: number;
+    safetyFloorUnmet?: boolean;
+    safetyFloorReason?: string;
+  };
+};
 
 const toNum = (v: string | number) => {
   const n = typeof v === "string" ? v.trim() : v;
@@ -209,84 +244,53 @@ function WaistEducationBlock({ waistCm, heightCm }: { waistCm: number; heightCm:
   );
 }
 
-const ACTIVITY_FACTORS = {
-  sedentary: 1.2,
-  light: 1.375,
-  moderate: 1.55,
-  very: 1.725,
-  extra: 1.9,
-};
+// [P3.2] Macro calculation engine moved server-side to protect proprietary IP.
+// BMR (Mifflin-St Jeor), tiered protein model, adaptive fibrous carb system,
+// clinical adjustments (insulin resistance, menopause, high stress, waist risk),
+// body-type tilt, strategy layer, and safety pass live exclusively in:
+//   server/services/macroCalculatorEngine.ts
+// Results are fetched via POST /api/macro-calculator/compute.
 
-function mifflin({
-  sex,
-  kg,
-  cm,
-  age,
-}: {
-  sex: Sex;
-  kg: number;
-  cm: number;
-  age: number;
-}) {
-  const b = 10 * kg + 6.25 * cm - 5 * age + (sex === "male" ? 5 : -161);
-  return Math.max(800, Math.round(b));
-}
 
-function goalAdjust(tdee: number, goal: Goal) {
-  if (goal === "loss") return Math.round(tdee * 0.85);
-  if (goal === "gain") return Math.round(tdee * 1.1);
-  return Math.round(tdee);
-}
-
-function calcMacrosBase({ calories, kg, proteinPerKg, starchyBase, fibrousMin }: any) {
-  // Priority 1: Protein — capped at 40% of calories
-  const rawProteinKcal = Math.round(kg * proteinPerKg) * 4;
-  let proteinKcal = Math.min(rawProteinKcal, calories * 0.40);
-
-  // Priority 2: Fibrous carbs — locked floor, always guaranteed
-  const fibrousKcal = fibrousMin * 4;
-
-  // Policy: if protein would consume calories needed for the fiber floor, compress protein first
-  if (proteinKcal + fibrousKcal > calories) {
-    proteinKcal = Math.max(0, calories - fibrousKcal);
-  }
-
-  // Priority 3: Starchy carbs — flexible, compresses toward 0 before fat is touched
-  const remainingAfterPF = Math.max(0, calories - proteinKcal - fibrousKcal);
-  const starchyKcal = Math.min(starchyBase * 4, remainingAfterPF);
-  const starchyG = Math.round(starchyKcal / 4);
-
-  // Priority 4: Fat — residual (whatever is left)
-  const fatKcal = Math.max(0, calories - proteinKcal - fibrousKcal - starchyKcal);
-
-  const proteinG = Math.round(proteinKcal / 4);
-  const carbsG = fibrousMin + starchyG; // strict reconciliation: total = fibrous + starchy
-
-  return {
-    calories,
-    protein: { g: proteinG, kcal: Math.round(proteinKcal) },
-    fat: { g: Math.round(fatKcal / 9), kcal: Math.round(fatKcal) },
-    carbs: { g: carbsG, kcal: carbsG * 4, starchy: starchyG, fibrous: fibrousMin },
+function BodyTypeSilhouette({ type }: { type: BodyType }) {
+  const cx = 25;
+  const configs: Record<string, { sw: number; ww: number; hw: number }> = {
+    ecto: { sw: 12, ww: 8,  hw: 10 },
+    meso: { sw: 16, ww: 11, hw: 15 },
+    endo: { sw: 20, ww: 16, hw: 21 },
+    mix:  { sw: 17, ww: 12, hw: 17 },
   };
+  const { sw, ww, hw } = configs[type] ?? configs.meso;
+  const neckW = 4;
+  const pts = [
+    `${cx - neckW},20`, `${cx - sw},25`,
+    `${cx - ww},46`,    `${cx - hw},59`,
+    `${cx - 5},82`,     `${cx + 5},82`,
+    `${cx + hw},59`,    `${cx + ww},46`,
+    `${cx + sw},25`,    `${cx + neckW},20`,
+  ].join(" ");
+  return (
+    <svg viewBox="0 0 50 90" className="w-10 h-16 mx-auto opacity-70" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round">
+      <circle cx={cx} cy={10} r={8} />
+      <polygon points={pts} />
+    </svg>
+  );
 }
 
-function applyBodyTypeTilt(base: any, bodyType: BodyType, activity: string) {
-  if (bodyType !== "endo") return base;
-  // Shift is applied as a % reduction of the starchy allocation only — not % of total calories.
-  // This prevents carb collapse in low-starchy scenarios (e.g. sedentary weight-loss profiles).
-  const shiftPct = activity === "sedentary" ? 0.10 : activity === "light" ? 0.12 : 0.15;
-  const fibrousG = base.carbs.fibrous as number;
-  const starchyKcal = (base.carbs.starchy as number) * 4;
-  const newStarchyKcal = Math.max(0, Math.round(starchyKcal * (1 - shiftPct)));
-  const newStarchyG = Math.round(newStarchyKcal / 4);
-  const newCarbsG = fibrousG + newStarchyG;
-  const newCarbsKcal = newCarbsG * 4;
-  const newFatKcal = Math.max(0, base.calories - base.protein.kcal - newCarbsKcal);
-  return {
-    ...base,
-    fat: { g: Math.round(newFatKcal / 9), kcal: newFatKcal },
-    carbs: { g: newCarbsG, kcal: newCarbsKcal, starchy: newStarchyG, fibrous: fibrousG },
-  };
+function goalLabel(g: Goal): string {
+  if (g === "loss") return "Lose Fat";
+  if (g === "maint") return "Maintain Weight";
+  if (g === "gain") return "Build Muscle";
+  if (g === "contest_prep") return "Contest Prep";
+  return g;
+}
+
+function bodyTendencyLabel(bt: BodyType): string {
+  if (bt === "ecto") return "Naturally Lean";
+  if (bt === "meso") return "Naturally Athletic";
+  if (bt === "endo") return "Naturally Fuller Build";
+  if (bt === "mix") return "Combination Build";
+  return bt;
 }
 
 function BodyTypeGuide() {
@@ -297,61 +301,45 @@ function BodyTypeGuide() {
         className="rounded-xl border border-white/15 bg-white/5 p-3"
       >
         <summary className="cursor-pointer select-none text-sm font-semibold text-white/90">
-          Body Type Guide (tap to expand)
+          About body tendencies (tap to expand)
         </summary>
 
         <div className="mt-2 space-y-3 text-sm text-white/80">
           <div>
-            <div className="font-semibold text-white">Ectomorph</div>
+            <div className="font-semibold text-white">Naturally Lean <span className="font-normal text-white/50 text-xs ml-1">Ectomorphic tendency</span></div>
             <p className="mt-1 leading-relaxed">
-              Naturally lean or "hard gainer." Smaller frame, narrower
-              shoulders/hips, and tends to struggle gaining weight or muscle.
-              Often a faster metabolism.{" "}
-              <span className="text-white/90">Strategy:</span> a bit more
-              calories and carbs; keep protein protein steady.
+              You've always been on the thinner side or struggle to gain weight and muscle. Smaller frame, faster metabolism.{" "}
+              <span className="text-white/90">Strategy:</span> slightly more calories and carbs to support growth.
             </p>
           </div>
 
           <div>
-            <div className="font-semibold text-white">Mesomorph</div>
+            <div className="font-semibold text-white">Naturally Athletic <span className="font-normal text-white/50 text-xs ml-1">Mesomorphic tendency</span></div>
             <p className="mt-1 leading-relaxed">
-              Athletic middle build—can gain muscle and lose fat more easily.
-              Medium frame and usually responds well to training and nutrition
-              changes. <span className="text-white/90">Strategy:</span> balanced
-              calories and macros; adjust up/down with goals.
+              You build muscle and lose fat fairly easily with training. Medium frame, responds well to nutrition changes.{" "}
+              <span className="text-white/90">Strategy:</span> balanced calories and macros, adjusted for your goal.
             </p>
           </div>
 
           <div>
-            <div className="font-semibold text-white">Endomorph</div>
+            <div className="font-semibold text-white">Naturally Fuller Build <span className="font-normal text-white/50 text-xs ml-1">Endomorphic tendency</span></div>
             <p className="mt-1 leading-relaxed">
-              Bigger frame ("full house") that gains weight more easily and may
-              lose it more slowly. Often benefits from tighter calorie control
-              and mindful carbs.{" "}
-              <span className="text-white/90">Strategy:</span> slightly fewer
-              starchy carbs, a bit more fat for satiety.
+              You gain body weight more readily and fat loss may take more effort. Often benefits from mindful carb choices.{" "}
+              <span className="text-white/90">Strategy:</span> slightly fewer starchy carbs, a bit more fat for satiety.
+            </p>
+          </div>
+
+          <div>
+            <div className="font-semibold text-white">Combination Build <span className="font-normal text-white/50 text-xs ml-1">Mixed tendency</span></div>
+            <p className="mt-1 leading-relaxed">
+              You share traits from more than one description. This is very common — body composition changes over time.{" "}
+              <span className="text-white/90">Strategy:</span> balanced starting split, adjusted as you see results.
             </p>
           </div>
 
           <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-            <div className="text-white/90 font-medium text-[13px]">
-              How to choose quickly
-            </div>
-            <ul className="mt-1 list-disc pl-5 space-y-1">
-              <li>
-                If you've always been naturally thin and struggle to gain →{" "}
-                <b>Ectomorph</b>
-              </li>
-              <li>
-                If you build/lean fairly easily with training → <b>Mesomorph</b>
-              </li>
-              <li>
-                If you gain easily and fat loss feels slower → <b>Endomorph</b>
-              </li>
-            </ul>
-            <p className="mt-2 text-[12px] text-white/60">
-              Not exact? Pick the one that best matches your history and how
-              your body responds. This just sets a smart starting split.
+            <p className="text-[12px] text-white/60 leading-relaxed">
+              Most people are a combination. These descriptions set a starting point for your nutrition split — not a permanent identity. Choose the one that fits you best right now.
             </p>
           </div>
         </div>
@@ -474,7 +462,7 @@ function BodyCompositionGuidedStep({
           </div>
 
           <p className="text-white/80 text-sm leading-relaxed">
-            If you've had your body fat professionally measured — like a DEXA scan, BodPod, calipers, or smart scale — you can add that here. It helps fine-tune your starchy carb allocation in the Beach Body and Performance builders.
+            If you've had your body fat professionally measured — like a DEXA scan, BodPod, calipers, or smart scale — you can add that here. It helps fine-tune your starchy carb allocation in the Performance Nutrition and Performance builders.
           </p>
 
           <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
@@ -621,11 +609,131 @@ function splitStarchyFibrous(totalCarbs: number, starchyBase: number, fibrousMin
   return { starchy, fibrous };
 }
 
+// ── Clinical Category Reasoning List ─────────────────────────────────────────
+// Shown on the save step under the Clinical Precision status card.
+// Maps self-reported screening categories to the actual modifiers applied.
+
+const CLINICAL_CATEGORY_MODIFIERS: Record<string, { name: string; bullets: string[] }> = {
+  testosterone_therapy: {
+    name: "Testosterone / TRT",
+    bullets: [
+      "Protein floor raised to ≥1.8g/kg",
+      "Soy protein blocked from meal generation",
+      "Zinc, magnesium & healthy fats prioritized",
+      "Anti-inflammatory, hormone-supportive meals",
+    ],
+  },
+  glp1_medication: {
+    name: "GLP-1 Medication",
+    bullets: [
+      "Portions capped — nausea management protocol active",
+      "High-fat ingredients limited per meal",
+      "Protein floor raised to ≥1.6g/kg",
+      "Nutrient-dense, compact meals prioritized",
+    ],
+  },
+  systemic_corticosteroid: {
+    name: "Corticosteroids",
+    bullets: [
+      "High-sodium foods blocked (fluid retention risk)",
+      "Calcium & vitamin D prioritized (bone protection)",
+      "Blood sugar-stabilizing meal structure enforced",
+      "Protein ≥1.6g/kg for muscle preservation",
+    ],
+  },
+  thyroid_medication: {
+    name: "Thyroid Medication",
+    bullets: [
+      "Breakfast modified — low-calcium to avoid absorption interference",
+      "Iodine sensitivity awareness applied",
+      "Anti-inflammatory base throughout the day",
+    ],
+  },
+  estrogen_or_progesterone: {
+    name: "Estrogen / Progesterone",
+    bullets: [
+      "High-fiber meals for estrogen clearance support",
+      "Calcium-rich foods for bone protection",
+      "Omega-3 fats and phytoestrogen balance applied",
+    ],
+  },
+  insulin_or_diabetes_medication: {
+    name: "Insulin / Diabetes Medication",
+    bullets: [
+      "Blood sugar-stabilizing meal structure",
+      "Carbohydrates paired with protein and fat",
+      "Refined sugars blocked as primary meal anchors",
+    ],
+  },
+  cardiac_or_blood_pressure_medication: {
+    name: "Cardiac / Blood Pressure",
+    bullets: [
+      "Sodium-aware meal construction",
+      "Heart-healthy fats prioritized (olive oil, avocado, salmon)",
+      "Potassium-rich foods emphasized",
+    ],
+  },
+  diuretic: {
+    name: "Diuretics",
+    bullets: [
+      "Potassium & magnesium prioritized (electrolyte loss risk)",
+      "Hydration-supportive meal structure",
+      "Sodium-limited meal preparations",
+    ],
+  },
+  peptide_or_growth_hormone_related: {
+    name: "Peptides / Growth Hormone",
+    bullets: [
+      "Protein floor raised to ≥2.0g/kg",
+      "Collagen-supportive nutrients prioritized",
+      "Anti-inflammatory base at every meal",
+    ],
+  },
+  other: {
+    name: "Other Medications",
+    bullets: [
+      "Screening response saved — add full medication profile for precise adjustments",
+    ],
+  },
+};
+
+function ClinicalCategoryReasoningList({ categories }: { categories: string[] }) {
+  const matched = categories
+    .map((slug) => CLINICAL_CATEGORY_MODIFIERS[slug])
+    .filter(Boolean);
+
+  if (matched.length === 0) return null;
+
+  return (
+    <div className="space-y-2 pt-1">
+      <p className="text-xs text-white/40 uppercase tracking-wide">Adjustments applied</p>
+      {matched.map((entry) => (
+        <div key={entry.name} className="space-y-1">
+          <p className="text-xs font-semibold text-white/70">{entry.name}</p>
+          <ul className="space-y-0.5 pl-2">
+            {entry.bullets.map((b) => (
+              <li key={b} className="text-xs text-white/50 flex gap-1.5">
+                <span className="text-orange-500 mt-0.5 shrink-0">·</span>
+                {b}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function MacroCounter() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("macroCalc");
   const { user, refreshUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [isApplyingOverlay, setIsApplyingOverlay] = useState(false);
+  const [overlayApplied, setOverlayApplied] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const isDirtyFirstRenderRef = useRef(true);
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
 
   const isFromOnboarding = window.location.search.includes("from=onboarding");
@@ -653,7 +761,12 @@ export default function MacroCounter() {
   const [bodyType, setBodyType] = useState<BodyType>(
     savedSettings?.bodyType ?? "meso",
   );
-  const [units, setUnits] = useState<Units>(savedSettings?.units ?? "imperial");
+  const [userType, setUserType] = useState<UserType>(
+    (savedSettings?.userType as UserType) ?? "flexible",
+  );
+  const [units, setUnits] = useState<Units>(
+    savedSettings?.units ?? ((user as any)?.measurementSystem as Units) ?? "imperial"
+  );
   const [sex, setSex] = useState<Sex>(savedSettings?.sex ?? "female");
   const [age, setAge] = useState<number>(savedSettings?.age ?? 30);
   const [heightFt, setHeightFt] = useState<number>(
@@ -677,7 +790,7 @@ export default function MacroCounter() {
   const [waistCm, setWaistCm] = useState<number>(
     savedSettings?.waistCm ?? 0,
   );
-  const [activity, setActivity] = useState<keyof typeof ACTIVITY_FACTORS | "">(
+  const [activity, setActivity] = useState<ActivityLevel | "">(
     savedSettings?.activity ?? "sedentary",
   );
   const [proteinPerKg, setProteinPerKg] = useState<number>(
@@ -693,12 +806,70 @@ export default function MacroCounter() {
     waistRisk: null,
   });
 
+  // Clinical flags feed directly into the macro pipeline (applyInputAdjustments)
+  const [clinicalFlags, setClinicalFlags] = useState<ClinicalAdvisoryState>(
+    () => loadUserAdvisory() || {}
+  );
+
   // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
   // Start with undefined so user must make an active choice (UX improvement)
   const existingTargets = getMacroTargets(user?.id);
   const [starchStrategy, setStarchStrategy] = useState<
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
+
+  // DailyNutritionPrescription — persistent starch preferences (saved to DB via PATCH)
+  // defaultStarchMealsPerDay: integer (1-4), replaces "one"/"flex" string
+  // starchDistributionStrategy: how starch is spread across meals
+  // Hydrate from DB-backed user profile if available; fall back to old macro_targets format
+  const derivedInitialMeals =
+    user?.defaultStarchMealsPerDay ??
+    (existingTargets?.starchStrategy === "flex" ? 2 : 1);
+  const [defaultStarchMealsPerDay, setDefaultStarchMealsPerDay] = useState<number>(
+    derivedInitialMeals
+  );
+  const [starchDistributionStrategy, setStarchDistributionStrategy] = useState<
+    "even" | "workout" | "morning" | "evening" | "ai"
+  >((user?.starchDistributionStrategy as "even" | "workout" | "morning" | "evening" | "ai") ?? "even");
+
+  // Clinical Context Screening — hydrate from DB via user profile on reload
+  const [clinicalContextResponse, setClinicalContextResponse] = useState<
+    "yes" | "no" | "unsure" | undefined
+  >(user?.clinicalContextResponse as "yes" | "no" | "unsure" | undefined);
+  const [clinicalContextCategories, setClinicalContextCategories] = useState<string[]>(
+    Array.isArray(user?.clinicalContextCategories)
+      ? (user.clinicalContextCategories as string[])
+      : []
+  );
+
+  // Clinical Precision Status — fetched from /api/prescription/clinical-status on the save step.
+  // null = not yet fetched; "standard_personalization" = no clinical tier or no data.
+  const [clinicalPrecisionStatus, setClinicalPrecisionStatus] = useState<
+    | "standard_personalization"
+    | "clinical_information_needed"
+    | "clinical_precision_available"
+    | "clinical_precision_active"
+    | null
+  >(null);
+
+  // Strategy layer state
+  const [cutIntensity, setCutIntensity] = useState<CutIntensity>(
+    (existingTargets?.cutIntensity === "standard" ? "none" : existingTargets?.cutIntensity) ?? "none"
+  );
+  const [cutStyle, setCutStyle] = useState<CutStyle>(
+    existingTargets?.cutStyle ?? "balanced"
+  );
+  const [starchyCarbCap_g, setStarchyCarbCap_g] = useState<number | null>(
+    existingTargets?.starchyCarbCap_g ?? null
+  );
+  const [allowZeroStarchyOnLowDay] = useState<boolean>(true);
+  const fibrousCarbSafetyCap_g = 200;
+  const [strictMode, setStrictMode] = useState<boolean>(
+    existingTargets?.strictMode ?? false
+  );
+  const [mealsPerDay, setMealsPerDay] = useState<number>(
+    existingTargets?.mealsPerDay ?? 4
+  );
 
   // Guided Mode State
   const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
@@ -708,7 +879,7 @@ export default function MacroCounter() {
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
       if (persisted) {
-        const stepOrder: GuidedStep[] = ["entry","goal","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","starch","bodyComposition","save","done"];
+        const stepOrder: GuidedStep[] = ["entry","goal","commitmentLevel","bodyType","units","sex","age","height","weight","waist","activity","syncWeight","metabolic","results","nutritionStrategy","starch","clinicalContext","bodyComposition","save","done"];
         if (stepOrder.includes(persisted as GuidedStep)) return persisted as GuidedStep;
       }
     } catch {}
@@ -723,6 +894,8 @@ export default function MacroCounter() {
   const [showResults, setShowResults] = useState(hasExistingSettings || resolveInitialStep() !== "entry");
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasSpokenEntry, setHasSpokenEntry] = useState(resolveInitialStep() !== "entry");
+  const [syncingWeight, setSyncingWeight] = useState(false);
+  const [coachMuted, setCoachMuted] = useState(() => localStorage.getItem("mpm.macroCalc.coachMuted") === "true");
   const entrySpokenRef = useRef(resolveInitialStep() !== "entry");
 
   // Chef Voice for guided walkthrough
@@ -733,6 +906,7 @@ export default function MacroCounter() {
     () => ({
       entry: MACRO_CALC_ENTRY,
       goal: MACRO_CALC_GOAL,
+      commitmentLevel: MACRO_CALC_COMMITMENT_LEVEL,
       bodyType: MACRO_CALC_BODY_TYPE,
       units: MACRO_CALC_UNITS,
       sex: MACRO_CALC_SEX,
@@ -744,12 +918,14 @@ export default function MacroCounter() {
       syncWeight: MACRO_CALC_SYNC_WEIGHT,
       metabolic: MACRO_CALC_METABOLIC,
       results: MACRO_CALC_RESULTS,
-      starch: MACRO_CALC_STARCH,
+      nutritionStrategy: "",
+      starch: MACRO_CALC_STARCH_COUNT,
+      clinicalContext: MACRO_CALC_CLINICAL_CONTEXT,
       bodyComposition: MACRO_CALC_BODY_COMPOSITION,
-      save: MACRO_CALC_SAVE,
+      save: goal === "contest_prep" ? MACRO_CALC_SAVE_CONTEST_PREP : MACRO_CALC_SAVE,
       done: MACRO_CALC_DONE,
     }),
-    [],
+    [goal],
   );
 
   // Helper to advance to next step with voice
@@ -760,7 +936,7 @@ export default function MacroCounter() {
       // Speak the script for this step (skip entry since it's handled by mount effect)
       if (nextStep !== "entry") {
         const script = stepScripts[nextStep];
-        if (script) {
+        if (script && !coachMuted) {
           speak(script);
         }
       }
@@ -769,7 +945,7 @@ export default function MacroCounter() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }, 100);
     },
-    [speak, stop, stepScripts],
+    [speak, stop, stepScripts, coachMuted],
   );
 
   // Speak entry script when component mounts in guided mode
@@ -777,7 +953,7 @@ export default function MacroCounter() {
     if (guidedStep === "entry" && !hasExistingSettings && !entrySpokenRef.current) {
       entrySpokenRef.current = true;
       const timer = setTimeout(() => {
-        speak(MACRO_CALC_ENTRY);
+        if (!coachMuted) speak(MACRO_CALC_ENTRY);
         setHasSpokenEntry(true);
       }, 500);
       return () => {
@@ -823,7 +999,8 @@ export default function MacroCounter() {
       if (mapped) setGoal(mapped);
     }
 
-    // height is stored in cm, weight in lbs
+    // height is stored in cm; weight is stored in kg (schema canonical — write path in
+    // POST /api/biometrics/weight always converts lb→kg before storing).
     if (user.height && user.height > 0) {
       setHeightCm(user.height);
       const totalIn = Math.round(user.height / 2.54);
@@ -832,8 +1009,14 @@ export default function MacroCounter() {
     }
 
     if (user.weight && user.weight > 0) {
-      setWeightLbs(user.weight);
-      setWeightKg(Math.round((user.weight / 2.205) * 10) / 10);
+      // users.weight is KG. Derive the lbs display value from it so the
+      // syncWeight step (which always posts lbs) round-trips cleanly:
+      //   stored kg → read as kg → weightLbs = kg × 2.20462
+      //   sync: POST /api/biometrics/weight { value: weightLbs, unit: "lb" }
+      //   server: Math.round(weightLbs / 2.20462) → same kg → no decay
+      const storedKg = user.weight;
+      setWeightKg(Math.round(storedKg * 10) / 10);
+      setWeightLbs(Math.round(storedKg * 2.20462));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -876,7 +1059,9 @@ export default function MacroCounter() {
       "syncWeight",
       "metabolic",
       "results",
+      "nutritionStrategy",
       "starch",
+      "clinicalContext",
       "bodyComposition",
       "save",
       "done",
@@ -890,12 +1075,17 @@ export default function MacroCounter() {
     {
       title: "Choose Your Goal",
       description:
-        "Cut = lose weight (15% deficit), Maintain = stay the same, Gain = build muscle (10% surplus).",
+        "Lose Fat = calorie deficit to reduce body fat. Maintain Weight = stay where you are. Build Muscle = slight surplus to support muscle growth. Contest Prep = competition protocol with hard cut and low-carb split.",
+    },
+    {
+      title: "Structure Level",
+      description:
+        "Flexible = practical targets with room for real life. Consistent = more structure and specific daily targets for people who commit to a plan. Performance = targets built for high-level training load, recovery, and competition. This shapes your numbers — not how hard the plan is to follow.",
     },
     {
       title: "Select Body Type",
       description:
-        "Ectomorph = thin, fast metabolism, higher carb tolerance. Mesomorph = balanced. Endomorph = stores weight more easily, lower carb tolerance.",
+        "Naturally Lean = tends to struggle gaining weight or muscle. Naturally Athletic = builds muscle and loses fat more easily. Naturally Fuller Build = gains weight more readily. Combination = shares traits from more than one. Most people are a mix.",
     },
     {
       title: "Enter Your Stats",
@@ -975,6 +1165,7 @@ export default function MacroCounter() {
       const settings = {
         goal,
         bodyType,
+        userType,
         units,
         sex,
         age,
@@ -1001,6 +1192,7 @@ export default function MacroCounter() {
   }, [
     goal,
     bodyType,
+    userType,
     units,
     sex,
     age,
@@ -1038,6 +1230,14 @@ export default function MacroCounter() {
     return () => ctrl.abort();
   }, [user?.id]);
 
+  useEffect(() => {
+    if (isDirtyFirstRenderRef.current) {
+      isDirtyFirstRenderRef.current = false;
+      return;
+    }
+    setIsDirty(true);
+  }, [goal, bodyType, userType, age, heightFt, heightIn, weightLbs, heightCm, weightKg, waistIn, waistCm, activity, starchStrategy, strictMode, mealsPerDay]);
+
   const kg = units === "imperial" ? kgFromLbs(weightLbs) : weightKg;
   const cm =
     units === "imperial" ? cmFromFeetInches(heightFt, heightIn) : heightCm;
@@ -1047,70 +1247,125 @@ export default function MacroCounter() {
     age > 0 &&
     cm > 0 &&
     kg > 0 &&
-    waistVal > 0 &&
     !!activity;
 
-  const saveWaistToBiometrics = async () => {
-    if (!user?.id || user.id.startsWith("guest-")) return;
-    try {
-      const wUnit = units === "imperial" ? "in" : "cm";
-      const wVal = units === "imperial" ? waistIn : waistCm;
-      if (!wVal || wVal <= 0) return;
-      await fetch(apiUrl("/api/biometrics/ingest"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          samples: [{ type: "waist_circumference", value: wVal, unit: wUnit }],
-        }),
-      });
-    } catch (err) {
-      console.error("Failed to save waist to biometrics:", err);
-    }
+  const saveWaistToBiometrics = async (): Promise<"saved" | "skipped_no_data"> => {
+    if (!user?.id || user.id.startsWith("guest-")) return "skipped_no_data";
+    const wUnit = units === "imperial" ? "in" : "cm";
+    const wVal = units === "imperial" ? waistIn : waistCm;
+    // No waist entered yet — skip silently; caller does not treat this as a failure.
+    if (!wVal || wVal <= 0) return "skipped_no_data";
+    const res = await fetch(apiUrl("/api/biometrics/ingest"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({
+        samples: [{ type: "waist_circumference", value: wVal, unit: wUnit }],
+      }),
+    });
+    if (!res.ok) throw new Error(`Waist save returned ${res.status}`);
+    return "saved";
   };
 
   const saveBiometricsToProfile = async () => {
     if (!user?.id || user.id.startsWith("guest-")) return;
-    try {
-      const heightVal = Math.round(cm);
-      const weightVal = Math.round(kg * 2.205);
-      await fetch(apiUrl("/api/users/profile"), {
-        method: "PUT",
+    const heightVal = Math.round(cm);
+    // users.weight is stored in kg. Always send kg with explicit weightUnit so
+    // the profile endpoint never silently stores a lbs value in the kg column.
+    const weightVal = Math.round(kg);
+    const profileRes = await fetch(apiUrl("/api/users/profile"), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({
+        age,
+        height: heightVal,
+        weight: weightVal,
+        weightUnit: "kg",
+        activityLevel: activity,
+        fitnessGoal: goal,
+      }),
+    });
+    if (!profileRes.ok) throw new Error(`Profile save returned ${profileRes.status}`);
+
+    // Also write a biometric_sample row so weight history on the Biometrics page
+    // stays in sync with every Macro Calculator save. The endpoint deduplicates
+    // by user + local date (not UTC) to handle midnight-timezone edge cases.
+    if (weightVal > 0) {
+      // en-CA locale produces YYYY-MM-DD in the user's local timezone — avoids
+      // UTC date boundary mismatches near midnight for non-UTC users.
+      const localDate = new Date().toLocaleDateString("en-CA");
+      const weightRes = await fetch(apiUrl("/api/biometrics/weight"), {
+        method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          age,
-          height: heightVal,
-          weight: weightVal,
-          activityLevel: activity,
-          fitnessGoal: goal,
-        }),
+        credentials: "include",
+        body: JSON.stringify({ value: weightVal, unit: "kg", localDate }),
       });
-      await refreshUser();
-    } catch (err) {
-      console.error("Failed to save biometrics to profile:", err);
+      if (!weightRes.ok) throw new Error(`Weight history save returned ${weightRes.status}`);
     }
   };
 
-  const results = useMemo(() => {
-    if (!isCalcInputValid) return null;
+  // [P3.2] Results are now computed server-side via POST /api/macro-calculator/compute.
+  const [results, setResults] = useState<MacroComputeResult | null>(null);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const computeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const bmr = mifflin({ sex, kg, cm, age });
-    const tdee = Math.round(
-      bmr * ACTIVITY_FACTORS[activity as keyof typeof ACTIVITY_FACTORS],
-    );
-    const target = goalAdjust(tdee, goal);
-    const starchyBase = getStarchyCarbs(sex, goal);
-    const fibrousMin = getFibrousBaseline(kg);
-    const base = calcMacrosBase({
-      calories: target,
-      kg,
-      proteinPerKg,
-      starchyBase,
-      fibrousMin,
-    });
-    const macros = applyBodyTypeTilt(base, bodyType, activity);
-    return { bmr, tdee, target, macros };
-  }, [isCalcInputValid, sex, kg, cm, age, activity, goal, proteinPerKg, fatPct, bodyType]);
+  useEffect(() => {
+    if (!isCalcInputValid) {
+      setResults(null);
+      return;
+    }
+
+    // Waist risk is derived from shared utils (not proprietary) — computed client-side
+    const waistCmForPipeline = units === "imperial" ? waistIn * 2.54 : waistCm;
+    let highWaistRisk = false;
+    if (waistCmForPipeline > 0 && cm > 0) {
+      const ratio = calculateWaistHeightRatio(waistCmForPipeline, cm);
+      const risk = classifyWaistRisk(ratio);
+      highWaistRisk = risk.level === "red";
+    }
+
+    if (computeDebounceRef.current) clearTimeout(computeDebounceRef.current);
+    setResultsLoading(true);
+
+    computeDebounceRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(apiUrl("/api/macro-calculator/compute"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            sex, kg, cm, age,
+            activity: activity || "moderate",
+            goal: goal === "contest_prep" ? "loss" : goal,
+            performanceOverlay: goal === "contest_prep" ? "competition_prep" : "standard",
+            userType, bodyType,
+            highWaistRisk,
+            menopause: !!(clinicalFlags.menopause?.enabled),
+            insulinResistance: !!(clinicalFlags.insulinResistance?.enabled),
+            highStress: !!(clinicalFlags.highStress?.enabled),
+            mealsPerDay, fibrousCarbSafetyCap_g,
+            cutIntensity, cutStyle, starchyCarbCap_g,
+            allowZeroStarchyOnLowDay, strictMode,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setResults(data);
+        }
+      } catch (err) {
+        console.error("[MacroCalculator] compute failed:", err);
+      } finally {
+        setResultsLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      if (computeDebounceRef.current) clearTimeout(computeDebounceRef.current);
+    };
+  }, [isCalcInputValid, sex, kg, cm, age, activity, goal, bodyType, userType,
+      mealsPerDay, cutIntensity, cutStyle,
+      starchyCarbCap_g, allowZeroStarchyOnLowDay, fibrousCarbSafetyCap_g, strictMode,
+      waistIn, waistCm, units, clinicalFlags]);
 
   const estimatedBodyFat = useMemo(() => {
     const waistCmVal = units === "imperial" ? waistIn * 2.54 : waistCm;
@@ -1118,36 +1373,161 @@ export default function MacroCounter() {
     return estimateBodyFatHybrid({ weightKg: kg, heightCm: cm, waistCm: waistCmVal, age, sex });
   }, [kg, cm, waistIn, waistCm, age, sex, units]);
 
-  const saveEstimatedBodyFat = async () => {
-    if (!user?.id || user.id.startsWith("guest-") || !estimatedBodyFat) return;
+  const saveEstimatedBodyFat = async (): Promise<"saved" | "skipped_no_data" | "skipped_clinical"> => {
+    // No estimate computable (waist not entered) — skip silently.
+    if (!user?.id || user.id.startsWith("guest-") || !estimatedBodyFat) return "skipped_no_data";
+    let existingGoalBF: number | null = null;
     try {
-      const latestRes = await fetch(apiUrl(`/api/users/${user.id}/body-composition/latest`), {
-        credentials: "include",
-        headers: getAuthHeaders(),
-      });
-      let existingGoalBF: number | null = null;
-      if (latestRes.ok) {
-        const latest = await latestRes.json();
-        if (latest?.source === "trainer" || latest?.source === "physician") return;
-        if (latest?.entry?.goalBodyFatPct) {
-          existingGoalBF = parseFloat(latest.entry.goalBodyFatPct);
-        }
+      const latest = await apiRequest(`/api/users/${user.id}/body-composition/latest`);
+      // A professional measurement is on file — don't overwrite with an AI estimate.
+      if (latest?.source === "trainer" || latest?.source === "physician") return "skipped_clinical";
+      if (latest?.entry?.goalBodyFatPct) {
+        existingGoalBF = parseFloat(latest.entry.goalBodyFatPct);
       }
+    } catch {
+      // Network failure fetching existing goal — proceed with null
+    }
+    await apiRequest(`/api/users/${user.id}/body-composition`, {
+      method: "POST",
+      body: JSON.stringify({
+        currentBodyFatPct: estimatedBodyFat,
+        goalBodyFatPct: existingGoalBF,
+        scanMethod: "Other",
+        source: "client",
+        recordedAt: new Date().toISOString(),
+      }),
+    });
+    return "saved";
+  };
 
-      await fetch(apiUrl(`/api/users/${user.id}/body-composition`), {
-        method: "POST",
-        credentials: "include",
+  // ── Shared helpers ───────────────────────────────────────────────────────────
+
+  /** Build a macro-targets object from the current computed results + advisory deltas. */
+  const buildMacroTargetsFromResults = () => {
+    const adjustedProtein = Math.max(0, results!.macros.protein.g + advisoryDeltas.protein);
+    const adjustedCarbs   = Math.max(0, results!.macros.carbs.g   + advisoryDeltas.carbs);
+    const adjustedFat     = Math.max(0, results!.macros.fat.g     + advisoryDeltas.fat);
+    const fibrousCarbs_g  = results!.macros.carbs.fibrous;
+    const starchyCarbs_g  = Math.max(0, adjustedCarbs - fibrousCarbs_g);
+    const vegetableCupsPerMeal = (results!.macros as any).vegetableCupsPerMeal ?? 3;
+    const vegetableCupsPerDay  = (results!.macros as any).vegetableCupsPerDay  ?? (mealsPerDay * 3);
+    // Cast needed: local CutIntensity/CutStyle declarations shadow the imported ones,
+    // creating a nominal mismatch even though the shapes are identical at runtime.
+    return {
+      calories: results!.target,
+      protein_g: adjustedProtein,
+      carbs_g: adjustedCarbs,
+      fat_g: adjustedFat,
+      starchyCarbs_g,
+      fibrousCarbs_g,
+      starchStrategy,
+      cutIntensity,
+      cutStyle,
+      starchyCarbCap_g,
+      allowZeroStarchyOnLowDay,
+      fibrousCarbSafetyCap_g,
+      strictMode,
+      mealsPerDay,
+      vegetableCupsPerMeal,
+      vegetableCupsPerDay,
+    } as Parameters<typeof setMacroTargets>[0];
+  };
+
+  /**
+   * Single shared save operation for every "save/update" button on this page.
+   *
+   * Contract:
+   *   1. Macro targets are saved first — throws on failure, shows error toast, stops.
+   *   2. Biometric writes (weight, waist, body fat) run in parallel via Promise.allSettled
+   *      so one failure never blocks the others.
+   *   3. Navigation (if any) happens only after all writes complete.
+   *   4. The user sees a success toast when everything saved, or a partial-failure
+   *      toast naming what was missed — never a silent half-save.
+   */
+  const performMacroAndBiometricsSave = async (
+    targets: Parameters<typeof setMacroTargets>[0],
+    options?: { successTitle?: string; onComplete?: () => void },
+  ): Promise<void> => {
+    // Step 1: Macro prescription — fatal; stop if this fails.
+    await setMacroTargets(targets, user?.id);
+
+    // Step 2: Starch preferences — non-blocking ancillary write.
+    if (user?.id && !user.id.startsWith("guest-")) {
+      apiRequest("/api/prescription/starch-preferences", {
+        method: "PATCH",
+        body: JSON.stringify({ defaultStarchMealsPerDay, starchDistributionStrategy }),
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          currentBodyFatPct: estimatedBodyFat,
-          goalBodyFatPct: existingGoalBF,
-          scanMethod: "Other",
-          source: "client",
-          recordedAt: new Date().toISOString(),
-        }),
+      }).catch((err) =>
+        console.error("[MacroCalculator] Failed to save starch preferences:", err),
+      );
+    }
+
+    // Step 3: All biometric writes in parallel — collect results, don't short-circuit.
+    const [weightResult, waistResult, bodyFatResult] = await Promise.allSettled([
+      saveBiometricsToProfile(),
+      saveWaistToBiometrics(),
+      saveEstimatedBodyFat(),
+    ]);
+
+    // Step 4: Dispatch event, refresh auth user, mark clean.
+    window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+    await refreshUser();
+    setIsDirty(false);
+
+    // Step 5: Navigate / complete callback only after all writes finish.
+    options?.onComplete?.();
+
+    // Step 6: Report — distinguish real HTTP failures from intentional skips.
+    //   "rejected"         → network/server error   → named in failure toast
+    //   "skipped_no_data"  → user hasn't entered waist/body-fat yet → silent (correct UX)
+    //   "skipped_clinical" → professional measurement on file → informational note
+    const failures: string[] = [];
+    if (weightResult.status === "rejected") failures.push("weight");
+    if (waistResult.status  === "rejected") failures.push("waist");
+    if (bodyFatResult.status === "rejected") failures.push("body fat");
+
+    const bodyFatClinicalSkip =
+      bodyFatResult.status === "fulfilled" && bodyFatResult.value === "skipped_clinical";
+
+    if (failures.length > 0) {
+      console.warn("[MacroCalculator] Partial save — biometric failures:", failures);
+      toast({
+        title: `${options?.successTitle ?? "Macros saved"} — some stats didn't update`,
+        description: `Macros saved. Could not update: ${failures.join(", ")}. Try saving again or visit the Biometrics page.`,
+        duration: 8000,
       });
-    } catch (err) {
-      console.error("Failed to save estimated body fat:", err);
+    } else if (bodyFatClinicalSkip) {
+      toast({
+        title: options?.successTitle ?? "Macros & Stats Saved",
+        description: "Macro targets and body measurements updated. Body-fat estimate was not applied — a professional measurement is already on file.",
+        duration: 6000,
+      });
+    } else {
+      toast({
+        title: options?.successTitle ?? "Macros & Stats Saved",
+        description: "Your macro targets and body stats have been updated.",
+      });
+    }
+  };
+
+  // ── Button handlers ──────────────────────────────────────────────────────────
+
+  const handleQuickSave = async () => {
+    if (!results || !isCalcInputValid || isSaving) return;
+    setIsSaving(true);
+    try {
+      await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
+        successTitle: "Macros & Stats Updated",
+      });
+    } catch (error) {
+      console.error("Failed to update macro targets:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to save your macro targets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1178,6 +1558,22 @@ export default function MacroCounter() {
     return () => clearTimeout(timeout);
   }, [results]);
 
+  // Fetch clinical precision status when the user reaches the final save step.
+  // This runs AFTER the clinicalContext PATCH has already persisted, so the resolver
+  // will see the updated screening data. Works for both new users and returning users.
+  useEffect(() => {
+    if (guidedStep !== "save" || !user?.id || user.id.startsWith("guest-")) return;
+    apiRequest(apiUrl("/api/prescription/clinical-status"), {
+      headers: { ...getAuthHeaders() },
+    })
+      .then((data: any) => {
+        if (data?.clinicalPrecisionStatus) {
+          setClinicalPrecisionStatus(data.clinicalPrecisionStatus);
+        }
+      })
+      .catch(() => {}); // non-fatal — status card simply doesn't render
+  }, [guidedStep, user?.id]);
+
   return (
     <>
       <motion.div
@@ -1186,7 +1582,6 @@ export default function MacroCounter() {
         transition={{ duration: 0.6 }}
         className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white pb-32"
       >
-        <TrialBanner />
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
         <div
@@ -1210,12 +1605,24 @@ export default function MacroCounter() {
               </button>
             )}
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              <span>Macro Calculator</span>
+              <span>{t("title")}</span>
             </h1>
 
             <div className="flex-grow" />
 
-            <MedicalSourcesInfo asIconButton />
+            <button
+              onClick={() => {
+                const next = !coachMuted;
+                setCoachMuted(next);
+                localStorage.setItem("mpm.macroCalc.coachMuted", String(next));
+                if (next) stop();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm text-white/80 font-medium"
+              title={coachMuted ? "Unmute coach narration" : "Mute coach narration"}
+            >
+              {coachMuted ? "🔇" : "🔊"}
+              <span className="hidden sm:inline">{coachMuted ? t("coachOff") : t("coachOn")}</span>
+            </button>
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
@@ -1276,38 +1683,57 @@ export default function MacroCounter() {
                 className="space-y-4"
               >
                 <Card className="bg-zinc-900/80 border border-white/30 text-white">
-                  <CardContent className="p-5 space-y-4">
+                  <CardContent className="p-5 space-y-5">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-6 w-6 text-orange-500" />
                       <h2 className="text-xl font-bold text-white">
-                        Welcome to Macro Calculator
+                        Before We Begin
                       </h2>
                     </div>
+
                     <p className="text-white/80 text-sm leading-relaxed">
-                      Let's set up your personalized nutrition targets together.
-                      I'll walk you through each step to make sure we get it
-                      right.
+                      This calculator builds your personalized daily nutrition plan — calories, protein, carbs, and healthy fats — based on your body and goals.
                     </p>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {[
+                        { icon: "📋", label: "10 Questions" },
+                        { icon: "⏱", label: "~3–5 minutes" },
+                        { icon: "🎯", label: "Personalized results" },
+                      ].map((b) => (
+                        <span key={b.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-sm text-orange-200">
+                          {b.icon} {b.label}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2">
+                      <p className="text-sm font-semibold text-white/80">Before you start, grab:</p>
+                      <ul className="space-y-1.5 text-sm text-white/70">
+                        <li className="flex items-start gap-2"><span>📏</span><span>A flexible tape measure <span className="text-white/45">(for your waist — the most important measurement)</span></span></li>
+                        <li className="flex items-start gap-2"><span>⚖️</span><span>Your current weight</span></li>
+                        <li className="flex items-start gap-2"><span>📐</span><span>Your approximate height</span></li>
+                      </ul>
+                    </div>
+
                     <Button
                       onClick={() => advanceGuided("goal")}
                       className="
                         w-full py-4
-                        bg-black/30
+                        bg-orange-600 hover:bg-orange-500
                         text-white font-semibold text-lg
                         rounded-xl
-                        border border-white/60
                       "
                       data-testid="guided-talk-to-chef"
                     >
-                      <LifeBuoy className="h-5 w-5 mr-2" />
-                      Start Chef-Assisted Setup
+                      Let's Get Started →
                     </Button>
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
-            {/* GUIDED STEP 1: Goal */}
+            {/* GUIDED STEP 1 of 10: Goal */}
             {guidedStep === "goal" && (
               <motion.div
                 key="guided-goal"
@@ -1321,40 +1747,77 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 1
+                        Step 1 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
                       What are we trying to do with our nutrition? What's your
                       ultimate goal?
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       {[
-                        { v: "loss", label: "Cut" },
-                        { v: "maint", label: "Maintain" },
-                        { v: "gain", label: "Gain" },
+                        { v: "loss", label: "Lose Fat", sub: null },
+                        { v: "maint", label: "Maintain Weight", sub: null },
+                        { v: "gain", label: "Build Muscle", sub: null },
+                        { v: "contest_prep", label: "Contest Prep", sub: "Competition protocol" },
                       ].map((g) => (
                         <div
                           key={g.v}
                           onClick={() => {
                             setGoal(g.v as Goal);
-                            advanceGuided("bodyType");
+                            if (g.v === "contest_prep") {
+                              setCutIntensity("hard");
+                              setCutStyle("lowCarb");
+                              setStarchyCarbCap_g(30);
+                              stop();
+                              if (!coachMuted) speak(MACRO_CALC_CONTEST_PREP);
+                              // Don't advance yet — show the overlay callout + Continue button
+                            } else {
+                              advanceGuided("commitmentLevel");
+                            }
                           }}
                           className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${goal === g.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
-                          {g.label}
+                          <div>{g.label}</div>
+                          {g.sub && (
+                            <div className="text-xs text-white/50 mt-0.5">{g.sub}</div>
+                          )}
                         </div>
                       ))}
                     </div>
+
+                    {/* Contest Prep overlay explanation — shown after selection, before advancing */}
+                    {goal === "contest_prep" && guidedStep === "goal" && (
+                      <div className="rounded-xl bg-orange-950/50 border border-orange-500/40 p-4 space-y-3">
+                        <p className="text-sm font-semibold text-orange-300">Competition Prep mode activated</p>
+                        <div className="text-sm text-white/75 leading-relaxed space-y-1">
+                          <p>Your calculator is now set to:</p>
+                          <ul className="list-none space-y-1 mt-1">
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>Hard cut — aggressive fat-loss calorie target</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>Low-carb split — minimal starchy carbs</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>30g starchy carb cap per day</span></li>
+                          </ul>
+                        </div>
+                        <p className="text-xs text-white/55 leading-relaxed">
+                          This is a metabolic overlay — not just a calculator preset. It carries into every meal generator in the app, telling them to use lean proteins, fibrous carbs, and competition-clean preparations. You can apply it to your full app profile at the save step.
+                        </p>
+                        <button
+                          onClick={() => advanceGuided("commitmentLevel")}
+                          className="w-full py-2.5 bg-orange-600 text-white font-semibold rounded-lg text-sm"
+                        >
+                          Got it, continue
+                        </button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
-            {/* GUIDED STEP 2: Body Type */}
-            {guidedStep === "bodyType" && (
+            {/* GUIDED STEP 2: Commitment Level */}
+            {guidedStep === "commitmentLevel" && (
               <motion.div
-                key="guided-bodytype"
+                key="guided-commitment"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -1362,14 +1825,9 @@ export default function MacroCounter() {
               >
                 {/* Completed: Goal */}
                 <div className="rounded-xl border border-white/20 bg-black/40 p-3">
-                  <p className="text-sm text-white/90 font-medium flex items-center gap-2">
+                  <p className="text-sm text-white/60 flex items-center gap-2">
                     <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
-                    Goal:{" "}
-                    {goal === "loss"
-                      ? "Cut"
-                      : goal === "maint"
-                        ? "Maintain"
-                        : "Gain"}
+                    Goal: {goalLabel(goal)}
                   </p>
                 </div>
 
@@ -1378,28 +1836,117 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 2
+                        Step 2 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
-                      What's your body type?
+                      What level of structure fits you best?
+                    </p>
+                    <p className="text-sm text-white/60">
+                      This helps us match your nutrition targets to how consistently you are likely to follow a plan. It does not make the plan harder or easier — it helps us make it realistic for you.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3">
+                      {([
+                        {
+                          v: "flexible",
+                          label: "Flexible",
+                          sub: "You want better nutrition, but your routine may change from day to day. You do best with practical targets, flexibility, and room for real life.",
+                        },
+                        {
+                          v: "consistent",
+                          label: "Consistent",
+                          sub: "You are usually able to follow a plan when you decide to commit. You are comfortable with more structure and more specific daily nutrition targets.",
+                        },
+                        {
+                          v: "performance",
+                          label: "Performance",
+                          sub: "You train or compete at a high level and need nutrition targets designed to support demanding physical performance, recovery, and training load.",
+                        },
+                      ] as { v: UserType; label: string; sub: string }[]).map((u) => (
+                        <div
+                          key={u.v}
+                          onClick={() => {
+                            setUserType(u.v);
+                            advanceGuided("bodyType");
+                          }}
+                          className={`flex flex-col gap-1 px-4 py-3 border rounded-xl cursor-pointer transition-colors ${userType === u.v ? "bg-orange-500/20 border-orange-400 text-orange-200" : "border-white/30 text-white/80 hover:border-white/60"}`}
+                        >
+                          <span className="font-semibold text-base">{u.label}</span>
+                          <span className="text-xs opacity-70 leading-snug">{u.sub}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 3: Body Type */}
+            {guidedStep === "bodyType" && (
+              <motion.div
+                key="guided-bodytype"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                {/* Completed: Goal + Commitment Level */}
+                <div className="flex flex-col gap-2">
+                  <div className="rounded-xl border border-white/20 bg-black/40 p-3">
+                    <p className="text-sm text-white/90 font-medium flex items-center gap-2">
+                      <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
+                      Goal: {goalLabel(goal)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-3">
+                    <p className="text-sm text-orange-200 font-medium flex items-center gap-2">
+                      <Check className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                      Structure:{" "}
+                      {userType === "flexible"
+                        ? "Flexible"
+                        : userType === "consistent"
+                          ? "Consistent"
+                          : "Performance"}
+                    </p>
+                  </div>
+                </div>
+
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-white">
+                        Step 3 of 10
+                      </h3>
+                    </div>
+                    <p className="text-white text-base">
+                      Which description best matches your natural tendency?
+                    </p>
+                    <p className="text-sm text-white/55 -mt-2">
+                      Most people are a combination. Choose the one that fits you best right now.
                     </p>
                     <BodyTypeGuide />
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { v: "ecto", label: "Ecto" },
-                        { v: "meso", label: "Meso" },
-                        { v: "endo", label: "Endo" },
-                      ].map((b) => (
+                    <div className="grid grid-cols-2 gap-3">
+                      {([
+                        { v: "ecto", label: "Naturally Lean",         sub: "Ectomorphic tendency",  desc: "Struggle to gain weight or muscle" },
+                        { v: "meso", label: "Naturally Athletic",     sub: "Mesomorphic tendency",  desc: "Build muscle and lose fat more easily" },
+                        { v: "endo", label: "Naturally Fuller Build", sub: "Endomorphic tendency",  desc: "Gain body weight more readily" },
+                        { v: "mix",  label: "Combination Build",      sub: "Mixed tendency",        desc: "Shares traits from more than one" },
+                      ] as { v: BodyType; label: string; sub: string; desc: string }[]).map((b) => (
                         <div
                           key={b.v}
                           onClick={() => {
-                            setBodyType(b.v as BodyType);
+                            setBodyType(b.v);
                             advanceGuided("units");
                           }}
-                          className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
+                          className={`flex flex-col items-center gap-2 px-3 py-4 border rounded-xl cursor-pointer text-center transition-colors ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/30 hover:border-white/60"}`}
                         >
-                          {b.label}
+                          <BodyTypeSilhouette type={b.v} />
+                          <div>
+                            <div className="font-semibold text-sm text-white">{b.label}</div>
+                            <div className="text-[11px] text-white/50 mt-0.5">{b.sub}</div>
+                            <div className="text-[11px] text-white/40 mt-1 leading-tight">{b.desc}</div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1422,23 +1969,13 @@ export default function MacroCounter() {
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500" />
-                      Goal:{" "}
-                      {goal === "loss"
-                        ? "Cut"
-                        : goal === "maint"
-                          ? "Maintain"
-                          : "Gain"}
+                      Goal: {goalLabel(goal)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
                       <Check className="h-4 w-4 text-lime-500" />
-                      Body Type:{" "}
-                      {bodyType === "ecto"
-                        ? "Ectomorph"
-                        : bodyType === "meso"
-                          ? "Mesomorph"
-                          : "Endomorph"}
+                      Body Tendency: {bodyTendencyLabel(bodyType)}
                     </p>
                   </div>
                 </div>
@@ -1448,7 +1985,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 3
+                        Step 4
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -1479,7 +2016,7 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 4: Sex */}
+            {/* GUIDED STEP 5: Sex */}
             {guidedStep === "sex" && (
               <motion.div
                 key="guided-sex"
@@ -1493,11 +2030,14 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 4
+                        Step 5 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
-                      What is your biological sex? (for metabolic calculations)
+                      What is your biological sex?
+                    </p>
+                    <p className="text-xs text-white/45 -mt-2">
+                      Used only for the metabolic formula — it affects how we calculate your calorie burn and protein targets.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <div
@@ -1538,7 +2078,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 5
+                        Step 6 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">How old are you?</p>
@@ -1586,7 +2126,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 6
+                        Step 7 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">What's your height?</p>
@@ -1679,7 +2219,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 7
+                        Step 8 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -1738,11 +2278,14 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Waist Measurement
+                        Step 9 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
                       What's your waist circumference?
+                    </p>
+                    <p className="text-xs text-white/45 -mt-2">
+                      Your waist measurement helps us understand body composition and where you tend to carry weight — information the scale alone cannot provide.
                     </p>
                     <Input
                       type="number"
@@ -1801,11 +2344,14 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 8
+                        Step 10 of 10
                       </h3>
                     </div>
                     <p className="text-white text-base">
                       What is your activity level?
+                    </p>
+                    <p className="text-xs text-white/45 -mt-2">
+                      This determines how many calories your body burns daily — the biggest variable in your plan.
                     </p>
                     <div className="space-y-2">
                       {[
@@ -1830,7 +2376,7 @@ export default function MacroCounter() {
                         <div
                           key={a.v}
                           onClick={() => {
-                            setActivity(a.v as keyof typeof ACTIVITY_FACTORS);
+                            setActivity(a.v as ActivityLevel);
                             advanceGuided("syncWeight");
                           }}
                           className={`w-full px-3 py-2 border rounded-lg cursor-pointer flex justify-between items-center ${activity === a.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
@@ -1859,35 +2405,44 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 9
+                        Optional: Save Your Weight
                       </h3>
                     </div>
                     <p className="text-white text-base">
                       Would you like to save your weight to biometrics?
                     </p>
+                    <p className="text-white/60 text-sm">
+                      This helps track your progress and adjust your plan over time.
+                    </p>
                     <Button
-                      onClick={() => {
-                        const weight =
-                          units === "imperial" ? weightLbs : weightKg;
-                        localStorage.setItem(
-                          "pending-weight-sync",
-                          JSON.stringify({
-                            weight,
-                            units,
-                            timestamp: Date.now(),
-                          }),
-                        );
-                        toast({
-                          title: "Weight ready to sync",
-                          description:
-                            "Go to My Biometrics to save it to your history.",
-                        });
-                        advanceGuided("metabolic");
+                      disabled={syncingWeight}
+                      onClick={async () => {
+                        const weightValue = units === "imperial" ? weightLbs : weightKg;
+                        if (!weightValue || weightValue <= 0) {
+                          toast({ title: "Enter weight first", description: "Please enter a valid weight before saving.", variant: "destructive" });
+                          return;
+                        }
+                        setSyncingWeight(true);
+                        try {
+                          const today = new Date().toISOString().split("T")[0];
+                          const res = await fetch(apiUrl("/api/biometrics/weight"), {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                            body: JSON.stringify({ value: weightLbs, unit: "lb", localDate: today }),
+                          });
+                          if (!res.ok) throw new Error("Save failed");
+                          toast({ title: "Weight saved to biometrics", description: "Your progress is being tracked." });
+                          advanceGuided("metabolic");
+                        } catch {
+                          toast({ title: "Couldn't save weight", description: "Please try again.", variant: "destructive" });
+                        } finally {
+                          setSyncingWeight(false);
+                        }
                       }}
-                      className="w-full py-3 bg-lime-600 border border-lime-300 text-white font-semibold rounded-xl"
+                      className="w-full py-3 bg-lime-600 border border-lime-300 text-white font-semibold rounded-xl disabled:opacity-60"
                     >
                       <Scale className="h-4 w-4 mr-2" />
-                      Save Weight to Biometrics
+                      {syncingWeight ? "Saving…" : "Save Weight to Biometrics"}
                     </Button>
                     <Button
                       variant="ghost"
@@ -1915,7 +2470,7 @@ export default function MacroCounter() {
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
                       <h3 className="text-lg font-semibold text-white">
-                        Step 10
+                        Almost Done
                       </h3>
                     </div>
                     <p className="text-white text-base">
@@ -1960,6 +2515,7 @@ export default function MacroCounter() {
                           carbs: results.macros.carbs.g,
                           fat: results.macros.fat.g,
                         }}
+                        onFlagsChange={(flags) => setClinicalFlags(flags)}
                         onApplyAdjustments={(deltas) => {
                           setAdvisorySources((prev) => ({
                             ...prev,
@@ -2019,13 +2575,18 @@ export default function MacroCounter() {
                         )}
                       />
                       {(() => {
-                        const adjTotal = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                        const starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                        const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase, getFibrousBaseline(kg));
+                        const starchy = results.macros.carbs.starchy;
+                        const fibrous = results.macros.carbs.fibrous;
+                        const cupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                        const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                         return (
                           <>
-                            <MacroRow label="Carbs - Starchy" grams={starchy} />
-                            <MacroRow label="Carbs - Fibrous" grams={fibrous} />
+                            <MacroRow label="Carbs - Starchy" grams={starchy} isKey />
+                            <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
+                            <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
+                              <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
+                              <span>1 cup ≈ 5g</span>
+                            </div>
                           </>
                         );
                       })()}
@@ -2054,7 +2615,164 @@ export default function MacroCounter() {
               </motion.div>
             )}
 
-            {/* GUIDED STEP 12: Starch Strategy */}
+            {/* GUIDED STEP 12: Nutrition Strategy (hidden — managed via ProCare settings) */}
+            {guidedStep === "nutritionStrategy" && (
+              <motion.div
+                key="guided-nutrition-strategy"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card data-wt="mc-nutrition-strategy" className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-400 text-xl">⚡</span>
+                      <h3 className="text-lg font-semibold text-white">Nutrition Strategy</h3>
+                    </div>
+
+                    {/* Meals Per Day */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Meals Per Day</p>
+                      <p className="text-xs text-white/50">Drives your daily vegetable prescription — more meals = more vegetable volume</p>
+                      <div className="space-y-3">
+                        {([3, 4, 5] as const).map((n) => (
+                          <div key={n} className={`p-4 rounded-xl border transition-all ${mealsPerDay === n ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">{n} Meals</span>
+                                <p className="text-xs text-white/60 mt-0.5">
+                                  {n === 3 ? "3 meals, no snacks — simple structure" : n === 4 ? "3 meals + 1 snack — most common" : "5 smaller meals — frequent fueling"}
+                                </p>
+                              </div>
+                              <PillButton onClick={() => setMealsPerDay(n)} active={mealsPerDay === n}>
+                                {mealsPerDay === n ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Cut Intensity */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Cut Intensity</p>
+                      <div className="space-y-3">
+                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "none" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Standard</span>
+                              <p className="text-xs text-white/60 mt-0.5">Balanced deficit — recommended for most goals</p>
+                            </div>
+                            <PillButton onClick={() => setCutIntensity("none")} active={cutIntensity === "none"}>
+                              {cutIntensity === "none" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                        <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "hard" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-medium text-white">Hard Cut</span>
+                              <p className="text-xs text-white/60 mt-0.5">Aggressive deficit with protein boost</p>
+                            </div>
+                            <PillButton onClick={() => setCutIntensity("hard")} active={cutIntensity === "hard"}>
+                              {cutIntensity === "hard" ? "On" : "Off"}
+                            </PillButton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cut Style — only when hard cut selected */}
+                    {cutIntensity === "hard" && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-white/80">Cut Style</p>
+                        <div className="space-y-3">
+                          <div className={`p-4 rounded-xl border transition-all ${cutStyle === "balanced" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">Balanced</span>
+                                <p className="text-xs text-white/60 mt-0.5">Moderate carb reduction, fat held steady</p>
+                              </div>
+                              <PillButton onClick={() => setCutStyle("balanced")} active={cutStyle === "balanced"}>
+                                {cutStyle === "balanced" ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
+                          <div className={`p-4 rounded-xl border transition-all ${cutStyle === "lowCarb" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-medium text-white">Low Carb</span>
+                                <p className="text-xs text-white/60 mt-0.5">Deep carb cut, fat raised to compensate</p>
+                              </div>
+                              <PillButton onClick={() => setCutStyle("lowCarb")} active={cutStyle === "lowCarb"}>
+                                {cutStyle === "lowCarb" ? "On" : "Off"}
+                              </PillButton>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Starchy Carb Cap (optional) */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-white/80">Starchy Carb Cap <span className="text-white/40 font-normal">(optional)</span></p>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={400}
+                          placeholder="No cap"
+                          value={starchyCarbCap_g ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setStarchyCarbCap_g(v === "" ? null : Math.max(0, parseInt(v) || 0));
+                          }}
+                          className="w-28 bg-white/10 border-white/20 text-white placeholder:text-white/30"
+                        />
+                        <span className="text-sm text-white/50">g / day</span>
+                        {starchyCarbCap_g !== null && (
+                          <button
+                            onClick={() => setStarchyCarbCap_g(null)}
+                            className="text-xs text-white/40 hover:text-white/70 underline"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Strict Mode toggle */}
+                    <div className={`p-4 rounded-xl border transition-all ${strictMode ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-medium text-white">Strict Mode</span>
+                          <p className="text-xs text-white/60 mt-0.5">No auto-corrections — raw macros only (competition / ProCare)</p>
+                        </div>
+                        <PillButton onClick={() => setStrictMode(!strictMode)} active={strictMode} variant="amber">
+                          {strictMode ? "On" : "Off"}
+                        </PillButton>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Button
+                  onClick={() => advanceGuided("starch")}
+                  className="
+                    w-full py-4
+                    bg-lime-600
+                    text-white font-semibold text-lg
+                    rounded-xl
+                    border border-white/60
+                  "
+                >
+                  Continue
+                </Button>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 13: Starch Strategy */}
             {guidedStep === "starch" && (
               <motion.div
                 key="guided-starch"
@@ -2063,82 +2781,410 @@ export default function MacroCounter() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-4"
               >
-                <Card className="bg-zinc-900/80 border border-white/30 text-white">
-                  <CardContent className="p-6 space-y-4">
+                <Card data-wt="mc-starch-game-plan" className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-6">
+
+                    {/* Header */}
                     <div className="flex items-center gap-2">
-                      <span className="text-amber-400 text-xl">🌾</span>
+                      <span className="text-amber-400 text-xl">🍠</span>
                       <h3 className="text-lg font-semibold text-white">
                         Your Starch Game Plan
                       </h3>
                     </div>
-                    <p className="text-white text-base">
-                      How are you going to eat your starches? One meal or split
-                      across two?
-                    </p>
-                    <div className="space-y-3">
-                      <div
-                        className={`p-4 rounded-xl border transition-all ${
-                          starchStrategy === "one"
-                            ? "bg-black/60 border-white/20"
-                            : "bg-white/5 border-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-white">
-                              One Starch Meal
-                            </span>
-                            <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
-                              Recommended
-                            </span>
-                          </div>
-                          <PillButton
-                            onClick={() => {
-                              setStarchStrategy("one");
-                              advanceGuided("bodyComposition");
-                            }}
-                            active={starchStrategy === "one"}
-                          >
-                            {starchStrategy === "one" ? "On" : "Off"}
-                          </PillButton>
-                        </div>
-                        <p className="text-xs text-white/60">
-                          All starches in one meal - best for appetite control
-                        </p>
-                      </div>
 
-                      <div
-                        className={`p-4 rounded-xl border transition-all ${
-                          starchStrategy === "flex"
-                            ? "bg-black/60 border-white/20"
-                            : "bg-white/5 border-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-white">
-                            Flex Split
-                          </span>
-                          <PillButton
-                            onClick={() => {
-                              setStarchStrategy("flex");
-                              advanceGuided("bodyComposition");
-                            }}
-                            active={starchStrategy === "flex"}
-                          >
-                            {starchStrategy === "flex" ? "On" : "Off"}
-                          </PillButton>
+                    {/* Why we're asking */}
+                    <p className="text-sm text-white/70">
+                      My Perfect Meals separates starchy and fibrous carbohydrates because they
+                      affect the body differently. Your starch distribution helps the AI determine
+                      where to place energy-rich carbohydrates throughout your day while keeping
+                      your meals aligned with your nutrition goals.
+                    </p>
+
+                    {/* Daily starch target — shows the computed value */}
+                    {(() => {
+                      const starchyTarget = results?.macros?.carbs?.starchy ?? 0;
+                      if (starchyTarget <= 0) return null;
+                      return (
+                        <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-1">
+                          <p className="text-xs text-white/50 uppercase tracking-wide font-medium">Your daily starch target</p>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-bold text-amber-400">{starchyTarget}g</span>
+                            <span className="text-sm text-white/60">of starchy carbohydrates per day</span>
+                          </div>
+                          <p className="text-xs text-white/40 pt-1">
+                            Starchy carbs = rice, pasta, bread, potatoes, oats. Fibrous vegetables are unlimited.
+                          </p>
                         </div>
-                        <p className="text-xs text-white/60">
-                          Split starches across two meals
-                        </p>
+                      );
+                    })()}
+
+                    {/* How many starch meals? */}
+                    <div className="space-y-3">
+                      <p className="text-white text-sm font-medium">
+                        How many meals a day will include starchy carbs?
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {([1, 2, 3, 4, 5, 6] as const).map((n) => (
+                          <PillButton
+                            key={n}
+                            onClick={() => {
+                              setDefaultStarchMealsPerDay(n);
+                              setStarchStrategy(n === 1 ? "one" : "flex");
+                              setIsDirty(true);
+                            }}
+                            active={defaultStarchMealsPerDay === n}
+                          >
+                            {n} {n === 1 ? "meal" : "meals"}
+                          </PillButton>
+                        ))}
                       </div>
                     </div>
+
+                    {/* Timing preference */}
+                    <div className="space-y-3">
+                      <p className="text-white text-sm font-medium">
+                        When do you prefer to eat your starchy carbs?
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(
+                          [
+                            { value: "even",    label: "Spread evenly" },
+                            { value: "morning", label: "Earlier in day" },
+                            ...(user?.performanceModeEnabled && user?.weeklyTrainingSchedule
+                              ? [{ value: "workout", label: "Around workouts" }]
+                              : []),
+                            { value: "evening", label: "Evening" },
+                            { value: "ai",      label: "AI decides" },
+                          ] as const
+                        ).map(({ value, label }) => (
+                          <PillButton
+                            key={value}
+                            onClick={() => { setStarchDistributionStrategy(value as typeof starchDistributionStrategy); setIsDirty(true); }}
+                            active={starchDistributionStrategy === value}
+                          >
+                            {label}
+                          </PillButton>
+                        ))}
+                      </div>
+                      <p className="text-white/50 text-xs min-h-[1.25rem]">
+                        {starchDistributionStrategy === "even"
+                          ? "Starch is distributed evenly across your selected meal slots."
+                          : starchDistributionStrategy === "morning"
+                          ? "Starch is assigned to your earliest meal slots — may support glucose control and daily targets."
+                          : starchDistributionStrategy === "workout"
+                          ? "Starch is timed around your training sessions for fuel and recovery."
+                          : starchDistributionStrategy === "evening"
+                          ? "Starch is assigned to your latest meal slots."
+                          : "The AI selects which meal slots receive starch based on your meal plan context."}
+                      </p>
+                    </div>
+
+                    {/* Today's Starch Prescription — live preview */}
+                    {(() => {
+                      const starchyTarget = results?.macros?.carbs?.starchy ?? 0;
+                      if (starchyTarget <= 0) return null;
+                      const n = defaultStarchMealsPerDay;
+                      const base = Math.floor(starchyTarget / n);
+                      const remainder = starchyTarget - base * n;
+                      // Distribute remainder to last meal so the first meals show the round number
+                      const mealGrams = Array.from({ length: n }, (_, i) =>
+                        i === n - 1 ? base + remainder : base
+                      );
+                      const timingLabel =
+                        starchDistributionStrategy === "even"    ? "Spread Evenly" :
+                        starchDistributionStrategy === "morning"  ? "Earlier in the Day" :
+                        starchDistributionStrategy === "workout"  ? "Around Workouts" :
+                        starchDistributionStrategy === "evening"  ? "Evening" :
+                        "AI Decides";
+
+                      return (
+                        <div className="bg-black/40 rounded-xl p-4 border border-amber-500/20 space-y-3">
+                          <p className="text-xs text-amber-400/80 uppercase tracking-wide font-medium">
+                            Today's Starch Prescription
+                          </p>
+
+                          {/* Math flow */}
+                          <div className="space-y-1 text-sm">
+                            <div className="flex items-center gap-2 text-white/70">
+                              <span>{starchyTarget}g daily starch</span>
+                            </div>
+                            <div className="text-white/30 text-xs pl-1">÷ {n} {n === 1 ? "starch meal" : "starch meals"}</div>
+                          </div>
+
+                          {/* Meal rows */}
+                          <div className="space-y-1 border-t border-white/10 pt-3">
+                            {mealGrams.map((g, i) => (
+                              <div key={i} className="flex items-center justify-between text-sm">
+                                <span className="text-white/70">Meal {i + 1}</span>
+                                <span className="text-amber-400 font-semibold">≈ {g}g</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Timing */}
+                          <div className="flex items-center justify-between text-sm border-t border-white/10 pt-3">
+                            <span className="text-white/50">Timing</span>
+                            <span className="text-white/80 font-medium">{timingLabel}</span>
+                          </div>
+
+                          <p className="text-xs text-white/40 pt-1">
+                            My Perfect Meals will use this prescription when generating meals.
+                            You don't have to calculate anything yourself.
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Educational collapsible */}
+                    <Collapsible>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-left py-1">
+                        <span className="text-sm text-white/60 font-medium">Why Does Starch Timing Matter?</span>
+                        <ChevronDown className="h-4 w-4 text-white/30 flex-shrink-0" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-3 space-y-3">
+                        <p className="text-sm text-white/70">
+                          Your body doesn't just care <em>how many</em> starchy carbohydrates you eat — it also
+                          responds to <em>when</em> you eat them.
+                        </p>
+                        <p className="text-sm text-white/70">
+                          For many people, especially those working on blood sugar management, insulin sensitivity,
+                          or weight loss, eating larger amounts of starchy carbohydrates earlier in the day may
+                          help support better glucose control and make it easier to stay within daily nutrition targets.
+                        </p>
+                        <p className="text-sm text-white/70">
+                          If your goal is athletic performance, muscle gain, or fueling workouts, your starch
+                          distribution may be different. That's why Performance Nutrition uses its own timing
+                          strategies based on your training schedule.
+                        </p>
+                        <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                          <p className="text-xs text-white/40 font-medium mb-1">Educational Note</p>
+                          <p className="text-xs text-white/50">
+                            Carbohydrate timing is one part of a healthy nutrition plan. Individual responses
+                            vary depending on activity level, medical conditions, medications, and overall meal
+                            composition. If you have diabetes or another medical condition, always follow the
+                            guidance provided by your healthcare team.
+                          </p>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    <button
+                      onClick={() => advanceGuided("clinicalContext")}
+                      className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
+                    >
+                      Continue
+                    </button>
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
-            {/* GUIDED STEP 13: Body Composition (Optional) */}
+            {/* GUIDED STEP 13b: Medication & Clinical Context */}
+            {guidedStep === "clinicalContext" && (
+              <motion.div
+                key="guided-clinical-context"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-6 space-y-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-400 text-xl">⚕️</span>
+                      <h3 className="text-lg font-semibold text-white">
+                        Medications, Hormones & Your Nutrition Plan
+                      </h3>
+                    </div>
+
+                    {/* Education card */}
+                    <div className="bg-white/5 rounded-xl p-4 space-y-4 border border-white/10">
+                      <p className="text-sm text-white">
+                        Medications, hormones, and lab values can affect how your nutrition plan should be interpreted.
+                      </p>
+                      <p className="text-sm text-white/90">
+                        Some treatments may influence appetite, glucose response, fluid balance, blood pressure,
+                        body composition, and weight trends. Lab values help the system understand how your body
+                        is responding and allow more informed personalization.
+                      </p>
+
+                      {/* Two-level distinction */}
+                      <div className="space-y-2 border-t border-white/10 pt-3">
+                        <p className="text-sm font-semibold text-white">This screen is for screening only</p>
+                        <div className="space-y-2 text-sm text-white/90">
+                          <p>
+                            <span className="font-medium text-orange-400">Here (Macro Calculator):</span>{" "}
+                            Identify that a relevant medication, hormone, or treatment exists.
+                          </p>
+                          <p>
+                            <span className="font-medium text-orange-400">Biometrics / Clinical Profile:</span>{" "}
+                            Record the complete information the system needs — medication name, treatment type,
+                            dose, frequency, relevant lab values, dates, and trends. Selecting a category here
+                            does not replace that record.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Why sources matter — connected to feature */}
+                      <Collapsible>
+                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-white/80 font-medium">
+                          <span>Why this matters — clinical evidence</span>
+                          <ChevronDown className="h-3 w-3" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-3">
+                          <p className="text-xs text-white/90">
+                            Corticosteroids such as prednisone may affect appetite, fluid retention, glucose tolerance,
+                            protein catabolism, and weight trends. Hormone therapies such as testosterone require
+                            laboratory monitoring to evaluate treatment response and guide clinical decisions.
+                            That is why My Perfect Meals asks about both medication use and relevant lab values.
+                          </p>
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-white">Sources consulted:</p>
+                            <ul className="space-y-1 ml-2 text-xs text-white/80">
+                              <li>• FDA/DailyMed — Prednisone prescribing information (fluid retention, altered glucose tolerance, appetite, weight gain, sodium retention, potassium loss, protein catabolism)</li>
+                              <li>• Endocrine Society — Testosterone Therapy for Hypogonadism clinical practice guideline (laboratory assessment and ongoing monitoring requirements)</li>
+                            </ul>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+
+                    {/* Response gate */}
+                    <div className="space-y-3">
+                      <p className="text-white text-sm font-medium">
+                        Are you taking medications, hormones, peptides, or receiving treatments that may affect your nutrition?
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(["yes", "no", "unsure"] as const).map((r) => (
+                          <PillButton
+                            key={r}
+                            onClick={() => {
+                              setClinicalContextResponse(r);
+                              if (r !== "yes") setClinicalContextCategories([]);
+                            }}
+                            active={clinicalContextResponse === r}
+                          >
+                            {r === "yes" ? "Yes" : r === "no" ? "No" : "Not sure"}
+                          </PillButton>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Category picker — only when "yes" */}
+                    {clinicalContextResponse === "yes" && (
+                      <div className="space-y-4">
+                        <p className="text-white text-sm font-medium">Select all that apply:</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {(
+                            [
+                              { value: "systemic_corticosteroid", label: "Corticosteroids (prednisone)" },
+                              { value: "testosterone_therapy", label: "Testosterone / TRT" },
+                              { value: "estrogen_or_progesterone", label: "Estrogen / Progesterone" },
+                              { value: "thyroid_medication", label: "Thyroid medication" },
+                              { value: "glp1_medication", label: "GLP-1 (Ozempic, Wegovy)" },
+                              { value: "insulin_or_diabetes_medication", label: "Insulin / Diabetes meds" },
+                              { value: "cardiac_or_blood_pressure_medication", label: "Cardiac / Blood pressure" },
+                              { value: "diuretic", label: "Diuretics" },
+                              { value: "peptide_or_growth_hormone_related", label: "Peptides / Growth hormone" },
+                              { value: "other", label: "Other" },
+                            ] as const
+                          ).map(({ value, label }) => (
+                            <PillButton
+                              key={value}
+                              onClick={() => {
+                                setClinicalContextCategories((prev) =>
+                                  prev.includes(value)
+                                    ? prev.filter((v) => v !== value)
+                                    : [...prev, value],
+                                );
+                              }}
+                              active={clinicalContextCategories.includes(value)}
+                            >
+                              {label}
+                            </PillButton>
+                          ))}
+                        </div>
+
+                        {/* Screening-only notice — appears on any selection */}
+                        {clinicalContextCategories.length > 0 && (
+                          <p className="text-sm text-white/90">
+                            Your selections tell the system that a relevant medication or treatment exists.
+                            The Macro Calculator uses this to flag important considerations — it does not
+                            replace a complete medication record with names, doses, frequency, and lab values.
+                          </p>
+                        )}
+
+                        {/* Detailed record callout — shown when any lab-measurable medication is selected */}
+                        {clinicalContextCategories.some((c) =>
+                          ["testosterone_therapy", "thyroid_medication", "glp1_medication", "insulin_or_diabetes_medication", "estrogen_or_progesterone"].includes(c)
+                        ) && (
+                          <div className="rounded-xl bg-orange-950/50 border border-orange-500/40 p-4 space-y-3">
+                            <p className="text-sm font-semibold text-white">
+                              Additional clinical information may improve personalization
+                            </p>
+                            <p className="text-sm text-white/90">
+                              {[
+                                clinicalContextCategories.includes("testosterone_therapy") && "testosterone therapy (total testosterone, free testosterone)",
+                                clinicalContextCategories.includes("thyroid_medication") && "thyroid medication (TSH, T3, T4)",
+                                clinicalContextCategories.includes("glp1_medication") && "GLP-1 medication (A1c, fasting glucose)",
+                                clinicalContextCategories.includes("insulin_or_diabetes_medication") && "insulin or diabetes medication (A1c, blood glucose trends)",
+                                clinicalContextCategories.includes("estrogen_or_progesterone") && "estrogen or progesterone therapy (hormone panel)",
+                              ].filter(Boolean).length > 0 && (
+                                <>
+                                  You selected{" "}
+                                  {[
+                                    clinicalContextCategories.includes("testosterone_therapy") && "testosterone therapy",
+                                    clinicalContextCategories.includes("thyroid_medication") && "thyroid medication",
+                                    clinicalContextCategories.includes("glp1_medication") && "GLP-1 medication",
+                                    clinicalContextCategories.includes("insulin_or_diabetes_medication") && "insulin or diabetes medication",
+                                    clinicalContextCategories.includes("estrogen_or_progesterone") && "estrogen or progesterone therapy",
+                                  ].filter(Boolean).join(", ")}.{" "}
+                                </>
+                              )}
+                              Add your treatment details and relevant lab values in Biometrics so My Perfect Meals
+                              can evaluate this context more completely and provide more informed,
+                              clinically aware personalization.
+                            </p>
+                            <a
+                              href="/my-biometrics"
+                              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold"
+                            >
+                              Add Medication &amp; Lab Details
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={async () => {
+                        if (clinicalContextResponse && user?.id && !user.id.startsWith("guest-")) {
+                          try {
+                            await apiRequest(apiUrl("/api/prescription/clinical-context"), {
+                              method: "PATCH",
+                              body: JSON.stringify({
+                                clinicalContextResponse,
+                                selectedClinicalCategories:
+                                  clinicalContextResponse === "yes" ? clinicalContextCategories : [],
+                              }),
+                              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                            });
+                          } catch (err) {
+                            console.error("[MacroCalculator] Failed to save clinical context (non-fatal):", err);
+                          }
+                        }
+                        advanceGuided("bodyComposition");
+                      }}
+                      className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
+                    >
+                      {clinicalContextResponse ? "Continue" : "Skip for now"}
+                    </button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* GUIDED STEP 14: Body Composition (Optional) */}
             {guidedStep === "bodyComposition" && (
               <BodyCompositionGuidedStep
                 sex={sex}
@@ -2201,8 +3247,22 @@ export default function MacroCounter() {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Carbs:</span>
+                        <span className="text-white/70">Starchy Carbs:</span>
                         <span className="text-white font-semibold">
+                          {Math.max(0, results.macros.carbs.starchy + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.4) : Math.round(advisoryDeltas.carbs * 0.4)))}
+                          g
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Fibrous Carbs:</span>
+                        <span className="text-white font-semibold">
+                          {Math.max(0, results.macros.carbs.fibrous + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.6) : Math.round(advisoryDeltas.carbs * 0.6)))}
+                          g
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t border-white/10 pt-2">
+                        <span className="text-white/50 text-xs">Total Carbs:</span>
+                        <span className="text-white/50 text-xs font-medium">
                           {Math.max(
                             0,
                             results.macros.carbs.g + advisoryDeltas.carbs,
@@ -2222,67 +3282,156 @@ export default function MacroCounter() {
                       </div>
                     </div>
 
+                    {/* Performance Overlay — Apply to Profile */}
+                    {goal === "contest_prep" && (
+                      <div className="bg-orange-950/40 border border-orange-500/30 rounded-xl p-4 space-y-3">
+                        <p className="text-sm font-semibold text-orange-300">Use Competition Prep Across My App</p>
+                        <p className="text-xs text-white/60">
+                          Apply this metabolic mode so all of your meal generators match your prep goals.
+                        </p>
+                        <div className="bg-black/30 rounded-lg p-3 space-y-1.5">
+                          <p className="text-[11px] font-semibold text-orange-400 uppercase tracking-wide">What this does</p>
+                          <ul className="space-y-1">
+                            {[
+                              "Every meal builder switches to competition standards",
+                              "30g starchy carb cap enforced app-wide",
+                              "Hard cut macros and lean ingredient selection everywhere",
+                              "Your medical and allergy protections stay fully active",
+                            ].map((item) => (
+                              <li key={item} className="flex items-start gap-2 text-[11px] text-white/60">
+                                <span className="text-orange-500 mt-0.5 flex-shrink-0">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <button
+                          disabled={isApplyingOverlay || overlayApplied}
+                          onClick={async () => {
+                            setIsApplyingOverlay(true);
+                            try {
+                              const res = await fetch(apiUrl("/api/users/profile"), {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                                credentials: "include",
+                                body: JSON.stringify({ performanceOverlay: "competition_prep" }),
+                              });
+                              if (res.ok) {
+                                setOverlayApplied(true);
+                                toast({ title: "Metabolic mode applied", description: "Competition Prep is now active across your app." });
+                              } else {
+                                toast({ title: "Could not apply", description: "Please try again.", variant: "destructive" });
+                              }
+                            } catch {
+                              toast({ title: "Could not apply", description: "Please try again.", variant: "destructive" });
+                            } finally {
+                              setIsApplyingOverlay(false);
+                            }
+                          }}
+                          className="w-full py-2 bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg"
+                        >
+                          {overlayApplied ? "✓ Applied" : isApplyingOverlay ? "Applying…" : "Apply"}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ── Clinical Precision Status Card ── */}
+                    {clinicalPrecisionStatus &&
+                      clinicalPrecisionStatus !== "standard_personalization" && (
+                        <div
+                          className={`rounded-xl p-4 space-y-3 border ${
+                            clinicalPrecisionStatus === "clinical_precision_active"
+                              ? "bg-blue-950/40 border-blue-500/30"
+                              : clinicalPrecisionStatus === "clinical_precision_available"
+                              ? "bg-teal-950/40 border-teal-500/30"
+                              : "bg-white/5 border-white/10"
+                          }`}
+                        >
+                          {clinicalPrecisionStatus === "clinical_precision_active" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-blue-400 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-blue-300">
+                                  Clinical Precision — Active
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/60">
+                                Your lab results and verified medication profile are connected.
+                                The nutrition engine is applying structured clinical context
+                                to your targets.
+                              </p>
+                              <ClinicalCategoryReasoningList categories={clinicalContextCategories} />
+                            </>
+                          )}
+                          {clinicalPrecisionStatus === "clinical_precision_available" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-teal-400 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-teal-300">
+                                  Clinical Precision — Available
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/60">
+                                Your screening response has been saved. Adding lab results and a
+                                detailed medication profile in your clinical profile unlocks the
+                                full Clinical Precision engine.
+                              </p>
+                              <ClinicalCategoryReasoningList categories={clinicalContextCategories} />
+                              <button
+                                onClick={() => (window.location.href = "/biometrics")}
+                                className="text-xs text-teal-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
+                              >
+                                Add lab results →
+                              </button>
+                            </>
+                          )}
+                          {clinicalPrecisionStatus === "clinical_information_needed" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-white/40 text-base">⚕️</span>
+                                <p className="text-sm font-semibold text-white/60">
+                                  Clinical Precision — Information Needed
+                                </p>
+                              </div>
+                              <p className="text-xs text-white/50">
+                                Your plan includes Clinical Precision. Connect your lab results
+                                and medication profile to activate the clinical nutrition engine.
+                              </p>
+                              <button
+                                onClick={() => (window.location.href = "/biometrics")}
+                                className="text-xs text-orange-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
+                              >
+                                Add clinical data →
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+
                     <Button
                       disabled={!isCalcInputValid || isSaving}
                       onClick={async () => {
                         setIsSaving(true);
                         try {
-                          const adjustedProtein = Math.max(
-                            0,
-                            results.macros.protein.g + advisoryDeltas.protein,
-                          );
-                          const adjustedCarbs = Math.max(
-                            0,
-                            results.macros.carbs.g + advisoryDeltas.carbs,
-                          );
-                          const adjustedFat = Math.max(
-                            0,
-                            results.macros.fat.g + advisoryDeltas.fat,
-                          );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
-
-                          await setMacroTargets(
-                            {
-                              calories: results.target,
-                              protein_g: adjustedProtein,
-                              carbs_g: adjustedCarbs,
-                              fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
-                              starchStrategy,
-                            },
-                            user?.id,
-                          );
-
-                          window.dispatchEvent(
-                            new CustomEvent("mpm:targetsUpdated"),
-                          );
-
-                          if (isGuestMode()) {
-                            markMacrosCompleted();
-                          }
-
-                          const assignedBuilder =
-                            getAssignedBuilderFromStorage();
-                          toast({
-                            title: "Macro Targets Set!",
-                            description: `Heading to ${assignedBuilder.name} to build your meals.`,
-                          });
-
+                          if (isGuestMode()) markMacrosCompleted();
+                          const assignedBuilder = getAssignedBuilderFromStorage();
                           advanceGuided("done");
                           try { sessionStorage.removeItem("macro_guided_step"); } catch {}
-                          setLocation(assignedBuilder.path);
-
-                          saveBiometricsToProfile().catch(() => {});
-                          saveWaistToBiometrics().catch(() => {});
-                          saveEstimatedBodyFat().catch(() => {});
+                          await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
+                            successTitle: "Macros & Stats Saved",
+                            onComplete: () => {
+                              if (hasActivePaidSubscription(user)) {
+                                setLocation(assignedBuilder.path);
+                              } else {
+                                setLocation("/dashboard");
+                              }
+                            },
+                          });
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
                             title: "Save Failed",
-                            description:
-                              "Failed to save your macro targets. Please try again.",
+                            description: "Failed to save your macro targets. Please try again.",
                             variant: "destructive",
                           });
                         } finally {
@@ -2292,7 +3441,7 @@ export default function MacroCounter() {
                       className="w-full py-4 bg-lime-600  border border-lime-300 text-white font-semibold text-lg rounded-xl"
                     >
                       <ChefHat className="h-5 w-5 mr-2" />
-                      {isSaving ? "Saving..." : "Save & Go to Meal Builder"}
+                      {isSaving ? "Saving..." : "Save Macros & Stats"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -2303,6 +3452,46 @@ export default function MacroCounter() {
           {/* FULL CALCULATOR VIEW - Only shown after guided flow is complete OR if user has existing settings */}
           {guidedStep === "done" && (
             <>
+              {/* Quick Edit fixed summary bar — always visible, never scrolls */}
+              {results && (
+                <div
+                  className="fixed left-0 md:left-60 right-0 z-40 bg-black/85 backdrop-blur-md border-b border-white/10 px-4 py-3"
+                  style={{ top: "calc(env(safe-area-inset-top, 0px) + 56px)" }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-lime-400" />
+                      <span className="text-xs font-semibold text-white/80 uppercase tracking-wide">Your Macros</span>
+                      <span className="text-[10px] text-lime-400/80 bg-lime-400/10 px-1.5 py-0.5 rounded-full">Live update</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={!isDirty || !isCalcInputValid || isSaving}
+                      onClick={handleQuickSave}
+                      className={`text-white font-semibold text-xs rounded-lg px-3 py-1.5 h-auto disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 ${isDirty && isCalcInputValid ? "bg-lime-600 hover:bg-lime-500 ring-2 ring-orange-400 shadow-[0_0_14px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600 hover:bg-lime-500"}`}
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      {isSaving ? "Saving..." : isDirty ? "Update Macros" : "Saved"}
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { label: "Calories", value: `${results.target}`, unit: "kcal" },
+                      { label: "Protein", value: `${Math.max(0, results.macros.protein.g + advisoryDeltas.protein)}`, unit: "g" },
+                      { label: "Carbs", value: `${Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs)}`, unit: "g" },
+                      { label: "Fat", value: `${Math.max(0, results.macros.fat.g + advisoryDeltas.fat)}`, unit: "g" },
+                    ].map((m) => (
+                      <div key={m.label} className="bg-white/5 rounded-lg px-2 py-1.5 text-center">
+                        <div className="text-white font-bold text-sm leading-tight">{m.value}<span className="text-[10px] text-white/50 ml-0.5">{m.unit}</span></div>
+                        <div className="text-[10px] text-white/50 mt-0.5">{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Spacer matching the fixed bar height so content isn't hidden underneath */}
+              {results && <div className="h-28" />}
+
               {/* Recalculate with Chef Button */}
               <Card className="bg-black/30 backdrop-blur-lg border border-lime-500/30 shadow-lg">
                 <CardContent className="p-4 flex items-center justify-between">
@@ -2324,7 +3513,7 @@ export default function MacroCounter() {
                     data-testid="recalculate-with-chef"
                   >
                     <ChefHat className="h-4 w-4 mr-2 text-white" />
-                    Recalculate
+                    {t("recalculate")}
                   </Button>
                 </CardContent>
               </Card>
@@ -2382,22 +3571,32 @@ export default function MacroCounter() {
                       value={goal}
                       onValueChange={(v: Goal) => {
                         setGoal(v);
+                        if (v === "contest_prep") {
+                          setCutIntensity("hard");
+                          setCutStyle("lowCarb");
+                          setStarchyCarbCap_g(30);
+                        }
                         advance("goal");
                       }}
-                      className="mt-3 grid grid-cols-3 gap-3"
+                      className="mt-3 grid grid-cols-2 gap-3"
                     >
                       {[
-                        { v: "loss", label: "Cut" },
-                        { v: "maint", label: "Maintain" },
-                        { v: "gain", label: "Gain" },
+                        { v: "loss", label: "Lose Fat", sub: null },
+                        { v: "maint", label: "Maintain Weight", sub: null },
+                        { v: "gain", label: "Build Muscle", sub: null },
+                        { v: "contest_prep", label: "Contest Prep", sub: "Competition protocol" },
                       ].map((g) => (
                         <Label
                           key={g.v}
                           htmlFor={g.v}
                           onClick={() => {
                             setGoal(g.v as Goal);
+                            if (g.v === "contest_prep") {
+                              setCutIntensity("hard");
+                              setCutStyle("lowCarb");
+                              setStarchyCarbCap_g(30);
+                            }
                             advance("goal");
-                            // Auto-scroll to body type card on every click
                             setTimeout(() => {
                               const bodyCard =
                                 document.getElementById("bodytype-card");
@@ -2416,10 +3615,19 @@ export default function MacroCounter() {
                             value={g.v}
                             className="sr-only"
                           />
-                          {g.label}
+                          <div>{g.label}</div>
+                          {g.sub && (
+                            <div className="text-xs text-white/50 mt-0.5">{g.sub}</div>
+                          )}
                         </Label>
                       ))}
                     </RadioGroup>
+                    {goal === "contest_prep" && (
+                      <div className="mt-3 rounded-lg bg-orange-900/30 border border-orange-500/40 px-3 py-2 text-xs text-orange-200 leading-relaxed">
+                        <span className="font-semibold text-orange-300">Contest Prep preset active.</span>{" "}
+                        Hard cut · low-carb split · starchy carb cap 30g. All values can still be adjusted below.
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -2427,55 +3635,63 @@ export default function MacroCounter() {
                   id="bodytype-card"
                   className="bg-zinc-900/80 border border-white/30 text-white"
                 >
-                  <CardContent className="p-5">
+                  <CardContent className="p-5 space-y-4">
                     <h3 className="text-lg font-semibold flex items-center">
+                      <User2 className="h-5 w-5 mr-2 text-pink-300" />
+                      Structure Level
+                    </h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { v: "flexible",    label: "Flexible",    sub: "Day-to-day flexibility" },
+                        { v: "consistent",  label: "Consistent",  sub: "Plan-ready structure" },
+                        { v: "performance", label: "Performance", sub: "High training load" },
+                      ] as { v: UserType; label: string; sub: string }[]).map((u) => (
+                        <div
+                          key={u.v}
+                          onClick={() => setUserType(u.v)}
+                          className={`px-2 py-3 border rounded-lg cursor-pointer text-center ${userType === u.v ? "bg-orange-500/20 border-orange-400 text-orange-300" : "border-white/30 text-white/70 hover:border-white/60"}`}
+                        >
+                          <div className="text-sm font-semibold">{u.label}</div>
+                          <div className="text-[11px] opacity-70 mt-0.5">{u.sub}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <h3 className="text-lg font-semibold flex items-center pt-1">
                       <User2 className="h-5 w-5 mr-2 text-pink-300" />
                       What's Your Body Type
                     </h3>
                     <BodyTypeGuide />
-                    <RadioGroup
+                    <div
                       data-testid="macro-body-type-selector"
-                      value={bodyType}
-                      onValueChange={(v: BodyType) => {
-                        setBodyType(v);
-                        advance("body-type");
-                      }}
-                      className="mt-3 grid grid-cols-3 gap-3"
+                      className="mt-3 grid grid-cols-2 gap-3"
                     >
-                      {[
-                        { v: "ecto", label: "Ecto" },
-                        { v: "meso", label: "Meso" },
-                        { v: "endo", label: "Endo" },
-                      ].map((b) => (
-                        <Label
+                      {([
+                        { v: "ecto", label: "Naturally Lean",         sub: "Ectomorphic tendency" },
+                        { v: "meso", label: "Naturally Athletic",     sub: "Mesomorphic tendency" },
+                        { v: "endo", label: "Naturally Fuller Build", sub: "Endomorphic tendency" },
+                        { v: "mix",  label: "Combination Build",      sub: "Mixed tendency" },
+                      ] as { v: BodyType; label: string; sub: string }[]).map((b) => (
+                        <div
                           key={b.v}
-                          htmlFor={b.v}
                           onClick={() => {
-                            setBodyType(b.v as BodyType);
+                            setBodyType(b.v);
                             advance("body-type");
-                            // Auto-scroll to details card on every click
                             setTimeout(() => {
-                              const detailsCard =
-                                document.getElementById("details-card");
+                              const detailsCard = document.getElementById("details-card");
                               if (detailsCard) {
-                                detailsCard.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "center",
-                                });
+                                detailsCard.scrollIntoView({ behavior: "smooth", block: "center" });
                               }
                             }, 200);
                           }}
-                          className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
+                          className={`flex flex-col items-center gap-1.5 px-3 py-3 border rounded-xl cursor-pointer text-center transition-colors ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/40"}`}
                         >
-                          <RadioGroupItem
-                            id={b.v}
-                            value={b.v}
-                            className="sr-only"
-                          />
-                          {b.label}
-                        </Label>
+                          <BodyTypeSilhouette type={b.v} />
+                          <div className="text-sm font-semibold text-white">{b.label}</div>
+                          <div className="text-[11px] text-white/50">{b.sub}</div>
+                        </div>
                       ))}
-                    </RadioGroup>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -2700,8 +3916,8 @@ export default function MacroCounter() {
                             }}
                           />
                           {!waistVal && (
-                            <p className="text-xs text-orange-300 mt-1">
-                              Required for calculation
+                            <p className="text-xs text-white/50 mt-1">
+                              Optional — add for deeper metabolic insights
                             </p>
                           )}
                         </div>
@@ -2718,7 +3934,7 @@ export default function MacroCounter() {
                       <RadioGroup
                         data-testid="macro-activity-selector"
                         value={activity}
-                        onValueChange={(v: keyof typeof ACTIVITY_FACTORS) => {
+                        onValueChange={(v: ActivityLevel) => {
                           setActivity(v);
                           advance("details");
                           // Auto-scroll to Sync Weight button after activity is selected
@@ -2783,37 +3999,52 @@ export default function MacroCounter() {
                         <Button
                           data-testid="macro-sync-weight-button"
                           id="sync-weight-button"
-                          onClick={() => {
+                          disabled={syncingWeight}
+                          onClick={async () => {
                             const weight =
                               units === "imperial" ? weightLbs : weightKg;
                             if (!weight || weight <= 0) {
                               toast({
                                 title: "Enter weight first",
                                 description:
-                                  "Please enter a valid weight before syncing.",
+                                  "Please enter a valid weight before saving.",
                                 variant: "destructive",
                               });
                               return;
                             }
-                            localStorage.setItem(
-                              "pending-weight-sync",
-                              JSON.stringify({
-                                weight,
-                                units,
-                                timestamp: Date.now(),
-                              }),
-                            );
-                            toast({
-                              title: "✓ Weight ready to sync",
-                              description:
-                                "Go to My Biometrics to save it to your history.",
-                            });
-                            advance("sync-weight");
+                            setSyncingWeight(true);
+                            try {
+                              const localDate = new Date().toLocaleDateString("en-CA");
+                              const res = await fetch(apiUrl("/api/biometrics/weight"), {
+                                method: "POST",
+                                credentials: "include",
+                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                                body: JSON.stringify({
+                                  value: weight,
+                                  unit: units === "imperial" ? "lb" : "kg",
+                                  localDate,
+                                }),
+                              });
+                              if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+                              toast({
+                                title: "Weight saved to biometrics",
+                                description: "Your progress is being tracked.",
+                              });
+                              advance("sync-weight");
+                            } catch {
+                              toast({
+                                title: "Couldn't save weight",
+                                description: "Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setSyncingWeight(false);
+                            }
                           }}
                           className="w-full bg-lime-700 border-2 border-lime-300 text-white hover:bg-lime-800 hover:border-lime-300 font-semibold mt-4"
                         >
                           <Scale className="h-4 w-4 mr-2" />
-                          Save Weight To Biometrics
+                          {syncingWeight ? "Saving…" : "Save Weight To Biometrics"}
                         </Button>
                       )}
                     </div>
@@ -2821,86 +4052,80 @@ export default function MacroCounter() {
                 </CardContent>
               </Card>
 
-              {results && (
-                <WaistRiskSection
-                  waistCm={waistCm}
-                  heightCm={cm}
-                  baseTargets={{
-                    protein: results.macros.protein.g,
-                    carbs: results.macros.carbs.g,
-                    fat: results.macros.fat.g,
-                  }}
-                  onApplyAdjustments={(deltas) => {
-                    setAdvisorySources((prev) => ({
-                      ...prev,
-                      waistRisk: deltas,
-                    }));
-                    toast({
-                      title: "Adjustments Applied",
-                      description:
-                        "Waist risk adjustments have been applied to your macros.",
-                    });
-                  }}
-                  onClearAdjustments={() => {
-                    setAdvisorySources((prev) => ({
-                      ...prev,
-                      waistRisk: null,
-                    }));
-                    toast({
-                      title: "Adjustment Cleared",
-                      description:
-                        "Waist risk adjustments have been removed.",
-                    });
-                  }}
-                />
-              )}
+              <WaistRiskSection
+                waistCm={waistCm}
+                heightCm={cm}
+                baseTargets={{
+                  protein: results?.macros.protein.g ?? 0,
+                  carbs: results?.macros.carbs.g ?? 0,
+                  fat: results?.macros.fat.g ?? 0,
+                }}
+                onApplyAdjustments={(deltas) => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    waistRisk: deltas,
+                  }));
+                  toast({
+                    title: "Adjustments Applied",
+                    description:
+                      "Waist risk adjustments have been applied to your macros.",
+                  });
+                }}
+                onClearAdjustments={() => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    waistRisk: null,
+                  }));
+                  toast({
+                    title: "Adjustment Cleared",
+                    description:
+                      "Waist risk adjustments have been removed.",
+                  });
+                }}
+              />
 
               {/* Metabolic & Hormonal Considerations - V1 Clinical Advisory */}
-              {results && (
-                <MetabolicConsiderations
-                  baseTargets={{
-                    protein: results.macros.protein.g,
-                    carbs: results.macros.carbs.g,
-                    fat: results.macros.fat.g,
-                  }}
-                  onApplyAdjustments={(deltas) => {
-                    setAdvisorySources((prev) => ({
-                      ...prev,
-                      metabolic: deltas,
-                    }));
-                    toast({
-                      title: "Adjustments Applied",
-                      description:
-                        "Your macro targets have been fine-tuned based on your metabolic considerations.",
-                    });
-                  }}
-                />
-              )}
+              <MetabolicConsiderations
+                baseTargets={{
+                  protein: results?.macros.protein.g ?? 0,
+                  carbs: results?.macros.carbs.g ?? 0,
+                  fat: results?.macros.fat.g ?? 0,
+                }}
+                onFlagsChange={(flags) => setClinicalFlags(flags)}
+                onApplyAdjustments={(deltas) => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    metabolic: deltas,
+                  }));
+                  toast({
+                    title: "Adjustments Applied",
+                    description:
+                      "Your macro targets have been fine-tuned based on your metabolic considerations.",
+                  });
+                }}
+              />
 
               {/* Body Composition - affects starchy carb allocation */}
-              {results && (
-                <BodyCompositionSection
-                  onApplyAdjustments={(deltas) => {
-                    setAdvisorySources((prev) => ({
-                      ...prev,
-                      bodyComposition: deltas,
-                    }));
-                    toast({
-                      title: "Adjustments Applied",
-                      description:
-                        "Your macro targets have been adjusted based on your body composition.",
-                    });
-                  }}
-                />
-              )}
+              <BodyCompositionSection
+                onApplyAdjustments={(deltas) => {
+                  setAdvisorySources((prev) => ({
+                    ...prev,
+                    bodyComposition: deltas,
+                  }));
+                  toast({
+                    title: "Adjustments Applied",
+                    description:
+                      "Your macro targets have been adjusted based on your body composition.",
+                  });
+                }}
+              />
 
-              {/* Results - Only show when activity is selected */}
-              {results && (
-                <>
-                  <Card
-                    data-testid="macro-results"
-                    className="bg-zinc-900/80 border border-white/30 text-white"
-                  >
+              {/* Daily Macro Targets */}
+              {results ? (
+                <Card
+                  data-testid="macro-results"
+                  className="bg-zinc-900/80 border border-white/30 text-white"
+                >
                     <CardContent className="p-5">
                       <h3 className="text-lg font-semibold flex items-center mb-2">
                         <Target className="h-5 w-5 mr-2 text-emerald-300" />{" "}
@@ -2945,13 +4170,18 @@ export default function MacroCounter() {
                           )}
                         />
                         {(() => {
-                          const adjTotal = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                          const starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy, fibrous } = splitStarchyFibrous(adjTotal, starchyBase, getFibrousBaseline(kg));
+                          const starchy = results.macros.carbs.starchy;
+                          const fibrous = results.macros.carbs.fibrous;
+                          const cupsPerMeal = (results.macros as any).vegetableCupsPerMeal ?? 3;
+                          const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                           return (
                             <>
-                              <MacroRow label="Carbs - Starchy" grams={starchy} />
-                              <MacroRow label="Carbs - Fibrous" grams={fibrous} />
+                              <MacroRow label="Carbs - Starchy" grams={starchy} isKey />
+                              <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
+                              <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
+                                <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
+                                <span>1 cup ≈ 5g</span>
+                              </div>
                             </>
                           );
                         })()}
@@ -2981,148 +4211,133 @@ export default function MacroCounter() {
                       </div>
 
                       <Button
-                        disabled={!isCalcInputValid || isSaving}
-                        onClick={async () => {
-                          setIsSaving(true);
-                          try {
-                            const adjustedProtein = Math.max(0, results.macros.protein.g + advisoryDeltas.protein);
-                            const adjustedCarbs = Math.max(0, results.macros.carbs.g + advisoryDeltas.carbs);
-                            const adjustedFat = Math.max(0, results.macros.fat.g + advisoryDeltas.fat);
-                            const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                            const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
-
-                            await setMacroTargets(
-                              {
-                                calories: results.target,
-                                protein_g: adjustedProtein,
-                                carbs_g: adjustedCarbs,
-                                fat_g: adjustedFat,
-                                starchyCarbs_g: adjustedStarchy,
-                                fibrousCarbs_g: adjustedFibrous,
-                                starchStrategy,
-                              },
-                              user?.id,
-                            );
-
-                            window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
-
-                            saveBiometricsToProfile().catch(() => {});
-                            saveWaistToBiometrics().catch(() => {});
-                            saveEstimatedBodyFat().catch(() => {});
-
-                            toast({
-                              title: "Macro Targets Updated",
-                              description: "Your daily macro targets have been recalculated and saved.",
-                            });
-                          } catch (error) {
-                            console.error("Failed to update macro targets:", error);
-                            toast({
-                              title: "Update Failed",
-                              description: "Failed to update your macro targets. Please try again.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsSaving(false);
-                          }
-                        }}
-                        className="w-full mt-4 bg-lime-600 text-white font-semibold text-base rounded-xl"
+                        disabled={!isDirty || !isCalcInputValid || isSaving}
+                        onClick={handleQuickSave}
+                        className={`w-full mt-4 text-white font-semibold text-base rounded-xl disabled:opacity-40 transition-all duration-300 ${isDirty && isCalcInputValid ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}
                         data-testid="macro-update-button"
                       >
                         <Target className="h-4 w-4 mr-2" />
-                        {isSaving ? "Updating..." : "Update"}
+                        {isSaving ? "Updating..." : isDirty ? "Update Macros" : "Saved"}
                       </Button>
                     </CardContent>
-                  </Card>
+                </Card>
+              ) : (
+                <Card data-testid="macro-results" className="bg-zinc-900/80 border border-white/30 text-white">
+                  <CardContent className="p-5">
+                    <h3 className="text-lg font-semibold flex items-center mb-2">
+                      <Target className="h-5 w-5 mr-2 text-emerald-300" /> Your Daily Macro Targets
+                    </h3>
+                    <div className="py-8 text-center text-white/40 text-sm">
+                      {resultsLoading ? "Calculating your targets…" : "Fill in your details above to see your macro targets."}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                  {/* Starch Meal Strategy - Your Starch Game Plan */}
-                  <Card className="bg-zinc-900/80 border border-amber-500/30 text-white">
+              {/* Starch Meal Strategy - Your Starch Game Plan */}
+              <Card className="bg-zinc-900/80 border border-amber-500/30 text-white">
                     <CardContent className="p-5">
                       <h3 className="text-lg font-semibold flex items-center mb-3">
                         <span className="text-amber-400 mr-2">🌾</span> Your
                         Starch Game Plan
                       </h3>
                       <p className="text-sm text-white/70 mb-4">
-                        Starchy carbs (rice, pasta, potatoes, bread) need to be
-                        managed. Choose how you'll use your daily starch budget:
+                        Choose how many meals include starchy carbs and when you prefer to eat them.
                       </p>
 
-                      <div className="space-y-3">
-                        <div
-                          className={`p-4 rounded-xl border transition-all ${
-                            starchStrategy === "one"
-                              ? "bg-black/60 border-white/20"
-                              : "bg-white/5 border-white/10"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-white">
-                                One Starch Meal
-                              </span>
-                              <span className="text-xs bg-emerald-600 px-2 py-0.5 rounded-full">
-                                Recommended
-                              </span>
-                            </div>
+                      {/* Meal count */}
+                      <div className="space-y-2 mb-5">
+                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
+                          Starch meals per day
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          {([1, 2, 3, 4, 5, 6] as const).map((n) => (
                             <PillButton
-                              onClick={() => setStarchStrategy("one")}
-                              active={starchStrategy === "one"}
+                              key={n}
+                              onClick={() => {
+                                setDefaultStarchMealsPerDay(n);
+                                setStarchStrategy(n === 1 ? "one" : "flex");
+                                setIsDirty(true);
+                              }}
+                              active={defaultStarchMealsPerDay === n}
                             >
-                              {starchStrategy === "one" ? "On" : "Off"}
+                              {n} {n === 1 ? "meal" : "meals"}
                             </PillButton>
-                          </div>
-                          <p className="text-xs text-white/60">
-                            Use your full starch allowance (
-                            {getStarchyCarbs(sex, goal)}g) in one meal. Best for
-                            appetite control and fat loss.
-                          </p>
+                          ))}
                         </div>
-
-                        <div
-                          className={`p-4 rounded-xl border transition-all ${
-                            starchStrategy === "flex"
-                              ? "bg-black/60 border-white/20"
-                              : "bg-white/5 border-white/10"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-white">
-                              Flex Split
-                            </span>
-                            <PillButton
-                              onClick={() => setStarchStrategy("flex")}
-                              active={starchStrategy === "flex"}
-                            >
-                              {starchStrategy === "flex" ? "On" : "Off"}
-                            </PillButton>
-                          </div>
-                          <p className="text-xs text-white/60">
-                            Divide starch across two meals (~
-                            {Math.round(getStarchyCarbs(sex, goal) / 2)}g each).
-                            Useful for training days or larger schedules.
-                          </p>
-                        </div>
+                        <p className="text-xs text-white/40 min-h-[1.25rem]">
+                          {defaultStarchMealsPerDay === 1
+                            ? "All starches in one meal — best for appetite control and fat loss."
+                            : defaultStarchMealsPerDay === 2
+                            ? "Split starches across two meals — good for training days."
+                            : defaultStarchMealsPerDay === 3
+                            ? "Three starch meals — suitable for athletes with higher carb needs."
+                            : defaultStarchMealsPerDay === 4
+                            ? "Four starch meals — high-volume training protocol."
+                            : defaultStarchMealsPerDay === 5
+                            ? "Five starch meals — competitive athlete fueling schedule."
+                            : "Six starch meals — maximum carbohydrate distribution for elite performance."}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
 
-                  {estimatedBodyFat && (
-                    <Card className="bg-zinc-900/80 border border-orange-500/30 text-white">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-xs text-white/60">Estimated Body Fat</div>
-                            <div className="text-xl font-bold text-orange-400">{estimatedBodyFat}%</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-white/40">Deurenberg + Waist hybrid</div>
-                            <div className="text-xs text-white/30">Saved when you confirm macros</div>
-                          </div>
+                      {/* Distribution strategy */}
+                      <div className="space-y-2">
+                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
+                          Timing preference
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          {(
+                            [
+                              { value: "even", label: "Spread evenly" },
+                              { value: "morning", label: "Earlier in day" },
+                              { value: "workout", label: "Around workouts" },
+                              { value: "evening", label: "Evening" },
+                              { value: "ai", label: "AI decides" },
+                            ] as const
+                          ).map(({ value, label }) => (
+                            <PillButton
+                              key={value}
+                              onClick={() => { setStarchDistributionStrategy(value); setIsDirty(true); }}
+                              active={starchDistributionStrategy === value}
+                            >
+                              {label}
+                            </PillButton>
+                          ))}
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                        <p className="text-xs text-white/40 min-h-[1.25rem]">
+                          {starchDistributionStrategy === "even"
+                            ? "Starch split equally across starch meals."
+                            : starchDistributionStrategy === "morning"
+                            ? "Front-load carbs — easier sleep, less late-day glucose spike."
+                            : starchDistributionStrategy === "workout"
+                            ? "Timed around training for fuel and recovery."
+                            : starchDistributionStrategy === "evening"
+                            ? "Saves starch for your evening meal."
+                            : "AI places starch intelligently based on your meal plan context."}
+                        </p>
+                      </div>
+                  </CardContent>
+              </Card>
 
-                  {/* Save Targets - Two Options */}
+              {estimatedBodyFat && (
+                <Card className="bg-zinc-900/80 border border-orange-500/30 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs text-white/60">Estimated Body Fat</div>
+                        <div className="text-xl font-bold text-orange-400">{estimatedBodyFat}%</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-white/40">Deurenberg + Waist hybrid</div>
+                        <div className="text-xs text-white/30">Saved when you confirm macros</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {results && (
+              <>{/* Save Targets - Two Options */}
                   <div className="flex flex-col gap-3">
                     {/* Secondary: Save & Go to Biometrics (restores original flow for weight sync) */}
                     <Button
@@ -3131,60 +4346,16 @@ export default function MacroCounter() {
                       onClick={async () => {
                         advance("calc");
                         setIsSaving(true);
-
                         try {
-                          const adjustedProtein = Math.max(
-                            0,
-                            results.macros.protein.g + advisoryDeltas.protein,
-                          );
-                          const adjustedCarbs = Math.max(
-                            0,
-                            results.macros.carbs.g + advisoryDeltas.carbs,
-                          );
-                          const adjustedFat = Math.max(
-                            0,
-                            results.macros.fat.g + advisoryDeltas.fat,
-                          );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
-
-                          await setMacroTargets(
-                            {
-                              calories: results.target,
-                              protein_g: adjustedProtein,
-                              carbs_g: adjustedCarbs,
-                              fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
-                              starchStrategy,
-                            },
-                            user?.id,
-                          );
-
-                          // Keep this so Biometrics screen updates if they go there later
-                          window.dispatchEvent(
-                            new CustomEvent("mpm:targetsUpdated"),
-                          );
-
-                          // Guest mode: Mark macros completed to unlock Weekly Meal Builder
-                          if (isGuestMode()) {
-                            markMacrosCompleted();
-                          }
-
-                          saveBiometricsToProfile().catch(() => {});
-                          saveWaistToBiometrics().catch(() => {});
-                          saveEstimatedBodyFat().catch(() => {});
-
-                          toast({
-                            title: "Macro Targets Saved",
-                            description: "Your biometrics have been updated.",
+                          if (isGuestMode()) markMacrosCompleted();
+                          await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
+                            successTitle: "Macros & Stats Saved",
                           });
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
                             title: "Save Failed",
-                            description:
-                              "Failed to save your macro targets. Please try again.",
+                            description: "Failed to save your macro targets. Please try again.",
                             variant: "destructive",
                           });
                         } finally {
@@ -3195,7 +4366,7 @@ export default function MacroCounter() {
                       className="w-full bg-lime-600 border-2 border-lime-400 text-white text-lg font-semibold mt-4"
                     >
                       <Target className="h-4 w-4 mr-2" />
-                      {isSaving ? "Saving..." : "1st Step → Save to Biometrics"}
+                      {isSaving ? "Saving..." : "Save Macros & Body Stats"}
                     </Button>
 
                     {/* Primary CTA: Use These Macros → Build Meals */}
@@ -3203,76 +4374,29 @@ export default function MacroCounter() {
                       data-testid="macro-build-meals-button"
                       disabled={!isCalcInputValid || isSaving}
                       onClick={async () => {
-                        const interactedEvent = new CustomEvent(
-                          "walkthrough:event",
-                          {
-                            detail: {
-                              testId: "macro-calculator-interacted",
-                              event: "interacted",
-                            },
-                          },
-                        );
-                        window.dispatchEvent(interactedEvent);
-
+                        window.dispatchEvent(new CustomEvent("walkthrough:event", {
+                          detail: { testId: "macro-calculator-interacted", event: "interacted" },
+                        }));
                         advance("calc");
                         setIsSaving(true);
-
                         try {
-                          const adjustedProtein = Math.max(
-                            0,
-                            results.macros.protein.g + advisoryDeltas.protein,
-                          );
-                          const adjustedCarbs = Math.max(
-                            0,
-                            results.macros.carbs.g + advisoryDeltas.carbs,
-                          );
-                          const adjustedFat = Math.max(
-                            0,
-                            results.macros.fat.g + advisoryDeltas.fat,
-                          );
-                          const _starchyBase = Math.max(0, getStarchyCarbs(sex, goal) + Math.round(advisoryDeltas.carbs * 0.5));
-                          const { starchy: adjustedStarchy, fibrous: adjustedFibrous } = splitStarchyFibrous(adjustedCarbs, _starchyBase, getFibrousBaseline(kg));
-
-                          await setMacroTargets(
-                            {
-                              calories: results.target,
-                              protein_g: adjustedProtein,
-                              carbs_g: adjustedCarbs,
-                              fat_g: adjustedFat,
-                              starchyCarbs_g: adjustedStarchy,
-                              fibrousCarbs_g: adjustedFibrous,
-                              starchStrategy,
+                          if (isGuestMode()) markMacrosCompleted();
+                          const assignedBuilder = getAssignedBuilderFromStorage();
+                          await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
+                            successTitle: "Macros & Stats Saved",
+                            onComplete: () => {
+                              if (hasActivePaidSubscription(user)) {
+                                setLocation(assignedBuilder.path);
+                              } else {
+                                setLocation("/dashboard");
+                              }
                             },
-                            user?.id,
-                          );
-
-                          // Dispatch event for real-time refresh on Biometrics/other pages
-                          window.dispatchEvent(
-                            new CustomEvent("mpm:targetsUpdated"),
-                          );
-
-                          // Guest mode: Mark macros completed to unlock Weekly Meal Builder
-                          if (isGuestMode()) {
-                            markMacrosCompleted();
-                          }
-
-                          const assignedBuilder =
-                            getAssignedBuilderFromStorage();
-                          toast({
-                            title: "Macro Targets Set!",
-                            description: `Heading to ${assignedBuilder.name} to build your meals.`,
                           });
-                          setLocation(assignedBuilder.path);
-
-                          saveBiometricsToProfile().catch(() => {});
-                          saveWaistToBiometrics().catch(() => {});
-                          saveEstimatedBodyFat().catch(() => {});
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
                             title: "Save Failed",
-                            description:
-                              "Failed to save your macro targets. Please try again.",
+                            description: "Failed to save your macro targets. Please try again.",
                             variant: "destructive",
                           });
                         } finally {
@@ -3304,11 +4428,22 @@ export default function MacroCounter() {
   );
 }
 
-function MacroRow({ label, grams }: { label: string; grams: number }) {
+function MacroRow({ label, grams, isKey = false }: { label: string; grams: number; isKey?: boolean }) {
   return (
-    <div className="flex justify-between items-center rounded-xl border border-white/20 bg-black/40 p-4">
-      <div className="text-sm font-semibold text-white/90">{label}</div>
-      <div className="text-lg font-bold text-white">
+    <div className={`flex justify-between items-center rounded-xl border p-4 ${
+      isKey ? "border-amber-500/40 bg-amber-950/30" : "border-white/20 bg-black/40"
+    }`}>
+      <div className="flex flex-col gap-0.5">
+        <div className={`text-sm font-semibold ${isKey ? "text-amber-300" : "text-white/90"}`}>
+          {isKey && <span className="mr-1.5">★</span>}{label}
+        </div>
+        {isKey && (
+          <div className="text-[10px] text-amber-500/70 font-medium">
+            Your main daily limit — stay at or under this
+          </div>
+        )}
+      </div>
+      <div className={`text-lg font-bold ${isKey ? "text-amber-300" : "text-white"}`}>
         {Math.round(grams)} grams
       </div>
     </div>

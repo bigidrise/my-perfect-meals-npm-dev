@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 
 interface MealData {
   id?: string;
@@ -61,14 +62,37 @@ export default function MealCardActions({
   const handlePrepareWithChef = () => {
     if (!hasInstructions) return;
 
+    // Normalize ingredients to always be an array of objects regardless of source format
+    const rawIngredients = meal.ingredients;
+    const normalizedIngredients: Array<{ name: string; amount?: string; unit?: string }> = !rawIngredients
+      ? []
+      : !Array.isArray(rawIngredients)
+        ? []
+        : rawIngredients.map((ing) =>
+            typeof ing === "string"
+              ? { name: ing }
+              : { name: (ing as any).name || (ing as any).item || "", amount: String((ing as any).amount ?? (ing as any).quantity ?? ""), unit: (ing as any).unit || "" }
+          );
+
+    // Strip base64 data URLs before storing — they can be 500KB+ and blow
+    // the localStorage quota. Chef's Kitchen only needs the URL for display,
+    // not for cooking guidance, so an S3/CDN URL is kept, data: URIs are dropped.
+    const safeImageUrl = (() => {
+      const url = meal.imageUrl;
+      if (!url) return null;
+      if (url.startsWith("data:")) return null;         // base64 — too large
+      if (url.includes("oaidalleapiprodscus")) return null; // expired DALL·E URL
+      return url;
+    })();
+
     const mealData = {
       id: meal.id || crypto.randomUUID(),
       name: meal.name,
       description: meal.description,
       mealType: meal.mealType,
-      ingredients: meal.ingredients || [],
+      ingredients: normalizedIngredients,
       instructions: meal.instructions,
-      imageUrl: meal.imageUrl,
+      imageUrl: safeImageUrl,
       calories: meal.nutrition?.calories || meal.calories,
       protein: meal.nutrition?.protein || meal.protein,
       carbs: meal.nutrition?.carbs || meal.carbs,
@@ -78,11 +102,15 @@ export default function MealCardActions({
       medicalBadges: meal.medicalBadges || [],
     };
 
-    // Store meal in Chef's Kitchen format + flag to enter prepare mode
-    localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(mealData));
+    // Store meal in Chef's Kitchen format + flag to enter prepare mode.
+    // Wrapped in try/catch — if storage is still full for other reasons,
+    // we degrade gracefully instead of crashing the app.
+    writeChefHandoffMeal(mealData);
     localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
+    localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
 
     setLocation("/lifestyle/chefs-kitchen");
+    window.scrollTo({ top: 0, behavior: "instant" });
   };
 
   const currentName = displayContent.name || meal.name;
@@ -121,6 +149,7 @@ export default function MealCardActions({
             description: currentDescription,
             nutrition: meal.nutrition,
             ingredients: normalizedIngredients,
+            instructions: meal.instructions,
           }}
           className="flex-1 min-w-0"
         />
@@ -142,13 +171,13 @@ export default function MealCardActions({
       {showPrepareButton && isFeatureEnabled('chefsKitchen') && (
         <Button
           size="sm"
-          className="w-full bg-lime-600 hover:bg-lime-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 py-2.5"
+          className="w-full bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 py-2.5"
           onClick={handlePrepareWithChef}
           disabled={!hasInstructions}
           title={!hasInstructions ? "No cooking instructions available" : undefined}
         >
           <ChefHat className="h-4 w-4" />
-          Enter Studio
+          Guided Cooking
         </Button>
       )}
     </div>

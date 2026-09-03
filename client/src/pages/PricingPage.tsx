@@ -1,6 +1,8 @@
 import { useLocation } from "wouter";
+import { useOrgBranding } from "@/hooks/useOrgBranding";
+import { useOrgFlag } from "@/contexts/OrgContext";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -22,6 +24,7 @@ import {
   IOS_DISPLAY_FEATURES,
 } from "@shared/planFeatures";
 import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
+import { getAuthHeaders } from "@/lib/auth";
 import {
   isIosNativeShell,
   IOS_PAYMENT_MESSAGE,
@@ -33,11 +36,14 @@ import { restorePurchases, purchaseProduct } from "@/lib/storekit";
 import { IOS_PRODUCTS, type IosProduct } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { syncPurchaseRequiredFlag } from "@/lib/purchaseRequired";
 
 export default function PricingPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { supportEmail, supportUrl } = useOrgBranding();
+  const showMarketplace = useOrgFlag("partnerMarketplace");
 
   const consumerPlans = getPlansByGroup("consumer");
   const familyPlans = getPlansByGroup("family");
@@ -47,16 +53,49 @@ export default function PricingPage() {
     null,
   );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
+  const [businessSeats, setBusinessSeats] = useState(4);
+  const [businessCheckoutLoading, setBusinessCheckoutLoading] = useState(false);
 
-  const [procareRole, setProcareRole] = useState<"trainer" | "physician" | null>(
-    () => (localStorage.getItem("procare_role") as "trainer" | "physician" | null) || null
+  const [procareRole, setProcareRole] = useState<"trainer" | "physician">(
+    () => (localStorage.getItem("procare_role") as "trainer" | "physician" | null) || "trainer"
   );
 
   const procareRolePlans = procareRole === "trainer"
     ? proPlans.filter((p) => p.sku.startsWith("mpm_trainer_"))
-    : procareRole === "physician"
-      ? proPlans.filter((p) => p.sku.startsWith("mpm_physician_"))
-      : [];
+    : proPlans.filter((p) => p.sku.startsWith("mpm_physician_"));
+
+  const planFromUrl = typeof window !== "undefined"
+    ? (new URLSearchParams(window.location.search).get("plan") as LookupKey | null)
+    : null;
+
+  const requiredFromUrl = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("required") === "true"
+    : false;
+
+  useEffect(() => {
+    // A normal visit (including the Hydration Center upgrade link) must not
+    // inherit a stale purchase-required redirect from an earlier checkout
+    // flow. Without this cleanup, the app can keep sending the user back to
+    // /pricing after they leave it.
+    syncPurchaseRequiredFlag(requiredFromUrl);
+  }, [requiredFromUrl]);
+
+  useEffect(() => {
+    if (!planFromUrl || isIosNativeShell()) return;
+    if (user && !user.id.startsWith("guest-")) {
+      const t = setTimeout(async () => {
+        try {
+          await startCheckout(planFromUrl, { context: "website_deeplink" });
+        } catch {
+          // user can select the plan manually on the page
+        }
+      }, 600);
+      return () => clearTimeout(t);
+    } else {
+      sessionStorage.setItem("mpm_pending_plan", planFromUrl);
+      setLocation("/welcome");
+    }
+  }, [planFromUrl, user?.id]);
 
   async function handleIosPurchase(product: IosProduct) {
     setPurchasingProduct(product.productId);
@@ -116,11 +155,12 @@ export default function PricingPage() {
   }
 
   if (isIosNativeShell()) {
-    const iosSubscriptionPlans = IOS_PRODUCTS.map((p) => p.internalSku);
-
     const planKey = user?.planLookupKey || "";
     const hasIosSubscription =
-      !!planKey && iosSubscriptionPlans.includes(planKey);
+      !!planKey &&
+      IOS_PRODUCTS.some((product) =>
+        product.planLookupKeys.some((sku) => sku === planKey),
+      );
 
     return (
       <motion.div
@@ -216,8 +256,10 @@ export default function PricingPage() {
             {IOS_PRODUCTS.map((product) => {
               const displayPrice = `$${product.price.toFixed(2)}/mo`;
               const isPurchasing = purchasingProduct === product.productId;
-              const isPremium = product.internalSku === "mpm_premium_monthly";
-              const isCurrentPlan = planKey === product.internalSku;
+              const isPremium = product.internalSku === "mpm_premium";
+              const isCurrentPlan = product.planLookupKeys.some(
+                (sku) => sku === planKey,
+              );
 
               return (
                 <div
@@ -249,9 +291,9 @@ export default function PricingPage() {
                   <ul className="text-white/70 text-xs space-y-1.5 mb-4">
                     {(
                       IOS_DISPLAY_FEATURES[
-                        product.internalSku === "mpm_basic_monthly"
+                        product.internalSku === "mpm_basic"
                           ? "basic"
-                          : product.internalSku === "mpm_premium_monthly"
+                          : product.internalSku === "mpm_premium"
                             ? "premium"
                             : "ultimate"
                       ] || []
@@ -356,9 +398,10 @@ export default function PricingPage() {
               More Ways to Use My Perfect Meals
             </h2>
             <p className="text-white/60 text-xs text-center mb-4">
-              Need more structure than a subscription plan? My Perfect Meals also offers coaching and guided systems for individuals and families.
+              Need more than a solo subscription? My Perfect Meals also offers family plans and organization tools for teams and care providers.
             </p>
             <div className="space-y-3">
+              {showMarketplace && (
               <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
                 <h3 className="text-white font-bold text-base mb-1">ProCare Coaching</h3>
                 <p className="text-white/60 text-xs mb-3">
@@ -377,16 +420,17 @@ export default function PricingPage() {
                   Learn More
                 </Button>
               </div>
+              )}
               <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-4">
-                <h3 className="text-white font-bold text-base mb-1">Family Plan</h3>
+                <h3 className="text-white font-bold text-base mb-1">Family Plans</h3>
                 <p className="text-white/60 text-xs mb-3">
-                  Trying to eat healthy while everyone in the house eats differently creates chaos. The My Perfect Meals Family Plan gives every person their own personalized nutrition experience while keeping the household organized in one system.
+                  Every household is different. My Perfect Meals Family Plans give each person their own personalized nutrition profile while keeping the whole household coordinated — from weekly meal planning to smart shopping lists built around everyone's needs.
                 </p>
                 <ul className="text-white/50 text-xs space-y-1 mb-3">
-                  <li>• Individual profiles for every family member</li>
-                  <li>• Personalized nutrition guidance for each person</li>
-                  <li>• Kids, parents, and partners on the same system</li>
-                  <li>• One organized plan for the whole household</li>
+                  <li>• Personalized profiles for up to 4 household members</li>
+                  <li>• Shared meal planning and smart shopping lists</li>
+                  <li>• Individual macro tracking and dietary preferences</li>
+                  <li>• Parental controls and family-friendly meal generation</li>
                 </ul>
                 <Button
                   onClick={() => setLocation("/family-info")}
@@ -395,6 +439,7 @@ export default function PricingPage() {
                   Learn More
                 </Button>
               </div>
+              {showMarketplace && (
               <div className="bg-black/40 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 ring-1 ring-amber-500/20">
                 <h3 className="text-amber-300 font-bold text-base mb-1">MPM Personal Guidance</h3>
                 <p className="text-white/60 text-xs mb-3">
@@ -413,6 +458,7 @@ export default function PricingPage() {
                   See How Personal Guidance Works
                 </Button>
               </div>
+              )}
             </div>
           </div>
 
@@ -430,10 +476,10 @@ export default function PricingPage() {
             <p className="text-white/40 text-xs">
               Need help?{" "}
               <a
-                href="mailto:support@myperfectmeals.com"
+                href={supportUrl}
                 className="text-lime-400 underline"
               >
-                support@myperfectmeals.com
+                {supportEmail}
               </a>
             </p>
             <p className="text-white/40 text-xs">
@@ -447,7 +493,7 @@ export default function PricingPage() {
               </a>
               {" · "}
               <button
-                onClick={() => setLocation("/privacy-policy")}
+                onClick={() => window.location.href = "/privacy-policy"}
                 className="text-white/50 underline hover:text-white/70"
               >
                 Privacy Policy
@@ -467,9 +513,14 @@ export default function PricingPage() {
     }
   };
 
-  const handleSelectPlan = async (sku: string) => {
+  const handleSelectPlan = async (sku: LookupKey) => {
+    if (!user || user.id.startsWith("guest-")) {
+      sessionStorage.setItem("mpm_pending_plan", sku);
+      setLocation("/welcome");
+      return;
+    }
     try {
-      await startCheckout(sku as any, { context: "pricing_page" });
+      await startCheckout(sku, { context: "pricing_page" });
     } catch (error) {
       if ((error as any)?.code === IOS_BLOCK_ERROR) {
         toast({ ...IOS_PAYMENT_MESSAGE, variant: "default" });
@@ -482,6 +533,38 @@ export default function PricingPage() {
       });
     }
   };
+
+  async function handleBusinessCheckout() {
+    if (!user) {
+      setLocation("/welcome");
+      return;
+    }
+    setBusinessCheckoutLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/stripe/checkout/business"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ seats: businessSeats }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Checkout Error", description: data.error || "Please try again.", variant: "destructive" });
+        return;
+      }
+      if (data.url) {
+        if (window.self !== window.top) {
+          window.open(data.url, "_blank", "noopener,noreferrer");
+        } else {
+          window.location.assign(data.url);
+        }
+      }
+    } catch (err: any) {
+      toast({ title: "Checkout Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+    } finally {
+      setBusinessCheckoutLoading(false);
+    }
+  }
 
   const getButtonText = (sku: string): string => {
     const currentPlan = user?.planLookupKey;
@@ -578,17 +661,294 @@ export default function PricingPage() {
         className="max-w-6xl mx-auto px-4 text-white space-y-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-        {/* ProCare Professional Plans — shown when user arrived from ProCare onboarding */}
-        {procareRole && procareRolePlans.length > 0 && (
-          <div className="mb-10">
+        {/* Free Tier Card */}
+        <div className="mb-2">
+          <Card className="relative bg-black/30 backdrop-blur-lg text-white shadow-xl border border-white/15">
+            <CardHeader className="pb-4">
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold">Free</h3>
+                <p className="text-sm text-white/80">
+                  Explore the app at your own pace
+                </p>
+                <p className="text-lg font-semibold">$0.00 / month</p>
+              </div>
+            </CardHeader>
+            <Separator className="bg-white/10" />
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {freeFeatures.map((label, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <Separator className="bg-white/10" />
+            <div className="p-6">
+              <p className="text-xs text-white/50 text-center">
+                Upgrade anytime to unlock AI meal generation, builders, and
+                more.
+              </p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Consumer Plans Grid */}
+        <div className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {consumerPlans.map((plan) => {
+              const features =
+                plan.sku === "mpm_basic"
+                  ? basicFeatures
+                  : plan.sku === "mpm_premium"
+                    ? premiumFeatures
+                    : ultimateFeatures;
+
+              return (
+                <Card
+                  key={plan.sku}
+                  className={`relative h-full bg-black/30 backdrop-blur-lg text-white shadow-xl ${
+                    plan.sku === "mpm_premium"
+                      ? "border-2 border-orange-400/60 ring-2 ring-orange-400/40"
+                      : "border border-white/15"
+                  }`}
+                  data-testid={`plan-card-${plan.sku}`}
+                >
+                  {plan.badge && (
+                    <Badge className="absolute top-3 right-3 bg-orange-600/80 text-white backdrop-blur-sm border border-white/10">
+                      {plan.badge}
+                    </Badge>
+                  )}
+
+                  <CardHeader className="pb-4">
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold">{plan.label}</h3>
+                      <p className="text-sm text-white/80">{plan.blurb}</p>
+                      <p className="text-lg font-semibold">
+                        ${plan.price.toFixed(2)} / month
+                      </p>
+                    </div>
+                  </CardHeader>
+
+                  <Separator className="bg-white/10" />
+
+                  <CardContent className="pt-6">
+                    <div className="space-y-3">
+                      {features.map((label, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-white">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+
+                  <Separator className="bg-white/10" />
+
+                  <div className="p-6">
+                    <Button
+                      className={`w-full ${
+                        plan.badge
+                          ? "bg-white/10 hover:bg-white/15 border border-white/20 text-white"
+                          : "bg-white/5 hover:bg-white/10 border border-white/20 text-white"
+                      }`}
+                      size="lg"
+                      onClick={() => handleSelectPlan(plan.sku)}
+                      disabled={user?.planLookupKey === plan.sku}
+                      data-testid={`button-select-${plan.sku}`}
+                    >
+                      {getButtonText(plan.sku)}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Family Plans Section */}
+        <div className="mb-12">
+          <h2 className="text-xl font-bold mb-6 text-center">Family Plans</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {familyPlans.map((plan) => (
+              <Card
+                key={plan.sku}
+                className="relative h-full bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl"
+                data-testid={`plan-card-${plan.sku}`}
+              >
+                {plan.badge && (
+                  <Badge className="absolute top-3 right-3 bg-blue-600/80 text-white backdrop-blur-sm border border-white/10">
+                    {plan.badge}
+                  </Badge>
+                )}
+
+                <CardHeader className="pb-4">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold">{plan.label}</h3>
+                    <p className="text-sm text-white/80">{plan.blurb}</p>
+                    <p className="text-lg font-semibold">
+                      ${plan.price.toFixed(2)} / month
+                    </p>
+                    {plan.supportingText && (
+                      <p className="text-xs text-white/60">
+                        {plan.supportingText}
+                      </p>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <Separator className="bg-white/10" />
+
+                <CardContent className="pt-6">
+                  <div className="space-y-3">
+                    {plan.features?.map((label, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-white">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+
+                <Separator className="bg-white/10" />
+
+                <div className="p-6">
+                  <Button
+                    className="w-full bg-white/5 hover:bg-white/10 border border-white/20 text-white"
+                    size="lg"
+                    onClick={() => handleSelectPlan(plan.sku)}
+                    disabled={user?.planLookupKey === plan.sku}
+                    data-testid={`button-select-${plan.sku}`}
+                  >
+                    {getButtonText(plan.sku)}
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* More Ways to Use */}
+        <div className="mb-12">
+          <h2 className="text-xl font-bold mb-6 text-center">
+            More Ways to Use My Perfect Meals
+          </h2>
+          <p className="text-white/60 text-sm text-center mb-6 max-w-2xl mx-auto">
+            Need more than a solo subscription? My Perfect Meals also offers family plans and organization tools for teams and care providers.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {showMarketplace && (
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
+              <img
+                src="/images/procare-chef.png"
+                alt="ProCare Coaching"
+                className="w-full h-40 object-cover"
+              />
+              <CardContent className="pt-4 pb-5 space-y-2">
+                <h3 className="text-lg font-bold">ProCare Coaching</h3>
+                <p className="text-white/70 text-sm">
+                  Some people don't struggle with nutrition knowledge. They struggle with decisions in the moment. ProCare connects you with a real coach inside the My Perfect Meals system so you're not left guessing when real life happens.
+                </p>
+                <ul className="text-white/50 text-sm space-y-1 mt-2">
+                  <li>• Direct messaging with your coach</li>
+                  <li>• Guidance before food decisions, not after mistakes</li>
+                  <li>• Adjust meals and macros when life changes</li>
+                  <li>• Support when stress, travel, or cravings hit</li>
+                </ul>
+                <Button
+                  onClick={() => setLocation("/procare-info")}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                >
+                  Learn More
+                </Button>
+              </CardContent>
+            </Card>
+            )}
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
+              <img
+                src="/images/family-chef.png"
+                alt="Family Plan"
+                className="w-full h-40 object-cover"
+              />
+              <CardContent className="pt-4 pb-5 space-y-2">
+                <h3 className="text-lg font-bold">Family Plans</h3>
+                <p className="text-white/70 text-sm">
+                  Every household is different. My Perfect Meals Family Plans give each person their own personalized nutrition profile while keeping the whole household coordinated — from weekly meal planning to smart shopping lists built around everyone's needs.
+                </p>
+                <ul className="text-white/50 text-sm space-y-1 mt-2">
+                  <li>• Personalized profiles for up to 4 household members</li>
+                  <li>• Shared meal planning and smart shopping lists</li>
+                  <li>• Individual macro tracking and dietary preferences</li>
+                  <li>• Parental controls and family-friendly meal generation</li>
+                </ul>
+                <Button
+                  onClick={() => setLocation("/family-info")}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                >
+                  Learn More
+                </Button>
+        </CardContent>
+        </Card>
+
+        {showMarketplace && (
+        <Card className="relative bg-black/30 backdrop-blur-lg border border-amber-500/30 text-white shadow-xl overflow-hidden ring-1 ring-amber-500/20">
+            <img
+              src="/images/personal-guidance-chef.png"
+              alt="MPM Personal Guidance"
+              className="w-full h-40 object-cover"
+            />
+            <CardContent className="pt-4 pb-5 space-y-2">
+              <h3 className="text-lg font-bold text-amber-300">MPM Personal Guidance</h3>
+              <p className="text-white/70 text-sm">
+                Some people don't just want guidance. They want someone experienced helping them structure the entire system. MPM Personal Guidance connects you directly with the founder of My Perfect Meals for structured, in-app coaching and ongoing adjustments.
+              </p>
+              <ul className="text-white/50 text-sm space-y-1 mt-2">
+                <li>• Direct async messaging with the founder</li>
+                <li>• Personalized meal board setup and calibration</li>
+                <li>• Long-term nutrition structure and accountability</li>
+                <li>• Coaching built directly into the My Perfect Meals system</li>
+              </ul>
+              <Button
+                onClick={() => setLocation("/personal-guidance-info")}
+                className="w-full bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30"
+              >
+                See How Personal Guidance Works
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        </div>
+        </div>
+
+        {/* ProCare Professional Plans */}
+        <div id="procare-professional" className="mb-10 scroll-mt-24">
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-4">
                 <span className="text-blue-300 text-sm font-semibold tracking-wide uppercase">
                   ProCare Professional
                 </span>
               </div>
-              <h2 className="text-2xl font-bold text-white">Choose Your Provider Plan</h2>
+              <h2 className="text-2xl font-bold text-white">Coaching & Clinical Plans</h2>
               <p className="text-white/60 text-sm mt-2 max-w-lg mx-auto">
+                Built for trainers, coaches, and physicians managing clients inside My Perfect Meals.
+              </p>
+              <div className="flex justify-center gap-2 mt-4">
+                <button
+                  onClick={() => setProcareRole("trainer")}
+                  className={`px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${procareRole === "trainer" ? "bg-blue-600 text-white border-blue-500" : "bg-white/5 text-white/60 border-white/15"}`}
+                >
+                  Trainer / Coach
+                </button>
+                <button
+                  onClick={() => setProcareRole("physician")}
+                  className={`px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${procareRole === "physician" ? "bg-blue-600 text-white border-blue-500" : "bg-white/5 text-white/60 border-white/15"}`}
+                >
+                  Physician / Medical
+                </button>
+              </div>
+              <p className="text-white/50 text-xs mt-3 max-w-lg mx-auto">
                 {procareRole === "trainer"
                   ? "Select the plan that matches the number of clients you manage. You can upgrade any time."
                   : "Select the plan that fits your practice size. Includes full patient nutrition management tools."}
@@ -670,339 +1030,355 @@ export default function PricingPage() {
                 );
               })}
             </div>
-
-            <div className="text-center mt-6">
-              <button
-                onClick={() => setProcareRole(null)}
-                className="text-white/40 text-xs underline hover:text-white/60 transition-colors"
-              >
-                Looking for a personal subscription instead?
-              </button>
-            </div>
           </div>
-        )}
 
-        {/* Free Tier Card */}
-        <div className="mb-2">
-          <Card className="relative bg-black/30 backdrop-blur-lg text-white shadow-xl border border-white/15">
-            <CardHeader className="pb-4">
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold">Free</h3>
-                <p className="text-sm text-white/80">
-                  Explore the app at your own pace
-                </p>
-                <p className="text-lg font-semibold">$0.00 / month</p>
-              </div>
-            </CardHeader>
-            <Separator className="bg-white/10" />
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {freeFeatures.map((label, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-white">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <Separator className="bg-white/10" />
-            <div className="p-6">
-              <p className="text-xs text-white/50 text-center">
-                Upgrade anytime to unlock AI meal generation, builders, and
-                more.
-              </p>
+        {/* Organization Section */}
+        <div className="mb-12">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-4">
+              <span className="text-blue-300 text-sm font-semibold tracking-wide uppercase">
+                Organization
+              </span>
             </div>
-          </Card>
-        </div>
-
-        {/* Consumer Plans Grid */}
-        <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {consumerPlans.map((plan) => {
-              const features =
-                plan.sku === "mpm_basic_monthly"
-                  ? basicFeatures
-                  : plan.sku === "mpm_premium_monthly"
-                    ? premiumFeatures
-                    : ultimateFeatures;
-
-              return (
-                <Card
-                  key={plan.sku}
-                  className={`relative h-full bg-black/30 backdrop-blur-lg text-white shadow-xl ${
-                    plan.sku === "mpm_premium_monthly"
-                      ? "border-2 border-orange-400/60 ring-2 ring-orange-400/40"
-                      : "border border-white/15"
-                  }`}
-                  data-testid={`plan-card-${plan.sku}`}
-                >
-                  {plan.badge && (
-                    <Badge className="absolute top-3 right-3 bg-purple-600/80 text-white backdrop-blur-sm border border-white/10">
-                      {plan.badge}
-                    </Badge>
-                  )}
-
-                  <CardHeader className="pb-4">
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-bold">{plan.label}</h3>
-                      <p className="text-sm text-white/80">{plan.blurb}</p>
-                      <p className="text-lg font-semibold">
-                        ${plan.price.toFixed(2)} / month
-                      </p>
-                    </div>
-                  </CardHeader>
-
-                  <Separator className="bg-white/10" />
-
-                  <CardContent className="pt-6">
-                    <div className="space-y-3">
-                      {features.map((label, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-white">{label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-
-                  <Separator className="bg-white/10" />
-
-                  <div className="p-6">
-                    <Button
-                      className={`w-full ${
-                        plan.badge
-                          ? "bg-white/10 hover:bg-white/15 border border-white/20 text-white"
-                          : "bg-white/5 hover:bg-white/10 border border-white/20 text-white"
-                      }`}
-                      size="lg"
-                      onClick={() => handleSelectPlan(plan.sku)}
-                      disabled={user?.planLookupKey === plan.sku}
-                      data-testid={`button-select-${plan.sku}`}
-                    >
-                      {getButtonText(plan.sku)}
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
+            <h2 className="text-2xl font-bold text-white">Full Access for Your Whole Team</h2>
+            <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
+              For coaching businesses, wellness organizations, and healthcare practices. One subscription — centralized billing, full Clinical access for every assigned seat.
+            </p>
           </div>
-        </div>
 
-        {/* Founder Coaching Tier */}
-        <div className="mb-16">
-            <h2 className="text-xl font-bold mb-6 text-center">
-              Personal Guidance
-            </h2>
-
-            <Card className="relative bg-black/60 backdrop-blur-lg border border-amber-400/50 ring-2 ring-amber-400/30 text-white shadow-2xl max-w-2xl mx-auto">
-              <CardHeader>
-                <div className="space-y-3 text-center">
-                  <h3 className="text-2xl font-bold">MPM Personal Guidance</h3>
-                  <p className="text-white/80 text-sm">
-                    Work directly with the founder of My Perfect Meals through
-                    structured, in-app, async guidance.
-                  </p>
-                  <p className="text-2xl font-semibold">$299 / month</p>
-                  <p className="text-xs text-white/60">
-                    6-Month Commitment · Async Only · In-App Messaging
+          <div className="max-w-lg mx-auto">
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-blue-500/30 text-white shadow-xl">
+              <CardHeader className="pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold">Organization</h3>
+                    <Badge className="bg-blue-600/80 text-white border border-blue-400/30">Team Plan</Badge>
+                  </div>
+                  <p className="text-blue-300 text-sm font-medium">$44.99 per seat / month</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">${(44.99 * businessSeats).toFixed(2)}</span>
+                    <span className="text-white text-sm">/ month</span>
+                  </div>
+                  <p className="text-white text-xs">
+                    {businessSeats} seat{businessSeats > 1 ? "s" : ""} · Full Clinical access for each assigned user
                   </p>
                 </div>
               </CardHeader>
 
               <Separator className="bg-white/10" />
 
-              <CardContent className="space-y-4 pt-6">
-                <ul className="space-y-3 text-sm">
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-amber-400 mt-0.5" />
-                    Personalized meal board setup and adjustments
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-amber-400 mt-0.5" />
-                    Direct async messaging with founder
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-amber-400 mt-0.5" />
-                    Decision-free nutrition structure
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-amber-400 mt-0.5" />
-                    Ongoing macro calibration and refinements
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-amber-400 mt-0.5" />
-                    Monitored messaging for safety and professionalism
-                  </li>
-                </ul>
-
-                <div className="pt-4">
-                  <Button
-                    size="lg"
-                    className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold"
-                    onClick={() => setLocation("/apply-guidance")}
-                  >
-                    Apply for Personal Guidance
-                  </Button>
-                </div>
-
-                <p className="text-xs text-center text-white/50 pt-2">
-                  This is a structured, professional coaching layer. No video
-                  calls. No off-platform contact. Designed for long-term
-                  confidence.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-        {/* Family Plans Section */}
-        <div className="mb-12">
-          <h2 className="text-xl font-bold mb-6 text-center">Family Plans</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {familyPlans.map((plan) => (
-              <Card
-                key={plan.sku}
-                className="relative h-full bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl"
-                data-testid={`plan-card-${plan.sku}`}
-              >
-                {plan.badge && (
-                  <Badge className="absolute top-3 right-3 bg-blue-600/80 text-white backdrop-blur-sm border border-white/10">
-                    {plan.badge}
-                  </Badge>
-                )}
-
-                <CardHeader className="pb-4">
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold">{plan.label}</h3>
-                    <p className="text-sm text-white/80">{plan.blurb}</p>
-                    <p className="text-lg font-semibold">
-                      ${plan.price.toFixed(2)} / month
+              <CardContent className="pt-5">
+                {/* Seat selector */}
+                <div className="mb-5">
+                  <p className="text-sm text-white/70 mb-3 font-medium">Number of seats</p>
+                  <div className="flex items-center justify-between bg-white/5 border border-white/15 rounded-xl px-4 py-3">
+                    <button
+                      onClick={() => setBusinessSeats(Math.max(1, businessSeats - 1))}
+                      className="w-9 h-9 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
+                    >
+                      −
+                    </button>
+                    <div className="text-center">
+                      <span className="text-2xl font-bold text-white">{businessSeats}</span>
+                      <p className="text-white/50 text-xs mt-0.5">seat{businessSeats !== 1 ? "s" : ""}</p>
+                    </div>
+                    <button
+                      onClick={() => setBusinessSeats(Math.min(250, businessSeats + 1))}
+                      className="w-9 h-9 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
+                    >
+                      +
+                    </button>
+                  </div>
+                  {businessSeats >= 11 && businessSeats <= 50 && (
+                    <p className="text-amber-400/80 text-xs mt-2 px-1">
+                      For 11–50 seats, we recommend a quick setup call so your team gets onboarded smoothly.
                     </p>
-                    {plan.seats && (
-                      <p className="text-xs text-white/60">
-                        Includes up to {plan.seats} profiles
-                      </p>
-                    )}
+                  )}
+                  {businessSeats > 50 && (
+                    <p className="text-amber-400/80 text-xs mt-2 px-1">
+                      For 50+ seats, contact us for enterprise pricing and a dedicated onboarding experience.
+                    </p>
+                  )}
+                  <div className="mt-3 bg-blue-600/10 border border-blue-500/20 rounded-xl px-3 py-2.5">
+                    <p className="text-blue-200/80 text-xs leading-relaxed">
+                      <span className="font-semibold text-blue-300">Each seat = one active user.</span> Count every person who will use the platform — including yourself as the organization owner. For example: owner + spouse + 2 coaches = 4 seats.
+                    </p>
                   </div>
-                </CardHeader>
-
-                <Separator className="bg-white/10" />
-
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    {plan.features?.map((label, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-white">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-
-                <Separator className="bg-white/10" />
-
-                <div className="p-6">
-                  <Button
-                    className="w-full bg-white/5 hover:bg-white/10 border border-white/20 text-white"
-                    size="lg"
-                    onClick={() => handleSelectPlan(plan.sku)}
-                    disabled={user?.planLookupKey === plan.sku}
-                    data-testid={`button-select-${plan.sku}`}
-                  >
-                    {getButtonText(plan.sku)}
-                  </Button>
                 </div>
-              </Card>
-            ))}
+
+                {/* Features */}
+                <div className="space-y-2.5">
+                  {[
+                    "Full Clinical access for every assigned user",
+                    "Clinical Lab Results Integration",
+                    "Care Team Access (physician & trainer)",
+                    "Performance Nutrition Builder",
+                    "Clinical Advisory System",
+                    "Centralized business billing",
+                    "Add and manage team members",
+                    "All Pro & Essential features included",
+                  ].map((feat, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-white/90">{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+
+              <Separator className="bg-white/10" />
+
+              <div className="p-5">
+                <button
+                  className="w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  disabled={businessCheckoutLoading}
+                  onClick={handleBusinessCheckout}
+                >
+                  {businessCheckoutLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" />Processing…</>
+                  ) : (
+                    `Start an Organization — $${(44.99 * businessSeats).toFixed(2)}/mo`
+                  )}
+                </button>
+                <p className="text-white/40 text-xs text-center mt-2">
+                  Web billing only · Manage seats from your account dashboard
+                </p>
+              </div>
+            </Card>
           </div>
         </div>
 
-        {/* More Ways to Use */}
+        {/* Signature Kitchen Section */}
         <div className="mb-12">
-          <h2 className="text-xl font-bold mb-6 text-center">
-            More Ways to Use My Perfect Meals
-          </h2>
-          <p className="text-white/60 text-sm text-center mb-6 max-w-2xl mx-auto">
-            Need more structure than a subscription plan? My Perfect Meals also offers coaching and guided systems for individuals and families.
-          </p>
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 bg-amber-600/20 border border-amber-500/30 rounded-full px-4 py-2 mb-4">
+              <span className="text-amber-300 text-sm font-semibold tracking-wide uppercase">
+                Signature Kitchen
+              </span>
+            </div>
+            <h2 className="text-2xl font-bold text-white">Bring Your Brand Into the App</h2>
+            <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
+              Your name, your recipes, your kitchen — built into My Perfect Meals. Creators, chefs, and coaches use Signature Kitchen to reach users at the moment they're deciding what to eat.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
-              <img
-                src="/images/procare-chef.png"
-                alt="ProCare Coaching"
-                className="w-full h-40 object-cover"
-              />
-              <CardContent className="pt-4 pb-5 space-y-2">
-                <h3 className="text-lg font-bold">ProCare Coaching</h3>
-                <p className="text-white/70 text-sm">
-                  Some people don't struggle with nutrition knowledge. They struggle with decisions in the moment. ProCare connects you with a real coach inside the My Perfect Meals system so you're not left guessing when real life happens.
-                </p>
-                <ul className="text-white/50 text-sm space-y-1 mt-2">
-                  <li>• Direct messaging with your coach</li>
-                  <li>• Guidance before food decisions, not after mistakes</li>
-                  <li>• Adjust meals and macros when life changes</li>
-                  <li>• Support when stress, travel, or cravings hit</li>
-                </ul>
-                <Button
-                  onClick={() => setLocation("/procare-info")}
-                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                >
-                  Learn More
-                </Button>
+            {/* Starter */}
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl flex flex-col">
+              <CardHeader className="pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">Starter</h3>
+                  <p className="text-white/60 text-sm">Get your kitchen in the app and start building your audience.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">$99</span>
+                    <span className="text-white/50 text-sm">/ month</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <Separator className="bg-white/10" />
+              <CardContent className="pt-5 flex-1 space-y-2.5">
+                {[
+                  "Your kitchen, your name, your recipes in the app",
+                  "Up to 10 featured recipes",
+                  "Basic brand profile (photo, bio, links)",
+                  "Monthly analytics snapshot",
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{f}</span>
+                  </div>
+                ))}
               </CardContent>
-            </Card>
-            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl overflow-hidden">
-              <img
-                src="/images/family-chef.png"
-                alt="Family Plan"
-                className="w-full h-40 object-cover"
-              />
-              <CardContent className="pt-4 pb-5 space-y-2">
-                <h3 className="text-lg font-bold">Family Plan</h3>
-                <p className="text-white/70 text-sm">
-                  Trying to eat healthy while everyone in the house eats differently creates chaos. The My Perfect Meals Family Plan gives every person their own personalized nutrition experience while keeping the household organized in one system.
-                </p>
-                <ul className="text-white/50 text-sm space-y-1 mt-2">
-                  <li>• Individual profiles for every family member</li>
-                  <li>• Personalized nutrition guidance for each person</li>
-                  <li>• Kids, parents, and partners on the same system</li>
-                  <li>• One organized plan for the whole household</li>
-                </ul>
+              <Separator className="bg-white/10" />
+              <div className="p-5">
                 <Button
-                  onClick={() => setLocation("/family-info")}
-                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
+                  onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
                 >
-                  Learn More
+                  Get Started
                 </Button>
-        </CardContent>
-        </Card>
+              </div>
+            </Card>
 
-        <Card className="relative bg-black/30 backdrop-blur-lg border border-amber-500/30 text-white shadow-xl overflow-hidden ring-1 ring-amber-500/20">
-            <img
-              src="/images/personal-guidance-chef.png"
-              alt="MPM Personal Guidance"
-              className="w-full h-40 object-cover"
-            />
-            <CardContent className="pt-4 pb-5 space-y-2">
-              <h3 className="text-lg font-bold text-amber-300">MPM Personal Guidance</h3>
-              <p className="text-white/70 text-sm">
-                Some people don't just want guidance. They want someone experienced helping them structure the entire system. MPM Personal Guidance connects you directly with the founder of My Perfect Meals for structured, in-app coaching and ongoing adjustments.
-              </p>
-              <ul className="text-white/50 text-sm space-y-1 mt-2">
-                <li>• Direct async messaging with the founder</li>
-                <li>• Personalized meal board setup and calibration</li>
-                <li>• Long-term nutrition structure and accountability</li>
-                <li>• Coaching built directly into the My Perfect Meals system</li>
-              </ul>
-              <Button
-                onClick={() => setLocation("/personal-guidance-info")}
-                className="w-full bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30"
-              >
-                See How Personal Guidance Works
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Pro */}
+            <Card className="relative bg-black/40 backdrop-blur-lg border-2 border-amber-400/50 ring-2 ring-amber-400/20 text-white shadow-xl flex flex-col">
+              <Badge className="absolute top-3 right-3 bg-amber-500/80 text-white backdrop-blur-sm border border-white/10">
+                Most Popular
+              </Badge>
+              <CardHeader className="pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">Pro</h3>
+                  <p className="text-white/60 text-sm">Full brand integration with priority placement and deeper analytics.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold text-amber-300">$199</span>
+                    <span className="text-white/50 text-sm">/ month</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <Separator className="bg-white/10" />
+              <CardContent className="pt-5 flex-1 space-y-2.5">
+                {[
+                  "Everything in Starter",
+                  "Up to 30 featured recipes",
+                  "Full brand integration (colors, assets, story)",
+                  "Priority placement in discovery",
+                  "Quarterly analytics report",
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{f}</span>
+                  </div>
+                ))}
+              </CardContent>
+              <Separator className="bg-white/10" />
+              <div className="p-5">
+                <Button
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold"
+                  onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
+                >
+                  Get Started
+                </Button>
+              </div>
+            </Card>
 
+            {/* Partner */}
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl flex flex-col">
+              <CardHeader className="pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">Partner</h3>
+                  <p className="text-white/60 text-sm">Full co-branded kitchen with onboarding placement and dedicated support.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">$499</span>
+                    <span className="text-white/50 text-sm">/ month</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <Separator className="bg-white/10" />
+              <CardContent className="pt-5 flex-1 space-y-2.5">
+                {[
+                  "Everything in Pro",
+                  "Unlimited featured recipes",
+                  "Full co-branded kitchen experience",
+                  "Featured in onboarding and meal suggestions",
+                  "Dedicated account support",
+                  "Optional rev-share on plan upgrades you drive",
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{f}</span>
+                  </div>
+                ))}
+              </CardContent>
+              <Separator className="bg-white/10" />
+              <div className="p-5">
+                <Button
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
+                  onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
+                >
+                  Get Started
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          <p className="text-center text-white/50 text-sm mt-6">
+            Looking for a full brand integration or enterprise deal?{" "}
+            <a
+              href="https://forms.gle/5Nd1MBYTrWaRKRQk6"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-400 underline hover:text-amber-300"
+            >
+              Contact us.
+            </a>
+          </p>
         </div>
+
+        {/* Creator Studio */}
+        <div className="mb-12">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold text-white">Creator Studio</h2>
+            <p className="text-white/50 text-sm mt-1">We build your system — your style, your identity, inside My Perfect Meals.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Card className="relative bg-orange-950/20 backdrop-blur-lg border border-orange-500/30 text-white shadow-xl flex flex-col">
+              <CardHeader className="pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">Chef Studio</h3>
+                  <p className="text-white/60 text-sm">Turn your cooking identity into a system your audience can use.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-3xl font-bold">$2,500</span>
+                    <span className="text-white/50 text-sm">full build</span>
+                  </div>
+                  <p className="text-orange-300/70 text-xs">$1,250 deposit to start · $1,250 on delivery</p>
+                </div>
+              </CardHeader>
+              <Separator className="bg-white/10" />
+              <CardContent className="pt-5 flex-1 space-y-2.5">
+                {[
+                  "Your studio name & identity in the platform",
+                  "Your techniques & flavors power the AI",
+                  "Your signature meal catalog for your audience",
+                  "Product code for your community",
+                  "Reviewed and built by our team",
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{f}</span>
+                  </div>
+                ))}
+              </CardContent>
+              <Separator className="bg-white/10" />
+              <div className="p-5">
+                <Button
+                  className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold"
+                  onClick={() => window.location.href = "/creator-studio"}
+                >
+                  Start Your Build
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="relative bg-black/30 backdrop-blur-lg border border-white/15 text-white shadow-xl flex flex-col">
+              <CardHeader className="pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">Brand Beverage Studio</h3>
+                  <p className="text-white/60 text-sm">Put your branded products into the supplement and beverage experience.</p>
+                  <div className="flex items-baseline gap-1 pt-1">
+                    <span className="text-2xl font-bold">Custom</span>
+                  </div>
+                  <p className="text-white/40 text-xs">Contact us for pricing</p>
+                </div>
+              </CardHeader>
+              <Separator className="bg-white/10" />
+              <CardContent className="pt-5 flex-1 space-y-2.5">
+                {[
+                  "Your product names replace generic ingredients",
+                  "Branded supplement recommendations",
+                  "Your labels throughout the nutrition experience",
+                  "Faster setup — no deep kitchen build",
+                  "Reviewed and integrated by our team",
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-white/90">{f}</span>
+                  </div>
+                ))}
+              </CardContent>
+              <Separator className="bg-white/10" />
+              <div className="p-5">
+                <Button
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold"
+                  onClick={() => window.open("https://forms.gle/5Nd1MBYTrWaRKRQk6", "_blank", "noopener,noreferrer")}
+                >
+                  Get in Touch
+                </Button>
+              </div>
+            </Card>
+          </div>
+          <p className="text-center text-white/40 text-xs mt-5">
+            Not self-serve. Every application is reviewed and built by our team before activation.
+          </p>
         </div>
 
         {/* Affiliate Panel */}
@@ -1014,17 +1390,21 @@ export default function PricingPage() {
         <div className="mb-12 space-y-6">
           {/* Subscription Terms - Apple Required */}
           <div className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl p-4 text-center space-y-3">
-            <p className="text-white/90 text-sm font-medium">
-              7-Day Free Trial, then $14.99/month (Basic), $24.99/month
-              (Premium), or $34.99/month (Ultimate)
+            <p className="text-white/90 text-sm font-bold">
+              Start Free. Upgrade When You're Ready.
+            </p>
+            <p className="text-white/70 text-xs leading-relaxed">
+              My Perfect Meals includes a free tier with Fridge Rescue, Macro Calculator, MacroScan, Biometrics Tracking, Copilot Voice Guidance, and Daily Journal.
+              Paid plans unlock the full platform — AI meal builders, weekly planning, specialty hubs, and more.
             </p>
             <p className="text-white/60 text-xs leading-relaxed">
-              Payment will be charged to your account at confirmation of
-              purchase. Subscription automatically renews unless canceled at
-              least 24 hours before the end of the current period. Your account
-              will be charged for renewal within 24 hours prior to the end of
-              the current period. You can manage and cancel your subscription in
-              your account settings.
+              Unlock full access with a subscription: Essential – $19.99/month · Pro – $29.99/month · Clinical – $44.99/month
+            </p>
+            <p className="text-white/50 text-xs leading-relaxed">
+              Payment will be charged to your account at confirmation of purchase.
+              Subscriptions automatically renew unless canceled at least 24 hours before the end of the current billing period.
+              Your account will be charged for renewal within 24 hours prior to the end of the current period.
+              You can manage or cancel your subscription in your account settings.
             </p>
             <div className="flex justify-center gap-4 text-xs">
               <button
@@ -1034,7 +1414,7 @@ export default function PricingPage() {
                 Terms of Service
               </button>
               <button
-                onClick={() => setLocation("/privacy-policy")}
+                onClick={() => window.location.href = "/privacy-policy"}
                 className="text-lime-400 underline hover:text-lime-300"
               >
                 Privacy Policy
@@ -1065,7 +1445,7 @@ export default function PricingPage() {
                     apiUrl("/api/stripe/subscription-status"),
                     {
                       headers: {
-                        "x-auth-token": localStorage.getItem("authToken") || "",
+                        "x-auth-token": localStorage.getItem("mpm_auth_token") || "",
                       },
                     },
                   );
@@ -1108,18 +1488,21 @@ export default function PricingPage() {
           {/* Apple App Store Compliance Section */}
           <div className="mb-12 space-y-6">
             <div className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl p-4 text-center space-y-3">
-              <p className="text-white/90 text-sm font-medium">
-                Free Plan available. Premium subscriptions include a 7-Day Free Trial,
-                then $14.99/month (Basic), $24.99/month (Premium), or $34.99/month
-                (Ultimate).
+              <p className="text-white/90 text-sm font-bold">
+                Start Free. Upgrade When You're Ready.
+              </p>
+              <p className="text-white/70 text-xs leading-relaxed">
+                My Perfect Meals includes a free tier with Fridge Rescue, Macro Calculator, MacroScan, Biometrics Tracking, Copilot Voice Guidance, and Daily Journal.
+                Paid plans unlock the full platform — AI meal builders, weekly planning, specialty hubs, and more.
               </p>
               <p className="text-white/60 text-xs leading-relaxed">
-                Payment will be charged to your Apple account at confirmation of
-                purchase. Subscriptions automatically renew unless auto-renew is turned
-                off at least 24 hours before the end of the current billing period. Your
-                account will be charged for renewal within 24 hours prior to the end of
-                the current period. You can manage or cancel your subscription at any
-                time in your App Store account settings.
+                Unlock full access with a subscription: Essential – $19.99/month · Pro – $29.99/month · Clinical – $44.99/month
+              </p>
+              <p className="text-white/50 text-xs leading-relaxed">
+                Payment will be charged to your account at confirmation of purchase.
+                Subscriptions automatically renew unless canceled at least 24 hours before the end of the current billing period.
+                Your account will be charged for renewal within 24 hours prior to the end of the current period.
+                You can manage or cancel your subscription in your account settings.
               </p>
             </div>
           </div>
@@ -1128,10 +1511,10 @@ export default function PricingPage() {
           <p className="text-white/50 text-xs text-center">
             Need help? Contact us at{" "}
             <a
-              href="mailto:support@myperfectmeals.com"
+              href={supportUrl}
               className="text-lime-400 underline hover:text-lime-300"
             >
-              support@myperfectmeals.com
+              {supportEmail}
             </a>
           </p>
           <p className="text-white/40 text-xs text-center mt-2">
@@ -1145,7 +1528,7 @@ export default function PricingPage() {
             </a>
             {" · "}
             <button
-              onClick={() => setLocation("/privacy-policy")}
+              onClick={() => window.location.href = "/privacy-policy"}
               className="text-white/50 underline hover:text-white/70"
             >
               Privacy Policy

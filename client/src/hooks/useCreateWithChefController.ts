@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-type MealSlot = "breakfast" | "lunch" | "dinner";
+type MealSlot = "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6";
 
 interface UseCreateWithChefControllerResult {
   open: boolean;

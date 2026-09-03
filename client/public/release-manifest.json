@@ -1,3 +1,12 @@
 {
-  "version": "1774139214937"
+  "version": "1786833691430",
+  "commit": "efc7ca1c",
+  "releasedAt": "2026-08-15T22:41:31.430Z",
+  "notes": [
+    "Improved allergen handling for oat-based dishes, ensuring certified gluten-free oats are properly recognized.",
+    "Enhanced dish identity validation to prevent incorrect dish form collapses, improving accuracy in meal suggestions.",
+    "Updated toast notifications for allergy alerts to ensure users have sufficient time to read important information.",
+    "Fixed alignment issues in toast action buttons for better readability and user experience.",
+    "Implemented clear user-facing messages for dish identity failures in the Craving Creator, enhancing user guidance."
+  ]
 }

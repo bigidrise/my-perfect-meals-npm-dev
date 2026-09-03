@@ -11,6 +11,8 @@ import OpenAI from "openai";
 import pLimit from "p-limit";
 import { convertToUserFriendlyUnits } from "../utils/unitConverter";
 import { generateMealFromPrompt } from "./universalMealGenerator";
+import { buildDishTypeHint, getSemanticFallback } from "./mealImageGenerator";
+import { normalizeMealName } from "./mealNameNormalizer";
 import { getGlycemicSettings } from "./glycemicSettingsService";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
@@ -21,9 +23,20 @@ import {
   isValidHubType
 } from "./hubCoupling";
 import { buildPalateSection, PalatePreferences } from "./promptBuilder";
+import { AVOIDANCE_EXPANSION } from "./allergyGuardrails";
+import { buildOncologySupportPrompt, isOncologySupportEnabled, ONCOLOGY_HARD_BLOCKED_INGREDIENTS, type OncologySupportContext } from "./guardrails/prompt/oncologySupportPromptBuilder";
+import { filterOncologySafeMeals } from "./guardrails/validators/oncologySupportValidator";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+// Phase 2 Step 1: Behavioral memory — read-only preference profile
+import {
+  derivePreferenceProfile,
+  buildBehavioralMemoryPromptSection,
+  hasBehavioralMemorySignals,
+  type PreferenceProfile,
+} from "./behavioralMemoryService";
+import { evaluateWholeFoodCandidate } from "./wholeFoodStandard";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -134,6 +147,7 @@ export type WeeklyMealReq = {
   mealTypes: MealType[];              // e.g., ["breakfast","lunch","dinner","snack"]
   dietaryRestrictions: string[];      // ["gluten_free","kosher","no_pork"]
   allergies: string[];                // ["peanut","tree nut","shellfish","egg","milk","soy","wheat"]
+  avoidIngredients?: string[];        // food avoidances/preferences (no PIN, not medical)
   selectedIngredients?: string[];     // ingredients to prioritize/include in meal generation
   medicalFlags: string[];             // ["type2_diabetes","low_gi",...]
   diversity?: { minUniqueProteins?: number; minUniqueVeg?: number };
@@ -403,6 +417,21 @@ function violatesAllergy(ings: Skeleton["ingredients"], allergies: string[]) {
   return false;
 }
 
+function violatesAvoidance(ings: Skeleton["ingredients"], avoidIngredients: string[]): boolean {
+  if (!avoidIngredients.length) return false;
+  const expandedTerms = new Set<string>();
+  for (const item of avoidIngredients) {
+    const key = item.trim().toLowerCase();
+    expandedTerms.add(key);
+    const expanded = AVOIDANCE_EXPANSION[key];
+    if (expanded) expanded.forEach(t => expandedTerms.add(t.toLowerCase()));
+  }
+  return ings.some(ing => {
+    const name = ing.name.toLowerCase();
+    return Array.from(expandedTerms).some(term => name.includes(term));
+  });
+}
+
 function violatesDiet(ings: Skeleton["ingredients"], diet: string[]) {
   const txt = ings.map(i => i.name.toLowerCase()).join(" | ");
 
@@ -561,7 +590,17 @@ function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealTyp
     slots.includes(s.mealType) &&
     !violatesAllergy(s.ingredients, req.allergies) &&
     !violatesDiet(s.ingredients, req.dietaryRestrictions) &&
-    validateMealType(s) // Ensure meal type is appropriate
+    validateMealType(s) &&
+    !evaluateWholeFoodCandidate(
+      {
+        name: s.name,
+        ingredients: s.ingredients.map((ingredient) => ({ name: ingredient.name })),
+      },
+      {
+        recommendationSurface: "weekly_meal_catalog",
+        practicalAlternativeAvailable: true,
+      },
+    ).shouldBlock
   );
 
   // Apply glycemic filtering if settings exist
@@ -593,24 +632,14 @@ function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealTyp
     if (!pick) {
       pick = pool.find(p => p.mealType === slot);
     }
-    if (!pick) {
-      pick = catalog.find(p => p.mealType === slot);
-    }
     
     if (pick) {
       out.push(pick);
       used.push(pick);
     } else {
-      console.warn(`No meal found for slot: ${slot}`);
-      // Create a fallback meal to prevent null issues
-      const fallback: Skeleton = {
-        name: `Default ${slot} meal`,
-        mealType: slot,
-        ingredients: [{ name: "Placeholder ingredient", grams: 100 }],
-        tags: ['fallback']
-      };
-      out.push(fallback);
-      used.push(fallback);
+      throw new Error(
+        `No allergy-, diet-, meal-type-, and Whole-Food Standard-compliant catalog meal is available for ${slot}`,
+      );
     }
   }
   return out;
@@ -624,14 +653,19 @@ const InstructionsSchema = z.object({
   })).min(1)
 });
 
-async function instructBatch(items: Skeleton[], palatePrefs?: PalatePreferences, skipPalate?: boolean): Promise<Record<string,string[]>> {
+async function instructBatch(items: Skeleton[], palatePrefs?: PalatePreferences, skipPalate?: boolean, behavioralMemorySection?: string): Promise<Record<string,string[]>> {
   try {
     // Build palate section if preferences exist and not skipped
     const palateGuidance = (!skipPalate && palatePrefs) 
       ? `\n\nFLAVOR PREFERENCES: ${buildPalateSection(palatePrefs)}` 
       : "\n\nFLAVOR: Use light, neutral seasoning suitable for serving to guests or family.";
     
-    const sys = `You write short, precise cooking instructions ONLY. Return JSON { instructions: [{ name, steps[] }] }. Steps are imperative, max 8, no fluff.${palateGuidance}`;
+    // Phase 2 Step 2: Behavioral memory — bounded soft preference hints (never overrides rules)
+    const memoryGuidance = (behavioralMemorySection && behavioralMemorySection.length > 0)
+      ? `\n\n${behavioralMemorySection}`
+      : "";
+    
+    const sys = `You write short, precise cooking instructions ONLY. Return JSON { instructions: [{ name, steps[] }] }. Steps are imperative, max 8, no fluff.${palateGuidance}${memoryGuidance}`;
     const user = `Generate instructions for these meals: ${items.map(s => `${s.name}: ${s.ingredients.map(i => i.name).join(', ')}`).join('; ')}`;
     
     const response = await getOpenAI().chat.completions.create({
@@ -775,6 +809,10 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
           palateSpiceTolerance: users.palateSpiceTolerance,
           palateSeasoningIntensity: users.palateSeasoningIntensity,
           palateFlavorStyle: users.palateFlavorStyle,
+          flavorPreference: users.flavorPreference,
+          heatPreference: users.heatPreference,
+          medicalConditions: users.medicalConditions,
+          oncologySupportContext: users.oncologySupportContext,
         }).from(users).where(eq(users.id, userPrefs.userId)).limit(1);
         
         if (user) {
@@ -782,7 +820,12 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
             palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],
             palateSeasoningIntensity: user.palateSeasoningIntensity as PalatePreferences['palateSeasoningIntensity'],
             palateFlavorStyle: user.palateFlavorStyle as PalatePreferences['palateFlavorStyle'],
+            flavorPreference: user.flavorPreference,
+            heatPreference: user.heatPreference,
+            medicalConditions: (user.medicalConditions as string[]) || [],
           };
+          // Store oncology context for prompt injection below
+          (userPrefs as any)._oncologySupportContext = user.oncologySupportContext ?? null;
         }
       } catch (err) {
         console.warn('⚠️ Could not load palate preferences:', err);
@@ -790,10 +833,49 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
     
     if (palatePrefs) {
-      console.log(`🎨 Loaded palate preferences: spice=${palatePrefs.palateSpiceTolerance}, seasoning=${palatePrefs.palateSeasoningIntensity}, flavor=${palatePrefs.palateFlavorStyle}`);
+      console.log(`🎨 Loaded palate preferences: flavor=${palatePrefs.flavorPreference}, heat=${palatePrefs.heatPreference}, spice=${palatePrefs.palateSpiceTolerance}`);
     }
   } else if (skipPalate) {
     console.log(`🎨 Palate preferences skipped - using neutral seasoning for shared meal`);
+  }
+
+  // 🎗️ TEXT-INTENT ONCOLOGY SYNTHETIC CONTEXT
+  // If the craving text mentions oncology but no DB flag was loaded above, create a synthetic
+  // context so the catalog filter (line ~1094) and the catalog bypass below both activate.
+  // Without this, text-intent only fires in the no-match AI fallback — the catalog path is unprotected.
+  if (craving && /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(String(craving)) &&
+      !((userPrefs as any)?._oncologySupportContext?.enabled)) {
+    (userPrefs as any)._oncologySupportContext = {
+      enabled: true,
+      symptoms: [],
+      emphasis: { highProteinNutrientDensity: true },
+      source: "self",
+      updatedBy: null,
+      updatedAt: null,
+    };
+    console.log('🎗️ [CANCER SUPPORT] Text-intent oncology detected in craving — synthetic context activated for catalog bypass + filter');
+  }
+
+  // 🧠 Phase 2 Step 1: Behavioral memory — derive preference profile (read-only, no writes)
+  let behavioralMemorySection: string = "";
+  let behavioralProfile: PreferenceProfile | null = null;
+  if (userPrefs?.userId && !skipPalate) {
+    try {
+      behavioralProfile = await derivePreferenceProfile(userPrefs.userId);
+      if (behavioralProfile && hasBehavioralMemorySignals(behavioralProfile)) {
+        behavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
+        console.log(
+          `🧠 [BehavioralMemory] Loaded profile — ` +
+          `evidence=${behavioralProfile.auditMeta.evidenceCount}, ` +
+          `categories=[${behavioralProfile.auditMeta.categories.join(",")}], ` +
+          `hash=${behavioralProfile.auditMeta.profileHash}`
+        );
+      } else {
+        console.log(`🧠 [BehavioralMemory] No preference history yet for user ${userPrefs.userId.slice(0, 8)}`);
+      }
+    } catch (err) {
+      console.warn("⚠️ [BehavioralMemory] Could not derive preference profile:", err);
+    }
   }
   
   // 🩺 HUB COUPLING: Get medical context for diabetic/GLP-1 users
@@ -820,8 +902,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
             console.log(`💉 GLP-1 guardrails applied`);
           }
         }
-      } else if (detectedHubType === 'anti_inflammatory') {
-        medicalHubContext = await resolveHubCoupling('anti_inflammatory', userPrefs.userId, targetMealType);
+      } else if (detectedHubType === 'anti-inflammatory') {
+        medicalHubContext = await resolveHubCoupling('anti-inflammatory', userPrefs.userId, targetMealType);
         if (medicalHubContext) {
           console.log(`🌿 [ANTI-INFLAMMATORY INTEGRATION] Active - diet context loaded for user ${userPrefs.userId.substring(0, 8)}...`);
           if (medicalHubContext.guardrails) {
@@ -855,10 +937,28 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       console.log(`🚫 Filtered out ${s.name}: ${validation.reasons?.join(', ')}`);
       return false;
     }
+
+    const wholeFoodDecision = evaluateWholeFoodCandidate(
+      {
+        name: s.name,
+        ingredients: s.ingredients.map((ingredient) => ({ name: ingredient.name })),
+      },
+      {
+        recommendationSurface: "stable_meal_catalog",
+        practicalAlternativeAvailable: true,
+      },
+    );
+    if (wholeFoodDecision.shouldBlock) {
+      console.log(
+        `🥕 Filtered out ${s.name}: Whole-Food Standard (${wholeFoodDecision.matchedTerms.join(", ")})`,
+      );
+      return false;
+    }
     
     return s.mealType === targetMealType &&
       (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies)) &&
-      (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions));
+      (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions)) &&
+      (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients));
   });
 
   // Apply glycemic filtering if settings exist
@@ -1026,6 +1126,38 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
   }
 
+  // 🎗️ CANCER SUPPORT NUTRITION: Hard-block forbidden ingredients from catalog
+  // This runs on every path — catalog selection AND AI generation fallback.
+  // filterOncologySafeMeals is the post-generation validator; here we do the same
+  // check inline on the catalog Skeletons before any meal is selected.
+  const _oncologyCtxForCatalog = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
+  if (isOncologySupportEnabled() && _oncologyCtxForCatalog?.enabled) {
+    const preOncologyCount = filtered.length;
+    filtered = filtered.filter((meal) => {
+      const mealNameLower = meal.name.toLowerCase();
+      for (const blocked of ONCOLOGY_HARD_BLOCKED_INGREDIENTS) {
+        if (mealNameLower.includes(blocked.toLowerCase())) {
+          return false;
+        }
+      }
+      for (const ing of meal.ingredients) {
+        const ingNameLower = ing.name.toLowerCase();
+        for (const blocked of ONCOLOGY_HARD_BLOCKED_INGREDIENTS) {
+          if (ingNameLower.includes(blocked.toLowerCase())) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    if (filtered.length < preOncologyCount) {
+      console.log(`🎗️ [CANCER SUPPORT] Removed ${preOncologyCount - filtered.length} catalog meals containing blocked ingredients. ${filtered.length} remain.`);
+    }
+    if (filtered.length === 0) {
+      console.log(`🎗️ [CANCER SUPPORT] All catalog meals were blocked — will fall through to AI generation.`);
+    }
+  }
+
   // Special handling for kid-friendly meals
   if (userPrefs?.kidFriendly || (craving && typeof craving === 'string' && craving.includes('kid-friendly'))) {
     console.log("🧒 Filtering for kid-friendly meals");
@@ -1074,23 +1206,19 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
         };
         
         // Generate image for meal
-        let imageUrl = null;
+        let imageUrl: string | null = null;
         try {
-          const { generateImage } = await import("./imageService");
-          imageUrl = await generateImage({
-            name: selected.name,
-            description: `child-friendly cartoon-style version, colorful plate, fun design, appealing to kids`,
-            type: 'meal',
-            style: 'kid-friendly',
-            ingredients: selected.ingredients.map(ing => ing.name),
-            calories: nutrition.calories,
-            protein: nutrition.protein,
-            carbs: nutrition.carbs,
-            fat: nutrition.fat,
-          });
+          const { generateMealImageUnified } = await import("./mealImageGenerator");
+          const _imageName = normalizeMealName(selected.name);
+          imageUrl = await generateMealImageUnified(
+            _imageName,
+            selected.ingredients.map(ing => ing.name),
+            'meal'
+          );
           console.log(`📸 Generated kid-friendly image for ${selected.name}`);
         } catch (error) {
           console.log(`❌ Image generation failed for ${selected.name}:`, error);
+          imageUrl = getSemanticFallback(selected.name);
         }
         
         return {
@@ -1148,6 +1276,30 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     }
   }
   
+  // 🎗️ ONCOLOGY HARD CATALOG BYPASS
+  // When oncology is active (DB flag OR text intent — both now populate _oncologySupportContext),
+  // skip the static catalog entirely. Catalog meals cannot be reliably verified as oncology-safe
+  // (e.g., "BBQ ribs" in catalog may contain brown sugar via a sauce not individually listed).
+  // The constraint-first AI prompt is the only reliable path for oncology meals.
+  if (craving && isOncologySupportEnabled()) {
+    const _oncologyBypassCtx = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
+    if (_oncologyBypassCtx?.enabled) {
+      console.log('🎗️ [CANCER SUPPORT] Oncology active — bypassing catalog, routing to constraint-first AI generation');
+      telemetry.tagFallback(sessionId, "oncology_ai_bypass" as any, "Oncology active — catalog bypassed for constraint-first AI");
+      telemetry.closeSession(sessionId);
+
+      const oncologyPrompt = buildOncologySupportPrompt(_oncologyBypassCtx);
+      const enhancedCravingForBypass = oncologyPrompt
+        ? `${oncologyPrompt}
+TRANSFORMATION RULE: If the requested dish is traditionally prepared with ingredients that violate the above constraints (e.g., added sugar, honey, brown sugar, maple syrup, bourbon glaze, processed meats), you MUST reinterpret it into a fully compliant version while preserving its cultural identity and spirit. The dish concept and name should remain recognizable — only the non-compliant components are replaced with protocol-safe alternatives. Example: "soul food spareribs" → dry-rubbed oven-baked spareribs with turmeric-garlic spice rub, sweet potato wedges, and braised collard greens with garlic and olive oil — no added sugar, no honey glaze, no maple syrup, no bourbon.
+
+User request: ${craving}`
+        : String(craving);
+
+      return await generateMealFromPrompt(enhancedCravingForBypass, targetMealType, userPrefs);
+    }
+  }
+
   // CRAVING MATCHING LOGIC - Filter by craving if provided
   // For kids meals, also process craving matching to find the right kid-friendly meal
   if (craving && (!userPrefs?.kidFriendly || filtered.length > 1)) {
@@ -1260,6 +1412,29 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
         console.log(`🌿 [ANTI-INFLAMMATORY AI] Injecting diet guidance into AI prompt`);
         enhancedCraving = `${craving}\n\n${antiInflammatoryHubContext.promptFragment}`;
       }
+
+      // 🎗️ CANCER SUPPORT NUTRITION OVERLAY: Inject symptom-aware guidance if active
+      // Activation: DB flag (physician-assigned) OR text intent in the craving ("oncology", "cancer support", etc.)
+      const oncologyCtx = (userPrefs as any)?._oncologySupportContext as OncologySupportContext | null;
+      const cravingMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(craving);
+      const oncologyActive = isOncologySupportEnabled() && (oncologyCtx?.enabled || cravingMentionsOncology);
+
+      if (oncologyActive) {
+        const activeCtx: OncologySupportContext = oncologyCtx?.enabled
+          ? oncologyCtx
+          : { enabled: true, symptoms: [], emphasis: { highProteinNutrientDensity: true }, source: "self", updatedBy: null, updatedAt: null };
+        const oncologyPrompt = buildOncologySupportPrompt(activeCtx);
+        if (oncologyPrompt) {
+          const trigger = oncologyCtx?.enabled ? "DB flag" : "text intent";
+          console.log(`🎗️ [CANCER SUPPORT] Injecting oncology overlay (trigger: ${trigger}). Symptoms: [${activeCtx.symptoms.join(", ")}]`);
+          // CONSTRAINT-FIRST: hard rules come BEFORE the user request so the model
+          // sees constraints as primary, not as an afterthought to fix later.
+          enhancedCraving = `${oncologyPrompt}
+TRANSFORMATION RULE: If the requested dish is traditionally prepared with ingredients that violate the above constraints (e.g., added sugar, honey, brown sugar, processed meats), you MUST reinterpret it into a fully compliant version while preserving its cultural identity and spirit. The dish concept and name should remain recognizable — only the non-compliant components are replaced with protocol-safe alternatives. Example: "soul food spareribs" → dry-rubbed oven-baked spareribs with turmeric-garlic spice rub, sweet potato wedges, and braised collard greens with garlic and olive oil — no added sugar, no honey glaze.
+
+User request: ${craving}`;
+        }
+      }
       
       // Use Universal AI Meal Generator as fallback (it has its own telemetry session)
       return await generateMealFromPrompt(enhancedCraving, targetMealType, userPrefs);
@@ -1283,7 +1458,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       telemetry.tagFallback(sessionId, "catalog_fallback", "No specific matches, using general catalog");
       filtered = catalog.filter(s => 
         (!userPrefs?.allergies || !violatesAllergy(s.ingredients, userPrefs.allergies)) &&
-        (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions))
+        (!userPrefs?.dietaryRestrictions || !violatesDiet(s.ingredients, userPrefs.dietaryRestrictions)) &&
+        (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients))
       );
     }
     
@@ -1406,8 +1582,8 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   
   const medicalBadges = medicalBadgesFor(selected, userPrefs?.medicalFlags || []);
   
-  // Generate instructions for single meal with palate preferences
-  const instructionsMap = await instructBatch([selected], palatePrefs, skipPalate);
+  // Generate instructions with palate preferences + behavioral memory (soft hints, post-enforcement)
+  const instructionsMap = await instructBatch([selected], palatePrefs, skipPalate, behavioralMemorySection);
   
   // Create more descriptive meal description
   const mainIngredients = selected.ingredients.slice(0, 3).map(i => i.name).join(', ');
@@ -1417,24 +1593,20 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     : `A delicious ${targetMealType} featuring ${mainIngredients}. ${selected.tags.includes('high_protein') ? 'High in protein and ' : ''}Perfect for satisfying your cravings while maintaining your health goals.`;
   
   // Generate image for meal with kid-friendly styling
-  let imageUrl = null;
+  let imageUrl: string | null = null;
   try {
-    const { generateImage } = await import("./imageService");
-    imageUrl = await generateImage({
-      name: selected.name,
-      description: isKidMeal ? `child-friendly cartoon-style version, colorful plate, fun design, appealing to kids` : description,
-      type: 'meal',
-      style: isKidMeal ? 'kid-friendly' : 'homemade',
-      ingredients: selected.ingredients.map(ing => ing.name),
-      calories: nutrition.calories,
-      protein: nutrition.protein,
-      carbs: nutrition.carbs,
-      fat: nutrition.fat,
-    });
+    const { generateMealImageUnified } = await import("./mealImageGenerator");
+    const _imageName = normalizeMealName(selected.name);
+    imageUrl = await generateMealImageUnified(
+      _imageName,
+      selected.ingredients.map(ing => ing.name),
+      'meal'
+    );
     console.log(`📸 Generated ${isKidMeal ? 'kid-friendly ' : ''}image for ${selected.name}`);
   } catch (error) {
     telemetry.tagFallback(sessionId, "image_generation_failed", `Image failed for ${selected.name}`);
     console.log(`❌ Image generation failed for ${selected.name}:`, error);
+    imageUrl = getSemanticFallback(selected.name);
   }
   
   // Track instruction fallback
@@ -1451,6 +1623,14 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   // Build debug metadata and close session
   const debugMetadata = telemetry.buildDebugMetadata(sessionId);
   telemetry.closeSession(sessionId);
+
+  // Phase 2: Behavioral memory audit (observability without DB migration)
+  const behavioralAudit = behavioralProfile ? {
+    profileHash:    behavioralProfile.auditMeta.profileHash,
+    evidenceCount:  behavioralProfile.auditMeta.evidenceCount,
+    categories:     behavioralProfile.auditMeta.categories,
+    derivedAt:      behavioralProfile.auditMeta.derivedAt,
+  } : null;
   
   return {
     id: `craving-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1470,6 +1650,7 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
     servingSize: "1 serving",
     imageUrl: imageUrl,
     createdAt: new Date(),
-    _debug: debugMetadata
-  };
+    _debug: debugMetadata,
+    _behavioralAudit: behavioralAudit,
+  } as any;
 }

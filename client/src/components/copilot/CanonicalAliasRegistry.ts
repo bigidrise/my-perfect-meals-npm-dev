@@ -74,7 +74,7 @@ export const HUBS: Record<string, FeatureDefinition> = {
     isHub: true,
     hubSize: "small",
     keywords: ["restaurant", "socializing", "eating out", "restaurants", "out to eat", "social hub", "socializing hub", "going out", "night out", "find food", "food near me", "restaurant guide"],
-    spokenPrompt: "Welcome to the Socializing Hub! Eating out with friends? Make smart choices without missing the fun.",
+    spokenPrompt: "Welcome to Meals Away From Home! Eating out? Make smart choices without missing the fun.",
     selectionPrompt: "What do you need? Say 'Restaurant Guide' to get AI-powered healthy options from any restaurant, or 'Find Meals' to search local restaurants by craving and location.",
     voiceTimeoutMessage: "I didn't catch that. Try typing 'Restaurant Guide' or 'Find Meals' instead.",
     subOptions: [
@@ -131,11 +131,11 @@ export const HUBS: Record<string, FeatureDefinition> = {
     primaryRoute: "/glp1-hub",
     isHub: true,
     hubSize: "small",
-    keywords: ["glp", "glp-1", "glp1", "ozempic", "wegovy", "semaglutide", "injection", "glp one", "g l p one", "glp hub", "glp-1 hub", "weight loss meds"],
+    keywords: ["glp", "glp-1", "glp1", "ozempic", "wegovy", "semaglutide", "mounjaro", "zepbound", "tirzepatide", "saxenda", "victoza", "liraglutide", "trulicity", "rybelsus", "injection", "glp one", "g l p one", "glp hub", "glp-1 hub", "weight loss meds", "weight loss medication"],
     subOptions: [
       {
         id: "GLP1_BUILDER",
-        label: "GLP-1 Meal Builder",
+        label: "Metabolic Medication Builder",
         route: "/glp1-menu-builder",
         testId: "glp1hub-builder",
         walkthroughId: "glp1-meal-builder",
@@ -201,7 +201,7 @@ export const DIRECT_PAGES: Record<string, FeatureDefinition> = {
     primaryRoute: "/shopping-list-v2",
     walkthroughId: "shopping-list-walkthrough",
     isHub: false,
-    keywords: ["shopping list", "groceries", "master list", "shopping planner", "grocery", "shopping", "master shopping", "master shopping list", "grocery list", "list master", "grocery planner", "shop list", "food list"]
+    keywords: ["shopping list", "groceries", "master list", "shopping planner", "grocery", "shopping", "master shopping", "master shopping list", "grocery list", "list master", "grocery planner", "shop list", "food list", "grocery store coach", "grocery coach", "dinner ideas", "what to make", "smart scan", "ingredient scan", "scan product", "check ingredients"]
   },
 
   WEEKLY_MEAL_BUILDER: {
@@ -256,6 +256,28 @@ export const DIRECT_PAGES: Record<string, FeatureDefinition> = {
     keywords: ["lifestyle", "main lifestyle page", "nutrition lifestyle", "lifestyle hub", "lifestyle page"]
   },
 
+  HYDRATION: {
+    id: "HYDRATION",
+    legacyId: "hydration",
+    primaryRoute: "/hydration",
+    isHub: false,
+    keywords: [
+      "hydration hub",
+      "hydration",
+      "hydration center",
+      "water tracker",
+      "water log",
+      "log water",
+      "track water",
+      "hydration plan",
+      "liquid nutrition",
+      "athletic hydration",
+      "sick day hydration",
+      "everyday hydration",
+      "considered for you hydration",
+    ],
+  },
+
   PRO_CARE: {
     id: "PRO_CARE",
     legacyId: "pro-care",
@@ -285,15 +307,26 @@ export function findFeatureFromRegistry(query: string): FeatureDefinition | null
   const normalized = normalizeQuery(query);
   const queryTokens = normalized.split(' ').filter(t => t.length > 2); // Tokens with 3+ chars
 
+  const allFeatures = [
+    ...Object.values(HUBS),
+    ...Object.values(DIRECT_PAGES),
+  ];
+  const exactMatches = allFeatures.flatMap((feature) =>
+    feature.keywords
+      .map((keyword) => ({ feature, keyword: normalizeQuery(keyword) }))
+      .filter(({ keyword }) =>
+        normalized.includes(keyword) || keyword.includes(normalized),
+      ),
+  );
+  if (exactMatches.length > 0) {
+    exactMatches.sort((a, b) => b.keyword.length - a.keyword.length);
+    return exactMatches[0].feature;
+  }
+
   // Helper: check if query matches keyword
   const matches = (keyword: string): boolean => {
     const normalizedKeyword = normalizeQuery(keyword);
-    
-    // Exact/substring match (bidirectional)
-    if (normalized.includes(normalizedKeyword) || normalizedKeyword.includes(normalized)) {
-      return true;
-    }
-    
+
     // Token-level matching for partial utterances
     const keywordTokens = normalizedKeyword.split(' ').filter(t => t.length > 2);
     return queryTokens.some(qToken => 

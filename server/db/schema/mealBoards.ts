@@ -26,5 +26,11 @@ export const mealBoardItems = pgTable("meal_board_items", {
   servings: numeric("servings", { precision: 6, scale: 2 }).notNull().default("1"),
   macros: jsonb("macros").notNull(),
   ingredients: jsonb("ingredients").$type<Array<{name:string; qty:string}>>().notNull().default('[]' as any),
+  /**
+   * Stores the full original meal JSON before a refinement swap.
+   * Set on the NEW item at confirm time so the restore path can recover
+   * the exact pre-swap state. Null on items that were never refined.
+   */
+  originalMealSnapshot: jsonb("original_meal_snapshot").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

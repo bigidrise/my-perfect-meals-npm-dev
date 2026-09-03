@@ -1,25 +1,27 @@
 // server/services/imageLifecycle.ts
-// Canva-style image lifecycle enforcement
-// Ensures all saved entities use permanent first-party image URLs
+// Canva-style image lifecycle enforcement — all image persistence goes through here.
+//
+// Phase 4 change: processMealImageForSave now routes through the canonical
+// MediaAssetService.  base64 is NEVER written to Postgres.  On upload failure,
+// imageUrl is null and mediaAssetId carries the failed record — the meal still
+// saves successfully and the image shows as pending.
 
-import { uploadImageToPermanentStorage } from './permanentImageStorage';
-import crypto from 'crypto';
+import { processImageForMeal, isUnsafeImageUrl, warnLifecycleViolation, type MediaAsset } from "./mediaAssetService";
+import {
+  DEFAULT_MEAL_IMAGE_S3_BUCKET,
+  LOCAL_PERMANENT_IMAGE_PREFIXES,
+  isFirstPartyPermanentImageUrl,
+} from "@shared/mediaImageUrls";
 
-// First-party URL prefixes that are always permanent
-const S3_BUCKET = process.env.S3_BUCKET_NAME || 'my-perfect-meals-images';
-const FIRST_PARTY_PREFIXES = [
-  '/public-objects/',  // Replit Object Storage (legacy)
-  '/images/',          // Static catalog images
-  '/assets/',          // Static asset images
-  `https://${S3_BUCKET}.s3.`,  // S3 permanent storage (dynamic bucket)
+// First-party URL prefixes — always permanent, always safe
+const S3_BUCKET = process.env.S3_BUCKET_NAME || DEFAULT_MEAL_IMAGE_S3_BUCKET;
+export const FIRST_PARTY_PREFIXES: string[] = [
+  ...LOCAL_PERMANENT_IMAGE_PREFIXES,
+  `https://${S3_BUCKET}.s3.`,
 ];
 
-// Known temporary URL patterns to block
-const TEMP_URL_PATTERNS = [
-  'oaidalleapiprodscus',  // DALL-E temporary URLs
-  'blob.core.windows.net', // Azure blob temporary URLs
-  'openai.com',           // Any OpenAI domain
-];
+// Known temporary URL patterns
+const TEMP_URL_PATTERNS = ["oaidalleapiprodscus", "blob.core.windows.net", "openai.com"];
 
 export interface ImageValidationResult {
   isFirstParty: boolean;
@@ -31,211 +33,134 @@ export interface ImageIngestionResult {
   success: boolean;
   permanentUrl?: string;
   error?: string;
-  status: 'ingested' | 'pending' | 'failed' | 'already_permanent';
+  status: "ingested" | "pending" | "failed" | "already_permanent";
 }
 
-/**
- * Check if an image URL is a first-party permanent URL
- * First-party means: stored in our Object Storage or static catalog
- */
+/** Check whether a URL is already a first-party permanent URL. */
 export function isFirstPartyImageUrl(url: string | undefined | null): ImageValidationResult {
   if (!url) {
-    return {
-      isFirstParty: false,
-      needsIngestion: false,
-      reason: 'No image URL provided'
-    };
+    return { isFirstParty: false, needsIngestion: false, reason: "No image URL provided" };
   }
-
-  // Check if it's a first-party URL
-  const isFirstParty = FIRST_PARTY_PREFIXES.some(prefix => url.startsWith(prefix));
-  
-  if (isFirstParty) {
-    return {
-      isFirstParty: true,
-      needsIngestion: false,
-      reason: `URL is first-party (${url.substring(0, 30)}...)`
-    };
+  if (isFirstPartyPermanentImageUrl(url, S3_BUCKET)) {
+    return { isFirstParty: true, needsIngestion: false, reason: "URL is first-party" };
   }
-
-  // Check if it's a known temporary URL that needs ingestion
-  const isKnownTemp = TEMP_URL_PATTERNS.some(pattern => url.includes(pattern));
-  
-  if (isKnownTemp) {
-    return {
-      isFirstParty: false,
-      needsIngestion: true,
-      reason: 'URL is a known temporary third-party URL'
-    };
+  if (TEMP_URL_PATTERNS.some(p => url.includes(p))) {
+    return { isFirstParty: false, needsIngestion: true, reason: "URL is a known temporary third-party URL" };
   }
-
-  // External http(s) URLs need ingestion
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return {
-      isFirstParty: false,
-      needsIngestion: true,
-      reason: 'URL is external and needs ingestion'
-    };
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return { isFirstParty: false, needsIngestion: true, reason: "URL is external and needs ingestion" };
   }
-
-  // Unknown relative paths - assume they're okay (could be legacy)
-  return {
-    isFirstParty: true,
-    needsIngestion: false,
-    reason: 'URL appears to be a local relative path'
-  };
+  if (url.startsWith("data:")) {
+    return { isFirstParty: false, needsIngestion: true, reason: "URL is a base64 data URI" };
+  }
+  return { isFirstParty: true, needsIngestion: false, reason: "URL appears to be a local relative path" };
 }
 
 /**
- * Ingest a temporary image URL into permanent storage
- * Downloads the image and uploads to Replit Object Storage
- * 
- * @param tempUrl - The temporary URL to ingest
- * @param mealName - Name to use for the stored file
- * @returns Ingestion result with permanent URL or pending status
+ * Result returned by processMealImageForSave.
+ * Callers MUST store mediaAssetId on the entity row when non-null.
+ * They must NEVER persist imageUrl if it is a base64 data URI.
  */
-export async function ingestImageToPermanentStorage(
-  tempUrl: string,
-  mealName: string
-): Promise<ImageIngestionResult> {
-  // First check if it's already permanent
-  const validation = isFirstPartyImageUrl(tempUrl);
-  if (validation.isFirstParty) {
-    return {
-      success: true,
-      permanentUrl: tempUrl,
-      status: 'already_permanent'
-    };
-  }
-
-  if (!validation.needsIngestion) {
-    return {
-      success: false,
-      error: validation.reason,
-      status: 'failed'
-    };
-  }
-
-  try {
-    console.log(`📦 Ingesting image for: ${mealName}`);
-    
-    // Generate a hash for deduplication
-    const hash = crypto.createHash('md5').update(tempUrl).digest('hex');
-    
-    // Upload to permanent storage
-    const result = await uploadImageToPermanentStorage({
-      imageUrl: tempUrl,
-      mealName,
-      imageHash: hash
-    });
-
-    console.log(`✅ Image ingested successfully: ${result.permanentUrl}`);
-    
-    return {
-      success: true,
-      permanentUrl: result.permanentUrl,
-      status: 'ingested'
-    };
-  } catch (error: any) {
-    console.error(`❌ Image ingestion failed for ${mealName}:`, error.message);
-    
-    return {
-      success: false,
-      error: error.message,
-      status: 'pending' // Mark as pending for retry
-    };
-  }
+export interface MealImageSaveResult {
+  imageUrl: string | null;
+  mediaAssetId: string | null;
+  mediaAsset: MediaAsset | null;
+  imagePending: boolean;
+  ingestionAttempted: boolean;
 }
 
 /**
- * Process a meal's imageUrl before save
- * Implements the save-time gate for Canva-style persistence
- * 
- * @param imageUrl - The current image URL
- * @param mealName - Name of the meal (for storage)
- * @returns Object with finalUrl and imagePending flag
+ * Process a meal image before persistence.
+ *
+ * Enforcement rules (Phase 4 hard constraints):
+ * 1. base64 data URIs are NEVER written to Postgres — upload always attempted;
+ *    on failure, imageUrl is null (not base64).
+ * 2. Temporary CDN URLs (DALL-E, etc.) are NEVER stored — upload attempted;
+ *    on failure, imageUrl is null.
+ * 3. Already-permanent (first-party) URLs are passed through and wrapped in
+ *    a media_assets record.
+ * 4. All paths produce a mediaAssetId for tracking / retry.
  */
 export async function processMealImageForSave(
   imageUrl: string | undefined | null,
-  mealName: string
-): Promise<{
-  imageUrl: string | null;
-  imagePending: boolean;
-  ingestionAttempted: boolean;
-}> {
-  // No image provided
+  mealName: string,
+): Promise<MealImageSaveResult> {
   if (!imageUrl) {
+    return { imageUrl: null, mediaAssetId: null, mediaAsset: null, imagePending: false, ingestionAttempted: false };
+  }
+
+  // Safety gate: log any attempt to pass unsafe URLs to this function.
+  if (isUnsafeImageUrl(imageUrl)) {
+    warnLifecycleViolation("processMealImageForSave:input", imageUrl, "detected");
+  }
+
+  const asset = await processImageForMeal(imageUrl, mealName);
+
+  // HARD RULE: if the asset URLs are null (failed), return null — not the original base64.
+  const safeImageUrl = asset.thumbnailUrl ?? asset.displayUrl ?? null;
+
+  // If the input was first-party and the asset wrapped it, use the original URL.
+  const finalImageUrl =
+    asset.status === "ready"
+      ? (safeImageUrl ?? null)
+      : null;
+
+  if (isUnsafeImageUrl(finalImageUrl)) {
+    // Absolute last-resort guard — should never happen but emit a violation log.
+    warnLifecycleViolation("processMealImageForSave:output", finalImageUrl!, "blocked");
     return {
       imageUrl: null,
-      imagePending: false,
-      ingestionAttempted: false
+      mediaAssetId: asset.id,
+      mediaAsset: asset,
+      imagePending: true,
+      ingestionAttempted: true,
     };
   }
 
-  const validation = isFirstPartyImageUrl(imageUrl);
-
-  // Already permanent - no action needed
-  if (validation.isFirstParty) {
-    return {
-      imageUrl,
-      imagePending: false,
-      ingestionAttempted: false
-    };
-  }
-
-  // Needs ingestion - attempt it
-  if (validation.needsIngestion) {
-    const ingestionResult = await ingestImageToPermanentStorage(imageUrl, mealName);
-
-    if (ingestionResult.success && ingestionResult.permanentUrl) {
-      // Successfully ingested - use permanent URL
-      return {
-        imageUrl: ingestionResult.permanentUrl,
-        imagePending: false,
-        ingestionAttempted: true
-      };
-    } else {
-      // Ingestion failed - keep original URL so image stays visible in current session
-      console.warn(`⚠️ Image ingestion failed for ${mealName}, keeping original URL`);
-      return {
-        imageUrl: imageUrl,
-        imagePending: true,
-        ingestionAttempted: true
-      };
-    }
-  }
-
-  // Shouldn't reach here, but handle gracefully
   return {
-    imageUrl,
-    imagePending: false,
-    ingestionAttempted: false
+    imageUrl: finalImageUrl,
+    mediaAssetId: asset.id,
+    mediaAsset: asset,
+    imagePending: asset.status !== "ready",
+    ingestionAttempted: asset.status !== "pending",
   };
 }
 
 /**
- * Validate a batch of meals for image persistence
- * Returns list of meals that have temporary URLs
+ * @deprecated Kept for backward compatibility with mealImageGenerator.ts.
+ * New code should call processMealImageForSave() instead.
+ *
+ * Routes through the canonical media lifecycle and returns the legacy
+ * { success, permanentUrl } shape that mealImageGenerator expects.
+ */
+export async function ingestImageToPermanentStorage(
+  imageUrl: string,
+  mealName: string
+): Promise<{ success: boolean; permanentUrl: string | null; error?: string }> {
+  try {
+    const result = await processMealImageForSave(imageUrl, mealName);
+    return {
+      success: result.imageUrl !== null,
+      permanentUrl: result.imageUrl,
+    };
+  } catch (err: any) {
+    return { success: false, permanentUrl: null, error: err?.message ?? "unknown" };
+  }
+}
+
+/**
+ * Validate a batch of meals for temporary image URLs.
  */
 export function findMealsWithTempImages(meals: Array<{ name?: string; imageUrl?: string }>): Array<{
   name: string;
   imageUrl: string;
   reason: string;
 }> {
-  const tempMeals: Array<{ name: string; imageUrl: string; reason: string }> = [];
-
-  for (const meal of meals) {
-    if (meal.imageUrl) {
-      const validation = isFirstPartyImageUrl(meal.imageUrl);
-      if (!validation.isFirstParty && validation.needsIngestion) {
-        tempMeals.push({
-          name: meal.name || 'Unknown',
-          imageUrl: meal.imageUrl,
-          reason: validation.reason
-        });
-      }
-    }
-  }
-
-  return tempMeals;
+  return meals
+    .filter(m => m.imageUrl && !isFirstPartyImageUrl(m.imageUrl).isFirstParty && isFirstPartyImageUrl(m.imageUrl).needsIngestion)
+    .map(m => ({
+      name: m.name || "Unknown",
+      imageUrl: m.imageUrl!,
+      reason: isFirstPartyImageUrl(m.imageUrl).reason,
+    }));
 }

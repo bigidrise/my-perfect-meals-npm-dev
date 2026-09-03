@@ -63,7 +63,7 @@ const categoryIcons: Record<string, string> = {
   'Produce': '🥬',
   'Meats': '🥩', 
   'Seafood': '🐟',
-  'Dairy': '🥛',
+  'Dairy & Eggs': '🥛',
   'Grains': '🌾',
   'Pantry': '🧄',
   'Extras': '🛒'

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { studioMemberships, studios } from "../db/schema/studio";
-import { eq } from "drizzle-orm";
+import { users } from "../../shared/schema";
+import { eq, and } from "drizzle-orm";
 
 declare global {
   namespace Express {
@@ -19,36 +20,52 @@ declare global {
   }
 }
 
-function getUserId(req: Request): string {
+function getUserId(req: Request): string | null {
+  if ((req as any).authUser?.id) return (req as any).authUser.id as string;
   if ((req as any).session?.userId) return (req as any).session.userId as string;
-  const headerUserId = req.headers["x-user-id"] as string;
-  if (headerUserId) return headerUserId;
-  return "00000000-0000-0000-0000-000000000001";
+  return null;
 }
 
 export async function loadStudioMembership(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = getUserId(req);
+    if (!userId) { next(); return; }
 
-    const [membership] = await db
-      .select()
+    const rows = await db
+      .select({
+        membershipId: studioMemberships.id,
+        studioId: studioMemberships.studioId,
+        clientUserId: studioMemberships.clientUserId,
+        status: studioMemberships.status,
+        activeBoardId: studioMemberships.activeBoardId,
+        // Authoritative builder: users.activeBoard (client-owned).
+        // studioMemberships.assignedBuilder is a follower cache — not read here.
+        activeBoard: users.activeBoard,
+        studioName: studios.name,
+        studioOwnerUserId: studios.ownerUserId,
+      })
       .from(studioMemberships)
-      .where(eq(studioMemberships.clientUserId, userId));
+      .leftJoin(users, eq(users.id, studioMemberships.clientUserId))
+      .leftJoin(studios, eq(studios.id, studioMemberships.studioId))
+      .where(
+        and(
+          eq(studioMemberships.clientUserId, userId),
+          eq(studioMemberships.status, "active"),
+          eq(studioMemberships.isArchived, false)
+        )
+      )
+      .limit(1);
 
-    if (membership) {
-      const [studio] = await db
-        .select()
-        .from(studios)
-        .where(eq(studios.id, membership.studioId));
-
+    if (rows.length > 0) {
+      const row = rows[0];
       req.studioMembership = {
-        studioId: membership.studioId,
-        clientUserId: membership.clientUserId,
-        status: membership.status,
-        assignedBuilder: membership.assignedBuilder,
-        activeBoardId: membership.activeBoardId,
-        studioName: studio?.name,
-        studioOwnerUserId: studio?.ownerUserId,
+        studioId: row.studioId,
+        clientUserId: row.clientUserId,
+        status: row.status,
+        assignedBuilder: row.activeBoard ?? null,
+        activeBoardId: row.activeBoardId,
+        studioName: row.studioName ?? undefined,
+        studioOwnerUserId: row.studioOwnerUserId ?? undefined,
       };
     }
 
@@ -74,6 +91,13 @@ export function requireStudioMembership(req: Request, res: Response, next: NextF
 export function enforceAssignedBuilder(allowedBuilders: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.studioMembership) {
+      return next();
+    }
+
+    // Studio owner is never blocked by builder assignment — they may be enrolled
+    // in their own studio as a test client and need access to all routes.
+    const userId = getUserId(req);
+    if (userId && req.studioMembership.studioOwnerUserId === userId) {
       return next();
     }
 
@@ -117,6 +141,11 @@ export function getStudioInfo(req: Request): { studioId: string; studioName: str
 export function enforceBuilderFromParam(paramName: string = "program") {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.studioMembership) {
+      return next();
+    }
+
+    const userId = getUserId(req);
+    if (userId && req.studioMembership.studioOwnerUserId === userId) {
       return next();
     }
 

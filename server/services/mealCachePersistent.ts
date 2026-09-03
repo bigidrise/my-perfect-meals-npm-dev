@@ -17,8 +17,36 @@ import { eq, sql } from 'drizzle-orm';
 import { hashSignature } from './ingredientSignature';
 import { MealgenCache } from './mealgenCache';
 import type { UnifiedMeal } from './unifiedMealPipeline';
+import { evaluateWholeFoodCandidate } from './wholeFoodStandard';
 
 const memoryCache = new MealgenCache<UnifiedMeal[]>(10 * 60 * 1000, 500);
+
+function filterWholeFoodCompliantCachedMeals(
+  meals: UnifiedMeal[],
+  source: "memory" | "database" | "write",
+): UnifiedMeal[] {
+  return meals.filter((meal) => {
+    const decision = evaluateWholeFoodCandidate(
+      {
+        name: meal.name,
+        description: meal.description,
+        ingredients: meal.ingredients,
+        instructions: meal.instructions,
+      },
+      {
+        recommendationSurface: `persistent_meal_cache_${source}`,
+        practicalAlternativeAvailable: true,
+      },
+    );
+    if (decision.shouldBlock) {
+      console.warn(
+        `[WholeFoodStandard:persistent_meal_cache] Rejected cached "${meal.name}": ${decision.matchedTerms.join(", ")}`,
+      );
+      return false;
+    }
+    return true;
+  });
+}
 
 export interface CachedMealResult {
   meals: UnifiedMeal[];
@@ -31,8 +59,12 @@ export async function getCachedMeals(signature: string): Promise<CachedMealResul
   
   const memoryCached = memoryCache.get(hash);
   if (memoryCached) {
+    const meals = filterWholeFoodCompliantCachedMeals(memoryCached, "memory");
+    if (meals.length === 0) {
+      return null;
+    }
     console.log(`🚀 Memory cache hit for: ${hash}`);
-    return { meals: memoryCached, source: 'memory', signature };
+    return { meals, source: 'memory', signature };
   }
   
   try {
@@ -44,7 +76,11 @@ export async function getCachedMeals(signature: string): Promise<CachedMealResul
     
     if (dbResult.length > 0) {
       const cached = dbResult[0];
-      const meals = cached.mealData as UnifiedMeal[];
+      const meals = filterWholeFoodCompliantCachedMeals(
+        cached.mealData as UnifiedMeal[],
+        "database",
+      );
+      if (meals.length === 0) return null;
       
       memoryCache.set(hash, meals);
       
@@ -73,18 +109,23 @@ export async function cacheMeals(
   source: 'ai' | 'catalog' | 'template' = 'ai'
 ): Promise<void> {
   const hash = hashSignature(signature);
-  
-  memoryCache.set(hash, meals);
+  const compliantMeals = filterWholeFoodCompliantCachedMeals(meals, "write");
+  if (compliantMeals.length === 0) {
+    console.warn(`[WholeFoodStandard:persistent_meal_cache] Refused to cache ${meals.length} blocked meal(s)`);
+    return;
+  }
+
+  memoryCache.set(hash, compliantMeals);
   
   try {
-    const firstMeal = meals[0];
+    const firstMeal = compliantMeals[0];
     
     await db.insert(generatedMealsCache).values({
       signatureHash: hash,
       signature: signature,
       mealType: mealType,
       source: source,
-      mealData: meals as any,
+      mealData: compliantMeals as any,
       calories: firstMeal?.calories || 0,
       protein: firstMeal?.protein || 0,
       carbs: firstMeal?.carbs || 0,
@@ -92,7 +133,7 @@ export async function cacheMeals(
       hitCount: 1,
     }).onConflictDoNothing();
     
-    console.log(`💾 Cached ${meals.length} meals with signature: ${hash}`);
+    console.log(`💾 Cached ${compliantMeals.length} meals with signature: ${hash}`);
   } catch (error) {
     console.warn('⚠️ Failed to persist meals to database:', error);
   }

@@ -1,0 +1,111 @@
+import { pgTable, uuid, text, timestamp, integer, unique, uniqueIndex } from "drizzle-orm/pg-core";
+
+export const businesses = pgTable("businesses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  ownerUserId: text("owner_user_id").notNull().unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  stripeCheckoutReservationId: text("stripe_checkout_reservation_id"),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+  stripeCheckoutSeatCount: integer("stripe_checkout_seat_count"),
+  stripeLastEventCreatedAt: timestamp("stripe_last_event_created_at", { withTimezone: true }),
+  stripeLastEventRank: integer("stripe_last_event_rank").notNull().default(0),
+  stripeLastEventId: text("stripe_last_event_id"),
+  plan: text("plan").notNull().default("clinical_business_monthly"),
+  /**
+   * Professional capacity remains seatLimit. Client capacity is deliberately
+   * separate so clinics and gyms can support many clients without consuming
+   * professional seats. NULL preserves legacy paid-business behavior until an
+   * explicit client allocation is configured.
+   */
+  clientCapacity: integer("client_capacity"),
+  seatLimit: integer("seat_limit").notNull().default(4),
+  status: text("status").$type<"active" | "cancelled" | "past_due" | "pending_billing">().notNull().default("active"),
+  /**
+   * FK to the organizations table — links this commercial team product to
+   * the enterprise tenant backbone. Nullable: not all businesses have a
+   * full org record yet. Phase 2 will enforce this relationship.
+   */
+  organizationId: uuid("organization_id"),
+  /**
+   * Controls whether providers in this business may maintain independently-
+   * sourced clients alongside organization-assigned clients.
+   *   "org_only"                  – org clients only; no independent practice
+   *   "allowed"                   – independent clients permitted (silent)
+   *   "allowed_with_disclosure"   – independent clients permitted; owner sees
+   *                                 counts but NOT clinical data of those clients
+   * Default is "allowed_with_disclosure" — safest for launch.
+   */
+  independentClientPolicy: text("independent_client_policy")
+    .$type<"org_only" | "allowed" | "allowed_with_disclosure">()
+    .default("allowed_with_disclosure"),
+  /**
+   * Stable provider idempotency key (UUID) written once before the first send attempt and never
+   * cleared. It is passed to Resend as the `Idempotency-Key` header on every delivery attempt so
+   * Resend deduplicates concurrent or retried requests automatically. The key persists across
+   * Stripe replays so the same UUID is always used for a given business.
+   */
+  welcomeEmailKey: text("welcome_email_key"),
+  /**
+   * Set only after the welcome email has been confirmed delivered (sendBusinessWelcomeEmail returns
+   * true). Checked at the start of the email step so Stripe replays skip re-delivery entirely once
+   * the email is confirmed sent. Never used as a sending lease — that role belongs to welcomeEmailKey.
+   */
+  welcomeEmailSentAt: timestamp("welcome_email_sent_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  stripeCustomerIdUnique: uniqueIndex("businesses_stripe_customer_id_uniq").on(t.stripeCustomerId),
+  stripeSubscriptionIdUnique: uniqueIndex("businesses_stripe_subscription_id_uniq").on(t.stripeSubscriptionId),
+  stripeCheckoutSessionIdUnique: uniqueIndex("businesses_stripe_checkout_session_id_uniq").on(t.stripeCheckoutSessionId),
+}));
+
+export type Business = typeof businesses.$inferSelect;
+export type InsertBusiness = typeof businesses.$inferInsert;
+
+export const businessMembers = pgTable("business_members", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  businessId: uuid("business_id").notNull(),
+  userId: text("user_id").notNull(),
+  role: text("role").$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
+  status: text("status").$type<"active" | "removed">().notNull().default("active"),
+  joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
+  removedAt: timestamp("removed_at", { withTimezone: true }),
+  noticeDismissedAt: timestamp("notice_dismissed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  uniqBusinessUser: unique().on(t.businessId, t.userId),
+}));
+
+export type BusinessMember = typeof businessMembers.$inferSelect;
+export type InsertBusinessMember = typeof businessMembers.$inferInsert;
+
+export const businessInvitations = pgTable("business_invitations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  businessId: uuid("business_id").notNull(),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  /** New pilot invitations use a digest in both token fields; raw legacy
+   * tokens remain supported by the existing paid-business flow. */
+  tokenHash: text("token_hash"),
+  role: text("role").$type<"admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
+  status: text("status").$type<"pending" | "accepted" | "cancelled" | "expired">().notNull().default("pending"),
+  invitedByUserId: text("invited_by_user_id").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  acceptedByUserId: text("accepted_by_user_id"),
+  // Client Invitation Engine — added via boot migration
+  invitationType: text("invitation_type").$type<"team_member" | "client">().notNull().default("team_member"),
+  trialDays: integer("trial_days"),
+  programName: text("program_name"),
+  partnerRecordId: text("partner_record_id"),
+  organizationalPilotId: uuid("organizational_pilot_id"),
+  populationType: text("population_type").$type<"professional" | "client">(),
+  participantRole: text("participant_role"),
+  assignedProfessionalUserId: text("assigned_professional_user_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type BusinessInvitation = typeof businessInvitations.$inferSelect;
+export type InsertBusinessInvitation = typeof businessInvitations.$inferInsert;

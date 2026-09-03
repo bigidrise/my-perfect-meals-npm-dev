@@ -47,16 +47,18 @@ router.post("/", async (req: Request, res: Response) => {
 
     const langName = languageNames[targetLanguage] || targetLanguage;
 
-    const prompt = `Translate the following meal/recipe content to ${langName}. 
-Keep the same structure and return JSON with the same keys.
-Only translate text - do not change numbers, measurements, or formatting.
+    const prompt = `Translate all text string values in the following JSON to ${langName}.
+Keep all JSON keys exactly as-is — only translate the values.
+Rules:
+- Translate string values (including strings inside arrays)
+- Do not change numbers, booleans, null, or empty strings
+- Preserve array structure (translate each element individually)
+- Do not add, remove, or rename any keys
 
 Content to translate:
 ${JSON.stringify(content, null, 2)}
 
-Return ONLY valid JSON with translated values for these keys: name, description, instructions, notes, ingredientNames.
-If a field is empty, return it as empty.
-For ingredientNames, keep each ingredient on its own line (separated by newlines).`;
+Return ONLY valid JSON with the exact same structure and all keys intact.`;
 
     const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
@@ -69,6 +71,7 @@ For ingredientNames, keep each ingredient on its own line (separated by newlines
       ],
       temperature: 0.3,
       max_tokens: 1000,
+      response_format: { type: "json_object" },
     });
 
     const translatedText = response.choices[0]?.message?.content?.trim() || "";

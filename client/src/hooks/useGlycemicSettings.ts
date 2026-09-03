@@ -9,6 +9,9 @@ async function fetchGlycemicSettings(): Promise<GlycemicSettings> {
   return {
     bloodGlucose: data.bloodGlucose ?? null,
     preferredCarbs: data.preferredCarbs ?? [],
+    lowRangeCarbs: data.lowRangeCarbs ?? [],
+    midRangeCarbs: data.midRangeCarbs ?? [],
+    highRangeCarbs: data.highRangeCarbs ?? [],
     updatedAt: data.updatedAt ?? null,
   };
 }
@@ -33,7 +36,13 @@ export function useGlycemicSettings() {
   });
 
   return {
-    data: query.data ?? { bloodGlucose: null, preferredCarbs: [] },
+    data: query.data ?? {
+      bloodGlucose: null,
+      preferredCarbs: [],
+      lowRangeCarbs: [],
+      midRangeCarbs: [],
+      highRangeCarbs: [],
+    },
     isLoading: query.isLoading,
     isError: query.isError,
     save: mutation.mutateAsync,

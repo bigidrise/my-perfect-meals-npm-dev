@@ -1,9 +1,9 @@
 /**
  * GLP-1 Guardrails Rules - Phase 3.3
- * 
+ *
  * Enforces small portions, low-fat, high-protein, easy-to-digest meals
  * for users on GLP-1 medications (Ozempic, Wegovy, Mounjaro, etc.)
- * 
+ *
  * Key principles:
  * - Small portions (never large or heavy)
  * - Low calorie density
@@ -12,6 +12,30 @@
  * - Gentle textures
  * - Easy digestion
  * - No nausea triggers
+ *
+ * ── GOVERNANCE ────────────────────────────────────────────────────────────────
+ * All ingredient lists and portion guidelines are governed by the Clinical Rule
+ * Registry at server/services/glp1/ruleRegistry.ts.
+ *
+ * portionGuidelines.maxCalories (400): Static fallback baseline used ONLY when
+ *   the user has no macro target. NOT a universal clinical ceiling. Supported
+ *   directionally by PMID_36614945 (smaller meals). Specific value is an
+ *   engineering default pending RD review. Rule: glp1_smaller_portions.
+ *
+ * portionGuidelines.maxFatGrams (12): Conservative default ceiling when no
+ *   provider guardrail exists. Lower fat is supported by PMID_36614945; the
+ *   specific 12g value has no peer-reviewed source — it is a conservative
+ *   engineering default. Provider-configured guardrails override this.
+ *   Rule: glp1_lower_fat (approved — directional). Specific value: pending_review.
+ *
+ * portionGuidelines.minProteinGrams (15): Protein priority is supported by
+ *   PMID_36614945 and AND_GLP1_NUTRITION. The 15g floor is a conservative
+ *   engineering default when no macro target exists. Rule: glp1_protein_priority.
+ *
+ * Ingredient blocks (raw cruciferous, legumes, carbonation, fried foods,
+ * high-fat dairy, concentrated sugars): Each category is governed by an
+ * approved rule in the registry. See ruleRegistry.ts for per-category sources.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 export interface GLP1Rules {
@@ -73,10 +97,10 @@ export const glp1Rules: GLP1Rules = {
     'candy', 'chocolate bar', 'caramel',
     'pancakes', 'waffles', 'french toast',
     
-    // High-sugar fruits (berries allowed)
-    'mango', 'banana', 'grapes', 'pineapple',
-    'dried fruit', 'raisins', 'dates', 'figs',
-    'fruit juice', 'orange juice', 'apple juice',
+    // Concentrated sugars and processed fruit — whole fresh fruit is allowed in portions
+    'dried fruit', 'raisins', 'dates', 'figs', 'dried mango', 'dried banana chips',
+    'fruit juice', 'orange juice', 'apple juice', 'grape juice', 'mango juice',
+    'fruit punch', 'fruit syrup', 'fruit leather',
     
     // Carbonation
     'soda', 'pop', 'cola', 'sprite', 'sparkling water',
@@ -137,7 +161,8 @@ export const glp1Rules: GLP1Rules = {
     'carbonated beverages',
     'greasy foods',
     'ultra-processed foods',
-    'high-sugar foods',
+    'added sugars and syrups',
+    'concentrated fruit products',
     'tough meats',
   ],
 
@@ -192,8 +217,8 @@ export const glp1Rules: GLP1Rules = {
 };
 
 export function getGLP1SystemPrompt(): string {
-  return `CRITICAL GLP-1 MEDICATION DIETARY REQUIREMENTS:
-The user is on GLP-1 medication (such as Ozempic, Wegovy, or Mounjaro).
+  return `CRITICAL METABOLIC MEDICATION DIETARY REQUIREMENTS:
+The user is on a metabolic medication (such as Ozempic, Wegovy, Mounjaro, Zepbound, Rybelsus, or a similar GLP-1, dual-agonist, or triple-agonist drug).
 All meals MUST follow these strict guidelines:
 
 PORTION SIZE: Small portions ONLY. Never large, heavy, or high-volume meals.
@@ -208,9 +233,16 @@ ABSOLUTELY FORBIDDEN:
 - High-fat meats (bacon, sausage, ribeye)
 - Large portions or high-volume meals
 - Carbonated beverages
-- High-sugar foods and syrups
+- Added sugars, syrups, honey, agave, candy, pastries, donuts, cake, ice cream
+- Dried fruit, fruit juice, and concentrated fruit products (high sugar density)
 - Raw cruciferous vegetables (raw broccoli, raw cabbage)
 - Large amounts of beans or lentils
+
+WHOLE FRUIT GUIDANCE:
+- Fresh whole fruit is acceptable in appropriate portions (not forbidden)
+- Prefer lower-sugar options: berries, melon, citrus segments
+- Moderate portions of banana, mango, grapes, or pineapple are acceptable if within macro targets
+- Avoid large servings of high-sugar fruit (prioritize portion awareness, not blanket prohibition)
 
 PRIORITIZE:
 - Lean proteins: chicken breast, fish, egg whites, Greek yogurt

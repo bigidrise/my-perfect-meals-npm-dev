@@ -1,3 +1,4 @@
+import { useOrgBranding } from "@/hooks/useOrgBranding";
 import Navigation from "@/components/ui/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import {
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const { appName, supportEmail, supportUrl } = useOrgBranding();
 
   const handleSignIn = () => {
     navigate("/auth");
@@ -48,7 +50,7 @@ export default function Home() {
       <div className="fixed top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-lg border-b border-white/10">
         <div className="px-4 py-3 flex items-center gap-3">
           <Utensils className="h-6 w-6 text-orange-500" />
-          <h1 className="text-lg font-bold text-white">My Perfect Meals</h1>
+          <h1 className="text-lg font-bold text-white">{appName}</h1>
         </div>
       </div>
       </MobileHeaderGuard>
@@ -68,13 +70,15 @@ export default function Home() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-8 left-8 right-8">
-              <h1 className="text-3xl lg:text-5xl font-bold text-white mb-3">
-                Your Perfect Meals,{" "}
-                <span className="text-orange-500">Powered by AI</span>
-              </h1>
-              <p className="text-white/90 text-lg lg:text-xl mb-6 max-w-3xl">
-                Effortlessly plan healthy meals tailored to your dietary preferences, health conditions, and fitness goals. Zero guesswork, maximum nutrition.
-              </p>
+              <div className="bg-black/55 backdrop-blur-sm rounded-xl px-4 py-3 mb-4 inline-block">
+                <h1 className="text-3xl lg:text-5xl font-bold text-white mb-3">
+                  Your Perfect Meals,{" "}
+                  <span className="text-orange-400">Powered by AI</span>
+                </h1>
+                <p className="text-white/90 text-lg lg:text-xl max-w-3xl">
+                  Effortlessly plan healthy meals tailored to your dietary preferences, health conditions, and fitness goals. Zero guesswork, maximum nutrition.
+                </p>
+              </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
                   onClick={handleStartPlanning}
@@ -283,33 +287,27 @@ export default function Home() {
                       <div className="space-y-4">
                         <div>
                           <div className="text-xs font-medium text-muted-foreground uppercase mb-2">Breakfast</div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=150" 
-                            alt="Greek yogurt with berries" 
-                            className="w-full h-20 object-cover rounded-lg mb-2"
-                          />
+                          <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center bg-orange-950/30 border border-orange-800/20">
+                            <span className="text-orange-400/50 text-xs">Preview</span>
+                          </div>
                           <div className="text-sm font-medium text-foreground">Greek Yogurt Bowl</div>
                           <div className="text-xs text-muted-foreground">385 cal</div>
                         </div>
                         
                         <div>
                           <div className="text-xs font-medium text-muted-foreground uppercase mb-2">Lunch</div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=150" 
-                            alt="Quinoa salad with chicken" 
-                            className="w-full h-20 object-cover rounded-lg mb-2"
-                          />
+                          <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center bg-orange-950/30 border border-orange-800/20">
+                            <span className="text-orange-400/50 text-xs">Preview</span>
+                          </div>
                           <div className="text-sm font-medium text-foreground">Quinoa Power Bowl</div>
                           <div className="text-xs text-muted-foreground">645 cal</div>
                         </div>
                         
                         <div>
                           <div className="text-xs font-medium text-muted-foreground uppercase mb-2">Dinner</div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1467003909585-2f8a72700288?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=150" 
-                            alt="Grilled salmon with vegetables" 
-                            className="w-full h-20 object-cover rounded-lg mb-2"
-                          />
+                          <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center bg-orange-950/30 border border-orange-800/20">
+                            <span className="text-orange-400/50 text-xs">Preview</span>
+                          </div>
                           <div className="text-sm font-medium text-foreground">Salmon & Vegetables</div>
                           <div className="text-xs text-muted-foreground">520 cal</div>
                         </div>
@@ -552,11 +550,9 @@ export default function Home() {
                             </div>
                             <span className="text-sm font-medium text-foreground">385 cal</span>
                           </div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=120" 
-                            alt="Greek yogurt breakfast bowl" 
-                            className="w-full h-20 object-cover rounded-lg mb-2"
-                          />
+                          <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center bg-orange-950/30 border border-orange-800/20">
+                            <span className="text-orange-400/50 text-xs">Preview</span>
+                          </div>
                           <p className="text-sm font-medium text-foreground">Greek Yogurt with Berries</p>
                           <div className="flex items-center justify-between mt-2">
                             <Button size="sm" variant="ghost" className="text-xs text-primary">View Recipe</Button>
@@ -731,7 +727,7 @@ export default function Home() {
             <div className="md:col-span-2">
               <div className="flex items-center mb-6">
                 <Utensils className="text-primary text-2xl mr-2 h-6 w-6" />
-                <span className="text-xl font-bold">My Perfect Meals</span>
+                <span className="text-xl font-bold">{appName}</span>
               </div>
               <p className="text-background/70 leading-relaxed mb-6 max-w-md">
                 AI-powered personalized nutrition and meal planning for everyone. From busy families to professional athletes, we make healthy eating effortless.
@@ -765,16 +761,16 @@ export default function Home() {
             <div>
               <h3 className="font-semibold mb-4">Support</h3>
               <ul className="space-y-3 text-background/70">
-                <li><a href="mailto:support@myperfectmeals.com" className="text-background/70 hover:text-background">Contact Us</a></li>
-                <li><Button variant="link" onClick={() => navigate("/privacy-policy")} className="text-background/70 hover:text-background p-0 h-auto">Privacy Policy</Button></li>
-                <li><Button variant="link" onClick={() => navigate("/terms")} className="text-background/70 hover:text-background p-0 h-auto">Terms of Service</Button></li>
+                <li><a href={supportUrl} className="text-background/70 hover:text-background">Contact Us</a></li>
+                <li><a href="/privacy-policy" className="text-background/70 hover:text-background text-sm">Privacy Policy</a></li>
+                <li><a href="/terms" className="text-background/70 hover:text-background text-sm">Terms of Service</a></li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-background/20 pt-8 flex flex-col md:flex-row justify-between items-center">
             <div className="text-background/70 mb-4 md:mb-0">
-              © 2024 My Perfect Meals. All rights reserved.
+              © 2024 {appName}. All rights reserved.
             </div>
             <div className="flex items-center space-x-4 text-background/70">
               <span>Made with</span>

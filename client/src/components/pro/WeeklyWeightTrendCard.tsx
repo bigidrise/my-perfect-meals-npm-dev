@@ -142,7 +142,7 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
   if (loading) {
     return (
       <div className="bg-white/5 rounded-2xl p-5 border border-white/20">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+        <h3 className="text-base font-semibold text-white flex items-center gap-2 mb-3">
           <Scale className="w-4 h-4 text-emerald-400" /> Weekly Weight Trend
         </h3>
         <div className="flex items-center justify-center py-8">
@@ -155,7 +155,7 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
   if (error) {
     return (
       <div className="bg-white/5 rounded-2xl p-5 border border-white/20">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+        <h3 className="text-base font-semibold text-white flex items-center gap-2 mb-3">
           <Scale className="w-4 h-4 text-emerald-400" /> Weekly Weight Trend
         </h3>
         <p className="text-xs text-red-400 py-2">{error}</p>
@@ -166,7 +166,7 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
   if (weightHistory.length === 0) {
     return (
       <div className="bg-white/5 rounded-2xl p-5 border border-white/20">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+        <h3 className="text-base font-semibold text-white flex items-center gap-2 mb-3">
           <Scale className="w-4 h-4 text-emerald-400" /> Weekly Weight Trend
         </h3>
         <p className="text-xs text-white/30 italic">No weight data logged by client yet.</p>
@@ -187,7 +187,7 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
 
   return (
     <div className="bg-white/5 rounded-2xl p-5 border border-white/20 space-y-4">
-      <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+      <h3 className="text-base font-semibold text-white flex items-center gap-2">
         <Scale className="w-4 h-4 text-emerald-400" /> Weekly Weight Trend
       </h3>
 

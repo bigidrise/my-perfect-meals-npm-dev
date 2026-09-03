@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Minus, Plus } from "lucide-react";
+import { Loader2, Minus, Plus, CheckCircle2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,32 +28,86 @@ const PORTION_MULTIPLIERS: Record<PortionSize, number> = {
   larger: 1.25,
 };
 
+const LS_KEY = "mpm.justDescribeIt.v1";
+
+type PersistedResult = {
+  description: string;
+  estimate: MacroEstimate;
+  portion: PortionSize;
+  logged: boolean;
+  generatedAt: string;
+};
+
+function saveResult(data: PersistedResult) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  } catch {}
+}
+
+function loadResult(): PersistedResult | null {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedResult;
+    if (!parsed?.estimate || typeof parsed.estimate.protein !== "number") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clearResult() {
+  try {
+    localStorage.removeItem(LS_KEY);
+  } catch {}
+}
+
 export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [estimate, setEstimate] = useState<MacroEstimate | null>(null);
   const [portion, setPortion] = useState<PortionSize>("typical");
+  const [logged, setLogged] = useState(false);
   const { toast } = useToast();
+
+  // Restore last result on mount
+  useEffect(() => {
+    const saved = loadResult();
+    if (saved) {
+      setDescription(saved.description);
+      setEstimate(saved.estimate);
+      setPortion(saved.portion);
+      setLogged(saved.logged ?? false);
+    }
+  }, []);
+
+  // Persist whenever estimate or logged status changes
+  useEffect(() => {
+    if (estimate) {
+      saveResult({
+        description,
+        estimate,
+        portion,
+        logged,
+        generatedAt: new Date().toISOString(),
+      });
+    }
+  }, [estimate, portion, logged, description]);
 
   if (!open) return null;
 
   const handleEstimate = async () => {
     if (!description.trim()) return;
-
     setLoading(true);
     try {
-      const { getAuthHeaders } = await import('@/lib/auth');
+      const { getAuthHeaders } = await import("@/lib/auth");
       const res = await fetch(apiUrl("/api/biometrics/estimate-macros"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({ description: description.trim() }),
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to estimate macros");
-      }
-
+      if (!res.ok) throw new Error("Failed to estimate macros");
       const data = await res.json();
       setEstimate({
         protein: data.protein ?? 0,
@@ -65,7 +119,8 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
         description: description.trim(),
       });
       setPortion("typical");
-    } catch (err) {
+      setLogged(false);
+    } catch {
       toast({
         title: "Estimation failed",
         description: "Couldn't estimate macros. Please try again.",
@@ -76,7 +131,7 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
     }
   };
 
-  const getAdjustedMacros = () => {
+  const getAdjustedMacros = (): MacroEstimate | null => {
     if (!estimate) return null;
     const mult = PORTION_MULTIPLIERS[portion];
     return {
@@ -92,17 +147,18 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
 
   const handleAdd = () => {
     const adjusted = getAdjustedMacros();
-    if (adjusted) {
-      onAdd(adjusted);
-      handleClose();
-    }
+    if (!adjusted) return;
+    onAdd(adjusted);
+    setLogged(true);
+    onClose();
   };
 
-  const handleClose = () => {
+  const handleDescribeAnother = () => {
+    clearResult();
     setDescription("");
     setEstimate(null);
     setPortion("typical");
-    onClose();
+    setLogged(false);
   };
 
   const adjusted = getAdjustedMacros();
@@ -111,14 +167,25 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-gradient-to-b from-gray-900 to-black border border-white/20 rounded-2xl w-full max-w-md overflow-hidden">
         <div className="p-5">
-          <h2 className="text-lg font-semibold text-white mb-1">
-            Just Describe It
-          </h2>
-          <p className="text-sm text-white/60 mb-4">
-            Tell us what you ate. We'll estimate the macros.
-          </p>
 
-          {!estimate ? (
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Just Describe It</h2>
+              {!estimate && (
+                <p className="text-sm text-white/60">Tell us what you ate. We'll estimate the macros.</p>
+              )}
+            </div>
+            {logged && estimate && (
+              <div className="flex items-center gap-1.5 bg-lime-600/20 border border-lime-500/30 rounded-full px-3 py-1">
+                <CheckCircle2 className="h-3.5 w-3.5 text-lime-400" />
+                <span className="text-xs text-lime-300 font-medium">Logged</span>
+              </div>
+            )}
+          </div>
+
+          {/* Input screen */}
+          {!estimate && (
             <>
               <textarea
                 value={description}
@@ -130,11 +197,10 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
               <p className="text-xs text-white/50 mt-2 mb-4">
                 Include portion size if you can — "large", "small", "half", etc.
               </p>
-
               <div className="flex gap-3">
                 <Button
-                  onClick={handleClose}
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                  onClick={onClose}
+                  className="flex-1 bg-white/10 text-white border border-white/20 hover:bg-white/15"
                 >
                   Cancel
                 </Button>
@@ -143,20 +209,17 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                   disabled={!description.trim() || loading}
                   className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
                 >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Estimate"
-                  )}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Estimate"}
                 </Button>
               </div>
             </>
-          ) : (
+          )}
+
+          {/* Result screen */}
+          {estimate && (
             <>
               <div className="rounded-xl border border-white/20 p-4 mb-4 bg-black/30">
-                <div className="text-xs text-white/50 mb-2 truncate">
-                  "{estimate.description}"
-                </div>
+                <div className="text-xs text-white/50 mb-2 truncate">"{estimate.description}"</div>
                 <div className="text-sm text-white/90 space-y-1">
                   <div className="flex justify-between">
                     <span>Protein</span>
@@ -185,47 +248,68 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                 </div>
               </div>
 
-              <div className="mb-4">
-                <div className="text-xs text-white/60 mb-2 text-center">
-                  Adjust portion
+              {/* Portion selector — hidden when logged */}
+              {!logged && (
+                <div className="mb-4">
+                  <div className="text-xs text-white/60 mb-2 text-center">Adjust portion</div>
+                  <div className="flex gap-2 justify-center">
+                    {(["smaller", "typical", "larger"] as PortionSize[]).map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setPortion(size)}
+                        className={`px-4 py-2 rounded-lg text-sm capitalize transition-colors ${
+                          portion === size
+                            ? "bg-amber-600 text-white"
+                            : "bg-white/10 text-white/70"
+                        }`}
+                      >
+                        {size === "smaller" && <Minus className="h-3 w-3 inline mr-1" />}
+                        {size}
+                        {size === "larger" && <Plus className="h-3 w-3 inline ml-1" />}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2 justify-center">
-                  {(["smaller", "typical", "larger"] as PortionSize[]).map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setPortion(size)}
-                      className={`px-4 py-2 rounded-lg text-sm capitalize transition-colors ${
-                        portion === size
-                          ? "bg-amber-600 text-white"
-                          : "bg-white/10 text-white/70 hover:bg-white/20"
-                      }`}
-                    >
-                      {size === "smaller" && <Minus className="h-3 w-3 inline mr-1" />}
-                      {size}
-                      {size === "larger" && <Plus className="h-3 w-3 inline ml-1" />}
-                    </button>
-                  ))}
+              )}
+
+              {!logged && (
+                <p className="text-xs text-white/50 text-center mb-4">
+                  This is a best estimate. Good enough to stay on track.
+                </p>
+              )}
+
+              {/* Logged state */}
+              {logged ? (
+                <div className="flex gap-3">
+                  <Button
+                    onClick={onClose}
+                    className="flex-1 bg-white/10 text-white border border-white/20 hover:bg-white/15"
+                  >
+                    Done
+                  </Button>
+                  <Button
+                    onClick={handleDescribeAnother}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Describe Another
+                  </Button>
                 </div>
-              </div>
-
-              <p className="text-xs text-white/50 text-center mb-4">
-                This is a best estimate. Good enough to stay on track.
-              </p>
-
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => setEstimate(null)}
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                >
-                  Try Again
-                </Button>
-                <Button
-                  onClick={handleAdd}
-                  className="flex-1 bg-lime-600 hover:bg-lime-700 text-white"
-                >
-                  Add to Today
-                </Button>
-              </div>
+              ) : (
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleDescribeAnother}
+                    className="flex-1 bg-white/10 text-white border border-white/20 hover:bg-white/15"
+                  >
+                    Try Again
+                  </Button>
+                  <Button
+                    onClick={handleAdd}
+                    className="flex-1 bg-lime-600 hover:bg-lime-700 text-white"
+                  >
+                    Add to Today
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>

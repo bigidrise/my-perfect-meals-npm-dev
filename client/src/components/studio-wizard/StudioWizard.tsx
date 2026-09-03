@@ -26,6 +26,7 @@ import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
 
 import GeneratedMealCard from "@/components/meal/GeneratedMealCard";
+import { writeChefPrepareHandoff } from "@/lib/safeChefHandoff";
 
 type StudioStep = 1 | 2 | 3 | 4 | 5;
 
@@ -505,13 +506,17 @@ export default function StudioWizard({ config }: StudioWizardProps) {
 
   const goToChefsKitchenPrepare = () => {
     if (!generatedMeal) return;
-    try {
-      localStorage.setItem("mpm_chefs_kitchen_external_prepare", "true");
-      localStorage.setItem("mpm_chefs_kitchen_meal", JSON.stringify(generatedMeal));
-      localStorage.removeItem("mpm_chefs_kitchen_prep");
-    } catch {
-      // ignore
-    }
+    const safeImageUrl = (() => {
+      const url = generatedMeal.imageUrl;
+      if (!url) return null;
+      if (url.startsWith("data:")) return null;
+      if (url.includes("oaidalleapiprodscus")) return null;
+      return url;
+    })();
+    writeChefPrepareHandoff(
+      { ...generatedMeal, imageUrl: safeImageUrl },
+      { clearPrep: true },
+    );
     setLocation("/lifestyle/chefs-kitchen");
   };
 

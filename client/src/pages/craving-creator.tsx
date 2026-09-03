@@ -11,10 +11,13 @@
 // DO NOT MODIFY WITHOUT USER APPROVAL
 
 import { useState, useEffect, useRef } from "react";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import {
   Card,
   CardContent,
@@ -23,6 +26,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   Select,
   SelectContent,
@@ -39,21 +43,26 @@ import {
   Users,
   ArrowLeft,
   ChefHat,
+  Wand2,
+  RotateCcw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   isAllergyRelatedError,
   formatAllergyAlertDescription,
 } from "@/utils/allergyAlert";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useTranslation } from "react-i18next";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import AlphaGalBadge from "@/components/AlphaGalBadge";
+import MealRefinementSheet from "@/components/MealRefinementSheet";
 import {
   generateMedicalBadges,
   getUserMedicalProfile,
 } from "@/utils/medicalPersonalization";
 import { post } from "@/lib/api";
+import ProtocolStatusBadge from "@/components/ProtocolStatusBadge";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -61,10 +70,14 @@ import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import PhaseGate from "@/components/PhaseGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
-import DietBadge from "@/components/meal/DietBadge";
+import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
+import ThinkingDots from "@/components/ThinkingDots";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
+import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
@@ -114,6 +127,8 @@ interface MealData {
     color: string;
   }>;
   imageUrl?: string;
+  dietaryComplianceVerified?: boolean;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
 }
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -121,6 +136,13 @@ import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -134,9 +156,7 @@ type CachedCravingState = {
 };
 
 function saveCravingCache(state: CachedCravingState) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-  } catch {}
+  safeLocalStorageSet(CACHE_KEY, state);
 }
 
 function loadCravingCache(): CachedCravingState | null {
@@ -155,6 +175,23 @@ function loadCravingCache(): CachedCravingState | null {
 function clearCravingCache() {
   try {
     localStorage.removeItem(CACHE_KEY);
+  } catch {}
+}
+
+// ---- Persist the three options so they survive navigation and selection ----
+const OPTIONS_CACHE_KEY = "cravingCreator.options.v1";
+
+function saveCravingOptionsCache(options: any[]) {
+  safeLocalStorageSet(OPTIONS_CACHE_KEY, options);
+}
+
+function loadCravingOptionsCache(): any[] {
+  return safeLocalStorageGetArray(OPTIONS_CACHE_KEY);
+}
+
+function clearCravingOptionsCache() {
+  try {
+    localStorage.removeItem(OPTIONS_CACHE_KEY);
   } catch {}
 }
 
@@ -190,16 +227,22 @@ const CRAVING_TOUR_STEPS: TourStep[] = [
 
 export default function CravingCreator() {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
   const { toast } = useToast();
+  const { t } = useTranslation("cravingCreator");
   const { startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("craving-creator");
   const [useOnboarding, setUseOnboarding] = useState(true); // ENFORCED: Always use onboarding for medical safety
   const [cravingInput, setCravingInput] = useState("");
+  const [dishFailureAlert, setDishFailureAlert] = useState<{ show: boolean; message: string; title?: string; suggestedActions?: string[] }>({ show: false, message: "" });
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [savedMeals, setSavedMeals] = useState(new Set<string>());
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
+  const [refineIndex, setRefineIndex] = useState<number | null>(null);
+  const [preRefinedMealsByIndex, setPreRefinedMealsByIndex] = useState<Record<number, MealData>>({});
   const [mealOptions, setMealOptions] = useState<any[]>([]);
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
+  const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "meal", concurrency: 1 });
 
   const getRecentMeals = (): string[] => {
     try { return JSON.parse(sessionStorage.getItem('cc_recent_meals') || '[]'); } catch { return []; }
@@ -220,6 +263,7 @@ export default function CravingCreator() {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  const continueAnywayRef = useRef(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -231,6 +275,10 @@ export default function CravingCreator() {
     activeDiet,
   } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   // Get actual user ID from auth context for medical safety
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
@@ -257,6 +305,8 @@ export default function CravingCreator() {
 
   // Import replacement context functions
   const [replaceCtx, setReplaceCtx] = useState<any>(null);
+  const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>({});
+  const [activeSteps, setActiveSteps] = useState<Record<string, number | null>>({});
 
   // Check for replacement context on mount
   useEffect(() => {
@@ -272,7 +322,12 @@ export default function CravingCreator() {
   useEffect(() => {
     const cached = loadCravingCache();
     if (cached?.generatedMeal?.id) {
-      setGeneratedMeals([cached.generatedMeal]);
+      // Enrich with mini-cache imageUrl before setting state — survives the race
+      // where user navigated away before hydrateImages finished
+      const mealWithImage = cached.generatedMeal.imageUrl
+        ? cached.generatedMeal
+        : { ...cached.generatedMeal, imageUrl: lookupHydratedImageUrl(cached.generatedMeal.id) ?? undefined };
+      setGeneratedMeals([mealWithImage]);
       setCravingInput(cached.craving || "");
       setServings(cached.servings || 1); // Restore servings
       toast({
@@ -280,6 +335,16 @@ export default function CravingCreator() {
         description:
           "Your generated meal will remain saved on this page until you create a new one.",
       });
+      // Only re-fetch if imageUrl is still missing after mini-cache lookup
+      if (!mealWithImage.imageUrl) {
+        hydrateImages([mealWithImage]);
+      }
+    }
+
+    // Restore the three pending options so they survive navigation and selection.
+    const savedOptions = loadCravingOptionsCache();
+    if (savedOptions.length > 0) {
+      setMealOptions(savedOptions);
     }
 
     // Emit ready event after page loads
@@ -290,6 +355,15 @@ export default function CravingCreator() {
       window.dispatchEvent(event);
     }, 500);
   }, []); // Only run once on mount
+
+  // Persist the options list whenever it changes (non-empty → save; empty → clear).
+  useEffect(() => {
+    if (mealOptions.length > 0) {
+      saveCravingOptionsCache(mealOptions);
+    } else {
+      clearCravingOptionsCache();
+    }
+  }, [mealOptions]);
 
   // Auto-save whenever relevant state changes (so it's always fresh)
   useEffect(() => {
@@ -304,47 +378,21 @@ export default function CravingCreator() {
     }
   }, [generatedMeals, cravingInput, servings]);
 
-  const handleSelectMeal = async (meal: any) => {
-    setMealOptions([]);
+  const handleSelectMeal = (meal: any) => {
+    // Do NOT clear mealOptions here — the other choices stay visible
+    // until the user explicitly taps "Start over" or "Create New".
     addRecentMeal(meal.name);
-    setIsPlatingMeal(true);
-
-    let finalMeal = { ...meal };
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000); // 20s hard timeout
-      const imgRes = await fetch(apiUrl("/api/meal-images/generate"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          mealName: meal.name,
-          ingredients: (meal.ingredients || []).map((i: any) => i.name || i),
-          style: "overhead",
-          mealType: "snacks",
-        }),
-      });
-      clearTimeout(timeout);
-      if (imgRes.ok) {
-        const imgData = await imgRes.json();
-        if (imgData.success && imgData.image?.url) {
-          finalMeal = { ...finalMeal, imageUrl: imgData.image.url };
-        }
-      }
-    } catch (imgErr) {
-      console.warn("[CRAVING CREATOR] Image generation failed, using fallback:", imgErr);
-    } finally {
-      setIsPlatingMeal(false);
-    }
-
-    setGeneratedMeals([finalMeal]);
+    // Show card immediately — image hydrates in parallel
+    setGeneratedMeals([meal]);
+    setIsPlatingMeal(false);
     saveCravingCache({
-      generatedMeal: finalMeal,
+      generatedMeal: meal,
       craving: cravingInput,
       servings: servings,
       mealType: "snacks",
       generatedAtISO: new Date().toISOString(),
     });
+    hydrateImages([meal]);
   };
 
   useEffect(() => {
@@ -433,6 +481,12 @@ export default function CravingCreator() {
 
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
+  const [keepItSimple, setKeepItSimple] = useState(false);
+  const [cookMethod, setCookMethod] = useState("");
+  // Generation mode is now auto-routed server-side based on the dish name.
+  // Culinary-ratio-sensitive dishes (bread, cake, cheesecake, pasta, etc.) automatically
+  // use the recipe engine; everything else uses the nutrition-first meal engine.
+  // The user-facing toggle has been removed — MPM picks the right engine silently.
 
   // 🔐 SafetyGuard preflight system
   const {
@@ -490,9 +544,12 @@ export default function CravingCreator() {
     }
   }, [cravingInput, starchDecision, checkStarch]);
 
-  const handleGenerateMeal = async (skipPreflight = false) => {
+  const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
     setDietAdaptedNotice(null);
+    setDishFailureAlert({ show: false, message: "" });
 
     if (!cravingInput.trim()) {
       console.log("❌ Empty craving input - showing toast");
@@ -523,7 +580,7 @@ export default function CravingCreator() {
     }
 
     // 🥗 Diet Guard preflight check — advisory, fires at generate time (not on keystroke)
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+    if (!skipPreflight && activeDiet && !dietAdaptOverride) {
       const dietOk = checkDiet(cravingInput);
       if (!dietOk) {
         // DietGuardIntercept will show inline — user chooses path
@@ -559,14 +616,26 @@ export default function CravingCreator() {
         body: JSON.stringify({
           targetMealType: "snacks",
           cravingInput,
-          dietaryRestrictions: selectedDiet || dietaryRestrictions,
-          userId: userId,
+          dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
+            ? dietOverrideValue
+            : (selectedDiet || dietaryRestrictions),
+          // Explicit signal: this is a REPLACEMENT of the profile diet, not a merge.
+          // The server uses this to prevent the profile's vegan/keto from conflicting
+          // with the user's temporary builder selection.
+          dietOverride: dietOverrideEnabled && dietOverrideValue ? dietOverrideValue : undefined,
           servings: servings,
           sweetenerPreferences,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
+          strictMode: keepItSimple,
+          // generationMode intentionally omitted — server auto-detects based on dish name
+          dietAdaptOverride,
+          userDietOverride,
+          cookMethod: cookMethod || undefined,
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
+          humanFoodCreator: "craving_creator",
         }),
       });
 
@@ -592,11 +661,76 @@ export default function CravingCreator() {
       setSafetyEnabled(true);
       clearSafetyAlert();
 
+      // ── Typed "unable to generate" response ───────────────────────────────
+      // Server returns HTTP 422 + { status: "unable_to_generate", reasonCode,
+      // message, suggestedActions } when the variety engine could not satisfy
+      // the request. Show an actionable alert instead of a blank card or toast.
+      if (data.status === "unable_to_generate") {
+        stopProgressTicker();
+        setIsGenerating(false);
+        setDishFailureAlert({
+          show: true,
+          message: data.message || "We couldn't generate options for this request. Please try adjusting your description.",
+          suggestedActions: Array.isArray(data.suggestedActions) ? data.suggestedActions : [],
+        });
+        return;
+      }
+
       if (!response.ok) {
+        stopProgressTicker();
+        setIsGenerating(false);
         if (data.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${data.message}`);
         }
+        // 🩸 Clinical BGL block — server tried a low-carb reformulation and it
+        // still exceeded the glucose-state carb ceiling. Show the plain-language
+        // clinical explanation, not a generic error.
+        if (data.clinicalBlock || data.error === "BGL_CLINICAL_BLOCK" || data.reasonCode === "bgl_carb_ceiling") {
+          setDishFailureAlert({
+            show: true,
+            title: data.title || "Your blood glucose needs a different version",
+            message: data.message || "Your current glucose setting requires a lower-carb meal, and we couldn't create a compliant version of this dish. You can try another craving, or update your glucose information if your reading has changed.",
+            suggestedActions: Array.isArray(data.suggestedActions) ? data.suggestedActions : [],
+          });
+          return;
+        }
+        if (data.dishIdentityFailure) {
+          setDishFailureAlert({
+            show: true,
+            message: data.message || "This dish can't be made compliant with your current settings. Try adjusting your request or safety settings.",
+          });
+          return;
+        }
+        if (data.error === "AVOIDANCE_VIOLATION_ALL_OPTIONS") {
+          toast({
+            title: "No compliant options found",
+            description: data.message || "All generated options conflicted with your dietary protocol. Please try a different dish or adjust your craving description.",
+            variant: "destructive",
+            duration: 10000,
+          });
+          return;
+        }
+        if (data.reasonCode === "constraint_conflict") {
+          toast({
+            title: "No options fit your current plan",
+            description: data.message || "Your health protocol eliminated all generated options. Try a lower-carb dish, or adjust your glucose settings.",
+            duration: 8000,
+          });
+          return;
+        }
         throw new Error(data.message || "Failed to generate meal");
+      }
+
+      // Guard: if meals array is empty despite a 200 response, treat as generation failure
+      if (data.meals && Array.isArray(data.meals) && data.meals.length === 0) {
+        stopProgressTicker();
+        setIsGenerating(false);
+        setDishFailureAlert({
+          show: true,
+          message: "No options were returned for this request. Try rephrasing your craving or adjusting your dietary settings.",
+          suggestedActions: ["Try a different description", "Simplify your request", "Check your dietary restrictions"],
+        });
+        return;
       }
       // 🎲 Multi-option response from variety engine — show selection panel
       if (data.meals && Array.isArray(data.meals) && data.meals.length > 0) {
@@ -628,6 +762,7 @@ export default function CravingCreator() {
 
       stopProgressTicker();
       setGeneratedMeals([meal]);
+      hydrateImages([meal]);
 
       // Immediately cache the new meal so it survives navigation/refresh
       saveCravingCache({
@@ -658,13 +793,13 @@ export default function CravingCreator() {
           title: "⚠️ ALLERGY ALERT",
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
+          duration: 10000,
         });
       } else {
         toast({
-          title: "⚠️ ALLERGY ALERT",
-          description:
-            "SafetyGuard™ detected a potential concern. Try a different meal or adjust your request.",
-          variant: "warning",
+          title: "Couldn't generate meal",
+          description: errorMsg || "Something went wrong. Please try again.",
+          variant: "destructive",
         });
       }
     } finally {
@@ -745,7 +880,12 @@ export default function CravingCreator() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.44), rgba(0,0,0,0.40)), url('/images/craving-creator-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 30%",
+        }}
       >
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
@@ -754,26 +894,12 @@ export default function CravingCreator() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="px-4 py-3 flex items-center gap-2 flex-nowrap overflow-hidden">
-            {/* Back Button */}
-            <button
-              onClick={() => setLocation("/craving-creator-landing")}
-              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
-              data-testid="button-back-to-hub"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
-            </button>
-
             {/* Title */}
             <h1 className="text-lg font-bold text-white truncate min-w-0">
-              Craving Creator
+              {t("heading")}
             </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton
-              onClick={quickTour.openTour}
-              className="flex-shrink-0"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
@@ -783,7 +909,27 @@ export default function CravingCreator() {
           className={`max-w-2xl mx-auto px-4 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
-          <div className="flex items-center justify-between mb-6">
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/craving-creator-landing")}
+              aria-label="Back to Craving Creator Hub"
+              className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Craving Creator Hub</span>
+            </button>
+          )}
+          {!isDesktop && (
+            <button
+              onClick={() => setLocation("/craving-creator-landing")}
+              aria-label="Back to Craving Creator Hub"
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          )}
+          <div className="flex items-center justify-between mb-4">
             {/* Spacer for layout */}
 
             {replaceId && (
@@ -798,6 +944,9 @@ export default function CravingCreator() {
               </GlassButton>
             )}
           </div>
+
+          {/* Server-resolved protocol indicator — shows when GLP-1 or Performance overlay is active */}
+          <ProtocolStatusBadge className="mb-4" />
 
           {/* Create with Chef Entry Point — Studio hidden */}
           <div className="relative mb-6 hidden">
@@ -862,17 +1011,22 @@ export default function CravingCreator() {
           {/* Create Craving Form */}
           <div className="w-full max-w-4xl mx-auto">
             <div>
-              <Card className="shadow-2xl bg-black/30 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
+              <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
-                    Quick Create
+                    {t("quickCreate")}
+                    <div className="flex-grow" />
+                    <HowThisWorksLink
+                      videoUrl="https://youtube.com/shorts/C3kZCNC1tq8?feature=share"
+                      label="How It Works"
+                    />
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-md font-medium text-white">
-                        What are you craving?
+                        {t("cravingLabel")}
                       </label>
                     </div>
                     <div className="relative">
@@ -880,7 +1034,7 @@ export default function CravingCreator() {
                         data-testid="cravingcreator-input-box"
                         data-wt="cc-description-input"
                         value={cravingInput}
-                        onChange={(e) => setCravingInput(e.target.value)}
+                        onChange={(e) => { setCravingInput(e.target.value); if (dishFailureAlert.show) setDishFailureAlert({ show: false, message: "" }); }}
                         placeholder="e.g., I want something creamy chocolate with peanut butter swirl and crunchy topping - BE SPECIFIC and describe what you crave!"
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}
@@ -902,6 +1056,45 @@ export default function CravingCreator() {
                     <p className="text-xs text-white/70 mt-1 text-right">
                       {cravingInput.length}/300
                     </p>
+                  </div>
+
+                  <DietCuisineControlRow
+                    savedCuisine={user?.cuisinePreference}
+                    dietOverrideEnabled={dietOverrideEnabled}
+                    dietOverrideValue={dietOverrideValue}
+                    onDietToggle={setDietOverrideEnabled}
+                    onDietChange={setDietOverrideValue}
+                    cuisineOverrideEnabled={cuisineOverrideEnabled}
+                    cuisineOverrideValue={cuisineOverrideValue}
+                    onCuisineToggle={setCuisineOverrideEnabled}
+                    onCuisineChange={setCuisineOverrideValue}
+                  />
+
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: "Stovetop", emoji: "🍳" },
+                        { label: "Oven", emoji: "🔥" },
+                        { label: "Air Fryer", emoji: "💨" },
+                        { label: "Grill", emoji: "🥩" },
+                        { label: "Slow Cooker", emoji: "🫕" },
+                        { label: "No-Cook", emoji: "🥗" },
+                      ].map(({ label, emoji }) => (
+                        <div key={label} className="flex flex-col items-center gap-1">
+                          <PillButton
+                            active={cookMethod === label}
+                            variant="amber"
+                            onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                          >
+                            {emoji}
+                          </PillButton>
+                          <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Dietary Preferences with clear support */}
@@ -954,7 +1147,7 @@ export default function CravingCreator() {
                   {/* NEW: Serving Size Dropdown */}
                   <div>
                     <label className="block text-md font-medium mb-1 text-white">
-                      Number of Servings
+                      {t("servingsLabel")}
                     </label>
                     <Select
                       data-wt="cc-servings-selector"
@@ -965,16 +1158,16 @@ export default function CravingCreator() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 serving (just me)</SelectItem>
-                        <SelectItem value="2">2 servings</SelectItem>
-                        <SelectItem value="3">3 servings</SelectItem>
-                        <SelectItem value="4">4 servings</SelectItem>
-                        <SelectItem value="5">5 servings</SelectItem>
-                        <SelectItem value="6">6 servings</SelectItem>
-                        <SelectItem value="7">7 servings</SelectItem>
-                        <SelectItem value="8">8 servings</SelectItem>
-                        <SelectItem value="9">9 servings</SelectItem>
-                        <SelectItem value="10">10 servings</SelectItem>
+                        <SelectItem value="1">{t("serving1")}</SelectItem>
+                        <SelectItem value="2">{t("servingN", { count: 2 })}</SelectItem>
+                        <SelectItem value="3">{t("servingN", { count: 3 })}</SelectItem>
+                        <SelectItem value="4">{t("servingN", { count: 4 })}</SelectItem>
+                        <SelectItem value="5">{t("servingN", { count: 5 })}</SelectItem>
+                        <SelectItem value="6">{t("servingN", { count: 6 })}</SelectItem>
+                        <SelectItem value="7">{t("servingN", { count: 7 })}</SelectItem>
+                        <SelectItem value="8">{t("servingN", { count: 8 })}</SelectItem>
+                        <SelectItem value="9">{t("servingN", { count: 9 })}</SelectItem>
+                        <SelectItem value="10">{t("servingN", { count: 10 })}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1041,9 +1234,15 @@ export default function CravingCreator() {
                         clearDietAlert();
                         setGeneratedMeals([]);
                         setMealOptions([]);
+                        clearCravingOptionsCache();
                         setCravingInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
+                        clearDietAlert();
+                        handleGenerateMeal(true, true);
+                      } else if (decision === "continue_anyway") {
+                        continueAnywayRef.current = true;
+                        clearDietAlert();
                         handleGenerateMeal(true);
                       }
                     }}
@@ -1082,21 +1281,26 @@ export default function CravingCreator() {
                     </p>
                   </div>
 
+                  {/* Keep It Simple Section */}
+                  <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                    <span className="text-xs text-white/60 block mb-2">
+                      Ingredient Control
+                    </span>
+                    <KeepItSimpleToggle
+                      keepItSimple={keepItSimple}
+                      onToggle={setKeepItSimple}
+                      disabled={isGenerating}
+                    />
+                    <p className="text-xs text-white/40 mt-1">
+                      {keepItSimple
+                        ? "AI will use only what you listed — nothing added"
+                        : "AI may add complementary ingredients"}
+                    </p>
+                  </div>
+
                   {isGenerating ? (
-                    <div className="max-w-md mx-auto mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-white/80">
-                          AI Analysis Progress
-                        </span>
-                        <span className="text-sm text-white/80">
-                          {Math.round(progress)}%
-                        </span>
-                      </div>
-                      <Progress
-                        value={progress}
-                        className="h-3 bg-black/30 border border-white/20"
-                      />
-                      <p className="text-white/70 text-sm text-center mt-3"></p>
+                    <div className="max-w-md mx-auto mb-4 flex justify-center">
+                      <ThinkingDots label="Creating your craving…" />
                     </div>
                   ) : (
                     <GlassButton
@@ -1107,9 +1311,54 @@ export default function CravingCreator() {
                       className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       {safetyChecking
-                        ? "Checking Safety..."
-                        : "Create My Craving"}
+                        ? t("checkingSafety")
+                        : t("createBtn")}
                     </GlassButton>
+                  )}
+
+                  {/* Dish Identity Failure — persistent inline alert */}
+                  {dishFailureAlert.show && (
+                    <div className="mt-3 rounded-lg border border-orange-500/40 bg-orange-950/50 px-4 py-3 flex flex-col gap-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-orange-400 mt-0.5 shrink-0">⚠️</span>
+                        <div className="flex flex-col gap-1">
+                          {dishFailureAlert.title && (
+                            <p className="text-sm font-semibold text-orange-100 leading-snug">
+                              {dishFailureAlert.title}
+                            </p>
+                          )}
+                          <p className="text-sm text-orange-200 leading-snug">
+                            {dishFailureAlert.message}
+                          </p>
+                        </div>
+                      </div>
+                      {dishFailureAlert.suggestedActions && dishFailureAlert.suggestedActions.length > 0 && (
+                        <ul className="pl-1 space-y-1">
+                          {dishFailureAlert.suggestedActions.map((action, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-xs text-orange-100/80">
+                              <span className="shrink-0 mt-px text-orange-400">→</span>
+                              {action}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleGenerateMeal()}
+                          disabled={isGenerating}
+                          className="flex-1 py-1.5 rounded-md bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          Try Again
+                        </button>
+                        <button
+                          onClick={() => setDishFailureAlert({ show: false, message: "" })}
+                          className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 text-xs transition-colors"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1118,13 +1367,13 @@ export default function CravingCreator() {
 
           {/* 🎲 Variety Engine: Meal Options Panel */}
           {isPlatingMeal && (
-            <div className="mt-8 flex flex-col items-center gap-4 py-10">
-              <div className="w-10 h-10 border-4 border-lime-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/80 text-base font-medium">Chef is plating your meal…</p>
+            <div className="mt-8 flex justify-center py-10">
+              <ThinkingDots label="Chef is plating your meal…" />
             </div>
           )}
 
-          {!isPlatingMeal && mealOptions.length > 0 && (
+          {/* Initial picker — only shown before a meal has been selected */}
+          {!isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />
@@ -1137,7 +1386,11 @@ export default function CravingCreator() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <h4 className="text-white font-bold text-base mb-1 truncate">{option.name}</h4>
-                        <p className="text-white/70 text-sm mb-3 line-clamp-2">{option.description}</p>
+                        <p className="text-white/70 text-sm mb-2 line-clamp-2">{option.description}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                          <MealClassificationPill dietClassification={option.dietClassification ?? null} />
+                          <KosherProTip dietClassification={option.dietClassification ?? null} isAdapted={false} />
+                        </div>
                         <div className="flex gap-4 text-xs text-white/60 flex-wrap">
                           <span>{option.nutrition?.calories ?? option.calories ?? "—"} cal</span>
                           <span>{option.nutrition?.protein ?? option.protein ?? "—"}g protein</span>
@@ -1156,7 +1409,7 @@ export default function CravingCreator() {
                 </Card>
               ))}
               <button
-                onClick={() => { setMealOptions([]); setCravingInput(""); }}
+                onClick={() => { setMealOptions([]); clearCravingOptionsCache(); setCravingInput(""); }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
               >
                 Start over with a different craving
@@ -1174,31 +1427,69 @@ export default function CravingCreator() {
                     className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded 2xl"
                   >
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <Sparkles className="h-6 w-6 text-yellow-600" />
-                          <h3 className="text-xl font-bold text-white">
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="h-5 w-5 text-yellow-600 shrink-0" />
+                          <h3 className="text-xl font-bold text-white truncate leading-tight">
                             {meal.name}
                           </h3>
+                        </div>
+                        <div className="flex items-center justify-between">
                           <FavoriteButton
                             title={meal.name}
                             sourceType="craving-creator"
                             mealData={meal}
                           />
+                          <button
+                            onClick={() => {
+                              setGeneratedMeals([]);
+                              clearCravingCache();
+                              setMealOptions([]);
+                              clearCravingOptionsCache();
+                              setCravingInput("");
+                              setSubstitutedStarchTerms([]);
+                              clearStarchAlert();
+                            }}
+                            className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
+                            data-testid="button-create-new"
+                          >
+                            Create New
+                          </button>
                         </div>
+                        {/* Refine Meal button */}
                         <button
-                          onClick={() => {
-                            setGeneratedMeals([]);
-                            clearCravingCache();
-                            setCravingInput("");
-                            setSubstitutedStarchTerms([]);
-                            clearStarchAlert();
-                          }}
-                          className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
-                          data-testid="button-create-new"
+                          onClick={() => setRefineIndex(index)}
+                          className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-violet-950/30 py-2.5 text-sm font-semibold text-violet-300 active:bg-violet-900/40 transition-colors"
                         >
-                          Create New
+                          <Wand2 className="h-4 w-4" />
+                          Refine Meal
                         </button>
+                        {/* Undo refinement banner */}
+                        {preRefinedMealsByIndex[index] && (
+                          <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-violet-950/40 border border-violet-500/30 px-3 py-2 text-xs">
+                            <span className="flex items-center gap-1.5 text-violet-300">
+                              <Wand2 className="h-3 w-3 shrink-0" />
+                              Showing refined version
+                            </span>
+                            <button
+                              className="flex items-center gap-1 text-violet-400 font-medium active:opacity-70"
+                              onClick={() => {
+                                const orig = preRefinedMealsByIndex[index];
+                                setGeneratedMeals((prev) =>
+                                  prev.map((m, i) => (i === index ? orig : m))
+                                );
+                                setPreRefinedMealsByIndex((prev) => {
+                                  const next = { ...prev };
+                                  delete next[index];
+                                  return next;
+                                });
+                              }}
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                              Restore original
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Starch Substitution Notice (when Chef picked alternatives) */}
@@ -1209,30 +1500,41 @@ export default function CravingCreator() {
                         />
                       )}
 
-                      {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
-                      {dietAdaptedNotice && (
-                        <DietAdaptedNotice
-                          diet={normalizeDiet(user?.dietaryRestrictions)}
-                          notice={dietAdaptedNotice}
-                          className="mb-4"
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
+                        {dietAdaptedNotice && (
+                          <DietAdaptedNotice
+                            diet={normalizeDiet(user?.dietaryRestrictions)}
+                          />
+                        )}
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                          isAdapted={!!dietAdaptedNotice}
                         />
-                      )}
+                      </div>
 
                       <p className="text-white/90 mb-4">{meal.description}</p>
 
-                      {/* Meal Image - Show if available */}
-                      {meal.imageUrl && (
-                        <div className="mb-6 rounded-lg overflow-hidden">
-                          <img
-                            key={meal.imageUrl}
-                            src={meal.imageUrl}
-                            alt={meal.name}
-                            className="w-full h-64 object-cover"
-                            onError={(e) => {
-                              console.log("Image load error:", e);
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
+                      {(meal.imageUrl || loadingImages[meal.id]) ? (
+                        <MealImageSlot
+                          imageUrl={meal.imageUrl}
+                          mealName={meal.name}
+                          ingredients={meal.ingredients}
+                          sourceType="meal"
+                          isLoading={!!loadingImages[meal.id]}
+                        />
+                      ) : (
+                        <div className="mb-6 p-4 rounded-xl bg-black/40 border border-orange-400/30 text-center">
+                          <p className="text-white/70 text-sm mb-3">
+                            This result was saved in an older session before images were stored. Generate a fresh meal to get your image.
+                          </p>
+                          <button
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            className="px-4 py-2 rounded-full bg-orange-600 text-white text-sm font-medium"
+                          >
+                            Scroll up to regenerate
+                          </button>
                         </div>
                       )}
 
@@ -1246,6 +1548,12 @@ export default function CravingCreator() {
                           {meal.servingSize || "1 serving"}
                         </div>
                       </div>
+
+                      <ServingInstructionsBlock
+                        servings={servings}
+                        mealName={meal.name}
+                        description={meal.description}
+                      />
 
                       {/* Per-Serving Info for Multiple Servings */}
                       {servings > 1 && (
@@ -1297,6 +1605,22 @@ export default function CravingCreator() {
                             {meal.nutrition?.carbs || meal.carbs || 0}g
                           </div>
                           <div className="text-xs text-white">Carbs</div>
+                          {(() => {
+                            const totalCarbs = meal.nutrition?.carbs || meal.carbs || 0;
+                            const storedS = meal.nutrition?.starchyCarbs ?? meal.starchyCarbs;
+                            const storedF = meal.nutrition?.fibrousCarbs ?? meal.fibrousCarbs;
+                            const { starchyCarbs, fibrousCarbs } = (typeof storedS === "number" && typeof storedF === "number")
+                              ? { starchyCarbs: storedS, fibrousCarbs: storedF }
+                              : deriveSplitCarbs(meal.ingredients ?? [], totalCarbs);
+                            if (!totalCarbs && !starchyCarbs && !fibrousCarbs) return null;
+                            return (
+                              <div className="text-xs text-white/80 mt-1 font-medium">
+                                <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
+                                {" / "}
+                                <span className="text-green-300">{Math.round(fibrousCarbs)}F</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
@@ -1345,23 +1669,37 @@ export default function CravingCreator() {
                                 profile,
                               );
 
-                        return medicalBadges && medicalBadges.length > 0 ? (
-                          <div className="mb-4">
-                            <div className="flex items-center gap-3">
-                              <HealthBadgesPopover
-                                badges={medicalBadges.map((b: any) =>
-                                  typeof b === "string"
-                                    ? b
-                                    : b.badge || b.id || b.condition || b.label,
-                                )}
-                              />
-
-                              <h3 className="font-semibold text-white">
-                                Medical Safety
-                              </h3>
-                            </div>
+                        return (
+                          <div className="mb-4 space-y-2">
+                            {medicalBadges && medicalBadges.length > 0 && (
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                  <HealthBadgesPopover
+                                    badges={medicalBadges.map((b: any) =>
+                                      typeof b === "string"
+                                        ? b
+                                        : b.badge || b.id || b.condition || b.label,
+                                    )}
+                                  />
+                                  <h3 className="font-semibold text-white">
+                                    Medical Safety
+                                  </h3>
+                                </div>
+                                <TrashButton
+                                  size="sm"
+                                  ariaLabel="Remove meal"
+                                  title="Remove meal"
+                                  confirm={true}
+                                  confirmMessage="Remove this meal?"
+                                  onClick={() => setGeneratedMeals(prev => prev.filter((_, i) => i !== index))}
+                                />
+                              </div>
+                            )}
+                            {(meal as any).alphaGalBadge && (
+                              <AlphaGalBadge badge={(meal as any).alphaGalBadge} />
+                            )}
                           </div>
-                        ) : null;
+                        );
                       })()}
 
                       {meal.ingredients && meal.ingredients.length > 0 && (
@@ -1383,10 +1721,10 @@ export default function CravingCreator() {
                                   );
                                 }
 
-                                if (amount && unit) {
+                                if (amount) {
                                   return (
                                     <li key={i}>
-                                      {amount} {unit} {name}
+                                      {amount}{unit ? ` ${unit}` : ""} {name}
                                     </li>
                                   );
                                 }
@@ -1398,16 +1736,33 @@ export default function CravingCreator() {
                         </div>
                       )}
 
-                      {meal.instructions && (
-                        <div className="mb-4">
-                          <h4 className="font-semibold mb-2 text-white">
-                            Instructions:
-                          </h4>
-                          <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
-                            {meal.instructions}
+                      {(() => {
+                        const steps = normalizeInstructions(meal.instructions);
+                        if (steps.length === 0) return null;
+                        const expanded = !!stepsExpanded[meal.id];
+                        const visibleSteps = expanded ? steps : steps.slice(0, 3);
+                        return (
+                          <div className="mb-4">
+                            <h4 className="font-semibold mb-2 text-white">Instructions:</h4>
+                            <div className="space-y-2">
+                              {visibleSteps.map((step, index) => (
+                                <div key={index}
+                                  className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${activeSteps[meal.id] === index ? "bg-orange-500/20 border border-orange-500/40" : "hover:bg-white/5"}`}
+                                  onClick={() => setActiveSteps((prev) => ({ ...prev, [meal.id]: prev[meal.id] === index ? null : index }))}>
+                                  <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{index + 1}</div>
+                                  <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                                </div>
+                              ))}
+                            </div>
+                            {steps.length > 3 && (
+                              <button className="mt-2 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                                onClick={() => { setStepsExpanded((prev) => ({ ...prev, [meal.id]: !expanded })); if (expanded) setActiveSteps((prev) => ({ ...prev, [meal.id]: null })); }}>
+                                {expanded ? "Show less" : `Show all ${steps.length} steps`}
+                              </button>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {meal.reasoning && (
                         <div className="mb-4">
@@ -1486,38 +1841,51 @@ export default function CravingCreator() {
                         {/* Row 3: Prepare with Chef + Share (50/50) */}
                         <div className="grid grid-cols-2 gap-2">
                           <GlassButton
+                            type="button"
                             onClick={() => {
+                              const safeId = meal.id ||
+                                (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                                  ? crypto.randomUUID()
+                                  : `craving-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+                              const safeImageUrl = (() => {
+                                const url = meal.imageUrl;
+                                if (!url) return null;
+                                if (url.startsWith("data:")) return null;
+                                if (url.includes("oaidalleapiprodscus")) return null;
+                                return url;
+                              })();
                               const mealData = {
-                                id: meal.id || crypto.randomUUID(),
+                                id: safeId,
                                 name: meal.name,
                                 description: meal.description,
                                 ingredients: meal.ingredients || [],
                                 instructions: meal.instructions,
-                                imageUrl: meal.imageUrl,
+                                imageUrl: safeImageUrl,
+                                cookMethod: cookMethod || undefined,
                               };
-                              localStorage.setItem(
-                                "mpm_chefs_kitchen_meal",
-                                JSON.stringify(mealData),
-                              );
+                              writeChefHandoffMeal(mealData);
                               localStorage.setItem(
                                 "mpm_chefs_kitchen_external_prepare",
                                 "true",
                               );
+                              localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                               setLocation("/lifestyle/chefs-kitchen");
+                              window.scrollTo({ top: 0, behavior: "instant" });
                             }}
-                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            Enter Studio
+                            Guided Cooking
                           </GlassButton>
                           <ShareRecipeButton
                             recipe={{
                               name: meal.name,
                               description: meal.description,
                               nutrition: meal.nutrition,
+                              instructions: meal.instructions,
                               ingredients: (meal.ingredients ?? []).map(
                                 (ing: any) => ({
                                   name: ing.item || ing.name,
-                                  amount: ing.amount || ing.quantity,
+                                  amount: String(ing.amount ?? ing.quantity ?? ""),
                                   unit: ing.unit,
                                 }),
                               ),
@@ -1532,6 +1900,64 @@ export default function CravingCreator() {
                   {/* Voice ingredient capture feature removed per user request */}
                 </div>
               ))}
+
+              {/* Generated Alternatives — remaining unchosen options, shown below the selected meal */}
+              {!isPlatingMeal && mealOptions.filter((o) => o.name !== generatedMeals[0]?.name).length > 0 && (
+                <div className="mt-2 space-y-3">
+                  <div className="flex items-center gap-2 pt-4 border-t border-white/10">
+                    <Sparkles className="h-4 w-4 text-yellow-500/60" />
+                    <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide">
+                      Generated Alternatives
+                    </h3>
+                  </div>
+                  {mealOptions
+                    .filter((o) => o.name !== generatedMeals[0]?.name)
+                    .map((option, idx) => (
+                      <Card
+                        key={idx}
+                        className="bg-black/25 backdrop-blur-lg border border-white/10 shadow-md rounded-2xl"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-white font-semibold text-sm mb-1 break-words">
+                                {option.name}
+                              </h4>
+                              <p className="text-white/60 text-xs mb-2 line-clamp-2">
+                                {option.description}
+                              </p>
+                              <div className="flex gap-3 text-xs text-white/50 flex-wrap">
+                                <span>
+                                  {option.nutrition?.calories ?? option.calories ?? "—"} cal
+                                </span>
+                                <span>
+                                  {option.nutrition?.protein ?? option.protein ?? "—"}g protein
+                                </span>
+                                {option.cookingTime && <span>{option.cookingTime}</span>}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleSelectMeal(option)}
+                              className="shrink-0 bg-lime-700 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all"
+                            >
+                              Pick This
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  <button
+                    onClick={() => {
+                      setMealOptions([]);
+                      clearCravingOptionsCache();
+                      setCravingInput("");
+                    }}
+                    className="w-full text-xs text-white/40 hover:text-white/70 py-2 transition-colors"
+                  >
+                    Start over with a different craving
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1551,6 +1977,7 @@ export default function CravingCreator() {
             )}
             source="Craving Creator"
             hideShareButton={true}
+            aboveBottomNav={true}
           />
         )}
 
@@ -1562,6 +1989,29 @@ export default function CravingCreator() {
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
       </motion.div>
+
+      {/* Meal refinement sheet — rendered at root level so it clears the page */}
+      <MealRefinementSheet
+        open={refineIndex !== null}
+        onOpenChange={(v) => { if (!v) setRefineIndex(null); }}
+        meal={refineIndex !== null ? (generatedMeals[refineIndex] ?? null) : null}
+        builderType="craving-creator"
+        onRefined={(refined) => {
+          if (refineIndex === null) return;
+          const idx = refineIndex;
+          setPreRefinedMealsByIndex((prev) => ({
+            ...prev,
+            // Preserve the FIRST original only — never overwrite with an intermediate version
+            [idx]: prev[idx] ?? generatedMeals[idx],
+          }));
+          setGeneratedMeals((prev) =>
+            prev.map((m, i) =>
+              i === idx ? { ...m, ...refined, name: refined.name ?? m.name } : m
+            )
+          );
+          setRefineIndex(null);
+        }}
+      />
     </PhaseGate>
   );
 }

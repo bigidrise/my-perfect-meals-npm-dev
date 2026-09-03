@@ -19,22 +19,17 @@ import {
   Briefcase,
 } from "lucide-react";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   children: ReactNode;
 }
 
-interface NavItem {
-  path: string;
-  label: string;
-  icon: any;
-}
-
-const navItems: NavItem[] = [
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/planner", label: "Planner", icon: Calendar },
-  { path: "/lifestyle", label: "Lifestyle", icon: ChefHat },
-  { path: "/more", label: "More", icon: MoreHorizontal },
+const NAV_PATHS = [
+  { path: "/dashboard", icon: LayoutDashboard, key: "dashboard" },
+  { path: "/builders", icon: Calendar, key: "builders" },
+  { path: "/lifestyle", icon: ChefHat, key: "lifestyle" },
+  { path: "/more", icon: MoreHorizontal, key: "more" },
 ];
 
 type WorkspaceMode = "personal" | "studio";
@@ -54,6 +49,8 @@ export default function DesktopLayout({ children }: Props) {
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const { open, close, isOpen, setLastResponse } = useCopilot();
+  const { t } = useTranslation("desktopNav");
+  const { t: tn } = useTranslation("nav");
 
   const isProfessional =
     user?.professionalRole === "physician" ||
@@ -78,7 +75,7 @@ export default function DesktopLayout({ children }: Props) {
 
   const isOnPersonalRoute =
     location.startsWith("/dashboard") ||
-    location.startsWith("/planner") ||
+    location.startsWith("/builders") ||
     location.startsWith("/lifestyle") ||
     location.startsWith("/more");
 
@@ -119,7 +116,11 @@ export default function DesktopLayout({ children }: Props) {
   const handlePersonalSpace = () => {
     setWorkspaceMode("personal");
     sessionStorage.removeItem("mpm.welcomeGateDone");
-    setLocation("/dashboard");
+    if (!user?.onboardingCompletedAt) {
+      setLocation("/consumer-welcome");
+    } else {
+      setLocation("/dashboard");
+    }
   };
 
   const handleStudioSpace = () => {
@@ -140,20 +141,20 @@ export default function DesktopLayout({ children }: Props) {
           }`}
         >
           <div className="px-5 pt-5 pb-4">
-            <button
+            <div
               onClick={handleChefClick}
-              className="flex items-center justify-center gap-2 w-full pb-3 group"
+              className="flex items-center justify-center gap-2 w-full pb-3 group cursor-pointer"
             >
-              <ChefEmojiButton onClick={handleChefClick} size={40} />
+              <ChefEmojiButton size={40} />
               <span className="text-sm font-medium text-white/60 group-hover:text-orange-400 transition-colors">
-                Ask Chef
+                {t("askChef")}
               </span>
-            </button>
+            </div>
             <div className="text-lg font-bold tracking-tight text-center">
-              My Perfect Meals
+              {t("appName")}
             </div>
             <div className="text-[11px] text-white/40 mt-0.5 text-center">
-              Coach in Your Pocket
+              {t("tagline")}
             </div>
           </div>
 
@@ -161,21 +162,22 @@ export default function DesktopLayout({ children }: Props) {
             <div className="px-5 pb-3">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
-                  Workspace /
+                  {t("workspaceLabel")}
                 </span>
                 <span
                   className={`text-sm font-semibold ${
                     isStudioActive ? "text-blue-400" : "text-emerald-400"
                   }`}
                 >
-                  {isStudioActive ? "Studio" : "Personal"}
+                  {isStudioActive ? t("studio") : t("personal")}
                 </span>
               </div>
             </div>
           )}
 
           <nav className="flex-1 px-3 space-y-1">
-            {navItems.map(({ path, label, icon: Icon }) => {
+            {NAV_PATHS.map(({ path, icon: Icon, key }) => {
+              const label = tn(key);
               const active =
                 location === path || location.startsWith(path + "/");
 
@@ -213,7 +215,7 @@ export default function DesktopLayout({ children }: Props) {
             <div className="px-3 pb-4 border-t border-white/10 pt-3 space-y-1">
               <div className="px-3 pb-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
-                  Workspaces
+                  {t("workspaces")}
                 </span>
               </div>
 
@@ -226,7 +228,7 @@ export default function DesktopLayout({ children }: Props) {
                 }`}
               >
                 <Home className="w-4 h-4 shrink-0" />
-                Personal Space
+                {t("personalSpace")}
               </button>
 
               <button
@@ -238,12 +240,12 @@ export default function DesktopLayout({ children }: Props) {
                 }`}
               >
                 <Briefcase className="w-4 h-4 shrink-0" />
-                Studio Workspace
+                {t("studioWorkspace")}
               </button>
 
               <div className="px-3 pt-2 pb-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
-                  Studio Tools
+                  {t("studioTools")}
                 </span>
               </div>
 
@@ -254,7 +256,7 @@ export default function DesktopLayout({ children }: Props) {
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
                   >
                     <Users className="w-4 h-4 shrink-0" />
-                    Care Team
+                    {t("careTeam")}
                   </div>
 
                   <div
@@ -262,7 +264,7 @@ export default function DesktopLayout({ children }: Props) {
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
                   >
                     <FolderOpen className="w-4 h-4 shrink-0" />
-                    Pro Portal
+                    {t("proPortal")}
                     {proUnreadCount > 0 && (
                       <span className="ml-auto flex h-2.5 w-2.5 shrink-0">
                         <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-orange-400 opacity-75" />
@@ -289,7 +291,7 @@ export default function DesktopLayout({ children }: Props) {
                     }`}
                   >
                     <Users className="w-4 h-4 shrink-0" />
-                    Care Team
+                    {t("careTeam")}
                   </button>
 
                   <button
@@ -308,7 +310,7 @@ export default function DesktopLayout({ children }: Props) {
                     }`}
                   >
                     <FolderOpen className="w-4 h-4 shrink-0" />
-                    Pro Portal
+                    {t("proPortal")}
                     {proUnreadCount > 0 && (
                       <span className="ml-auto flex h-2.5 w-2.5 shrink-0 relative">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />

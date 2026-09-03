@@ -8,12 +8,15 @@ interface SafetyGuardToggleProps {
   safetyEnabled: boolean;
   onSafetyChange: (enabled: boolean, overrideToken?: string) => void;
   disabled?: boolean;
+  /** The specific allergen(s) the user is overriding — passed from AllergyConflictModal so the token carries the real allergen name, not a generic placeholder. */
+  allergenContext?: string[];
 }
 
 export function SafetyGuardToggle({
   safetyEnabled,
   onSafetyChange,
   disabled = false,
+  allergenContext,
 }: SafetyGuardToggleProps) {
   const [showPinEntry, setShowPinEntry] = useState(false);
   const [pin, setPin] = useState("");
@@ -48,12 +51,23 @@ export function SafetyGuardToggle({
     setError(null);
 
     try {
+      // Use the specific allergen from AllergyConflictModal if available so the
+      // override token carries "shellfish" (etc.) rather than the generic placeholder.
+      // This is what lets scanGeneratedOutput suppress the right violations later.
+      const allergenForToken =
+        allergenContext && allergenContext.length > 0
+          ? allergenContext[0]
+          : "user-override";
+
       const data = await apiRequest("/api/safety-pin/verify-override", {
         method: "POST",
         body: JSON.stringify({
           pin,
-          allergen: "user-override",
-          mealRequest: "Safety override requested",
+          allergen: allergenForToken,
+          mealRequest:
+            allergenContext && allergenContext.length > 0
+              ? `Safety override requested for: ${allergenContext.join(", ")}`
+              : "Safety override requested",
         }),
       });
 
@@ -96,11 +110,11 @@ export function SafetyGuardToggle({
   return (
     <div className="relative">
       <div className="flex items-center gap-2">
-        {/* Branded Label */}
+        {/* Label */}
         <div className="flex items-center gap-1.5">
           <Shield className="w-3.5 h-3.5 text-green-400" />
           <span className="text-xs text-white/70 font-medium">
-            SafetyGuard <span className="text-white/50">—</span> <span className="text-green-400/80">Allergy Protection</span>
+            <span className="text-green-400/80">Allergy Protection</span>
           </span>
         </div>
         
@@ -109,9 +123,9 @@ export function SafetyGuardToggle({
           disabled={disabled}
           onClick={handleToggleClick}
           active={safetyEnabled}
-          aria-label={safetyEnabled ? "Safety On - Click to disable" : "Safety Off - Click to enable"}
+          aria-label={safetyEnabled ? "Allergy Protection active — click to override with PIN" : "Allergy Protection overridden — click to re-enable"}
         >
-          {safetyEnabled ? "On" : "Off"}
+          {safetyEnabled ? "Override Allergy Protection" : "Protection Overridden"}
         </PillButton>
       </div>
 
@@ -121,7 +135,7 @@ export function SafetyGuardToggle({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-orange-400" />
-                <h3 className="text-lg font-semibold text-white">SafetyGuard Override</h3>
+                <h3 className="text-lg font-semibold text-white">Override Allergy Protection</h3>
               </div>
               <button
                 onClick={() => setShowPinEntry(false)}

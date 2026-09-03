@@ -2,14 +2,23 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
+import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { PillButton } from "@/components/ui/pill-button";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { isFreeTier } from "@/lib/subscriptionCheck";
 import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
-import { Lock } from "lucide-react";
+import { Lock, Wand2, RotateCcw } from "lucide-react";
 import { isFeatureEnabled } from "@/lib/productionGates";
+import MealRefinementSheet from "@/components/MealRefinementSheet";
 import {
   ArrowLeft,
   RefreshCw,
@@ -33,6 +42,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import AlphaGalBadge from "@/components/AlphaGalBadge";
+import ProtocolStatusBadge from "@/components/ProtocolStatusBadge";
 import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { useLogMacros } from "@/hooks/useLogMacros";
@@ -51,11 +62,18 @@ import TranslateToggle from "@/components/TranslateToggle";
 import PhaseGate from "@/components/PhaseGate";
 import { LockedBuilderCard } from "@/components/upgrade/LockedBuilderCard";
 import { useCopilot } from "@/components/copilot/CopilotContext";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useTranslation } from "react-i18next";
+import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
+import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet, filterMealsByDiet } from "@/utils/dietaryFilter";
+import { getEffectiveDietPreference } from "@/utils/getEffectiveDietPreference";
+import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
 import {
   DietGuardIntercept,
   DietAdaptedNotice,
@@ -64,10 +82,15 @@ import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
+import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -107,6 +130,7 @@ interface MealData {
   cookingTime: string;
   difficulty: "Easy" | "Medium";
   imageUrl?: string;
+  dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
   medicalBadges: Array<{
     id: string;
     label: string;
@@ -125,7 +149,10 @@ interface MealData {
 
 const FridgeRescuePage = () => {
   const [, setLocation] = useLocation();
+  const isDesktop = useIsDesktop();
+  usePageTitle("Fridge Rescue");
   const { toast } = useToast();
+  const { t } = useTranslation("fridgeRescue");
   const { runAction, open, startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("fridge-rescue");
   // Get actual user ID from auth context for medical safety
@@ -177,7 +204,11 @@ const FridgeRescuePage = () => {
   }
   const [ingredients, setIngredients] = useState("");
   const [meals, setMeals] = useState<MealData[]>([]);
+  const [refineIndex, setRefineIndex] = useState<number | null>(null);
+  const [preRefinedMealsByIndex, setPreRefinedMealsByIndex] = useState<Record<number, MealData>>({});
+  const { loadingImages, hydrateImages } = useMealImages(setMeals, { mealType: "dinner" });
   const [isLoading, setIsLoading] = useState(false);
+  const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
   const [servings, setServings] = useState(2);
   const [quotaInfo, setQuotaInfo] = useState<{ remaining: number; limit: number; used: number; resetAt: string } | null>(null);
   const [dailyLimitHit, setDailyLimitHit] = useState(false);
@@ -190,6 +221,8 @@ const FridgeRescuePage = () => {
 
   // Flavor preference toggle - Personal = use user's palate, Neutral = for others
   const [flavorPersonal, setFlavorPersonal] = useState(true);
+  const [keepItSimple, setKeepItSimple] = useState(false);
+  const [cookMethod, setCookMethod] = useState("");
 
   // 🔐 SafetyGuard preflight system
   const {
@@ -245,6 +278,7 @@ const FridgeRescuePage = () => {
   // 🔋 Progress bar state (real-time ticker like Restaurant Guide)
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
+  const continueAnywayRef = useRef(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -256,6 +290,18 @@ const FridgeRescuePage = () => {
     activeDiet,
   } = useDietGuardPrecheck();
   const [dietAdaptedNotice, setDietAdaptedNotice] = useState<string | null>(null);
+  const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
+  const [dietOverrideValue, setDietOverrideValue] = useState("");
+  const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
+  const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
+  const [pendingFridgeMeal, setPendingFridgeMeal] = useState<any>(null);
+  const {
+    alert: starchAlert,
+    checkStarch,
+    clearAlert: clearStarchAlert,
+  } = useStarchGuardPrecheck();
+  const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>({});
+  const [activeSteps, setActiveSteps] = useState<Record<string, number | null>>({});
   const [expandedInstructions, setExpandedInstructions] = useState<string[]>(
     [],
   );
@@ -289,9 +335,7 @@ const FridgeRescuePage = () => {
 
   // Save state to localStorage
   function saveFridgeRescueCache(state: CachedFridgeRescueState) {
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-    } catch {}
+    safeLocalStorageSet(CACHE_KEY, state);
   }
 
   // Load state from localStorage
@@ -321,9 +365,20 @@ const FridgeRescuePage = () => {
   useEffect(() => {
     const cached = loadFridgeRescueCache();
     if (cached?.generatedMeals?.length) {
-      setMeals(cached.generatedMeals);
+      // Enrich from mini-cache before setting state — fills imageUrls that were
+      // fetched in a prior mount but not saved due to early navigation
+      const enrichedMeals = cached.generatedMeals.map((m: any) => ({
+        ...m,
+        imageUrl: m.imageUrl || lookupHydratedImageUrl(m.id) || undefined,
+      }));
+      setMeals(enrichedMeals);
       setIngredients(cached.ingredients || "");
       setShowResults(true);
+      // Re-fetch only meals still missing imageUrl after mini-cache lookup
+      const needImages = enrichedMeals.filter((m: any) => !m.imageUrl);
+      if (needImages.length > 0) {
+        hydrateImages(needImages);
+      }
     }
 
     // Dispatch "opened" event (500ms setTimeout)
@@ -369,7 +424,9 @@ const FridgeRescuePage = () => {
     setProgress(100); // Complete progress
   };
 
-  const handleGenerateMeals = async (skipPreflight = false) => {
+  const handleGenerateMeals = async (skipPreflight = false, dietAdaptOverride = false) => {
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
     setDietAdaptedNotice(null);
     // Dispatch "interacted" event
     const interactedEvent = new CustomEvent("walkthrough:event", {
@@ -391,8 +448,8 @@ const FridgeRescuePage = () => {
       }
     }
 
-    // 🥗 Diet Guard precheck — advisory, fires at generate time
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
+    // 🥗 Diet Guard precheck — skip entirely when user has explicitly overridden diet
+    if (!dietOverrideEnabled && !skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
       const dietOk = checkDiet(ingredients);
       if (!dietOk) {
         return; // DietGuardIntercept will show inline
@@ -415,10 +472,15 @@ const FridgeRescuePage = () => {
             .map((i) => i.trim())
             .filter((i) => i),
           servings,
-          dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+          dietaryRestrictions: getEffectiveDietPreference(user?.dietaryRestrictions, dietOverrideValue, dietOverrideEnabled),
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           skipPalate: !flavorPersonal,
+          strictMode: keepItSimple,
+          dietAdaptOverride,
+          userDietOverride,
+          cookMethod: cookMethod || undefined,
+          ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
         }),
       });
 
@@ -471,11 +533,14 @@ const FridgeRescuePage = () => {
 
       // 🥗 Scenario A: server already flagged diet adaptation — accept all meals, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      const effectiveDiet = normalizeDiet(
+        getEffectiveDietPreference(user?.dietaryRestrictions, dietOverrideValue, dietOverrideEnabled)
+      );
       if (data.dietAdapted) {
-        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${effectiveDiet} diet.`);
         clearDietAlert();
-      } else if (!skipPreflight && activeDiet) {
-        // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
+      } else if (!dietOverrideEnabled && !skipPreflight && activeDiet) {
+        // 🥗 Scenario B fallback — only fires on initial generate when using onboarding diet
         const compliantMeals = filterMealsByDiet(userDiet, mealsArray, (m) => m);
         if (compliantMeals.length === 0) {
           stopProgressTicker();
@@ -489,6 +554,7 @@ const FridgeRescuePage = () => {
       console.log("✅ Setting meals:", mealsArray.length);
       stopProgressTicker();
       setMeals(mealsArray);
+      hydrateImages(mealsArray);
       setShowResults(true);
 
       if (data.quota) {
@@ -518,12 +584,16 @@ const FridgeRescuePage = () => {
           title: "⚠️ ALLERGY ALERT",
           description: formatAllergyAlertDescription(errorMsg),
           variant: "warning",
+          duration: 10000,
         });
       } else {
-        toast({
-          title: "Generation Failed",
-          description: "Failed to generate meals. Please try again.",
-          variant: "destructive",
+        setGenerationFailure({
+          show: true,
+          message: "Something went wrong generating your meal ideas. Please try again.",
+          suggestedActions: [
+            "Try Again — we'll scan your ingredients fresh",
+            "Check your ingredient list for any unusual items",
+          ],
         });
       }
     } finally {
@@ -618,7 +688,16 @@ const FridgeRescuePage = () => {
     if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
     if (!data?.meals?.length) throw new Error("No meals returned");
 
-    await addMealToPlan(data.meals[0]); // send to weekly slot
+    const generatedMeal = data.meals[0];
+    const ingredientTexts = (generatedMeal.ingredients || []).map((ing: any) =>
+      typeof ing === "string" ? ing : ing?.name || ""
+    ).filter(Boolean);
+    const starchOk = checkStarch(ingredientTexts.length ? ingredientTexts : [generatedMeal.name || ""]);
+    if (starchOk) {
+      await addMealToPlan(generatedMeal);
+    } else {
+      setPendingFridgeMeal(generatedMeal);
+    }
   }
 
   // Local list replace (for non-replace mode)
@@ -662,16 +741,14 @@ const FridgeRescuePage = () => {
       }
 
       if (data?.meals?.length > 0) {
-        const next = { ...data.meals[0] };
-        if (!next.imageUrl) {
-          next.imageUrl = "/assets/meals/default-dinner.jpg"; // fallback image
-        }
+        const next = { ...data.meals[0], id: mealId };
         setMeals((prev) =>
-          prev.map((meal) =>
-            meal.id === mealId ? { ...next, id: mealId } : meal,
-          ),
+          prev.map((meal) => (meal.id === mealId ? next : meal)),
         );
         console.log("✅ Meal replaced locally:", next.name);
+        if (!next.imageUrl) {
+          hydrateImages([next]);
+        }
       }
     } catch (error) {
       console.error("Replace meal error:", error);
@@ -687,7 +764,12 @@ const FridgeRescuePage = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+        className="min-h-screen pb-safe-nav"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.50), rgba(0,0,0,0.44)), url('/images/fridge-rescue-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 20%",
+        }}
       >
         {/* Universal Safe-Area Header */}
         <MobileHeaderGuard>
@@ -695,20 +777,23 @@ const FridgeRescuePage = () => {
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="px-8 py-3 flex items-center gap-3 flex-nowrap">
+          <div className="px-4 py-3 flex items-center gap-3 flex-nowrap">
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
             {/* Title */}
             <h1
               data-wt="fridge-rescue-header"
               className="text-lg font-bold text-white truncate min-w-0"
             >
-              Fridge Rescue
+              {t("title")}
             </h1>
 
             <div className="flex-grow" />
-            <QuickTourButton
-              onClick={quickTour.openTour}
-              className="flex-shrink-0"
-            />
           </div>
         </div>
         </MobileHeaderGuard>
@@ -718,6 +803,24 @@ const FridgeRescuePage = () => {
           className="max-w-4xl mx-auto px-6"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {isDesktop && (
+            <button
+              onClick={() => setLocation("/lifestyle")}
+              className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Lifestyle Hub</span>
+            </button>
+          )}
+          {/* Hub Intro — matches Pairings Hub pattern */}
+          <div className="text-center mb-4 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-2">Cook What You Have</h2>
+            <p className="text-sm text-white/70">Turn the ingredients already in your kitchen into perfectly matched meals.</p>
+          </div>
+
+          {/* Server-resolved protocol indicator — shows when GLP-1 or Performance overlay is active */}
+          <ProtocolStatusBadge className="mb-4" />
+
           {/* Create with Chef Entry Point — Studio hidden */}
           <div className="relative mb-4 max-w-2xl mx-auto hidden">
             <div
@@ -743,7 +846,7 @@ const FridgeRescuePage = () => {
                   <div className="flex items-center gap-2">
                     <Refrigerator className="h-4 w-4 flex-shrink-0 text-orange-500" />
                     <h3 className="text-sm font-semibold text-white">
-                      Chef's Fridge Rescue Studio
+                      {t("studioTitle")}
                     </h3>
                   </div>
                   <p className="text-xs text-white/80 ml-6">
@@ -781,8 +884,12 @@ const FridgeRescuePage = () => {
 
           <div className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="space-y-2">
-              <div className="mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">Quick Create</h2>
+                <HowThisWorksLink
+                  videoUrl="https://youtube.com/shorts/hctXRUOuCW4?feature=share"
+                  label="How It Works"
+                />
               </div>
 
               <div className="space-y-4">
@@ -820,23 +927,20 @@ const FridgeRescuePage = () => {
                   </p>
                 </div>
 
-                {/* Progress Bar */}
-                {isLoading && (
-                  <div className="w-full mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">
-                        AI Analysis Progress
-                      </span>
-                      <span className="text-sm text-white/80">
-                        {Math.round(progress)}%
-                      </span>
-                    </div>
-                    <Progress
-                      value={progress}
-                      className="h-3 bg-black/30 border border-white/20"
-                    />
-                  </div>
-                )}
+                <DietCuisineControlRow
+                  savedCuisine={user?.cuisinePreference}
+                  dietOverrideEnabled={dietOverrideEnabled}
+                  dietOverrideValue={dietOverrideValue}
+                  onDietToggle={(enabled) => {
+                    setDietOverrideEnabled(enabled);
+                    if (!enabled) clearDietAlert();
+                  }}
+                  onDietChange={setDietOverrideValue}
+                  cuisineOverrideEnabled={cuisineOverrideEnabled}
+                  cuisineOverrideValue={cuisineOverrideValue}
+                  onCuisineToggle={setCuisineOverrideEnabled}
+                  onCuisineChange={setCuisineOverrideValue}
+                />
 
                 {/* SafetyGuard Preflight Banner - Black/Yellow Alert */}
                 <SafetyGuardBanner
@@ -858,11 +962,43 @@ const FridgeRescuePage = () => {
                       setShowResults(false);
                     } else if (decision === "let_chef_adapt") {
                       setDietDecision("let_chef_adapt");
+                      clearDietAlert();
+                      handleGenerateMeals(true, true);
+                    } else if (decision === "continue_anyway") {
+                      continueAnywayRef.current = true;
+                      clearDietAlert();
                       handleGenerateMeals(true);
                     }
                   }}
                   className="mt-3"
                 />
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "Stovetop", emoji: "🍳" },
+                      { label: "Oven", emoji: "🔥" },
+                      { label: "Air Fryer", emoji: "💨" },
+                      { label: "Grill", emoji: "🥩" },
+                      { label: "Slow Cooker", emoji: "🫕" },
+                      { label: "No-Cook", emoji: "🥗" },
+                    ].map(({ label, emoji }) => (
+                      <div key={label} className="flex flex-col items-center gap-1">
+                        <PillButton
+                          active={cookMethod === label}
+                          variant="amber"
+                          onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                        >
+                          {emoji}
+                        </PillButton>
+                        <span className="text-[10px] text-white leading-tight text-center">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Meal Safety Section */}
                 <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
@@ -891,6 +1027,23 @@ const FridgeRescuePage = () => {
                     {flavorPersonal
                       ? "Using your palate preferences"
                       : "Neutral seasoning for others"}
+                  </p>
+                </div>
+
+                {/* Keep It Simple Section */}
+                <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                  <span className="text-xs text-white/60 block mb-2">
+                    Ingredient Control
+                  </span>
+                  <KeepItSimpleToggle
+                    keepItSimple={keepItSimple}
+                    onToggle={setKeepItSimple}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-white/40 mt-1">
+                    {keepItSimple
+                      ? "AI will use only what you listed — nothing added"
+                      : "AI may add complementary ingredients"}
                   </p>
                 </div>
 
@@ -923,36 +1076,69 @@ const FridgeRescuePage = () => {
                   </p>
                 </div>
 
-                <button
-                  onClick={() => handleGenerateMeals()}
-                  disabled={isLoading || safetyChecking}
-                  data-testid="fridge-generate"
-                  className="w-full bg-lime-600 backdrop-blur-lg border border-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
-                >
-                  <div className="flex items-center gap-2">
-                    Generate 3 Meals
+                {isLoading || safetyChecking ? (
+                  <div className="flex justify-center">
+                    <ThinkingDots label={safetyChecking ? "Checking safety…" : "Rescuing your meal…"} />
                   </div>
-                </button>
+                ) : (
+                  <button
+                    onClick={() => handleGenerateMeals()}
+                    data-testid="fridge-generate"
+                    className="w-full bg-lime-600 backdrop-blur-lg border border-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      {t("generateBtn")}
+                    </div>
+                  </button>
+                )}
+
+                {generationFailure.show && (
+                  <GenerationFailureBanner
+                    message={generationFailure.message}
+                    suggestedActions={generationFailure.suggestedActions}
+                    onRetry={() => handleGenerateMeals()}
+                    onDismiss={() => setGenerationFailure(HIDDEN_FAILURE)}
+                    isRetrying={isLoading}
+                  />
+                )}
               </div>
             </div>
           </div>
+
+          {starchAlert.show && pendingFridgeMeal && (
+            <div className="bg-black/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-6xl mx-auto mt-8">
+              <StarchGuardIntercept
+                alert={starchAlert}
+                onDecision={async (decision) => {
+                  if (decision === "continue_anyway") {
+                    await addMealToPlan(pendingFridgeMeal);
+                  }
+                  clearStarchAlert();
+                  setPendingFridgeMeal(null);
+                }}
+                showContinueAnyway
+                continueAnywayLabel="Add It Anyway"
+                chooseAnotherLabel="Try Different Ingredients"
+              />
+            </div>
+          )}
 
           {showResults && meals.length > 0 && (
             <div
               ref={resultsRef}
               data-testid="fridge-results"
-              className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-6xl mx-auto mt-8"
+              className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-6xl mx-auto mt-8"
             >
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xl font-bold text-white">
-                  🍽️ Your Fridge Rescue Meals
+                  🍽️ {t("resultsTitle")}
                 </h2>
                 <button
                   onClick={handleNewSearch}
                   className="text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-colors"
                   data-testid="button-create-new"
                 >
-                  Create New
+                  {t("createNew")}
                 </button>
               </div>
 
@@ -973,17 +1159,27 @@ const FridgeRescuePage = () => {
                     className="overflow-hidden bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl flex flex-col h-full"
                   >
                     <div className="relative">
-                      <img
-                        src={
-                          meal.imageUrl ||
-                          `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`
-                        }
-                        alt={meal.name}
-                        className="w-full h-48 object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
-                        }}
-                      />
+                      {(meal.imageUrl || loadingImages[meal.id]) ? (
+                        <MealImageSlot
+                          imageUrl={meal.imageUrl}
+                          mealName={meal.name}
+                          ingredients={meal.ingredients}
+                          isLoading={!!loadingImages[meal.id]}
+                          height="h-48"
+                        />
+                      ) : (
+                        <div className="h-48 mb-0 flex flex-col items-center justify-center gap-2 bg-black/40 border-b border-orange-400/30 text-center px-4">
+                          <p className="text-white/70 text-xs mb-2">
+                            Saved in an older session — regenerate to get the image.
+                          </p>
+                          <button
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            className="px-3 py-1.5 rounded-full bg-orange-600 text-white text-xs font-medium"
+                          >
+                            Scroll up to regenerate
+                          </button>
+                        </div>
+                      )}
                       <div className="absolute top-3 left-3">
                         <Badge
                           variant={
@@ -1014,7 +1210,48 @@ const FridgeRescuePage = () => {
                           mealData={meal}
                         />
                       </div>
-                      <CardDescription className="text-sm text-white/80">
+                      {/* Refine Meal button */}
+                      <button
+                        onClick={() => setRefineIndex(index)}
+                        className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-violet-950/30 py-2.5 text-sm font-semibold text-violet-300 active:bg-violet-900/40 transition-colors"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        Refine Meal
+                      </button>
+                      {/* Undo refinement banner */}
+                      {preRefinedMealsByIndex[index] && (
+                        <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-violet-950/40 border border-violet-500/30 px-3 py-2 text-xs">
+                          <span className="flex items-center gap-1.5 text-violet-300">
+                            <Wand2 className="h-3 w-3 shrink-0" />
+                            Showing refined version
+                          </span>
+                          <button
+                            className="flex items-center gap-1 text-violet-400 font-medium active:opacity-70"
+                            onClick={() => {
+                              const orig = preRefinedMealsByIndex[index];
+                              setMeals((prev) =>
+                                prev.map((m, i) => (i === index ? orig : m))
+                              );
+                              setPreRefinedMealsByIndex((prev) => {
+                                const next = { ...prev };
+                                delete next[index];
+                                return next;
+                              });
+                            }}
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Restore original
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <DietStyleBadge />
+                        <MealClassificationPill dietClassification={meal.dietClassification} />
+                        <KosherProTip
+                          dietClassification={meal.dietClassification}
+                        />
+                      </div>
+                      <CardDescription className="text-sm text-white/80 mt-2">
                         {meal.description}
                       </CardDescription>
                     </CardHeader>
@@ -1035,27 +1272,22 @@ const FridgeRescuePage = () => {
                           <div className="text-xs text-white/70">Protein</div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-                          {typeof meal.starchyCarbs === "number" &&
-                          typeof meal.fibrousCarbs === "number" ? (
-                            <div className="flex flex-col leading-tight">
-                              <div className="text-sm font-bold text-orange-400">
-                                {meal.starchyCarbs + meal.fibrousCarbs}g
+                          <div className="text-sm font-bold text-orange-400">{meal.carbs}g</div>
+                          <div className="text-xs text-white/70">Carbs</div>
+                          {(() => {
+                            const totalCarbs = meal.carbs || 0;
+                            const { starchyCarbs, fibrousCarbs } = (typeof meal.starchyCarbs === "number" && typeof meal.fibrousCarbs === "number")
+                              ? { starchyCarbs: meal.starchyCarbs, fibrousCarbs: meal.fibrousCarbs }
+                              : deriveSplitCarbs(meal.ingredients ?? [], totalCarbs);
+                            if (!totalCarbs && !starchyCarbs && !fibrousCarbs) return null;
+                            return (
+                              <div className="text-xs text-white/80 mt-1 font-medium">
+                                <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
+                                {" / "}
+                                <span className="text-green-300">{Math.round(fibrousCarbs)}F</span>
                               </div>
-                              <div className="text-[10px] text-white/70">
-                                Starch: {meal.starchyCarbs}g
-                              </div>
-                              <div className="text-[10px] text-white/70">
-                                Fibrous: {meal.fibrousCarbs}g
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="text-sm font-bold text-orange-400">
-                                {meal.carbs}g
-                              </div>
-                              <div className="text-xs text-white/70">Carbs</div>
-                            </>
-                          )}
+                            );
+                          })()}
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
                           <div className="text-sm font-bold text-purple-400">
@@ -1066,19 +1298,34 @@ const FridgeRescuePage = () => {
                       </div>
 
                       {/* Medical Badges */}
-                      <div className="flex items-center gap-2">
-                        <HealthBadgesPopover
-                          badges={
-                            meal.medicalBadges?.map((b: any) =>
-                              typeof b === "string"
-                                ? b
-                                : b.badge || b.id || b.condition || b.label,
-                            ) || []
-                          }
-                        />
-                        <h3 className="font-semibold text-white text-sm">
-                          Medical Safety
-                        </h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <HealthBadgesPopover
+                              badges={
+                                meal.medicalBadges?.map((b: any) =>
+                                  typeof b === "string"
+                                    ? b
+                                    : b.badge || b.id || b.condition || b.label,
+                                ) || []
+                              }
+                            />
+                            <h3 className="font-semibold text-white text-sm">
+                              Medical Safety
+                            </h3>
+                          </div>
+                          <TrashButton
+                            size="sm"
+                            ariaLabel="Remove meal"
+                            title="Remove meal"
+                            confirm={true}
+                            confirmMessage="Remove this meal?"
+                            onClick={() => setMeals(prev => prev.filter((_, i) => i !== index))}
+                          />
+                        </div>
+                        {(meal as any).alphaGalBadge && (
+                          <AlphaGalBadge badge={(meal as any).alphaGalBadge} />
+                        )}
                       </div>
 
                       {/* Ingredients */}
@@ -1228,41 +1475,34 @@ const FridgeRescuePage = () => {
                         </ul>
                       </div>
 
-                      {/* Cooking Instructions */}
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-semibold text-white">
-                          Instructions:
-                        </h4>
-                        <div className="text-xs text-white/80">
-                          {meal.instructions.length > 120 ? (
-                            <div>
-                              <p className="mb-2">
-                                {expandedInstructions.includes(meal.id)
-                                  ? meal.instructions
-                                  : `${meal.instructions.substring(0, 120)}...`}
-                              </p>
-                              <button
-                                onClick={() => toggleInstructions(meal.id)}
-                                className="flex items-center gap-1 text-green-400 hover:text-green-300 text-xs font-medium"
-                              >
-                                {expandedInstructions.includes(meal.id) ? (
-                                  <>
-                                    <ChevronUp className="h-3 w-3" />
-                                    Show Less
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronDown className="h-3 w-3" />
-                                    Show Full Instructions
-                                  </>
-                                )}
-                              </button>
+                      {/* Cooking Instructions - step-by-step */}
+                      {(() => {
+                        const steps = normalizeInstructions(meal.instructions);
+                        if (steps.length === 0) return null;
+                        const expanded = !!stepsExpanded[meal.id];
+                        const visibleSteps = expanded ? steps : steps.slice(0, 3);
+                        return (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-white">Instructions:</h4>
+                            <div className="space-y-2">
+                              {visibleSteps.map((step, index) => (
+                                <div key={index}
+                                  className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${activeSteps[meal.id] === index ? "bg-orange-500/20 border border-orange-500/40" : "hover:bg-white/5"}`}
+                                  onClick={() => setActiveSteps((prev) => ({ ...prev, [meal.id]: prev[meal.id] === index ? null : index }))}>
+                                  <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{index + 1}</div>
+                                  <p className="text-sm leading-relaxed text-white/80">{step}</p>
+                                </div>
+                              ))}
                             </div>
-                          ) : (
-                            <p>{meal.instructions}</p>
-                          )}
-                        </div>
-                      </div>
+                            {steps.length > 3 && (
+                              <button className="mt-1 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                                onClick={() => { setStepsExpanded((prev) => ({ ...prev, [meal.id]: !expanded })); if (expanded) setActiveSteps((prev) => ({ ...prev, [meal.id]: null })); }}>
+                                {expanded ? "Show less" : `Show all ${steps.length} steps`}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Standardized 3-Row Button Layout */}
                       <div className="mt-auto pt-4 space-y-2">
@@ -1303,9 +1543,9 @@ const FridgeRescuePage = () => {
                                           "string"
                                             ? translated.instructions
                                             : m.instructions,
-                                        ingredients:
-                                          (translated.ingredients as StructuredIngredient[]) ||
-                                          m.ingredients,
+                                        ingredients: translated.ingredients
+                                          ? (translated.ingredients as StructuredIngredient[]).map((ing: any) => ({ ...ing, displayText: undefined }))
+                                          : m.ingredients,
                                       }
                                     : m,
                                 ),
@@ -1318,31 +1558,37 @@ const FridgeRescuePage = () => {
                         <div className="grid grid-cols-2 gap-2">
                           <Button
                             size="sm"
-                            className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                             onClick={() => {
                               guardAction("Enter Studio is a premium feature. Upgrade to cook meals step-by-step with our AI chef.", () => {
+                                const safeImageUrl = (() => {
+                                  const url = meal.imageUrl;
+                                  if (!url) return null;
+                                  if (url.startsWith("data:")) return null;
+                                  if (url.includes("oaidalleapiprodscus")) return null;
+                                  return url;
+                                })();
                                 const mealData = {
                                   id: meal.id || crypto.randomUUID(),
                                   name: meal.name,
                                   description: meal.description,
                                   ingredients: meal.ingredients || [],
                                   instructions: meal.instructions,
-                                  imageUrl: meal.imageUrl,
+                                  imageUrl: safeImageUrl,
+                                  cookMethod: cookMethod || undefined,
                                 };
-                                localStorage.setItem(
-                                  "mpm_chefs_kitchen_meal",
-                                  JSON.stringify(mealData),
-                                );
+                                writeChefHandoffMeal(mealData);
                                 localStorage.setItem(
                                   "mpm_chefs_kitchen_external_prepare",
                                   "true",
                                 );
+                                localStorage.setItem("mpm_chefs_kitchen_origin", window.location.pathname);
                                 setLocation("/lifestyle/chefs-kitchen");
                               });
                             }}
                           >
                             {isFree && <Lock className="h-3 w-3" />}
-                            Enter Studio
+                            Guided Cooking
                           </Button>
                           <ShareRecipeButton
                             recipe={{
@@ -1354,12 +1600,13 @@ const FridgeRescuePage = () => {
                                 carbs: meal.carbs,
                                 fat: meal.fat,
                               },
+                              instructions: meal.instructions,
                               ingredients: (meal.ingredients ?? []).map(
                                 (ing: any) => ({
                                   name:
                                     typeof ing === "string" ? ing : ing.name,
                                   amount:
-                                    typeof ing === "string" ? "" : ing.quantity,
+                                    typeof ing === "string" ? "" : String(ing.quantity ?? ing.amount ?? ""),
                                   unit: typeof ing === "string" ? "" : ing.unit,
                                 }),
                               ),
@@ -1470,6 +1717,29 @@ const FridgeRescuePage = () => {
           message={lockMessage}
         />
       </motion.div>
+
+      {/* Meal refinement sheet */}
+      <MealRefinementSheet
+        open={refineIndex !== null}
+        onOpenChange={(v) => { if (!v) setRefineIndex(null); }}
+        meal={refineIndex !== null ? (meals[refineIndex] ?? null) : null}
+        builderType="fridge-rescue"
+        onRefined={(refined) => {
+          if (refineIndex === null) return;
+          const idx = refineIndex;
+          setPreRefinedMealsByIndex((prev) => ({
+            ...prev,
+            // Preserve the FIRST original only — never overwrite with an intermediate version
+            [idx]: prev[idx] ?? meals[idx],
+          }));
+          setMeals((prev) =>
+            prev.map((m, i) =>
+              i === idx ? { ...m, ...refined, name: refined.name ?? m.name } : m
+            )
+          );
+          setRefineIndex(null);
+        }}
+      />
     </PhaseGate>
   );
 };

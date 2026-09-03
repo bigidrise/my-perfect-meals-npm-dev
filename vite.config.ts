@@ -19,6 +19,7 @@ try {
 export default defineConfig({
   plugins: [react()],
   resolve: { 
+    dedupe: ['react', 'react-dom'],
     alias: { 
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared")

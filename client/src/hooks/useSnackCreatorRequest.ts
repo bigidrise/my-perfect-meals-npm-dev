@@ -1,9 +1,14 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import type { DietClassification } from "@/types/meal";
 
 export type DietType = 
   | 'anti-inflammatory'
   | 'liver-support'
+  | 'liver-disease'
+  | 'kidney-disease'
+  | 'heart-failure'
+  | 'oncology-support'
   | 'diabetic'
   | 'glp1'
   | 'beachbody'
@@ -37,13 +42,19 @@ interface Snack {
     fibrousCarbs?: number;
   };
   medicalBadges?: string[];
+  dietClassification?: DietClassification | null;
+}
+
+export interface ExplicitOverride {
+  item: string;
+  confirmed: boolean;
 }
 
 interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean) => Promise<Snack | null>;
   cancel: () => void;
 }
 
@@ -69,20 +80,25 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     setProgress(100);
   };
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
     stopProgressTicker();
     setGenerating(false);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const generateSnack = async (
     description: string,
     dietType?: DietType,
     dietPhase?: BeachBodyPhase,
-    overrideToken?: string
+    overrideToken?: string,
+    forceStarch?: boolean,
+    strictMode?: boolean,
+    explicitOverride?: ExplicitOverride,
+    userDietOverride?: boolean
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -100,10 +116,14 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           input: description,
           userId,
           count: 1,
-          dietType: dietType || null, // Pass diet type for guardrails
-          dietPhase: dietPhase || null, // Pass phase for BeachBody
-          overrideToken: overrideToken || null, // SafetyGuard override token
-          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT", // Required for override token to work
+          dietType: dietType || null,
+          dietPhase: dietPhase || null,
+          overrideToken: overrideToken || null,
+          safetyMode: overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
+          forceStarch: forceStarch || false,
+          strictMode: strictMode === true,
+          explicitOverride: explicitOverride || null,
+          userDietOverride: userDietOverride === true,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -147,6 +167,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           fibrousCarbs: generatedSnack.fibrousCarbs || 0,
         },
         medicalBadges: generatedSnack.medicalBadges || [],
+        dietClassification: generatedSnack.dietClassification || null,
       };
 
       stopProgressTicker();

@@ -1,12 +1,36 @@
 // File: server/services/universalMealGenerator.ts
 
 import OpenAI from "openai";
+import { generateMealImageUnified } from "./mealImageGenerator";
 import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
-import { BASELINE_MACROS } from "./guardrails/baselineMacros";
-import { buildDietPromptBlock, violatesDietaryConstraints } from "./allergyGuardrails";
+import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
+import { buildDietPromptBlock, violatesDietaryConstraints, AVOIDANCE_EXPANSION } from "./allergyGuardrails";
+import {
+  appendWholeFoodStandardPrompt,
+  evaluateWholeFoodCandidate,
+} from "./wholeFoodStandard";
+
+/** Expand user avoidance categories into concrete ingredient lists for prompt injection. */
+function buildAvoidancePromptBlock(avoidIngredients: string[] | undefined): string {
+  if (!avoidIngredients?.length) return "";
+  const expanded = new Set<string>();
+  for (const item of avoidIngredients) {
+    const key = item.trim().toLowerCase();
+    expanded.add(key);
+    const mapped = AVOIDANCE_EXPANSION[key];
+    if (mapped) mapped.forEach(t => expanded.add(t));
+  }
+  const list = Array.from(expanded).join(", ");
+  return `
+⛔ FOODS TO AVOID — ABSOLUTE RULE (overrides everything, including the user's craving name):
+The user has explicitly marked these foods/ingredients as things they do not eat: ${list}
+- You MUST NOT include any of these in the meal — not as a main ingredient, not as a seasoning, not as a garnish.
+- If the user's craving request names an avoided ingredient (e.g. "BLT sandwich" when pork is avoided), substitute with a compliant alternative (e.g. turkey bacon) and keep the spirit of the dish.
+- There are NO exceptions to this rule.`;
+}
 
 let openai: OpenAI | null = null;
 
@@ -55,34 +79,63 @@ export type FinalMeal = {
   imageUrl?: string | null;
   createdAt?: Date;
   _debug?: DebugMetadata | null;
+  /** Phase 2: Behavioral memory audit trail — profile hash, evidence count, categories */
+  _behavioralAudit?: {
+    profileHash: string;
+    evidenceCount: number;
+    categories: string[];
+    derivedAt: string;
+  } | null;
 };
 
-// Generate DALL-E image
+/**
+ * @deprecated Raw DALL-E call — use generateMealImageUnified from mealImageGenerator instead.
+ * Kept to avoid breaking any callers outside this file; call site inside
+ * generateMealFromPrompt has been redirected to the canonical pipeline.
+ */
 async function generateImageFromDalle(prompt: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+    console.warn("⏱️ [DALL-E] Image generation timed out after 30s — aborting");
+  }, 30_000);
+
   try {
-    const response = await getOpenAI().images.generate({
-      model: "dall-e-3",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-    });
+    const response = await getOpenAI().images.generate(
+      {
+        model: "gpt-image-1",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "low",
+      },
+      { signal: controller.signal },
+    );
+    clearTimeout(timeoutId);
     return response.data?.[0]?.url || null;
-  } catch (error) {
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error?.name === "AbortError" || controller.signal.aborted) {
+      console.warn("⏱️ [DALL-E] Request aborted due to 30s timeout");
+      return null;
+    }
     console.error("DALL-E image generation error:", error);
     return null;
   }
 }
 
+const _isDev = process.env.NODE_ENV !== "production";
+
 // 🔁 Universal AI Meal Generator for any craving
-export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq>): Promise<FinalMeal> {
-  console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
+export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq> & { skipImage?: boolean }): Promise<FinalMeal> {
+  if (_isDev) console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
   
   const sessionId = telemetry.createSession("universalMealGenerator");
 
   // Build dietary constraint block (empty string if no diet restriction)
   const dietaryRestrictions = userPrefs?.dietaryRestrictions || [];
   const dietPromptBlock = buildDietPromptBlock(dietaryRestrictions);
+  const avoidanceBlock = buildAvoidancePromptBlock(userPrefs?.avoidIngredients);
 
   let gptResponse;
   try {
@@ -92,15 +145,10 @@ export async function generateMealFromPrompt(prompt: string, mealType: MealType,
       messages: [
         {
           role: "system",
-          content: `You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds).
+          content: appendWholeFoodStandardPrompt(`You are a certified meal planning nutritionist. Create healthy, realistic meals using US standard measurements (oz, cups, tbsp, tsp, pounds).
 ${dietPromptBlock ? `\n${dietPromptBlock}\n` : ""}
-BASELINE MACRO REQUIREMENTS (MANDATORY):
-Every meal must meet these minimum targets:
-- Protein: ${BASELINE_MACROS.protein}g (lean meats, fish, eggs, legumes, dairy)
-- Starchy Carbs: ${BASELINE_MACROS.starchyCarbs}g (rice, potatoes, quinoa, bread, oats, pasta)
-- Fibrous Carbs: ${BASELINE_MACROS.fibrousCarbs}g (vegetables, leafy greens, broccoli, peppers, tomatoes)
-
-These are baseline minimums for balanced, nutritious meals. If the user requests MORE, honor that request.
+${avoidanceBlock}
+${getBaselineMacroPrompt({ builderType: "general", dietType: dietaryRestrictions[0] ?? "general", mealType: mealType })}
 
 Format your response as:
 
@@ -122,7 +170,7 @@ Nutrition:
 Calories: 450
 Protein: 35g
 Carbs: 40g
-Fat: 12g`
+Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
         },
         {
           role: "user",
@@ -260,12 +308,16 @@ Fat: 12g`
     telemetry.tagFallback(sessionId, "instruction_fallback", "No instructions parsed from AI response");
   }
 
-  // Generate DALL-E image
-  const imagePrompt = `${name}, healthy ${mealType}, professional food photography, overhead view, clean plate presentation`;
-  const imageUrl = await generateImageFromDalle(imagePrompt);
-  
-  if (!imageUrl) {
-    telemetry.tagFallback(sessionId, "image_generation_failed", "DALL-E returned null");
+  // Generate image via canonical pipeline — skip if caller handles images separately
+  let imageUrl: string | null = null;
+  if (!userPrefs?.skipImage) {
+    const ingredientNames = ingredients
+      .map((i: any) => (typeof i === "string" ? i : i?.name || ""))
+      .filter(Boolean);
+    imageUrl = await generateMealImageUnified(name, ingredientNames, "meal");
+    if (!imageUrl) {
+      telemetry.tagFallback(sessionId, "image_generation_failed", "generateMealImageUnified returned null");
+    }
   }
   
   // POST-GENERATION DIETARY HARD SCAN
@@ -275,6 +327,21 @@ Fat: 12g`
     if (violates) {
       console.warn(`⚠️ [DIET GUARD] universalMealGenerator produced a meal with dietary violations: ${reasons.join(", ")} — diet: ${dietaryRestrictions.join("|")}`);
     }
+  }
+
+  const wholeFoodDecision = evaluateWholeFoodCandidate(
+    { name, description, ingredients, instructions: finalInstructions },
+    {
+      recommendationSurface: "universal_meal_generator",
+      practicalAlternativeAvailable: true,
+    },
+  );
+  if (wholeFoodDecision.shouldBlock) {
+    console.warn(
+      `[WholeFoodStandard:universal_meal_generator] Rejected "${name}": ${wholeFoodDecision.matchedTerms.join(", ")}`,
+    );
+    telemetry.closeSession(sessionId);
+    throw new Error(`Whole-Food Standard rejected generated meal: ${wholeFoodDecision.reason}`);
   }
 
   // Build debug metadata and close session

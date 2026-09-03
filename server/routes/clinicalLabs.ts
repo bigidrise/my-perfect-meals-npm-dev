@@ -2,18 +2,26 @@ import express from "express";
 import { db } from "../db";
 import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { clinicalProtocolRecommendations } from "../db/schema/clinicalProtocolRecommendations";
-import { studioMemberships } from "../db/schema/studio";
+import { studioMemberships, studios } from "../db/schema/studio";
 import { users } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { z } from "zod";
-import { resolveProtocolFromLabs, labSignalToSubtitle } from "../services/resolveProtocolFromLabs";
+import {
+  resolveProtocolFromLabs,
+  resolveThyroidFromLabs,
+  resolveHormoneFromLabs,
+  resolveDowngradeSignals,
+  labSignalToSubtitle,
+} from "../services/resolveProtocolFromLabs";
+import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
+import { logAudit, getClientIp } from "../lib/auditLog";
 
 const router = express.Router();
 
 /**
- * API CONTRACT — Clinical Labs
+ * API CONTRACT — Clinical Labs (Phase 5)
  *
  * Casing convention (LOCKED — do not deviate):
  *   Client  →  POST body / GET response: snake_case  (e.g. blood_pressure_systolic)
@@ -21,18 +29,28 @@ const router = express.Router();
  *   Database→  column names:            snake_case  (e.g. blood_pressure_systolic)
  *
  * Single-word fields (a1c, ldl, hdl, creatinine, bun, inr, alt, ast,
- * bilirubin, albumin) are identical in all three layers — no mapping needed.
+ * bilirubin, albumin, tsh, crp, glucose, cortisol, triglycerides) are identical
+ * in all three layers — no mapping needed.
  * Multi-word fields require explicit snake→camel mapping in the POST handler
  * and explicit camel→snake mapping in the GET response.
  *
- * Protocol precedence (must match clinicalModeResolver.ts exactly):
- *   liver-disease > kidney-disease > heart-failure > liver-support > base
+ * Protocol precedence (must match resolveProtocolFromLabs exactly):
+ *   liver-disease > kidney-disease > heart-failure > liver-support >
+ *   metabolic-support > inflammation-support > metabolic-stress > null
  *
- * Future fields: follow this convention. Add to labsPayloadSchema,
- * the Drizzle schema, the POST insert, and the GET response shape.
+ * Additive modifier signals (run independently):
+ *   thyroidSignal    — thyroid-support + subtypeConditions (hypothyroid/hyperthyroid/hashimotos)
+ *   hormoneSignal    — hormone-optimization / menopause / perimenopause
+ *
+ * Authorization model:
+ *   A requester may read or write clinical data for targetUserId only if:
+ *   (a) requester IS the target user (self-access), OR
+ *   (b) requester owns a studio that the target user is a member of
  */
+
 const labsPayloadSchema = z.object({
   userId: z.string().optional(),
+  // ── Existing fields ────────────────────────────────────────────────────────
   a1c: z.number().optional().nullable(),
   ldl: z.number().optional().nullable(),
   hdl: z.number().optional().nullable(),
@@ -42,25 +60,59 @@ const labsPayloadSchema = z.object({
   creatinine: z.number().optional().nullable(),
   bun: z.number().optional().nullable(),
   inr: z.number().optional().nullable(),
-  // Liver panel — single-word fields, identical across all three layers (no mapping needed)
   alt:       z.number().optional().nullable(),
   ast:       z.number().optional().nullable(),
   bilirubin: z.number().optional().nullable(),
   albumin:   z.number().optional().nullable(),
+  tsh:                      z.number().optional().nullable(),
+  free_t4:                  z.number().optional().nullable(),
+  free_t3:                  z.number().optional().nullable(),
+  tpo_antibodies:           z.number().optional().nullable(),
+  thyroglobulin_antibodies: z.number().optional().nullable(),
+  // ── Phase 5 — Thyroid subtype ─────────────────────────────────────────────
+  reverse_t3:               z.number().optional().nullable(),  // ng/dL — T4→T3 conversion marker
+  // ── Phase 4 fields ────────────────────────────────────────────────────────
+  // Metabolic / Insulin Resistance
+  fasting_insulin: z.number().optional().nullable(),  // µIU/mL
+  glucose:         z.number().optional().nullable(),  // mg/dL (fasting)
+  triglycerides:   z.number().optional().nullable(),  // mg/dL
+  // Inflammation
+  crp:             z.number().optional().nullable(),  // mg/L — C-Reactive Protein
+  // Hormonal / Stress
+  cortisol:           z.number().optional().nullable(),  // µg/dL
+  total_testosterone: z.number().optional().nullable(),  // ng/dL
+  free_testosterone:  z.number().optional().nullable(),  // pg/mL
+  // Oncology & Recovery
+  prealbumin:      z.number().optional().nullable(),  // mg/dL (transthyretin)
+  // ── Phase 5 — Sex hormones / Menopause panel ──────────────────────────────
+  estradiol:    z.number().optional().nullable(),  // pg/mL — E2, drives menopause/perimenopause
+  progesterone: z.number().optional().nullable(),  // ng/mL — luteal phase marker
+  shbg:         z.number().optional().nullable(),  // nmol/L — sex hormone binding globulin
+  lh:           z.number().optional().nullable(),  // mIU/mL — luteinizing hormone
+  fsh:          z.number().optional().nullable(),  // mIU/mL — follicle-stimulating hormone
+  dhea_s:       z.number().optional().nullable(),  // µg/dL  — DHEA-sulfate, adrenal androgen
+  // ── Metadata ───────────────────────────────────────────────────────────────
   notes: z.string().optional().nullable(),
   recorded_at: z.string().optional(),
   lab_date: z.string().optional().nullable(),
 });
 
-/** Check whether a physician has already explicitly assigned a builder to this user. */
+/**
+ * Check whether a physician has already explicitly assigned a builder to this user.
+ */
 async function getPhysicianLock(userId: string): Promise<boolean> {
   try {
     const rows = await db
       .select({ assignedBuilder: studioMemberships.assignedBuilder })
       .from(studioMemberships)
-      .where(eq(studioMemberships.clientUserId, userId as any))
+      .where(
+        and(
+          eq(studioMemberships.clientUserId, userId as any),
+          eq(studioMemberships.status, "active"),
+          eq(studioMemberships.isArchived, false)
+        )
+      )
       .limit(1);
-
     return rows.length > 0 && !!rows[0].assignedBuilder;
   } catch {
     return false;
@@ -77,6 +129,47 @@ router.post("/", requireAuth, async (req, res) => {
     const body = labsPayloadSchema.parse(req.body);
 
     const targetUserId = body.userId || requesterId;
+
+    const hasAccess = await verifyClinicalAccess(requesterId as string, targetUserId as string);
+    if (!hasAccess) {
+      console.warn(`[clinicalLabs POST] UNAUTHORIZED: requester ${requesterId} attempted to write labs for user ${targetUserId}`);
+      return res.status(403).json({ error: "You are not authorized to submit labs for this user" });
+    }
+
+    // ── Pre-insert: fetch user state + previous labs for downgrade detection ──
+    const [userState, previousLabRows] = await Promise.all([
+      db.select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+        .from(users)
+        .where(eq(users.id, targetUserId as any))
+        .limit(1),
+      db.select()
+        .from(clinicalLabs)
+        .where(eq(clinicalLabs.userId, targetUserId as any))
+        .orderBy(desc(clinicalLabs.recordedAt))
+        .limit(1),
+    ]);
+
+    const currentSpecialtyConditions = (userState[0]?.specialtyConditions as string[]) ?? [];
+
+    // Derive previous protocol by running resolver on prior lab record
+    let previousProtocol: string | null = null;
+    if (previousLabRows.length > 0) {
+      const pr = previousLabRows[0];
+      const prevSignal = resolveProtocolFromLabs({
+        alt: pr.alt, ast: pr.ast, bilirubin: pr.bilirubin, albumin: pr.albumin,
+        creatinine: pr.creatinine, bun: pr.bun,
+        ldl: pr.ldl, hdl: pr.hdl,
+        bloodPressureSystolic: pr.bloodPressureSystolic,
+        ejectionFraction: pr.ejectionFraction,
+        a1c: pr.a1c,
+        glucose: pr.glucose,
+        fastingInsulin: pr.fastingInsulin,
+        triglycerides: pr.triglycerides,
+        crp: pr.crp,
+        cortisol: pr.cortisol,
+      });
+      previousProtocol = prevSignal?.protocol ?? null;
+    }
 
     const inserted = await db
       .insert(clinicalLabs)
@@ -96,6 +189,29 @@ router.post("/", requireAuth, async (req, res) => {
         ast:       body.ast       != null ? String(body.ast)       : null,
         bilirubin: body.bilirubin != null ? String(body.bilirubin) : null,
         albumin:   body.albumin   != null ? String(body.albumin)   : null,
+        tsh:                     body.tsh                      != null ? String(body.tsh)                      : null,
+        freeT4:                  body.free_t4                  != null ? String(body.free_t4)                  : null,
+        freeT3:                  body.free_t3                  != null ? String(body.free_t3)                  : null,
+        tpoAntibodies:           body.tpo_antibodies           != null ? String(body.tpo_antibodies)           : null,
+        thyroglobulinAntibodies: body.thyroglobulin_antibodies != null ? String(body.thyroglobulin_antibodies) : null,
+        // Phase 5 — Thyroid subtype
+        reverseT3:               body.reverse_t3               != null ? String(body.reverse_t3)               : null,
+        // Phase 4 — snake→camel mapping
+        fastingInsulin: body.fasting_insulin != null ? String(body.fasting_insulin) : null,
+        glucose:        body.glucose         != null ? String(body.glucose)         : null,
+        triglycerides:  body.triglycerides   != null ? String(body.triglycerides)   : null,
+        crp:            body.crp             != null ? String(body.crp)             : null,
+        cortisol:           body.cortisol           != null ? String(body.cortisol)           : null,
+        totalTestosterone:  body.total_testosterone  != null ? String(body.total_testosterone)  : null,
+        freeTestosterone:   body.free_testosterone   != null ? String(body.free_testosterone)   : null,
+        prealbumin:         body.prealbumin          != null ? String(body.prealbumin)          : null,
+        // Phase 5 — Sex hormones / Menopause panel
+        estradiol:    body.estradiol    != null ? String(body.estradiol)    : null,
+        progesterone: body.progesterone != null ? String(body.progesterone) : null,
+        shbg:         body.shbg         != null ? String(body.shbg)         : null,
+        lh:           body.lh           != null ? String(body.lh)           : null,
+        fsh:          body.fsh          != null ? String(body.fsh)          : null,
+        dheaS:        body.dhea_s       != null ? String(body.dhea_s)       : null,
         notes: body.notes || null,
         labDate: body.lab_date || new Date().toISOString().split("T")[0],
         recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
@@ -103,6 +219,9 @@ router.post("/", requireAuth, async (req, res) => {
       .returning({ id: clinicalLabs.id });
 
     const labId = inserted[0]?.id ?? null;
+
+    const isSelfAccess = requesterId === targetUserId;
+    logAudit({ actor: requesterId as string, target: isSelfAccess ? undefined : targetUserId as string, action: "WRITE", resourceType: "clinical_labs", table: "clinical_labs", resourceId: String(labId ?? ""), route: req.path, ip: getClientIp(req as any), meta: { selfAccess: isSelfAccess } });
 
     // Run protocol resolver on the just-saved values
     const protocolSignal = resolveProtocolFromLabs({
@@ -113,19 +232,101 @@ router.post("/", requireAuth, async (req, res) => {
       creatinine:            body.creatinine,
       bun:                   body.bun,
       ldl:                   body.ldl,
+      hdl:                   body.hdl,
       bloodPressureSystolic: body.blood_pressure_systolic,
       ejectionFraction:      body.ejection_fraction,
+      a1c:                   body.a1c,
+      glucose:               body.glucose,
+      fastingInsulin:        body.fasting_insulin,
+      triglycerides:         body.triglycerides,
+      crp:                   body.crp,
+      cortisol:              body.cortisol,
     });
 
-    const [physicianLocked] = await Promise.all([
-      getPhysicianLock(targetUserId as string),
-    ]);
+    // Thyroid resolver — additive modifier, separate signal (Phase 5: includes rT3 + subtypes)
+    const thyroidSignalRaw = resolveThyroidFromLabs({
+      tsh:                     body.tsh,
+      freeT4:                  body.free_t4,
+      freeT3:                  body.free_t3,
+      tpoAntibodies:           body.tpo_antibodies,
+      thyroglobulinAntibodies: body.thyroglobulin_antibodies,
+      reverseT3:               body.reverse_t3,
+    });
+
+    // Hormone resolver — additive modifier (Phase 5)
+    const hormoneSignalRaw = resolveHormoneFromLabs({
+      totalTestosterone: body.total_testosterone,
+      freeTestosterone:  body.free_testosterone,
+      dheaS:             body.dhea_s,
+      estradiol:         body.estradiol,
+      progesterone:      body.progesterone,
+      lh:                body.lh,
+      fsh:               body.fsh,
+      shbg:              body.shbg,
+    });
+
+    // Downgrade detection — runs against new values vs. previous state
+    const downgradeSignals = resolveDowngradeSignals(
+      {
+        alt:                   body.alt,
+        ast:                   body.ast,
+        bilirubin:             body.bilirubin,
+        albumin:               body.albumin,
+        creatinine:            body.creatinine,
+        bun:                   body.bun,
+        ldl:                   body.ldl,
+        hdl:                   body.hdl,
+        bloodPressureSystolic: body.blood_pressure_systolic,
+        ejectionFraction:      body.ejection_fraction,
+        tsh:                   body.tsh,
+        freeT4:                body.free_t4,
+        freeT3:                body.free_t3,
+        tpoAntibodies:         body.tpo_antibodies,
+        thyroglobulinAntibodies: body.thyroglobulin_antibodies,
+        reverseT3:             body.reverse_t3,
+        a1c:                   body.a1c,
+        glucose:               body.glucose,
+        fastingInsulin:        body.fasting_insulin,
+        triglycerides:         body.triglycerides,
+        crp:                   body.crp,
+        cortisol:              body.cortisol,
+      },
+      { currentSpecialtyConditions, previousProtocol },
+    );
+
+    const alreadyOnThyroid  = currentSpecialtyConditions.includes('thyroid-support');
+    const alreadyOnProtocol = protocolSignal?.protocol === previousProtocol && previousProtocol !== null;
+
+    // Check which hormone conditions the user is already on
+    const alreadyOnHormoneConditions = (hormoneSignalRaw.conditions ?? []).filter(c =>
+      currentSpecialtyConditions.includes(c)
+    );
+    const effectiveHormoneConditions = (hormoneSignalRaw.conditions ?? []).filter(c =>
+      !currentSpecialtyConditions.includes(c)
+    );
+    const effectiveHormoneSignal = hormoneSignalRaw.hasHormoneIndicators && effectiveHormoneConditions.length > 0
+      ? { ...hormoneSignalRaw, conditions: effectiveHormoneConditions }
+      : null;
+
+    const effectiveProtocolSignal = alreadyOnProtocol ? null : protocolSignal;
+    const effectiveThyroidSignal  = alreadyOnThyroid  ? null : (thyroidSignalRaw.hasThyroidIndicators ? thyroidSignalRaw : null);
+
+    const thyroidMonitoring =
+      alreadyOnThyroid &&
+      thyroidSignalRaw.hasThyroidIndicators &&
+      downgradeSignals.length === 0;
+
+    const [physicianLocked] = await Promise.all([getPhysicianLock(targetUserId as string)]);
 
     res.status(201).json({
       success: true,
       labId,
-      protocolSignal,
-      protocolSubtitle: labSignalToSubtitle(protocolSignal),
+      protocolSignal: effectiveProtocolSignal,
+      protocolSubtitle: labSignalToSubtitle(effectiveProtocolSignal),
+      thyroidSignal: effectiveThyroidSignal,
+      hormoneSignal: effectiveHormoneSignal,
+      downgradeSignals,
+      thyroidMonitoring,
       physicianLocked,
     });
   } catch (error: any) {
@@ -140,7 +341,7 @@ router.post("/", requireAuth, async (req, res) => {
 // ---------------------------------------------------------------------------
 const recommendationPayloadSchema = z.object({
   protocol:        z.string(),
-  status:          z.enum(["accepted", "rejected", "advisory"]),
+  status:          z.enum(["accepted", "rejected", "advisory", "removed"]),
   labId:           z.number().nullable().optional(),
   triggerFields:   z.array(z.string()).optional(),
   confidenceLevel: z.string().optional(),
@@ -165,21 +366,94 @@ router.post("/recommendation", requireAuth, async (req, res) => {
       reason:              body.reason ?? null,
     });
 
-    // On accept: switch the user's meal builder to anti_inflammatory
-    // (all clinical protocol variants live under this builder)
-    if (body.status === "accepted") {
+    // ── On "removed" (downgrade accepted): remove the protocol from user's state ──
+    if (body.status === "removed") {
+      const [currentUser] = await db
+        .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+        .from(users)
+        .where(eq(users.id, userId as any))
+        .limit(1);
+
+      const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
+      const newConditions = currentConditions.filter(c => c !== body.protocol);
+      const newPrimary = currentUser?.specialtyCondition === body.protocol
+        ? (newConditions[0] ?? null)
+        : (currentUser?.specialtyCondition ?? null);
+
       await db
         .update(users)
-        .set({ selectedMealBuilder: "anti_inflammatory", updatedAt: new Date() })
+        .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
         .where(eq(users.id, userId as any));
 
-      // Stamp all studio memberships for this user as clinically assigned
-      await db
-        .update(studioMemberships)
-        .set({ assignedBuilder: "anti_inflammatory", builderSource: "clinical", updatedAt: new Date() } as any)
-        .where(eq(studioMemberships.clientUserId, userId as any));
+      console.log(`[labs/recommendation] User ${userId} removed ${body.protocol} → specialty_conditions updated`);
+    }
 
-      console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder set to anti_inflammatory (source: clinical)`);
+    // ── On accept: activate the protocol ─────────────────────────────────────
+    if (body.status === "accepted") {
+      // Additive-only conditions — do not switch meal builder, just add to specialtyConditions
+      const additiveOnlyConditions = [
+        'thyroid-support',
+        'hashimotos', 'hypothyroid', 'hyperthyroid',
+        'hormone-optimization', 'menopause', 'perimenopause',
+      ];
+
+      if (additiveOnlyConditions.includes(body.protocol)) {
+        const [currentUser] = await db
+          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+          .from(users)
+          .where(eq(users.id, userId as any))
+          .limit(1);
+
+        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
+        if (!currentConditions.includes(body.protocol)) {
+          const newConditions = [...currentConditions, body.protocol];
+          const newPrimary = currentUser?.specialtyCondition ?? body.protocol;
+          await db
+            .update(users)
+            .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
+            .where(eq(users.id, userId as any));
+        }
+        console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → specialty_conditions updated (additive)`);
+      } else {
+        // All primary clinical protocols:
+        //   1. Switch meal builder to anti_inflammatory (enables clinical protocol routing)
+        //   2. Write protocol to specialtyCondition + specialtyConditions
+        const [currentUser] = await db
+          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
+          .from(users)
+          .where(eq(users.id, userId as any))
+          .limit(1);
+
+        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
+        const newConditions = currentConditions.includes(body.protocol)
+          ? currentConditions
+          : [...currentConditions, body.protocol];
+        const newPrimary = currentUser?.specialtyCondition ?? body.protocol;
+
+        await db
+          .update(users)
+          .set({
+            selectedMealBuilder: "anti_inflammatory",
+            specialtyConditions: newConditions,
+            specialtyCondition:  newPrimary,
+            updatedAt: new Date(),
+          } as any)
+          .where(eq(users.id, userId as any));
+
+        // Stamp active studio memberships as clinically assigned
+        await db
+          .update(studioMemberships)
+          .set({ assignedBuilder: "anti_inflammatory", builderSource: "clinical", updatedAt: new Date() } as any)
+          .where(
+            and(
+              eq(studioMemberships.clientUserId, userId as any),
+              eq(studioMemberships.status, "active"),
+              eq(studioMemberships.isArchived, false)
+            )
+          );
+
+        console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder=anti_inflammatory, specialty_conditions updated`);
+      }
     }
 
     res.json({ ok: true, status: body.status });
@@ -195,7 +469,19 @@ router.post("/recommendation", requireAuth, async (req, res) => {
 // ---------------------------------------------------------------------------
 router.get("/:userId", requireAuth, async (req, res) => {
   try {
+    const requesterId = getAuthUserId(req);
     const { userId } = req.params;
+
+    const hasAccess = await verifyClinicalAccess(requesterId as string, userId);
+    if (!hasAccess) {
+      console.warn(`[clinicalLabs GET] UNAUTHORIZED: requester ${requesterId} attempted to read labs for user ${userId}`);
+      return res.status(403).json({ error: "You are not authorized to view labs for this user" });
+    }
+
+    const isCoachRead = requesterId !== userId;
+    if (isCoachRead) {
+      logAudit({ actor: requesterId as string, target: userId, action: "READ", resourceType: "clinical_labs", table: "clinical_labs", route: req.path, ip: getClientIp(req as any), meta: { requesterRole: "coach_or_physician" } });
+    }
 
     const rows = await db
       .select()
@@ -205,13 +491,23 @@ router.get("/:userId", requireAuth, async (req, res) => {
       .limit(1);
 
     if (rows.length === 0) {
-      return res.json({ labs: null });
+      const userRows0 = await db
+        .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
+        .from(users)
+        .where(eq(users.id, userId as any))
+        .limit(1);
+      const oncologyCtx0 = userRows0[0]?.oncologySupportContext as { enabled?: boolean } | null ?? null;
+      return res.json({
+        labs: null,
+        oncologySupportEnabled: !!(oncologyCtx0?.enabled),
+        oncologySupportContext: userRows0[0]?.oncologySupportContext ?? null,
+        specialtyCondition: userRows0[0]?.specialtyCondition ?? null,
+        specialtyConditions: (userRows0[0]?.specialtyConditions as string[]) ?? [],
+      });
     }
 
     const r = rows[0];
 
-    // Run the resolver against the raw Drizzle row (accepts string | number | null).
-    // Returns LabProtocolSignal | null — null means base anti-inflammatory.
     const protocolSignal = resolveProtocolFromLabs({
       alt:                   r.alt,
       ast:                   r.ast,
@@ -220,18 +516,53 @@ router.get("/:userId", requireAuth, async (req, res) => {
       creatinine:            r.creatinine,
       bun:                   r.bun,
       ldl:                   r.ldl,
+      hdl:                   r.hdl,
       bloodPressureSystolic: r.bloodPressureSystolic,
       ejectionFraction:      r.ejectionFraction,
+      a1c:                   r.a1c,
+      glucose:               r.glucose,
+      fastingInsulin:        r.fastingInsulin,
+      triglycerides:         r.triglycerides,
+      crp:                   r.crp,
+      cortisol:              r.cortisol,
     });
+
+    const thyroidSignal = resolveThyroidFromLabs({
+      tsh:                     r.tsh,
+      freeT4:                  r.freeT4,
+      freeT3:                  r.freeT3,
+      tpoAntibodies:           r.tpoAntibodies,
+      thyroglobulinAntibodies: r.thyroglobulinAntibodies,
+      reverseT3:               r.reverseT3,
+    });
+
+    const hormoneSignal = resolveHormoneFromLabs({
+      totalTestosterone: r.totalTestosterone,
+      freeTestosterone:  r.freeTestosterone,
+      dheaS:             r.dheaS,
+      estradiol:         r.estradiol,
+      progesterone:      r.progesterone,
+      lh:                r.lh,
+      fsh:               r.fsh,
+      shbg:              r.shbg,
+    });
+
+    const userRows = await db
+      .select({ oncologySupportContext: users.oncologySupportContext, specialtyCondition: users.specialtyCondition, specialtyConditions: users.specialtyConditions })
+      .from(users)
+      .where(eq(users.id, userId as any))
+      .limit(1);
+    const oncologyCtx = userRows[0]?.oncologySupportContext as { enabled?: boolean } | null ?? null;
 
     res.json({
       labs: {
         id: r.id,
         userId: r.userId,
+        // ── Existing fields ─────────────────────────────────────────────────
         a1c: r.a1c ? parseFloat(r.a1c) : null,
         ldl: r.ldl ? parseFloat(r.ldl) : null,
         hdl: r.hdl ? parseFloat(r.hdl) : null,
-        blood_pressure_systolic: r.bloodPressureSystolic ? parseFloat(r.bloodPressureSystolic) : null,
+        blood_pressure_systolic:  r.bloodPressureSystolic  ? parseFloat(r.bloodPressureSystolic)  : null,
         blood_pressure_diastolic: r.bloodPressureDiastolic ? parseFloat(r.bloodPressureDiastolic) : null,
         ejection_fraction: r.ejectionFraction ? parseFloat(r.ejectionFraction) : null,
         creatinine: r.creatinine ? parseFloat(r.creatinine) : null,
@@ -241,15 +572,42 @@ router.get("/:userId", requireAuth, async (req, res) => {
         ast:       r.ast       ? parseFloat(r.ast)       : null,
         bilirubin: r.bilirubin ? parseFloat(r.bilirubin) : null,
         albumin:   r.albumin   ? parseFloat(r.albumin)   : null,
+        tsh:                     r.tsh                     ? parseFloat(r.tsh)                     : null,
+        free_t4:                 r.freeT4                  ? parseFloat(r.freeT4)                  : null,
+        free_t3:                 r.freeT3                  ? parseFloat(r.freeT3)                  : null,
+        tpo_antibodies:          r.tpoAntibodies           ? parseFloat(r.tpoAntibodies)           : null,
+        thyroglobulin_antibodies:r.thyroglobulinAntibodies ? parseFloat(r.thyroglobulinAntibodies) : null,
+        // Phase 5 — Thyroid subtype
+        reverse_t3:              r.reverseT3               ? parseFloat(r.reverseT3)               : null,
+        // Phase 4 fields — camel→snake
+        fasting_insulin: r.fastingInsulin ? parseFloat(r.fastingInsulin) : null,
+        glucose:         r.glucose        ? parseFloat(r.glucose)        : null,
+        triglycerides:   r.triglycerides  ? parseFloat(r.triglycerides)  : null,
+        crp:             r.crp            ? parseFloat(r.crp)            : null,
+        cortisol:            r.cortisol           ? parseFloat(r.cortisol)           : null,
+        total_testosterone:  r.totalTestosterone  ? parseFloat(r.totalTestosterone)  : null,
+        free_testosterone:   r.freeTestosterone   ? parseFloat(r.freeTestosterone)   : null,
+        prealbumin:          r.prealbumin         ? parseFloat(r.prealbumin)         : null,
+        // Phase 5 — Sex hormones / Menopause panel
+        estradiol:    r.estradiol    ? parseFloat(r.estradiol)    : null,
+        progesterone: r.progesterone ? parseFloat(r.progesterone) : null,
+        shbg:         r.shbg         ? parseFloat(r.shbg)         : null,
+        lh:           r.lh           ? parseFloat(r.lh)           : null,
+        fsh:          r.fsh          ? parseFloat(r.fsh)          : null,
+        dhea_s:       r.dheaS        ? parseFloat(r.dheaS)        : null,
+        // ── Metadata ────────────────────────────────────────────────────────
         notes: r.notes,
         lab_date: r.labDate || null,
         recorded_at: r.recordedAt,
       },
-      // Protocol signal derived from the lab values.
-      // null  → no threshold crossed, patient stays on base anti-inflammatory.
-      // value → the resolver's recommended protocol with reason and confidence.
       protocolSignal,
       protocolSubtitle: labSignalToSubtitle(protocolSignal),
+      thyroidSignal: thyroidSignal.hasThyroidIndicators ? thyroidSignal : null,
+      hormoneSignal: hormoneSignal.hasHormoneIndicators ? hormoneSignal : null,
+      oncologySupportEnabled: !!(oncologyCtx?.enabled),
+      oncologySupportContext: userRows[0]?.oncologySupportContext ?? null,
+      specialtyCondition: userRows[0]?.specialtyCondition ?? null,
+      specialtyConditions: (userRows[0]?.specialtyConditions as string[]) ?? [],
     });
   } catch (error: any) {
     console.error("[clinicalLabs GET]", error);

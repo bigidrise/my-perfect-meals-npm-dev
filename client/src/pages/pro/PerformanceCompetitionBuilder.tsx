@@ -1,8 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useLocation, useRoute } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
-import { MealCard, Meal } from "@/components/MealCard";
+import { MealCard } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import {
   type WeekBoard,
   getDayLists,
@@ -23,31 +28,31 @@ import {
   cloneDayLists,
   putWeekBoard,
   getWeekBoardByDate,
+  updateMealImageInBoard,
+  getMealImageUrl,
 } from "@/lib/boardApi";
+import { shouldProtectExistingImage } from "@/lib/imageUrlUtils";
+import { useChefMealImage } from "@/hooks/useChefMealImage";
 import { duplicateAcrossWeeks } from "@/utils/crossWeekDuplicate";
-import { ManualMealModal } from "@/components/pickers/ManualMealModal";
+import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { CompetitionMealPickerDrawer } from "@/components/pickers/CompetitionMealPickerDrawer";
-import SnackPickerDrawer from "@/components/pickers/SnackPickerDrawer";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { SnackCreatorModal } from "@/components/SnackCreatorModal";
-import { getResolvedTargets } from "@/lib/macroResolver";
+import { setPerfSelectedDate } from "@/lib/macroResolver";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
-import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
+import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { MacroBridgeFooter } from "@/components/biometrics/MacroBridgeFooter";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
+import { useNutritionBudget } from "@/hooks/useNutritionBudget";
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
-import { setQuickView } from "@/lib/macrosQuickView";
-import { getMacroTargets } from "@/lib/dailyLimits";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
-import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
-import { normalizeIngredients } from "@/utils/ingredientParser";
-import { useShoppingListStore } from "@/stores/shoppingListStore";
+import BuilderShoppingBar from "@/components/BuilderShoppingBar";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { 
@@ -59,26 +64,27 @@ import {
   formatWeekLabel,
   formatDateDisplay
 } from "@/utils/midnight";
+import { getRolling14Days } from "@/utils/dateRange";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
-import MealReadySheet from "@/components/MealReadySheet";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
 import { BUILDER_NS } from "@shared/builderNamespaces";
+import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
 import { v4 as uuidv4 } from "uuid";
 import {
-  Plus,
   Check,
   Sparkles,
   BarChart3,
   ShoppingCart,
   X,
-  Trash2,
   ChevronLeft,
   Calendar,
   ChevronRight,
   Copy,
   Target,
   ChefHat,
+  Lock,
+  Save,
 } from "lucide-react";
 import {
   Popover,
@@ -86,102 +92,66 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { FEATURES } from "@/utils/features";
+import { DailyMacroTotalsRow } from "@/components/DailyMacroTotalsRow";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
 import { DuplicateDayModal } from "@/components/DuplicateDayModal";
-import { DuplicateWeekModal } from "@/components/DuplicateWeekModal";
 import { setMacroTargets } from "@/lib/dailyLimits";
-import { proStore } from "@/lib/proData";
 import { linkUserToClient } from "@/lib/macroResolver";
 import { saveLastPerformanceClientId } from "@/lib/macroSourcesConfig";
 import MealProgressCoach from "@/components/guided/MealProgressCoach";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InformationModal } from "@/components/ui/universal-modal";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
-import { TrialBanner } from "@/components/TrialBanner";
+import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
+
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
+import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
+import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
+import { useTranslation } from "react-i18next";
 
-const PERFORMANCE_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Competition Prep",
-    description:
-      "Build precise meal plans for bodybuilding shows and athletic events.",
-  },
-  {
-    icon: "2",
-    title: "Exact Macros",
-    description:
-      "Hit your protein, carb, and fat targets with precision-calculated meals.",
-  },
-  {
-    icon: "3",
-    title: "Meal Timing",
-    description: "Add Meal 4+ for optimal nutrient timing around training.",
-  },
-  {
-    icon: "4",
-    title: "Copy Days",
-    description: "Duplicate meal plans for consistent prep week over week.",
-  },
-  {
-    icon: "5",
-    title: "Shopping List",
-    description: "Export ingredients for meal prep shopping runs.",
-  },
-  {
-    icon: "6",
-    title: "Track Progress & Save Day",
-    description: "Review your color-coded progress at the bottom of the page, then tap Save Day to lock your plan into Biometrics.",
-  },
-  {
-    icon: "🥔",
-    title: "Watch Your Starch Slots",
-    description:
-      "The starch indicator shows your daily starch meal status. Green = slots available, Orange = all used, Red = over limit. Fibrous carbs are unlimited!",
-  },
-  {
-    icon: "*",
-    title: "What the Asterisks Mean",
-    description:
-      "Protein and carbs are marked with asterisks (*) because they're the most important numbers to focus on when building your meals. Get those right first.",
-  },
-];
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
-// Pro Care Meal Slots - 3 meals for competition prep (fixed)
-const lists: Array<["breakfast" | "lunch" | "dinner", string]> = [
-  ["breakfast", "Meal 1"],
-  ["lunch", "Meal 2"],
-  ["dinner", "Meal 3"],
-];
-
-// Meal 5 will be rendered separately using the snacks slot
-// Dynamic meals (6+) will be stored in board.days[date].snacks array with special prefix
 
 interface AthleteBoardProps {
   mode?: "athlete" | "procare";
 }
 
 export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
-  usePageTitle("Performance & Competition Builder");
+  const { t } = useTranslation();
+  usePageTitle(t("performanceCompetitionBuilder.pageTitle"));
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const quickTour = useQuickTour("performance-competition-builder");
-  
+
+  const PERFORMANCE_TOUR_STEPS = useMemo<TourStep[]>(() => [
+    { icon: "1", title: t("performanceCompetitionBuilder.tour1Title"), description: t("performanceCompetitionBuilder.tour1Desc") },
+    { icon: "2", title: t("performanceCompetitionBuilder.tour2Title"), description: t("performanceCompetitionBuilder.tour2Desc") },
+    { icon: "3", title: t("performanceCompetitionBuilder.tour3Title"), description: t("performanceCompetitionBuilder.tour3Desc") },
+    { icon: "4", title: t("performanceCompetitionBuilder.tour4Title"), description: t("performanceCompetitionBuilder.tour4Desc") },
+    { icon: "5", title: t("performanceCompetitionBuilder.tour5Title"), description: t("performanceCompetitionBuilder.tour5Desc") },
+    { icon: "6", title: t("performanceCompetitionBuilder.tour6Title"), description: t("performanceCompetitionBuilder.tour6Desc") },
+    { icon: "🥔", title: t("metabolicBuilder.tour7Title"), description: t("performanceCompetitionBuilder.tour7Desc") },
+    { icon: "*", title: t("metabolicBuilder.tour8Title"), description: t("metabolicBuilder.tour8Desc") },
+  ], [t]);
+
+  const lists = useMemo<Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", string]>>(() => [
+    ["breakfast", t("metabolicBuilder.meal1")],
+    ["lunch", t("metabolicBuilder.meal2")],
+    ["dinner", t("metabolicBuilder.meal3")],
+    ["meal4", t("metabolicBuilder.meal4")],
+    ["meal5", t("metabolicBuilder.meal5")],
+    ["meal6", t("metabolicBuilder.meal6")],
+  ], [t]);
+
   // Body fat-based starch slot adjustment (includes +1 bonus if below goal for performance builders)
   const bodyFatAdjustment = useBodyFatStarchAdjustment("performance_competition");
 
@@ -192,10 +162,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   );
   const routeClientId = athleteParams?.clientId || proParams?.id;
   const proClientId = proParams?.id;
-
   // In standalone mode, use current user's ID; in procare mode, use route clientId
   const clientId =
     mode === "procare" ? routeClientId : routeClientId || user?.id || null;
+  const effectiveUserId = clientId ?? undefined;
 
   // Safety check: redirect only if procare mode without clientId
   useEffect(() => {
@@ -213,7 +183,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
         <div className="text-white text-center">
-          <p>Missing client ID. Redirecting to dashboard...</p>
+          <p>{t("performanceCompetitionBuilder.missingClient")}</p>
         </div>
       </div>
     );
@@ -230,19 +200,22 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     save: saveToHook,
     source,
     refresh: refreshBoard,
-  } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
+    primeCache,
+  } = useWeeklyBoard(effectiveUserId, weekStartISO, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
+
+  const nutritionBudget = useNutritionBudget(clientId || user?.id || "");
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const { fetchImageForMeal } = useChefMealImage();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [justSaved, setJustSaved] = React.useState(false);
-  const [showMealReady, setShowMealReady] = React.useState(false);
 
   // Draft persistence for crash/reload recovery
   const { clearDraft, skipServerSync, markClean } = useMealBoardDraft(
     {
-      userId: clientId,
+      userId: effectiveUserId,
       builderId: 'performance-competition-builder',
       weekStartISO,
     },
@@ -254,6 +227,17 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Sync hook board to local state — initial hydration must ALWAYS succeed
   const boardInitializedRef = React.useRef(false);
+
+  // Register this builder's board namespace so cross-context features (Add to Plan, etc.) write to the correct board
+  React.useEffect(() => {
+    setActiveBuilderNs(BUILDER_NS.PERFORMANCE_COMPETITION);
+  }, []);
+
+  // Reset the initial-hydration gate on week change so new week data bypasses skipServerSync()
+  React.useEffect(() => {
+    boardInitializedRef.current = false;
+  }, [weekStartISO]);
+
   React.useEffect(() => {
     if (hookBoard) {
       if (!boardInitializedRef.current) {
@@ -278,9 +262,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       try {
         await saveToHook(updatedBoard as any, uuidv4());
         setJustSaved(true);
-        if (!showMealReady) setShowMealReady(true);
         setTimeout(() => setJustSaved(false), 2000);
         clearDraft();
+        markClean();
       } catch (err) {
         console.error("Failed to save board:", err);
         // Silent retry - no toast during decision-making flows
@@ -302,30 +286,81 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const [pickerList, setPickerList] = React.useState<
     "breakfast" | "lunch" | "dinner" | "snacks" | null
   >(null);
-  const [manualModalOpen, setManualModalOpen] = React.useState(false);
-  const [manualModalList, setManualModalList] = React.useState<
-    "breakfast" | "lunch" | "dinner" | "snacks" | null
-  >(null);
   const [showOverview, setShowOverview] = React.useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
-
 
 
   // Create With Chef modal state
   const [createWithChefOpen, setCreateWithChefOpen] = useState(false);
   const [createWithChefSlot, setCreateWithChefSlot] = useState<
-    "breakfast" | "lunch" | "dinner"
+    "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6"
   >("breakfast");
 
   // Day/Week planning state (moved up for starchContext dependency)
   const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
   const [activeDayISO, setActiveDayISO] = React.useState<string>("");
 
+  // Consumed starch totals for the active day — fed into the prescription hook
+  // DailyNutritionState — the single server authority for macro targets, consumed, and remaining.
+  // Board meals are "planned" (not yet logged); consumption comes from macro_logs server-side.
+  // This replaces useDailyPrescription and the board-derived activeDayConsumed starch count.
+  const { state: nutritionState, isLoading: nutritionStateLoading } = useDailyNutritionState({
+    dateISO: activeDayISO,
+    clientId: proClientId ?? null,
+    disabled: !activeDayISO,
+  });
+  const prescription = nutritionState?.prescription ?? null;
+  // Prescription is the display authority; undefined when absent/fallback so footer
+  // shows its "Set your macros" prompt instead of zeroed targets.
+  const effectiveTargets = prescriptionToTargetsOverride(prescription);
+
+  // Server-resolved remaining budget — already floored at 0, no client clamping needed.
+  // Declared AFTER useDailyNutritionState to avoid a temporal-dead-zone crash.
+  const remainingMacrosForChef = useMemo(() => {
+    if (!nutritionState?.remaining) return undefined;
+    const r = nutritionState.remaining;
+    return {
+      protein:  r.protein,
+      carbs:    r.carbs,
+      fat:      r.fat,
+      calories: r.calories,
+    };
+  }, [nutritionState?.remaining]);
+
+  // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
+  const dayTotals = useMemo(() => {
+    if (!board || !activeDayISO) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    const dayLists = getDayLists(board, activeDayISO);
+    const allMeals = [
+      ...dayLists.breakfast,
+      ...dayLists.lunch,
+      ...dayLists.dinner,
+      ...dayLists.snacks,
+    ];
+    return {
+      calories: Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.calories ?? 0), 0)),
+      protein:  Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.protein  ?? 0), 0)),
+      carbs:    Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.carbs    ?? 0), 0)),
+      fat:      Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.fat      ?? 0), 0)),
+    };
+  }, [board, activeDayISO]);
+
+  // Derive generationContext from the URL (set by Training Schedule hub navigation)
+  // or from the server-resolved training day type.
+  // "performance_training_day" is only injected when entered from the Training Schedule hub
+  // (?from=training-hub) OR when the prescription reports an active non-rest training day.
+  const generationContext = useMemo((): string | undefined => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('from') === 'training-hub') return 'performance_training_day';
+    if (!prescription || prescription.trainingDayType === null) return undefined;
+    return prescription.trainingDayType === 'rest' ? 'rest_day' : 'performance_training_day';
+  }, [prescription?.trainingDayType]);
+
   // Build StarchContext for Create With Chef modal
   const starchContext: StarchContext | undefined = useMemo(() => {
     if (!board || !activeDayISO) return undefined;
-    const resolved = clientId ? getResolvedTargets(clientId) : null;
-    const strategy = resolved?.starchStrategy || 'one';
+    // Derive strategy from prescription starchMealsAllowed (replaces localStorage starchStrategy).
+    const legacyStrategy: 'one' | 'flex' = (prescription?.starchMealsAllowed ?? 1) >= 2 ? 'flex' : 'one';
     const dayLists = getDayLists(board, activeDayISO);
     const existingMeals: StarchContext['existingMeals'] = [];
     for (const slot of ['breakfast', 'lunch', 'dinner'] as const) {
@@ -334,14 +369,25 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         existingMeals.push({ slot, hasStarch: classifyMeal(meal).isStarchMeal });
       }
     }
-    return { strategy, existingMeals };
-  }, [board, activeDayISO, clientId]);
+    if (prescription && prescription.source !== 'fallback') {
+      return {
+        strategy: legacyStrategy,
+        starchMealsAllowed: prescription.starchMealsAllowed,
+        starchyCarbsRemaining: prescription.starchyCarbsRemaining,
+        gramsPerRemainingStarchMeal: prescription.gramsPerRemainingStarchMeal,
+        distributionStrategy: prescription.starchDistributionStrategy,
+        isZeroStarchDay: prescription.isZeroStarchDay,
+        dateISO: activeDayISO,
+        existingMeals,
+      };
+    }
+    return { strategy: legacyStrategy, existingMeals };
+  }, [board, activeDayISO, prescription]);
 
   // Snack Creator modal state (Phase 2)
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
 
-  // Snack Picker state
-  const [snackPickerOpen, setSnackPickerOpen] = useState(false);
+  const goToFavorites = useNavigateToFavorites();
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -355,8 +401,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   const [showDuplicateDayModal, setShowDuplicateDayModal] =
     React.useState(false);
-  const [showDuplicateWeekModal, setShowDuplicateWeekModal] =
-    React.useState(false);
 
   // Shopping list modal state
   const [shoppingListModal, setShoppingListModal] = useState<{
@@ -364,19 +408,25 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     meal: any | null;
   }>({ isOpen: false, meal: null });
 
-  // Dynamic meal tracking (Meal 6+)
-  const [dynamicMealCount, setDynamicMealCount] = useState(0);
-
-  // Coach Targets - READ ONLY (set from Client Dashboard)
-  const coachTargetsDisplay = useMemo(() => {
-    const targets = proStore.getTargets(clientId);
-    return {
-      protein: targets.protein || 0,
-      starchy: targets.starchyCarbs || 0,
-      fibrous: targets.fibrousCarbs || 0,
-      fats: targets.fat || 0,
-    };
-  }, [clientId]);
+  // Clinical protocol indicator state — populated from labs API for dot grid display
+  const [scConditions, setScConditions] = useState<string[]>([]);
+  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
+      .then(data => {
+        // Use array first; fall back to singular specialtyCondition so a user
+        // whose profile only has the scalar field still lights up their dots.
+        const scArr: string[] = data?.specialtyConditions?.length
+          ? data.specialtyConditions
+          : data?.specialtyCondition ? [data.specialtyCondition] : [];
+        setScConditions(scArr);
+        if (scArr.includes('thyroid-support') || data?.specialtyCondition === 'thyroid-support') {
+          setThyroidFromSpecialtyCondition(true);
+        }
+      })
+      .catch(() => {});
+  }, [effectiveUserId]);
 
   // 🔋 AI Meal Creator localStorage persistence (copy Weekly Meal Board pattern)
   const AI_MEALS_CACHE_KEY = "ai-athlete-meal-creator-cached-meals";
@@ -384,7 +434,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   interface CachedAIMeals {
     meals: Meal[];
     dayISO: string;
-    slot: "breakfast" | "lunch" | "dinner" | "snacks";
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
     generatedAtISO: string;
   }
 
@@ -392,7 +442,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   function saveAIMealsCache(
     meals: Meal[],
     dayISO: string,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) {
     try {
       const state: CachedAIMeals = {
@@ -401,7 +451,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         slot,
         generatedAtISO: new Date().toISOString(),
       };
-      localStorage.setItem(AI_MEALS_CACHE_KEY, JSON.stringify(state));
+      safeLocalStorageSet(AI_MEALS_CACHE_KEY, state);
     } catch {}
   }
 
@@ -440,6 +490,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       setActiveDayISO(todayInWeek ?? weekDatesList[0]);
     }
   }, [weekDatesList, activeDayISO]);
+
+  // Broadcast the active day to the shared performance date signal.
+  // This keeps macroResolver, biometrics, and the Hub all in sync with
+  // whichever day is selected in this builder.
+  useEffect(() => {
+    if (activeDayISO) setPerfSelectedDate(activeDayISO);
+  }, [activeDayISO]);
 
   // 🔋 Load AI meals from localStorage on mount or day change
   useEffect(() => {
@@ -563,6 +620,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           currentBoard: board,
           currentWeekStartISO: weekStartISO,
           namespace: BUILDER_NS.PERFORMANCE_COMPETITION,
+          cacheUserId: proClientId || effectiveUserId,
         });
 
         if (result.currentWeekBoard) {
@@ -571,188 +629,28 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
 
         if (result.errors.length > 0) {
-          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+          toast({ title: t("metabolicBuilder.partialDuplicate"), description: t("metabolicBuilder.partialDuplicateDesc", { count: result.currentWeekDayCount + result.otherWeeksSaved, total: result.totalDays }), variant: "destructive" });
         } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
-          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+          toast({ title: t("metabolicBuilder.savedFutureWeek"), description: t("metabolicBuilder.savedFutureWeekDesc", { count: result.otherWeeksSaved }) });
         } else if (result.otherWeeksSaved > 0) {
-          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+          toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedBoth", { thisWeek: result.currentWeekDayCount, future: result.otherWeeksSaved }) });
         } else {
-          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+          toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedDesc", { count: result.currentWeekDayCount }) });
         }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
+        toast({ title: t("metabolicBuilder.failedToDuplicate"), description: t("metabolicBuilder.tryAgain"), variant: "destructive" });
       }
     },
     [board, activeDayISO, weekStartISO, saveBoard, toast],
   );
 
-  // Duplicate week handler
-  const handleDuplicateWeek = useCallback(
-    async (targetWeekStartISO: string) => {
-      if (!board) return;
-
-      // CHICAGO CALENDAR FIX v1.0: Use safe weekDatesInTZ for target week dates
-      const clonedBoard = {
-        ...board,
-        id: `week-${targetWeekStartISO}`,
-        days: board.days
-          ? Object.fromEntries(
-              Object.entries(board.days).map(([oldDateISO, lists]) => {
-                const dayIndex = weekDatesList.indexOf(oldDateISO);
-                const targetWeekDatesSafe = weekDatesInTZ(targetWeekStartISO, "America/Chicago");
-                const newDateISO = targetWeekDatesSafe[dayIndex] || oldDateISO;
-                return [newDateISO, cloneDayLists(lists)];
-              }),
-            )
-          : undefined,
-      };
-
-      try {
-        await putWeekBoard(targetWeekStartISO, clonedBoard, proClientId, BUILDER_NS.PERFORMANCE_COMPETITION);
-        setWeekStartISO(targetWeekStartISO);
-        toast({
-          title: "Week duplicated",
-          description: `Copied to week of ${targetWeekStartISO}`,
-        });
-      } catch (error) {
-        console.error("Failed to duplicate week:", error);
-        toast({
-          title: "Failed to duplicate",
-          description: "Please try again",
-          variant: "destructive",
-        });
-      }
-    },
-    [board, weekDatesList, toast],
-  );
-
-  // Shopping list handler - Single day
-  const handleAddToShoppingList = useCallback(() => {
-    if (!board) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    let allMeals: Meal[] = [];
-    if (
-      FEATURES.dayPlanning === "alpha" &&
-      planningMode === "day" &&
-      activeDayISO
-    ) {
-      const dayLists = getDayLists(board, activeDayISO);
-      allMeals = [
-        ...dayLists.breakfast,
-        ...dayLists.lunch,
-        ...dayLists.dinner,
-        ...dayLists.snacks,
-      ];
-    } else {
-      allMeals = [
-        ...board.lists.breakfast,
-        ...board.lists.lunch,
-        ...board.lists.dinner,
-        ...board.lists.snacks,
-      ];
-    }
-
-    if (allMeals.length === 0) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const ingredients = allMeals.flatMap((meal) =>
-      normalizeIngredients(meal.ingredients || []),
-    );
-
-    const items = ingredients.map((i) => ({
-      name: i.name,
-      quantity:
-        typeof i.qty === "number"
-          ? i.qty
-          : i.qty
-            ? parseFloat(String(i.qty))
-            : 1,
-      unit: i.unit || "",
-      notes:
-        planningMode === "day" && activeDayISO
-          ? `${formatDateDisplay(activeDayISO, { weekday: "long" })} Athlete Plan`
-          : `Athlete Meal Plan (${formatWeekLabel(weekStartISO)})`,
-    }));
-
-    useShoppingListStore.getState().addItems(items);
-
-    toast({
-      title: "Added to Shopping List",
-      description: `${ingredients.length} items added to your Smart Grocery List`,
-    });
-  }, [board, planningMode, activeDayISO, weekStartISO, toast]);
-
-  // Shopping list handler - Entire week
-  const handleAddEntireWeekToShoppingList = useCallback(() => {
-    if (!board) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your board before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    let allMeals: Meal[] = [];
-    weekDatesList.forEach((dateISO) => {
-      const dayLists = getDayLists(board, dateISO);
-      allMeals.push(
-        ...dayLists.breakfast,
-        ...dayLists.lunch,
-        ...dayLists.dinner,
-        ...dayLists.snacks,
-      );
-    });
-
-    if (allMeals.length === 0) {
-      toast({
-        title: "No meals found",
-        description: "Add meals to your week before creating a shopping list.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const ingredients = allMeals.flatMap((meal) =>
-      normalizeIngredients(meal.ingredients || []),
-    );
-
-    const items = ingredients.map((i) => ({
-      name: i.name,
-      quantity:
-        typeof i.qty === "number"
-          ? i.qty
-          : i.qty
-            ? parseFloat(String(i.qty))
-            : 1,
-      unit: i.unit || "",
-      notes: `Athlete Meal Plan (${formatWeekLabel(weekStartISO)}) - All 7 Days`,
-    }));
-
-    useShoppingListStore.getState().addItems(items);
-
-    toast({
-      title: "Added to Shopping List",
-      description: `${ingredients.length} items from entire week added to your Smart Grocery List`,
-    });
-  }, [board, weekStartISO, weekDatesList, toast]);
 
   const handleChefMealGenerated = useCallback(
-    async (generatedMeal: any, slot: "breakfast" | "lunch" | "dinner" | "snacks") => {
+    async (
+      generatedMeal: any,
+      slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
+    ) => {
       if (!activeDayISO) return;
 
       const transformedMeal: Meal = {
@@ -788,6 +686,19 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         const updatedBoard = setDayLists(board, activeDayISO, updatedDayLists);
 
         setBoard(updatedBoard);
+        if (!transformedMeal.imageUrl) {
+          fetchImageForMeal(transformedMeal, slot, (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              const currentImg = getMealImageUrl(prev, mealId);
+              if (currentImg === imageUrl) return prev;
+              if (currentImg) return prev;
+              const updated = updateMealImageInBoard(prev, mealId, imageUrl);
+              saveBoard(updated).catch(() => {});
+              return updated;
+            });
+          });
+        }
         toast({
           title: "AI Meal Added!",
           description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
@@ -803,7 +714,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     [activeDayISO, board, saveBoard, toast],
   );
 
-  // Handler for snack selection from SnackPickerDrawer (Competition Snacks)
+  // Handler for snack selection from AI Snack Creator
   const handleSnackSelect = useCallback(
     async (snack: any) => {
       if (!board) return;
@@ -845,12 +756,22 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           description: `${snack.title} added successfully`,
         });
 
-        setSnackPickerOpen(false);
+        if (!snack.imageUrl) {
+          fetchImageForMeal({ id: snack.id, name: snack.name }, 'snacks', (mealId, imageUrl) => {
+            setBoard(prev => {
+              if (!prev) return prev;
+              if (getMealImageUrl(prev, mealId) === imageUrl) return prev;
+              return updateMealImageInBoard(prev, mealId, imageUrl);
+            });
+          });
+        }
+
+        setSnackCreatorOpen(false);
       } catch (error) {
         console.error("Failed to add snack:", error);
         toast({
           title: "Failed to add snack",
-          description: "Please try again",
+          description: t("metabolicBuilder.tryAgain"),
           variant: "destructive",
         });
       }
@@ -874,7 +795,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   }, [weekStartISO, gotoWeek]);
 
   async function quickAdd(
-    list: "breakfast" | "lunch" | "dinner" | "snacks",
+    list: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
     meal: Meal,
   ) {
     if (!board) return;
@@ -912,16 +833,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         setBoard(updatedBoard);
         await saveBoard(updatedBoard);
       }
-
-      // Dispatch board update event for instant refresh
-      try {
-        window.dispatchEvent(
-          new CustomEvent("board:updated", { detail: { weekStartISO } }),
-        );
-        window.dispatchEvent(new Event("macros:updated"));
-      } catch {
-        /* no-op */
-      }
     } catch (error) {
       console.error("Failed to add meal:", error);
     }
@@ -932,106 +843,20 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     setPickerOpen(true);
   }
 
-  function openManualModal(list: "breakfast" | "lunch" | "dinner" | "snacks") {
-    setManualModalList(list);
-    setManualModalOpen(true);
-  }
-
-  // Add a new dynamic meal slot
-  const handleAddMealSlot = useCallback(() => {
-    setDynamicMealCount((prev) => prev + 1);
-    toast({
-      title: "Meal Slot Added",
-      description: `Meal ${4 + dynamicMealCount} is ready to use`,
-    });
-  }, [dynamicMealCount, toast]);
-
-  // Remove a dynamic meal slot and clean up board data
-  const handleRemoveMealSlot = useCallback(
-    async (mealNumber: number) => {
-      if (!board) return;
-
-      try {
-        // Clean up meals with this slot's ID prefix from the board
-        const slotPrefix = `dyn-${mealNumber}-`;
-
-        if (
-          FEATURES.dayPlanning === "alpha" &&
-          planningMode === "day" &&
-          activeDayISO
-        ) {
-          // DAY MODE: Remove meals from day-specific lists
-          const dayLists = getDayLists(board, activeDayISO);
-          const updatedDayLists = {
-            ...dayLists,
-            snacks: dayLists.snacks.filter(
-              (meal: Meal) => !meal.id.startsWith(slotPrefix),
-            ),
-          };
-          const updatedBoard = setDayLists(
-            board,
-            activeDayISO,
-            updatedDayLists,
-          );
-          setBoard(updatedBoard);
-          await saveBoard(updatedBoard);
-        } else {
-          // WEEK MODE: Remove from board.lists
-          const updatedBoard = {
-            ...board,
-            lists: {
-              ...board.lists,
-              snacks: board.lists.snacks.filter(
-                (meal: Meal) => !meal.id.startsWith(slotPrefix),
-              ),
-            },
-          };
-          setBoard(updatedBoard);
-          await saveBoard(updatedBoard);
-        }
-
-        // Decrement counter (this will shift all subsequent meal numbers down)
-        setDynamicMealCount((prev) => Math.max(0, prev - 1));
-
-        toast({
-          title: "Meal Slot Removed",
-          description: `Meal ${mealNumber} has been deleted`,
-        });
-      } catch (error) {
-        console.error("Failed to remove meal slot:", error);
-        toast({
-          title: "Error",
-          description: "Failed to remove meal slot",
-          variant: "destructive",
-        });
-      }
-    },
-    [board, planningMode, activeDayISO, saveBoard, toast],
-  );
-
-  // Get coach-set macro targets from ProCare
-  const coachMacroTargets = useMemo(() => {
-    const targets = proStore.getTargets(clientId);
-    const totalCarbs =
-      (targets.starchyCarbs || 0) + (targets.fibrousCarbs || 0);
-    const protein = targets.protein || 0;
-    const fat = targets.fat || 0;
-    const calories = protein * 4 + totalCarbs * 4 + fat * 9;
-
-    return {
-      calories,
-      protein,
-      carbs: totalCarbs,
-      fat,
-    };
-  }, [clientId]);
+  // Macro targets from server prescription — replaces localStorage-based resolvedTargets.
+  const coachMacroTargets = useMemo(() => ({
+    calories: prescription?.caloriesTarget || 0,
+    protein:  prescription?.proteinTarget  || 0,
+    carbs:    prescription?.carbsTarget    || 0,
+    fat:      prescription?.fatTarget      || 0,
+  }), [prescription]);
 
   // Handle Set Macros to Biometrics
   const handleSetMacrosToBiometrics = useCallback(() => {
     if (coachMacroTargets.calories < 100) {
       toast({
-        title: "Cannot Set Empty Macros",
-        description: "Please have your coach set macro targets first",
+        title: t("performanceCompetitionBuilder.cannotSetMacros"),
+        description: t("performanceCompetitionBuilder.setMacrosFirst"),
         variant: "destructive",
       });
       return;
@@ -1045,21 +870,20 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       fat_g: coachMacroTargets.fat,
     }); // Use default "anon" user instead of clientId
 
-    // Link the current user to this clientId for ProCare integration
-    linkUserToClient("anon", clientId);
-
-    // Save clientId for "Came From" dropdown routing
-    saveLastPerformanceClientId(clientId);
+    if (effectiveUserId) {
+      linkUserToClient("anon", effectiveUserId);
+      saveLastPerformanceClientId(effectiveUserId);
+    }
 
     toast({
-      title: "Macros Set to Biometrics!",
-      description: `${coachMacroTargets.calories} kcal coach-set targets saved`,
+      title: t("performanceCompetitionBuilder.macrosSetTitle"),
+      description: t("performanceCompetitionBuilder.macrosSetDesc", { calories: coachMacroTargets.calories }),
     });
 
     setLocation(
       "/my-biometrics?from=performance-competition-builder&view=macros",
     );
-  }, [coachMacroTargets, clientId, toast, setLocation]);
+  }, [coachMacroTargets, effectiveUserId, toast, setLocation]);
 
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
@@ -1073,7 +897,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-2xl h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading Performance & Competition Builder...</p>
+          <p>{t("performanceCompetitionBuilder.loading")}</p>
         </div>
       </div>
     );
@@ -1083,7 +907,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 flex items-center justify-center">
         <div className="text-white text-center">
-          <p>Failed to load board</p>
+          <p>{t("performanceCompetitionBuilder.loadFailed")}</p>
         </div>
       </div>
     );
@@ -1102,15 +926,14 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-28"
     >
-      <BuilderHeader title="Performance Builder" onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} />
-      <TrialBanner />
+      <BuilderHeader title={t("performanceCompetitionBuilder.pageTitle")} onOpenTour={quickTour.openTour} clientId={mode === "procare" ? clientId : null} backTo="/performance" backLabel={t("performanceCompetitionBuilder.backLabel")} protocols={getBuilderProtocolBadges(user)} />
 
       {/* Main Content Wrapper - padding pushes content below header while gradient shows through */}
       <div
         className="px-4"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '9rem' : '6rem'})` }}
       >
-        <NutritionBudgetBanner className="mb-2" userId={clientId || user?.id} />
+        {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
           <div className="px-4 py-4 flex flex-col gap-3">
@@ -1121,7 +944,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   type="button"
                   onClick={onPrevWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Previous week"
+                  aria-label={t("metabolicBuilder.prevWeek")}
                   data-testid="button-prev-week"
                 >
                   ‹
@@ -1135,7 +958,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   type="button"
                   onClick={onNextWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Next week"
+                  aria-label={t("metabolicBuilder.nextWeek")}
                   data-testid="button-next-week"
                 >
                   ›
@@ -1169,57 +992,101 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         ...dayLists.snacks,
                       ];
                     })()}
+                    prescription={prescription}
                     bodyFatSlotDelta={bodyFatAdjustment.slotDelta}
                   />
                 </div>
               )}
 
+            {/* ROW 4.5: Active Clinical Supports */}
+            {scConditions.length > 0 && (
+              <div className="flex justify-center">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                  <span className="font-medium text-white/70">Active Clinical Supports:</span>
+                  {[
+                    { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: scConditions.includes('anti-inflammatory') || scConditions.includes('anti_inflammatory'),                                                                         activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                    { key: "cardiac",           label: "Cardiac Health",    isActive: scConditions.includes('cardiac') || scConditions.includes('heart-disease') || scConditions.includes('hypertension') || scConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                    { key: "kidney-disease",    label: "Kidney Disease",    isActive: scConditions.includes('kidney-disease') || scConditions.includes('renal') || scConditions.includes('ckd'),                                                        activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                    { key: "liver-support",     label: "Liver Support",     isActive: scConditions.includes('liver-support'),                                                                                                                            activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                    { key: "liver-disease",     label: "Liver Disease",     isActive: scConditions.includes('liver-disease') || scConditions.includes('nafld'),                                                                                          activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                    { key: "oncology-support",  label: "Oncology Support",  isActive: scConditions.includes('oncology-support') || scConditions.includes('oncology') || scConditions.includes('cancer'),                                                activeColor: "text-pink-400",    dotColor: "bg-pink-400",    dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]"  },
+                    { key: "thyroid-support",   label: "Thyroid Support",   isActive: thyroidFromSpecialtyCondition,                                                                                                                                     activeColor: "text-teal-400",    dotColor: "bg-teal-400",    dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"   },
+                    { key: "alpha-gal-syndrome",label: "Alpha-gal Syndrome",isActive: scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome'),                                activeColor: "text-orange-400",  dotColor: "bg-orange-400",  dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"   },
+                  ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ROW 4.6: Hormonal & Metabolic */}
+            {scConditions.length > 0 && (
+              <div className="flex justify-center">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                  <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                  {[
+                    { key: "hashimotos",         label: "Hashimoto's",        activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                    { key: "hypothyroid",        label: "Hypothyroid",        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "hyperthyroid",       label: "Hyperthyroid",       activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                    { key: "menopause",          label: "Menopause",          activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                    { key: "perimenopause",      label: "Perimenopause",      activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                    { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400",  dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                  ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ROW 4.8: Daily Macro Totals vs Targets */}
+            {FEATURES.dayPlanning === "alpha" && activeDayISO && (
+              <DailyMacroTotalsRow
+                totals={dayTotals}
+                prescription={prescription}
+                activeDayISO={activeDayISO}
+              />
+            )}
+
             {/* ROW 5: Bottom Actions */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
 
-              <Button
-                onClick={handleSave}
-                disabled={saving || justSaved}
-                size="sm"
-                className={`${
-                  justSaved
-                    ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                    : "bg-emerald-600/80 hover:bg-emerald-600 text-white"
-                } text-xs px-3 py-1 rounded-xl transition-all duration-200`}
-                data-wt="wmb-save-week-button"
-              >
-                {justSaved ? (
-                  <>
-                    <Check className="h-3 w-3 mr-1" />
-                    Saved ✓
-                  </>
-                ) : saving ? (
-                  "Saving…"
-                ) : (
-                  "Save Plan"
-                )}
-              </Button>
+              <div className="inline-flex flex-col items-center gap-1">
+                <PillButton
+                  onClick={handleSave}
+                  disabled={saving || justSaved}
+                  active={true}
+                  variant="emerald"
+                  className="px-3"
+                  glow="emerald"
+                  data-wt="wmb-save-week-button"
+                >
+                  {justSaved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
+                </PillButton>
+                <span className="text-xs font-semibold text-white/70 tracking-wide">
+                  {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
+                </span>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setShowDuplicateDayModal(true)}
-                data-testid="duplicate-button"
-                className="
-                  inline-flex items-center justify-center
-                  rounded-2xl
-                  px-4 py-2
-                  text-sm font-semibold
-                  text-white/90
-                  bg-black/20
-                  border border-white/15
-                  backdrop-blur-lg
-                  hover:bg-white/10 hover:border-white/25
-                  transition-all
-                "
-                style={{ minHeight: 36 }}
-              >
-                Duplicate 📅
-              </button>
+              <HowThisWorksLink />
+
+              <div className="inline-flex flex-col items-center gap-1">
+                <PillButton
+                  onClick={() => setShowDuplicateDayModal(true)}
+                  data-testid="duplicate-button"
+                  active={true}
+                  variant="sky"
+                  className="px-3"
+                >
+                  <Calendar className="h-3 w-3" />
+                </PillButton>
+                <span className="text-xs font-semibold text-white/70 tracking-wide">{t("metabolicBuilder.duplicate")}</span>
+              </div>
 
             </div>
           </div>
@@ -1248,28 +1115,26 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         </h2>
                         <GlobalMealActionBar
                           slot={
-                            key as "breakfast" | "lunch" | "dinner" | "snacks"
+                            key as "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6"
                           }
                           onCreateWithAI={() => {
-                            setAiMealSlot(
-                              key as
-                                | "breakfast"
-                                | "lunch"
-                                | "dinner"
-                                | "snacks",
+                            setCreateWithChefSlot(
+                              key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                             );
-                            setAiMealModalOpen(true);
+                            setCreateWithChefOpen(true);
                           }}
                           onCreateWithChef={() => {
                             setCreateWithChefSlot(
-                              key as "breakfast" | "lunch" | "dinner",
+                              key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                             );
                             setCreateWithChefOpen(true);
                           }}
                           onSnackCreator={() => {
                             setSnackCreatorOpen(true);
                           }}
-                          onManualAdd={() => openManualModal(key)}
+                          onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
+                          onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                          onFavorites={goToFavorites}
                         />
                       </div>
 
@@ -1317,8 +1182,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                       err,
                                     );
                                     toast({
-                                      title: "Sync pending",
-                                      description: "Changes will sync automatically.",
+                                      title: t("metabolicBuilder.syncPending"),
+                                      description: t("metabolicBuilder.syncPendingDesc"),
                                     });
                                   });
                                 } else {
@@ -1346,10 +1211,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           0 && (
                           <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                             <p className="mb-2">
-                              No {label.toLowerCase()} meals yet
+                              {t("metabolicBuilder.noSlotMealsYet", { slot: label.toLowerCase() })}
                             </p>
                             <p className="text-xs text-white/40">
-                              Use "+" to add meals
+                              {t("metabolicBuilder.addMealsHint")}
                             </p>
                           </div>
                         )}
@@ -1357,185 +1222,25 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                     </section>
                   ))}
 
-                  {/* Dynamic Meal Cards (Meal 4+) - Matches Meals 1-3 structure */}
-                  {Array.from({ length: dynamicMealCount }, (_, i) => {
-                    const mealNumber = 4 + i;
-                    const dynamicSlotKey = `dyn-${mealNumber}` as
-                      | "breakfast"
-                      | "lunch"
-                      | "dinner";
-                    return (
-                      <section
-                        key={`dynamic-meal-${mealNumber}`}
-                        className="rounded-2xl border border-emerald-800 bg-emerald-950/40 backdrop-blur p-4"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-white/90 text-lg font-medium">
-                            Meal {mealNumber}
-                          </h2>
-                          <div className="flex gap-2">
-                            {/* Create with AI button - hidden by feature flag for launch */}
-                            {FEATURES.showCreateWithAI && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
-                                onClick={() => {
-                                  setAiMealSlot("snacks");
-                                  setAiMealModalOpen(true);
-                                }}
-                              >
-                                <Sparkles className="h-3 w-3" />
-                                Create with AI
-                              </Button>
-                            )}
-
-                            {/* Create with Chef button - Competition meals */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
-                              onClick={() => {
-                                setCreateWithChefSlot(dynamicSlotKey);
-                                setCreateWithChefOpen(true);
-                              }}
-                            >
-                              <ChefHat className="h-3 w-3" />
-                              Create with Chef
-                            </Button>
-
-                            {/* Plus button for manual entry */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-white/10"
-                              onClick={() => openManualModal("snacks")}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-
-                            {/* Delete button - Remove this dynamic meal slot */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-400 hover:text-red-300 hover:bg-red-900/30"
-                              onClick={() => handleRemoveMealSlot(mealNumber)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          {dayLists.snacks
-                            .filter((m: Meal) =>
-                              m.id.startsWith(`dyn-${mealNumber}-`),
-                            )
-                            .map((meal: Meal, idx: number) => (
-                              <MealCard
-                                key={meal.id}
-                                date={activeDayISO}
-                                slot="snacks"
-                                meal={meal}
-                                showStarchBadge={true}
-                                onUpdated={(m) => {
-                                  if (m === null) {
-                                    const updatedDayLists = {
-                                      ...dayLists,
-                                      snacks: dayLists.snacks.filter(
-                                        (existingMeal) =>
-                                          existingMeal.id !== meal.id,
-                                      ),
-                                    };
-                                    const updatedBoard = setDayLists(
-                                      board,
-                                      activeDayISO,
-                                      updatedDayLists,
-                                    );
-                                    setBoard(updatedBoard);
-                                    saveBoard(updatedBoard).catch((err) => {
-                                      console.error(
-                                        "❌ Delete sync failed (Day mode):",
-                                        err,
-                                      );
-                                      toast({
-                                        title: "Sync pending",
-                                        description: "Changes will sync automatically.",
-                                      });
-                                    });
-                                  } else {
-                                    const updatedDayLists = {
-                                      ...dayLists,
-                                      snacks: dayLists.snacks.map(
-                                        (existingMeal) =>
-                                          existingMeal.id === meal.id
-                                            ? m
-                                            : existingMeal,
-                                      ),
-                                    };
-                                    const updatedBoard = setDayLists(
-                                      board,
-                                      activeDayISO,
-                                      updatedDayLists,
-                                    );
-                                    saveBoard(updatedBoard);
-                                  }
-                                }}
-                              />
-                            ))}
-                          {dayLists.snacks.filter((m: Meal) =>
-                            m.id.startsWith(`dyn-${mealNumber}-`),
-                          ).length === 0 && (
-                            <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                              <p className="mb-2">No Meal {mealNumber} yet</p>
-                              <p className="text-xs text-white/40">
-                                Use "+" to add meals
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </section>
-                    );
-                  })}
-
-                  {/* Add Meal Button */}
-                  <div className="col-span-full flex justify-center my-4">
-                    <Button
-                      onClick={handleAddMealSlot}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-xl flex items-center gap-2"
-                    >
-                      <Plus className="h-5 w-5" />
-                      Add Meal {4 + dynamicMealCount}
-                    </Button>
-                  </div>
-
-                  {/* ================================
-                    SNACKS SECTION - Competition Snacks
-                ==================================== */}
+                  {/* --- SNACKS SECTION - Competition Snacks --- */}
                   <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-white/90 text-lg font-medium">
-                        Snacks
+                        {t("performanceCompetitionBuilder.snacksLabel")}
                       </h2>
-                      <div className="flex gap-2">
-                        <SnackCreatorButton
-                          onClick={() => setSnackCreatorOpen(true)}
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
-                          onClick={() => setSnackPickerOpen(true)}
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add Snack
-                        </Button>
-                      </div>
+                      <GlobalMealActionBar
+                        slot="snacks"
+                        onCreateWithAI={() => {}}
+                        onCreateWithChef={() => {}}
+                        onSnackCreator={() => setSnackCreatorOpen(true)}
+                        onSave={(meal) => quickAdd("snacks", meal)}
+                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                        onFavorites={goToFavorites}
+                      />
                     </div>
 
                     <div className="space-y-3">
                       {dayLists.snacks
-                        .filter((m: Meal) => !m.id.startsWith("dyn-"))
                         .map((meal: Meal, idx: number) => (
                           <MealCard
                             key={meal.id}
@@ -1564,8 +1269,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                     err,
                                   );
                                   toast({
-                                    title: "Sync pending",
-                                    description: "Changes will sync automatically.",
+                                    title: t("metabolicBuilder.syncPending"),
+                                    description: t("metabolicBuilder.syncPendingDesc"),
                                   });
                                 });
                               } else {
@@ -1587,74 +1292,17 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                             }}
                           />
                         ))}
-                      {dayLists.snacks.filter(
-                        (m: Meal) => !m.id.startsWith("dyn-"),
-                      ).length === 0 && (
+                      {dayLists.snacks.length === 0 && (
                         <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
-                          <p className="mb-2">No snacks yet</p>
+                          <p className="mb-2">{t("metabolicBuilder.noSnacksYet")}</p>
                           <p className="text-xs text-white/40">
-                            Use "Add Snack" to add competition-safe snacks
+                            {t("performanceCompetitionBuilder.noSnacksHint")}
                           </p>
                         </div>
                       )}
                     </div>
                   </section>
 
-                  {/* ================================
-                    COACH TARGETS (Performance Builder) - READ ONLY
-                    Set from Client Dashboard
-                ==================================== */}
-                  <div className="col-span-full mt-6 rounded-2xl bg-black/30 backdrop-blur-xl border border-white/20 p-6">
-                    <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                      🎯 Coach Targets
-                    </h2>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Protein */}
-                      <div className="flex flex-col">
-                        <label className="text-sm text-white/70 mb-1">
-                          Protein (g)
-                        </label>
-                        <div className="bg-black/40 border border-white/20 text-white rounded-xl px-3 py-2">
-                          {coachTargetsDisplay.protein}
-                        </div>
-                      </div>
-
-                      {/* Starchy Carbs */}
-                      <div className="flex flex-col">
-                        <label className="text-sm text-white/70 mb-1">
-                          Starchy Carbs (g)
-                        </label>
-                        <div className="bg-black/40 border border-white/20 text-white rounded-xl px-3 py-2">
-                          {coachTargetsDisplay.starchy}
-                        </div>
-                      </div>
-
-                      {/* Fibrous Carbs */}
-                      <div className="flex flex-col">
-                        <label className="text-sm text-white/70 mb-1">
-                          Fibrous Carbs (g)
-                        </label>
-                        <div className="bg-black/40 border border-white/20 text-white rounded-xl px-3 py-2">
-                          {coachTargetsDisplay.fibrous}
-                        </div>
-                      </div>
-
-                      {/* Fats */}
-                      <div className="flex flex-col">
-                        <label className="text-sm text-white/70 mb-1">
-                          Fats (g)
-                        </label>
-                        <div className="bg-black/40 border border-white/20 text-white rounded-xl px-3 py-2">
-                          {coachTargetsDisplay.fats}
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="mt-4 text-sm text-white/60 text-center">
-                      Set targets from Client Dashboard
-                    </p>
-                  </div>
                 </>
               );
             })()
@@ -1678,10 +1326,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           variant="ghost"
                           className="text-white/80 hover:bg-black/50 border border-pink-400/30 text-xs font-medium flex items-center gap-1 flash-border"
                           onClick={() => {
-                            setAiMealSlot(
-                              key as "breakfast" | "lunch" | "dinner" | "snacks",
+                            setCreateWithChefSlot(
+                              key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                             );
-                            setAiMealModalOpen(true);
+                            setCreateWithChefOpen(true);
                           }}
                         >
                           <Sparkles className="h-3 w-3" />
@@ -1696,7 +1344,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         className="text-white/80 hover:bg-black/50 border border-emerald-400/30 text-xs font-medium flex items-center gap-1"
                         onClick={() => {
                           setCreateWithChefSlot(
-                            key as "breakfast" | "lunch" | "dinner",
+                            key as "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
                           );
                           setCreateWithChefOpen(true);
                         }}
@@ -1705,15 +1353,12 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         Create with Chef
                       </Button>
 
-                      {/* Plus button for manual entry */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white/80 hover:bg-white/10"
-                        onClick={() => openManualModal(key)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      <AddOwnMealButton
+                        slot={key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6"}
+                        onSave={(meal) => quickAdd(key as "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal)}
+                        onImageReady={(mealId, imageUrl) => { setBoard(prev => { if (!prev) return prev; const cur = getMealImageUrl(prev, mealId); if (shouldProtectExistingImage(cur, imageUrl)) return prev; const updated = updateMealImageInBoard(prev, mealId, imageUrl); saveBoard(updated).catch(() => {}); return updated; }); }}
+                        variant="icon"
+                      />
                     </div>
                   </div>
 
@@ -1750,8 +1395,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                                 err,
                               );
                               toast({
-                                title: "Sync pending",
-                                description: "Changes will sync automatically.",
+                                title: t("metabolicBuilder.syncPending"),
+                                description: t("metabolicBuilder.syncPendingDesc"),
                               });
                             });
                           } else {
@@ -1776,10 +1421,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                     {board.lists[key].length === 0 && (
                       <div className="rounded-2xl border border-dashed border-zinc-700 text-white/50 p-6 text-center text-sm">
                         <p className="mb-2">
-                          No {label.toLowerCase()} meals yet
+                          {t("metabolicBuilder.noSlotMealsYet", { slot: label.toLowerCase() })}
                         </p>
                         <p className="text-xs text-white/40">
-                          Use "+" to add meals
+                          {t("metabolicBuilder.addMealsHint")}
                         </p>
                       </div>
                     )}
@@ -1795,37 +1440,47 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           {/* Daily Targets Card */}
           <div className="col-span-full">
             <DailyTargetsCard
-              userId={clientId}
+              userId={effectiveUserId}
               showQuickAddButton={false}
-              targetsOverride={(() => {
-                const coachTargets = proStore.getTargets(clientId);
-                const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
-                return {
-                  protein_g: coachTargets.protein,
-                  carbs_g: totalCarbs,
-                  fat_g: coachTargets.fat,
-                  starchyCarbs_g: coachTargets.starchyCarbs || 0,
-                  fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
-                };
-              })()}
+              targetsOverride={effectiveTargets}
+              isLoading={nutritionStateLoading}
             />
           </div>
 
           {/* Remaining Macros Footer - Inline Mode */}
           {board &&
-            FEATURES.dayPlanning === "alpha" &&
             planningMode === "day" &&
             activeDayISO && (() => {
-              const dayLists = getDayLists(board, activeDayISO);
-              const computeSlotMacros = (meals: Meal[]) => ({
-                count: meals.length,
-                calories: meals.reduce((sum, m) => sum + (m.nutrition?.calories || 0), 0),
-                protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
-                carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
-                fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
-                starchyCarbs: meals.reduce((sum, m) => sum + ((m as any).starchyCarbs ?? m.nutrition?.starchyCarbs ?? 0), 0),
-                fibrousCarbs: meals.reduce((sum, m) => sum + ((m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs ?? 0), 0),
-              });
+              const dayLists = currentLists;
+              const computeSlotMacros = (meals: Meal[]) => {
+                let sc = 0, fc = 0;
+                for (const m of meals) {
+                  const storedStarchy = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
+                  const storedFibrous = (m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs;
+                  const totalCarbs = m.nutrition?.carbs || 0;
+                  if (typeof storedStarchy === "number" && storedStarchy > 0) {
+                    sc += storedStarchy;
+                    fc += typeof storedFibrous === "number" ? storedFibrous : 0;
+                  } else if (typeof storedFibrous === "number" && storedFibrous > 0) {
+                    fc += storedFibrous;
+                  } else {
+                    if (classifyMeal(m).isStarchMeal) {
+                      sc += totalCarbs;
+                    } else {
+                      fc += totalCarbs;
+                    }
+                  }
+                }
+                return {
+                  count: meals.length,
+                  calories: meals.reduce((sum, m) => sum + (m.nutrition?.calories || 0), 0),
+                  protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
+                  carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
+                  fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
+                  starchyCarbs: sc,
+                  fibrousCarbs: fc,
+                };
+              };
               const slots = {
                 breakfast: computeSlotMacros(dayLists.breakfast),
                 lunch: computeSlotMacros(dayLists.lunch),
@@ -1840,54 +1495,43 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
                 fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
               };
-              const dayAlreadyLocked = isDayLocked(activeDayISO, clientId);
+              const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
               
-              // Get coach targets from proStore for this client
-              const coachTargets = proStore.getTargets(clientId);
-              const totalCarbs = (coachTargets.starchyCarbs || 0) + (coachTargets.fibrousCarbs || 0);
-              const totalCalories = (coachTargets.protein * 4) + (totalCarbs * 4) + (coachTargets.fat * 9);
-              const targetsForFooter = {
-                calories: totalCalories,
-                protein_g: coachTargets.protein,
-                carbs_g: totalCarbs,
-                fat_g: coachTargets.fat,
-                starchyCarbs_g: coachTargets.starchyCarbs || 0,
-                fibrousCarbs_g: coachTargets.fibrousCarbs || 0,
-              };
-              
+              if (proClientId) return null;
               return (
                 <div className="col-span-full mb-6">
                   <RemainingMacrosFooter
+                    targetsOverride={effectiveTargets}
+                    isLoading={nutritionStateLoading}
                     consumedOverride={consumed}
-                    targetsOverride={targetsForFooter}
-                    showSaveButton={!dayAlreadyLocked}
+                    showSaveButton={false}
                     layoutMode="inline"
+                    prescriptionChangedMidDay={nutritionState?.prescriptionChangedMidDay}
+                    prescriptionChangeReason={nutritionState?.prescriptionChangeReason}
                     onSaveDay={async () => {
                       const targets = {
-                        calories: targetsForFooter.calories,
-                        protein_g: targetsForFooter.protein_g,
-                        carbs_g: targetsForFooter.carbs_g,
-                        fat_g: targetsForFooter.fat_g,
+                        calories:  prescription?.caloriesTarget || 0,
+                        protein_g: prescription?.proteinTarget  || 0,
+                        carbs_g:   prescription?.carbsTarget    || 0,
+                        fat_g:     prescription?.fatTarget      || 0,
                       };
                       const result = await lockDay({
                         dateISO: activeDayISO,
                         targets,
                         consumed,
                         slots,
-                      }, clientId);
+                      }, effectiveUserId);
                       
                       if (result.alreadyLocked) {
                         toast({
-                          title: "Already Locked",
+                          title: t("metabolicBuilder.alreadyLocked"),
                           description: result.message,
                           variant: "destructive",
                         });
                       } else {
                         try {
-                          await fetch(apiUrl(`/api/users/${clientId}/macros/daily-summary`), {
+                          await apiRequest(`/api/users/${clientId}/macros/daily-summary`, {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
                             body: JSON.stringify({
                               dateISO: activeDayISO,
                               calories: consumed.calories,
@@ -1905,15 +1549,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macros", "today"] });
                         queryClient.invalidateQueries({ queryKey: ["/api/users", clientId, "macro-logs", "daily"] });
                         window.dispatchEvent(new Event("macros:updated"));
-                        setQuickView({
-                          protein: consumed.protein,
-                          carbs: consumed.carbs,
-                          fat: consumed.fat,
-                          calories: consumed.calories,
-                          dateISO: activeDayISO,
-                        });
                         toast({
-                          title: "Day Saved to Coach Targets",
+                          title: t("performanceCompetitionBuilder.daySavedCoach"),
                           description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
                         });
                         setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
@@ -1945,21 +1582,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           }}
         />
 
-        <ManualMealModal
-          open={manualModalOpen}
-          onClose={() => {
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-          onSave={(meal) => {
-            if (manualModalList) {
-              quickAdd(manualModalList, meal);
-            }
-            setManualModalOpen(false);
-            setManualModalList(null);
-          }}
-        />
-
         <WeeklyOverviewModal
           open={showOverview}
           onClose={() => setShowOverview(false)}
@@ -1974,33 +1596,15 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             onClose={() => setShowDuplicateDayModal(false)}
             onConfirm={handleDuplicateDay}
             sourceDateISO={activeDayISO}
-            availableDates={weekDatesList.filter(
-              (date) => date !== activeDayISO,
-            )}
+            availableDates={getRolling14Days(activeDayISO || weekStartISO)}
           />
         )}
 
-        {FEATURES.dayPlanning === "alpha" && (
-          <DuplicateWeekModal
-            isOpen={showDuplicateWeekModal}
-            onClose={() => setShowDuplicateWeekModal(false)}
-            onConfirm={handleDuplicateWeek}
-            sourceWeekStartISO={weekStartISO}
-          />
-        )}
 
         <ShoppingListPreviewModal
           isOpen={shoppingListModal.isOpen}
           onClose={() => setShoppingListModal({ isOpen: false, meal: null })}
           meal={shoppingListModal.meal}
-        />
-
-        {/* Snack Picker Drawer - Competition Snacks */}
-        <SnackPickerDrawer
-          open={snackPickerOpen}
-          onClose={() => setSnackPickerOpen(false)}
-          onSnackSelect={handleSnackSelect}
-          dietType="competition"
         />
 
         {/* Create With Chef Modal - with STRICT performance guardrails */}
@@ -2011,6 +1615,10 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           onMealGenerated={handleChefMealGenerated}
           dietType="performance"
           starchContext={starchContext}
+          remainingMacros={remainingMacrosForChef}
+          builderMode="hybrid"
+          generationContext={generationContext}
+          proClientId={proClientId}
         />
 
         {/* Snack Creator Modal (Phase 2 - craving to healthy snack) - with STRICT performance guardrails */}
@@ -2019,110 +1627,20 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           onOpenChange={setSnackCreatorOpen}
           onSnackGenerated={handleSnackSelect}
           dietType="performance"
+          starchContext={starchContext}
         />
 
-        {/* Shopping List Buttons */}
-        {board &&
-          (() => {
-            const currentBoard = board; // Capture board in local variable for type safety
-
-            const allMeals =
-              planningMode === "day" && activeDayISO
-                ? (() => {
-                    const dayLists = getDayLists(currentBoard, activeDayISO);
-                    return [
-                      ...dayLists.breakfast,
-                      ...dayLists.lunch,
-                      ...dayLists.dinner,
-                      ...dayLists.snacks,
-                    ];
-                  })()
-                : [
-                    ...currentBoard.lists.breakfast,
-                    ...currentBoard.lists.lunch,
-                    ...currentBoard.lists.dinner,
-                    ...currentBoard.lists.snacks,
-                  ];
-
-            const ingredients = allMeals.flatMap((meal) =>
-              normalizeIngredients(meal.ingredients || []),
-            );
-
-            if (ingredients.length === 0) return null;
-
-            // DAY MODE: Show dual buttons
-            if (
-              FEATURES.dayPlanning === "alpha" &&
-              planningMode === "day" &&
-              activeDayISO
-            ) {
-              const dayName = formatDateDisplay(activeDayISO, { weekday: "long" });
-
-              return (
-                <div className={`fixed ${isDesktop ? "left-[240px]" : "left-0"} right-0 pb-0 z-[60] bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl`} style={{ bottom: isDesktop ? 0 : "calc(64px + var(--safe-bottom, 0px))" }}>
-                  <div className="container mx-auto px-4 py-3">
-                    <div className="flex flex-col gap-2">
-                      <div className="text-white text-sm font-semibold">
-                        Shopping List Ready - {ingredients.length} ingredients
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => {
-                            handleAddToShoppingList();
-                            setTimeout(
-                              () =>
-                                setLocation(
-                                  "/shopping-list-v2?from=performance-competition-builder",
-                                ),
-                              100,
-                            );
-                          }}
-                          className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
-                          data-testid="button-send-day-shopping"
-                        >
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Send {dayName}
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            handleAddEntireWeekToShoppingList();
-                            setTimeout(
-                              () =>
-                                setLocation(
-                                  "/shopping-list-v2?from=performance-competition-builder",
-                                ),
-                              100,
-                            );
-                          }}
-                          className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border border-white/30"
-                          data-testid="button-send-week-shopping"
-                        >
-                          <ShoppingCart className="h-5 w-5 mr-2" />
-                          Send Entire Week
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            // WEEK MODE: Use ShoppingAggregateBar
-            return (
-              <ShoppingAggregateBar
-                ingredients={ingredients}
-                source="Performance & Competition Builder"
-                sourceSlug="performance-competition-builder"
-                aboveBottomNav
-              />
-            );
-          })()}
+        {/* Shopping bar */}
+        <BuilderShoppingBar
+          board={board}
+          activeDayISO={activeDayISO}
+          currentWeekStartISO={weekStartISO || ""}
+          sourceSlug="performance-competition-builder"
+        />
       </div>
 
       {/* Daily Totals Info Modal - Next Steps After First Meal */}
-      <Dialog
-        open={showDailyTotalsInfo}
-        onOpenChange={(open) => {
+      <InformationModal open={showDailyTotalsInfo} onOpenChange={(open) => {
           if (!open) {
             setShowDailyTotalsInfo(false);
             setHasSeenDailyTotalsInfo(true);
@@ -2131,89 +1649,65 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
               "true",
             );
           }
-        }}
-      >
-        <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md mx-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-white text-xl flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-orange-400" />
-              Next Steps - Track Your Progress!
-            </DialogTitle>
-          </DialogHeader>
+        }} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl" title={<span className="flex items-center gap-2"><Sparkles className="h-6 w-6 text-orange-400" />{t("metabolicBuilder.nextStepsTitle")}</span>}>
           <div className="text-white/90 text-sm space-y-4">
             <p className="text-base font-semibold text-white">
-              Great job creating your meals! Here's what to do next:
+              {t("metabolicBuilder.nextStepsGreat")}
             </p>
 
             <div className="space-y-3">
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-orange-400" />
-                  Option 1: Track Your Macros
+                  {t("metabolicBuilder.option1Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send your day to the Macro Calculator to ensure you're hitting
-                  your nutrition targets. Look for the "Send to Macros" button
-                  below.
+                  {t("metabolicBuilder.option1Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  Option 2: Plan Your Week
+                  {t("metabolicBuilder.option2Title")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Use the Day/Week toggle at the top to switch between planning
-                  a single day or your entire week. You can duplicate days or
-                  create each day individually.
+                  {t("metabolicBuilder.option2Desc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1">
-                  💡 Pro Tip: Macro Tracking
+                  {t("metabolicBuilder.proTipTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  Send just ONE day to macros at a time (not the whole week).
-                  This way, if you change meals on other days, you won't have
-                  outdated data.
+                  {t("metabolicBuilder.proTipDesc")}
                 </p>
               </div>
 
               <div className="bg-black/30 p-3 rounded-lg border border-white/10">
                 <p className="font-semibold text-white mb-1 flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4 text-emerald-400" />
-                  Shopping List Ready
+                  {t("metabolicBuilder.shoppingListTitle")}
                 </p>
                 <p className="text-white/70 text-xs">
-                  You CAN send your entire week to the shopping list! This
-                  consolidates all ingredients for easy grocery shopping. Click
-                  "Send Entire Week" at the bottom.
+                  {t("metabolicBuilder.shoppingListDesc")}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-white/60 text-center pt-2 border-t border-white/10">
-              Next: Check out the Shopping List to learn how to use it
-              effectively!
+              {t("metabolicBuilder.shoppingListNext")}
             </p>
           </div>
-        </DialogContent>
-      </Dialog>
+      </InformationModal>
 
       {/* Quick Tour Modal */}
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Performance & Competition Builder Guide"
+        title={t("performanceCompetitionBuilder.tourTitle")}
         steps={PERFORMANCE_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
-      />
-      <MealReadySheet
-        show={showMealReady}
-        board={board}
-        onRefresh={refreshBoard}
-        onClose={() => setShowMealReady(false)}
       />
     </motion.div>
   );

@@ -104,8 +104,8 @@ export default function ForgotPassword() {
           </Button>
 
           <div className="flex items-center justify-center mb-6">
-            <div className="p-3 rounded-full bg-purple-500/20">
-              <Mail className="h-8 w-8 text-purple-400" data-testid="icon-mail" />
+            <div className="p-3 rounded-full bg-orange-500/20">
+              <Mail className="h-8 w-8 text-orange-400" data-testid="icon-mail" />
             </div>
           </div>
 
@@ -149,7 +149,9 @@ export default function ForgotPassword() {
 
               {forgotPasswordMutation.isError && (
                 <div className="text-sm text-red-300 text-center" data-testid="text-error">
-                  An error occurred. Please try again later.
+                  {(forgotPasswordMutation.error as Error)?.message?.startsWith("503")
+                    ? "Email sending is temporarily unavailable, please try again later."
+                    : "An error occurred. Please try again later."}
                 </div>
               )}
             </form>

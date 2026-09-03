@@ -2,16 +2,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Plus } from "lucide-react";
 import { buildMacroLogEntryFromMeal } from "@/utils/macros";
-import { localYYYYMMDD } from "@/utils/dates";
 import { normalizeMealToMacros } from "@/utils/normalizeMealToMacros";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { post } from "@/lib/api";
-
-function storageKey(userId: string, mealId?: string) {
-  const day = localYYYYMMDD(new Date());
-  return `macros.logged.${userId}.${mealId || "unknown"}.${day}`;
-}
+import { canLogMealToMacros, markMealLogged } from "@/lib/macroLogGuard";
 
 type Props = {
   userId: string;
@@ -36,11 +31,11 @@ export default function LogToMacrosButton(p: Props) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const key = useMemo(() => storageKey(p.userId, p.mealId), [p.userId, p.mealId]);
+  const mealId = useMemo(() => p.mealId || "unknown", [p.mealId]);
 
   useEffect(() => {
-    if (localStorage.getItem(key) === "1") setStatus("success");
-  }, [key]);
+    if (!canLogMealToMacros(p.userId, mealId)) setStatus("success");
+  }, [p.userId, mealId]);
 
   async function logOnce() {
     if (status === "loading" || status === "success") return;
@@ -76,8 +71,10 @@ export default function LogToMacrosButton(p: Props) {
         protein: meal.nutrition.protein,
         carbs: meal.nutrition.carbs,
         fat: meal.nutrition.fat,
-        starchyCarbs: (p.starchyCarbsPerServing ?? 0) * servings,
-        fibrousCarbs: (p.fibrousCarbsPerServing ?? 0) * servings,
+        // Send null when props weren't provided so the server fallback runs
+        // (treats all carbs as starchy when no genuine split is known).
+        starchyCarbs: p.starchyCarbsPerServing != null ? p.starchyCarbsPerServing * servings : null,
+        fibrousCarbs: p.fibrousCarbsPerServing != null ? p.fibrousCarbsPerServing * servings : null,
       });
 
       // Trigger instant macro refresh in Biometrics dashboard  
@@ -96,7 +93,7 @@ export default function LogToMacrosButton(p: Props) {
         duration: 3000,
       });
 
-      localStorage.setItem(key, "1");
+      markMealLogged(p.userId, mealId);
       setStatus("success");
       p.onLogged?.();
     } catch (e: any) {

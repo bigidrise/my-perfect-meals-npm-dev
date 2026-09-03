@@ -5,15 +5,21 @@ import { clientNotes, studioMemberships, coachingInvites } from "../db/schema/st
 import { users } from "../../shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireEmailService } from "../middleware/requireEmailService";
 import { eq, and, sql, isNull, gt } from "drizzle-orm";
 import { resolveCoach, isValidCoachSlug, coaches } from "../config/coaches";
 import { sendCoachActivationEmail, sendCoachingInviteEmail } from "../services/emailService";
 import { randomUUID } from "crypto";
+import {
+  findEmailIdentityCandidates,
+  normalizeEmailIdentity,
+  resolveEmailIdentityForUser,
+} from "../services/emailIdentityService";
 
 const router = Router();
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
-const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: "2024-06-20" }) : null;
+const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: "2025-10-29.clover" }) : null;
 
 const ASSIGNMENT_TAG = "system:new_client_assignment";
 const OVERDUE_HOURS = 24;
@@ -74,6 +80,30 @@ router.post("/notify-coach", requireAuth, async (req: Request, res: Response) =>
       .limit(1);
 
     if (invite) {
+      if (invite.status !== "pending" || invite.acceptedAt) {
+        return res.status(409).json({ ok: false, error: "This invitation has already been used." });
+      }
+      if (new Date() > invite.expiresAt) {
+        return res.status(410).json({ ok: false, error: "This invitation has expired." });
+      }
+      const identity = await resolveEmailIdentityForUser(authUser.id);
+      if (identity.candidates.length > 1) {
+        return res.status(409).json({
+          ok: false,
+          error: "EMAIL_IDENTITY_REVIEW_REQUIRED",
+          message: "This email address is linked to multiple legacy accounts. An administrator must review the account before this invitation can be accepted.",
+        });
+      }
+      if (
+        identity.status !== "unique" ||
+        normalizeEmailIdentity(identity.user.email) !== normalizeEmailIdentity(invite.email)
+      ) {
+        return res.status(403).json({
+          ok: false,
+          error: "EMAIL_MISMATCH",
+          message: "This invitation was sent to a different email address.",
+        });
+      }
       inviteRecord = invite;
       const coachFromInvite = resolveCoach(invite.coachSlug);
       if (coachFromInvite) {
@@ -170,7 +200,7 @@ router.post("/notify-coach", requireAuth, async (req: Request, res: Response) =>
   }
 });
 
-router.post("/activate-client/:clientId", requireAuth, async (req: Request, res: Response) => {
+router.post("/activate-client/:clientId", requireAuth, requireEmailService, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser?.id) {
     return res.status(401).json({ ok: false, error: "Unauthenticated" });
@@ -226,7 +256,7 @@ router.post("/activate-client/:clientId", requireAuth, async (req: Request, res:
 
     console.log(`[CoachActivate] Client activated — coach: ${coachEntry.slug}, client: ${clientId}`);
 
-    const appUrl = process.env.APP_URL || "https://myperfectmeals.com";
+    const appUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || "https://app.myperfectmeals.ai";
     try {
       const [clientUser] = await db
         .select({ email: users.email })
@@ -343,7 +373,7 @@ router.get("/queue/new-clients", requireAuth, async (req: Request, res: Response
   }
 });
 
-router.post("/send-invite", requireAuth, async (req: Request, res: Response) => {
+router.post("/send-invite", requireAuth, requireEmailService, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser?.id) return res.status(401).json({ ok: false, error: "Unauthenticated" });
 
@@ -361,6 +391,13 @@ router.post("/send-invite", requireAuth, async (req: Request, res: Response) => 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ ok: false, error: "Invalid email format" });
+  }
+  const emailCandidates = await findEmailIdentityCandidates(email);
+  if (emailCandidates.length > 1) {
+    return res.status(409).json({
+      ok: false,
+      error: "This email address belongs to multiple legacy accounts. Ask an administrator to resolve the account identity before sending an invitation.",
+    });
   }
 
   const coach = resolveCoach(coachEntry.slug);
@@ -397,7 +434,7 @@ router.post("/send-invite", requireAuth, async (req: Request, res: Response) => 
       expiresAt,
     });
 
-    const appUrl = process.env.APP_URL || "https://myperfectmeals.com";
+    const appUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || "https://app.myperfectmeals.ai";
     await sendCoachingInviteEmail({
       to: email,
       coachDisplayName: coach.displayName,

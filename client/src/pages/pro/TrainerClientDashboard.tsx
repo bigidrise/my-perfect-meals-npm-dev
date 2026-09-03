@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { getAuthHeaders } from "@/lib/auth";
@@ -28,60 +29,133 @@ import {
   Stethoscope,
   AlertTriangle,
   Sparkles,
+  Trash2,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PillButton } from "@/components/ui/pill-button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { ProClientBanner } from "@/components/pro/ProClientBanner";
 import WeeklyWeightTrendCard from "@/components/pro/WeeklyWeightTrendCard";
+import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
+import AddToCalendarButtons from "@/components/AddToCalendarButtons";
+import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
+import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
 
-const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
-  {
-    icon: "1",
-    title: "Trainer Studio",
-    description:
-      "Welcome to your coaching studio. Set macros, assign meal builders, and guide nutrition strategy here.",
-  },
-  {
-    icon: "2",
-    title: "Macro Targets",
-    description:
-      "Set protein, carbs, and fats for your client. These targets drive every meal they see in the app.",
-  },
-  {
-    icon: "3",
-    title: "Starch Game Plan",
-    description:
-      "Choose how starchy carbs are distributed. One Starch Meal concentrates all starch into one meal for appetite control. Flex Split divides across two meals. Fibrous carbs are always unlimited!",
-  },
-  {
-    icon: "4",
-    title: "Assigned Meal Builder",
-    description:
-      "Choose which meal builder your client will use. This determines their entire in-app experience.",
-  },
-  {
-    icon: "5",
-    title: "Client Meal Builder",
-    description:
-      "Open your client's assigned meal builder directly. The button updates automatically when you change the assigned builder above.",
-  },
-];
+
+const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
+  macros: [
+    {
+      icon: "📊",
+      title: "Macro Targets & Coaching Setup",
+      description:
+        "Set the client's daily nutrition targets here. These drive meal generation across the platform.\n\nProtein, carbs, and fat numbers are yours to set based on the client's goals. If a clinical protocol is active, it shapes ingredient choices within your targets — it does not override your numbers.",
+    },
+  ],
+  mealMode: [
+    {
+      icon: "🏋️",
+      title: "Meal Mode",
+      description:
+        "Choose the coaching style for this client's meals.\n\n• General Nutrition — balanced everyday eating\n• Performance Nutrition — lean physique and body composition\n• Performance & Competition — high-output athletic fueling\n\nIf a clinical protocol is active, it applies medical rules on top of the Meal Mode you select.",
+    },
+  ],
+  protocols: [
+    {
+      icon: "🩺",
+      title: "System Protocols",
+      description:
+        "These are clinical rules active for this client — set by their physician or triggered by lab values. They are not your controls.\n\nUse this section to understand what the AI is already enforcing. If Metabolic Med is active, do not lower protein targets or increase starchy carbs — the system manages portions.\n\nProtocol changes must go through the physician portal.",
+    },
+  ],
+};
 
 export default function TrainerClientDashboard() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  const TRAINER_DASHBOARD_TOUR_STEPS: TourStep[] = [
+    {
+      icon: "1",
+      title: t("pro.trainerDashboard.tour.step1Title"),
+      description: t("pro.trainerDashboard.tour.step1Desc"),
+    },
+    {
+      icon: "2",
+      title: t("pro.trainerDashboard.tour.step2Title"),
+      description: t("pro.trainerDashboard.tour.step2Desc"),
+    },
+    {
+      icon: "3",
+      title: t("pro.trainerDashboard.tour.step3Title"),
+      description: t("pro.trainerDashboard.tour.step3Desc"),
+    },
+    {
+      icon: "4",
+      title: t("pro.trainerDashboard.tour.step4Title"),
+      description: t("pro.trainerDashboard.tour.step4Desc"),
+    },
+    {
+      icon: "5",
+      title: t("pro.trainerDashboard.tour.step5Title"),
+      description: t("pro.trainerDashboard.tour.step5Desc"),
+    },
+    {
+      icon: "6",
+      title: t("pro.trainerDashboard.tour.step6Title"),
+      description: t("pro.trainerDashboard.tour.step6Desc"),
+    },
+  ];
   const [, params] = useRoute("/pro/clients/:id/trainer");
   const clientId = params?.id as string;
 
   const quickTour = useQuickTour("trainer-client-dashboard");
+  const [explainerStep, setExplainerStep] = useState<TourStep[] | null>(null);
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
-  const [t, setT] = useState<Targets>(() => proStore.getTargets(clientId));
+  const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
+  const [isDirty, setIsDirty] = useState(false);
+  const updateMacros = (next: Targets) => { setMacros(next); setIsDirty(true); };
+
+  interface CheckInSchedule {
+    id: string;
+    dueAt: string;
+    done: boolean;
+    note: string | null;
+    coachDisplayName: string;
+  }
+  const [upcomingCheckIns, setUpcomingCheckIns] = useState<CheckInSchedule[]>([]);
+
+  const fetchUpcomingCheckIns = useCallback(() => {
+    const uid = client?.clientUserId || client?.userId;
+    if (!uid) {
+      setUpcomingCheckIns([]);
+      return;
+    }
+    fetch(apiUrl(`/api/check-in-schedules?clientId=${encodeURIComponent(uid)}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => {
+        if (!r.ok) { setUpcomingCheckIns([]); return null; }
+        return r.json();
+      })
+      .then((data) => {
+        setUpcomingCheckIns(data?.schedules ?? []);
+      })
+      .catch(() => { setUpcomingCheckIns([]); });
+  }, [client]);
+
+  useEffect(() => {
+    fetchUpcomingCheckIns();
+  }, [fetchUpcomingCheckIns]);
+
   const [ctx, setCtx] = useState<ClinicalContext>(() =>
     proStore.getContext(clientId),
   );
@@ -108,6 +182,10 @@ export default function TrainerClientDashboard() {
   const [labs, setLabs] = useState<KeyLabs | null>(null);
   const [recommendedProtocol, setRecommendedProtocol] = useState<string | null>(null);
   const [recommendedDirectiveKey, setRecommendedDirectiveKey] = useState<string | null>(null);
+  const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
+  const [scConditions, setScConditions] = useState<string[]>([]);
+  const [nutritionSummary, setNutritionSummary] = useState<any>(null);
+  const [nutritionSummaryLoading, setNutritionSummaryLoading] = useState(false);
 
   const PROTOCOL_TO_FLAG: Record<string, string> = {
     "liver-disease": "liverDisease",
@@ -119,13 +197,13 @@ export default function TrainerClientDashboard() {
   const activeProtocolLabel = useMemo(() => {
     if (!assignedBuilder || !PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]) return null;
     if (assignedBuilder === "anti_inflammatory") {
-      return resolveClinicalProtocolLabel(t.flags);
+      return resolveClinicalProtocolLabel(macros.flags);
     }
     return PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label;
-  }, [assignedBuilder, t.flags]);
+  }, [assignedBuilder, macros.flags]);
 
   useEffect(() => {
-    setT(proStore.getTargets(clientId));
+    setMacros(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
     const c = proStore.getClient(clientId);
     if (c) {
@@ -133,6 +211,25 @@ export default function TrainerClientDashboard() {
       setAssignedBuilder(c.assignedBuilder);
     }
   }, [clientId]);
+
+  // Step 3: Prefill macro targets from the canonical API on first visit.
+  // If proStore already has coach-set targets for this client, those are shown instead.
+  useEffect(() => {
+    if (!resolvedClientUserId || resolvedClientUserId === clientId) return;
+    if (proStore.hasTargets(clientId)) return;
+    apiRequest(`/api/users/${resolvedClientUserId}/macro-targets`)
+      .then((data) => {
+        if (!data || !data.hasTargets) return;
+        setMacros((prev) => ({
+          ...prev,
+          protein: data.protein_g || prev.protein,
+          fat: data.fat_g || prev.fat,
+          starchyCarbs: data.starchyCarbs_g || prev.starchyCarbs,
+          fibrousCarbs: data.fibrousCarbs_g || prev.fibrousCarbs,
+        }));
+      })
+      .catch(() => {});
+  }, [resolvedClientUserId, clientId]);
 
   const fetchBodyComp = useCallback(() => {
     const c = proStore.getClient(clientId);
@@ -153,14 +250,25 @@ export default function TrainerClientDashboard() {
   }, [fetchBodyComp]);
 
   useEffect(() => {
+    if (!resolvedClientUserId) return;
+    setNutritionSummaryLoading(true);
+    fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/nutrition-summary`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setNutritionSummary(data); })
+      .catch(() => {})
+      .finally(() => setNutritionSummaryLoading(false));
+  }, [resolvedClientUserId]);
+
+  useEffect(() => {
     const uid = resolvedClientUserId;
     if (!uid) return;
-    fetch(apiUrl(`/api/users/${uid}/goal`), { headers: { ...getAuthHeaders() }, credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/users/${uid}/goal`)
       .then((data) => { if (data) setClientGoal(data); })
       .catch(() => {});
-    fetch(apiUrl(`/api/biometrics/labs/${uid}`), { headers: { ...getAuthHeaders() }, credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiRequest(`/api/biometrics/labs/${uid}`)
       .then((data) => {
         if (data?.labs) {
           setLabs({ a1c: data.labs.a1c ?? null, ldl: data.labs.ldl ?? null });
@@ -172,6 +280,21 @@ export default function TrainerClientDashboard() {
           const flagKey = PROTOCOL_TO_FLAG[data.protocolSignal.protocol] ?? null;
           setRecommendedDirectiveKey(flagKey);
         }
+        // Derive active conditions from lab signal + user specialty selections
+        const derived: string[] = [];
+        if (data?.protocolSignal?.protocol) derived.push(data.protocolSignal.protocol);
+        const scMap: Record<string, string> = {
+          cardiac: 'heart-failure', renal: 'kidney-disease',
+          'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
+          'oncology-support': 'oncology-support',
+        };
+        const scArr: string[] = data?.specialtyConditions ?? (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        for (const sc of scArr) {
+          const mapped = scMap[sc];
+          if (mapped && !derived.includes(mapped)) derived.push(mapped);
+        }
+        setLabDerivedConditions(derived);
+        setScConditions(scArr);
       })
       .catch(() => {});
   }, [clientId, resolvedClientUserId]);
@@ -182,7 +305,7 @@ export default function TrainerClientDashboard() {
       if (c) {
         setClient(c);
         setAssignedBuilder(c.assignedBuilder);
-        setT(proStore.getTargets(clientId));
+        setMacros(proStore.getTargets(clientId));
         setCtx(proStore.getContext(clientId));
       }
       fetchBodyComp();
@@ -193,43 +316,69 @@ export default function TrainerClientDashboard() {
   }, [clientId, fetchBodyComp]);
 
   const saveTargets = async () => {
-    proStore.setTargets(clientId, t);
+    proStore.setTargets(clientId, macros);
 
-    const totalCarbs = (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
-    const totalCal = (t.protein * 4) + (totalCarbs * 4) + (t.fat * 9);
+    const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
+    const totalCal = (macros.protein * 4) + (totalCarbs * 4) + (macros.fat * 9);
     const dbUserId = client?.clientUserId || client?.userId;
 
-    if (dbUserId) {
-      try {
-        const res = await fetch(apiUrl(`/api/users/${dbUserId}/macro-targets`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
-          body: JSON.stringify({
-            calories: totalCal,
-            protein_g: t.protein,
-            carbs_g: totalCarbs,
-            fat_g: t.fat,
-          }),
-        });
-        if (!res.ok) {
-          console.error("Failed to sync macro targets to database:", res.status);
-        }
-      } catch (e) {
-        console.error("Failed to sync macro targets to database:", e);
+    // If the client hasn't linked their account yet, dbUserId will be the
+    // local proStore ID (not a real DB user ID). We save to proStore only
+    // and warn the trainer — we do NOT silently fire a doomed DB request.
+    if (!dbUserId || dbUserId === clientId) {
+      linkUserToClient(clientId, clientId);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
       }
+      setIsDirty(false);
+      toast({
+        title: t("pro.trainerDashboard.save"),
+        description: "This client hasn't linked their account yet. Targets are saved on your device — they'll sync to the client once they enter their access code.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      // Mirror to localStorage so RemainingMacrosFooter resolves targets
-      // across sessions without needing "Send Macros to Biometrics" separately
-      try {
-        const { setMacroTargets } = await import("@/lib/dailyLimits");
-        await setMacroTargets(
-          { calories: totalCal, protein_g: t.protein, carbs_g: totalCarbs, fat_g: t.fat },
-          dbUserId,
-        );
-      } catch (e) {
-        console.error("Failed to mirror macro targets to localStorage:", e);
-      }
+    // Client is linked — persist to their DB account
+    try {
+      await apiRequest(`/api/users/${dbUserId}/macro-targets`, {
+        method: "POST",
+        body: JSON.stringify({
+          calories: totalCal,
+          protein_g: macros.protein,
+          carbs_g: totalCarbs,
+          fat_g: macros.fat,
+          starchyCarbs_g: macros.starchyCarbs,
+          fibrousCarbs_g: macros.fibrousCarbs,
+        }),
+      });
+    } catch (e) {
+      toast({
+        title: "Failed to save targets",
+        description: e instanceof Error ? e.message : "Could not sync targets to client's account. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Mirror to localStorage so RemainingMacrosFooter resolves targets
+    // across sessions without needing "Send Macros to Biometrics" separately
+    try {
+      const { setMacroTargets } = await import("@/lib/dailyLimits");
+      await setMacroTargets(
+        {
+          calories: totalCal,
+          protein_g: macros.protein,
+          carbs_g: totalCarbs,
+          fat_g: macros.fat,
+          starchyCarbs_g: macros.starchyCarbs,
+          fibrousCarbs_g: macros.fibrousCarbs,
+        },
+        dbUserId,
+      );
+    } catch (e) {
+      // localStorage mirror failed — not fatal, DB already saved
+      console.warn("Failed to mirror macro targets to localStorage:", e);
     }
 
     // Link both the proStore clientId and the real user ID so builders
@@ -242,9 +391,10 @@ export default function TrainerClientDashboard() {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
     }
+    setIsDirty(false);
     toast({
-      title: "Targets saved",
-      description: "Macro targets updated successfully.",
+      title: t("pro.trainerDashboard.saved"),
+      description: "Macro targets synced to client's account.",
     });
   };
 
@@ -256,25 +406,78 @@ export default function TrainerClientDashboard() {
     });
   };
 
-  const scheduleCheckIn = () => {
-    const weeks = ctx.checkInWeeks;
-    if (!weeks) {
-      toast({ title: "Select weeks", description: "Choose 2, 4, 8, or 12 weeks for the check-in." });
+  const scheduleCheckIn = async () => {
+    const dateStr = ctx.checkInDate;
+    if (!dateStr) {
+      toast({ title: "Select a date", description: "Pick a check-in date above." });
       return;
     }
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + weeks * 7);
-    const nextISO = nextDate.toISOString().split("T")[0];
+
+    // resolvedClientUserId falls back to clientId when the client hasn't linked;
+    // in that case it equals clientId which is a local ID, not a real DB user ID.
+    const linkedUserId = resolvedClientUserId !== clientId ? resolvedClientUserId : undefined;
+    if (!linkedUserId) {
+      toast({
+        title: "Client not linked",
+        description: "This client must connect their account before check-ins can be scheduled.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const nextDate = new Date(dateStr + "T12:00:00");
+    const nextISO = dateStr;
     const label = nextDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
-    setCtx({ ...ctx, nextCheckInISO: nextISO, checkInWeeks: weeks });
-    toast({
-      title: "Check-in scheduled",
-      description: `Next check-in set for ${label} (${weeks} weeks).`,
-    });
+
+    try {
+      const res = await fetch(apiUrl("/api/check-in-schedules"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          clientUserId: linkedUserId,
+          dueAt: nextDate.toISOString(),
+          note: ctx.coachNote?.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to schedule check-in");
+      }
+
+      proStore.setContext(clientId, { ...ctx, nextCheckInISO: nextISO, checkInDate: dateStr });
+      setCtx({ ...ctx, nextCheckInISO: nextISO, checkInDate: dateStr });
+      fetchUpcomingCheckIns();
+      toast({
+        title: "Check-in scheduled",
+        description: `Next check-in set for ${label}. Client has been notified.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Scheduling failed",
+        description: err instanceof Error ? err.message : "Could not schedule check-in. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const TRAINER_BUILDER_KEYS = getBuilderKeys("trainer");
+  const cancelCheckIn = async (id: string) => {
+    try {
+      const res = await fetch(apiUrl(`/api/check-in-schedules/${id}`), {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to cancel");
+      setUpcomingCheckIns((prev) => prev.filter((ci) => ci.id !== id));
+      toast({ title: "Check-in cancelled", description: "The scheduled check-in has been removed." });
+    } catch {
+      toast({ title: "Error", description: "Could not cancel check-in.", variant: "destructive" });
+    }
+  };
+
+  const TRAINER_MEAL_MODE_KEYS = getBuilderKeys("trainer");
 
   const handleBuilderAssignment = async (builderKey: ProfessionalBuilderKey) => {
     if (!resolvedClientUserId) {
@@ -327,10 +530,11 @@ export default function TrainerClientDashboard() {
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
           </button>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">
               Trainer Studio
             </h1>
+            <p className="text-[11px] text-white/50 truncate">Set meal strategy, macros, and coaching direction.</p>
           </div>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
@@ -343,9 +547,12 @@ export default function TrainerClientDashboard() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
-          <p className="text-white/90 mt-3 text-lg">
-            {client?.name || "Client"}
-          </p>
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <p className="text-white/90 text-lg">
+              {client?.name || "Client"}
+            </p>
+            <PillButton onClick={quickTour.openTour} className="shrink-0">How to Use</PillButton>
+          </div>
           {clientGoal?.goalType && (
             <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
               <span className="text-2xl">
@@ -368,7 +575,7 @@ export default function TrainerClientDashboard() {
         {(activeProtocolLabel || recommendedProtocol || labs) && (
           <Card className="bg-white/5 border border-teal-500/20">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2 text-sm font-semibold">
+              <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
                 <Stethoscope className="h-4 w-4 text-teal-400" /> Health Context
                 <span className="ml-auto text-xs font-normal text-white/40 italic">read-only</span>
               </CardTitle>
@@ -400,6 +607,45 @@ export default function TrainerClientDashboard() {
                   </span>
                 </div>
               ) : null}
+              {/* Active Clinical Supports */}
+              <div className="flex items-start gap-2 pt-0.5">
+                <span className="text-xs text-white/50 w-28 shrink-0 mt-0.5">Active Supports</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {[
+                    { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                        activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                    { key: "cardiac",            label: "Cardiac Health",    isActive: !!macros?.flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                    { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!macros?.flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                    { key: "liver-support",      label: "Liver Support",     isActive: !!macros?.flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                    { key: "liver-disease",      label: "Liver Disease",     isActive: !!macros?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                    { key: "oncology-support",   label: "Oncology Support",  isActive: !!macros?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!macros?.flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                  ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 text-xs ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {/* Hormonal & Metabolic — Second Row */}
+              <div className="flex items-start gap-2 pt-0.5">
+                <span className="text-xs text-white/50 w-28 shrink-0 mt-0.5">Hormonal:</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {[
+                    { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                    { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "hyperthyroid",       label: "Hyperthyroid",      activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                    { key: "menopause",          label: "Menopause",         activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                    { key: "perimenopause",      label: "Perimenopause",     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                    { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                  ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
+                    <span key={key} className={`flex items-center gap-1 text-xs ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
               {labs && (
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-white/50 w-28 shrink-0">Key Labs</span>
@@ -425,72 +671,39 @@ export default function TrainerClientDashboard() {
 
         {recommendedDirectiveKey && recommendedProtocol && (
           <Card className={`border ${
-            (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+            (macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
               ? "bg-teal-900/20 border-teal-500/40"
               : "bg-amber-900/20 border-amber-500/40"
           }`}>
             <CardContent className="pt-4 pb-4">
               <div className="flex items-start gap-3">
                 <Sparkles className={`h-5 w-5 mt-0.5 shrink-0 ${
-                  (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                  (macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                     ? "text-teal-400"
                     : "text-amber-400"
                 }`} />
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-semibold mb-1 ${
-                    (t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                    (macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? "text-teal-300"
                       : "text-amber-300"
                   }`}>
-                    {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                    {(macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? `${recommendedProtocol} Directive Applied`
-                      : "Science-Backed Directive Recommended"}
+                      : "Clinical Protocol Recommended by System"}
                   </p>
                   <p className="text-xs text-white/60 leading-relaxed mb-3">
-                    {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
+                    {(macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
                       ? `This client's meal plan is following the ${recommendedProtocol} directive derived from their lab values. Macros and meals will reflect this protocol.`
-                      : `This client's lab results support the ${recommendedProtocol} directive within the Anti-Inflammatory builder. Applying it aligns their meals with clinical lab findings — the macro targets still apply.`}
+                      : `This client's lab results support the ${recommendedProtocol} directive. Clinical directives must be applied by a physician or qualified clinical professional — contact the assigned physician to activate this protocol.`}
                   </p>
-                  {!(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        const studioId = client?.studioId;
-                        const targetUserId = resolvedClientUserId;
-                        if (studioId && targetUserId) {
-                          try {
-                            const res = await fetch(
-                              apiUrl(`/api/studios/${studioId}/clients/${targetUserId}/apply-system-recommendation`),
-                              {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-                                credentials: "include",
-                                body: JSON.stringify({
-                                  directiveKey: recommendedDirectiveKey,
-                                  directiveLabel: recommendedProtocol,
-                                  protocol: recommendedDirectiveKey,
-                                }),
-                              }
-                            );
-                            if (!res.ok) throw new Error("Server rejected recommendation");
-                          } catch {
-                            toast({ title: "Could not apply recommendation", description: "Please try again.", variant: "destructive" });
-                            return;
-                          }
-                        }
-                        const updated = { ...t, flags: { ...t.flags, [recommendedDirectiveKey]: true } };
-                        setT(updated);
-                        proStore.setTargets(clientId, updated);
-                        toast({ title: "System recommendation applied", description: `This client's plan now follows the ${recommendedProtocol} directive derived from their lab data.` });
-                      }}
-                      className="bg-amber-600 hover:bg-amber-500 text-white border-0 text-xs"
-                    >
-                      Apply System Recommendation
-                    </Button>
-                  )}
-                  {(t.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] && (
+                  {(macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey] ? (
                     <span className="inline-flex items-center gap-1.5 text-xs text-teal-400 font-medium">
-                      <Check className="h-3.5 w-3.5" /> Active on this client
+                      <Check className="h-3.5 w-3.5" /> {t("pro.trainerDashboard.activeOnClient")}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-amber-400/80 font-medium">
+                      <Stethoscope className="h-3.5 w-3.5" /> {t("pro.trainerDashboard.physicianAuthRequired")}
                     </span>
                   )}
                 </div>
@@ -499,33 +712,43 @@ export default function TrainerClientDashboard() {
           </Card>
         )}
 
+        <NutritionPersonalizationSummaryCard
+          summary={nutritionSummary}
+          isLoading={nutritionSummaryLoading}
+          defaultExpanded={false}
+        />
+
+        <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
+
+        <ProHydrationControls clientUserId={resolvedClientUserId} mode="trainer" />
+
         {bodyComp && (
           <Card className="bg-white/5 border border-white/20">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                Body Composition
+              <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+                {t("pro.trainerDashboard.bodyComposition")}
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {parseFloat(bodyComp.currentBodyFatPct) > 0 && (
                 <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                  <div className="text-xs text-white/60">Body Fat</div>
+                  <div className="text-xs text-white/60">{t("pro.trainerDashboard.bodyFat")}</div>
                   <div className="text-lg font-bold text-white">{parseFloat(bodyComp.currentBodyFatPct).toFixed(1)}%</div>
                 </div>
               )}
               <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                <div className="text-xs text-white/60">Target Body Fat</div>
+                <div className="text-xs text-white/60">{t("pro.trainerDashboard.targetBodyFat")}</div>
                 <div className="text-lg font-bold text-lime-400">{bodyComp.goalBodyFatPct ? `${parseFloat(bodyComp.goalBodyFatPct).toFixed(1)}%` : "—"}</div>
               </div>
               {parseFloat(bodyComp.currentBodyFatPct) > 0 && (
                 <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                  <div className="text-xs text-white/60">Method</div>
+                  <div className="text-xs text-white/60">{t("pro.trainerDashboard.method")}</div>
                   <div className="text-sm font-medium text-white">{bodyComp.scanMethod}</div>
                 </div>
               )}
               {bodyCompSource && (
                 <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                  <div className="text-xs text-white/60">Source</div>
+                  <div className="text-xs text-white/60">{t("pro.trainerDashboard.source")}</div>
                   <div className="text-sm font-medium text-white capitalize">{bodyCompSource}</div>
                 </div>
               )}
@@ -537,22 +760,30 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Settings className="h-5 w-5" /> Macro Targets
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+              <Settings className="h-5 w-5" /> {t("pro.trainerDashboard.macroTargets")}
+              <button
+                type="button"
+                onClick={() => setExplainerStep(SECTION_EXPLAINERS.macros)}
+                className="ml-auto text-white/30 hover:text-white/50 transition-colors"
+                aria-label="Learn about Macro Targets"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <label className="text-sm text-white/70 mb-1 block">
-                Protein (g)
+                {t("pro.trainerDashboard.protein")} (g)
               </label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.protein || ""}
+                value={macros.protein || ""}
                 onChange={(e) =>
-                  setT({
-                    ...t,
+                  updateMacros({
+                    ...macros,
                     protein: e.target.value === "" ? 0 : Number(e.target.value),
                   })
                 }
@@ -561,15 +792,15 @@ export default function TrainerClientDashboard() {
             </div>
             <div>
               <label className="text-sm text-white/70 mb-1 block">
-                Starchy Carbs (g)
+                {t("pro.trainerDashboard.carbs")} (g)
               </label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.starchyCarbs || ""}
+                value={macros.starchyCarbs || ""}
                 onChange={(e) =>
-                  setT({
-                    ...t,
+                  updateMacros({
+                    ...macros,
                     starchyCarbs:
                       e.target.value === "" ? 0 : Number(e.target.value),
                   })
@@ -579,15 +810,15 @@ export default function TrainerClientDashboard() {
             </div>
             <div>
               <label className="text-sm text-white/70 mb-1 block">
-                Fibrous Carbs (g)
+                {t("pro.trainerDashboard.fibrousCarbs")} (g)
               </label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fibrousCarbs || ""}
+                value={macros.fibrousCarbs || ""}
                 onChange={(e) =>
-                  setT({
-                    ...t,
+                  updateMacros({
+                    ...macros,
                     fibrousCarbs:
                       e.target.value === "" ? 0 : Number(e.target.value),
                   })
@@ -597,15 +828,15 @@ export default function TrainerClientDashboard() {
             </div>
             <div>
               <label className="text-sm text-white/70 mb-1 block">
-                Fat (g)
+                {t("pro.trainerDashboard.fat")} (g)
               </label>
               <Input
                 inputMode="numeric"
                 className="bg-black/30 border-white/30 text-white"
-                value={t.fat || ""}
+                value={macros.fat || ""}
                 onChange={(e) =>
-                  setT({
-                    ...t,
+                  updateMacros({
+                    ...macros,
                     fat: e.target.value === "" ? 0 : Number(e.target.value),
                   })
                 }
@@ -616,7 +847,7 @@ export default function TrainerClientDashboard() {
             {/* Performance Dietary Directives - hidden until properly wired */}
 
             <div className="col-span-full mt-3">
-              <label className="text-sm font-medium text-white/90 mb-2 block">
+              <label className="text-md font-semibold text-white/90 mb-2 block">
                 Starch Game Plan
               </label>
               <p className="text-xs text-white/60 mb-3">
@@ -625,17 +856,17 @@ export default function TrainerClientDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setT({ ...t, starchStrategy: 'one' })}
+                  onClick={() => updateMacros({ ...macros, starchStrategy: 'one' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    (t.starchStrategy || 'one') === 'one'
+                    (macros.starchStrategy || 'one') === 'one'
                       ? 'bg-orange-600/30 border-orange-400'
                       : 'bg-black/30 border-white/20 hover:bg-black/40'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">🥔</span>
-                    <span className="font-semibold text-white">One Starch Meal</span>
-                    {(t.starchStrategy || 'one') === 'one' && (
+                    <span className="text-sm">🥔</span>
+                    <span className="font-semibold text-medium text-white">One Starch Meal</span>
+                    {(macros.starchStrategy || 'one') === 'one' && (
                       <Check className="h-4 w-4 text-orange-400 ml-auto" />
                     )}
                   </div>
@@ -645,17 +876,17 @@ export default function TrainerClientDashboard() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setT({ ...t, starchStrategy: 'flex' })}
+                  onClick={() => updateMacros({ ...macros, starchStrategy: 'flex' })}
                   className={`p-4 rounded-xl border text-left transition-all ${
-                    t.starchStrategy === 'flex'
+                    macros.starchStrategy === 'flex'
                       ? 'bg-yellow-600/30 border-yellow-400'
                       : 'bg-black/30 border-white/20 hover:bg-black/40'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">🥗</span>
-                    <span className="font-semibold text-white">Flex Split</span>
-                    {t.starchStrategy === 'flex' && (
+                    <span className="text-md">🥗</span>
+                    <span className="font-semibold text-md text-white">Flex Split</span>
+                    {macros.starchStrategy === 'flex' && (
                       <Check className="h-4 w-4 text-yellow-400 ml-auto" />
                     )}
                   </div>
@@ -666,19 +897,25 @@ export default function TrainerClientDashboard() {
               </div>
             </div>
 
+            {isDirty && (
+              <p className="col-span-full text-xs text-orange-400 font-semibold flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-ping" />
+                Unsaved changes — press Save Targets
+              </p>
+            )}
             <div className="col-span-full flex gap-2">
               <Button
                 onClick={saveTargets}
-                className="bg-lime-600 border border-white/20 text-white active:bg-white/30"
+                className={`border border-white/20 text-white active:bg-white/30 transition-all duration-300 ${isDirty ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}
               >
-                Save Targets
+                {t("pro.trainerDashboard.save")}
               </Button>
               <Button
                 onClick={async () => {
                   const totalCarbs =
-                    (t.starchyCarbs || 0) + (t.fibrousCarbs || 0);
+                    (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
                   const calcKcal =
-                    (t.protein || 0) * 4 + totalCarbs * 4 + (t.fat || 0) * 9;
+                    (macros.protein || 0) * 4 + totalCarbs * 4 + (macros.fat || 0) * 9;
 
                   if (calcKcal < 100) {
                     toast({
@@ -696,9 +933,9 @@ export default function TrainerClientDashboard() {
                     await setMacroTargets(
                       {
                         calories: calcKcal,
-                        protein_g: t.protein,
+                        protein_g: macros.protein,
                         carbs_g: totalCarbs,
-                        fat_g: t.fat,
+                        fat_g: macros.fat,
                       },
                       clientId,
                     );
@@ -718,7 +955,7 @@ export default function TrainerClientDashboard() {
                     });
                   }
                 }}
-                className="bg-black hover:bg-black text-white font-bold px-8 text-lg py-3 shadow-2xl transition-all duration-200 flash-border"
+                className="bg-black hover:bg-black text-white font-semibold px-8 text-sm py-3 shadow-2xl transition-all duration-200 flash-border"
               >
                 Send Macros to Biometrics
               </Button>
@@ -730,10 +967,10 @@ export default function TrainerClientDashboard() {
           <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
             <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
             <div>
-              <p className="text-amber-300 text-sm font-semibold">Clinically Assigned Builder</p>
+              <p className="text-amber-300 text-md font-semibold">Physician-Managed Meal Mode</p>
               <p className="text-amber-200/70 text-xs mt-0.5">
-                This client's meal plan builder was assigned based on clinical lab data.
-                Changing it is not recommended without medical authorization.
+                This client's Meal Mode was set by their physician based on clinical data.
+                Do not change it without medical authorization. See System Protocols below for coaching context.
               </p>
             </div>
           </div>
@@ -741,23 +978,32 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-lime-400" /> Assigned Builder
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+              <Trophy className="h-5 w-5 text-lime-400" /> Meal Mode
               {client?.builderSource === "clinical" && (
-                <span title="Clinically assigned — see advisory above">
+                <span title="Physician-managed — see advisory above">
                   <AlertTriangle className="h-4 w-4 text-amber-400 ml-1" />
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setExplainerStep(SECTION_EXPLAINERS.mealMode)}
+                className="ml-auto text-white/30 hover:text-white/50 transition-colors"
+                aria-label="Learn about Meal Mode"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              Choose which meal builder this client will see in their app.
+              Select the coaching style for this client's meal plan.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {TRAINER_BUILDER_KEYS.map((key) => {
+              {/* Trainer-assignable builders */}
+              {TRAINER_MEAL_MODE_KEYS.filter((k) => k !== "performance_competition").map((key) => {
                 const entry = PROFESSIONAL_BUILDER_MAP[key];
-                const isActive = assignedBuilder === key;
+                const isActive = assignedBuilder === key || (key === "general_nutrition" && assignedBuilder === "weekly");
                 return (
                   <Button
                     key={key}
@@ -772,8 +1018,50 @@ export default function TrainerClientDashboard() {
                       {isActive && <Check className="h-4 w-4 flex-shrink-0" />}
                       <span className="font-bold text-sm">{entry.label}</span>
                     </div>
-                    <span className="text-xs text-white/60 font-normal leading-snug">{entry.description}</span>
+                    <span className="text-xs text-white/60 font-normal leading-snug line-clamp-2 w-full">{entry.description}</span>
                   </Button>
+                );
+              })}
+              {/* Medical builders — physician activates/deactivates; trainer can view and coach inside */}
+              {(["diabetic", "glp1"] as ProfessionalBuilderKey[]).map((key) => {
+                const entry = PROFESSIONAL_BUILDER_MAP[key];
+                const isActive = assignedBuilder === key;
+                const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                const handleMedicalBuilderOpen = isActive ? () => {
+                  if (!UUID_RE.test(resolvedClientUserId)) {
+                    toast({
+                      title: "Client not connected",
+                      description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  ensureClientMapping(resolvedClientUserId, clientId);
+                  localStorage.setItem("pro-client-id", resolvedClientUserId);
+                  setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
+                } : undefined;
+                return (
+                  <div
+                    key={key}
+                    onClick={handleMedicalBuilderOpen}
+                    className={`h-auto py-4 px-4 flex flex-col items-start gap-1 rounded-md border transition-all duration-200 ${
+                      isActive
+                        ? "bg-lime-600/20 border-lime-500/40 cursor-pointer active:scale-[0.98]"
+                        : "bg-black/20 border-white/10 cursor-default"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      {isActive && <Check className="h-4 w-4 flex-shrink-0 text-lime-400" />}
+                      <span className={`font-bold text-sm ${isActive ? "text-white" : "text-white/50"}`}>{entry.label}</span>
+                      <span className="ml-auto text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 rounded-full border border-amber-500/30 flex-shrink-0">
+                        Physician
+                      </span>
+                    </div>
+                    <span className={`text-xs font-normal leading-snug line-clamp-2 w-full ${isActive ? "text-white/60" : "text-white/30"}`}>{entry.description}</span>
+                    <span className="text-[10px] text-amber-400/70 mt-0.5">
+                      {isActive ? "Tap to open builder — activation managed by physician" : "Activation managed by physician"}
+                    </span>
+                  </div>
                 );
               })}
             </div>
@@ -782,85 +1070,239 @@ export default function TrainerClientDashboard() {
 
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Dumbbell className="h-5 w-5 text-lime-400" /> Client Meal Builder
-              {client?.builderSource === "clinical" && (
-                <span title="Clinically assigned — see advisory above">
-                  <AlertTriangle className="h-4 w-4 text-amber-400 ml-1" />
-                </span>
-              )}
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+              <Dumbbell className="h-5 w-5 text-lime-400" /> Training View
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-white/70 text-sm">
-              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]
-                ? `Open the ${PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label} builder for ${client?.name || "this client"}.`
-                : `Assign a builder above first, then open it here.`}
+              {assignedBuilder
+                ? `Open the training view for ${client?.name || "this client"} and build meals within the active Meal Mode.`
+                : `Select a Meal Mode above first, then open the training view here.`}
             </p>
             <Button
               onClick={() => {
-                const key = assignedBuilder as ProfessionalBuilderKey;
-                const entry = key ? PROFESSIONAL_BUILDER_MAP[key] : null;
+                // weekly is infrastructure — always fall back to general_nutrition for trainer routing
+                const effectiveKey = (assignedBuilder === "weekly" ? "general_nutrition" : assignedBuilder) as ProfessionalBuilderKey;
+                const entry = effectiveKey ? PROFESSIONAL_BUILDER_MAP[effectiveKey] : null;
                 if (!entry) {
                   toast({
-                    title: "No Builder Assigned",
-                    description: "Please assign a meal builder to this client first.",
+                    title: "No Meal Mode Selected",
+                    description: "Please select a Meal Mode for this client first.",
                     variant: "destructive",
                   });
                   return;
                 }
-                // Item 3: Guarantee mapping exists before builder loads
+                // Workspace identity guard — real UUID required.
+                // Never navigate with a proStore record ID; that would load the pro's own data.
+                const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (!UUID_RE.test(resolvedClientUserId)) {
+                  toast({
+                    title: "Client not connected",
+                    description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
                 ensureClientMapping(resolvedClientUserId, clientId);
                 localStorage.setItem("pro-client-id", resolvedClientUserId);
+                // Builders that have a hub: send the trainer to the hub first so they
+                // can set client parameters before going into the builder.
+                if (effectiveKey === "beach_body") {
+                  setLocation("/performance");
+                  return;
+                }
                 setLocation(`/pro/clients/${resolvedClientUserId}/${entry.proRoute}`);
               }}
               className="w-full sm:w-[400px] bg-lime-600 border border-lime-400/30 text-white font-semibold rounded-xl shadow-lg active:scale-[0.98]"
             >
               <Dumbbell className="h-4 w-4 mr-2" />
-              {assignedBuilder && PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey]
-                ? `Open ${PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label} Builder`
-                : "Assign Builder First"}
+              {assignedBuilder ? "Open Training View" : "Select Meal Mode First"}
             </Button>
           </CardContent>
         </Card>
 
+        {/* System Protocols — read-only educational section (Phase 2.2) */}
+        {(() => {
+          const PROTOCOL_COACHING_IMPLICATIONS: Record<string, { label: string; dot: string; implication: string }> = {
+            anti_inflammatory: {
+              label: "Anti-Inflammatory",
+              dot: "bg-emerald-400",
+              implication: "Seed oils, processed meats, and refined flour are removed from all meals. Omega-3 sources are prioritized. No action needed from you — the system handles this.",
+            },
+            cardiac: {
+              label: "Cardiac Health",
+              dot: "bg-red-400",
+              implication: "Sodium is capped across all meals. Saturated fat is limited. Do not increase fat targets above physician prescription.",
+            },
+            renal: {
+              label: "Kidney Disease",
+              dot: "bg-yellow-400",
+              implication: "Protein is moderated to reduce kidney workload. Do not increase protein targets for this client without physician approval.",
+            },
+            liver: {
+              label: "Liver Support",
+              dot: "bg-amber-400",
+              implication: "Nutrient loads that stress liver function are reduced. Maintain current macro targets — do not add supplements without physician clearance.",
+            },
+            oncology: {
+              label: "Oncology Support",
+              dot: "bg-purple-400",
+              implication: "Physician-assigned protocol. The system applies oncology-safe nutritional guidance to all meals. This protocol is not modifiable by coaching staff.",
+            },
+            thyroid: {
+              label: "Thyroid Support",
+              dot: "bg-blue-400",
+              implication: "Goitrogenic foods are moderated and iodine sources are prioritized. Maintain current macro targets.",
+            },
+            glp1: {
+              label: "Metabolic Med Active",
+              dot: "bg-cyan-400",
+              implication: "Portion sizes are reduced and protein density is high to complement medication effect. Do not lower protein targets or increase starchy carbs.",
+            },
+          };
+
+          const activeProtocols: string[] = [];
+          if (labDerivedConditions.includes("anti-inflammatory") || assignedBuilder === "anti_inflammatory") activeProtocols.push("anti_inflammatory");
+          if (labDerivedConditions.includes("heart-failure") || !!(macros?.flags as any)?.cardiac) activeProtocols.push("cardiac");
+          if (labDerivedConditions.includes("kidney-disease") || !!(macros?.flags as any)?.renal) activeProtocols.push("renal");
+          if (labDerivedConditions.includes("liver-support") || labDerivedConditions.includes("liver-disease") || !!(macros?.flags as any)?.liverSupport || !!(macros?.flags as any)?.liverDisease) activeProtocols.push("liver");
+          if (labDerivedConditions.includes("thyroid")) activeProtocols.push("thyroid");
+          if (labDerivedConditions.includes("oncology-support") || !!(macros?.flags as any)?.oncologySupport) activeProtocols.push("oncology");
+          if (!!(macros?.flags as any)?.glp1Protocol || assignedBuilder === "glp1") activeProtocols.push("glp1");
+
+          return (
+            <Card className="bg-white/5 border border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
+                  <Stethoscope className="h-5 w-5 text-white/50" />
+                  System Protocols
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-white/30 font-normal normal-case tracking-normal">Read-only</span>
+                    <button
+                      type="button"
+                      onClick={() => setExplainerStep(SECTION_EXPLAINERS.protocols)}
+                      className="text-white/30 hover:text-white/50 transition-colors"
+                      aria-label="Learn about System Protocols"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {activeProtocols.length === 0 ? (
+                  <p className="text-white/40 text-xs">
+                    No active clinical protocols for this client. All meals follow the AI's standard generation rules within your macro targets.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-white/50 text-xs">
+                      These protocols are actively shaping your client's meal generation. They are managed by the physician layer and cannot be changed here. Use this information to coach intelligently within the system's constraints.
+                    </p>
+                    {activeProtocols.map((key) => {
+                      const proto = PROTOCOL_COACHING_IMPLICATIONS[key];
+                      if (!proto) return null;
+                      return (
+                        <div key={key} className="flex items-start gap-3">
+                          <span className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${proto.dot}`} />
+                          <div>
+                            <p className="text-white/80 text-sm font-semibold">{proto.label}</p>
+                            <p className="text-white/50 text-xs mt-0.5 leading-relaxed">{proto.implication}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Schedule Check-In */}
         <Card className="bg-white/5 border border-lime-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
               <CalendarCheck className="h-5 w-5 text-lime-400" /> Schedule Check-In
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {ctx.nextCheckInISO && (
-              <div className="p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
-                <p className="text-xs text-lime-400 font-semibold">Next Check-In</p>
-                <p className="text-sm text-white mt-0.5">
-                  {new Date(ctx.nextCheckInISO + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                </p>
+            {upcomingCheckIns.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-lime-400 font-semibold uppercase tracking-wide">Upcoming Check-Ins</p>
+                {upcomingCheckIns.map((ci) => (
+                  <div key={ci.id} className="p-3 rounded-xl bg-lime-900/20 border border-lime-400/30">
+                    <div className="flex items-center gap-3">
+                      <CalendarCheck className="h-4 w-4 text-lime-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white">
+                          {new Date(ci.dueAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                        </p>
+                        <p className="text-xs text-white/50">with {ci.coachDisplayName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => cancelCheckIn(ci.id)}
+                        className="shrink-0 p-1.5 rounded-lg text-red-400/60 active:text-red-400 active:bg-red-900/30"
+                        title="Cancel check-in"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <AddToCalendarButtons
+                      accentClass="text-lime-400/60"
+                      event={{
+                        title: `Check-in — ${client?.name || "Client"}`,
+                        startAt: new Date(ci.dueAt),
+                        durationMinutes: 60,
+                        description: `Check-in session scheduled via My Perfect Meals.\nCoach: ${ci.coachDisplayName}`,
+                        meta: {
+                          type: "checkin",
+                          source: "coach",
+                          priority: "normal",
+                          escalationEligible: true,
+                          linkedMetrics: ["macro_consistency", "weight_trend"],
+                        },
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
             )}
             <p className="text-white/70 text-sm">
-              Set a check-in reminder for this client. Select how many weeks out and tap Schedule.
+              Set a check-in reminder for this client. Pick a date or use a quick preset.
             </p>
             <div>
-              <p className="text-xs text-white/50 mb-2">Weeks until check-in</p>
-              <div className="grid grid-cols-4 gap-2">
-                {([2, 4, 8, 12] as const).map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => setCtx({ ...ctx, checkInWeeks: w })}
-                    className={`py-2 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
-                      ctx.checkInWeeks === w
-                        ? "bg-lime-600 border-lime-400 text-white"
-                        : "bg-black/30 border-white/20 text-white/70"
-                    }`}
-                  >
-                    {w}w
-                  </button>
-                ))}
+              <p className="text-xs text-white/50 mb-2">Quick presets</p>
+              <div className="flex gap-2 flex-wrap mb-3">
+                {([2, 4, 8] as const).map((w) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + w * 7);
+                  const iso = d.toISOString().split("T")[0];
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setCtx({ ...ctx, checkInDate: iso })}
+                      className={`px-4 py-1.5 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
+                        ctx.checkInDate === iso
+                          ? "bg-lime-600 border-lime-400 text-white"
+                          : "bg-black/30 border-white/20 text-white/70"
+                      }`}
+                    >
+                      {w}w
+                    </button>
+                  );
+                })}
               </div>
+              <input
+                type="date"
+                value={ctx.checkInDate || ""}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setCtx({ ...ctx, checkInDate: e.target.value })}
+                className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
             </div>
             <div>
               <p className="text-xs text-white/50 mb-1">Coaching notes for this check-in</p>
@@ -886,10 +1328,20 @@ export default function TrainerClientDashboard() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        title="Trainer Studio Guide"
+        title={t("pro.trainerDashboard.tourTitle")}
         steps={TRAINER_DASHBOARD_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
+
+      {explainerStep && (
+        <QuickTourModal
+          isOpen={true}
+          onClose={() => setExplainerStep(null)}
+          title="How This Works"
+          steps={explainerStep}
+          onDisableAllTours={() => setExplainerStep(null)}
+        />
+      )}
     </motion.div>
   );
 }

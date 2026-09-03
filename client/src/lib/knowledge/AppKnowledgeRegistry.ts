@@ -1,4 +1,13 @@
 // client/src/lib/knowledge/AppKnowledgeRegistry.ts
+import {
+  HYDRATION_HUB_ABOUT_SECTIONS,
+  HYDRATION_HUB_CONSIDERED_FOR_YOU,
+  HYDRATION_HUB_DESCRIPTION,
+  HYDRATION_HUB_DOORS,
+  HYDRATION_HUB_MEDICAL_BOUNDARY,
+  HYDRATION_HUB_OVERVIEW,
+  HYDRATION_HUB_TITLE,
+} from "@/lib/hydrationHubContent";
 
 export interface FeatureKnowledge {
   id: string;
@@ -10,6 +19,32 @@ export interface FeatureKnowledge {
 }
 
 export const AppKnowledge: Record<string, FeatureKnowledge> = {
+  hydration: {
+    id: "hydration",
+    title: HYDRATION_HUB_TITLE,
+    description: `${HYDRATION_HUB_DESCRIPTION} ${HYDRATION_HUB_OVERVIEW}`,
+    howTo: [
+      "Open My Perfect Hydration Center from Biometrics or the App Library.",
+      ...HYDRATION_HUB_DOORS.map(({ title, description }) => `${title}: ${description}`),
+      "Log a fluid using a quick-add amount or a custom amount in ounces or milliliters.",
+      "Review your server-backed fluid history and any current professional Hydration instructions.",
+      "Read Considered for you to see which verified Nutrition Life Plan information informed practical support.",
+      "Use My Perfect Hydration Center for support and tracking; it does not create a medical fluid prescription.",
+    ],
+    tips: [
+      "Tracking works even when no numeric target is available.",
+      "A ceiling is a limit, not a goal to reach.",
+      "Professional instructions remain the source of truth when they apply.",
+      HYDRATION_HUB_CONSIDERED_FOR_YOU,
+      HYDRATION_HUB_MEDICAL_BOUNDARY,
+      ...HYDRATION_HUB_ABOUT_SECTIONS.map((section) =>
+        "text" in section && section.text
+          ? `${section.heading}: ${section.text}`
+          : section.heading,
+      ),
+    ],
+    relatedCommands: [],
+  },
   // ============================
   // 🔥 FRIDGE RESCUE
   // ============================
@@ -148,8 +183,10 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     id: "shopping-master",
     title: "Master Shopping List",
     description:
-      "All groceries in one place. Add by voice or barcode.",
+      "Your full grocery hub — Grocery Store Coach decides what to make, Product Scan checks any product, and a smart list that syncs with all your meals.",
     howTo: [
+      "Tap Grocery Store Coach when you don't know what to make — type or tap a quick chip and get a full personalized meal recommendation with shopping list. A complete recipe card is automatically generated and saved to your Favorites.",
+      "Tap Product Scan to photograph any ingredient label and get an instant grade + verdict based on your health profile.",
       "Use the voice button to quickly add items without typing.",
       "Use the barcode scanner to instantly add packaged foods.",
       "All ingredients from your meal cards automatically appear here.",
@@ -158,17 +195,78 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Use Bulk Add to rapidly enter multiple items at once using text or voice.",
     ],
     tips: [
+      "Grocery Store Coach scales the shopping list automatically for your household size.",
+      "After a Product Scan your last analysis stays on the page — no need to rescan the same product.",
       "Use voice add when you're moving around the kitchen.",
       "Use Bulk Add when restocking pantry items.",
-      "Scan barcodes for fast shopping trips.",
     ],
     relatedCommands: [
+      "shopping.groceryCoach",
+      "shopping.smartScan",
       "shopping.addItem",
       "shopping.bulkAdd",
       "shopping.scanBarcode",
       "shopping.markPurchased",
       "shopping.removeItem",
       "shopping.orderDelivery",
+    ],
+  },
+
+  // ============================
+  // 🧑‍🍳 GROCERY STORE COACH
+  // ============================
+  "grocery-coach": {
+    id: "grocery-coach",
+    title: "Grocery Store Coach",
+    description:
+      "AI decision coach that turns 'I don't know what to eat' into a specific meal recommendation, personalized reasoning, a complete grocery list, and a full recipe card — automatically saved to your Favorites.",
+    howTo: [
+      "Tap Grocery Store Coach on the Shopping page.",
+      "Choose who you are feeding: Just Me, My Household, or Meal Prep.",
+      "Tap a quick chip (e.g. 'What's for dinner tonight?') or type your own request.",
+      "Review the recommendation: meal name, why it fits your health profile, macros, prep time, and shopping list.",
+      "While you read the recommendation, the coach automatically generates your complete meal card — cooking instructions, nutrition details, and your full shopping list.",
+      "When the card is ready, tap 'View Meal Card' to open it directly in Favorites.",
+      "Tap Add to Shopping List to add all ingredients in one tap.",
+      "Use follow-up chips or type to refine: 'Make it cheaper', 'More protein', 'Something faster', 'Vegetarian version'.",
+      "Tap Another for a completely different recommendation.",
+    ],
+    tips: [
+      "The coach reads your full health profile — allergies, medical conditions, dietary restrictions, and macro targets.",
+      "Household mode automatically scales ingredient quantities for the right number of people.",
+      "Your full recipe card — with instructions, nutrition, and your shopping list — is always saved to Favorites. You can find it there any time.",
+      "You can have a back-and-forth conversation — the coach remembers the current session.",
+      "This is a decision-making assistant, not a recipe builder. Use it when you are stuck.",
+    ],
+    relatedCommands: [
+      "shopping.groceryCoach",
+      "shopping.addItem",
+    ],
+  },
+
+  // ============================
+  // 🧾 SMART SCAN (INGREDIENT INTELLIGENCE)
+  // ============================
+  "smart-scan": {
+    id: "smart-scan",
+    title: "Product Scan",
+    description:
+      "Photograph any product label and instantly see how it fits your health profile — letter grade, buy/skip verdict, and specific ingredient flags.",
+    howTo: [
+      "Tap Product Scan on the Shopping page.",
+      "Take a photo of any product's ingredient label or nutrition panel.",
+      "Review your letter grade (A–D) and verdict: Go for it, Maybe think twice, or Just a heads up.",
+      "Scroll down to see exactly which ingredients triggered flags and why.",
+      "Your last scan stays saved on the shopping page — tap 'Tap to view' to reopen it without rescanning.",
+      "Tap Clear to remove the saved scan, or New Scan to analyze a different product.",
+    ],
+    tips: [
+      "Product Scan checks against your full profile: allergies, dietary identity, medical conditions, and avoidances.",
+      "Use it while standing in the grocery store before adding anything to your cart.",
+      "The grade reflects your profile specifically — the same product may grade differently for another user.",
+    ],
+    relatedCommands: [
+      "shopping.smartScan",
     ],
   },
 
@@ -202,7 +300,6 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "biometrics.addManual",
       "biometrics.updateWeight",
       "biometrics.logWater",
-      "biometrics.resetWater",
     ],
   },
 
@@ -222,13 +319,19 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Enter your age, height, and weight.",
       "Choose your activity level from sedentary to extra active.",
       "Tap Sync Your Weight to pull your latest weight from the Biometrics page.",
-      "Scroll to see your calculated macro targets — calories, proteins, starchy carbs, fibrous carbs, and fats.",
+      "Scroll to see your calculated daily macro targets — calories, proteins, starchy carbs, fibrous carbs, and fats.",
       "Tap Set Macro Targets to send these to your Biometrics page so you always know your daily goals.",
+      "Use the Nutrition Strategy section to fine-tune how your macros are calculated. Cut Intensity (Standard or Hard Cut) controls your deficit level. If you pick Hard Cut, choose Balanced (moderate carb reduction, fat held steady) or Low Carb (deeper carb cut, fat raised to compensate).",
+      "Cycle Mode lets you vary macros daily. Carb Cycling zeros out starchy carbs on Low days and boosts them on High days. Fat Cycling keeps carbs the same but adjusts fat up or down. Set your Day Type — Low, Moderate, or High — to match today.",
+      "The optional Starchy Carb Cap lets you set a hard ceiling on starchy carbs regardless of other settings. Strict Mode disables all auto-corrections, delivering raw calculated macros — recommended for competition prep or ProCare use only.",
+      "Below Nutrition Strategy, the Starch Game Plan lets you choose how to eat your starchy carbs — One Starch Meal consolidates them into a single meal for appetite control, while Flex Split spreads them across two meals.",
     ],
     tips: [
       "Update your weight weekly and sync it here for more accurate calories.",
       "If you're between two body types, choose the one that best matches your metabolism.",
       "Activity level has a big impact — choose the one that realistically matches your weekly movement.",
+      "On a Hard Cut Low Carb day with Carb Cycling, starchy carbs can go to zero — fibrous carbs are always protected and never touched.",
+      "Strict Mode is meant for advanced users and competition prep. Leave it off if you want the calculator to keep your calories in a safe range automatically.",
     ],
     relatedCommands: [
       "macro.setGoal",
@@ -299,7 +402,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Choose your professional role from the dropdown: trainer, doctor, dietitian, nutritionist, physician assistant, nurse practitioner, or registered nurse.",
       "Your profession determines which dashboard you'll use.",
       "Trainers go to the Trainer Dashboard with Performance & Competition and General Nutrition builders.",
-      "Clinical roles (doctors, NPs, PAs, dietitians, nutritionists, RNs) go to the Clinician Dashboard with Diabetic, GLP-1, and Anti-Inflammatory builders.",
+      "Clinical roles (doctors, NPs, PAs, dietitians, nutritionists, RNs) go to the Clinician Dashboard with Diabetic, Metabolic Medication, and Anti-Inflammatory builders.",
       "The client receives an email with an access code.",
       "Enter that code in the 'Connect with Access Code' field and tap 'Link with Code.'",
       "You'll see your Active Care Team list appear with each linked client.",
@@ -371,31 +474,31 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
   // ============================
   "glp1-hub": {
     id: "glp1-hub",
-    title: "GLP-1 Hub",
+    title: "Metabolic Medication Hub",
     description:
-      "Log GLP-1 doses, set guardrails, build GLP-1-safe meals.",
+      "Log medication doses, set guardrails, build medication-safe meals.",
     howTo: [
       "Tap Open Tracker to begin logging your dose.",
       "Enter your dose amount in the dose field.",
       "Your date and time will appear automatically, or you can adjust them manually.",
       "Tap Select Site and choose where you injected: abdomen, thigh, upper arm, or buttock.",
       "Tap Save to log the dose to your injection history.",
-      "Scroll down to view your full GLP-1 injection history.",
-      "Under GLP-1 Guardrails, choose a preset to match your doctor's guidance.",
+      "Scroll down to view your full injection history.",
+      "Under Medication Guardrails, choose a preset to match your doctor's guidance.",
       "Set your maximum meal volume to reduce nausea.",
       "Set your minimum daily protein target.",
       "Set your fat maximum to avoid gastric slowdown.",
       "Set your daily fiber minimum for gut stability.",
-      "Set a hydration goal to manage GLP-1-related dehydration.",
+      "Set a hydration goal to manage medication-related dehydration.",
       "Enter how many meals per day you're eating.",
-      "Tap Save Guardrails to activate GLP-1-safe AI meal creation.",
-      "Tap GLP-1 Menu Builder to generate meals based on your guardrails.",
+      "Tap Save Guardrails to activate medication-safe AI meal creation.",
+      "Tap Metabolic Medication Builder to generate meals based on your guardrails.",
     ],
     tips: [
       "Log each dose consistently so you always know when the next one is due.",
       "Use smaller meal volumes if you experience fullness or nausea.",
       "Aim for higher protein and consistent hydration.",
-      "Guardrails automatically influence all GLP-1 menu builder meals.",
+      "Guardrails automatically influence all Metabolic Medication Builder meals.",
     ],
     relatedCommands: [
       "glp1.logDose",
@@ -409,12 +512,12 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
   // ============================
   "beach-body": {
     id: "beach-body",
-    title: "Beach Body Builder",
+    title: "Performance Nutrition Builder",
     description:
       "Competition-ready meals with strict macro guardrails.",
     howTo: [
-      "Navigate to Beach Body Meal Board from the Dashboard.",
-      "Each meal automatically enforces Beach Body guardrails.",
+      "Navigate to Performance Nutrition Builder from the Dashboard.",
+      "Each meal automatically enforces Performance Nutrition guardrails.",
       "Protein minimum: 35g per meal for muscle preservation.",
       "Starchy carbs capped at 25g per meal to minimize water retention.",
       "Fibrous carbs target 150g per meal for fullness and digestive health.",
@@ -459,7 +562,7 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     description:
       "Get macro-friendly menu recommendations at popular chains.",
     howTo: [
-      "Browse restaurant chains from the Social Hub.",
+      "Browse restaurant chains from Meals Away From Home.",
       "View recommended menu items with estimated macros.",
       "Learn modification strategies like 'no sauce' or 'grilled instead of fried'.",
       "Use the guide before dining out to plan your order.",
@@ -468,6 +571,56 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
       "Ask for dressings and sauces on the side.",
       "Substitute fries for steamed vegetables when possible.",
       "Most chains offer grilled protein options.",
+    ],
+    relatedCommands: [],
+  },
+
+  // ============================
+  // ⭐ PRO TIPS
+  // ============================
+  "pro-tips": {
+    id: "pro-tips",
+    title: "Pro Tips",
+    description:
+      "Short audio coaching lessons built into the Meal Builder that teach techniques, shortcuts, and best practices for getting better results from My Perfect Meals.",
+    howTo: [
+      "Open your active Builder and scroll to the Pro Tip card at the bottom of the screen.",
+      "Tap Listen to start the narration for the current section.",
+      "Tap Pause to pause at any point. Tap Resume to continue from where you stopped.",
+      "Tap 10s Back if you missed something — it rewinds the audio ten seconds without losing your place in the section.",
+      "Tap Start Over to replay the current Pro Tip section from the beginning.",
+      "Tap Transcript to read the full text of the current section while the audio plays — or instead of listening. Tap again to hide it.",
+      "Tap Stop when you're done. Your narration speed setting from My Hub applies automatically.",
+    ],
+    tips: [
+      "Pro Tips don't have to be listened to in order. Each section stands on its own.",
+      "Use the transcript in noisy environments or if you prefer reading to listening.",
+      "Your narration speed preference set in My Hub applies to Pro Tips automatically — you don't need to adjust it here.",
+      "Use 10s Back if you miss a sentence — it's faster than starting the entire section over.",
+      "The section counter in the top-right of the card shows where you are in the total set.",
+    ],
+    relatedCommands: [],
+  },
+
+  // ============================
+  // ♿ ACCESSIBILITY & EXPERIENCE
+  // ============================
+  "accessibility-experience": {
+    id: "accessibility-experience",
+    title: "Accessibility & Experience",
+    description:
+      "Global display and narration preferences that apply across the entire app. Set once in My Hub and every part of My Perfect Meals respects them automatically.",
+    howTo: [
+      "Tap the Hub button in the top-right corner of your Dashboard to open My Hub.",
+      "Scroll to find Text Size. Tap A, A+, or A++ to change the font size throughout the app.",
+      "Tap Narration Speed to choose how fast narrated content plays back: 0.75×, 1×, 1.25×, or 1.5×.",
+      "Your selections take effect immediately and are saved to your account.",
+    ],
+    tips: [
+      "Narration Speed applies everywhere audio narration is used — Pro Tips, Copilot guidance, Restaurant Guide, Fast Food Guide, Find Meals Near Me, and any future narrated experience.",
+      "Text Size applies across every screen in the app.",
+      "Both settings sync to your account so they follow you when you reinstall or switch devices.",
+      "1× is the default narration speed. 1.25× is a comfortable faster pace for most users. 0.75× is useful if you want more time to absorb each sentence.",
     ],
     relatedCommands: [],
   },

@@ -53,10 +53,16 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
   },
   
   // GLP-1 Hub
+  // ⚠️  KEYWORD CHANGE REQUIRES A TEST UPDATE ⚠️
+  // The exact keyword list below is snapshot-tested in:
+  //   client/src/lib/__tests__/copilotGlp1Keywords.test.ts
+  // If you add, remove, or rename a keyword here you MUST update the
+  // GLP1_KEYWORDS_SNAPSHOT constant in that file to match, or the
+  // "GLP-1 keyword snapshot" test suite will fail CI.
   {
     path: "/glp1-hub",
     walkthroughId: "glp1-hub",
-    keywords: ["glp", "glp one", "glp-1", "ozempic", "wegovy", "semaglutide", "injection", "g l p one", "glp hub", "glp-1 hub", "weight loss meds"],
+    keywords: ["glp", "glp one", "glp-1", "ozempic", "wegovy", "semaglutide", "injection", "g l p one", "glp hub", "glp-1 hub", "weight loss meds", "glp-1 support", "glp-1 overlay", "glp-1 platform", "metabolic medication support", "how does glp work", "glp-1 how it works", "glp platform wide", "glp everywhere", "glp-1 across app", "glp-1 baseline", "glp-1 and performance"],
   },
   
   // Anti-Inflammatory Meal Builder
@@ -72,7 +78,7 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
   {
     path: "/shopping-list-v2",
     walkthroughId: "shopping-master",
-    keywords: ["shopping list", "groceries", "master list", "shopping planner", "grocery", "shopping", "master shopping", "master shopping list", "grocery list", "list master", "grocery planner", "shop list", "food list"],
+    keywords: ["shopping list", "groceries", "master list", "shopping planner", "grocery", "shopping", "master shopping", "master shopping list", "grocery list", "list master", "grocery planner", "shop list", "food list", "grocery store coach", "grocery coach", "what to make for dinner", "what to eat", "dinner ideas", "meal ideas", "coach what to buy", "smart scan", "ingredient scan", "product scan", "scan label", "check ingredients", "analyze product", "ingredient analysis", "scan product"],
   },
   
   // Macro Calculator
@@ -81,12 +87,40 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     walkthroughId: "macro-calculator",
     keywords: ["macros", "macro calculator", "protein calculator", "calorie calculator", "macro counter", "calculator", "calculate", "macro setup", "macro goals", "macro tool", "calculate macros", "macro math", "macro calc"],
   },
+
+  // Performance Modes / Competition Prep
+  {
+    path: "/macro-counter",
+    walkthroughId: "macro-calculator",
+    keywords: ["competition prep", "contest prep", "competition prep mode", "contest prep mode", "performance mode", "performance modes", "performance overlay", "metabolic mode", "comp prep", "prep mode", "stage prep mode", "competition mode"],
+  },
   
   // My Diet Biometrics
   {
     path: "/biometrics",
     walkthroughId: "biometrics",
     keywords: ["biometrics", "diet numbers", "profile numbers", "my macros profile", "tracking", "weight", "my biometrics", "bio metrics", "body metrics", "weight tracking", "body data", "my stats", "track weight"],
+  },
+
+  // Hydration Hub
+  {
+    path: "/hydration",
+    walkthroughId: "hydration",
+    keywords: [
+      "hydration hub",
+      "hydration",
+      "hydration center",
+      "water tracker",
+      "water log",
+      "log water",
+      "track water",
+      "hydration plan",
+      "liquid nutrition",
+      "athletic hydration",
+      "sick day hydration",
+      "everyday hydration",
+      "considered for you hydration",
+    ],
   },
   
   // Get Inspiration
@@ -103,6 +137,33 @@ export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
     keywords: ["supplements", "supplement hub", "vitamins", "nutrition supplements"],
   },
   
+  // My Perfect Getaway
+  {
+    path: "/lifestyle/my-perfect-getaway",
+    walkthroughId: "my-perfect-getaway",
+    keywords: ["getaway", "my perfect getaway", "travel coach", "vacation eating", "theme park food", "disney food", "universal studios food", "airport food", "cruise food", "resort food", "eating at disney", "eating on vacation", "vacation food", "theme park", "airport eating", "cruise eating", "coach in your pocket", "travel eating", "travel nutrition", "vacation nutrition"],
+  },
+
+  // Pregnancy Support Protocol
+  // Points to Edit Profile (where specialty conditions are toggled) until the Pregnancy Hub page is built.
+  // Update path to "/lifestyle/pregnancy-support" once the hub page exists.
+  {
+    path: "/profile",
+    walkthroughId: "pregnancy-support",
+    keywords: [
+      "pregnancy support", "pregnancy", "pregnant", "i'm pregnant", "i am pregnant",
+      "trying to conceive", "ttc", "fertility nutrition", "preconception",
+      "first trimester", "second trimester", "third trimester", "trimester",
+      "breastfeeding", "postpartum", "nursing", "after baby", "postnatal",
+      "pregnancy nutrition", "pregnancy diet", "pregnancy protocol", "pregnancy eating",
+      "pregnancy food safety", "what can i eat pregnant", "safe foods pregnancy",
+      "mercury fish pregnancy", "listeria pregnancy", "prenatal nutrition", "prenatal diet",
+      "food safety pregnancy", "pregnancy safe foods", "what to avoid pregnancy",
+      "pregnancy coach", "pregnancy wellness", "life stage nutrition",
+      "eating for two", "pregnancy meal plan"
+    ],
+  },
+
   // Lifestyle Page
   {
     path: "/lifestyle",

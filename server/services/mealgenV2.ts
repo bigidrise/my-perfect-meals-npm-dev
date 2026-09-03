@@ -55,10 +55,28 @@ export async function generateMealV2(opts: {
   variation?: number;
 }): Promise<Meal> {
   const constraints = mapOnboardingToConstraints(opts.onboarding);
-  
+
+  // ── GLP-1 constraint injection — MEALGEN V2 ───────────────────────────────
+  // generateMealV2 calls callCravingCreator via an internal server-to-server
+  // HTTP fetch with no session cookie, so serverAuthUserId in the craving-creator
+  // handler resolves to undefined and GLP-1 is not applied automatically.
+  // Inject the personalized GLP-1 constraint text directly into cravingInput so
+  // the AI prompt carries the fat ceiling, calorie cap, and protein floor even
+  // on this path. Fields were added to onboarding by the routes.ts GLP-1 block.
+  const ob = opts.onboarding as any;
+  let glp1V2Block = "";
+  if (ob.glp1Active && ob.glp1CalorieCeiling) {
+    glp1V2Block = [
+      ` GLP-1 PROTOCOL (HARD CONSTRAINTS — MUST COMPLY):`,
+      ` Calories ≤${ob.glp1CalorieCeiling}kcal, Fat ≤${ob.glp1FatCeiling}g, Protein ≥${ob.glp1ProteinFloor}g.`,
+      ` NO fried, cream sauces, heavy butter, or full-fat dairy. Small portions only.`,
+    ].join("");
+    console.log(`💊 [GLP-1/MealGenV2] Injecting constraint into prompt — ceil:${ob.glp1CalorieCeiling}kcal fat:${ob.glp1FatCeiling}g prot:${ob.glp1ProteinFloor}g`);
+  }
+
   const raw = await callCravingCreator({
     targetMealType: opts.courseStyle.toLowerCase(),
-    cravingInput: `${opts.courseStyle} ${opts.variation ? `variation ${opts.variation}` : ''}`,
+    cravingInput: `${opts.courseStyle} ${opts.variation ? `variation ${opts.variation}` : ''}${glp1V2Block}`,
     userId: opts.userId,
     dietaryRestrictions: constraints.allergies || [],
     allergies: constraints.allergies || [],
@@ -149,7 +167,7 @@ export async function getOnboarding(userId: string): Promise<Onboarding> {
   return {
     diet: user.dietaryRestrictions?.[0] || undefined,
     allergies: user.allergies || [],
-    avoid: user.dislikedFoods || [],
+    avoid: [...(user.dislikedFoods || []), ...(user.avoidedFoods || [])],
     mustInclude: [],
     noMeat: user.dietaryRestrictions?.includes('vegetarian') || user.dietaryRestrictions?.includes('vegan'),
     noFish: user.allergies?.includes('fish') || user.allergies?.includes('shellfish'),
@@ -161,8 +179,33 @@ export async function getOnboarding(userId: string): Promise<Onboarding> {
     proteinPerMeal: undefined,
     sodiumLimit: user.healthConditions?.includes('hypertension') ? 600 : undefined,
     cuisinesPreferred: [],
-    preferredSweeteners: user.preferredSweeteners || [],
-    bannedSweeteners: user.avoidSweeteners || []
+    preferredSweeteners: (() => {
+      const { resolveSweetenerAllowlist } = require("./promptBuilder");
+      const { preferred } = resolveSweetenerAllowlist(
+        user.preferredSweeteners || [],
+        (user as any).avoidSweeteners || [],
+        (user as any).sweetenerPreferences || []
+      );
+      return preferred;
+    })(),
+    bannedSweeteners: (() => {
+      const avoid = (user as any).avoidSweeteners as string[] || [];
+      if (avoid.includes("all sweeteners")) return ["all sweeteners"];
+      const prefs = (user as any).sweetenerPreferences as string[] || [];
+      const normalized = prefs.map((v: string) =>
+        v === "sugar" ? "regular_sugar" : v === "avoid" ? "avoid_sweeteners" : v
+      );
+      // If user selected specific sweeteners and NOT regular sugar, ban all sugar variants
+      if ((user.preferredSweeteners || []).length > 0 || prefs.length > 0) {
+        const resolved = (user.preferredSweeteners || []).length > 0
+          ? user.preferredSweeteners || []
+          : normalized;
+        if (!resolved.includes("regular_sugar")) {
+          return avoid.length > 0 ? avoid : ["white sugar", "brown sugar", "cane sugar", "raw sugar", "granulated sugar", "demerara sugar", "turbinado sugar", "coconut sugar", "agave", "maple syrup", "corn syrup", "molasses"];
+        }
+      }
+      return avoid;
+    })()
   };
 }
 
@@ -192,7 +235,8 @@ async function callCravingCreator(body: any) {
     }
     
     const data = await res.json();
-    return data.meal || data;
+    // craving-creator returns { meals: [...] }; fall back to .meal then bare object
+    return data.meals?.[0] ?? data.meal ?? data;
   } finally {
     clearTimeout(timeout);
   }

@@ -1,4 +1,5 @@
 import type { Recipe } from "@shared/schema";
+import { generateMealImageUnified } from "./services/mealImageGenerator";
 
 export interface UserMedicalProfile {
   medicalConditions: string[];
@@ -27,7 +28,7 @@ export class MedicalPersonalizationService {
     const selectedRecipe = filteredRecipes[dayNumber % filteredRecipes.length];
     
     // Enhance recipe with personalized nutritional adjustments
-    return this.adjustRecipeForMedicalConditions(selectedRecipe, userProfile);
+    return this.adjustRecipeForMedicalConditions(selectedRecipe as any, userProfile);
   }
 
   // Get recipes filtered for medical conditions
@@ -39,7 +40,7 @@ export class MedicalPersonalizationService {
           id: 'diabetes-friendly-eggs',
           name: 'Veggie Scrambled Eggs',
           description: 'Low-carb scrambled eggs with non-starchy vegetables',
-          imageUrl: 'https://images.unsplash.com/photo-1525351326368-efbb5cb6814d?w=400&h=300&fit=crop',
+          imageUrl: undefined as string | undefined,
           prepTime: 10,
           cookTime: 8,
           servings: 1,
@@ -73,7 +74,7 @@ export class MedicalPersonalizationService {
           id: 'heart-healthy-oats',
           name: 'Steel-Cut Oats with Berries',
           description: 'Heart-healthy oats with antioxidant-rich berries',
-          imageUrl: 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=400&h=300&fit=crop',
+          imageUrl: undefined as string | undefined,
           prepTime: 5,
           cookTime: 15,
           servings: 1,
@@ -109,7 +110,7 @@ export class MedicalPersonalizationService {
           id: 'anti-inflammatory-salad',
           name: 'Mediterranean Salmon Salad',
           description: 'Omega-3 rich salmon with anti-inflammatory vegetables',
-          imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop',
+          imageUrl: undefined as string | undefined,
           prepTime: 15,
           cookTime: 10,
           servings: 1,
@@ -146,7 +147,7 @@ export class MedicalPersonalizationService {
           id: 'low-sodium-chicken',
           name: 'Herb-Crusted Chicken with Sweet Potato',
           description: 'Low-sodium, heart-healthy dinner with potassium-rich vegetables',
-          imageUrl: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&h=300&fit=crop',
+          imageUrl: undefined as string | undefined,
           prepTime: 15,
           cookTime: 25,
           servings: 1,
@@ -182,7 +183,7 @@ export class MedicalPersonalizationService {
           id: 'diabetic-friendly-nuts',
           name: 'Mixed Nuts with Dark Chocolate',
           description: 'Portion-controlled nuts with antioxidant-rich dark chocolate',
-          imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&h=300&fit=crop',
+          imageUrl: undefined as string | undefined,
           prepTime: 2,
           cookTime: 0,
           servings: 1,
@@ -252,12 +253,12 @@ export class MedicalPersonalizationService {
   }
 
   // Generate a week's worth of meals based on user profile
-  static generateWeeklyMealPlan(
+  static async generateWeeklyMealPlan(
     userProfile: UserMedicalProfile,
     mealsPerDay: number = 3,
     snacksPerDay: number = 1,
     duration: number = 7
-  ): Array<{day: number, dayName: string, meals: Array<{type: string, recipe: Recipe}>}> {
+  ): Promise<Array<{day: number, dayName: string, meals: Array<{type: string, recipe: Recipe}>}>> {
     
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const mealPlan = [];
@@ -289,6 +290,35 @@ export class MedicalPersonalizationService {
 
       mealPlan.push({ day, dayName, meals });
     }
+
+    // Generate real AI images via the canonical pipeline, once per unique recipe.
+    // Replaces the previously hardcoded Unsplash URLs. On failure, imageUrl stays
+    // undefined and the client renders a neutral unavailable state.
+    const uniqueRecipes = new Map<string, Recipe[]>();
+    for (const day of mealPlan) {
+      for (const meal of day.meals) {
+        const key = (meal.recipe as any).id || meal.recipe.name;
+        if (!uniqueRecipes.has(key)) uniqueRecipes.set(key, []);
+        uniqueRecipes.get(key)!.push(meal.recipe);
+      }
+    }
+
+    await Promise.all(
+      Array.from(uniqueRecipes.values()).map(async (instances) => {
+        try {
+          const recipe = instances[0];
+          const ingredientNames = (recipe.ingredients as Array<{ name: string }> | undefined)?.map((i) => i.name) ?? [];
+          const url = await generateMealImageUnified(recipe.name, ingredientNames, "meal");
+          if (url && url.startsWith("/public-objects/")) {
+            for (const instance of instances) {
+              (instance as any).imageUrl = url;
+            }
+          }
+        } catch {
+          // generation failed — imageUrl stays undefined
+        }
+      })
+    );
 
     return mealPlan;
   }

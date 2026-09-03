@@ -1,10 +1,5 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { useState } from "react";
@@ -41,15 +36,16 @@ export function QuickTourModal({
   };
 
   return (
-    <Dialog
+    <UniversalDialog
+      rawLayout
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) onClose(dontShowAgain);
       }}
+      className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl"
     >
-      <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md mx-auto rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white text-center">
+          <DialogTitle className="text-xl font-bold text-white text-center break-words [text-wrap:balance]">
             {title}
           </DialogTitle>
           <VisuallyHidden>
@@ -65,11 +61,11 @@ export function QuickTourModal({
               <div className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-sm font-bold text-orange-400">
                 {step.icon || index + 1}
               </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white text-sm">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-white text-sm break-words">
                   {step.title}
                 </h4>
-                <p className="text-white/70 text-xs mt-0.5">
+                <p className="text-white/70 text-xs mt-0.5 break-words">
                   {step.description}
                 </p>
               </div>
@@ -104,7 +100,6 @@ export function QuickTourModal({
             </button>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

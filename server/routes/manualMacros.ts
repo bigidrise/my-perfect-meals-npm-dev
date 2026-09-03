@@ -9,6 +9,7 @@ import { careTeamMember } from "../db/schema/careTeam";
 import { clientLinks } from "../db/schema/procare";
 import { pushToUser, pushToCoachOfClient } from "../services/pushNotify";
 import { getUserCompliance } from "../services/complianceEngine";
+import { getUserTimezone, todayInTimezone } from "../services/nutritionDayService";
 import { macroProgramHistory } from "../../shared/schema";
 
 const router = express.Router();
@@ -23,11 +24,10 @@ function kcalFrom(p = 0, c = 0, f = 0, alc = 0) {
   return 4 * p + 4 * c + 9 * f + 2 * alc;
 }
 
-// POST /api/macros/log - Legacy endpoint for backward compatibility
+// POST /api/macros/log — canonical macro logging endpoint
 router.post("/macros/log", requireAuth, async (req, res) => {
   try {
     const userId = getAuthUserId(req);
-    const deviceId = req.get("x-device-id") || "missing";
     const {
       loggedAt,
       mealType,
@@ -39,44 +39,46 @@ router.post("/macros/log", requireAuth, async (req, res) => {
       mealId,
       starchyCarbs,
       fibrousCarbs,
+      fiber,
       nutrition,
     } = req.body ?? {};
+    // NOTE: boardItemReference is intentionally NOT accepted here.
+    // Generic manual logging must never set board_item_reference — only the
+    // ownership-verified POST /boards/:boardId/items/:itemId/log endpoint may do
+    // so. Accepting it here would allow any authenticated user to claim another
+    // user's board item UUID and trigger ALREADY_LOGGED for the real owner.
 
-    // Extract values from nutrition object if present (new format)
-    const proteinVal = nutrition?.protein_g ?? protein ?? 0;
-    const carbsVal = nutrition?.carbs_g ?? carbs ?? 0;
-    const fatVal = nutrition?.fat_g ?? fat ?? 0;
-    const kcalVal = nutrition?.calories ?? kcal;
-    
-    // Starchy/fibrous carbs - use explicit values if provided
-    const starchyCarbsVal = Number(starchyCarbs) || 0;
-    const fibrousCarbsVal = Number(fibrousCarbs) || 0;
+    // Support nested nutrition object (new format) or flat fields (legacy)
+    const proteinVal   = Number(nutrition?.protein_g ?? protein ?? 0);
+    const carbsVal     = Number(nutrition?.carbs_g ?? carbs ?? 0);
+    const fatVal       = Number(nutrition?.fat_g ?? fat ?? 0);
+    const kcalVal      = nutrition?.calories ?? kcal;
+    const fiberVal     = nutrition?.fiber_g != null ? Number(nutrition.fiber_g) : (fiber != null ? Number(fiber) : null);
+    const starchyVal   = starchyCarbs != null ? Number(starchyCarbs) : null;
+    const fibrousVal   = fibrousCarbs != null ? Number(fibrousCarbs) : null;
 
-    // DEBUG: Log exactly what we're writing
-    console.log("[MACROS/LOG] device=%s userId=%s protein=%s carbs=%s fat=%s starchy=%s fibrous=%s loggedAt=%s",
-      deviceId, userId, proteinVal, carbsVal, fatVal, starchyCarbsVal, fibrousCarbsVal, loggedAt);
+    const calories = typeof kcalVal === "number" && kcalVal > 0
+      ? kcalVal
+      : Math.round(proteinVal * 4 + carbsVal * 4 + fatVal * 9);
 
-    const when = parseAt(loggedAt);
-    const resolvedKcal = typeof kcalVal === "number" && kcalVal > 0 ? kcalVal : Math.round(kcalFrom(Number(proteinVal), Number(carbsVal), Number(fatVal)));
-
-    const insertData = {
+    const { writeMacroLog } = await import("../services/macroLogService");
+    const row = await writeMacroLog({
       userId,
-      at: when,
+      calories,
+      protein: proteinVal,
+      carbohydrates: carbsVal,
+      fat: fatVal,
+      fiber: fiberVal,
+      starchyCarbs: starchyVal,
+      fibrousCarbs: fibrousVal,
+      classificationSource:
+        starchyVal != null || fibrousVal != null ? "user_input" : undefined,
       source: source || "manual",
-      kcal: resolvedKcal.toString(),
-      protein: (Number(proteinVal) || 0).toString(),
-      carbs: (Number(carbsVal) || 0).toString(),
-      fat: (Number(fatVal) || 0).toString(),
-      fiber: "0",
-      alcohol: "0",
-      starchyCarbs: starchyCarbsVal.toString(),
-      fibrousCarbs: fibrousCarbsVal.toString(),
-    };
-
-    const [row] = await db
-      .insert(macroLogs)
-      .values(insertData)
-      .returning();
+      mealType,
+      dateIso: loggedAt,
+      mealId,
+      // boardItemReference intentionally omitted — not trusted from generic route
+    });
 
     res.json({ success: true, log: row });
   } catch (e: any) {
@@ -303,10 +305,11 @@ router.get("/users/:userId/macro-logs/daily", requireAuth, async (req, res) => {
     if (!start || !end)
       return res.status(400).json({ error: "start & end required (ISO)." });
 
-    // Group by YYYY-MM-DD (UTC); if you prefer local-day bucketing, shift here
+    // Group by the data owner's local calendar day via their stored IANA timezone
+    const tz = await getUserTimezone(targetUserId);
     const rows = await db.execute(sql/*sql*/ `
       SELECT
-        DATE_TRUNC('day', ${macroLogs.at})::date AS date,
+        (${macroLogs.at} AT TIME ZONE ${tz})::date AS date,
         COALESCE(SUM(${macroLogs.kcal}), 0)::int    AS kcal,
         COALESCE(SUM(${macroLogs.protein}), 0)::int AS protein,
         COALESCE(SUM(${macroLogs.carbs}), 0)::int   AS carbs,
@@ -373,6 +376,13 @@ router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         dailyProteinTarget: users.dailyProteinTarget,
         dailyCarbsTarget: users.dailyCarbsTarget,
         dailyFatTarget: users.dailyFatTarget,
+        dailyStarchyCarbsTarget: users.dailyStarchyCarbsTarget,
+        dailyFibrousCarbsTarget: users.dailyFibrousCarbsTarget,
+        macroCutIntensity: users.macroCutIntensity,
+        macroCutStyle: users.macroCutStyle,
+        macroCycleMode: users.macroCycleMode,
+        macroCycleDayType: users.macroCycleDayType,
+        macroMealsPerDay: users.macroMealsPerDay,
       })
       .from(users)
       .where(eq(users.id, userId));
@@ -386,12 +396,19 @@ router.get("/users/:userId/macro-targets", requireAuth, async (req, res) => {
       protein_g: user.dailyProteinTarget || 0,
       carbs_g: user.dailyCarbsTarget || 0,
       fat_g: user.dailyFatTarget || 0,
+      starchyCarbs_g: user.dailyStarchyCarbsTarget || 0,
+      fibrousCarbs_g: user.dailyFibrousCarbsTarget || 0,
       hasTargets: !!(
         user.dailyCalorieTarget ||
         user.dailyProteinTarget ||
         user.dailyCarbsTarget ||
         user.dailyFatTarget
       ),
+      cutIntensity: user.macroCutIntensity ?? "standard",
+      cutStyle: user.macroCutStyle ?? null,
+      cycleMode: user.macroCycleMode ?? "none",
+      cycleDayType: user.macroCycleDayType ?? null,
+      mealsPerDay: user.macroMealsPerDay ?? 4,
     });
   } catch (e: any) {
     console.error("get macro targets error:", e);
@@ -407,7 +424,10 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
     if (!hasAccess) {
       return res.status(403).json({ error: "Access denied" });
     }
-    const { calories, protein_g, carbs_g, fat_g, reason } = req.body;
+    const {
+      calories, protein_g, carbs_g, fat_g, starchyCarbs_g, fibrousCarbs_g,
+      cutIntensity, cutStyle, cycleMode, cycleDayType, reason, mealsPerDay,
+    } = req.body;
 
     if (typeof calories !== 'number' || typeof protein_g !== 'number' || 
         typeof carbs_g !== 'number' || typeof fat_g !== 'number') {
@@ -424,6 +444,13 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
           dailyProteinTarget: protein_g,
           dailyCarbsTarget: carbs_g,
           dailyFatTarget: fat_g,
+          dailyStarchyCarbsTarget: typeof starchyCarbs_g === 'number' ? starchyCarbs_g : null,
+          dailyFibrousCarbsTarget: typeof fibrousCarbs_g === 'number' ? fibrousCarbs_g : null,
+          macroCutIntensity: typeof cutIntensity === 'string' ? cutIntensity : 'standard',
+          macroCutStyle: typeof cutStyle === 'string' ? cutStyle : null,
+          macroCycleMode: typeof cycleMode === 'string' ? cycleMode : 'none',
+          macroCycleDayType: typeof cycleDayType === 'string' ? cycleDayType : null,
+          macroMealsPerDay: typeof mealsPerDay === 'number' ? mealsPerDay : null,
         })
         .where(eq(users.id, userId))
         .returning();
@@ -447,7 +474,7 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    console.log(`✅ Saved macro targets for user ${userId}: ${calories}cal, ${protein_g}p/${carbs_g}c/${fat_g}f`);
+    console.log(`✅ Saved macro targets for user ${userId}: ${calories}cal, ${protein_g}p/${carbs_g}c/${fat_g}f (starchy:${starchyCarbs_g ?? '-'} fibrous:${fibrousCarbs_g ?? '-'})`);
 
     if (authUserId && authUserId !== userId) {
       pushToUser(userId, {
@@ -455,6 +482,27 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         body: `New macro targets: ${calories} cal, ${protein_g}g protein.`,
         url: "/my-biometrics",
       });
+
+      // Stamp the day's prescription row as ProCare-controlled so the
+      // mid-day change detection in nutritionStateService can fire the
+      // amber banner for the client.  Awaited so the row is durable before
+      // success is returned; a nutrition-state fetch immediately after the
+      // coach write will see the correct source.  Uses the client's saved
+      // timezone so the calendar date matches what the resolver and meal
+      // logs use for this user.
+      try {
+        const clientTz = await getUserTimezone(userId);
+        const prescDate = todayInTimezone(clientTz);
+        await db.execute(sql`
+          INSERT INTO daily_nutrition_prescriptions (user_id, date, source, updated_at)
+          VALUES (${userId}, ${prescDate}::date, 'procare', NOW())
+          ON CONFLICT (user_id, date) DO UPDATE SET
+            source     = 'procare',
+            updated_at = NOW()
+        `);
+      } catch (err: unknown) {
+        console.error("[manualMacros] Prescription source stamp failed:", (err as Error).message);
+      }
     }
 
     res.json({ 
@@ -463,7 +511,9 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         calories,
         protein_g,
         carbs_g,
-        fat_g
+        fat_g,
+        starchyCarbs_g: starchyCarbs_g ?? null,
+        fibrousCarbs_g: fibrousCarbs_g ?? null,
       }
     });
   } catch (e: any) {
@@ -536,7 +586,7 @@ router.post("/users/:userId/macros/daily-summary", requireAuth, async (req, res)
       ? calories
       : Math.round(4 * Number(protein) + 4 * Number(carbs) + 9 * Number(fat));
 
-    const [row] = await db.execute(sql`
+    const _sqlExecResult = await db.execute(sql`
       INSERT INTO macro_logs (user_id, at, source, kcal, protein, carbs, fat, fiber, alcohol, starchy_carbs, fibrous_carbs)
       VALUES (
         ${targetUserId},
@@ -562,12 +612,47 @@ router.post("/users/:userId/macros/daily-summary", requireAuth, async (req, res)
         at = EXCLUDED.at
       RETURNING *
     `);
+    const [row] = (_sqlExecResult as any).rows ?? _sqlExecResult;
 
     console.log(`✅ Daily summary upserted for user ${targetUserId}: ${dateISO} (source=${source})`);
     res.json({ ok: true, row: row ?? null });
   } catch (e: any) {
     console.error("daily-summary upsert error:", e);
     res.status(400).json({ error: e.message || "Failed to upsert daily summary." });
+  }
+});
+
+// DELETE /api/users/:userId/macro-logs/today
+// Deletes all macro_logs rows for the authenticated user for today (UTC date).
+router.delete("/users/:userId/macro-logs/today", requireAuth, async (req, res) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const targetUserId = req.params.userId;
+    const authUserId = authReq.authUser.id;
+
+    // Only the user themselves can reset their own today
+    if (targetUserId !== authUserId) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    // Server reads users.timezone to determine the correct local day boundary.
+    // Using AT TIME ZONE in SQL guarantees Delete and aggregation queries share
+    // identical day-boundary logic — no JS DST math involved.
+    const tz = await getUserTimezone(targetUserId);
+    const localDateISO = (req.query.localDateISO as string | undefined)
+      ?? todayInTimezone(tz);
+
+    await db.execute(sql`
+      DELETE FROM macro_logs
+      WHERE user_id = ${targetUserId}
+        AND (at AT TIME ZONE ${tz})::date = ${localDateISO}::date
+    `);
+
+    console.log(`🗑️ Reset today's macro logs for user ${targetUserId}`);
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error("reset today error:", e);
+    res.status(500).json({ error: e.message || "Failed to reset today." });
   }
 });
 
@@ -616,10 +701,13 @@ router.get("/users/:userId/macro-logs/daily-with-source", requireAuth, async (re
     if (!start || !end)
       return res.status(400).json({ error: "start & end required (ISO)." });
 
+    // Group by the data owner's local calendar day using their stored IANA timezone.
+    // AT TIME ZONE with a named IANA zone lets PostgreSQL handle DST correctly.
+    const tz = await getUserTimezone(userId);
     const rows = await db.execute(sql`
       WITH day_data AS (
         SELECT
-          (${macroLogs.at})::date AS date,
+          (${macroLogs.at} AT TIME ZONE ${tz})::date AS date,
           ${macroLogs.source} AS source,
           SUM(${macroLogs.kcal})::int AS kcal,
           SUM(${macroLogs.protein})::int AS protein,

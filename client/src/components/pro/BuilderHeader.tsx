@@ -1,8 +1,6 @@
 import { useProClient } from "@/contexts/ProClientContext";
 import { useLocation } from "wouter";
-import { User2, LogOut } from "lucide-react";
-import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
-import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { User2, LogOut, ChevronLeft } from "lucide-react";
 
 export interface ProtocolBadge {
   label: string;
@@ -14,14 +12,15 @@ interface BuilderHeaderProps {
   onOpenTour: () => void;
   clientId?: string | null;
   protocols?: ProtocolBadge[];
+  backTo?: string;
+  backLabel?: string;
 }
 
-export function BuilderHeader({ title, onOpenTour, clientId, protocols }: BuilderHeaderProps) {
+export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, backLabel }: BuilderHeaderProps) {
   const { client, isProCareMode } = useProClient();
   const [, setLocation] = useLocation();
 
   const isInStudioClientContext = isProCareMode && !!client && !!clientId;
-  const hasProtocols = protocols && protocols.length > 0;
 
   return (
     <div
@@ -30,13 +29,19 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols }: Builde
     >
       <div className="px-4 py-3 flex flex-col gap-2">
         <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
-          <h1 className="text-lg font-bold text-white flex-1 min-w-0 truncate">
+          {backTo && !isInStudioClientContext && (
+            <button
+              onClick={() => setLocation(backTo)}
+              className="flex items-center gap-1 text-white/80 active:text-white transition-colors flex-shrink-0 -ml-1 pr-1"
+              aria-label={`Back to ${backLabel ?? "Hub"}`}
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">{backLabel ?? "Hub"}</span>
+            </button>
+          )}
+          <h1 className="text-lg font-bold text-white flex-1 min-w-0 break-words leading-tight">
             {title}
           </h1>
-          <div className="flex items-center gap-2">
-            <MedicalSourcesInfo asPillButton />
-            <QuickTourButton onClick={onOpenTour} />
-          </div>
         </div>
 
         {isInStudioClientContext && (
@@ -57,19 +62,7 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols }: Builde
           </div>
         )}
 
-        {hasProtocols && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] text-white/50 font-medium uppercase tracking-wide">Active Protocol:</span>
-            {protocols.map(({ label, cls }) => (
-              <span
-                key={label}
-                className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full ${cls}`}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Active Protocol row intentionally omitted on mobile — too tall, not enough screen space */}
       </div>
     </div>
   );

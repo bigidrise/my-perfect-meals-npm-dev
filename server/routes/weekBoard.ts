@@ -5,6 +5,10 @@ import { resolveUserId, getWeekBoard, upsertWeekBoard, AuthenticationRequiredErr
 import { processMealImageForSave } from '../services/imageLifecycle';
 import { logActivityFireAndForget } from '../services/activityLog';
 import { pushToCoachOfClient } from '../services/pushNotify';
+import { db } from '../db';
+import { clientLinks } from '../db/schema/procare';
+import { eq, and } from 'drizzle-orm';
+import { enforceCarbs } from '../utils/carbClassifier';
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -120,12 +124,18 @@ function normalizeBoard(raw: any): any {
       cookingTime: m?.cookingTime ? String(m.cookingTime) : undefined,
       difficulty: m?.difficulty ? String(m.difficulty) : undefined,
       medicalBadges: Array.isArray(m?.medicalBadges) ? m.medicalBadges : undefined,
+
+      // Diabetic Meal Memory — BGL context stamped at meal birth, must survive round-trip
+      diabeticMemory: (m?.diabeticMemory && typeof m.diabeticMemory === 'object') ? m.diabeticMemory : undefined,
     }));
   };
 
   const breakfast = normalizeMealArray(lists.breakfast);
   const lunch     = normalizeMealArray(lists.lunch);
   const dinner    = normalizeMealArray(lists.dinner);
+  const meal4     = normalizeMealArray(lists.meal4);
+  const meal5     = normalizeMealArray(lists.meal5);
+  const meal6     = normalizeMealArray(lists.meal6);
 
   // 👇 KEY PART: ensure snacks is ALWAYS an array (any length) and stably ordered
   let snacks = normalizeMealArray(lists.snacks);
@@ -172,6 +182,9 @@ function normalizeBoard(raw: any): any {
           lunch: lunch,
           dinner: dinner,
           snacks: snacks,
+          meal4: meal4,
+          meal5: meal5,
+          meal6: meal6,
         };
       } else {
         days[dateISO] = {
@@ -179,6 +192,9 @@ function normalizeBoard(raw: any): any {
           lunch: [],
           dinner: [],
           snacks: [],
+          meal4: [],
+          meal5: [],
+          meal6: [],
         };
       }
     } else {
@@ -195,6 +211,9 @@ function normalizeBoard(raw: any): any {
         lunch: normalizeMealArray(dayLists.lunch),
         dinner: normalizeMealArray(dayLists.dinner),
         snacks: daySnacks,
+        meal4: normalizeMealArray(dayLists.meal4),
+        meal5: normalizeMealArray(dayLists.meal5),
+        meal6: normalizeMealArray(dayLists.meal6),
       };
     }
   });
@@ -203,7 +222,7 @@ function normalizeBoard(raw: any): any {
     id: boardId,
     version: Number(base.version ?? 1),
     // Keep legacy lists for backward compatibility (use Monday's data)
-    lists: days[weekDates[0]] || { breakfast, lunch, dinner, snacks },
+    lists: days[weekDates[0]] || { breakfast, lunch, dinner, snacks, meal4, meal5, meal6 },
     // NEW: 7-day structure
     days: days,
     meta: {
@@ -277,8 +296,23 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
     
     const processed = await Promise.all(meals.map(async (meal) => {
       if (!meal?.imageUrl) return meal;
-      
-      const result = await processMealImageForSave(meal.imageUrl, meal.title || meal.name || 'Meal');
+
+      // Guard: strip base64 data URIs before the lifecycle gate — client-side
+      // localStorage may cache meals with raw base64 before the permanent URL
+      // is available.  Null it out here so the meal saves with no image rather
+      // than producing a lifecycle_violation ERROR log.
+      const rawMealImageUrl: string = meal.imageUrl;
+      const sanitisedMealImageUrl = rawMealImageUrl.startsWith("data:")
+        ? null
+        : rawMealImageUrl;
+      if (!sanitisedMealImageUrl) {
+        console.warn(
+          `[weekBoard/processAllMealImagesForSave] Stripped base64 imageUrl for "${meal.title || meal.name || 'Meal'}" — client sent stale localStorage data`,
+        );
+        return { ...meal, imageUrl: null };
+      }
+
+      const result = await processMealImageForSave(sanitisedMealImageUrl, meal.title || meal.name || 'Meal');
       
       if (result.ingestionAttempted) {
         imagesProcessed++;
@@ -304,6 +338,9 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
     lunch: await processMealList(lists.lunch || []),
     dinner: await processMealList(lists.dinner || []),
     snacks: await processMealList(lists.snacks || []),
+    meal4: await processMealList(lists.meal4 || []),
+    meal5: await processMealList(lists.meal5 || []),
+    meal6: await processMealList(lists.meal6 || []),
   };
 
   // Process days structure if present
@@ -331,6 +368,9 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
             lunch: await processMealList(dayData.lunch || []),
             dinner: await processMealList(dayData.dinner || []),
             snacks: await processMealList(dayData.snacks || []),
+            meal4: await processMealList(dayData.meal4 || []),
+            meal5: await processMealList(dayData.meal5 || []),
+            meal6: await processMealList(dayData.meal6 || []),
           };
           return [dateKey, processedDay];
         } else if (dayData.lists) {
@@ -499,21 +539,20 @@ export default function weekBoardRoutes(app: Express) {
   // BULLETPROOF WEEKLY BOARD API (guarantees response, create-if-missing)
   
   // GET weekly board with guaranteed response (query param version)
-  // Supports ?ns= for builder namespace isolation (medical/pro builders)
+  // Supports ?bt= for builder type isolation (medical/pro builders); ?ns= accepted as fallback
   app.get("/api/weekly-board", async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
-    const ns = req.query.ns as string | undefined;
-    const storeKey = ns ? `${ns}:${weekStartISO}` : weekStartISO;
+    const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
     
     try {
       const userId = await resolveUserId(req);
-      let board = await getWeekBoard(userId, storeKey);
+      let board = await getWeekBoard(userId, weekStartISO, builderType);
       let source = "db";
       
       if (!board) {
         board = getOrCreateWeek(weekStartISO);
-        await upsertWeekBoard(userId, storeKey, board);
+        await upsertWeekBoard(userId, weekStartISO, board, builderType);
         source = "seed";
       }
       
@@ -530,31 +569,36 @@ export default function weekBoardRoutes(app: Express) {
     }
   });
 
+  // GET board lock status — board control feature removed; always returns unlocked
+  app.get("/api/me/board-lock", (_req: Request, res: Response) => {
+    return res.json({ locked: false });
+  });
+
   // PUT weekly board with idempotent saves (query param version)
   // Canva-style image lifecycle: Process all images before save
-  // Supports ?ns= for builder namespace isolation (medical/pro builders)
+  // Supports ?bt= for builder type isolation; ?ns= accepted as fallback
   app.put("/api/weekly-board", async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
-    const ns = req.query.ns as string | undefined;
-    const storeKey = ns ? `${ns}:${weekStartISO}` : weekStartISO;
+    const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
     
     try {
       const userId = await resolveUserId(req);
+
       const incoming = normalizeBoard(req.body?.week ?? req.body);
       const opId = req.body?.opId; // Idempotent operation ID (for future use)
       
       // Canva-style image gate: Process all meal images before save
       const { board: processedBoard, imagesProcessed, imagesPending } = await processAllMealImagesForSave(incoming);
       if (imagesProcessed > 0) {
-        console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}${ns ? ` [ns=${ns}]` : ''}`);
+        console.log(`📦 Processed ${imagesProcessed} images (${imagesPending} pending) for weekly board ${weekStartISO}${builderType ? ` [bt=${builderType}]` : ''}`);
       }
       
       const now = new Date().toISOString();
-      const existingBoard = await getWeekBoard(userId, storeKey);
+      const existingBoard = await getWeekBoard(userId, weekStartISO, builderType);
       const saved: WeekBoard = {
         ...processedBoard,
-        id: ns ? `${ns}:week-${weekStartISO}` : `week-${weekStartISO}`,
+        id: `week-${weekStartISO}`,
         meta: {
           ...existingBoard?.meta,
           ...processedBoard.meta,
@@ -563,7 +607,7 @@ export default function weekBoardRoutes(app: Express) {
         },
       };
       
-      await upsertWeekBoard(userId, storeKey, saved);
+      await upsertWeekBoard(userId, weekStartISO, saved, builderType);
 
       logActivityFireAndForget(
         userId,
@@ -571,7 +615,7 @@ export default function weekBoardRoutes(app: Express) {
         "board_updated",
         "weekly_board",
         `week-${weekStartISO}`,
-        { weekStartISO, imagesProcessed, imagesPending }
+        { weekStartISO, builderType, imagesProcessed, imagesPending }
       );
 
       pushToCoachOfClient(userId, {
@@ -653,14 +697,17 @@ export default function weekBoardRoutes(app: Express) {
     try {
       const { dateISO, slot, meal } = req.body;
 
+      // Resolve builder type — same normalization as GET /api/weekly-board and PUT /api/weekly-board
+      const builderType: string = (req.body.bt as string) || (req.query.bt as string) || '';
+
       // Validate inputs
       if (!dateISO || !isValidISODate(dateISO)) {
         return res.status(400).json({ error: "Invalid or missing dateISO (YYYY-MM-DD format required)" });
       }
 
-      const validSlots = ["breakfast", "lunch", "dinner", "snacks"];
+      const validSlots = ["breakfast", "lunch", "dinner", "meal4", "meal5", "meal6", "snacks"];
       if (!slot || !validSlots.includes(slot)) {
-        return res.status(400).json({ error: "Invalid slot. Must be breakfast, lunch, dinner, or snacks" });
+        return res.status(400).json({ error: "Invalid slot. Must be one of: breakfast, lunch, dinner, meal4, meal5, meal6, or snacks" });
       }
 
       if (!meal || typeof meal !== "object") {
@@ -671,8 +718,8 @@ export default function weekBoardRoutes(app: Express) {
       const mondayISO = toMondayISO(dateISO);
       const userId = await resolveUserId(req);
 
-      // Get or create the week board
-      let board = await getWeekBoard(userId, mondayISO);
+      // Get or create the week board — scoped to the correct builder namespace
+      let board = await getWeekBoard(userId, mondayISO, builderType);
       if (!board) {
         board = getOrCreateWeek(mondayISO);
       }
@@ -693,23 +740,32 @@ export default function weekBoardRoutes(app: Express) {
 
       // Ensure the day exists
       if (!board.days[dateISO]) {
-        board.days[dateISO] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+        board.days[dateISO] = { breakfast: [], lunch: [], dinner: [], snacks: [], meal4: [], meal5: [], meal6: [] };
       }
 
-      // Generate a unique ID for the meal if not provided
+      // Detect saved-meal UUID: preserve it as savedMealId for content translation,
+      // then assign a board-specific id so the two namespaces stay independent.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const incomingSavedMealId =
+        typeof meal.id === "string" && UUID_RE.test(meal.id) ? meal.id : null;
+
       const mealToAdd = {
         ...meal,
-        id: meal.id || `meal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        id: `meal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        ...(incomingSavedMealId ? { savedMealId: incomingSavedMealId } : {}),
         title: meal.name || meal.title || "Untitled Meal",
         name: meal.name || meal.title || "Untitled Meal",
         // Normalize nutrition
+        // Use ?? (not ||) for starchy/fibrous so an explicit 0 from a
+        // no-starch or all-fibrous meal is preserved — || would lose it
+        // by falling through to the sibling field, then to undefined.
         nutrition: {
           calories: meal.nutrition?.calories || meal.calories || 0,
           protein: meal.nutrition?.protein || meal.protein || 0,
           carbs: meal.nutrition?.carbs || meal.carbs || 0,
           fat: meal.nutrition?.fat || meal.fat || 0,
-          starchyCarbs: meal.nutrition?.starchyCarbs || meal.starchyCarbs,
-          fibrousCarbs: meal.nutrition?.fibrousCarbs || meal.fibrousCarbs,
+          starchyCarbs: meal.nutrition?.starchyCarbs ?? meal.starchyCarbs,
+          fibrousCarbs: meal.nutrition?.fibrousCarbs ?? meal.fibrousCarbs,
         },
         // Preserve extended fields
         imageUrl: meal.imageUrl,
@@ -721,27 +777,43 @@ export default function weekBoardRoutes(app: Express) {
         instructions: meal.instructions || [],
       };
 
+      // Derive starchyCarbs/fibrousCarbs from ingredients when the meal arrives
+      // without them. This runs the density-weighted classifier server-side so
+      // board-saved meals always carry accurate starch attribution regardless of
+      // which builder or transfer path added them.
+      const mealWithCarbs = enforceCarbs(mealToAdd);
+      // Sync the derived values back into the flat nutrition object so both the
+      // top-level fields and the nested nutrition block agree.
+      if (mealWithCarbs.starchyCarbs !== undefined) {
+        (mealWithCarbs as any).nutrition.starchyCarbs = mealWithCarbs.starchyCarbs;
+      }
+      if (mealWithCarbs.fibrousCarbs !== undefined) {
+        (mealWithCarbs as any).nutrition.fibrousCarbs = mealWithCarbs.fibrousCarbs;
+      }
+      Object.assign(mealToAdd, mealWithCarbs);
+
       // Check occupancy before replacing
-      const existingMeals = board.days[dateISO][slot as "breakfast" | "lunch" | "dinner" | "snacks"] || [];
+      type MealSlot = "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6" | "snacks";
+      const existingMeals = (board.days[dateISO] as any)[slot] || [];
       const wasOccupied = slot !== "snacks" && existingMeals.length > 0;
       const previousMealTitle = wasOccupied ? (existingMeals[0]?.title || existingMeals[0]?.name || null) : null;
 
-      // Replace existing meal in slot (single meal per slot for breakfast/lunch/dinner)
+      // Replace existing meal in slot (single meal per slot for all meal slots; snacks can stack)
       if (slot === "snacks") {
         // Snacks can have multiple, append
         board.days[dateISO].snacks.push(mealToAdd);
       } else {
-        // Breakfast/lunch/dinner: replace (enforced here — no stacking)
-        board.days[dateISO][slot as "breakfast" | "lunch" | "dinner"] = [mealToAdd];
+        // All meal slots (Meal 1-6): replace (single meal per slot — no stacking)
+        (board.days[dateISO] as any)[slot] = [mealToAdd];
       }
 
       // Update metadata
       board.meta.lastUpdatedAt = new Date().toISOString();
 
-      // Save the board
-      await upsertWeekBoard(userId, mondayISO, board);
+      // Save the board — scoped to the same builder namespace used for the read
+      await upsertWeekBoard(userId, mondayISO, board, builderType);
 
-      console.log(`✅ Added meal "${mealToAdd.title}" to ${dateISO} ${slot}`);
+      console.log(`✅ Added meal "${mealToAdd.title}" to ${dateISO} ${slot}${builderType ? ` [bt=${builderType}]` : ''}`);
 
       return res.json({
         success: true,

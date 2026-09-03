@@ -1,13 +1,22 @@
+import {
+  HYDRATION_HUB_CONSIDERED_FOR_YOU,
+  HYDRATION_HUB_DESCRIPTION,
+  HYDRATION_HUB_DOORS,
+  HYDRATION_HUB_MEDICAL_BOUNDARY,
+  HYDRATION_HUB_OVERVIEW,
+  HYDRATION_HUB_TITLE,
+} from "@/lib/hydrationHubContent";
+
 export interface PageExplanation {
   pageId: string;
   title: string;
   description: string;
   spokenText: string;
   autoClose: boolean;
-  // Guest-specific marketing copy - used when in guest mode for onboarding/sales
+  // Guest-specific marketing copy, used when in guest mode for onboarding/sales
   guestSpokenText?: string;
   guestDescription?: string;
-} 
+}
 
 export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
   "/dashboard": {
@@ -16,7 +25,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your home base. Access meal planning, tracking, cravings, and lifestyle tools from one place.",
     spokenText:
-      "Welcome to My Perfect Meals. I’m Chef Copilot — your coach in your pocket — here to guide you through the app hands-free or whenever you need help, and you can turn me on or off using the Auto toggle in the Copilot bar. You’re on your dashboard, your home base for accessing meal tools, planning features, and app resources, with buttons that take you to things like your planner, shopping list, nutrition utilities, inspiration, and reference information. Tap the gear icon in the top-right to manage your account, switch meal builders, adjust settings, and review app information. Chef Studio is where you can freely explore, experiment, and generate meals, and when you’re building, starting broad works great, but the more specific you are, the more tailored your results will be. My Perfect Meals is powered by Emotion AI — our conversational meal creation system that lets you describe what you want and get personalized results. It also includes SafetyGuard — Allergy Protection — our two-layer system that helps prevent meals from being generated with ingredients you've marked as unsafe. Starch Guard is our weight management system — it limits high-glycemic carbs like potatoes, rice, and pasta that spike insulin and cause weight gain. You get one or two starch meals per day, and when you've used them, Starch Guard steps in to help you substitute with fibrous carbs instead. For diabetic users, GlucoseGuard in the Diabetic Hub adjusts meal generation based on your latest glucose reading. Your Nutrition Budget tracks your daily protein, starchy carbs, and fiber — showing what's left as you add meals, so you always know where you stand without overthinking. Your Palate Preferences let you customize seasoning and flavor — spice tolerance, seasoning intensity, and flavor style — so every meal fits your taste without changing your macros. When you’re ready, set your targets in the Macro Calculator, and from there I’ll guide you step by step through meals, boards, and tools, with Copilot on or off — your call.",
+      "Welcome to My Perfect Meals. I am Chef Copilot, your coach in your pocket, here to guide you whenever you need help, and you can turn me on or off at any time using the Auto toggle in the Copilot bar. You are on your dashboard, your home base and control center for everything in the app, where you can access your meal planner, shopping list, nutrition tools, inspiration, and other key resources all in one place. In the top right corner, you’ll see the Hub, which is where you manage your account, switch meal builders, adjust settings, and explore the App Library, the brain of the app where you can learn how everything works and get guidance whenever you need it. Create a Dish is where you can freely explore and generate meals. When generating meals, you can be broad or specific, but the more detail you provide, the more accurate and tailored your results will be. If you stay too vague, you may not get exactly what you’re looking for, so adding details about ingredients, style, or goals will improve your outcome, and if you want even more control, you can use the Keep It Simple option to limit extra ingredients and keep meals focused on exactly what you asked for. Recipe Maker is right on your dashboard — tap it whenever you see food you want to make yours. You can bring in any meal idea four ways: pick a screenshot or photo from your gallery, open your camera live, speak the meal out loud, or just type it. And here is the part that surprises people: you do not even need a recipe. If you can show it or describe it, Recipe Maker can build it. Once you submit, it does not give you one result — it builds three completely personalized versions of your idea at the same time, each one fully built around your nutrition profile, allergies, and every active health protocol on your account. You see all three choices at once and can save any or all of them. Your choices stay on the dashboard automatically until you choose to clear them — the app never removes them on its own. My Perfect Meals is powered by Emotion AI, our conversational meal creation system that allows you to describe what you want and receive personalized meals based on your preferences. The system also supports specialty diets like vegan, vegetarian, pescatarian, and more, treating them as built-in guardrails, so your meals automatically respect your dietary choices without you needing to repeat them. To protect you, we use Safety Guard with Allergy Protection, a two-layer system designed to prevent meals from being created with unsafe ingredients. For weight management, Starch Guard helps control high-glycemic carbs like rice, pasta, and potatoes, giving you one or two starch-based meals per day and then shifting toward fibrous carbs once you have reached that limit. If you are using the Diabetic Hub, Glucose Guard adjusts your meals based on your most recent glucose readings to help keep you within a safer range. Your Nutrition Budget tracks your daily protein, starchy carbs, and fiber, showing you what is left as you add meals so you can stay on track without overthinking. Your Palate Preferences let you customize flavor, including spice level, seasoning intensity, and overall taste profile, so your meals match your preferences without changing your macros. When you are ready, start by setting your targets in the Macro Calculator. From there I will guide you step by step through building meals, planning your days, and using the app effectively. You can use the app with Copilot on or off, your choice, and if anything, ever feels confusing or not right, just scroll to the bottom of this card and tap Contact Support, because we read everything and we are here to help.",
     autoClose: true,
   },
 
@@ -24,58 +33,95 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "my-biometrics",
     title: "My Biometrics",
     description:
-      "Your daily control panel. Scan food labels with MacroScan, log meals instantly, add extra macros when needed, and track calories, weight, and water over time.",
+      "Your daily feedback center. Track macro consistency, body metrics, hydration, and progress trends while logging meals instantly with MacroScan or Just Describe It.",
+
     spokenText:
-      "My Biometrics is your tracking and review center. Your daily macro targets live at the top of this page, and stay persistent until you recalculate them in the Macro Calculator. You can log packaged foods using MacroScan by taking a photo of a nutrition label, review the AI-read values, and add them to your day. This page also shows your daily, weekly, and monthly macro totals, your weight trends over time, and your daily water intake. Your Body Fat % is estimated using the U.S. Navy Body Fat Formula, which uses simple body measurements like waist, neck, height, and hips to estimate body composition. It provides a consistent way to track changes over time. Use Biometrics to monitor progress, not plan your meals — it’s where everything comes together, so you can see how you’re doing. For guests, Biometrics is where you review what you’ve built, and once your meals are set, this page helps you understand how everything connects.",
+      "My Biometrics is your daily feedback and progress center, where everything you are doing inside the app comes together in one place. At the top, you will see your current macro targets, which are set from the Macro Calculator and remain active until you, your coach, or your physician updates them. As you move through the page, you can quickly log foods using MacroScan by scanning a nutrition label, or use Just Describe It to estimate meals by simply explaining what you ate. This page also tracks your macro consistency over time, helping you see how closely your eating habits align with your targets across daily, weekly, and monthly views. You will also find calorie totals, body measurements, body composition estimates, clinical lab values, and hydration tracking. Your body fat percentage is estimated using the U.S. Navy Body Fat Formula, which uses measurements like waist, neck, height, and hips to provide a consistent progress reference over time, though you can also enter more advanced readings from external devices if available. This page is not designed to build meals. It is designed to help you monitor patterns, identify trends, improve consistency, and better understand how your nutrition choices are affecting your body and overall progress.",
     autoClose: true,
     guestDescription:
-      "This is where food turns into numbers, and numbers turn into feedback. Your personal progress lens.",
+      "Your personal progress lens. This is where meals, macros, hydration, and body trends turn into real feedback.",
+
     guestSpokenText:
-      "This is your Biometrics page — and this is where food turns into data. Most people eat without ever knowing what’s actually working. Here, you’ll see exactly how your meals add up — protein, carbs, fat, calories — all in one place. You can scan packaged food labels, log meals you’ve built, and watch your weekly and monthly trends unfold. This isn’t just tracking — it’s feedback. It’s the difference between hoping your plan works, and actually knowing it does. For subscribers, this page becomes your personal progress lens — weight trends, water intake, macro consistency over time. It’s where the system closes the loop. You’ve made it through your first full loop of the Guest Experience — nicely done. Head back to the Guest Experience now, and you’ll find Fridge Rescue and Craving Creator unlocked and waiting for you. Those are free to explore, so go play with them. I’ll be here when you’re ready.",
+      "This is your Biometrics page, and this is where your nutrition starts turning into real data and real feedback. Most people eat every day without ever truly understanding what is helping them progress and what is holding them back. Here, you can see your protein, carbs, fats, calories, hydration, and body trends all in one place. You can scan food labels with MacroScan, describe meals using Just Describe It, and watch your macro consistency patterns develop over time across daily, weekly, and monthly views. This is not about perfection. It is about awareness, consistency, and understanding your habits. Subscribers unlock deeper tracking tools like weight trends, hydration monitoring, body composition tracking, and long term macro consistency insights that help close the loop between your nutrition and your results. You have now completed your first full loop of the Guest Experience. Nicely done. Head back to the Guest Experience and you will now find Fridge Rescue and Craving Creator unlocked and ready to explore. Go have fun with them. I will be here when you are ready for the next step.",
+  },
+
+  "/hydration": {
+    pageId: "hydration",
+    title: HYDRATION_HUB_TITLE,
+    description: `${HYDRATION_HUB_DESCRIPTION} Choose the kind of support that fits your situation.`,
+    spokenText: [
+      `${HYDRATION_HUB_TITLE} is ${HYDRATION_HUB_DESCRIPTION.toLowerCase()}`,
+      HYDRATION_HUB_OVERVIEW,
+      "Choose the door that fits your situation.",
+      ...HYDRATION_HUB_DOORS.map(({ title, description }) => `${title}: ${description}`),
+      HYDRATION_HUB_CONSIDERED_FOR_YOU,
+      "If an authorized professional has updated your Hydration Plan, review the current instructions here in My Perfect Hydration Center.",
+      HYDRATION_HUB_MEDICAL_BOUNDARY,
+    ].join(" "),
+    autoClose: true,
   },
 
   "/craving-creator": {
     pageId: "craving-creator-studio",
     title: "Craving Creator",
     description:
-      "Create healthier versions of the foods you crave — and add them directly to your meal plan.",
+      "Create healthier versions of the foods you crave, and add them directly to your meal plan.",
     spokenText:
-      "Craving Creator is for those moments when you want something specific, but still want it to fit your goals. Just tell me what you’re craving — sweet, crunchy, creamy, or anything else. Add any preferences or restrictions, choose how many servings you want, and tap Create. I’ll build a balanced version of that craving with ingredients, nutrition, and instructions. When you find a meal you like, you can add it straight to today's plan. If you're diabetic, GlucoseGuard adjusts meals based on your latest glucose reading. Use the Flavor Preference toggle to switch between Personal — using your saved palate preferences — or Neutral for light seasoning when cooking for others. Pro tip — you can go hands-free here. Tap the Chef, and just talk your way through it.",
+      "Craving Creator is for those moments when you want something specific but still want it to fit your goals. Just tell me what you are craving, sweet, crunchy, creamy, or anything else, add any preferences or restrictions, choose your servings, and tap Create. Instead of giving you just one option, I will now generate three different meal choices based on your request, so you can pick the one that fits you best. Every option is built to respect your system, including specialty diets like vegan, vegetarian, and other dietary preferences, along with SafetyGuard for allergy protection, Starch Guard for managing high-glycemic carbs, and GlucoseGuard if you are using the Diabetic Hub. You can keep it simple or be detailed with your request, but the more specific you are, the more tailored your results will be, and if you want tighter control, use the Keep It Simple option to limit extra ingredients and keep the meal focused on exactly what you asked for. Once you find something you like, you can add it directly to your day. You can also use the Flavor Preference toggle to switch between Personal, which uses your saved palate preferences, or Neutral for lighter seasoning when cooking for others. And if you want to go hands-free, just tap the Chef and talk your way through it.",
     autoClose: true,
     guestDescription:
-      "We redesign cravings. Stay satisfied, stay on plan — without giving up what you love.",
+      "We redesign cravings. Stay satisfied, stay on plan, without giving up what you love.",
     guestSpokenText:
-      "This is Craving Creator — and this is how you stay on plan without feeling deprived. Most diets tell you to ignore your cravings. I don’t work that way. I redesign them. Craving something sweet? Tell me. Something crunchy, creamy, salty — tell me. I’ll build a healthier version that actually satisfies you, with ingredients, instructions, and real nutrition. When you find one you like, add it straight to today’s breakfast, lunch, dinner, or snacks. This feature is free for you to explore — no pass required. Play around, experiment, and see how cravings can fit into a real plan without derailing your progress. This is the kind of thing that makes people realize this app actually gets them.",
+      "This is Craving Creator, and this is how you stay on plan without feeling deprived. Most diets tell you to ignore your cravings. I don’t work that way. I redesign them. Craving something sweet? Tell me. Something crunchy, creamy, salty, tell me. I’ll build a healthier version that actually satisfies you, with ingredients, instructions, and real nutrition. When you find one you like, add it straight to today’s breakfast, lunch, dinner, or snacks. This feature is free for you to explore, no pass required. Play around, experiment, and see how cravings can fit into a real plan without derailing your progress. This is the kind of thing that makes people realize this app actually gets them.",
   },
 
   "/craving-desserts": {
     pageId: "dessert-creator-studio",
     title: "Dessert Creator",
     description:
-      "Create healthier desserts — from everyday cravings to special-occasion treats — without restriction or guilt.",
+      "Create healthier desserts, from everyday cravings to special-occasion treats, without restriction or guilt.",
     spokenText:
-      "Dessert Creator is where cravings don’t get judged — they get redesigned. Start by choosing the kind of dessert you want, then pick a flavor direction and how many people you’re serving. Add any dietary preferences if needed, then tap Create. I’ll build you a dessert that actually feels like a dessert — one you can enjoy. If you're diabetic, GlucoseGuard adjusts the dessert based on your latest glucose reading. Use the Flavor Preference toggle to switch between Personal or Neutral seasoning when serving others. Pro tip — you can go hands-free here. Tap the Chef, and just talk your way through it.",
+      "Dessert Creator is where cravings don’t get judged, they get redesigned. Start by choosing the kind of dessert you want, then pick a flavor direction and how many people you’re serving. Add any dietary preferences if needed, then tap Create. I’ll build you a dessert that actually feels like a dessert, one you can enjoy. If you're diabetic, GlucoseGuard adjusts the dessert based on your latest glucose reading. Use the Flavor Preference toggle to switch between Personal or Neutral seasoning when serving others. Pro tip, you can go hands-free here. Tap the Chef, and just talk your way through it.",
     autoClose: true,
   },
 
   "/craving-creator-landing": {
     pageId: "craving-creator-landing",
-    title: "Craving Creator Hub",
+    title: "Cravings, Sushi & Desserts Hub",
     description:
-      "The original craving-based experience. Create custom cravings, explore ready-made favorites, or build healthier desserts — all from one place.",
+      "The original craving-based experience. Create custom cravings, explore ready-made favorites, or build healthier desserts, all from one place.",
     spokenText:
-      "Welcome to the Craving Creator Hub — this is where it all began. This is the original experience, built around what you actually feel like eating. You can use the Craving Creator to turn any craving into a healthier meal that fits your goals, browse Premades for ready-to-go favorites, or head into the Dessert Creator for healthier takes on things like cookies, cakes, and pies. Pick where you want to start, and I’ll guide you from there.",
+      "Welcome to the Craving Creator Hub, this is where it all began. This is the original experience, built around what you actually feel like eating. You can use the Craving Creator to turn any craving into a healthier meal that fits your goals, browse Premades for ready-to-go favorites, or head into the Dessert Creator for healthier takes on things like cookies, cakes, and pies. Pick where you want to start, and I’ll guide you from there.",
     autoClose: true,
   },
 
+  "/lifestyle/create-a-dish": {
+    pageId: "create-a-dish",
+    title: "Create a Dish",
+    description:
+      "Design a custom meal from scratch, describe exactly what you want, choose your cook method, servings, and notes, and I'll build it with full ingredients, nutrition, and instructions.",
+    spokenText:
+      "Create a Dish is your blank canvas. This is where you build something from scratch, no templates, no limits. Just describe the meal you want in the dish field, be as specific or as open as you like. Mention the cuisine, the protein, how you want it cooked, or even how it should feel. You can choose your cook method, set your servings, and add any notes like 'make it low sodium' or 'easy cleanup.' When you tap Create, I'll build your meal with full ingredients, nutrition info, and step-by-step instructions. Your SafetyGuard and allergy protections are always active, so nothing unsafe will be included. If you're managing your weight, Starch Guard monitors starchy carbs and can substitute them with fibrous alternatives when needed. GlucoseGuard adjusts the meal automatically if you're diabetic and have a recent glucose reading. Use the Flavor toggle to switch between your personal palate preferences or a neutral profile when cooking for others. Once your dish is ready, you can add it to your meal plan, send ingredients to your shopping list, save it to your favorites, or share the recipe. One thing worth understanding about how starchy carbs are managed, the timing is intentional. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process. That is why Starch Guard concentrates them earlier in the day when possible, not as a restriction, but as a strategy you can adjust based on your training schedule and lifestyle. Tap Create to get started.",
+    autoClose: true,
+  },
+
+  "/lifestyle/athlete-beverage-creator": {
+    pageId: "athlete-beverage-creator",
+    title: "Athletes Beverage Creator",
+    description:
+      "Performance drinks built for athletes, clean, functional, and tuned to your training phase. No dyes, no fillers. Every drink respects your dietary profile.",
+    spokenText:
+      "Welcome to the Athletes Beverage Creator. This system is built for serious performance, for UFC fighters, NBA players, endurance athletes, and anyone who trains hard and eats clean. Every drink is designed around your training phase. Pre-workout drinks focus on energy and mental focus. Intra-workout drinks prioritize hydration and endurance. Post-workout drinks are built for recovery and rebuilding muscle. Ingredients are chosen for function, covering protein timing, electrolytes, creatine support, and clean energy. No artificial dyes, no fillers, nothing your body does not need. Your dietary profile always travels with you here too. If you are vegan, anti-inflammatory, or have any food restrictions, this system respects all of that automatically. The same guardrails that protect every meal in this app are active here too. Select your training phase, your goal, and your preferred drink format, then tap Build Performance Drink.",
+    autoClose: true,
+  },
 
   "/lifestyle/beverage-creator": {
     pageId: "beverage-creator",
     title: "Beverage Creator",
     description:
-      "Create personalized healthy beverages — smoothies, protein shakes, cocktails, mocktails, coffee drinks, tea drinks, milkshakes, frozen drinks, and hydration drinks — tailored to your nutrition goals.",
+      "Create personalized healthy beverages, smoothies, protein shakes, cocktails, mocktails, coffee drinks, tea drinks, milkshakes, frozen drinks, and hydration drinks, tailored to your nutrition goals.",
     spokenText:
-      "Welcome to the Beverage Creator — this is where you build drinks that actually fit your plan. Pick a category — smoothies, protein shakes, cocktails, mocktails, coffee drinks, tea drinks, milkshakes, frozen drinks, or hydration drinks — then tell me what you're in the mood for, or tap Surprise Me and let me pick. I'll create a custom beverage with full nutrition info, ingredients, and instructions. Every drink respects your SafetyGuard settings, allergies, and dietary preferences. If you're diabetic, GlucoseGuard adjusts sugar content based on your latest reading. You can save favorites, add drinks to your meal plan, or send ingredients straight to your shopping list. Flavor Preference lets you switch between personal and neutral taste when making drinks for others.",
+      "Welcome to the Beverage Creator, this is where you build drinks that actually fit your plan. Pick a category, smoothies, protein shakes, cocktails, mocktails, coffee drinks, tea drinks, milkshakes, frozen drinks, or hydration drinks, then tell me what you're in the mood for, or tap Surprise Me and let me pick. I'll create a custom beverage with full nutrition info, ingredients, and instructions. Every drink respects your SafetyGuard settings, allergies, and dietary preferences. If you're diabetic, GlucoseGuard adjusts sugar content based on your latest reading. You can save favorites, add drinks to your meal plan, or send ingredients straight to your shopping list. Flavor Preference lets you switch between personal and neutral taste when making drinks for others.",
     autoClose: true,
   },
 
@@ -85,7 +131,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Find the perfect wine, beer, and spirits to pair with any meal. Powered by AI sommelier expertise.",
     spokenText:
-      "Welcome to Chef Pairings — your personal sommelier, beer expert, and spirits guide all in one place. Just type what you're eating — steak, salmon, pizza, tacos, whatever you're having — and I'll recommend wines, beers, and spirits that pair perfectly with your food. Each recommendation includes why it works, calorie info, and health notes for anyone watching sugar or calories. If you find a pairing you love, tap the heart to save it to your favorites. Your SafetyGuard and allergy protections are active here too, so everything stays safe.",
+      "Welcome to Chef Pairings, your personal sommelier, beer expert, and spirits guide all in one place. Just type what you're eating, steak, salmon, pizza, tacos, whatever you're having, and I'll recommend wines, beers, and spirits that pair perfectly with your food. Each recommendation includes why it works, calorie info, and health notes for anyone watching sugar or calories. If you find a pairing you love, tap the heart to save it to your favorites. Your SafetyGuard and allergy protections are active here too, so everything stays safe.",
     autoClose: true,
   },
 
@@ -93,9 +139,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "pairings-hub",
     title: "Pairings Hub",
     description:
-      "Your drink intelligence center — AI pairings, wine list translation, and a plan to reduce drinking.",
+      "Your drink intelligence center, AI pairings, wine list translation, and a plan to reduce drinking.",
     spokenText:
-      "Welcome to the Pairings Hub — your complete drink intelligence center. You have three tools here. Drink Pairings finds the perfect wine, beer, or spirits for any meal, or helps you discover new drinks similar to ones you already love. Wine List Translator lets you paste any restaurant wine list and get plain-English explanations with flavor profiles and a best-choice recommendation. And if you want to cut back, the Reduce Drinking Plan creates a personalized, evidence-based plan at your own pace. Tap any card to get started.",
+      "Welcome to the Pairings Hub, your complete drink intelligence center. You have three tools here. Drink Pairings finds the perfect wine, beer, or spirits for any meal, or helps you discover new drinks similar to ones you already love. Wine List Translator lets you paste any restaurant wine list and get plain-English explanations with flavor profiles and a best-choice recommendation. And if you want to cut back, the Reduce Drinking Plan creates a personalized, evidence-based plan at your own pace. Tap any card to get started.",
     autoClose: true,
   },
 
@@ -103,9 +149,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "pairings-ai",
     title: "Drink Pairings",
     description:
-      "Find the perfect drink for any meal — or discover new drinks similar to ones you love.",
+      "Find the perfect drink for any meal, or discover new drinks similar to ones you love.",
     spokenText:
-      "Welcome to Drink Pairings — your personal sommelier, beer expert, and spirits guide. You have two modes. Pair food with drinks — just type what you're eating and I'll recommend wines, beers, and spirits that pair perfectly, with science-based explanations of why each works. Or use Find similar drinks — enter a drink you already love and I'll find others with similar flavor profiles. Every recommendation includes flavor notes, serving tips, and alternatives. Your SafetyGuard, allergy protections, and glucose guard are all active here.",
+      "Welcome to Drink Pairings, your personal sommelier, beer expert, and spirits guide. You have two modes. Pair food with drinks, just type what you're eating and I'll recommend wines, beers, and spirits that pair perfectly, with science-based explanations of why each works. Or use Find similar drinks, enter a drink you already love and I'll find others with similar flavor profiles. Every recommendation includes flavor notes, serving tips, and alternatives. Your SafetyGuard, allergy protections, and glucose guard are all active here.",
     autoClose: true,
   },
 
@@ -115,7 +161,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Paste a restaurant wine list and get plain-English explanations, flavor profiles, and a best-choice pick.",
     spokenText:
-      "Welcome to the Wine List Translator. Next time you're at a restaurant and the wine list looks intimidating, just snap a photo or type the wines in here. I'll explain each one in plain English — what it tastes like, what foods it pairs with, and why. I'll also pick the best choice for your meal if you tell me what you're eating. Each wine gets a flavor profile breakdown so you know exactly what to expect before you order.",
+      "Welcome to the Wine List Translator. Next time you're at a restaurant and the wine list looks intimidating, just snap a photo or type the wines in here. I'll explain each one in plain English, what it tastes like, what foods it pairs with, and why. I'll also pick the best choice for your meal if you tell me what you're eating. Each wine gets a flavor profile breakdown so you know exactly what to expect before you order.",
     autoClose: true,
   },
 
@@ -125,7 +171,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Create a personalized, evidence-based plan to reduce your drinking at your own pace.",
     spokenText:
-      "Welcome to the Reduce Drinking Plan. This tool creates a personalized plan to help you cut back on drinking at whatever pace feels right for you. Just enter how much you currently drink, how many days a week, and choose your reduction pace — gentle, standard, or custom. I'll generate a week-by-week plan with clear targets, harm reduction tips backed by research, and any medical flags to be aware of. This is private, judgment-free, and based on evidence-based approaches.",
+      "Welcome to the Reduce Drinking Plan. This tool creates a personalized plan to help you cut back on drinking at whatever pace feels right for you. Just enter how much you currently drink, how many days a week, and choose your reduction pace, gentle, standard, or custom. I'll generate a week-by-week plan with clear targets, harm reduction tips backed by research, and any medical flags to be aware of. This is private, judgment-free, and based on evidence-based approaches.",
     autoClose: true,
   },
 
@@ -133,36 +179,33 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "fridge-rescue-studio",
     title: "Fridge Rescue",
     description:
-      "Turn the ingredients you already have into real meals — and add them directly to today’s plan.",
+      "Turn the ingredients you already have into real meals, and add them directly to today’s plan.",
     spokenText:
-      "Fridge Rescue is built for real life. If you want, you can type what you have. Or you can go hands-free — tap the Chef and just tell me what's in your fridge. I'll ask a couple of quick questions if needed, then turn what you already have into real meals you can actually eat. Each meal comes with ingredients, instructions, and nutrition. If you like one, you can add it directly to today's plan, log the macros, or send ingredients to your shopping list. If you're diabetic, GlucoseGuard adjusts meals based on your latest glucose reading. Use the Flavor Preference toggle to switch between Personal or Neutral seasoning when cooking for others. Pro tip — you can go hands-free here. Tap the Chef and just talk.",
+      "Fridge Rescue is built for real life. If you want, you can type what you have. Or you can go hands-free, tap the Chef and just tell me what's in your fridge. I'll ask a couple of quick questions if needed, then turn what you already have into real meals you can actually eat. Each meal comes with ingredients, instructions, and nutrition. If you like one, you can add it directly to today's plan, log the macros, or send ingredients to your shopping list. If you're diabetic, GlucoseGuard adjusts meals based on your latest glucose reading. Use the Flavor Preference toggle to switch between Personal or Neutral seasoning when cooking for others. Pro tip, you can go hands-free here. Tap the Chef and just talk. One thing worth understanding about how starchy carbs are managed, the timing is intentional. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process. That is why Starch Guard concentrates them earlier in the day when possible, not as a restriction, but as a strategy you can adjust based on your training schedule and lifestyle.",
     autoClose: true,
     guestDescription:
       "Life happens. We adapt. Use what you have and turn it into something real.",
     guestSpokenText:
-      "This is Fridge Rescue — and this is what happens when life doesn’t go according to plan. You’ve got random ingredients at home, no time to shop, and no idea what to make. Sound familiar? Just tell me what you’ve got — chicken, eggs, leftover rice, whatever — and I’ll turn it into a real meal with ingredients, instructions, and nutrition. No grocery run. No guessing. No wasted food. This feature is free for you to explore — no pass required. Play around, see what’s possible. When you find something you like, you can add it to your meal plan, and watch how it connects back to your day. This is one of those features that makes people go ‘oh wow, I didn’t know it could do that.’ So go ahead — rescue your fridge.",
+      "This is Fridge Rescue, and this is what happens when life doesn’t go according to plan. You’ve got random ingredients at home, no time to shop, and no idea what to make. Sound familiar? Just tell me what you’ve got, chicken, eggs, leftover rice, whatever, and I’ll turn it into a real meal with ingredients, instructions, and nutrition. No grocery run. No guessing. No wasted food. This feature is free for you to explore, no pass required. Play around, see what’s possible. When you find something you like, you can add it to your meal plan, and watch how it connects back to your day. This is one of those features that makes people go ‘oh wow, I didn’t know it could do that.’ So go ahead, rescue your fridge.",
   },
-
-
-
 
   "/social-hub": {
     pageId: "social-hub",
-    title: "Socializing Hub",
+    title: "Meals Away From Home",
     description:
-      "Navigate dining out and social eating. Choose Restaurant Guide or Lean Social.",
+      "Navigate dining out and social eating. Choose Restaurant Assistant or Lean Social.",
     spokenText:
-      "Socializing Hub. In this feature, you have two ways to find healthy meals. Use Restaurant Guide when you already know where you’re eating — just tell me the restaurant, and what you want. Or use Find Healthy Options to search by zip code, and see what’s around you. Tap whichever one you need.",
+      "Meals Away From Home. In this feature, you have two ways to find healthy meals. Use Restaurant Assistant when you already know where you’re eating, just tell me the restaurant, and what you want. Or use Find Healthy Options to search by zip code, and see what’s around you. Tap whichever one you need.",
     autoClose: true,
   },
 
   "/social-hub/restaurant-guide": {
     pageId: "social-hub/restaurant-guide",
-    title: "Restaurant Guide",
+    title: "Restaurant Assistant",
     description:
       "Find healthy meals at any restaurant. Enter the restaurant name and what you want to eat, and the app will return three smart, goal-friendly options.",
     spokenText:
-      "Love eating out but never knowing how to order off the menu without blowing your nutrition? That’s exactly what Restaurant Guide is for. Just tell me what you’re in the mood for, enter the restaurant name and a nearby zip code, and I’ll give you three smarter meal options that fit your goals — plus simple tips on how to order it better when you’re there. If you decide to eat one of these meals, you can add it straight to your macros with one tap, so your day stays accurate, without any guessing. No stress, no overthinking — just order, enjoy, and stay on track.",
+      "      Sometimes you already know where you want to eat, or at least what kind of place you are looking for, but the problem is not the restaurant; it is knowing how to order so that you enjoy your meal without the guilt. Restaurant Assistant fixes that. Just tell me where you want to eat, or what type of food you are in the mood for, and enter your location, and the system will find that restaurant or similar options nearby. From there, you will get three meal choices adjusted to your goals, along with simple guidance on how to order them, so they fit your plan. Each option appears as a meal card, where you can review the meal, see estimated macros, and understand how it fits into your day before you decide. Everything is filtered through your onboarding, dietary preferences, and SafetyGuard, so your allergies and restrictions are handled automatically. When you choose a meal, you can log it directly to your Biometrics with one tap, keeping your day accurate without extra effort. You are not guessing what to order anymore; you already know what works before you even get to the table, so you can enjoy your meal and stay on track without overthinking it.",
     autoClose: true,
   },
 
@@ -172,11 +215,39 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Find healthy places to eat near you. Enter what you're craving and your zip code, and the app returns nearby restaurants with smart meal options that fit your goals.",
     spokenText:
-      "Eating out while trying to stay on track can feel like a guessing game when you don’t know what’s around you. Find Meals Near Me fixes that. Just tell me what you’re craving, and enter your zip code, and I’ll show you nearby restaurants with smarter meal options from each one. When you choose a meal, you can log it directly to your macros, so everything stays accurate for the day. You pick what sounds good, order smarter, track it easily, and keep moving forward.",
+      "When you are out, on the road, or in a new area, staying on track becomes a guessing game. Find Meals Near Me fixes that. I am finding restaurants that fit your dietary preferences — and that includes both dedicated spots and places where you can confidently order meals that match your diet. Just tell me what type of food you are looking for and enter your location, and the system will find nearby restaurants that work for how you eat. From there, you will get three restaurant options, and for each, you will see smarter meal choices and simple guidance on how to order them, so they fit your goals. Each option appears as a meal card, where you can review the meal, see estimated macros, and understand how it fits into your day before you decide. Everything is filtered through your onboarding, dietary preferences, and SafetyGuard, so your allergies and restrictions are handled automatically. When you choose a meal, you can log it directly to your Biometrics, keeping your day accurate without extra effort. You are not guessing, you are not stressed, you are just finding food, ordering smarter, and staying on track wherever you are.",
     autoClose: true,
   },
 
+  "/social-hub/fast-food": {
+    pageId: "social-hub/fast-food",
+    title: "Fast Food Guide",
+    description:
+      "Find the smartest meal choices at fast food restaurants. Tell me where you're going and what you want, and I'll return three goal-friendly options with full nutrition details.",
+    spokenText:
+      "Welcome to the Fast Food Guide. Look, fast food happens. Road trips, busy schedules, kids, late nights — sometimes the drive-through is just the reality. That does not mean you have to blow your plan. Tell me which fast food restaurant you're heading to and what you're in the mood for, and I'll find three meal options that actually make sense for your goals. And here is what makes this different — your dietary preferences are fully honored here, every single time. If you are vegan, every option will be plant-based. If you are keto, I stay low carb. If you are gluten-free, I avoid it. Kosher, halal, vegetarian, pescatarian — whatever your protocol, the Fast Food Guide respects it automatically, the same way every other feature in this app does. Your SafetyGuard allergy protections are active here too, so nothing unsafe will ever come back to you. You'll see estimated macros, a smart ordering tip, and enough detail to feel confident at the counter. When you find something that works, log it to your Biometrics with one tap. Fast food is not the enemy. Ordering without a plan is. I've got you covered.",
+    autoClose: true,
+  },
 
+  "/lifestyle/my-perfect-gatherings": {
+    pageId: "lifestyle/my-perfect-gatherings",
+    title: "My Perfect Gatherings",
+    description:
+      "Plan full multi-course meals for holidays, camping, tailgates, Great Outdoors, and group events. Great Outdoors supports Simple Preparation, Complete Meal, or full Gathering Experience modes — for anything you found, caught, harvested, or grew.",
+    spokenText:
+      "Welcome to My Perfect Gatherings. This is where meal planning meets real life. Think of it as a personal chef who designs the entire meal around what you are actually doing and who you are doing it with. You pick the situation — a holiday like Thanksgiving or Hanukkah, a camping trip, a tailgate, or Great Outdoors — and then set the details. For holidays, camping, and tailgating, you pick your courses and serving size and I build each dish individually so the entire meal feels connected and intentional. Nothing random, nothing repeated. And your dietary profile travels with you into every single course. If you are vegan, anti-inflammatory, keto, gluten-free, kosher, or anything else, your protocol is enforced across the full gathering automatically. You do not need to remind me. It is already built in. If you choose Great Outdoors, tell me what you found, caught, harvested, or grew — venison, trout, wild mushrooms, blackberries, zucchini, eggs, anything. Then tell me what you want to create. Simple Preparation gives you a Nature-to-Table Guide with three ways to cook what you found — no courses, just practical guidance. Complete Meal builds one full dish around your ingredient. Gathering Experience gives you the full multi-course treatment. The outdoor cooking method you choose — smoker, Dutch oven, cast iron, campfire, open flame, or grill — shapes every dish. Your dietary protocol still applies to every result.",
+    autoClose: true,
+  },
+
+  "/lifestyle/my-perfect-getaway": {
+    pageId: "lifestyle/my-perfect-getaway",
+    title: "My Perfect Getaway",
+    description:
+      "Your Coach In Your Pocket for travel — theme parks, airports, cruises, resorts, and more. Get personalized food picks at any venue matched to your health profile, protocols, and family.",
+    spokenText:
+      "Welcome to My Perfect Getaway, your Coach In Your Pocket for travel. Wherever life takes you — Disney World, Universal Studios, an airport, a cruise ship, a resort — this is where you get personalized food guidance built around your health profile, dietary restrictions, medical protocols, and goals. Tap any quick start venue to get instant recommendations, or describe where you are in your own words. You will get two to three specific picks that actually exist at that venue, why each one fits your profile, anything to avoid if your protocols call for it, a Family Note with tips for eating well with kids or family, and a Coach Note to keep you grounded without being preachy. Your allergies are always enforced. Your medical protocols always apply. And the coach knows the actual menus at major venues like Disney, Universal, Six Flags, major airports, and cruise lines, so the picks are real, not generic. If you navigate away and come back, your last result is waiting for you. Tap Ask About Another Venue anytime to start fresh.",
+    autoClose: true,
+  },
 
   "/wine-pairing": {
     pageId: "wine-pairing",
@@ -207,7 +278,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-
   "/meal-pairing-ai": {
     pageId: "meal-pairing",
     title: "Meal Pairing",
@@ -218,7 +288,6 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-
   "/weaning-off-tool": {
     pageId: "weaning-off-tool",
     title: "Weaning Off Tool",
@@ -228,13 +297,13 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
-  "/planner": {
-    pageId: "planner",
-    title: "Planner",
+  "/builders": {
+    pageId: "builders",
+    title: "Meal Builders",
     description:
       "Your central hub for building meal plans that match your goals, schedule, and lifestyle.",
     spokenText:
-      "This is your Planner — this is where everything comes together. Inside this page, you’ll see your meal builder — the one designed for your goals. Whether that’s weekly planning, diabetic support, GLP-1, anti-inflammatory, or another focus, this is where you build your meals day by day. Open your builder, and start creating your meals. I’ll walk you through each step as you go — from choosing meals, to dialing in portions, and staying on track. This is where planning turns into action — let’s get started.",
+      "This is your Meal Builders page, this is where everything comes together. Inside, you’ll find your assigned meal builder, the one designed specifically for your goals. Whether that’s weekly planning, diabetic support, metabolic medication, anti-inflammatory, or another focus, this is where you build your meals day by day. Tap your builder to get started, and I’ll walk you through each step as you go, from choosing meals, to dialing in portions, and staying on track. This is where planning turns into action, let’s go.",
     autoClose: true,
   },
 
@@ -244,7 +313,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your central hub for everyday food, lifestyle, and real-life eating decisions.",
     spokenText:
-      "Welcome to the Lifestyle Hub, where everything comes together for real life. From here, you can enjoy your cravings in a healthier way, turn what’s in your fridge into meals, find smarter options when eating out, choose meals for kids or toddlers, and explore drink choices in the Spirits and Lifestyle Hub. You can also jump right into our signature feature, Chef’s Kitchen, where you can create custom meals, experiment with ideas, and have Chef guide you every step of the way.",
+      "Welcome to the Lifestyle Hub, where everything comes together for real life and real food decisions. From here, you can enjoy your cravings in a smarter way through the Craving Hub with the Craving Creator, Dessert Creator, and Sushi Creator, explore the Beverage Creator Hub with smoothies, cocktails, mocktails, coffee drinks, and the Athlete Beverage Creator for pre workout, intra workout, and post workout performance drinks, and navigate the Spirit, Beer and Wine Pairing Hub with pairings, a Wine List Translator, and a Reduce Drinking tool. You can use Fridge Rescue to turn what you already have into meals, explore Meals Away From Home with Restaurant Assistant, Fast Food Guide, and Find Meals Near Me for better choices when eating out, and access the Fast Food Hub for structured, smarter fast food options that align with your goals and preferences. You can also take advantage of My Perfect Gathering for holidays, camping, and tailgating. Two of the most powerful tools on this page are My Perfect Getaway and the Grocery Store Coach. My Perfect Getaway is your Coach In Your Pocket for travel — Disney, Universal, airports, cruises, resorts — tap a venue or describe where you are and I will give you the best food choices at that location, matched to your health profile, dietary restrictions, and medical protocols, with family-friendly tips when you are traveling with kids. The Grocery Store Coach lives on your Shopping List page and solves the number one dinner problem: not knowing what to make. Tell the coach what you are in the mood for and it gives you one specific meal recommendation with a complete shopping list, macros, and your full health profile built in. It also automatically creates a full recipe card — cooking instructions, nutrition, and all — and saves it to your Favorites so you can find it any time. At the center of everything is Create a Dish inside Chef’s Kitchen, where meals are built around your goals, preferences, culture, and what is going on with your body, guiding you through how to prepare food that actually works for you, and for creators, you can build your own Signature Kitchen and bring your brand into the system.",
     autoClose: true,
   },
 
@@ -254,7 +323,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your hub for favorites, shared meal boards, and expert-guided nutrition tools.",
     spokenText:
-      "This is your More page — your hub for everything extra. From here, you can access your saved favorites and manage your ProCare connections. If you’re connected to a trainer or doctor, they will be able to view or update your Meal Board directly from their workspace, depending on their role and the access you’ve been given. Every update is tracked, so you always know when changes are made and who made them, while you continue using the app normally with full visibility into your plan.",
+      "This is your More page, your hub for everything extra inside the app. From here, you can switch workspaces or choose to become a provider if you want to coach or guide others, access your Favorites where all your saved meals are organized and ready to reuse, and manage your ProCare and ProCare Connect settings. If you are connected to a trainer or doctor, they can view or update your Meal Board based on the level of access you have given them, while every change is tracked, so you always know what was updated and who made it. You can also disconnect from a provider at any time directly from this page without needing to go through them, giving you full control, privacy, and flexibility while continuing to use the app normally.",
     autoClose: true,
   },
 
@@ -264,25 +333,25 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Calculate personalized daily protein, carb, and fat targets using your goals, activity level, body composition, and key metabolic factors. Choose your Starch Meal Strategy to control how you manage starchy carbs throughout the day.",
     spokenText:
-      "The Macro Calculator sets personalized daily nutrition targets based on how your body actually works — not just calories. Start by choosing your goal, body type, and activity level, then enter your age, height, and weight. You can also factor in things like hormone changes, insulin resistance, or high stress, which influence how your body responds to protein, carbs, and fat. I’ll calculate clear daily targets for protein, starchy carbs, fibrous carbs, and fat — numbers that make sense for you. Here’s what matters most: fibrous carbs like vegetables are unlimited and help with weight loss, while starchy carbs like rice, pasta, and potatoes need to be managed. In the Starch section, you’ll choose One Starch Meal — where all starchy carbs go into a single meal — or Flex Split, which divides them across two meals for flexibility. This choice is saved automatically and controls how your meals are built. Pro tip: eat starchy carbs earlier in the day — it helps with appetite control and better sleep. Once your targets are set, head to the Planner and start building meals. If you’re using Guest Mode, save your macros, then go straight to the Weekly Meal Builder to unlock the next features.",
+      "The Macro Calculator is where we assess the key markers needed to build your nutrition plan correctly. This is where your body stats and lifestyle factors come together, including your goal, commitment level, activity level, gender, age, height, weight, body composition, and any metabolic or hormonal conditions that affect how your body processes food. All these inputs are used to calculate personalized daily targets for protein, starchy carbs, fibrous carbs, and fat, which are then carried over and displayed on your Biometrics page as your daily reference. This is also where we control your carbohydrate strategy because fibrous carbs like vegetables are left open to support fat loss and digestion, while starchy carbs like rice, pasta, and potatoes are managed through the Starch system. You will choose either One Starch Meal, where all starchy carbs are concentrated into a single meal, or Flex Split, which spreads them across two meals for more flexibility, and that choice directly controls how your meals are built. If anything changes, you do not have to start over; you can simply adjust your inputs and use the update banner to instantly recalculate your targets. This is not just a calculator; it is the basis of your entire nutrition plan, making sure everything that follows is built around how your body works.",
     autoClose: true,
     guestDescription:
-      "This is where your plan becomes yours — personalized nutrition targets based on your body, not generic calorie counting.",
+      "This is where your plan becomes yours, personalized nutrition targets based on your body, not generic calorie counting.",
     guestSpokenText:
-      "Hey — I’m Chef Coplit, your personal guide inside My Perfect Meals. This is your Macro Calculator — and this is where your plan becomes yours. Most apps just count calories. I don’t. I calculate daily targets for protein, starchy carbs, fibrous carbs, and fat based on how your body actually works — your age, activity level, goals, and factors like hormone changes, insulin resistance, or stress. Here’s the key: fibrous carbs like vegetables are unlimited and help with weight loss. Starchy carbs like rice, pasta, and potatoes need to be managed — and that’s what the Starch Strategy is for. Choose One Starch Meal for appetite control, or Flex Split for flexibility on active days. Pro tip: eat starchy carbs earlier in the day — you’ll metabolize sugars better, and sleep better at night. Once you save your numbers, everything you build in this app is built around you — not a generic template. This is the foundation. When you’re done, the Weekly Meal Builder unlocks, and you’ll see exactly how these numbers turn into real meals you actually want to eat. Take your time. Get these numbers right. Then let’s build.",
+      "Hey, I’m Chef Coplit, your personal guide inside My Perfect Meals. This is your Macro Calculator, and this is where your plan becomes yours. Most apps just count calories. I don’t. I calculate daily targets for protein, starchy carbs, fibrous carbs, and fat based on how your body actually works, your age, activity level, goals, and factors like hormone changes, insulin resistance, or stress. Here’s the key: fibrous carbs like vegetables are unlimited and help with weight loss. Starchy carbs like rice, pasta, and potatoes need to be managed, and that’s what the Starch Strategy is for. Choose One Starch Meal for appetite control, or Flex Split for flexibility on active days. Pro tip: eat starchy carbs earlier in the day, you’ll metabolize sugars better, and sleep better at night. Once you save your numbers, everything you build in this app is built around you, not a generic template. This is the foundation. When you’re done, the Weekly Meal Builder unlocks, and you’ll see exactly how these numbers turn into real meals you actually want to eat. Take your time. Get these numbers right. Then let’s build.",
   },
   "/shopping-list-v2": {
     pageId: "shopping-list-v2",
     title: "Master Shopping List",
     description:
-      "Create, manage, and check off items for your grocery trips and everyday shopping.",
+      "Your full grocery hub — Coach builds meals or finds the right product to buy, Product Scan checks any product, and a smart list that syncs with all your meals.",
     spokenText:
-      "The Master Shopping List helps you organize everything you need in one place. You can add items by barcode, voice, or bulk entry, group them by aisle, and exclude pantry staples. Use Add Other Items for non food needs like household, personal care, pets, or pharmacy items, then check things off as you shop, or send your list to a delivery service. If you’re exploring as a guest, this is where you see how meals turn into real shopping, and when you’re ready, head back to the Guest Experience to keep exploring, or try Fridge Rescue and Craving Creator.",
+      "The Shopping List is your full grocery hub, and it now has three layers working together. The first is the Grocery Store Coach, which now has two modes. Build a Meal is the big one. If you ever walk into a grocery store and have no idea what to make for dinner, tap Grocery Store Coach at the top of this page. You can say something like what is for dinner tonight, or I need something high protein, or give me a quick family meal, and the coach will give you one specific meal recommendation based on your entire health profile including your dietary restrictions, medical conditions, macro targets, allergies, and family size. You get the meal name, why it fits you specifically, estimated prep time, macros, and a complete shopping list scaled for the right number of people. And here is the part most people do not expect — while you are reading the recommendation, the coach automatically generates a complete recipe card for you. That card has step-by-step cooking instructions, the full nutrition breakdown, and your shopping list, and it is saved directly to your Favorites under Grocery Coach so you can find it any time. You will see a Recipe Ready panel appear with a View Meal Card button to open it immediately. You can refine the recommendation on the spot, ask for something cheaper, faster, or higher protein, and when you find what you want, one tap adds the entire shopping list directly to your list. The second mode is Find a Product. When you know you need something but not which one to buy, switch to Find a Product, type or speak what you are shopping for, like spaghetti sauce or protein bars, and the coach recommends specific real brands ranked and graded for your exact health profile, with personalized reasons for each. If you have a saved favorite in that category, it appears pinned on top as your usual pick, alongside genuinely different alternatives. You can save any product, add it straight to your list, or compare another. The second layer is Product Scan. Tap it to analyze any product before you buy it. Take a photo of the ingredient label and the app immediately checks it against your full health profile. You get a letter grade, a clear verdict on whether to buy it, and specific flags for anything that conflicts with your protocols, your allergies, your diet, or your medical conditions. Your last analysis saves right on this page so you can reference it without starting over. The third layer is the list itself. You can add items by voice, barcode, or bulk entry, group them by aisle, exclude pantry staples you already have, and use Add Other Items for non-food needs like household supplies, personal care, pets, or pharmacy. At the bottom of every meal builder, tap Send This Day to send only the meals for the day you are viewing, or tap Choose Days to pick exactly which days you want to shop for, so you never overbuy. Check items off as you shop and send your list to a delivery service right from here.",
     autoClose: true,
     guestDescription:
-      "Planning turns into action here. This is real-world execution — shopping made simple.",
+      "Your full grocery hub — Coach builds meals or finds the right product to buy, Product Scan checks products, and the list syncs with all your meals.",
     guestSpokenText:
-      "This is your Shopping List — and this is where planning turns into action. Most people build meal plans, then guess what to buy. I don’t let that happen. Every meal you create in this app gets sent directly here — and I automatically organize everything by aisle, so you’re not wandering around the store. You can add items by voice, use bulk add to drop in multiple items at once, search by brand name, exclude pantry staples you already have, and use Add Other Items for non-food needs like household supplies, personal care, pets, or pharmacy. Check things off as you shop, or send the list to your delivery service. This is how meal planning works in the real world — and it’s one of the reasons subscribers love this app. For now, explore what’s here. When you build a meal and send it to shopping, you’ll see exactly how the system comes together.",
+      "This is your Shopping List, and this is where planning turns into action. It has three layers. First, the Grocery Store Coach, with two modes. If you ever have no idea what to make, tap Build a Meal, tell it what you want, and the coach gives you one specific personalized meal recommendation with reasoning, macros, and a complete shopping list you can add in one tap. And if you know you need something but not which brand, tap Find a Product, say what you are shopping for, and the coach recommends real brands ranked for your health profile, with your usual saved pick pinned on top. Second, Product Scan. Point it at any product label and it checks the ingredients against your health profile and tells you whether to buy it. Third, the list itself, organized by aisle, with voice add, bulk add, barcode scan, and meal syncing. At the bottom of every meal builder, tap Send This Day for just today or Choose Days to pick exactly what you need. No more buying groceries you will not use.",
   },
   "/get-inspiration": {
     pageId: "get-inspiration",
@@ -290,7 +359,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Find daily inspiration and a simple space to reflect, reset, and clear your mind.",
     spokenText:
-      "Get Inspiration is a place to reset and refocus. You can tap for a new motivational quote anytime, or use the journal to speak or type your thoughts when you need to clear your head. Take a moment for yourself, always remember this - free your mind, and the rest will follow.",
+      "Get Inspiration is a place to reset and refocus. You can tap for a new motivational quote anytime, or use the journal to speak or type your thoughts when you need to clear your head. Take a moment for yourself, always remember this, free your mind, and the rest will follow.",
     autoClose: true,
   },
 
@@ -298,14 +367,14 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Weekly Meal Builder",
     description:
-      "Build meals across one or multiple days using structured or conversational meal tools guided by your goals. The starch indicator shows your daily starch meal status — green means slots available, orange means they're covered for the day.",
+      "Build meals across one or multiple days guided by your goals. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Taste Memory is active — the more you save, the more the app learns your preferences. Use the 'How builders work' button on this page to watch a quick video tutorial on how to use this builder.",
     spokenText:
-      "Welcome to your Meal Builder. This is where everything comes together. No matter which builder you’re using, they all work the same way — you’re creating healthy meals in any cuisine or style you want. At the very top of the screen, you'll see your Nutrition Budget — a real-time view of your remaining protein, starchy carbs, and fiber for the day. As you add meals, it updates automatically, helping you make smarter choices without overthinking. Below that, you'll see your daily starch indicator, which shows how many starchy meals you have available, based on the starch strategy you set in the Macro Calculator. Green means you still have starch meals available, orange means you've covered them for the day. Starch Guard is our weight management system — it limits high-glycemic carbs like potatoes, rice, and pasta that spike insulin. When you've used your starch meals and request something starchy, Starch Guard intercepts and lets you pick a fibrous carb substitute or have the Chef pick for you. Start by tapping Create with Chef, our multilingual, multi-cuisine, A.I. Meal Creator, and describe your meal — breakfast, lunch, dinner, or snacks — and be as specific as you like with cuisine, protein amount, carbs, and preferences. The more detail you give, the better the result. You can plan up to a full week at a time, build each day differently, or duplicate days to save time. As you build, focus on protein and carbs — those are the most important drivers of energy and results. When you’re done, you can send meals straight to your shopping list, log the day to your biometrics, or make changes anytime. This is your builder — open it up, and start creating meals your way. Build your meals here, then send them to Biometrics or the Shopping List — this is how you see the system work end to end. If you’re a guest, building at least one meal here unlocks Fridge Rescue and Craving Creator, so focus on creating a meal you’d actually eat, and adding it to your day.",
+      "Welcome to the Weekly Meal Builder. This meal builder is recommended when you do not have specific medical or specialized dietary needs, giving you a flexible system to build meals in any cuisine or style based on your goals and preferences. No matter which builder you’re using, each one is designed for a different purpose, but they all follow the same core system, allowing you to create meals in any cuisine or style you want using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on how you eat. At the top of the screen, you will see your daily nutrition targets, which come from the Macro Calculator and serve as your baseline for the day. At the bottom, you will see your Nutrition Budget, a real time view of what you have remaining for protein, starchy carbs, and fiber as you add meals, helping you stay on track without overthinking. Just below the top section is your daily starch indicator, which shows how many starchy meals you have available based on the strategy you set in the Macro Calculator. Green means you still have starch meals available, and orange means you have already used them. Starch Guard is your built-in weight management system. It limits high glycemic carbs like rice, pasta, and potatoes, and when you have used your starch meals, it steps in and helps you substitute with fibrous carb options or lets the Chef choose for you. To start building, tap Create with Chef, our multilingual, multi-cuisine AI meal creator, and describe what you want. You can keep it simple or be detailed, but the more specific you are about cuisine, protein, carbs, and preferences, the more tailored your results will be. If you want tighter control, use the Keep It Simple option to limit extra ingredients and keep the meal focused on exactly what you asked for. Each result appears as a meal card. This is where you review the meal, see macros, ingredients, and step by step instructions, and control what happens next, whether that is adding it to your day, replacing it, or generating something new. In addition to meals, every builder includes a Snack Creator, which allows you to create healthier versions of snacks based on what you are craving, so you can include snacks in your plan without working against your goals. As you build your day, you can duplicate it across the rest of the week to save time, which makes it easier to stay consistent without starting over. You can also remove meals and rebuild at any time before logging. When you create your first meal, the Shopping List button will appear so you can begin organizing your ingredients. When you are ready, you can send meals to your Shopping List or log them to Biometrics. One important note, once meals are logged to Biometrics, they cannot be removed from that page, so it is best to log meals individually instead of logging your entire day at once, especially if you plan to make changes. This is the Weekly Meal Builder. Use it to create meals the way you eat, adjust as needed, and connect everything through Biometrics and your Shopping List to see the system work. If you are a guest, building at least one meal here unlocks Fridge Rescue and Craving Creator, so focus on creating a meal you would eat and adding it to your day. One thing worth understanding about how starchy carbs are managed, the timing is intentional. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process. That is why Starch Guard concentrates them earlier in the day when possible, not as a restriction, but as a strategy you can adjust based on your training schedule and lifestyle.",
     autoClose: true,
     guestDescription:
-      "Structure beats willpower. This pass counts — build the full day.",
+      "Structure beats willpower. This pass counts, build the full day.",
     guestSpokenText:
-      "Alright — this is your Weekly Meal Builder, and this is where your plan becomes real. Most apps give you a list of recipes, and hope you figure it out. I don’t work that way. Here, you’ll build complete meal days — breakfast, lunch, dinner, and snacks — in any cuisine, any style, any dietary need. The more specific you are, the better the result: ‘Mediterranean lunch, 50 grams of protein, low fat’ works just as well as ‘surprise me.’ As a guest, you have a limited number of meal day passes. When you enter this page without an active session, you’ll use one of those passes — but once you’re in, you have 24 hours to build, explore, come back, and build more. That’s the deal: structure beats willpower, and this is where you prove it. Take your time. Build a full day. Make it something you’d actually eat. Then send it to your shopping list, and see how everything connects.",
+      "Alright, this is your Weekly Meal Builder, and this is where your plan becomes real. Most apps give you a list of recipes, and hope you figure it out. I don’t work that way. Here, you’ll build complete meal days, breakfast, lunch, dinner, and snacks, in any cuisine, any style, any dietary need. The more specific you are, the better the result: ‘Mediterranean lunch, 50 grams of protein, low fat’ works just as well as ‘surprise me.’ As a guest, you have a limited number of meal day passes. When you enter this page without an active session, you’ll use one of those passes, but once you’re in, you have 24 hours to build, explore, come back, and build more. That’s the deal: structure beats willpower, and this is where you prove it. Take your time. Build a full day. Make it something you’d actually eat. Then send it to your shopping list, and see how everything connects.",
   },
 
   "/diabetic-hub": {
@@ -314,7 +383,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your control center for managing blood sugar with GlucoseGuard™ protection, clinician-style guardrails, and daily glucose tracking.",
     spokenText:
-      "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. GlucoseGuard — your blood sugar protection system — reads your latest glucose log and automatically adjusts meal generation to match your current state. When your glucose is low, meals include more carbs to stabilize. When elevated, meals go lower carb to help bring you back into range. When you're ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
+      "The Diabetic Hub is your control center for managing blood sugar day to day. Here you can set and save doctor or coach guardrails like fasting ranges, pre meal maximums, daily carb limits, fiber minimums, glycemic index caps, and meal frequency. You can log glucose readings with context like fasting, pre meal, or post meal, view your most recent reading, and track seven day trends. GlucoseGuard, your blood sugar protection system, reads your latest glucose log and automatically adjusts meal generation to match your current state. When your glucose is low, meals include more carbs to stabilize. When elevated, meals go lower carb to help bring you back into range. When you're ready to build meals, use the button at the bottom to jump into the diabetic meal builder.",
     autoClose: true,
   },
 
@@ -322,29 +391,29 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "weekly-meal-board",
     title: "Diabetic Meal Builder",
     description:
-      "Build meals that support balanced blood sugar with GlucoseGuard™ protection. The starch indicator helps you manage starchy carbs — green means slots available, orange means they're covered for the day.",
+      "Build meals that support balanced blood sugar with GlucoseGuard™ protection. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Use the 'How builders work' button on this page to watch a quick video tutorial on how to use this builder.",
     spokenText:
-      "Welcome to the Diabetic Meal Builder. This builder supports steady blood-sugar control throughout the day. At the top, your starch indicator shows starchy carb meals — green means available, orange means covered. Starch Guard is our weight management system — it limits high-glycemic carbs like potatoes, rice, and pasta that spike insulin. When you've used your starch meals and request something starchy, Starch Guard intercepts and lets you pick a fibrous carb substitute or have the Chef pick for you. Tap Create with Chef to describe what you want — any cuisine, any style. When you open it, you'll see a GlucoseGuard indicator showing your latest glucose reading. Here's what it means — if your glucose is low, the AI adds more carbs to help stabilize. If elevated, it goes lower carb to bring you back into range. If in range, it keeps things balanced. That's GlucoseGuard adjusting meals to your current blood sugar automatically. SafetyGuard protects you from allergens. Build your day, then save to biometrics or add to your shopping list.",
+      "Welcome to the Diabetic Meal Builder. This builder is recommended when your onboarding indicates a need for blood sugar management, giving you a system designed to help you stay stable while still eating in a way that fits your lifestyle. Each builder serves a different purpose, but they all follow the same core system, allowing you to create meals in any cuisine or style using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on how you eat. At the top of the screen, you will see your daily nutrition targets, which come from the Macro Calculator and serve as your baseline for the day. At the bottom, you will see your Nutrition Budget, a real time view of what you have remaining for protein, starchy carbs, and fiber as you add meals. Just below the top section is your daily starch indicator, which shows how many starchy meals you have available based on your starch strategy, with green meaning you still have meals available and orange meaning you have already used them. Starch Guard is your built-in weight management system. It limits high glycemic carbs like rice, pasta, and potatoes, and when you have used your starch meals, it steps in and helps you substitute with fibrous carb options or lets the Chef choose for you. When you tap Create with Chef, you can describe any meal you want in any cuisine or style. You can keep it simple or be detailed, and the more specific you are, the more tailored your results will be. If you want tighter control, use the Keep It Simple option to limit extra ingredients and keep the meal focused on exactly what you asked for. Each result appears as a meal card, where you can review the meal, see macros, ingredients, and step by step instructions, and decide whether to add it to your day, replace it, or generate something new. This builder also includes GlucoseGuard, which adjusts your meals based on your most recent glucose reading. If your glucose is low, the system increases carbs to help stabilize. If your glucose is elevated, it reduces carbs to help bring you back into range. If you are in range, it keeps your meals balanced. SafetyGuard protects you from allergens and respects your dietary preferences automatically. Every builder also includes a Snack Creator, allowing you to generate healthier versions of snacks, so you can stay on plan throughout the day. As you build your day, you can duplicate it across the rest of the week to stay consistent or remove meals and rebuild at any time before logging. When you create your first meal, the Shopping List button will appear so you can begin organizing your ingredients. When you are ready, you can send meals to your Shopping List or log them to Biometrics. One important note, once meals are logged to Biometrics, they cannot be removed from that page, so it is best to log meals individually instead of logging your entire day at once, especially if you plan to make changes. Use the Diabetic Meal Builder to stay consistent, stay in range, and build meals that support your health without sacrificing flexibility. One thing worth understanding about starchy carb timing, it is intentional. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process and may affect overnight glucose stability. That is why Starch Guard concentrates them earlier in the day when possible, supporting steadier energy and glucose through the night. One more thing worth knowing. If you have other conditions beyond blood sugar management, like cardiac disease, kidney disease, thyroid concerns, or oncology support, you can activate those clinical protocols on top of this builder at the same time. Go to Edit Profile, scroll to the Clinical Support section, and tap every condition that applies to you. You can select more than one, and all of them activate together. Every meal you create here will follow all of your active clinical rules simultaneously. Your full health picture is what drives your meals, not just one condition at a time.",
     autoClose: true,
   },
 
   "/glp1-hub": {
     pageId: "glp1-hub",
-    title: "Glp1 Hub",
+    title: "Metabolic Medication Hub",
     description:
-      "Your GLP-1 support hub for shot tracking, guardrails, and meal readiness.",
+      "Your GLP-1 support command center. Establishes your GLP-1 strategy and activates cross-surface intelligence — Meal Creation, Craving Creator, Fridge Rescue, Restaurant Guide, Grocery Coach, Getaway dining, Buffet guidance, and Find Meals Near Me all carry your GLP-1 nutrition and tolerance needs automatically.",
     spokenText:
-      "The GLP-1 Hub is your support center for managing care alongside GLP-1 use. Here you can review how the app supports your care, track your GLP-1 shots by dosage and injection site, and set doctor-style guardrails using quick start presets like intro/ up-titration, maintenance, refeed/ strength focus. For custom goals you can adjust targets for meal volume, protein minimums, fat limits, fiber minimums, hydration goals, meals per day, digestion support, and limits on carbonation or alcohol, then save those guardrails. When everything is set, use the button at the bottom to move into the GLP-1 meal builder.",
+      "The Metabolic Medication Hub is your support center for managing care alongside your medication. Here you can review how the app supports your care, track your medication shots by dosage and injection site, and set doctor-style guardrails using quick start presets like intro and up-titration, maintenance, and refeed and strength focus. For custom goals you can adjust targets for meal volume, protein minimums, fat limits, fiber minimums, hydration goals, meals per day, digestion support, and limits on carbonation or alcohol, then save those guardrails. When everything is set, use the button at the bottom to move into the Metabolic Medication Builder. One important thing to understand about how GLP-1 support works across the platform: the GLP-1 Builder establishes your GLP-1 nutrition strategy, and once it is active, My Perfect Meals carries that intelligence throughout multiple food surfaces. Meal Creation, Craving Creator, Fridge Rescue, Restaurant Guide, Grocery Coach, Travel and Getaway dining, Buffet guidance, and Find Meals Near Me all account for your GLP-1 nutrition and tolerance needs. You do not need to enter the builder for those surfaces to apply your GLP-1 rules. Your Macro Calculator remains your nutritional baseline — GLP-1 support does not erase it. Instead, it applies protein priority, meal volume guidance, fat tolerance adjustments, and other GLP-1 refinements on top of that baseline when resolving what you should actually eat. If you are also using Performance Nutrition, both systems work together: your training schedule determines the day's performance requirements while GLP-1 tolerance and volume protections remain fully active.",
     autoClose: true,
   },
 
   "/glp1-meal-builder": {
     pageId: "weekly-meal-board",
-    title: "Glp1 Meal Builder",
+    title: "Metabolic Medication Builder",
     description:
-      "Create portion-aware meals designed to support GLP-1 goals. The starch indicator shows your daily starch meal status — green means slots available, orange means they're covered for the day.",
+      "Create portion-aware meals designed to support metabolic medication goals. GLP-1 support established here travels with you across the platform — Craving Creator, Fridge Rescue, Restaurant Guide, Grocery Coach, Getaway dining, Buffet guidance, and Find Meals Near Me all apply your GLP-1 nutrition and tolerance needs automatically. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Taste Memory is active — the more you save, the more the app learns your preferences. Use the 'How builders work' button on this page to watch a quick video tutorial on how to use this builder.",
     spokenText:
-      "Welcome to the GLP-1 Meal Builder. This builder works like the others, but it’s designed to support GLP-1 goals like satiety, portion control, steady energy, and protein prioritization. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used. Starch Guard is our weight management system — it limits high-glycemic carbs like potatoes, rice, and pasta that spike insulin. When you've used your starch meals and request something starchy, Starch Guard intercepts and lets you pick a fibrous carb substitute or have the Chef pick for you. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein goals, lighter portions, lower fat, or gentler foods if needed. The Chef will build meals that stay aligned with GLP-1-friendly guardrails without feeling restrictive. You can plan one day or a full week, adjust days as needed, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps meals simple, satisfying, and consistent. As you build, focus on protein and carbs — those are the primary drivers of satiety, energy stability, and lean tissue support. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. SafetyGuard protects you from allergens. Open your builder and start creating meals that work with your appetite, not against it.",
+      "Welcome to the Metabolic Medication Builder. This builder is recommended when your onboarding indicates metabolic medication use or goals related to appetite control, giving you a system designed to support satiety, portion control, steady energy, and protein prioritization. Each builder serves a different purpose, but they all follow the same core system, allowing you to create meals in any cuisine or style using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on how you eat. At the top of the screen, you will see your daily nutrition targets, which come from the Macro Calculator and serve as your baseline for the day. At the bottom, you will see your Nutrition Budget, a real time view of what you have remaining for protein, starchy carbs, and fiber as you add meals. Just below the top section is your daily starch indicator, which shows how many starchy meals you have available based on your starch strategy, with green meaning you still have meals available and orange meaning you have already used them. Starch Guard is your built-in weight management system. It limits high glycemic carbs like rice, pasta, and potatoes, and when you have used your starch meals, it steps in and helps you substitute with fibrous carb options or you can let the Chef choose for you. To start building, tap Create with Chef, our multilingual, multi-cuisine AI meal creator, and describe what you want. You can keep it simple or be detailed, and the more specific you are about portion size, protein goals, fat levels, and food texture, the more tailored your results will be. If you want tighter control, use the Keep It Simple option to limit extra ingredients and keep meals lighter and easier tolerant. Each result appears as a meal card, where you can review the meal, see macros, ingredients, and step by step instructions, and decide whether to add it to your day, replace it, or generate something new. Every meal is built to stay aligned with metabolic medication guardrails, focusing on protein, manageable portions, and foods that support comfort and consistency without feeling restrictive. Every builder also includes a Snack Creator, allowing you to generate healthier versions of snacks, so you can stay on plan throughout the day. As you build your day, you can plan one day or a full week, duplicate days to stay consistent, or remove meals and rebuild at any time before logging. When you create your first meal, the Shopping List button will appear so you can begin organizing your ingredients. When you are ready, you can send meals to your Shopping List or log them to Biometrics. One important note, once meals are logged to Biometrics, they cannot be removed from that page, so it is best to log meals individually instead of logging your entire day at once, especially if you plan to make changes. SafetyGuard protects you from allergens and respects your dietary preferences automatically. Here is something important to understand about how GLP-1 support works: the strategy you establish in this builder does not stay in this builder. When GLP-1 support is active, My Perfect Meals carries that intelligence across multiple food surfaces automatically. Meal Creation, Craving Creator, Fridge Rescue, Restaurant Guide, Grocery Coach, Travel and Getaway dining, Buffet guidance, and Find Meals Near Me all account for your GLP-1 nutrition and tolerance needs. Your Macro Calculator remains your nutritional baseline. GLP-1 support does not erase that baseline — it applies protein priority, meal volume guidance, fat tolerance adjustments, and other GLP-1 refinements when resolving what you should actually eat. If you are also using Performance Nutrition, the two systems work together: your training schedule determines the day's performance requirements while GLP-1 tolerance and volume protections remain fully active. Use the Metabolic Medication Builder to create meals that work with your appetite, not against it, while keeping your nutrition consistent and sustainable. One thing worth understanding about starchy carb timing, it is intentional. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process. Concentrating them earlier also supports satiety when you need it most, during active hours. That is why Starch Guard manages their timing, not as a restriction, but as a strategy you can adjust based on your schedule and goals. One more thing worth knowing. If you have other conditions alongside metabolic medication use, like cardiac disease, kidney disease, thyroid concerns, or oncology support, you can activate those clinical protocols on top of this builder at the same time. Go to Edit Profile, scroll to the Clinical Support section, and tap every condition that applies to you. You can select more than one, and all of them activate together. Every meal you create here will follow all of your active clinical rules simultaneously. Your full health picture is what drives your meals, not just one condition at a time.",
 
     autoClose: true,
   },
@@ -353,21 +422,30 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "anti-inflammatory-menu-builder",
     title: "Anti-Inflammatory Meal Builder",
     description:
-      "Build meals focused on inflammation-friendly ingredients. The starch indicator shows your daily starch meal status — green means slots available, orange means they're covered for the day.",
+      "Build meals focused on inflammation-friendly ingredients. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Taste Memory is active — the more you save, the more the app learns your preferences. Use the 'How builders work' button on this page to watch a quick video tutorial on how to use this builder.",
     spokenText:
-      "Welcome to the Anti-Inflammatory Meal Builder. This builder is designed to help reduce inflammation while supporting energy, recovery, and long-term health. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used. Starch Guard is our weight management system — it limits high-glycemic carbs like potatoes, rice, and pasta that spike insulin. When you've used your starch meals and request something starchy, Starch Guard intercepts and lets you pick a fibrous carb substitute or have the Chef pick for you. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein, carbs, or ingredients you prefer to avoid. The Chef will build meals using anti-inflammatory guardrails without sacrificing flavor or variety. You can plan one day or a full week, adjust weekdays and weekends differently, or duplicate days to save time. Build breakfast, lunch, dinner, and snacks in a way that keeps meals balanced and easy to follow. As you build, focus on protein and carbs — those are the most important drivers for energy and recovery. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make changes anytime. SafetyGuard protects you from allergens. Open your builder and start creating meals that help your body feel and perform better.",
+      "Welcome to the Anti-Inflammatory Meal Builder. This builder is recommended when your onboarding indicates a need to reduce inflammation or support specific health conditions, giving you a system designed to improve recovery, energy, and long-term health while still allowing flexibility in how you eat. Each builder serves a different purpose, but they all follow the same core system, allowing you to create meals in any cuisine or style using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on how you eat. At the top of the screen, you will see your daily nutrition targets, which come from the Macro Calculator and serve as your baseline for the day. At the bottom, you will see your Nutrition Budget, a real time view of what you have remaining for protein, starchy carbs, and fiber as you add meals. Just below the top section is your daily starch indicator, which shows how many starchy meals you have available based on your starch strategy, with green meaning you still have meals available and orange meaning you have already used them. Starch Guard is your built-in weight management system. It limits high glycemic carbs like rice, pasta, and potatoes, and when you have used your starch meals, it steps in and helps you substitute with fibrous carb options or you can let the Chef choose for you. To start building, tap Create with Chef, our multilingual, multi-cuisine AI meal creator, and describe what you want. You can use Keep It Simple or be detailed, and the more specific you are about ingredients, inflammation triggers, or foods you want to avoid, the more tailored your results will be. If you want tighter control, use the Keep It Simple option to limit extra ingredients and keep meals focused on exactly what you asked for. Each result appears as a meal card, where you can review the meal, see macros, ingredients, and step by step instructions, and decide whether to add it to your day, replace it, or generate something new. This builder also includes advanced protocol support, including renal support, cardiac support, liver support, and oncology support, allowing meals to be adjusted based on more specific health needs while still following anti-inflammatory principles. Every builder also includes a Snack Creator, allowing you to generate healthier versions of snacks, so you can stay on plan throughout the day. As you build your day, you can plan one day or a full week, duplicate days to stay consistent, or remove meals and rebuild at any time before logging. When you create your first meal, the Shopping List button will appear so you can begin organizing your ingredients. When you are ready, you can send meals to your Shopping List or log them to Biometrics. One important note, once meals are logged to Biometrics, they cannot be removed from that page, so it is best to log meals individually instead of logging your entire day at once, especially if you plan to make changes. SafetyGuard protects you from allergens and respects your dietary preferences automatically. Use the Anti-Inflammatory Meal Builder to create meals that support your body, reduce stress on your system, and help you feel and perform better over time. One thing worth understanding about starchy carb timing, it is intentional. Think of your body like a business. During the day it is open, running operations, and can put those carbs to work. At night it shifts into clean, repair, and reset mode. Sending starchy carbs in late can interfere with that recovery process. Concentrating them earlier gives your body more room to repair overnight, which matters especially when reducing inflammation is your goal. This is a strategy, not a restriction. One more thing worth knowing. If you have other conditions alongside inflammation concerns, like cardiac disease, kidney disease, thyroid support, or oncology support, you can activate those clinical protocols on top of this builder at the same time. Go to Edit Profile, scroll to the Clinical Support section, and tap every condition that applies to you. You can select more than one, and all of them activate together. Every meal you create here will follow all of your active clinical rules simultaneously. Your full health picture is what drives your meals, not just one condition at a time.",
 
+    autoClose: true,
+  },
+
+  "/performance": {
+    pageId: "performance-nutrition-hub",
+    title: "Performance Nutrition Hub",
+    description:
+      "Your command center for sport-specific fueling, carb cycling, and competition prep. Set up your weekly training schedule here — the session type you assign to each day is what drives the macro targets your builder shows that day. Two protocol engines — Athletic Performance and Competition Prep — adapt your macros daily based on what your body is actually doing.",
+    spokenText:
+      "Welcome to the Performance Nutrition Hub. This is your command center for sport-specific nutrition, and it works differently from every other part of the app. Instead of one fixed macro target, this hub reads what you are doing each day — your sport, your training phase, your session type — and adjusts your carbohydrate targets in real time to match your actual energy demands. There are two separate protocol engines here. The first is Athletic Performance, designed for ongoing training in sports like MMA, boxing, CrossFit, endurance running, cycling, strength and powerlifting, Olympic lifting, tactical and military, and general fitness. The second is Competition Prep, designed for athletes with a specific event on the calendar — bodybuilding shows, powerlifting meets, fight camps, wrestling seasons, marathons, triathlons, and similar competitions — where the hub counts down your weeks out and adjusts your protocol phase as you get closer to event day. If you have not set up a protocol yet, tap the Setup button in the top right corner and choose your track. Once your protocol is active, you will see three tabs. The first tab is Nutrient Plan for Athletic Performance, or Meal Builder for Competition Prep. This is where you see today's session type, whether that is a power session, strength session, endurance session, sport practice, competition, active recovery, or rest day, and it shows exactly how your carbohydrate targets have been adjusted for that session. Power and competition days receive the highest carbohydrate support because glycolytic output is at its peak. Endurance days also receive elevated carbs to match sustained aerobic demand. Recovery and rest days reduce carbohydrate targets because your glycogen stores do not need full replacement when training volume is low. Protein stays consistent every day to maintain muscle protein synthesis regardless of session type. The second tab is Carbohydrates, which breaks down your starchy and fibrous carb targets for the day and explains why they are set where they are based on your session. The third tab is Protocols, where you can see your full sport profile, your training phase, your weekly session schedule, and all active protocol settings. From any view in the hub, tap the Go to Builder button to open the Performance Nutrition Builder and start building meals that align with today's targets. If you are in Competition Prep mode, the hub also shows your event date countdown, your current prep phase — whether that is base conditioning, intensity phase, peak prep, peak week, or event day — and any weight-related milestones you have set. One important thing to understand: the macros shown in this hub are your live session-adjusted targets for today. They override the baseline shown in the Macro Calculator for the purpose of your Performance Nutrition Builder. The rest of the app continues to use your Macro Calculator baseline. One thing every user should know is how the hub and the builder work together. When you build your weekly training schedule here and assign a session type to each day of the week, that schedule is what the Performance Nutrition Builder reads every time you open it. Open the builder on a power day and your carbohydrate targets are already elevated for that session. Open it on a rest day and carbs are already reduced. You do not need to do anything in the builder itself — the schedule you set up here does all the work automatically. Use the Performance Hub to stay in sync with your training, fuel the right sessions properly, and arrive at your goals or your event in the best possible condition.",
     autoClose: true,
   },
 
   "/beach-body-meal-board": {
     pageId: "beach-body-meal-board",
-    title: "Beach Body Meal Builder",
+    title: "Performance Nutrition Builder",
     description:
-      "Create structured meals designed for performance and body composition. The starch indicator shows your daily starch meal status — green means slots available, orange means they're covered for the day.",
+      "Create structured meals designed for sport-specific fueling and body composition. Macros adjust automatically each day based on the session type you assigned to that day in the Performance Nutrition Hub — power days get elevated carbs, rest days bring them down. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Taste Memory is active — the more you save, the more the app learns your preferences.",
     spokenText:
-      "Welcome to the Beach Body Meal Builder. This builder is designed for leaning out, tightening up, and dialing in your physique while keeping meals realistic and sustainable. At the top of the screen, you’ll see your daily starch indicator, based on the starch strategy you set in the Macro Calculator — green means starch meals available, orange means used. Starch Guard is our weight management system — it limits high-glycemic carbs like potatoes, rice, and pasta that spike insulin. When you've used your starch meals and request something starchy, Starch Guard intercepts and lets you pick a fibrous carb substitute or have the Chef pick for you. Start by tapping Create with Chef, our multilingual, multi-cuisine A.I. Meal Creator, and describe what you want — any cuisine, any style — with details like protein targets, carb levels, or foods you want to limit. The Chef will build meals that support fat loss, muscle tone, and performance without overcomplicating things. You can plan one day or a full week, keep weekdays structured, and loosen things slightly on weekends if you choose. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves instead of traditional serving math. As you build, prioritize protein and carbs — those drive energy, training output, and physique changes. When you’re finished, send your day to biometrics, add ingredients to your shopping list, or make tweaks anytime. SafetyGuard protects you from allergens. Open your builder and start creating meals that move your body where you want it to go.",
-
+      "Welcome to the Performance Nutrition Builder. This builder is designed for athletes and active individuals who want meals that match what their body is actually doing — not just a fixed daily target. If you have a Performance Protocol active in the Performance Hub, this builder reads your protocol and adjusts your carbohydrate targets based on today's session type before you build a single meal. The session type it uses comes directly from the weekly training schedule you set up in the hub — the day you assigned as a power day, a strength day, a rest day, and so on. You do not need to tell the builder anything separately. It reads your schedule, finds today's session, and sets your carbohydrate targets automatically before you ever start building. That is why your macros look different on a power day compared to a rest day — not because something changed in your profile, but because your training demands are different those days. Power and competition days give you higher carbohydrate availability because glycolytic output is at its peak. Endurance days also elevate carbs to support sustained aerobic demand. Recovery and rest days bring carbs down because glycogen replacement is not the priority. Protein stays consistent every day to maintain muscle protein synthesis and support recovery. If you do not have a protocol set up yet, you can access the hub using the Performance Hub button at the top of this page and set one up, or you can build meals using your Macro Calculator baseline. Either way the builder works the same. Each builder allows you to create meals in any cuisine or style using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on your schedule and training volume. At the top of the screen you will see your daily nutrition targets. At the bottom you will see your Nutrition Budget, a real time view of what you have remaining for protein, starchy carbs, and fiber as you add meals. Just below the top section is your daily starch indicator, which shows how many starchy meals you have available based on your starch strategy. Starch Guard is your built-in carbohydrate management system. It limits high glycemic carbs like rice, pasta, and potatoes based on your starch allocation, and when your starch meals are used, it helps you substitute with fibrous carb options or lets the system choose for you. To start building, tap Create with Chef and describe what you want. You can keep your request simple or be very detailed, and the more specific you are about protein targets, training goals, or food choices, the more tailored your results will be. If you want tighter control, use Keep It Simple to limit extra ingredients and keep meals focused and consistent. Each result appears as a meal card where you can review macros, ingredients, and step by step instructions, and decide whether to add it to your day, replace it, or generate something new. The builder also includes a Snack Creator, allowing you to create structured snack options that support performance without disrupting your plan. As you build your day, you can plan one day or a full week, duplicate days to stay consistent, or remove meals and rebuild at any time before logging. When you create your first meal, the Shopping List button will appear so you can organize your ingredients. When you are ready, you can send meals to your Shopping List or log them to Biometrics. One important note: once meals are logged to Biometrics they cannot be removed, so log meals individually if you expect to make changes. SafetyGuard protects you from allergens and respects your dietary preferences automatically. Use the Performance Nutrition Builder to build meals that match your training, support your sport, and move your performance and physique in the direction you are working toward.",
     autoClose: true,
   },
 
@@ -377,7 +455,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Connect with trainers, physicians, or coaches to build and manage your personal care team.",
     spokenText:
-      "Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone else’s team using an access code. Once connected, you’ll appear on each other’s active care team, making it easy to collaborate, share progress, and manage support in one place. When you’re connected to a professional, they can view and edit your weekly Meal Board directly — based on the permissions you set. You control what they can see and change, and you can update or revoke access at any time. Choose the option that fits what you want to do and get started.",
+      "Care Team and ProAccess lets you connect with the people who support your goals. You can invite a trainer, physician, coach, patient, or client by email and assign their role, or join someone else’s team using an access code. Once connected, you’ll appear on each other’s active care team, making it easy to collaborate, share progress, and manage support in one place. When you’re connected to a professional, they can view and edit your weekly Meal Board directly, based on the permissions you set. You control what they can see and change, and you can update or revoke access at any time. Choose the option that fits what you want to do and get started.",
     autoClose: true,
   },
 
@@ -387,7 +465,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Your professional portal for managing clients and accessing their care dashboards.",
     spokenText:
-      "The Pro Portal is where you manage your clients and care relationships. To add a new client, enter their name, then select your profession from the dropdown. Your profession determines which dashboard you’ll use — trainers go to the Trainer Dashboard with performance and competition builders, while clinical roles like doctors, nurse practitioners, physician assistants, dietitians, nutritionists, and registered nurses go to the Clinician Dashboard with diabetic, GLP-1, and anti-inflammatory builders. Once you’ve selected your profession and added the client, tap Open to access your professional dashboard, where you’ll set targets, apply protocols, and guide their nutrition plan.",
+      "The Pro Portal is where you manage your clients and care relationships. To add a new client, enter their name, then select your profession from the dropdown. Your profession determines which dashboard you’ll use, trainers go to the Trainer Dashboard with performance and competition builders, while clinical roles like doctors, nurse practitioners, physician assistants, dietitians, nutritionists, and registered nurses go to the Clinician Dashboard with diabetic, metabolic medication, and anti-inflammatory builders. Once you’ve selected your profession and added the client, tap Open to access your professional dashboard, where you’ll set targets, apply protocols, and guide their nutrition plan.",
     autoClose: true,
   },
 
@@ -407,47 +485,46 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Set macro targets, choose the Starch Game Plan, assign meal builders, and guide performance nutrition for your client.",
     spokenText:
-      "Welcome to the Trainer Dashboard. This is your client control center, where you set everything that drives their nutrition. Start with macro targets — protein, starchy carbs, fibrous carbs, and fat. Then choose the Starch Game Plan. One Starch Meal concentrates all starchy carbs into a single meal for appetite control and fat loss. Flex Split divides starchy carbs across two meals for more flexibility. Remember, fibrous carbs like vegetables are always unlimited. You can also view and edit your client’s weekly Meal Board directly — add meals, remove items, or repeat a day’s meals across the week. Every change is tracked so the client always knows who updated their plan. When you’re ready, assign a meal builder — General Nutrition for balanced everyday meals, or Performance and Competition for athletes and high-output clients. Finally, use the builder shortcuts to jump directly into meal generation for your client.",
+      "Welcome to the Trainer Dashboard. This is your client control center, where you set everything that drives their nutrition. Start with macro targets, protein, starchy carbs, fibrous carbs, and fat. Then choose the Starch Game Plan. One Starch Meal concentrates all starchy carbs into a single meal for appetite control and fat loss. Flex Split divides starchy carbs across two meals for more flexibility. Remember, fibrous carbs like vegetables are always unlimited. You can also view and edit your client’s weekly Meal Board directly, add meals, remove items, or repeat a day’s meals across the week. Every change is tracked so the client always knows who updated their plan. When you’re ready, assign a meal builder, General Nutrition for balanced everyday meals, or Performance and Competition for athletes and high-output clients. Finally, use the builder shortcuts to jump directly into meal generation for your client.",
     autoClose: true,
   },
 
   "/profile/edit-step-1": {
     pageId: "edit-profile-step-1",
-    title: "Edit Profile — Personal Info",
+    title: "Edit Profile, Personal Info",
     description:
       "Update your name and email. This is the foundation of your profile.",
     spokenText:
-      "This is where you update your personal information — your name and email. These details help personalize your experience and keep your account secure. Make any changes you need, then continue to the next step.",
+      "This is where you update your personal information, your name and email. These details help personalize your experience and keep your account secure. Make any changes you need, then continue to the next step.",
     autoClose: true,
   },
 
   "/profile/edit-step-2": {
     pageId: "edit-profile-step-2",
-    title: "Edit Profile — Goals & Activity",
+    title: "Edit Profile, Goals & Activity",
     description:
       "Set your fitness goal and activity level. These shape how your nutrition targets are calculated.",
     spokenText:
-      "This step is about your goals and activity level. Your fitness goal — whether that's weight loss, muscle gain, maintenance, or endurance — combined with how active you are, directly shapes your daily nutrition targets. Choose what fits your current lifestyle, and we'll build around that.",
+      "This step is about your goals and activity level. Your fitness goal, whether that's weight loss, muscle gain, maintenance, or endurance, combined with how active you are, directly shapes your daily nutrition targets. Choose what fits your current lifestyle, and we'll build around that.",
     autoClose: true,
   },
 
   "/profile/edit-step-3": {
     pageId: "edit-profile-step-3",
-    title: "Edit Profile — Allergy & Safety",
+    title: "Edit Profile, Allergy & Safety",
     description:
       "Configure your allergies and SafetyGuard protection. Your Safety PIN protects these settings.",
     spokenText:
-      "This is where you set up SafetyGuard — Allergy Protection — My Perfect Meals' built-in two-layer safety system designed to prevent meals from being created with ingredients you've marked as unsafe. The first layer is established during onboarding and profile setup, where your allergies and restrictions are saved and hard-wired into the meal generator so unsafe ingredients are blocked before a meal can even be generated. The second layer operates inside the meal builders themselves, meaning that even if an unsafe ingredient is typed or requested directly, the builder will still block it from being included. On top of these protections, SafetyGuard includes a controlled override system that requires your Safety PIN and applies to one meal only, automatically turning protection back on afterward so no other meals are affected and nothing can be disabled accidentally or globally.",
+      "This is where you set up SafetyGuard, Allergy Protection, My Perfect Meals' built-in two-layer safety system designed to prevent meals from being created with ingredients you've marked as unsafe. The first layer is established during onboarding and profile setup, where your allergies and restrictions are saved and hard-wired into the meal generator so unsafe ingredients are blocked before a meal can even be generated. The second layer operates inside the meal builders themselves, meaning that even if an unsafe ingredient is typed or requested directly, the builder will still block it from being included. On top of these protections, SafetyGuard includes a controlled override system that requires your Safety PIN and applies to one meal only, automatically turning protection back on afterward so no other meals are affected and nothing can be disabled accidentally or globally.",
     autoClose: true,
   },
 
   "/profile/edit-step-4": {
     pageId: "edit-profile-step-4",
-    title: "Edit Profile — Review & Save",
-    description:
-      "Review your changes and save your updated profile.",
+    title: "Edit Profile, Review & Save",
+    description: "Review your changes and save your updated profile.",
     spokenText:
-      "This is your final review. Take a moment to double-check everything — your name, goals, activity level, dietary restrictions, and allergies. When you're ready, save your changes and they'll take effect immediately across the app.",
+      "This is your final review. Take a moment to double-check everything, your name, goals, activity level, dietary restrictions, and allergies. When you're ready, save your changes and they'll take effect immediately across the app.",
     autoClose: true,
   },
 
@@ -457,17 +534,17 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build diabetic-friendly meals for your client using clinician-defined guardrails.",
     spokenText:
-      "Welcome to the ProCare Diabetic Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for your client using the targets, protocols, and clinical guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. You can plan one day or multiple days, structure each day as needed, and stay flexible while remaining inside the approved medical framework. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves, not traditional serving math. Prep options help control preparation methods and dial in targets like protein so meals remain compliant. If you’re a client, this is where you build meals using your coach’s or physician’s settings — follow the targets shown at the bottom of the screen as you create your day. As you build, focus on protein and carbs — those drive energy, glucose response, and daily control. Calories and fats still matter, but they play a supporting role. When you’re finished, save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.",
+      "Welcome to the ProCare Diabetic Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for your client using the targets, protocols, and clinical guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. You can plan one day or multiple days, structure each day as needed, and stay flexible while remaining inside the approved medical framework. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves, not traditional serving math. Prep options help control preparation methods and dial in targets like protein so meals remain compliant. If you’re a client, this is where you build meals using your coach’s or physician’s settings, follow the targets shown at the bottom of the screen as you create your day. As you build, focus on protein and carbs, those drive energy, glucose response, and daily control. Calories and fats still matter, but they play a supporting role. When you’re finished, save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.",
     autoClose: true,
   },
 
   "/pro/clients/:id/glp1-builder": {
     pageId: "procare-glp1-builder",
-    title: "ProCare GLP-1 Meal Builder",
+    title: "ProCare Metabolic Medication Builder",
     description:
-      "Create GLP-1–aligned meals for your client using appetite-aware guardrails.",
+      "Create metabolic medication-aligned meals for your client using appetite-aware guardrails.",
     spokenText:
-      "Welcome to the ProCare GLP-1 Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the targets, protocols, and clinical guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with GLP-1 goals like satiety, protein prioritization, and meal consistency. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves, not traditional serving manipulation. Prep options help control preparation and dial in targets like protein to support fullness and adherence. If you’re a client, follow the targets shown at the bottom of the screen as you create your day using Create with Chef. As you build, focus on protein and carbs — those drive satiety, energy stability, and lean tissue support. Calories and fats still matter, but they play a supporting role. When you’re finished, save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.",
+      "Welcome to the ProCare Metabolic Medication Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the targets, protocols, and clinical guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with goals like satiety, protein prioritization, and meal consistency. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves, not traditional serving manipulation. Prep options help control preparation and dial in targets like protein to support fullness and adherence. If you’re a client, follow the targets shown at the bottom of the screen as you create your day using Create with Chef. As you build, focus on protein and carbs, those drive satiety, energy stability, and lean tissue support. Calories and fats still matter, but they play a supporting role. When you’re finished, save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.",
     autoClose: true,
   },
 
@@ -477,7 +554,37 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Build inflammation-conscious meals for your client using targeted guardrails.",
     spokenText:
-      "Welcome to the ProCare Anti-Inflammatory Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the targets, protocols, and clinical guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with anti-inflammatory goals like nutrient quality, food variety, and consistency. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves, not traditional serving manipulation. Prep options help control preparation methods and support anti-inflammatory strategies like ingredient selection and protein targets. If you’re a client, follow the targets shown at the bottom of the screen as you create your day using Create with Chef. As you build, focus on protein and carbs — those drive recovery, energy stability, and tissue repair. Calories and fats still matter, but they play a supporting role. When you’re finished, save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.",
+      "Welcome to the ProCare Anti-Inflammatory Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the targets, protocols, and clinical guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the A.I. Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with anti-inflammatory goals like nutrient quality, food variety, and consistency. Build breakfast, lunch, dinner, and snacks by adjusting the meals themselves, not traditional serving manipulation. Prep options help control preparation methods and support anti-inflammatory strategies like ingredient selection and protein targets. If you’re a client, follow the targets shown at the bottom of the screen as you create your day using Create with Chef. As you build, focus on protein and carbs, those drive recovery, energy stability, and tissue repair. Calories and fats still matter, but they play a supporting role. When you’re finished, save your day to Biometrics, send ingredients to the shopping list, or do both. When you’re ready, tap Save Day to Biometrics to lock everything in.",
+    autoClose: true,
+  },
+
+  "/performance-competition-builder": {
+    pageId: "performance-competition-builder-athlete",
+    title: "Performance & Competition Meal Builder",
+    description:
+      "Build precision performance meals for training and competition. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Taste Memory is active — the more you save, the more the app learns your preferences. Use the 'How builders work' button on this page to watch a quick video tutorial on how to use this builder.",
+    spokenText:
+      "Welcome to the Performance and Competition Meal Builder. This builder is designed for athletes who are in training, preparing competition, or following a structured performance plan, and it is typically used within ProCare by a coach or professional to guide your nutrition. While you may not be building everything yourself, this is the system being used to structure your meals based on your training demands and goals. Each builder serves a different purpose, but they all follow the same core system, allowing meals to be built using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on your schedule and training needs. At the top of the screen, you will see your daily nutrition targets, which come from the Macro Calculator and serve as your baseline. At the bottom, you will see your Nutrition Budget, showing what remains for protein, starchy carbs, and fiber as meals are added. Just below the top section is your daily starch indicator, which reflects your starch strategy, with green meaning meals available and orange meaning they have been used. Starch Guard is your built-in weight management system. It limits high glycemic carbs like rice, pasta, and potatoes, and when starch meals are used, it shifts the focus toward fibrous carb options or allows the system to adjust. To build meals, your coach or provider uses Create with Chef to describe exactly what is needed, including cuisine, protein levels, carb structure, and timing around training. Requests can be simple or highly detailed, and for tighter control, the Keep It Simple feature can be used to limit extra ingredients and keep meals precise and consistent. Each result appears as a meal card, where meals can be reviewed, including macros, ingredients, and step by step instructions, and then adjusted, replaced, or added to your day. Every builder also includes a Snack Creator, allowing structured snack options that support performance without disrupting the plan. As meals are built, the focus stays on protein and carbohydrates, since they drive energy availability, recovery, and performance output, while fats are adjusted around those priorities. Days can be structured around training, duplicated for consistency, or adjusted as needed before logging. When meals are created, the Shopping List becomes available to organize ingredients, and once ready, meals can be logged to Biometrics or finalized. One important note, once meals are logged to Biometrics, they cannot be removed from that page, so adjustments should be made before logging, or meals should be logged individually if changes are expected. SafetyGuard protects against allergens and respects all dietary preferences automatically. Use the Performance and Competition Meal Builder as a structured system to support high level training, recovery, and results, whether you are working directly with a coach or following a guided plan.",
+    autoClose: true,
+  },
+
+  "/pro/performance-competition-builder": {
+    pageId: "pro-performance-competition-builder-standalone",
+    title: "Performance & Competition Meal Builder",
+    description:
+      "Build precision performance meals for training and competition. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically.",
+    spokenText:
+      "Welcome to the Performance and Competition Meal Builder. This builder is designed for athletes who are in training, preparing competition, or following a structured performance plan, and it is typically used within ProCare by a coach or professional to guide your nutrition. While you may not be building everything yourself, this is the system being used to structure your meals based on your training demands and goals. Each builder serves a different purpose, but they all follow the same core system, allowing meals to be built using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on your schedule and training needs. At the top of the screen, you will see your daily nutrition targets, which come from the Macro Calculator and serve as your baseline. At the bottom, you will see your Nutrition Budget, showing what remains for protein, starchy carbs, and fiber as meals are added. Just below the top section is your daily starch indicator, which reflects your starch strategy, with green meaning meals available and orange meaning they have been used. Starch Guard is your built-in weight management system. It limits high glycemic carbs like rice, pasta, and potatoes, and when starch meals are used, it shifts the focus toward fibrous carb options or allows the system to adjust. To build meals, your coach or provider uses Create with Chef to describe exactly what is needed, including cuisine, protein levels, carb structure, and timing around training. Requests can be simple or highly detailed, and for tighter control, the Keep It Simple feature can be used to limit extra ingredients and keep meals precise and consistent. Each result appears as a meal card, where meals can be reviewed, including macros, ingredients, and step by step instructions, and then adjusted, replaced, or added to your day. Every builder also includes a Snack Creator, allowing structured snack options that support performance without disrupting the plan. As meals are built, the focus stays on protein and carbohydrates, since they drive energy availability, recovery, and performance output, while fats are adjusted around those priorities. Days can be structured around training, duplicated for consistency, or adjusted as needed before logging. When meals are created, the Shopping List becomes available to organize ingredients, and once ready, meals can be logged to Biometrics or finalized. One important note, once meals are logged to Biometrics, they cannot be removed from that page, so adjustments should be made before logging, or meals should be logged individually if changes are expected. SafetyGuard protects against allergens and respects all dietary preferences automatically. Use the Performance and Competition Meal Builder as a structured system to support high level training, recovery, and results, whether you are working directly with a coach or following a guided plan.",
+    autoClose: true,
+  },
+
+  "/general-nutrition-builder": {
+    pageId: "general-nutrition-builder-standalone",
+    title: "General Nutrition Meal Builder",
+    description:
+      "Build balanced, everyday meals for sustainable nutrition. Each meal slot has a My Favorites button — tap the red star to instantly reuse any saved meal with macros updated automatically. Taste Memory is active — the more you save, the more the app learns your preferences. Use the 'How builders work' button on this page to watch a quick video tutorial on how to use this builder.",
+    spokenText:
+      "Welcome to the General Nutrition Meal Builder. This builder is used within ProCare as you go to system for every day, sustainable nutrition, designed for individuals who do not require a specialty or medical based approach, but still want structure, consistency, and results. While it works the same way as the Weekly Meal Builder, this version is typically guided by a coach or professional to help you stay aligned with your goals. Each builder serves a different purpose, but they all follow the same core system, allowing you to create meals in any cuisine or style using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on how you eat. At the top of the screen, you will see your daily nutrition targets, which come from the Macro Calculator and serve as your baseline for the day. At the bottom, you will see your Nutrition Budget, a real time view of what you have remaining for protein, starchy carbs, and fiber as meals are added. Just below the top section is your daily starch indicator, which reflects your starch strategy, with green meaning meals available and orange meaning they have been used. Starch Guard is your built-in weight management system. It limits high glycemic carbs like rice, pasta, and potatoes, and when starch meals are used, it shifts the focus toward fibrous carb options or allows the system to adjust. To build meals, tap Create with Chef and describe what you want. You can keep your request simple or be detailed, and the more specific you are about protein, carbs, and food preferences, the more tailored your results will be. If you want tighter control, use the Keep It Simple feature to limit extra ingredients and keep meals consistent and easy to follow. Each result appears as a meal card, where you can review the meal, see macros, ingredients, and step by step instructions, and decide whether to add it to your day, replace it, or generate something new. Every builder also includes a Snack Creator, allowing you to create healthier snack options that fit your plan. As you build your day, you can plan one day or a full week, duplicate days to stay consistent, or remove meals and rebuild at any time before logging. When you create your first meal, the Shopping List button will appear so you can begin organizing your ingredients. When you are ready, you can send meals to your Shopping List or log them to Biometrics. One important note, once meals are logged to Biometrics, they cannot be removed from that page, so it is best to log meals individually instead of logging your entire day at once, especially if you plan to make changes. SafetyGuard protects you from allergens and respects your dietary preferences automatically. Use the General Nutrition Meal Builder as your foundation for consistent, sustainable eating, whether you are following guidance from a coach or building habits that last long term.",
     autoClose: true,
   },
 
@@ -485,19 +592,19 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "procare-performance-competition-builder",
     title: "ProCare Performance & Competition Meal Builder",
     description:
-      "Create precision-based performance meals for your client using competition-level guardrails. The starch indicator shows daily starch meal status — green means slots available, orange means they're covered for the day.",
+      "Create precision-based performance meals for your client using competition-level guardrails. The starch indicator shows daily starch meal status, green means slots available, orange means they're covered for the day.",
     spokenText:
-      "Welcome to the ProCare Performance and Competition Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the targets, protocols, and performance guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the AI Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with training demands, competition schedules, and recovery needs. Pay attention to the starch indicator — green means starch slots available, orange means they're covered for today. Remember, fibrous carbs like vegetables are unlimited and should be encouraged, while starchy carbs are managed using the Starch Game Plan set in the Trainer Dashboard — either One Starch Meal or Flex Split. As you build, focus on protein and carbs — those drive energy availability, recovery, and competitive performance. When you’re finished, tap Save Day to Biometrics to lock everything in.",
+      "Welcome to the Performance and Competition Meal Builder. This builder is designed for athletes who are in training, preparing competition, or following a structured performance plan, and it is typically used within ProCare by a coach or professional to guide your nutrition. While you may not be building everything yourself, this is the system being used to structure your meals based on your training demands and goals. Each builder serves a different purpose, but they all follow the same core system, allowing meals to be built using a flexible Meal 1, Meal 2, Meal 3 structure, with the ability to add more meals based on your schedule and training needs. At the top of the screen, you will see your daily nutrition targets, which come from the Macro Calculator and serve as your baseline. At the bottom, you will see your Nutrition Budget, showing what remains for protein, starchy carbs, and fiber as meals are added. Just below the top section is your daily starch indicator, which reflects your starch strategy, with green meaning meals available and orange meaning they have been used. Starch Guard is your built-in weight management system. It limits high glycemic carbs like rice, pasta, and potatoes, and when starch meals are used, it shifts the focus toward fibrous carb options or allows the system to adjust. To build meals, your coach or provider uses Create with Chef to describe exactly what is needed, including cuisine, protein levels, carb structure, and timing around training. Requests can be simple or highly detailed, and for tighter control, the Keep It Simple feature can be used to limit extra ingredients and keep meals precise and consistent. Each result appears as a meal card, where meals can be reviewed, including macros, ingredients, and step by step instructions, and then adjusted, replaced, or added to your day. Every builder also includes a Snack Creator, allowing structured snack options that support performance without disrupting the plan. As meals are built, the focus stays on protein and carbohydrates, since they drive energy availability, recovery, and performance output, while fats are adjusted around those priorities. Days can be structured around training, duplicated for consistency, or adjusted as needed before logging. When meals are created, the Shopping List becomes available to organize ingredients, and once ready, meals can be logged to Biometrics or finalized. One important note, once meals are logged to Biometrics, they cannot be removed from that page, so adjustments should be made before logging, or meals should be logged individually if changes are expected. SafetyGuard protects against allergens and respects all dietary preferences automatically. Use the Performance and Competition Meal Builder as a structured system to support high level training, recovery, and results, whether you are working directly with a coach or following a guided plan.",
     autoClose: true,
   },
 
   "/pro/clients/:id/general-nutrition-builder": {
     pageId: "procare-general-nutrition-builder",
-    title: "ProCare General Nutrition Meal Builder",
+    title: "General Nutrition Builder",
     description:
-      "Build balanced, everyday meals for your client using flexible nutrition guardrails. The starch indicator shows daily starch meal status — green means slots available, orange means they're covered for the day.",
+      "Build balanced, everyday meals for your client using flexible nutrition guardrails. The starch indicator shows daily starch meal status, green means slots available, orange means they're covered for the day.",
     spokenText:
-      "Welcome to the ProCare General Nutrition Meal Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the nutrition targets, protocols, and guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the AI Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with the overall nutrition framework. Pay attention to the starch indicator — green means starch slots available, orange means they're covered for today. Remember, fibrous carbs like vegetables are unlimited and should be encouraged, while starchy carbs are managed using the Starch Game Plan set in the Trainer Dashboard — either One Starch Meal or Flex Split. As you build, focus on protein and carbs — those drive energy, recovery, and nutritional balance. When you’re finished, tap Save Day to Biometrics to lock everything in.",
+      "Welcome to the General Nutrition Builder. This builder is used to create meals within the guardrails set by a coach or physician. If you’re a professional, this is where you build meals for a client using the nutrition targets, protocols, and guidelines you’ve already defined. Use Create with Chef to describe meals and snacks, or the AI Meal Creator to guide ingredient-level choices. Choose how many days you want to plan and how each day should be structured, allowing flexibility while staying aligned with the overall nutrition framework. Pay attention to the starch indicator, green means starch slots available, orange means they're covered for today. Remember, fibrous carbs like vegetables are unlimited and should be encouraged, while starchy carbs are managed using the Starch Game Plan set in the Trainer Dashboard, either One Starch Meal or Flex Split. As you build, focus on protein and carbs, those drive energy, recovery, and nutritional balance. When you’re finished, tap Save Day to Biometrics to lock everything in.",
     autoClose: true,
   },
 
@@ -507,7 +614,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "View and edit your client's or patient's Shared Meal Board. Changes are permission-controlled and tracked by who made them.",
     spokenText:
-      "This is the Shared Meal Board. You're viewing your client's or patient's Meal Board directly. Use the day tabs to navigate between days, and you'll see meals organized by slot — breakfast, lunch, dinner, and snacks. If you have edit permissions, you can remove meals or copy an entire day's plan across the whole week. Every change you make is saved directly to their board and tracked — they'll always know who updated their plan last. The amber banner at the top confirms you're editing their board, not your own. Your access level depends on the permissions the client has granted you.",
+      "This is the Shared Meal Board. You're viewing your client's or patient's Meal Board directly. Use the day tabs to navigate between days, and you'll see meals organized by slot, breakfast, lunch, dinner, and snacks. If you have edit permissions, you can remove meals or copy an entire day's plan across the whole week. Every change you make is saved directly to their board and tracked, they'll always know who updated their plan last. The amber banner at the top confirms you're editing their board, not your own. Your access level depends on the permissions the client has granted you.",
     autoClose: true,
   },
 
@@ -515,9 +622,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "select-builder",
     title: "Meal Builder Exchange",
     description:
-      "Switch meal boards as your needs change — whether you're graduating from ProCare, following a medical plan, or simplifying long-term.",
+      "Switch meal boards as your needs change, whether you're graduating from ProCare, following a medical plan, or simplifying long-term.",
     spokenText:
-      "Meal Builder Exchange is where you switch Meal Builders when your medical needs, goals, or coaching situation changes. If a clinician updates your care — like a new Diabetes diagnosis, or a change in status — you can switch to the appropriate clinical builder, so your meals follow the right rules automatically. If you’re working with a coach or trainer in ProCare, you may be placed into a specific program-based builder for a limited phase. When that program ends, you can continue independently by switching out of the coaching-only builder, while keeping a builder that fits your lifestyle. If you’re on General Nutrition, you can stay there long-term, or switch to Weekly Meal Builder — they’re built to feel the same for everyday use. Clinical builders like Diabetes can also stay active even after you stop working with a clinician, because the app is designed to help you maintain results long after professional care ends.",
+      "Meal Builder Exchange is where you switch Meal Builders when your medical needs, goals, or coaching situation changes. If a clinician updates your care, like a new Diabetes diagnosis, or a change in status, you can switch to the appropriate clinical builder, so your meals follow the right rules automatically. If you’re working with a coach or trainer in ProCare, you may be placed into a specific program-based builder for a limited phase. When that program ends, you can continue independently by switching out of the coaching-only builder, while keeping a builder that fits your lifestyle. If you’re on General Nutrition, you can stay there long-term, or switch to Weekly Meal Builder, they’re built to feel the same for everyday use. Clinical builders like Diabetes can also stay active even after you stop working with a clinician, because the app is designed to help you maintain results long after professional care ends.",
     autoClose: true,
   },
 
@@ -527,7 +634,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Manage your privacy settings, data preferences, and account security options.",
     spokenText:
-      "This is your Privacy and Security page. Here you can review how your data is handled, manage your privacy preferences, and control what information is stored. My Perfect Meals takes your privacy seriously — your health data, meal plans, and personal information are protected and never sold to third parties. You can also find information about how to request your data or delete your account if needed.",
+      "This is your Privacy and Security page. Here you can review how your data is handled, manage your privacy preferences, and control what information is stored. My Perfect Meals takes your privacy seriously, your health data, meal plans, and personal information are protected and never sold to third parties. You can also find information about how to request your data or delete your account if needed.",
     autoClose: true,
   },
 
@@ -537,7 +644,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "View your current plan, explore upgrade options, and manage your billing.",
     spokenText:
-      "This is your Subscription page. Here you can see your current plan, explore what's included at each tier, and manage your billing. My Perfect Meals offers flexible plans to fit your needs — from individual meal planning to family options and professional coaching support. If you need to change your plan or update payment information, you can do it right here.",
+      "This is your Subscription page. Here you can see your current plan, explore what's included at each tier, and manage your billing. My Perfect Meals offers flexible plans to fit your needs, from individual meal planning to family options and professional coaching support. If you need to change your plan or update payment information, you can do it right here.",
     autoClose: true,
   },
 
@@ -545,9 +652,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "learn",
     title: "App Library",
     description:
-      "Learn how the app works, understand nutrition basics, and explore Copilot walkthroughs.",
+      "Learn how the app works, discover Taste Memory and how the app personalizes over time, and explore Copilot walkthroughs.",
     spokenText:
-      "Welcome to the App Library. This is your go-to resource for understanding how My Perfect Meals works and the nutrition science behind it. You'll find informative articles on topics like fiber and vegetables, meal planning basics, and the difference between tracking calories versus macros. There's also an interactive food comparison tool that shows you how fat content changes how much food you get per hundred calories. The Copilot Walkthroughs section explains how to use each feature — just tap any topic to read more. And now with Palate Preferences, you can customize how your meals are seasoned — spice tolerance, seasoning intensity, and flavor style — without affecting your macros. This is where the app teaches you the why, not just the how.",
+      "Welcome to the App Library. This is the brain of My Perfect Meals, where every system in the app is explained in a way that helps you understand how everything works together. If something ever feels unclear or you want to know why the app is guiding you a certain way, this is where you come to find the answer. A great place to start is the first topic, Why My Perfect Meals Exists, which walks you through the thinking behind the app and why it was built differently. From there, you can explore topics like Starch Guard and how it manages high glycemic carbs, SafetyGuard and how allergy protection works, GlucoseGuard for blood sugar control, the Nutrition Budget and how it tracks what you have left in your day, Keep It Simple for tighter ingredient control, Palate Preferences for dialing in flavor, the Culture Intelligence System and how your food culture shapes every meal and drink the app creates for you, ProCare for working with coaches and professionals, and more. One topic I especially want you to find is Taste Memory, which explains how the app learns your preferences over time and uses them to personalize every meal it generates for you. The more you save and log, the more the app starts to feel like it already knows what you want before you ask. Every section includes both a Read and Listen option, so you can either go through it at your own pace, or have it narrated to you, making it easy to learn without stopping what you are doing. This is not a page about tracking food. This is where you learn why the system works, so you can trust it and use it with confidence.",
     autoClose: true,
   },
 
@@ -557,7 +664,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "Meet the founders and learn about the mission behind My Perfect Meals.",
     spokenText:
-      "This is our About page. Here you'll learn about the people behind My Perfect Meals and why we built this app. Our mission is simple: help you understand where your calories come from and make healthy eating practical, not complicated. We believe nutrition should be personalized, accessible, and based on real science — not fads or restrictions. Thank you for being part of our community.",
+      "This is our About page. Here you'll learn about the people behind My Perfect Meals and why we built this app. Our mission is simple: help you understand where your calories come from and make healthy eating practical, not complicated. We believe nutrition should be personalized, accessible, and based on real science, not fads or restrictions. Thank you for being part of our community.",
     autoClose: true,
   },
 
@@ -574,9 +681,9 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     pageId: "guest-builder",
     title: "MPM Guest Experience",
     description:
-      "Try our AI-powered meal planning tools — no account required. Find your macros, create meals, rescue your fridge, or satisfy a craving.",
+      "Try our AI-powered meal planning tools, no account required. Find your macros, create meals, rescue your fridge, or satisfy a craving.",
     spokenText:
-      "Hey, welcome to the My Perfect Meals Guest Experience — I’m really glad you’re here. Before we start, let me introduce myself. I’m Chef Copilot, your personal guide inside this app. You’ll find me in the bottom navigation bar — look for the Chef button in the center of the bottom navigation. Anytime you’re on any page and want to know what it does, or how to use it, just tap the Chef button, then hit Listen, and I’ll explain exactly what you’re looking at and what to do next. If you turn Auto on inside the Copilot panel, I’ll automatically explain each page as you move through the app. If Auto is off, I stay quiet until you ask. You’re always in control. Now, let’s talk about what you’re here to do. This is a guided preview of how the app works, and I’ll walk you through it step by step, so you actually get the full experience instead of guessing where to start. As a guest, you’ll begin with the Macro Calculator to set your personal numbers — that’s the foundation for everything else in the app. You may notice that some features, like the Weekly Meal Builder, Fridge Rescue, and Craving Creator, aren’t fully open yet — and that’s intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few meal day passes to try the real workflow — setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together — without needing an account. Remember, I’m always here in the bottom navigation bar under Guide if you need me. Let’s start by setting your macros, and take it from there.",
+      "Hey, welcome to the My Perfect Meals Guest Experience, I’m really glad you’re here. Before we start, let me introduce myself. I’m Chef Copilot, your personal guide inside this app. You’ll find me in the bottom navigation bar, look for the Chef button in the center of the bottom navigation. Anytime you’re on any page and want to know what it does, or how to use it, just tap the Chef button, then hit Listen, and I’ll explain exactly what you’re looking at and what to do next. If you turn Auto on inside the Copilot panel, I’ll automatically explain each page as you move through the app. If Auto is off, I stay quiet until you ask. You’re always in control. Now, let’s talk about what you’re here to do. This is a guided preview of how the app works, and I’ll walk you through it step by step, so you actually get the full experience instead of guessing where to start. As a guest, you’ll begin with the Macro Calculator to set your personal numbers, that’s the foundation for everything else in the app. You may notice that some features, like the Weekly Meal Builder, Fridge Rescue, and Craving Creator, aren’t fully open yet, and that’s intentional. Once you finish your macros and build your first meals, those tools unlock so you can see how everything connects. Guest Mode gives you a few meal day passes to try the real workflow, setting your numbers, building meals, and seeing how meals, biometrics, and shopping all work together, without needing an account. Remember, I’m always here in the bottom navigation bar under Guide if you need me. Let’s start by setting your macros, and take it from there.",
     autoClose: false,
   },
   "/lifestyle/chefs-kitchen": {
@@ -585,7 +692,247 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     description:
       "A creative, hands-on cooking experience where you build a dish from idea to plate with step-by-step guidance.",
     spokenText:
-      "Hey—welcome to my kitchen. Come on in. This is where we stop worrying about labels, rules, or perfect diets and just have fun with food. You bring the idea, the craving, or even just the mood—and we'll build something real together. I'll walk you through it step by step: what you're making, how you want to cook it, how many people you're cooking for and how much time you want to spend. And here's the signature move — you can do this hands-free. Tap the floating Chef and just talk. I'll guide you step by step and cook the meal with you.",
+      "Hey, welcome to my kitchen. Come on in. This is where we stop worrying about labels, rules, or perfect diets and just have fun with food. You bring the idea, the craving, or even just the mood, and we'll build something real together. I'll walk you through it step by step: what you're making, how you want to cook it, how many people you're cooking for and how much time you want to spend. And here's the signature move, you can do this hands-free. Tap the floating Chef and just talk. I'll guide you step by step and cook the meal with you.",
+    autoClose: true,
+  },
+
+  "/lifestyle/sushi-creator": {
+    pageId: "sushi-creator",
+    title: "Sushi Creator",
+    description:
+      "Build healthier sushi rolls, bowls, and Japanese-inspired dishes tailored to your nutrition goals and dietary profile.",
+    spokenText:
+      "Welcome to the Sushi Creator. This is where you build healthier versions of the sushi and Japanese dishes you love. Whether you are craving a classic roll, a poke bowl, or something more creative, just describe what you want and the system takes care of the rest. Every creation is built around your nutrition goals, so macros, calories, and protein are all part of the equation. Your dietary profile travels with you here, so allergies, restrictions, and health settings are all respected automatically. If you have saved a food culture in your profile, it will guide the ingredient choices and cooking style the app uses. You can adjust your servings, save anything you enjoy, and add it straight to your meal plan or shopping list. Just describe your craving, set your servings, and tap Create.",
+    autoClose: true,
+  },
+
+  "/sushi-creator": {
+    pageId: "sushi-creator-alt",
+    title: "Sushi Creator",
+    description:
+      "Build healthier sushi rolls, bowls, and Japanese-inspired dishes tailored to your nutrition goals and dietary profile.",
+    spokenText:
+      "Welcome to the Sushi Creator. This is where you build healthier versions of the sushi and Japanese dishes you love. Whether you are craving a classic roll, a poke bowl, or something more creative, just describe what you want and the system takes care of the rest. Every creation is built around your nutrition goals, so macros, calories, and protein are all part of the equation. Your dietary profile travels with you here, so allergies, restrictions, and health settings are all respected automatically. If you have saved a food culture in your profile, it will guide the ingredient choices and cooking style the app uses. You can adjust your servings, save anything you enjoy, and add it straight to your meal plan or shopping list. Just describe your craving, set your servings, and tap Create.",
+    autoClose: true,
+  },
+
+  "/kitchens": {
+    pageId: "kitchen-network-hub",
+    title: "The Kitchen Network",
+    description:
+      "Discover Signature Kitchens built by real chefs and culinary creators. Every kitchen extends a chef's actual style into personalized meals — shaped by their flavors and techniques, adapted to your health goals.",
+    spokenText:
+      "Welcome to The Kitchen Network. This is where culinary identity meets adaptive personalization inside My Perfect Meals. Signature Kitchens are branded culinary spaces built by real chefs, coaches, and food creators — people whose culinary voice is now embedded into the platform. When you cook inside a Signature Kitchen, every meal you generate is shaped by that chef's actual style — their flavors, their techniques, their philosophy — adapted to your dietary needs and health goals at the same time. You can browse the available kitchens, explore a chef's signature library, and generate personalized dishes in their voice. Your health protocols are always respected, no matter whose kitchen you are cooking in — allergies, dietary restrictions, and clinical guidelines travel with you everywhere in the platform. If you are a chef or culinary creator, tap Start Here to take the Inside the Kitchen Network walkthrough — a guided experience that shows you exactly how Signature Kitchens work, how chef identity scales digitally, and how to open your own.",
+    autoClose: true,
+  },
+
+  "/kitchen/:slug": {
+    pageId: "signature-kitchen",
+    title: "Signature Kitchen",
+    description:
+      "You are inside a Signature Kitchen. Browse the chef's library, explore their collections, and generate personalized meals in their culinary style.",
+    spokenText:
+      "You are now inside a Signature Kitchen. This is a branded culinary space built around a real chef's identity — their dishes, their techniques, their flavor philosophy. You can browse the chef's signature library to explore the dishes and recipes that define their style. If you see collections, those are curated groupings the chef has organized around themes, occasions, or ingredients. When you are ready to create, tap Create With Chef to generate a personalized meal in this kitchen's style. The platform will honor your dietary restrictions, allergies, and health protocols automatically — the chef's style influences the flavor and technique, while your personal settings keep everything safe and relevant to your goals.",
+    autoClose: true,
+  },
+
+  "/recipe-scan": {
+    pageId: "recipe-scan",
+    title: "Recipe Maker",
+    description:
+      "See it. Say it. Send it. We'll make it yours.",
+    spokenText:
+      "Recipe Maker is one of the most powerful tools in the app. Here is how it works. You see food somewhere — a TikTok, an Instagram save, a Pinterest board, a cookbook, a restaurant menu — and instead of letting that moment pass, you bring it here and we build it for you. You have four ways to bring in your idea: Choose Photo lets you pick any screenshot or saved image from your gallery. Camera opens your device live so you can point it at anything in front of you. Speak lets you describe the meal out loud. Type lets you paste or write a description. Here is the part that surprises people: you do not need the actual recipe. If you can show Recipe Maker the food — even just a photo of a finished dish — it identifies what it is seeing and creates recipes from scratch based on it. After you bring in your idea, you choose your settings: your servings from just yourself up to a meal prep batch of six, your adaptation style from Authentic to Healthier, your protein level, your prep style, and your cuisine. Then Recipe Maker does not give you one result. It builds three completely personalized versions of your idea at the same time — same dish, three different takes — each one fully applying your nutrition profile, allergies, dietary identity, and every active health protocol on your account. You see all three at once. You can save any of them, all of them, or none of them. Nothing is saved until you decide, and nothing is removed unless you choose to clear it. Your three choices stay on your dashboard automatically so you can come back to them anytime.",
+    autoClose: true,
+  },
+
+  "/companion": {
+    pageId: "companion-hub",
+    title: "My Perfect Pets",
+    description:
+      "Personalized homemade meal planning and ingredient safety for your dogs and cats — built on the same adaptive protocol engine as your own nutrition.",
+    spokenText:
+      "Welcome to My Perfect Pets. This is a premium wellness nutrition system for your companion animals, built on the same adaptive protocol engine that powers your own meals. Choose Dogs for Canine Nutrition Intelligence or Cats for Feline Nutrition Intelligence — each has its own dedicated hub. In both hubs you can create a personalized profile for your pet, generate safe homemade meals tailored to their breed, age, weight, and wellness goals, and save your favorite recipes. Every meal is screened before you see it — for dogs that means the Toxic Ingredient Firewall blocking known canine toxins like chocolate, xylitol, grapes, garlic, and onions, and for cats the system enforces feline-specific nutritional requirements including adequate taurine and protein as obligate carnivores. You can stack wellness conditions just like your own protocol — senior support, kidney support, anti-inflammatory, joint wellness, and more can all run simultaneously. All protocols include veterinary citation sources from pre-approved references including WSAVA, AAHA, and Tufts Cummings. This is wellness nutrition guidance only — not veterinary medicine. Always consult your veterinarian for health conditions or significant dietary changes.",
+    autoClose: true,
+  },
+
+  "/companion/dogs": {
+    pageId: "canine-wellness-hub",
+    title: "Canine Wellness Hub",
+    description:
+      "Your dog's personalized nutrition center — generate homemade meals, scan ingredients for safety, and manage wellness profiles.",
+    spokenText:
+      "Welcome to the Canine Wellness Hub. This is your dog's complete nutrition center inside My Perfect Pets. If you have not yet created a dog profile, tap Add Dog to get started — you will enter your dog's name, breed, age, weight, activity level, and any wellness goals or veterinary restrictions. Once your profile is set up, you can generate fully personalized homemade meals from this hub by tapping the Generate Meal button on your dog's card. Every meal is built using your dog's complete wellness protocol and run through the Toxic Ingredient Firewall before you see it, blocking known canine toxins from appearing in any result. You can save meals you like by tapping the heart icon, and access your saved recipes in the Saved Meals section at the bottom of the page. You can also scan any ingredient directly from this page using the ingredient scanner to instantly check if it is safe for your dog before using it in a recipe. If you have multiple dogs, you can manage separate profiles for each one, and generate meals tailored to each dog's individual needs. Tap any dog's card to expand their profile and access all of their options.",
+    autoClose: true,
+  },
+
+  "/companion/cats": {
+    pageId: "feline-wellness-hub",
+    title: "Feline Wellness Hub",
+    description:
+      "Your cat's personalized nutrition center — generate taurine-optimized homemade meals and manage feline wellness profiles.",
+    spokenText:
+      "Welcome to the Feline Wellness Hub. This is your cat's complete nutrition center inside My Perfect Pets. If you have not yet created a cat profile, tap Add Cat to get started — you will enter your cat's name, breed, age, weight, activity level, and any wellness goals or veterinary restrictions. Cats are obligate carnivores, which means their bodies require specific nutrients — particularly taurine and animal-based protein — that the system enforces automatically in every generated meal. Once your profile is set up, you can generate fully personalized homemade meals tailored to your cat's needs. Every meal is built using your cat's complete wellness protocol and screened for feline safety before you see it, blocking known cat toxins including onions, garlic, grapes, xylitol, and other harmful ingredients. You can save meals you like and access your saved recipes in the Saved Meals section at the bottom of the page. If you have multiple cats, you can manage separate profiles for each one. Feline wellness conditions such as senior support, kidney support, urinary health, and weight management can all be stacked and run simultaneously. This is wellness nutrition guidance only — always consult your veterinarian for health conditions or significant dietary changes.",
+    autoClose: true,
+  },
+
+  "/companion/cat-setup": {
+    pageId: "cat-profile-setup",
+    title: "Cat Profile Setup",
+    description:
+      "Create your cat's personalized nutrition profile — breed, age, wellness goals, and veterinary restrictions.",
+    spokenText:
+      "This is the Cat Profile Setup. Walk through each step to build a complete picture of your cat. You will enter your cat's name, breed, age, sex, and whether they are spayed or neutered. Then body details — current weight, activity level, and body condition. Next, pick wellness goals from the stackable condition list — options like senior support, kidney support, urinary health, weight management, and more can all be selected together. Finally, add any food allergies, sensitivities, veterinarian-specified dietary restrictions, and any notes about your cat's preferences or behavior. The more complete the profile, the more personalized and precise every generated meal will be. Once saved, your cat's profile drives every meal generation in the Feline Wellness Hub.",
+    autoClose: false,
+  },
+
+  "/companion/setup": {
+    pageId: "companion-setup",
+    title: "Dog Profile Setup",
+    description:
+      "Create your dog's personalized nutrition profile — breed, age, wellness goals, and veterinary restrictions.",
+    spokenText:
+      "This is the Dog Profile Setup. Walk through each step to build a complete picture of your dog. You will enter your dog's name, breed, age, sex, and whether they are neutered. Then body details — current weight, goal weight if applicable, activity level, and body condition score. Next, you pick wellness goals from the stackable condition list — things like senior support, joint wellness, anti-inflammatory support, kidney support, and more can all be selected together. Finally, add any food allergies, sensitivities, veterinarian-specified dietary restrictions, and behavior notes. The more complete the profile, the more personalized and precise every generated meal will be. Once saved, your dog's profile drives every meal generation and ingredient scan in the system.",
+    autoClose: false,
+  },
+
+  "/companion/generator": {
+    pageId: "companion-generator",
+    title: "Dog Meal Generator",
+    description:
+      "Generate personalized, safe, homemade dog meals — screened through the Toxic Ingredient Firewall before you see them.",
+    spokenText:
+      "This is the Companion Meal Generator. Select your dog's profile, choose a meal type — main meal, treat, snack, or meal prep batch — and optionally add a special request like a preferred protein or ingredient to avoid. Then tap Generate. The system assembles your dog's complete wellness protocol, injects it into the AI generation engine, and runs the result through the Toxic Ingredient Firewall before you ever see it. What comes back is a complete, dog-safe recipe with ingredients, step-by-step instructions, serving size, estimated protein and calories, wellness notes explaining why key ingredients benefit your specific dog, and controlled veterinary citation sources. You can save recipes you like and generate again as many times as you want.",
+    autoClose: false,
+  },
+
+  "/companion/scanner": {
+    pageId: "companion-scanner",
+    title: "Dog Ingredient Safety Scanner",
+    description:
+      "Instantly check if any food or ingredient is safe for your dog — with safety rating, reason, and a safe alternative.",
+    spokenText:
+      "This is the Ingredient Safety Scanner. Type any food or ingredient to instantly check if it is safe for your dog. The system runs it through the Toxic Ingredient Firewall — a curated library of known canine toxins sourced from ASPCA Poison Control and AVMA veterinary safety references. You get back a clear safety rating: SAFE, CAUTION, or NOT SAFE. If something is flagged, you see exactly why — the specific toxicity reason — and a safe substitution you can use instead. For safe ingredients, you also get a wellness score from one to ten and nutritional notes on why that ingredient benefits dogs. Use the quick check buttons below the search bar to scan common foods instantly, or type anything you are curious about.",
+    autoClose: false,
+  },
+
+  "/lifestyle/my-perfect-beginning": {
+    pageId: "my-perfect-beginning",
+    title: "My Perfect Beginning",
+    description:
+      "Age-appropriate nutrition guidance for infants, toddlers, and children — personalized to your child's developmental stage and needs.",
+    spokenText:
+      "Welcome to My Perfect Beginning. This is where child and infant nutrition lives inside My Perfect Meals. Everything here is built for parents, not generic adult nutrition. When this system generates a meal for your child, it uses pediatric portion sizes, stage-appropriate textures, reduced sodium, and developmental nutrient priorities — not your adult macro targets. If your child is just starting solid foods, meals are designed for that stage. If they are a toddler, the system knows what that means nutritionally. You can create separate profiles for each child so every meal is calibrated to that specific child's age, stage, and preferences. Your own allergen protections and dietary restrictions extend into child meal generation automatically — you never have to enter them twice. The full hub including child nutrition profiles, the Lunchbox Builder, and Parent's Corner AI is being actively built out. You are looking at the beginning of something designed to change how families feed their children.",
+    autoClose: true,
+  },
+
+  "/lifestyle/my-perfect-beginning/create-meal": {
+    pageId: "my-perfect-beginning-create-meal",
+    title: "My Perfect Beginning — Create a Meal",
+    description:
+      "Generate a child-safe, age-appropriate meal personalized to your child's developmental stage.",
+    spokenText:
+      "This is the My Perfect Beginning meal creator. Select your child's profile and enter what you would like to make — keep it simple or be specific about the ingredients, cuisine, or occasion. The system generates a meal that is sized, textured, and seasoned for your child's developmental stage, not adult preferences. All your allergen protections apply automatically.",
+    autoClose: false,
+  },
+
+  "/lifestyle/my-perfect-pregnancy": {
+    pageId: "pregnancy-coach",
+    title: "Pregnancy Coach",
+    description:
+      "Your conversational pregnancy nutrition coach — stage-aware, symptom-responsive, and grounded in your active My Perfect Pregnancy protocol.",
+    spokenText:
+      "Welcome to Pregnancy Coach. This is the conversational coaching layer for My Perfect Pregnancy. Everything I tell you here is grounded in where you actually are — your trimester, your symptoms, your nutrient priorities, and the food safety rules your active protocol is enforcing across the app. You do not have to explain your situation. I already know your stage. If you are in the first trimester, I know folate and iron are the focus and that nausea may be a real factor in what you can actually eat. If you are in the third, I know DHA, choline, and iron stores matter most. Postpartum and breastfeeding are separate stages with their own rules, and I know those too. You can ask me anything — what to eat when you are nauseous, whether a specific food is safe, how to handle a meal at a restaurant, what a symptom might mean for your nutrition, or how to stay on track when nothing sounds good. If something you ask requires your doctor or midwife, I will tell you that clearly. My job is to make the nutrition side of pregnancy feel less overwhelming and more manageable, one real question at a time.",
+    autoClose: true,
+  },
+
+  "/saved-meals": {
+    pageId: "saved-meals",
+    title: "Saved Meals",
+    description:
+      "Your personal collection of meals you have saved from any builder or creator in the app.",
+    spokenText:
+      "This is your Saved Meals page — your personal recipe collection. Every meal you have ever saved from any builder or creator in the app lives here. You can browse by category, search by name, or filter by the builder it came from. Tapping a saved meal lets you view its full recipe, nutrition breakdown, and ingredients. You can add it to your meal plan, send it to your shopping list, or delete it if it is no longer relevant. Saved meals also feed into Taste Memory — the system that learns your preferences over time and improves how the AI generates meals for you. The more you save, the more personalized your experience becomes.",
+    autoClose: true,
+  },
+
+  "/supplement-hub": {
+    pageId: "supplement-hub",
+    title: "Supplement Hub",
+    description:
+      "Personalized supplement guidance based on your active nutrition protocols, goals, and clinical context.",
+    spokenText:
+      "Welcome to the Supplement Hub. This is where you get supplement guidance that is actually grounded in your situation — not a generic stack from a fitness magazine. The recommendations here are shaped by your active health protocols, dietary identity, goals, and any clinical conditions on your account. If you are diabetic, GLP-1, anti-inflammatory, or have other active protocols, the guidance reflects those contexts. Supplements are presented as supportive tools, not replacements for food, medication, or clinical advice. Always confirm significant supplement choices with your healthcare provider, especially if you have active medical conditions or are taking medications.",
+    autoClose: true,
+  },
+
+  "/tutorials": {
+    pageId: "tutorial-hub",
+    title: "Tutorial Hub",
+    description:
+      "Step-by-step walkthroughs for every major feature in My Perfect Meals — start here if something is unclear.",
+    spokenText:
+      "Welcome to the Tutorial Hub. If something in the app is not clicking, this is the first place to come. Every major feature has a dedicated walkthrough here — from setting up your Nutrition Profile and using the Macro Calculator, to running the meal builders, scanning ingredients, and using specialty hubs like Diabetic Hub or Performance Hub. Tutorials are grouped by topic so you can jump to exactly what you need. If you have worked through a tutorial and something still is not making sense, scroll to the bottom of any tutorial card and use the Contact Support link. We read everything.",
+    autoClose: true,
+  },
+
+  "/tips": {
+    pageId: "tips-strategies",
+    title: "Tips & Strategies",
+    description:
+      "Pro tips, power-user strategies, and shortcuts for getting the most out of every feature in My Perfect Meals.",
+    spokenText:
+      "Welcome to Tips and Strategies. This is where you find the techniques that turn everyday users into power users. Whether you want to sharpen how you write meal prompts, build a smarter weekly planning routine, get the most out of your Favorites and Saved Meals, or understand how the clinical hubs work together, every tip here is practical and immediately usable. You will also find pointers to the App Library and Chef Copilot so you always know where to go when you want to go deeper. Browse by category or scroll through at your own pace.",
+    autoClose: true,
+  },
+
+  "/learning": {
+    pageId: "learning-hub",
+    title: "Learning & Certifications",
+    description:
+      "Complete the Platform Mastery Academy and Business Success Certification to unlock affiliate and coaching credentials.",
+    spokenText:
+      "Welcome to Learning and Certifications. This is the professional development center for coaches, trainers, and affiliates using My Perfect Meals. Here you can track your progress through the Platform Mastery Academy, complete the Business Success Certification, and unlock your affiliate coaching credentials once both certifications are done. Each certification is a structured course with video lessons, knowledge checks, and a final assessment. Completing them qualifies you to coach clients through ProCare and share the platform as a certified affiliate. If there are pending updates to any certification you have already completed, you will see a notification badge here.",
+    autoClose: true,
+  },
+
+  "/lifestyle/my-perfect-beginning/parents-corner": {
+    pageId: "parents-corner",
+    title: "Parent's Corner",
+    description:
+      "Conversational child nutrition coaching grounded in your selected child's profile — stage, allergies, conditions, and feeding context.",
+    spokenText:
+      "Welcome to Parent's Corner. Before we start, here is something important to understand about how this works. The child you have selected is the nutrition subject — not you. Everything I say here is about that child's stage, that child's allergies, that child's feeding concerns, and that child's developmental needs. You are the authorized operator. You are the one asking the questions on their behalf. If you have selected a six-month-old who is just starting solid foods, my answers are calibrated to that stage — first foods, texture progressions, iron introduction, and what to watch for. If you have selected a three-year-old toddler, we are talking about a completely different set of priorities — picky eating, portion sizes, finger foods, and building a varied palate. You can ask me anything about feeding your child — what foods to introduce next, how to handle a food refusal, whether a specific ingredient is safe at their age, how to manage a diagnosed condition through food, or what a balanced day looks like for their stage. I will answer based on that child's complete profile, not generic advice. If something genuinely requires a pediatrician or registered dietitian, I will tell you that directly. To switch to a different child, go back and select a different profile.",
+    autoClose: true,
+  },
+
+  "/my-perfect-beginning/parents-corner": {
+    pageId: "parents-corner-alt",
+    title: "Parent's Corner",
+    description:
+      "Conversational child nutrition coaching grounded in your selected child's profile — stage, allergies, conditions, and feeding context.",
+    spokenText:
+      "Welcome to Parent's Corner. The child you have selected is the nutrition subject. Everything here is grounded in that child's stage, allergies, feeding concerns, and developmental context. Ask anything about feeding, food introduction, condition management, or building healthy eating habits — and I will answer based on your child's actual profile.",
+    autoClose: true,
+  },
+
+  "/coach-corner/home": {
+    pageId: "chefs-corner",
+    title: "Chef's Corner",
+    description:
+      "Your conversational nutrition coaching space. Ask about meals, food choices, substitutions, goals, or how to use the app — and get answers grounded in your active Nutrition Life Plan.",
+    spokenText:
+      "Welcome to Chef's Corner. This is your personal coaching space inside My Perfect Meals, and it works differently from every other part of the app. When you ask me something here, I already know your plan. I know your macro targets, your dietary preferences, your allergens, your health protocols, and any clinical guardrails on your account. You never have to explain your situation from scratch. Just ask. You can ask about a specific food or ingredient, whether something fits your plan, how to handle a meal when you are eating out, what a substitution would look like, or how any part of the app works. The more specific you are, the more useful the answer will be. Think of this as the place you come when the question is real and the answer actually needs to fit your life. Before we go any further, if you have not yet completed your coaching profile, I will prompt you to do that first. It takes about two minutes and it shapes how I communicate with you going forward. You can always update it using the Edit Profile button in the top right corner.",
+    autoClose: true,
+  },
+
+  "/coach-corner/welcome": {
+    pageId: "chefs-corner-welcome",
+    title: "Chef's Corner",
+    description:
+      "Set up your coaching profile so Chef's Corner can communicate in the way that works best for you.",
+    spokenText:
+      "Welcome to Chef's Corner. Before your first conversation, I want to learn a little about how you like to be coached. The questions on this screen take about two minutes and they shape how I communicate with you — how direct I am, what you are focused on right now, and how much detail you want in my responses. There are no wrong answers. Just be honest, and we will figure out the rest together.",
     autoClose: true,
   },
 };
@@ -618,9 +965,9 @@ export function getPageExplanation(pathname: string): PageExplanation | null {
  * replacing the default text when available.
  *
  * IMPORTANT: Guest Experience = Guided, Coach-Led Marketing Experience
- * - Copilot is the voice, coaching philosophy, and closer
- * - Guest copilots teach, coach, and sell the value in real time
- * - Tone = calm, confident, coach-led (not tooltip-y)
+ *, Copilot is the voice, coaching philosophy, and closer
+ *, Guest copilots teach, coach, and sell the value in real time
+ *, Tone = calm, confident, coach-led (not tooltip-y)
  */
 export function getGuestPageExplanation(
   pathname: string,

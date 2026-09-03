@@ -1,3 +1,5 @@
+import { apiUrl } from "./resolveApiBase";
+
 // Base64 URL-safe decoding for VAPID key
 function b64ToU8(b64: string) {
   const p = "=".repeat((4 - b64.length % 4) % 4);
@@ -41,8 +43,7 @@ export async function registerForPush(userId: string) {
     console.log("✅ Push subscription created");
 
     // Send subscription to backend
-    const apiBaseUrl = (import.meta.env as any).VITE_API_BASE_URL || "";
-    const response = await fetch(`${apiBaseUrl}/api/notify/register-push`, {
+    const response = await fetch(apiUrl("/api/notify/register-push"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, subscription: sub }),

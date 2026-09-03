@@ -26,7 +26,7 @@ function isDevSpace(): boolean {
   if (typeof window === "undefined") return false;
   const hostname = window.location.hostname;
   // Production domains should enforce limits
-  if (hostname === "myperfectmeals.com" || hostname === "www.myperfectmeals.com") {
+  if (hostname === "myperfectmeals.com" || hostname === "www.myperfectmeals.com" || hostname === "myperfectmeals.ai" || hostname === "www.myperfectmeals.ai" || hostname === "app.myperfectmeals.ai") {
     return false;
   }
   // iOS native app should enforce limits

@@ -1,24 +1,30 @@
-import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Cookie, Loader2 } from "lucide-react";
-import { useSnackCreatorRequest, DietType, BeachBodyPhase } from "@/hooks/useSnackCreatorRequest";
+import { Cookie } from "lucide-react";
+import BreathingOrb from "@/components/BreathingOrb";
+import { useSnackCreatorRequest, DietType, BeachBodyPhase, ExplicitOverride } from "@/hooks/useSnackCreatorRequest";
+import { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardBanner, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import {
+  useDietGuardPrecheck,
+  type DietGuardDecision,
+} from "@/hooks/useDietGuardPrecheck";
+import { DietGuardIntercept } from "@/components/DietGuardIntercept";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
+import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
+import { detectBuilderConflict, isCoachableBuilder } from "@/lib/builderGuardrailConfig";
+import { BuilderOverrideDialog } from "@/components/meal/BuilderOverrideDialog";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -26,6 +32,7 @@ interface SnackCreatorModalProps {
   onSnackGenerated: (snack: any) => void;
   dietType?: DietType;
   dietPhase?: BeachBodyPhase;
+  starchContext?: StarchContext;
 }
 
 export function SnackCreatorModal({
@@ -34,19 +41,37 @@ export function SnackCreatorModal({
   onSnackGenerated,
   dietType,
   dietPhase,
+  starchContext,
 }: SnackCreatorModalProps) {
+  const { t } = useTranslation();
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  const [starchOverride, setStarchOverride] = useState(false);
+  const [strictMode, setStrictMode] = useState(false);
+
+  const [showBuilderOverride, setShowBuilderOverride] = useState(false);
+  const [builderConflictItem, setBuilderConflictItem] = useState<string>("");
   
   const { user } = useAuth();
-  
+
+  const dietAdaptModeRef = useRef(false);
+  const continueAnywayRef = useRef(false);
+
   const isGuest = isGuestMode();
   const guestSession = isGuest ? getGuestSession() : null;
   const userId = user?.id?.toString() || guestSession?.sessionId || "";
   
   const { generating, progress, error, generateSnack, cancel } = useSnackCreatorRequest(userId);
   const { toast } = useToast();
+
+  const {
+    alert: dietAlert,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    shouldShowIntercept: showDietIntercept,
+    setDecision: setDietDecision,
+  } = useDietGuardPrecheck();
   
   const {
     checking,
@@ -58,6 +83,15 @@ export function SnackCreatorModal({
     hasActiveOverride
   } = useSafetyGuardPrecheck();
   
+  const starchStatus = useMemo(() => {
+    if (!starchContext || !starchContext.existingMeals) {
+      return { slotsUsed: 0, maxSlots: 1, isExhausted: false };
+    }
+    const maxSlots = starchContext.strategy === 'flex' ? 2 : 1;
+    const slotsUsed = starchContext.existingMeals.filter(m => m.hasStarch).length;
+    return { slotsUsed, maxSlots, isExhausted: slotsUsed >= maxSlots };
+  }, [starchContext]);
+
   const handleSafetyOverride = (enabled: boolean, token?: string) => {
     setSafetyEnabled(enabled);
     if (token) {
@@ -82,21 +116,30 @@ export function SnackCreatorModal({
     if (!open) {
       setDescription("");
       setSafetyEnabled(true);
+      setStarchOverride(false);
+      setStrictMode(false);
       clearAlert();
+      clearDietAlert();
+      dietAdaptModeRef.current = false;
+      setShowBuilderOverride(false);
+      setBuilderConflictItem("");
       cancel();
     }
-  }, [open, cancel, clearAlert]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
-  const executeGeneration = async () => {
-    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined);
+  const executeGeneration = async (explicitOverride?: ExplicitOverride) => {
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
+    const snack = await generateSnack(description.trim(), dietType, dietPhase, overrideToken || undefined, starchOverride || undefined, strictMode === true, explicitOverride, userDietOverride);
 
     if (snack) {
       if (isGuest) {
         trackGuestGenerationUsage();
       }
-      
+      setStarchOverride(false);
       toast({
-        title: "Snack Created!",
+        title: t("snack.successTitle"),
         description: `${snack.name} is ready for you`,
       });
       onSnackGenerated(snack);
@@ -104,13 +147,13 @@ export function SnackCreatorModal({
     } else if (error) {
       if (isAllergyRelatedError(error)) {
         toast({
-          title: "⚠️ Allergy Alert",
+          title: t("snack.allergyAlert"),
           description: error,
           variant: "warning",
         });
       } else {
         toast({
-          title: "Generation Failed",
+          title: t("snack.generationFailed"),
           description: error,
           variant: "destructive",
         });
@@ -121,8 +164,8 @@ export function SnackCreatorModal({
   const handleGenerate = async () => {
     if (!userId) {
       toast({
-        title: "Please sign in",
-        description: "You need to be signed in to create snacks",
+        title: t("snack.errorSignIn"),
+        description: t("snack.errorSignInDesc"),
         variant: "destructive",
       });
       return;
@@ -130,8 +173,8 @@ export function SnackCreatorModal({
     
     if (isGuest && !canGuestGenerate()) {
       toast({
-        title: "Guest limit reached",
-        description: "Create a free account to continue generating snacks",
+        title: t("snack.errorGuestLimit"),
+        description: t("snack.errorGuestDesc"),
         variant: "destructive",
       });
       return;
@@ -139,11 +182,31 @@ export function SnackCreatorModal({
     
     if (!description.trim()) {
       toast({
-        title: "Please describe your snack craving",
-        description: "Tell us what you're craving: crunchy, sweet, salty...",
+        title: t("snack.errorDescribe"),
+        description: t("snack.errorDescribeHint"),
         variant: "destructive",
       });
       return;
+    }
+
+    if (!dietAdaptModeRef.current) {
+      const dietOk = checkDiet(description.trim());
+      if (!dietOk) return;
+    }
+
+    if (dietAdaptModeRef.current) {
+      dietAdaptModeRef.current = false;
+      await executeGeneration();
+      return;
+    }
+
+    if (isCoachableBuilder(dietType)) {
+      const conflictItem = detectBuilderConflict(description.trim(), dietType);
+      if (conflictItem) {
+        setBuilderConflictItem(conflictItem);
+        setShowBuilderOverride(true);
+        return;
+      }
     }
 
     if (hasActiveOverride || !safetyEnabled) {
@@ -158,25 +221,63 @@ export function SnackCreatorModal({
     }
   };
 
+  const handleKeepOnPlan = () => {
+    setShowBuilderOverride(false);
+    setBuilderConflictItem("");
+  };
+
+  const handleMakeItAnyway = async () => {
+    const item = builderConflictItem;
+    setShowBuilderOverride(false);
+    setBuilderConflictItem("");
+
+    const override: ExplicitOverride = { item, confirmed: true };
+
+    if (hasActiveOverride || !safetyEnabled) {
+      await executeGeneration(override);
+      return;
+    }
+    const isSafe = await checkSafety(description.trim(), "snack-creator");
+    if (isSafe) {
+      await executeGeneration(override);
+    }
+  };
+
+  const handleDietDecision = async (decision: DietGuardDecision) => {
+    if (decision === "pending") return;
+
+    if (decision === "pick_something_else") {
+      setDietDecision("pick_something_else");
+      clearDietAlert();
+      return;
+    }
+    if (decision === "continue_anyway") {
+      continueAnywayRef.current = true;
+    }
+    setDietDecision(decision);
+    dietAdaptModeRef.current = true;
+    clearDietAlert();
+    await handleGenerate();
+  };
+
   const isProcessing = generating || checking;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
+    <UniversalDialog rawLayout open={open} onOpenChange={onOpenChange} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl text-white">
             <Cookie className="h-6 w-6 text-lime-400" />
-            Snack Creator
+            {t("snack.pageTitle")}
           </DialogTitle>
           <DialogDescription className="text-white/60">
-            Describe your craving and get a healthy snack
+            {t("snack.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
           <div>
             <Input
-              placeholder="e.g., 'something crunchy and salty,' 'sweet but healthy'"
+              placeholder={t("snack.placeholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isProcessing}
@@ -188,11 +289,28 @@ export function SnackCreatorModal({
               }}
             />
             <p className="text-xs text-white/40 mt-2">
-              Tell us what you're craving and we'll create a healthy snack for you
+              {t("snack.tagline")}
             </p>
           </div>
 
-          {alert.show && (
+          {showDietIntercept && (
+            <DietGuardIntercept
+              alert={dietAlert}
+              onDecision={handleDietDecision}
+            />
+          )}
+
+          {!showDietIntercept && showBuilderOverride && builderConflictItem && (
+            <BuilderOverrideDialog
+              show={showBuilderOverride}
+              conflictingItem={builderConflictItem}
+              builderType={dietType as string}
+              onKeepOnPlan={handleKeepOnPlan}
+              onMakeItAnyway={handleMakeItAnyway}
+            />
+          )}
+
+          {!showDietIntercept && !showBuilderOverride && alert.show && (
             <SafetyGuardBanner
               alert={alert}
               mealRequest={description}
@@ -202,53 +320,58 @@ export function SnackCreatorModal({
           )}
 
           {isProcessing && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-white/70">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {checking ? "Checking safety profile..." : "Creating your snack..."}
-              </div>
-              <Progress value={checking ? 30 : progress} className="h-2" />
+            <div className="flex justify-center">
+              <BreathingOrb label={checking ? t("snack.checkingSafety") : t("snack.preparing")} />
             </div>
           )}
 
           {error && !alert.show && <p className="text-sm text-amber-400">{error}</p>}
 
-          {/* Meal Safety Section */}
           <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-            <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+            <span className="text-xs text-white/60 block mb-2">{t("snack.mealSafety")}</span>
             <SafetyGuardToggle
               safetyEnabled={safetyEnabled}
               onSafetyChange={handleSafetyOverride}
               disabled={isProcessing}
             />
             <GlucoseGuardToggle disabled={isProcessing} />
+            {starchContext && starchStatus.isExhausted && (
+              <StarchOverrideToggle
+                active={starchOverride}
+                onToggle={setStarchOverride}
+                disabled={isProcessing}
+              />
+            )}
+          </div>
+
+          <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+            <span className="text-xs text-white/60 block mb-2">{t("snack.ingredientControl")}</span>
+            <KeepItSimpleToggle
+              keepItSimple={strictMode}
+              onToggle={setStrictMode}
+              disabled={isProcessing}
+            />
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button
-              className="flex-1 bg-lime-600 hover:bg-lime-500 text-white"
-              onClick={handleGenerate}
-              disabled={isProcessing || !description.trim()}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {checking ? "Checking..." : "Creating..."}
-                </>
-              ) : (
-                <>Create Healthy Snack</>
-              )}
-            </Button>
+            {!isProcessing && !showDietIntercept && !showBuilderOverride && (
+              <Button
+                className="flex-1 bg-lime-600 hover:bg-lime-500 text-white"
+                onClick={handleGenerate}
+                disabled={!description.trim()}
+              >
+                {t("snack.createBtn")}
+              </Button>
+            )}
             <Button
               variant="outline"
               className="bg-black/60 backdrop-blur border-white/30 text-white"
               onClick={() => onOpenChange(false)}
             >
-              {isProcessing ? "Stop" : "Cancel"}
+              {isProcessing ? t("common.cancel") : t("common.cancel")}
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

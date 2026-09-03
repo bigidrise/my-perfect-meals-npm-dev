@@ -5,9 +5,73 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "../db";
 import { users, mealInstances, userRecipes } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
+import { createApiRateLimit } from "../middleware/rateLimit";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { generateMealImageUnified, type ImageSourceType } from "../services/mealImageGenerator";
+
+const imageRateLimit = createApiRateLimit();
 
 const router = express.Router();
+
+// ─────────────────────────────────────────────
+// Shared image generation endpoint (non-blocking, called in parallel by client)
+// Used by ALL AI meal generators after text is returned.
+// Routes through the 4-layer system: memory cache → DB cache → S3 → DALL-E.
+// Cache hits are instant; new images are persisted so they never regenerate.
+// ─────────────────────────────────────────────
+router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res) => {
+  const { mealName, mealType = "dinner", ingredients, sourceType: callerSourceType } = req.body || {};
+
+  if (!mealName || mealName.trim().length < 3) {
+    return res.status(400).json({ imageUrl: null });
+  }
+
+  // If the caller explicitly supplied sourceType, trust it — they know what they're
+  // asking for (e.g. Find Meals Near Me sends "meal" for restaurant menu items, even
+  // when the item name contains words like "tea" or "lemonade").
+  // Only fall back to the name/type classifier when sourceType is absent.
+  let sourceType: ImageSourceType = "meal";
+  if (callerSourceType === "beverage" || callerSourceType === "snack" ||
+      callerSourceType === "dessert" || callerSourceType === "meal") {
+    sourceType = callerSourceType as ImageSourceType;
+  } else {
+    // Fallback classifier — used by callers that don't send sourceType.
+    const mealTypeLower = (mealType || "").toLowerCase();
+    const nameLower = mealName.toLowerCase();
+    if (mealTypeLower === "beverages" || mealTypeLower === "beverage" || mealTypeLower === "drink" ||
+        /smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade/.test(nameLower)) {
+      sourceType = "beverage";
+    } else if (mealTypeLower === "snack" || mealTypeLower === "snacks") {
+      sourceType = "snack";
+    } else if (mealTypeLower === "dessert" || mealTypeLower === "desserts" ||
+        /cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake/.test(nameLower)) {
+      sourceType = "dessert";
+    }
+  }
+
+  // Guard: warn when a named meal reaches generation without any ingredients.
+  // Without ingredients the prompt falls back to name-driven generation, which
+  // can depict ingredients the recipe never included. This log makes silent
+  // unprotected generations visible so they can be investigated and fixed at
+  // the call site. Callers that legitimately have no recipe (e.g. manually
+  // typed meals) are expected to appear here.
+  const normalizedIngredients = ingredients && ingredients.length > 0 ? ingredients : [];
+  if (normalizedIngredients.length === 0) {
+    console.warn(
+      `[img-contract] ⚠️ generate-image called with no ingredients — ` +
+      `name-driven fallback active (no recipe contract enforced). ` +
+      `meal="${mealName.trim()}" sourceType="${sourceType}"`
+    );
+  }
+
+  try {
+    const imageUrl = await generateMealImageUnified(mealName.trim(), normalizedIngredients, sourceType);
+    return res.json({ imageUrl });
+  } catch (err: any) {
+    console.error(`[generate-image] failed for "${mealName}":`, err.message);
+    return res.json({ imageUrl: null });
+  }
+});
 
 // Utility to recalculate daily nutrition (mock implementation)
 const recalcDailyNutrition = async (userId: string, date?: Date) => {
@@ -34,6 +98,7 @@ router.post('/:mealInstanceId/log', requireAuth, async (req: any, res) => {
     await db.update(mealInstances)
       .set({ 
         status: 'eaten', 
+        statusChangedAt: sql`now()`,
         loggedAt: sql`now()`, 
         recipeId: finalRecipeId, 
         notes: note || null 
@@ -58,7 +123,10 @@ router.post('/:mealInstanceId/skip', requireAuth, async (req: any, res) => {
     const userId = getAuthUserId(req);
 
     await db.update(mealInstances)
-      .set({ status: 'skipped' })
+      .set({
+        status: 'skipped',
+        statusChangedAt: sql`now()`,
+      })
       .where(and(
         eq(mealInstances.id, mealInstanceId), 
         eq(mealInstances.userId, userId)
@@ -108,6 +176,7 @@ router.post('/:mealInstanceId/replace-and-optional-log', requireAuth, async (req
       recipeId: finalRecipeId,
       source,
       status: logNow ? 'eaten' : 'planned',
+      statusChangedAt: logNow ? sql`now()` : null,
       loggedAt: logNow ? sql`now()` : null,
       notes: note || null,
     }).returning();
@@ -116,9 +185,13 @@ router.post('/:mealInstanceId/replace-and-optional-log', requireAuth, async (req
     await db.update(mealInstances)
       .set({ 
         status: 'replaced', 
+        statusChangedAt: sql`now()`,
         replacedByMealInstanceId: replacement.id 
       })
-      .where(eq(mealInstances.id, orig.id));
+      .where(and(
+        eq(mealInstances.id, orig.id),
+        eq(mealInstances.userId, userId),
+      ));
 
     // 5) Recalculate nutrition
     await recalcDailyNutrition(userId);
@@ -176,6 +249,7 @@ router.post('/create-and-log', requireAuth, async (req: any, res) => {
       recipeId,
       source,
       status: 'eaten',
+      statusChangedAt: sql`now()`,
       loggedAt: sql`now()`
     });
 
@@ -358,6 +432,56 @@ router.post('/replace/custom', requireAuth, async (req: any, res) => {
   } catch (e) {
     console.error("Custom replacement error:", e);
     res.status(500).json({ error: "Replace failed" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3 — Generic meal image finalization (Unified Meal Image Pipeline)
+//
+// Adds a permanent imageUrl to any already-generated meal data.
+// The client shows a single "Creating your meal…" state while this resolves.
+//
+// CONTRACT
+//   • Does NOT generate nutrition. Each builder still owns its clinical rules.
+//   • Does NOT persist. Callers own their persistence strategy.
+//   • Returns permanent /public-objects/ or S3 URL, or null on failure.
+//   • One call = one image-generation operation (no client-side retries needed).
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/finalize", requireAuth, imageRateLimit, async (req: any, res) => {
+  const { meal, sourceType: callerSourceType, mealType } = req.body || {};
+
+  if (!meal?.name || String(meal.name).trim().length < 2) {
+    return res.status(400).json({ error: "meal.name is required (min 2 chars)" });
+  }
+
+  // Resolve sourceType — same logic as /generate-image for consistency.
+  let sourceType: ImageSourceType = "meal";
+  if (callerSourceType && ["meal","snack","beverage","dessert"].includes(callerSourceType)) {
+    sourceType = callerSourceType as ImageSourceType;
+  } else if (mealType) {
+    const mt = String(mealType).toLowerCase();
+    const nameLow = String(meal.name).toLowerCase();
+    if (mt === "snack" || mt === "snacks") sourceType = "snack";
+    else if (mt === "beverage" || mt === "drink" || mt === "beverages") sourceType = "beverage";
+    else if (mt === "dessert" || mt === "desserts") sourceType = "dessert";
+    else if (/smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|lemonade/.test(nameLow))
+      sourceType = "beverage";
+    else if (/cake|pie|cookie|brownie|pudding|ice cream|cheesecake|tart|mousse|cupcake/.test(nameLow))
+      sourceType = "dessert";
+  }
+
+  try {
+    const { finalizeMealImage } = await import("../services/mealFinalizer");
+    const result = await finalizeMealImage({ meal, sourceType });
+    return res.json({
+      meal: result.meal,
+      imageUrl: result.imageUrl,
+      permanent: result.permanent,
+    });
+  } catch (err: any) {
+    console.error("[/api/meals/finalize]", err.message);
+    // Always return a usable payload — caller never has to handle a 500.
+    return res.json({ meal: { ...meal, imageUrl: null }, imageUrl: null, permanent: false });
   }
 });
 

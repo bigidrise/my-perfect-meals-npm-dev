@@ -1,11 +1,15 @@
 import OpenAI from 'openai';
-import { generateImage } from './imageService';
+import { getLanguageInstruction } from '../utils/languageInstruction';
+import { getMeasurementPromptBlock } from '../../shared/units';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
 import { enforceCarbs } from '../utils/carbClassifier';
-import { buildPalateSection, PalatePreferences } from './promptBuilder';
-import { BASELINE_MACROS } from './guardrails/baselineMacros';
+import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from './promptBuilder';
+import { getBaselineMacroPrompt } from './guardrails/promptPolicyGate';
+import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { buildDietPromptBlock, violatesDietaryConstraints } from './allergyGuardrails';
+import { enforceBeforeGenerate, UserProtocolEnvelope } from './protocolEnvelope';
+import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -118,6 +122,7 @@ interface FridgeRescueMeal {
 
 interface FridgeRescueRequest {
   fridgeItems: string[];
+  preferredLanguage?: string;
   user?: any;
   servings?: number;
   macroTargets?: {
@@ -128,6 +133,14 @@ interface FridgeRescueRequest {
   };
   skipPalate?: boolean;
   palatePrefs?: PalatePreferences;
+  strictMode?: boolean;
+  /** Protocol envelope — when provided, replaces the loose diet block with full
+   *  ingredient + combination + instruction-level enforcement. */
+  protocolEnvelope?: UserProtocolEnvelope;
+  /** Optional additive builder guidance block to append after protocol enforcement. */
+  builderBlock?: string;
+  /** Measurement system preference — drives ingredient unit format in the prompt. */
+  measurementSystem?: "imperial" | "metric";
 }
 
 // Medical condition compatibility checker - using correct badge format
@@ -191,7 +204,7 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
-  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs } = request;
+  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope, builderBlock, measurementSystem = "imperial" } = request;
   const userConditions = user?.healthConditions || [];
   
   // 🎨 PALATE PREFERENCES: Build flavor guidance section
@@ -234,11 +247,35 @@ export async function generateFridgeRescueMeals(request: FridgeRescueRequest): P
   const medicalConditionsText = userConditions.length > 0 ? 
     `\n\nIMPORTANT: The user has these medical conditions: ${userConditions.join(", ")}. Ensure all meal recommendations are safe and appropriate for these conditions.` : "";
 
-  // DIETARY HARD CONSTRAINT (vegan/vegetarian/pescatarian)
-  const userDietaryRestrictions = user?.dietaryRestrictions || [];
-  const fridgeDietBlock = buildDietPromptBlock(userDietaryRestrictions as string[]);
-  if (fridgeDietBlock) {
-    console.log(`🥗 [FRIDGE] Dietary constraint enforced: ${userDietaryRestrictions.join("|")}`);
+  // ── PROTOCOL ENFORCEMENT BLOCK ────────────────────────────────────────────
+  // If a protocol envelope was passed from the route, use it to build the full
+  // enforcement block (ingredient + combination + procedural/instruction level).
+  // Otherwise fall back to the loose diet block from user.dietaryRestrictions
+  // (which is typically empty since the route didn't used to pass it).
+  let fridgeEnforcementBlock = '';
+  if (protocolEnvelope) {
+    const promptBlock = enforceBeforeGenerate(protocolEnvelope, {
+      generatorName: 'fridge_rescue',
+    });
+    fridgeEnforcementBlock = promptBlock.combined;
+    if (promptBlock.hasRestrictions) {
+      console.log(`🔒 [FRIDGE] Protocol enforcement active: identity=[${protocolEnvelope.dietaryIdentity.join(',')}] allergies=[${protocolEnvelope.allergies.join(',')}] avoidances=[${protocolEnvelope.avoidances.length} items]`);
+    }
+  } else {
+    // Legacy fallback — rarely populated since route passed no dietaryRestrictions
+    const userDietaryRestrictions = user?.dietaryRestrictions || [];
+    fridgeEnforcementBlock = buildDietPromptBlock(userDietaryRestrictions as string[]);
+    if (fridgeEnforcementBlock) {
+      console.log(`🥗 [FRIDGE] Fallback diet block: ${userDietaryRestrictions.join('|')}`);
+    }
+  }
+
+  // ── Append active builder guidance (additive, after protocol) ─────────────
+  if (builderBlock) {
+    fridgeEnforcementBlock = fridgeEnforcementBlock
+      ? `${fridgeEnforcementBlock}\n\n${builderBlock}`
+      : builderBlock;
+    console.log(`🏗️ [FRIDGE] Builder guidance appended to enforcement block`);
   }
 
   // 🎯 Add macro targeting instructions if targets provided
@@ -264,19 +301,30 @@ EXAMPLE: If target is 50g protein + 30g starchy carbs, your meal MUST have 45-55
 This is for athlete meal planning - precision is critical for contest preparation.
 ` : "";
 
-  const prompt = `You are a creative chef helping someone make meals with limited ingredients from their fridge.
-${fridgeDietBlock ? `\n${fridgeDietBlock}\n` : ""}
+  // ── Behavioral memory: soft preference hints ───────────────────────────────
+  let fridgeBehavioralMemorySection = "";
+  const fridgeUserId = user?.id as string | undefined;
+  if (fridgeUserId) {
+    try {
+      const behavioralProfile = await derivePreferenceProfile(fridgeUserId);
+      if (behavioralProfile) {
+        fridgeBehavioralMemorySection = buildBehavioralMemoryPromptSection(behavioralProfile);
+        console.log(`🧠 [BehavioralMemory/Fridge] Profile loaded — ${behavioralProfile.auditMeta.evidenceCount} signals`);
+      }
+    } catch (err) {
+      console.warn("⚠️ [BehavioralMemory/Fridge] Could not derive preference profile:", err);
+    }
+  }
+
+  const fridgeLangInstruction = getLanguageInstruction(request.preferredLanguage);
+  const prompt = `${fridgeLangInstruction ? fridgeLangInstruction + "\n\n" : ""}You are a creative chef helping someone make meals with limited ingredients from their fridge.
+${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${fridgeBehavioralMemorySection ? `\n${fridgeBehavioralMemorySection}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
 Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.
 ${macroTargetingText}
 ${palateGuidance}
 
-BASELINE MACRO REQUIREMENTS (MANDATORY):
-Every meal must meet these minimum targets:
-- Protein: ${BASELINE_MACROS.protein}g (lean meats, fish, eggs, legumes, dairy)
-- Starchy Carbs: ${BASELINE_MACROS.starchyCarbs}g (rice, potatoes, quinoa, bread, oats, pasta)
-- Fibrous Carbs: ${BASELINE_MACROS.fibrousCarbs}g (vegetables, leafy greens, broccoli, peppers, tomatoes)
-${macroTargets ? 'NOTE: The user has specified CUSTOM macro targets above which override these baselines.' : 'These are the baseline minimums for balanced, nutritious meals.'}
+${getBaselineMacroPrompt({ builderType: "fridge_rescue", dietType: "fridge_rescue" })}
 
 RULES:
 - Use ONLY the ingredients provided - do not add any others
@@ -289,14 +337,23 @@ ${macroTargets ? '- ADJUST ingredient quantities precisely to hit the exact macr
 
 ${medicalConditionsText}
 
-CRITICAL INGREDIENT FORMAT REQUIREMENT:
-- ALL ingredients MUST have quantities in GRAMS (numeric value with unit "g")
-- For proteins (chicken, beef, fish, etc.): Use grams, e.g. {"name": "chicken breast", "amount": 170, "unit": "g"}
-- For starches (rice, potatoes, pasta): Use grams, e.g. {"name": "rice", "amount": 150, "unit": "g"}
-- For vegetables: Use grams, e.g. {"name": "broccoli", "amount": 100, "unit": "g"}
-- For liquids: Use ml, e.g. {"name": "olive oil", "amount": 15, "unit": "ml"}
-- For small amounts (spices): Use grams or "to taste"
-- NEVER use vague units like "piece", "fillet", or "breast" - always use exact gram weights
+INGREDIENT MEASUREMENT RULES (NON-NEGOTIABLE):
+Every ingredient MUST use a precise, measurable quantity. No vague units. No guessing.
+- Proteins (chicken, beef, fish, pork, turkey): ALWAYS oz — e.g. {"name": "chicken breast", "amount": 6, "unit": "oz"}
+- Potatoes / yams / sweet potatoes: ALWAYS oz — e.g. {"name": "sweet potato", "amount": 5, "unit": "oz"} (NEVER "1 potato" or "each")
+- Rice / grains / pasta: cooked weight in oz — e.g. {"name": "cooked rice", "amount": 4, "unit": "oz"}
+- Eggs: MUST include size — e.g. {"name": "large eggs", "amount": 3, "unit": "whole"} (NEVER just "2 eggs")
+- Garlic: ALWAYS cloves — e.g. {"name": "garlic", "amount": 4, "unit": "cloves"} (NEVER "units", "each", or "medium")
+- Onions / shallots: ALWAYS cup — e.g. {"name": "diced yellow onion", "amount": 1, "unit": "cup"} (NEVER "1 medium onion")
+- Dense vegetables (broccoli, asparagus, green beans): oz — e.g. {"name": "broccoli florets", "amount": 4, "unit": "oz"}
+- Leafy greens: cup — e.g. {"name": "mixed greens", "amount": 3, "unit": "cup"}
+- Light vegetables (zucchini, spinach, peppers when sliced): cup — e.g. {"name": "sliced zucchini", "amount": 1, "unit": "cup"}
+- Whole peppers used as vessels (stuffed): whole — e.g. {"name": "bell peppers", "amount": 4, "unit": "whole"}
+- Oils / condiments / sauces: tbsp or tsp — e.g. {"name": "olive oil", "amount": 1, "unit": "tbsp"}
+- Liquids (milk, broth, beverages): cup or fl oz — e.g. {"name": "chicken broth", "amount": 8, "unit": "fl oz"}
+- Spices / seasonings: tsp — e.g. {"name": "garlic powder", "amount": 0.5, "unit": "tsp"}
+FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful", "unit", "units", "medium", "large", "small" as a unit
+${getMeasurementPromptBlock(measurementSystem as "imperial" | "metric")}
 
 CARB CLASSIFICATION RULES (CRITICAL):
 - starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas
@@ -310,7 +367,7 @@ FORMAT: Return as JSON object:
     {
       "name": "Creative meal name (not just ingredient list)",
       "description": "Brief 1-2 sentence description",
-      "ingredients": [{"name": "ingredient name", "amount": number_in_grams, "unit": "g"}],
+      "ingredients": [{"name": "chicken breast", "amount": 6, "unit": "oz"}, {"name": "olive oil", "amount": 1, "unit": "tbsp"}],
       "instructions": "Step-by-step cooking instructions as single string",
       "calories": number (${macroTargets ? 'calculated from hitting macro targets' : '200-500 range'}),
       "protein": number (${macroTargets?.protein_g ? `${macroTargets.protein_g}±5 grams - MUST hit this target` : '10-40 grams'}),
@@ -337,7 +394,7 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
     
     // Debug shape analysis
     const dbg = {
-      hasOutputText: Boolean(response?.output_text),
+      hasOutputText: Boolean((response as any)?.output_text),
       hasChoices: Array.isArray(response?.choices),
       msgType: typeof response?.choices?.[0]?.message?.content,
       partsLen: Array.isArray(response?.choices?.[0]?.message?.content) ? response.choices[0].message.content.length : 0,
@@ -354,10 +411,15 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       throw new Error("No content received from OpenAI (shape unsupported)");
     }
 
-    const content = text;
+    const content = text ?? (argsJson ? JSON.stringify(argsJson) : null);
+    if (!content) {
+      throw new Error("No parseable content received from OpenAI");
+    }
 
-    console.log("🤖 OpenAI fridge rescue response received, parsing...");
-    console.log("🧠 Raw OpenAI response content:", content);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("🤖 OpenAI fridge rescue response received, parsing...");
+      console.log("🧠 Raw OpenAI response content:", content);
+    }
     
     let responseData;
     try {
@@ -371,7 +433,8 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       console.log("🔍 Extracted JSON string:", jsonString);
       responseData = JSON.parse(jsonString);
     } catch (err) {
-      console.error("❌ Failed to parse OpenAI JSON:", err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("❌ Failed to parse OpenAI JSON:", message);
       throw new Error("Invalid OpenAI format");
     }
 
@@ -421,7 +484,10 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
       // Prefer AI-provided starchyCarbs/fibrousCarbs, fallback to deriveCarbSplit
       const aiStarchyCarbs = meal.starchyCarbs ?? null;
       const aiFibrousCarbs = meal.fibrousCarbs ?? null;
-      const totalCarbs = meal.carbs ?? (((aiStarchyCarbs ?? 0) + (aiFibrousCarbs ?? 0)) || 25);
+      const totalCarbs = resolveAICarbsStrict(meal);
+      if (totalCarbs === null) {
+        throw new Error(`Fridge rescue meal "${meal.name ?? index + 1}" is missing carbohydrate data`);
+      }
       
       // Use AI values if provided, otherwise derive from ingredients
       let starchyCarbs: number;
@@ -452,31 +518,11 @@ Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
         medicalBadges: getMedicalBadges(meal, userConditions)
       };
 
-      // Generate image for the meal
-      try {
-        const imageUrl = await generateImage({
-          name: processedMeal.name,
-          description: processedMeal.description,
-          type: 'meal',
-          style: 'homemade',
-          ingredients: processedMeal.ingredients?.map(ing => ing.name) || [],
-          calories: processedMeal.calories,
-          protein: processedMeal.protein,
-          carbs: processedMeal.carbs,
-          fat: processedMeal.fat,
-        });
-        
-        if (imageUrl) {
-          processedMeal.imageUrl = imageUrl;
-        }
-      } catch (error) {
-        console.error(`Failed to generate image for ${processedMeal.name}:`, error);
-      }
-
       processedMeals.push(processedMeal);
     }
 
-    console.log("✅ Fridge rescue meals generated successfully with images");
+    // Images are generated client-side in parallel — return meals immediately
+    console.log("✅ Fridge rescue meals generated — images will hydrate client-side");
     // ENFORCE CARBS: Final safety net - ensure all meals have valid starchy/fibrous values
     return processedMeals.map(meal => enforceCarbs(meal));
 

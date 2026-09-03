@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { motion } from "framer-motion";
@@ -20,77 +21,58 @@ import { PillButton } from "@/components/ui/pill-button";
 import { MealBuilderType, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useTranslation } from "react-i18next";
 
 interface BuilderSwitchStatus {
-  switchesUsed: number;
-  switchesRemaining: number;
+  changesUsed: number;
+  changesRemaining: number;
+  changeLimit: number;
   canSwitch: boolean;
-  nextSwitchAvailable: string | null;
+  isUnlimited: boolean;
 }
 
 interface BuilderOption {
   id: MealBuilderType;
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
   icon: React.ReactNode;
   color: string;
 }
 
-const BUILDER_OPTIONS: BuilderOption[] = [
-  {
-    id: "weekly",
-    title: "Weekly Meal Builder",
-    description:
-      "For everyday healthy eating. Build balanced weekly meal plans with variety.",
-    icon: <Utensils className="w-8 h-8" />,
-    color: "from-black via-zinc-950 to-black",
-  },
+const BUILDER_CONFIG: BuilderOption[] = [
   {
     id: "diabetic",
-    title: "Diabetic Meal Builder",
-    description:
-      "Blood sugar-friendly meals. Low glycemic options with carb counting.",
+    titleKey: "diabeticTitle",
+    descKey: "diabeticDesc",
     icon: <Heart className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
   {
     id: "glp1",
-    title: "GLP-1 Meal Builder",
-    description:
-      "Optimized for Ozempic, Wegovy, Mounjaro users. Protein-focused, smaller portions.",
+    titleKey: "metabolicTitle",
+    descKey: "metabolicDesc",
     icon: <Pill className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
   {
     id: "anti_inflammatory",
-    title: "Anti-Inflam. Builder",
-    description:
-      "Fight inflammation with healing foods. Omega-3 rich, antioxidant focused.",
+    titleKey: "antiInflamTitle",
+    descKey: "antiInflamDesc",
     icon: <Flame className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
   {
     id: "beach_body",
-    title: "Beach Body Builder",
-    description:
-      "Contest prep and leaning out. Designed for rapid, visible change.",
+    titleKey: "performanceTitle",
+    descKey: "performanceDesc",
     icon: <Trophy className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
   {
     id: "general_nutrition",
-    title: "General Nutrition Builder",
-    description:
-      "Professional-grade nutrition with coach support. Requires trainer unlock.",
+    titleKey: "generalTitle",
+    descKey: "generalDesc",
     icon: <Utensils className="w-8 h-8" />,
-    color: "from-black via-zinc-950 to-black",
-  },
-  {
-    id: "performance_competition",
-    title: "Performance Builder",
-    description:
-      "Elite athlete meal planning for competition prep. Requires trainer unlock.",
-    icon: <Dumbbell className="w-8 h-8" />,
     color: "from-black via-zinc-950 to-black",
   },
 ];
@@ -99,31 +81,44 @@ export default function MealBuilderSelection() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { t } = useTranslation("mealSelect");
   const [selected, setSelected] = useState<MealBuilderType | null>(null);
   const [confirmedBuilder, setConfirmedBuilder] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [switchStatus, setSwitchStatus] = useState<BuilderSwitchStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleSelect = (id: MealBuilderType) => {
+    setSelected(id);
+    setTimeout(() => {
+      saveButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  };
 
   const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
-  const isAdmin = user?.role === "admin" || user?.isTester || user?.entitlements?.includes("FULL_ACCESS");
-  
-  // Pro builders require trainer unlock
-  const PRO_BUILDERS = ["general_nutrition", "performance_competition"];
-  
+  const isUnlimited = switchStatus?.isUnlimited ?? false;
+
+  const PRO_BUILDERS: string[] = [];
+
   const isProBuilderUnlocked = (builderId: string): boolean => {
-    if (!PRO_BUILDERS.includes(builderId)) return true; // Not a pro builder
-    if (isAdmin) return true; // Admins have full access
-    // User has access if trainer assigned this as their activeBoard
+    if (!PRO_BUILDERS.includes(builderId)) return true;
+    if (isUnlimited) return true;
     return user?.activeBoard === builderId;
   };
-  
+
+  const BUILDER_OPTIONS = BUILDER_CONFIG.map((b) => ({
+    ...b,
+    title: t(b.titleKey),
+    description: t(b.descKey),
+  }));
+
   const availableBuilders =
     isProCareClient && user?.activeBoard
       ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
       : BUILDER_OPTIONS;
 
-  // Refresh user data when component mounts to ensure we have latest state
   useEffect(() => {
     refreshUser();
   }, [refreshUser]);
@@ -164,9 +159,8 @@ export default function MealBuilderSelection() {
   const handleContinue = async () => {
     if (!selected) {
       toast({
-        title: "Please select a meal builder",
-        description:
-          "Choose the builder that best fits your needs going forward.",
+        title: t("errorSelect"),
+        description: t("errorSelectDesc"),
         variant: "destructive",
       });
       return;
@@ -174,22 +168,21 @@ export default function MealBuilderSelection() {
 
     if (selected === user?.selectedMealBuilder) {
       toast({
-        title: "Already using this builder",
-        description: "You're already using this meal builder.",
+        title: t("alreadyUsing"),
+        description: t("alreadyUsingDesc"),
       });
       setLocation("/dashboard");
       return;
     }
 
-    // Switch limit check - currently disabled (ENFORCE_SWITCH_LIMITS = false on backend)
-    // if (switchStatus && !switchStatus.canSwitch) {
-    //   toast({
-    //     title: "Switch limit reached",
-    //     description: `You've used all 3 builder switches this year. Next switch available ${switchStatus.nextSwitchAvailable ? new Date(switchStatus.nextSwitchAvailable).toLocaleDateString() : "later this year"}.`,
-    //     variant: "destructive",
-    //   });
-    //   return;
-    // }
+    if (switchStatus && !switchStatus.canSwitch && !switchStatus.isUnlimited) {
+      toast({
+        title: t("usedUp"),
+        description: t("usedUpDesc", { limit: switchStatus.changeLimit }),
+        variant: "destructive",
+      });
+      return;
+    }
 
     const authToken = getAuthToken();
     if (!authToken) {
@@ -231,18 +224,19 @@ export default function MealBuilderSelection() {
 
       setConfirmedBuilder(selected);
       await refreshUser();
+      window.dispatchEvent(new CustomEvent("mpm:builderUpdated"));
+      queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
 
       toast({
         title: "Builder Updated",
-        description:
-          "Your meal builder has been changed. You're all set to continue.",
+        description: "Your meal builder has been changed. You're all set to continue.",
       });
 
       setLocation("/dashboard");
     } catch (error: any) {
       console.error("Failed to save meal builder selection:", error);
       toast({
-        title: "Unable to Switch",
+        title: t("unableToSwitch"),
         description: error.message || "Failed to save your selection. Please try again.",
         variant: "destructive",
       });
@@ -257,7 +251,6 @@ export default function MealBuilderSelection() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 text-white p-4"
     >
-      {/* Fixed Black Glass Navigation Banner */}
       <MobileHeaderGuard>
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
@@ -266,13 +259,12 @@ export default function MealBuilderSelection() {
         <div className="px-4 pb-3 flex items-center gap-3">
           <Utensils className="h-5 w-5 text-orange-400" />
           <h1 className="text-lg font-bold text-white">
-            Meal Builder Exchange
+            {t("title")}
           </h1>
         </div>
       </div>
       </MobileHeaderGuard>
 
-      {/* Content area with padding for fixed header and bottom nav */}
       <div
         className="pt-16 pb-24"
         style={{
@@ -280,121 +272,83 @@ export default function MealBuilderSelection() {
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 100px)",
         }}
       >
-        {/* Member acknowledgment */}
+        {!loadingStatus && switchStatus && !switchStatus.isUnlimited && (
+          <div className={`rounded-xl px-4 py-3 mb-5 flex items-center gap-3 ${
+            switchStatus.canSwitch
+              ? "bg-black/30 border border-white/10"
+              : "bg-amber-900/30 border border-amber-500/50"
+          }`}>
+            {switchStatus.canSwitch ? (
+              <RefreshCw className="w-4 h-4 text-orange-400 flex-shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            )}
+            <div className="flex-1">
+              {switchStatus.canSwitch ? (
+                <p className="text-white text-sm">
+                  <span className="font-semibold text-orange-400">{switchStatus.changesRemaining}</span>
+                  <span className="text-white/70"> {t("exchangesLeft", { limit: switchStatus.changeLimit })}</span>
+                </p>
+              ) : (
+                <p className="text-amber-200 text-sm font-medium">
+                  {t("exchangesUsed", { limit: switchStatus.changeLimit })}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
           <p className="text-sm text-white/90 text-center leading-relaxed">
-            You're already a My Perfect Meals member. This page helps you switch
-            meal boards as your needs change — whether you're continuing on your
-            own, following a medical plan, or simplifying long-term.
+            {t("memberNote")}
           </p>
         </div>
 
-        {/* ProCare transition note */}
         {user?.isProCare && (
           <div className="bg-indigo-900/30 border border-indigo-500/50 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
               <MessageCircle className="w-5 h-5 text-indigo-400 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-indigo-200 text-sm font-medium mb-1">
-                  Coming from ProCare?
+                  {t("procareHeading")}
                 </p>
                 <p className="text-indigo-300/80 text-xs leading-relaxed">
-                  Your coach or clinician may have recommended a next step.
-                  Choose the meal board that fits how you'll continue moving
-                  forward.
+                  {t("procareDesc")}
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Builder switch allowance note */}
-        <div className="bg-zinc-900/60 border border-zinc-700 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <RefreshCw className="w-5 h-5 text-zinc-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-white text-sm font-medium mb-1">
-                Program Transitions
-              </p>
-              <p className="text-zinc-400 text-xs leading-relaxed">
-                You have 3 program transitions per subscription year to customize your journey. They reset on your subscription anniversary — no rollover, but you'll always get a fresh set as your needs evolve.
-                {user?.isProCare && (
-                  <span className="text-indigo-300"> Switches made by your coach or physician through ProCare do not count toward your transitions.</span>
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Builder Switch Status - Currently disabled, uncomment when ENFORCE_SWITCH_LIMITS is true */}
-        {/* {!loadingStatus && switchStatus && (
-          <div className={`rounded-xl p-4 mb-6 ${switchStatus.canSwitch ? "bg-zinc-900/60 border border-zinc-700" : "bg-amber-900/30 border border-amber-500/50"}`}>
-            <div className="flex items-center gap-3">
-              {switchStatus.canSwitch ? (
-                <RefreshCw className="w-5 h-5 text-zinc-400" />
-              ) : (
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
-              )}
-              <div className="flex-1">
-                {switchStatus.canSwitch ? (
-                  <>
-                    <p className="text-white text-sm font-medium">
-                      {switchStatus.switchesRemaining} transition{switchStatus.switchesRemaining !== 1 ? "s" : ""} remaining this year
-                    </p>
-                    <p className="text-zinc-400 text-xs mt-0.5">
-                      You can change your program {switchStatus.switchesRemaining} more time{switchStatus.switchesRemaining !== 1 ? "s" : ""} this subscription year.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-amber-200 text-sm font-medium">
-                      Transitions used
-                    </p>
-                    <p className="text-amber-300/70 text-xs mt-0.5">
-                      You've used all 3 program transitions for this subscription year.
-                      {switchStatus.nextSwitchAvailable && (
-                        <> Your transitions reset on {new Date(switchStatus.nextSwitchAvailable).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.</>
-                      )}
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )} */}
-
         <div className="space-y-4 mb-8">
-          {/* Locked state: Pro Care client with no assigned board */}
           {isProCareClient && !user?.activeBoard && (
             <div className="bg-zinc-900/80 border border-zinc-700 rounded-2xl p-6 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 flex items-center justify-center">
                 <Utensils className="w-8 h-8 text-zinc-500" />
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">
-                Awaiting Assignment
+                {t("awaitingTitle")}
               </h3>
               <p className="text-zinc-400 text-sm">
-                Your meal builder will be assigned by your coach. Check back
-                soon!
+                {t("awaitingDesc")}
               </p>
             </div>
           )}
 
-          {/* Available builders - only show if NOT in locked state */}
           {!(isProCareClient && !user?.activeBoard) &&
             availableBuilders.map((option) => {
               const isUnlocked = isProBuilderUnlocked(option.id);
               const isProBuilder = PRO_BUILDERS.includes(option.id);
-              
+
               return (
               <div
                 key={option.id}
                 className={`w-full p-4 rounded-2xl border-2 transition-all ${
                   !isUnlocked
-                    ? "border-zinc-700 bg-black/20 opacity-60"
+                    ? "border-zinc-700 bg-zinc-950 opacity-60"
                     : selected === option.id
-                    ? "border-emerald-500/50 bg-white/10"
-                    : "border-white/20 bg-black/30"
+                    ? "border-emerald-500/50 bg-emerald-950"
+                    : "border-white/20 bg-zinc-950"
                 }`}
               >
                 <div className="flex items-start gap-4">
@@ -406,61 +360,62 @@ export default function MealBuilderSelection() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-base font-semibold truncate ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
+                        <h3 className={`text-base font-semibold leading-snug ${!isUnlocked ? "text-zinc-400" : ""}`}>{option.title}</h3>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-400/25 rounded-full text-[8px] font-semibold text-cyan-300 tracking-wide flex-shrink-0">
+                          <span className="w-1 h-1 bg-cyan-400 rounded-full" />
+                          Behavioral AI™
+                        </span>
                         {!isUnlocked && isProBuilder && (
                           <Lock className="w-4 h-4 text-zinc-500" />
                         )}
                         {option.id === "beach_body" && (
                           <span className="text-xs px-2 py-0.5 bg-amber-600/30 text-amber-300 rounded-full border border-amber-500/30">
-                            Ultimate
+                            {t("badgeClinical", { ns: "builders" })}
                           </span>
                         )}
                         {(confirmedBuilder || user?.selectedMealBuilder) === option.id && (
                           <span className="text-xs px-2 py-0.5 bg-emerald-600/30 text-emerald-300 rounded-full border border-emerald-500/30">
-                            Current
+                            {t("badgeCurrent", { ns: "builders" })}
                           </span>
                         )}
                       </div>
                       {isUnlocked ? (
                         <PillButton
                           active={selected === option.id}
-                          onClick={() => setSelected(option.id)}
+                          onClick={() => handleSelect(option.id)}
                           className="flex-shrink-0"
                         >
                           {selected === option.id ? "On" : "Off"}
                         </PillButton>
                       ) : (
-                        <span className="text-xs text-zinc-500 italic">Trainer unlock required</span>
+                        <span className="text-xs text-zinc-500 italic">{t("trainerUnlock")}</span>
                       )}
                     </div>
                     <p className={`text-sm mt-1 ${!isUnlocked ? "text-zinc-500" : "text-white/70"}`}>
-                      {!isUnlocked ? "Requires trainer/coach to unlock access" : option.description}
+                      {!isUnlocked ? t("trainerUnlockDesc") : option.description}
                     </p>
                   </div>
                 </div>
               </div>
             );
             })}
+
         </div>
 
-        {/* Copilot guidance hint */}
         <div className="bg-black/20 border border-white/5 rounded-xl p-3 mb-6">
           <p className="text-white/60 text-xs text-center italic">
-            Not sure which to pick? If you've finished working with a coach,
-            most people transition to the Weekly Meal Builder for long-term
-            balance. If your health needs have changed, select the board that
-            supports that condition.
+            {t("guidanceHint")}
           </p>
         </div>
 
-        {/* Continue button - hide for Pro Care clients with no assigned board */}
         {!(isProCareClient && !user?.activeBoard) && (
           <Button
+            ref={saveButtonRef}
             onClick={handleContinue}
             disabled={!selected || saving}
             className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Continue with This Builder"}
+            {saving ? t("saving") : selected ? t("saveBtn") : t("selectFirst")}
           </Button>
         )}
       </div>

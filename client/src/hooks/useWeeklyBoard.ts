@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { WeekBoardResponseSchema, createEmptyWeekStructure, getMondayISO, type WeekBoardResponse, type WeekBoard } from "@/../../shared/schema/weeklyBoard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { safeBoardCacheWrite } from "@/lib/boardStorage";
 
 const CACHE_NS = "mpm.weeklyBoard";
 const FETCH_TIMEOUT_MS = 8000;
@@ -25,7 +26,7 @@ function cacheKey(userId: string, weekStartISO: string, namespace?: string): str
 
 function buildWeekUrl(weekStartISO: string, namespace?: string): string {
   const base = `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`;
-  return namespace ? `${base}&ns=${encodeURIComponent(namespace)}` : base;
+  return namespace ? `${base}&bt=${encodeURIComponent(namespace)}` : base;
 }
 
 async function fetchWithTimeout(
@@ -109,9 +110,10 @@ function loadWeeklyBoard({
         
         const json = await res.json();
         const validated = WeekBoardResponseSchema.parse(json);
-        
-        localStorage.setItem(key, JSON.stringify(validated));
-        
+
+        // Cache write is best-effort — must NEVER block the UI update.
+        safeBoardCacheWrite(key, JSON.stringify(validated));
+
         if (JSON.stringify(validated) !== JSON.stringify(cached)) {
           onData(validated);
         }
@@ -122,10 +124,14 @@ function loadWeeklyBoard({
     })();
   }
 
-  onData(empty);
+  // Pro route: do NOT emit an empty seed board before the fetch completes.
+  // The hook already sets loading=true; the existing board stays visible while
+  // the request is in flight. onData is called only when real validated data arrives.
+  let currentSnapshot: string | null = null;
   return (async () => {
     try {
-      const url = apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}`);
+      const btPart = namespace ? `&bt=${encodeURIComponent(namespace)}` : '';
+      const url = apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}${btPart}`);
       const res = await fetchWithRetry(url, {
         credentials: "include",
         headers: { ...getAuthHeaders() },
@@ -137,7 +143,13 @@ function loadWeeklyBoard({
 
       const json = await res.json();
       const validated = WeekBoardResponseSchema.parse(json);
-      onData(validated);
+      // Skip the render if the board is identical to what is already displayed
+      // (avoids unnecessary re-renders during polling).
+      const snapshot = JSON.stringify(validated);
+      if (snapshot !== currentSnapshot) {
+        currentSnapshot = snapshot;
+        onData(validated);
+      }
     } catch (e) {
       console.warn("Pro weekly board load failed:", e);
       throw e;
@@ -160,8 +172,9 @@ async function saveWeeklyBoard({
   proClientId?: string;
   namespace?: string;
 }): Promise<WeekBoardResponse> {
+  const btPart = namespace ? `&bt=${encodeURIComponent(namespace)}` : '';
   const url = proClientId
-    ? apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}`)
+    ? apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}${btPart}`)
     : apiUrl(buildWeekUrl(weekStartISO, namespace));
   const payload = { week: board, opId };
 
@@ -185,7 +198,7 @@ async function saveWeeklyBoard({
 
   if (!proClientId) {
     const key = cacheKey(userId, weekStartISO, namespace);
-    localStorage.setItem(key, JSON.stringify(validated));
+    safeBoardCacheWrite(key, JSON.stringify(validated));
   }
 
   return validated;
@@ -202,14 +215,23 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
   const [data, setData] = useState<WeekBoardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // saveCooldownRef stores the timestamp until which background board reloads must not
+  // overwrite local state. Set to now+30s at save start, dropped to now+1.5s after save
+  // completes. Checked only by background/resume loaders — NOT by initial load or save().
+  const saveCooldownRef = useRef<number>(0);
+  // requestVersionRef prevents stale week responses from overwriting newer week data
+  // when the user navigates weeks quickly.
+  const requestVersionRef = useRef<number>(0);
 
   useEffect(() => {
     let mounted = true;
-    setData(null);
+    // Do NOT clear data to null here — keep the previous week visible while the
+    // next week loads so the board never flashes blank during week navigation.
     setLoading(true);
+    const version = ++requestVersionRef.current;
 
     const handleData = (boardData: WeekBoardResponse) => {
-      if (mounted) {
+      if (mounted && version === requestVersionRef.current) {
         setData(boardData);
         setLoading(false);
       }
@@ -241,7 +263,11 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         loadWeeklyBoard({
           userId,
           weekStartISO: monday,
-          onData: (result) => { setData(result); setError(null); },
+          onData: (result) => {
+            if (Date.now() < saveCooldownRef.current) return;
+            setData(result);
+            setError(null);
+          },
           proClientId,
           namespace,
         }).catch(() => {});
@@ -264,7 +290,11 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       loadWeeklyBoard({
         userId,
         weekStartISO: monday,
-        onData: (result) => { setData(result); setError(null); },
+        onData: (result) => {
+          if (Date.now() < saveCooldownRef.current) return;
+          setData(result);
+          setError(null);
+        },
         proClientId,
         namespace,
       }).catch(() => {});
@@ -288,7 +318,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         const key = namespace
           ? `${CACHE_NS}:${namespace}:${proClientId || userId}:${monday}`
           : `${CACHE_NS}:${proClientId || userId}:${monday}`;
-        try { localStorage.setItem(key, JSON.stringify({ ...prev, week: patched })); } catch {}
+        safeBoardCacheWrite(key, JSON.stringify({ ...prev, week: patched }));
         return { ...prev, week: patched };
       });
     };
@@ -311,6 +341,8 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
 
   const save = useCallback(
     async (board: WeekBoard, opId?: string): Promise<void> => {
+      // Block background reloads for up to 30s while save is in flight
+      saveCooldownRef.current = Date.now() + 30_000;
       try {
         const result = await saveWeeklyBoard({
           userId,
@@ -325,6 +357,9 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       } catch (e) {
         setError(e as Error);
         throw e;
+      } finally {
+        // Whether save succeeded or failed, allow background reloads after a short grace period
+        saveCooldownRef.current = Date.now() + 1_500;
       }
     },
     [userId, monday, proClientId, namespace]
@@ -351,6 +386,12 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     }
   }, [userId, monday, proClientId, namespace]);
 
+  const primeCache = useCallback((targetWeekISO: string, data: WeekBoardResponse): void => {
+    if (proClientId) return;
+    const key = cacheKey(userId, targetWeekISO, namespace);
+    safeBoardCacheWrite(key, JSON.stringify(data));
+  }, [userId, proClientId, namespace]);
+
   return {
     board: data?.week ?? null,
     weekStartISO: monday,
@@ -359,5 +400,6 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     error,
     save,
     refresh,
+    primeCache,
   };
 }

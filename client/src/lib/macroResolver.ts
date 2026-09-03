@@ -4,7 +4,16 @@
 import { getMacroTargets, setMacroTargets, type MacroTargets, type StarchStrategy } from './dailyLimits';
 import { proStore, type Targets } from './proData';
 
-export type MacroSource = 'pro' | 'self' | 'none';
+export type MacroSource = 'pro' | 'performance' | 'self' | 'none';
+
+// ProCare coach override hook — allows coach to override individual macro multipliers.
+// When present, these values take precedence over strategy-layer multipliers.
+// No UI yet — this is reserved for ProCare and advanced mode.
+export type CoachMacroOverride = {
+  proteinMult?: number;
+  starchyMult?: number;
+  fatMult?: number;
+};
 
 export type ResolvedTargets = {
   calories: number;
@@ -24,6 +33,8 @@ export type ResolvedTargets = {
     postBariatric?: boolean;
     liverDisease?: boolean;
     liverSupport?: boolean;
+    thyroidSupport?: boolean;
+    oncologySupport?: boolean;
     highProtein?: boolean;
     carbCycling?: boolean;
     antiInflammatory?: boolean;
@@ -35,6 +46,8 @@ export type ResolvedTargets = {
     addedSugarCapG?: number | null;
   };
   setBy?: string;
+  // ProCare hook: coach-level multiplier overrides (no UI yet)
+  coachOverride?: CoachMacroOverride;
 };
 
 const LS_USER_CLIENT_MAP = 'mpm_user_client_map';
@@ -77,8 +90,125 @@ export function linkUserToClient(userId: string, clientId: string) {
   }
 }
 
+// Remove a user's ProCare mapping from localStorage (called when isProCare = false)
+export function unlinkUser(userId: string) {
+  try {
+    const map = getUserClientMap();
+    if (map[userId]) {
+      delete map[userId];
+      localStorage.setItem(LS_USER_CLIENT_MAP, JSON.stringify(map));
+      clearResolvedTargetsCache();
+    }
+  } catch (e) {
+    console.error('Failed to unlink user from ProCare client map:', e);
+  }
+}
+
 function getSelfTargets(userId?: string): MacroTargets | null {
   return getMacroTargets(userId);
+}
+
+// ── Performance Protocol tier ─────────────────────────────────────────────────
+// The protocol ONLY stores: weekly schedule + session modifiers (±carbs/±protein/±calories
+// per workout type). It does NOT own baseline macros — those always come from the
+// Macro Calculator (Priority 2 / self-set targets). This keeps MacroCalculator as the
+// permanent source of truth and prevents the protocol from holding stale baseline snapshots.
+const LS_PERF_PROTOCOL = 'mpm.perfProtocol';
+
+/** localStorage key — written by the Performance Hub when the user selects a training day. */
+export const LS_PERF_SELECTED_DATE = 'mpm.performance.selectedDate';
+
+/**
+ * Set (or clear) the active performance date.
+ * Call this from the Performance Hub whenever the user taps a different day.
+ * It updates localStorage, invalidates the macro-resolver cache, and broadcasts
+ * `mpm:targetsUpdated` so the builder, biometrics, and pickers all re-render.
+ */
+export function setPerfSelectedDate(dateStr: string | null): void {
+  if (typeof window === 'undefined') return;
+  if (dateStr) {
+    localStorage.setItem(LS_PERF_SELECTED_DATE, dateStr);
+  } else {
+    localStorage.removeItem(LS_PERF_SELECTED_DATE);
+  }
+  clearResolvedTargetsCache();
+  window.dispatchEvent(new CustomEvent('mpm:targetsUpdated'));
+}
+
+function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const key = `${LS_PERF_PROTOCOL}.${userId || 'anon'}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const state = JSON.parse(raw) as {
+      schedule: Record<string, string>;
+      config: {
+        // baselineCalories/Protein/Carbs/Fat are DEPRECATED — the Macro Calculator
+        // is the single source of truth for baseline nutrition. These fields are
+        // ignored even if present in localStorage. The protocol only owns adjustments.
+        sessionModifiers: Record<string, { carbsAdjustG: number; caloriesAdjustKcal: number; proteinAdjustG: number }>;
+      };
+      // explicit activation flag — false = schedule stored but performance mode OFF
+      enabled?: boolean;
+    };
+    if (!state?.config || !state?.schedule) return null;
+    // Gate: schedule existence ≠ performance active.
+    // The user must explicitly activate Performance Mode via the builder entry page.
+    // Default false so existing users with stored schedules are unaffected until they activate.
+    if (!state.enabled) return null;
+
+    // ── Baseline: always read from Macro Calculator, never from a stored snapshot ──
+    // If the user has no Macro Calculator targets set, performance targets cannot
+    // be computed — return null so the resolver falls through to self-set targets.
+    const baseline = getSelfTargets(userId);
+    if (!baseline || !baseline.calories || baseline.calories === 0) return null;
+
+    const DOW = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    // Use the date selected in the Performance Hub, falling back to real-world today.
+    const storedDate = localStorage.getItem(LS_PERF_SELECTED_DATE);
+    const refDate = storedDate ? new Date(storedDate + 'T12:00:00') : new Date();
+    const today = DOW[refDate.getDay()];
+    const sessionType = state.schedule[today] ?? 'off';
+    const mod = state.config.sessionModifiers?.[sessionType] ?? { carbsAdjustG: 0, caloriesAdjustKcal: 0, proteinAdjustG: 0 };
+
+    // Apply today's session modifier on top of the live MacroCalculator baseline.
+    // Fat is not adjusted — only carbs and protein cycle per the performance protocol.
+    const calories  = Math.max(0, (baseline.calories  ?? 0) + (mod.caloriesAdjustKcal ?? 0));
+    const protein_g = Math.max(0, (baseline.protein_g ?? 0) + (mod.proteinAdjustG    ?? 0));
+    const carbs_g   = Math.max(0, (baseline.carbs_g   ?? 0) + (mod.carbsAdjustG      ?? 0));
+    const fat_g     = baseline.fat_g ?? 0;
+
+    if (calories === 0) return null;
+
+    // Derive starchy/fibrous split from the adjusted carbs, using the MacroCalculator ratio.
+    // If no split exists in the baseline, use the vegetable floor (mirrors MacroCalculator).
+    let starchyCarbs_g: number;
+    let fibrousCarbs_g: number;
+    if ((baseline.starchyCarbs_g ?? 0) > 0 && (baseline.fibrousCarbs_g ?? 0) > 0 && (baseline.carbs_g ?? 0) > 0) {
+      const starchRatio = baseline.starchyCarbs_g! / baseline.carbs_g;
+      starchyCarbs_g = Math.round(carbs_g * starchRatio);
+      fibrousCarbs_g = Math.max(0, carbs_g - starchyCarbs_g);
+    } else {
+      fibrousCarbs_g = Math.max(25, Math.round(carbs_g * 0.25));
+      starchyCarbs_g = Math.max(0, carbs_g - fibrousCarbs_g);
+    }
+
+    return {
+      calories,
+      protein_g,
+      carbs_g,
+      fat_g,
+      starchyCarbs_g,
+      fibrousCarbs_g,
+      starchStrategy: baseline.starchStrategy || 'one',
+      source: 'performance',
+      setBy: 'Performance Protocol',
+      flags: {},
+    };
+  } catch {
+    return null;
+  }
 }
 
 // Item 3: Guarantee mapping exists for a known clientId/realUserId pair
@@ -109,7 +239,21 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
 
     if (hasPro) {
       const proTargets = proStore.getTargets(clientId);
-      const totalCarbs = (proTargets.starchyCarbs || 0) + (proTargets.fibrousCarbs || 0);
+
+      // When the coach left starchy/fibrous blank (zero), fall back to the
+      // user's own macro-calculator targets for those two fields only.
+      // Protein, fat, and all other pro fields are still coach-authoritative.
+      const selfFallback = proTargets.starchyCarbs > 0 && proTargets.fibrousCarbs > 0
+        ? null
+        : getSelfTargets(userId);
+      const resolvedStarchy = proTargets.starchyCarbs > 0
+        ? proTargets.starchyCarbs
+        : (selfFallback?.starchyCarbs_g ?? 0);
+      const resolvedFibrous = proTargets.fibrousCarbs > 0
+        ? proTargets.fibrousCarbs
+        : (selfFallback?.fibrousCarbs_g ?? 0);
+
+      const totalCarbs = resolvedStarchy + resolvedFibrous;
       const totalKcal = ((proTargets.protein || 0) * 4) + (totalCarbs * 4) + ((proTargets.fat || 0) * 9);
 
       const client = proStore.getClient(clientId);
@@ -125,8 +269,8 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
         protein_g: proTargets.protein,
         carbs_g: totalCarbs,
         fat_g: proTargets.fat,
-        starchyCarbs_g: proTargets.starchyCarbs || 0,
-        fibrousCarbs_g: proTargets.fibrousCarbs || 0,
+        starchyCarbs_g: resolvedStarchy,
+        fibrousCarbs_g: resolvedFibrous,
         starchStrategy: proTargets.starchStrategy || 'one',
         source: 'pro',
         flags: proTargets.flags,
@@ -140,6 +284,16 @@ export function getResolvedTargets(userId?: string): ResolvedTargets {
       resolvedTargetsCache[cacheKey] = result;
       return result;
     }
+  }
+
+  // Priority 1.5: Performance Protocol — day-aware adaptive targets
+  // Reads today's session type from weeklyTrainingSchedule, applies modifier
+  // from performanceProtocolConfig. Sits below ProCare, above self-set.
+  const perfTargets = getPerformanceProtocolTargets(userId);
+  if (perfTargets) {
+    console.log('[MPM] Target Source: performance', perfTargets.calories, 'kcal');
+    resolvedTargetsCache[cacheKey] = perfTargets;
+    return perfTargets;
   }
 
   // Priority 2: Self-set targets
@@ -188,4 +342,75 @@ export function saveSelfTargets(macros: MacroTargets, userId?: string) {
 
 export function hasProOverride(userId?: string): boolean {
   return getResolvedTargets(userId).source === 'pro';
+}
+
+/**
+ * Nutrition Baseline — for "Today's Nutrition Balance" banners and any UI
+ * that must always show the Macro Calculator baseline, never a performance modifier.
+ *
+ * Priority order:
+ *   1. ProCare targets (coach-set)
+ *   2. MacroCalculator self-set targets
+ *   3. No targets set (source: 'none', all zeros)
+ *
+ * Intentionally skips the Performance Protocol layer.
+ * Performance modifiers belong in a dedicated "Today's Performance Targets" surface,
+ * not in the general nutrition budget tracker.
+ */
+export function getNutritionBaseline(userId?: string): ResolvedTargets {
+  // Priority 1: Professional targets
+  const clientId = getCurrentUserClientId(userId);
+  if (clientId && proStore.hasTargets(clientId)) {
+    // Re-use full getResolvedTargets for the pro path — it will return source:'pro'
+    // and will never reach the performance layer for a pro-managed user.
+    const full = getResolvedTargets(userId);
+    if (full.source === 'pro') return full;
+  }
+
+  // Priority 2: MacroCalculator (self-set)
+  const selfTargets = getSelfTargets(userId);
+  if (selfTargets) {
+    return {
+      calories: selfTargets.calories,
+      protein_g: selfTargets.protein_g,
+      carbs_g: selfTargets.carbs_g,
+      fat_g: selfTargets.fat_g,
+      starchyCarbs_g: selfTargets.starchyCarbs_g,
+      fibrousCarbs_g: selfTargets.fibrousCarbs_g,
+      starchStrategy: selfTargets.starchStrategy || 'one',
+      source: 'self',
+    };
+  }
+
+  // Priority 3: No targets set
+  return {
+    calories: 0,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    starchStrategy: 'one',
+    source: 'none',
+  };
+}
+
+/**
+ * Canonical carb sub-target resolver.
+ * Always call this — never read starchyCarbs_g / fibrousCarbs_g directly from
+ * a resolved target object. Directive-based builders (Anti-Inflammatory, etc.)
+ * store caps/floors in carbDirective instead of the gram fields; this helper
+ * collapses both representations into plain numbers so every UI component
+ * reads the same values without needing to know about the internal storage model.
+ */
+export function resolveDisplayCarbTargets(targets: {
+  starchyCarbs_g?: number | null;
+  fibrousCarbs_g?: number | null;
+  carbDirective?: {
+    starchyCapG?: number | null;
+    fibrousFloorG?: number | null;
+  };
+}): { starchyCarbs_g: number; fibrousCarbs_g: number } {
+  return {
+    starchyCarbs_g: targets.starchyCarbs_g ?? targets.carbDirective?.starchyCapG ?? 0,
+    fibrousCarbs_g: targets.fibrousCarbs_g ?? targets.carbDirective?.fibrousFloorG ?? 0,
+  };
 }

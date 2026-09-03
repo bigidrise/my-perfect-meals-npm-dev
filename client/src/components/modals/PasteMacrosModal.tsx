@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { FormModal } from "@/components/ui/universal-modal";
 import { Textarea } from "@/components/ui/textarea";
 import { parseMacrosFromText } from "@/utils/parseMacrosFromText";
 import { useToast } from "@/hooks/use-toast";
@@ -107,12 +107,20 @@ export default function PasteMacrosModal({ open, onOpenChange, initial }: Props)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-white/5 backdrop-blur-2xl border border-white/30 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-white">Paste Macros</DialogTitle>
-        </DialogHeader>
-
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Paste Macros"
+      className="max-w-lg bg-white/5 backdrop-blur-2xl border-white/30 text-white"
+      footer={
+        <>
+          <Button variant="outline" className="border-white/30 text-white bg-white/10" onClick={() => onOpenChange(false)} data-testid="button-cancel-paste">Cancel</Button>
+          <Button onClick={add} disabled={!canAdd} className="bg-indigo-600 text-white disabled:opacity-50 disabled:cursor-not-allowed" data-testid="button-add-pasted-macros">
+            Add to Today
+          </Button>
+        </>
+      }
+    >
         <div className="space-y-3">
           <Textarea
             value={text}
@@ -134,13 +142,6 @@ export default function PasteMacrosModal({ open, onOpenChange, initial }: Props)
           <p className="text-xs text-white/70">Tip: You can paste directly from Craving Creator or any meal card summary.</p>
         </div>
 
-        <DialogFooter className="flex gap-2">
-          <Button variant="outline" className="border-white/30 text-white bg-white/10" onClick={() => onOpenChange(false)} data-testid="button-cancel-paste">Cancel</Button>
-          <Button onClick={add} disabled={!canAdd} className="bg-indigo-600 text-white disabled:opacity-50 disabled:cursor-not-allowed" data-testid="button-add-pasted-macros">
-            Add to Today
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormModal>
   );
 }

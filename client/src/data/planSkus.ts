@@ -1,17 +1,11 @@
-export type LookupKey =
-  | "mpm_basic"
-  | "mpm_premium"
-  | "mpm_ultimate"
-  | "mpm_family_base"
-  | "mpm_family_premium"
-  | "mpm_family_ultimate"
-  | "mpm_trainer_5"
-  | "mpm_trainer_10"
-  | "mpm_trainer_25"
-  | "mpm_trainer_50"
-  | "mpm_physician_50"
-  | "mpm_physician_150"
-  | "mpm_guidance";
+import type { CheckoutLookupKey } from "@shared/planFeatures";
+
+/**
+ * @deprecated Use CheckoutLookupKey from shared/planFeatures for new code.
+ * This alias keeps existing storefront and StoreKit imports on the shared
+ * checkout contract rather than a stale duplicate union.
+ */
+export type LookupKey = CheckoutLookupKey;
 
 export type BillingCycle = "monthly";
 
@@ -23,6 +17,7 @@ export type PlanSku = {
   clients?: number;
   hidden?: boolean;
   blurb?: string;
+  supportingText?: string;
   features?: string[];
   group: "consumer" | "family" | "pro";
   badge?: string;
@@ -31,99 +26,118 @@ export type PlanSku = {
 export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_basic",
-    label: "Basic",
-    price: 14.99,
+    label: "Essential",
+    price: 19.99,
     group: "consumer",
-    blurb: "$14.99 / month (Access to ONE meal builder only)",
+    blurb: "Daily adaptive nutrition — AI meal generation, Recipe Maker, unlimited Ingredient Intelligence, and grocery organization",
     features: [
-      "Macro calculator",
-      "Smart Menu Builder (basic)",
-      "Biometrics with daily limits",
-      "Basic meal presets",
+      "Create a Dish — AI meals built around your full profile",
+      "Snack Creator (built into every Meal Builder)",
+      "Recipe Maker — photo or text import, rebuilt for your macros and protocols",
+      "Ingredient Intelligence (unlimited — protocol-aware personalization)",
+      "Unlimited AI Fridge Rescue",
+      "Master Shopping List & Grocery Organization",
+      "Weekly Meal Planner",
+      "Saved Meals & Favorites — save any AI-generated meal to your collection",
+      "Metabolic Medication, Diabetic & Anti-Inflammatory builders",
+      "SafeGuard Allergy Protection (2-layer)",
+      "Biometrics Tracking",
     ],
   },
   {
     sku: "mpm_premium",
-    label: "Premium",
-    price: 24.99,
+    label: "Pro",
+    price: 29.99,
     group: "consumer",
-    blurb: "Advanced features for serious meal planning",
+    blurb: "The full creator suite — every tool, every scan, every cuisine, every lifestyle",
     features: [
-      "All Basic features",
-      "Advanced presets & alerts",
-      "Shopping list export",
-      "Specialty diet menus",
-      "Alcohol calculator",
+      "Everything in Essential",
+      "Full Recipe Maker — camera, voice, and photo with 5-control customization and preview before saving",
+      "Craving Creator & Dessert Creator",
+      "Beverage Creator & Sushi Creator",
+      "Restaurant Guide with protocol-aware ordering",
+      "Fast Food Guide & Find Meals Near Me",
+      "My Perfect Gatherings (multi-course holiday, event & Great Outdoors meals)",
+      "Spirits & Wine Pairing Hub",
+      "My Perfect Pets — AI nutrition & meal plans for your pets",
     ],
-    badge: "Popular",
+    badge: "Most Popular",
   },
   {
     sku: "mpm_ultimate",
-    label: "Ultimate",
-    price: 34.99,
+    label: "Clinical",
+    price: 44.99,
     group: "consumer",
-    blurb: "Complete nutrition toolkit with all features",
+    blurb: "Advanced protocol and biomarker-guided adaptive nutrition — a different category entirely",
     features: [
-      "All Premium features",
-      "Priority support",
-      "Advanced analytics",
-      "Custom meal templates",
-      "Voice commands",
+      "Everything in Pro",
+      "Clinical Lab Results Integration — blood work adjusts your meal protocols automatically",
+      "Care Team Access — connect to a physician or trainer within the app",
+      "Athlete Beverage Creator (calibrated to training phases)",
+      "Performance Nutrition Builder",
+      "Competition Prep Builder",
+      "Clinical Advisory System",
     ],
   },
 
   {
     sku: "mpm_family_base",
-    label: "Family Base",
-    price: 49.99,
+    label: "Family Essential",
+    price: 54.99,
     seats: 4,
     group: "family",
-    blurb: "One household, 4 profiles, shared menus & shopping",
+    blurb: "Daily adaptive nutrition for the whole household",
+    supportingText: "Up to 4 personalized household profiles",
     features: [
-      "Includes up to 4 profiles",
-      "Shared Smart Menu Builder",
-      "Shared Shopping List",
-      "Individual macro tracking per profile",
+      "Individual AI meal generation per profile",
+      "Shared weekly meal planning",
+      "Shared smart shopping lists",
+      "Individual macro tracking and dietary preferences",
+      "Family-friendly meal generation",
       "Parental controls",
     ],
     badge: "Best for Families",
   },
   {
     sku: "mpm_family_premium",
-    label: "Family Premium",
-    price: 99.99,
+    label: "Family Pro",
+    price: 109.99,
     seats: 4,
     group: "family",
-    blurb: "All 4 seats include Premium features",
+    blurb: "The full creator suite for households with different needs",
+    supportingText: "Pro features for up to 4 household profiles",
     features: [
-      "All Family Base features",
-      "Premium tier for all 4 profiles",
-      "Advanced presets & alerts",
-      "Shopping list export",
-      "Specialty diet menus",
+      "Everything in Family Essential",
+      "Full Recipe Maker for all profiles",
+      "Advanced household meal customization",
+      "Specialty diet support per member",
+      "Restaurant and beverage recommendations",
+      "Smart ingredient overlap optimization",
     ],
     badge: "Best Value",
   },
   {
     sku: "mpm_family_ultimate",
-    label: "Family Ultimate",
-    price: 159.99,
+    label: "Family Clinical",
+    price: 169.99,
     seats: 4,
     group: "family",
-    blurb: "All 4 seats include Ultimate features",
+    blurb: "Clinical-grade AI nutrition for the whole household",
+    supportingText: "Clinical features for up to 4 household profiles",
     features: [
-      "All Family Premium features",
-      "Ultimate tier for all 4 profiles",
-      "Priority family support",
-      "Advanced analytics per profile",
-      "Voice commands for everyone",
+      "Everything in Family Pro",
+      "Clinical Lab Results Integration per profile",
+      "Physicians & Trainers Care Team access",
+      "AI-generated adaptive meal variations",
+      "Advanced household wellness insights",
+      "Voice-assisted meal planning",
     ],
   },
 
   {
     sku: "mpm_trainer_5",
     label: "ProCare Trainer 5",
-    price: 39.99,
+    price: 49.99,
     group: "pro",
     clients: 5,
     blurb: "For trainers managing up to 5 clients",
@@ -138,7 +152,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_trainer_10",
     label: "ProCare Trainer 10",
-    price: 69.99,
+    price: 79.99,
     group: "pro",
     clients: 10,
     blurb: "For trainers managing up to 10 clients",
@@ -153,7 +167,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_trainer_25",
     label: "ProCare Trainer 25",
-    price: 99.99,
+    price: 119.99,
     group: "pro",
     clients: 25,
     blurb: "For trainers managing up to 25 clients",
@@ -169,10 +183,10 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_trainer_50",
     label: "ProCare Trainer 50+",
-    price: 125.99,
+    price: 149.99,
     group: "pro",
     clients: 50,
-    blurb: "For trainers managing up to 50+ clients",
+    blurb: "For trainers managing 50+ clients",
     features: [
       "Manage up to 50+ clients",
       "Client nutrition dashboards",
@@ -225,6 +239,50 @@ export const PLAN_SKUS: PlanSku[] = [
       "Custom meal adjustments",
       "Progress monitoring",
       "Priority support",
+    ],
+  },
+
+  {
+    sku: "signature_kitchen_starter_monthly",
+    label: "Signature Kitchen Starter",
+    price: 99,
+    group: "pro",
+    blurb: "Starter Kitchen — Monthly Access",
+    features: [
+      "Your kitchen, your name, your recipes in the app",
+      "Up to 10 featured recipes",
+      "Basic brand profile (photo, bio, links)",
+      "Monthly analytics snapshot",
+    ],
+  },
+  {
+    sku: "signature_kitchen_pro_monthly",
+    label: "Signature Kitchen Pro",
+    price: 199,
+    group: "pro",
+    badge: "Most Popular",
+    blurb: "Pro Kitchen — Monthly Access",
+    features: [
+      "Everything in Starter",
+      "Up to 30 featured recipes",
+      "Full brand integration (colors, assets, story)",
+      "Priority placement in discovery",
+      "Quarterly analytics report",
+    ],
+  },
+  {
+    sku: "signature_kitchen_partner_monthly",
+    label: "Signature Kitchen Partner",
+    price: 499,
+    group: "pro",
+    blurb: "Partner Kitchen — Monthly Access",
+    features: [
+      "Everything in Pro",
+      "Unlimited featured recipes",
+      "Full co-branded kitchen experience",
+      "Featured in app onboarding and meal suggestions",
+      "Dedicated account support",
+      "Optional rev-share on plan upgrades you drive",
     ],
   },
 ];

@@ -1,9 +1,15 @@
 import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
+import type { DiversityContext } from "@/lib/diversityContext";
 
 export type DietType = 
   | 'anti-inflammatory'
   | 'liver-support'
+  | 'liver-disease'
+  | 'kidney-disease'
+  | 'heart-failure'
+  | 'oncology-support'
   | 'diabetic'
   | 'glp1'
   | 'beachbody'
@@ -14,18 +20,24 @@ export type DietType =
 
 export type BeachBodyPhase = 'lean' | 'carb-control' | 'maintenance' | 'sculpt';
 
-/**
- * Starch Context for intelligent carb distribution
- * Part of the Starch Game Plan coaching system
- */
+export type BuilderMode = 'lifestyle' | 'targeted' | 'hybrid';
+
 export interface StarchContext {
-  strategy: 'one' | 'flex'; // "one" = 1 starch meal/day, "flex" = 2 meals
+  strategy: 'one' | 'flex'; // legacy — kept for backward compat; ignored when starchMealsAllowed is set
+  // ── Prescription fields (preferred) ──────────────────────────────────────
+  starchMealsAllowed?: number;           // integer from prescription resolver
+  starchyCarbsRemaining?: number;        // grams of starchy carbs remaining today
+  gramsPerRemainingStarchMeal?: number;  // adaptive per-meal gram target
+  distributionStrategy?: 'even' | 'workout' | 'morning' | 'evening' | 'ai';
+  isZeroStarchDay?: boolean;             // rest day / clinical zero-starch protocol
+  dateISO?: string;                      // YYYY-MM-DD the context applies to
+  // ── Existing slots ────────────────────────────────────────────────────────
   existingMeals?: Array<{
     slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
     hasStarch: boolean;
   }>;
-  forceStarch?: boolean; // User explicitly requested starch
-  forceFiberBased?: boolean; // User explicitly requested no starch
+  forceStarch?: boolean;
+  forceFiberBased?: boolean;
 }
 
 interface Meal {
@@ -35,13 +47,14 @@ interface Meal {
   description?: string;
   ingredients: Array<{ name: string; quantity: string; unit: string }>;
   instructions?: string | string[];
-  imageUrl?: string;
+  imageUrl?: string | null;
   calories?: number;
   protein?: number;
   carbs?: number;
   fat?: number;
   starchyCarbs?: number;
   fibrousCarbs?: number;
+  mealType?: string;
   nutrition?: {
     calories: number;
     protein: number;
@@ -51,22 +64,44 @@ interface Meal {
     fibrousCarbs?: number;
   };
   medicalBadges?: string[];
+  substitutionNotes?: string[];
+  dietClassification?: string | null;
 }
 
 interface SafetyOptions {
-  safetyMode?: 'STRICT' | 'CUSTOM' | 'CUSTOM_AUTHENTICATED';
+  safetyMode?: 'STRICT' | 'CUSTOM' | 'CUSTOM_AUTHENTICATED' | 'ALLERGEN_ADAPT';
   overrideToken?: string;
+}
+
+export interface ExplicitOverride {
+  item: string;
+  confirmed: boolean;
+}
+
+export interface RemainingMacros {
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  calories?: number;
+}
+
+export interface PerformanceSessionContext {
+  sessionType: string;
+  sessionLabel: string;
+  reasoning: string;
+  starchyCarbs_g?: number;
+  fibrousCarbs_g?: number;
 }
 
 interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext, remainingMacros?: RemainingMacros, builderMode?: BuilderMode, performanceSessionContext?: PerformanceSessionContext, generationContext?: string, dietOverride?: string | null, servings?: number) => Promise<Meal | null>;
   cancel: () => void;
 }
 
-export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequestResult {
+export function useCreateWithChefRequest(userId?: string, proClientId?: string): UseCreateWithChefRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -103,11 +138,21 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
 
   const generateMeal = async (
     description: string,
-    mealType: "breakfast" | "lunch" | "dinner",
+    mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
     dietType?: DietType,
     dietPhase?: BeachBodyPhase,
     starchContext?: StarchContext,
-    safetyOptions?: SafetyOptions
+    safetyOptions?: SafetyOptions,
+    strictMode?: boolean,
+    explicitOverride?: ExplicitOverride,
+    userDietOverride?: boolean,
+    diversityContext?: DiversityContext,
+    remainingMacros?: RemainingMacros,
+    builderMode?: BuilderMode,
+    performanceSessionContext?: PerformanceSessionContext,
+    generationContext?: string,
+    dietOverride?: string | null,
+    servings?: number,
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -118,18 +163,28 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
     try {
       const response = await fetch(apiUrl("/api/meals/generate"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           type: "create-with-chef",
           mealType,
           input: description,
-          userId,
           count: 1,
-          dietType: dietType || null, // Pass diet type for guardrails
-          dietPhase: dietPhase || null, // Pass phase for BeachBody
-          starchContext: starchContext || null, // Pass starch context for intelligent carb distribution
+          dietType: dietType || null,
+          dietPhase: dietPhase || null,
+          remainingMacros: remainingMacros || null,
+          builderMode: builderMode || null,
+          starchContext: starchContext || null,
+          diversityContext: diversityContext || null,
           safetyMode: safetyOptions?.safetyMode || "STRICT",
           overrideToken: safetyOptions?.overrideToken,
+          strictMode: strictMode === true,
+          explicitOverride: explicitOverride || null,
+          userDietOverride: userDietOverride === true,
+          performanceSessionContext: performanceSessionContext || null,
+          generationContext: generationContext || null,
+          dietOverride: dietOverride || null,
+          servings: servings || 1,
+          proClientId: proClientId || undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -137,7 +192,6 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
       const data = await response.json();
       
       if (!response.ok || !data.success) {
-        // Check if this is a safety/allergy block with detailed message
         if (data.safetyBlocked && data.error) {
           throw new Error(data.error);
         }
@@ -149,21 +203,23 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
       }
 
       const generatedMeal = data.meals[0];
+      const mealId = generatedMeal.id || `chef-${Date.now()}`;
 
       const meal: Meal = {
-        id: generatedMeal.id || `chef-${Date.now()}`,
+        id: mealId,
         name: generatedMeal.name,
         title: generatedMeal.name,
         description: generatedMeal.description,
         ingredients: generatedMeal.ingredients || [],
         instructions: generatedMeal.instructions,
-        imageUrl: generatedMeal.imageUrl,
+        imageUrl: generatedMeal.imageUrl || null,
         calories: generatedMeal.calories,
         protein: generatedMeal.protein,
         carbs: generatedMeal.carbs,
         fat: generatedMeal.fat,
         starchyCarbs: generatedMeal.starchyCarbs || 0,
         fibrousCarbs: generatedMeal.fibrousCarbs || 0,
+        mealType: generatedMeal.mealType || undefined,
         nutrition: {
           calories: generatedMeal.calories || 0,
           protein: generatedMeal.protein || 0,
@@ -173,10 +229,13 @@ export function useCreateWithChefRequest(userId?: string): UseCreateWithChefRequ
           fibrousCarbs: generatedMeal.fibrousCarbs || 0,
         },
         medicalBadges: generatedMeal.medicalBadges || [],
+        substitutionNotes: generatedMeal.substitutionNotes || undefined,
+        dietClassification: generatedMeal.dietClassification || null,
       };
 
       stopProgressTicker();
       setGenerating(false);
+
       return meal;
     } catch (err: any) {
       if (err.name === "AbortError") {

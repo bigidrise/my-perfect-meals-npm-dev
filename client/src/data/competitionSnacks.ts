@@ -1,4 +1,4 @@
-import { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 
 export interface CompetitionSnackOption {
   id: string;

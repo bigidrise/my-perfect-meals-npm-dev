@@ -10,13 +10,20 @@ import {
 } from '../../shared/schema';
 import { eq, desc, sql, and } from 'drizzle-orm';
 import { learnToCookService } from '../services/learnToCookService';
+import { requireAuth } from '../middleware/requireAuth';
+import type { AuthenticatedRequest } from '../middleware/requireAuth';
 
 const router = express.Router();
+
+// Auth identity must be established first inside this router.
+// See: express-async-subrouter-bug — Express v4 does not await async middleware
+// in app.use(path, asyncFn, router). requireAuth inside the router guarantees
+// req.authUser is set before any handler runs.
+router.use(requireAuth);
 
 // Get current active challenge
 router.get('/current', async (req, res) => {
   try {
-    // Ensure monthly challenge exists for current month
     await learnToCookService.ensureMonthlyChallenge();
     
     const currentChallenge = await learnToCookService.getCurrentChallenge();
@@ -25,7 +32,6 @@ router.get('/current', async (req, res) => {
       return res.status(404).json({ error: 'No active challenge found' });
     }
 
-    // Get entries for this challenge
     const entries = await learnToCookService.getChallengeEntries(currentChallenge.id);
     
     res.json({ 
@@ -42,6 +48,8 @@ router.get('/current', async (req, res) => {
 // Submit entry to current challenge
 router.post('/current/submit', async (req, res) => {
   try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+
     const currentChallenge = await learnToCookService.getCurrentChallenge();
     
     if (!currentChallenge) {
@@ -52,14 +60,13 @@ router.post('/current/submit', async (req, res) => {
       return res.status(400).json({ error: 'Challenge is not accepting entries' });
     }
 
-    // Check if user already submitted
     const existingEntry = await db
       .select()
       .from(learnToCookEntries)
       .where(
         and(
           eq(learnToCookEntries.challengeId, currentChallenge.id),
-          eq(learnToCookEntries.userId, req.body.userId)
+          eq(learnToCookEntries.userId, userId)
         )
       );
 
@@ -67,16 +74,15 @@ router.post('/current/submit', async (req, res) => {
       return res.status(400).json({ error: 'User has already submitted to this challenge' });
     }
 
-    // Validate entry data
     const entryData = insertLearnToCookEntrySchema.parse({
       ...req.body,
+      userId,
       challengeId: currentChallenge.id
     });
 
-    // Insert entry
     const [entry] = await db
       .insert(learnToCookEntries)
-      .values(entryData)
+      .values(entryData as any)
       .returning();
 
     res.json({ entry, message: 'Entry submitted successfully!' });
@@ -90,13 +96,8 @@ router.post('/current/submit', async (req, res) => {
 router.post('/entries/:entryId/vote', async (req, res) => {
   try {
     const { entryId } = req.params;
-    const { userId } = req.body;
+    const userId = (req as AuthenticatedRequest).authUser.id;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
-    }
-
-    // Get entry details
     const [entry] = await db
       .select()
       .from(learnToCookEntries)
@@ -106,12 +107,10 @@ router.post('/entries/:entryId/vote', async (req, res) => {
       return res.status(404).json({ error: 'Entry not found' });
     }
 
-    // Check if user is trying to vote for their own entry
     if (entry.userId === userId) {
       return res.status(400).json({ error: 'Cannot vote for your own entry' });
     }
 
-    // Get challenge to check status
     const [challenge] = await db
       .select()
       .from(learnToCookChallenges)
@@ -121,7 +120,6 @@ router.post('/entries/:entryId/vote', async (req, res) => {
       return res.status(400).json({ error: 'Challenge is not in voting phase' });
     }
 
-    // Check if user already voted for this entry
     const existingVote = await db
       .select()
       .from(learnToCookVotes)
@@ -136,7 +134,6 @@ router.post('/entries/:entryId/vote', async (req, res) => {
       return res.status(400).json({ error: 'Already voted for this entry' });
     }
 
-    // Insert vote
     await db
       .insert(learnToCookVotes)
       .values({
@@ -159,7 +156,7 @@ router.get('/history', async (req, res) => {
       .select()
       .from(learnToCookChallenges)
       .orderBy(desc(learnToCookChallenges.createdAt))
-      .limit(12); // Last 12 months
+      .limit(12);
 
     const challengesWithStats = await Promise.all(
       challenges.map(async (challenge) => {
@@ -179,15 +176,20 @@ router.get('/history', async (req, res) => {
   }
 });
 
-// Get user badges
+// Get user badges — scoped to the authenticated user's own badges
 router.get('/user/:userId/badges', async (req, res) => {
   try {
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
     const { userId } = req.params;
+
+    if (userId !== authUserId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     const badges = await db
       .select()
       .from(userBadges)
-      .where(eq(userBadges.userId, userId))
+      .where(eq(userBadges.userId, authUserId))
       .orderBy(desc(userBadges.createdAt));
 
     res.json({ badges });
@@ -197,7 +199,7 @@ router.get('/user/:userId/badges', async (req, res) => {
   }
 });
 
-// Admin: Update challenge statuses (called by cron job)
+// Admin: Update challenge statuses
 router.post('/admin/update-statuses', async (req, res) => {
   try {
     await learnToCookService.updateChallengeStatuses();

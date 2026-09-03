@@ -11,10 +11,16 @@ export const proAccounts = pgTable("pro_accounts", {
 
 export const clientLinks = pgTable("client_links", {
   id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id"),
   clientUserId: text("client_user_id").notNull(),
   proUserId: text("pro_user_id").notNull(),
   active: boolean("active").notNull().default(true),
+  mealBoardControl: text("meal_board_control").notNull().default("client"),
+  boardControlUpdatedAt: timestamp("board_control_updated_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  // NOTE: (clientUserId, proUserId) uniqueness is enforced via DB index
+  // idx_client_links_unique_pair — added by boot migration.
+  // Do NOT add an `updatedAt` column here; there is none in the database.
 });
 
 export const subscriptions = pgTable("subscriptions", {

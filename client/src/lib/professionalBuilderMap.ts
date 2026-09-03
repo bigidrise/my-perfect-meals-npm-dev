@@ -23,7 +23,7 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
 > = {
   weekly: {
     key: "weekly",
-    role: "both",
+    role: "physician",
     label: "Weekly Meal Board",
     proRoute: "weekly-builder",
     description: "A flexible weekly meal plan for general fitness clients.",
@@ -38,9 +38,9 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   beach_body: {
     key: "beach_body",
     role: "both",
-    label: "Beach Body",
+    label: "Performance Nutrition Builder",
     proRoute: "beach-body-builder",
-    description: "Lean physique and fat-loss focused meal planning.",
+    description: "Sport-specific fueling — energy systems, carb timing, and recovery for athletes.",
   },
   performance_competition: {
     key: "performance_competition",
@@ -58,17 +58,17 @@ export const PROFESSIONAL_BUILDER_MAP: Record<
   },
   diabetic: {
     key: "diabetic",
-    role: "both",
+    role: "physician",
     label: "Diabetic",
     proRoute: "diabetic-builder",
     description: "Glucose-controlled meals for diabetic and pre-diabetic clients.",
   },
   glp1: {
     key: "glp1",
-    role: "both",
-    label: "GLP-1",
+    role: "physician",
+    label: "Metabolic Medication",
     proRoute: "glp1-builder",
-    description: "Portion-aware meals for clients on GLP-1 medications.",
+    description: "Portion-aware meals for clients on metabolic medications.",
   },
 };
 

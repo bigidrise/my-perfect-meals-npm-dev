@@ -11,6 +11,8 @@ import {
 } from '../../shared/schema';
 import { eq, desc, sql, and, asc } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { requireAuth } from '../middleware/requireAuth';
+import type { AuthenticatedRequest } from '../middleware/requireAuth';
 
 const router = express.Router();
 
@@ -25,6 +27,12 @@ function getOpenAI(): OpenAI {
   }
   return _openai;
 }
+
+// Auth identity must be established first inside this router.
+// See: express-async-subrouter-bug — Express v4 does not await async middleware
+// in app.use(path, asyncFn, router). requireAuth inside the router guarantees
+// req.authUser is set before any handler runs.
+router.use(requireAuth);
 
 // Get all classes by track (beginner, intermediate, advanced)
 router.get('/tracks/:track', async (req, res) => {
@@ -77,26 +85,30 @@ router.get('/class/:classId', async (req, res) => {
   }
 });
 
-// Get user's progress for a specific track
+// Get user's progress for a specific track — scoped to authenticated user
 router.get('/progress/:userId/:track', async (req, res) => {
   try {
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
     const { userId, track } = req.params;
+
+    if (userId !== authUserId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     const progress = await db
       .select()
       .from(cookingClassProgress)
       .where(and(
-        eq(cookingClassProgress.userId, userId),
+        eq(cookingClassProgress.userId, authUserId),
         eq(cookingClassProgress.track, track)
       ))
       .limit(1);
 
     if (!progress.length) {
-      // Create initial progress record
       const newProgress = await db
         .insert(cookingClassProgress)
         .values({
-          userId,
+          userId: authUserId,
           track,
           completedClasses: [],
           currentModule: null,
@@ -115,17 +127,21 @@ router.get('/progress/:userId/:track', async (req, res) => {
   }
 });
 
-// Submit journal entry for a class
+// Submit journal entry for a class — userId sourced from session, not body
 router.post('/journal/submit', async (req, res) => {
   try {
-    const entryData = insertCookingClassJournalSchema.parse(req.body);
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
 
-    // Check if user already submitted for this class
+    const entryData: any = insertCookingClassJournalSchema.parse({
+      ...req.body,
+      userId: authUserId
+    });
+
     const existingEntry = await db
       .select()
       .from(cookingClassJournal)
       .where(and(
-        eq(cookingClassJournal.userId, entryData.userId),
+        eq(cookingClassJournal.userId, authUserId),
         eq(cookingClassJournal.classId, entryData.classId)
       ));
 
@@ -133,7 +149,6 @@ router.post('/journal/submit', async (req, res) => {
       return res.status(400).json({ error: 'User has already submitted a journal entry for this class' });
     }
 
-    // Get AI evaluation of the submission
     let aiScore = null;
     let aiFeedback = null;
 
@@ -144,11 +159,9 @@ router.post('/journal/submit', async (req, res) => {
         aiFeedback = evaluation.feedback;
       } catch (aiError) {
         console.error('AI evaluation failed:', aiError);
-        // Continue without AI evaluation
       }
     }
 
-    // Insert journal entry
     const entry = await db
       .insert(cookingClassJournal)
       .values({
@@ -158,8 +171,7 @@ router.post('/journal/submit', async (req, res) => {
       })
       .returning();
 
-    // Update user progress
-    await updateUserProgress(entryData.userId, entryData.classId, aiScore || 0);
+    await updateUserProgress(authUserId, entryData.classId, aiScore || 0);
 
     res.json({ 
       success: true,
@@ -171,7 +183,7 @@ router.post('/journal/submit', async (req, res) => {
   }
 });
 
-// Get journal entries for a class (for community viewing)
+// Get journal entries for a class (community viewing)
 router.get('/class/:classId/journal', async (req, res) => {
   try {
     const { classId } = req.params;
@@ -197,21 +209,23 @@ router.get('/class/:classId/journal', async (req, res) => {
   }
 });
 
-// Vote on a journal entry
+// Vote on a journal entry — userId sourced from session, not body
 router.post('/journal/:entryId/vote', async (req, res) => {
   try {
     const { entryId } = req.params;
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
+
     const voteData = insertCookingClassVoteSchema.parse({
       ...req.body,
+      userId: authUserId,
       journalEntryId: entryId
     });
 
-    // Check if user already voted on this entry
     const existingVote = await db
       .select()
       .from(cookingClassVotes)
       .where(and(
-        eq(cookingClassVotes.userId, voteData.userId),
+        eq(cookingClassVotes.userId, authUserId),
         eq(cookingClassVotes.journalEntryId, entryId)
       ));
 
@@ -219,10 +233,9 @@ router.post('/journal/:entryId/vote', async (req, res) => {
       return res.status(400).json({ error: 'User has already voted on this entry' });
     }
 
-    // Insert vote
     const vote = await db
       .insert(cookingClassVotes)
-      .values(voteData)
+      .values(voteData as any)
       .returning();
 
     res.json({ 
@@ -260,7 +273,6 @@ router.get('/leaderboard/:track', async (req, res) => {
   }
 });
 
-// Helper function to evaluate submission with AI
 async function evaluateSubmissionWithAI(photoUrl: string, blurb: string): Promise<{ score: number; feedback: string }> {
   const prompt = `
     Evaluate this cooking class submission on a scale of 1-100:
@@ -279,7 +291,7 @@ async function evaluateSubmissionWithAI(photoUrl: string, blurb: string): Promis
 
   try {
     const response = await getOpenAI().chat.completions.create({
-      model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+      model: "gpt-5",
       messages: [
         {
           role: "system",
@@ -309,10 +321,8 @@ async function evaluateSubmissionWithAI(photoUrl: string, blurb: string): Promis
   }
 }
 
-// Helper function to update user progress
 async function updateUserProgress(userId: string, classId: string, xpGained: number): Promise<void> {
   try {
-    // Get class details to determine track
     const classDetails = await db
       .select()
       .from(cookingClasses)
@@ -323,7 +333,6 @@ async function updateUserProgress(userId: string, classId: string, xpGained: num
 
     const track = classDetails[0].track;
 
-    // Get current progress
     const currentProgress = await db
       .select()
       .from(cookingClassProgress)
@@ -334,7 +343,6 @@ async function updateUserProgress(userId: string, classId: string, xpGained: num
       .limit(1);
 
     if (!currentProgress.length) {
-      // Create new progress record
       await db
         .insert(cookingClassProgress)
         .values({
@@ -346,7 +354,6 @@ async function updateUserProgress(userId: string, classId: string, xpGained: num
           totalXp: xpGained
         });
     } else {
-      // Update existing progress
       const progress = currentProgress[0];
       const completedClasses = Array.isArray(progress.completedClasses) ? progress.completedClasses : [];
       

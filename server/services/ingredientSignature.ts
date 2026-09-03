@@ -14,6 +14,12 @@ export interface IngredientSignatureInput {
   cookingMethods?: Record<string, string>;
   /** Primary diet mode (vegan/vegetarian/pescatarian/none). Ensures diet-specific meals are cached separately. */
   primaryDiet?: string;
+  /**
+   * Macro policy version — bump this when changing how macros are generated/stored
+   * so contaminated cache entries from prior behavior are automatically invalidated.
+   * Current: "mtp1" (Macro Truth Policy v1 — removes baseline injection + numeric fallbacks)
+   */
+  policyVersion?: string;
 }
 
 /**
@@ -36,7 +42,7 @@ function normalizeIngredient(name: string): string {
  * Sorted alphabetically so order doesn't matter
  */
 export function createIngredientSignature(input: IngredientSignatureInput): string {
-  const { ingredients, mealType, cookingMethods, primaryDiet } = input;
+  const { ingredients, mealType, cookingMethods, primaryDiet, policyVersion } = input;
   
   const normalizedIngredients = ingredients
     .map(normalizeIngredient)
@@ -56,11 +62,15 @@ export function createIngredientSignature(input: IngredientSignatureInput): stri
   // are cached separately from unrestricted meals — prevents diet bypass via cache
   const dietPart = primaryDiet ? primaryDiet.toLowerCase() : 'none';
   
+  // Include policy version so cache entries generated before macro policy changes
+  // are automatically invalidated when the version is bumped
+  const versionPart = policyVersion ?? 'mtp1';
+  
   const base = methodPart 
     ? `${mealType}|${ingredientPart}|${methodPart}`
     : `${mealType}|${ingredientPart}`;
   
-  return `${base}|diet:${dietPart}`;
+  return `${base}|diet:${dietPart}|v:${versionPart}`;
 }
 
 /**

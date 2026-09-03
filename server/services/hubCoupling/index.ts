@@ -13,7 +13,7 @@ import type { UnifiedMeal } from '../unifiedMealPipeline';
 const hubRegistry = new Map<HubType, HubModule>();
 let hubsRegistered = false;
 
-const VALID_HUB_TYPES: HubType[] = ['diabetic', 'competition_pro', 'glp1', 'anti_inflammatory'];
+const VALID_HUB_TYPES: HubType[] = ['diabetic', 'competition-pro', 'glp1', 'anti-inflammatory'];
 
 export function registerHub(module: HubModule): void {
   if (hubRegistry.has(module.hubType)) {

@@ -1,0 +1,5 @@
+{
+  "activeHardcodedStrings": 6466,
+  "generatedAt": "2026-08-15T00:12:26.012Z",
+  "note": "Post shared-component batch 1 (23 components, ~1100 strings migrated to t()). Previous ceiling 7002 (first accurate uncapped baseline, tasks 1046+1048); ratcheted down to 6466. Task-1050 also moved the 25 remaining UNKNOWN_REVIEW files to client/src/legacy/ — all were dead/superseded. UNKNOWN_REVIEW is now 0; GATE_08 covers 100% of the live client surface: 656 ACTIVE files, 0 UNKNOWN_REVIEW, 34 QUARANTINED."
+}

@@ -3,6 +3,8 @@ import { MealGenerationRequest, Meal } from "./mealEngineService";
 import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
+import { evaluateWholeFoodCandidate } from "./wholeFoodStandard";
+import type { WholeFoodDecision } from "./wholeFoodStandard";
 
 // === FALLBACK USAGE TRACKING ===
 // Track when fallback meals are used - this indicates AI is not working
@@ -17,7 +19,10 @@ export function getFallbackStats() {
   };
 }
 
-export function createFallbackMeal(request: MealGenerationRequest): Meal & { _debug?: DebugMetadata | null } {
+export function createFallbackMeal(request: MealGenerationRequest): Meal & {
+  _debug?: DebugMetadata | null;
+  wholeFoodDecision?: WholeFoodDecision;
+} {
   // === ALERT: Fallback being used ===
   fallbackUsageCount++;
   lastFallbackTime = new Date();
@@ -165,6 +170,18 @@ export function createFallbackMeal(request: MealGenerationRequest): Meal & { _de
     ? template.instructions 
     : template.instructions.split('. ').filter((step: any) => step.trim());
 
+  // Fallbacks are still human-food recommendations and cannot bypass the
+  // shared deterministic selection policy when AI is unavailable.
+  const wholeFoodDecision = evaluateWholeFoodCandidate({
+    name: mealName,
+    description: template.description,
+    ingredients: formattedIngredients.map((ingredient: any) => ingredient.item),
+    instructions: formattedInstructions,
+  }, { recommendationSurface: "fallback_meal" });
+  if (wholeFoodDecision.shouldBlock) {
+    throw new Error(`Fallback meal rejected by ${wholeFoodDecision.policyVersion}: ${wholeFoodDecision.reason}`);
+  }
+
   console.log(`🍽️ Creating fallback meal: ${mealName} with ${formattedIngredients.length} ingredients, ${formattedInstructions.length} steps`);
 
   // Build debug metadata and close session
@@ -193,6 +210,7 @@ export function createFallbackMeal(request: MealGenerationRequest): Meal & { _de
       medicalCleared: true,
       unitsStandardized: true
     },
+    wholeFoodDecision,
     _debug: debugMetadata
   };
 }

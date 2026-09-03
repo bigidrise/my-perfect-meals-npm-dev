@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { apiUrl } from '@/lib/resolveApiBase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PickerModal } from "@/components/ui/universal-modal";
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
@@ -353,7 +353,7 @@ export default function SnackPickerDrawer({
         nutrition: generatedSnack.nutrition || {
           calories: generatedSnack.calories || 150,
           protein: generatedSnack.protein || 10,
-          carbs: generatedSnack.carbs || 15,
+          carbs: generatedSnack.carbs ?? null,
           fat: generatedSnack.fat || 8
         },
         medicalBadges: generatedSnack.medicalBadges || [],
@@ -422,13 +422,13 @@ export default function SnackPickerDrawer({
     : allSnacks;
 
   return (
-    <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border border-white/20 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-white text-xl font-semibold">
-            Snack Creator
-          </DialogTitle>
-        </DialogHeader>
+    <>
+    <PickerModal
+      open={open}
+      onOpenChange={handleDialogChange}
+      title="Snack Creator"
+      className="max-w-2xl bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border-white/20 rounded-2xl"
+    >
 
         {/* Category Tabs - Purple Style (Matching AI Premades) */}
         <div className="flex flex-nowrap gap-2 mb-3 overflow-x-auto w-full min-w-0 pb-2 overscroll-x-contain touch-pan-x">
@@ -501,15 +501,13 @@ export default function SnackPickerDrawer({
             />
           </div>
         )}
-      </DialogContent>
-
-      {/* Preparation Style Modal */}
-      <PreparationModal
-        open={prepModalOpen}
-        ingredientName={currentIngredient}
-        onClose={() => setPrepModalOpen(false)}
-        onSelect={handlePrepSelect}
-      />
-    </Dialog>
+    </PickerModal>
+    <PreparationModal
+      open={prepModalOpen}
+      ingredientName={currentIngredient}
+      onClose={() => setPrepModalOpen(false)}
+      onSelect={handlePrepSelect}
+    />
+    </>
   );
 }

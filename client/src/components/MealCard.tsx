@@ -1,6 +1,9 @@
 // client/src/components/MealCard.tsx
 import * as React from "react";
-import { BarChart3 } from "lucide-react";
+// getMealFallbackImage removed in Phase 1 — image failures show neutral placeholder, never another food
+import { BarChart3, Loader2, Wand2, RotateCcw } from "lucide-react";
+import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
+import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 import { generateMedicalBadges, getUserMedicalProfile, type MedicalBadge } from "@/utils/medicalBadges";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { useToast } from "@/hooks/use-toast";
@@ -10,32 +13,114 @@ import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
+import DietStyleBadge from "@/components/DietStyleBadge";
+import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import { type Meal, type DietClassification } from "@/types/meal";
+import KosherProTip from "@/components/KosherProTip";
+import BuilderSourcePill from "@/components/BuilderSourcePill";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
+import FavoriteButton from "@/components/FavoriteButton";
+import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
+import { useAuth } from "@/contexts/AuthContext";
+import MealRefinementSheet from "@/components/MealRefinementSheet";
+import { MealRefinementPanel } from "@/components/MealRefinementPanel";
+import { useTranslation } from "react-i18next";
 
-// Keep your Meal type colocated here (WeeklyMealBoard imports from this file)
-export type Meal = {
-  id: string;
-  title?: string;
-  name?: string;
-  description?: string;
-  servings?: number;
-  ingredients?: any[];
-  instructions?: any[];
-  nutrition?: { calories: number; protein: number; carbs: number; fat: number; starchyCarbs?: number; fibrousCarbs?: number };
-  orderIndex?: number;
-  entryType?: "quick" | "recipe";
-  brand?: string;
-  servingDesc?: string;
-  includeInShoppingList?: boolean;
-  badges?: string[];
-  imageUrl?: string;
-  cookingTime?: string;
-  difficulty?: string;
-  medicalBadges?: any[];
-  starchyCarbs?: number;
-  fibrousCarbs?: number;
+// UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
+import type { BoardMealSlot } from "@/lib/mealSlots";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Meal type is canonical at @/types/meal — re-exported here for backward compat
+export type { Meal } from "@/types/meal";
+
+type Slot = BoardMealSlot;
+
+// Explicit static mapping — unknown/future phases safely return no bullets rather than raw i18n keys.
+const COMP_PHASE_BULLET_KEYS: Partial<Record<string, [string, string]>> = {
+  fat_loss:            ["protocol_bullet_fat_loss_0",            "protocol_bullet_fat_loss_1"],
+  conditioning:        ["protocol_bullet_conditioning_0",        "protocol_bullet_conditioning_1"],
+  peak_prep:           ["protocol_bullet_peak_prep_0",           "protocol_bullet_peak_prep_1"],
+  peak_week:           ["protocol_bullet_peak_week_0",           "protocol_bullet_peak_week_1"],
+  show_day:            ["protocol_bullet_show_day_0",            "protocol_bullet_show_day_1"],
+  post_competition:    ["protocol_bullet_post_competition_0",    "protocol_bullet_post_competition_1"],
+  strength_building:   ["protocol_bullet_strength_building_0",   "protocol_bullet_strength_building_1"],
+  intensity_phase:     ["protocol_bullet_intensity_phase_0",     "protocol_bullet_intensity_phase_1"],
+  taper:               ["protocol_bullet_taper_0",               "protocol_bullet_taper_1"],
+  meet_week:           ["protocol_bullet_meet_week_0",           "protocol_bullet_meet_week_1"],
+  meet_day:            ["protocol_bullet_meet_day_0",            "protocol_bullet_meet_day_1"],
+  conditioning_combat: ["protocol_bullet_conditioning_combat_0", "protocol_bullet_conditioning_combat_1"],
+  fight_prep:          ["protocol_bullet_fight_prep_0",          "protocol_bullet_fight_prep_1"],
+  weight_cut:          ["protocol_bullet_weight_cut_0",          "protocol_bullet_weight_cut_1"],
+  fight_week:          ["protocol_bullet_fight_week_0",          "protocol_bullet_fight_week_1"],
+  fight_day:           ["protocol_bullet_fight_day_0",           "protocol_bullet_fight_day_1"],
+  pre_season:          ["protocol_bullet_pre_season_0",          "protocol_bullet_pre_season_1"],
+  in_season:           ["protocol_bullet_in_season_0",           "protocol_bullet_in_season_1"],
+  championship_week:   ["protocol_bullet_championship_week_0",   "protocol_bullet_championship_week_1"],
+  match_day:           ["protocol_bullet_match_day_0",           "protocol_bullet_match_day_1"],
+  off_season:          ["protocol_bullet_off_season_0",          "protocol_bullet_off_season_1"],
+  base_conditioning:   ["protocol_bullet_base_conditioning_0",   "protocol_bullet_base_conditioning_1"],
+  event_prep:          ["protocol_bullet_event_prep_0",          "protocol_bullet_event_prep_1"],
+  competition_week:    ["protocol_bullet_competition_week_0",    "protocol_bullet_competition_week_1"],
+  competition_day:     ["protocol_bullet_competition_day_0",     "protocol_bullet_competition_day_1"],
+  base_building:       ["protocol_bullet_base_building_0",       "protocol_bullet_base_building_1"],
+  build_phase:         ["protocol_bullet_build_phase_0",         "protocol_bullet_build_phase_1"],
+  race_prep:           ["protocol_bullet_race_prep_0",           "protocol_bullet_race_prep_1"],
+  race_day:            ["protocol_bullet_race_day_0",            "protocol_bullet_race_day_1"],
+  post_race:           ["protocol_bullet_post_race_0",           "protocol_bullet_post_race_1"],
 };
 
-type Slot = "breakfast" | "lunch" | "dinner" | "snacks";
+// Safe dynamic-key lookup: if i18next finds no translation it echoes the key back.
+// Fall back to the supplied display label (from server) or a generic fallback string.
+function tProtocolLabel(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  key: string,
+  displayLabelFallback?: string,
+  genericFallback?: string,
+): string {
+  const result = t(key as any);
+  if (result === key) {
+    return displayLabelFallback || genericFallback || result;
+  }
+  return result;
+}
+
+function getProtocolBullets(ap: NonNullable<Meal["appliedProtocol"]>, t: (key: string, opts?: Record<string, unknown>) => string): string[] {
+  if (ap.track === "competition") {
+    const phase = ap.currentPhase ?? "";
+    const compType = ap.competitionType ?? "";
+    const bulletKeys = COMP_PHASE_BULLET_KEYS[phase];
+    const extra = bulletKeys ? [t(bulletKeys[0]), t(bulletKeys[1])] : [];
+    const compTypeLabel = compType
+      ? tProtocolLabel(t, `protocol_comptype_${compType}`, ap.competitionTypeLabel, compType)
+      : "";
+    const base = [
+      t("protocol_competitionPrepLabel", { type: compTypeLabel }),
+      `${phase ? tProtocolLabel(t, `protocol_phaselabel_${phase}`, ap.currentPhaseLabel, phase) : ""}${ap.weeksOut != null && ap.weeksOut > 0 ? ` · ${t("weeksOut", { n: ap.weeksOut })}` : ""}`,
+    ];
+    return [...base, ...extra];
+  }
+  const sportLabel = ap.trainingType
+    ? tProtocolLabel(t, `protocol_sport_${ap.trainingType}`, ap.trainingType)
+    : t("sportFallback");
+  const phaseKey = `protocol_phase_${ap.trainingPhase ?? ""}`;
+  const phaseLabel = ap.trainingPhase
+    ? t(phaseKey)
+    : t("protocol_performancePhaseFallback");
+  const goalLabel =
+    ap.primaryGoal === "fat_loss" ? t("protocol_goalFatLoss") :
+    ap.primaryGoal === "muscle_gain" ? t("protocol_goalMuscleGain") :
+    ap.primaryGoal === "strength" ? t("protocol_goalStrength") :
+    t("protocol_goalPeak");
+  return [
+    t("protocol_athleticPerfLabel", { sport: sportLabel }),
+    phaseLabel,
+    goalLabel,
+    t("protocol_recoverySupportActive"),
+  ];
+}
 
 function MacroPill({ label, value, suffix = "" }: { label: string; value: number; suffix?: string }) {
   return (
@@ -46,41 +131,116 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
   );
 }
 
+/** ISO date regex — used to distinguish "board" from real YYYY-MM-DD values. */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 export function MealCard({
-  date, slot, meal, onUpdated, showStarchBadge = false,
+  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType, diabeticMemoryContext,
+  weekStartISO, onRefined,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
   meal: Meal;
   onUpdated: (m: Meal | null) => void; // null = delete
   showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
+  coachingLine?: string; // Optional coaching confirmation line shown below the meal image
+  builderType?: string; // Builder identity override — used by medical builders (e.g. "oncology-support")
+  diabeticMemoryContext?: { generatedBglMgdl: number; glucoseContext: string; protocolTypeLabel: string; bglBucket: string; recommendedBglRange: string; generatedAt: string; source: string; };
+  /**
+   * When present (and `date` is a real YYYY-MM-DD, not "board"), shows the
+   * component-swap Refine panel. Identifies the weekly board for this meal.
+   */
+  weekStartISO?: string;
+  /** Called after a successful component swap so the board can be refreshed. */
+  onRefined?:   () => void;
 }) {
+  const { t } = useTranslation("mealCard");
   const { toast } = useToast();
+  const { user } = useAuth();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
   const [ingredientsExpanded, setIngredientsExpanded] = React.useState(false);
-  
-  const title = meal.title || meal.name || "Meal";
+  const [refineOpen, setRefineOpen] = React.useState(false);
+  const [preRefineMeal, setPreRefineMeal] = React.useState<Meal | null>(null);
+  const [instructionsExpanded, setInstructionsExpanded] = React.useState(false);
+  const [activeStep, setActiveStep] = React.useState<number | null>(null);
+  const [translatedContent, setTranslatedContent] = React.useState<{
+    name?: string;
+    description?: string;
+    ingredients?: any[];
+    instructions?: any[] | string;
+  }>({});
+
+  React.useEffect(() => {
+    setTranslatedContent({});
+    setInstructionsExpanded(false);
+    setActiveStep(null);
+  }, [meal.id]);
+
+  // Translation — fires when savedMealId is a valid UUID; falls back to meal.id for
+  // saved meals that were added to the board before savedMealId was introduced.
+  const _validSavedMealId =
+    (meal.savedMealId && UUID_RE.test(meal.savedMealId)) ? meal.savedMealId :
+    (meal.id && UUID_RE.test(meal.id)) ? meal.id :
+    "";
+  const { data: translation, isFetching: isTranslating } = useTranslatedMeal(
+    _validSavedMealId,
+    Boolean(_validSavedMealId)
+  );
+
+  // Sync translation into the existing translatedContent state; amounts/units/nutrition stay canonical
+  React.useEffect(() => {
+    if (!translation) return;
+    setTranslatedContent({
+      name: translation.translatedName,
+      description: translation.translatedDescription ?? undefined,
+      ingredients: translation.translatedIngredients
+        ? (meal.ingredients ?? []).map((orig: any, i: number) => {
+            const tx = translation.translatedIngredients![i];
+            if (!tx) return orig;
+            if (typeof orig === "string") return tx.item;
+            return { ...orig, item: tx.item ?? orig.item, notes: tx.notes ?? orig.notes };
+          })
+        : undefined,
+      instructions: translation.translatedInstructions ?? undefined,
+    });
+  }, [translation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const title = meal.title || meal.name || t("mealFallback");
+  const displayTitle = translatedContent.name ?? title;
+  const displayDescription = translatedContent.description ?? (meal as any).description;
+  const displayIngredients = translatedContent.ingredients ?? meal.ingredients;
+  const displayInstructions = translatedContent.instructions ?? meal.instructions;
   const kcal = meal.nutrition?.calories ?? 0;
   const protein = meal.nutrition?.protein ?? 0;
   const carbs = meal.nutrition?.carbs ?? 0;
   const fat = meal.nutrition?.fat ?? 0;
-  const starchyCarbs = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
-  const fibrousCarbs = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
-  const hasStarchyFibrous = typeof starchyCarbs === "number" && typeof fibrousCarbs === "number";
+  const storedStarchy = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
+  const storedFibrous = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
+  const hasSplit = typeof storedStarchy === "number" && typeof storedFibrous === "number";
+  const { starchyCarbs, fibrousCarbs } = hasSplit
+    ? { starchyCarbs: storedStarchy!, fibrousCarbs: storedFibrous! }
+    : deriveSplitCarbs(meal.ingredients ?? [], carbs);
+  const hasStarchyFibrous = carbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0;
 
-  const onDelete = () => { if (confirm("Remove this meal from the board?")) onUpdated(null); };
+  const onDelete = () => { if (confirm(t("removeFromBoard"))) onUpdated(null); };
+  const macroMealSlot =
+    slot === "meal4" || slot === "meal5" || slot === "meal6" ? "dinner" : slot;
 
   const handleLogMacros = async () => {
     try {
       const { post } = await import("@/lib/api");
+      // Only send the split when we have a genuine value (hasSplit = stored from AI,
+      // or deriveSplitCarbs produced a non-zero result). Sending 0/0 with carbs > 0
+      // blocks the server's fallback that treats unknown carbs as starchy.
+      const hasGenuineSplit = hasSplit || starchyCarbs > 0 || fibrousCarbs > 0;
       const logEntry = {
         mealName: title,
         calories: kcal,
         protein,
         carbs,
         fat,
-        starchyCarbs: starchyCarbs || 0,
-        fibrousCarbs: fibrousCarbs || 0,
+        starchyCarbs: hasGenuineSplit ? starchyCarbs : null,
+        fibrousCarbs: hasGenuineSplit ? fibrousCarbs : null,
         servings: meal.servings || 1,
         source: "weekly-meal-board"
       };
@@ -92,13 +252,13 @@ export function MealCard({
 
       setMacrosLogged(true);
       toast({
-        title: "Logged Successfully",
-        description: `${title} has been logged to your macros.`,
+        title: t("loggedSuccessfully"),
+        description: t("loggedDesc", { name: title }),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to log macros. Please try again.",
+        title: t("common:error", "Error"),
+        description: t("failedToLog"),
         variant: "destructive",
       });
     }
@@ -106,60 +266,100 @@ export function MealCard({
 
   // Detect Create With Chef meals for special styling
   const isChefMeal = meal.id?.startsWith("chef-");
-  
+  const isAIMeal = isChefMeal || meal.id?.startsWith("ai-meal-");
+  const imageUrl = (meal as any).imageUrl as string | null | undefined;
+
   return (
+    <>
     <div className={`relative rounded-2xl border bg-white/5 backdrop-blur-xl overflow-hidden hover:bg-white/10 transition-colors ${isChefMeal ? "flash-border" : "border-white/20"}`}>
-      {/* Image at top if available (EXACT COPY FROM FRIDGE RESCUE) */}
-      {(meal as any).imageUrl && (
-        <div className="relative">
-          <img
-            src={(meal as any).imageUrl}
-            alt={title}
-            className="w-full h-48 object-cover"
-            onError={(e) => {
-              e.currentTarget.src = `https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop&auto=format`;
-            }}
-          />
-        </div>
+      {/* Image slot — always rendered for AI/chef meals so shimmer shows while loading */}
+      {(isAIMeal || imageUrl) && (
+        <MealImageSlot
+          imageUrl={imageUrl}
+          mealName={title}
+          ingredients={(meal as any).ingredients}
+          height="h-48"
+          className="!mb-0 !rounded-none"
+        />
       )}
 
-      <div className="p-4">
-        <div className="absolute top-2 right-2 z-50" onClick={(e) => e.stopPropagation()}>
-          <TrashButton
-            size="sm"
-            onClick={() => onUpdated(null)}
-            ariaLabel="Delete meal"
-            title="Delete meal"
-            confirm={true}
-            confirmMessage="Remove this meal from the board?"
-            className="touch-manipulation"
-          />
-        </div>
+      {/* Coaching confirmation line — specific line from builder, or universal fallback */}
+      <div className="px-4 pt-3 pb-0">
+        <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
+          {coachingLine || getClinicalCoachingLine(builderType)}
+        </p>
+      </div>
 
-        <div className="pr-12">
+      <div className="p-4">
+        <div>
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-white font-semibold leading-snug text-lg flex-1">
-              {title.includes('(') ? (
+              {displayTitle.includes('(') ? (
                 <>
-                  {title.split('(')[0].trim()}
+                  {displayTitle.split('(')[0].trim()}
                   <br />
-                  ({title.split('(')[1]}
+                  ({displayTitle.split('(')[1]}
                 </>
               ) : (
-                title
+                displayTitle
               )}
             </h3>
-            {showStarchBadge && (
-              <StarchMealBadge meal={{ name: title, ingredients: meal.ingredients }} />
-            )}
+            <FavoriteButton
+              title={title}
+              sourceType={builderType ?? meal.builderType ?? "meal-builder"}
+              mealData={{ ...meal, builderType: builderType ?? meal.builderType, ...(diabeticMemoryContext ? { diabeticMemory: diabeticMemoryContext } : {}) }}
+              size={20}
+            />
           </div>
-          
-          {/* Description (EXACT COPY FROM FRIDGE RESCUE) */}
-          {(meal as any).description && (
-            <p className="text-sm text-white/80 mt-1">{(meal as any).description}</p>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            {showStarchBadge && (
+              <StarchMealBadge meal={{ name: displayTitle, ingredients: displayIngredients }} />
+            )}
+            <DietStyleBadge />
+            <BuilderSourcePill source={builderType ?? meal.builderType} />
+            <MealClassificationPill dietClassification={meal.dietClassification} />
+            <KosherProTip dietClassification={meal.dietClassification} />
+          </div>
+          {diabeticMemoryContext && (
+            <div className="mt-2 rounded-lg bg-lime-950/60 border border-lime-700/40 px-3 py-2 text-xs space-y-0.5">
+              <div className="text-lime-400 font-semibold tracking-wide uppercase text-[10px]">{t("diabetesProtocol")}</div>
+              <div className="text-white/80">{t("generatedForBGL")} <span className="text-white font-medium">{diabeticMemoryContext.generatedBglMgdl} mg/dL</span></div>
+              <div className="text-white/60">{diabeticMemoryContext.protocolTypeLabel}</div>
+              <div className="text-white/50 text-[10px]">{t("relevantRange")} {diabeticMemoryContext.recommendedBglRange}</div>
+            </div>
           )}
 
-          {/* Medical Badges - RESTORED DROPDOWN (EXACT COPY FROM FRIDGE RESCUE) */}
+          {meal.appliedProtocol && (
+            <div className="mt-2 rounded-lg bg-orange-950/40 border border-orange-500/30 px-3 py-2 text-xs space-y-1.5">
+              <div className="text-orange-400 font-semibold tracking-wide uppercase text-[10px]">
+                {meal.appliedProtocol.track === "competition" ? t("competitionPrepProtocol") : t("athleticPerformanceProtocol")}
+              </div>
+              <div className="text-white/80 font-medium text-[11px]">
+                {meal.appliedProtocol.track === "competition"
+                  ? `${meal.appliedProtocol.competitionType ? tProtocolLabel(t, `protocol_comptype_${meal.appliedProtocol.competitionType}`, meal.appliedProtocol.competitionTypeLabel, meal.appliedProtocol.competitionType) : ""} · ${meal.appliedProtocol.currentPhase ? tProtocolLabel(t, `protocol_phaselabel_${meal.appliedProtocol.currentPhase}`, meal.appliedProtocol.currentPhaseLabel, meal.appliedProtocol.currentPhase) : ""}${meal.appliedProtocol.weeksOut != null && meal.appliedProtocol.weeksOut > 0 ? ` · ${t("weeksOut", { n: meal.appliedProtocol.weeksOut })}` : ""}`
+                  : `${meal.appliedProtocol.trainingType ? tProtocolLabel(t, `protocol_sport_${meal.appliedProtocol.trainingType}`, meal.appliedProtocol.trainingType) : ""} · ${t("sessionsPerWeek", { n: meal.appliedProtocol.trainingFrequency })}`
+                }
+              </div>
+              <div className="pt-1 border-t border-orange-500/20">
+                <div className="text-orange-300 font-semibold text-[10px] uppercase tracking-wide mb-1">{t("whyThisMealWasBuilt")}</div>
+                <ul className="space-y-0.5">
+                  {getProtocolBullets(meal.appliedProtocol, t).map((bullet, i) => (
+                    <li key={i} className="text-white/70 text-[11px] flex items-start gap-1">
+                      <span className="text-orange-400 leading-none mt-0.5">•</span>
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Description */}
+          {displayDescription && (
+            <p className="text-sm text-white/80 mt-1">{displayDescription}</p>
+          )}
+
+          {/* Medical Safety row — always rendered, trash anchored to the right */}
           {(() => {
             const userProfile = getUserMedicalProfile(1);
             const mealForBadges = {
@@ -171,10 +371,27 @@ export function MealCard({
             const medicalBadges = generateMedicalBadges(mealForBadges, userProfile);
             const badgeIds = medicalBadges.map(b => b.badge);
             
-            return medicalBadges && medicalBadges.length > 0 && (
-              <div className="mt-2 flex items-center gap-2">
-                <HealthBadgesPopover badges={badgeIds} />
-                <h3 className="font-semibold text-white text-sm">Medical Safety</h3>
+            return (
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {medicalBadges.length > 0 && (
+                    <>
+                      <HealthBadgesPopover badges={badgeIds} />
+                      <h3 className="font-semibold text-white text-sm">{t("medicalSafety")}</h3>
+                    </>
+                  )}
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <TrashButton
+                    size="sm"
+                    onClick={() => onUpdated(null)}
+                    ariaLabel={t("deleteMeal")}
+                    title={t("deleteMeal")}
+                    confirm={true}
+                    confirmMessage={t("removeFromBoard")}
+                    className="touch-manipulation"
+                  />
+                </div>
               </div>
             );
           })()}
@@ -183,15 +400,22 @@ export function MealCard({
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-blue-400">{Math.round(protein)}g</div>
-              <div className="text-xs text-white/70">Protein</div>
+              <div className="text-xs text-white/70">{t("protein")}</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-amber-400">{Math.round(carbs)}g</div>
-              <div className="text-xs text-white/70">Carbs</div>
+              <div className="text-xs text-white/70">{t("carbs")}</div>
+              {hasStarchyFibrous && (
+                <div className="text-xs text-white/80 mt-1 font-medium">
+                  <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
+                  {" / "}
+                  <span className="text-green-300">{Math.round(fibrousCarbs)}F</span>
+                </div>
+              )}
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
               <div className="text-sm font-bold text-purple-400">{Math.round(fat)}g</div>
-              <div className="text-xs text-white/70">Fat</div>
+              <div className="text-xs text-white/70">{t("fat")}</div>
             </div>
           </div>
         
@@ -203,11 +427,14 @@ export function MealCard({
         )}
 
         {/* Ingredients - Expandable */}
-        {Array.isArray(meal?.ingredients) && meal.ingredients.length > 0 && (
+        {Array.isArray(displayIngredients) && displayIngredients.length > 0 && (
           <div className="mt-3 space-y-2">
-            <h4 className="text-sm font-semibold text-white">Ingredients:</h4>
+            <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
+              {t("ingredients")}
+              {isTranslating && <Loader2 className="h-3 w-3 animate-spin text-white/40" />}
+            </h4>
             <ul className="text-xs text-white/80 space-y-1">
-              {(ingredientsExpanded ? meal.ingredients : meal.ingredients.slice(0, 4)).map((ing: any, i: number) => {
+              {(ingredientsExpanded ? displayIngredients : displayIngredients.slice(0, 4)).map((ing: any, i: number) => {
                 if (typeof ing === "string") {
                   return (
                     <li key={i} className="flex items-start">
@@ -216,56 +443,118 @@ export function MealCard({
                     </li>
                   );
                 }
-                const name = ing.name || ing.item || "Ingredient";
+                const name = ing.name || ing.item || t("ingredientFallback");
                 const qty = ing.quantity || ing.amount || "";
                 const unit = ing.unit || "";
                 
                 // Use formatIngredientWithGrams for proper display
-                const displayText = qty && unit 
+                const ingDisplayText = (qty && unit)
                   ? formatIngredientWithGrams(qty, unit, name)
-                  : name;
+                  : qty
+                    ? `${qty} ${name}`.trim()
+                    : name;
                 
                 return (
                   <li key={i} className="flex items-start">
                     <span className="text-green-400 mr-1">•</span>
-                    <span>{displayText}</span>
+                    <span>{ingDisplayText}</span>
                   </li>
                 );
               })}
-              {meal.ingredients.length > 4 && (
+              {displayIngredients.length > 4 && (
                 <li 
                   className="text-xs text-orange-400 cursor-pointer active:text-orange-300 select-none"
                   onClick={() => setIngredientsExpanded(!ingredientsExpanded)}
                 >
-                  {ingredientsExpanded 
-                    ? "Show less" 
-                    : `+ ${meal.ingredients.length - 4} more...`}
+                  {ingredientsExpanded
+                    ? t("showLess")
+                    : t("moreIngredients", { count: displayIngredients.length - 4 })}
                 </li>
               )}
             </ul>
           </div>
         )}
 
-        {/* Cooking Instructions - handles both string and array formats */}
-        {meal?.instructions && (
-          <div className="mt-3 space-y-2">
-            <h4 className="text-sm font-semibold text-white">Instructions:</h4>
-            <div className="text-xs text-white/80">
-              {typeof meal.instructions === "string" ? (
-                <p>{meal.instructions}</p>
-              ) : Array.isArray(meal.instructions) ? (
-                <ol className="list-decimal list-inside space-y-1">
-                  {meal.instructions.map((step, i) => (
-                    <li key={i}>{step}</li>
-                  ))}
-                </ol>
-              ) : null}
+        {/* Cooking Instructions - step-by-step, collapsible, tap-to-highlight */}
+        {(() => {
+          const steps = normalizeInstructions(displayInstructions);
+          if (steps.length === 0) return null;
+          const visibleSteps = instructionsExpanded ? steps : steps.slice(0, 3);
+          return (
+            <div className="mt-3">
+              <h4 className="text-sm font-semibold text-white mb-2">{t("instructions")}</h4>
+              <div className="space-y-2">
+                {visibleSteps.map((step, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors select-none ${
+                      activeStep === index
+                        ? "bg-orange-500/20 border border-orange-500/40"
+                        : "hover:bg-white/5"
+                    }`}
+                    onClick={() => setActiveStep(activeStep === index ? null : index)}
+                  >
+                    <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                      {index + 1}
+                    </div>
+                    <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                  </div>
+                ))}
+              </div>
+              {steps.length > 3 && (
+                <button
+                  className="mt-2 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
+                  onClick={() => {
+                    setInstructionsExpanded(!instructionsExpanded);
+                    if (instructionsExpanded) setActiveStep(null);
+                  }}
+                >
+                  {instructionsExpanded ? t("showLess") : t("showAllSteps", { count: steps.length })}
+                </button>
+              )}
             </div>
+          );
+        })()}
+
+        {/* Protocol Visibility */}
+        <div className="mt-3">
+          <ProtocolVisibilityPanel
+            user={user}
+            reasoning={(meal as any).reasoning}
+            whyThisComplies={(meal as any).complianceSection?.whyThisComplies}
+            context="meal"
+          />
+        </div>
+
+        {/* Undo refinement banner */}
+        {preRefineMeal && (
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-violet-950/40 border border-violet-500/30 px-3 py-2 text-xs">
+            <div className="flex items-center gap-1.5 text-violet-300">
+              <Wand2 className="h-3 w-3 shrink-0" />
+              <span>{t("showingRefined")}</span>
+            </div>
+            <button
+              className="flex items-center gap-1 text-violet-400 font-medium active:opacity-70"
+              onClick={() => {
+                onUpdated(preRefineMeal);
+                setPreRefineMeal(null);
+              }}
+            >
+              <RotateCcw className="h-3 w-3" />
+              {t("restoreOriginal")}
+            </button>
           </div>
         )}
 
         {/* Action Buttons */}
         <div className="mt-3 flex flex-col gap-2">
+          <button
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-violet-950/30 py-2.5 text-sm font-semibold text-violet-300 active:bg-violet-900/40 transition-colors"
+            onClick={() => setRefineOpen(true)}
+          >
+            <Wand2 className="h-4 w-4" />
+            {t("refineMeal")}
+          </button>
           {date !== "board" && (
             <MacroBridgeButton
               meal={{
@@ -276,28 +565,63 @@ export function MealCard({
                 fat: fat || 0,
                 calories: kcal || 0,
                 dateISO: date,
-                mealSlot: slot,
+                mealSlot: macroMealSlot,
                 servings: meal.servings || 1,
               }}
-              label="Add to Macros"
+              label={t("addToMacros", { defaultValue: "Add to Macros", ns: "savedMeals" })}
             />
           )}
+          <AddToMealPlanButton
+            meal={{ ...meal, builderType: builderType ?? meal.builderType }}
+          />
           <MealCardActions
             meal={{
-              name: title,
-              description: meal.description,
-              ingredients: (meal.ingredients ?? []).map((ing: any) => ({
+              name: displayTitle,
+              description: displayDescription,
+              ingredients: (displayIngredients ?? []).map((ing: any) => ({
                 name: typeof ing === "string" ? ing : (ing.name || ing.item),
                 amount: typeof ing === "string" ? "" : (ing.quantity || ing.amount),
                 unit: typeof ing === "string" ? "" : ing.unit,
               })),
-              instructions: meal.instructions || [],
+              instructions: displayInstructions || [],
               nutrition: meal.nutrition,
             }}
+            showPrepareButton={!meal.id?.startsWith("described_")}
+            onContentUpdate={(updated) => setTranslatedContent((prev) => ({ ...prev, ...updated }))}
           />
         </div>
         </div>
       </div>
     </div>
+
+    <MealRefinementSheet
+      open={refineOpen}
+      onOpenChange={setRefineOpen}
+      meal={meal}
+      builderType={builderType ?? meal.builderType}
+      onRefined={(refined) => {
+        if (!preRefineMeal) setPreRefineMeal({ ...meal });
+        // Normalize name → title so the card header (which renders title || name) updates
+        const refinedName = refined.name ?? refined.title ?? meal.title ?? meal.name;
+        onUpdated({ ...meal, ...refined, name: refinedName, title: refinedName });
+      }}
+    />
+    {/* Component-swap panel: shown in Weekly Meal Board day mode only.
+        Requires weekStartISO (identifies the week) and a real YYYY-MM-DD date.
+        Only the 4 standard slots (breakfast/lunch/dinner/snacks) are supported —
+        meal4/meal5/meal6 would hit a Zod 400 at the API, so the panel is hidden
+        for those extra slots.  In week/board mode `date` is "board" so the panel
+        is also intentionally hidden. */}
+    {weekStartISO && ISO_DATE_RE.test(date) && meal.id &&
+     (["breakfast", "lunch", "dinner", "snacks"] as string[]).includes(slot) && (
+      <MealRefinementPanel
+        weekStartISO={weekStartISO}
+        dayISO={date}
+        slot={slot as "breakfast" | "lunch" | "dinner" | "snacks"}
+        mealId={meal.id}
+        onRefined={onRefined}
+      />
+    )}
+    </>
   );
 }

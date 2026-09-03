@@ -1,42 +1,67 @@
-import { useState, useEffect, useMemo } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import BreathingOrb from "@/components/BreathingOrb";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Loader2 } from "lucide-react";
 import {
   useCreateWithChefRequest,
+  type PerformanceSessionContext,
   DietType,
   BeachBodyPhase,
+  BuilderMode,
   StarchContext,
+  ExplicitOverride,
+  RemainingMacros,
 } from "@/hooks/useCreateWithChefRequest";
+import { detectBuilderConflict, isCoachableBuilder } from "@/lib/builderGuardrailConfig";
+import { BuilderOverrideDialog } from "@/components/meal/BuilderOverrideDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, getGuestSession, canGuestGenerate, trackGuestGenerationUsage } from "@/lib/guestMode";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
+import { StarchOverrideToggle } from "@/components/StarchOverrideToggle";
+import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
-import { detectStarchyIngredients } from "@/utils/ingredientClassifier";
+import type { AllergyConflictPayload } from "@/hooks/useSafetyGuardPrecheck";
+import { AllergyConflictModal } from "@/components/AllergyConflictModal";
+import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
+import { DietGuardIntercept } from "@/components/DietGuardIntercept";
+import type { DietGuardDecision } from "@/hooks/useDietGuardPrecheck";
+import { detectStarchyIngredients, hasExplicitStarchRequest } from "@/utils/ingredientClassifier";
+import type { DiversityContext } from "@/lib/diversityContext";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface CreateWithChefModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mealType: "breakfast" | "lunch" | "dinner";
+  mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6";
   onMealGenerated: (
     meal: any,
-    slot: "breakfast" | "lunch" | "dinner" | "snacks",
+    slot: "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6",
   ) => void;
   dietType?: DietType;
   dietPhase?: BeachBodyPhase;
   starchContext?: StarchContext;
+  diversityContext?: DiversityContext;
+  remainingMacros?: RemainingMacros;
+  builderMode?: BuilderMode;
+  performanceSessionContext?: PerformanceSessionContext;
+  /** Nutritional generation context — e.g. "performance_training_day" or "rest_day". */
+  generationContext?: string;
+  /**
+   * ProCare client user ID — set when a physician opens the modal for a client.
+   * Passed to the server so budget and safety context resolve against the
+   * client's DailyNutritionState, not the physician's.
+   */
+  proClientId?: string;
 }
 
 export function CreateWithChefModal({
@@ -47,24 +72,53 @@ export function CreateWithChefModal({
   dietType,
   dietPhase,
   starchContext,
+  diversityContext,
+  remainingMacros,
+  builderMode,
+  performanceSessionContext,
+  generationContext,
+  proClientId,
 }: CreateWithChefModalProps) {
+  const { t } = useTranslation();
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
-  
+  const [starchOverride, setStarchOverride] = useState(false);
+  const [strictMode, setStrictMode] = useState(false);
+  // Phase 4: tracks the server-side image finalization step that runs after
+  // generateMeal() returns text — keeps the loading orb visible throughout.
+  const [finalizing, setFinalizing] = useState(false);
+
   // Starch Guard state
   const [starchBlocked, setStarchBlocked] = useState(false);
   const [starchMatchedTerms, setStarchMatchedTerms] = useState<string[]>([]);
   const [alternativeInput, setAlternativeInput] = useState("");
+
+  // Builder Override state — coach-style dialog for builder guardrail conflicts
+  const [showBuilderOverride, setShowBuilderOverride] = useState(false);
+  const [builderConflictItem, setBuilderConflictItem] = useState<string>("");
   
   const { user } = useAuth();
-  
+
+  // Ref lets "Let Chef Adapt It" skip the diet check on the next call without state timing issues
+  const dietAdaptModeRef = useRef(false);
+  // Ref tracks "Continue Anyway" — user explicitly overrides diet preference for this generation
+  const continueAnywayRef = useRef(false);
+
+  const {
+    alert: dietAlert,
+    checkDiet,
+    clearAlert: clearDietAlert,
+    shouldShowIntercept: showDietIntercept,
+    setDecision: setDietDecision,
+  } = useDietGuardPrecheck();
+
   const isGuest = isGuestMode();
   const guestSession = isGuest ? getGuestSession() : null;
   const userId = user?.id?.toString() || guestSession?.sessionId || "";
   
   const { generating, progress, error, generateMeal, cancel } =
-    useCreateWithChefRequest(userId);
+    useCreateWithChefRequest(userId, proClientId);
   const { toast } = useToast();
   
   const {
@@ -74,8 +128,16 @@ export function CreateWithChefModal({
     clearAlert: clearSafetyAlert,
     setOverrideToken,
     overrideToken,
-    hasActiveOverride
+    hasActiveOverride,
+    allergyConflictPayload,
+    restoreBlockedAlert,
   } = useSafetyGuardPrecheck();
+  // Allergen conflict modal state — set when safety preflight returns a conflict payload
+  const [allergyConflict, setAllergyConflict] = useState<AllergyConflictPayload | null>(null);
+  const allergenSafeModeRef = useRef(false);
+  // Captures the actual allergens from AllergyConflictModal so SafetyGuardToggle
+  // can send the correct allergen name to the PIN endpoint (not the generic placeholder).
+  const pendingOverrideAllergensRef = useRef<string[]>([]);
   
   // Calculate starch slot availability from context
   const starchStatus = useMemo(() => {
@@ -109,40 +171,104 @@ export function CreateWithChefModal({
     if (!open) {
       setDescription("");
       setSafetyEnabled(true);
+      setStarchOverride(false);
+      setStrictMode(false);
+      setFinalizing(false);
       clearSafetyAlert();
+      clearDietAlert();
+      dietAdaptModeRef.current = false;
       setStarchBlocked(false);
       setStarchMatchedTerms([]);
       setAlternativeInput("");
+      setShowBuilderOverride(false);
+      setBuilderConflictItem("");
       cancel();
     }
-  }, [open, cancel, clearSafetyAlert]);
+  }, [open, cancel, clearSafetyAlert, clearDietAlert]);
 
-  const executeGeneration = async (mealDescription: string) => {
+  const executeGeneration = async (mealDescription: string, explicitOverride?: ExplicitOverride) => {
+    const effectiveStarchContext = starchOverride && starchContext
+      ? { ...starchContext, forceStarch: true }
+      : starchContext;
+
+    const userDietOverride = continueAnywayRef.current;
+    continueAnywayRef.current = false;
+
+    const isAllergenAdaptMode = allergenSafeModeRef.current;
+    allergenSafeModeRef.current = false;
+
     const meal = await generateMeal(
       mealDescription,
       mealType,
       dietType,
       dietPhase,
-      starchContext,
+      effectiveStarchContext,
       {
-        safetyMode: !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
-        overrideToken: !safetyEnabled ? overrideToken || undefined : undefined,
-      }
+        safetyMode: isAllergenAdaptMode
+          ? "ALLERGEN_ADAPT"
+          : (!safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT"),
+        overrideToken: !safetyEnabled && !isAllergenAdaptMode ? overrideToken || undefined : undefined,
+      },
+      strictMode,
+      explicitOverride,
+      userDietOverride,
+      diversityContext,
+      remainingMacros,
+      builderMode,
+      performanceSessionContext,
+      generationContext
     );
 
     if (meal) {
       if (isGuest) {
         trackGuestGenerationUsage();
       }
-      
+      setStarchOverride(false);
+
+      // ── Phase 4: Unified Image Pipeline ────────────────────────────────────
+      // Finalize the meal server-side before handing it to the board. The loading
+      // orb (isProcessing) stays visible during this step — users see one smooth
+      // "generating" animation rather than a meal card with a shimmering image.
+      //
+      // On any failure the unmodified meal is passed through and the caller's
+      // existing `if (!meal.imageUrl)` guard provides graceful fallback to the
+      // legacy client-side fetch pattern.
+      let finalMeal = meal;
+      setFinalizing(true);
+      try {
+        const finalizeRes = await fetch(apiUrl("/api/meals/finalize"), {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify({ meal, mealType }),
+        });
+        if (finalizeRes.ok) {
+          const fd = await finalizeRes.json();
+          if (fd.meal?.imageUrl) finalMeal = fd.meal;
+        }
+      } catch {
+        // Network or DALL-E failure — proceed without imageUrl.
+      } finally {
+        setFinalizing(false);
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
       toast({
-        title: "Meal Created!",
-        description: `${meal.name} is ready for you`,
+        title: t("createWithChef.mealCreatedTitle"),
+        description: t("createWithChef.mealCreatedDesc", { name: finalMeal.name }),
       });
-      onMealGenerated(meal, mealType);
+      onMealGenerated(finalMeal, mealType);
       onOpenChange(false);
     } else if (error) {
-      if (isAllergyRelatedError(error)) {
+      // Typed allergen adaptation failure — must not fall through to the generic allergy handler
+      if (error.includes("allergen_adaptation_failed") || error.includes("Couldn't create a fully safe version")) {
+        toast({
+          title: "Couldn't create a fully safe version",
+          description: "We couldn't make an allergen-free version that passed your allergy protection checks. Your protection is still fully active. Try a different dish or use your Safety PIN to make the original.",
+          variant: "warning",
+          duration: 12000,
+        });
+      } else if (isAllergyRelatedError(error)) {
         toast({
           title: "⚠️ Allergy Alert",
           description: error,
@@ -150,7 +276,7 @@ export function CreateWithChefModal({
         });
       } else {
         toast({
-          title: "Generation Failed",
+          title: t("createWithChef.generationFailedTitle"),
           description: error,
           variant: "destructive",
         });
@@ -161,8 +287,8 @@ export function CreateWithChefModal({
   const handleGenerate = async () => {
     if (!userId) {
       toast({
-        title: "Please sign in",
-        description: "You need to be signed in to create meals",
+        title: t("createWithChef.signInTitle"),
+        description: t("createWithChef.signInDesc"),
         variant: "destructive",
       });
       return;
@@ -170,8 +296,8 @@ export function CreateWithChefModal({
     
     if (isGuest && !canGuestGenerate()) {
       toast({
-        title: "Guest limit reached",
-        description: "Create a free account to continue generating meals",
+        title: t("createWithChef.guestLimitTitle"),
+        description: t("createWithChef.guestLimitDesc"),
         variant: "destructive",
       });
       return;
@@ -179,21 +305,61 @@ export function CreateWithChefModal({
     
     if (!description.trim()) {
       toast({
-        title: "Please describe your meal",
-        description: "Tell the Chef what you're in the mood for",
+        title: t("createWithChef.describeMealTitle"),
+        description: t("createWithChef.describeMealDesc"),
         variant: "destructive",
       });
       return;
     }
 
-    // STARCH GUARD CHECK - if starch slots exhausted AND requesting starchy food
-    if (starchStatus.isExhausted) {
-      const detection = detectStarchyIngredients(description.trim());
-      if (detection.hasStarchy) {
-        console.log('🥔 [StarchGuard] BLOCKED - Starch slots exhausted, starchy request detected');
-        setStarchBlocked(true);
-        setStarchMatchedTerms(detection.matchedTerms);
-        return;
+    // DIET GUARD — Tier 0: dietary identity (kosher, halal, vegan, etc.) is the outermost rule
+    // Skip if user already chose "Let Chef Adapt It"
+    if (!dietAdaptModeRef.current) {
+      const dietOk = checkDiet(description.trim());
+      if (!dietOk) return; // DietGuardIntercept now showing
+    }
+
+    // If user chose "Let Chef Adapt", skip ALL remaining guards — no second block allowed
+    if (dietAdaptModeRef.current) {
+      dietAdaptModeRef.current = false;
+      await executeGeneration(description.trim());
+      return;
+    }
+
+    // BUILDER OVERRIDE — Tier 1: coachable builder conflict (anti-inflammatory, GLP-1, etc.)
+    // Only fires when no identity diet is active (DietGuard handles those above)
+    // Only fires when the builder is coachable — identity diets are never shown this dialog
+    if (isCoachableBuilder(dietType)) {
+      const conflictItem = detectBuilderConflict(description.trim(), dietType);
+      if (conflictItem) {
+        setBuilderConflictItem(conflictItem);
+        setShowBuilderOverride(true);
+        return; // BuilderOverrideDialog now showing
+      }
+    }
+
+    // STARCH GUARD — Option C: intent-aware, not a hard blocker
+    // If starch slots are exhausted and the user hasn't already overridden:
+    //   • Explicit named starch (rice, pasta, hash browns…) → auto-override,
+    //     no dialog. Server's own starchy-keyword detection will set forceStarch.
+    //   • Vague / ambiguous starch reference → show the dialog so user decides.
+    //   • No starch detected at all → proceed normally.
+    if (starchStatus.isExhausted && !starchOverride) {
+      const trimmedDesc = description.trim();
+
+      if (hasExplicitStarchRequest(trimmedDesc)) {
+        // User named a real starch — respect their intent, skip the dialog.
+        // The server detects the keyword independently and applies forceStarch.
+        console.log('🥔 [StarchGuard] AUTO-OVERRIDE: explicit starch named, proceeding without dialog');
+        // fall through to normal generation below
+      } else {
+        const detection = detectStarchyIngredients(trimmedDesc);
+        if (detection.hasStarchy) {
+          console.log('🥔 [StarchGuard] DIALOG: vague starch reference, showing override prompt');
+          setStarchBlocked(true);
+          setStarchMatchedTerms(detection.matchedTerms);
+          return;
+        }
       }
     }
 
@@ -203,6 +369,13 @@ export function CreateWithChefModal({
     }
 
     const isSafe = await checkSafety(description.trim(), `create-with-chef-${mealType}`);
+
+    if (!isSafe && allergyConflictPayload.current) {
+      // Allergen conflict — show modal instead of SafetyGuardBanner
+      setAllergyConflict(allergyConflictPayload.current);
+      allergyConflictPayload.current = null;
+      return;
+    }
     
     if (isSafe) {
       await executeGeneration(description.trim());
@@ -224,12 +397,53 @@ export function CreateWithChefModal({
     }
   };
   
+  // Handle builder override dialog — "Keep it on plan" dismisses, "Make it anyway" overrides
+  const handleKeepOnPlan = () => {
+    setShowBuilderOverride(false);
+    setBuilderConflictItem("");
+  };
+
+  const handleMakeItAnyway = async () => {
+    const item = builderConflictItem;
+    setShowBuilderOverride(false);
+    setBuilderConflictItem("");
+
+    const override: ExplicitOverride = { item, confirmed: true };
+
+    if (hasActiveOverride || !safetyEnabled) {
+      await executeGeneration(description.trim(), override);
+      return;
+    }
+    const isSafe = await checkSafety(description.trim(), `create-with-chef-${mealType}`);
+    if (isSafe) {
+      await executeGeneration(description.trim(), override);
+    }
+  };
+
+  // Handle diet guard decision:
+  // "continue_anyway" — user proceeds with their original request, soft override active
+  // "let_chef_adapt" — bypass diet check and generate with protocol-aware adaptation
+  const handleDietDecision = async (decision: DietGuardDecision) => {
+    if (decision === "pick_something_else") {
+      setDietDecision("pick_something_else");
+      clearDietAlert();
+      return;
+    }
+    if (decision === "continue_anyway") {
+      continueAnywayRef.current = true;
+    }
+    setDietDecision(decision);
+    dietAdaptModeRef.current = true;
+    clearDietAlert();
+    await handleGenerate();
+  };
+
   // Handle "Use My Alternative" - use user's fibrous carb choice
   const handleUseAlternative = async () => {
     if (!alternativeInput.trim()) {
       toast({
-        title: "Please enter an alternative",
-        description: "Tell us what you'd like instead",
+        title: t("createWithChef.enterAlternativeTitle"),
+        description: t("createWithChef.enterAlternativeDesc"),
         variant: "destructive",
       });
       return;
@@ -261,27 +475,27 @@ export function CreateWithChefModal({
   const getPlaceholder = () => {
     switch (mealType) {
       case "breakfast":
-        return "e.g., 'protein pancakes,' 'sweet eggs with fruit,' 'low-carb omelette'";
+        return t("createWithChef.placeholderBreakfast");
       case "lunch":
-        return "e.g., 'grilled chicken salad,' 'high-protein wrap,' 'Mediterranean bowl'";
+        return t("createWithChef.placeholderLunch");
       case "dinner":
-        return "e.g., 'low-carb tacos,' 'steak with vegetables,' 'salmon with rice'";
+        return t("createWithChef.placeholderDinner");
       default:
-        return "e.g., 'something light and healthy,' 'high-protein meal'";
+        return t("createWithChef.placeholderDefault");
     }
   };
 
-  const isProcessing = generating || safetyChecking;
+  const isProcessing = generating || safetyChecking || finalizing;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 text-white max-w-md">
+    <>
+    <UniversalDialog rawLayout open={open} onOpenChange={onOpenChange} className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-semibold">
-            Create with AI Chef
+            {t("createWithChef.title")}
           </DialogTitle>
           <DialogDescription className="text-white/60">
-            Tell the Chef what you want for {mealType}
+            {t("createWithChef.subtitle", { mealType })}
           </DialogDescription>
         </DialogHeader>
 
@@ -296,16 +510,18 @@ export function CreateWithChefModal({
                 
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-orange-400 mb-2">
-                    Starchy Carbs Limit Reached
+                    {t("createWithChef.starchLimitTitle")}
                   </h4>
                   
                   <p className="text-orange-200/90 text-sm mb-3">
-                    You've already used your starch meal{starchStatus.maxSlots > 1 ? 's' : ''} for today ({starchStatus.slotsUsed} of {starchStatus.maxSlots}).
+                    {starchStatus.maxSlots > 1
+                      ? t("createWithChef.starchUsedPlural", { used: starchStatus.slotsUsed, max: starchStatus.maxSlots })
+                      : t("createWithChef.starchUsedSingular", { used: starchStatus.slotsUsed, max: starchStatus.maxSlots })}
                   </p>
                   
                   {starchMatchedTerms.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-white/60 text-xs mb-1.5">You requested:</p>
+                      <p className="text-white/60 text-xs mb-1.5">{t("createWithChef.youRequested")}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {starchMatchedTerms.map((term, i) => (
                           <span 
@@ -320,13 +536,13 @@ export function CreateWithChefModal({
                   )}
                   
                   <p className="text-white/80 text-sm mb-4">
-                    Would you like to pick a <span className="text-green-400 font-medium">fibrous carb</span> instead, or let the Chef choose for you?
+                    {t("createWithChef.fibrousPrefix")} <span className="text-green-400 font-medium">{t("createWithChef.fibrousCarb")}</span> {t("createWithChef.fibrousSuffix")}
                   </p>
                   
                   {/* Option 1: User picks their own fibrous carb */}
                   <div className="mb-3">
                     <Input
-                      placeholder="e.g., broccoli, asparagus, cauliflower..."
+                      placeholder={t("createWithChef.fibrousPlaceholder")}
                       value={alternativeInput}
                       onChange={(e) => setAlternativeInput(e.target.value)}
                       disabled={isProcessing}
@@ -343,16 +559,16 @@ export function CreateWithChefModal({
                       className="w-full bg-green-600 hover:bg-green-700 text-white"
                     >
                       {isProcessing ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t("createWithChef.generating")}</>
                       ) : (
-                        <>Use My Choice</>
+                        <>{t("createWithChef.useMyChoice")}</>
                       )}
                     </Button>
                   </div>
                   
                   <div className="flex items-center gap-2 my-3">
                     <div className="flex-1 h-px bg-white/20"></div>
-                    <span className="text-white/40 text-xs">or</span>
+                    <span className="text-white/40 text-xs">{t("createWithChef.or")}</span>
                     <div className="flex-1 h-px bg-white/20"></div>
                   </div>
                   
@@ -364,14 +580,14 @@ export function CreateWithChefModal({
                     className="w-full bg-black/40 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
                   >
                     {isProcessing ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t("createWithChef.generating")}</>
                     ) : (
-                      <>Chef's Choice - Pick For Me</>
+                      <>{t("createWithChef.chefsChoice")}</>
                     )}
                   </Button>
                   
                   <p className="text-white/50 text-xs mt-2 text-center">
-                    Chef will substitute with a delicious fibrous carb option
+                    {t("createWithChef.chefSubstituteHint")}
                   </p>
                 </div>
               </div>
@@ -393,26 +609,42 @@ export function CreateWithChefModal({
                   }}
                 />
                 <p className="text-xs text-white/40 mt-2">
-                  Describe what you're craving and the Chef will create a
-                  personalized meal for you
+                  {t("createWithChef.inputHint")}
                 </p>
               </div>
 
+              {/* Diet Guard — Tier 0 protocol intercept (identity diets: vegan, kosher, halal, etc.) */}
+              {showDietIntercept && (
+                <DietGuardIntercept
+                  alert={dietAlert}
+                  onDecision={handleDietDecision}
+                />
+              )}
+
+              {/* Builder Override — Tier 1 coachable conflict (anti-inflammatory, GLP-1, etc.) */}
+              {!showDietIntercept && showBuilderOverride && builderConflictItem && (
+                <BuilderOverrideDialog
+                  show={showBuilderOverride}
+                  conflictingItem={builderConflictItem}
+                  builderType={dietType as string}
+                  onKeepOnPlan={handleKeepOnPlan}
+                  onMakeItAnyway={handleMakeItAnyway}
+                />
+              )}
+
               {/* SafetyGuard Preflight Banner */}
-              <SafetyGuardBanner
-                alert={safetyAlert}
-                mealRequest={description}
-                onDismiss={clearSafetyAlert}
-                onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
-              />
+              {!showDietIntercept && !showBuilderOverride && (
+                <SafetyGuardBanner
+                  alert={safetyAlert}
+                  mealRequest={description}
+                  onDismiss={clearSafetyAlert}
+                  onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+                />
+              )}
 
               {isProcessing && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {safetyChecking ? "Checking safety profile..." : "Chef is preparing your meal..."}
-                  </div>
-                  <Progress value={safetyChecking ? 30 : progress} className="h-2" />
+                <div className="flex justify-center">
+                  <BreathingOrb label={safetyChecking ? t("createWithChef.orbCheckingSafety") : finalizing ? t("createWithChef.orbFinishing") : t("createWithChef.orbPreparing")} />
                 </div>
               )}
 
@@ -420,54 +652,89 @@ export function CreateWithChefModal({
 
               {/* Meal Safety Section */}
               <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
-                <span className="text-xs text-white/60 block mb-2">Meal Safety</span>
+                <span className="text-xs text-white/60 block mb-2">{t("createWithChef.mealSafety")}</span>
                 <SafetyGuardToggle
                   safetyEnabled={safetyEnabled}
                   onSafetyChange={handleSafetyOverride}
                   disabled={isProcessing}
+                  allergenContext={pendingOverrideAllergensRef.current.length > 0 ? pendingOverrideAllergensRef.current : undefined}
                 />
                 <GlucoseGuardToggle disabled={isProcessing} />
+                {starchContext && starchStatus.isExhausted && (
+                  <StarchOverrideToggle
+                    active={starchOverride}
+                    onToggle={setStarchOverride}
+                    disabled={isProcessing}
+                  />
+                )}
+              </div>
+
+              {/* Ingredient Control */}
+              <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
+                <span className="text-xs text-white/60 block mb-2">{t("createWithChef.ingredientControl")}</span>
+                <KeepItSimpleToggle
+                  keepItSimple={strictMode}
+                  onToggle={setStrictMode}
+                  disabled={isProcessing}
+                />
               </div>
 
               {/* Starch Budget Info - show when starch context available */}
               {starchContext && (
                 <div className="py-2 px-3 bg-black/30 rounded-lg border border-white/10">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Today's Starch Meals:</span>
+                    <span className="text-white/60">{t("createWithChef.todaysStarchMeals")}</span>
                     <span className={`font-medium ${starchStatus.isExhausted ? 'text-orange-400' : 'text-green-400'}`}>
-                      {starchStatus.slotsUsed} / {starchStatus.maxSlots} used
+                      {t("createWithChef.starchUsedCount", { used: starchStatus.slotsUsed, max: starchStatus.maxSlots })}
                     </span>
                   </div>
                 </div>
               )}
 
               <div className="flex gap-3 pt-2">
-                <Button
-                  className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
-                  onClick={handleGenerate}
-                  disabled={isProcessing || !description.trim()}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {safetyChecking ? "Checking..." : "Generating..."}
-                    </>
-                  ) : (
-                    <>Generate AI Meal</>
-                  )}
-                </Button>
+                {!isProcessing && !showDietIntercept && !showBuilderOverride && (
+                  <Button
+                    className="flex-1 bg-lime-600 hover:bg-lime-600 text-white"
+                    onClick={handleGenerate}
+                    disabled={!description.trim()}
+                  >
+                    {t("createWithChef.generateBtn")}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="flex-3 bg-black/60 backdrop-blur border-white/30 text-white active:border-white active:bg-black/80"
                   onClick={() => onOpenChange(false)}
                 >
-                  {isProcessing ? "Stop" : "Cancel"}
+                  {isProcessing ? t("createWithChef.stop") : t("createWithChef.cancel")}
                 </Button>
               </div>
             </>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
+
+    {/* Allergy Conflict Modal — shown instead of SafetyGuardBanner when an
+        allergyConflict is detected. Offers "Make it safe", "Make original" (PIN),
+        or "Cancel". */}
+    <AllergyConflictModal
+      conflict={allergyConflict}
+      onMakeSafe={() => {
+        setAllergyConflict(null);
+        allergenSafeModeRef.current = true;
+        executeGeneration(description.trim());
+      }}
+      onMakeOriginal={() => {
+        // Snapshot allergens before clearing state — SafetyGuardToggle needs them
+        // to issue the override token for the correct allergen (e.g. "shellfish").
+        pendingOverrideAllergensRef.current = allergyConflict?.allergens ?? [];
+        setAllergyConflict(null);
+        restoreBlockedAlert(); // restores SafetyGuardBanner with PIN button
+      }}
+      onCancel={() => {
+        setAllergyConflict(null);
+      }}
+    />
+    </>
   );
 }

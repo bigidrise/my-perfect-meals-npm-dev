@@ -1,4 +1,4 @@
-import type { Meal } from "@/components/MealCard";
+import type { Meal } from "@/types/meal";
 import { get, put, post } from "@/lib/api";
 import { weekDatesInTZ } from "@/utils/midnight";
 
@@ -22,7 +22,10 @@ export type WeekLists = {
   breakfast: ExtendedMeal[];
   lunch: ExtendedMeal[];
   dinner: ExtendedMeal[];
-  snacks: ExtendedMeal[]; // unlimited snacks supported
+  snacks: ExtendedMeal[];
+  meal4: ExtendedMeal[];
+  meal5: ExtendedMeal[];
+  meal6: ExtendedMeal[];
 };
 
 export type WeekBoard = {
@@ -58,12 +61,12 @@ export async function saveWeekBoard(board: WeekBoard): Promise<WeekBoard> {
   return put<WeekBoard>("/api/week-board", board);
 }
 
-export async function addMealToList(list: "breakfast"|"lunch"|"dinner"|"snacks", meal: Meal, dateISO?: string): Promise<WeekBoard> {
+export async function addMealToList(list: "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal: Meal, dateISO?: string): Promise<WeekBoard> {
   const body = dateISO ? { list, meal, dateISO } : { list, meal };
   return post<WeekBoard>("/api/week-board/add", body);
 }
 
-export async function removeMealFromList(list: "breakfast"|"lunch"|"dinner"|"snacks", mealId: string, dateISO?: string): Promise<WeekBoard> {
+export async function removeMealFromList(list: "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", mealId: string, dateISO?: string): Promise<WeekBoard> {
   const body = dateISO ? { list, mealId, dateISO } : { list, mealId };
   return post<WeekBoard>("/api/week-board/remove", body);
 }
@@ -102,10 +105,11 @@ export function putWeekBoard(
   namespace?: string
 ): Promise<WeekBoardResponse> {
   if (proClientId) {
-    return apiPut<WeekBoardResponse>(`/api/pro/week-board/${proClientId}/${weekStartISO}`, { week });
+    const btPart = namespace ? `?bt=${encodeURIComponent(namespace)}` : '';
+    return apiPut<WeekBoardResponse>(`/api/pro/week-board/${proClientId}/${weekStartISO}${btPart}`, { week });
   }
   const url = namespace
-    ? `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}&ns=${encodeURIComponent(namespace)}`
+    ? `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}&bt=${encodeURIComponent(namespace)}`
     : `/api/week-board/${weekStartISO}`;
   return apiPut<WeekBoardResponse>(url, { week });
 }
@@ -138,7 +142,10 @@ export function getDayLists(board: WeekBoard, dateISO: string): WeekLists {
       breakfast: [],
       lunch: [],
       dinner: [],
-      snacks: []
+      snacks: [],
+      meal4: [],
+      meal5: [],
+      meal6: [],
     };
   }
   
@@ -158,6 +165,162 @@ export function setDayLists(board: WeekBoard, dateISO: string, lists: WeekLists)
       lastUpdatedAt: new Date().toISOString()
     }
   };
+}
+
+/** Update a specific meal's imageUrl anywhere in the board (days or lists structure).
+ *  Used by page-level image loaders so image fetches survive modal close. */
+export function updateMealImageInBoard(board: WeekBoard, mealId: string, imageUrl: string): WeekBoard {
+  const slots = ['breakfast', 'lunch', 'dinner', 'snacks', 'meal4', 'meal5', 'meal6'] as const;
+
+  let daysUpdated = false;
+  let newDays = board.days;
+  if (board.days) {
+    newDays = { ...board.days };
+    for (const day of Object.keys(board.days)) {
+      const dayLists = board.days[day];
+      const newDayLists = { ...dayLists };
+      let dayChanged = false;
+      for (const slot of slots) {
+        if (newDayLists[slot]?.some(m => m.id === mealId)) {
+          newDayLists[slot] = newDayLists[slot].map(m =>
+            m.id === mealId ? { ...m, imageUrl } : m
+          );
+          dayChanged = true;
+          daysUpdated = true;
+        }
+      }
+      if (dayChanged) newDays![day] = newDayLists;
+    }
+  }
+
+  let listsUpdated = false;
+  let newLists = board.lists;
+  for (const slot of slots) {
+    if (board.lists[slot]?.some(m => m.id === mealId)) {
+      newLists = {
+        ...newLists,
+        [slot]: newLists[slot].map(m =>
+          m.id === mealId ? { ...m, imageUrl } : m
+        ),
+      };
+      listsUpdated = true;
+    }
+  }
+
+  if (!daysUpdated && !listsUpdated) return board;
+
+  return { ...board, days: newDays, lists: newLists };
+}
+
+/** Get the current imageUrl for a meal anywhere in the board.
+ *  Used as a guard before persisting an image update — avoids redundant saveBoard calls. */
+export function getMealImageUrl(board: WeekBoard, mealId: string): string | null | undefined {
+  const slots = ['breakfast', 'lunch', 'dinner', 'snacks', 'meal4', 'meal5', 'meal6'] as const;
+  if (board.days) {
+    for (const dayLists of Object.values(board.days)) {
+      for (const slot of slots) {
+        const meal = dayLists[slot]?.find(m => m.id === mealId);
+        if (meal) return meal.imageUrl;
+      }
+    }
+  }
+  for (const slot of slots) {
+    const meal = board.lists[slot]?.find(m => m.id === mealId);
+    if (meal) return meal.imageUrl;
+  }
+  return undefined;
+}
+
+/**
+ * Merge only permanent S3 imageUrls from serverBoard into localBoard.
+ * Guardrails enforced:
+ *   1. Only touches meal.imageUrl — nothing else.
+ *   2. Only upgrades to an S3 URL (must include "s3").
+ *   3. Never downgrades: will not overwrite an existing S3 URL.
+ *   4. Returns the same object reference when nothing changed (avoids re-render).
+ */
+export function mergeImageUrlsOnly(localBoard: WeekBoard, serverBoard: WeekBoard): WeekBoard {
+  const isS3 = (url: string | undefined | null): url is string =>
+    typeof url === 'string' && url.includes('s3');
+
+  // Build mealId → s3Url map from serverBoard (both days and lists)
+  const s3Map = new Map<string, string>();
+  const slots = ['breakfast', 'lunch', 'dinner', 'snacks', 'meal4', 'meal5', 'meal6'] as const;
+
+  const collectFromLists = (lists: any) => {
+    if (!lists) return;
+    for (const slot of slots) {
+      const arr = lists[slot];
+      if (Array.isArray(arr)) {
+        for (const m of arr) {
+          if (m?.id && isS3(m.imageUrl)) {
+            s3Map.set(m.id, m.imageUrl);
+          }
+        }
+      }
+    }
+  };
+
+  collectFromLists(serverBoard.lists);
+  if (serverBoard.days) {
+    for (const dayLists of Object.values(serverBoard.days)) {
+      collectFromLists(dayLists);
+    }
+  }
+
+  if (s3Map.size === 0) return localBoard;
+
+  // Apply upgrades — only when local meal lacks an S3 URL and server has one
+  const upgradeMealList = (meals: any[]): any[] => {
+    if (!Array.isArray(meals)) return meals;
+    let listChanged = false;
+    const upgraded = meals.map((m: any) => {
+      if (!m?.id) return m;
+      const serverS3 = s3Map.get(m.id);
+      if (!serverS3) return m;
+      if (isS3(m.imageUrl)) return m; // already S3 — never downgrade
+      listChanged = true;
+      return { ...m, imageUrl: serverS3 };
+    });
+    return listChanged ? upgraded : meals;
+  };
+
+  const upgradeDayLists = (dayLists: any): any => {
+    if (!dayLists) return dayLists;
+    let dayChanged = false;
+    const result: any = {};
+    for (const slot of slots) {
+      const before = dayLists[slot];
+      const after = upgradeMealList(before || []);
+      result[slot] = after;
+      if (after !== before) dayChanged = true;
+    }
+    return dayChanged ? { ...dayLists, ...result } : dayLists;
+  };
+
+  const newLists = { ...localBoard.lists };
+  let listsChanged = false;
+  for (const slot of slots) {
+    const before = (localBoard.lists as any)[slot];
+    const after = upgradeMealList(before || []);
+    if (after !== before) { (newLists as any)[slot] = after; listsChanged = true; }
+  }
+
+  let newDays = localBoard.days;
+  let daysChanged = false;
+  if (localBoard.days) {
+    const upgraded: Record<string, any> = {};
+    for (const [dateKey, dayLists] of Object.entries(localBoard.days)) {
+      const after = upgradeDayLists(dayLists);
+      upgraded[dateKey] = after;
+      if (after !== dayLists) daysChanged = true;
+    }
+    if (daysChanged) newDays = upgraded;
+  }
+
+  if (!listsChanged && !daysChanged) return localBoard;
+
+  return { ...localBoard, lists: newLists, days: newDays };
 }
 
 /** Safe deep-clone for environments without structuredClone */
@@ -191,7 +354,10 @@ export function cloneDayLists(lists: WeekLists): WeekLists {
     breakfast: cloned.breakfast.map(reId),
     lunch: cloned.lunch.map(reId),
     dinner: cloned.dinner.map(reId),
-    snacks: cloned.snacks.map(reId), // keep orderIndex as-is
+    snacks: cloned.snacks.map(reId),
+    meal4: (cloned.meal4 || []).map(reId),
+    meal5: (cloned.meal5 || []).map(reId),
+    meal6: (cloned.meal6 || []).map(reId),
   };
 }
 

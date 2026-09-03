@@ -13,6 +13,68 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
+interface MealAnalysis {
+  completeMeals: Array<{ name: string; ingredients: string[]; difficulty: string }>;
+  partialMeals: Array<{ name: string; missingIngredients: string[]; availableIngredients: string[] }>;
+  suggestions: string[];
+  nutritionBalance: {
+    overall: string;
+    protein: string;
+    vegetables: string;
+    variety: string;
+    recommendations: string[];
+  };
+  shoppingOptimization: {
+    missingEssentials: string[];
+    budgetFriendlyAlternatives: string[];
+    seasonalRecommendations: string[];
+  };
+}
+
+class MealCompletionEngine {
+  private cache: Map<string, MealAnalysis> = new Map();
+
+  async analyzeIngredients(ingredients: string[]): Promise<MealAnalysis> {
+    const cacheKey = ingredients.sort().join(',');
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)!;
+    }
+
+    // Run ingredient analyses in parallel
+    const ingredientAnalyses = new Map<string, any>();
+    await Promise.all(
+      ingredients.map(async (ing) => {
+        try {
+          const analysis = await smartCategorizationEngine.categorize(ing);
+          ingredientAnalyses.set(ing, analysis);
+        } catch {
+          ingredientAnalyses.set(ing, { category: 'Pantry' });
+        }
+      })
+    );
+
+    try {
+      const response = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are a culinary AI expert. Analyze available ingredients and determine:
+            - Complete meals that can be made
+            - Partial meals needing a few more ingredients
+            - Shopping suggestions to complete meals
+            - Nutrition balance assessment
+            Respond in JSON format matching the MealAnalysis schema.`
+          },
+          {
+            role: "user",
+            content: `Analyze these ingredients for meal completion: ${ingredients.join(', ')}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3
+      });
+
       const analysis: MealAnalysis = JSON.parse(response.choices[0].message.content || '{}');
       
       // Validate and enhance with ingredient insights

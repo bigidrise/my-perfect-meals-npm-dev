@@ -2,12 +2,15 @@ import { Router } from "express";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { storage } from "../storage";
+import { db } from "../db";
+import { users } from "@shared/schema";
+import { eq, and, gt } from "drizzle-orm";
 import { sendPasswordResetEmail } from "../services/emailService";
+import { requireEmailService } from "../middleware/requireEmailService";
+import { resolveEmailIdentityForEmail } from "../services/emailIdentityService";
 
 const router = Router();
 
-// Validation schemas
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
@@ -21,31 +24,32 @@ const resetPasswordSchema = z.object({
  * POST /api/auth/forgot-password
  * Initiates password reset flow by sending email with reset link
  */
-router.post("/api/auth/forgot-password", async (req, res) => {
+router.post("/api/auth/forgot-password", requireEmailService, async (req, res) => {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
+    const identity = await resolveEmailIdentityForEmail(email);
+    const [user] = identity.status === "unique" || identity.status === "legacy_exact"
+      ? await db.select().from(users).where(eq(users.id, identity.user.id)).limit(1)
+      : [];
 
-    // Check if user exists (don't reveal if they don't for security)
-    const user = await storage.getUserByEmail(email.toLowerCase().trim());
-    
     if (user) {
-      // Generate secure token
       const resetToken = crypto.randomBytes(32).toString("hex");
-      
-      // Hash token before storing (security best practice)
       const tokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
-      
-      // Set expiry to 30 minutes from now
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-      
-      // Store hashed token in database
-      await storage.setPasswordResetToken(email.toLowerCase().trim(), tokenHash, expiresAt);
-      
-      // Build reset link using request host (works in dev, Replit, and production)
+
+      await db
+        .update(users)
+        .set({
+          resetTokenHash: tokenHash,
+          resetTokenExpires: expiresAt,
+        })
+        .where(eq(users.id, user.id));
+
       const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
       const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:5000";
       const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
       const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+
       try {
         await sendPasswordResetEmail({
           to: email,
@@ -54,27 +58,24 @@ router.post("/api/auth/forgot-password", async (req, res) => {
         });
         console.log(`✅ Password reset email sent`);
       } catch (emailError) {
-        console.error(`❌ Failed to send password reset email:`, emailError);
+        console.error("❌ Password reset email delivery failed — clearing dangling token:", emailError);
+        await db
+          .update(users)
+          .set({ resetTokenHash: null, resetTokenExpires: null })
+          .where(and(eq(users.id, user.id), eq(users.resetTokenHash, tokenHash)));
+        throw emailError;
       }
     }
 
-    // Always return the same message (don't reveal if account exists)
-    res.json({ 
-      message: "If that email exists in our system, a password reset link has been sent." 
+    res.json({
+      message: "If that email exists in our system, a password reset link has been sent.",
     });
   } catch (error: any) {
     console.error("❌ Forgot password error:", error);
-    
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: "Invalid email address",
-        details: error.errors 
-      });
+      return res.status(400).json({ error: "Invalid email address", details: error.errors });
     }
-    
-    res.status(500).json({ 
-      error: "An error occurred. Please try again later." 
-    });
+    res.status(500).json({ error: "An error occurred. Please try again later." });
   }
 });
 
@@ -86,48 +87,48 @@ router.post("/api/auth/reset-password", async (req, res) => {
   try {
     const { token, password } = resetPasswordSchema.parse(req.body);
 
-    // Hash the token from URL to compare with stored hash
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    
-    // Verify token and get user
-    const user = await storage.getUserByResetToken(tokenHash);
-    
+    const now = new Date();
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.resetTokenHash, tokenHash),
+          gt(users.resetTokenExpires, now)
+        )
+      )
+      .limit(1);
+
     if (!user) {
-      return res.status(400).json({ 
-        error: "Invalid or expired reset token. Please request a new password reset." 
+      return res.status(400).json({
+        error: "Invalid or expired reset token. Please request a new password reset.",
       });
     }
 
-    // Hash the new password (bcrypt with work factor 12)
     const passwordHash = await bcrypt.hash(password, 12);
-    
-    // Update password and clear reset token
-    const success = await storage.updatePasswordByResetToken(tokenHash, passwordHash);
-    
-    if (!success) {
-      return res.status(500).json({ 
-        error: "Failed to reset password. Please try again." 
-      });
-    }
+
+    await db
+      .update(users)
+      .set({
+        password: passwordHash,
+        resetTokenHash: null,
+        resetTokenExpires: null,
+      })
+      .where(eq(users.id, user.id));
 
     console.log(`✅ Password successfully reset for user ${user.id}`);
-    
-    res.json({ 
-      message: "Password reset successful. You can now log in with your new password." 
+
+    res.json({
+      message: "Password reset successful. You can now log in with your new password.",
     });
   } catch (error: any) {
     console.error("❌ Reset password error:", error);
-    
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: "Invalid request",
-        details: error.errors 
-      });
+      return res.status(400).json({ error: "Invalid request", details: error.errors });
     }
-    
-    res.status(500).json({ 
-      error: "An error occurred. Please try again later." 
-    });
+    res.status(500).json({ error: "An error occurred. Please try again later." });
   }
 });
 

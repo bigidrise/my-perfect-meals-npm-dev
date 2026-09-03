@@ -1,0 +1,127 @@
+name: Camera barcode badge E2E
+
+on:
+  pull_request:
+    paths:
+      - "client/src/pages/ShoppingListMasterView.tsx"
+      - "client/src/components/biometrics/IngredientIntelligenceSheet.tsx"
+      - "client/e2e/barcode-camera-database-badge.spec.ts"
+      - "playwright.config.ts"
+      - "server/routes/biometricsRoutes.ts"
+      - "server/tests/barcodeScanContract.test.ts"
+
+jobs:
+  playwright:
+    name: "Barcode camera → BarcodeDatabaseBadge"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SESSION_SECRET: ci-session-secret-placeholder
+      NODE_ENV: development
+      E2E_BASE_URL: http://localhost:5000
+      # Disable billing enforcement so the test user passes subscription gates
+      BILLING_ENFORCED: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Rewrite Replit-internal registry URLs for GitHub runners
+        run: |
+          # package-lock.json may contain resolved URLs pointing at Replit's
+          # internal package proxy (package-firewall.replit.local). Those are
+          # unreachable outside Replit. Rewrite them to the public npm registry
+          # before npm ci tries to download anything.
+          BEFORE=$(grep -c "package-firewall.replit.local" package-lock.json || true)
+          if [ "$BEFORE" -gt 0 ]; then
+            sed -i \
+              's|http://package-firewall.replit.local/npm/|https://registry.npmjs.org/|g' \
+              package-lock.json
+            AFTER=$(grep -c "package-firewall.replit.local" package-lock.json || true)
+            echo "Rewrote $BEFORE Replit-internal URL(s) → $AFTER remaining"
+          else
+            echo "No Replit-internal URLs found — lockfile is already clean"
+          fi
+          # Also point npm itself at the public registry so any on-the-fly
+          # resolutions during install use the correct source.
+          npm config set registry https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: |
+          npm ci --no-audit --progress=false
+
+          echo "Node: $(node --version)"
+          echo "npm:  $(npm --version)"
+
+          echo "=== Verify Playwright packages ==="
+          npm ls @playwright/test playwright
+
+          echo "=== Verify Playwright CLI ==="
+          test -x node_modules/.bin/playwright
+          ./node_modules/.bin/playwright --version
+
+      - name: Install Playwright Chromium
+        run: |
+          ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Start dev server (background)
+        run: |
+          npm run dev &
+          echo "DEV_SERVER_PID=$!" >> "$GITHUB_ENV"
+        env:
+          NODE_ENV: development
+
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for server on port 5000…"
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5000/api/auth/session > /dev/null 2>&1; then
+              echo "Server is up (attempt $i)"
+              break
+            fi
+            echo "  attempt $i — not ready yet"
+            sleep 2
+          done
+
+      - name: Run barcode route contract test (Jest)
+        run: |
+          npx jest server/tests/barcodeScanContract.test.ts --no-coverage --forceExit
+
+      - name: Run barcode camera badge spec
+        run: |
+          ./node_modules/.bin/playwright test client/e2e/barcode-camera-database-badge.spec.ts \
+            --project=chromium \
+            --reporter=list
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Stop dev server
+        if: always()
+        run: |
+          if [ -n "$DEV_SERVER_PID" ]; then
+            kill "$DEV_SERVER_PID" 2>/dev/null || true
+          fi

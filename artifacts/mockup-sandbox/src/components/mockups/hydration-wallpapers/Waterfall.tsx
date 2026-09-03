@@ -1,0 +1,2 @@
+import { HydrationHubPreview } from "./_shared";
+export function Waterfall() { return <HydrationHubPreview image="/__mockup/images/hydration-waterfall-teal.png" name="Waterfall" eyebrow="Vertical renewal" accent="#82ddd3" note="A shaded ravine gives the workspace a gentle downward rhythm: renewal is visible, but the center stays quiet for reading." />; }

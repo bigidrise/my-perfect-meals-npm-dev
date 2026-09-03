@@ -13,15 +13,16 @@ const FULL_SCREEN_ROUTES = [
   "/onboarding-legacy",
   "/forgot-password",
   "/reset-password",
+  "/pilot/activate",
   "/guest-builder",
   "/guest-suite",
   "/guest",
-  "/procare-welcome",
   "/procare-identity",
   "/procare-attestation",
   "/consumer-welcome",
   "/checkout/success",
   "/affiliates",
+  "/join/promo",
 ];
 
 const UNAUTHENTICATED_FULL_SCREEN_ROUTES: string[] = [];
@@ -30,7 +31,7 @@ const STUDIO_ROUTE_PREFIXES = ["/pro/", "/care-team", "/pro-portal"];
 
 function shouldUseDesktopLayout(): boolean {
   const host = window.location.hostname;
-  if (host === "app.myperfectmeals.com") return true;
+  if (host === "app.myperfectmeals.com" || host === "app.myperfectmeals.ai") return true;
   if (host === "localhost" || host === "127.0.0.1") return true;
   if (host.endsWith(".replit.dev")) return true;
   if (host.endsWith(".replit.app")) return true;

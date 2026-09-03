@@ -1,120 +1,120 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
-import { Target, AlertCircle } from "lucide-react";
-import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { getAuthHeaders } from "@/lib/auth";
-import { apiUrl } from "@/lib/resolveApiBase";
+import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import { apiRequest } from "@/lib/apiRequest";
 
-interface ComplianceResponse {
+interface ActivitySummary {
   complianceScore: number | null;
   calorieCompliance: number;
   proteinCompliance: number;
   loggingCompliance: number;
+  mealConsistency: number;
+  mealCompletion: number | null;
+  mealLogging: number;
+  macroAdherence: number;
+  macroAdherenceEligible: boolean;
+  hydrationAdherence: number | null;
+  hydrationEligible: boolean;
   calorieAverage7: number;
   proteinAverage7: number;
   loggedDays7: number;
   windowDays: number;
   reason?: string;
-}
-
-interface MacroTargetsResponse {
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  hasTargets: boolean;
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 90) return "text-emerald-400";
-  if (score >= 70) return "text-yellow-400";
-  return "text-red-400";
-}
-
-function getScoreBorderColor(score: number): string {
-  if (score >= 90) return "border-emerald-500/30";
-  if (score >= 70) return "border-yellow-500/30";
-  return "border-red-500/30";
-}
-
-function getScoreBgColor(score: number): string {
-  if (score >= 90) return "from-emerald-500/20 to-emerald-700/20";
-  if (score >= 70) return "from-yellow-500/20 to-yellow-700/20";
-  return "from-red-500/20 to-red-700/20";
-}
-
-function getComplianceMessage(score: number | null, reason?: string, loggedDays?: number): string {
-  if (reason === "no_targets") return "Set your macro targets to begin compliance tracking.";
-  if (score === null || score === 0 || loggedDays === 0) return "Start recording your meals to activate compliance tracking.";
-  if (score >= 90) return "Excellent consistency. Your program is working.";
-  if (score >= 75) return "Good progress. A little more consistency will improve results.";
-  if (score >= 50) return "Your adherence is slipping. Focus on logging meals this week.";
-  return "Low compliance. Results will stall without consistent tracking.";
-}
-
-function TargetMacrosStrip({ targets }: { targets: MacroTargetsResponse }) {
-  return (
-    <div className="space-y-1">
-      <div className="text-xs text-white/40 font-medium uppercase tracking-wide">Target Macros</div>
-      <div className="flex gap-3 text-sm">
-        <span className="text-white/70">P <span className="text-white font-semibold">{targets.protein_g}g</span></span>
-        <span className="text-white/70">C <span className="text-white font-semibold">{targets.carbs_g}g</span></span>
-        <span className="text-white/70">Fat <span className="text-white font-semibold">{targets.fat_g}g</span></span>
-      </div>
-    </div>
-  );
+  proteinGoalDays: number;
+  calorieGoalDays: number;
+  mealSlots: { breakfast: number; lunch: number; dinner: number };
+  completedMealSlots: { breakfast: number; lunch: number; dinner: number };
+  mealActivity: {
+    expectedMealCount: number;
+    completedMealCount: number;
+    plannedMealDays: number;
+    completedMealDays: number;
+    completionRate: number | null;
+  };
+  biggestOpportunity: string;
+  coachingSummary: string;
 }
 
 interface ComplianceCardProps {
   userId: string | undefined;
 }
 
-export function ComplianceCard({ userId }: ComplianceCardProps) {
-  const isDesktop = useIsDesktop();
+function ScorePill({ score }: { score: number }) {
+  const color =
+    score >= 90 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" :
+    score >= 70 ? "text-yellow-400 bg-yellow-500/10 border-yellow-500/30" :
+    "text-orange-400 bg-orange-500/10 border-orange-500/30";
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border ${color}`}>
+      {score}%
+    </span>
+  );
+}
 
-  const { data, isLoading, isError } = useQuery<ComplianceResponse>({
+function BulletRow({
+  label,
+  value,
+  total,
+  highlight,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  highlight?: "good" | "warn" | "neutral";
+}) {
+  const { t } = useTranslation();
+  const pct = total > 0 ? value / total : 0;
+  const tone = highlight ?? (pct >= 0.71 ? "good" : pct >= 0.43 ? "neutral" : "warn");
+  const Icon = tone === "good" ? CheckCircle2 : tone === "warn" ? AlertTriangle : CheckCircle2;
+  const iconColor = tone === "good" ? "text-emerald-400" : tone === "warn" ? "text-orange-400" : "text-white/40";
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${iconColor}`} />
+      <span className="text-white/80">
+        {label}{" "}
+        <span className="font-semibold text-white">
+          {t("complianceCard.ofDays", { value, total })}
+        </span>{" "}
+        {t("complianceCard.days")}
+      </span>
+    </div>
+  );
+}
+
+export function ComplianceCard({ userId }: ComplianceCardProps) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handleActivityUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["compliance", userId] });
+    };
+    window.addEventListener("mpm:targetsUpdated", handleActivityUpdated);
+    window.addEventListener("mpm:nutritionActivityUpdated", handleActivityUpdated);
+    return () => {
+      window.removeEventListener("mpm:targetsUpdated", handleActivityUpdated);
+      window.removeEventListener("mpm:nutritionActivityUpdated", handleActivityUpdated);
+    };
+  }, [userId, queryClient]);
+
+  const { data, isLoading, isError } = useQuery<ActivitySummary>({
     queryKey: ["compliance", userId],
     queryFn: async () => {
-      const res = await fetch(apiUrl(`/api/users/${userId}/compliance`), {
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error(`Compliance fetch failed: ${res.status}`);
-      }
-      return res.json();
+      return apiRequest(`/api/users/${userId}/compliance`);
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
 
-  const { data: targets } = useQuery<MacroTargetsResponse>({
-    queryKey: ["macro-targets", userId],
-    queryFn: async () => {
-      const res = await fetch(apiUrl(`/api/users/${userId}/macro-targets`), {
-        headers: { ...getAuthHeaders() },
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error(`Macro targets fetch failed: ${res.status}`);
-      }
-      return res.json();
-    },
-    enabled: !!userId,
-    staleTime: 1000 * 60 * 5,
-  });
-
   if (!userId || isLoading) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
-              <Target className="h-6 w-6 text-white/40" />
-            </div>
-            <div className="text-white/40 text-sm">Loading compliance...</div>
-          </div>
+          <div className="h-4 w-40 bg-white/10 rounded animate-pulse mb-3" />
+          <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
         </CardContent>
       </Card>
     );
@@ -123,16 +123,12 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
   if (isError || !data) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/10 to-red-700/10 border border-red-500/20">
-              <AlertCircle className="h-6 w-6 text-red-400" />
-            </div>
-            <div>
-              <h3 className="text-white text-lg font-semibold">Compliance</h3>
-              <p className="text-red-400/70 text-sm">Unable to load compliance data</p>
-            </div>
-          </div>
+        <CardContent className="p-6 space-y-2">
+          <h3 className="text-white text-sm font-semibold">{t("complianceCard.title")}</h3>
+          <p className="text-white/40 text-xs">{t("complianceCard.last7Days")}</p>
+          <p className="text-white/60 text-sm pt-1">
+            {t("complianceCard.noActivity")}
+          </p>
         </CardContent>
       </Card>
     );
@@ -142,71 +138,110 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
         <CardContent className="p-6 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10">
-              <Target className="h-6 w-6 text-white/60" />
-            </div>
-            <div>
-              <h3 className="text-white text-lg font-semibold">Compliance</h3>
-              <p className="text-white/50 text-sm">Macro targets not set yet</p>
-            </div>
-          </div>
-          <p className="text-sm text-white/40 italic">
-            {getComplianceMessage(null, "no_targets")}
-          </p>
+          <h3 className="text-white text-sm font-semibold">{t("complianceCard.title")}</h3>
+          <p className="text-white/60 text-xs">{t("complianceCard.setTargets")}</p>
         </CardContent>
       </Card>
     );
   }
 
-  if (data.loggedDays7 === 0) {
+  const win = data.windowDays ?? 7;
+  const score = data.complianceScore ?? 0;
+  const slots = data.mealSlots ?? { breakfast: 0, lunch: 0, dinner: 0 };
+
+  if (data.loggedDays7 === 0 && (data.mealActivity?.expectedMealCount ?? 0) === 0) {
     return (
       <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-        <CardContent className="p-6 space-y-3">
-          <div className={isDesktop ? "flex items-center justify-between" : "space-y-3"}>
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/20 to-red-700/20 border border-red-500/30">
-                <Target className="h-6 w-6 text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-white text-lg font-semibold">Compliance</h3>
-                <p className="text-white/40 text-xs">Last {data.windowDays} days</p>
-                <p className="text-red-400 text-2xl font-bold">0%</p>
-              </div>
-            </div>
-            {targets?.hasTargets && <TargetMacrosStrip targets={targets} />}
-          </div>
-          <p className="text-sm text-white/50">No meals logged yet</p>
-          <p className="text-sm text-white/40 italic">
-            {getComplianceMessage(0, undefined, 0)}
+        <CardContent className="p-6 space-y-2">
+          <h3 className="text-white text-sm font-semibold">{t("complianceCard.title")}</h3>
+          <p className="text-white/50 text-xs">{t("complianceCard.lastNDays", { count: win })}</p>
+          <p className="text-white/70 text-sm pt-1">
+            {t("complianceCard.noMeals")}
           </p>
         </CardContent>
       </Card>
     );
   }
-
-  const score = data.complianceScore ?? 0;
 
   return (
     <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-xl">
-      <CardContent className="p-6 space-y-3">
-        <div className={isDesktop ? "flex items-center justify-between" : "space-y-3"}>
-          <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-lg bg-gradient-to-br ${getScoreBgColor(score)} border ${getScoreBorderColor(score)}`}>
-              <Target className={`h-6 w-6 ${getScoreColor(score)}`} />
-            </div>
-            <div>
-              <h3 className="text-white/70 text-sm font-medium">Compliance</h3>
-              <p className="text-white/30 text-xs">Last {data.windowDays} days</p>
-              <p className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}%</p>
-            </div>
-          </div>
-          {targets?.hasTargets && <TargetMacrosStrip targets={targets} />}
+      <CardContent className="p-6 space-y-4">
+
+        {/* Header */}
+        <div>
+          <h3 className="text-white text-sm font-semibold">{t("complianceCard.title")}</h3>
+          <p className="text-white/40 text-xs">{t("complianceCard.lastNDays", { count: win })}</p>
         </div>
 
-        <p className="text-sm text-white/50 italic">
-          {getComplianceMessage(score, undefined, data.loggedDays7)}
-        </p>
+        {/* Behavioral highlights — PRIMARY */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/80">Meal consistency</span>
+            <span className="font-semibold text-white">{data.mealConsistency}%</span>
+          </div>
+          <div className="ml-2 space-y-1 border-l border-white/10 pl-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/55">Meals completed</span>
+              <span className="font-medium text-white/80">
+                {data.mealCompletion === null
+                  ? "Not yet tracked"
+                  : `${data.mealActivity.completedMealCount}/${data.mealActivity.expectedMealCount} · ${data.mealCompletion}%`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/55">Days with meal logs</span>
+              <span className="font-medium text-white/80">
+                {data.loggedDays7}/{win} · {data.mealLogging}%
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-white/80">Whole-plan macro adherence</span>
+            <span className="font-semibold text-white text-right">
+              {data.macroAdherenceEligible ? `${data.macroAdherence}%` : "Not currently scored"}
+            </span>
+          </div>
+          {data.hydrationEligible && data.hydrationAdherence !== null && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/80">Hydration adherence</span>
+              <span className="font-semibold text-white">{data.hydrationAdherence}%</span>
+            </div>
+          )}
+          {!data.hydrationEligible && (
+            <p className="text-xs text-white/45">
+              Hydration is not scored because no current measurable Hydration target is established.
+            </p>
+          )}
+          {(slots.breakfast + slots.lunch + slots.dinner > 0) && (
+            <>
+              <BulletRow label={t("complianceCard.breakfastLogged")} value={slots.breakfast} total={win} highlight="neutral" />
+              <BulletRow label={t("complianceCard.lunchLogged")} value={slots.lunch} total={win} highlight="neutral" />
+              <BulletRow
+                label={t("complianceCard.dinnerLogged")}
+                value={slots.dinner}
+                total={win}
+                highlight={slots.dinner < Math.max(slots.breakfast, slots.lunch) - 1 ? "warn" : "neutral"}
+              />
+            </>
+          )}
+        </div>
+
+        {/* Score — SECONDARY */}
+        <div className="flex items-center gap-2 pt-1 border-t border-white/10">
+          <span className="text-white/50 text-xs">{t("complianceCard.consistencyScore")}</span>
+          <ScorePill score={score} />
+        </div>
+
+        {/* Biggest opportunity */}
+        {data.biggestOpportunity && (
+          <div className="bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+            <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide mb-0.5">
+              {t("complianceCard.biggestOpportunity")}
+            </p>
+            <p className="text-white/80 text-xs leading-snug">{data.biggestOpportunity}</p>
+          </div>
+        )}
+
       </CardContent>
     </Card>
   );

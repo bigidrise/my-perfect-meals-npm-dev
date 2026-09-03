@@ -1,56 +1,58 @@
-export type AccessTier = "PAID_FULL" | "TRIAL_FULL" | "FREE";
+import { PAID_PLAN_KEYS } from "../../shared/planFeatures";
+
+export type AccessTier = "PAID_FULL" | "FREE";
 
 interface UserForAccess {
   planLookupKey?: string | null;
-  trialStartedAt?: Date | null;
-  trialEndsAt?: Date | null;
   isTester?: boolean | null;
+  isFounder?: boolean | null;
+  isSandbox?: boolean | null;
+  trialEndsAt?: Date | string | null;
+  hasPilotProCareAccess?: boolean;
+  hasPilotFullAccess?: boolean;
 }
 
-const PAID_PLAN_KEYS = [
-  "mpm_basic_monthly",
-  "mpm_upgrade_monthly",
-  "mpm_upgrade_beta_monthly",
-  "mpm_ultimate_monthly",
-  "mpm_family_base_monthly",
-  "mpm_family_premium",
-  "mpm_family_all_upgrade_monthly",
-  "mpm_family_all_premium_monthly",
-  "mpm_family_all_ultimate_monthly",
-  "mpm_procare_monthly",
-  "mpm_basic_plan_999",
-  "mpm_premium_plan_1999",
-  "mpm_ultimate_plan_2999",
-];
+// PAID_PLAN_KEYS is now the single source of truth: it lives in shared/planFeatures.ts
+// and is derived from LOOKUP_KEY_TO_TIER. Adding a key to LOOKUP_KEY_TO_TIER with a
+// non-free tier automatically grants server-side PAID_FULL access — no separate list
+// to maintain here.
 
-// PRE-LAUNCH: Grant full access to all users for testing & growth.
-// When ready to enforce subscriptions, remove the early return below.
-const PRE_LAUNCH_FULL_ACCESS = true;
+// BILLING_ENFORCED=true in env means real paywalls are live.
+// While false (or unset), everyone gets PAID_FULL (pre-launch mode).
+// Flip this env var to go live — no code deploy required.
+const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
 
 export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): AccessTier {
-  if (PRE_LAUNCH_FULL_ACCESS) return "PAID_FULL";
+  // Pre-launch bypass: remove by setting BILLING_ENFORCED=true in env.
+  // While billing is NOT enforced, sandbox and everyone else gets PAID_FULL so
+  // the UI can be tested without Stripe. Once billing IS enforced, sandbox
+  // accounts use their real plan/trial just like any other user — this lets you
+  // test each tier by assigning the appropriate plan_lookup_key to a test account.
+  if (!BILLING_ENFORCED) return "PAID_FULL";
 
-  if (user.isTester) return "PAID_FULL";
+  // Tier 1: Founders — permanent full access (core family, business partners, contributors)
+  if (user.isFounder) return "PAID_FULL";
+  // Explicit internal QA/test accounts exercise the real paid and professional
+  // product surfaces without manufacturing a Stripe subscription.
+  if (user.isSandbox || user.isTester) return "PAID_FULL";
+  if (user.hasPilotProCareAccess) return "PAID_FULL";
+  if (user.hasPilotFullAccess) return "PAID_FULL";
 
-  if (user.planLookupKey && PAID_PLAN_KEYS.includes(user.planLookupKey)) {
+  // Tier 2: Active paid subscription
+  if (user.planLookupKey && PAID_PLAN_KEYS.has(user.planLookupKey)) {
     return "PAID_FULL";
   }
 
-  if (user.trialEndsAt && now < user.trialEndsAt) {
-    return "TRIAL_FULL";
+  // Tier 2.5: Active trial — grants PAID_FULL until trialEndsAt
+  if (user.trialEndsAt) {
+    const trialEnd = user.trialEndsAt instanceof Date
+      ? user.trialEndsAt
+      : new Date(user.trialEndsAt);
+    if (now < trialEnd) {
+      return "PAID_FULL";
+    }
   }
 
+  // Tier 3: Free tier
   return "FREE";
-}
-
-export function getTrialDaysRemaining(user: UserForAccess, now: Date = new Date()): number | null {
-  if (!user.trialEndsAt) return null;
-  const diff = user.trialEndsAt.getTime() - now.getTime();
-  if (diff <= 0) return 0;
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-export function isTrialExpired(user: UserForAccess, now: Date = new Date()): boolean {
-  if (!user.trialEndsAt) return false;
-  return now >= user.trialEndsAt;
 }

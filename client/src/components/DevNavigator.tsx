@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { X, ChevronRight, Wrench } from "lucide-react";
+import { X, ChevronRight, Wrench, Stethoscope, Dumbbell, RefreshCw, AlertCircle, User } from "lucide-react";
+import { proStore, type ClientProfile } from "@/lib/proData";
+import { getAuthHeaders } from "@/lib/auth";
+import { apiUrl } from "@/lib/resolveApiBase";
+import { apiRequest } from "@/lib/apiRequest";
 
 interface NavSection {
   title: string;
@@ -22,6 +26,8 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/onboarding-legacy", label: "Onboarding Legacy" },
       { path: "/onboarding/extended", label: "Extended Onboarding" },
       { path: "/consumer-welcome", label: "Consumer Welcome" },
+      { path: "/trainer-welcome", label: "Trainer Welcome" },
+      { path: "/physician-welcome", label: "Physician Welcome" },
       { path: "/apply-guidance", label: "Apply Guidance" },
     ],
   },
@@ -54,12 +60,12 @@ const NAV_SECTIONS: NavSection[] = [
     routes: [
       { path: "/select-builder", label: "Builder Selection" },
       { path: "/weekly-meal-board", label: "Weekly Meal Board" },
-      { path: "/beach-body-meal-board", label: "Beach Body Builder" },
+      { path: "/beach-body-meal-board", label: "Performance Nutrition Builder" },
       { path: "/diabetic-menu-builder", label: "Diabetic Builder" },
-      { path: "/glp1-meal-builder", label: "GLP-1 Builder" },
+      { path: "/glp1-meal-builder", label: "Metabolic Med Builder" },
       { path: "/anti-inflammatory-menu-builder", label: "Anti-Inflammatory Builder" },
       { path: "/performance-competition-builder", label: "Performance Builder" },
-      { path: "/pro/general-nutrition-builder", label: "General Nutrition Builder" },
+      { path: "/general-nutrition-builder", label: "General Nutrition Builder" },
     ],
   },
   {
@@ -81,8 +87,8 @@ const NAV_SECTIONS: NavSection[] = [
     routes: [
       { path: "/diabetic-hub", label: "Diabetic Hub" },
       { path: "/diabetes-support", label: "Diabetes Support" },
-      { path: "/glp1-hub", label: "GLP-1 Hub" },
-      { path: "/glp1-meals-tracking", label: "GLP-1 Meals Tracking" },
+      { path: "/glp1-hub", label: "Metabolic Med Hub" },
+      { path: "/glp1-meals-tracking", label: "Metabolic Med Tracking" },
     ],
   },
   {
@@ -91,6 +97,8 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/procare-welcome", label: "ProCare Welcome" },
       { path: "/procare-identity", label: "ProCare Identity" },
       { path: "/procare-attestation", label: "ProCare Attestation" },
+      { path: "/professional-onboarding-bridge", label: "Onboarding Bridge" },
+      { path: "/procare-training", label: "ProCare Training (Phase 2)" },
       { path: "/care-team", label: "Care Team" },
       { path: "/care-team/physician", label: "Physician Care Team" },
       { path: "/care-team/trainer", label: "Trainer Care Team" },
@@ -125,6 +133,75 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: "Business Center & Org",
+    routes: [
+      { path: "/business-center", label: "Business Center Home" },
+      { path: "/business-dashboard", label: "Business Dashboard (Owner)" },
+      { path: "/org-success-center", label: "Organization Success Center" },
+      { path: "/pro-launchpad", label: "Professional Launchpad" },
+      { path: "/business-center/affiliate", label: "Affiliate Overview" },
+      { path: "/business-center/affiliate/choose", label: "Choose Your Path" },
+      { path: "/business-center/affiliate/social", label: "Social Path Page" },
+      { path: "/business-center/affiliate/coaching", label: "Coaching Path Page" },
+      { path: "/business-center/affiliate/dashboard", label: "Affiliate Dashboard" },
+    ],
+  },
+  {
+    title: "Partner Programs",
+    routes: [
+      { path: "/business-center/partners", label: "Partner Hub" },
+      { path: "/business-center/partners/manage", label: "Partner Management (Admin)" },
+      { path: "/business-center/founding-partner", label: "Founding Partner Program" },
+      { path: "/partners/founding", label: "Founding Partner (Public)" },
+      { path: "/business-center/how-partnerships-work", label: "How Partnerships Work" },
+      { path: "/business-center/industry", label: "Industry Partnerships" },
+      { path: "/business-center/healthcare", label: "Healthcare Partnerships" },
+      { path: "/business-center/white-label", label: "White Label Solutions" },
+      { path: "/partners", label: "Public Partners Hub" },
+    ],
+  },
+  {
+    title: "Academy — Platform Mastery (Studio Gate)",
+    routes: [
+      { path: "/academy", label: "Academy Home" },
+      { path: "/academy/platform-mastery", label: "Platform Mastery Dashboard" },
+      { path: "/business-center/academy", label: "Academy Landing Page" },
+      { path: "/learning", label: "Learning Hub" },
+    ],
+  },
+  {
+    title: "Academy — Coaching Cert (Affiliate)",
+    routes: [
+      { path: "/business-center/affiliate/coaching/certification", label: "Cert Dashboard" },
+      { path: "/business-center/affiliate/coaching/certification/module-1", label: "M1 — What Is My Perfect Meals?" },
+      { path: "/business-center/affiliate/coaching/certification/module-1/quiz", label: "M1 — Quiz" },
+      { path: "/business-center/affiliate/coaching/certification/module-2", label: "M2 — How My Perfect Meals Works" },
+      { path: "/business-center/affiliate/coaching/certification/module-2/quiz", label: "M2 — Quiz" },
+      { path: "/business-center/affiliate/coaching/certification/module-3", label: "M3 — Personalization & Adaptive Nutrition" },
+      { path: "/business-center/affiliate/coaching/certification/module-3/quiz", label: "M3 — Quiz" },
+      { path: "/business-center/affiliate/coaching/certification/module-4", label: "M4 — Representing the Brand" },
+      { path: "/business-center/affiliate/coaching/certification/module-4/quiz", label: "M4 — Quiz" },
+      { path: "/business-center/affiliate/coaching/certification/module-5", label: "M5 — Helping Clients Succeed" },
+      { path: "/business-center/affiliate/coaching/certification/module-5/quiz", label: "M5 — Quiz" },
+      { path: "/business-center/affiliate/coaching/certification/complete", label: "Cert Complete" },
+      { path: "/business-center/affiliate/coaching/certification/view", label: "Certificate View" },
+    ],
+  },
+  {
+    title: "Academy — Social Cert (Affiliate)",
+    routes: [
+      { path: "/business-center/affiliate/social/certification", label: "Cert Dashboard" },
+      { path: "/business-center/affiliate/social/certification/module-1", label: "M1 — Lesson" },
+      { path: "/business-center/affiliate/social/certification/module-1/quiz", label: "M1 — Quiz" },
+      { path: "/business-center/affiliate/social/certification/module-2", label: "M2 — Lesson" },
+      { path: "/business-center/affiliate/social/certification/module-2/quiz", label: "M2 — Quiz" },
+      { path: "/business-center/affiliate/social/certification/module-3", label: "M3 — Lesson" },
+      { path: "/business-center/affiliate/social/certification/module-3/quiz", label: "M3 — Quiz" },
+      { path: "/business-center/affiliate/social/certification/complete", label: "Cert Complete" },
+      { path: "/business-center/affiliate/social/certification/view", label: "Certificate View" },
+    ],
+  },
+  {
     title: "Other",
     routes: [
       { path: "/get-inspiration", label: "Get Inspiration" },
@@ -140,12 +217,269 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+// ─── Pro Dashboard Preview Section ───────────────────────────────────────────
+// Fetches real clients from both workspaces so you can jump directly into
+// the physician or trainer dashboard for any client without switching accounts.
+
+interface DevClient {
+  id: string;
+  clientUserId: string;
+  name: string;
+  email?: string;
+  workspace: "trainer" | "clinician";
+  studioId: string;
+}
+
+function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const [clients, setClients] = useState<DevClient[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fetched, setFetched] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const headers = getAuthHeaders();
+
+      // Get the studio (works for both trainer and physician since it's the same studio record)
+      const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers });
+      if (!studioRes.ok) {
+        setError("No studio found — you may not be set up as a professional yet.");
+        return;
+      }
+      const { studio } = await studioRes.json();
+      if (!studio?.id) {
+        setError("Studio returned but has no ID.");
+        return;
+      }
+
+      // Fetch both workspaces in parallel
+      const [trainerResult, clinicianResult] = await Promise.allSettled([
+        apiRequest(`/api/studios/${studio.id}/clients?workspace=trainer`),
+        apiRequest(`/api/studios/${studio.id}/clients?workspace=clinician`),
+      ]);
+
+      const trainerClients: DevClient[] = trainerResult.status === 'fulfilled'
+        ? ((trainerResult.value.clients ?? []).map((c: any) => ({
+            id: c.clientUserId ?? c.id,
+            clientUserId: c.clientUserId ?? c.id,
+            name: c.name ?? c.email ?? "Unknown",
+            email: c.email,
+            workspace: "trainer" as const,
+            studioId: studio.id,
+          })))
+        : [];
+
+      const clinicianClients: DevClient[] = clinicianResult.status === 'fulfilled'
+        ? ((clinicianResult.value.clients ?? []).map((c: any) => ({
+            id: c.clientUserId ?? c.id,
+            clientUserId: c.clientUserId ?? c.id,
+            name: c.name ?? c.email ?? "Unknown",
+            email: c.email,
+            workspace: "clinician" as const,
+            studioId: studio.id,
+          })))
+        : [];
+
+      // Also pull from localStorage proStore as a fallback
+      const storedClients = proStore.listClients();
+      const storedMapped: DevClient[] = storedClients.map(c => ({
+        id: c.clientUserId ?? c.id,
+        clientUserId: c.clientUserId ?? c.id,
+        name: c.name ?? "Unknown",
+        email: c.email,
+        workspace: (c.workspace ?? "trainer") as "trainer" | "clinician",
+        studioId: c.studioId ?? studio.id,
+      }));
+
+      // Only show test accounts — never surface real client names/emails
+      const TEST_EMAILS = ["mpmsandboxtest2026@proton.me"];
+      const isTestClient = (c: DevClient) =>
+        c.email && TEST_EMAILS.some(t => c.email!.toLowerCase() === t.toLowerCase());
+
+      const seen = new Set<string>();
+      const merged: DevClient[] = [];
+      for (const c of [...trainerClients, ...clinicianClients, ...storedMapped]) {
+        if (!isTestClient(c)) continue;
+        const key = c.clientUserId;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(c);
+        }
+      }
+
+      // Pre-load all into proStore so dashboard pages don't get blank state
+      for (const c of merged) {
+        proStore.upsertClient({
+          id: c.clientUserId,
+          clientUserId: c.clientUserId,
+          name: c.name,
+          email: c.email,
+          workspace: c.workspace,
+          studioId: c.studioId,
+          dbBacked: true,
+        } as ClientProfile);
+      }
+
+      setClients(merged);
+      if (merged.length === 0) {
+        setError("Test account not found in studio. Make sure mpmsandboxtest2026@proton.me is enrolled as a client in your Pro Portal.");
+      }
+    } catch (e) {
+      setError("Failed to fetch clients. Make sure you're signed in.");
+    } finally {
+      setLoading(false);
+      setFetched(true);
+    }
+  }, []);
+
+  // Auto-fetch on first render
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const jumpTo = (clientUserId: string, view: "clinician" | "trainer") => {
+    onNavigate(`/pro/clients/${clientUserId}/${view}`);
+  };
+
+  if (!fetched && loading) {
+    return (
+      <div className="px-4 py-4 flex items-center gap-2 text-white/50 text-sm">
+        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+        Loading clients from API…
+      </div>
+    );
+  }
+
+  // Group by unique client (show one row per clientUserId with both view buttons)
+  const uniqueClients = Array.from(
+    new Map(clients.map(c => [c.clientUserId, c])).values()
+  );
+
+  return (
+    <div className="border-t border-white/5">
+      {/* Direct portal links — always visible, no client required */}
+      <div className="px-4 pt-3 pb-2">
+        <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">Portals</p>
+        <div className="grid grid-cols-2 gap-1.5 mb-3">
+          {[
+            { path: "/pro-portal", label: "Pro Portal" },
+            { path: "/pro/clients", label: "Clients (Trainer)" },
+            { path: "/pro/physician-clients", label: "Clients (Physician)" },
+            { path: "/pro/physician", label: "Physician Portal" },
+          ].map(({ path, label }) => (
+            <button
+              key={path}
+              onClick={() => onNavigate(path)}
+              className="flex items-center justify-center py-1.5 px-2 rounded-lg bg-white/8 border border-white/10 text-white/70 text-xs font-medium active:scale-[0.97] transition-transform"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">Dashboards (empty state preview)</p>
+        <p className="text-[10px] text-white/20 mb-2 leading-relaxed">
+          Loads the full dashboard UI with no real client — use to inspect layout &amp; buttons.
+        </p>
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            onClick={() => onNavigate("/pro/clients/__dev__/trainer")}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium active:scale-[0.97] transition-transform"
+          >
+            <Dumbbell className="h-3 w-3" />
+            Trainer Dashboard
+          </button>
+          <button
+            onClick={() => onNavigate("/pro/clients/__dev__/clinician")}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-medium active:scale-[0.97] transition-transform"
+          >
+            <Stethoscope className="h-3 w-3" />
+            Physician Dashboard
+          </button>
+        </div>
+      </div>
+
+      {/* Per-client jump section */}
+      <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 mt-1">
+        <span className="text-[10px] text-white/30 uppercase tracking-wide">
+          {error && uniqueClients.length === 0
+            ? "No test client found"
+            : `${uniqueClients.length} client${uniqueClients.length !== 1 ? "s" : ""} found`}
+        </span>
+        <button
+          onClick={fetchAll}
+          disabled={loading}
+          className="flex items-center gap-1 text-[10px] text-amber-400/70 active:opacity-60 disabled:opacity-40"
+        >
+          <RefreshCw className={`h-2.5 w-2.5 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+
+      {error && uniqueClients.length === 0 && (
+        <div className="px-4 pb-3">
+          <div className="flex items-start gap-2 text-white/30 text-[11px]">
+            <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-white/20" />
+            <span>Enroll mpmsandboxtest2026@proton.me as a client to enable per-client jump links below.</span>
+          </div>
+        </div>
+      )}
+
+      {uniqueClients.map((c) => (
+        <div key={c.clientUserId} className="px-4 py-2.5 border-t border-white/5">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <User className="h-3 w-3 text-white/50" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-white truncate">{c.name}</div>
+              {c.email && (
+                <div className="text-[10px] text-white/30 truncate">{c.email}</div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => jumpTo(c.clientUserId, "clinician")}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-medium active:scale-[0.97] transition-transform"
+            >
+              <Stethoscope className="h-3 w-3" />
+              Physician View
+            </button>
+            <button
+              onClick={() => jumpTo(c.clientUserId, "trainer")}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium active:scale-[0.97] transition-transform"
+            >
+              <Dumbbell className="h-3 w-3" />
+              Trainer View
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {uniqueClients.length > 0 && (
+        <div className="px-4 py-2">
+          <p className="text-[10px] text-white/25 leading-relaxed">
+            Client data pre-loaded into proStore. Both views accessible regardless of your account role.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DevNavigator() {
   const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["Meal Builders"]));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["Pro Dashboard Preview"]));
 
-  if (import.meta.env.MODE !== "development") return null;
+  if (
+    import.meta.env.MODE !== "development" ||
+    import.meta.env.VITE_SHOW_DEV_TOOLS !== "true" ||
+    window.innerWidth < 768
+  ) return null;
 
   const toggleSection = (title: string) => {
     setExpandedSections((prev) => {
@@ -190,6 +524,30 @@ export default function DevNavigator() {
       </div>
 
       <div className="p-3 space-y-2 pb-24">
+
+        {/* ── PRO DASHBOARD PREVIEW — always at the top ── */}
+        <div className="rounded-xl bg-white/5 border border-amber-500/20 overflow-hidden">
+          <button
+            onClick={() => toggleSection("Pro Dashboard Preview")}
+            className="w-full flex items-center justify-between px-4 py-3 active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-white text-sm font-medium">Pro Dashboard Preview</span>
+              <span className="text-[10px] bg-amber-600/30 text-amber-400 px-1.5 py-0.5 rounded-full">Live</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-white/40">Physician · Trainer</span>
+              <ChevronRight
+                className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.has("Pro Dashboard Preview") ? "rotate-90" : ""}`}
+              />
+            </div>
+          </button>
+          {expandedSections.has("Pro Dashboard Preview") && (
+            <ProDashboardPreview onNavigate={navigate} />
+          )}
+        </div>
+
+        {/* ── ALL OTHER SECTIONS ── */}
         {NAV_SECTIONS.map((section) => {
           const isExpanded = expandedSections.has(section.title);
           return (

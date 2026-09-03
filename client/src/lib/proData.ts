@@ -56,6 +56,8 @@ export type Targets = {
     postBariatric?: boolean;
     liverDisease?: boolean;
     liverSupport?: boolean;
+    thyroidSupport?: boolean;
+    oncologySupport?: boolean;
 
     // Performance flags (for trainers)
     highProtein?: boolean;
@@ -96,10 +98,12 @@ export type ClinicalContext = {
     | "General"
   )[];
   followupWeeks?: 4 | 8 | 12;
+  followupDate?: string;
   patientNote?: string;
   coachNote?: string;
   advisory?: ClinicalAdvisory;
   checkInWeeks?: 2 | 4 | 8 | 12;
+  checkInDate?: string;
   nextCheckInISO?: string;
 };
 
@@ -408,6 +412,33 @@ export const proStore = {
       },
     };
     saveState(state);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('mpm:targetsUpdated'));
+    }
+  },
+
+  /**
+   * Protocol Ownership Model: strips high-risk physician-only flags from a
+   * client's stored targets when ProCare has ended. Called by useMacroTargetSync
+   * whenever user.isProCare === false so stale localStorage flags don't persist.
+   * Returns true if any flag was changed (caller should clear resolver cache).
+   */
+  stripMedicalFlags(clientId: string): boolean {
+    const existing = state.targets[clientId];
+    if (!existing?.flags) return false;
+    const PHYSICIAN_MEDICAL_FLAGS = ['oncologySupport', 'renal', 'cardiac', 'liverDisease', 'liverSupport'] as const;
+    let changed = false;
+    for (const flag of PHYSICIAN_MEDICAL_FLAGS) {
+      if ((existing.flags as any)[flag]) {
+        (existing.flags as any)[flag] = false;
+        changed = true;
+      }
+    }
+    if (changed) {
+      state.targets[clientId] = existing;
+      saveState(state);
+    }
+    return changed;
   },
 
   getPrefs(clientId: string): Prefs {
@@ -439,10 +470,12 @@ export const proStore = {
       diagnosis: ctx.diagnosis?.trim() || undefined,
       clinicalTags: ctx.clinicalTags?.length ? [...new Set(ctx.clinicalTags)] : undefined,
       followupWeeks: ctx.followupWeeks,
+      followupDate: ctx.followupDate,
       patientNote: ctx.patientNote?.trim() || undefined,
       coachNote: ctx.coachNote?.trim() || undefined,
       advisory: ctx.advisory,
       checkInWeeks: ctx.checkInWeeks,
+      checkInDate: ctx.checkInDate,
       nextCheckInISO: ctx.nextCheckInISO,
     };
     saveState(state);

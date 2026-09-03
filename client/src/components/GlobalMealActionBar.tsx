@@ -1,18 +1,22 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, Plus } from "lucide-react";
+import { Sparkles, Star } from "lucide-react";
 import { CreateWithChefButton } from "@/components/CreateWithChefButton";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
+import { PillButton } from "@/components/ui/pill-button";
+import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { FEATURES } from "@/featureFlags";
 
-type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks";
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
 
 interface GlobalMealActionBarProps {
   slot: MealSlot;
   onCreateWithAI: () => void;
   onCreateWithChef: () => void;
   onSnackCreator?: () => void;
-  onManualAdd: () => void;
+  onSave: (meal: any) => void;
+  onImageReady?: (mealId: string, imageUrl: string) => void;
   onLogSnack?: () => void;
+  onFavorites?: () => void;
   disabled?: boolean;
   showCreateWithChef?: boolean;
   showSnackCreator?: boolean;
@@ -24,19 +28,20 @@ export function GlobalMealActionBar({
   onCreateWithAI,
   onCreateWithChef,
   onSnackCreator,
-  onManualAdd,
+  onSave,
+  onImageReady,
   onLogSnack,
+  onFavorites,
   disabled = false,
   showCreateWithChef = true,
   showSnackCreator = true,
   showLogSnack = false,
 }: GlobalMealActionBarProps) {
   const isSnackSlot = slot === "snacks";
-  const isMealSlot = slot === "breakfast" || slot === "lunch" || slot === "dinner";
+  const isMealSlot = slot === "breakfast" || slot === "lunch" || slot === "dinner" || slot === "meal4" || slot === "meal5" || slot === "meal6";
 
   return (
-    <div className="flex gap-2">
-      {/* For meal slots: Show Create with AI (hidden by feature flag for launch) */}
+    <div className="flex gap-2 flex-shrink-0">
       {FEATURES.showCreateWithAI && isMealSlot && (
         <Button
           size="sm"
@@ -51,7 +56,6 @@ export function GlobalMealActionBar({
         </Button>
       )}
 
-      {/* For snack slots: Show Snack Creator ONLY (replaces Create with AI) */}
       {showSnackCreator && isSnackSlot && onSnackCreator && (
         <SnackCreatorButton
           onClick={onSnackCreator}
@@ -66,16 +70,29 @@ export function GlobalMealActionBar({
         />
       )}
 
-      <Button
-        size="sm"
-        variant="ghost"
-        data-wt="weekly-empty-slot"
-        className="text-white/80 hover:bg-white/10"
-        onClick={onManualAdd}
+      {onFavorites && (
+        <div className="inline-flex flex-col items-center gap-1">
+          <PillButton
+            onClick={onFavorites}
+            disabled={disabled}
+            title="Pick from My Favorites"
+            active={true}
+            variant="rose"
+            className="px-3"
+          >
+            <Star className="h-3 w-3 fill-white text-white" />
+          </PillButton>
+          <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">Favorites</span>
+        </div>
+      )}
+
+      <AddOwnMealButton
+        slot={slot}
+        onSave={onSave}
+        onImageReady={onImageReady}
+        variant="icon"
         disabled={disabled}
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
+      />
 
       {showLogSnack && isSnackSlot && onLogSnack && (
         <Button

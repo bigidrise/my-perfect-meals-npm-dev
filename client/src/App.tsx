@@ -4,8 +4,12 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OrgProvider } from "@/contexts/OrgContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
+import { NarrationSpeedProvider } from "@/contexts/NarrationSpeedContext";
+import { HouseholdProvider } from "@/contexts/HouseholdContext";
 import { ProClientProvider } from "@/contexts/ProClientContext";
+import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import AppRouter from "@/components/AppRouter";
 import Router from "@/components/Router";
 import { AvatarSelector } from "@/components/AvatarSelector";
@@ -14,6 +18,7 @@ import { VoiceConcierge } from "@/components/VoiceConcierge";
 import ScrollManager from "@/components/ScrollManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
+import { useMacroTargetSync } from "@/hooks/useMacroTargetSync";
 import { loadRewardful } from "@/lib/rewardful";
 import { AudioProvider } from "@/audio/AudioProvider";
 import { PageTitleProvider } from "@/contexts/PageTitleContext";
@@ -21,6 +26,7 @@ import { CopilotSystem } from "@/components/copilot/CopilotSystem";
 import type { CopilotAction } from "@/components/copilot/CopilotContext";
 import { setNavigationHandler, setModalHandler } from "@/components/copilot/CopilotCommandRegistry";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
 import { setupNotificationListeners } from "@/services/mealReminderService";
@@ -28,8 +34,13 @@ import DevBadge from "./components/DevBadge";
 import DevNavigator from "./components/DevNavigator";
 import { Capacitor } from "@capacitor/core";
 import { VoiceProvider } from "@/voice/VoiceProvider";
-import { useUpdateCheck } from "@/hooks/useUpdateCheck";
+import { UpdateProvider, useUpdateState } from "@/contexts/UpdateContext";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { TrialBanner } from "@/components/TrialBanner";
+import { TrialMilestoneModal } from "@/components/TrialMilestoneModal";
+import { IdleTimeoutModal } from "@/components/IdleTimeoutModal";
+import MealPickerRetryHarness from "@/pages/e2e/MealPickerRetryHarness";
+import { CanonicalTimezonePrompt } from "@/components/CanonicalTimezonePrompt";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -51,10 +62,20 @@ function VisibilityRefreshMount() {
   return null;
 }
 
+function MacroTargetSyncMount() {
+  useMacroTargetSync();
+  return null;
+}
+
+function UpdateBannerMount() {
+  const { hasUpdate, releaseNotes, releaseId } = useUpdateState();
+  return <UpdateBanner show={hasUpdate} releaseNotes={releaseNotes} releaseId={releaseId} />;
+}
+
 export default function App() {
+  const { t } = useTranslation();
   const [isAppReady, setIsAppReady] = useState(false);
   const [, setLocation] = useLocation();
-  const showUpdate = useUpdateCheck();
 
   useEffect(() => {
     setNavigationHandler((path) => {
@@ -155,25 +176,59 @@ export default function App() {
           alt="Loading" 
           style={{ width: "80px", height: "80px", marginBottom: "16px" }}
         />
-        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>Loading...</p>
+        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>{t("common.loading")}</p>
       </div>
+    );
+  }
+
+  // Browser tests need the real pickers, but not unrelated global widgets that
+  // require a complete production account. This route is unavailable outside
+  // Playwright because navigator.webdriver must be true.
+  const isMealPickerRetryTestRoute =
+    typeof navigator !== "undefined" &&
+    navigator.webdriver &&
+    window.location.pathname === "/__e2e/meal-picker-retry";
+
+  if (isMealPickerRetryTestRoute) {
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <AuthProvider>
+              <UpgradeModalProvider>
+                <MealPickerRetryHarness />
+                <Toaster />
+              </UpgradeModalProvider>
+            </AuthProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     );
   }
 
   return (
     <ErrorBoundary>
+      <UpdateProvider>
       <DevBadge />
       <DevNavigator />
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <CanonicalTimezonePrompt />
+            <OrgProvider>
+            <HouseholdProvider>
             <FontSizeProvider>
+            <NarrationSpeedProvider>
             <AudioProvider>
               <VoiceProvider>
                 <VisibilityRefreshMount />
+                <MacroTargetSyncMount />
                 <ScrollManager />
-                <UpdateBanner show={showUpdate} />
+                <UpdateBannerMount />
+                <TrialBanner />
+                <TrialMilestoneModal />
                 <CopilotSystem onAction={handleCopilotAction}>
+                <UpgradeModalProvider>
                 <ProClientProvider>
                 <PageTitleProvider>
                 <RootViewport>
@@ -185,15 +240,21 @@ export default function App() {
                 <AvatarSelector />
                 <ChefVoiceAssistant />
                 <VoiceConcierge />
+                <IdleTimeoutModal />
                 <Toaster />
               </ProClientProvider>
+              </UpgradeModalProvider>
               </CopilotSystem>
               </VoiceProvider>
             </AudioProvider>
+            </NarrationSpeedProvider>
             </FontSizeProvider>
+            </HouseholdProvider>
+            </OrgProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
+      </UpdateProvider>
     </ErrorBoundary>
   );
 }

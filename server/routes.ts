@@ -1,22 +1,50 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { validateProfilePayload } from "./guards/profileFieldGuard";
+import { computeAlphaGalBadge } from "./services/medicalBadges";
+import { resolveDailyNutritionState } from "./services/dailyNutritionState";
+import { isValidIanaTimezone } from "./services/nutritionDayService";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { sendEmail } from "./emailService";
 import { familyRecipesRouter } from "./routes/familyRecipes";
 import { uploadsRouter } from "./routes/uploads";
 import { storage } from "./storage";
-import { ObjectStorageService } from "./objectStorage";
+import { ObjectStorageService, objectStorageClient, StorageUnavailableError, inferContentType } from "./objectStorage";
+import { resolveMealImageStorageContext } from "./services/mealImageBucket";
+import { processMealImageForSave } from "./services/imageLifecycle";
+import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
+import {
+  decideImageDeliveryRecovery,
+  publicObjectPathFromUrl,
+  publicObjectUrlForKey,
+  type DeliveryProbe,
+} from "./services/imageDeliveryRecovery";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
+import { createApiRateLimit } from "./middleware/rateLimit";
 import { getAuthUserId } from "./utils/getAuthUserId";
+import { emitActivityEvent } from "./services/coaching/activityEvents";
 import { checkDailyQuota, checkAndIncrementQuota, incrementDailyUsage, AiFeature } from "./services/aiQuotaService";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
+import { requireEssentialAccess } from "./middleware/requireEssentialAccess";
+import { requireProAccess } from "./middleware/requireProAccess";
+import { requireClinicalAccess, requireStrictClinicalAccess } from "./middleware/requireClinicalAccess";
+import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
+import { requirePhase2Training } from "./middleware/requirePhase2Training";
+import { requireProCareAccess } from "./middleware/requireProCareAccess";
+import { requireMonetizationAccess } from "./middleware/requireMonetizationAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
-import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable } from "@shared/schema";
+import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
+import { getTierForLookupKey, getEntitlementsForTier, canAccessProCareStudio, TRIAL_UNLOCKS_TIER } from "@shared/planFeatures";
 import { studioMemberships, studios } from "./db/schema/studio";
+import { mealImageCache } from "./db/schema/mealImageCache";
+import { companionProfileImages } from "./db/schema/companionProfiles";
 import { db } from "./db";
-import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
+import { and, eq, gte, lte, desc, sql, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { reminderService } from "./reminderService";
 import { generateMealPlan } from "./ai-service";
@@ -26,6 +54,14 @@ import holidayFamilyRecipeRouter from "./routes/holiday-family-recipe";
 import { generateCravingMeal, generateWeeklyMeals } from "./services/stableMealGenerator";
 import { generateCravingMealWithProfile } from "./services/generators/cravingCreatorWrapped";
 import { enforceSafetyProfile } from "./services/safetyProfileService";
+import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
+import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } from "./services/allergyGuardrails";
+import { sanitizeMealName } from "./utils/mealNameSanitizer";
+import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle, deriveProcedureRules } from "./services/protocolEnvelope";
+import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEngine";
+import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
+import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -49,15 +85,40 @@ import { saveGlycemicSettings, getGlycemicSettings } from './services/glycemicSe
 import multer from 'multer';
 import OpenAI from 'openai';
 import pushNotificationsRouter from './routes/pushNotifications';
+import remindersRouter from './routes/reminders';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
+import trialRouter from './routes/trial';
+import mfaRoutes from './routes/auth.mfa';
+import { requireMfa } from './middleware/requireMfa';
 import { MealEngineService } from "./services/mealEngineService";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
+import { buildAcePromptBlock } from "./services/ace/buildAcePromptBlock";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
+import { assignBuilder, isValidBuilder, VALID_BUILDERS } from "./services/builderAssignment";
 import { fridgeRescueRouter } from "./routes/fridgeRescue";
+import inspirationRouter from "./routes/inspiration";
+import groceryCoachRouter from "./routes/groceryCoach";
+import mealRefinementRouter from "./routes/mealRefinement";
+import savedGroceriesRouter from "./routes/savedGroceries";
+import pregnancyCoachRouter from "./routes/pregnancyCoach";
+import coachingEngineRouter from "./routes/coachingEngine";
+import performanceNutritionRouter from "./routes/performanceNutrition";
+import carbCycleRouter from "./routes/carbCycle";
+import nutritionSummaryRouter from "./routes/nutritionSummary";
+import therapeuticSetupRouter from "./routes/therapeuticSetup";
 import alcoholLogRouter from './routes/alcohol-log';
 import vitalsBpRouter from './routes/vitals-bp';
 import proteinTargetsRouter from './routes/proteinTargets';
+import certificationRouter from './routes/certificationRoutes';
+import adminCertRouter from './routes/adminCertRoutes';
+import academyRouter from './routes/academyRoutes';
+import lmsRouter from './routes/lmsRoutes';
+import affiliateRouter, { handleRewardfulWebhook } from './routes/affiliateRoutes';
+import mealSharesRouter from './routes/mealSharesRouter';
+import partnerRouter from './routes/partnerRoutes';
+import promotionRouter from './routes/promotionRoutes';
+import whiteLabelRouter from './routes/whiteLabelRoutes';
 import { cookingRouter } from './routes/cooking';
 import { mealImagesRouter } from './routes/mealImages';
 import weekBoardRoutes from './routes/weekBoard';
@@ -73,7 +134,10 @@ import biometricsRoutes from "./routes/biometricsRoutes";
 import builderPlansRoutes from "./routes/builderPlans";
 import careTeamRoutes from "./routes/careTeamRoutes";
 import procareRoutes from "./routes/procareRoutes";
+import procareTrainingRouter from "./routes/procareTrainingRoutes";
+import clinicalInterventionsRouter from "./routes/clinicalInterventions";
 import studioRoutes from "./routes/studioRoutes";
+import procareInviteRoutes from "./routes/procareInviteRoutes";
 import onboardingProgressRoutes from "./routes/onboardingProgress";
 import foundersRoutes from "./routes/foundersRoutes";
 import physicianReportsRoutes from "./routes/physicianReports";
@@ -86,6 +150,7 @@ import { diabetesRouter } from "./routes/diabetes"; // Diabetes profile and gluc
 import stripeCheckoutRouter from "./routes/stripeCheckout";
 import stripeRouter from "./routes/stripe";
 import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for stripeWebhookRouter
+import businessRouter from "./routes/businessRoutes";
 import iosVerifyRouter from "./routes/iosVerify";
 import lockedDaysRouter from "./routes/lockedDays";
 import usersProfileRouter from "./routes/usersProfile";
@@ -255,11 +320,207 @@ function hasUnmeasured(ings: Array<{ name: string; amount: string }>): boolean {
   return ings.some(i => !i.amount || /^\d+(\.\d+)?$/.test(i.amount));
 }
 
+
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
   // Health endpoint for network testing
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, timestamp: Date.now(), version: "1.0.0" });
+    res.json({
+      ok: true,
+      timestamp: Date.now(),
+      version: "1.0.0",
+      environment: process.env.NODE_ENV || "development",
+      storageBucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "",
+    });
+  });
+
+  // Release identity — public, no auth, no DB.
+  // Reads the manifest built by update-version.js. Acceptance gate and monitoring use this
+  // to confirm git SHA, storage bucket, and environment after every publish.
+  app.get("/api/release", (req, res) => {
+    try {
+      // In dev, the manifest lives in client/public. In production prod.ts also registers
+      // this before initializeApp so both paths are covered.
+      const candidates = [
+        path.resolve(process.cwd(), "client/dist/release-manifest.json"),
+        path.resolve(process.cwd(), "client/public/release-manifest.json"),
+      ];
+      let manifest: Record<string, unknown> = {};
+      for (const p of candidates) {
+        if (fs.existsSync(p)) { manifest = JSON.parse(fs.readFileSync(p, "utf-8")); break; }
+      }
+      res.json({ ...manifest, apiOrigin: req.hostname, nodeVersion: process.version });
+    } catch (e: any) {
+      res.status(500).json({ error: "Failed to read release manifest", detail: e.message });
+    }
+  });
+
+  // Full infrastructure health — each critical dependency probed independently.
+  // Returns 503 if any subsystem is unhealthy. Used by acceptance gate + monitoring.
+  app.get("/api/health/full", async (req, res) => {
+    const result: Record<string, string> = {};
+    let httpStatus = 200;
+
+    result.application = "healthy";
+
+    // Database
+    try {
+      const { db: dbCheck } = await import("./db");
+      const { sql: sqlCheck } = await import("drizzle-orm");
+      await dbCheck.execute(sqlCheck`SELECT 1`);
+      result.database = "healthy";
+    } catch (e: any) {
+      result.database = `unhealthy: ${e.message}`;
+      httpStatus = 503;
+    }
+
+    // Object Storage
+    try {
+      const storageContext = resolveMealImageStorageContext();
+      result.storageBucketId = storageContext.bucketId;
+      const { probeStorageCanary } = await import("./objectStorage");
+      const probe = await probeStorageCanary(storageContext.bucketId);
+      result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
+      if (!probe.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      result.storageBucketId = "(invalid configuration)";
+      httpStatus = 503;
+    }
+
+    result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
+    if (!process.env.OPENAI_API_KEY) httpStatus = 503;
+    result.auth = process.env.SESSION_SECRET ? "configured" : "missing";
+    if (!process.env.SESSION_SECRET) httpStatus = 503;
+    result.timestamp = new Date().toISOString();
+    res.status(httpStatus).json(result);
+  });
+
+  // Release identity — public, no auth, no DB.
+  // Reads the manifest built by update-version.js. Acceptance gate and monitoring use this
+  // to confirm git SHA, storage bucket, and environment after every publish.
+  app.get("/api/release", (req, res) => {
+    try {
+      // In dev, the manifest lives in client/public. In production prod.ts also registers
+      // this before initializeApp so both paths are covered.
+      const candidates = [
+        path.resolve(process.cwd(), "client/dist/release-manifest.json"),
+        path.resolve(process.cwd(), "client/public/release-manifest.json"),
+      ];
+      let manifest: Record<string, unknown> = {};
+      for (const p of candidates) {
+        if (fs.existsSync(p)) { manifest = JSON.parse(fs.readFileSync(p, "utf-8")); break; }
+      }
+      res.json({ ...manifest, apiOrigin: req.hostname, nodeVersion: process.version });
+    } catch (e: any) {
+      res.status(500).json({ error: "Failed to read release manifest", detail: e.message });
+    }
+  });
+
+  // Full infrastructure health — each critical dependency probed independently.
+  // Returns 503 if any subsystem is unhealthy. Used by acceptance gate + monitoring.
+  app.get("/api/health/full", async (req, res) => {
+    const result: Record<string, string> = {};
+    let httpStatus = 200;
+
+    result.application = "healthy";
+
+    // Database
+    try {
+      const { db: dbCheck } = await import("./db");
+      const { sql: sqlCheck } = await import("drizzle-orm");
+      await dbCheck.execute(sqlCheck`SELECT 1`);
+      result.database = "healthy";
+    } catch (e: any) {
+      result.database = `unhealthy: ${e.message}`;
+      httpStatus = 503;
+    }
+
+    // Object Storage
+    try {
+      const storageContext = resolveMealImageStorageContext();
+      result.storageBucketId = storageContext.bucketId;
+      const { probeStorageCanary } = await import("./objectStorage");
+      const probe = await probeStorageCanary(storageContext.bucketId);
+      result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
+      if (!probe.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      result.storageBucketId = "(invalid configuration)";
+      httpStatus = 503;
+    }
+
+    result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
+    if (!process.env.OPENAI_API_KEY) httpStatus = 503;
+    result.auth = process.env.SESSION_SECRET ? "configured" : "missing";
+    if (!process.env.SESSION_SECRET) httpStatus = 503;
+    result.timestamp = new Date().toISOString();
+    res.status(httpStatus).json(result);
+  });
+
+  // Release identity — public, no auth, no DB.
+  // Reads the manifest built by update-version.js. Acceptance gate and monitoring use this
+  // to confirm git SHA, storage bucket, and environment after every publish.
+  app.get("/api/release", (req, res) => {
+    try {
+      // In dev, the manifest lives in client/public. In production prod.ts also registers
+      // this before initializeApp so both paths are covered.
+      const candidates = [
+        path.resolve(process.cwd(), "client/dist/release-manifest.json"),
+        path.resolve(process.cwd(), "client/public/release-manifest.json"),
+      ];
+      let manifest: Record<string, unknown> = {};
+      for (const p of candidates) {
+        if (fs.existsSync(p)) { manifest = JSON.parse(fs.readFileSync(p, "utf-8")); break; }
+      }
+      res.json({ ...manifest, apiOrigin: req.hostname, nodeVersion: process.version });
+    } catch (e: any) {
+      res.status(500).json({ error: "Failed to read release manifest", detail: e.message });
+    }
+  });
+
+  // Full infrastructure health — each critical dependency probed independently.
+  // Returns 503 if any subsystem is unhealthy. Used by acceptance gate + monitoring.
+  // Storage is probed directly via the Replit SDK (no HTTP self-request, no SSRF risk).
+  // Error detail is intentionally withheld from the response; check server logs instead.
+  app.get("/api/health/full", async (_req, res) => {
+    const result: Record<string, string> = {};
+    let httpStatus = 200;
+
+    result.application = "healthy";
+
+    // Database — SELECT 1 (connection + basic query)
+    try {
+      const { db: dbCheck } = await import("./db");
+      const { sql: sqlCheck } = await import("drizzle-orm");
+      await dbCheck.execute(sqlCheck`SELECT 1`);
+      result.database = "healthy";
+    } catch {
+      // Do not expose raw DB error messages; check server logs for details
+      result.database = "unhealthy: database probe failed";
+      httpStatus = 503;
+    }
+
+    // Object Storage — SDK probe (no HTTP fetch, no SSRF)
+    try {
+      const storageContext = resolveMealImageStorageContext();
+      result.storageBucketId = storageContext.bucketId;
+      const { probeStorageCanary } = await import("./objectStorage");
+      const probe = await probeStorageCanary(storageContext.bucketId);
+      result.objectStorage = probe.ok ? "healthy" : `unhealthy: ${probe.error}`;
+      if (!probe.ok) httpStatus = 503;
+    } catch (e: any) {
+      result.objectStorage = `unhealthy: ${e.message}`;
+      result.storageBucketId = "(invalid configuration)";
+      httpStatus = 503;
+    }
+
+    result.openai = process.env.OPENAI_API_KEY ? "configured" : "missing";
+    if (!process.env.OPENAI_API_KEY) httpStatus = 503;
+    result.auth = process.env.SESSION_SECRET ? "configured" : "missing";
+    if (!process.env.SESSION_SECRET) httpStatus = 503;
+    result.timestamp = new Date().toISOString();
+    res.status(httpStatus).json(result);
   });
 
   // AI Health endpoint - Facebook-level stability monitoring
@@ -327,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Router-group gate: all /api/ai/* routes require auth + active access (PAID_FULL or TRIAL_FULL)
+  // Router-group gate: all /api/ai/* routes require auth + active access (PAID_FULL)
   // Note: /api/health/ai is registered ABOVE this middleware so it remains public
   app.use("/api/ai", requireAuth, requireActiveAccess);
 
@@ -340,24 +601,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/ai/reduce-drinking-plan", reduceDrinkingPlanRouter);
 
   // Public Object Storage - Serves meal images for Hybrid Meal Engine
+  // Reads use @replit/object-storage — the SAME SDK as the write path — so a
+  // GCS credential-sidecar failure can no longer break reads while writes work.
+  // Status contract: 404 = object missing (non-retryable), 503 = storage error (retryable).
   app.get("/public-objects/*", async (req, res) => {
     const filePath = (req.params as Record<string, string>)[0] || "";
+    const startedAt = Date.now();
+    let bytes = 0;
+
+    const logAccess = (httpStatus: number, extra?: Record<string, unknown>) => {
+      console.log(
+        JSON.stringify({
+          event: "public_object_access",
+          objectPath: filePath,
+          httpStatus,
+          bytes,
+          durationMs: Date.now() - startedAt,
+          ...extra,
+        }),
+      );
+    };
+
     try {
       const objectStorageService = new ObjectStorageService();
-      const file = await objectStorageService.searchPublicObject(filePath);
-      if (!file) {
+      const resolved = await objectStorageService.resolvePublicObjectPath(filePath);
+      if (!resolved) {
+        logAccess(404);
         return res.status(404).json({ error: "File not found" });
       }
-      objectStorageService.downloadObject(file, res);
+
+      res.set({
+        "Content-Type": inferContentType(resolved.objectName),
+        "Cache-Control": "public, max-age=3600",
+      });
+
+      const stream = objectStorageService.streamResolvedObject(
+        resolved.bucketId,
+        resolved.objectName,
+      );
+      stream.on("data", (chunk: Buffer) => {
+        bytes += chunk.length;
+      });
+      stream.on("error", (err: Error) => {
+        logAccess(res.headersSent ? 200 : 503, { streamError: err.message });
+        if (!res.headersSent) {
+          res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
+        } else {
+          res.destroy();
+        }
+      });
+      res.on("finish", () => logAccess(res.statusCode));
+      stream.pipe(res);
     } catch (error: any) {
+      if (error instanceof StorageUnavailableError) {
+        logAccess(503, { error: error.message });
+        return res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
+      }
       if (error.message?.includes("PUBLIC_OBJECT_SEARCH_PATHS not set")) {
+        logAccess(503, { error: "PUBLIC_OBJECT_SEARCH_PATHS not set" });
         return res.status(503).json({ 
           error: "Object storage not configured",
           hint: "Create a bucket in Object Storage and set PUBLIC_OBJECT_SEARCH_PATHS env var"
         });
       }
-      console.error("Error searching for public object:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      console.error("Error serving public object:", error);
+      logAccess(503, { error: error.message });
+      return res.status(503).json({ error: "Storage temporarily unavailable", retryable: true });
+    }
+  });
+
+  // Report a browser-side delivery failure for a permanent meal image.
+  //
+  // Browser <img> errors do not expose HTTP status. Probe the same Object
+  // Storage path server-side so 503s receive one controlled retry while a 404
+  // can reuse an existing media variant before the asset is marked unavailable.
+  // This endpoint intentionally NEVER generates an image — recovery must not
+  // spend on DALL-E while an authoritative stored variant may still exist.
+  app.post("/api/media/image-delivery-recovery", requireAuth, async (req, res) => {
+    const parsed = z.object({
+      imageUrl: z.string().min(1).max(2_048),
+      savedMealId: z.string().min(1),
+      mediaAssetId: z.string().min(1),
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "An owned saved meal image is required" });
+    }
+
+    const { imageUrl: failedUrl, savedMealId, mediaAssetId } = parsed.data;
+    const failedPath = publicObjectPathFromUrl(failedUrl);
+    if (!failedPath) {
+      return res.status(400).json({ error: "Only first-party Object Storage URLs can be recovered" });
+    }
+
+    // A public Object Storage URL is not authorization. Bind it to the
+    // caller's current saved-meal asset before probing or changing lifecycle
+    // state, matching the durable regeneration queue's ownership invariant.
+    const [savedMeal] = await db
+      .select({ id: savedMealsTable.id, mediaAssetId: savedMealsTable.mediaAssetId })
+      .from(savedMealsTable)
+      .where(and(
+        eq(savedMealsTable.id, savedMealId),
+        eq(savedMealsTable.userId, req.authUser!.id),
+      ))
+      .limit(1);
+    if (!savedMeal || savedMeal.mediaAssetId !== mediaAssetId) {
+      return res.status(404).json({ error: "Saved meal image was not found" });
+    }
+
+    const [asset] = await db
+      .select({
+        id: mediaAssetsTable.id,
+        thumbnailUrl: mediaAssetsTable.thumbnailUrl,
+        displayUrl: mediaAssetsTable.displayUrl,
+        originalObjectKey: mediaAssetsTable.originalObjectKey,
+      })
+      .from(mediaAssetsTable)
+      .where(eq(mediaAssetsTable.id, mediaAssetId))
+      .limit(1);
+    if (!asset || (asset.thumbnailUrl !== failedUrl && asset.displayUrl !== failedUrl)) {
+      return res.status(409).json({ error: "Reported URL is not the saved meal's current image" });
+    }
+
+    const objectStorage = new ObjectStorageService();
+    const probe = async (url: string): Promise<DeliveryProbe> => {
+      const objectPath = publicObjectPathFromUrl(url);
+      if (!objectPath) return "missing";
+      try {
+        return (await objectStorage.resolvePublicObjectPath(objectPath)) ? "available" : "missing";
+      } catch (error) {
+        if (error instanceof StorageUnavailableError) return "unavailable";
+        console.error("[image-delivery-recovery] Object Storage probe failed:", error);
+        return "unavailable";
+      }
+    };
+
+    try {
+      const failedProbe = await probe(failedUrl);
+      if (failedProbe !== "missing") {
+        const decision = decideImageDeliveryRecovery({ failedUrl, failedProbe });
+        return res.json({ ...decision, retryAfterMs: 1_000 });
+      }
+
+      const candidates = [
+        asset.thumbnailUrl,
+        asset.displayUrl,
+        publicObjectUrlForKey(failedUrl, asset.originalObjectKey),
+      ].filter((url): url is string => Boolean(url && url !== failedUrl));
+
+      let alternate: { url: string; probe: DeliveryProbe } | null = null;
+      for (const candidate of candidates) {
+        const candidateProbe = await probe(candidate);
+        alternate = { url: candidate, probe: candidateProbe };
+        if (candidateProbe !== "missing") break;
+      }
+
+      const decision = decideImageDeliveryRecovery({ failedUrl, failedProbe, alternate });
+      if (decision.status === "recovered") {
+        const replacement = decision.imageUrl;
+        await db.update(mediaAssetsTable).set({
+          ...(asset.thumbnailUrl === failedUrl ? { thumbnailUrl: replacement } : {}),
+          ...(asset.displayUrl === failedUrl ? { displayUrl: replacement } : {}),
+          updatedAt: new Date(),
+        }).where(eq(mediaAssetsTable.id, asset.id));
+      }
+
+      if (decision.status === "unavailable" && decision.reason === "missing") {
+        // Preserve the canonical URL for the subsequent authenticated,
+        // recipe-aware regeneration request to bind against. The queue will
+        // replace it only after ownership and current-asset checks pass.
+        await db.update(mediaAssetsTable).set({
+          status: "failed",
+          validationStatus: "failed",
+          processingError: "delivery_missing",
+          retryCount: sql`COALESCE(${mediaAssetsTable.retryCount}, 0) + 1`,
+          nextRetryAt: new Date(Date.now() + 5 * 60 * 1000),
+          updatedAt: new Date(),
+        }).where(eq(mediaAssetsTable.id, asset.id));
+      }
+
+      console.log(JSON.stringify({
+        event: "meal_image_delivery_recovery",
+        outcome: decision.status,
+        reason: decision.status === "unavailable" ? decision.reason : undefined,
+        hadAlternate: Boolean(alternate),
+      }));
+      return res.json({ ...decision, retryAfterMs: decision.status === "retry" ? 1_000 : undefined });
+    } catch (error) {
+      console.error("[image-delivery-recovery] Failed to evaluate image delivery:", error);
+      // A diagnostic endpoint must never turn a broken image into a retry loop.
+      return res.status(503).json({ error: "Image recovery check temporarily unavailable", retryable: true });
     }
   });
 
@@ -395,15 +827,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Load studio membership for all API routes (non-blocking - just attaches membership info to req)
   app.use("/api", loadStudioMembership);
 
+  // Household profiles (Family plan feature)
+  const householdRouter = (await import("./routes/household")).default;
+  app.use("/api/household", householdRouter);
+
   // Mount auth session and alcohol log
   app.use("/api/ios", iosVerifyRouter);
   app.use("/api/stripe", stripeCheckoutRouter);
   app.use("/api/stripe", stripeRouter);
 
   app.use(authSessionRouter);
+  app.use("/api/auth/mfa", mfaRoutes);
   app.use(alcoholLogRouter);
   app.use('/api/vitals/bp', vitalsBpRouter);
   app.use('/api', proteinTargetsRouter);
+  app.use('/api/certifications', certificationRouter);
+  app.use('/api/admin/certifications', adminCertRouter);
+  app.use('/api/academy', academyRouter);
+  app.use('/api/lms', lmsRouter);
+  app.use('/api/affiliate', affiliateRouter);
+  // Meal sharing — POST /api/meals/share (auth) + GET /api/share/:token (public)
+  app.use('/api/meals', mealSharesRouter);
+  app.use('/api/share', mealSharesRouter);
+  // ProCare invite — GET is public (invite preview), POST requires auth (per-route)
+  // Must be mounted BEFORE any app.use("/api", requireAuth, ...) catch-all handlers
+  app.use('/api/procare-invite', procareInviteRoutes);
+  app.use('/api/partner', partnerRouter);
+  app.use('/api/promotions', promotionRouter);
+  app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
+  app.use('/api/white-label', whiteLabelRouter);
+  app.use('/api/business', businessRouter);
+
+  // Partner Center — referral tools, monthly campaigns, messaging guidelines
+  const marketingCenterRouter = (await import('./routes/marketingCenterRoutes')).default;
+  app.use('/api/marketing-center', marketingCenterRouter);
+
+  // Dev-only: seed certification / affiliate state without taking the test
+  if (process.env.NODE_ENV !== "production") {
+    const { default: devSeedRouter } = await import('./routes/devSeedRoutes');
+    app.use('/api/dev', devSeedRouter);
+    console.log("[Dev] 🧪 Seed routes mounted at /api/dev");
+  }
   app.use('/api', cookingRouter);
   app.use('/api', mealImagesRouter);
   // Deleted: diabeticHubRouter route
@@ -558,6 +1022,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 🔒 LOCKED: Deterministic Fridge Rescue Engine - DO NOT MODIFY
   // User confirmed this new system works perfectly - keep it locked!
   app.use("/api", fridgeRescueRouter);
+  app.use("/api", inspirationRouter);
+  app.use("/api/grocery-coach", requireAuth, requireProAccess, groceryCoachRouter);
+  app.use("/api/meal-refinement", requireAuth, requireActiveAccess, mealRefinementRouter);
+
+  // Universal Meal Refinement — stateless freeform endpoint (Grocery Coach + others)
+  const { default: refinementRouter } = await import("./routes/refinement");
+  app.use("/api/refinement", requireAuth, requireActiveAccess, refinementRouter);
+  // Trial status + admin grant (no requireActiveAccess — trial status is needed even on free/expired)
+  app.use("/api/trial", trialRouter);
+  app.use("/api/saved-groceries", requireAuth, savedGroceriesRouter);
+  app.use("/api/pregnancy", requireAuth, requireClinicalAccess, pregnancyCoachRouter);
+  app.use("/api/coach", coachingEngineRouter);
+  app.use("/api/performance", requireAuth, requireClinicalAccess, performanceNutritionRouter);
+  app.use("/api/performance", requireAuth, requireClinicalAccess, carbCycleRouter);
+  app.use("/api/nutrition-summary", requireAuth, nutritionSummaryRouter);
+  app.use("/api/therapeutic", requireAuth, requireStrictClinicalAccess, therapeuticSetupRouter);
 
   // REMOVED: Duplicate route moved to top priority position
 
@@ -614,46 +1094,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   /* 🗑️ REMOVED: Original fridge rescue generator - replaced by unified pipeline */
 
-  // ============================================================================
-  // UNIFIED MEAL GENERATION ENDPOINT
+  // -- UNIFIED MEAL GENERATION ENDPOINT --
   // Single canonical endpoint for ALL meal generation (AI Meal Creator, AI Premades, Fridge Rescue)
   // Guarantees: consistent response format, fallback images, error handling
-  // ============================================================================
-  app.post("/api/meals/generate", async (req, res) => {
+  app.post("/api/meals/generate", requireAuth, requireEssentialAccess, async (req, res) => {
     console.log("🔄 Unified meal generation endpoint hit");
     const startTime = Date.now();
     
     try {
       const { 
-        type = 'craving',           // 'craving' | 'fridge-rescue' | 'premade' | 'create-with-chef'
-        mealType = 'lunch',         // 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'snacks'
-        input,                      // string (craving) or string[] (ingredients)
+        type = 'craving',
+        mealType = 'lunch',
+        input,
         userId,
         macroTargets,
         count = 1,
-        dietType,                   // Diet-specific guardrails (anti-inflammatory, diabetic, etc.)
-        starchContext,              // Starch Game Plan context for intelligent carb distribution
-        safetyMode,                 // Safety override mode
-        overrideToken               // One-time override token from PIN verification
+        dietType,
+        dietPhase,
+        remainingMacros,
+        builderMode,
+        starchContext,
+        diversityContext,
+        nutritionStrategy: bodyNutritionStrategy,
+        safetyMode,
+        overrideToken,
+        strictMode,
+        skipImage,
+        explicitOverride,
+        userDietOverride,
+        performanceSessionContext,
+        generationContext,
+        dietOverride,
+        servings: reqServings = 1,
       } = req.body;
 
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
-      if (userId && input) {
-        const inputText = Array.isArray(input) ? input.join(' ') : input;
-        const safetyCheck = await enforceSafetyProfile(userId, inputText, `meals-generate-${type}`, {
-          safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken
+      // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
+      // so the AI includes the requested ingredient while keeping everything else diet-aligned
+      const effectiveInput = userDietOverride === true && input && typeof input === 'string'
+        ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
+        : input;
+      // Note: Carb cycle hard constraints are injected via the UserProtocolEnvelope
+      // (loadUserProtocolEnvelope → carbCycleContext → enforceBeforeGenerate) — no
+      // direct input-string mutation needed here.
+
+      // authUserId is always the authenticated session — the physician when
+      // delegating, the regular user otherwise. It is the audit/actor principal.
+      const authUserId = String((req as AuthenticatedRequest).authUser.id);
+
+      // ── ProCare physician-for-client delegation (early auth) ─────────────────
+      // When a physician sends proClientId in the body, establish the workspace
+      // client BEFORE effectiveUserId is set so ALL downstream lookups (allergy
+      // enforcement, clinical protocol, profile, and budget) use the client's
+      // context — not the physician's. The physician remains the actor principal.
+      //
+      // Authorization order:
+      //   1. Org isolation (assertSameOrg inside verifyPhysicianClientAccess) —
+      //      cross-org access throws OrgIsolationError → 403 before any DB read.
+      //   2. Care-team relationship — active clientLink OR studio membership.
+      //   Unauthorized proClientId returns 403; missing proClientId is a no-op.
+      let delegatedClientId: string | undefined;
+      {
+        const { proClientId: bodyProClientId } = req.body as { proClientId?: string };
+        if (bodyProClientId && typeof bodyProClientId === "string") {
+          const { verifyPhysicianClientAccess } = await import("./services/procareAccessService");
+          const { handleOrgIsolationError } = await import("./lib/orgIsolation");
+          try {
+            const hasAccess = await verifyPhysicianClientAccess(authUserId, bodyProClientId);
+            if (!hasAccess) {
+              return res.status(403).json({
+                success: false,
+                error: "Not authorized to generate meals for this client.",
+                source: "access_denied",
+              });
+            }
+            delegatedClientId = bodyProClientId;
+          } catch (err) {
+            const handled = handleOrgIsolationError(err, res);
+            if (!handled) {
+              // Not an org-isolation error — fail closed rather than leaving the
+              // request unresolved (handleOrgIsolationError returns false and sends
+              // no response for unrecognized errors).
+              return res.status(503).json({
+                success: false,
+                error: "Authorization check failed. Please try again.",
+                source: "auth_error",
+              });
+            }
+            return;
+          }
+        }
+      }
+
+      // effectiveUserId: the verified workspace client when a physician delegates
+      // (access gate checked above via verifyPhysicianClientAccess); otherwise the
+      // authenticated session user for ALL builder types.
+      // Body userId is NEVER used for profile/protocol/GLP-1 resolution — any
+      // caller that submits another user's ID receives a meal generated for the
+      // caller's own identity, preventing IDOR on PHI-adjacent health data.
+      const effectiveUserId: string = delegatedClientId ?? authUserId;
+      let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
+      let humanFoodExecutionState: import("./services/humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState | undefined;
+      if (type === "create-with-chef") {
+        const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
+        const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
+        const humanFoodRequestScope = createHumanFoodRequestScope({
+          actorUserId: authUserId,
+          subjectUserId: effectiveUserId,
+          creator: "recipe_maker",
+          correlationId: (req as any).id,
+          dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+          cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
+          cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
         });
-        if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
+        humanFoodContext = await humanFoodRequestScope.resolve();
+        humanFoodExecutionState = humanFoodRequestScope.executionState;
+        if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
+          return res.status(409).json({
             success: false,
-            source: 'error',
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
+            code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+            status: humanFoodContext.status,
+            message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
           });
+        }
+        const contextBlock = buildCreatorHumanFoodPrompt("recipe_maker", humanFoodContext);
+        req.body.generationContext = [generationContext, contextBlock].filter(Boolean).join("\n\n");
+      }
+
+      // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
+      // Uses effectiveUserId — never the untrusted body userId — so a tampered ID
+      // cannot bypass the authenticated user's allergy/religious constraints.
+      //
+      // Request-scoped allergen override: populated ONLY from the enforcement
+      // result after the override token has been validated, one-time claimed,
+      // and audited by enforceSafetyProfile inside runEnforcement. Never
+      // pre-populated from an unclaimed token — a valid token whose request
+      // triggers no allergy conflict is not consumed and must NOT suppress
+      // post-generation scanning.
+      let _unifiedOverriddenAllergens: string[] = [];
+      if (effectiveUserId && input) {
+        const inputText = Array.isArray(input) ? input.join(' ') : input;
+        const enforcement = await runEnforcement({
+          userId: effectiveUserId,
+          builderType: type || "create_dish",
+          phase: "pre_generation",
+          inputText,
+          safetyMode: safetyMode || "STRICT",
+          overrideToken,
+        });
+        const routeResponse = toRouteResponse(enforcement);
+        if (routeResponse.blocked || routeResponse.reviewRequired) {
+          return res.status(400).json({ source: 'error', ...routeResponse.errorPayload });
+        }
+        // Sole authorization source: the enforcement result exposes the
+        // allergen only after the token was validated, one-time claimed,
+        // and audited.
+        if (enforcement.overriddenAllergen) {
+          _unifiedOverriddenAllergens = [enforcement.overriddenAllergen];
+          console.log(`[AllergyOverride] Request-scoped override active on /api/meals/generate \u2014 allergen: ${enforcement.overriddenAllergen}, user: ${effectiveUserId}`);
         }
       }
 
@@ -701,16 +1298,252 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { generateMealUnified } = await import("./services/unifiedMealPipeline");
       const { recordGeneration } = await import("./services/aiHealthMetrics");
 
+      // Auto-enrich nutritionStrategy from user profile if not explicitly provided
+      // Skip entirely when strictMode is on — no veg targets should be injected
+      let nutritionStrategy = bodyNutritionStrategy ?? null;
+      if (!strictMode && !nutritionStrategy && effectiveUserId && type === 'create-with-chef') {
+        try {
+          const { db } = await import("./db");
+          const { users } = await import("../shared/schema");
+          const { eq } = await import("drizzle-orm");
+          const [macroUser] = await db.select({
+            dailyStarchyCarbsTarget: users.dailyStarchyCarbsTarget,
+            dailyFibrousCarbsTarget: users.dailyFibrousCarbsTarget,
+            macroCutIntensity: users.macroCutIntensity,
+            macroCutStyle: users.macroCutStyle,
+            macroCycleMode: users.macroCycleMode,
+            macroCycleDayType: users.macroCycleDayType,
+            macroMealsPerDay: users.macroMealsPerDay,
+            carbCycleState: users.carbCycleState,
+          }).from(users).where(eq(users.id, effectiveUserId)).limit(1);
+          if (macroUser) {
+            // If a starch response protocol is active, override the user's saved starch target
+            // with the protocol's allocation. This feeds the carb cycle directly into
+            // buildVegetableStrategy() so meal generation enforces the starch limit structurally.
+            const rawCcs = macroUser.carbCycleState as any;
+            const ccsActive = rawCcs?.phase === "low_carb" || rawCcs?.phase === "refeed";
+            const starchyG = ccsActive
+              ? (rawCcs.carbTargetG ?? macroUser.dailyStarchyCarbsTarget ?? null)
+              : (macroUser.dailyStarchyCarbsTarget ?? null);
+            const fibrousG = macroUser.dailyFibrousCarbsTarget ?? null;
+            const mpdVal = macroUser.macroMealsPerDay ?? 4;
+            // Only inject strategy if the user has saved macro targets
+            if (starchyG !== null || fibrousG !== null) {
+              const cupsPerMeal = starchyG === 0 ? 6 : starchyG !== null && starchyG < 30 ? 5 : fibrousG !== null && fibrousG > 100 ? 4 : 3;
+              nutritionStrategy = {
+                cutIntensity: macroUser.macroCutIntensity ?? 'standard',
+                cutStyle: macroUser.macroCutStyle ?? undefined,
+                cycleMode: macroUser.macroCycleMode ?? 'none',
+                cycleDayType: macroUser.macroCycleDayType ?? undefined,
+                starchyCarbs_g: starchyG ?? undefined,
+                fibrousCarbs_g: fibrousG ?? undefined,
+                mealsPerDay: mpdVal,
+                vegetableCupsPerMeal: cupsPerMeal,
+                vegetableCupsPerDay: mpdVal * cupsPerMeal,
+              };
+              console.log(`🥦 [VegStrategy] Auto-enriched from profile: starchy=${starchyG}g, fibrous=${fibrousG}g, cups/meal=${cupsPerMeal}`);
+            }
+          }
+        } catch (err) {
+          console.warn('[VegStrategy] Could not auto-enrich nutritionStrategy:', err);
+        }
+      }
+
+      // ── Server-side per-meal budget enforcement ───────────────────────────────
+      // Budget is resolved for the AUTHENTICATED user by default. The body
+      // userId is deliberately NOT used — it is untrusted.
+      //
+      // ProCare physician-for-client delegation:
+      //   When a physician sends proClientId in the body, the server verifies the
+      //   active care-team relationship (clientLink or studio membership) and — if
+      //   authorized — resolves the budget against the CLIENT's DailyNutritionState,
+      //   not the physician's. Unauthorized proClientId values return HTTP 403.
+      //   The proClientId field must come from a trusted UI context; it is still
+      //   validated server-side via verifyPhysicianClientAccess before use.
+      //
+      // Fail-closed contract: if resolution fails for any reason, this handler
+      // returns HTTP 503 rather than honoring client-supplied remainingMacros.
+      //
+      // Create mutable shadow variables so the const-destructured body values
+      // can be overridden without a TypeScript "cannot reassign const" error.
+      let effectiveRemainingMacros: typeof remainingMacros = remainingMacros;
+      let effectiveStarchContext: typeof starchContext = starchContext;
+      // Populated inside the budget-resolver try block; consulted by the
+      // post-gen clinical ceiling gate below.
+      let budgetGenerationContext: string = "standard";
+
+      if (true) {
+        // delegatedClientId is set above when a physician has authorized access to a
+        // client. When set, budget resolves against the client's DailyNutritionState.
+        const budgetUserId = delegatedClientId ?? authUserId;
+        // Prefer the date embedded in the starchContext (builder's active day);
+        // fall back to today in UTC when it is absent.
+        const budgetDateISO: string = (starchContext as any)?.dateISO
+          ?? new Date().toISOString().split("T")[0];
+
+        try {
+          const { resolveChefBudget } = await import("./services/chefBudgetService");
+          const chefBudget = await resolveChefBudget(
+            budgetUserId,
+            budgetDateISO,
+            typeof generationContext === "string" ? generationContext : undefined,
+          );
+
+          // Override client-supplied remainingMacros for ALL builder types.
+          // Clinical ceilings (diabetic 35g carb cap, GLP-1 fat ceiling) are
+          // computed in resolveChefBudget and must apply universally — not just
+          // for Create-with-Chef. Trusting client-supplied macros for direct
+          // builders would allow them to bypass these clinical constraints.
+          effectiveRemainingMacros = chefBudget.remainingMacros;
+
+          // Hoist generation context for post-gen clinical ceiling gate (below).
+          // Gating on generationContext (not clinicalNotes) ensures the gate fires
+          // even when remaining macros are already below the nominal ceiling and no
+          // clamp note was emitted.
+          budgetGenerationContext = chefBudget.generationContext;
+
+          // Replace starch fields with server-authoritative values for ALL types.
+          // This propagates partial-slot usage (e.g. one of two starch slots already
+          // used) and ensures the hard starch gate in generateMealUnified has the
+          // correct ceiling to enforce post-generation, regardless of builder type.
+          // When slots are exhausted: also set isZeroStarchDay + forceFiberBased to
+          // close all bypass paths (client forceStarch:true, starchy description auto-detect).
+          effectiveStarchContext = {
+            ...(effectiveStarchContext as object ?? {}),
+            starchMealsAllowed:          chefBudget.starchMealsRemaining,
+            starchyCarbsRemaining:       chefBudget.starchyCarbsRemaining,
+            gramsPerRemainingStarchMeal: chefBudget.gramsPerRemainingStarchMeal,
+            ...(chefBudget.starchAllowed ? {} : {
+              isZeroStarchDay: true,
+              forceStarch:     false,
+              forceFiberBased: true,
+            }),
+          };
+
+          console.log(
+            `🥗 [BudgetResolver] type=${type} authUserId=${authUserId} date=${budgetDateISO} ` +
+            `starch=${chefBudget.starchAllowed} gramsPerMeal=${chefBudget.gramsPerRemainingStarchMeal ?? 'n/a'}`,
+          );
+        } catch (err) {
+          // Fail-closed for ALL builder types: starch-slot and clinical constraints
+          // cannot be enforced without a server-authoritative DailyNutritionState.
+          // Proceeding with untrusted client context would allow starchy meals to be
+          // generated despite exhausted slots — the exact bypass this block was added
+          // to prevent. No fallback path is safe here.
+          console.error("[BudgetResolver] Resolution failed — blocking generation:", err);
+          return res.status(503).json({
+            success: false,
+            error: "Nutrition budget could not be resolved. Please try again.",
+            source: "budget_error",
+          });
+        }
+      }
+
+      // ── Server-side GLP-1 canonical context ───────────────────────────────
+      // Always resolve GLP-1 from the authenticated user's profile — never from
+      // the client-supplied dietType. Activation detected server-side means a
+      // GLP-1 patient using any builder gets the same clinical constraints, not
+      // just when they select the GLP-1 builder explicitly.
+      //
+      // Protocol override priority:
+      //   procare / beachbody → competition-specific rules take full precedence
+      //   performance / anti-inflammatory / etc. → GLP-1 layers on top (override)
+      //   null / undefined / 'general-nutrition' → GLP-1 replaces as effectiveDietType
+      let serverGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
+      // effectiveDietType starts as the client-supplied value; may be overridden
+      // to 'glp1' when the server detects the user is on GLP-1 medication.
+      let effectiveDietType: typeof dietType = dietType;
+      if (effectiveUserId) {
+        try {
+          const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+          const glp1Ctx = await resolveGLP1GlobalContext(
+            effectiveUserId,
+            new Date().toISOString().split("T")[0],
+            (mealType === 'breakfast' || mealType === 'lunch' || mealType === 'dinner' || mealType === 'snack')
+              ? mealType
+              : 'lunch',
+          );
+          if (glp1Ctx.isActive) {
+            serverGlp1Targets = glp1Ctx.resolvedTargets ?? undefined;
+            // Override dietType to 'glp1' unless the user is on a clinical protocol
+            // (procare) or competition diet (beachbody) whose rules own macro targets.
+            // 'diabetic' is intentionally excluded from the override: a diabetic
+            // user must keep dietType='diabetic' so the 35g-per-meal carb cap and
+            // BGL starch gate remain active. glp1Targets is still passed through
+            // to generateMealUnified, so the GLP-1 fat ceiling is enforced via
+            // post-gen validateMealForDiet — both constraints apply simultaneously.
+            const GLP1_OVERRIDE_BLOCKLIST = new Set(['procare', 'beachbody', 'diabetic']);
+            if (!effectiveDietType || !GLP1_OVERRIDE_BLOCKLIST.has(effectiveDietType)) {
+              effectiveDietType = 'glp1';
+            }
+            console.log(
+              `💊 [GLP-1] Canonical activation — sources=[${glp1Ctx.activationSources.join(",")}] ` +
+              `effectiveDietType=${effectiveDietType}` +
+              (serverGlp1Targets
+                ? ` [${serverGlp1Targets.resolvedMealCalories}kcal / ` +
+                  `${serverGlp1Targets.targetProteinGrams}g prot / ` +
+                  `${serverGlp1Targets.maximumToleratedFatGrams}g fat-ceiling ` +
+                  `phase:${serverGlp1Targets.treatmentPhase}]`
+                : " [baseline targets]"),
+            );
+          }
+        } catch (err) {
+          console.warn("[GLP-1] Could not resolve canonical context — falling back:", err);
+        }
+      }
+
       const result = await generateMealUnified({
         type,
         mealType,
-        input,
-        userId,
+        input: effectiveInput,
+        userId: effectiveUserId,
         macroTargets,
         count,
-        dietType,
-        starchContext,
-        safetyAlreadyChecked: true // Route already verified with enforceSafetyProfile (may include override token)
+        dietType: effectiveDietType,
+        dietPhase: dietPhase || undefined,
+        remainingMacros: effectiveRemainingMacros || undefined,
+        builderMode: builderMode || undefined,
+        starchContext: effectiveStarchContext,
+        diversityContext: diversityContext || null,
+        nutritionStrategy: nutritionStrategy ?? undefined,
+        strictMode: strictMode === true,
+        skipImage: skipImage === true,
+        safetyAlreadyChecked: true,
+        explicitOverride: explicitOverride || null,
+        performanceSessionContext: performanceSessionContext || undefined,
+        generationContext: typeof req.body.generationContext === 'string' ? req.body.generationContext : undefined,
+        glp1Targets: serverGlp1Targets,
+        // Server-authoritative clinical context from the budget resolver —
+        // activates the clinical adaptation retry path in the generator for
+        // profile-confirmed diabetic/GLP-1 users regardless of client dietType.
+        clinicalGenerationContext: budgetGenerationContext,
+        preferredLanguage: (req as any).authUser?.preferredLanguage,
+        correlationId: (req as any).id,
+        humanFoodExecutionState,
+        // Temporary diet override — replaces profile diet for one generation.
+        // Source priority: explicit dietOverride field > dietType query param.
+        // Using dietType as the source means the existing Create a Dish UI (which sends
+        // dietType but not dietOverride) automatically benefits from override semantics.
+        // Allergies, medical, and procedural rules come from the protocol envelope unchanged.
+        dietaryRestrictionsOverride: (() => {
+          const src =
+            (dietOverride && typeof dietOverride === 'string' && dietOverride.trim())
+              ? dietOverride.trim()
+              : (effectiveDietType && typeof effectiveDietType === 'string')
+                ? effectiveDietType
+                : null;
+          if (src) {
+            console.log(`🔀 [CHEF] dietaryRestrictionsOverride: ["${src}"] (source: ${dietOverride ? 'dietOverride' : 'dietType'})`);
+            return [src];
+          }
+          return undefined;
+        })(),
+        servings: Math.max(1, Math.min(10, parseInt(String(reqServings)) || 1)),
+        // Allergen(s) authorised by a Safety PIN override. Populated above from the
+        // override token before it is consumed by runEnforcement. Causes
+        // scanGeneratedOutput to suppress post-gen violations for these allergens
+        // (and their derivatives via ALLERGEN_EXPANSION) for this single generation.
+        overriddenAllergens: _unifiedOverriddenAllergens.length ? _unifiedOverriddenAllergens : undefined,
       });
 
       const durationMs = Date.now() - startTime;
@@ -718,6 +1551,302 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`✅ Unified generation complete: source=${result.source}, success=${result.success}`);
 
+      // ── Post-gen clinical ceiling gate ────────────────────────────────────
+      // Validates actual generated meal macros against server-resolved clinical
+      // ceilings, covering every builder type (snack-creator, craving,
+      // fridge-rescue, premade, create-with-chef).
+      //
+      // Gate context merges budgetGenerationContext (DB-confirmed clinical users)
+      // with effectiveDietType (Diabetic Builder users whose DB prescription is
+      // not yet flagged "clinical" but who deliberately chose diabetic mode).
+      // This mirrors isClinicalAdaptationActive() semantics exactly — both the
+      // generator and the gate now agree on what "diabetic active" means.
+      //
+      // Diabetic carb ceiling: min(remainingMacros.carbs, 35g) — ensures the
+      // 35g per-meal hard cap applies even when the budget resolver did not clamp
+      // (i.e. when the user's remaining carbs are already above 35g because no
+      // clinical ceiling was applied on the budget side for this user).
+      //
+      // Null / non-finite macro values fail safely for clinical users: unknown
+      // nutrition cannot be cleared as safe.
+      if (result.success && effectiveRemainingMacros) {
+        const { validateClinicalMacros } = await import("./services/clinicalMacroGate");
+
+        // Prefer the DB-confirmed context; fall back to effectiveDietType so
+        // Diabetic Builder users are always gated even without a clinical prescription.
+        const gateContext: string =
+          (budgetGenerationContext && budgetGenerationContext !== "standard")
+            ? budgetGenerationContext
+            : (effectiveDietType ?? "standard");
+
+        // For diabetic: enforce 35g hard ceiling regardless of remaining budget.
+        // computeNextMealBudget only clamps when generationContext === "diabetic"
+        // at the DB level; Diabetic Builder users may have a larger remaining carb
+        // budget (e.g. 130g) if their prescription isn't DB-flagged as clinical.
+        const DIABETIC_HARD_CAB_CAP = 35;
+        const isDiabeticGate = gateContext === "diabetic";
+        const carbCeiling = isDiabeticGate
+          ? Math.min(effectiveRemainingMacros.carbs, DIABETIC_HARD_CAB_CAP)
+          : effectiveRemainingMacros.carbs;
+        const fatCeiling  = effectiveRemainingMacros.fat;
+
+        const mealsToValidate: any[] = [
+          ...(result.meal  ? [result.meal]   : []),
+          ...(result.meals ?? []),
+        ];
+
+        // ── Filter variety, reject single ───────────────────────────────────
+        // For variety generation (result.meals): remove non-compliant options
+        // and continue with whatever passes. Only return 422 when every option
+        // fails — identical semantics to the GLP-1 post-gen filter path.
+        //
+        // For single-meal generation (result.meal): a failure means there is
+        // nothing compliant to return → 422 immediately.
+        const requestedDishRaw =
+          typeof effectiveInput === 'string'
+            ? effectiveInput.trim()
+            : Array.isArray(effectiveInput)
+              ? effectiveInput.join(', ').trim()
+              : '';
+        const dishLabel =
+          requestedDishRaw && requestedDishRaw.length <= 60
+            ? `"${requestedDishRaw}"`
+            : 'this dish';
+
+        if (result.meals && result.meals.length > 0) {
+          // Variety path — filter
+          const beforeCount = result.meals.length;
+          result.meals = result.meals.filter((meal: any) => {
+            const gr = validateClinicalMacros(gateContext, carbCeiling, fatCeiling, meal?.carbs, meal?.fat);
+            if (gr.passed === false) {
+              console.warn(
+                `[ClinicalGate] Filtered out "${meal?.name}" — reason=${gr.reason} ` +
+                `context=${gateContext} carbCeiling=${carbCeiling} fatCeiling=${fatCeiling} ` +
+                `meal.carbs=${meal?.carbs} meal.fat=${meal?.fat}`,
+              );
+            }
+            return gr.passed;
+          });
+          if (result.meals.length < beforeCount) {
+            console.log(
+              `[ClinicalGate] ${beforeCount - result.meals.length}/${beforeCount} variety option(s) ` +
+              `filtered for context=${gateContext}. ${result.meals.length} remain.`,
+            );
+          }
+          if (result.meals.length === 0) {
+            console.error(`[ClinicalGate] All variety options eliminated — context=${gateContext}`);
+            return res.status(422).json({
+              success: false,
+              error:
+                `We couldn't adapt ${dishLabel} to fit your clinical nutrition targets for this meal slot. ` +
+                `Try a different dish, or adjust the meal timing so more of your daily budget is available.`,
+              source:   "clinical_ceiling_violation",
+              degraded: true,
+              gateReason: `all_${gateContext}_options_eliminated`,
+            });
+          }
+        } else if (result.meal) {
+          // Single-meal path — reject on first failure
+          const gr = validateClinicalMacros(gateContext, carbCeiling, fatCeiling, result.meal?.carbs, result.meal?.fat);
+          if (gr.passed === false) {
+            console.error(
+              `[ClinicalGate] Rejected: reason=${gr.reason} ` +
+              `context=${gateContext} carbCeiling=${carbCeiling} fatCeiling=${fatCeiling}`,
+            );
+            return res.status(422).json({
+              success: false,
+              error:
+                `We couldn't adapt ${dishLabel} to fit your clinical nutrition targets for this meal slot. ` +
+                `Try a different dish, or adjust the meal timing so more of your daily budget is available.`,
+              source:   "clinical_ceiling_violation",
+              degraded: true,
+              gateReason: gr.reason,
+            });
+          }
+        }
+      }
+
+      // ── Compliance bundle: attach complianceSection + dietClassification ──
+      // Every meal leaving the server MUST pass through buildMealComplianceBundle.
+      // This matches the exact pattern used in craving-creator and fridge-rescue routes.
+      // NOTE: pipeline returns BOTH result.meal and result.meals[0] — patch both so all
+      // consumers (hook reads meals[0], other readers use meal) get the classification.
+      if (result.success && (result.meal || result.meals?.length)) {
+        const envelope = effectiveUserId
+          ? (await loadUserProtocolEnvelope(effectiveUserId).catch(() => null)) ?? buildGuestEnvelope()
+          : buildGuestEnvelope();
+        if (result.meal) {
+          const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
+          result.meal = { ...result.meal, complianceSection, dietClassification } as any;
+        }
+        if (result.meals?.length) {
+          result.meals = result.meals.map((m: any) => {
+            const { complianceSection, dietClassification } = buildMealComplianceBundle(m, envelope);
+            return { ...m, complianceSection, dietClassification };
+          });
+        }
+      }
+
+      // ── Part 5 — Final Consistency Check ─────────────────────────────────
+      // Sanitize meal name(s) to match the user's detected diet before sending.
+      // Catches any concept-word mismatches the AI might have slipped through.
+      if (result.success && userId) {
+        try {
+          const [unifiedUserRow] = await db
+            .select({ dietaryRestrictions: users.dietaryRestrictions })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          const unifiedDiet = getPrimaryDiet((unifiedUserRow?.dietaryRestrictions as string[]) || []);
+          if (unifiedDiet) {
+            if (result.meal) {
+              const ingNames = ((result.meal.ingredients as any[]) || []).map((ing: any) =>
+                typeof ing === "string" ? ing : ing?.name || ""
+              );
+              const sanitized = sanitizeMealName(result.meal.name, unifiedDiet, ingNames);
+              if (sanitized !== result.meal.name) {
+                console.log(`✏️ [ConsistencyCheck/unified] "${result.meal.name}" → "${sanitized}" (${unifiedDiet})`);
+                result.meal = { ...result.meal, name: sanitized };
+              }
+            }
+            if (result.meals?.length) {
+              result.meals = (result.meals as any[]).map((m: any) => {
+                const ingNames = (m.ingredients || []).map((ing: any) =>
+                  typeof ing === "string" ? ing : ing?.name || ""
+                );
+                const sanitized = sanitizeMealName(m.name, unifiedDiet, ingNames);
+                if (sanitized !== m.name) {
+                  console.log(`✏️ [ConsistencyCheck/unified-batch] "${m.name}" → "${sanitized}" (${unifiedDiet})`);
+                  return { ...m, name: sanitized };
+                }
+                return m;
+              });
+            }
+          }
+        } catch { }
+      }
+
+      // ── Protocol Stamp — attach appliedProtocol so clients can verify protocol was applied ──
+      if (result.success && userId) {
+        try {
+          const [stampRow] = await db
+            .select({
+              activeProtocolTrack: users.activeProtocolTrack,
+              performanceContext: users.performanceContext,
+              competitionPrepContext: users.competitionPrepContext,
+            })
+            .from(users).where(eq(users.id, userId)).limit(1);
+
+          if (stampRow) {
+            const track = stampRow.activeProtocolTrack as string | null;
+            const compCtx = stampRow.competitionPrepContext as any;
+            const perfCtx = stampRow.performanceContext as any;
+            const compTypeLabels: Record<string, string> = {
+              bodybuilding_show: "Bodybuilding Show", mens_physique: "Men's Physique",
+              classic_physique: "Classic Physique", figure: "Figure", bikini: "Bikini",
+              wellness: "Wellness", powerlifting_meet: "Powerlifting Meet",
+              strongman_competition: "Strongman", olympic_weightlifting_meet: "Olympic Weightlifting",
+              fight_camp: "Fight Camp", wrestling_season: "Wrestling Season",
+              crossfit_competition: "CrossFit Competition", hyrox: "Hyrox",
+              marathon: "Marathon", triathlon_race: "Triathlon Race", spartan_race: "Spartan Race",
+            };
+
+            let appliedProtocol: Record<string, any> | null = null;
+
+            if (track === "competition" && compCtx?.competitionType && compCtx?.eventDate) {
+              const status = deriveCompPrepStatus(compCtx.eventDate, compCtx.competitionType);
+              appliedProtocol = {
+                track: "competition",
+                competitionType: compCtx.competitionType,
+                competitionTypeLabel: compTypeLabels[compCtx.competitionType] ?? compCtx.competitionType,
+                currentPhase: status.currentPhase,
+                currentPhaseLabel: status.currentPhaseLabel,
+                weeksOut: status.weeksOut,
+                category: status.category,
+              };
+            } else if (track === "athletic" && perfCtx?.trainingType) {
+              appliedProtocol = {
+                track: "athletic",
+                trainingType: perfCtx.trainingType,
+                trainingFrequency: perfCtx.trainingFrequency ?? "3-4",
+                primaryGoal: perfCtx.primaryGoal ?? "performance",
+                trainingPhase: perfCtx.trainingPhase ?? "in_season",
+              };
+            }
+
+            if (appliedProtocol) {
+              if (result.meal) result.meal = { ...result.meal, appliedProtocol } as any;
+              if (result.meals?.length) {
+                result.meals = result.meals.map((m: any) => ({ ...m, appliedProtocol }));
+              }
+            }
+          }
+        } catch { }
+      }
+
+      // ── Unified Image Pipeline: attach permanent imageUrl before responding ──────
+      // All five meal builders (General Nutrition, Diabetic, GLP-1, Anti-Inflammatory,
+      // Performance) share this endpoint. Returning imageUrl here means the client
+      // renders a complete card in one round-trip — the `if (!transformedMeal.imageUrl)`
+      // guard in each builder skips the secondary useChefMealImage fetch automatically.
+      if (result.success && skipImage !== true) {
+        try {
+          const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import('./services/mealImageGenerator');
+          const sourceType = normalizeMealTypeToSourceType(mealType || 'meal');
+
+          // Single-meal path — builders always use count=1; result.meal and result.meals[0] are the same object
+          if (result.meal && !(result.meal as any).imageUrl) {
+            const ingNames = (((result.meal as any).ingredients as any[]) || [])
+              .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+              .filter(Boolean);
+            try {
+              const imageUrl = await generateMealImageUnified((result.meal as any).name, ingNames, sourceType);
+              if (imageUrl) {
+                result.meal = { ...(result.meal as any), imageUrl } as any;
+                // Sync into meals array — useCreateWithChefRequest reads data.meals[0]
+                if ((result.meals as any)?.length) {
+                  result.meals = ((result.meals as any[]) || []).map((m: any, i: number) =>
+                    i === 0 ? { ...m, imageUrl } : m
+                  );
+                }
+              }
+            } catch { /* image failure non-fatal — meal still usable */ }
+          }
+
+          // Batch path (count > 1) — future-proof, not currently used by builders
+          if ((result.meals as any)?.length > 1) {
+            await Promise.all(
+              ((result.meals as any[]) || []).map(async (m: any, idx: number) => {
+                if (m.imageUrl) return;
+                const ingNames = (m.ingredients || [])
+                  .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+                  .filter(Boolean);
+                try {
+                  const imageUrl = await generateMealImageUnified(m.name, ingNames, sourceType);
+                  if (imageUrl) (result.meals as any)[idx] = { ...m, imageUrl };
+                } catch { /* image failure non-fatal */ }
+              })
+            );
+          }
+        } catch { /* image pipeline failure non-fatal — meal is still usable without image */ }
+      }
+      // ─────────────────────────────────────────────────────────────────────────────
+
+      if (humanFoodContext && result.success) {
+        const { validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+        const outgoing = [
+          ...(result.meal ? [result.meal] : []),
+          ...(result.meals ?? []),
+        ];
+        const invalid = outgoing.find((meal: any) =>
+          !validateCreatorHumanFoodResult("recipe_maker", meal, humanFoodContext!).valid
+        );
+        if (invalid) {
+          return res.status(422).json({
+            success: false,
+            code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+            error: "The generated recipe did not pass final food-context validation.",
+          });
+        }
+      }
       res.json(result);
 
     } catch (error: any) {
@@ -726,9 +1855,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { recordGeneration } = await import("./services/aiHealthMetrics");
       recordGeneration('/api/meals/generate', 'error', Date.now() - startTime, error.message);
       
-      res.status(500).json({ 
+      const status = Number.isInteger(error?.status) ? error.status : 500;
+      res.status(status).json({
         success: false, 
-        error: error.message || "Failed to generate meal",
+        error: status === 500 ? (error.message || "Failed to generate meal") : error.message,
+        ...(error?.code ? { code: error.code } : {}),
         source: 'error'
       });
     }
@@ -760,7 +1891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🥕 Fridge Rescue route hit - generating 3 meals");
 
       const userId = getAuthUserId(req);
-      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate } = req.body;
+      const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride, userDietOverride, cultureOverride } = req.body;
 
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
@@ -781,33 +1912,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       {
         const ingredientsText = fridgeItems.join(' ');
-        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "meals-fridge-rescue", {
+        const enforcement = await runEnforcement({
+          userId,
+          builderType: "fridge_rescue",
+          phase: "pre_generation",
+          inputText: ingredientsText,
           safetyMode: safetyMode || "STRICT",
-          overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined
+          overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined,
         });
-        
-        // If override token was valid, safety check returns SAFE even for blocked terms
-        if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked fridge rescue for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
-        if (safetyCheck.result === "AMBIGUOUS") {
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyAmbiguous: true,
-            ambiguousTerms: safetyCheck.ambiguousTerms,
-            suggestion: safetyCheck.suggestion
-          });
+        const routeResponse = toRouteResponse(enforcement);
+        if (routeResponse.blocked || routeResponse.reviewRequired) {
+          return res.status(400).json(routeResponse.errorPayload);
         }
         
         // Log if override was used
@@ -842,9 +1960,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch user health conditions and palate preferences from database
       let userHealthConditions: string[] = [];
       let palatePrefs: { palateSpiceTolerance?: string; palateSeasoningIntensity?: string; palateFlavorStyle?: string } | undefined = undefined;
+      let fridgeDbUser: any = null;
       {
         try {
           const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+          fridgeDbUser = dbUser ?? null;
           if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
             userHealthConditions = dbUser.healthConditions;
             console.log("[FRIDGE] User medical profile loaded");
@@ -865,6 +1985,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Load unified nutrition context (protocol + active builder) ────────────
+      const fridgeNutritionContext = await getActiveNutritionContext(userId);
+      const fridgeProtocolEnvelope = fridgeNutritionContext.envelope;
+
+      // 🌍 Apply cuisine override (session-only — does not persist)
+      if (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) {
+        fridgeProtocolEnvelope.cuisinePreference = cultureOverride.trim();
+      }
+      console.log(`🔒 [FRIDGE] Nutrition context: diet=[${fridgeNutritionContext.diet.join(",")}] medical=[${fridgeNutritionContext.medical.length} flags] builder=${fridgeNutritionContext.builder ?? "none"}`);
+
+      // ── Oncology smart enhancement layer ──────────────────────────────────────
+      // Detect gaps in the user's fridge items and inject mandatory therapeutic
+      // additions so every oncology-support meal includes a fiber anchor + boosters.
+      let oncologyFridgeBlock: string | undefined;
+      const isOncologyRoute = (fridgeProtocolEnvelope.dietaryIdentity ?? []).includes('oncology-support')
+        || fridgeNutritionContext.diet.includes('oncology-support')
+        || fridgeDbUser?.specialtyCondition === 'oncology-support'
+        || ((fridgeDbUser as any)?.specialtyConditions as string[] ?? []).includes('oncology-support');
+
+      if (isOncologyRoute) {
+        const fridgeText = fridgeItems.join(' ').toLowerCase();
+        const FIBER_ANCHOR_TERMS = ['quinoa','oat','lentil','bean','chickpea','sweet potato','brown rice','barley','farro','bulgur','edamame','pea'];
+        const BOOSTER_TERMS = ['garlic','turmeric','ginger','herb','parsley','cilantro','basil','thyme','rosemary','cumin','cinnamon','flax','chia'];
+        const hasFiberAnchor = FIBER_ANCHOR_TERMS.some(t => fridgeText.includes(t));
+        const hasBooster = BOOSTER_TERMS.some(t => fridgeText.includes(t));
+        const additions: string[] = [];
+        if (!hasFiberAnchor) {
+          additions.push(
+            '• FIBER ANCHOR (REQUIRED): Add ½ cup cooked quinoa, lentils, or black beans to every meal. ' +
+            'These are standard pantry staples. If quinoa is unavailable, use lentils or chickpeas. ' +
+            'Do NOT omit — meals without a fiber anchor fail the oncology quality gate.'
+          );
+        }
+        if (!hasBooster) {
+          additions.push(
+            '• THERAPEUTIC BOOSTERS (REQUIRED): Add 1–2 minced garlic cloves AND ¼ tsp turmeric to every ' +
+            'meal during cooking. Finish with fresh herbs (parsley, basil, or cilantro). ' +
+            'These anti-inflammatory compounds are non-negotiable for oncology-support protocol.'
+          );
+        }
+        if (additions.length > 0) {
+          oncologyFridgeBlock = [
+            '🧬 ONCOLOGY-SUPPORT SMART ENHANCEMENT (MANDATORY — DO NOT IGNORE):',
+            'This user is on the Oncology Support medical protocol. You MUST add these therapeutic',
+            'ingredients to every meal even if not in the fridge list — they are essential pantry staples:',
+            '',
+            ...additions,
+            '',
+            'Build meals around the user\'s listed ingredients FIRST, then layer in the above cohesively.',
+            'Every meal MUST include both a fiber anchor and a therapeutic booster to meet clinical standards.',
+          ].join('\n');
+          console.log(`🧬 [ONCOLOGY FRIDGE ROUTE] Gaps: ${!hasFiberAnchor ? 'NO FIBER ANCHOR ' : ''}${!hasBooster ? 'NO BOOSTER' : ''}. Enhancement injected.`);
+        } else {
+          console.log(`🧬 [ONCOLOGY FRIDGE ROUTE] Fridge items already cover fiber anchor + booster — no injection needed.`);
+        }
+      }
+
+      // ── Adaptive Coaching Context (ACE) ────────────────────────────────────────
+      // Injected AFTER all protocol/medical/behavioral blocks. Lowest priority tier.
+      // Returns null when no check-in exists today → no-op, prompt unchanged.
+      let aceFridgeBlock = "";
+      if (userId && userId !== "1") {
+        try {
+          const aceResult = await buildAcePromptBlock(userId);
+          if (aceResult) {
+            aceFridgeBlock = aceResult.block;
+            const { meta } = aceResult;
+            console.log(
+              `🧠 [ACE/FridgeRescue] enabled | signals=${meta.signalCount} | intervention=${meta.interventionKey ?? "balanced"} | chars=${meta.charCount}`
+            );
+          }
+        } catch (err) {
+          console.warn("⚠️ [ACE/FridgeRescue] Could not build coaching block — skipping:", err);
+        }
+      }
+
+      // ── GLP-1 canonical context ──────────────────────────────────────────────
+      // Load personalized GLP-1 targets and inject as a prompt constraint block
+      // so Fridge Rescue applies the same food-quality rules as the GLP-1 Builder.
+      // The block is appended to builderBlock which the generator injects into its
+      // prompt AFTER the protocol enforcement section.
+      let glp1FridgeBlock = "";
+      let glp1FridgeTargets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const glp1Ctx = await resolveGLP1GlobalContext(
+          userId,
+          new Date().toISOString().split("T")[0],
+          "lunch", // fridge rescue is meal-type-agnostic; lunch gives balanced defaults
+        );
+        if (glp1Ctx.isActive) {
+          glp1FridgeTargets = glp1Ctx.resolvedTargets;
+          const t = glp1FridgeTargets;
+          glp1FridgeBlock = [
+            "💊 GLP-1 MEDICATION PROTOCOL — MANDATORY CONSTRAINTS (NON-NEGOTIABLE):",
+            "This user is on GLP-1 medication (semaglutide/tirzepatide/Ozempic/Wegovy/Mounjaro or similar).",
+            "Slower gastric emptying and appetite suppression require strict portion and fat controls.",
+            "",
+            `• PORTIONS: Keep each meal to ~${t ? t.resolvedMealCalories : 350} kcal per serving.`,
+            `• FAT CEILING: Maximum ${t ? t.maximumToleratedFatGrams : 12}g fat. High fat causes nausea — safety rule.`,
+            `• PROTEIN FLOOR: Minimum ${t ? t.targetProteinGrams : 15}g protein. Critical for muscle preservation.`,
+            "• DIGESTION: Avoid fried food, heavy cream sauces, raw onions, excess fiber, spicy ingredients.",
+            "• COOKING: Prefer grilled, baked, steamed, or poached. No deep-frying.",
+            "• MOISTURE: Use broth-based or moist preparations. Dry dense foods worsen GLP-1 side effects.",
+            ...(glp1Ctx.compositionNote ? [`• PERFORMANCE NOTE: ${glp1Ctx.compositionNote}`] : []),
+          ].join("\n");
+          console.log(
+            `💊 [GLP-1/FridgeRescue] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
+            (t
+              ? ` [${t.resolvedMealCalories}kcal / ${t.targetProteinGrams}g prot / ${t.maximumToleratedFatGrams}g fat / phase:${t.treatmentPhase}]`
+              : " [baseline targets]"),
+          );
+        }
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/FridgeRescue] Could not resolve context — GLP-1 constraints skipped:", err);
+      }
+
+      // Combine enhancement with any existing builder block from nutrition context
+      const combinedBuilderBlock = [
+        fridgeNutritionContext.builderBlock || '',
+        oncologyFridgeBlock || '',
+        aceFridgeBlock || '',
+        glp1FridgeBlock || '',
+      ].filter(Boolean).join('\n\n') || undefined;
+
       // Generate multiple meals with proper macros and amounts
       const meals = await generateFridgeRescueMeals({ 
         fridgeItems, 
@@ -872,16 +2117,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
         servings,
         macroTargets,
         skipPalate,
-        palatePrefs: palatePrefs as any
+        palatePrefs: palatePrefs as any,
+        strictMode: strictMode === true,
+        protocolEnvelope: fridgeProtocolEnvelope,
+        builderBlock: combinedBuilderBlock,
       });
+
+      // ── Post-generation protocol scan (ingredient + instruction level) ──────
+      const cleanFridgeMeals = filterMealsByProtocol(meals, fridgeProtocolEnvelope, {
+        generatorName: "fridge_rescue",
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+      });
+
+      if (cleanFridgeMeals.length === 0 && meals.length > 0) {
+        console.log(`⚠️ [FRIDGE] All generated meals violated protocol — returning error`);
+        return res.status(400).json({
+          error: "PROTOCOL_VIOLATION_ALL_MEALS",
+          message: "All generated meals contained ingredients or preparation steps that conflict with your dietary protocol. Please try different fridge items.",
+          retryable: true,
+        });
+      }
+
+      if (cleanFridgeMeals.length < meals.length) {
+        console.log(`⚠️ [FRIDGE] Removed ${meals.length - cleanFridgeMeals.length} violating meal(s) — serving ${cleanFridgeMeals.length}`);
+      }
 
       const { recordGeneration } = await import("./services/aiHealthMetrics");
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
 
-      console.log("[FRIDGE] ok returning", meals.length, "meals");
+      console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
+
+      // ── GLP-1 post-generation validation — fail closed ───────────────────
+      // Filter out any fridge-rescue meal that fails GLP-1 targets. Do NOT
+      // mutate nutrition fields (relabeling macros without changing ingredients
+      // is clinically incorrect). Validator errors also exclude the meal so
+      // a module-load failure never silently passes a non-compliant result.
+      let glp1ValidatedFridgeMeals: typeof cleanFridgeMeals = cleanFridgeMeals;
+      if (glp1FridgeTargets !== null) {
+        try {
+          const { validateMealForDiet: _validateFridgeGlp1 } = await import("./services/guardrails/index");
+          const beforeCount = glp1ValidatedFridgeMeals.length;
+          glp1ValidatedFridgeMeals = glp1ValidatedFridgeMeals.filter(meal => {
+            try {
+              const ingList = (meal.ingredients ?? []).map((i: any) => ({
+                name: i.name ?? "",
+                quantity: i.quantity ?? undefined,
+                unit: i.unit ?? undefined,
+              }));
+              const macros = {
+                calories: (meal as any).calories,
+                protein: (meal as any).protein,
+                fat: (meal as any).fat,
+                carbs: ((meal as any).starchyCarbs ?? 0) + ((meal as any).fibrousCarbs ?? 0),
+              };
+              const vr = _validateFridgeGlp1(
+                { name: meal.name, ingredients: ingList, macros },
+                "glp1", undefined, false,
+                glp1FridgeTargets ?? undefined,
+              );
+              if (!vr.isValid) {
+                console.warn(
+                  `💊 [GLP-1/FridgeRescue] Excluding "${meal.name}" — GLP-1 violations:`,
+                  vr.violations,
+                );
+              }
+              return vr.isValid;
+            } catch {
+              // Fail closed: per-meal validator error excludes this meal.
+              console.warn(`⚠️ [GLP-1/FridgeRescue] Validator error for "${meal.name}" — excluding (fail closed)`);
+              return false;
+            }
+          });
+          if (glp1ValidatedFridgeMeals.length < beforeCount) {
+            console.log(`💊 [GLP-1/FridgeRescue] ${beforeCount - glp1ValidatedFridgeMeals.length} meal(s) excluded after GLP-1 validation`);
+          }
+        } catch (err) {
+          // Fail closed: module load error — exclude all meals rather than serving
+          // unvalidated results to a patient on GLP-1 medication.
+          console.warn("⚠️ [GLP-1/FridgeRescue] Validation module error — excluding all meals (fail closed):", err);
+          glp1ValidatedFridgeMeals = [];
+        }
+      }
+
+      const fridgeMealsWithCompliance = glp1ValidatedFridgeMeals.map(meal => {
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(
+          meal, fridgeProtocolEnvelope
+        );
+        return { ...meal, complianceSection, dietClassification };
+      });
+
+      // ── Unified Image Pipeline ──────────────────────────────────────────────
+      // Attach permanent imageUrls to every meal before responding so the client
+      // renders complete cards — no shimmer, no second round-trip.
+      // Promise.all generates all 3 images in parallel.
+      const { generateMealImageUnified: _fridgeGenImg } = await import('./services/mealImageGenerator');
+      const mealsForResponse = await Promise.all(
+        fridgeMealsWithCompliance.map(async (meal: any) => {
+          try {
+            const ingredients = (meal.ingredients ?? [])
+              .map((i: any) => i.name || i.item || '')
+              .filter(Boolean);
+            const imageUrl = await _fridgeGenImg(meal.name, ingredients, 'meal');
+            const mealText = `${meal.name || ""} ${meal.description || ""} ${ingredients.join(" ")}`;
+            const alphaGalBadge = computeAlphaGalBadge(mealText, ingredients, userHealthConditions);
+            return { ...meal, imageUrl, ...(alphaGalBadge && { alphaGalBadge }) };
+          } catch {
+            return meal; // image failure is non-fatal — card still usable
+          }
+        })
+      );
+      // ───────────────────────────────────────────────────────────────────────
+
       res.json({
-        meals,
+        meals: mealsForResponse,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,
@@ -889,6 +2238,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           resetAt: quotaCheck.resetAt,
         },
       });
+
+      // Phase 3B: emit usage event — fridge rescue meals were generated
+      if (userId && mealsForResponse.length > 0) {
+        emitActivityEvent({
+          ownerUserId: String(userId),
+          eventType: "fridge_rescue_generated",
+          eventClass: "usage",
+          sourceFeature: "fridge_rescue",
+          metadata: { mealCount: mealsForResponse.length, ingredientCount: Array.isArray(fridgeItems) ? fridgeItems.length : 0 },
+        }).catch((err) => console.error("[ActivityEvents]", err.message));
+      }
     } catch (error: any) {
       console.error("[FRIDGE] handler error", error);
       // Record error for metrics
@@ -970,7 +2330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const INTERNAL_API_BASE = process.env.INTERNAL_API_BASE || "http://127.0.0.1:5000";
 
   // WMC2 Adapter routes for ChatGPT-level meal generation
-  app.post("/api/wmc2/generate", async (req, res) => {
+  app.post("/api/wmc2/generate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { wmc2Generate } = await import("./services/wmc2Adapter");
       const result = await wmc2Generate(req.body);
@@ -981,7 +2341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/wmc2/:userId/regenerate", async (req, res) => {
+  app.post("/api/wmc2/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { wmc2Regenerate } = await import("./services/wmc2Adapter");
       const result = await wmc2Regenerate(req.params.userId, req.body);
@@ -996,31 +2356,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, days, schedule, dietaryRestrictions, selectedIngredients, includeImages = true, mode = "ai_varied", constraints = {} } = req.body;
 
+      // ── Canonical user identity ────────────────────────────────────────────
+      // requireMacroProfile already enforced req.authUser (returns 401 if absent).
+      // Use the authenticated session ID — never the client-supplied body userId —
+      // for any security-sensitive operations (GLP-1 resolution, enforcement gate).
+      const authUserId: string = (req as any).authUser.id;
+
       console.log("🎯 AI Meal Creator generating meal plan:", { userId, days, scheduleCount: schedule?.length });
 
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
-      // Check selectedIngredients against user's allergy profile
-      if (userId && selectedIngredients && selectedIngredients.length > 0) {
-        const ingredientsText = selectedIngredients.join(' ');
-        const safetyCheck = await enforceSafetyProfile(userId, ingredientsText, "ai-generate-meal-plan");
-        if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked AI meal plan for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
+      // ── GLP-1 canonical context ─────────────────────────────────────────────
+      // Resolve before generation so we can inject constraints and clamp output.
+      // Uses session identity — not the body userId — to prevent IDOR.
+      let glp1PlanTargets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+      let glp1PlanActive = false;
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const glp1Ctx = await resolveGLP1GlobalContext(
+          authUserId,
+          new Date().toISOString().split("T")[0],
+          "lunch",
+        );
+        glp1PlanActive = glp1Ctx.isActive;
+        glp1PlanTargets = glp1Ctx.resolvedTargets;
+        if (glp1PlanActive) {
+          const t = glp1PlanTargets;
+          console.log(
+            `💊 [GLP-1/MealPlan] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
+            (t ? ` [${t.resolvedMealCalories}kcal / ${t.targetProteinGrams}g prot / ${t.maximumToleratedFatGrams}g fat-ceiling]` : " [baseline]"),
+          );
         }
-        if (safetyCheck.result === "AMBIGUOUS") {
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyAmbiguous: true,
-            ambiguousTerms: safetyCheck.ambiguousTerms,
-            suggestion: safetyCheck.suggestion
-          });
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/MealPlan] Could not resolve context:", err);
+      }
+
+      // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
+      // Uses authUserId (session-verified) — not body userId — to enforce for the real caller.
+      if (selectedIngredients && selectedIngredients.length > 0) {
+        const ingredientsText = selectedIngredients.join(' ');
+        const enforcement = await runEnforcement({
+          userId: authUserId,
+          builderType: "meal_planner",
+          phase: "pre_generation",
+          inputText: ingredientsText,
+        });
+        const routeResponse = toRouteResponse(enforcement);
+        if (routeResponse.blocked || routeResponse.reviewRequired) {
+          return res.status(400).json(routeResponse.errorPayload);
         }
       }
 
@@ -1054,7 +2435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { getOnboarding, generateDayV2, onboardingHash } = await import("./services/mealgenV2");
 
         try {
-          const onboarding = await getOnboarding(userId || "1");
+          const onboarding = await getOnboarding(authUserId);
           const obHash = onboardingHash(onboarding);
 
           // Handle strict mode constraints
@@ -1068,6 +2449,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             Object.assign(onboarding, constraints.dietFlags);
           }
 
+          // ── GLP-1 pre-generation constraint injection — MEALGEN V2 ──────
+          // Inject GLP-1 food-quality rules into the onboarding object so V2
+          // generation is constrained at source, not relabeled after the fact.
+          // Nutrition clamping (Math.min/max) is intentionally NOT used — it
+          // relabels macros without changing ingredients, which is clinically wrong.
+          if (glp1PlanActive && glp1PlanTargets) {
+            const t = glp1PlanTargets;
+            onboarding.avoid = [
+              ...(onboarding.avoid || []),
+              "fried foods", "deep-fried", "breaded and fried", "cream sauces",
+              "heavy cream", "butter sauces", "full-fat dairy", "high-fat dressings",
+            ];
+            // Surface the GLP-1 calorie + fat ceiling as a diet flag the V2
+            // engine can respect in its prompt-building layer.
+            // Cast to any: these are extension fields not on the Onboarding type.
+            (onboarding as any).glp1Active = true;
+            (onboarding as any).glp1CalorieCeiling = t.resolvedMealCalories;
+            (onboarding as any).glp1FatCeiling = t.maximumToleratedFatGrams;
+            (onboarding as any).glp1ProteinFloor = t.targetProteinGrams;
+            console.log(`💊 [GLP-1/MealPlanV2] Injected into onboarding — ceiling: ${t.resolvedMealCalories}kcal / fat ≤${t.maximumToleratedFatGrams}g / prot ≥${t.targetProteinGrams}g`);
+          }
+
           const slots = uniqueSlots.map(slot => ({
             courseStyle: slot.slot === "meal" ? (slot.label as any) : "Snack",
             label: slot.label,
@@ -1079,7 +2482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Generate one meal and duplicate it
             const { generateMealV2 } = await import("./services/mealgenV2");
             const baseMeal = await generateMealV2({
-              userId: userId || "1",
+              userId: authUserId,
               courseStyle: slots[0].courseStyle,
               onboarding,
               includeImage: includeImages
@@ -1099,12 +2502,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
-            console.log(`🍽️ MEALGEN V2 (repeat_one): Generated ${items.length} items`);
-            return res.json({ days: dayCount, items, meta: { onboardingHash: obHash, mode } });
+            // ── GLP-1 post-generation validation — repeat_one ────────────
+            // Fail closed: filter out items whose actual nutrition violates
+            // GLP-1 targets. Do NOT mutate nutrition fields (that would relabel
+            // a non-compliant meal as compliant without changing its ingredients).
+            let glp1FilteredItems = items;
+            if (glp1PlanActive && glp1PlanTargets) {
+              try {
+                const { validateMealForDiet } = await import("./services/guardrails/index");
+                const t = glp1PlanTargets;
+                const before = glp1FilteredItems.length;
+                glp1FilteredItems = glp1FilteredItems.filter(item => {
+                  // V2 items carry macros at top-level (calories, protein, fats).
+                  // item.nutrition is undefined — never read it for V2 output.
+                  const kcal = item.calories ?? item.nutrition?.calories;
+                  const prot = item.protein ?? item.nutrition?.protein;
+                  const fatG = item.fats   ?? item.fat   ?? item.nutrition?.fat;
+                  // Missing or non-finite macros cannot be validated — reject for GLP-1 safety.
+                  if (!Number.isFinite(kcal) || !Number.isFinite(prot) || !Number.isFinite(fatG)) {
+                    console.warn(`💊 [GLP-1/V2/repeat_one] Dropping "${item.name}" — macros missing/non-finite (kcal:${kcal} prot:${prot} fat:${fatG})`);
+                    return false;
+                  }
+                  const ingList = (item.ingredients || []).map((i: any) => ({
+                    name: i.item ?? i.name ?? "", quantity: i.amount ? String(i.amount) : undefined, unit: i.unit,
+                  }));
+                  const vr = validateMealForDiet(
+                    { name: item.name, ingredients: ingList, macros: { calories: kcal, protein: prot, fat: fatG } },
+                    "glp1", undefined, item.label?.toLowerCase() === "snack", t,
+                  );
+                  if (!vr.isValid) {
+                    console.warn(`💊 [GLP-1/V2/repeat_one] Dropping "${item.name}" — violations:`, vr.violations);
+                  }
+                  return vr.isValid;
+                });
+                if (glp1FilteredItems.length < before) {
+                  console.warn(`💊 [GLP-1/V2/repeat_one] ${before - glp1FilteredItems.length} non-compliant item(s) removed`);
+                }
+              } catch (err) {
+                // Fail closed: validation module error means we cannot confirm compliance.
+                // Return an empty set rather than serving unvalidated meals to a GLP-1 patient.
+                console.warn("⚠️ [GLP-1/V2/repeat_one] Validation error — clearing all items (fail closed):", err);
+                glp1FilteredItems = [];
+              }
+            }
+            console.log(`🍽️ MEALGEN V2 (repeat_one): Generated ${glp1FilteredItems.length} items`);
+            return res.json({ days: dayCount, items: glp1FilteredItems, meta: { onboardingHash: obHash, mode } });
           } else {
             // Generate variety with constraints
             const dayMeals = await generateDayV2({
-              userId: userId || "1",
+              userId: authUserId,
               onboarding,
               slots,
               includeImage: includeImages
@@ -1125,8 +2571,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
 
-            console.log(`🍽️ MEALGEN V2: Generated ${items.length} items with onboarding compliance`);
-            return res.json({ days: dayCount, items, meta: { onboardingHash: obHash, mode } });
+            // ── GLP-1 post-generation validation — ai_varied ─────────────
+            // Fail closed: filter out non-compliant items. No nutrition mutation.
+            let glp1FilteredItems = items;
+            if (glp1PlanActive && glp1PlanTargets) {
+              try {
+                const { validateMealForDiet } = await import("./services/guardrails/index");
+                const t = glp1PlanTargets;
+                const before = glp1FilteredItems.length;
+                glp1FilteredItems = glp1FilteredItems.filter(item => {
+                  // V2 items carry macros at top-level (calories, protein, fats).
+                  // item.nutrition is undefined — never read it for V2 output.
+                  const kcal = item.calories ?? item.nutrition?.calories;
+                  const prot = item.protein ?? item.nutrition?.protein;
+                  const fatG = item.fats   ?? item.fat   ?? item.nutrition?.fat;
+                  // Missing or non-finite macros cannot be validated — reject for GLP-1 safety.
+                  if (!Number.isFinite(kcal) || !Number.isFinite(prot) || !Number.isFinite(fatG)) {
+                    console.warn(`💊 [GLP-1/V2/ai_varied] Dropping "${item.name}" — macros missing/non-finite (kcal:${kcal} prot:${prot} fat:${fatG})`);
+                    return false;
+                  }
+                  const ingList = (item.ingredients || []).map((i: any) => ({
+                    name: i.item ?? i.name ?? "", quantity: i.amount ? String(i.amount) : undefined, unit: i.unit,
+                  }));
+                  const vr = validateMealForDiet(
+                    { name: item.name, ingredients: ingList, macros: { calories: kcal, protein: prot, fat: fatG } },
+                    "glp1", undefined, item.label?.toLowerCase() === "snack", t,
+                  );
+                  if (!vr.isValid) {
+                    console.warn(`💊 [GLP-1/V2/ai_varied] Dropping "${item.name}" — violations:`, vr.violations);
+                  }
+                  return vr.isValid;
+                });
+                if (glp1FilteredItems.length < before) {
+                  console.warn(`💊 [GLP-1/V2/ai_varied] ${before - glp1FilteredItems.length} non-compliant item(s) removed`);
+                }
+              } catch (err) {
+                // Fail closed: validation module error means we cannot confirm compliance.
+                // Return an empty set rather than serving unvalidated meals to a GLP-1 patient.
+                console.warn("⚠️ [GLP-1/V2/ai_varied] Validation error — clearing all items (fail closed):", err);
+                glp1FilteredItems = [];
+              }
+            }
+            console.log(`🍽️ MEALGEN V2: Generated ${glp1FilteredItems.length} items with onboarding compliance`);
+            return res.json({ days: dayCount, items: glp1FilteredItems, meta: { onboardingHash: obHash, mode } });
           }
         } catch (error) {
           console.error("MEALGEN V2 failed, falling back to legacy:", error);
@@ -1135,7 +2622,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // LEGACY SYSTEM: Get user profile data for personalized meal generation
-      const [userProfile] = await db.select().from(users).where(eq(users.id, userId || "1")).limit(1);
+      // Use authUserId (session-verified) — not body userId — to prevent IDOR.
+      const [userProfile] = await db.select().from(users).where(eq(users.id, authUserId)).limit(1);
+
+      // ── GLP-1 canonical context for Weekly Meal Plan ───────────────────────
+      // Load patient-specific targets once; inject into every slot's prompt so
+      // each generated meal respects GLP-1 volume/fat/protein constraints.
+      let weeklyPlanGlp1Active = false;
+      let weeklyPlanGlp1Block = "";
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const { applyGuardrails: _planApplyGuardrails } = await import("./services/guardrails");
+        // Use authUserId (session-guaranteed by requireMacroProfile) — NEVER body userId.
+        // Body userId is untrusted; resolving GLP-1 for it would expose another user's
+        // medication status and personalized targets (IDOR on PHI-adjacent data).
+        const weeklyGlp1Ctx = await resolveGLP1GlobalContext(
+          authUserId,
+          new Date().toISOString().split("T")[0],
+          "lunch",
+        );
+        if (weeklyGlp1Ctx.isActive && weeklyGlp1Ctx.resolvedTargets) {
+          weeklyPlanGlp1Active = true;
+          const _wt = weeklyGlp1Ctx.resolvedTargets;
+          // Build the GLP-1 constraint string manually (applyGuardrails returns
+          // GuardrailResult, not a string — we only need the prompt text here).
+          weeklyPlanGlp1Block = [
+            `GLP-1 PROTOCOL: Calories ≤${_wt.resolvedMealCalories}kcal, Fat ≤${_wt.maximumToleratedFatGrams}g, Protein ≥${_wt.targetProteinGrams}g.`,
+            `NO fried, cream sauces, heavy butter, or full-fat dairy. Small portions only.`,
+          ].join(" ");
+          console.log(
+            `💊 [WEEKLY PLAN/GLP-1] Personalized targets: ` +
+            `${weeklyGlp1Ctx.resolvedTargets.resolvedMealCalories}kcal / ` +
+            `${weeklyGlp1Ctx.resolvedTargets.targetProteinGrams}g prot / ` +
+            `${weeklyGlp1Ctx.resolvedTargets.maximumToleratedFatGrams}g fat-ceiling ` +
+            `[phase: ${weeklyGlp1Ctx.resolvedTargets.treatmentPhase}] ` +
+            `[sources: ${weeklyGlp1Ctx.activationSources.join(",")}]`
+          );
+        }
+      } catch (err) {
+        console.warn("[WEEKLY PLAN/GLP-1] Could not resolve GLP-1 context — continuing without:", err);
+      }
 
       // Create variety-focused meal generation system
       const varietyPrompts = {
@@ -1202,8 +2728,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               personalizedPrompt += `, without ${userProfile.dislikedFoods.join(', ')}`;
             }
 
+            // Inject GLP-1 guidance when patient overlay is active
+            if (weeklyPlanGlp1Active && weeklyPlanGlp1Block) {
+              personalizedPrompt += `. ${weeklyPlanGlp1Block}`;
+            }
+
             console.log(`🎯 Generating ${slot.label} with variety prompt: "${personalizedPrompt}"`);
 
+            // Pass authUserId so the craving-creator resolves GLP-1 for the
+            // authenticated user — this triggers its pre-generation GLP-1
+            // macro-target injection (fat ceiling, protein floor, calorie cap).
             const mealResponse = await fetch(`${INTERNAL_API_BASE}/api/meals/craving-creator`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1212,7 +2746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 cravingInput: personalizedPrompt,
                 dietaryRestrictions: userProfile?.dietaryRestrictions || [],
                 allergies: userProfile?.allergies || [],
-                userId: userId || "1",
+                userId: authUserId,
                 variation: tries
               })
             });
@@ -1233,6 +2767,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   order: slot.order,
                   badges: meal.medicalBadges || []
                 };
+
+                // ── GLP-1 fail-closed validation ──────────────────────────
+                // Validate the generated meal against GLP-1 targets.
+                // Do NOT mutate nutrition fields (that relabels a non-compliant
+                // meal without changing its ingredients, which is clinically
+                // incorrect). If it fails, retry with a different prompt variant.
+                if (glp1PlanActive && glp1PlanTargets) {
+                  const t = glp1PlanTargets;
+                  try {
+                    const { validateMealForDiet } = await import("./services/guardrails/index");
+                    const ingList = (normalizedMeal.ingredients || []).map((i: any) => ({
+                      name: i.item ?? i.name ?? "",
+                      quantity: i.amount ? String(i.amount) : undefined,
+                      unit: i.unit ?? undefined,
+                    }));
+                    const vr = validateMealForDiet(
+                      { name: normalizedMeal.name, ingredients: ingList, macros: normalizedMeal.nutrition },
+                      "glp1", undefined, mealType === "snack", t,
+                    );
+                    if (!vr.isValid) {
+                      console.warn(
+                        `💊 [WEEKLY PLAN/GLP-1] "${normalizedMeal.name}" fails validation — retrying (try ${tries + 1}):`,
+                        vr.violations,
+                      );
+                      tries++;
+                      continue; // retry with next prompt variant
+                    }
+                  } catch (err) {
+                    // Validation module failed to load — fail closed: do not accept the meal.
+                    console.warn("⚠️ [WEEKLY PLAN/GLP-1] Validation error — rejecting meal (fail closed):", err);
+                    tries++;
+                    continue;
+                  }
+                }
 
                 // Check for duplicates using improved signature
                 const sig = mealSig(normalizedMeal);
@@ -1306,47 +2874,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ai/regenerate-meal", requireMacroProfile, async (req, res) => {
     try {
-      const { userId, slot, label, time, dayIndex, dietaryRestrictions, selectedIngredients } = req.body;
+      const { slot, label, time, dayIndex, dietaryRestrictions, selectedIngredients } = req.body;
+
+      // requireMacroProfile guarantees req.authUser — use session identity only.
+      const authRegenUserId: string = (req as any).authUser.id;
 
       console.log("🔄 Regenerating meal:", { label, dayIndex });
 
-      // Call existing Craving Creator endpoint with absolute URL for regeneration
-      const cravingInput = selectedIngredients?.length > 0 ? 
-        `Different ${label} with ${selectedIngredients.join(', ')}` : 
-        `Different healthy ${label}`;
-
-      const mealResponse = await fetch(`${INTERNAL_API_BASE}/api/meals/craving-creator`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetMealType: slot === "meal" ? label.toLowerCase() : "snack",
-          cravingInput,
-          dietaryRestrictions: [dietaryRestrictions].filter(Boolean),
-          userId: userId || "1"
-        })
-      });
-
-      if (mealResponse.ok) {
-        const { meal } = await mealResponse.json();
-        if (meal) {
-          const updatedMeal = {
-            ...meal,
-            dayIndex,
-            slot,
-            label,
-            time,
-            badges: meal.medicalBadges || []
-          };
-
-          console.log(`✅ Regenerated meal: ${meal.name}`);
-          res.json(updatedMeal);
-        } else {
-          throw new Error("No meal returned from craving creator");
+      // ── GLP-1 canonical context — regenerate-meal ─────────────────────────
+      // The internal loopback to /api/meals/craving-creator has no session cookie,
+      // so serverAuthUserId inside that handler resolves to undefined and GLP-1 is
+      // never applied. Resolve GLP-1 here using authRegenUserId (session-guaranteed),
+      // inject the constraint block into cravingInput, and independently validate
+      // the returned meal — fail closed on non-compliance.
+      let regenGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
+      let regenGlp1Block = "";
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const regenGlp1Ctx = await resolveGLP1GlobalContext(
+          authRegenUserId,
+          new Date().toISOString().split("T")[0],
+          (slot === "meal" ? label?.toLowerCase() : "snack") as "breakfast" | "lunch" | "dinner" | "snack",
+        );
+        if (regenGlp1Ctx.isActive && regenGlp1Ctx.resolvedTargets) {
+          regenGlp1Targets = regenGlp1Ctx.resolvedTargets;
+          const t = regenGlp1Targets;
+          regenGlp1Block = ` GLP-1 PROTOCOL: Calories ≤${t.resolvedMealCalories}kcal, Fat ≤${t.maximumToleratedFatGrams}g, Protein ≥${t.targetProteinGrams}g. NO fried, cream sauces, heavy butter, full-fat dairy. Small portions only.`;
+          console.log(`💊 [GLP-1/RegenMeal] Active — injecting constraint into prompt [${t.resolvedMealCalories}kcal / ≤${t.maximumToleratedFatGrams}g fat / ≥${t.targetProteinGrams}g prot]`);
         }
-      } else {
-        const errorText = await mealResponse.text();
-        throw new Error(`Craving creator failed: ${mealResponse.status} ${errorText}`);
+      } catch (err) {
+        console.warn("⚠️ [GLP-1/RegenMeal] Could not resolve context — regenerating without GLP-1 constraints:", err);
       }
+
+      const mealType = slot === "meal" ? label.toLowerCase() : "snack";
+      const baseCravingInput = selectedIngredients?.length > 0
+        ? `Different ${label} with ${selectedIngredients.join(', ')}`
+        : `Different healthy ${label}`;
+      const cravingInput = `${baseCravingInput}${regenGlp1Block}`;
+
+      // Retry up to 3 times so a non-compliant first attempt doesn't surface to the user.
+      let updatedMeal: any = null;
+      const maxRetries = regenGlp1Targets ? 3 : 1;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const mealResponse = await fetch(`${INTERNAL_API_BASE}/api/meals/craving-creator`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetMealType: mealType,
+            cravingInput: attempt === 0 ? cravingInput : `${cravingInput} variation ${attempt + 1}`,
+            dietaryRestrictions: [dietaryRestrictions].filter(Boolean),
+            userId: authRegenUserId,
+          })
+        });
+
+        if (!mealResponse.ok) {
+          const errorText = await mealResponse.text();
+          throw new Error(`Craving creator failed: ${mealResponse.status} ${errorText}`);
+        }
+
+        const { meal } = await mealResponse.json();
+        if (!meal) throw new Error("No meal returned from craving creator");
+
+        // ── GLP-1 post-generation fail-closed validation ───────────────────
+        if (regenGlp1Targets) {
+          try {
+            const { validateMealForDiet: _regenValidate } = await import("./services/guardrails/index");
+            const ingList = (meal.ingredients || []).map((i: any) => ({
+              name: i.item ?? i.name ?? "", quantity: i.amount ? String(i.amount) : undefined, unit: i.unit,
+            }));
+            const vr = _regenValidate(
+              { name: meal.name, ingredients: ingList, macros: meal.nutrition ?? { calories: meal.calories, protein: meal.protein, fat: meal.fat } },
+              "glp1", undefined, mealType === "snack", regenGlp1Targets,
+            );
+            if (!vr.isValid) {
+              console.warn(`💊 [GLP-1/RegenMeal] Attempt ${attempt + 1} fails validation — violations:`, vr.violations);
+              if (attempt < maxRetries - 1) continue; // retry
+              // Final attempt still non-compliant — return error rather than a bad meal
+              return res.status(422).json({
+                error: "GLP-1_COMPLIANCE_FAILED",
+                message: "Could not generate a compliant meal within retry budget. Please try a different craving.",
+              });
+            }
+          } catch (err) {
+            // Fail closed: validator error — reject the meal
+            console.warn("⚠️ [GLP-1/RegenMeal] Validation error — rejecting meal (fail closed):", err);
+            if (attempt < maxRetries - 1) continue;
+            return res.status(422).json({ error: "GLP-1_VALIDATION_ERROR", message: "Could not validate the regenerated meal." });
+          }
+        }
+
+        updatedMeal = { ...meal, dayIndex, slot, label, time, badges: meal.medicalBadges || [] };
+        break;
+      }
+
+      if (!updatedMeal) throw new Error("All regeneration attempts failed");
+      console.log(`✅ Regenerated meal: ${updatedMeal.name}`);
+      res.json(updatedMeal);
 
     } catch (error: any) {
       console.error("❌ Meal regeneration error:", error);
@@ -1436,8 +3059,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Push Notification Routes
   app.use("/api/push", pushNotificationsRouter);
 
+  // Reminder System v2 — canonical cross-platform meal reminders
+  app.use("/api/user/reminders", remindersRouter);
+
   // Enhanced Shopping List endpoint with scope support
-  app.post("/api/shopping-list", requireAuth, async (req: any, res) => {
+  app.post("/api/shopping-list", requireAuth, requireEssentialAccess, async (req: any, res) => {
     try {
       const authUser = req.authUser;
       const userId = authUser?.id;
@@ -1489,18 +3115,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         checked: false,
       }));
 
-      // Insert items
+      // Insert items — return the inserted rows so the client can assign serverIds
+      let insertedItems: any[] = [];
       if (itemsToInsert.length > 0) {
-        await db.insert(shoppingListItems).values(itemsToInsert);
+        insertedItems = await db.insert(shoppingListItems).values(itemsToInsert).returning();
       }
 
       res.status(201).json({ 
         ok: true,
         success: true, 
         itemsAdded: itemsToInsert.length,
+        items: insertedItems,
         scope,
         strategy 
       });
+
+      // Phase 3B: emit engagement event — items added to shopping list
+      if (userId && insertedItems.length > 0) {
+        emitActivityEvent({
+          ownerUserId: String(userId),
+          eventType: "shopping_item_added",
+          eventClass: "engagement",
+          sourceFeature: "shopping_list",
+          metadata: { itemCount: insertedItems.length, sourceBuilder: sourceBuilder ?? null, scopeType: scope.type },
+        }).catch((err) => console.error("[ActivityEvents]", err.message));
+      }
     } catch (error) {
       console.error("❌ Shopping list error:", error);
       res.status(500).json({ 
@@ -1524,6 +3163,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Object Storage routes (presigned URL uploads)
   registerObjectStorageRoutes(app);
+
+  // Creator Studio routes
+  registerCreatorRoutes(app);
 
   // Profile photo update endpoint - supports both session and token auth
   app.put("/api/users/profile-photo", async (req, res) => {
@@ -1564,30 +3206,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, familyRecipe, cuisineType } = req.body;
       
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
+      // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
       if (userId) {
-        // Check family recipe and cuisine type for allergens
         const inputText = [familyRecipe, cuisineType].filter(Boolean).join(' ');
         if (inputText) {
-          const safetyCheck = await enforceSafetyProfile(userId, inputText, "meals-holiday-feast");
-          if (safetyCheck.result === "BLOCKED") {
-            console.log(`🚫 [SAFETY] Blocked holiday feast for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-            return res.status(400).json({
-              success: false,
-              error: safetyCheck.message,
-              safetyBlocked: true,
-              blockedTerms: safetyCheck.blockedTerms,
-              suggestion: safetyCheck.suggestion
-            });
-          }
-          if (safetyCheck.result === "AMBIGUOUS") {
-            return res.status(400).json({
-              success: false,
-              error: safetyCheck.message,
-              safetyAmbiguous: true,
-              ambiguousTerms: safetyCheck.ambiguousTerms,
-              suggestion: safetyCheck.suggestion
-            });
+          const enforcement = await runEnforcement({
+            userId,
+            builderType: "holiday_feast",
+            phase: "pre_generation",
+            inputText,
+          });
+          const routeResponse = toRouteResponse(enforcement);
+          if (routeResponse.blocked || routeResponse.reviewRequired) {
+            return res.status(400).json(routeResponse.errorPayload);
           }
         }
       }
@@ -1715,7 +3346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Medical Personalization API - Get personalized meal plan based on user's medical profile
   // 🚨 SAFETY: This endpoint uses template-based generation (not AI) with user.allergies passed to profile
-  app.post("/api/weekly-meal-plan/:userId/regenerate", async (req, res) => {
+  app.post("/api/weekly-meal-plan/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const { mealsPerDay = 3, snacksPerDay = 1, duration = 7 } = req.body;
@@ -1738,7 +3369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate medically personalized meal plan (template-based, respects foodAllergies)
       const { MedicalPersonalizationService } = await import("./medicalPersonalizationService.js");
-      const personalizedMealPlan = MedicalPersonalizationService.generateWeeklyMealPlan(
+      const personalizedMealPlan = await MedicalPersonalizationService.generateWeeklyMealPlan(
         userMedicalProfile,
         mealsPerDay,
         snacksPerDay,
@@ -1758,7 +3389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.post("/api/users", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      const userData: any = insertUserSchema.parse(req.body);
       // Ensure mealPlanVariant is a valid enum value or undefined
       const validatedData = {
         ...userData,
@@ -1774,7 +3405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? ((userData as any).onboardingMode as 'independent' | 'procare')
           : 'independent'
       };
-      const [user] = await db.insert(users).values([validatedData]).returning();
+      const [user] = await db.insert(users).values([validatedData as any]).returning();
       res.json(user);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -1793,9 +3424,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", async (req, res) => {
+  const GENERIC_USER_PROFILE_FIELDS = new Set([
+    "firstName",
+    "lastName",
+    "nickname",
+    "age",
+    "height",
+    "weight",
+    "activityLevel",
+    "bodyType",
+    "birthday",
+    "fitnessGoal",
+    "dietaryRestrictions",
+    "healthConditions",
+    "allergies",
+    "dislikedFoods",
+    "likedFoods",
+    "avoidedFoods",
+    "preferredSweeteners",
+    "avoidSweeteners",
+    "timezone",
+  ]);
+
+  app.patch("/api/users/:id", requireAuth, async (req: any, res) => {
     try {
-      const updates = req.body;
+      const authReq = req as AuthenticatedRequest;
+      if (req.params.id !== authReq.authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? req.body
+        : {};
+      const updates = Object.fromEntries(
+        Object.entries(body).filter(([key]) => GENERIC_USER_PROFILE_FIELDS.has(key)),
+      );
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({
+          code: "NO_EDITABLE_PROFILE_FIELDS",
+          error: "No editable profile fields were provided.",
+        });
+      }
       const [user] = await db.update(users).set(updates).where(eq(users.id, req.params.id)).returning();
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -1837,52 +3506,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id/subscription", async (req, res) => {
-    try {
-      const { plan, status, expiresAt } = req.body;
-      const updates = {
-        subscriptionPlan: plan,
-        subscriptionStatus: status,
-        subscriptionExpiresAt: expiresAt
-      };
+  app.patch("/api/users/:id/subscription", requireAuth, async (req: any, res) => {
+    const authReq = req as AuthenticatedRequest;
+    if (req.params.id !== authReq.authUser.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    return res.status(410).json({
+      code: "SUBSCRIPTION_MUTATION_RETIRED",
+      error: "Subscriptions can only be changed through a verified billing provider.",
+    });
+  });
 
-      const [user] = await db.update(users).set(updates).where(eq(users.id, req.params.id)).returning();
+  // User preferences routes (notification settings only)
+  app.get("/api/users/:id/preferences", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      if (req.params.id !== authReq.authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const [user] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-
       res.json({
-        plan: user.subscriptionPlan,
-        status: user.subscriptionStatus,
-        expiresAt: user.subscriptionExpiresAt,
-        features: getFeaturesByPlan(user.subscriptionPlan || "basic")
+        notifications: {
+          enabled: !!user.notificationsEnabled,
+          defaultLeadTimeMinutes: user.notificationDefaultLeadTimeMin ?? 30,
+        },
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  // User preferences routes
-  app.get("/api/users/:id/preferences", async (req, res) => {
+  app.put("/api/users/:id/preferences", requireAuth, async (req: any, res) => {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1);
+      const authReq = req as AuthenticatedRequest;
+      if (req.params.id !== authReq.authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const body = req.body?.notifications || {};
+      const allowedUpdate: any = {};
+      if (typeof body.enabled === "boolean") allowedUpdate.notificationsEnabled = body.enabled;
+      if (typeof body.defaultLeadTimeMinutes === "number") allowedUpdate.notificationDefaultLeadTimeMin = body.defaultLeadTimeMinutes;
+      const [user] = await db.update(users).set(allowedUpdate).where(eq(users.id, req.params.id)).returning();
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json(user);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.put("/api/users/:id/preferences", async (req, res) => {
-    try {
-      const preferences = req.body;
-      const [user] = await db.update(users).set(preferences).where(eq(users.id, req.params.id)).returning();
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
+      res.json({ ok: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1894,34 +3565,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (!user) {
+      // sponsoredByBusinessId is known from middleware before any DB calls
+      const sponsoredByBusinessId = authReq.authUser.sponsoredByBusinessId ?? null;
+
+      // --- 15 s in-process cache ---
+      // The dashboard polls this endpoint on every page load.  A short TTL
+      // keeps data fresh while eliminating the 660 ms sequential-query cost
+      // for the overwhelming majority of requests.
+      const { getOrSet: profileGetOrSet, invalidatePrefix: profileInvalidate } =
+        await import("./services/queryCache");
+      // sponsoredByBusinessId is runtime-computed by middleware on every request
+      // (not stored in DB), so it is NOT included in the cached payload.
+      const cacheKey = `profile:${userId}`;
+      const PROFILE_TTL_MS = 15_000;
+
+      const cached = await profileGetOrSet(cacheKey, PROFILE_TTL_MS, async () => {
+        // ------------------------------------------------------------------
+        // Run all independent queries IN PARALLEL.
+        // Only studios depends on a result from studioMemberships, so that
+        // one stays sequential.  Everything else fans out simultaneously,
+        // reducing total wall-clock time from ~660 ms → ~120 ms (one round
+        // trip instead of six).
+        // ------------------------------------------------------------------
+        const [
+          [user],
+          [membership],
+          [creatorRow],
+          labDrivenConditions,
+          physicianLocked,
+          activeClientAccessResult,
+          recentlyRemovedFromBusinessResult,
+        ] = await Promise.all([
+          db.select().from(users).where(eq(users.id, userId)).limit(1),
+          db.select().from(studioMemberships).where(eq(studioMemberships.clientUserId, userId)),
+          db.select({ isActive: creators.isActive, displayName: creators.displayName })
+            .from(creators)
+            .where(eq(creators.userId, userId))
+            .limit(1),
+          getLabDrivenConditions(userId),
+          getPhysicianLockStatus(userId),
+          // Active client invitation
+          (async () => {
+            try {
+              const { businesses: biz, businessInvitations: bi } = await import("./db/schema/business");
+              const [inv] = await db
+                .select({
+                  programName: bi.programName,
+                  businessName: biz.name,
+                  inviterName: users.username,
+                  trialDays: bi.trialDays,
+                  acceptedAt: bi.acceptedAt,
+                })
+                .from(bi)
+                .innerJoin(biz, eq(biz.id, bi.businessId))
+                .leftJoin(users, eq(users.id, bi.invitedByUserId))
+                .where(and(eq(bi.acceptedByUserId, userId), eq(bi.invitationType, "client"), eq(bi.status, "accepted")))
+                .orderBy(desc(bi.acceptedAt))
+                .limit(1);
+              if (!inv?.acceptedAt) return null;
+              return {
+                programName: inv.programName ?? null,
+                businessName: inv.businessName,
+                inviterName: inv.inviterName ?? null,
+                trialDays: inv.trialDays ?? null,
+                acceptedAt: inv.acceptedAt.toISOString(),
+              };
+            } catch (_) { return null; }
+          })(),
+          // Recently removed from business — skip if currently sponsored
+          (async () => {
+            if (sponsoredByBusinessId) return null;
+            try {
+              const { businesses: biz, businessMembers: bm } = await import("./db/schema/business");
+              const [removed] = await db
+                .select({ businessId: biz.id, businessName: biz.name, removedAt: bm.removedAt })
+                .from(bm)
+                .innerJoin(biz, eq(biz.id, bm.businessId))
+                .where(and(eq(bm.userId, userId), eq(bm.status, "removed"), isNull(bm.noticeDismissedAt)))
+                .orderBy(desc(bm.removedAt))
+                .limit(1);
+              if (removed?.removedAt) {
+                return {
+                  businessId: removed.businessId,
+                  businessName: removed.businessName,
+                  removedAt: removed.removedAt.toISOString(),
+                };
+              }
+            } catch (_) {}
+            return null;
+          })(),
+        ]);
+
+        if (!user) return null; // signals 404 to caller
+
+        // studios depends on membership — one extra round-trip only when the
+        // user is a studio member (most regular users skip this entirely).
+        let studioMembershipData = null;
+        if (membership) {
+          const [studio] = await db
+            .select()
+            .from(studios)
+            .where(eq(studios.id, membership.studioId));
+
+          studioMembershipData = {
+            studioId: membership.studioId,
+            studioName: studio?.name || null,
+            studioType: studio?.type || null,
+            membershipId: membership.id,
+            ownerUserId: studio?.ownerUserId || null,
+            status: membership.status,
+            // Authoritative source: users.activeBoard (client-owned).
+            // studioMemberships.assignedBuilder is a follower cache — never read here.
+            assignedBuilder: user.activeBoard ?? null,
+          };
+        }
+
+        const isCreator = creatorRow?.isActive === true;
+
+        // Compute entitlements from planLookupKey so every subscriber gets the
+        // correct feature gates without needing the DB column populated manually.
+        const tier = getTierForLookupKey(user.planLookupKey);
+        const tierEntitlements: string[] = getEntitlementsForTier(tier);
+        const dbEntitlements: string[] = (user.entitlements as string[]) || [];
+        const mergedEntitlements = [...new Set([...tierEntitlements, ...dbEntitlements])];
+        if (process.env.BILLING_ENFORCED !== "true") {
+          mergedEntitlements.push("FULL_ACCESS");
+        }
+
+        return {
+          user,
+          studioMembershipData,
+          isCreator,
+          creatorDisplayName: creatorRow?.displayName || null,
+          mergedEntitlements,
+          labDrivenConditions,
+          physicianLocked,
+          activeClientAccess: activeClientAccessResult,
+          recentlyRemovedFromBusiness: recentlyRemovedFromBusinessResult,
+        };
+      });
+
+      if (cached === null) {
         return res.status(404).json({ error: "User not found" });
       }
-      
-      let studioMembershipData = null;
-      const [membership] = await db
-        .select()
-        .from(studioMemberships)
-        .where(eq(studioMemberships.clientUserId, userId));
-      
-      if (membership) {
-        const [studio] = await db
-          .select()
-          .from(studios)
-          .where(eq(studios.id, membership.studioId));
-        
-        studioMembershipData = {
-          studioId: membership.studioId,
-          studioName: studio?.name || null,
-          studioType: studio?.type || null,
-          membershipId: membership.id,
-          ownerUserId: studio?.ownerUserId || null,
-          status: membership.status,
-          assignedBuilder: membership.assignedBuilder,
-        };
-      }
+
+      const {
+        user,
+        studioMembershipData,
+        isCreator,
+        creatorDisplayName,
+        mergedEntitlements,
+        labDrivenConditions,
+        physicianLocked,
+        activeClientAccess,
+        recentlyRemovedFromBusiness,
+      } = cached as any;
 
       res.json({
         id: user.id,
@@ -1930,6 +3728,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName,
         lastName: user.lastName || null,
         nickname: user.nickname || null,
+        timezone: user.timezone || null,
+        timezoneUpdatedAt: user.timezoneUpdatedAt?.toISOString?.() ?? null,
         professionalRole: user.professionalRole || null,
         professionalCategory: user.professionalCategory || null,
         credentialType: user.credentialType || null,
@@ -1939,19 +3739,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attestationText: user.attestationText || null,
         procareEntryPath: user.procareEntryPath || null,
         attestedAt: user.attestedAt?.toISOString() || null,
-        entitlements: user.entitlements || [],
+        entitlements: authReq.authUser.entitlements,
+        // ── Explicit server-side entitlement flags ─────────────────────────
+        // Use the same effective plan and policy as requireProCareAccess.
+        // Never trust a stale DB entitlement here: it can make the UI claim
+        // Studio access while the route correctly returns 403.
+        proCareEligible: canAccessProCareStudio({
+          billingEnforced: process.env.BILLING_ENFORCED === "true",
+          accessTier: authReq.authUser.accessTier,
+          planLookupKey: authReq.authUser.planLookupKey,
+          sponsoredByBusinessId: authReq.authUser.sponsoredByBusinessId,
+          sponsoredProCareAccess: authReq.authUser.sponsoredProCareAccess,
+           pilotProCareAccess: authReq.authUser.pilotProCareAccess,
+          isInternalAccount:
+            authReq.authUser.isFounder ||
+            authReq.authUser.isSandbox ||
+            authReq.authUser.isTester,
+        }),
+        proCareAccessSource: authReq.authUser.pilotProCareAccess
+          ? "pilot_procare"
+          : authReq.authUser.sponsoredProCareAccess
+            ? "business_sponsored"
+            : canAccessProCareStudio({
+                billingEnforced: process.env.BILLING_ENFORCED === "true",
+                accessTier: authReq.authUser.accessTier,
+                planLookupKey: authReq.authUser.planLookupKey,
+                isInternalAccount:
+                  authReq.authUser.isFounder ||
+                  authReq.authUser.isSandbox ||
+                  authReq.authUser.isTester,
+              })
+              ? (
+                  authReq.authUser.isFounder ||
+                  authReq.authUser.isSandbox ||
+                  authReq.authUser.isTester
+                    ? "internal"
+                    : "paid_procare"
+                )
+              : null,
+        pilotProCareEndsAt: authReq.authUser.pilotProCareEndsAt?.toISOString() ?? null,
+        pilotFullAccess: authReq.authUser.pilotFullAccess,
+        pilotProgramName: authReq.authUser.pilotProgramName,
+        pilotFullAccessEndsAt: authReq.authUser.pilotFullAccessEndsAt?.toISOString() ?? null,
+        monetizationEligible: (() => {
+          if (process.env.BILLING_ENFORCED !== "true") return true;
+          if (authReq.authUser.accessTier !== "PAID_FULL") return false;
+          if (!user.planLookupKey) return true;
+          const t = getTierForLookupKey(user.planLookupKey);
+          return t === "premium" || t === "ultimate";
+        })(),
         planLookupKey: user.planLookupKey,
-        trialStartedAt: user.trialStartedAt,
-        trialEndsAt: user.trialEndsAt,
         selectedMealBuilder: user.selectedMealBuilder,
         isTester: user.isTester || false,
+        isSandbox: user.isSandbox || false,
         accessTier: authReq.authUser.accessTier,
-        trialDaysRemaining: authReq.authUser.trialDaysRemaining,
-        hasHadTrial: authReq.authUser.hasHadTrial,
         profilePhotoUrl: user.profilePhotoUrl || null,
         role: user.role || "client",
         isProCare: user.isProCare || false,
+        procareTrainingCompleted: user.procareTrainingCompleted || false,
+        phase2GateEnabled: process.env.PHASE2_GATE_ENABLED === "true",
         activeBoard: user.activeBoard || null,
+        builderSwitchUnlimited: user.builderSwitchUnlimited || false,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() || null,
         age: user.age || null,
         height: user.height || null,
@@ -1962,13 +3810,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dietaryRestrictions: user.dietaryRestrictions || [],
         healthConditions: user.healthConditions || [],
         dislikedFoods: user.dislikedFoods || [],
+        avoidedFoods: user.avoidedFoods || [],
         likedFoods: user.likedFoods || [],
         studioMembership: studioMembershipData,
         medicalConditions: user.medicalConditions || [],
         preferredBuilder: user.preferredBuilder || null,
         flavorPreference: user.flavorPreference || null,
+        heatPreference: user.heatPreference || null,
+        sweetenerPreferences: user.sweetenerPreferences || [],
+        palateSpiceTolerance: user.palateSpiceTolerance || null,
+        palateSeasoningIntensity: user.palateSeasoningIntensity || null,
+        palateFlavorStyle: user.palateFlavorStyle || null,
         hasAllergyPin: !!user.safetyPinHash,
         fontSizePreference: user.fontSizePreference || "standard",
+        defaultStarchMealsPerDay: user.defaultStarchMealsPerDay ?? null,
+        starchDistributionStrategy: user.starchDistributionStrategy ?? null,
+        clinicalContextResponse: user.clinicalContextResponse ?? null,
+        clinicalContextCategories: (user.clinicalContextCategories as string[]) ?? [],
         dailyCalorieTarget: user.dailyCalorieTarget ?? null,
         dailyProteinTarget: user.dailyProteinTarget ?? null,
         dailyCarbsTarget: user.dailyCarbsTarget ?? null,
@@ -1979,6 +3837,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goalStartDate: user.goalStartDate?.toISOString() ?? null,
         availabilityStatus: (user as any).availabilityStatus ?? null,
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
+        oncologySupportIntent: user.oncologySupportIntent ?? null,
+        specialtyCondition: user.specialtyCondition ?? null,
+        specialtyConditions: ((user as any).specialtyConditions as string[]) ?? [],
+        thyroidType: (user as any).thyroidType ?? null,
+        thyroidMedication: user.thyroidMedication ?? null,
+        oncologySupportContext: user.oncologySupportContext ?? null,
+        labDrivenConditions,
+        physicianLocked,
+        activeSystem: user.activeSystem || null,
+        isCreator,
+        creatorDisplayName,
+        cuisinePreference: user.cuisinePreference || null,
+        cuisineIntensity: user.cuisineIntensity || null,
+        isAdmin: user.isAdmin || false,
+        measurementSystem: (user as any).measurementSystem || "imperial",
+        countryCode: (user as any).countryCode || "US",
+        preferredLanguage: (user as any).preferredLanguage || "auto",
+        pregnancyStage: (user as any).pregnancyStage ?? null,
+        pregnancyDueDate: (user as any).pregnancyDueDate ?? null,
+        pregnancySupportContext: (user as any).pregnancySupportContext ?? null,
+        performanceContext: (user as any).performanceContext ?? null,
+        competitionPrepContext: (user as any).competitionPrepContext ?? null,
+        activeProtocolTrack: (user as any).activeProtocolTrack ?? null,
+        weeklyTrainingSchedule: (user as any).weeklyTrainingSchedule ?? null,
+        performanceProtocolConfig: (user as any).performanceProtocolConfig ?? null,
+        performanceModeEnabled: (user as any).performanceModeEnabled ?? false,
+        alphaGalProfile: (user as any).alphaGalProfile ?? null,
+        trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+        trialStartedAt: (user as any).trialStartedAt?.toISOString?.() ?? (user as any).trialStartedAt ?? null,
+        trialSource: (user as any).trialSource ?? null,
+        trialAccessType: (user as any).trialAccessType ?? null,
+        isTrialActive: !!(user.trialEndsAt && !user.planLookupKey && user.trialEndsAt > new Date()),
+        daysRemaining: (() => {
+          if (!user.trialEndsAt || user.planLookupKey) return 0;
+          const ms = user.trialEndsAt.getTime() - Date.now();
+          return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+        })(),
+        trialTier: (user.trialEndsAt && !user.planLookupKey && user.trialEndsAt > new Date())
+          ? TRIAL_UNLOCKS_TIER : null,
+        // Business sponsorship — from middleware (not cached), always fresh
+        sponsoredByBusinessId,
+        sponsoredByBusinessName: authReq.authUser.sponsoredByBusinessName ?? null,
+        activeClientAccess,
+        recentlyRemovedFromBusiness,
       });
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
@@ -1986,19 +3888,321 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PATCH /api/user/preferences — saves measurement system and country code preferences
+  app.patch("/api/user/preferences", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const ALLOWED_SYSTEMS = ["imperial", "metric"];
+      const ALLOWED_COUNTRIES = ["US", "CA", "AU", "UK", "NZ"];
+
+      const { measurementSystem, countryCode, preferredLanguage } = req.body;
+
+      const updates: Record<string, any> = {};
+      if (measurementSystem !== undefined) {
+        if (!ALLOWED_SYSTEMS.includes(measurementSystem)) {
+          return res.status(400).json({ error: "Invalid measurementSystem. Must be 'imperial' or 'metric'." });
+        }
+        updates.measurementSystem = measurementSystem;
+      }
+      if (countryCode !== undefined) {
+        if (!ALLOWED_COUNTRIES.includes(countryCode)) {
+          return res.status(400).json({ error: "Invalid countryCode. Must be US, CA, AU, UK, or NZ." });
+        }
+        updates.countryCode = countryCode;
+      }
+      if (preferredLanguage !== undefined) {
+        const ALLOWED_LANGS = ["auto","en","es","fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"];
+        if (!ALLOWED_LANGS.includes(preferredLanguage)) {
+          return res.status(400).json({ error: "Invalid preferredLanguage." });
+        }
+        updates.preferredLanguage = preferredLanguage;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update." });
+      }
+
+      await db.update(users).set(updates).where(eq(users.id, userId));
+      console.log(`[Preferences] User ${userId} updated: ${JSON.stringify(updates)}`);
+      res.json({ success: true, ...updates });
+    } catch (error: any) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ error: "Failed to update preferences" });
+    }
+  });
+
+  // PATCH /api/user/specialty-condition
+  // Saves the user's self-selected specialty health protocol(s).
+  // Accepts: { condition: string } (single, backward-compat) OR { conditions: string[] } (multi)
+  // Allowed values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support' | 'hormone-optimization'
+  //
+  // THREE-TIER HIERARCHY ENFORCEMENT:
+  //   Tier 1 — Physician lock:  reject if active studio membership with assigned builder
+  //   Tier 2 — Lab value lock:  reject if the change would REMOVE a lab-driven condition
+  //   Tier 3 — Self-select:     allowed only when Tiers 1 and 2 are not in play
+  app.patch("/api/user/specialty-condition", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization", "hashimotos", "hypothyroid", "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery"];
+      const { condition, conditions } = req.body;
+
+      // ── Tier 1: Physician lock ────────────────────────────────────────────
+      const physicianLocked = await getPhysicianLockStatus(userId);
+      if (physicianLocked) {
+        return res.status(403).json({
+          error: "physician_locked",
+          message: "Your protocol is controlled by your physician and cannot be changed here.",
+        });
+      }
+
+      // ── Tier 2: Lab-value lock — preserve lab-driven conditions ─────────────
+      // Conditions triggered by objective lab values cannot be silently removed
+      // via profile edit. We fetch the current lab-driven set and merge it into
+      // whatever the user submits, so lab-driven conditions always survive.
+      const labDriven = await getLabDrivenConditions(userId);
+
+      // ── Tier 3: Self-select — apply the change ────────────────────────────
+      // Multi-condition path: conditions[]
+      if (conditions !== undefined) {
+        if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });
+        const invalid = conditions.find((c: any) => !ALLOWED.includes(c));
+        if (invalid) return res.status(400).json({ error: `Invalid condition: ${invalid}` });
+        // Merge: preserve any lab-driven conditions even if user omitted them
+        const merged = Array.from(new Set([...conditions, ...labDriven]));
+        const primaryCondition = merged.length > 0 ? merged[0] : null;
+        await db.update(users).set({
+          specialtyCondition: primaryCondition,
+          specialtyConditions: merged,
+        } as any).where(eq(users.id, userId));
+        console.log(`[specialty-condition] User ${userId} multi-set → ${merged.length} conditions (${labDriven.length} lab-protected)`);
+        return res.json({ ok: true, specialtyConditions: merged, specialtyCondition: primaryCondition });
+      }
+
+      // Single-condition path: backward compat
+      if (condition !== null && condition !== undefined && !ALLOWED.includes(condition)) {
+        return res.status(400).json({ error: "Invalid specialty condition value" });
+      }
+      // Merge single-condition with lab-driven set
+      const baseArray = condition ? [condition] : [];
+      const newArray = Array.from(new Set([...baseArray, ...labDriven]));
+      await db.update(users).set({
+        specialtyCondition: condition ?? null,
+        specialtyConditions: newArray,
+      } as any).where(eq(users.id, userId));
+      console.log(`[specialty-condition] User ${userId} updated`);
+      res.json({ ok: true, specialtyCondition: condition ?? null, specialtyConditions: newArray });
+    } catch (error: any) {
+      console.error("[specialty-condition PATCH]", error);
+      res.status(500).json({ error: "Failed to save specialty condition" });
+    }
+  });
+
+  // PUT /api/pro/thyroid-type/:userId
+  // ProCare: physician assigns or clears the thyroid subtype for a client.
+  // Narrows the Thyroid Support protocol to subtype-specific guidance at generation time.
+  app.put("/api/pro/thyroid-type/:userId", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const physicianId = authReq.authUser.id;
+      const clientUserId = req.params.userId;
+      const ALLOWED_TYPES = ["hypothyroid", "hyperthyroid", "hashimotos"];
+      const { thyroidType } = req.body;
+      const value = thyroidType === null || thyroidType === undefined
+        ? null
+        : ALLOWED_TYPES.includes(thyroidType) ? thyroidType : null;
+
+      const [membership] = await db
+        .select()
+        .from(studioMemberships)
+        .where(eq(studioMemberships.clientUserId, clientUserId as any))
+        .limit(1);
+      if (!membership) {
+        return res.status(403).json({ error: "No active studio relationship for this client" });
+      }
+
+      await db.update(users).set({ thyroidType: value } as any).where(eq(users.id, clientUserId as any));
+      console.log(`[pro/thyroid-type] Physician ${physicianId} set thyroidType → ${value ?? "cleared"} for user ${clientUserId}`);
+      res.json({ ok: true, thyroidType: value });
+    } catch (error: any) {
+      console.error("[pro/thyroid-type PUT]", error);
+      res.status(500).json({ error: "Failed to update thyroid type" });
+    }
+  });
+
+  // PUT /api/pro/hormone-optimization/:userId
+  // ProCare: physician assigns or removes Hormone Optimization for a client.
+  // Adds or removes "hormone-optimization" from the client's specialtyConditions.
+  app.put("/api/pro/hormone-optimization/:userId", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const physicianId = authReq.authUser.id;
+      const clientUserId = req.params.userId;
+      const { active } = req.body;
+
+      // Verify active studio membership — requester must be a professional linked to this client
+      const [membership] = await db
+        .select()
+        .from(studioMemberships)
+        .where(eq(studioMemberships.clientUserId, clientUserId as any))
+        .limit(1);
+
+      if (!membership) {
+        return res.status(403).json({ error: "No active studio relationship for this client" });
+      }
+
+      const [clientRow] = await db
+        .select({ specialtyConditions: users.specialtyConditions })
+        .from(users)
+        .where(eq(users.id, clientUserId as any))
+        .limit(1);
+
+      const current = (clientRow?.specialtyConditions as string[]) ?? [];
+      const next = active
+        ? current.includes("hormone-optimization") ? current : [...current, "hormone-optimization"]
+        : current.filter((c) => c !== "hormone-optimization");
+
+      await db
+        .update(users)
+        .set({ specialtyConditions: next, updatedAt: new Date() } as any)
+        .where(eq(users.id, clientUserId as any));
+
+      console.log(`[pro/hormone-optimization] Physician ${physicianId} ${active ? "assigned" : "removed"} hormone-optimization for user ${clientUserId}`);
+      res.json({ ok: true, active: !!active, specialtyConditions: next });
+    } catch (error: any) {
+      console.error("[pro/hormone-optimization PUT]", error);
+      res.status(500).json({ error: "Failed to update hormone optimization directive" });
+    }
+  });
+
+  // PATCH /api/user/thyroid-type
+  // Saves the user's thyroid condition subtype ('hypothyroid' | 'hyperthyroid' | 'hashimotos' | null).
+  // Narrows the Thyroid Support protocol to subtype-specific guidance blocks at generation time.
+  app.patch("/api/user/thyroid-type", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const ALLOWED_TYPES = ["hypothyroid", "hyperthyroid", "hashimotos"];
+      const { thyroidType } = req.body;
+      const value = thyroidType === null || thyroidType === undefined
+        ? null
+        : ALLOWED_TYPES.includes(thyroidType) ? thyroidType : null;
+      await db.update(users).set({ thyroidType: value } as any).where(eq(users.id, userId));
+      console.log(`[thyroid-type] User ${userId} set → ${value ?? "cleared"}`);
+      res.json({ ok: true, thyroidType: value });
+    } catch (error: any) {
+      console.error("[thyroid-type PATCH]", error);
+      res.status(500).json({ error: "Failed to save thyroid type" });
+    }
+  });
+
+  // PATCH /api/user/thyroid-medication
+  // Saves the name/dosage of the user's thyroid medication (e.g. "Levothyroxine 50mcg").
+  // Free-text field; no normalization — stored verbatim for physician review.
+  app.patch("/api/user/thyroid-medication", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { medication } = req.body;
+      const value = typeof medication === "string" ? medication.trim() || null : null;
+      await db.update(users).set({ thyroidMedication: value } as any).where(eq(users.id, userId));
+      console.log(`[thyroid-medication] User ${userId} set → ${value ?? "cleared"}`);
+      res.json({ ok: true, thyroidMedication: value });
+    } catch (error: any) {
+      console.error("[thyroid-medication PATCH]", error);
+      res.status(500).json({ error: "Failed to save thyroid medication" });
+    }
+  });
+
+  // PATCH /api/user/alpha-gal-profile
+  // Persists the user's Alpha-gal Syndrome clinical sub-profile (dairyTolerance,
+  // gelatinRestriction, severeReactionHistory, diagnosisStatus) to the alphaGalProfile JSONB column.
+  // Does NOT touch healthConditions — activation/deactivation is controlled via specialtyConditions.
+  // Profile data is preserved even when the condition is deactivated so the user doesn't lose
+  // their clinical answers if they accidentally uncheck Alpha-gal.
+  app.patch("/api/user/alpha-gal-profile", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { profile } = req.body;
+
+      if (!profile || typeof profile !== "object") {
+        return res.status(400).json({ error: "profile object is required" });
+      }
+
+      const VALID_DIAGNOSIS = ["diagnosed", "being_evaluated", "no"];
+      const VALID_TOLERANCE = ["yes", "no", "unsure"];
+
+      const validProfile = {
+        diagnosisStatus: VALID_DIAGNOSIS.includes(profile.diagnosisStatus) ? profile.diagnosisStatus : "no",
+        dairyTolerance: VALID_TOLERANCE.includes(profile.dairyTolerance) ? profile.dairyTolerance : "unsure",
+        gelatinRestriction: VALID_TOLERANCE.includes(profile.gelatinRestriction) ? profile.gelatinRestriction : "unsure",
+        severeReactionHistory: VALID_TOLERANCE.includes(profile.severeReactionHistory) ? profile.severeReactionHistory : "unsure",
+        profileComplete: true,
+        activatedAt: typeof profile.activatedAt === "string" ? profile.activatedAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await db.update(users)
+        .set({ alphaGalProfile: validProfile } as any)
+        .where(eq(users.id, userId));
+
+      console.log(`[alpha-gal-profile] User ${userId} profile saved (diagnosis=${validProfile.diagnosisStatus})`);
+      res.json({ ok: true, alphaGalProfile: validProfile });
+    } catch (error: any) {
+      console.error("[alpha-gal-profile PATCH]", error);
+      res.status(500).json({ error: "Failed to save Alpha-gal profile" });
+    }
+  });
+
+  // DELETE /api/user/physician-protocol/oncology
+  // Protocol Ownership Model: allows a user to clear a physician-set oncology context
+  // ONLY when they are no longer connected to a ProCare physician (isProCare = false).
+  // While connected, the physician retains authority → 403.
+  app.delete("/api/user/physician-protocol/oncology", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+
+      const [user] = await db.select({ isProCare: users.isProCare }).from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      if (user.isProCare) {
+        return res.status(403).json({
+          error: "Protocol is managed by your care team. Disconnect from your physician before making changes.",
+          code: "PHYSICIAN_LOCKED",
+        });
+      }
+
+      await db.update(users).set({ oncologySupportContext: null } as any).where(eq(users.id, userId));
+      console.log(`[physician-protocol/oncology DELETE] User ${userId} cleared their physician-set oncology context.`);
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error("[physician-protocol/oncology DELETE]", error);
+      res.status(500).json({ error: "Failed to clear oncology protocol" });
+    }
+  });
+
   // User profile update endpoint - saves onboarding/profile data
   // CRITICAL: This is the single source of truth for allergies, dietary restrictions, etc.
   app.put("/api/users/profile", requireAuth, async (req: any, res) => {
+    const _startMs = Date.now();
+    const _step = req.body?.fromOnboarding ? (req.body?._step || "unknown_onboarding_step") : "settings";
     try {
       const validation = validateProfilePayload(req.body);
       if (!validation.valid) {
+        console.warn(`[profile] 400 validation_failed — step: ${_step}, missing: ${validation.missing?.join(", ")}`);
         return res.status(400).json({
           error: `Profile payload missing required fields: ${validation.missing?.join(", ")}`,
+          code: "VALIDATION_FAILED",
+          step: _step,
         });
       }
 
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
+      console.log(`[profile] PUT start — userId: ${userId}, step: ${_step}, fields: ${Object.keys(req.body).filter(k => k !== 'fromOnboarding' && k !== '_step').join(", ")}`);
       
       const {
         firstName,
@@ -2008,6 +4212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         age,
         height,
         weight,
+        weightUnit,
         activityLevel,
         fitnessGoal,
         dietaryRestrictions,
@@ -2018,11 +4223,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         medicalConditions,
         preferredBuilder,
         flavorPreference,
+        heatPreference,
         sweetenerPreferences,
+        avoidedFoods,
+        palateSpiceTolerance,
+        palateSeasoningIntensity,
+        palateFlavorStyle,
         goalType,
         goalTarget,
         goalTimelineWeeks,
         goalStartDate,
+        cuisinePreference,
+        cuisineIntensity,
+        performanceOverlay,
+        performanceControlMode,
+        timezone,
+        timezoneChangeConfirmed,
       } = req.body;
       
       // Build update object with only provided fields
@@ -2040,18 +4256,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (age !== undefined) updateData.age = age;
       if (height !== undefined) updateData.height = height;
-      if (weight !== undefined) updateData.weight = weight;
+      if (weight !== undefined) {
+        // users.weight is ALWAYS stored in kg.
+        // parseWeightToKg() requires an explicit weightUnit — no silent unit
+        // assumptions that could corrupt the column with a raw lbs value.
+        const { parseWeightToKg } = await import("./lib/weightUnit");
+        const parsed = parseWeightToKg(weight, weightUnit);
+        if (!parsed.ok) {
+          const { status, error, code } = parsed as { ok: false; status: number; error: string; code: string };
+          return res.status(status).json({ error, code });
+        }
+        updateData.weight = parsed.weightKg;
+      }
       if (activityLevel !== undefined) updateData.activityLevel = activityLevel;
       if (fitnessGoal !== undefined) updateData.fitnessGoal = fitnessGoal;
       if (dietaryRestrictions !== undefined) updateData.dietaryRestrictions = dietaryRestrictions;
       if (medicalConditions !== undefined) updateData.medicalConditions = medicalConditions;
       if (preferredBuilder !== undefined) updateData.preferredBuilder = preferredBuilder;
       if (flavorPreference !== undefined) updateData.flavorPreference = flavorPreference;
-      if (sweetenerPreferences !== undefined) updateData.sweetenerPreferences = sweetenerPreferences;
+      if (heatPreference !== undefined) updateData.heatPreference = heatPreference;
+      if (sweetenerPreferences !== undefined) {
+        // Normalize legacy vocabulary (old onboarding stored "sugar"/"avoid"/"monk-fruit")
+        const normalizeSweetener = (v: string): string => {
+          if (v === "sugar") return "regular_sugar";
+          if (v === "avoid") return "avoid_sweeteners";
+          if (v === "monk-fruit") return "monk_fruit";
+          return v;
+        };
+        const normalizedPrefs = (sweetenerPreferences as string[]).map(normalizeSweetener);
+        updateData.sweetenerPreferences = normalizedPrefs;
+        // Bridge to AI-facing columns so every generator sees the user's choices
+        if (normalizedPrefs.includes("avoid_sweeteners")) {
+          updateData.preferredSweeteners = [];
+          updateData.avoidSweeteners = ["all sweeteners"];
+        } else if (normalizedPrefs.length > 0) {
+          updateData.preferredSweeteners = normalizedPrefs;
+          updateData.avoidSweeteners = normalizedPrefs.includes("regular_sugar")
+            ? []
+            : ["white sugar", "brown sugar", "cane sugar", "raw sugar", "granulated sugar",
+               "demerara sugar", "turbinado sugar", "coconut sugar", "powdered sugar",
+               "agave", "agave nectar", "maple syrup", "corn syrup", "molasses"];
+        } else {
+          updateData.preferredSweeteners = [];
+          updateData.avoidSweeteners = [];
+        }
+      }
+      if (avoidedFoods !== undefined) updateData.avoidedFoods = avoidedFoods;
+      if (palateSpiceTolerance !== undefined) updateData.palateSpiceTolerance = palateSpiceTolerance;
+      if (palateSeasoningIntensity !== undefined) updateData.palateSeasoningIntensity = palateSeasoningIntensity;
+      if (palateFlavorStyle !== undefined) updateData.palateFlavorStyle = palateFlavorStyle;
       if (goalType !== undefined) updateData.goalType = goalType;
       if (goalTarget !== undefined) updateData.goalTarget = goalTarget;
       if (goalTimelineWeeks !== undefined) updateData.goalTimelineWeeks = goalTimelineWeeks;
       if (goalStartDate !== undefined) updateData.goalStartDate = goalStartDate ? new Date(goalStartDate) : null;
+      if (cuisinePreference !== undefined) updateData.cuisinePreference = cuisinePreference;
+      if (cuisineIntensity !== undefined) updateData.cuisineIntensity = cuisineIntensity;
+      if (performanceOverlay !== undefined) updateData.performanceOverlay = performanceOverlay;
+      if (performanceControlMode !== undefined) updateData.performanceControlMode = performanceControlMode;
+      if (timezone !== undefined) {
+        if (!isValidIanaTimezone(timezone)) {
+          return res.status(400).json({
+            error: "Invalid IANA timezone",
+            code: "INVALID_TIMEZONE",
+          });
+        }
+        if (timezoneChangeConfirmed !== true) {
+          return res.status(400).json({
+            error: "Timezone changes require explicit confirmation",
+            code: "TIMEZONE_CONFIRMATION_REQUIRED",
+          });
+        }
+        updateData.timezone = timezone;
+        updateData.timezoneUpdatedAt = new Date();
+      }
       
       if (allergies !== undefined) {
         const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
@@ -2099,16 +4376,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // Drizzle's .set() silently drops columns whose TS type is narrower than the
+      // runtime updateData object. Write preferred_sweeteners + avoid_sweeteners
+      // via raw SQL so the AI-facing columns are always populated from the bridge.
+      // IMPORTANT: pass as a PostgreSQL array literal string (e.g. "{equal,splenda}")
+      // not a JS array — Drizzle sql`` expands arrays into individual bind params
+      // which breaks the ::text[] cast syntax.
+      if (updateData.preferredSweeteners !== undefined) {
+        const preferredArr = updateData.preferredSweeteners as string[];
+        const avoidArr = (updateData.avoidSweeteners ?? []) as string[];
+        const toPgLiteral = (arr: string[]) =>
+          `{${arr.map(v => `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`).join(',')}}`;
+        const preferredLiteral = toPgLiteral(preferredArr);
+        const avoidLiteral = toPgLiteral(avoidArr);
+        await db.execute(
+          sql`UPDATE users SET preferred_sweeteners = ${preferredLiteral}::text[], avoid_sweeteners = ${avoidLiteral}::text[] WHERE id = ${userId}`
+        );
+        console.log(`🍯 [sweetener-bridge] wrote preferred=${preferredLiteral} avoid=${avoidLiteral}`);
+      }
       
-      console.log(`✅ Profile updated for user ${userId}:`, Object.keys(updateData).join(", "));
-      
+      console.log(`✅ [profile] PUT success — userId: ${userId}, step: ${_step}, fields: ${Object.keys(updateData).join(", ")}, durationMs: ${Date.now() - _startMs}`);
+
+      // Invalidate the cached profile so the very next GET sees fresh data.
+      try {
+        const { invalidatePrefix: invPfx } = await import("./services/queryCache");
+        invPfx(`profile:${userId}`);
+      } catch (_) {}
+
       res.json({
         success: true,
         message: "Profile updated successfully",
       });
     } catch (error: any) {
-      console.error("Error updating user profile:", error);
-      res.status(500).json({ error: "Failed to update user profile" });
+      console.error(`[profile] PUT error — step: ${_step}, durationMs: ${Date.now() - _startMs}, error: ${error?.message || error}`);
+      res.status(500).json({ error: "Failed to update user profile", code: "SERVER_ERROR" });
     }
   });
 
@@ -2152,41 +4454,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // If trial already started, only update the builder selection (not trial dates)
-      if (existingUser.trialStartedAt) {
-        const [user] = await db.update(users)
-          .set({ selectedMealBuilder, activeBoard: selectedMealBuilder })
-          .where(eq(users.id, userId))
-          .returning();
-        
-        return res.json({
-          success: true,
-          selectedMealBuilder: user.selectedMealBuilder,
-          trialStartedAt: user.trialStartedAt?.toISOString(),
-          trialEndsAt: user.trialEndsAt?.toISOString(),
-          message: "Builder updated (trial already active)"
-        });
-      }
-      
-      // New trial: set trial dates and builder
-      const now = new Date();
-      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-      
+      // Update the selected meal builder — no trial granted
       const [user] = await db.update(users)
-        .set({
-          selectedMealBuilder,
-          activeBoard: selectedMealBuilder,
-          trialStartedAt: now,
-          trialEndsAt: trialEndsAt,
-        })
+        .set({ selectedMealBuilder, activeBoard: selectedMealBuilder })
         .where(eq(users.id, userId))
         .returning();
-      
+
       res.json({
         success: true,
         selectedMealBuilder: user.selectedMealBuilder,
-        trialStartedAt: user.trialStartedAt?.toISOString(),
-        trialEndsAt: user.trialEndsAt?.toISOString(),
       });
     } catch (error: any) {
       console.error("Error selecting meal builder:", error);
@@ -2204,6 +4480,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error getting builder switch status:", error);
       res.status(500).json({ error: "Failed to get builder switch status" });
+    }
+  });
+
+  // Oncology Support Intent — captured during onboarding or settings
+  // User-facing only: does NOT activate any clinical protocol.
+  // Stores intent + timestamp for future professional follow-up surfacing.
+  app.patch("/api/user/oncology-support-intent", requireAuth, async (req: any, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.authUser.id;
+      const { intent } = req.body as { intent: "own_provider" | "request_support" | "self_directed" | null };
+      const validIntents = ["own_provider", "request_support", "self_directed", null];
+      if (!validIntents.includes(intent)) {
+        return res.status(400).json({ error: "Invalid intent value" });
+      }
+      await db.update(users).set({
+        oncologySupportIntent: intent ?? null,
+        oncologySupportIntentSetAt: intent ? new Date() : null,
+        needsProfessionalFollowup: intent === "request_support",
+      } as any).where(eq(users.id, userId));
+      console.log(`[oncology-support-intent] User ${userId} updated`);
+      res.json({ ok: true, intent });
+    } catch (error: any) {
+      console.error("[oncology-support-intent PATCH]", error);
+      res.status(500).json({ error: "Failed to save intent" });
     }
   });
 
@@ -2276,10 +4577,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!clientId || !builder) {
         return res.status(400).json({ error: "clientId and builder are required" });
       }
-      
-      const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body", "general_nutrition", "performance_competition"];
-      if (!validBuilders.includes(builder)) {
-        return res.status(400).json({ error: `Invalid builder. Must be one of: ${validBuilders.join(", ")}` });
+
+      if (!isValidBuilder(builder)) {
+        return res.status(400).json({ error: `Invalid builder. Must be one of: ${VALID_BUILDERS.join(", ")}` });
       }
       
       const [trainer] = await db.select({ role: users.role, professionalRole: users.professionalRole }).from(users).where(eq(users.id, trainerId)).limit(1);
@@ -2288,245 +4588,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!trainer || (!isCoachOrAdmin && !isTrainerPro)) {
         return res.status(403).json({ error: "Only coaches and admins can assign pro builders" });
       }
-      
-      // Update the client's activeBoard
-      const [updatedClient] = await db.update(users)
-        .set({ activeBoard: builder })
-        .where(eq(users.id, clientId))
-        .returning({ id: users.id, activeBoard: users.activeBoard });
-      
-      if (!updatedClient) {
-        return res.status(404).json({ error: "Client not found" });
-      }
-      
+
+      const result = await assignBuilder(trainerId, clientId, builder);
+
       console.log(`[Pro Builder] Trainer ${trainerId} assigned ${builder} to client ${clientId}`);
       
       res.json({
         success: true,
-        clientId: updatedClient.id,
-        assignedBuilder: updatedClient.activeBoard,
+        clientId: result.clientId,
+        assignedBuilder: result.activeBoard,
       });
     } catch (error: any) {
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ error: "Client not found" });
+      }
       console.error("Error assigning pro builder:", error);
       res.status(500).json({ error: "Failed to assign pro builder" });
     }
   });
 
-  // ===== MPM SafetyGuard PIN System =====
-  
-  // Check if user has set a Safety PIN
-  app.get("/api/safety-pin/status", requireAuth, async (req: any, res) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.authUser.id;
-      const hasPin = await hasUserSetPin(userId);
-      res.json({ hasPin });
-    } catch (error: any) {
-      console.error("Error checking Safety PIN status:", error);
-      res.status(500).json({ error: "Failed to check PIN status" });
-    }
-  });
-
-  // Set Safety PIN (first time or if not set)
-  app.post("/api/safety-pin/set", requireAuth, async (req: any, res) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.authUser.id;
-      const { pin } = req.body;
-      
-      if (!pin) {
-        return res.status(400).json({ error: "PIN is required" });
-      }
-      
-      // Check if PIN already exists
-      const hasPin = await hasUserSetPin(userId);
-      if (hasPin) {
-        return res.status(400).json({ error: "PIN already set. Use change endpoint." });
-      }
-      
-      const result = await setUserPin(userId, pin);
-      if (!result.success) {
-        return res.status(400).json({ error: result.error });
-      }
-      
-      res.json({ success: true, message: "Safety PIN set successfully" });
-    } catch (error: any) {
-      console.error("Error setting Safety PIN:", error);
-      res.status(500).json({ error: "Failed to set Safety PIN" });
-    }
-  });
-
-  // Change Safety PIN (requires current PIN)
-  app.post("/api/safety-pin/change", requireAuth, async (req: any, res) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.authUser.id;
-      const { currentPin, newPin } = req.body;
-      
-      if (!currentPin || !newPin) {
-        return res.status(400).json({ error: "Current PIN and new PIN are required" });
-      }
-      
-      const result = await changeUserPin(userId, currentPin, newPin);
-      if (!result.success) {
-        return res.status(400).json({ error: result.error });
-      }
-      
-      res.json({ success: true, message: "Safety PIN changed successfully" });
-    } catch (error: any) {
-      console.error("Error changing Safety PIN:", error);
-      res.status(500).json({ error: "Failed to change Safety PIN" });
-    }
-  });
-
-  // Remove Safety PIN (requires current PIN)
-  app.post("/api/safety-pin/remove", requireAuth, async (req: any, res) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.authUser.id;
-      const { pin } = req.body;
-      
-      if (!pin) {
-        return res.status(400).json({ error: "Current PIN is required" });
-      }
-      
-      const result = await removeUserPin(userId, pin);
-      if (!result.success) {
-        return res.status(400).json({ error: result.error });
-      }
-      
-      res.json({ success: true, message: "Safety PIN removed successfully" });
-    } catch (error: any) {
-      console.error("Error removing Safety PIN:", error);
-      res.status(500).json({ error: "Failed to remove Safety PIN" });
-    }
-  });
-
-  // Verify PIN and issue one-time override token
-  app.post("/api/safety-pin/verify-override", requireAuth, async (req: any, res) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.authUser.id;
-      const { pin, allergen, mealRequest } = req.body;
-      
-      if (!pin) {
-        return res.status(400).json({ error: "PIN is required" });
-      }
-      if (!allergen || !mealRequest) {
-        return res.status(400).json({ error: "Allergen and meal request context required" });
-      }
-      
-      const result = await verifyPinAndIssueOverrideToken(userId, pin, allergen, mealRequest);
-      if (!result.success) {
-        return res.status(401).json({ error: result.error });
-      }
-      
-      res.json({ 
-        success: true, 
-        overrideToken: result.overrideToken,
-        message: "Override authorized for this meal only"
-      });
-    } catch (error: any) {
-      console.error("Error verifying Safety PIN:", error);
-      res.status(500).json({ error: "Failed to verify PIN" });
-    }
-  });
-
-  // Verify PIN for allergy editing - issues a short-lived token
-  app.post("/api/safety/verify-pin", requireAuth, async (req: any, res) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.authUser.id;
-      const { pin } = req.body;
-      
-      if (!pin) {
-        return res.status(400).json({ error: "PIN is required" });
-      }
-      
-      const result = await createAllergyEditToken(userId, pin);
-      if (!result.success) {
-        return res.status(401).json({ error: result.error });
-      }
-      
-      res.json({ 
-        success: true, 
-        allergyEditToken: result.token,
-        message: "Allergy editing authorized for 10 minutes"
-      });
-    } catch (error: any) {
-      console.error("Error verifying Safety PIN for allergy edit:", error);
-      res.status(500).json({ error: "Failed to verify PIN" });
-    }
-  });
-
-  // 🛡️ SafetyGuard Preflight Check - Client calls BEFORE generation to get instant feedback
-  // This prevents "progress bar then failure" UX - shows banner immediately
-  // Supports both authenticated users (uses DB profile) and guests (uses request-provided allergies)
-  app.post("/api/safety-check", async (req: any, res) => {
-    try {
-      const { input, builderId = "preflight", guestAllergies } = req.body;
-      
-      if (!input || typeof input !== "string") {
-        return res.status(400).json({ error: "input text is required" });
-      }
-      
-      // Check if we have an authenticated user
-      const authUser = req.authUser;
-      
-      if (authUser?.id) {
-        // Authenticated user - use their profile from DB
-        const safetyCheck = await enforceSafetyProfile(authUser.id, input, builderId, {
-          safetyMode: "STRICT"
-        });
-        
-        return res.json({
-          result: safetyCheck.result,
-          blockedTerms: safetyCheck.blockedTerms,
-          blockedCategories: safetyCheck.blockedCategories,
-          ambiguousTerms: safetyCheck.ambiguousTerms,
-          message: safetyCheck.message,
-          suggestion: safetyCheck.suggestion
-        });
-      }
-      
-      // Guest user - use provided allergies from request
-      if (guestAllergies && Array.isArray(guestAllergies) && guestAllergies.length > 0) {
-        const { enforceSafetyProfileSync } = await import("./services/safetyProfileService");
-        
-        const guestProfile = {
-          userId: "guest",
-          allergies: guestAllergies,
-          dietaryRestrictions: [],
-          healthConditions: [],
-          avoidIngredients: []
-        };
-        
-        const safetyCheck = enforceSafetyProfileSync(guestProfile, input);
-        
-        return res.json({
-          result: safetyCheck.result,
-          blockedTerms: safetyCheck.blockedTerms,
-          blockedCategories: safetyCheck.blockedCategories,
-          ambiguousTerms: safetyCheck.ambiguousTerms,
-          message: safetyCheck.message,
-          suggestion: safetyCheck.suggestion
-        });
-      }
-      
-      // No auth and no guest allergies - allow but warn
-      console.log("[SafetyCheck] Guest request with no allergies - allowing");
-      return res.json({
-        result: "SAFE",
-        blockedTerms: [],
-        blockedCategories: [],
-        ambiguousTerms: [],
-        message: "No safety profile configured"
-      });
-    } catch (error: any) {
-      console.error("Error in safety preflight check:", error);
-      res.status(500).json({ error: "Failed to perform safety check" });
-    }
-  });
+  // ===== MPM SafetyGuard PIN System + preflight check =====
+  // Extracted to server/routes/safetyRoutes.ts so prod.ts can mount the same router.
+  {
+    const { default: safetyRouter } = await import("./routes/safetyRoutes");
+    app.use("/api", safetyRouter);
+  }
 
   // Complete onboarding - marks user as having completed extended onboarding
   // V2: Validates safety profile (name, allergies, medical conditions, flavor, builder, PIN)
@@ -2541,6 +4627,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [existingUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!existingUser) {
         return res.status(404).json({ error: "User not found" });
+      }
+
+      // IDEMPOTENCY: if onboarding is already complete, return current state without re-stamping
+      if (existingUser.onboardingCompletedAt) {
+        return res.json({
+          success: true,
+          alreadyCompleted: true,
+          onboardingCompletedAt: existingUser.onboardingCompletedAt.toISOString(),
+          onboardingMode: existingUser.onboardingMode,
+          preferredBuilder: existingUser.preferredBuilder,
+        });
       }
       
       // SERVER-SIDE VALIDATION: firstName must exist
@@ -2588,34 +4685,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (onboardingMode as 'independent' | 'procare')
         : 'independent';
       
-      // Set onboarding complete + trial start (trial starts AFTER onboarding, not at account creation)
+      // Backward-compat trial stamp: new accounts already have trial dates from signup.
+      // This path fires only for existing accounts created before trial-at-signup was
+      // introduced, or for any account that somehow missed stamping at signup.
+      // Never overwrite an existing trial — a longer admin/clinic grant must be preserved.
+      // Never stamp a trial for ProCare, paid, or internal accounts.
       const now = new Date();
-      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      
-      const updateFields: any = {
-        onboardingCompletedAt: now,
-        onboardingMode: resolvedMode,
-        selectedMealBuilder: existingUser.preferredBuilder || existingUser.selectedMealBuilder,
-      };
-      
-      // Only set trial dates if trial hasn't started yet
-      if (!existingUser.trialStartedAt) {
-        updateFields.trialStartedAt = now;
-        updateFields.trialEndsAt = trialEndsAt;
+      const trialUpdates: Record<string, any> = {};
+      const canReceiveTrial = !existingUser.planLookupKey && !existingUser.isFounder && !existingUser.isTester;
+      if (canReceiveTrial && !existingUser.trialStartedAt) {
+        trialUpdates.trialStartedAt = now;
       }
-      
+      if (canReceiveTrial && !existingUser.trialEndsAt) {
+        trialUpdates.trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        trialUpdates.trialSource = 'standard_signup';
+      }
+
       const [user] = await db.update(users)
-        .set(updateFields)
+        .set({
+          onboardingCompletedAt: now,
+          onboardingMode: resolvedMode,
+          selectedMealBuilder: existingUser.preferredBuilder || existingUser.selectedMealBuilder,
+          ...trialUpdates,
+        })
         .where(eq(users.id, userId))
         .returning();
-      
+
       res.json({
         success: true,
         onboardingCompletedAt: user.onboardingCompletedAt?.toISOString(),
         onboardingMode: user.onboardingMode,
-        trialStartedAt: user.trialStartedAt?.toISOString(),
-        trialEndsAt: user.trialEndsAt?.toISOString(),
         preferredBuilder: user.preferredBuilder,
+        trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+        trialStartedAt: user.trialStartedAt?.toISOString() ?? null,
+        trialSource: user.trialSource ?? null,
       });
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
@@ -2839,7 +4942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Transform to expected format for frontend
-      const response = {
+      const response: Record<string, any> = {
         food_id: food.id,
         barcode: food.barcode,
         name: food.name,
@@ -2850,8 +4953,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
         source: food.source
       };
 
+      // ── Nutrition Decision Engine (NDE) check ─────────────────────────────
+      // Optionally enrich the barcode response with today's nutrition strategy
+      // so the scanner UI can flag conflicts without blocking the lookup.
+      // Works for any logged-in user without requiring the route to be auth-gated.
+      // barcodeUserId hoisted so the Phase 4A event emission below can reference it.
+      let barcodeUserId: string | null = null;
+      try {
+        // Mirror requireAuth's token/session extraction — non-blocking
+        const token = req.headers["x-auth-token"] as string | undefined;
+        const sessionUserId = (req as any).session?.userId as string | undefined;
+
+        if (token) {
+          const [tokenUser] = await db.select({ id: users.id }).from(users)
+            .where(eq(users.authToken, token)).limit(1);
+          if (tokenUser) barcodeUserId = String(tokenUser.id);
+        } else if (sessionUserId) {
+          barcodeUserId = String(sessionUserId);
+        }
+
+        if (barcodeUserId) {
+          const [u] = await db.select({
+            weeklyTrainingSchedule:    (users as any).weeklyTrainingSchedule,
+            performanceProtocolConfig: (users as any).performanceProtocolConfig,
+            dailyCalorieTarget:        users.dailyCalorieTarget,
+            dailyCarbsTarget:          users.dailyCarbsTarget,
+            dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
+            dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
+            dailyProteinTarget:        users.dailyProteinTarget,
+            dailyFatTarget:            users.dailyFatTarget,
+            timezone:                  (users as any).timezone,
+          } as any).from(users).where(eq(users.id, barcodeUserId)).limit(1);
+
+          const schedule = (u as any)?.weeklyTrainingSchedule;
+          const config   = (u as any)?.performanceProtocolConfig;
+
+          if (schedule && config) {
+            const baseCarbsG = (u as any)?.dailyCarbsTarget ?? 200;
+            const rawStarchy = (u as any)?.dailyStarchyCarbsTarget;
+            const rawFibrous = (u as any)?.dailyFibrousCarbsTarget;
+            const state = await resolveDailyNutritionState({
+              userId: barcodeUserId,
+              schedule,
+              config,
+              baseline: {
+                calories:      (u as any)?.dailyCalorieTarget ?? 2000,
+                proteinG:      (u as any)?.dailyProteinTarget ?? 150,
+                carbsG:        baseCarbsG,
+                fatG:          (u as any)?.dailyFatTarget ?? 65,
+                starchyCarbsG: rawStarchy != null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
+                fibrousCarbsG: rawFibrous != null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
+              },
+              timezone:          ((u as any)?.timezone as string | null) ?? "America/Chicago",
+              performanceActive: true,
+            });
+
+            if (state.scheduleConfigured) {
+              // Classify the product's starchy carb load
+              const carbsG   = food.nutrPerServing.carbs_g ?? 0;
+              const fiberG   = food.nutrPerServing.fiber_g ?? 0;
+              const netStarchyG = Math.max(0, carbsG - fiberG);
+              const isSignificantStarch = netStarchyG > 8;
+
+              const conflicts =
+                isSignificantStarch &&
+                (state.starchPolicy === "zero" || state.starchyBudgetExhausted);
+
+              response.ndeSummary = {
+                starchPolicy:          state.starchPolicy,
+                starchyBudgetExhausted: state.starchyBudgetExhausted,
+                scheduleConfigured:    true,
+                dayLabel:              (state as any).dayLabel ?? null,
+                productNetStarchyG:    netStarchyG,
+                conflicts,
+                ...(conflicts && {
+                  conflictNote: state.starchyBudgetExhausted
+                    ? `Today's starchy carb budget is exhausted. This product adds ~${Math.round(netStarchyG)}g of starchy carbs.`
+                    : `Today is a no-starch day. This product contains ~${Math.round(netStarchyG)}g of starchy carbs per serving.`,
+                  suggestions: [
+                    "Look for a protein-forward alternative",
+                    "Choose a fibrous vegetable-based option",
+                    "Log a smaller portion if the meal is already planned",
+                  ],
+                }),
+              };
+            }
+          }
+        }
+      } catch {
+        // NDE check is non-blocking — product data still returned on error
+      }
+
       console.log(`✅ Product found: ${food.name} from ${food.source}`);
       res.json(response);
+
+      // ── Phase 3B / 4A: emit product_scan_completed engagement event ──────────
+      // Fire-and-forget after response is sent — never blocks the lookup
+      if (barcodeUserId) {
+        const { emitActivityEvent } = await import("./services/coaching/activityEvents");
+        emitActivityEvent({
+          ownerUserId: barcodeUserId,
+          eventType: "product_scan_completed",
+          eventClass: "engagement",
+          sourceFeature: "smart_scan",
+          entityType: "product",
+          entityId: String(code),
+          metadata: { productName: food.name, brand: food.brand ?? null, found: true },
+        }).catch((err: Error) => console.error("[ActivityEvents] product_scan_completed:", err.message));
+      }
     } catch (error: any) {
       console.error(`❌ Barcode lookup error:`, error);
       res.status(500).json({ 
@@ -3047,7 +5256,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Meal Planning Feature Routes
-  // Craving Creator endpoints for WMC2 adapter
+  // ⚠️ LEGACY — /api/craving-creator/generate is a WMC2 adapter stub.
+  // Active client pages call /api/meals/craving-creator (line ~5015) instead.
+  // This path ignores dietOverride and always uses user?.dietaryRestrictions.
+  // Do NOT add new callers; route for eventual removal when WMC2 is retired.
   app.post("/api/craving-creator/generate", async (req, res) => {
     try {
       const { userId, courseStyle, craving, mealType, servings = 1, includeImage = false, variation = 0, safetyMode, overrideToken } = req.body;
@@ -3061,7 +5273,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId && inputText) {
         const safetyCheck = await enforceSafetyProfile(userId, inputText, "craving-creator-generate", {
           safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken
+          overrideToken: overrideToken,
+          correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
@@ -3097,6 +5310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ⚠️ LEGACY — same as /generate above. No active client caller.
   app.post("/api/craving-creator/regenerate", async (req, res) => {
     try {
       const { userId, courseStyle, includeImage = true } = req.body;
@@ -3118,7 +5332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 🔒🔒🔒 CRAVING CREATOR API LOCKDOWN - DO NOT MODIFY
   // Add the missing endpoint that the frontend expects
-  app.post("/api/generate-craving-meal", requireAuth, requireActiveAccess, requireMacroProfile, async (req, res) => {
+  app.post("/api/generate-craving-meal", requireAuth, requireProAccess, requireMacroProfile, async (req, res) => {
     try {
       const { craving, userId, medicalProfile, userCategories, generateImages, maxMeals } = req.body;
 
@@ -3126,7 +5340,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && craving) {
-        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal");
+        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -3170,15 +5386,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/meals/craving-creator", async (req, res) => {
     try {
-      const { targetMealType, cravingInput, dietaryRestrictions, userId, servings = 1, safetyMode, overrideToken } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug, skipImages } = req.body;
+
+      // Adaptation block is built AFTER user is fetched (so we know their actual diet).
+      // Start with the raw input — the safety check at line 3441 runs on clean input.
+      let cravingInput = rawCravingInput;
+
+      // Fix A: Resolve authenticated user from session/token (server-authoritative).
+      // Never rely solely on client-sent userId — client may not send it at all.
+      let userId: string | undefined = (req.session as any)?.userId as string | undefined;
+      if (!userId) {
+        const token = req.headers["x-auth-token"] as string | undefined;
+        if (token) {
+          try {
+            const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, token)).limit(1);
+            if (tokenUser) userId = tokenUser.id;
+          } catch { /* non-fatal */ }
+        }
+      }
+      // serverAuthUserId: session or token identity ONLY — never body-supplied.
+      // Used exclusively for GLP-1 resolve to prevent IDOR (body userId can name
+      // any account; resolving GLP-1/PHI for it would expose sensitive health data).
+      const serverAuthUserId: string | undefined = userId;
+      // Final fallback: body-provided userId (legacy / admin callers only)
+      if (!userId && bodyUserId) userId = bodyUserId;
+
+      const requestedCreator = req.body.humanFoodCreator;
+      const humanFoodCreator: import("@shared/humanFoodContext").HumanFoodCreator =
+        requestedCreator === "create_a_dish"
+          ? "create_a_dish"
+          : requestedCreator === "sushi_creator"
+            ? "sushi_creator"
+            : "craving_creator";
+      if (!serverAuthUserId) {
+        return res.status(401).json({
+          success: false,
+          code: "HUMAN_FOOD_CONTEXT_AUTH_REQUIRED",
+          error: "Authentication is required to resolve food context.",
+        });
+      }
+      const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
+      const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+      const {
+        recordRejectedHumanFoodCandidate,
+        buildRejectedCandidatePrompt,
+      } = await import("./services/humanFoodContext/requestExecutionState");
+      const humanFoodRequestScope = createHumanFoodRequestScope({
+        actorUserId: serverAuthUserId,
+        subjectUserId: serverAuthUserId,
+        creator: humanFoodCreator,
+        correlationId: (req as any).id,
+        dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+        cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
+        cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+      });
+      const humanFoodContext = await humanFoodRequestScope.resolve();
+      const humanFoodExecutionState = humanFoodRequestScope.executionState;
+      if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
+        return res.status(409).json({
+          success: false,
+          code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+          status: humanFoodContext.status,
+          message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
+        });
+      }
+      cravingInput = `${cravingInput || ""}\n\n${buildCreatorHumanFoodPrompt(humanFoodCreator, humanFoodContext, humanFoodExecutionState)}`.trim();
+
+      // ── Load protocol envelope (single DB query — drives all enforcement) ──
+      const protocolEnvelope = userId
+        ? (await loadUserProtocolEnvelope(userId)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
       let dietNotice = "";
-      if (userId && cravingInput) {
+      // Declared here so it survives the safety block scope and reaches generation + filtering.
+      // Allergen-specific only — one authorized ingredient's enforcement is suspended per request.
+      // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
+      let _overriddenAllergens: string[] = [];
+      if (userId && cravingInput && safetyMode !== "ALLERGEN_ADAPT") {
         const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken
+          overrideToken: overrideToken,
+          correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
@@ -3187,7 +5477,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: safetyCheck.message,
             safetyBlocked: true,
             blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
+            suggestion: safetyCheck.suggestion,
+            allergyConflict: safetyCheck.allergyConflict ?? null,
           });
         }
         if (safetyCheck.result === "AMBIGUOUS") {
@@ -3203,6 +5494,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dietAdapted = true;
           dietNotice = safetyCheck.message;
         }
+        if (safetyCheck.overriddenAllergen) {
+          _overriddenAllergens = [safetyCheck.overriddenAllergen];
+          console.log(`[AllergyOverride] Request-scoped override active — allergen: ${safetyCheck.overriddenAllergen}, user: ${userId}, correlationId: ${safetyCheck.correlationId}`);
+        }
+      } else if (safetyMode === "ALLERGEN_ADAPT") {
+        console.log(`[AllergenAdapt] Allergen pre-check skipped for user ${userId} — DAL adaptation mode active`);
       }
 
       // Validate servings (1-10)
@@ -3223,30 +5520,554 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
-      const { generateCravingMealOptions } = await import("./services/unifiedMealPipeline");
+      // ── Resolve effective primary dietary identity (early — used by DAL + generator) ─
+      // builder dietOverride REPLACES profile diet (replacement, not merge).
+      // Allergies, medical, specialty, and religious rules are enforced separately
+      // by the protocol envelope — they are never affected by this resolver.
+      const _resolvedPrimaryDiet: string[] = (() => {
+        if (dietOverride && typeof dietOverride === "string" && dietOverride.trim()) {
+          console.log(`🔀 [CRAVING] Diet override: "${dietOverride.trim()}" replaces profile diet`);
+          return [dietOverride.trim()];
+        }
+        if (dietaryRestrictions) {
+          return (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean);
+        }
+        return [];
+      })();
 
-      const bodyDietRestrictions = dietaryRestrictions
-        ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
-        : [];
+      // ── Build diet-aware adaptation / override block ──────────────────────
+      // NOW we know the user's actual diet — build the right block, never
+      // cross-contaminating carnivore with pareve, vegan with meat, etc.
+      if (dietAdaptOverride === true) {
+        const userDietRestrictions = (user?.dietaryRestrictions as string[]) || [];
+        const chefDiet = getPrimaryDiet(userDietRestrictions);
+        cravingInput = `${rawCravingInput} ${buildChefAdaptationBlock(chefDiet)}`;
+      } else if (userDietOverride === true) {
+        cravingInput = `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
+      }
+
+      // ── GLP-1 canonical context — pre-generation ─────────────────────────
+      // Uses serverAuthUserId (session/token only — never body userId) to prevent
+      // IDOR: a caller cannot resolve or receive GLP-1 context for another user.
+      let _cravingGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
+      if (serverAuthUserId) {
+        try {
+          const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+          const glp1Ctx = await resolveGLP1GlobalContext(
+            serverAuthUserId!,
+            new Date().toISOString().split("T")[0],
+            (targetMealType === "breakfast" || targetMealType === "lunch" ||
+             targetMealType === "dinner" || targetMealType === "snack")
+              ? targetMealType as "breakfast" | "lunch" | "dinner" | "snack"
+              : "lunch",
+          );
+          if (glp1Ctx.isActive) {
+            _cravingGlp1Targets = glp1Ctx.resolvedTargets ?? undefined;
+            console.log(
+              `💊 [GLP-1/CravingCreator] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
+              (_cravingGlp1Targets
+                ? ` [${_cravingGlp1Targets.resolvedMealCalories}kcal / ` +
+                  `${_cravingGlp1Targets.targetProteinGrams}g prot / ` +
+                  `${_cravingGlp1Targets.maximumToleratedFatGrams}g fat-ceiling]`
+                : " [baseline targets]"),
+            );
+          }
+        } catch (err) {
+          console.warn("⚠️ [GLP-1/CravingCreator] Could not resolve context:", err);
+        }
+      }
+
+      // 🎲 VARIETY ENGINE: Always generate 3 distinct options (Layers 1-4)
+      const { generateCravingMealOptions, generateSingleCompliantFallback } = await import("./services/unifiedMealPipeline");
+
+      // ── Dish Adaptation Layer (Phase 3) ──────────────────────────────────
+      // Decompose the requested dish and cross-reference its components with
+      // the user's active guardrails, producing an identity anchor + explicit
+      // adaptation directives injected into generation. LRU-cached by
+      // dish + guardrail IDs — repeated requests make no extra LLM call.
+      const { getDishAdaptationDirective, buildGuardrailContext } = await import("./services/dishAdaptation/dishAdaptationLayer");
+      // When a builder diet override is active, use it as the sole dietary identity
+      // in the guardrail context so a vegan profile doesn't reject a keto meal the
+      // user explicitly requested. Without override, merge envelope + profile as before.
+      const _dalDietIdentity = _resolvedPrimaryDiet.length > 0
+        ? _resolvedPrimaryDiet
+        : [...protocolEnvelope.dietaryIdentity, ...((user?.dietaryRestrictions as string[]) || [])];
+      const _dalGuardrailCtx = buildGuardrailContext({
+        dietaryIdentity: _dalDietIdentity,
+        glp1Active: !!_cravingGlp1Targets,
+        allergies: protocolEnvelope.allergies,
+        overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+      });
+      let _dishDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
+      try {
+        _dishDirective = await getDishAdaptationDirective(
+          rawCravingInput || "",
+          _dalGuardrailCtx,
+          "first_pass",
+        );
+      } catch (dalErr) {
+        console.warn("⚠️ [DAL] Directive build failed — generation proceeds unenriched:", dalErr);
+      }
+
+      // _resolvedPrimaryDiet already incorporates the override (computed after user load).
+      const bodyDietRestrictions = _resolvedPrimaryDiet.slice();
+
+      // ── Route-level oncology injection ────────────────────────────────────
+      // The variety engine does its own DB query for specialtyCondition, but the
+      // route already has the full user object — use it as a reliable upstream
+      // source so the pipeline never has to guess. If oncology is active, add
+      // 'oncology-support' to bodyDietRestrictions so the merged array in the
+      // pipeline triggers the overlay even if the inner DB query misses it.
+      const _routeSpecialtyCondition = (user as any)?.specialtyCondition ?? null;
+      const _routeOncologyCtx = (user as any)?.oncologySupportContext as { enabled?: boolean } | null ?? null;
+      const _routeOncologyActive =
+        _routeSpecialtyCondition === 'oncology-support' ||
+        _routeOncologyCtx?.enabled === true;
+      if (_routeOncologyActive && !bodyDietRestrictions.includes('oncology-support')) {
+        bodyDietRestrictions.push('oncology-support');
+        console.log(`🎗️ [CRAVING ROUTE] Oncology injected into diet restrictions (source: ${_routeSpecialtyCondition === 'oncology-support' ? 'specialtyCondition' : 'oncologySupportContext'})`);
+      }
+
       const excludeMeals: string[] = Array.isArray(req.body.excludeMeals)
-        ? req.body.excludeMeals.slice(0, 5)
+        ? req.body.excludeMeals
+            .filter((e: unknown): e is string => typeof e === 'string' && e.trim().length > 0)
+            .slice(0, 9)  // allow up to 3 rounds × 3 cards
         : [];
+
+      // ── ALLERGEN_ADAPT: inject explicit allergen constraint into generation prompt ─
+      // The pre-generation safety check is skipped in ALLERGEN_ADAPT mode, but the
+      // LLM must still receive explicit, named allergen prohibitions with all derivatives.
+      // Without this the model generates the dish traditionally (e.g. gumbo with shellfish
+      // stock) and Phase 3 correctly kills every option. This block names the prohibited
+      // categories, lists all derivative terms, and instructs the model to preserve dish
+      // identity by replacing the allergen's functional role rather than just deleting it.
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
+          const allergenBlock = buildAllergenAdaptPromptBlock(protocolEnvelope.allergies, rawCravingInput || "");
+          if (allergenBlock) {
+            cravingInput = `${cravingInput}\n${allergenBlock}`;
+            console.log(`[AllergenAdapt] Injected allergen constraint — allergens: ${protocolEnvelope.allergies.join(", ")}`);
+          }
+        } catch (blockErr) {
+          console.warn("[AllergenAdapt] Failed to build allergen constraint block:", blockErr);
+        }
+      }
 
       const mealOptions = await generateCravingMealOptions(
         cravingInput || "something delicious",
         targetMealType || "lunch",
         userId,
         bodyDietRestrictions,
-        excludeMeals
+        excludeMeals,
+        strictMode === true,
+        (generationMode === 'recipe' ? 'recipe' : 'meal'),
+        (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+        _cravingGlp1Targets,
+        _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+        _dishDirective,
+        skipImages === true,   // fastMode — gpt-4o-mini + 1500 tokens on Try 3 More path
       );
 
       if (!mealOptions || mealOptions.length === 0) {
-        throw new Error("Variety engine returned no options");
+        const hasGlp1    = _cravingGlp1Targets != null;
+        const hasAllergy = (protocolEnvelope.allergies || []).length > 0;
+        const hasDiet    = bodyDietRestrictions.length > 0;
+        const reasonCode = hasGlp1 ? "constraint_conflict" : "empty_variety_output";
+        const suggestedActions: string[] = [
+          `Try rephrasing — for example "light ${rawCravingInput || "dish"}" or adding a cooking style`,
+          hasDiet    ? `Temporarily removing your ${bodyDietRestrictions[0]} filter may open more options` : "Add more detail: cuisine style, cooking method, or specific ingredients",
+          hasAllergy ? "Check your allergy settings for any restrictions that might conflict with this dish" : "Try a simpler, more familiar dish name",
+        ];
+        console.warn(`[CravingCreator] Variety engine returned 0 options — returning typed failure (${reasonCode})`);
+        return res.status(422).json({
+          status: "unable_to_generate",
+          reasonCode,
+          message: `We couldn't find any ${rawCravingInput ? `"${rawCravingInput}"` : ""} options that meet your current settings.${hasGlp1 ? " Your GLP‑1 targets may be significantly limiting what can be generated." : ""} Try adjusting your request or simplifying your description.`,
+          suggestedActions,
+        });
+      }
+
+      // ── BGL-aware diabetic carb gate (Recipe Maker / craving-creator) ──────
+      // When the user is diabetic, filter out options whose carb count exceeds
+      // the glucose-state-aware ceiling. Uses the same thresholds as
+      // diabeticValidator so the Diabetic Hub and Recipe Maker enforce the same
+      // clinical rules (high-risk BGL 300 → 15g ceiling, not a flat 35g).
+      //
+      // Low/low-normal glucose: ceiling is RELAXED (user needs carbs) — options
+      // are passed through regardless of carb count.
+      // No glucose reading: falls back to the standard 35g diabetic cap.
+      // Non-diabetic users: gate is bypassed entirely.
+      let _bglGatedOptions = [...mealOptions];
+      if (protocolEnvelope.hasDiabetes && mealOptions.length > 0) {
+        const _bglState = protocolEnvelope.diabeticGlucoseState;
+        const _bglCarbCeiling =
+          _bglState === "high-risk" ? 15
+          : _bglState === "elevated" ? 25
+          : _bglState === "low"      ? 45  // hypoglycemia — needs carbs, ceiling relaxed
+          : 35;                            // low-normal, in-range, or no reading: 35g cap
+        const BGL_CARB_TOLERANCE = 10;    // match diabeticValidator rounding tolerance
+        _bglGatedOptions = mealOptions.filter((m: any) => {
+          const carbs = m.carbs ?? m.nutrition?.carbs ?? null;
+          // Low/low-normal: don't filter down — pass all
+          if (_bglState === "low" || _bglState === "low-normal") return true;
+          // Unknown carbs at elevated/high-risk: fail-closed
+          if (carbs == null) return false;
+          return Number(carbs) <= _bglCarbCeiling + BGL_CARB_TOLERANCE;
+        });
+        if (_bglGatedOptions.length < mealOptions.length) {
+          console.warn(
+            `🩸 [BGL Gate/CravingCreator] ${mealOptions.length - _bglGatedOptions.length} option(s) ` +
+            `exceeded ${_bglCarbCeiling}g carb ceiling (glucoseState=${_bglState ?? "none"}) — ` +
+            `${_bglGatedOptions.length} remain`,
+          );
+        }
+        // BGL gate eliminated every option — this is a clinical constraint
+        // outcome, not a generation failure. Before blocking, attempt ONE
+        // targeted reformulation pass: same dish, same constraints (allergies,
+        // diet, cultural grounding, variety memory all flow through the same
+        // pipeline call), plus an explicit numeric carb ceiling. The clinical
+        // guardrail itself is NOT weakened — retry output is revalidated
+        // against the exact same ceiling before being served.
+        if (_bglGatedOptions.length === 0 && mealOptions.length > 0) {
+          mealOptions.forEach((candidate: any) =>
+            recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate)
+          );
+          const _bglEffectiveCeiling = _bglCarbCeiling + BGL_CARB_TOLERANCE;
+          console.warn(
+            `🩸 [BGL Gate/CravingCreator] All options exceeded ${_bglCarbCeiling}g ceiling — ` +
+            `attempting one targeted low-carb reformulation (≤${_bglCarbCeiling}g per serving)`,
+          );
+          let _bglRetrySucceeded = false;
+          try {
+            // Solve for the actual numeric ceiling — no ingredient-type
+            // assumptions ("gluten-free"/"sugar-free" do not guarantee low carb).
+            const _bglRetryClause =
+              ` [CLINICAL CARB CONSTRAINT — the user's current blood glucose state requires each serving to contain ${_bglCarbCeiling}g of total carbohydrates or less. Keep this the SAME dish the user asked for (do not replace it with a different food); reformulate its ingredients and portions so total carbs per serving are at or below ${_bglCarbCeiling}g while preserving the dish's identity, flavor profile, and all other dietary constraints. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}]`;
+            const _bglRetryOptions = await generateCravingMealOptions(
+              `${cravingInput}${_bglRetryClause}`,
+              targetMealType || "lunch",
+              userId,
+              bodyDietRestrictions,
+              excludeMeals,
+              strictMode === true,
+              (generationMode === 'recipe' ? 'recipe' : 'meal'),
+              (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+              _cravingGlp1Targets,
+              _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+              _dishDirective,
+              skipImages === true,
+            );
+            if (_bglRetryOptions && _bglRetryOptions.length > 0) {
+              // Revalidate against the SAME ceiling — the guardrail is never bypassed.
+              const _bglRetryCompliant = _bglRetryOptions.filter((m: any) => {
+                const carbs = m.carbs ?? m.nutrition?.carbs ?? null;
+                if (carbs == null) return false; // fail-closed on unknown carbs
+                return Number(carbs) <= _bglEffectiveCeiling;
+              });
+              if (_bglRetryCompliant.length > 0) {
+                console.log(
+                  `🩸 [BGL Gate/CravingCreator] Reformulation succeeded — ` +
+                  `${_bglRetryCompliant.length} compliant option(s) at ≤${_bglCarbCeiling}g ceiling`,
+                );
+                _bglGatedOptions = _bglRetryCompliant;
+                _bglRetrySucceeded = true;
+              } else {
+                console.warn(`🩸 [BGL Gate/CravingCreator] Reformulation still exceeded the ${_bglCarbCeiling}g ceiling`);
+              }
+            }
+          } catch (bglRetryErr) {
+            console.error("🩸 [BGL Gate/CravingCreator] Reformulation retry error:", bglRetryErr);
+          }
+
+          if (!_bglRetrySucceeded) {
+            // Both the original pass and the single reformulation failed —
+            // block with a plain-language clinical explanation.
+            const _bglDishLabel = (rawCravingInput || "").trim() || "this dish";
+            return res.status(422).json({
+              error: "BGL_CLINICAL_BLOCK",
+              reasonCode: "bgl_carb_ceiling",
+              clinicalBlock: true,
+              title: "Your blood glucose needs a different version",
+              message: `Your current glucose setting requires meals with ${_bglCarbCeiling}g of carbs or less. We tried creating a lower-carb version of ${_bglDishLabel} but couldn't produce one that met your current nutrition safeguards. You can try another craving, or update your glucose information if your reading has changed.`,
+              carbCeiling: _bglCarbCeiling,
+              suggestedActions: [
+                "Try another craving",
+                "Update your glucose information if your reading has changed",
+              ],
+            });
+          }
+        }
+      }
+
+      // ── Post-generation protocol scan (ingredient + instruction level) ──────
+      // Uses the protocol envelope to filter any options that still violated the
+      // user's dietary identity, avoidances, or procedural rules after generation.
+      // This is the universal safety net — covers ingredients, hidden terms,
+      // combination violations, AND forbidden instruction phrases.
+      //
+      // When a builder diet override is active, we substitute dietaryIdentity in the
+      // envelope so the filter does NOT re-reject keto meals because the envelope
+      // still says the profile is vegan. Allergies, medical, avoidances, procedural
+      // rules are never changed — only the primary diet identity is swapped.
+      //
+      // CreateDishPage sends `dietaryRestrictions: "keto"` (not `dietOverride`) when
+      // the diet-override toggle is on, so the condition must also trigger on
+      // dietaryRestrictions — not just the explicit dietOverride body field.
+      const _overrideDietActive = _resolvedPrimaryDiet.length > 0 && (dietOverride || dietaryRestrictions);
+      const _filterEnvelope = _overrideDietActive
+        ? { ...protocolEnvelope, dietaryIdentity: _resolvedPrimaryDiet, procedural: deriveProcedureRules(_resolvedPrimaryDiet) }
+        : protocolEnvelope;
+      const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
+      // ── ALLERGEN_ADAPT requested-dish exemption (computed once, used by BOTH
+      // the universal protocol filter below AND the Phase 3 scan) ─────────────
+      // Without threading this into filterMealsByProtocol, a shellfish-free
+      // gumbo is stripped for its own name before Phase 3 ever sees it, and the
+      // retry dies the same way — producing a spurious allergen_adaptation_failed.
+      let _adaptExemptTerms: Set<string> | undefined;
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
+          const terms = getRequestedDishExemptTerms(rawCravingInput || "", protocolEnvelope.allergies).map(t => t.toLowerCase());
+          if (terms.length > 0) {
+            _adaptExemptTerms = new Set(terms);
+            console.log(`[AllergenAdapt] Requested-dish exemption active for protocol filter + Phase 3 scan: ${terms.join(", ")}`);
+          }
+        } catch (exErr) {
+          console.warn("[AllergenAdapt] Failed to compute requested-dish exemption:", exErr);
+        }
+      }
+      const cleanOptions = filterMealsByProtocol(_bglGatedOptions, _filterEnvelope, {
+        generatorName: "craving_creator",
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+        overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+        exemptDishNameTerms: _adaptExemptTerms,
+        dishIdentity: {
+          requestedDish: rawCravingInput || "",
+          directive: _dishDirective,
+          results: _identityResults,
+        },
+      });
+
+      if (cleanOptions.length === 0 && _bglGatedOptions.length > 0) {
+        console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
+        // Fallback directive carries MORE explicit dish-identity language, not less.
+        let _fallbackDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
+        try {
+          _fallbackDirective = await getDishAdaptationDirective(rawCravingInput || "", _dalGuardrailCtx, "fallback");
+        } catch { /* proceed unenriched */ }
+        // When a diet override is active, the fallback must also target the override
+        // diet — not the profile's stored diet. Same replacement semantics as generation.
+        // Use _overrideDietActive (already computed) so this stays in sync with _filterEnvelope.
+        const _fallbackDietIdentity = _overrideDietActive
+          ? _resolvedPrimaryDiet
+          : protocolEnvelope.dietaryIdentity;
+        const fallbackMeal = await generateSingleCompliantFallback(
+          cravingInput || "something delicious",
+          targetMealType || "lunch",
+          _fallbackDietIdentity,
+          {
+            overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            storedAllergies: protocolEnvelope.allergies,
+            dishDirective: _fallbackDirective,
+          },
+        );
+        // HARD INVARIANT: never return a silently substituted dish. Validate
+        // the fallback's identity too — a catastrophic deviation is treated as
+        // failure, not served.
+        let fallbackIdentityOk = true;
+        if (fallbackMeal && rawCravingInput) {
+          try {
+            const { validateDishIdentity } = await import("./services/dishAdaptation/dishIdentityValidator");
+            const fbIdentity = validateDishIdentity(rawCravingInput, fallbackMeal, _fallbackDirective ?? _dishDirective);
+            _identityResults.push({ mealName: fallbackMeal.name ?? "(fallback)", result: fbIdentity });
+            if (fbIdentity.catastrophicDeviation) {
+              fallbackIdentityOk = false;
+              console.error(`🚫 [DishIdentity] Fallback "${fallbackMeal.name}" is not "${rawCravingInput}" — rejecting instead of silently substituting`);
+            }
+          } catch (e) {
+            console.warn("⚠️ [DishIdentity] Fallback validation error — keeping fallback:", e);
+          }
+        }
+        if (fallbackMeal && fallbackIdentityOk) {
+          console.log(`✅ [ProtocolEnvelope] Emergency fallback succeeded: "${fallbackMeal.name}"`);
+          cleanOptions.push(fallbackMeal);
+        } else {
+          console.error(`❌ [ProtocolEnvelope] Emergency fallback also failed — returning enforcement error`);
+          // If dish identity was the failure mode, say so explicitly — never a silent generic plate.
+          const _catastrophic = _identityResults.filter(r => r.result.catastrophicDeviation);
+          if (_catastrophic.length > 0 || !fallbackIdentityOk) {
+            const conflictSummary = (_dishDirective?.conflicts ?? [])
+              .map(c => `${c.component} (${c.guardrail})`)
+              .join(", ");
+            return res.status(400).json({
+              error: "DISH_IDENTITY_FAILURE",
+              dishIdentityFailure: true,
+              message: `We couldn't find a way to make ${rawCravingInput} within your current constraints${conflictSummary ? ` — the conflicts were: ${conflictSummary}` : ""}. Rather than serve you a different meal, we're being upfront: try adjusting your request or your safety settings.`,
+              conflicts: _dishDirective?.conflicts ?? [],
+              retryable: true,
+            });
+          }
+          return res.status(400).json({
+            error: "AVOIDANCE_VIOLATION_ALL_OPTIONS",
+            message: "All generated options contained ingredients or instructions that conflict with your dietary protocol. Please try a different dish or adjust your craving description.",
+            retryable: true,
+          });
+        }
+      }
+
+      if (cleanOptions.length < _bglGatedOptions.length) {
+        console.log(`⚠️ [ProtocolEnvelope] Removed ${_bglGatedOptions.length - cleanOptions.length} violating option(s) — serving ${cleanOptions.length} clean option(s)`);
+      }
+
+      let scannedOptions = cleanOptions;
+
+      // ── Phase 3: Post-adaptation allergen scan (ALLERGEN_ADAPT mode only) ────
+      // When the user chose "Make it safe for me", the DAL adapted the dish but
+      // the LLM may still include hidden allergen derivatives (shrimp paste, fish
+      // sauce, shellfish broth). Scan each option and exclude any that leaked.
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+        try {
+          const { buildForbiddenTermsFromAllergens, scanMealsForAllergenViolations } = await import("./services/allergyGuardrails");
+          // Requested-dish exemption: adaptation intentionally keeps the dish's
+          // name ("gumbo", "pad thai"), so the pure dish-name term matching the
+          // user's request is exempt from the scan. Every ingredient/derivative
+          // term remains scanned across name, ingredients, instructions, and
+          // description — see getRequestedDishExemptTerms for the strict rules.
+          // (_adaptExemptTerms was computed once above, before the universal
+          //  protocol filter, and is shared with filterMealsByProtocol.)
+          // First-pass scan — delegates to the canonical exported function so tests
+          // cover exactly this code path (no reimplementation in test files).
+          const firstPassResult = scanMealsForAllergenViolations(scannedOptions, protocolEnvelope.allergies, _adaptExemptTerms);
+          const safeAdaptedOptions = firstPassResult.safe;
+          const _allDetectedViolations = firstPassResult.violations;
+          firstPassResult.unsafe.forEach(meal => {
+            const sample = Array.from(_allDetectedViolations).slice(0, 3).join(', ');
+            console.warn(`⚠️ [ALLERGEN-ADAPT SCAN] "${meal.name}" has hidden allergen traces: ${sample} — excluded`);
+          });
+          // Re-derive forbiddenTerms (with exemptions applied) for the retry scan below.
+          const forbiddenTerms = buildForbiddenTermsFromAllergens(protocolEnvelope.allergies)
+            .filter(t => !_adaptExemptTerms?.has(t.toLowerCase()));
+          const forbiddenRegexes = forbiddenTerms.map(
+            t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+          );
+
+          if (safeAdaptedOptions.length === 0 && scannedOptions.length > 0) {
+            scannedOptions.forEach((candidate: any) =>
+              recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate)
+            );
+            // ── Intelligent retry: use the specific detected violation terms as explicit
+            // exclusions so the LLM cannot repeat the same mistake. One retry only.
+            const detectedViolationList = Array.from(_allDetectedViolations).slice(0, 12);
+            console.log(`[AllergenAdapt] First-pass all failed — detected: ${detectedViolationList.join(", ")}. Attempting targeted retry.`);
+            let retrySucceeded = false;
+            try {
+              const retryExclusionClause = detectedViolationList.length > 0
+                ? ` [ALLERGEN RETRY — previous attempt leaked these terms, which MUST NOT appear in any ingredient, stock, broth, sauce, or preparation: ${detectedViolationList.join(", ")}. Remove ALL of them completely. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}]`
+                : ` [ALLERGEN RETRY — regenerate with no allergen derivatives whatsoever. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}]`;
+              const retryInput = `${cravingInput}${retryExclusionClause}`;
+              const retryOptions = await generateCravingMealOptions(
+                retryInput,
+                targetMealType || "lunch",
+                userId,
+                bodyDietRestrictions,
+                excludeMeals,
+                strictMode === true,
+                (generationMode === 'recipe' ? 'recipe' : 'meal'),
+                (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+                _cravingGlp1Targets,
+                _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+                _dishDirective,
+                skipImages === true,
+              );
+              if (retryOptions && retryOptions.length > 0) {
+                const retrySafe = retryOptions.filter(meal => {
+                  const mealText = [
+                    meal.name || '',
+                    (meal.ingredients || []).map((i: any) => typeof i === 'string' ? i : (i?.name || '')).join(' '),
+                    meal.instructions || '',
+                    meal.description || '',
+                  ].join(' ');
+                  return forbiddenTerms.every((_, idx) => !forbiddenRegexes[idx].test(mealText));
+                });
+                if (retrySafe.length > 0) {
+                  console.log(`[AllergenAdapt] Targeted retry succeeded — ${retrySafe.length} safe option(s) produced`);
+                  scannedOptions = retrySafe;
+                  retrySucceeded = true;
+                } else {
+                  console.error(`❌ [ALLERGEN-ADAPT SCAN] Targeted retry also failed — allergen traces still present`);
+                }
+              }
+            } catch (retryErr) {
+              console.error(`❌ [ALLERGEN-ADAPT SCAN] Retry generation error:`, retryErr);
+            }
+
+            if (!retrySucceeded) {
+              // Both attempts failed. Return a typed, structured error — never the generic allergy handler.
+              const _requestedDish = rawCravingInput || "";
+              const _allergenNames = protocolEnvelope.allergies;
+              console.error(`❌ [ALLERGEN-ADAPT SCAN] Both attempts failed for "${_requestedDish}" — returning typed adaptation failure`);
+              return res.status(422).json({
+                status: "unable_to_generate",
+                reasonCode: "allergen_adaptation_failed",
+                requestedDish: _requestedDish,
+                allergens: _allergenNames,
+                detectedTerms: detectedViolationList,
+                retryAttempted: true,
+                originalWithPinAvailable: true,
+                message: `We couldn't create a ${_allergenNames.join(" and ")}-free version of "${_requestedDish}" that passed your allergy protection checks (two attempts made). Your allergy protection is still fully active.`,
+                suggestedActions: [
+                  `Try a variation that adapts more cleanly — for example, a ${_allergenNames.join(" and ")}-free version of a related dish`,
+                  `Use your Safety PIN to make the original preparation if you are certain it is safe for you`,
+                ],
+              });
+            }
+          } else if (safeAdaptedOptions.length < scannedOptions.length) {
+            console.log(`[ALLERGEN-ADAPT SCAN] Filtered ${scannedOptions.length - safeAdaptedOptions.length} unsafe option(s) — serving ${safeAdaptedOptions.length} safe adapted option(s)`);
+            scannedOptions = safeAdaptedOptions;
+          }
+        } catch (scanErr) {
+          console.error('[ALLERGEN-ADAPT SCAN] Scan error (non-fatal):', scanErr);
+        }
+      }
+
+      // Creator System 2-pass transformation — applied AFTER all safety/protocol filters.
+      // If kitchenSlug is provided, the kitchen config takes priority over the user's own active system.
+      // Modifies only name, description, instructions. Macros, ingredients, servings NEVER touched.
+      if (user) {
+        try {
+          const { resolveActiveSystem } = await import("./services/creatorSystems/resolver");
+          const { applyCreatorTransformation } = await import("./services/creatorSystems/applyCreatorTransformation");
+          const { resolveKitchenSystem } = await import("./services/creatorSystems/resolveKitchenSystem");
+
+          let creatorSystem = resolveActiveSystem(user);
+
+          // Kitchen overlay: kitchen slug takes priority over user's personal active system
+          if (kitchenSlug && typeof kitchenSlug === "string" && kitchenSlug.trim()) {
+            const kitchenSystem = await resolveKitchenSystem(kitchenSlug.trim());
+            if (kitchenSystem) {
+              creatorSystem = kitchenSystem;
+              console.log(`[Kitchen] Style overlay applied: ${kitchenSlug}`);
+            } else {
+              console.warn(`[Kitchen] Slug "${kitchenSlug}" not found or inactive — falling back to user system`);
+            }
+          }
+
+          if (creatorSystem.id !== "default") {
+            scannedOptions = await Promise.all(
+              scannedOptions.map(meal => applyCreatorTransformation(meal, creatorSystem, "meal"))
+            );
+          }
+        } catch (err) {
+          console.error("[CreatorSystem] Transformation failed in craving-creator — using base options:", err);
+        }
       }
 
       // Format and optionally scale each option
-      const formattedOptions = mealOptions.map(meal => {
+      const formattedOptions = scannedOptions.map(meal => {
+        const { complianceSection, dietClassification } = buildMealComplianceBundle(
+          meal, protocolEnvelope, { isChefAdapted: dietAdapted }
+        );
         const formatted: any = {
           id: meal.id,
           name: meal.name,
@@ -3261,7 +6082,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           medicalBadges: meal.medicalBadges || [],
           imageUrl: meal.imageUrl,
-          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving"
+          servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving",
+          complianceSection,
+          dietClassification,
+          ...(() => {
+            const ingNames = (meal.ingredients || []).map((i: any) => i.name || i.item || "").filter(Boolean);
+            const mealText = `${meal.name || ""} ${meal.description || ""} ${ingNames.join(" ")}`;
+            const badge = computeAlphaGalBadge(mealText, ingNames, (user as any)?.healthConditions || []);
+            return badge ? { alphaGalBadge: badge } : {};
+          })(),
         };
         if (validatedServings > 1) {
           formatted.nutrition.calories *= validatedServings;
@@ -3280,21 +6109,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return formatted;
       });
 
+      // ── Unified Image Pipeline: generate permanent imageUrls in parallel before responding ─
+      // Matches the architecture used by /api/meals/generate and /api/meals/fridge-rescue.
+      // All images are generated concurrently — no sequential spinner per card.
+      // Callers using useMealImages already guard on meal.imageUrl and will skip the
+      // secondary client-side fetch automatically when imageUrl is present here.
+      //
+      // skipImages=true: caller (Try 3 More / inspiration route) has already
+      // indicated it doesn't need images in this response — skip the pipeline
+      // entirely to shave ~2-3 s off the round-trip.
+      const imagedOptions = skipImages === true ? formattedOptions : await (async () => {
+        try {
+          const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import('./services/mealImageGenerator');
+          const sourceType = normalizeMealTypeToSourceType(targetMealType || 'meal');
+          return await Promise.all(
+            formattedOptions.map(async (meal: any) => {
+              if (meal.imageUrl) return meal; // already cached — skip generation
+              const ingNames = (meal.ingredients || [])
+                .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
+                .filter(Boolean);
+              try {
+                const imageUrl = await generateMealImageUnified(meal.name, ingNames, sourceType);
+                return imageUrl ? { ...meal, imageUrl } : meal;
+              } catch { return meal; } // image failure is non-fatal — meal still usable
+            })
+          );
+        } catch { return formattedOptions; } // pipeline failure non-fatal
+      })();
+      const invalidHumanFoodResult = imagedOptions.find((meal: any) =>
+        !validateCreatorHumanFoodResult(humanFoodCreator, meal, humanFoodContext).valid
+      );
+      if (invalidHumanFoodResult) {
+        return res.status(422).json({
+          success: false,
+          code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+          message: "The generated food did not pass final food-context validation.",
+        });
+      }
+      // ─────────────────────────────────────────────────────────────────────────────────────
+
       console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);
-      console.log(`🍽️ Variety engine: ${formattedOptions.map((m: any) => m.name).join(" | ")}`);
+      console.log(`🍽️ Variety engine: ${imagedOptions.map((m: any) => m.name).join(" | ")}`);
 
       // Record metrics for health endpoint
       const { recordGeneration } = await import("./services/aiHealthMetrics");
       recordGeneration('/api/meals/craving-creator', 'ai' as any, Date.now() - startTime);
 
       res.json({
-        meals: formattedOptions,
+        meals: imagedOptions,
         generationSource: 'ai',
         ...(dietAdapted && { dietAdapted: true, dietNotice })
       });
     } catch (error: any) {
       console.error("❌ Craving creator error:", error);
-      res.status(500).json({ message: error.message });
+      if (Number.isInteger(error?.status)) {
+        return res.status(error.status).json({
+          status: "unable_to_generate",
+          reasonCode: error.code || "human_food_context_error",
+          message: error.message,
+        });
+      }
+      // Classify known transient failures into a typed response the client can act on.
+      // Unknown / truly unexpected errors still surface a reasonCode so the UI can
+      // display something useful instead of a blank card or raw stack trace.
+      const msg: string = error?.message || "";
+      const reasonCode =
+        msg.includes("json") || msg.includes("parse") || msg.includes("JSON")
+          ? "json_parse_failure"
+          : msg.includes("model") || msg.includes("refusal") || msg.includes("sorry")
+          ? "model_refusal"
+          : "generation_error";
+      return res.status(422).json({
+        status: "unable_to_generate",
+        reasonCode,
+        message: "Something went wrong while generating your meal options. Please try again — if the problem persists, try simplifying your request.",
+        suggestedActions: [
+          "Try again — the issue may be temporary",
+          "Simplify your request (e.g. just 'chicken stir fry' instead of a detailed description)",
+          "Adjust your dietary settings if they may be creating an impossible combination",
+        ],
+      });
     }
   });
 
@@ -3309,7 +6203,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced");
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked enforced craving for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -3423,51 +6319,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Pregnancy meal plan generation
   app.post("/api/users/:userId/pregnancy-meal-plan", async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const { trimester, weekOfPregnancy, symptoms } = req.body;
-
-      // Get user data for medical personalization
-      let user = null;
-      if (userId) {
-        try {
-          const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-          user = dbUser || null;
-        } catch (error) {
-          console.log("Could not fetch user for pregnancy meal personalization:", error);
-        }
-      }
-
-      const { generatePregnancyMealPlan } = await import("./services/pregnancyNutritionGenerator");
-      const mealPlan = await generatePregnancyMealPlan({
-        trimester: parseInt(trimester) || 2,
-        weekOfPregnancy: parseInt(weekOfPregnancy) || 20,
-        symptoms: symptoms || [],
-        user: user || undefined
-      });
-
-      // Add ingredients from all generated meals to shopping list
-      for (const meal of mealPlan.meals) {
-        if (meal.ingredients) {
-          const convertedIngredients = meal.ingredients.map(ing => ({
-            name: ing.name,
-            amount: parseFloat(ing.amount) || 1,
-            unit: ing.unit,
-            notes: ""
-          }));
-          // TODO: Implement shopping list service integration
-          console.log("Would add pregnancy nutrition ingredients to shopping list:", convertedIngredients);
-        }
-      }
-
-      console.log("🤱 Pregnancy meal plan generated:", mealPlan.meals.length, "meals for trimester", trimester);
-      console.log("🏥 Medical badges:", mealPlan.meals.reduce((total, meal) => total + meal.medicalBadges.length, 0));
-
-      res.json(mealPlan);
-    } catch (error: any) {
-      console.error("❌ Pregnancy meal plan error:", error);
-      res.status(500).json({ error: "Failed to generate pregnancy meal plan" });
-    }
+    return res.status(410).json({
+      error: "This endpoint is no longer available",
+      code: "ENDPOINT_RETIRED",
+    });
   });
 
   // Holiday Feast route removed - handled by dedicated router
@@ -3500,12 +6355,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Image generation endpoint
   app.post("/api/generate-image", requireAuth, requireActiveAccess, async (req, res) => {
-    const { handleImageGeneration } = await import("./services/imageService");
-    await handleImageGeneration(req, res);
+    try {
+      const { name, type, ingredients } = req.body;
+      if (!name || !type) {
+        return res.status(400).json({ error: 'Name and type are required' });
+      }
+      const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+      const sourceType = type === "beverage" ? "beverage" : "meal";
+      const imageUrl = await generateMealImageUnified(name, ingredients ?? [], sourceType);
+      if (imageUrl) {
+        res.json({ imageUrl });
+      } else {
+        res.status(500).json({ error: 'Failed to generate image' });
+      }
+    } catch (error) {
+      console.error('Image generation endpoint error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Per-meal image endpoint — called by client after user selects a specific meal.
+  // DO NOT call image generation directly — uses generateMealImageUnified only.
+  app.post("/api/meals/generate-image", requireAuth, createApiRateLimit(), async (req, res) => {
+    try {
+      const { mealName, ingredients = [], mealType, sourceType, pediatricContext } = req.body;
+      if (!mealName) return res.status(400).json({ error: "mealName is required" });
+      const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import("./services/mealImageGenerator");
+      // Resolve effective sourceType: explicit sourceType wins; fall back to mealType mapping.
+      // This ensures mealType:"restaurant" → sourceType:"meal" so food meals never fall through
+      // to the undefined/classifier path and share cache entries with beverages.
+      const resolvedSourceType = sourceType ?? normalizeMealTypeToSourceType(mealType);
+      const hasPediatric = pediatricContext && typeof pediatricContext === "object" && pediatricContext.stage;
+      console.log(`🖼️ IMAGE PIPELINE START: ${mealName} (mealType: ${mealType ?? 'none'}, sourceType: ${sourceType ?? 'none'} → resolved: ${resolvedSourceType ?? 'classifier'}${hasPediatric ? `, pediatric:${pediatricContext.stage}` : ''})`);
+      const ingredientNames = (ingredients as any[]).map((i: any) =>
+        typeof i === "string" ? i : (i.name || i.item || "")
+      ).filter(Boolean);
+      const imageUrl = await generateMealImageUnified(
+        mealName,
+        ingredientNames,
+        resolvedSourceType,
+        hasPediatric ? pediatricContext : undefined
+      );
+      res.json({ imageUrl });
+    } catch (err: any) {
+      console.error("❌ /api/meals/generate-image error:", err);
+      res.status(500).json({ error: "Image generation failed" });
+    }
   });
 
   // Weekly meal calendar endpoint
-  app.post("/api/meals/weekly", async (req, res) => {
+  app.post("/api/meals/weekly", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const { userId, generateAll = true } = req.body;
 
@@ -3533,8 +6432,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         medicalFlags: user?.healthConditions || []
       });
 
-      console.log(`📅 Weekly meal plan generated: ${generatedMeals.length} meals`);
-      res.json({ meals: generatedMeals });
+      console.log(`📅 Weekly meal plan generated: ${generatedMeals.length} meals — inlining images`);
+
+      const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import("./services/mealImageGenerator");
+      const mealsWithImages = await Promise.all(
+        generatedMeals.map(async (meal: any) => {
+          try {
+            const ingredientNames = (meal.ingredients || []).map((i: any) =>
+              typeof i === "string" ? i : (i.name || i.item || "")
+            ).filter(Boolean);
+            const sourceType = normalizeMealTypeToSourceType(meal.mealType || "dinner");
+            const imageUrl = await generateMealImageUnified(meal.name, ingredientNames, sourceType);
+            return { ...meal, imageUrl };
+          } catch {
+            return meal;
+          }
+        })
+      );
+
+      res.json({ meals: mealsWithImages });
     } catch (error: any) {
       console.error("❌ Weekly meals error:", error);
       res.status(500).json({ message: error.message });
@@ -3552,7 +6468,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && preferences) {
-        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids");
+        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked kids meal for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -3653,7 +6571,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator");
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator", {
+          correlationId: (req as any).id
+        });
         if (safetyCheck.result === "BLOCKED") {
           console.log(`🚫 [SAFETY] Blocked ai-creator for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
           return res.status(400).json({
@@ -3675,20 +6595,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Resolve GLP-1 targets for this user before generation so cache/template
+      // and AI paths all enforce the same clinical constraints.
+      // Always uses req.authUser.id — never the body userId — to prevent
+      // cross-user clinical context loading.
+      let aiCreatorGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const authId = String((req as AuthenticatedRequest).authUser?.id ?? userId ?? "");
+        if (authId) {
+          const glp1Ctx = await resolveGLP1GlobalContext(authId, new Date().toISOString().split("T")[0], "lunch");
+          if (glp1Ctx.isActive && glp1Ctx.resolvedTargets) {
+            aiCreatorGlp1Targets = glp1Ctx.resolvedTargets;
+          }
+        }
+      } catch (_err) { /* non-fatal — generation proceeds without GLP-1 overlay */ }
+
       // Use unified pipeline (deterministic: cache → templates → fallback)
       const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
       
       const result = await generateCravingMealUnified(
         cravingInput || "something delicious",
         "lunch",
-        userId
+        userId,
+        undefined,
+        false,
+        undefined,
+        aiCreatorGlp1Targets
       );
       
       if (!result.success || !result.meal) {
         throw new Error("Failed to generate meal");
       }
       
-      const generatedMeal = {
+      const generatedMeal: any = {
         id: result.meal.id,
         name: result.meal.name,
         description: result.meal.description,
@@ -3704,6 +6644,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: result.meal.imageUrl,
         servingSize: "1 serving"
       };
+
+      // ── Part 5 — Final Consistency Check ─────────────────────────────────
+      // Verify meal name matches diet before sending to client.
+      // Catches anything the AI prompt missed.
+      if (userId) {
+        try {
+          const [aiCreatorUserRow] = await db
+            .select({ dietaryRestrictions: users.dietaryRestrictions })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          const aiCreatorDiet = getPrimaryDiet((aiCreatorUserRow?.dietaryRestrictions as string[]) || []);
+          if (aiCreatorDiet) {
+            const ingNames = (result.meal.ingredients || []).map((ing: any) =>
+              typeof ing === "string" ? ing : ing?.name || ""
+            );
+            const sanitized = sanitizeMealName(generatedMeal.name, aiCreatorDiet, ingNames);
+            if (sanitized !== generatedMeal.name) {
+              console.log(`✏️ [ConsistencyCheck/ai-creator] "${generatedMeal.name}" → "${sanitized}" (${aiCreatorDiet})`);
+              generatedMeal.name = sanitized;
+            }
+          }
+        } catch { }
+      }
 
       console.log("🤖 AI meal creator generated:", generatedMeal.name);
       console.log("📊 Generation source:", result.source);
@@ -3727,20 +6689,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("🔄 Single meal regeneration request:", { targetMealType, userId });
 
+      // Resolve GLP-1 targets before regeneration — same clinical constraints
+      // must apply here as in any other generation surface.
+      let regenGlp1Targets: import("./services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | undefined;
+      try {
+        const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+        const authId = String((req as AuthenticatedRequest).authUser?.id ?? userId ?? "");
+        if (authId) {
+          const mType = (targetMealType === 'breakfast' || targetMealType === 'lunch' || targetMealType === 'dinner' || targetMealType === 'snack') ? targetMealType : 'lunch';
+          const glp1Ctx = await resolveGLP1GlobalContext(authId, new Date().toISOString().split("T")[0], mType);
+          if (glp1Ctx.isActive && glp1Ctx.resolvedTargets) {
+            regenGlp1Targets = glp1Ctx.resolvedTargets;
+          }
+        }
+      } catch (_err) { /* non-fatal */ }
+
       // Use unified pipeline (deterministic: cache → templates → fallback)
       const { generateCravingMealUnified } = await import("./services/unifiedMealPipeline");
       
       const result = await generateCravingMealUnified(
         "something delicious", // Generic craving for regeneration
         targetMealType || "lunch",
-        userId
+        userId,
+        undefined,
+        false,
+        undefined,
+        regenGlp1Targets
       );
       
       if (!result.success || !result.meal) {
         throw new Error("Failed to regenerate meal");
       }
       
-      const generatedMeal = {
+      const generatedMeal: any = {
         id: result.meal.id,
         name: result.meal.name,
         description: result.meal.description,
@@ -3757,6 +6738,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         servingSize: "1 serving"
       };
 
+      // ── Part 5 — Final Consistency Check ─────────────────────────────────
+      if (userId) {
+        try {
+          const [regenUserRow] = await db
+            .select({ dietaryRestrictions: users.dietaryRestrictions })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          const regenDiet = getPrimaryDiet((regenUserRow?.dietaryRestrictions as string[]) || []);
+          if (regenDiet) {
+            const ingNames = (result.meal.ingredients || []).map((ing: any) =>
+              typeof ing === "string" ? ing : ing?.name || ""
+            );
+            const sanitized = sanitizeMealName(generatedMeal.name, regenDiet, ingNames);
+            if (sanitized !== generatedMeal.name) {
+              console.log(`✏️ [ConsistencyCheck/regen] "${generatedMeal.name}" → "${sanitized}" (${regenDiet})`);
+              generatedMeal.name = sanitized;
+            }
+          }
+        } catch { }
+      }
+
       console.log("🔄 Single meal regenerated:", generatedMeal.name);
       console.log("📊 Generation source:", result.source);
 
@@ -3770,7 +6771,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ ok: false, error: error.message });
     }
   });
-
 
 
   app.post("/api/meals/potluck", async (req, res) => {
@@ -4073,12 +7073,12 @@ Provide recommendations in JSON format with the following structure:
 
       // Generate image for the recommendation
       try {
-        const { generateImage } = await import("./services/imageService");
-        const imageUrl = await generateImage({
-          name: recommendation.name,
-          description: recommendation.description || recommendation.name,
-          type: 'beverage'
-        });
+        const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+        const imageUrl = await generateMealImageUnified(
+          recommendation.name,
+          [],
+          'beverage'
+        );
 
         if (imageUrl) {
           recommendation.imageUrl = imageUrl;
@@ -4482,7 +7482,7 @@ function getMealIngredientsDatabase() {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // Convert buffer to file-like object for OpenAI
-      const audioFile = new File([req.file.buffer], 'audio.wav', { type: 'audio/wav' });
+      const audioFile = new File([req.file.buffer as unknown as BlobPart], 'audio.wav', { type: 'audio/wav' });
 
       const transcription = await openai.audio.transcriptions.create({
         file: audioFile,
@@ -4885,7 +7885,7 @@ function getMealIngredientsDatabase() {
         return res.status(400).json({ error: "Missing required fields: userId, localDate, mealSlot, mealName, nutrition" });
       }
 
-      console.log(`🍽️ Adding GLP-1 meal log: ${userId} | ${localDate} | ${mealSlot} | ${mealName}`);
+      console.log(`[GLP-1 meal log] userId=${userId} date=${localDate} slot=${mealSlot}`);
 
       // Use pre-calculated nutrition data from GLP-1 meals
       const calories = Math.round(nutrition.calories * servings);
@@ -5157,7 +8157,7 @@ function getMealIngredientsDatabase() {
       `;
 
       const emailSent = await sendEmail({
-        to: "support@myperfectmeals.com",
+        to: "support@myperfectmeals.ai",
         subject: `Personal Guidance Application from ${trimmedName}`,
         html: emailHtml,
         text: `New Personal Guidance Application\n\nName: ${trimmedName}\nGoal: ${trimmedGoal}\nStruggle: ${trimmedStruggle}\nCommitment: ${commitment ? "Yes" : "No"}\n\nSubmitted at ${new Date().toISOString()}`,
@@ -5425,7 +8425,7 @@ function getMealIngredientsDatabase() {
   app.put("/api/user-meal-prefs/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
-      const validatedData = insertUserMealPrefsSchema.parse({
+      const validatedData: any = insertUserMealPrefsSchema.parse({
         ...req.body,
         userId,
         updatedAt: new Date(),
@@ -5450,6 +8450,38 @@ function getMealIngredientsDatabase() {
     } catch (error) {
       console.error("Error updating user meal preferences:", error);
       res.status(500).json({ error: "Failed to update user preferences" });
+    }
+  });
+
+  // ── Canonical active-protocol state ────────────────────────────────────────
+  // Single endpoint the client reads to decide which protocol badge to show.
+  // Server-resolved: calls resolveGLP1GlobalContext (same resolver used by every
+  // food-generation surface) so the badge always matches what the AI actually
+  // received — not what the client guesses from selectedMealBuilder.
+  app.get("/api/nutrition/active-protocol", requireAuth, async (req, res) => {
+    try {
+      const userId = String((req as any).user?.id ?? "");
+      if (!userId) return res.status(400).json({ error: "Not authenticated" });
+
+      const today = new Date().toISOString().split("T")[0];
+
+      // Resolve GLP-1 state via canonical resolver
+      const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
+      const glp1Ctx = await resolveGLP1GlobalContext(userId, today, "lunch");
+
+      // Performance mode from user profile column
+      const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const performanceActive = !!((dbUser as any)?.performanceModeEnabled);
+
+      return res.json({
+        glp1Active: glp1Ctx.isActive,
+        performanceActive,
+        activationSources: glp1Ctx.activationSources,
+        resolvedTargets: glp1Ctx.isActive ? glp1Ctx.resolvedTargets : null,
+      });
+    } catch (err: any) {
+      console.error("[active-protocol]", err);
+      return res.status(500).json({ error: "Failed to resolve protocol state" });
     }
   });
 
@@ -5599,7 +8631,7 @@ function getMealIngredientsDatabase() {
 
     if (produce.some(item => lowerIngredient.includes(item))) return 'Produce';
     if (protein.some(item => lowerIngredient.includes(item))) return 'Protein';
-    if (!isNonDairy && (dairy.some(item => lowerIngredient.includes(item)) || halfAndHalfRe.test(lowerIngredient))) return 'Dairy';
+    if (!isNonDairy && (dairy.some(item => lowerIngredient.includes(item)) || halfAndHalfRe.test(lowerIngredient))) return 'Dairy & Eggs';
     if (pantry.some(item => lowerIngredient.includes(item))) return 'Pantry';
 
     return 'Other';
@@ -5630,14 +8662,14 @@ function getMealIngredientsDatabase() {
   // Diabetic meal board persistence (simple localStorage-like API)
   const diabeticMealBoards = new Map<string, any>();
 
-  app.get("/api/diabetic-meal-board", (req, res) => {
-    const userId = "default"; // In real app, get from session
+  app.get("/api/diabetic-meal-board", requireAuth, requireEssentialAccess, (req: any, res) => {
+    const userId = req.authUser?.id || "default";
     const saved = diabeticMealBoards.get(userId);
     res.json(saved || { plan: {} });
   });
 
-  app.post("/api/diabetic-meal-board", (req, res) => {
-    const userId = "default"; // In real app, get from session
+  app.post("/api/diabetic-meal-board", requireAuth, requireEssentialAccess, (req: any, res) => {
+    const userId = req.authUser?.id || "default";
     const { plan } = req.body;
     diabeticMealBoards.set(userId, { plan });
     res.json({ success: true });
@@ -5659,9 +8691,15 @@ function getMealIngredientsDatabase() {
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+      // ── Protocol envelope enforcement ─────────────────────────────────────
+      const winePairingEnvelope = userId
+        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
+      const winePairingProtocolBlock = enforceBeforeGenerate(winePairingEnvelope, { generatorName: 'wine_pairing' }).combined;
+
       // Build the prompt for wine pairing
       const prompt = `You are an expert sommelier. Provide 3 wine pairing recommendations for the following meal:
-
+${winePairingProtocolBlock ? `\n${winePairingProtocolBlock}\n` : ""}
 Meal Type: ${mealType}
 ${cuisine ? `Cuisine: ${cuisine}` : ''}
 ${mainIngredient ? `Main Ingredient: ${mainIngredient}` : ''}
@@ -5740,9 +8778,15 @@ Provide recommendations in JSON format with the following structure:
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+      // ── Protocol envelope enforcement ─────────────────────────────────────
+      const bourbonEnvelope = userId
+        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
+      const bourbonProtocolBlock = enforceBeforeGenerate(bourbonEnvelope, { generatorName: 'bourbon_spirits_pairing' }).combined;
+
       // Build the prompt for bourbon/spirits pairing
       const prompt = `You are an expert master distiller and spirits connoisseur. Provide a premium bourbon or spirits pairing recommendation for the following meal:
-
+${bourbonProtocolBlock ? `\n${bourbonProtocolBlock}\n` : ""}
 Meal Type: ${mealType}
 ${cuisine ? `Cuisine: ${cuisine}` : ''}
 ${mainIngredient ? `Main Ingredient: ${mainIngredient}` : ''}
@@ -5817,8 +8861,15 @@ Provide a single BEST recommendation in JSON format with the following structure
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+      // ── Protocol envelope enforcement ─────────────────────────────────────
+      const mealPairingEnvelope = userId
+        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+        : buildGuestEnvelope();
+      const mealPairingProtocolBlock = enforceBeforeGenerate(mealPairingEnvelope, { generatorName: 'meal_pairing' }).combined;
+
       // Build the prompt for meal pairing
       const prompt = `You are an expert chef and sommelier. Create the PERFECT meal recipe that pairs beautifully with this drink:
+${mealPairingProtocolBlock ? `\n${mealPairingProtocolBlock}\n` : ""}
 
 Drink Category: ${drinkType}
 Specific Drink: ${specificDrink}
@@ -5864,6 +8915,17 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
       const result = JSON.parse(completion.choices[0].message.content || '{}');
 
+      // ── Post-gen scan (meal-pairing generates a real recipe with ingredients) ──
+      const mealPairingScan = scanGeneratedOutput(
+        { name: result.mealName, ingredients: result.ingredients, instructions: result.instructions },
+        mealPairingEnvelope,
+        { generatorName: 'meal_pairing' }
+      );
+      if (!mealPairingScan.passed) {
+        console.log(`🚫 [MEAL-PAIRING] Post-gen protocol violation: ${mealPairingScan.message}`);
+        return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: mealPairingScan.message, retryable: true });
+      }
+
       res.json({
         id: `meal-pairing-${Date.now()}`,
         userId,
@@ -5901,6 +8963,19 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     res.json({ eligible: isEligible });
   });
 
+  // Daily Nutrition Prescription — shared resolver for all builders
+  const { default: prescriptionRoutes } = await import("./routes/prescriptionRoutes");
+  app.use("/api/prescription", prescriptionRoutes);
+
+  // Daily Nutrition State — canonical per-date state (prescription + consumed + planned + remaining)
+  // Single authority for every meal builder (#690). Replaces client-side macro calculators.
+  const { default: nutritionStateRoutes } = await import("./routes/nutritionState");
+  app.use("/api/nutrition-state", nutritionStateRoutes);
+
+  // Bug Reports — authenticated in-app diagnostic submission
+  const { default: bugReportsRoutes } = await import("./routes/bugReports");
+  app.use("/api/bug-reports", bugReportsRoutes);
+
   // Mount routes
   app.use("/api", mealPlansRoutes);
   app.use("/api", mealLogsRoutes);
@@ -5919,40 +8994,87 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/glp1", glp1Routes);
 
   // Mount diabetes routes (glucose logging, profile)
-  app.use("/api/diabetes", diabetesRouter);
+  app.use("/api/diabetes", requireAuth, diabetesRouter);
+
+  // Public image serve for companion dog photos — must be before the global requireAuth guard below.
+  // <img src> requests cannot send custom headers, so these are served without auth.
+  // Security: UUIDs are cryptographically unguessable; images are not sensitive PII.
+  app.get("/api/companion/profiles/:profileId/images/:imageId/serve", async (req, res) => {
+    try {
+      const [img] = await db
+        .select({ imageUrl: companionProfileImages.imageUrl })
+        .from(companionProfileImages)
+        .where(eq(companionProfileImages.id, req.params.imageId))
+        .limit(1);
+      if (!img?.imageUrl) return res.status(404).json({ error: "Image not found" });
+      const match = img.imageUrl.match(/^data:([^;]+);base64,(.+)$/s);
+      if (!match) return res.status(422).json({ error: "Invalid image format" });
+      const [, mime, b64] = match;
+      const buf = Buffer.from(b64, "base64");
+      res.set({
+        "Content-Type": mime,
+        "Content-Length": String(buf.length),
+        "Cache-Control": "private, max-age=86400",
+      });
+      return res.end(buf);
+    } catch {
+      return res.status(500).json({ error: "Failed to serve image" });
+    }
+  });
 
   // Mount body composition routes (body fat tracking)
-  app.use("/api", requireAuth, bodyCompositionRoutes);
+  // requireAuth is applied per-route inside bodyComposition.ts — not here.
+  app.use("/api", bodyCompositionRoutes);
 
   // Add meal boards routes
   const mealBoardsRoutes = (await import("./routes/mealBoards")).default;
   app.use("/api", mealBoardsRoutes);
 
   // Pro shared board routes (coach/physician ↔ client board access)
+  // requirePhase2Training: passes non-professionals (clients accessing their own boards)
+  // through unaffected; blocks untrained professionals from reading client data.
   const proBoardRoutes = (await import("./routes/proBoardRoutes")).default;
-  app.use("/api/pro/board", requireAuth, requirePremiumAccess, proBoardRoutes);
+  // requireProCareAccess gates all professional-facing routes on actual ProCare subscription.
+  // Cert completion (requirePhase1Cert / requirePhase2Training) is a separate, layered gate.
+  // Neither gate substitutes for the other — both must pass independently.
+  // Keep training ahead of every broad /api/pro mount. Express runs middleware
+  // on prefix matches even when the mounted router has no matching handler, so
+  // placing this later causes unrelated Studio gates to intercept completion.
+  app.use("/api/pro/training", requireAuth, procareTrainingRouter);
+
+  app.use("/api/pro/board", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
-  app.use("/api/pro", requireAuth, proWeekBoardRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
 
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
-  app.use("/api/pro", requireAuth, proBiometricsRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
 
   const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
-  app.use("/api/pro", requireAuth, proProgramHistoryRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
 
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
-  app.use("/api/pro/workspace", requireAuth, workspaceRoutes);
+  app.use("/api/pro/workspace", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
 
-  app.use("/api/care-team", requireAuth, requirePremiumAccess, careTeamRoutes);
-  app.use("/api/pro", requireAuth, requirePremiumAccess, procareRoutes);
-  app.use("/api/studios", requireAuth, requirePremiumAccess, studioRoutes);
+  // Consumer relationship management is Pro-or-higher. Provider Studio access
+  // remains independently protected by requireProCareAccess on /api/pro and
+  // /api/studios; this mount must not grant professional workspace access.
+  app.use("/api/care-team", requireAuth, requireProAccess, careTeamRoutes);
+  app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
+  // requireAuth is applied per-route inside clinicalInterventionsRouter —
+  // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
+  app.use("/api", clinicalInterventionsRouter);
+  app.use("/api/studios", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
+  const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
+  // requireAuth is applied per-route inside cycleProtocolRoutes —
+  // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
+  app.use("/api", cycleProtocolRoutes);
   const legalRoutes = (await import("./routes/legalRoutes")).default;
   app.use("/api/legal", legalRoutes);
 
@@ -5972,28 +9094,78 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // ── Saved Meals / Favorites ──────────────────────────────────────
   const crypto = await import("crypto");
 
-  function mealSignature(title: string, sourceType: string, macros?: { calories?: number; protein?: number; carbs?: number; fat?: number }): string {
-    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}`;
+  function mealSignature(
+    title: string,
+    sourceType: string,
+    macros?: { calories?: number; protein?: number; carbs?: number; fat?: number },
+    bglBucket?: string
+  ): string {
+    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}|${bglBucket ?? ""}`;
     return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
   }
 
-  app.post("/api/saved-meals/toggle", requireAuth, async (req, res) => {
+  app.post("/api/saved-meals/toggle", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
       const { title, sourceType, mealData } = req.body;
       if (!title || !mealData) return res.status(400).json({ error: "title and mealData required" });
 
+      const diabeticMemory = mealData?.diabeticMemory as {
+        generatedBglMgdl?: number; glucoseContext?: string; protocolTypeLabel?: string; bglBucket?: string;
+      } | undefined;
+
+      // Treat as diabetic-builder meal if sourceType OR builderType signals it.
+      // bglBucket may be absent for users without a recent glucose reading, but the
+      // meal still came from the diabetic builder and must be categorized accordingly.
+      const isDiabeticBuilderMeal =
+        sourceType === "diabetic" ||
+        (mealData?.builderType as string | undefined) === "diabetic";
+
       const macros = mealData.nutrition || { calories: mealData.calories, protein: mealData.protein, carbs: mealData.carbs, fat: mealData.fat };
-      const hash = mealSignature(title, sourceType || "unknown", macros);
+      const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket);
 
       const existing = await db.select().from(savedMealsTable).where(
         and(eq(savedMealsTable.userId, String(userId)), eq(savedMealsTable.signatureHash, hash))
       ).limit(1);
 
       if (existing.length > 0) {
-        await db.delete(savedMealsTable).where(eq(savedMealsTable.id, existing[0].id));
+        const removedId = existing[0].id;
+        // Best-effort: remove translations (non-fatal if table not yet created)
+        try {
+          await db.execute(sql`
+            DELETE FROM meal_translations WHERE saved_meal_id = ${removedId}::uuid
+          `);
+        } catch (txErr: any) {
+          console.warn("[savedMeals/toggle] Translation cleanup skipped:", txErr.message);
+        }
+        await db.delete(savedMealsTable).where(eq(savedMealsTable.id, removedId));
         return res.json({ saved: false, id: null });
+      }
+
+      // ── Canonical media lifecycle gate ───────────────────────────────────
+      // processMealImageForSave routes all images through MediaAssetService:
+      //   • already-permanent → wrapped in media_assets record, passed through
+      //   • base64 / temp URL → uploaded to Object Storage, resized variants created
+      //   • upload failure   → media_assets record with status='failed', imageUrl=null
+      // HARD RULE: base64 is NEVER written to Postgres.
+      let finalMealData: any = { ...mealData };
+      let finalMediaAssetId: string | null = null;
+      try {
+        const imgResult = await processMealImageForSave(mealData.imageUrl, title.trim());
+        if (imgResult.imagePending && !imgResult.imageUrl) {
+          console.warn(
+            `[savedMeals/toggle] Image processing pending/failed for "${title}" — saving with null imageUrl. mediaAssetId: ${imgResult.mediaAssetId}`
+          );
+        }
+        finalMealData = { ...finalMealData, imageUrl: imgResult.imageUrl };
+        finalMediaAssetId = imgResult.mediaAssetId;
+      } catch (imgErr) {
+        console.error(
+          `[savedMeals/toggle] processMealImageForSave threw for "${title}" — saving with null imageUrl. Error:`,
+          imgErr
+        );
+        finalMealData = { ...finalMealData, imageUrl: null };
       }
 
       const [row] = await db.insert(savedMealsTable).values({
@@ -6001,8 +9173,29 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         title: title.trim(),
         sourceType: sourceType || "unknown",
         signatureHash: hash,
-        mealData,
+        mealData: finalMealData,
+        ...(finalMediaAssetId ? { mediaAssetId: finalMediaAssetId } : {}),
+        ...(isDiabeticBuilderMeal ? {
+          savedFromDiabeticBuilder: true,
+          ...(diabeticMemory?.bglBucket ? {
+            generatedBglMgdl: diabeticMemory.generatedBglMgdl ?? null,
+            glucoseContext: diabeticMemory.glucoseContext ?? null,
+            protocolType: diabeticMemory.protocolTypeLabel ?? null,
+            bglBucket: diabeticMemory.bglBucket,
+          } : {}),
+        } : {}),
       }).returning();
+
+      // Phase 3B: emit engagement event — meal saved to favorites
+      emitActivityEvent({
+        ownerUserId: String(userId),
+        eventType: "meal_saved",
+        eventClass: "engagement",
+        sourceFeature: "meal_builder",
+        entityType: "meal",
+        entityId: String(row.id),
+        metadata: { title: title.trim(), sourceType: sourceType || "unknown" },
+      }).catch((err) => console.error("[ActivityEvents]", err.message));
 
       return res.json({ saved: true, id: row.id });
     } catch (error) {
@@ -6011,22 +9204,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
-  app.get("/api/saved-meals", requireAuth, async (req, res) => {
-    try {
-      const userId = (req as AuthenticatedRequest).authUser.id;
-
-      const rows = await db.select().from(savedMealsTable)
-        .where(eq(savedMealsTable.userId, String(userId)))
-        .orderBy(desc(savedMealsTable.createdAt));
-
-      res.json(rows);
-    } catch (error) {
-      console.error("Error listing saved meals:", error);
-      res.status(500).json({ error: "Failed to list saved meals" });
-    }
-  });
-
-  app.get("/api/saved-meals/check", requireAuth, async (req, res) => {
+  // GET /api/saved-meals/check — lightweight key list for "is this meal saved?" checks
+  // MUST be defined BEFORE /:id so Express doesn't treat "check" as a UUID param.
+  app.get("/api/saved-meals/check", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -6041,13 +9221,300 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     }
   });
 
-  app.delete("/api/saved-meals/:id", requireAuth, async (req, res) => {
+  // GET /api/saved-meals/:id — full detail for a single saved meal (expanded view)
+  app.get("/api/saved-meals/:id", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
+      const mealId = req.params.id;
 
-      await db.delete(savedMealsTable).where(
-        and(eq(savedMealsTable.id, req.params.id), eq(savedMealsTable.userId, String(userId)))
-      );
+      const [row] = await db
+        .select({
+          id:                       savedMealsTable.id,
+          userId:                   savedMealsTable.userId,
+          title:                    savedMealsTable.title,
+          sourceType:               savedMealsTable.sourceType,
+          signatureHash:            savedMealsTable.signatureHash,
+          mealData:                 savedMealsTable.mealData,
+          createdAt:                savedMealsTable.createdAt,
+          savedFromDiabeticBuilder: savedMealsTable.savedFromDiabeticBuilder,
+          generatedBglMgdl:         savedMealsTable.generatedBglMgdl,
+          glucoseContext:           savedMealsTable.glucoseContext,
+          protocolType:             savedMealsTable.protocolType,
+          bglBucket:                savedMealsTable.bglBucket,
+          mediaAssetId:             savedMealsTable.mediaAssetId,
+          assetThumbnailUrl:        mediaAssetsTable.thumbnailUrl,
+          assetDisplayUrl:          mediaAssetsTable.displayUrl,
+          assetStatus:              mediaAssetsTable.status,
+        })
+        .from(savedMealsTable)
+        .leftJoin(mediaAssetsTable, eq(savedMealsTable.mediaAssetId, mediaAssetsTable.id))
+        .where(and(eq(savedMealsTable.id, mealId), eq(savedMealsTable.userId, String(userId))))
+        .limit(1);
+
+      if (!row) return res.status(404).json({ error: "Meal not found" });
+
+      const md = row.mealData as any;
+      const legacyImg = (md?.imageUrl as string | undefined) ?? null;
+      const isSafe = legacyImg && !legacyImg.startsWith("data:") && !legacyImg.includes("oaidalleapiprodscus");
+
+      // A canonical asset marked failed has a confirmed delivery problem. Do
+      // not fall back to its stale JSON URL on the next refresh or the browser
+      // will keep attempting the same known-broken object forever.
+      const hasCanonicalAsset = Boolean(row.mediaAssetId);
+      const assetReady = row.assetStatus === "ready";
+      const thumbnailUrl = hasCanonicalAsset
+        ? (assetReady ? row.assetThumbnailUrl : null)
+        : (isSafe ? legacyImg : null);
+      const displayUrl = hasCanonicalAsset
+        ? (assetReady ? row.assetDisplayUrl : null)
+        : (isSafe ? legacyImg : null);
+
+      return res.json({
+        ...row,
+        mealData: { ...md, imageUrl: displayUrl },
+        thumbnailUrl,
+        displayUrl,
+        mediaStatus: row.assetStatus ?? (thumbnailUrl ? "legacy" : "none"),
+      });
+    } catch (error) {
+      console.error("Error fetching saved meal detail:", error);
+      return res.status(500).json({ error: "Failed to fetch meal detail" });
+    }
+  });
+
+  // GET /api/saved-meals — paginated list with canonical media URLs
+  app.get("/api/saved-meals", requireAuth, requireEssentialAccess, async (req, res) => {
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+      const t0 = Date.now();
+
+      // ── Pagination ─────────────────────────────────────────────────────────
+      const page  = Math.max(1, parseInt(String(req.query.page  ?? "1"),  10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "20"), 10) || 20));
+      const offset = (page - 1) * limit;
+
+      // ── Count + paginated rows in parallel ─────────────────────────────────
+      const countPromise = db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(savedMealsTable)
+        .where(eq(savedMealsTable.userId, String(userId)));
+
+      const rowsPromise = db
+        .select({
+          id:                       savedMealsTable.id,
+          userId:                   savedMealsTable.userId,
+          title:                    savedMealsTable.title,
+          sourceType:               savedMealsTable.sourceType,
+          signatureHash:            savedMealsTable.signatureHash,
+          mealData:                 savedMealsTable.mealData,
+          createdAt:                savedMealsTable.createdAt,
+          savedFromDiabeticBuilder: savedMealsTable.savedFromDiabeticBuilder,
+          generatedBglMgdl:         savedMealsTable.generatedBglMgdl,
+          glucoseContext:           savedMealsTable.glucoseContext,
+          protocolType:             savedMealsTable.protocolType,
+          bglBucket:                savedMealsTable.bglBucket,
+          mediaAssetId:             savedMealsTable.mediaAssetId,
+          assetThumbnailUrl:        mediaAssetsTable.thumbnailUrl,
+          assetDisplayUrl:          mediaAssetsTable.displayUrl,
+          assetStatus:              mediaAssetsTable.status,
+        })
+        .from(savedMealsTable)
+        .leftJoin(mediaAssetsTable, eq(savedMealsTable.mediaAssetId, mediaAssetsTable.id))
+        .where(eq(savedMealsTable.userId, String(userId)))
+        .orderBy(desc(savedMealsTable.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      // ── Daily nutrition state (starch-policy annotation, 1-second hard timeout) ──
+      let savedMealDailyState: {
+        starchPolicy: string;
+        starchyBudgetExhausted: boolean;
+        scheduleConfigured: boolean;
+      } | null = null;
+      try {
+        const [userForState] = await db
+          .select({
+            weeklyTrainingSchedule:    (users as any).weeklyTrainingSchedule,
+            performanceProtocolConfig: (users as any).performanceProtocolConfig,
+            dailyCalorieTarget:        users.dailyCalorieTarget,
+            dailyProteinTarget:        users.dailyProteinTarget,
+            dailyCarbsTarget:          users.dailyCarbsTarget,
+            dailyFatTarget:            users.dailyFatTarget,
+            dailyStarchyCarbsTarget:   (users as any).dailyStarchyCarbsTarget,
+            dailyFibrousCarbsTarget:   (users as any).dailyFibrousCarbsTarget,
+            timezone:                  (users as any).timezone,
+          } as any)
+          .from(users)
+          .where(eq(users.id, String(userId)))
+          .limit(1);
+
+        const schedule = (userForState as any)?.weeklyTrainingSchedule;
+        const config   = (userForState as any)?.performanceProtocolConfig;
+        if (schedule && config) {
+          const baseCarbsG = (userForState as any)?.dailyCarbsTarget ?? 200;
+          const rawStarchy = (userForState as any)?.dailyStarchyCarbsTarget ?? null;
+          const rawFibrous = (userForState as any)?.dailyFibrousCarbsTarget ?? null;
+          const stateOrTimeout = await Promise.race<any>([
+            resolveDailyNutritionState({
+              userId:            String(userId),
+              schedule,
+              config,
+              baseline: {
+                calories:      (userForState as any)?.dailyCalorieTarget ?? 2000,
+                proteinG:      (userForState as any)?.dailyProteinTarget ?? 150,
+                carbsG:        baseCarbsG,
+                fatG:          (userForState as any)?.dailyFatTarget ?? 65,
+                starchyCarbsG: rawStarchy !== null ? Number(rawStarchy) : Math.round(baseCarbsG * 0.7),
+                fibrousCarbsG: rawFibrous !== null ? Number(rawFibrous) : Math.round(baseCarbsG * 0.3),
+              },
+              timezone:          ((userForState as any)?.timezone as string | null) ?? "America/Chicago",
+              performanceActive: true,
+            }),
+            new Promise(resolve => setTimeout(() => resolve(null), 1000)),
+          ]);
+          if (stateOrTimeout) {
+            savedMealDailyState = {
+              starchPolicy:           stateOrTimeout.starchPolicy,
+              starchyBudgetExhausted: stateOrTimeout.starchyBudgetExhausted,
+              scheduleConfigured:     stateOrTimeout.scheduleConfigured,
+            };
+          }
+        }
+      } catch {
+        // Non-fatal — saved meals still returned without day-mismatch annotation
+      }
+
+      // ── Resolve paginated rows + total in parallel ─────────────────────────
+      const [[{ count: total }], rows] = await Promise.all([countPromise, rowsPromise]);
+
+      // ── Starch terms for day-mismatch annotation ───────────────────────────
+      const STARCH_SIGNAL_TERMS = [
+        "rice", "pasta", "bread", "potato", "potatoes", "oats", "oatmeal",
+        "corn", "tortilla", "noodle", "noodles", "couscous", "quinoa", "barley",
+        "farro", "wheat", "flour", "bagel", "pita", "roll", "bun",
+        "spaghetti", "penne", "linguine", "fettuccine", "ramen", "udon", "soba",
+        "polenta", "grits", "macaroni", "mashed", "sweet potato", "yam",
+      ];
+      const shouldFlagStarch =
+        savedMealDailyState?.scheduleConfigured &&
+        (savedMealDailyState?.starchPolicy === "zero" || savedMealDailyState?.starchyBudgetExhausted);
+
+      // ── Build canonical response ───────────────────────────────────────────
+      const meals = rows.map((r: any) => {
+        const md = r.mealData as any;
+
+        // Canonical thumbnailUrl hierarchy:
+        //   1. media_assets.thumbnail_url (canonical lifecycle, resized variant)
+        //   2. mealData.imageUrl if first-party permanent (legacy — no lifecycle record yet)
+        //   3. null (base64 and expired DALL-E URLs are blocked here — Step 2 defense-in-depth)
+        const hasCanonicalAsset = Boolean(r.mediaAssetId);
+        const assetReady = r.assetStatus === "ready";
+        let effectiveThumbnailUrl: string | null = hasCanonicalAsset && assetReady
+          ? (r.assetThumbnailUrl ?? null)
+          : null;
+        let effectiveDisplayUrl: string | null = hasCanonicalAsset && assetReady
+          ? (r.assetDisplayUrl ?? null)
+          : null;
+        if (!hasCanonicalAsset && !effectiveThumbnailUrl) {
+          const rawImg = md?.imageUrl as string | undefined;
+          if (rawImg && !rawImg.startsWith("data:") && !rawImg.includes("oaidalleapiprodscus")) {
+            effectiveThumbnailUrl = rawImg;
+            effectiveDisplayUrl   = rawImg;
+          }
+        }
+
+        // Day-mismatch starch check
+        let dayMismatchNote: string | null = null;
+        let dayMismatchPolicy: string | null = null;
+        if (shouldFlagStarch) {
+          const savedStarchyG = Number(md?.starchyCarbs ?? md?.starchyCarbsG ?? 0);
+          let hasStarch = savedStarchyG > 5;
+          if (!hasStarch) {
+            const textToScan = [
+              r.title,
+              md?.description ?? "",
+              ...(Array.isArray(md?.ingredients)
+                ? md.ingredients.map((i: any) =>
+                    typeof i === "string" ? i : (i?.name ?? i?.item ?? "")
+                  )
+                : []),
+            ].join(" ").toLowerCase();
+            hasStarch = STARCH_SIGNAL_TERMS.some(t => textToScan.includes(t));
+          }
+          if (hasStarch) {
+            const policyLabel = savedMealDailyState?.starchyBudgetExhausted
+              ? "today's starchy carb budget is exhausted"
+              : "today is a no-starch day";
+            dayMismatchNote   = `This meal was saved on a different nutrition day. ${policyLabel[0].toUpperCase() + policyLabel.slice(1)} — it may not fit today's strategy.`;
+            dayMismatchPolicy = savedMealDailyState?.starchPolicy ?? null;
+          }
+        }
+
+        // In the list response, mealData.imageUrl is replaced by the canonical
+        // effectiveDisplayUrl so downstream code that reads d?.imageUrl still works.
+        const listMealData = { ...md, imageUrl: effectiveDisplayUrl };
+
+        return {
+          id:                       r.id,
+          userId:                   r.userId,
+          title:                    r.title,
+          sourceType:               r.sourceType,
+          signatureHash:            r.signatureHash,
+          mealData:                 listMealData,
+          createdAt:                r.createdAt,
+          savedAt:                  r.createdAt,
+          savedFromDiabeticBuilder: r.savedFromDiabeticBuilder,
+          generatedBglMgdl:         r.generatedBglMgdl,
+          glucoseContext:           r.glucoseContext,
+          protocolType:             r.protocolType,
+          bglBucket:                r.bglBucket,
+          mediaAssetId:             r.mediaAssetId,
+          thumbnailUrl:             effectiveThumbnailUrl,
+          displayUrl:               effectiveDisplayUrl,
+          mediaStatus:              (r.assetStatus ?? (effectiveThumbnailUrl ? "legacy" : "none")) as string,
+          dayMismatchNote,
+          dayMismatchPolicy,
+        };
+      });
+
+      const hasMore = (total as number) > page * limit;
+      console.log(`[saved-meals] page=${page} limit=${limit} total=${total} hasMore=${hasMore} elapsed=${Date.now() - t0}ms`);
+
+      res.json({ meals, total, page, limit, hasMore });
+    } catch (error) {
+      console.error("Error listing saved meals:", error);
+      res.status(500).json({ error: "Failed to list saved meals" });
+    }
+  });
+
+  app.delete("/api/saved-meals/:id", requireAuth, requireEssentialAccess, async (req, res) => {
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+      const mealId = req.params.id;
+
+      // Verify the meal belongs to this user before deleting
+      const [existing] = await db
+        .select({ id: savedMealsTable.id })
+        .from(savedMealsTable)
+        .where(and(eq(savedMealsTable.id, mealId), eq(savedMealsTable.userId, String(userId))))
+        .limit(1);
+
+      if (!existing) {
+        // Nothing to delete (or not owned by user) — still return success
+        return res.json({ success: true });
+      }
+
+      // Best-effort: remove translations (non-fatal if table not yet created)
+      try {
+        await db.execute(sql`
+          DELETE FROM meal_translations WHERE saved_meal_id = ${mealId}::uuid
+        `);
+      } catch (txErr: any) {
+        console.warn("[savedMeals/delete] Translation cleanup skipped:", txErr.message);
+      }
+
+      // Delete the meal itself
+      await db.delete(savedMealsTable).where(eq(savedMealsTable.id, mealId));
 
       res.json({ success: true });
     } catch (error) {
@@ -6055,6 +9522,228 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       res.status(500).json({ error: "Failed to delete saved meal" });
     }
   });
+
+  // ── Saved-meal translation (content translation layer, not i18n) ───────────
+  // GET  /api/saved-meals/:id/translation?locale=zh
+  //   → Returns cached translation (instant) or generates + caches on first call.
+  //   → 204 when locale is English — no translation needed.
+  //   → 403 if the meal belongs to another user.
+  app.get("/api/saved-meals/:id/translation", requireAuth, requireEssentialAccess, async (req, res) => {
+    const locale = ((req.query.locale as string) || "").split("-")[0].toLowerCase();
+    if (!locale || locale === "en") return res.status(204).send();
+
+    try {
+      const userId = (req as AuthenticatedRequest).authUser.id;
+      const { id } = req.params;
+
+      const [meal] = await db
+        .select({ title: savedMealsTable.title, mealData: savedMealsTable.mealData, userId: savedMealsTable.userId })
+        .from(savedMealsTable)
+        .where(eq(savedMealsTable.id, id))
+        .limit(1);
+
+      if (!meal) return res.status(404).json({ error: "Meal not found" });
+      if (meal.userId !== String(userId)) return res.status(403).json({ error: "Forbidden" });
+
+      const { translateMeal } = await import("./services/mealTranslationService");
+      const translation = await translateMeal(id, locale, meal.title, meal.mealData);
+      return res.json(translation);
+    } catch (err: any) {
+      console.error("[meal-translation] GET error:", err.message);
+      return res.status(500).json({ error: "Translation failed" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // UNIFIED ROUTE BLOCK — all routes from index.ts that were missing from
+  // registerRoutes. Adding them here ensures dev AND prod are always in sync.
+  // ─────────────────────────────────────────────────────────────────────────
+  const { default: mealsRouterShared } = await import("./routes/meals");
+  app.use("/api/meals", mealsRouterShared);
+
+  const { default: getawayRouterShared } = await import("./routes/getaway");
+  app.use("/api/getaway", requireAuth, requireProAccess, getawayRouterShared);
+
+  const { default: myPerfectBeginningRouter } = await import("./routes/my-perfect-beginning");
+  app.use("/api/my-perfect-beginning", requireAuth, myPerfectBeginningRouter);
+
+  const { default: gatheringsRouterShared } = await import("./routes/gatherings");
+  app.use("/api/gatherings", requireAuth, requireProAccess, gatheringsRouterShared);
+
+  // ⚠️ LEGACY router — mounts /api/craving-creator/{generate,log,...}.
+  // No active client page calls these paths; all UI uses /api/meals/craving-creator.
+  // Does NOT implement the dietOverride replacement contract (uses profile diet only).
+  // Guarded by requireAuth + requireProAccess. Keep until WMC2 adapter is retired.
+  const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
+  app.use("/api/craving-creator", requireAuth, requireProAccess, cravingCreatorRouterShared);
+
+  const { default: breakfastRouterShared } = await import("./routes/breakfast");
+  app.use("/api/breakfast", breakfastRouterShared);
+
+  const { default: lunchRouterShared } = await import("./routes/lunch");
+  app.use("/api/lunch", lunchRouterShared);
+
+  const { default: dinnerRouterShared } = await import("./routes/dinner");
+  app.use("/api/dinner", dinnerRouterShared);
+
+  const { default: snacksRouterShared } = await import("./routes/snacks");
+  app.use("/api/snacks", snacksRouterShared);
+
+  const { default: gamesRouterShared } = await import("./routes/games");
+  app.use("/api/games", gamesRouterShared);
+
+  const { testimonialsRouter: testimonialsRouterShared } = await import("./routes/testimonials");
+  app.use("/api/testimonials", testimonialsRouterShared);
+
+  const { default: fitlifeRouterShared } = await import("./routes/fitlife");
+  app.use("/api/fitlife", fitlifeRouterShared);
+
+  const { default: mybestlifeRouterShared } = await import("./routes/mybestlife");
+  app.use("/api/my-best-life", mybestlifeRouterShared);
+
+  const { constraintsRouter: constraintsRouterShared } = await import("./routes/mealEngineConstraints");
+  app.use("/api/meal-engine", constraintsRouterShared);
+
+  const { generationRouter: generationRouterShared } = await import("./routes/generation");
+  app.use("/api/generation", generationRouterShared);
+
+  const { default: triviaRouterShared } = await import("./routes/trivia");
+  app.use("/api/trivia", triviaRouterShared);
+
+  const { default: challengeRoutesShared } = await import("./routes/challenges");
+  app.use("/api/challenges", challengeRoutesShared);
+
+  const { templateRouter: templateRouterShared } = await import("./routes/mealTemplates");
+  app.use("/api/meal-templates", templateRouterShared);
+
+  const { default: chefPairingsRouterShared } = await import("./routes/chef-pairings");
+  app.use("/api/ai/chef-pairings", requireAuth, requireProAccess, chefPairingsRouterShared);
+
+  const { default: studioGeneratorRouterShared } = await import("./routes/studioGenerator");
+  app.use("/api/studio", requireAuth, requireProAccess, studioGeneratorRouterShared);
+
+  const { default: dessertCreatorRouterShared } = await import("./routes/dessert-creator");
+  app.use("/api/meals/dessert-creator", requireAuth, requireProAccess, dessertCreatorRouterShared);
+
+  const { default: beverageCreatorRouterShared } = await import("./routes/beverage-creator");
+  app.use("/api/meals/beverage-creator", requireAuth, requireProAccess, beverageCreatorRouterShared);
+
+  const { default: foodLogsRouterShared } = await import("./routes/foodLogs");
+  app.use("/api", foodLogsRouterShared);
+
+  const { default: alcoholRouterShared } = await import("./routes/alcohol");
+  app.use("/api", alcoholRouterShared);
+
+  const { default: glycemicRouterShared } = await import("./routes/glycemic");
+  app.use("/api", glycemicRouterShared);
+
+  const { default: mealSummarizeRouterShared } = await import("./routes/mealSummarize");
+  app.use("/api", mealSummarizeRouterShared);
+
+  const { default: shoppingListRouterShared } = await import("./routes/shoppingList");
+  app.use("/api", shoppingListRouterShared);
+
+  const { shoppingPreviewRouter: shoppingPreviewRouterShared, shoppingRouter: shoppingRouterShared } = await import("./routes/shoppingListV2");
+  app.use("/api/shopping-list-v2", shoppingPreviewRouterShared);
+  app.use("/api/shopping-list-v2", shoppingRouterShared);
+
+  const { default: waterLogsRouterShared } = await import("./routes/waterLogs");
+  app.use("/api", waterLogsRouterShared);
+
+  const { default: hydrationRouterShared } = await import("./routes/hydration");
+  app.use("/api", hydrationRouterShared);
+
+  const { default: wmc2LogRouterShared } = await import("./routes/wmc2Log");
+  app.use("/api", wmc2LogRouterShared);
+
+  const { default: wmc2TelemetryRouterShared } = await import("./routes/wmc2Telemetry");
+  app.use("/api", wmc2TelemetryRouterShared);
+
+  const { default: wmc2EnhancedRouterShared } = await import("./routes/wmc2Enhanced");
+  app.use("/api", wmc2EnhancedRouterShared);
+
+  const { default: mealEngineRouterShared } = await import("./routes/mealEngine.routes");
+  app.use("/api", mealEngineRouterShared);
+
+  const { default: weeklyPlanRoutesShared } = await import("./routes/weeklyPlan.routes");
+  app.use("/api", weeklyPlanRoutesShared);
+
+  const { default: mealScheduleRouterShared } = await import("./routes/mealSchedule");
+  app.use("/api", mealScheduleRouterShared);
+
+  const { default: notifyRouterShared } = await import("./routes/notify");
+  app.use("/api", notifyRouterShared);
+
+  const { default: notifyAckRouterShared } = await import("./routes/notifyAck");
+  app.use("/api", notifyAckRouterShared);
+
+  const { default: timePresetsRouterShared } = await import("./routes/timePresets");
+  app.use("/api", timePresetsRouterShared);
+
+  const { default: notifyRegisterRouterShared } = await import("./routes/notify.register");
+  app.use("/api", notifyRegisterRouterShared);
+
+  const { default: notifyTestRouterShared } = await import("./routes/notify.test");
+  app.use("/api", notifyTestRouterShared);
+
+  const { default: quickTestRouterShared } = await import("./routes/notify.quicktest");
+  app.use("/api", quickTestRouterShared);
+
+  const { default: quickTestEnhancedRouterShared } = await import("./routes/notify.quicktest.enhanced");
+  app.use("/api", quickTestEnhancedRouterShared);
+
+  const { default: adherenceRouterShared } = await import("./routes/adherence");
+  app.use("/api", adherenceRouterShared);
+
+  const { default: notifyExtrasRouterShared } = await import("./routes/notifyExtras");
+  app.use("/api", notifyExtrasRouterShared);
+
+  const { default: cookingTutorialsRouterShared } = await import("./routes/cookingTutorials.routes");
+  app.use("/api", cookingTutorialsRouterShared);
+
+  const { default: preferencesRouterShared } = await import("./routes/preferences");
+  app.use("/api", preferencesRouterShared);
+
+  const { userMealPrefsRouter: userMealPrefsRouterShared } = await import("./routes/userMealPrefs");
+  app.use("/api/user-prefs/meals", userMealPrefsRouterShared);
+
+  const { default: manualMacrosRouterShared } = await import("./routes/manualMacros");
+  app.use("/api", manualMacrosRouterShared);
+
+  const { default: patternAlertsRouter } = await import("./routes/patternAlerts");
+  app.use("/api", patternAlertsRouter);
+
+  const { default: clinicalLabsRouterShared } = await import("./routes/clinicalLabs");
+  const { requireClinicalLabsAccess } = await import("./middleware/requireClinicalLabsAccess");
+  app.use("/api/biometrics/labs", requireAuth, requireClinicalLabsAccess, clinicalLabsRouterShared);
+
+  const { default: translateRouterShared } = await import("./routes/translate");
+  app.use("/api/translate", requireAuth, requireActiveAccess, translateRouterShared);
+
+  const { default: restaurantRoutesShared, debugRouter: restaurantDebugRouterShared } = await import("./routes/restaurants");
+  const { resolveCuisineMiddleware: resolveCuisineShared } = await import("./middleware/resolveCuisineMiddleware");
+  // Dev-only debug endpoint: mounted before requireProAccess so any authenticated
+  // user (no paid plan required) can query provider provenance in development.
+  app.use("/api/restaurants/debug", requireAuth, restaurantDebugRouterShared);
+  app.use("/api/restaurants", requireAuth, requireProAccess, resolveCuisineShared, restaurantRoutesShared);
+
+  const { default: buffetRouterShared } = await import("./routes/buffet");
+  app.use("/api/buffet", requireAuth, buffetRouterShared);
+
+  const { default: mealPlanRoutesV1Shared } = await import("./routes/mealPlans.routes");
+  app.use("/api/meal-plan", mealPlanRoutesV1Shared);
+  app.use("/api/meal-plans", mealPlanRoutesV1Shared);
+
+  const { default: abTestingMealPlansRouterShared } = await import("./routes/mealPlans");
+  app.use(abTestingMealPlansRouterShared);
+
+  // Check-in schedules
+  const { default: checkInSchedulesRouter } = await import("./routes/checkInSchedules");
+  app.use("/api/check-in-schedules", checkInSchedulesRouter);
+
+  // Companion Nutrition Intelligence (My Perfect Pets)
+  const { default: companionNutritionRouter } = await import("./routes/companion-nutrition");
+  app.use("/api/companion", companionNutritionRouter);
 
   const CRITICAL_ROUTES = [
     "/api/biometrics",
@@ -6074,7 +9763,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   console.log("📋 [ROUTE AUDIT] Critical route parity check:");
   for (const route of CRITICAL_ROUTES) {
     const found = stack.some((layer: any) => {
-      if (layer.route?.path && (layer.route.path === route || layer.route.path.startsWith(route + "/"))) return true;
+      if (layer.route?.path && typeof layer.route.path === "string" && (layer.route.path === route || layer.route.path.startsWith(route + "/"))) return true;
       if (layer.name === "router" && layer.regexp) {
         const src = layer.regexp.source;
         const routeEscaped = route.replace(/\//g, "\\/");

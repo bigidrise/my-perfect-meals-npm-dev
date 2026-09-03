@@ -1,6 +1,8 @@
 import { Router } from "express";
 import OpenAI from "openai";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -17,12 +19,12 @@ const chefPairingsRouter = Router();
 
 chefPairingsRouter.post("/", async (req, res) => {
   try {
+    const userId = getAuthUserId(req);
     const {
       foodItem,
       cuisine,
       occasion,
       priceRange,
-      userId,
       safetyMode,
       overrideToken,
     } = req.body ?? {};
@@ -36,9 +38,10 @@ chefPairingsRouter.post("/", async (req, res) => {
       const safetyCheck = await enforceSafetyProfile(userId, inputText, "chef-pairings", {
         safetyMode: safetyMode || "STRICT",
         overrideToken: overrideToken,
+        correlationId: (req as any).id,
       });
       if (safetyCheck.result === "BLOCKED") {
-        console.log(`[CHEF-PAIRINGS] Blocked for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+        console.log(`[CHEF-PAIRINGS] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
         return res.status(400).json({
           success: false,
           error: safetyCheck.message,
@@ -58,8 +61,14 @@ chefPairingsRouter.post("/", async (req, res) => {
       }
     }
 
-    const prompt = `You are an expert sommelier, beer cicerone, and master distiller. Provide food and drink pairing recommendations for the following food item.
+    // ── Protocol envelope: enforce dietary identity before generation ──────────
+    const chefPairingsEnvelope = userId
+      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      : buildGuestEnvelope();
+    const chefPairingsProtocolBlock = enforceBeforeGenerate(chefPairingsEnvelope, { generatorName: 'chef_pairings' }).combined;
 
+    const prompt = `You are an expert sommelier, beer cicerone, and master distiller. Provide food and drink pairing recommendations for the following food item.
+${chefPairingsProtocolBlock ? `\n${chefPairingsProtocolBlock}\n` : ""}
 Food Item: ${foodItem}
 ${cuisine ? `Cuisine: ${cuisine}` : ""}
 ${occasion ? `Occasion: ${occasion}` : ""}

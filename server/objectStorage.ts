@@ -1,6 +1,8 @@
 // server/objectStorage.ts
 // Replit Object Storage integration for permanent file storage
 import { Storage, File } from "@google-cloud/storage";
+import { Client as ReplitStorageClient } from "@replit/object-storage";
+import type { Readable } from "stream";
 import { Response } from "express";
 import { randomUUID } from "crypto";
 import {
@@ -10,6 +12,10 @@ import {
   getObjectAclPolicy,
   setObjectAclPolicy,
 } from "./objectAcl";
+import {
+  getActiveMealImageBucket,
+  resolveMealImageReadBucket,
+} from "./services/mealImageBucket";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
@@ -40,26 +46,111 @@ export class ObjectNotFoundError extends Error {
   }
 }
 
+// Storage backend unavailable / errored (retryable) — distinct from a missing object.
+export class StorageUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StorageUnavailableError";
+    Object.setPrototypeOf(this, StorageUnavailableError.prototype);
+  }
+}
+
+// ── Replit Object Storage clients (same SDK as the write path) ────────────────
+// One client per bucket ID; a bucketId of "" means the default (active) bucket.
+const replitClients = new Map<string, ReplitStorageClient>();
+function getReplitClient(bucketId?: string): ReplitStorageClient {
+  const key = bucketId || "";
+  let client = replitClients.get(key);
+  if (!client) {
+    client = bucketId ? new ReplitStorageClient({ bucketId }) : new ReplitStorageClient();
+    replitClients.set(key, client);
+  }
+  return client;
+}
+
+/**
+ * Probe object storage directly via the Replit SDK — no HTTP request, no SSRF risk.
+ * Self-provisioning: writes a small canary object then reads it back to verify both
+ * upload and download paths work. No pre-existing object state is required.
+ * Returns { ok: true } on success, { ok: false, error: "<safe message>" } on failure.
+ * Error strings are intentionally generic: do not expose SDK internals to callers.
+ */
+export async function probeStorageCanary(
+  bucketId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const CANARY_KEY = "health-probe/canary.txt";
+  try {
+    const client = getReplitClient(bucketId);
+    // Write — proves the upload path (credentials, bucket access) works.
+    const writeResult = await client.uploadFromText(CANARY_KEY, "ok");
+    if (!writeResult.ok) {
+      return { ok: false, error: "storage write probe failed" };
+    }
+    // Read-back — proves the download path works independently of the write.
+    const readResult = await client.exists(CANARY_KEY);
+    if (!readResult.ok) {
+      return { ok: false, error: "storage read probe failed" };
+    }
+    return readResult.value
+      ? { ok: true }
+      : { ok: false, error: "canary write succeeded but object not found on read-back" };
+  } catch {
+    return { ok: false, error: "storage probe threw an exception" };
+  }
+}
+const CONTENT_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  avif: "image/avif",
+};
+
+export function inferContentType(objectName: string): string {
+  const ext = objectName.split(".").pop()?.toLowerCase() || "";
+  return CONTENT_TYPES[ext] || "application/octet-stream";
+}
+
 // The object storage service is used to interact with the object storage service.
 export class ObjectStorageService {
   constructor() {}
 
   // Gets the public object search paths.
+  // Remaps legacy production paths only when running in production,
+  // and falls back to the active bucket when the env var is missing or invalid.
   getPublicObjectSearchPaths(): Array<string> {
+    const activeBucketId = getActiveMealImageBucket();
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
-    const paths = Array.from(
-      new Set(
-        pathsStr
-          .split(",")
-          .map((path) => path.trim())
-          .filter((path) => path.length > 0)
-      )
-    );
+    const raw = pathsStr
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+       .map((p) => {
+         const slashIndex = p.indexOf("/", 1);
+         const rawBucketId = (slashIndex === -1 ? p : p.slice(0, slashIndex))
+           .replace(/^\//, "");
+         return p.replace(rawBucketId, resolveMealImageReadBucket(rawBucketId));
+       })
+      // Drop any entry whose first path segment is not a Replit Object Storage
+      // bucket ID (format: replit-objstore-<uuid>).  A leading "/" is stripped
+      // first so both "/replit-objstore-…" and "replit-objstore-…" forms pass.
+      .filter((p) => {
+        const firstSegment = p.replace(/^\//, "").split("/")[0];
+        return firstSegment.startsWith("replit-objstore-");
+      });
+
+    const paths = Array.from(new Set(raw));
+
+    // If no valid paths remain (env var unset, empty, or contained only invalid
+    // values such as accidentally-entered passwords), fall back to the active bucket.
     if (paths.length === 0) {
-      throw new Error(
-        "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
-          "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths)."
+      console.warn(
+        "[objectStorage] PUBLIC_OBJECT_SEARCH_PATHS missing or invalid — " +
+          `falling back to active bucket: ${activeBucketId}/public`
       );
+      return [`/${activeBucketId}/public`];
     }
     return paths;
   }
@@ -94,6 +185,75 @@ export class ObjectStorageService {
     }
 
     return null;
+  }
+
+  // Resolves a /public-objects/* file path to { bucketId, objectName }.
+  // Supports both new-format paths (bucket ID embedded: replit-objstore-<uuid>/...)
+  // and legacy paths (searched across PUBLIC_OBJECT_SEARCH_PATHS).
+  // Returns null when the object does not exist; throws StorageUnavailableError
+  // when the storage backend cannot be reached.
+  async resolvePublicObjectPath(
+    filePath: string,
+  ): Promise<{ bucketId: string | undefined; objectName: string } | null> {
+    // New-format: bucket ID embedded directly in the path.
+     // Repoint only explicitly retired bucket IDs. Unknown embedded buckets are
+     // intentionally preserved rather than silently reading a different object.
+    if (filePath.startsWith("replit-objstore-")) {
+      const slashIdx = filePath.indexOf("/");
+      if (slashIdx === -1) return null;
+      const rawBucketId = filePath.slice(0, slashIdx);
+       const bucketId = resolveMealImageReadBucket(rawBucketId);
+      const objectName = filePath.slice(slashIdx + 1);
+      const existsResult = await getReplitClient(bucketId).exists(objectName);
+      if (!existsResult.ok) {
+        throw new StorageUnavailableError(
+          `Object storage exists() failed: ${existsResult.error?.message ?? "unknown error"}`,
+        );
+      }
+      return existsResult.value ? { bucketId, objectName } : null;
+    }
+
+    // Legacy-format: search across PUBLIC_OBJECT_SEARCH_PATHS buckets.
+    // A single bucket erroring must not abort the search of the other paths;
+    // only surface a storage error if nothing was found AND an error occurred.
+    let firstError: string | null = null;
+    for (const searchPath of this.getPublicObjectSearchPaths()) {
+      const fullPath = `${searchPath}/${filePath}`;
+      const { bucketName, objectName } = parseObjectPath(fullPath);
+      const existsResult = await getReplitClient(bucketName).exists(objectName);
+      if (!existsResult.ok) {
+        firstError ??= existsResult.error?.message ?? "unknown error";
+        continue;
+      }
+      if (existsResult.value) {
+        return { bucketId: bucketName, objectName };
+      }
+    }
+    if (firstError) {
+      throw new StorageUnavailableError(`Object storage exists() failed: ${firstError}`);
+    }
+    return null;
+  }
+
+  // Opens a Readable stream for the given object path using the Replit SDK
+  // (same SDK as the write path). objectPath format: "<bucketId>/<objectName>"
+  // or a bare objectName for the default bucket. Errors are emitted on the stream.
+  downloadAsStream(objectPath: string): Readable {
+    if (objectPath.startsWith("replit-objstore-")) {
+      const slashIdx = objectPath.indexOf("/");
+      if (slashIdx !== -1) {
+        const rawBucketId = objectPath.slice(0, slashIdx);
+         const bucketId = resolveMealImageReadBucket(rawBucketId);
+        const objectName = objectPath.slice(slashIdx + 1);
+        return getReplitClient(bucketId).downloadAsStream(objectName);
+      }
+    }
+    return getReplitClient().downloadAsStream(objectPath);
+  }
+
+  // Streams a resolved object (from resolvePublicObjectPath) directly.
+  streamResolvedObject(bucketId: string | undefined, objectName: string): Readable {
+    return getReplitClient(bucketId).downloadAsStream(objectName);
   }
 
   // Downloads an object to the response.

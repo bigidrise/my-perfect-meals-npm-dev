@@ -4,7 +4,8 @@ import WelcomeGate from "./WelcomeGate";
 import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
-import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
+import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import AppLayout from "@/layout/AppLayout";
 
 interface AppRouterProps {
@@ -34,7 +35,11 @@ function hasMacroProfile(user: any): boolean {
 }
 
 function isProfessional(user: any): boolean {
-  return user?.professionalRole === "trainer" || user?.professionalRole === "physician";
+  return (
+    user?.professionalRole === "trainer" ||
+    user?.professionalRole === "physician" ||
+    user?.professionalRole === "business"
+  );
 }
 
 export default function AppRouter({ children }: AppRouterProps) {
@@ -49,6 +54,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       "/onboarding",
       "/forgot-password",
       "/reset-password",
+      "/pilot/activate",
       "/checkout-success",
       "/pricing",
       "/paywall",
@@ -99,8 +105,13 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/affiliates", "/founders", "/procare-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info"];
-    const isPublicRoute = publicRoutes.some(route => location === route || location.startsWith(route + "/"));
+    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m",
+      // Dev-only: responsive modal bounds test harness (never deployed in production)
+      ...(import.meta.env.DEV ? ["/test-modal-bounds"] : []),
+    ];
+    const isPublicRoute =
+      isExactPublicMarketingRoute(location) ||
+      publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
     if (loading && isAuthenticated && !isPublicRoute) {
       return;
@@ -113,10 +124,13 @@ export default function AppRouter({ children }: AppRouterProps) {
     }
 
     const inProWorkspace = isInProfessionalWorkspace(location) || localStorage.getItem("mpm_active_space") === "workspace";
+    // Business and professional users have their own onboarding paths — never show them the consumer WelcomeGate
+    const isBusinessOrPro = user ? isProfessional(user) : false;
     if (
       isAuthenticated &&
       !isPublicRoute &&
       !inProWorkspace &&
+      !isBusinessOrPro &&
       !isAppleReviewMode &&
       !welcomeGateDoneThisSession &&
       !skipWelcomeGate &&
@@ -139,6 +153,12 @@ export default function AppRouter({ children }: AppRouterProps) {
 
       if (needsOnboarding === true) {
         setLocation("/onboarding");
+        return;
+      }
+
+      // Business accounts always land in Business Center — browsing is free, actions require Pro
+      if (user?.professionalRole === "business") {
+        setLocation("/business-center");
         return;
       }
 

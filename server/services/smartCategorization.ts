@@ -12,6 +12,62 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
+export interface IngredientAnalysis {
+  category: string;
+  subCategory: string;
+  dietaryFlags: string[];
+  allergenWarnings: string[];
+  nutritionProfile: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number;
+  };
+  cookingTips: string[];
+  sustainabilityScore: number;
+  seasonality: string[];
+  storageAdvice: string;
+}
+
+class SmartCategorizationEngine {
+  private cache: Map<string, IngredientAnalysis> = new Map();
+
+  async categorize(item: string): Promise<IngredientAnalysis> {
+    return this.analyzeIngredient(item);
+  }
+
+  async analyzeIngredient(item: string): Promise<IngredientAnalysis> {
+    const cached = this.cache.get(item.toLowerCase());
+    if (cached) return cached;
+
+    try {
+      const response = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert ingredient analyst. For any ingredient, provide a comprehensive analysis including:
+            - category (Produce, Meats, Seafood, Dairy, Grains, Pantry, Frozen, Beverages, Other)
+            - subCategory (specific type)
+            - dietaryFlags (vegan, vegetarian, gluten-free, etc.)
+            - allergenWarnings (nuts, dairy, gluten, etc.)
+            - nutritionProfile (calories, protein, carbs, fat, fiber per 100g)
+            - cookingTips (2-3 practical tips)
+            - sustainabilityScore (1-10)
+            - seasonality (months when in season)
+            - storageAdvice (brief storage tip)
+            Respond in JSON format.`
+          },
+          {
+            role: "user",
+            content: `Analyze this ingredient: "${item}"`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2
+      });
+
       const analysis: IngredientAnalysis = JSON.parse(response.choices[0].message.content || '{}');
       
       // Validate and set defaults

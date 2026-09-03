@@ -126,7 +126,7 @@ export const VoiceControlButton = () => {
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Mic className={`w-6 h-6 text-green-500 ${isListening ? 'animate-pulse' : ''}`} />
+                <Mic className={`w-6 h-6 text-green-500 ${isListening ? 'animate-pulse pulse-keep' : ''}`} />
                 <div>
                   <h4 className="font-bold text-green-600">Voice Active</h4>
                   <p className="text-xs text-gray-600">Say "Hey Chef"</p>

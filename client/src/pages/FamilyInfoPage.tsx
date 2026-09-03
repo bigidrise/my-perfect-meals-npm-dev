@@ -5,10 +5,10 @@ import { ArrowLeft, Check } from "lucide-react";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 const FAMILY_BULLETS = [
-  "Individual profiles for each family member",
-  "Personalized nutrition guidance",
-  "Family friendly organization",
-  "One system for the whole household",
+  "Personalized profiles for up to 4 household members",
+  "Shared weekly meal planning and smart shopping lists",
+  "Individual macro tracking and dietary preferences per profile",
+  "Family-friendly meal generation with parental controls",
 ];
 
 export default function FamilyInfoPage() {
@@ -34,7 +34,7 @@ export default function FamilyInfoPage() {
               <ArrowLeft className="h-4 w-4" />
               <span className="text-xs font-medium">Back</span>
             </Button>
-            <h1 className="text-lg font-bold text-white">Family Plan</h1>
+            <h1 className="text-lg font-bold text-white">Family Plans</h1>
           </div>
         </div>
       </MobileHeaderGuard>
@@ -49,12 +49,12 @@ export default function FamilyInfoPage() {
           className="w-full rounded-2xl mb-6 shadow-xl"
         />
 
-        <h2 className="text-2xl font-bold mb-2">Family Plan</h2>
+        <h2 className="text-2xl font-bold mb-2">Family Plans</h2>
 
         <p className="text-white/70 text-sm leading-relaxed mb-6">
-          Healthy eating is easier when the whole household is on the same
-          system. The My Perfect Meals Family Plan gives each member their own
-          personalized experience.
+          Every household is different. My Perfect Meals Family Plans give each
+          person their own personalized nutrition profile while keeping the
+          whole household coordinated around shared meal planning and wellness.
         </p>
 
         <div className="bg-black/40 backdrop-blur-lg border border-white/15 rounded-xl p-5 mb-8">

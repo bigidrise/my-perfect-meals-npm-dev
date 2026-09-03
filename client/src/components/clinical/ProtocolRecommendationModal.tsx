@@ -1,11 +1,6 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FlaskConical, ShieldCheck, BookOpen } from "lucide-react";
@@ -17,18 +12,24 @@ import type { LabProtocolSignal } from "@shared/clinical/protocolDecision";
 // Citation map — protocol → authoritative guideline reference
 // ---------------------------------------------------------------------------
 const CITATIONS: Record<string, string> = {
-  "kidney-disease": "KDIGO / NKF Clinical Practice Guidelines",
-  "heart-failure": "ACC / AHA Heart Failure Guidelines",
-  "liver-support": "AASLD / NIH Nutritional Support Guidelines",
-  "liver-disease": "AASLD / EASL Liver Disease Guidelines",
+  "kidney-disease":       "KDIGO / NKF Clinical Practice Guidelines",
+  "heart-failure":        "ACC / AHA Heart Failure Guidelines",
+  "liver-support":        "AASLD / NIH Nutritional Support Guidelines",
+  "liver-disease":        "AASLD / EASL Liver Disease Guidelines",
+  "metabolic-support":    "ADA Standards of Medical Care in Diabetes; AHA Metabolic Risk",
+  "inflammation-support": "AHA / CDC Joint hsCRP Scientific Statement",
+  "metabolic-stress":     "Endocrine Society Clinical Practice Guidelines",
 };
 
 // Protocol → human-readable title
 const PROTOCOL_TITLE: Record<string, string> = {
-  "kidney-disease": "Kidney Support Nutrition Protocol",
-  "heart-failure": "Cardiac Health Nutrition Protocol",
-  "liver-support": "Liver Support Nutrition Protocol",
-  "liver-disease": "Liver Disease Nutrition Protocol",
+  "kidney-disease":       "Kidney Support Nutrition Protocol",
+  "heart-failure":        "Cardiac Health Nutrition Protocol",
+  "liver-support":        "Liver Support Nutrition Protocol",
+  "liver-disease":        "Liver Disease Nutrition Protocol",
+  "metabolic-support":    "Metabolic Support Nutrition Protocol",
+  "inflammation-support": "Inflammation Support Nutrition Protocol",
+  "metabolic-stress":     "Metabolic Stress Support Protocol",
 };
 
 // Confidence → colour classes
@@ -41,15 +42,23 @@ const CONFIDENCE_COLOR: Record<string, string> = {
 // Trigger field → readable label
 function labelTrigger(field: string): string {
   const map: Record<string, string> = {
-    alt: "ALT (liver enzyme)",
-    ast: "AST (liver enzyme)",
-    bilirubin: "Bilirubin",
-    albumin: "Albumin",
-    creatinine: "Creatinine",
-    bun: "BUN",
-    ldl: "LDL cholesterol",
+    alt:                     "ALT (liver enzyme)",
+    ast:                     "AST (liver enzyme)",
+    bilirubin:               "Bilirubin",
+    albumin:                 "Albumin",
+    creatinine:              "Creatinine",
+    bun:                     "BUN",
+    ldl:                     "LDL cholesterol",
     blood_pressure_systolic: "Systolic blood pressure",
-    ejection_fraction: "Ejection fraction",
+    ejection_fraction:       "Ejection fraction",
+    // Phase 4
+    a1c:                     "A1C",
+    glucose:                 "Fasting glucose",
+    fasting_insulin:         "Fasting insulin",
+    triglycerides:           "Triglycerides",
+    tg_hdl_ratio:            "TG/HDL ratio",
+    crp:                     "CRP (C-Reactive Protein)",
+    cortisol:                "Cortisol",
   };
   return map[field] ?? field;
 }
@@ -137,13 +146,14 @@ export default function ProtocolRecommendationModal({
   }
 
   return (
-    <Dialog
+    <UniversalDialog
+      rawLayout
       open={open}
       onOpenChange={(v) => {
         if (!v && !busy) onClose();
       }}
+      className="bg-[#0d1117] border-white/10 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl"
     >
-      <DialogContent className="bg-[#0d1117] border border-white/10 text-white max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl">
         {/* Header band */}
         <div className="bg-gradient-to-r from-cyan-900/60 to-teal-900/60 px-6 pt-6 pb-4 border-b border-white/10">
           <DialogHeader>
@@ -240,7 +250,7 @@ export default function ProtocolRecommendationModal({
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                Keep Current Plan
+                Stay the Same
               </Button>
               <Button
                 className="flex-1 bg-cyan-700 hover:bg-cyan-600 text-white font-semibold"
@@ -250,12 +260,11 @@ export default function ProtocolRecommendationModal({
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                Use Recommended Plan
+                Activate {PROTOCOL_TITLE[signal.protocol]?.replace(" Nutrition Protocol", "") ?? signal.protocol}
               </Button>
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
   );
 }

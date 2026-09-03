@@ -108,7 +108,7 @@ function validateMacros(meal: StrictMeal, ob: any, slotsPerDay = 3): string | nu
   const perMeal = kcalTarget / slotsPerDay;
   const floor = perMeal * 0.9; 
   const ceil = perMeal * 1.1;
-  const cal = meal.calories ?? estimateMacros(meal.ingredients)?.kcal ?? null;
+  const cal = meal.calories ?? estimateMacros(meal.ingredients as any)?.kcal ?? null;
   
   if (cal == null) return null; // we can't assert without data
   if (cal < floor) return `kcal_low:${cal} < ${Math.round(floor)}`;
@@ -116,7 +116,7 @@ function validateMacros(meal: StrictMeal, ob: any, slotsPerDay = 3): string | nu
   
   // Optional protein floor
   if (ob?.proteinPerMeal) {
-    const p = meal.protein ?? estimateMacros(meal.ingredients)?.protein ?? null;
+    const p = (meal as any).protein ?? estimateMacros(meal.ingredients as any)?.protein ?? null;
     if (p != null && p < Number(ob.proteinPerMeal)) {
       return `protein_low:${p} < ${ob.proteinPerMeal}`;
     }

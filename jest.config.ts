@@ -3,28 +3,39 @@ import type { Config } from "jest";
 const config: Config = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/server/tests"],
+  roots: ["<rootDir>/server/tests", "<rootDir>/client/src/lib/__tests__", "<rootDir>/tests"],
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   moduleNameMapper: {
+    // Sentry uses `import.meta.env` which Jest cannot parse; redirect all
+    // suites to a no-op stub so they don't fail on transitive imports.
+    "^@/lib/sentry$": "<rootDir>/client/src/lib/__mocks__/sentry.ts",
     "^@/(.*)$": "<rootDir>/client/src/$1",
+    "^@shared/(.*)$": "<rootDir>/shared/$1",
   },
   setupFiles: ["<rootDir>/server/tests/testEnv.setup.ts"],
   verbose: true,
   clearMocks: true,
+  // forceExit is required for integration tests that hold open a pg connection
+  // pool (the pool keeps the Node process alive after test assertions complete).
+  // This does not affect test correctness — it only prevents jest from hanging
+  // indefinitely waiting for the pool's idle timer to fire.
+  forceExit: true,
   testTimeout: 10000,
-  globals: {
-    "ts-jest": {
-      useESM: true,
-      tsconfig: {
-        types: ["jest", "node"]
-      }
-    }
-  },
   transform: {
     "^.+\\.tsx?$": ["ts-jest", {
-      useESM: true
+      useESM: true,
+      // Disable type-checking during test runs — ts-jest transpiles only.
+      // This avoids false-positive failures caused by @types version mismatches
+      // in the manually-restored environment (tar CVE block prevents npm ci).
+      diagnostics: false,
+      tsconfig: {
+        types: ["jest", "node"],
+        jsx: "react-jsx"
+      }
     }]
   },
-  extensionsToTreatAsEsm: [".ts"]
+  extensionsToTreatAsEsm: [".ts", ".tsx"],
+  // uuid v9+ ships only ESM; transform it instead of skipping it.
+  transformIgnorePatterns: ["/node_modules/(?!(uuid)/)"],
 };
 export default config;

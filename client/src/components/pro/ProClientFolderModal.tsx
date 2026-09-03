@@ -1,16 +1,87 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useTranslation } from "react-i18next";
+import { UniversalDialog } from "@/components/ui/universal-modal";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientProfile, proStore } from "@/lib/proData";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
-import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2 } from "lucide-react";
+import { LayoutDashboard, Tablet, CheckCircle2, ArrowRight, Send, Loader2, Globe, FileText, MessageSquare, Trash2, Mic, Play, Pause, Square, ChevronDown, ChevronUp, Video } from "lucide-react";
 import StudioMetricsSnapshot from "@/components/pro/StudioMetricsSnapshot";
 import ProClientWeightSnapshot from "@/components/pro/ProClientWeightSnapshot";
 import ProClientLabsSnapshot from "@/components/pro/ProClientLabsSnapshot";
 import ProClientComplianceSnapshot from "@/components/pro/ProClientComplianceSnapshot";
 import ProClientProgramHistory from "@/components/pro/ProClientProgramHistory";
+import CycleProtocolControl from "@/components/pro/CycleProtocolControl";
+import ProNutritionStrategyCard from "@/components/pro/ProNutritionStrategyCard";
+import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageComposer";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import {
+  getStudioMessageScrollDecision,
+  isStudioMessageListNearBottom,
+} from "@/lib/studioMessageScrollPolicy";
+import { apiRequest } from "@/lib/apiRequest";
+import { loadStudioVoicePlayback, StudioVoicePlaybackError } from "@/lib/studioVoicePlayback";
+import { loadStudioVideoPlayback, StudioVideoPlaybackError } from "@/lib/studioVideoPlayback";
+import { useQuickTour } from "@/hooks/useQuickTour";
+import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { PillButton } from "@/components/ui/pill-button";
+
+const FOLDER_TOUR_STEPS: TourStep[] = [
+  {
+    icon: "1",
+    title: "Client Folder Overview",
+    description: "This is your complete client workspace. Protocols, communication, compliance, and nutrition strategy all live here. The tour button is always available in the top-right corner.",
+  },
+  {
+    icon: "2",
+    title: "Active Clinical Supports",
+    description: "The colored dots show which clinical protocols are active for this client. A glowing dot means that protocol is shaping every meal the AI generates. Tap any dot to see exactly what it does. Dots activate from your settings, physician assignment, or automatically when lab values cross clinical thresholds.",
+  },
+  {
+    icon: "3",
+    title: "Messages vs. Provider Notes",
+    description: "Messages are a shared conversation — your client can read them and reply. Provider Notes are internal only and are never visible to the client. Use notes for clinical observations, progress documentation, or anything that should stay in your professional records.",
+  },
+  {
+    icon: "4",
+    title: "Compliance Score",
+    description: "Compliance is calculated over the last 30 days across three factors: calorie logging accuracy, protein target adherence, and daily logging frequency. 90%+ is excellent. 70–89% is on track. Below 70% is a signal to reach out.",
+  },
+  {
+    icon: "5",
+    title: "Snapshots & History",
+    description: "Below the tablet you will find weight trends, lab results (physicians only), program history, and nutrition strategy cards. These update in real time from your client's activity in the app.",
+  },
+  {
+    icon: "6",
+    title: "Cycle Protocols",
+    description: "Use Cycle Protocols to guide your client through structured nutrition phases — Lower Carb Phase, Higher Carb Push, or Carb Refeed. When you update the strategy, the client is notified and must acknowledge the change before it is marked as seen.",
+  },
+  {
+    icon: "7",
+    title: "Client Dashboard",
+    description: "Tap 'Go To Client Dashboard' at the bottom to open the full workspace where you can set macro targets, adjust medical directives, assign builders, and view your client's live meal board.",
+  },
+];
+
+const DOT_TOOLTIPS: Record<string, string> = {
+  "anti-inflammatory": "Adjusts meal generation to reduce inflammatory triggers — refined oils, processed foods, and pro-inflammatory proteins. Actively promotes omega-3s, leafy greens, turmeric, berries, and anti-inflammatory fats.",
+  "cardiac": "Applies sodium limits, reduces saturated fat, and promotes heart-healthy fats like olive oil and fatty fish. Activates when LDL cholesterol is ≥130 mg/dL or when the Cardiac flag is set in medical directives.",
+  "kidney-disease": "Limits phosphorus, potassium, and protein to reduce kidney workload. Designed for CKD patients requiring modified nutrient intake. Activates on elevated creatinine levels or specialist assignment.",
+  "liver-support": "Supports hepatic health with anti-inflammatory foods and reduced liver-taxing compounds. Activates when ALT is mildly elevated or when Liver Support is selected in medical directives.",
+  "liver-disease": "Applies stricter hepatic nutrient controls for diagnosed liver disease — reduced protein load, sodium, and compounds that stress the liver. Activates on significantly elevated ALT or specialist assignment.",
+  "oncology-support": "Applies oncology-safe nutritional guidance — reduces processed foods, supports immune function, and avoids clinically contraindicated ingredients. Physician-assigned only. No treatment claims are implied.",
+  "thyroid-support": "Applies thyroid-aware meal guidance — moderates excess goitrogenic foods, supports iodine and selenium intake, and accounts for medication timing where relevant. Activated via medical directives.",
+  "glp1": "Metabolic medication protocol (GLP-1, dual-agonist, triple-agonist) — adjusts meal sizing, protein pacing, and satiety-supportive ingredients to complement medication effect. Stacks with diabetic builder. Physician-assigned only.",
+  "hashimotos": "Hashimoto's thyroiditis protocol — autoimmune-aware thyroid support with emphasis on anti-inflammatory, selenium-rich, and goitrogen-moderated meal generation. Reduces immune triggers while supporting thyroid function.",
+  "hypothyroid": "Hypothyroid protocol — supports thyroid hormone production with iodine and selenium-rich foods, medication timing awareness, and anti-inflammatory meal patterns. Avoids excess raw cruciferous in large quantities.",
+  "hyperthyroid": "Hyperthyroid protocol — reduces dietary iodine load, supports caloric needs for elevated metabolism, and includes anti-inflammatory foods to calm thyroid overactivity. Avoids iodine-dense concentrates.",
+  "menopause": "Menopause protocol — supports hormonal stability, bone density, and metabolic health. Prioritizes calcium, vitamin D, phytoestrogens, magnesium, and omega-3s. Reduces refined sugars and inflammatory foods.",
+  "perimenopause": "Perimenopause protocol — supports fluctuating hormones and energy stability during the hormonal transition. Blood-sugar-stabilizing meals with phytoestrogens, iron, B vitamins, and anti-inflammatory ingredients.",
+  "metabolic-recovery": "Metabolic Recovery protocol — targets insulin sensitivity and energy regulation. Every meal pairs lean protein with fiber and healthy fat. Eliminates refined sugars, seed oils, and processed carbohydrates.",
+};
 
 interface TabletEntry {
   id: string;
@@ -21,6 +92,17 @@ interface TabletEntry {
   sender: "client" | "pro";
   createdAt: string;
   translatedBody?: string;
+  contentType?: "text" | "voice" | "video";
+  audioObjectKey?: string;
+  audioDurationSec?: number;
+  transcript?: string;
+  transcriptStatus?: "pending" | "completed" | "failed" | "blocked";
+  videoTranscriptStatus?: "pending" | "completed" | "failed" | "blocked";
+  moderationStatus?: "pending" | "approved" | "blocked";
+  videoMediaState?: "draft" | "uploading" | "uploaded" | "processing" | "ready" | "upload_failed" | "transcription_failed" | "moderation_failed" | "expiration_pending" | "expired" | "deleting" | "deletion_failed" | "deleted";
+  videoDurationSec?: number;
+  videoWatchCompletedAt?: string | null;
+  videoExpiresAt?: string | null;
 }
 
 interface ProClientFolderModalProps {
@@ -37,11 +119,11 @@ const BUILDER_LABELS: Record<string, string> = {
   performance: "Performance & Competition",
   performance_competition: "Performance & Competition",
   diabetic: "Diabetic",
-  glp1: "GLP-1",
+  glp1: "Metabolic Med",
   "anti-inflammatory": "Anti-Inflammatory",
   anti_inflammatory: "Anti-Inflammatory",
   weekly: "Weekly",
-  beach_body: "Beach Body",
+  beach_body: "Performance Nutrition",
 };
 
 function getBuilderLabel(client: ClientProfile): string | null {
@@ -78,6 +160,28 @@ function formatTimestamp(iso: string): string {
     d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+function getSupportedMimeType(): string {
+  const types = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4;codecs=mp4a.40.2",
+    "audio/mp4",
+    "audio/m4a",
+    "audio/aac",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+  ];
+  return types.find(t => {
+    try { return MediaRecorder.isTypeSupported(t); } catch { return false; }
+  }) || "audio/webm";
+}
+
+function formatDuration(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function ProClientFolderModal({
   client,
   open,
@@ -85,6 +189,7 @@ export default function ProClientFolderModal({
   onNavigate,
   isPhysician,
 }: ProClientFolderModalProps) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<TabletEntry[]>([]);
   const [notes, setNotes] = useState<TabletEntry[]>([]);
   const [activeTab, setActiveTab] = useState<"messages" | "notes">("messages");
@@ -97,6 +202,36 @@ export default function ProClientFolderModal({
   const msgScrollRef = useRef<HTMLDivElement>(null);
   const noteScrollRef = useRef<HTMLDivElement>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [hasNewMessagesBelow, setHasNewMessagesBelow] = useState(false);
+  const messageScrollNearBottomRef = useRef(true);
+  const previousMessageIdsRef = useRef<readonly string[] | null>(null);
+  const initialMessageScrollPendingRef = useRef(false);
+  const previousNoteIdsRef = useRef<readonly string[] | null>(null);
+  const initialNoteScrollPendingRef = useRef(false);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioMimeType, setAudioMimeType] = useState("");
+  const [sendingVoice, setSendingVoice] = useState(false);
+  const [voiceMode, setVoiceMode] = useState<"messages" | "notes" | null>(null);
+  const [playingEntryId, setPlayingEntryId] = useState<string | null>(null);
+  const [expandedTranscripts, setExpandedTranscripts] = useState<Set<string>>(new Set());
+  const [micError, setMicError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentVoiceUrlRevokeRef = useRef<(() => void) | null>(null);
+  const [videoMode, setVideoMode] = useState(false);
+  const [videoUrlCache, setVideoUrlCache] = useState<Record<string, string>>({});
+  const [openVideoId, setOpenVideoId] = useState<string | null>(null);
+  const videoUrlRevokeRef = useRef<Record<string, () => void>>({});
+  const videoProgressSentAtRef = useRef<Record<string, number>>({});
+
+  useEffect(() => () => {
+    Object.values(videoUrlRevokeRef.current).forEach((revoke) => revoke());
+  }, []);
 
   const [clientGoal, setClientGoal] = useState<{
     goalType?: string | null;
@@ -104,30 +239,37 @@ export default function ProClientFolderModal({
     goalTimelineWeeks?: number | null;
     goalStartDate?: string | null;
   } | null>(null);
+  const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
+  const [scConditions, setScConditions] = useState<string[]>([]);
+  const [dotTooltip, setDotTooltip] = useState<string | null>(null);
+  const folderTour = useQuickTour("client-folder");
+
+  const [glp1PhysicianActive, setGlp1PhysicianActive] = useState(false);
+  const [glp1Saving, setGlp1Saving] = useState(false);
 
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
+  const [resolvedStudioId, setResolvedStudioId] = useState<string | null>(null);
   const clientId = resolvedClientId || client?.clientUserId || client?.userId || null;
+  const studioId = resolvedStudioId || client?.studioId || null;
   const hasDbBackedId = !!(client?.clientUserId || client?.userId);
 
   useEffect(() => {
-    if (!open || hasDbBackedId || !client?.email) {
-      setResolvedClientId(null);
+    if (!open || !client?.email) {
+      if (!hasDbBackedId) setResolvedClientId(null);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const headers: Record<string, string> = { ...getAuthHeaders() };
-        const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers, credentials: "include" });
-        if (!studioRes.ok || cancelled) return;
-        const { studio } = await studioRes.json();
+        const { studio } = await apiRequest("/api/studios/my-studio");
         if (!studio || cancelled) return;
-        const clientsRes = await fetch(apiUrl(`/api/studios/${studio.id}/clients`), { headers, credentials: "include" });
-        if (!clientsRes.ok || cancelled) return;
-        const { clients: dbClients } = await clientsRes.json();
-        const match = dbClients?.find((dc: any) => dc.email === client.email);
-        if (match?.clientUserId && !cancelled) {
-          setResolvedClientId(match.clientUserId);
+        if (!cancelled) setResolvedStudioId(studio.id);
+        if (!hasDbBackedId) {
+          const { clients: dbClients } = await apiRequest(`/api/studios/${studio.id}/clients`);
+          const match = dbClients?.find((dc: any) => dc.email === client.email);
+          if (match?.clientUserId && !cancelled) {
+            setResolvedClientId(match.clientUserId);
+          }
         }
       } catch {}
     })();
@@ -139,16 +281,50 @@ export default function ProClientFolderModal({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(apiUrl(`/api/users/${clientId}/goal`), {
-          headers: { ...getAuthHeaders() },
-          credentials: "include",
-        });
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          setClientGoal(data);
-        }
+        const data = await apiRequest(`/api/users/${clientId}/goal`);
+        if (!cancelled) setClientGoal(data);
       } catch {}
     })();
+    return () => { cancelled = true; };
+  }, [open, clientId]);
+
+  // Fetch physician-assigned GLP-1 protocol state
+  useEffect(() => {
+    if (!open || !clientId) { setGlp1PhysicianActive(false); return; }
+    let cancelled = false;
+    fetch(apiUrl(`/api/pro/glp1-protocol/${clientId}`), {
+      headers: { ...getAuthHeaders() },
+      credentials: "include",
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (!cancelled) setGlp1PhysicianActive(!!data?.glp1Active); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [open, clientId]);
+
+  // Fetch client labs to derive active conditions from lab signal + specialty selections
+  useEffect(() => {
+    if (!open || !clientId) { setLabDerivedConditions([]); return; }
+    let cancelled = false;
+    apiRequest(`/api/biometrics/labs/${clientId}`)
+      .then((data) => {
+        if (cancelled) return;
+        const derived: string[] = [];
+        if (data?.protocolSignal?.protocol) derived.push(data.protocolSignal.protocol);
+        const scMap: Record<string, string> = {
+          cardiac: 'heart-failure', renal: 'kidney-disease',
+          'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
+          'oncology-support': 'oncology-support',
+        };
+        const scArr: string[] = data?.specialtyConditions ?? (data?.specialtyCondition ? [data.specialtyCondition] : []);
+        for (const sc of scArr) {
+          const mapped = scMap[sc];
+          if (mapped && !derived.includes(mapped)) derived.push(mapped);
+        }
+        setLabDerivedConditions(derived);
+        setScConditions(scArr);
+      })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [open, clientId]);
 
@@ -174,7 +350,13 @@ export default function ProClientFolderModal({
       }
       const data = await res.json();
       const msgs: TabletEntry[] = data.messages || [];
-      setMessages(msgs);
+      setMessages((prev) => {
+        const prevMap = new Map(prev.map((m) => [m.id, m]));
+        return msgs.map((m) => ({
+          ...m,
+          translatedBody: prevMap.get(m.id)?.translatedBody,
+        }));
+      });
       setNotes(data.notes || []);
 
       const lastSeenKey = `mpm.tablet.lastSeen.${clientId}`;
@@ -199,6 +381,12 @@ export default function ProClientFolderModal({
   useEffect(() => {
     if (open && clientId) {
       proInitialLoad.current = true;
+      initialMessageScrollPendingRef.current = true;
+      initialNoteScrollPendingRef.current = true;
+      previousMessageIdsRef.current = null;
+      previousNoteIdsRef.current = null;
+      messageScrollNearBottomRef.current = true;
+      setHasNewMessagesBelow(false);
       fetchTablet();
       const interval = setInterval(fetchTablet, 10000);
       return () => clearInterval(interval);
@@ -221,13 +409,56 @@ export default function ProClientFolderModal({
   }, [activeTab, clientId, hasUnreadMessages]);
 
   useEffect(() => {
-    if (activeTab === "messages" && msgScrollRef.current) {
-      msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight;
+    if (activeTab !== "messages") return;
+    const ids = messages.map((message) => message.id);
+    const decision = getStudioMessageScrollDecision({
+      initialLoad: initialMessageScrollPendingRef.current,
+      wasNearBottom: messageScrollNearBottomRef.current,
+      previousMessageIds: previousMessageIdsRef.current,
+      messageIds: ids,
+    });
+    previousMessageIdsRef.current = ids;
+    if (decision.showNewMessageIndicator) {
+      setHasNewMessagesBelow(true);
     }
-    if (activeTab === "notes" && noteScrollRef.current) {
+    if (decision.scrollToBottom && msgScrollRef.current) {
+      msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight;
+      messageScrollNearBottomRef.current = true;
+      setHasNewMessagesBelow(false);
+    }
+    if (initialMessageScrollPendingRef.current && ids.length > 0) {
+      initialMessageScrollPendingRef.current = false;
+    }
+  }, [messages, activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "notes") return;
+    const ids = notes.map((note) => note.id);
+    const decision = getStudioMessageScrollDecision({
+      initialLoad: initialNoteScrollPendingRef.current,
+      wasNearBottom: true,
+      previousMessageIds: previousNoteIdsRef.current,
+      messageIds: ids,
+    });
+    previousNoteIdsRef.current = ids;
+    if (decision.scrollToBottom && noteScrollRef.current) {
       noteScrollRef.current.scrollTop = noteScrollRef.current.scrollHeight;
     }
-  }, [messages, notes, activeTab]);
+    if (initialNoteScrollPendingRef.current && ids.length > 0) {
+      initialNoteScrollPendingRef.current = false;
+    }
+  }, [notes, activeTab]);
+
+  useEffect(() => {
+    if (!open) return;
+    const reset = () => {
+      const el = document.querySelector<HTMLElement>("[data-radix-dialog-content]");
+      if (el) el.scrollTop = 0;
+    };
+    reset();
+    const t = setTimeout(reset, 80);
+    return () => clearTimeout(t);
+  }, [open]);
 
   const handleSendMessage = async () => {
     if (!msgInput.trim() || !clientId || sending) return;
@@ -326,15 +557,210 @@ export default function ProClientFolderModal({
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete entry");
+      }
       if (entry.entryType === "message") {
         setMessages((prev) => prev.filter((m) => m.id !== entry.id));
       } else {
         setNotes((prev) => prev.filter((n) => n.id !== entry.id));
       }
-    } catch {
-      setError("Failed to delete entry");
+      if (entry.contentType === "video") {
+        videoUrlRevokeRef.current[entry.id]?.();
+        delete videoUrlRevokeRef.current[entry.id];
+        setOpenVideoId((current) => current === entry.id ? null : current);
+        setVideoUrlCache((current) => {
+          const { [entry.id]: _, ...remaining } = current;
+          return remaining;
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete entry";
+      setError(message);
     }
+  };
+
+  const startRecording = async () => {
+    setMicError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = getSupportedMimeType();
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        setAudioBlob(blob);
+        setAudioMimeType(mimeType);
+        stream.getTracks().forEach(t => t.stop());
+      };
+      recorder.start(100);
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => {
+          if (prev >= 59) { stopRecording(); return 60; }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch {
+      setMicError("Microphone access denied. Enable microphone permissions to record voice notes.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    stopRecording();
+    setAudioBlob(null);
+    setRecordingSeconds(0);
+    setVoiceMode(null);
+  };
+
+  const sendVoiceNote = async (type: "messages" | "notes") => {
+    if (!audioBlob || !clientId || sendingVoice) return;
+    setSendingVoice(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      const ext = audioMimeType.includes("webm") ? "webm"
+        : audioMimeType.includes("ogg") ? "ogg"
+        : audioMimeType.includes("mp4") || audioMimeType.includes("m4a") ? "m4a"
+        : audioMimeType.includes("aac") ? "aac"
+        : "webm";
+      formData.append("audio", audioBlob, `voice-note.${ext}`);
+      const endpoint = type === "messages"
+        ? apiUrl(`/api/pro/tablet/${clientId}/voice-message`)
+        : apiUrl(`/api/pro/tablet/${clientId}/voice-note`);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Failed to send voice note");
+        return;
+      }
+      const data = await res.json();
+      if (type === "messages") setMessages(prev => [...prev, data.entry]);
+      else setNotes(prev => [...prev, data.entry]);
+      setAudioBlob(null);
+      setRecordingSeconds(0);
+      setVoiceMode(null);
+    } catch {
+      setError("Failed to send voice note");
+    } finally {
+      setSendingVoice(false);
+    }
+  };
+
+  const reportVideoProgress = async (entry: TabletEntry, element: HTMLVideoElement) => {
+    const now = Date.now();
+    if (now - (videoProgressSentAtRef.current[entry.id] || 0) < 1000) return;
+    videoProgressSentAtRef.current[entry.id] = now;
+    try {
+      const res = await fetch(apiUrl(`/api/pro/tablet/${clientId}/video/${entry.id}/progress`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          positionSec: element.currentTime,
+          observedAtMs: now,
+          isPlaying: !element.paused && !element.seeking,
+          isSeeking: element.seeking,
+          playbackRate: element.playbackRate,
+        }),
+      });
+      if (!res.ok) return;
+      const progress = await res.json();
+      if (progress.watchCompletedAt) {
+        setMessages((previous) => previous.map((message) =>
+          message.id === entry.id
+            ? { ...message, videoMediaState: "expiration_pending", videoWatchCompletedAt: progress.watchCompletedAt, videoExpiresAt: progress.expiresAt }
+            : message,
+        ));
+      }
+    } catch {}
+  };
+
+  const handlePlayVideo = async (entry: TabletEntry) => {
+    if (!clientId) return;
+    try {
+      const source = await loadStudioVideoPlayback(
+        `/api/pro/tablet/${clientId}/video/${entry.id}/playback`,
+        getAuthHeaders(),
+      );
+      videoUrlRevokeRef.current[entry.id]?.();
+      videoUrlRevokeRef.current[entry.id] = source.revoke;
+      setVideoUrlCache((previous) => ({ ...previous, [entry.id]: source.url }));
+      setOpenVideoId(entry.id);
+    } catch (error) {
+      setError(error instanceof StudioVideoPlaybackError ? error.message : "Could not load video");
+    }
+  };
+
+  const handlePlayVoice = async (entry: TabletEntry) => {
+    if (playingEntryId === entry.id) {
+      currentAudioRef.current?.pause();
+      currentVoiceUrlRevokeRef.current?.();
+      currentVoiceUrlRevokeRef.current = null;
+      setPlayingEntryId(null);
+      return;
+    }
+    currentAudioRef.current?.pause();
+    currentVoiceUrlRevokeRef.current?.();
+    currentVoiceUrlRevokeRef.current = null;
+    try {
+      const source = await loadStudioVoicePlayback(
+        `/api/pro/tablet/audio/${entry.id}`,
+        getAuthHeaders(),
+      );
+      const audio = new Audio(source.url);
+      currentAudioRef.current = audio;
+      currentVoiceUrlRevokeRef.current = source.revoke;
+      audio.onended = () => {
+        source.revoke();
+        currentVoiceUrlRevokeRef.current = null;
+        setPlayingEntryId(null);
+      };
+      audio.onerror = () => {
+        source.revoke();
+        currentVoiceUrlRevokeRef.current = null;
+        setPlayingEntryId(null);
+        setError("Failed to play audio");
+      };
+      setPlayingEntryId(entry.id);
+      await audio.play();
+    } catch (error) {
+      currentVoiceUrlRevokeRef.current?.();
+      currentVoiceUrlRevokeRef.current = null;
+      setError(error instanceof StudioVoicePlaybackError ? error.message : "Failed to load audio");
+      setPlayingEntryId(null);
+    }
+  };
+
+  const toggleTranscript = (entryId: string) => {
+    setExpandedTranscripts(prev => {
+      const next = new Set(prev);
+      if (next.has(entryId)) next.delete(entryId);
+      else next.add(entryId);
+      return next;
+    });
   };
 
   if (!client) return null;
@@ -342,74 +768,307 @@ export default function ProClientFolderModal({
   const builderLabel = getBuilderLabel(client);
   const workspace = isPhysician ? "clinician" : "trainer";
 
+  const renderVoiceBubble = (entry: TabletEntry) => {
+    const isPlaying = playingEntryId === entry.id;
+    const transcriptReady = entry.transcriptStatus === "completed";
+    const isBlocked = entry.moderationStatus === "blocked";
+    const hasStoredAudio = Boolean(entry.audioObjectKey);
+    const isPending = entry.transcriptStatus === "pending" && hasStoredAudio;
+    const isFailed = entry.transcriptStatus === "failed" || !hasStoredAudio;
+    const transcriptExpanded = expandedTranscripts.has(entry.id);
+    const durationLabel = entry.audioDurationSec ? formatDuration(entry.audioDurationSec) : null;
+
+    return (
+      <div
+        key={entry.id}
+        className={`rounded-lg p-2.5 border ${
+          entry.sender === "client"
+            ? "bg-blue-500/8 border-blue-500/25 ml-4"
+            : "bg-orange-500/8 border-orange-500/25 mr-4"
+        }`}
+      >
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-orange-400 text-[10px]">🎤</span>
+            <span className={`text-[10px] font-semibold ${entry.sender === "client" ? "text-blue-300" : "text-orange-300"}`}>
+              Voice Note
+            </span>
+            {durationLabel && (
+              <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-mono">
+                {durationLabel}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-white/35">{formatTimestamp(entry.createdAt)}</span>
+            <button
+              onClick={() => handleDeleteEntry(entry)}
+              className="text-red-500/60 p-0.5"
+              title={t("studioMessages.deleteForMe")}
+              aria-label={t("studioMessages.deleteFromHistory")}
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {isBlocked ? (
+          <p className="text-[10px] text-red-400/70 italic">[Voice note removed]</p>
+        ) : (
+          <>
+            <button
+              onClick={() => handlePlayVoice(entry)}
+              disabled={!transcriptReady || isFailed}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium w-full mb-1.5 transition-colors ${
+                isPlaying
+                  ? "bg-orange-600 text-white"
+                  : "bg-orange-600/80 hover:bg-orange-600 text-white"
+              } disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              {isPlaying ? <Pause className="w-3.5 h-3.5 shrink-0" /> : <Play className="w-3.5 h-3.5 shrink-0" />}
+              <span>{isPlaying ? "Playing…" : isFailed ? "Voice Note Unavailable" : "Play Voice Note"}</span>
+            </button>
+
+            {isPending && (
+              <div className="flex items-center gap-1.5 text-[10px] text-white/40 italic">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Transcribing…
+              </div>
+            )}
+            {isFailed && (
+              <p className="text-[10px] text-white/30 italic">
+                {hasStoredAudio ? "Transcript unavailable" : "Voice recording unavailable"}
+              </p>
+            )}
+            {transcriptReady && entry.transcript && (
+              <div>
+                <button
+                  onClick={() => toggleTranscript(entry.id)}
+                  className="flex items-center gap-1 text-[10px] text-white/50 mb-1"
+                >
+                  📝 Transcript
+                  {transcriptExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+                {transcriptExpanded && (
+                  <p className="text-[10px] text-white/65 leading-relaxed bg-white/5 rounded-md px-2 py-1.5 italic">
+                    "{entry.transcript}"
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderVideoBubble = (entry: TabletEntry) => {
+    const isDeleted = entry.videoMediaState === "deleted";
+    const isExpired = entry.videoMediaState === "expired" || isDeleted;
+    const isFailedTranscription = entry.videoMediaState === "transcription_failed";
+    const isModerationFailed = entry.videoMediaState === "moderation_failed";
+    const isDeletionRetry = entry.videoMediaState === "deletion_failed";
+    const isPlayable = entry.videoMediaState === "ready" || entry.videoMediaState === "expiration_pending";
+    const hasExpiryCountdown = entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt;
+    const durationLabel = entry.videoDurationSec ? formatDuration(entry.videoDurationSec) : null;
+    const videoUrl = videoUrlCache[entry.id];
+    return (
+      <div key={entry.id} className={`rounded-lg p-2.5 border ${entry.sender === "client" ? "bg-blue-500/8 border-blue-500/25 ml-4" : "bg-violet-500/8 border-violet-500/25 mr-4"}`}>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <Video className="w-3 h-3 text-violet-300" />
+            <span className="text-[10px] font-semibold text-violet-200">{t("studioMessages.videoMessage")}</span>
+            {durationLabel && <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-mono">{durationLabel}</span>}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-white/35">{formatTimestamp(entry.createdAt)}</span>
+            <button
+              onClick={() => handleDeleteEntry(entry)}
+              className="text-red-400/80 p-0.5"
+              title={t("studioMessages.deleteForMe")}
+              aria-label={t("studioMessages.deleteVideoFromHistory")}
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+        {isExpired ? (
+          <p className="text-[10px] text-white/45 italic">
+            {isDeleted
+               ? "Private video deleted. Its transcript remains available independently, subject to the platform's applicable retention policy."
+              : "This video is no longer available. Its transcript remains available independently, subject to the platform's applicable retention policy."}
+          </p>
+        ) : isFailedTranscription ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video could not be verified and cannot be played. Its private media is managed automatically.
+          </p>
+        ) : isModerationFailed ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video was blocked during moderation and cannot be played. Its private media is managed automatically.
+          </p>
+        ) : isDeletionRetry ? (
+          <p className="text-[10px] text-white/45 italic">
+            Automatic private-media cleanup is pending. This video cannot be played.
+          </p>
+        ) : !isPlayable ? (
+          <p className="text-[10px] text-white/45 italic">
+            This video is still being verified and cannot be played yet.
+          </p>
+        ) : (
+          <>
+            {openVideoId === entry.id && videoUrl ? (
+              <video
+                src={videoUrl}
+                controls
+                playsInline
+                className="w-full rounded-md bg-black max-h-48"
+                onTimeUpdate={(event) => reportVideoProgress(entry, event.currentTarget)}
+                onEnded={(event) => reportVideoProgress(entry, event.currentTarget)}
+              />
+            ) : (
+                <button onClick={() => handlePlayVideo(entry)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium w-full bg-violet-600 hover:bg-violet-500 text-white">
+                <Play className="w-3.5 h-3.5" />
+                Watch video
+              </button>
+            )}
+            <p className="text-[10px] text-white/45 leading-snug mt-2">
+              Watching nearly all of this video verifies completion and starts a 15-minute replay grace period before private media is removed. The transcript remains available independently until you choose Delete for me, subject to the platform's applicable retention policy.
+            </p>
+            {hasExpiryCountdown && (
+              <p className="text-[10px] text-amber-300 mt-1">
+                Available until {new Date(entry.videoExpiresAt!).toLocaleString()}.
+              </p>
+            )}
+          </>
+        )}
+        {entry.videoTranscriptStatus === "completed" && entry.transcript && (
+          <p className="mt-2 text-[10px] text-white/65 leading-relaxed bg-white/5 rounded-md px-2 py-1.5 italic border-l-2 border-violet-400/40">
+            {entry.transcript}
+          </p>
+        )}
+        {entry.videoTranscriptStatus === "failed" && (
+          <p className="mt-2 text-[10px] text-white/35 italic">{t("studioMessages.videoTranscriptUnavailable")}</p>
+        )}
+      </div>
+    );
+  };
+
   const renderEntryList = (entries: TabletEntry[], scrollRef: React.RefObject<HTMLDivElement | null>, showTranslate: boolean) => (
-    <div ref={scrollRef} className="max-h-48 overflow-y-auto space-y-2 mb-2">
+    <div
+      ref={scrollRef}
+      onScroll={(event) => {
+        if (scrollRef === msgScrollRef) {
+          const nearBottom = isStudioMessageListNearBottom(event.currentTarget);
+          messageScrollNearBottomRef.current = nearBottom;
+          if (nearBottom) setHasNewMessagesBelow(false);
+        }
+      }}
+      className="max-h-48 overflow-y-auto space-y-2 mb-2"
+    >
+      {scrollRef === msgScrollRef && hasNewMessagesBelow && (
+        <button
+          type="button"
+          onClick={() => {
+            if (msgScrollRef.current) {
+              msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight;
+            }
+            messageScrollNearBottomRef.current = true;
+            setHasNewMessagesBelow(false);
+          }}
+          className="sticky top-1 z-10 mx-auto block rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow"
+        >
+          New messages
+        </button>
+      )}
       {entries.length === 0 && (
         <p className="text-xs text-white/30 py-2">
           {activeTab === "messages" ? "No messages yet" : "No notes yet"}
         </p>
       )}
-      {entries.map((entry) => (
-        <div
-          key={entry.id}
-          className={`rounded-md p-2 border ${
-            entry.sender === "client"
-              ? "bg-blue-500/10 border-blue-500/20 ml-4"
-              : "bg-white/5 border-white/5 mr-4"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-white/40">
-              {entry.sender === "client" ? "Client" : "Coach"} &middot; {formatTimestamp(entry.createdAt)}
-            </span>
-            <div className="flex items-center gap-1.5">
-              {showTranslate && (
+      {entries.map((entry) => {
+        if (entry.contentType === "video") {
+          return renderVideoBubble(entry);
+        }
+        if (entry.contentType === "voice" || entry.audioObjectKey) {
+          return renderVoiceBubble(entry);
+        }
+        return (
+          <div
+            key={entry.id}
+            className={`rounded-md p-2 border ${
+              entry.sender === "client"
+                ? "bg-blue-500/10 border-blue-500/20 ml-4"
+                : "bg-white/5 border-white/5 mr-4"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-white/40">
+                {entry.sender === "client" ? "Client" : "Coach"} &middot; {formatTimestamp(entry.createdAt)}
+              </span>
+              <div className="flex items-center gap-1.5">
+                {showTranslate && (
+                  <button
+                    onClick={() => handleTranslate(entry)}
+                    disabled={translatingId === entry.id}
+                    className="text-blue-400 p-0.5"
+                    title="Translate"
+                  >
+                    {translatingId === entry.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Globe className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
                 <button
-                  onClick={() => handleTranslate(entry)}
-                  disabled={translatingId === entry.id}
-                  className="text-blue-400 p-0.5"
-                  title="Translate"
+                  onClick={() => handleDeleteEntry(entry)}
+                  className="text-red-500 p-0.5"
+                  title={t("studioMessages.deleteForMe")}
+                  aria-label={t("studioMessages.deleteFromHistory")}
                 >
-                  {translatingId === entry.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Globe className="w-3.5 h-3.5" />
-                  )}
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
-              )}
-              <button
-                onClick={() => handleDeleteEntry(entry)}
-                className="text-red-500 p-0.5"
-                title="Delete"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              </div>
             </div>
-          </div>
-          <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
-            {entry.translatedBody || entry.body}
-          </p>
-          {entry.translatedBody && (
-            <p className="text-[10px] text-white/30 mt-1 italic">
-              Original: {entry.body}
+            <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+              {entry.translatedBody || entry.body}
             </p>
-          )}
-        </div>
-      ))}
+            {entry.translatedBody && (
+              <p className="text-[10px] text-white/30 mt-1 italic">
+                Original: {entry.body}
+              </p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl text-white">{client.name}</DialogTitle>
-          <DialogDescription className="text-white/50">
-            {client.email || "No email on file"}
-          </DialogDescription>
+    <>
+    <UniversalDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      rawLayout
+      onOpenAutoFocus={(e) => e.preventDefault()}
+      className="bg-zinc-900 border-white/10 text-white max-w-md max-h-[90vh] overflow-hidden flex flex-col [&>button.absolute]:hidden p-0"
+    >
+        <DialogHeader className="shrink-0 bg-zinc-900 px-4 pt-3 pb-4 border-b border-white/10">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-lg text-white truncate">{client.name}</DialogTitle>
+              <DialogDescription className="text-white/50 truncate text-xs">
+                {client.email || "No email on file"}
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <PillButton onClick={folderTour.openTour}>Guide</PillButton>
+              <PillButton onClick={() => onOpenChange(false)}>Close</PillButton>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-3 mt-2">
+        <div className="space-y-3 overflow-y-auto flex-1 pt-2 px-4 pb-4">
           <div className="flex flex-wrap gap-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
               <CheckCircle2 className="h-3 w-3" />
@@ -426,6 +1085,118 @@ export default function ProClientFolderModal({
               </div>
             )}
           </div>
+
+          {/* Active Clinical Supports */}
+          {(() => {
+            const flags = proStore.getTargets(client.id)?.flags;
+            return (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs mb-1">
+                <span className="font-medium text-white/70">Active Clinical Supports:</span>
+                {(() => {
+                  const conditions = [
+                    { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: true,                    activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                    { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac          || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
+                    { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal            || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
+                    { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport     || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
+                    { key: "liver-disease",      label: "Liver Disease",     isActive: !!flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
+                    { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
+                    { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "glp1",               label: "Metabolic Med Active",      isActive: !!flags?.glp1             || glp1PhysicianActive,                               activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]"  },
+                  ];
+                  const row2 = [
+                    { key: "hashimotos",         label: "Hashimoto's",       isActive: scConditions.includes("hashimotos"),         activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
+                    { key: "hypothyroid",        label: "Hypothyroid",       isActive: scConditions.includes("hypothyroid"),        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
+                    { key: "hyperthyroid",       label: "Hyperthyroid",      isActive: scConditions.includes("hyperthyroid"),       activeColor: "text-cyan-400",   dotColor: "bg-cyan-400",   dotGlow: "shadow-[0_0_4px_rgba(34,211,238,0.9)]"  },
+                    { key: "menopause",          label: "Menopause",         isActive: scConditions.includes("menopause"),          activeColor: "text-violet-400", dotColor: "bg-violet-400", dotGlow: "shadow-[0_0_4px_rgba(167,139,250,0.9)]" },
+                    { key: "perimenopause",      label: "Perimenopause",     isActive: scConditions.includes("perimenopause"),      activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
+                    { key: "metabolic-recovery", label: "Metabolic Recovery", isActive: scConditions.includes("metabolic-recovery"), activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
+                  ];
+                  const allItems = [...conditions, ...row2];
+                  return (
+                    <>
+                      {conditions.map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                        <span
+                          key={key}
+                          className={`flex items-center gap-1 cursor-pointer select-none ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}
+                          onClick={() => setDotTooltip(dotTooltip === key ? null : key)}
+                        >
+                          <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                          {label}
+                        </span>
+                      ))}
+                      {dotTooltip && DOT_TOOLTIPS[dotTooltip] && (
+                        <div className="w-full mt-1 text-[11px] text-white/70 bg-zinc-700/60 rounded-md px-2.5 py-2 leading-relaxed border border-white/10">
+                          <span className="text-white/90 font-semibold">
+                            {allItems.find((c) => c.key === dotTooltip)?.label}:
+                          </span>{" "}
+                          {DOT_TOOLTIPS[dotTooltip]}
+                        </div>
+                      )}
+                      <div className="w-full pt-1 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/5 mt-1">
+                        <span className="text-[10px] font-medium text-white/50 w-full mb-0.5">Hormonal & Metabolic:</span>
+                        {row2.map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                          <span
+                            key={key}
+                            className={`flex items-center gap-1 cursor-pointer select-none ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}
+                            onClick={() => setDotTooltip(dotTooltip === key ? null : key)}
+                          >
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            );
+          })()}
+
+          {/* Physician-only GLP-1 assignment panel */}
+          {isPhysician && clientId && (
+            <div className={`rounded-lg border px-3 py-2.5 mb-1 ${glp1PhysicianActive ? "border-orange-500/40 bg-orange-500/10" : "border-white/10 bg-zinc-800/40"}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-white/80 flex items-center gap-1.5">
+                    <span>💉</span>
+                    Metabolic Medication Protocol
+                    {glp1PhysicianActive && <span className="text-orange-400 font-bold">· Active</span>}
+                  </p>
+                  <p className="text-[10px] text-white/45 leading-snug mt-0.5">
+                    {glp1PhysicianActive
+                      ? "Physician-assigned. Meal generation stacks metabolic medication satiety guidance with diabetic builder."
+                      : "Assign to activate metabolic medication-aware meal generation for this client."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={glp1Saving}
+                  onClick={async () => {
+                    if (!clientId) return;
+                    setGlp1Saving(true);
+                    try {
+                      const next = !glp1PhysicianActive;
+                      const res = await fetch(apiUrl(`/api/pro/glp1-protocol/${clientId}`), {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                        credentials: "include",
+                        body: JSON.stringify({ enabled: next }),
+                      });
+                      if (res.ok) setGlp1PhysicianActive(next);
+                    } catch {}
+                    setGlp1Saving(false);
+                  }}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] border ${
+                    glp1PhysicianActive
+                      ? "bg-orange-600 border-orange-400 text-white"
+                      : "bg-black/40 border-orange-900/40 text-orange-300/80 hover:bg-orange-950/40"
+                  } ${glp1Saving ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {glp1Saving ? "Saving…" : glp1PhysicianActive ? "Remove Protocol" : "Assign Protocol"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {clientGoal?.goalType && (
             <div className="flex items-center gap-2.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2">
@@ -450,6 +1221,10 @@ export default function ProClientFolderModal({
                 Client Tablet
               </div>
 
+              <p className="text-[10px] text-white/40 mb-2 leading-snug">
+                <span className="text-orange-400 font-medium">Messages</span> are visible to your client and they can reply.{" "}
+                <span className="text-white/60 font-medium">Provider Notes</span> are internal only — never shown to the client.
+              </p>
               <div className="flex rounded-md overflow-hidden border border-white/10 mb-3">
                 <button
                   onClick={() => setActiveTab("messages")}
@@ -491,66 +1266,238 @@ export default function ProClientFolderModal({
               {!loading && !error && activeTab === "messages" && (
                 <>
                   {renderEntryList(messages, msgScrollRef, true)}
-                  <div className="flex gap-2">
-                    <textarea
-                      value={msgInput}
-                      onChange={(e) => setMsgInput(e.target.value)}
-                      placeholder="Write a message to client..."
-                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-white/20"
-                      rows={2}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
+
+                  {videoMode ? (
+                    <StudioVideoMessageComposer
+                      recipientName={client.name}
+                      uploadPath={clientId ? `/api/pro/tablet/${clientId}/video-message` : ""}
+                      onSent={(entry) => setMessages((previous) => [...previous, entry as TabletEntry])}
+                      onCancel={() => setVideoMode(false)}
                     />
-                    <Button
-                      size="sm"
-                      disabled={!msgInput.trim() || sending}
-                      onClick={handleSendMessage}
-                      className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
-                    >
-                      {sending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Send className="w-3.5 h-3.5" />
+                  ) : voiceMode === "messages" ? (
+                    <div className="rounded-lg border border-orange-500/30 bg-orange-500/8 p-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-orange-300 font-semibold">🎤 Voice Message</span>
+                        <span className="text-[10px] text-white/40">max 60s</span>
+                      </div>
+
+                      {micError && (
+                        <p className="text-[10px] text-red-400">{micError}</p>
                       )}
-                    </Button>
-                  </div>
+
+                      {!audioBlob ? (
+                        <div className="flex items-center gap-2">
+                          {isRecording ? (
+                            <>
+                              <span className="flex items-center gap-1.5 text-[10px] text-red-400 font-mono">
+                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                {formatDuration(recordingSeconds)} / 1:00
+                              </span>
+                              <button
+                                onClick={stopRecording}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium ml-auto"
+                              >
+                                <Square className="w-3 h-3" />
+                                Stop
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={startRecording}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-600 text-white text-xs font-medium w-full justify-center"
+                            >
+                              <Mic className="w-3.5 h-3.5" />
+                              Tap to Record
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-[10px] text-white/60">
+                            <span className="text-orange-300">✓ Recording ready</span>
+                            <span className="font-mono text-white/40">{formatDuration(recordingSeconds)}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => sendVoiceNote("messages")}
+                              disabled={sendingVoice}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-600 text-white text-xs font-medium flex-1 justify-center"
+                            >
+                              {sendingVoice ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                              {sendingVoice ? "Sending…" : "Send Voice"}
+                            </button>
+                            <button
+                              onClick={cancelRecording}
+                              className="px-3 py-1.5 rounded-md bg-white/10 text-white/60 text-xs font-medium"
+                            >
+                              Discard
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={cancelRecording}
+                        className="text-[10px] text-white/30 w-full text-center"
+                      >
+                        Cancel voice mode
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <textarea
+                        value={msgInput}
+                        onChange={(e) => setMsgInput(e.target.value)}
+                        placeholder="Write a message to client..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-white/20"
+                        rows={2}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                      />
+                      <div className="flex flex-col gap-1.5 self-end">
+                        <Button
+                          size="sm"
+                          disabled={!msgInput.trim() || sending}
+                          onClick={handleSendMessage}
+                          className="bg-purple-600 hover:bg-purple-700 px-3"
+                          title="Send message"
+                          aria-label="Send message"
+                        >
+                          {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        </Button>
+                        <button
+                          onClick={() => { setVoiceMode("messages"); setAudioBlob(null); setRecordingSeconds(0); }}
+                          className="flex items-center justify-center p-1.5 rounded-md bg-orange-600 border border-orange-400 text-white hover:bg-orange-700"
+                          title="Send voice message"
+                          aria-label="Send voice message"
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setVideoMode(true)}
+                          className="flex items-center justify-center p-1.5 rounded-md bg-red-600 border border-red-400 text-white hover:bg-red-700 shadow-sm shadow-red-950/40"
+                          title="Video message"
+                          aria-label="Video message"
+                        >
+                          <Video className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
               {!loading && !error && activeTab === "notes" && (
                 <>
                   {renderEntryList(notes, noteScrollRef, false)}
-                  <div className="flex gap-2">
-                    <textarea
-                      value={noteInput}
-                      onChange={(e) => setNoteInput(e.target.value)}
-                      placeholder="Write a private note..."
-                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-white/20"
-                      rows={2}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSaveNote();
-                        }
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      disabled={!noteInput.trim() || sending}
-                      onClick={handleSaveNote}
-                      className="bg-zinc-700 hover:bg-zinc-600 px-3 self-end"
-                    >
-                      {sending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <FileText className="w-3.5 h-3.5" />
+
+                  {voiceMode === "notes" ? (
+                    <div className="rounded-lg border border-orange-500/30 bg-orange-500/8 p-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-orange-300 font-semibold">🎤 Voice Provider Note</span>
+                        <span className="text-[10px] text-white/40">max 60s · internal only</span>
+                      </div>
+
+                      {micError && (
+                        <p className="text-[10px] text-red-400">{micError}</p>
                       )}
-                    </Button>
-                  </div>
+
+                      {!audioBlob ? (
+                        <div className="flex items-center gap-2">
+                          {isRecording ? (
+                            <>
+                              <span className="flex items-center gap-1.5 text-[10px] text-red-400 font-mono">
+                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                {formatDuration(recordingSeconds)} / 1:00
+                              </span>
+                              <button
+                                onClick={stopRecording}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium ml-auto"
+                              >
+                                <Square className="w-3 h-3" />
+                                Stop
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={startRecording}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-600 text-white text-xs font-medium w-full justify-center"
+                            >
+                              <Mic className="w-3.5 h-3.5" />
+                              Tap to Record
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-[10px] text-white/60">
+                            <span className="text-orange-300">✓ Recording ready</span>
+                            <span className="font-mono text-white/40">{formatDuration(recordingSeconds)}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => sendVoiceNote("notes")}
+                              disabled={sendingVoice}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-600 text-white text-xs font-medium flex-1 justify-center"
+                            >
+                              {sendingVoice ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                              {sendingVoice ? "Saving…" : "Save Voice Note"}
+                            </button>
+                            <button
+                              onClick={cancelRecording}
+                              className="px-3 py-1.5 rounded-md bg-white/10 text-white/60 text-xs font-medium"
+                            >
+                              Discard
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={cancelRecording}
+                        className="text-[10px] text-white/30 w-full text-center"
+                      >
+                        Cancel voice mode
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <textarea
+                        value={noteInput}
+                        onChange={(e) => setNoteInput(e.target.value)}
+                        placeholder="Write a private note..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-white/20"
+                        rows={2}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSaveNote();
+                          }
+                        }}
+                      />
+                      <div className="flex flex-col gap-1.5 self-end">
+                        <Button
+                          size="sm"
+                          disabled={!noteInput.trim() || sending}
+                          onClick={handleSaveNote}
+                          className="bg-zinc-700 hover:bg-zinc-600 px-3"
+                        >
+                          {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                        </Button>
+                        <button
+                          onClick={() => { setVoiceMode("notes"); setAudioBlob(null); setRecordingSeconds(0); }}
+                          className="flex items-center justify-center p-1.5 rounded-md bg-orange-600/20 border border-orange-500/30 text-orange-400"
+                          title="Record voice note"
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -564,6 +1511,12 @@ export default function ProClientFolderModal({
             {clientId && <ProClientWeightSnapshot clientId={clientId} />}
 
             {clientId && isPhysician && <ProClientLabsSnapshot clientId={clientId} />}
+
+            {clientId && <ProNutritionStrategyCard clientId={clientId} isPhysician={isPhysician} />}
+
+            {clientId && studioId && (
+              <CycleProtocolControl studioId={studioId} clientUserId={clientId} />
+            )}
 
             <Button
               className="w-full justify-between bg-purple-600 text-white hover:bg-purple-700"
@@ -580,7 +1533,13 @@ export default function ProClientFolderModal({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </UniversalDialog>
+    <QuickTourModal
+      steps={FOLDER_TOUR_STEPS}
+      isOpen={folderTour.shouldShow}
+      onClose={folderTour.closeTour}
+      tourKey="client-folder"
+    />
+    </>
   );
 }

@@ -24,7 +24,7 @@ Do NOT remove or rename these without updating the guard.
 This prevents silent data corruption.
 */
 import { pgTable, varchar, boolean, serial, integer, timestamp, jsonb, index, uniqueIndex, pgEnum, uuid, text, decimal, real, time, date, numeric, unique, check, primaryKey } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod"
 
@@ -43,6 +43,24 @@ export const macroLogs = pgTable("macro_logs", {
   // Starchy/Fibrous carb breakdown
   starchyCarbs: numeric("starchy_carbs").notNull().default("0"),
   fibrousCarbs: numeric("fibrous_carbs").notNull().default("0"),
+  // Audit trail: how the starchy/fibrous split was determined for this row.
+  // 'ingredient'          — split derived from ingredient keyword analysis (reliable)
+  // 'user_input'          — user manually supplied the split (authoritative)
+  // 'conservative_fallback' — no split info available; all carbs treated as starchy
+  // 'unclassified'        — legacy rows written before this column existed
+  classificationSource: varchar("classification_source", { length: 25 }).notNull().default("unclassified"),
+
+  /**
+   * Reservation identity (#690).
+   *
+   * When a board meal is logged via "Log All", the route sets this to the
+   * stable board item ID so the nutrition state engine can distinguish
+   * planned (on board, not yet logged) from consumed (logged).
+   *
+   * NULL on manual / quick-log entries that have no board origin.
+   * Indexed for efficient planned-vs-consumed queries.
+   */
+  boardItemReference: text("board_item_reference"),
 });
 
 // Re-export biometrics schema (unchanged)
@@ -63,15 +81,36 @@ export { savedMeals } from "../server/db/schema/savedMeals";
 export { studioTypeEnum, mealLibraryItems, mealLibraryUsage, mealGenerationJobs } from "../server/db/schema/mealLibrary";
 export type { MealLibraryItem, InsertMealLibraryItem, MealLibraryUsage, MealGenerationJob } from "../server/db/schema/mealLibrary";
 
+export { householdProfiles } from "../server/db/schema/householdProfiles";
+export type { HouseholdProfile, InsertHouseholdProfile } from "../server/db/schema/householdProfiles";
+
+export { creatorStatusEnum, creatorTierEnum, creatorSourceEnum, creatorCategoryEnum, creators } from "../server/db/schema/creators";
+export type { Creator, InsertCreator } from "../server/db/schema/creators";
+export { creatorSystemConfigs } from "../server/db/schema/creatorSystemConfigs";
+export type { CreatorSystemConfigRow, InsertCreatorSystemConfig } from "../server/db/schema/creatorSystemConfigs";
+
+export { companionProfiles, companionMeals, companionIngredientScans } from "../server/db/schema/companionProfiles";
+export { creatorOnboardingSubmissions } from "../server/db/schema/creatorOnboardingSubmissions";
+export type { CreatorOnboardingSubmission, InsertCreatorOnboardingSubmission } from "../server/db/schema/creatorOnboardingSubmissions";
+export { creatorMeals } from "../server/db/schema/creatorMeals";
+export type { CreatorMeal, InsertCreatorMeal } from "../server/db/schema/creatorMeals";
+export { signatureItemKindEnum, chefSignatureItems, chefSignatureCollections, chefSignatureCollectionItems } from "../server/db/schema/chefSignatureLibrary";
+export type { ChefSignatureItem, InsertChefSignatureItem, ChefSignatureCollection, InsertChefSignatureCollection, ChefSignatureCollectionItem } from "../server/db/schema/chefSignatureLibrary";
+export { chefSignatureImports } from "../server/db/schema/chefSignatureImports";
+export type { ChefSignatureImport, NewChefSignatureImport } from "../server/db/schema/chefSignatureImports";
+
 export { 
   professionalSpaceTypeEnum, noteTypeEnum, noteVisibilityEnum, activityActionEnum,
-  studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog 
+  studios, studioBilling, studioMemberships, studioInvites, clientSubscriptions, clientNotes, clientActivityLog,
+  studioMessageViewerDeletions,
+  clientCycleProtocols
 } from "../server/db/schema/studio";
 export type { 
   Studio, InsertStudio, StudioBilling, InsertStudioBilling, 
   StudioMembership, InsertStudioMembership, StudioInvite, InsertStudioInvite,
   ClientSubscription, InsertClientSubscription, ClientNote, InsertClientNote,
-  ClientActivityLog, InsertClientActivityLog 
+  ClientActivityLog, InsertClientActivityLog, StudioMessageViewerDeletion,
+  ClientCycleProtocol, InsertClientCycleProtocol
 } from "../server/db/schema/studio";
 
 /**
@@ -275,6 +314,13 @@ export const users = pgTable("users", {
   dailyProteinTarget: integer("daily_protein_target"),
   dailyCarbsTarget: integer("daily_carbs_target"),
   dailyFatTarget: integer("daily_fat_target"),
+  dailyStarchyCarbsTarget: integer("daily_starchy_carbs_target"),
+  dailyFibrousCarbsTarget: integer("daily_fibrous_carbs_target"),
+  macroCutIntensity: text("macro_cut_intensity").default("standard"),
+  macroCutStyle: text("macro_cut_style"),
+  macroCycleMode: text("macro_cycle_mode").default("none"),
+  macroCycleDayType: text("macro_cycle_day_type"),
+  macroMealsPerDay: integer("macro_meals_per_day"),
   dietaryRestrictions: text("dietary_restrictions").array().default(sql`ARRAY[]::text[]`),
   healthConditions: text("health_conditions").array().default(sql`ARRAY[]::text[]`),
   allergies: text("allergies").array().default(sql`ARRAY[]::text[]`),
@@ -291,9 +337,23 @@ export const users = pgTable("users", {
   entitlements: text("entitlements").array().default(sql`ARRAY[]::text[]`), // Feature entitlements array
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }), // Stripe customer ID
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }), // Stripe subscription ID
+  stripeLastEventCreatedAt: timestamp("stripe_last_event_created_at", { withTimezone: true }),
+  stripeLastEventRank: integer("stripe_last_event_rank").notNull().default(0),
+  stripeLastEventId: varchar("stripe_last_event_id", { length: 255 }),
+  stripeEntitlementSource: varchar("stripe_entitlement_source", { length: 32 }),
+  stripeReconciledAt: timestamp("stripe_reconciled_at", { withTimezone: true }),
+  // ── Personal plan snapshot (preserved across business membership changes) ──
+  // When a user accepts a business invite their personal plan is snapshotted
+  // here so it can be restored if they leave or are removed. Access tier is
+  // computed at runtime by effectiveAccess.ts — never inferred from planLookupKey
+  // alone when a business membership is active.
+  personalPlanLookupKey: varchar("personal_plan_lookup_key", { length: 100 }),
+  personalEntitlements: text("personal_entitlements").array().default(sql`ARRAY[]::text[]`),
+  personalSubscriptionStatus: text("personal_subscription_status"), // active | cancelled | null
   autoGenerateWeeklyPlan: boolean("auto_generate_weekly_plan").default(true), // auto-generate new 7-day plans
   // Enhanced notification system fields
   timezone: text("timezone").default("America/Chicago"),
+  timezoneUpdatedAt: timestamp("timezone_updated_at", { withTimezone: true }),
   phone: text("phone"),
   phoneVerified: boolean("phone_verified").default(false),
   smsOptIn: boolean("sms_opt_in").default(false),
@@ -322,12 +382,31 @@ export const users = pgTable("users", {
   // Trial + Meal Builder Selection (Paywall system)
   trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  trialSource: varchar("trial_source", { length: 50 }), // standard_signup | admin_grant | clinic_grant | promotion | pilot_program | client_access
+  trialAccessType: varchar("trial_access_type", { length: 20 }).$type<"pilot" | "client">(),
+  trialRemindersSent: text("trial_reminders_sent").array().default([]), // milestones sent: ["day_6","day_5","day_3","day_1"]
   selectedMealBuilder: text("selected_meal_builder"), // weekly, diabetic, glp1, anti_inflammatory
-  isTester: boolean("is_tester").default(false), // Testers bypass trial expiration (coaches, doctors, beta users)
+  // Builder Switch Controls (Beta)
+  builderSwitchUnlimited: boolean("builder_switch_unlimited").default(false), // true = no limit (admin/internal accounts only)
+  builderChangesUsed: integer("builder_changes_used").default(0),           // how many switches used so far
+  builderChangeLimit: integer("builder_change_limit").default(4),            // cap (default 4 during beta)
+  isTester: boolean("is_tester").default(false), // Temporary beta testers — transitions to paid after launch
+  isFounder: boolean("is_founder").default(false), // Permanent free access — core family, business partners, founding contributors only
+  isSandbox: boolean("is_sandbox").default(false), // Internal QA/demo accounts — permanent full access, no Stripe/trial required
   // Token-based authentication (secure alternative to session)
   authToken: text("auth_token").unique(), // 256-bit random token for API authentication
   authTokenCreatedAt: timestamp("auth_token_created_at", { withTimezone: true }),
+  // Multi-factor authentication (TOTP / RFC 6238)
+  mfaEnabled: boolean("mfa_enabled").notNull().default(false),
+  mfaSecret: varchar("mfa_secret", { length: 128 }),        // base32 TOTP secret — NEVER expose to client after setup
+  mfaBackupCodes: jsonb("mfa_backup_codes"),                 // SHA-256 hashed backup codes array
+  mfaEnrolledAt: timestamp("mfa_enrolled_at", { withTimezone: true }),
   profilePhotoUrl: text("profile_photo_url"), // URL to user's profile photo in object storage
+  // Acquisition tracking — source param captured at signup (e.g. ?source=apexfit or ?ref=apexfit)
+  signupSource: text("signup_source"), // null = organic / unknown
+  // Organization relationship tracking (kept separate — both can exist independently)
+  attributionOrganizationId: uuid("attribution_organization_id"), // which org's marketing/referral brought this user here (never changes)
+  careOrganizationId: uuid("care_organization_id"),              // which org is actively coaching/caring for this user right now
   // Role-based access control for Pro Care
   role: text("role").$type<"admin"|"coach"|"client">().notNull().default("client"), // admin = full access, coach = Pro Care tools, client = assigned board only
   isProCare: boolean("is_pro_care").default(false), // true if user is managed by a coach
@@ -336,6 +415,13 @@ export const users = pgTable("users", {
   onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }), // null = onboarding not complete
   macrosDefined: boolean("macros_defined").default(false), // true when user has set macro targets
   starchPlanDefined: boolean("starch_plan_defined").default(false), // true when starch strategy is set
+  defaultStarchMealsPerDay: integer("default_starch_meals_per_day"), // user's saved preference; null = not yet set
+  starchDistributionStrategy: text("starch_distribution_strategy").$type<"even"|"workout"|"morning"|"evening"|"ai">(), // how starch meals are spread across the day; null = not set (defaults to "even")
+  // Clinical Context Screening — self-reported medication/hormone gate (Macro Calculator step)
+  // This is the lightweight screening layer; full medication detail lives in companionProfiles.
+  clinicalContextResponse: text("clinical_context_response").$type<"yes"|"no"|"unsure">(), // null = not yet answered
+  clinicalContextCategories: jsonb("clinical_context_categories").$type<string[]>(), // categories selected when response="yes"
+  clinicalContextUpdatedAt: timestamp("clinical_context_updated_at", { withTimezone: true }), // when screening was last updated
   onboardingMode: text("onboarding_mode").$type<"independent"|"procare">().default("independent"), // how user was onboarded
   // MPM SafetyGuard PIN System
   safetyPinHash: text("safety_pin_hash"), // bcrypt hash of 4-6 digit Safety PIN
@@ -344,10 +430,19 @@ export const users = pgTable("users", {
   palateSpiceTolerance: text("palate_spice_tolerance").$type<"none"|"mild"|"medium"|"hot">().default("mild"),
   palateSeasoningIntensity: text("palate_seasoning_intensity").$type<"light"|"balanced"|"bold">().default("balanced"),
   palateFlavorStyle: text("palate_flavor_style").$type<"classic"|"herb"|"savory"|"bright">().default("classic"),
+  // Cuisine Identity - cultural food preference (stylistic layer, never overrides diet/medical)
+  cuisinePreference: text("cuisine_preference"), // e.g. "indian", "mexican", "armenian", null = no preference
+  cuisineIntensity: text("cuisine_intensity").$type<"light"|"balanced"|"authentic">(), // how strongly to apply the cuisine
   // Display Preferences - accessibility settings
   fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
+  narrationSpeedPreference: text("narration_speed_preference").$type<"0.75"|"1.0"|"1.25"|"1.5">().default("1.0"),
+  // International / Metric Support
+  measurementSystem: text("measurement_system").$type<"imperial"|"metric">().default("imperial"),
+  countryCode: text("country_code").$type<"US"|"CA"|"AU"|"UK"|"NZ">().default("US"),
+  // Language Preference — "auto" = use device language (navigator.language), explicit BCP-47 = user override
+  preferredLanguage: text("preferred_language").default("auto"),
   // ProCare Professional Onboarding - Phase 1
-  professionalRole: text("professional_role").$type<"trainer"|"physician">(),
+  professionalRole: text("professional_role").$type<"trainer"|"physician"|"dietitian"|"nurse_practitioner"|"business">(),
   professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),
   credentialType: text("credential_type"), // e.g. "Personal Trainer", "Physician", "Dietitian"
   credentialBody: text("credential_body"), // e.g. "NASM", "ACE", license state
@@ -356,23 +451,254 @@ export const users = pgTable("users", {
   attestationText: text("attestation_text"), // version of attestation they agreed to
   attestedAt: timestamp("attested_at", { withTimezone: true }), // when attestation was accepted
   procareEntryPath: text("procare_entry_path").$type<"certified"|"experienced"|"non_certified">(), // which path they chose
+  procareTrainingCompleted: boolean("procare_training_completed").default(false), // true after Phase 2 ProCare training is done
   // Onboarding V2 - Medical conditions, builder recommendation, flavor preference
   medicalConditions: text("medical_conditions").array().default(sql`ARRAY[]::text[]`), // diabetes-type1, diabetes-type2, prediabetes, glp1, anti-inflammatory, none
+  // Self-selected specialty health protocol — activates the appropriate clinical variant of the Anti-Inflammatory Builder
+  // without requiring lab values. Labs remain optional for precision refinement.
+  // Values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support' | null
+  specialtyCondition: text("specialty_condition"),
+  specialtyConditions: text("specialty_conditions").array().default(sql`ARRAY[]::text[]`),
   preferredBuilder: text("preferred_builder"), // diabetic, glp1, anti-inflammatory, general — starting recommendation from onboarding
   flavorPreference: text("flavor_preference"), // bold-spicy, comfort, mediterranean, balanced, unsure
+  heatPreference: text("heat_preference"), // none, mild, medium, hot, very-hot, unsure
   sweetenerPreferences: text("sweetener_preferences").array(),
+  // Cancer Support Nutrition — physician-assigned clinical overlay (oncology_support_v1)
+  // null = feature not active for this user. Only writable by verified studio owners via ProCare.
+  oncologySupportContext: jsonb("oncology_support_context").$type<{
+    enabled: boolean;
+    symptoms: Array<"low_appetite" | "nausea" | "mouth_sensitivity" | "fatigue_low_prep" | "gi_sensitivity">;
+    emphasis: { highProteinNutrientDensity: boolean };
+    // Ownership fields — part of the Protocol Ownership Model
+    source: "physician" | "self";
+    locked: boolean;          // true while physician connection is active
+    ownerName: string | null; // display name of whoever set it
+    updatedBy: string | null;
+    updatedAt: string | null;
+  }>(),
+  // Oncology Support Onboarding Intent — user-captured during onboarding (NOT a clinical protocol toggle)
+  // null = user skipped this step. Set only by the user themselves during onboarding or in settings.
+  oncologySupportIntent: text("oncology_support_intent").$type<"own_provider" | "request_support" | "self_directed">(),
+  oncologySupportIntentSetAt: timestamp("oncology_support_intent_set_at", { withTimezone: true }),
+  // Thyroid Support — self-selected during onboarding or edit profile. Stores the user's thyroid medication
+  // name if they are on medication (e.g., "Levothyroxine", "Synthroid"). null = no medication disclosed.
+  // Used by the Thyroid Support protocol for medication timing awareness in meal generation.
+  thyroidMedication: text("thyroid_medication"),
+  // Thyroid subtype — narrows the Thyroid Support protocol to the specific condition.
+  // 'hypothyroid' = underactive thyroid, selenium/zinc focus, metabolic regularity.
+  // 'hyperthyroid' = overactive thyroid, iodine restriction, caloric density support.
+  // 'hashimotos' = autoimmune thyroid, strengthened anti-inflammatory/gluten-minimal overlay.
+  // null = not specified (generic thyroid support applies).
+  thyroidType: text("thyroid_type").$type<"hypothyroid" | "hyperthyroid" | "hashimotos">(),
+  // ── My Perfect Pregnancy — Pregnancy Support Protocol ───────────────────────
+  // Stage: manually set by user in setup modal or onboarding (used when no due date given).
+  // Values: 'trying-to-conceive' | 'trimester-1' | 'trimester-2' | 'trimester-3' | 'breastfeeding' | 'postpartum'
+  pregnancyStage: text("pregnancy_stage"),
+  // Due date: ISO date string (YYYY-MM-DD). Source of truth for auto-derived trimester/week.
+  // When set, the protocol envelope derives weekOfPregnancy and currentTrimester server-side.
+  // When null, pregnancyStage is used as the manual override.
+  pregnancyDueDate: text("pregnancy_due_date"),
+  // Pregnancy support context: JSONB storing symptoms, tracking mode, and user-set preferences.
+  // Active symptoms drive meal adaptations (nausea, heartburn, swelling, etc.).
+  // Null = pregnancy support not yet configured.
+  pregnancySupportContext: jsonb("pregnancy_support_context").$type<{
+    symptoms: Array<"nausea" | "heartburn" | "constipation" | "fatigue" | "food_aversions" | "swelling" | "shortness_of_breath" | "low_appetite">;
+    trackingMode: "due-date" | "manual";
+    isBreastfeeding: boolean;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
+  // Performance Nutrition Protocol — sport-specific fueling context (JSONB).
+  // Active when "performance-nutrition" is in specialtyConditions.
+  // Stacks on top of medical safety layers — never overrides them.
+  // Null = performance nutrition not yet configured.
+  performanceContext: jsonb("performance_context").$type<{
+    primaryGoal: "fat_loss" | "muscle_gain" | "maintenance" | "performance";
+    trainingType: "strength" | "hypertrophy" | "powerlifting" | "olympic_lifting" | "mma" | "boxing" | "wrestling" | "bjj" | "crossfit" | "endurance_running" | "cycling" | "triathlon" | "tactical" | "general_fitness";
+    trainingFrequency: "1-2" | "3-4" | "5-6" | "7+";
+    cardioFocus: "none" | "recovery" | "zone_2" | "tempo" | "threshold" | "hiit" | "mixed";
+    trainingPhase: "off_season" | "pre_season" | "in_season" | "weight_cut" | "recovery";
+    twoADays: boolean;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
+  // Therapeutic Nutrition Intelligence — hormone / peptide / medication context (JSONB).
+  // Active when "therapeutic-support" is in specialtyConditions.
+  // Stacks on top of medical safety layers — never overrides them.
+  // Null = therapeutic support not yet configured.
+  therapeuticSupportContext: jsonb("therapeutic_support_context").$type<{
+    peptides: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    hormones: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    medications: Array<{ type: string; dose: number; unit: string; frequency?: string; label?: string; custom?: boolean }>;
+    therapies: string[];
+    recoveryGoals: string[];
+  }>(),
+  // Alpha-gal Syndrome (Mammalian Meat Allergy) — clinical allergy protocol (JSONB).
+  // Active when "alpha-gal-syndrome" is in healthConditions or specialtyConditions.
+  // Null = not selected during onboarding. profileComplete = false triggers conservative defaults.
+  // NEVER universally blocks dairy — dairy tolerance is individualized per dairyTolerance field.
+  alphaGalProfile: jsonb("alpha_gal_profile").$type<{
+    diagnosisStatus: "diagnosed" | "being_evaluated" | "no";
+    avoidances: Array<"beef" | "pork" | "lamb" | "venison" | "organ_meats" | "mammalian_fats" | "other">;
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    severeReactionHistory: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
+  // Competition Prep Protocol — date-driven prep context (JSONB).
+  // Active when "competition-prep" is in specialtyConditions.
+  // Event date is the safeguard — protocol ends automatically at event date.
+  competitionPrepContext: jsonb("competition_prep_context").$type<{
+    competitionType: "bodybuilding_show" | "mens_physique" | "classic_physique" | "figure" | "bikini" | "wellness" | "powerlifting_meet" | "strongman_competition" | "olympic_weightlifting_meet" | "fight_camp" | "wrestling_season" | "crossfit_competition" | "hyrox" | "marathon" | "triathlon_race" | "spartan_race";
+    division?: string;
+    eventDate: string;
+    currentWeight?: string;
+    targetWeight?: string;
+    activatedAt: string | null;
+    updatedAt: string | null;
+  }>(),
+  // Active protocol track — which engine is running ("athletic" | "competition").
+  // Null = neither track has been configured.
+  activeProtocolTrack: text("active_protocol_track")
+    .$type<"athletic" | "competition">(),
+  // Carb Cycle State — number-driven carb cycling engine for Performance Nutrition users.
+  // Tracks phase, carb/fat targets, refeed bookmarks, and a rolling 90-day weight log.
+  // Null = engine not yet activated (user hasn't enabled carb cycling).
+  carbCycleState: jsonb("carb_cycle_state").$type<{
+    phase: "low_carb" | "refeed" | "inactive";
+    carbTargetG: number;
+    fatTargetAdjustG: number;
+    refeedStartDate: string | null;
+    refeedStartWeightLb: number | null;
+    refeedStopCapLb: number;
+    weightLog: Array<{ date: string; weight: number; carbsG: number }>;
+    lastUpdated: string;
+    manualOverride?: boolean;
+  }>(),
+  // Adaptive Performance Nutrition — weekly training schedule.
+  // Stores day-of-week → session type mapping + current training phase.
+  // Drives performanceProtocolResolver to compute daily macro targets.
+  // Null = schedule not yet configured by user.
+  weeklyTrainingSchedule: jsonb("weekly_training_schedule").$type<{
+    monday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    tuesday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    wednesday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    thursday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    friday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    saturday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    sunday: "strength" | "power" | "endurance" | "sport_practice" | "competition" | "recovery" | "off";
+    trainingPhase: "stabilization" | "strength" | "power" | "peaking" | "in_season" | "off_season";
+    activatedAt: string;
+    updatedAt: string;
+  }>(),
+  // Adaptive Performance Nutrition — protocol configuration.
+  // Stores baseline macro targets + per-session-type modifiers generated at setup.
+  // Modifiers are goal-driven (fat_loss / muscle_gain / performance / maintenance).
+  // Null = protocol not yet activated.
+  performanceProtocolConfig: jsonb("performance_protocol_config").$type<{
+    baselineCalories: number;
+    baselineProteinG: number;
+    baselineCarbsG: number;
+    baselineFatG: number;
+    sessionModifiers: Record<string, { carbsAdjustG: number; caloriesAdjustKcal: number; proteinAdjustG: number; }>;
+    generatedAt: string;
+  }>(),
+  /**
+   * Explicit Performance Mode activation flag.
+   *
+   * Separates "has a performance schedule stored" from "performance mode is ON".
+   * false (default) = schedule may exist but performance modifiers are NOT applied.
+   * true            = today's training-day modifiers are applied to macro targets
+   *                   and prescription starch slot counts across all builders.
+   *
+   * Set via the builder entry pages (button click), NOT automatically when a schedule is saved.
+   * Schedule and protocol data are never deleted when this is set to false.
+   */
+  performanceModeEnabled: boolean("performance_mode_enabled").notNull().default(false),
+  // Flags 'request_support' intent for future professional follow-up surfacing
+  needsProfessionalFollowup: boolean("needs_professional_followup").default(false),
   // Client Goals — set during onboarding, displayed on dashboard + coach folder
   goalType: text("goal_type").$type<"lose"|"maintain"|"gain">(),
   goalTarget: text("goal_target"), // e.g. "20 lbs" or "10 kg"
   goalTimelineWeeks: integer("goal_timeline_weeks"), // e.g. 12
   goalStartDate: timestamp("goal_start_date", { withTimezone: true }),
+  // Performance Overlay — metabolic operating mode (Tier 5 of the Protocol Envelope).
+  // Stacks ON TOP of medical/dietary safety layers — never replaces them.
+  // Activation: Macro Calculator. Management: Edit Goals / Profile.
+  // "standard" = no overlay (default). Coach-controlled mode requires verified studio relationship.
+  performanceOverlay: text("performance_overlay")
+    .$type<"standard"|"performance"|"competition_prep"|"recovery"|"recomp">()
+    .notNull().default("standard"),
+  performanceControlMode: text("performance_control_mode")
+    .$type<"self_guided"|"coach_controlled">()
+    .notNull().default("self_guided"),
   // Coach / Provider Availability — controlled from Care Team page (professionals only)
   availabilityStatus: text("availability_status").$type<"available"|"busy"|"away"|"offline">().default("available"),
-  backAt: timestamp("back_at", { withTimezone: true }), // optional return date when not available
+  backAt: timestamp("back_at", { withTimezone: true }), // optional return date / end of away period
+  awayFrom: timestamp("away_from", { withTimezone: true }), // start date of away/vacation period
+  // Creator System Layer — which branded system this user has activated (default = MPM standard)
+  activeSystem: text("active_system").default("default"),
+  // Admin access — server-enforced, never trust frontend alone
+  isAdmin: boolean("is_admin").default(false),
+  // Household profile switching — which household_profiles row is currently "active"
+  // null = generating for the owner (normal mode)
+  // set = generating for that household member (protocol envelope loads from household_profiles)
+  activeHouseholdProfileId: uuid("active_household_profile_id"),
+  organizationId: uuid("organization_id"),
 }, (t) => ({
   resetTokenIdx: index("idx_reset_token_lookup").on(t.resetTokenHash, t.resetTokenExpires),
   authTokenIdx: uniqueIndex("idx_auth_token_lookup").on(t.authToken),
+  stripeCustomerIdUnique: uniqueIndex("users_stripe_customer_id_uniq").on(t.stripeCustomerId),
+  stripeSubscriptionIdUnique: uniqueIndex("users_stripe_subscription_id_uniq").on(t.stripeSubscriptionId),
+  organizationIdx: index("idx_users_organization_id").on(t.organizationId),
 }));
+
+// Administrative review trail for legacy accounts whose email addresses differ
+// only by case. A review records an explicit human decision; it never merges or
+// deletes user rows.
+export const emailIdentityReviews = pgTable("email_identity_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  normalizedEmail: text("normalized_email").notNull(),
+  subjectUserId: varchar("subject_user_id", { length: 255 }).notNull().references(() => users.id),
+  reviewedByUserId: varchar("reviewed_by_user_id", { length: 255 }).notNull().references(() => users.id),
+  resolution: text("resolution").notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  normalizedEmailIdx: index("email_identity_reviews_normalized_email_idx").on(table.normalizedEmail, table.createdAt),
+  subjectUserIdx: index("email_identity_reviews_subject_user_idx").on(table.subjectUserId, table.createdAt),
+}));
+
+// Pre-registration access does not start a trial clock. The matching user row
+// receives trial dates only when account creation claims an active invitation.
+export const trialAccessInvites = pgTable("trial_access_invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  normalizedEmail: text("normalized_email").notNull(),
+  accessType: varchar("access_type", { length: 20 }).$type<"pilot" | "client">().notNull(),
+  durationDays: integer("duration_days").notNull().default(30),
+  invitedAt: timestamp("invited_at", { withTimezone: true }).notNull().defaultNow(),
+  invitedByUserId: varchar("invited_by_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  activatedAt: timestamp("activated_at", { withTimezone: true }),
+  activatedUserId: varchar("activated_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  pilotGrantId: uuid("pilot_grant_id"),
+  providerUserId: varchar("provider_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
+}, (table) => ({
+  emailHistoryIdx: index("trial_access_invites_email_history_idx").on(table.normalizedEmail, table.invitedAt),
+  activatedUserIdx: index("trial_access_invites_activated_user_idx").on(table.activatedUserId),
+}));
+
+// Creator System — product code redemption log (future revenue tracking)
+export const productCodeRedemptions = pgTable("product_code_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  system: text("system").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
 
 // Pantry Items for Fridge Rescue
 export const pantryItems = pgTable("pantry_items", {
@@ -393,6 +719,7 @@ export const safetyOverrideAuditLogs = pgTable("safety_override_audit_logs", {
   safetyMode: text("safety_mode").$type<"CUSTOM_AUTHENTICATED">().notNull(), // always CUSTOM_AUTHENTICATED for overrides
   builderId: text("builder_id"), // which meal builder was used (craving, dessert, fridge-rescue, etc.)
   overrideReason: text("override_reason"), // optional user-provided reason
+  correlationId: text("correlation_id"), // request correlation ID for tracing override to a specific generation request
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   userIdx: index("idx_safety_override_user").on(t.userId),
@@ -473,6 +800,10 @@ export const userGlycemicSettings = pgTable("user_glycemic_settings", {
   userId: varchar("user_id").references(() => users.id).notNull(),
   bloodGlucose: integer("blood_glucose"),
   preferredCarbs: text("preferred_carbs").array().default(sql`ARRAY[]::text[]`),
+  // Per-glucose-range carb preferences — what to eat when blood sugar is low/in-range/high
+  lowRangeCarbs: text("low_range_carbs").array().default(sql`ARRAY[]::text[]`),
+  midRangeCarbs: text("mid_range_carbs").array().default(sql`ARRAY[]::text[]`),
+  highRangeCarbs: text("high_range_carbs").array().default(sql`ARRAY[]::text[]`),
   defaultPortion: integer("default_portion").default(100), // stored as integer (100 = 1.0 cups)
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -486,7 +817,13 @@ export const waterLogs = pgTable(
     // store mL for accuracy, show oz/cups in UI as needed
     amountMl: integer("amount_ml").notNull(),
     unit: text("unit").notNull().default("ml"), // "ml" | "oz" | "cup" (UI reference)
+    // Phase 1 keeps water_logs as the only editable intake ledger while
+    // allowing the Hub to distinguish plain water from other fluids.
+    beverageClass: text("beverage_class").notNull().default("water"),
     intakeTime: timestamp("intake_time", { withTimezone: false }).notNull(), // when they said they drank
+    // Immutable event-day context. Null means legacy/unknown; never fabricate it.
+    eventTimezone: text("event_timezone"),
+    eventLocalDate: text("event_local_date"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => ({
@@ -653,25 +990,13 @@ export const userTimePresets = pgTable("user_time_presets", {
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertUserSchema = createInsertSchema(users);
 
-export const insertRecipeSchema = createInsertSchema(recipes).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertRecipeSchema = createInsertSchema(recipes);
 
-export const insertMealPlanSchema = createInsertSchema(mealPlans).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMealPlanSchema = createInsertSchema(mealPlans);
 
-export const insertMealLogSchema = createInsertSchema(mealLog).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMealLogSchema = createInsertSchema(mealLog);
 
 export const insertMacroLogSchema = createInsertSchema(macroLogs, {
   at: z.coerce.date(),
@@ -681,35 +1006,18 @@ export const insertMacroLogSchema = createInsertSchema(macroLogs, {
   fat: z.coerce.number().nonnegative(),
   fiber: z.coerce.number().nonnegative().optional(),
   alcohol: z.coerce.number().nonnegative().optional(),
-}).omit({
-  id: true,
 });
 
-export const insertMealReminderSchema = createInsertSchema(mealReminders).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMealReminderSchema = createInsertSchema(mealReminders);
 
-export const insertMentalHealthConversationSchema = createInsertSchema(mentalHealthConversations).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMentalHealthConversationSchema = createInsertSchema(mentalHealthConversations);
 
 // Notification system insert schemas
-export const insertMealScheduleSchema = createInsertSchema(mealSchedule).omit({
-  id: true,
-});
+export const insertMealScheduleSchema = createInsertSchema(mealSchedule);
 
-export const insertNotificationJobSchema = createInsertSchema(notificationJobs).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertNotificationJobSchema = createInsertSchema(notificationJobs);
 
-export const insertAdherenceEventSchema = createInsertSchema(adherenceEvents).omit({
-  id: true,
-  eventAt: true,
-});
+export const insertAdherenceEventSchema = createInsertSchema(adherenceEvents);
 
 // Weekly meal plans table for meal plan persistence
 export const weeklyMealPlans = pgTable("weekly_meal_plans", {
@@ -750,20 +1058,11 @@ export const aiMealPlanArchive = pgTable("ai_meal_plan_archive", {
 
 
 
-export const insertWeeklyMealPlanSchema = createInsertSchema(weeklyMealPlans).omit({
-  createdAt: true,
-});
+export const insertWeeklyMealPlanSchema = createInsertSchema(weeklyMealPlans);
 
-export const insertAiMealPlanArchiveSchema = createInsertSchema(aiMealPlanArchive).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertAiMealPlanArchiveSchema = createInsertSchema(aiMealPlanArchive);
 
-export const insertUserTimePresetSchema = createInsertSchema(userTimePresets).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertUserTimePresetSchema = createInsertSchema(userTimePresets);
 
 // Kids Veggie Explorer tables
 export const kidsVeggieExplorer = pgTable("kids_veggie_explorer", {
@@ -881,10 +1180,7 @@ export const barcodeCache = pgTable("barcode_cache", {
 });
 
 // Shopping List Items insert schema
-export const insertShoppingListItemSchema = createInsertSchema(shoppingListItems).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertShoppingListItemSchema = createInsertSchema(shoppingListItems);
 export type InsertShoppingListItem = z.infer<typeof insertShoppingListItemSchema>;
 export type ShoppingListItem = typeof shoppingListItems.$inferSelect;
 
@@ -1080,20 +1376,11 @@ export const mealLogsEnhanced = pgTable("meal_logs_enhanced", {
 // Enhanced Shopping List Items removed - all shopping functionality removed
 
 // Insert schemas for barcode food system
-export const insertFoodSchema = createInsertSchema(foods).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertFoodSchema = createInsertSchema(foods);
 
-export const insertFoodDiarySchema = createInsertSchema(foodDiary).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertFoodDiarySchema = createInsertSchema(foodDiary);
 
-export const insertBarcodeCacheSchema = createInsertSchema(barcodeCache).omit({
-  lastUsedAt: true,
-});
+export const insertBarcodeCacheSchema = createInsertSchema(barcodeCache);
 
 // Type exports for barcode system
 export type Food = typeof foods.$inferSelect;
@@ -1104,91 +1391,44 @@ export type InsertFoodDiary = z.infer<typeof insertFoodDiarySchema>;
 export type InsertBarcodeCache = z.infer<typeof insertBarcodeCacheSchema>;
 
 // Zod schemas for veggie explorer
-export const insertKidsVeggieExplorerSchema = createInsertSchema(kidsVeggieExplorer).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertKidsVeggieExplorerSchema = createInsertSchema(kidsVeggieExplorer);
 
 export const insertKidsVegetablesCatalogSchema = createInsertSchema(kidsVegetablesCatalog);
 
 // Contest schemas
-export const insertContestSchema = createInsertSchema(contests).omit({
-  id: true,
-});
+export const insertContestSchema = createInsertSchema(contests);
 
-export const insertContestEntrySchema = createInsertSchema(contestEntries).omit({
-  id: true,
-  submittedAt: true,
-});
+export const insertContestEntrySchema = createInsertSchema(contestEntries);
 
-export const insertContestVoteSchema = createInsertSchema(contestVotes).omit({
-  id: true,
-  votedAt: true,
-});
+export const insertContestVoteSchema = createInsertSchema(contestVotes);
 
 
 
 // AI Cooking Challenge schemas
-export const insertCookingChallengeSchema = createInsertSchema(cookingChallenges).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertCookingChallengeSchema = createInsertSchema(cookingChallenges);
 
-export const insertChallengeSubmissionSchema = createInsertSchema(challengeSubmissions).omit({
-  id: true,
-  submittedAt: true,
-});
+export const insertChallengeSubmissionSchema = createInsertSchema(challengeSubmissions);
 
-export const insertChallengeVoteSchema = createInsertSchema(challengeVotes).omit({
-  id: true,
-  votedAt: true,
-});
+export const insertChallengeVoteSchema = createInsertSchema(challengeVotes);
 
-export const insertChallengeCommentSchema = createInsertSchema(challengeComments).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertChallengeCommentSchema = createInsertSchema(challengeComments);
 
-export const insertUserChallengeProgressSchema = createInsertSchema(userChallengeProgress).omit({
-  id: true,
-  joinedAt: true,
-  completedAt: true,
-});
+export const insertUserChallengeProgressSchema = createInsertSchema(userChallengeProgress);
 
 // AI Cooking Classes schemas
-export const insertCookingClassSchema = createInsertSchema(cookingClasses).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertCookingClassSchema = createInsertSchema(cookingClasses);
 
-export const insertCookingClassJournalSchema = createInsertSchema(cookingClassJournal).omit({
-  id: true,
-  submittedAt: true,
-});
+export const insertCookingClassJournalSchema = createInsertSchema(cookingClassJournal);
 
-export const insertCookingClassProgressSchema = createInsertSchema(cookingClassProgress).omit({
-  id: true,
-  lastActive: true,
-  createdAt: true,
-});
+export const insertCookingClassProgressSchema = createInsertSchema(cookingClassProgress);
 
-export const insertCookingClassVoteSchema = createInsertSchema(cookingClassVotes).omit({
-  id: true,
-  votedAt: true,
-});
+export const insertCookingClassVoteSchema = createInsertSchema(cookingClassVotes);
 
-export const insertUserGlycemicSettingsSchema = createInsertSchema(userGlycemicSettings).omit({
-  id: true,
-  updatedAt: true,
-});
+export const insertUserGlycemicSettingsSchema = createInsertSchema(userGlycemicSettings);
 
 
 
-export const insertWaterLogSchema = createInsertSchema(waterLogs).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertWaterLogSchema = createInsertSchema(waterLogs);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -1359,6 +1599,7 @@ export const mealInstances = pgTable('meal_instances', {
   recipeId: uuid('recipe_id'),
   source: varchar('source', { length: 32 }).notNull().default('plan'),
   status: varchar('status', { length: 16 }).notNull().default('planned'),
+  statusChangedAt: timestamp('status_changed_at', { withTimezone: true }),
   loggedAt: timestamp('logged_at', { withTimezone: true }),
   replacedByMealInstanceId: uuid('replaced_by_meal_instance_id'),
   notes: text('notes'),
@@ -1372,21 +1613,16 @@ export const userRecipes = pgTable('user_recipes', {
   ingredients: jsonb('ingredients').notNull(),
   instructions: text('instructions').notNull(),
   nutrition: jsonb('nutrition'),
+  imageUrl: text('image_url'),
   badges: jsonb('badges').$type<Array<{ key: string; label: string; description: string }>>().default(sql`'[]'::jsonb`),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const insertMealInstanceSchema = createInsertSchema(mealInstances).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertMealInstanceSchema = createInsertSchema(mealInstances);
 export type InsertMealInstance = z.infer<typeof insertMealInstanceSchema>;
 export type SelectMealInstance = typeof mealInstances.$inferSelect;
 
-export const insertUserRecipeSchema = createInsertSchema(userRecipes).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertUserRecipeSchema = createInsertSchema(userRecipes);
 export type InsertUserRecipe = z.infer<typeof insertUserRecipeSchema>;
 export type SelectUserRecipe = typeof userRecipes.$inferSelect;
 
@@ -1410,10 +1646,7 @@ export const userTestimonials = pgTable(
   })
 );
 
-export const insertUserTestimonialSchema = createInsertSchema(userTestimonials).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertUserTestimonialSchema = createInsertSchema(userTestimonials);
 
 export type InsertUserTestimonial = z.infer<typeof insertUserTestimonialSchema>;
 export type SelectUserTestimonial = typeof userTestimonials.$inferSelect;
@@ -1634,12 +1867,13 @@ export type InsertBiometricsVitals = typeof biometricsVitals.$inferInsert;
 export const weekBoards = pgTable("week_boards", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   weekStartISO: varchar("week_start_iso").notNull(), // e.g. "2025-09-08" (Monday)
+  builderType: varchar("builder_type").notNull().default(''), // e.g. "antiInflammatory"; '' = general
   boardJSON: jsonb("board_json").notNull(), // entire WeekBoard shape
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
-  pk: primaryKey({ columns: [table.userId, table.weekStartISO] }),
-  userWeekIdx: index("week_boards_user_week_idx").on(table.userId, table.weekStartISO),
+  pk: primaryKey({ columns: [table.userId, table.weekStartISO, table.builderType] }),
+  userWeekIdx: index("week_boards_user_week_idx").on(table.userId, table.weekStartISO, table.builderType),
 }));
 
 export type WeekBoard = typeof weekBoards.$inferSelect;
@@ -1673,6 +1907,17 @@ export const insertShoppingListSourceSchema = createInsertSchema(shoppingListSou
 
 export type ShoppingListSource = typeof shoppingListSources.$inferSelect;
 export type InsertShoppingListSource = z.infer<typeof insertShoppingListSourceSchema>;
+
+export const shoppingListItemsRelations = relations(shoppingListItems, ({ many }) => ({
+  sources: many(shoppingListSources),
+}));
+
+export const shoppingListSourcesRelations = relations(shoppingListSources, ({ one }) => ({
+  item: one(shoppingListItems, {
+    fields: [shoppingListSources.itemId],
+    references: [shoppingListItems.id],
+  }),
+}));
 
 // ========================================
 // Physician Medical Reports Schema
@@ -1754,7 +1999,7 @@ export const insertPhysicianReportSchema = createInsertSchema(physicianReports, 
   protocol: z.string().optional(),
   clinicalNotes: z.string().optional(),
   expiresAt: z.date().optional(),
-}).omit({ id: true, accessCode: true, viewCount: true, lastViewedAt: true, createdAt: true, updatedAt: true });
+});
 
 export type PhysicianReport = typeof physicianReports.$inferSelect;
 export type InsertPhysicianReport = z.infer<typeof insertPhysicianReportSchema>;
@@ -1797,4 +2042,36 @@ export const complianceSnapshots = pgTable("compliance_snapshots", {
 
 export type ComplianceSnapshot = typeof complianceSnapshots.$inferSelect;
 
+// ── Saved Groceries ───────────────────────────────────────────────────────────
+// Persistent grocery preference library — distinct from shopping_list_items
+// (which is ephemeral/scoped). A saved item is a product the user liked and
+// wants Grocery Coach to remember and prioritize across future sessions.
+export const userSavedGroceryItems = pgTable("user_saved_grocery_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productName: text("product_name").notNull(),
+  brand: text("brand"),
+  barcode: text("barcode"),
+  // Computed dedup key: "upc::<barcode>" when scanned, "name::<brand>::<normalized_name>" otherwise.
+  // UNIQUE per user — repeated taps can never create duplicates.
+  productKey: text("product_key").notNull(),
+  category: text("category"),
+  source: text("source").notNull(), // 'grocery-coach' | 'scanner' | 'manual'
+  // Full product nutrition at save time — preserved verbatim so future compliance
+  // re-checks can compare against today's GLP-1, diabetic, or other ceilings.
+  nutritionJson: jsonb("nutrition_json").$type<Record<string, number>>(),
+  // Raw advisor/scanner payload — gives us a path back into Product Intelligence
+  // later rather than relying only on a product name six months later.
+  productMeta: jsonb("product_meta"),
+  imageUrl: text("image_url"),
+  savedAt: timestamp("saved_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  userProductKeyIdx: uniqueIndex("idx_saved_grocery_user_product_key").on(t.userId, t.productKey),
+}));
+
+export type UserSavedGroceryItem = typeof userSavedGroceryItems.$inferSelect;
+export type NewUserSavedGroceryItem = typeof userSavedGroceryItems.$inferInsert;
+
 export { userDocumentAcceptance } from "../server/db/schema/legal";
+export { bugReports, bugReportStatusEnum } from "../server/db/schema/bugReports";
+export type { BugReport, NewBugReport } from "../server/db/schema/bugReports";

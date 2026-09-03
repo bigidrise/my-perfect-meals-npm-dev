@@ -1,0 +1,119 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  boolean,
+  smallint,
+  date,
+  timestamp,
+  unique,
+} from "drizzle-orm/pg-core";
+
+export const coachingProfiles = pgTable("coaching_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().unique(),
+  coachingStyle: text("coaching_style"),
+  accountabilityPref: text("accountability_pref"),
+  motivations: text("motivations").array(),
+  lifestyleFlags: text("lifestyle_flags").array(),
+  biggestChallenges: text("biggest_challenges").array(),
+  coachProfileCompletedAt: timestamp("coach_profile_completed_at", { withTimezone: true }),
+  // Coach's Corner — Living Behavioral Profile (typed behavioral variables).
+  // These are read by the Coach's Corner Decision Engine. Do NOT reuse the
+  // legacy lifestyleFlags/biggestChallenges arrays above for new behavioral
+  // variables — each variable gets its own typed column.
+  setbackResponse: text("setback_response"),
+  stressResponse: text("stress_response"),
+  recoveryPreference: text("recovery_preference"),
+  // Coach's Corner Onboarding V1 — additional behavioral variables (see
+  // shared/coachCornerTypes.ts CoachCornerFieldTarget for the full list).
+  // This is a first-pass question set, expected to be pruned once the Core
+  // Coaching Action Library / Recommendation Library are locked.
+  offTrackCauses: text("off_track_causes").array(),
+  progressMindset: text("progress_mindset"),
+  trustStyle: text("trust_style"),
+  overwhelmResponse: text("overwhelm_response"),
+  decisionStyle: text("decision_style"),
+  eatingDriver: text("eating_driver"),
+  cravingResponse: text("craving_response"),
+  hardestPart: text("hardest_part"),
+  activityLevel: text("activity_level"),
+  activeDaysPerWeek: smallint("active_days_per_week"),
+  planStartStage: text("plan_start_stage"),
+  motivationDriver: text("motivation_driver"),
+  goalType: text("goal_type"),
+  // Coach's Corner — last "My progress has slowed" coaching loop result,
+  // kept for continuity/audit of what Chef last told the user.
+  progressSlowedLastIntent: text("progress_slowed_last_intent"),
+  progressSlowedLastRecommendation: text("progress_slowed_last_recommendation"),
+  progressSlowedLastAt: timestamp("progress_slowed_last_at", { withTimezone: true }),
+  // Coach's Corner — last "I'm tired" coaching loop result, same continuity
+  // pattern as the progress-slowed fields above.
+  tiredLastIntent: text("tired_last_intent"),
+  tiredLastRecommendation: text("tired_last_recommendation"),
+  tiredLastAt: timestamp("tired_last_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const coachingInterventions = pgTable("coaching_interventions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull().unique(),
+  situation: text("situation").notNull(),
+  coachingObjective: text("coaching_objective").notNull(),
+  strategies: text("strategies").array().notNull(),
+  avoid: text("avoid").array().notNull(),
+  evidenceTags: text("evidence_tags").array().notNull(),
+  suggestedBuilders: text("suggested_builders").array().notNull(),
+  severity: text("severity").notNull().default("low"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const aceDailyCheckins = pgTable(
+  "ace_daily_checkins",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    date: date("date").notNull(),
+    energy: smallint("energy"),
+    stress: smallint("stress"),
+    sleep: smallint("sleep"),
+    mood: smallint("mood"),
+    cravings: smallint("cravings"),
+    hunger: smallint("hunger"),
+    digestion: smallint("digestion"),
+    soreness: smallint("soreness"),
+    schedule: text("schedule"),
+    motivation: smallint("motivation"),
+    emotionalEatingRisk: smallint("emotional_eating_risk"),
+    symptoms: text("symptoms").array(),
+    freeText: text("free_text"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => ({
+    uniqueUserDate: unique().on(t.userId, t.date),
+  })
+);
+
+export type CoachingProfile = typeof coachingProfiles.$inferSelect;
+export type InsertCoachingProfile = typeof coachingProfiles.$inferInsert;
+export type CoachingIntervention = typeof coachingInterventions.$inferSelect;
+export type InsertCoachingIntervention =
+  typeof coachingInterventions.$inferInsert;
+export type AceDailyCheckin = typeof aceDailyCheckins.$inferSelect;
+export type InsertAceDailyCheckin = typeof aceDailyCheckins.$inferInsert;

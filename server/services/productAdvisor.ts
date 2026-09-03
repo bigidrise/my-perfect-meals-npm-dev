@@ -1,0 +1,531 @@
+/**
+ * Product Advisor Engine
+ *
+ * A first-class product intelligence engine with two modes:
+ *
+ * Mode 1 — Reactive (Smart Scan):  "Is THIS product good for me?"
+ * Mode 2 — Proactive (Shopping Advisor): "What exact products should I buy?"
+ *
+ * Architecture is provider-based so the brand knowledge layer can be swapped
+ * from GPT-4o today to Open Food Facts, USDA, or a retail API tomorrow without
+ * changing any consumer code above this layer.
+ */
+
+import { openai } from "../utils/openaiSafe";
+import { buildGroceryCoachContext } from "./groceryCoachContext";
+import type { GroceryCoachContext } from "./groceryCoachContext";
+import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "./wholeFoodStandard";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface BrandRecommendation {
+  brand: string;
+  rank: 1 | 2 | 3;
+  grade: "A" | "B" | "C";
+  reason: string;
+}
+
+export interface AvoidRecommendation {
+  brand: string;
+  reason: string;
+}
+
+export interface UsualPick {
+  brand: string;
+  reason: string;
+}
+export interface IngredientAdvice {
+  ingredient: string;
+  category: string;
+  recommended: BrandRecommendation[];
+  avoid: AvoidRecommendation[];
+  /** Present when a saved grocery matches this ingredient's category —
+   * pinned above the ranked alternatives as "Your usual pick". */
+  usualPick?: UsualPick | null;
+}
+
+export interface CartRecommendationResult {
+  advice: IngredientAdvice[];
+  profileUsed: string[];
+  store?: string;
+}
+
+// ─── Swap (Replace) selection types ───────────────────────────────────────────
+// Mode 3 — Replace: "Swap ONE item in an existing meal for something in-role."
+// The Replace surface keeps its own intent/constraints (nutritional-role lock,
+// meal context, variety requirement) — those are passed here as PARAMETERS so
+// the brand/product selection logic lives in ONE engine shared with Find a
+// Product and meal-driven Smart Cart. Never rebuild this as a separate prompt.
+
+export interface SwapSuggestion {
+  item: string;
+  quantity?: string;
+  unit?: string;
+  reason: string;
+}
+
+export interface SwapSelectionResult {
+  coachSuggestion?: SwapSuggestion;
+  alternatives?: SwapSuggestion[];
+  savedOption?: SwapSuggestion | null;
+  protocolNote?: string | null;
+}
+
+/** Replace-specific intent/constraints — parameters, not a new prompt. */
+export interface SwapSelectionParams {
+  ingredientToReplace: string;
+  /** Human label of the locked nutritional role (e.g. "lean protein source"). */
+  roleLabel: string;
+  /** Secondary role hint derived from the shopping-list category, if any. */
+  categoryHint?: string | null;
+  mealName?: string;
+  mealDescription?: string;
+  remainingIngredients?: string[];
+  /** Free-text replacement the user asked for, if any. */
+  userRequest?: string;
+  /** Optional language instruction prepended to the system prompt. */
+  languageInstruction?: string;
+}
+
+/**
+ * Shared personalization for swap selection. Built from
+ * buildGroceryCoachContext() — the single personalization source for all
+ * Grocery Coach product surfaces (Find a Product, Replace, meal-driven cart).
+ */
+export interface SwapPersonalizationContext {
+  protocolContext: string;
+  macroContext: string;
+  savedGroceriesBlock: string;
+  savedProductNames: string[];
+  glp1ConstraintBlock: string;
+  diabeticConstraintBlock: string;
+}
+
+function recognizedPurposeContext(text: string): {
+  purposes: Array<"clinical" | "hypoglycemia" | "performance" | "accessibility" | "inadequate_intake" | "clinician_directed">;
+  purposefulNeed?: string;
+} {
+  const normalized = text.toLowerCase();
+  const purposes = [
+    ...(/\b(hypoglycemia|low blood sugar)\b/.test(normalized) ? ["hypoglycemia" as const] : []),
+    ...( /\b(performance|athlete|training|workout)\b/.test(normalized) ? ["performance" as const] : []),
+    ...( /\b(clinician.directed|prescribed|medical nutrition)\b/.test(normalized) ? ["clinician_directed" as const] : []),
+    ...( /\b(inadequate intake|poor appetite|malnutrition)\b/.test(normalized) ? ["inadequate_intake" as const] : []),
+    ...( /\b(accessibility|unable to prepare)\b/.test(normalized) ? ["accessibility" as const] : []),
+    ...( /\b(clinical|renal|diabet|cardiac|cancer)\b/.test(normalized) ? ["clinical" as const] : []),
+  ];
+  const needs = [
+    ...(/\b(hypoglycemia|low blood sugar)\b/.test(normalized) ? ["documented low blood glucose treatment need"] : []),
+    ...(/\b(performance|athlete|training|workout)\b/.test(normalized) ? ["active performance fueling need"] : []),
+    ...(/\b(clinician.directed|prescribed|medical nutrition)\b/.test(normalized) ? ["clinician-directed nutrition need"] : []),
+    ...(/\b(inadequate intake|poor appetite|malnutrition)\b/.test(normalized) ? ["documented inadequate intake support"] : []),
+    ...(/\b(accessibility|unable to prepare)\b/.test(normalized) ? ["documented food preparation accessibility need"] : []),
+  ];
+  return {
+    purposes,
+    purposefulNeed: needs.length > 0 ? needs.join("; ") : undefined,
+  };
+}
+
+// ─── Brand Knowledge Provider (abstraction layer) ─────────────────────────────
+// Today: GPT-4o. Tomorrow: Open Food Facts, USDA, retail APIs — nothing above changes.
+
+export interface BrandKnowledgeProvider {
+  getCartRecommendations(
+    ingredients: string[],
+    protocolContext: string,
+    store?: string,
+  ): Promise<CartRecommendationResult>;
+
+  getSwapRecommendation(
+    params: SwapSelectionParams,
+    context: SwapPersonalizationContext,
+  ): Promise<SwapSelectionResult>;
+}
+
+// ─── GPT-4o Brand Knowledge Provider ─────────────────────────────────────────
+
+const SHOPPING_ADVISOR_SYSTEM_PROMPT = appendWholeFoodStandardPrompt(`You are a Product Advisor for a personalized nutrition app. Your job is to recommend specific, real grocery brands for packaged ingredients based on a user's exact health profile.
+
+CORE RULES:
+- Only advise on packaged/branded items that have meaningful brand variation: sauces, broths, pasta, canned goods, cheese, oils, grains, condiments, dressings, protein powders, snacks, cereals, etc.
+- SKIP fresh produce (broccoli, spinach, berries), whole unpackaged meats (raw chicken breast, steak), fresh herbs, and eggs — return nothing for those.
+- Recommend 2–3 REAL, nationally available brands per ingredient (stocked at Walmart, Target, Costco, Whole Foods, or major grocery chains).
+- The rank-1 brand is your top pick. Rank 2 and 3 are good alternatives.
+- Every "reason" MUST directly reference the user's specific condition by name (e.g. "for your cardiac protocol", "given your renal diet", "for your anti-inflammatory protocol"). Generic health claims are not allowed.
+- Only flag brands in "avoid" if they are GENUINELY problematic for this user's specific protocol — not merely "unhealthy in general."
+- Avoid brands in "avoid" should be COMMON brands the user might reach for by default (not obscure ones).
+- If the user has no specific conditions, focus on ingredient quality and macros relevant to their fitness goal.
+- Grade rubric: A = strong alignment, B = acceptable with minor notes, C = use with caution given their protocol.
+- CATEGORY PRESERVATION: every recommendation MUST stay in the exact product category the user asked for. If they ask for "spaghetti sauce", recommend spaghetti/marinara sauces only; "milk" means milk or direct milk alternatives. Never drift to unrelated products, even ones that are "healthier" for their protocol.
+- USUAL PICK: if the user's SAVED GROCERY FAVORITES (when provided in the health profile) contain a product in the SAME category as a requested ingredient, return it in the "usualPick" field for that ingredient with a short personalized reason acknowledging it's their saved favorite. The usualPick must NOT also appear in "recommended" — the ranked list must be genuinely different alternatives so the user sees new options alongside their usual choice. If no saved favorite matches the category, omit "usualPick" entirely. Saved favorites influence but never dominate: still give the strongest alternatives for their protocol.
+
+RESPONSE FORMAT — strict JSON only, no markdown:
+{
+  "advice": [
+    {
+      "ingredient": "Marinara Sauce",
+      "category": "Sauce",
+      "usualPick": { "brand": "Carbone Marinara", "reason": "Your saved favorite — still a solid fit for your cardiac protocol" },
+      "recommended": [
+        { "brand": "Rao's Marinara", "rank": 1, "grade": "A", "reason": "Low sodium and zero seed oils — ideal for your cardiac and anti-inflammatory protocols" },
+        { "brand": "Victoria Marinara", "rank": 2, "grade": "A", "reason": "Clean ingredient list, sodium level fits your cardiac limit" },
+        { "brand": "Yo Mama's Marinara", "rank": 3, "grade": "B", "reason": "Good alternative — slightly higher sodium but within range for your cardiac protocol" }
+      ],
+      "avoid": [
+        { "brand": "Ragú Traditional", "reason": "High sodium and soybean oil — conflicts with your cardiac protocol and anti-inflammatory goals" }
+      ]
+    }
+  ],
+  "profileUsed": ["Cardiac Protocol", "Anti-Inflammatory"]
+}
+
+profileUsed: short label strings listing only the conditions that genuinely drove the recommendations. Examples: "Cardiac Protocol", "Anti-Inflammatory", "Renal Protocol", "GLP-1 Protocol", "Vegan Diet", "Gluten-Free", "Blood Glucose Control", "Weight Loss Goal", "Hashimoto's Support".
+
+For protein shakes, bars, meal replacements, sports drinks, or other purposeful nutrition products, recommend them only when the USER HEALTH PROFILE explicitly establishes a recognized clinical, hypoglycemia, performance, accessibility, inadequate-intake, or clinician-directed purpose.`, { recommendationSurface: "grocery_product_advisor" });
+
+class GptBrandKnowledgeProvider implements BrandKnowledgeProvider {
+  async getCartRecommendations(
+    ingredients: string[],
+    protocolContext: string,
+    store?: string,
+  ): Promise<CartRecommendationResult> {
+    const storeNote = store
+      ? `\n\nThe user is shopping at: ${store}. Prioritize brands available at that store when possible.`
+      : "";
+
+    const userMessage = `USER HEALTH PROFILE:
+${protocolContext}${storeNote}
+
+SHOPPING LIST — provide brand advice for any packaged items below:
+${ingredients.map((i, n) => `${n + 1}. ${i}`).join("\n")}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: SHOPPING_ADVISOR_SYSTEM_PROMPT },
+        { role: "user", content: userMessage },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.4,
+      max_tokens: 2400,
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(raw);
+
+    const purposeContext = recognizedPurposeContext(protocolContext);
+    const advice = ((parsed.advice ?? []) as IngredientAdvice[]).map((item) => ({
+      ...item,
+      recommended: (item.recommended ?? []).flatMap((recommendation) => {
+        const decision = evaluateWholeFoodCandidate(
+          { name: recommendation.brand, description: `${item.ingredient} ${recommendation.reason}` },
+          { ...purposeContext, recommendationSurface: "grocery_product_advisor" },
+        );
+        if (decision.shouldBlock) return [];
+        return [{
+          ...recommendation,
+          reason: decision.classification === "uncertain"
+            ? `${recommendation.reason} Processing classification is uncertain without a verified ingredient label.`
+            : recommendation.reason,
+        }];
+      }),
+    })).filter((item) => item.recommended.length > 0);
+    if (((parsed.advice ?? []) as unknown[]).length > 0 && advice.length === 0) {
+      throw new WholeFoodRecommendationUnavailableError();
+    }
+    return {
+      advice,
+      profileUsed: (parsed.profileUsed ?? []) as string[],
+      store,
+    };
+  }
+
+  async getSwapRecommendation(
+    params: SwapSelectionParams,
+    context: SwapPersonalizationContext,
+  ): Promise<SwapSelectionResult> {
+    const {
+      ingredientToReplace, roleLabel, categoryHint,
+      mealName, mealDescription, remainingIngredients, userRequest,
+      languageInstruction,
+    } = params;
+
+    const remainingNote =
+      remainingIngredients && remainingIngredients.length > 0
+        ? `Other items already in the grocery list for this meal: ${remainingIngredients.join(", ")}.`
+        : "";
+
+    const userRequestNote = userRequest
+      ? `The user specifically wants: "${userRequest}" — use this as coachSuggestion if it is safe, stays in-role, and meets all constraints. Otherwise suggest the closest compliant in-role option and note the reason in protocolNote.`
+      : "";
+
+    const systemPrompt = appendWholeFoodStandardPrompt(`You are a Grocery Store Coach. The user wants to replace one grocery item while keeping their meal intact.
+
+MEAL: "${mealName || "current meal"}"${mealDescription ? ` — ${mealDescription}` : ""}
+ITEM TO REPLACE: "${ingredientToReplace}"
+${remainingNote}
+
+NUTRITIONAL ROLE LOCK: "${ingredientToReplace}" is a ${roleLabel}.${categoryHint ? ` The item's grocery category confirms it is a ${categoryHint} — use this as a tiebreaker when the role is ambiguous.` : ""} ALL three suggestions (coachSuggestion + both alternatives) MUST stay within this exact nutritional role. Do not cross roles — no swapping a protein for a starch, a fat for a vegetable, etc. If the user's request would cross a role boundary or violate a clinical constraint, return the best in-role compliant alternative instead.
+
+USER HEALTH PROFILE:
+${context.protocolContext || "No dietary restrictions on file — apply general healthy eating principles."}
+${context.glp1ConstraintBlock}${context.diabeticConstraintBlock}${context.macroContext ? `\n${context.macroContext}\n` : ""}${context.savedGroceriesBlock ? `\n${context.savedGroceriesBlock}\n` : ""}${
+  context.savedProductNames.length > 0
+    ? `\nUser's saved products (use one as savedOption if it fits the role and ALL constraints): ${context.savedProductNames.join(", ")}\n`
+    : ""
+}${userRequestNote ? `\n${userRequestNote}\n` : ""}
+VARIETY REQUIREMENT: coachSuggestion and the two alternatives must be GENUINELY DIFFERENT choices — different ingredients, not cosmetic variations. For example, if replacing a chicken breast: give turkey, shrimp, and cod — not "organic chicken breast", "grilled chicken", "thin-sliced chicken". Give choices a user would clearly perceive as meaningfully different options.
+
+RULES:
+- All items must be real grocery-store purchases with realistic quantities (e.g. "2 lbs", "1 bunch", "1 can").
+- If a specific branded product is the right pick, name a REAL, nationally available brand (stocked at Walmart, Target, Costco, Whole Foods, or major grocery chains) — the same brand standard used across all product advice in this app.
+- Never suggest "${ingredientToReplace}" itself or any trivial variation of it.
+- Never suggest items that conflict with allergies, avoidances, or clinical constraints.
+- savedOption must come ONLY from the user's saved products list above (null if none qualify or list is empty).
+- protocolNote: 1 sentence if a clinical constraint directly shaped the picks, otherwise null.
+
+Respond ONLY with valid JSON — no markdown, no extra text:
+{
+  "coachSuggestion": { "item": "string", "quantity": "string", "unit": "string", "reason": "string — 1 sentence why this fits this meal and this user's goals" },
+  "alternatives": [
+    { "item": "string", "quantity": "string", "unit": "string", "reason": "string — 1 sentence" },
+    { "item": "string", "quantity": "string", "unit": "string", "reason": "string — 1 sentence" }
+  ],
+  "savedOption": { "item": "string", "quantity": "string", "unit": "string", "reason": "string — mention it is from their saved products" } | null,
+  "protocolNote": "string" | null
+}`, {
+      ...recognizedPurposeContext(context.protocolContext),
+      recommendationSurface: "grocery_product_swap",
+    });
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: languageInstruction ? `${languageInstruction}\n\n${systemPrompt}` : systemPrompt,
+        },
+        {
+          role: "user",
+          content: userRequest
+            ? `Replace "${ingredientToReplace}" — I was thinking of "${userRequest}".`
+            : `What should I replace "${ingredientToReplace}" with?`,
+        },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 600,
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    const result = JSON.parse(raw) as SwapSelectionResult;
+    const purposeContext = recognizedPurposeContext(context.protocolContext);
+    const allowed = (suggestion: SwapSuggestion | undefined | null) =>
+      suggestion && !evaluateWholeFoodCandidate(
+        { name: suggestion.item, description: suggestion.reason },
+        { ...purposeContext, recommendationSurface: "grocery_product_swap" },
+      ).shouldBlock;
+    return {
+      ...result,
+      coachSuggestion: allowed(result.coachSuggestion) ? result.coachSuggestion : undefined,
+      alternatives: (result.alternatives ?? []).filter(allowed),
+      savedOption: allowed(result.savedOption) ? result.savedOption : null,
+    };
+  }
+}
+
+// ─── Product Advisor Engine ───────────────────────────────────────────────────
+
+// ─── Context Loader ───────────────────────────────────────────────────────────
+// Abstracted so tests can inject a mock without touching the module graph.
+// Default: buildGroceryCoachContext() — the full clinical stack including
+// GLP-1 resolved targets, diabetic constraints, and macro targets.
+
+export type ContextLoader = (userId: string) => Promise<GroceryCoachContext>;
+
+const defaultContextLoader: ContextLoader = (userId) =>
+  buildGroceryCoachContext(userId);
+
+// ─── Protocol Context Builder ─────────────────────────────────────────────────
+// Turns a GroceryCoachContext into the protocol string sent to the AI provider.
+// Centralised here so tests can assert on the same string the AI sees.
+
+/** Personalization string shared by cart-style advice, from the shared context. */
+export function buildProtocolContextString(ctx: GroceryCoachContext): string {
+  const parts: string[] = [];
+  if (ctx.protocolContext?.trim()) parts.push(ctx.protocolContext.trim());
+  if (ctx.glp1RecommendationBlock?.trim()) parts.push(ctx.glp1RecommendationBlock.trim());
+  if (ctx.macroContext) parts.push(ctx.macroContext);
+  if (ctx.savedGroceriesBlock?.trim()) {
+    parts.push(
+      "=== SAVED GROCERY FAVORITES (the user's usual picks — see USUAL PICK rule) ===\n" +
+      ctx.savedGroceriesBlock.trim(),
+    );
+  }
+  return parts.length
+    ? parts.join("\n\n")
+    : "No specific dietary or medical constraints on file — apply general healthy eating principles.";
+}
+
+/**
+ * Thrown when a clinically required context (GLP-1 targets) cannot be resolved.
+ * Product advice is FAIL-CLOSED for GLP-1 users — same policy as /recommend.
+ * Routes should map this to a 503 with retryable: true.
+ */
+export class ClinicalContextUnavailableError extends Error {
+  readonly retryable = true;
+  constructor(message = "Clinical guidance temporarily unavailable. Please try again.") {
+    super(message);
+    this.name = "ClinicalContextUnavailableError";
+  }
+}
+export class WholeFoodRecommendationUnavailableError extends Error {
+  constructor() {
+    super("No product recommendations met the Whole-Food Standard. Please choose a different product category or provide a clinically recognized purpose.");
+    this.name = "WholeFoodRecommendationUnavailableError";
+  }
+}
+
+const normalizeBrand = (s: string): string => s.trim().toLowerCase();
+
+/** True when a model-asserted usualPick brand matches a compliant saved row. */
+function matchesSavedRow(brand: string, ctx: GroceryCoachContext): boolean {
+  const b = normalizeBrand(brand);
+  if (!b) return false;
+  return ctx.compliantSavedRows.some((row) => {
+    const candidates = [row.brand, row.productName].filter(
+      (n): n is string => Boolean(n),
+    );
+    return candidates.some((n) => {
+      const c = normalizeBrand(n);
+      return c === b || c.includes(b) || b.includes(c);
+    });
+  });
+}
+
+/**
+ * Server-side validation of the model-asserted usualPick:
+ * - Drop it unless the brand matches one of the user's COMPLIANT saved rows
+ *   (the model can hallucinate a "usual pick" the user never saved, or one
+ *   that was filtered out for protocol non-compliance).
+ * - Deduplicate: the usualPick must not also appear in `recommended`.
+ */
+export function sanitizeUsualPicks(
+  result: CartRecommendationResult,
+  ctx: GroceryCoachContext,
+): CartRecommendationResult {
+  return {
+    ...result,
+    advice: result.advice.map((item) => {
+      const pick = item.usualPick;
+      if (!pick || !pick.brand || !matchesSavedRow(pick.brand, ctx)) {
+        const { usualPick: _drop, ...rest } = item;
+        return rest as IngredientAdvice;
+      }
+      const pickBrand = normalizeBrand(pick.brand);
+      return {
+        ...item,
+        usualPick: pick,
+        recommended: item.recommended.filter(
+          (r) => normalizeBrand(r.brand) !== pickBrand,
+        ),
+      };
+    }),
+  };
+}
+
+export class ProductAdvisorEngine {
+  constructor(
+    private readonly provider: BrandKnowledgeProvider,
+    private readonly contextLoader: ContextLoader = defaultContextLoader,
+  ) {}
+
+  async buildCartRecommendations(
+    userId: string,
+    ingredients: string[],
+    store?: string,
+  ): Promise<CartRecommendationResult> {
+    // buildGroceryCoachContext is the SHARED personalization source for all
+    // Grocery Coach product surfaces (Find a Product, Replace, meal-driven
+    // Smart Cart) — never rebuild protocol context from the raw envelope here.
+    // contextLoader defaults to buildGroceryCoachContext; tests inject a mock.
+    const ctx = await this.contextLoader(userId);
+
+    // FAIL-CLOSED for GLP-1 — same policy as /recommend. Never send a generic
+    // or incomplete clinical profile to the model during a resolver outage.
+    if (ctx.glp1Failed) {
+      throw new ClinicalContextUnavailableError();
+    }
+    if (ctx.glp1Active && !ctx.glp1Targets) {
+      throw new ClinicalContextUnavailableError(
+        "GLP-1 clinical targets temporarily unavailable. Please try again.",
+      );
+    }
+
+    const protocolContext = buildProtocolContextString(ctx);
+
+    const raw = await this.provider.getCartRecommendations(ingredients, protocolContext, store);
+    return sanitizeUsualPicks(raw, ctx);
+  }
+
+  /**
+   * Mode 3 — Replace: swap ONE grocery item while keeping the meal intact.
+   * The caller supplies the already-built GroceryCoachContext (avoids a second
+   * DB round-trip) plus the Replace-specific intent/constraints as parameters.
+   */
+  async buildSwapRecommendation(
+    ctx: GroceryCoachContext,
+    params: SwapSelectionParams,
+  ): Promise<SwapSelectionResult> {
+    return this.provider.getSwapRecommendation(params, buildSwapPersonalization(ctx));
+  }
+}
+
+/** Derive the swap personalization block set from the shared context. */
+export function buildSwapPersonalization(ctx: GroceryCoachContext): SwapPersonalizationContext {
+  const glp1ConstraintBlock = ctx.glp1Targets
+    ? `GLP-1 CONSTRAINT: All suggestions MUST have ≤${ctx.glp1Targets.maximumToleratedFatGrams}g fat per serving and ≤${ctx.glp1Targets.resolvedMealCalories} kcal. No fatty meats, oils, full-fat dairy, fried items, or avocado.\n`
+    : "";
+  const diabeticConstraintBlock = ctx.hasDiabetes
+    ? `DIABETIC CONSTRAINT: All suggestions MUST be low-carb. No bread, rice, pasta, potatoes, corn, or sugary sauces. Prefer non-starchy vegetables, lean proteins, or legumes.\n`
+    : "";
+
+  return {
+    protocolContext: ctx.protocolContext,
+    macroContext: ctx.macroContext,
+    savedGroceriesBlock: ctx.savedGroceriesBlock,
+    savedProductNames: ctx.savedRows
+      .map((r) => r.productName)
+      .filter((n): n is string => Boolean(n)),
+    glp1ConstraintBlock,
+    diabeticConstraintBlock,
+  };
+}
+
+// ─── Singleton ────────────────────────────────────────────────────────────────
+// Shared instance — provider can be swapped via setProvider() when a better
+// brand knowledge source becomes available without touching any consumer code.
+
+let _provider: BrandKnowledgeProvider = new GptBrandKnowledgeProvider();
+let _engine: ProductAdvisorEngine = new ProductAdvisorEngine(_provider);
+
+export function setProductAdvisorProvider(provider: BrandKnowledgeProvider): void {
+  _provider = provider;
+  _engine = new ProductAdvisorEngine(_provider);
+}
+
+export function getProductAdvisorEngine(): ProductAdvisorEngine {
+  return _engine;
+}
+
+/**
+ * For tests only — create an isolated engine with a custom context loader so
+ * tests don't need a running DB or real GLP-1 resolver.
+ */
+export function createProductAdvisorEngineForTest(
+  provider: BrandKnowledgeProvider,
+  contextLoader: ContextLoader,
+): ProductAdvisorEngine {
+  return new ProductAdvisorEngine(provider, contextLoader);
+}
