@@ -1121,6 +1121,20 @@ function escapeRegex(str: string): string {
 }
 
 /**
+ * Remove only explicit allergen-free label claims for one exact term.
+ * Other occurrences remain visible to safety scanning, so a request such as
+ * "lactose-free cake with milk" still matches the unnegated "milk" term.
+ */
+export function maskExplicitAllergenFreeClaims(text: string, term: string): string {
+  const escaped = escapeRegex(term.trim());
+  if (!escaped) return text;
+
+  return text
+    .replace(new RegExp(`\\b${escaped}\\s*(?:-|\\s)\\s*free\\b`, "gi"), " ")
+    .replace(new RegExp(`\\bfree\\s+of\\s+${escaped}\\b`, "gi"), " ");
+}
+
+/**
  * MAIN VALIDATION FUNCTION
  * Use this in ALL meal generators after generation
  */

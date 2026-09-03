@@ -1,4 +1,5 @@
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import { maskExplicitAllergenFreeClaims } from "../allergyGuardrails";
 
 export interface HumanFoodValidationResult {
   valid: boolean;
@@ -38,7 +39,8 @@ export function validateHumanFoodResult(
 
   for (const forbidden of [...context.safety.allergies, ...context.safety.avoidedFoods]) {
     const term = normalize(forbidden);
-    if (term.length >= 3 && text.includes(term)) {
+    const scannableText = maskExplicitAllergenFreeClaims(text, term);
+    if (term.length >= 3 && scannableText.includes(term)) {
       violations.push(`forbidden_ingredient:${term}`);
     }
   }
