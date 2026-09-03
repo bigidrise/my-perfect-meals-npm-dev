@@ -1777,6 +1777,16 @@ async function start() {
     await assertColumnsExist(dbColGuard, CRITICAL_COLUMNS);
   }
 
+  // Saved Grocery shopping identity is required by route selects/inserts.
+  // Complete it before any route can serve requests.
+  {
+    const { runSavedGroceryShoppingIdentityMigration } = await import(
+      "./db/migrations/runSavedGroceryShoppingIdentityMigration"
+    );
+    await runSavedGroceryShoppingIdentityMigration();
+    console.log("✅ Saved Grocery shopping identity migration complete");
+  }
+
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
   await registerRoutes(app);
 

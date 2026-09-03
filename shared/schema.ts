@@ -894,6 +894,10 @@ export const shoppingListItems = pgTable("shopping_list_items", {
 
   // Item details
   name: text("name").notNull(),
+  // Stable product identity when the row originated from Saved Groceries.
+  // UPC wins; otherwise this is normalized brand + product name.
+  // Ingredient-only shopping rows remain null.
+  productKey: text("product_key"),
   quantity: text("quantity").notNull(), // "2", "1.5", etc.
   unit: text("unit"), // "lb", "cups", "oz", etc.
   category: text("category"), // "protein", "produce", "dairy", etc.
@@ -909,6 +913,7 @@ export const shoppingListItems = pgTable("shopping_list_items", {
 }, (t) => ({
   // Index for efficient querying by user and scope
   userScopeIdx: index("shopping_list_user_scope_idx").on(t.userId, t.scopeType, t.scopeKey),
+  userProductKeyIdx: index("shopping_list_user_product_key_idx").on(t.userId, t.productKey),
 }))
 
 // Mental health support conversations

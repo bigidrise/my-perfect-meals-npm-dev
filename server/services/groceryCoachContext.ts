@@ -19,9 +19,10 @@ import {
   buildGLP1RecommendationBlock,
 } from "./glp1/resolveGLP1GlobalContext";
 import {
-  filterSavedGroceriesForCompliance,
   buildSavedGroceriesPromptBlock,
+  selectAuthoritativelyApprovedSavedItems,
 } from "./savedGroceryCompliance";
+import { revalidateSavedGroceriesForUser } from "./savedGroceryRevalidation";
 import type { ResolvedGLP1Targets } from "./glp1/resolveGLP1MealTargets";
 
 // The raw saved row shape returned alongside the prompt block so callers can
@@ -67,8 +68,9 @@ export interface GroceryCoachContext {
 
 export async function buildGroceryCoachContext(userId: string): Promise<GroceryCoachContext> {
   // ── Protocol envelope ───────────────────────────────────────────────────────
-  const envelope =
-    (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope();
+  const loadedEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null);
+  const envelopeFailed = loadedEnvelope === null;
+  const envelope = loadedEnvelope ?? buildGuestEnvelope();
   const protocolContext = enforceBeforeGenerate(envelope, {
     generatorName: "grocery_coach",
   }).combined;
@@ -119,16 +121,7 @@ export async function buildGroceryCoachContext(userId: string): Promise<GroceryC
 
   try {
     const sgRows = await db
-      .select({
-        id:           userSavedGroceryItems.id,
-        productName:  userSavedGroceryItems.productName,
-        brand:        userSavedGroceryItems.brand,
-        category:     userSavedGroceryItems.category,
-        productKey:   userSavedGroceryItems.productKey,
-        nutritionJson: userSavedGroceryItems.nutritionJson,
-        productMeta:  userSavedGroceryItems.productMeta,
-        savedAt:      userSavedGroceryItems.savedAt,
-      })
+      .select()
       .from(userSavedGroceryItems)
       .where(eq(userSavedGroceryItems.userId, userId));
 
@@ -140,31 +133,20 @@ export async function buildGroceryCoachContext(userId: string): Promise<GroceryC
     }));
 
     if (sgRows.length > 0) {
-      const diabeticCarbCeiling: number | null = envelope.hasDiabetes
-        ? (dailyCarbsTarget && dailyCarbsTarget > 0
-            ? Math.round(dailyCarbsTarget / 3)
-            : 45)
-        : null;
-
-      const itemsWithIngredients = sgRows.map((row) => {
-        const meta = (row as any).productMeta as Record<string, unknown> | null;
-        const ingredients = Array.isArray(meta?.ingredients)
-          ? (meta!.ingredients as string[]).filter((i) => typeof i === "string")
-          : null;
-        return { ...row, ingredients };
-      });
-
-      const { compliant } = filterSavedGroceriesForCompliance(
-        itemsWithIngredients as any,
-        envelope,
-        {
-          glp1Targets,
-          isDiabetic: envelope.hasDiabetes,
-          diabeticCarbCeiling,
-        },
+      // Never apply the guest fallback to saved favorites. If the context
+      // resolvers failed, inject none; otherwise use the exact same current-
+      // profile revalidation contract as the Saved Groceries API.
+      const authoritativeContextResolved = !envelopeFailed && !glp1Failed;
+      const decisions = authoritativeContextResolved
+        ? await revalidateSavedGroceriesForUser(userId, sgRows)
+        : [];
+      const compliant = selectAuthoritativelyApprovedSavedItems(
+        sgRows,
+        decisions,
+        authoritativeContextResolved,
       );
       savedGroceriesBlock = buildSavedGroceriesPromptBlock(compliant);
-      compliantSavedRows = (compliant as any[]).map((r) => ({
+      compliantSavedRows = compliant.map((r) => ({
         productName:  r.productName ?? null,
         brand:        r.brand ?? null,
         category:     r.category ?? null,

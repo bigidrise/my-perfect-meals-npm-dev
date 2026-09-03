@@ -9,7 +9,7 @@
  * are persistent preferences, not a temporary scoped list.
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,12 +24,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronRight,
+  Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { get, post, apiJSON } from "@/lib/api";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { PillButton } from "@/components/ui/pill-button";
 
 interface SavedGroceryItemMeta {
   alignmentGrade?: string;
@@ -45,11 +47,16 @@ interface SavedGroceryItem {
   productName: string;
   brand: string | null;
   barcode: string | null;
+  productKey: string;
   category: string | null;
   source: string;
   nutritionJson: Record<string, any> | null;
   productMeta: SavedGroceryItemMeta | null;
   savedAt: string;
+  compliance: {
+    status: "approved" | "blocked";
+    reason: string | null;
+  };
 }
 
 /**
@@ -135,16 +142,27 @@ function sortedCategories(groups: Record<string, SavedGroceryItem[]>): [string, 
   });
 }
 
+function itemDisplayName(item: SavedGroceryItem): string {
+  return item.brand
+    ? `${item.brand} ${item.productName}`.trim()
+    : item.productName.trim();
+}
+
 export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const hydrate = useShoppingListStore((s) => s.hydrate);
+  const shoppingItems = useShoppingListStore((s) => s.items);
 
   const [items, setItems] = useState<SavedGroceryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [bulkAdding, setBulkAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [analysisItem, setAnalysisItem] = useState<SavedGroceryItem | null>(null);
 
@@ -164,19 +182,125 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (open) {
       fetchItems();
+      hydrate();
       setAddedIds(new Set());
+      setSelectedIds(new Set());
     }
-  }, [open, fetchItems]);
+  }, [open, fetchItems, hydrate]);
+
+  const visibleItems = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase();
+    return items.filter((item) => {
+      const matchesCategory = categoryFilter === "All" || (item.category ?? "General") === categoryFilter;
+      if (!matchesCategory) return false;
+      if (!query) return true;
+      return itemDisplayName(item).toLocaleLowerCase().includes(query);
+    });
+  }, [categoryFilter, items, searchTerm]);
+
+  const grouped = useMemo(() => groupByCategory(visibleItems), [visibleItems]);
+  const categories = useMemo(() => sortedCategories(grouped), [grouped]);
+  const categoryOptions = useMemo(
+    () => sortedCategories(groupByCategory(items)).map(([category]) => category),
+    [items],
+  );
+
+  const isItemOnList = useCallback((item: SavedGroceryItem) => {
+    return shoppingItems.some(
+      (shoppingItem) =>
+        !shoppingItem.isChecked &&
+        !!shoppingItem.productKey &&
+        shoppingItem.productKey === item.productKey,
+    );
+  }, [shoppingItems]);
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleAddMany = useCallback(async (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids));
+    if (uniqueIds.length === 0) return;
+    setBulkAdding(true);
+    try {
+      const data = await post<{
+        items?: Array<{
+          id: string;
+          status: "added" | "already_on_list" | "restored" | "blocked";
+          reason?: string | null;
+        }>;
+        addedCount?: number;
+        restoredCount?: number;
+        alreadyOnListCount?: number;
+        blockedCount?: number;
+      }>("/api/saved-groceries/add-to-list", { ids: uniqueIds });
+      const successfulIds = (data.items ?? [])
+        .filter((item) => item.status !== "blocked")
+        .map((item) => item.id);
+      setAddedIds((previous) => new Set([...Array.from(previous), ...successfulIds]));
+      setSelectedIds(new Set());
+      await hydrate();
+      const added = data.addedCount ?? 0;
+      const restored = data.restoredCount ?? 0;
+      const alreadyOnList = data.alreadyOnListCount ?? 0;
+      const blocked = data.blockedCount ?? 0;
+      const details = [
+        added > 0 ? `${added} added` : "",
+        restored > 0 ? `${restored} restored` : "",
+        alreadyOnList > 0 ? `${alreadyOnList} already on list` : "",
+        blocked > 0 ? `${blocked} blocked by current profile` : "",
+      ].filter(Boolean).join(" · ");
+      toast({
+        title: blocked > 0
+          ? "Some saved products need review"
+          : uniqueIds.length === 1
+            ? "Added to list"
+            : "Saved groceries updated",
+        description: details || "Your shopping list is up to date.",
+        variant: blocked > 0 && added + restored + alreadyOnList === 0
+          ? "destructive"
+          : undefined,
+      });
+    } catch {
+      toast({
+        title: "Couldn't add to list",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkAdding(false);
+    }
+  }, [hydrate, toast]);
 
   const handleAddToList = useCallback(async (item: SavedGroceryItem) => {
+    if (isItemOnList(item)) return;
     setAddingId(item.id);
     try {
-      const data = await post<{ name?: string }>(`/api/saved-groceries/${item.id}/add-to-list`);
-      setAddedIds((prev) => new Set(Array.from(prev).concat(item.id)));
+      const data = await post<{
+        name?: string;
+        status?: "added" | "already_on_list" | "restored" | "blocked";
+        reason?: string | null;
+      }>(`/api/saved-groceries/${item.id}/add-to-list`);
+      if (data.status === "blocked") {
+        toast({
+          title: "Saved, but not added",
+          description: data.reason ?? "This product does not fit your current profile.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (data.status !== "already_on_list") {
+        setAddedIds((prev) => new Set(Array.from(prev).concat(item.id)));
+      }
       await hydrate();
       toast({
-        title: "Added to list!",
-        description: data.name ?? item.productName,
+        title: data.status === "already_on_list" ? "Already on list" : "Added to list!",
+        description: data.name ?? itemDisplayName(item),
       });
     } catch {
       toast({ title: "Couldn't add to list", description: "Please try again.", variant: "destructive" });
@@ -190,6 +314,11 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
     try {
       await apiJSON(`/api/saved-groceries/${item.id}`, { method: "DELETE" });
       setItems((prev) => prev.filter((i) => i.id !== item.id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
       toast({ title: "Removed", description: `${item.productName} removed from saved groceries.` });
     } catch {
@@ -201,9 +330,6 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
 
   const toggleCollapse = (cat: string) =>
     setCollapsed((prev) => ({ ...prev, [cat]: !prev[cat] }));
-
-  const grouped = groupByCategory(items);
-  const categories = sortedCategories(grouped);
 
   if (!open) return null;
 
@@ -273,6 +399,82 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
 
             {/* Body */}
             <div style={{ padding: "16px 20px", minHeight: 120 }}>
+              {!loading && !error && items.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 10, padding: "8px 10px",
+                  }}>
+                    <Search style={{ width: 16, height: 16, color: "rgba(255,255,255,0.45)", flexShrink: 0 }} />
+                    <input
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Search saved groceries"
+                      aria-label="Search saved groceries"
+                      style={{
+                        width: "100%", background: "transparent", border: "none", outline: "none",
+                        color: "white", fontSize: 13,
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
+                    <PillButton
+                      type="button"
+                      variant="amber"
+                      active={categoryFilter === "All"}
+                      onClick={() => setCategoryFilter("All")}
+                    >
+                      All
+                    </PillButton>
+                    {categoryOptions.map((category) => (
+                      <PillButton
+                        key={category}
+                        type="button"
+                        variant="amber"
+                        active={categoryFilter === category}
+                        onClick={() => setCategoryFilter(category)}
+                      >
+                        {category}
+                      </PillButton>
+                    ))}
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12 }}>
+                        {visibleItems.length} shown · {selectedIds.size} selected
+                      </div>
+                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 2 }}>
+                        Add all shown uses the current search and category filters. Blocked products stay saved.
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <PillButton
+                        type="button"
+                        variant="sky"
+                        active={selectedIds.size > 0}
+                        disabled={selectedIds.size === 0 || bulkAdding}
+                        onClick={() => handleAddMany(Array.from(selectedIds))}
+                      >
+                        {bulkAdding ? "Adding…" : `Add selected${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
+                      </PillButton>
+                      <PillButton
+                        type="button"
+                        variant="emerald"
+                        active
+                        disabled={visibleItems.length === 0 || bulkAdding}
+                        onClick={() => handleAddMany(visibleItems.map((item) => item.id))}
+                      >
+                        {bulkAdding ? "Adding…" : `Add all shown (${visibleItems.length})`}
+                      </PillButton>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {loading && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "40px 0", color: "rgba(255,255,255,0.5)" }}>
                   <Loader2 style={{ width: 20, height: 20, animation: "spin 1s linear infinite" }} />
@@ -304,6 +506,12 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                 </div>
               )}
 
+              {!loading && !error && items.length > 0 && visibleItems.length === 0 && (
+                <div style={{ textAlign: "center", padding: "28px 20px", color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
+                  No saved groceries match those filters.
+                </div>
+              )}
+
               {!loading && !error && categories.map(([cat, catItems]) => (
                 <div key={cat} style={{ marginBottom: 20 }}>
                   {/* Category header */}
@@ -330,6 +538,9 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                       {catItems.map((item) => {
                         const isAdding = addingId === item.id;
                         const isAdded = addedIds.has(item.id);
+                        const onList = isItemOnList(item);
+                        const isSelected = selectedIds.has(item.id);
+                        const isBlocked = item.compliance.status === "blocked";
                         const isRemoving = removingId === item.id;
                         const hasAnalysis = !!(item.productMeta?.alignmentGrade || item.productMeta?.resolvedFromDb !== undefined);
 
@@ -343,6 +554,19 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                               border: "1px solid rgba(255,255,255,0.07)",
                             }}
                           >
+                            <PillButton
+                              type="button"
+                              variant="sky"
+                              active={isSelected}
+                              onClick={() => toggleSelected(item.id)}
+                              disabled={isBlocked}
+                              aria-label={`${isSelected ? "Deselect" : "Select"} ${itemDisplayName(item)}`}
+                              aria-pressed={isSelected}
+                              className="!px-2 !text-[8px]"
+                            >
+                              {isBlocked ? "Review" : isSelected ? "Selected" : "Select"}
+                            </PillButton>
+
                             {/* Tappable product info — opens analysis sheet if data exists */}
                             <button
                               onClick={() => hasAnalysis && setAnalysisItem(item)}
@@ -382,30 +606,47 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                                     ✓ DB
                                   </span>
                                 )}
+                                {isBlocked && (
+                                  <span
+                                    title={item.compliance.reason ?? "Does not fit your current profile"}
+                                    style={{
+                                      padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 600,
+                                      background: "rgba(239,68,68,0.14)", color: "#fca5a5",
+                                      border: "1px solid rgba(239,68,68,0.3)",
+                                    }}
+                                  >
+                                    Needs review
+                                  </span>
+                                )}
                               </div>
+                              {isBlocked && item.compliance.reason && (
+                                <div style={{ color: "#fca5a5", fontSize: 11, lineHeight: 1.35, marginTop: 5 }}>
+                                  {item.compliance.reason}
+                                </div>
+                              )}
                             </button>
 
                             {/* Add to list */}
-                            <button
+                            <PillButton
+                              type="button"
+                              variant={isBlocked ? "rose" : onList || isAdded ? "emerald" : "amber"}
+                              active={onList || isAdded}
                               onClick={() => handleAddToList(item)}
-                              disabled={isAdding || isAdded}
-                              style={{
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                gap: 4, padding: "6px 10px", borderRadius: 8, border: "none",
-                                fontSize: 12, fontWeight: 600, cursor: isAdded ? "default" : "pointer",
-                                background: isAdded ? "rgba(5,150,105,0.15)" : "rgba(234,88,12,0.15)",
-                                color: isAdded ? "#34d399" : "#fb923c",
-                                flexShrink: 0,
-                              }}
+                              disabled={isAdding || isAdded || onList || isBlocked || bulkAdding}
+                              className="!px-2 !text-[8px] shrink-0"
                             >
                               {isAdding ? (
                                 <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} />
+                              ) : onList ? (
+                                <><CheckCircle2 style={{ width: 13, height: 13 }} /> Already on list</>
+                              ) : isBlocked ? (
+                                <><AlertTriangle style={{ width: 13, height: 13 }} /> Blocked</>
                               ) : isAdded ? (
                                 <><CheckCircle2 style={{ width: 13, height: 13 }} /> Added</>
                               ) : (
                                 <><ShoppingCart style={{ width: 13, height: 13 }} /> Add</>
                               )}
-                            </button>
+                            </PillButton>
 
                             {/* Unsave */}
                             <button
