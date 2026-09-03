@@ -918,6 +918,16 @@ async function initializeApp() {
       "./middleware/requireActiveAccess"
     );
 
+    // Saved Grocery shopping identity is required by route selects/inserts.
+    // Complete it before production API routers become available.
+    {
+      const { runSavedGroceryShoppingIdentityMigration } = await import(
+        "./db/migrations/runSavedGroceryShoppingIdentityMigration"
+      );
+      await runSavedGroceryShoppingIdentityMigration();
+      console.log("✅ [prod] Saved Grocery shopping identity migration complete");
+    }
+
     app.use("/api/meals", mealsRouter);
     app.use("/api/restaurants", requireAuth, resolveCuisineMiddleware, restaurantRoutes);
     app.use("/api", manualMacrosRouter);
@@ -977,6 +987,11 @@ async function initializeApp() {
     const { shoppingPreviewRouter, shoppingRouter } = await import("./routes/shoppingListV2");
     app.use("/api/shopping-list-v2", shoppingPreviewRouter);
     app.use("/api/shopping-list-v2", shoppingRouter);
+
+    // Saved Groceries — explicit production mount keeps the permanent product
+    // library and product-key list insertion available before the API fallback.
+    const savedGroceriesRouter = (await import("./routes/savedGroceries")).default;
+    app.use("/api/saved-groceries", requireAuth, savedGroceriesRouter);
 
     // Reminder System v2 — cross-platform meal reminders
     const remindersRouter = (await import("./routes/reminders")).default;
