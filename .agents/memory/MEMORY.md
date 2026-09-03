@@ -65,3 +65,4 @@
 - [Stripe entitlement authority](stripe-entitlement-authority.md) — web access requires Stripe verification plus immutable user identity; email and client returns never grant it.
 - [Organizational pilot authority](organizational-pilot-authority.md) — Business owns one shared pilot clock; professional seats and client capacity stay separate.
 - [Stateless Human Food retries](stateless-human-food-retries.md) — resolve fresh authoritative context per request; retry state never crosses requests or reaches clients.
+- [Generated build metadata preview cache](generated-build-metadata-preview-cache.md) — a stale Vite overlay can survive generated build metadata appearing; trust fresh module checks after a clean workflow restart.
