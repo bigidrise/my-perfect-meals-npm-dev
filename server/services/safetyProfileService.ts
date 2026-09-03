@@ -5,7 +5,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters, maskExplicitAllergenFreeClaims, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
 import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
 
 export interface SafetyOptions {
@@ -305,6 +305,9 @@ function findMatchedTerms(text: string, termBank: Set<string>): string[] {
       textToScan = normalizedText;
       origToScan = text.toLowerCase();
     }
+
+    textToScan = maskExplicitAllergenFreeClaims(textToScan, term);
+    origToScan = maskExplicitAllergenFreeClaims(origToScan, term);
     
     if (pattern.test(textToScan) || pattern.test(origToScan)) {
       matches.push(term);
