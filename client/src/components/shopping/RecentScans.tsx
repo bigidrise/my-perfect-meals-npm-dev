@@ -70,13 +70,12 @@ interface Props {
 
 export default function RecentScans({ refreshKey, onReopen }: Props) {
   const [scans, setScans] = useState<SavedProductScan[]>([]);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   function loadScans() {
     const todayScans = getTodayShoppingScans().slice(0, 20);
     setScans(todayScans);
-    if (todayScans.length > 0) setOpen(true);
   }
 
   useEffect(() => {
