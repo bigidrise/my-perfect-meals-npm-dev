@@ -3,10 +3,9 @@
   "commit": "efc7ca1c",
   "releasedAt": "2026-08-15T22:41:31.430Z",
   "notes": [
-    "Improved allergen handling for oat-based dishes, ensuring certified gluten-free oats are properly recognized.",
-    "Enhanced dish identity validation to prevent incorrect dish form collapses, improving accuracy in meal suggestions.",
-    "Updated toast notifications for allergy alerts to ensure users have sufficient time to read important information.",
-    "Fixed alignment issues in toast action buttons for better readability and user experience.",
-    "Implemented clear user-facing messages for dish identity failures in the Craving Creator, enhancing user guidance."
-  ]
+    "Authorized physicians can now review permitted patient-entered blood-glucose history from the Client Folder.",
+    "Saved Groceries now provides a faster way to find and add commonly purchased products to the shopping list.",
+    "Shopping-list additions now prevent duplicate saved-grocery entries."
+  ],
+  "releaseId": "2026-09-03-1"
 }
