@@ -126,6 +126,28 @@ dessertCreatorRouter.post("/", async (req, res) => {
       return res.status(400).json({ error: "Flavor family is required" });
     }
 
+    const { resolveHumanFoodContext, issueHumanFoodContextMeta } = await import("../services/humanFoodContext/resolveHumanFoodContext");
+    const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
+    const humanFoodContext = await resolveHumanFoodContext({
+      actorUserId: userId,
+      subjectUserId: userId,
+      creator: "dessert_creator",
+      correlationId: (req as any).id,
+      receipt: typeof req.body.humanFoodContextReceipt === "string" ? req.body.humanFoodContextReceipt : null,
+      generationChainId: typeof req.body.humanFoodGenerationChainId === "string" ? req.body.humanFoodGenerationChainId : null,
+      dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+      cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
+      cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+    });
+    if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
+      return res.status(409).json({
+        code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+        status: humanFoodContext.status,
+        message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
+      });
+    }
+    const humanFoodPrompt = buildCreatorHumanFoodPrompt("dessert_creator", humanFoodContext);
+
     // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
     let dietAdapted = false;
     let dietNotice = "";
@@ -360,6 +382,8 @@ CELEBRATION CAKE REQUIREMENTS:
     }
 
     const prompt = `
+${humanFoodPrompt}
+
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
 ${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${_dessertDishDirective ? `\n${_dessertDishDirective.adaptationBlock}\n` : ""}${sweetenerGuidance}${dessertBehavioralMemorySection ? `\n${dessertBehavioralMemorySection}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
@@ -547,10 +571,18 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
 
     const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =
       buildMealComplianceBundle(meal, dessertEnvelope, { isChefAdapted: dietAdapted });
+    const humanFoodValidation = validateCreatorHumanFoodResult("dessert_creator", meal, humanFoodContext);
+    if (!humanFoodValidation.valid) {
+      return res.status(422).json({
+        code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+        message: "The dessert did not pass final food-context validation.",
+      });
+    }
     return res.json({
       ...meal,
       imageUrl,
       medicalBadges,
+      humanFoodContext: issueHumanFoodContextMeta(humanFoodContext),
       ...(alphaGalBadge && { alphaGalBadge }),
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
       complianceSection: dessertCompliance,
@@ -567,7 +599,11 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     });
   } catch (err: any) {
     console.error("Dessert Creator Error:", err);
-    return res.status(500).json({ error: "Failed to create dessert" });
+    const status = Number.isInteger(err?.status) ? err.status : 500;
+    return res.status(status).json({
+      error: status === 500 ? "Failed to create dessert" : err.message,
+      ...(err?.code ? { code: err.code } : {}),
+    });
   }
 });
 

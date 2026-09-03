@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { getHumanFoodContextRetryFields, rememberHumanFoodContextReceipt } from "@/lib/humanFoodContextReceipt";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
@@ -394,6 +395,7 @@ export default function DessertCreator() {
     try {
       setGenerationFailure(HIDDEN_FAILURE);
       console.log("🍨 [DESSERT] Calling API...");
+      const humanFoodSignature = JSON.stringify([dessertCategory, flavorFamily, specificDessert, customDessertDescription, dietOverrideValue, cuisineOverrideValue, servingSize]);
       const res = await fetch(apiUrl("/api/meals/dessert-creator"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -427,12 +429,14 @@ export default function DessertCreator() {
           // dietOverride replaces the profile primary diet for this generation only.
           // Using the correct field name — old dietAdaptOverride/userDietOverride were ignored by the server.
           ...(dietOverrideEnabled && dietOverrideValue ? { dietOverride: dietOverrideValue } : {}),
+          ...getHumanFoodContextRetryFields("dessert_creator", humanFoodSignature),
         }),
       });
 
       console.log("🍨 [DESSERT] API response received:", res.status);
 
       const data = await res.json().catch(() => null);
+      rememberHumanFoodContextReceipt("dessert_creator", humanFoodSignature, data?.humanFoodContext);
 
       if (data?.safetyBlocked || data?.safetyAmbiguous) {
         stopProgressTicker();

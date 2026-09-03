@@ -8,6 +8,7 @@ import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getHumanFoodContextRetryFields, rememberHumanFoodContextReceipt } from "@/lib/humanFoodContextReceipt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import {
@@ -551,6 +552,7 @@ export default function CreateDishPage() {
 
     try {
       const url = apiUrl("/api/meals/craving-creator");
+      const humanFoodSignature = JSON.stringify([prompt, dietOverrideValue, cuisineOverrideValue, servings]);
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -572,10 +574,13 @@ export default function CreateDishPage() {
           ...(overrideToken ? { overrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
+          humanFoodCreator: "create_a_dish",
+          ...getHumanFoodContextRetryFields("create_a_dish", humanFoodSignature),
         }),
       });
 
       const data = await response.json();
+      rememberHumanFoodContextReceipt("create_a_dish", humanFoodSignature, data?.humanFoodContext);
 
       if (!response.ok) {
         // ── Typed allergen adaptation failure ──────────────────────────────────
