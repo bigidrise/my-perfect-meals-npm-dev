@@ -13,6 +13,7 @@ import {
 } from "../services/humanFoodContext/requestExecutionState";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { freezeHumanFoodContext } from "../services/humanFoodContext/resolveHumanFoodContext";
+import { buildCreatorAllergenAdaptationPrompt } from "../services/humanFoodContext/adapters";
 
 process.env.SESSION_SECRET ||= "human-food-context-test-secret";
 
@@ -135,6 +136,67 @@ assert.deepEqual(
 assert.equal(
   validateHumanFoodResult({ ingredients: [{ name: "peanut butter" }] }, context).valid,
   false,
+);
+
+const adaptableConflict = {
+  result: "BLOCKED",
+  blockedTerms: ["milk"],
+  blockedCategories: ["lactose"],
+  ambiguousTerms: [],
+  message: "Milk requires adaptation.",
+  allergyConflict: {
+    type: "conflict_adaptable",
+    allergens: ["lactose"],
+    matchedTerms: ["milk"],
+    dishName: "Indian milk cake",
+  },
+} as const;
+const lactoseContext = structuredClone(context);
+lactoseContext.safety.allergies = ["lactose intolerance"];
+const intolerancePrompt = buildCreatorAllergenAdaptationPrompt(
+  "dessert_creator",
+  "Indian milk cake",
+  adaptableConflict,
+  lactoseContext,
+);
+assert.match(intolerancePrompt ?? "", /INTOLERANCE ADAPTATION/);
+assert.match(intolerancePrompt ?? "", /Preserve the requested cuisine/);
+assert.match(intolerancePrompt ?? "", /materially different safe ingredient strategy/);
+
+const milkAllergyContext = structuredClone(context);
+milkAllergyContext.safety.allergies = ["milk protein allergy"];
+const allergyPrompt = buildCreatorAllergenAdaptationPrompt(
+  "dessert_creator",
+  "Indian milk cake",
+  {
+    ...adaptableConflict,
+    blockedCategories: ["milk"],
+    allergyConflict: {
+      ...adaptableConflict.allergyConflict,
+      allergens: ["milk"],
+    },
+  },
+  milkAllergyContext,
+);
+assert.match(allergyPrompt ?? "", /TRUE ALLERGY ADAPTATION/);
+assert.match(allergyPrompt ?? "", /fully milk-protein-free substitute/);
+
+assert.equal(
+  buildCreatorAllergenAdaptationPrompt(
+    "dessert_creator",
+    "peanut brittle",
+    {
+      ...adaptableConflict,
+      allergyConflict: {
+        type: "conflict_identity_collapse",
+        allergens: ["peanut"],
+        matchedTerms: ["peanut brittle"],
+        dishName: "peanut brittle",
+      },
+    },
+    context,
+  ),
+  null,
 );
 assert.equal(
   validateHumanFoodResult({

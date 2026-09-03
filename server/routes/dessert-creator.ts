@@ -127,7 +127,11 @@ dessertCreatorRouter.post("/", async (req, res) => {
     }
 
     const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
-    const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
+    const {
+      buildCreatorHumanFoodPrompt,
+      buildCreatorAllergenAdaptationPrompt,
+      validateCreatorHumanFoodResult,
+    } = await import("../services/humanFoodContext/adapters");
     const humanFoodRequestScope = createHumanFoodRequestScope({
       actorUserId: userId,
       subjectUserId: userId,
@@ -138,6 +142,11 @@ dessertCreatorRouter.post("/", async (req, res) => {
       cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
     });
     const humanFoodContext = await humanFoodRequestScope.resolve();
+    const humanFoodExecutionState = humanFoodRequestScope.executionState;
+    const {
+      recordRejectedHumanFoodCandidate,
+      buildRejectedCandidatePrompt,
+    } = await import("../services/humanFoodContext/requestExecutionState");
     if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
       return res.status(409).json({
         code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
@@ -145,7 +154,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
         message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
       });
     }
-    const humanFoodPrompt = buildCreatorHumanFoodPrompt("dessert_creator", humanFoodContext);
+    let humanFoodPrompt = buildCreatorHumanFoodPrompt("dessert_creator", humanFoodContext);
 
     // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
     let dietAdapted = false;
@@ -160,14 +169,25 @@ dessertCreatorRouter.post("/", async (req, res) => {
         correlationId: (req as any).id
       });
       if (safetyCheck.result === "BLOCKED") {
-        console.log(`[DESSERT] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
-        return res.status(400).json({
-          success: false,
-          error: safetyCheck.message,
-          safetyBlocked: true,
-          blockedTerms: safetyCheck.blockedTerms,
-          suggestion: safetyCheck.suggestion
-        });
+        const adaptationPrompt = buildCreatorAllergenAdaptationPrompt(
+          "dessert_creator",
+          inputText,
+          safetyCheck,
+          humanFoodContext,
+        );
+        if (adaptationPrompt) {
+          humanFoodPrompt = `${humanFoodPrompt}\n\n${adaptationPrompt}`;
+          console.log(`[DESSERT] Automatic allergen adaptation active; requestId=${(req as any).id ?? "unavailable"}`);
+        } else {
+          console.log(`[DESSERT] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion
+          });
+        }
       }
       if (safetyCheck.result === "AMBIGUOUS") {
         return res.status(400).json({
@@ -448,39 +468,57 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
 - DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
 `;
 
-    if (isDev) console.log("[DESSERT] Calling OpenAI GPT-4o...");
-    const completion = await getOpenAI().chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-    });
-    if (isDev) console.log("[DESSERT] OpenAI response received");
-
     let meal: any;
-    try {
-      const rawText = completion.choices[0]?.message?.content || "{}";
-      meal = JSON.parse(rawText);
-      if (isDev) console.log("[DESSERT] Generated response parsed");
-    } catch (parseErr) {
-      console.error("Dessert Creator JSON parse error:", parseErr);
-      return res
-        .status(500)
-        .json({ error: "AI returned invalid JSON for dessert" });
-    }
-
-    // ── Post-gen protocol scan ──────────────────────────────────────────────
-    const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
-      generatorName: 'dessert_creator',
-      skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
-      overriddenAllergens: _overriddenDessertAllergens.length > 0 ? _overriddenDessertAllergens : undefined,
-    });
-    if (!dessertScan.passed) {
-        console.log(`[DESSERT] Generated result rejected by protocol; requestId=${(req as any).id ?? "unavailable"}`);
-      return res.status(400).json({
-        error: "PROTOCOL_VIOLATION",
-        message: dessertScan.message,
-        retryable: true,
+    let dessertScan: ReturnType<typeof scanGeneratedOutput> | null = null;
+    const MAX_DESSERT_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_DESSERT_ATTEMPTS; attempt++) {
+      const retryPrompt = attempt > 1
+        ? `\n\nPREVIOUS CANDIDATE REJECTED. Use a materially different safe ingredient strategy while preserving the requested dessert category, cuisine, and dish identity.\n${dessertScan?.message ?? ""}\n${buildRejectedCandidatePrompt(humanFoodExecutionState)}`
+        : "";
+      if (isDev) console.log(`[DESSERT] Calling OpenAI GPT-4o (attempt ${attempt})...`);
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt + retryPrompt }],
+        response_format: { type: "json_object" },
       });
+      if (isDev) console.log("[DESSERT] OpenAI response received");
+
+      try {
+        const rawText = completion.choices[0]?.message?.content || "{}";
+        meal = JSON.parse(rawText);
+      } catch (parseErr) {
+        console.error("Dessert Creator JSON parse error:", parseErr);
+        if (attempt < MAX_DESSERT_ATTEMPTS) continue;
+        return res.status(500).json({ error: "AI returned invalid JSON for dessert" });
+      }
+
+      dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
+        generatorName: 'dessert_creator',
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+        overriddenAllergens: _overriddenDessertAllergens.length > 0 ? _overriddenDessertAllergens : undefined,
+      });
+      const candidateHumanFoodValidation = validateCreatorHumanFoodResult(
+        "dessert_creator",
+        meal,
+        humanFoodContext,
+      );
+      if (dessertScan.passed && candidateHumanFoodValidation.valid) break;
+
+      recordRejectedHumanFoodCandidate(humanFoodExecutionState, meal);
+      if (dessertScan.passed) {
+        dessertScan = {
+          passed: false,
+          message: `Human Food Context validation failed: ${candidateHumanFoodValidation.violations.join(", ")}`,
+        } as any;
+      }
+      console.log(`[DESSERT] Candidate rejected (attempt ${attempt}); requestId=${(req as any).id ?? "unavailable"}`);
+      if (attempt >= MAX_DESSERT_ATTEMPTS) {
+        return res.status(400).json({
+          error: "PROTOCOL_VIOLATION",
+          message: dessertScan.message,
+          retryable: true,
+        });
+      }
     }
 
     // ── Dish Identity Validator (Phase 5) ─────────────────────────────────────
