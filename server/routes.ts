@@ -1240,10 +1240,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           inputText,
           safetyMode: safetyMode || "STRICT",
           overrideToken,
+          allowAdaptableAllergyConflict: type === "create-with-chef",
         });
         const routeResponse = toRouteResponse(enforcement);
         if (routeResponse.blocked || routeResponse.reviewRequired) {
           return res.status(400).json({ source: 'error', ...routeResponse.errorPayload });
+        }
+        if (enforcement.adaptableAllergyConflict && humanFoodContext) {
+          const { buildCreatorAllergenAdaptationPrompt } = await import("./services/humanFoodContext/adapters");
+          const adaptationPrompt = buildCreatorAllergenAdaptationPrompt(
+            "recipe_maker",
+            inputText,
+            {
+              result: "BLOCKED",
+              blockedTerms: enforcement.adaptableAllergyConflict.matchedTerms,
+              blockedCategories: enforcement.adaptableAllergyConflict.allergens,
+              ambiguousTerms: [],
+              message: "Automatic allergen adaptation required.",
+              allergyConflict: enforcement.adaptableAllergyConflict,
+            },
+            humanFoodContext,
+          );
+          req.body.generationContext = [
+            req.body.generationContext,
+            adaptationPrompt,
+          ].filter(Boolean).join("\n\n");
         }
         // Sole authorization source: the enforcement result exposes the
         // allergen only after the token was validated, one-time claimed,
@@ -5426,7 +5447,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
-      const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+      const {
+        buildCreatorHumanFoodPrompt,
+        buildCreatorAllergenAdaptationPrompt,
+        validateCreatorHumanFoodResult,
+      } = await import("./services/humanFoodContext/adapters");
       const {
         recordRejectedHumanFoodCandidate,
         buildRejectedCandidatePrompt,
@@ -5450,7 +5475,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
         });
       }
-      cravingInput = `${cravingInput || ""}\n\n${buildCreatorHumanFoodPrompt(humanFoodCreator, humanFoodContext, humanFoodExecutionState)}`.trim();
+      const humanFoodPrompt = buildCreatorHumanFoodPrompt(
+        humanFoodCreator,
+        humanFoodContext,
+        humanFoodExecutionState,
+      );
 
       // ── Load protocol envelope (single DB query — drives all enforcement) ──
       const protocolEnvelope = userId
@@ -5460,26 +5489,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
       let dietNotice = "";
+      let automaticAllergenAdaptation = false;
+      let automaticAllergenAdaptationPrompt = "";
       // Declared here so it survives the safety block scope and reaches generation + filtering.
       // Allergen-specific only — one authorized ingredient's enforcement is suspended per request.
       // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
       let _overriddenAllergens: string[] = [];
-      if (userId && cravingInput && safetyMode !== "ALLERGEN_ADAPT") {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
+      if (userId && rawCravingInput && safetyMode !== "ALLERGEN_ADAPT") {
+        const safetyCheck = await enforceSafetyProfile(userId, rawCravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion,
-            allergyConflict: safetyCheck.allergyConflict ?? null,
-          });
+          const adaptationPrompt = buildCreatorAllergenAdaptationPrompt(
+            humanFoodCreator,
+            rawCravingInput,
+            safetyCheck,
+            humanFoodContext,
+          );
+          if (adaptationPrompt) {
+            automaticAllergenAdaptation = true;
+            automaticAllergenAdaptationPrompt = adaptationPrompt;
+            console.log(`[AllergenAdapt] Automatic adaptation active for ${humanFoodCreator}; user=${userId}`);
+          } else {
+            console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+            return res.status(400).json({
+              success: false,
+              error: safetyCheck.message,
+              safetyBlocked: true,
+              blockedTerms: safetyCheck.blockedTerms,
+              suggestion: safetyCheck.suggestion,
+              allergyConflict: safetyCheck.allergyConflict ?? null,
+            });
+          }
         }
         if (safetyCheck.result === "AMBIGUOUS") {
           return res.status(400).json({
@@ -5501,6 +5544,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (safetyMode === "ALLERGEN_ADAPT") {
         console.log(`[AllergenAdapt] Allergen pre-check skipped for user ${userId} — DAL adaptation mode active`);
       }
+      cravingInput = [
+        rawCravingInput || "",
+        humanFoodPrompt,
+        automaticAllergenAdaptationPrompt,
+      ].filter(Boolean).join("\n\n").trim();
 
       // Validate servings (1-10)
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
@@ -5541,9 +5589,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (dietAdaptOverride === true) {
         const userDietRestrictions = (user?.dietaryRestrictions as string[]) || [];
         const chefDiet = getPrimaryDiet(userDietRestrictions);
-        cravingInput = `${rawCravingInput} ${buildChefAdaptationBlock(chefDiet)}`;
+        cravingInput = `${cravingInput} ${buildChefAdaptationBlock(chefDiet)}`;
       } else if (userDietOverride === true) {
-        cravingInput = `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
+        cravingInput = `${cravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
       }
 
       // ── GLP-1 canonical context — pre-generation ─────────────────────────
@@ -5641,7 +5689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // stock) and Phase 3 correctly kills every option. This block names the prohibited
       // categories, lists all derivative terms, and instructs the model to preserve dish
       // identity by replacing the allergen's functional role rather than just deleting it.
-      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+      if ((safetyMode === "ALLERGEN_ADAPT" || automaticAllergenAdaptation) && protocolEnvelope.allergies.length > 0) {
         try {
           const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
           const allergenBlock = buildAllergenAdaptPromptBlock(protocolEnvelope.allergies, rawCravingInput || "");
@@ -5825,7 +5873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // gumbo is stripped for its own name before Phase 3 ever sees it, and the
       // retry dies the same way — producing a spurious allergen_adaptation_failed.
       let _adaptExemptTerms: Set<string> | undefined;
-      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+      if ((safetyMode === "ALLERGEN_ADAPT" || automaticAllergenAdaptation) && protocolEnvelope.allergies.length > 0) {
         try {
           const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
           const terms = getRequestedDishExemptTerms(rawCravingInput || "", protocolEnvelope.allergies).map(t => t.toLowerCase());
@@ -5926,7 +5974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // When the user chose "Make it safe for me", the DAL adapted the dish but
       // the LLM may still include hidden allergen derivatives (shrimp paste, fish
       // sauce, shellfish broth). Scan each option and exclude any that leaked.
-      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
+      if ((safetyMode === "ALLERGEN_ADAPT" || automaticAllergenAdaptation) && protocolEnvelope.allergies.length > 0) {
         try {
           const { buildForbiddenTermsFromAllergens, scanMealsForAllergenViolations } = await import("./services/allergyGuardrails");
           // Requested-dish exemption: adaptation intentionally keeps the dish's

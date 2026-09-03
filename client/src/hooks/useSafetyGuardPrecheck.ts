@@ -121,6 +121,13 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
       // Store the conflict payload and the blocked banner state so the caller
       // can show the modal and optionally restore the banner for "Make original".
       if (data.result === "BLOCKED" && data.allergyConflict) {
+        if (data.allergyConflict.type === "conflict_adaptable") {
+          dietAdaptPayload.current = null;
+          allergyConflictPayload.current = null;
+          blockedAlertRef.current = null;
+          setAlert(EMPTY_SAFETY_ALERT);
+          return true;
+        }
         dietAdaptPayload.current = null;
         allergyConflictPayload.current = data.allergyConflict;
         blockedAlertRef.current = {
