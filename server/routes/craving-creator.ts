@@ -51,7 +51,14 @@ const requireAuth = async (req: any, res: any, next: any) => {
       if (tokenUser) { req.user = { id: tokenUser.id }; }
     } catch { }
   }
-  if (!req.user) req.user = {};
+  const userId = resolveUserId(req);
+  if (!userId) {
+    return res.status(401).json({
+      status: "unable_to_generate",
+      reasonCode: "authentication_required",
+      message: "Authentication is required.",
+    });
+  }
   next();
 };
 
@@ -82,7 +89,7 @@ const logMealSchema = z.object({
 router.post('/generate', requireAuth, async (req, res) => {
   try {
     const { craving, mealType = 'dinner', macroTargets, servings = 2 } = req.body;
-    const userId = resolveUserId(req) || req.body.userId || '1';
+    const userId = resolveUserId(req);
     
     console.log('🔥 CRAVING ROUTE HIT', Date.now());
     console.log('🍳 Craving Creator generating meal:', { craving, mealType, userId, servings });
@@ -135,7 +142,7 @@ router.post('/generate', requireAuth, async (req, res) => {
     ) ? mealType as "breakfast" | "lunch" | "dinner" | "snack" : "lunch";
     let glp1CravingCtx: Awaited<ReturnType<typeof import("../services/glp1/resolveGLP1GlobalContext").resolveGLP1GlobalContext>> | null = null;
     let glp1CravingTargets: import("../services/glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null = null;
-    if (userId && userId !== "1") {
+    if (userId) {
       try {
         const { resolveGLP1GlobalContext } = await import("../services/glp1/resolveGLP1GlobalContext");
         const dateISO = new Date().toISOString().split("T")[0];
@@ -152,7 +159,13 @@ router.post('/generate', requireAuth, async (req, res) => {
           );
         }
       } catch (err) {
-        console.warn("⚠️ [GLP-1/CravingCreator] Could not resolve context before generation:", err);
+        console.error("🚫 [GLP-1/CravingCreator] Could not resolve context before generation:", err);
+        return res.status(503).json({
+          status: "review_required",
+          reasonCode: "glp1_context_unavailable",
+          retryable: true,
+          message: "We couldn't safely verify your current GLP-1 meal targets. Please try again shortly.",
+        });
       }
     }
 
@@ -269,6 +282,12 @@ router.post('/generate', requireAuth, async (req, res) => {
             `💊 [GLP-1/CravingCreator] Violations for "${generatedMeal.name}":`,
             vr.violations,
           );
+          return res.status(422).json({
+            status: "unable_to_generate",
+            reasonCode: "glp1_compliance_retry_exhausted",
+            retryable: true,
+            message: "We couldn't safely adapt this dish to your current GLP-1 targets. Try a lighter preparation or a smaller portion.",
+          });
         } else {
           console.log(`💊 [GLP-1/CravingCreator] "${generatedMeal.name}" passed GLP-1 validation.`);
         }
@@ -276,7 +295,13 @@ router.post('/generate', requireAuth, async (req, res) => {
           console.log(`💊 [GLP-1/CravingCreator] Composition: ${glp1CravingCtx.compositionNote}`);
         }
       } catch (err) {
-        console.warn("⚠️ [GLP-1/CravingCreator] Post-generation validation error:", err);
+        console.error("🚫 [GLP-1/CravingCreator] Post-generation validation failed closed:", err);
+        return res.status(503).json({
+          status: "review_required",
+          reasonCode: "glp1_validation_unavailable",
+          retryable: true,
+          message: "We couldn't safely validate this meal against your GLP-1 targets. Please try again shortly.",
+        });
       }
     }
 
