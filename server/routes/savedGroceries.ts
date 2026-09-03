@@ -16,8 +16,9 @@
 import express from "express";
 import { db } from "../db";
 import { userSavedGroceryItems, shoppingListItems } from "@shared/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { computeProductKey } from "../utils/productKey";
+import { revalidateSavedGroceriesForUser } from "../services/savedGroceryRevalidation";
 
 export { computeProductKey };
 
@@ -30,6 +31,7 @@ function resolveUserId(req: any): string | undefined {
 type ExistingShoppingListRow = {
   id: string;
   name: string;
+  productKey: string | null;
   checked: boolean | null;
 };
 
@@ -47,29 +49,53 @@ function savedItemDisplayName(item: {
 }
 
 async function addSavedItemToShoppingList(
+  executor: any,
   userId: string,
   item: {
+    id: string;
     productName: string;
     brand: string | null;
+    barcode: string | null;
+    productKey: string;
     category: string | null;
   },
   existingRows: ExistingShoppingListRow[],
 ): Promise<{
+  id: string;
   name: string;
   status: "added" | "already_on_list" | "restored";
 }> {
   const displayName = savedItemDisplayName(item);
-  const normalizedName = normalizeListName(displayName);
-  const existing = existingRows.find(
-    (row) => normalizeListName(row.name) === normalizedName,
+  let existing = existingRows.find(
+    (row) => row.productKey === item.productKey,
   );
 
+  // One-time compatibility bridge for rows created before product_key existed.
+  // Once matched, persist the identity so every later membership check is key-based.
+  if (!existing) {
+    existing = existingRows.find(
+      (row) =>
+        !row.productKey &&
+        normalizeListName(row.name) === normalizeListName(displayName),
+    );
+    if (existing) {
+      await executor
+        .update(shoppingListItems)
+        .set({ productKey: item.productKey })
+        .where(and(
+          eq(shoppingListItems.id, existing.id),
+          eq(shoppingListItems.userId, userId),
+        ));
+      existing.productKey = item.productKey;
+    }
+  }
+
   if (existing && !existing.checked) {
-    return { name: displayName, status: "already_on_list" };
+    return { id: item.id, name: displayName, status: "already_on_list" };
   }
 
   if (existing && existing.checked) {
-    await db
+    await executor
       .update(shoppingListItems)
       .set({ checked: false })
       .where(and(
@@ -77,14 +103,15 @@ async function addSavedItemToShoppingList(
         eq(shoppingListItems.userId, userId),
       ));
     existing.checked = false;
-    return { name: displayName, status: "restored" };
+    return { id: item.id, name: displayName, status: "restored" };
   }
 
-  const [created] = await db
+  const [created] = await executor
     .insert(shoppingListItems)
     .values({
       userId,
       name: displayName,
+      productKey: item.productKey,
       quantity: "1",
       unit: null,
       category: item.category ?? "Other",
@@ -95,8 +122,13 @@ async function addSavedItemToShoppingList(
     })
     .returning({ id: shoppingListItems.id });
 
-  existingRows.push({ id: created.id, name: displayName, checked: false });
-  return { name: displayName, status: "added" };
+  existingRows.push({
+    id: created.id,
+    name: displayName,
+    productKey: item.productKey,
+    checked: false,
+  });
+  return { id: item.id, name: displayName, status: "added" };
 }
 
 // ── GET / — list all saved items ─────────────────────────────────────────────
@@ -111,7 +143,17 @@ router.get("/", async (req, res) => {
       .where(eq(userSavedGroceryItems.userId, userId))
       .orderBy(userSavedGroceryItems.savedAt);
 
-    return res.json({ items });
+    const decisions = await revalidateSavedGroceriesForUser(userId, items);
+    const decisionById = new Map(decisions.map((decision) => [decision.id, decision]));
+    return res.json({
+      items: items.map((item) => ({
+        ...item,
+        compliance: decisionById.get(item.id) ?? {
+          status: "blocked",
+          reason: "Current profile compatibility could not be verified.",
+        },
+      })),
+    });
   } catch (err: any) {
     console.error("[SavedGroceries] GET error:", err?.message);
     return res.status(500).json({ error: "Could not load saved groceries." });
@@ -139,20 +181,6 @@ router.post("/", async (req, res) => {
 
     const productKey = computeProductKey(barcode, brand, productName);
 
-    // Idempotency: return existing row if already saved
-    const [existing] = await db
-      .select()
-      .from(userSavedGroceryItems)
-      .where(and(
-        eq(userSavedGroceryItems.userId, userId),
-        eq(userSavedGroceryItems.productKey, productKey),
-      ))
-      .limit(1);
-
-    if (existing) {
-      return res.json({ item: existing, created: false });
-    }
-
     const [created] = await db
       .insert(userSavedGroceryItems)
       .values({
@@ -167,10 +195,33 @@ router.post("/", async (req, res) => {
         productMeta: productMeta ?? null,
         imageUrl: imageUrl?.trim() || null,
       })
+      .onConflictDoNothing({
+        target: [
+          userSavedGroceryItems.userId,
+          userSavedGroceryItems.productKey,
+        ],
+      })
       .returning();
 
-    console.log(`[SavedGroceries] Saved: "${productName}" for user ${userId} (source: ${source})`);
-    return res.status(201).json({ item: created, created: true });
+    if (created) {
+      console.log(`[SavedGroceries] Saved: "${productName}" for user ${userId} (source: ${source})`);
+      return res.status(201).json({ item: created, created: true });
+    }
+
+    // ON CONFLICT waits for a concurrent winner to commit. Re-read that row so
+    // retries and double taps receive the same successful idempotent contract.
+    const [existing] = await db
+      .select()
+      .from(userSavedGroceryItems)
+      .where(and(
+        eq(userSavedGroceryItems.userId, userId),
+        eq(userSavedGroceryItems.productKey, productKey),
+      ))
+      .limit(1);
+    if (!existing) {
+      throw new Error("Product-key conflict occurred but the saved row could not be reloaded");
+    }
+    return res.json({ item: existing, created: false });
   } catch (err: any) {
     console.error("[SavedGroceries] POST error:", err?.message);
     return res.status(500).json({ error: "Could not save grocery item." });
@@ -194,7 +245,7 @@ router.post("/add-to-list", async (req, res) => {
       return res.status(400).json({ error: "ids must contain between 1 and 500 saved grocery IDs" });
     }
 
-    const uniqueIds = Array.from(new Set(ids));
+    const uniqueIds = Array.from(new Set(ids)) as string[];
     const items = await db
       .select()
       .from(userSavedGroceryItems)
@@ -207,28 +258,63 @@ router.post("/add-to-list", async (req, res) => {
       return res.status(404).json({ error: "One or more saved grocery items were not found" });
     }
 
-    const existingRows = await db
-      .select({
-        id: shoppingListItems.id,
-        name: shoppingListItems.name,
-        checked: shoppingListItems.checked,
-      })
-      .from(shoppingListItems)
-      .where(eq(shoppingListItems.userId, userId));
+    const decisions = await revalidateSavedGroceriesForUser(userId, items);
+    const decisionById = new Map(decisions.map((decision) => [decision.id, decision]));
+    const approvedItems = items
+      .filter((item) => decisionById.get(item.id)?.status === "approved")
+      .sort((a, b) => a.productKey.localeCompare(b.productKey));
 
-    const results = [];
-    for (const id of uniqueIds) {
-      const item = items.find((candidate) => candidate.id === id);
-      if (!item) continue;
-      results.push(await addSavedItemToShoppingList(userId, item, existingRows));
-    }
+    // Every approved write is one atomic unit. Advisory locks serialize
+    // concurrent attempts for the same user/product identity.
+    const writtenResults = await db.transaction(async (tx) => {
+      for (const item of approvedItems) {
+        await tx.execute(sql`
+          SELECT pg_advisory_xact_lock(
+            hashtext(${userId}),
+            hashtext(${item.productKey})
+          )
+        `);
+      }
+
+      const existingRows = await tx
+        .select({
+          id: shoppingListItems.id,
+          name: shoppingListItems.name,
+          productKey: shoppingListItems.productKey,
+          checked: shoppingListItems.checked,
+        })
+        .from(shoppingListItems)
+        .where(eq(shoppingListItems.userId, userId));
+
+      const results = [];
+      for (const item of approvedItems) {
+        results.push(await addSavedItemToShoppingList(tx, userId, item, existingRows));
+      }
+      return results;
+    });
+
+    const writtenById = new Map(writtenResults.map((result) => [result.id, result]));
+    const results = uniqueIds.map((id) => {
+      const item = items.find((candidate) => candidate.id === id)!;
+      const decision = decisionById.get(id);
+      if (decision?.status === "blocked") {
+        return {
+          id,
+          name: savedItemDisplayName(item),
+          status: "blocked" as const,
+          reason: decision.reason,
+        };
+      }
+      return writtenById.get(id)!;
+    });
 
     const addedCount = results.filter((result) => result.status === "added").length;
     const restoredCount = results.filter((result) => result.status === "restored").length;
     const alreadyOnListCount = results.filter((result) => result.status === "already_on_list").length;
+    const blockedCount = results.filter((result) => result.status === "blocked").length;
 
     console.log(
-      `[SavedGroceries] Bulk list add for ${userId}: ${addedCount} added, ${restoredCount} restored, ${alreadyOnListCount} already present`,
+      `[SavedGroceries] Bulk list add for ${userId}: ${addedCount} added, ${restoredCount} restored, ${alreadyOnListCount} already present, ${blockedCount} blocked`,
     );
     return res.json({
       success: true,
@@ -236,10 +322,14 @@ router.post("/add-to-list", async (req, res) => {
       addedCount,
       restoredCount,
       alreadyOnListCount,
+      blockedCount,
     });
   } catch (err: any) {
     console.error("[SavedGroceries] bulk add-to-list error:", err?.message);
-    return res.status(500).json({ error: "Could not add saved groceries to shopping list." });
+    return res.status(500).json({
+      error: "Could not add saved groceries to shopping list. No approved items were added.",
+      atomic: true,
+    });
   }
 });
 
@@ -282,15 +372,34 @@ router.post("/:id/add-to-list", async (req, res) => {
 
     if (!item) return res.status(404).json({ error: "Saved item not found" });
 
-    const existingRows = await db
-      .select({
-        id: shoppingListItems.id,
-        name: shoppingListItems.name,
-        checked: shoppingListItems.checked,
-      })
-      .from(shoppingListItems)
-      .where(eq(shoppingListItems.userId, userId));
-    const result = await addSavedItemToShoppingList(userId, item, existingRows);
+    const [decision] = await revalidateSavedGroceriesForUser(userId, [item]);
+    if (!decision || decision.status === "blocked") {
+      return res.json({
+        success: false,
+        name: savedItemDisplayName(item),
+        status: "blocked",
+        reason: decision?.reason ?? "Current profile compatibility could not be verified.",
+      });
+    }
+
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`
+        SELECT pg_advisory_xact_lock(
+          hashtext(${userId}),
+          hashtext(${item.productKey})
+        )
+      `);
+      const existingRows = await tx
+        .select({
+          id: shoppingListItems.id,
+          name: shoppingListItems.name,
+          productKey: shoppingListItems.productKey,
+          checked: shoppingListItems.checked,
+        })
+        .from(shoppingListItems)
+        .where(eq(shoppingListItems.userId, userId));
+      return addSavedItemToShoppingList(tx, userId, item, existingRows);
+    });
 
     console.log(`[SavedGroceries] Added to list: "${result.name}" for user ${userId} (${result.status})`);
     return res.json({

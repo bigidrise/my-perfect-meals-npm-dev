@@ -74,6 +74,8 @@ export interface ShoppingListItem {
   id: string;
   /** DB UUID — present once this item has been synced to the server */
   serverId?: string;
+  /** Stable Saved Grocery identity; absent for ingredient-only list rows. */
+  productKey?: string;
   name: string;
   normalizedName: string;
   quantity: number;
@@ -168,6 +170,7 @@ function mapServerItem(si: any): ShoppingListItem {
   return {
     id: si.id,
     serverId: si.id,
+    productKey: si.productKey ?? undefined,
     name: si.name || '',
     normalizedName: classified.normalizedName,
     quantity: parseFloat(String(si.quantity)) || 1,
@@ -189,8 +192,13 @@ function deduplicateServerItems(items: ShoppingListItem[]): ShoppingListItem[] {
   for (const si of items) {
     const existingIdx = deduped.findIndex(
       e =>
-        e.normalizedName === si.normalizedName &&
-        (e.unit || '').toLowerCase() === (si.unit || '').toLowerCase(),
+        (si.productKey && e.productKey
+          ? e.productKey === si.productKey
+          : !si.productKey && !e.productKey &&
+        (
+          e.normalizedName === si.normalizedName &&
+          (e.unit || '').toLowerCase() === (si.unit || '').toLowerCase()
+        )),
     );
     if (existingIdx !== -1) {
       deduped[existingIdx] = {
@@ -278,8 +286,11 @@ export const useShoppingListStore = create<ShoppingListStore>()(
 
             const serverIdx = merged.findIndex(
               s =>
-                s.normalizedName === local.normalizedName &&
-                (s.unit || '').toLowerCase() === (local.unit || '').toLowerCase(),
+                s.productKey && local.productKey
+                  ? s.productKey === local.productKey
+                  : !s.productKey && !local.productKey &&
+                    s.normalizedName === local.normalizedName &&
+                    (s.unit || '').toLowerCase() === (local.unit || '').toLowerCase(),
             );
 
             if (serverIdx !== -1) {

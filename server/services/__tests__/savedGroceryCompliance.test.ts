@@ -21,6 +21,7 @@ import { computeProductKey } from "../../utils/productKey";
 import {
   filterSavedGroceriesForCompliance,
   buildSavedGroceriesPromptBlock,
+  selectAuthoritativelyApprovedSavedItems,
   type SavedGroceryItemSlim,
 } from "../savedGroceryCompliance";
 import type { UserProtocolEnvelope } from "../protocolEnvelope";
@@ -55,11 +56,11 @@ function section(title: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function makeEnvelope(
-  overrides: Partial<Pick<UserProtocolEnvelope, "allergies" | "avoidances" | "diabeticGuidance" | "hasDiabetes">>,
+  overrides: Partial<Pick<UserProtocolEnvelope, "dietaryIdentity" | "allergies" | "avoidances" | "diabeticGuidance" | "hasDiabetes">>,
 ): UserProtocolEnvelope {
   return {
     userId: "test-user",
-    dietaryIdentity: [],
+    dietaryIdentity: overrides.dietaryIdentity ?? [],
     allergies: overrides.allergies ?? [],
     medicalHardLimits: [],
     medicalOptimization: [],
@@ -119,6 +120,7 @@ function makeItem(
       `name::::${overrides.productName.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
     nutritionJson: overrides.nutritionJson !== undefined ? overrides.nutritionJson : null,
     ingredients: overrides.ingredients !== undefined ? overrides.ingredients : null,
+    certifications: overrides.certifications !== undefined ? overrides.certifications : null,
     savedAt: overrides.savedAt ?? new Date("2026-08-13T10:00:00Z"),
   };
 }
@@ -195,6 +197,7 @@ section("3 — Allergen in product name → excluded[], not in LLM prompt");
     productName: "Sunflower Seed Butter",
     brand: "SunButter",
     nutritionJson: { calories: 200, protein: 7, carbs: 8, fat: 16 },
+    ingredients: ["sunflower seeds", "cane sugar", "salt"],
   });
 
   const { compliant, excluded } = filterSavedGroceriesForCompliance(
@@ -442,6 +445,143 @@ section("8 — Diabetic carb ceiling");
   assert(!block.includes("White Rice Snack Pack"), "high-carb item NOT in LLM prompt");
   assert(!block.includes("Cracker Mix"), "scanner item NOT in LLM prompt");
   assert(block.includes("Cauliflower Rice"), "low-carb item in LLM prompt");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 9: Dietary identity revalidation
+// ─────────────────────────────────────────────────────────────────────────────
+section("9 — Vegan and vegetarian identities are rechecked from saved evidence");
+{
+  const veganEnvelope = makeEnvelope({ dietaryIdentity: ["vegan"] });
+  const veganConflict = makeItem({
+    productName: "Protein Pasta",
+    ingredients: ["durum wheat semolina", "whey protein concentrate", "egg whites"],
+  });
+  const veganSafe = makeItem({
+    productName: "Chickpea Pasta",
+    ingredients: ["chickpea flour", "pea protein"],
+  });
+  const noEvidence = makeItem({
+    productName: "Suggested Pasta",
+    ingredients: null,
+  });
+
+  const veganResult = filterSavedGroceriesForCompliance(
+    [veganConflict, veganSafe, noEvidence],
+    veganEnvelope,
+  );
+  assert(
+    veganResult.excluded.some((item) => item.productName === "Protein Pasta"),
+    "vegan item containing whey/egg is excluded",
+  );
+  assert(
+    veganResult.excluded.some(
+      (item) =>
+        item.productName === "Suggested Pasta" &&
+        item.exclusionReason.toLowerCase().includes("ingredient evidence unavailable"),
+    ),
+    "vegan AI suggestion without ingredient evidence fails closed",
+  );
+  assert(
+    veganResult.compliant.some((item) => item.productName === "Chickpea Pasta"),
+    "vegan item with compatible ingredient evidence remains approved",
+  );
+
+  const vegetarianEnvelope = makeEnvelope({ dietaryIdentity: ["vegetarian"] });
+  const vegetarianConflict = makeItem({
+    productName: "Soup Mix",
+    ingredients: ["lentils", "chicken stock", "carrots"],
+  });
+  const vegetarianResult = filterSavedGroceriesForCompliance(
+    [vegetarianConflict],
+    vegetarianEnvelope,
+  );
+  assert(
+    vegetarianResult.excluded[0]?.exclusionReason.toLowerCase().includes("chicken"),
+    "vegetarian item containing chicken stock is excluded",
+  );
+
+  const dairyFreeResult = filterSavedGroceriesForCompliance(
+    [
+      makeItem({
+        productName: "Creamy Soup",
+        ingredients: ["water", "milk", "salt"],
+      }),
+      makeItem({
+        productName: "Coconut Curry",
+        ingredients: ["coconut milk", "chickpeas", "spices"],
+      }),
+    ],
+    makeEnvelope({ dietaryIdentity: ["dairy-free"] }),
+  );
+  assert(
+    dairyFreeResult.excluded.some((item) => item.productName === "Creamy Soup"),
+    "dairy-free identity excludes milk evidence",
+  );
+  assert(
+    dairyFreeResult.compliant.some((item) => item.productName === "Coconut Curry"),
+    "dairy-free identity does not misclassify coconut milk",
+  );
+
+  const glutenFreeResult = filterSavedGroceriesForCompliance(
+    [makeItem({
+      productName: "Snack Crackers",
+      ingredients: ["wheat flour", "barley malt", "salt"],
+    })],
+    makeEnvelope({ dietaryIdentity: ["gluten-free"] }),
+  );
+  assert(
+    glutenFreeResult.excluded[0]?.exclusionReason.toLowerCase().includes("wheat"),
+    "gluten-free identity excludes wheat evidence",
+  );
+
+  const kosherResult = filterSavedGroceriesForCompliance(
+    [
+      makeItem({
+        productName: "Certified Bean Soup",
+        ingredients: ["beans", "tomatoes", "salt"],
+        certifications: ["Kosher certified"],
+      }),
+      makeItem({
+        productName: "Uncertified Bean Soup",
+        ingredients: ["beans", "tomatoes", "salt"],
+      }),
+    ],
+    makeEnvelope({ dietaryIdentity: ["kosher"] }),
+  );
+  assert(
+    kosherResult.compliant.some((item) => item.productName === "Certified Bean Soup"),
+    "kosher certification evidence permits an otherwise compatible item",
+  );
+  assert(
+    kosherResult.excluded.some(
+      (item) =>
+        item.productName === "Uncertified Bean Soup" &&
+        item.exclusionReason.toLowerCase().includes("certification"),
+    ),
+    "kosher identity fails closed without certification evidence",
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 10: Grocery Coach fail-closed resolver gate
+// ─────────────────────────────────────────────────────────────────────────────
+section("10 — Grocery Coach saved favorites require authoritative context");
+{
+  const item = makeItem({
+    productName: "Approved Favorite",
+    ingredients: ["chickpeas", "olive oil", "salt"],
+  });
+  const approvedDecision = [{ id: item.id, status: "approved" as const }];
+
+  assert(
+    selectAuthoritativelyApprovedSavedItems([item], approvedDecision, true).length === 1,
+    "approved favorite is available when authoritative context resolves",
+  );
+  assert(
+    selectAuthoritativelyApprovedSavedItems([item], approvedDecision, false).length === 0,
+    "favorite is excluded when protocol or GLP-1 resolution fails",
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

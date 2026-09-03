@@ -47,11 +47,16 @@ interface SavedGroceryItem {
   productName: string;
   brand: string | null;
   barcode: string | null;
+  productKey: string;
   category: string | null;
   source: string;
   nutritionJson: Record<string, any> | null;
   productMeta: SavedGroceryItemMeta | null;
   savedAt: string;
+  compliance: {
+    status: "approved" | "blocked";
+    reason: string | null;
+  };
 }
 
 /**
@@ -137,10 +142,6 @@ function sortedCategories(groups: Record<string, SavedGroceryItem[]>): [string, 
   });
 }
 
-function normalizeListName(name: string): string {
-  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase();
-}
-
 function itemDisplayName(item: SavedGroceryItem): string {
   return item.brand
     ? `${item.brand} ${item.productName}`.trim()
@@ -205,10 +206,11 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   );
 
   const isItemOnList = useCallback((item: SavedGroceryItem) => {
-    const normalizedName = normalizeListName(itemDisplayName(item));
     return shoppingItems.some(
       (shoppingItem) =>
-        !shoppingItem.isChecked && normalizeListName(shoppingItem.name) === normalizedName,
+        !shoppingItem.isChecked &&
+        !!shoppingItem.productKey &&
+        shoppingItem.productKey === item.productKey,
     );
   }, [shoppingItems]);
 
@@ -227,24 +229,42 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
     setBulkAdding(true);
     try {
       const data = await post<{
+        items?: Array<{
+          id: string;
+          status: "added" | "already_on_list" | "restored" | "blocked";
+          reason?: string | null;
+        }>;
         addedCount?: number;
         restoredCount?: number;
         alreadyOnListCount?: number;
+        blockedCount?: number;
       }>("/api/saved-groceries/add-to-list", { ids: uniqueIds });
-      setAddedIds((previous) => new Set([...Array.from(previous), ...uniqueIds]));
+      const successfulIds = (data.items ?? [])
+        .filter((item) => item.status !== "blocked")
+        .map((item) => item.id);
+      setAddedIds((previous) => new Set([...Array.from(previous), ...successfulIds]));
       setSelectedIds(new Set());
       await hydrate();
       const added = data.addedCount ?? 0;
       const restored = data.restoredCount ?? 0;
       const alreadyOnList = data.alreadyOnListCount ?? 0;
+      const blocked = data.blockedCount ?? 0;
       const details = [
         added > 0 ? `${added} added` : "",
         restored > 0 ? `${restored} restored` : "",
         alreadyOnList > 0 ? `${alreadyOnList} already on list` : "",
+        blocked > 0 ? `${blocked} blocked by current profile` : "",
       ].filter(Boolean).join(" · ");
       toast({
-        title: uniqueIds.length === 1 ? "Added to list" : "Saved groceries updated",
+        title: blocked > 0
+          ? "Some saved products need review"
+          : uniqueIds.length === 1
+            ? "Added to list"
+            : "Saved groceries updated",
         description: details || "Your shopping list is up to date.",
+        variant: blocked > 0 && added + restored + alreadyOnList === 0
+          ? "destructive"
+          : undefined,
       });
     } catch {
       toast({
@@ -263,8 +283,17 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
     try {
       const data = await post<{
         name?: string;
-        status?: "added" | "already_on_list" | "restored";
+        status?: "added" | "already_on_list" | "restored" | "blocked";
+        reason?: string | null;
       }>(`/api/saved-groceries/${item.id}/add-to-list`);
+      if (data.status === "blocked") {
+        toast({
+          title: "Saved, but not added",
+          description: data.reason ?? "This product does not fit your current profile.",
+          variant: "destructive",
+        });
+        return;
+      }
       if (data.status !== "already_on_list") {
         setAddedIds((prev) => new Set(Array.from(prev).concat(item.id)));
       }
@@ -414,9 +443,14 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-                      {visibleItems.length} shown · {selectedIds.size} selected
-                    </span>
+                    <div>
+                      <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12 }}>
+                        {visibleItems.length} shown · {selectedIds.size} selected
+                      </div>
+                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 2 }}>
+                        Add all shown uses the current search and category filters. Blocked products stay saved.
+                      </div>
+                    </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <PillButton
                         type="button"
@@ -431,10 +465,10 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                         type="button"
                         variant="emerald"
                         active
-                        disabled={items.length === 0 || bulkAdding}
-                        onClick={() => handleAddMany(items.map((item) => item.id))}
+                        disabled={visibleItems.length === 0 || bulkAdding}
+                        onClick={() => handleAddMany(visibleItems.map((item) => item.id))}
                       >
-                        {bulkAdding ? "Adding…" : "Add all"}
+                        {bulkAdding ? "Adding…" : `Add all shown (${visibleItems.length})`}
                       </PillButton>
                     </div>
                   </div>
@@ -506,6 +540,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                         const isAdded = addedIds.has(item.id);
                         const onList = isItemOnList(item);
                         const isSelected = selectedIds.has(item.id);
+                        const isBlocked = item.compliance.status === "blocked";
                         const isRemoving = removingId === item.id;
                         const hasAnalysis = !!(item.productMeta?.alignmentGrade || item.productMeta?.resolvedFromDb !== undefined);
 
@@ -524,11 +559,12 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                               variant="sky"
                               active={isSelected}
                               onClick={() => toggleSelected(item.id)}
+                              disabled={isBlocked}
                               aria-label={`${isSelected ? "Deselect" : "Select"} ${itemDisplayName(item)}`}
                               aria-pressed={isSelected}
                               className="!px-2 !text-[8px]"
                             >
-                              {isSelected ? "Selected" : "Select"}
+                              {isBlocked ? "Review" : isSelected ? "Selected" : "Select"}
                             </PillButton>
 
                             {/* Tappable product info — opens analysis sheet if data exists */}
@@ -570,22 +606,41 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                                     ✓ DB
                                   </span>
                                 )}
+                                {isBlocked && (
+                                  <span
+                                    title={item.compliance.reason ?? "Does not fit your current profile"}
+                                    style={{
+                                      padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 600,
+                                      background: "rgba(239,68,68,0.14)", color: "#fca5a5",
+                                      border: "1px solid rgba(239,68,68,0.3)",
+                                    }}
+                                  >
+                                    Needs review
+                                  </span>
+                                )}
                               </div>
+                              {isBlocked && item.compliance.reason && (
+                                <div style={{ color: "#fca5a5", fontSize: 11, lineHeight: 1.35, marginTop: 5 }}>
+                                  {item.compliance.reason}
+                                </div>
+                              )}
                             </button>
 
                             {/* Add to list */}
                             <PillButton
                               type="button"
-                              variant={onList || isAdded ? "emerald" : "amber"}
+                              variant={isBlocked ? "rose" : onList || isAdded ? "emerald" : "amber"}
                               active={onList || isAdded}
                               onClick={() => handleAddToList(item)}
-                              disabled={isAdding || isAdded || onList || bulkAdding}
+                              disabled={isAdding || isAdded || onList || isBlocked || bulkAdding}
                               className="!px-2 !text-[8px] shrink-0"
                             >
                               {isAdding ? (
                                 <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} />
                               ) : onList ? (
                                 <><CheckCircle2 style={{ width: 13, height: 13 }} /> Already on list</>
+                              ) : isBlocked ? (
+                                <><AlertTriangle style={{ width: 13, height: 13 }} /> Blocked</>
                               ) : isAdded ? (
                                 <><CheckCircle2 style={{ width: 13, height: 13 }} /> Added</>
                               ) : (
