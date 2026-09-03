@@ -358,29 +358,6 @@ export default function GetInspiration() {
         className="max-w-4xl mx-auto px-4 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-        {/* Journal privacy notice */}
-        <div
-          role="note"
-          data-testid="journal-privacy-notice"
-          className="mb-8 rounded-2xl border border-orange-200/30 bg-black/50 p-5 shadow-xl backdrop-blur-xl"
-        >
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 text-xl" aria-hidden="true">
-              🔒
-            </span>
-            <div>
-              <h2 className="font-semibold text-white">
-                This journal is separate from AI
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-white/85">
-                Your thoughts stay in this journal on this device. They are
-                not sent to or used by AI, meal generation, recommendations,
-                coaching, personalization, or any other feature.
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Daily Motivation Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
