@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-import { Loader2, Activity, AlertTriangle, Syringe, Pill, ChevronDown, ChevronUp } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer, Tooltip, YAxis } from "recharts";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface SparkPoint {
-  value: number;
-  date: string;
-  context: string;
-}
+import { Loader2, AlertTriangle, Syringe, Pill, ChevronDown, ChevronUp } from "lucide-react";
 
 interface NutritionStrategyData {
   hasData: boolean;
@@ -29,8 +20,8 @@ interface NutritionStrategyData {
     doseMg?: string;
     injectionSite?: string;
   } | null;
-  glucose: {
-    sparkline: SparkPoint[];
+  glucose?: {
+    sparkline: Array<{ value: number; date: string; context: string }>;
     avgMgdl: number | null;
     trendLabel: "Stable" | "Elevated" | "High variability" | null;
     readingCount: number;
@@ -51,18 +42,6 @@ interface Props {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const TREND_COLORS: Record<string, string> = {
-  "Stable": "text-emerald-400",
-  "Elevated": "text-amber-400",
-  "High variability": "text-red-400",
-};
-
-const TREND_BG: Record<string, string> = {
-  "Stable": "bg-emerald-500/10 border-emerald-500/20",
-  "Elevated": "bg-amber-500/10 border-amber-500/20",
-  "High variability": "bg-red-500/10 border-red-500/20",
-};
-
 const HUB_LABEL: Record<string, string> = {
   diabetic: "Diabetic",
   glp1: "Metabolic Med",
@@ -77,19 +56,6 @@ const DIABETES_TYPE_LABEL: Record<string, string> = {
 
 function formatShotDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-// ─── Sparkline Tooltip ────────────────────────────────────────────────────────
-
-function GlucoseTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const pt = payload[0].payload as SparkPoint;
-  return (
-    <div className="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white">
-      <p className="font-bold">{pt.value} mg/dL</p>
-      <p className="text-white/50">{pt.date} · {pt.context}</p>
-    </div>
-  );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -132,8 +98,7 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
 
   if (!data || !data.hasData) return null;
 
-  const { activeHubs, diabetic, glp1, glucose, strategySummary, physicianOnly } = data;
-  const trendLabel = glucose.trendLabel;
+  const { activeHubs, diabetic, glp1, strategySummary, physicianOnly } = data;
 
   return (
     <div className="rounded-xl border border-orange-500/15 bg-[#0f0f0f] overflow-hidden">
@@ -153,11 +118,6 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
               ))}
             </div>
           </div>
-          {trendLabel && (
-            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${TREND_BG[trendLabel]} ${TREND_COLORS[trendLabel]} shrink-0`}>
-              {trendLabel}
-            </span>
-          )}
         </div>
 
         {/* Strategy summary line */}
@@ -170,7 +130,7 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
           <div className="mt-2.5 flex items-start justify-between gap-2 rounded-lg bg-white/4 border border-white/8 px-3 py-2">
             <p className="text-[11px] text-white/45 leading-snug">
               This is the coaching plan the app is actively executing for this client.
-              All meals generated reflect these guardrails and glucose trends.
+              All meals generated reflect the authorized nutrition guardrails shown here.
             </p>
             <button
               onClick={dismissContext}
@@ -265,42 +225,6 @@ export default function ProNutritionStrategyCard({ clientId, isPhysician }: Prop
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* ── Glucose sparkline ── */}
-        {glucose.sparkline.length >= 3 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-orange-400" />
-                <span className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">
-                  14-Day Glucose Trend
-                </span>
-              </div>
-              {glucose.avgMgdl && (
-                <span className="text-xs font-bold text-white/60">
-                  avg {glucose.avgMgdl} mg/dL
-                </span>
-              )}
-            </div>
-            <div className="h-[64px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={glucose.sparkline} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
-                  <YAxis domain={["dataMin - 20", "dataMax + 20"]} hide />
-                  <Tooltip content={<GlucoseTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke={trendLabel === "Stable" ? "#34d399" : trendLabel === "Elevated" ? "#fbbf24" : "#f87171"}
-                    strokeWidth={1.5}
-                    dot={false}
-                    activeDot={{ r: 3, fill: "#fff" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="text-[9px] text-white/25 mt-1">{glucose.readingCount} readings in the last 14 days</p>
           </div>
         )}
 

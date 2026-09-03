@@ -177,11 +177,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
     }
 
     const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
-    const {
-      buildCreatorHumanFoodPrompt,
-      buildCreatorAllergenAdaptationPrompt,
-      validateCreatorHumanFoodResult,
-    } = await import("../services/humanFoodContext/adapters");
+    const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
     const humanFoodRequestScope = createHumanFoodRequestScope({
       actorUserId: userId,
       subjectUserId: userId,
@@ -204,7 +200,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
         message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
       });
     }
-    let humanFoodPrompt = buildCreatorHumanFoodPrompt("beverage_creator", humanFoodContext);
+    const humanFoodPrompt = buildCreatorHumanFoodPrompt("beverage_creator", humanFoodContext);
 
     let dietAdapted = false;
     let dietNotice = "";
@@ -218,25 +214,14 @@ beverageCreatorRouter.post("/", async (req, res) => {
         correlationId: (req as any).id
       });
       if (safetyCheck.result === "BLOCKED") {
-        const adaptationPrompt = buildCreatorAllergenAdaptationPrompt(
-          "beverage_creator",
-          inputText,
-          safetyCheck,
-          humanFoodContext,
-        );
-        if (adaptationPrompt) {
-          humanFoodPrompt = `${humanFoodPrompt}\n\n${adaptationPrompt}`;
-          console.log(`[BEVERAGE] Automatic allergen adaptation active; requestId=${(req as any).id ?? "unavailable"}`);
-        } else {
-          console.log(`[BEVERAGE] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
+        console.log(`[BEVERAGE] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
+        return res.status(400).json({
+          success: false,
+          error: safetyCheck.message,
+          safetyBlocked: true,
+          blockedTerms: safetyCheck.blockedTerms,
+          suggestion: safetyCheck.suggestion
+        });
       }
       if (safetyCheck.result === "AMBIGUOUS") {
         return res.status(400).json({

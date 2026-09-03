@@ -39,6 +39,7 @@ import CheckInAlertPreferences from "@/components/pro/CheckInAlertPreferences";
 import CheckInOverviewPanel from "@/components/pro/CheckInOverviewPanel";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
+import type { ProfessionalGlucoseClientSummary } from "@shared/professionalGlucose";
 
 interface UnreadClient {
   clientUserId: string;
@@ -74,6 +75,9 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   const [folderClient, setFolderClient] = useState<ClientProfile | null>(null);
   const [folderOpen, setFolderOpen] = useState(false);
   const [archivePendingClient, setArchivePendingClient] = useState<ClientProfile | null>(null);
+  const [glucoseSummaries, setGlucoseSummaries] = useState<
+    Record<string, ProfessionalGlucoseClientSummary>
+  >({});
 
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [totalUnread, setTotalUnread] = useState(0);
@@ -173,6 +177,25 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         return;
       }
       console.log(`[ProClients] DB returned ${dbClients.length} active client(s) for workspace: ${resolvedWorkspace}`);
+
+      if (isPhysician) {
+        const summaryRes = await fetch(
+          apiUrl("/api/pro/glucose/client-summaries"),
+          { headers, credentials: "include" },
+        );
+        if (summaryRes.ok) {
+          const body = await summaryRes.json();
+          const nextSummaries: Record<string, ProfessionalGlucoseClientSummary> = {};
+          for (const summary of body.summaries ?? []) {
+            nextSummaries[summary.clientUserId] = summary;
+          }
+          setGlucoseSummaries(nextSummaries);
+        } else {
+          setGlucoseSummaries({});
+        }
+      } else {
+        setGlucoseSummaries({});
+      }
 
       const localClients = proStore.listClients(resolvedWorkspace);
 
@@ -405,6 +428,17 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     return `${diffDays}d ago`;
   }
 
+  function formatGlucoseContext(context: string): string {
+    const labels: Record<string, string> = {
+      FASTED: "Fasting",
+      PRE_MEAL: "Pre-meal",
+      POST_MEAL_1H: "1-hour post-meal",
+      POST_MEAL_2H: "2-hour post-meal",
+      RANDOM: "Other",
+    };
+    return labels[context] ?? "Recorded";
+  }
+
   const backPath = isPhysician ? "/care-team/physician" : "/care-team/trainer";
   const portalTitle = isPhysician
     ? "Physicians Clinic Portal"
@@ -600,6 +634,30 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                           </div>
                         )}
                       </div>
+
+                       {isPhysician && c.clientUserId && glucoseSummaries[c.clientUserId] && (
+                         <div className="rounded-lg border border-orange-500/25 bg-orange-500/10 px-3 py-2">
+                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                             <span className="text-sm font-bold text-white">
+                               Latest: {glucoseSummaries[c.clientUserId].latestReading.value}{" "}
+                               {glucoseSummaries[c.clientUserId].latestReading.unit}
+                             </span>
+                             <span className="text-xs text-gray-200">
+                               {formatGlucoseContext(glucoseSummaries[c.clientUserId].latestReading.context)}
+                             </span>
+                             <span className="text-xs text-gray-300">
+                               {formatRelativeTime(glucoseSummaries[c.clientUserId].latestReading.recordedAt)}
+                             </span>
+                           </div>
+                           {["above_range", "below_range"].includes(
+                             glucoseSummaries[c.clientUserId].latestReading.rangeStatus,
+                           ) && (
+                             <p className="mt-1 text-[10px] font-semibold text-orange-200">
+                               Outside configured patient range
+                             </p>
+                           )}
+                         </div>
+                       )}
 
                       <div className="flex items-center gap-2">
                         {c.archived ? (
