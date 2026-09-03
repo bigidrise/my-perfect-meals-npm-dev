@@ -5,11 +5,14 @@ import {
 } from "../../shared/humanFoodContext";
 import { resolveFlavorCompatibility } from "../services/humanFoodContext/flavorCompatibility";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
-import {
-  issueHumanFoodContextReceipt,
-  redeemHumanFoodContextReceipt,
-} from "../services/humanFoodContext/contextReceipt";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
+import {
+  buildRejectedCandidatePrompt,
+  createHumanFoodRequestExecutionState,
+  recordRejectedHumanFoodCandidate,
+} from "../services/humanFoodContext/requestExecutionState";
+import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { freezeHumanFoodContext } from "../services/humanFoodContext/resolveHumanFoodContext";
 
 process.env.SESSION_SECRET ||= "human-food-context-test-secret";
 
@@ -58,12 +61,59 @@ const context: HumanFoodContext = {
     dislikedFoods: [],
     healthConditions: [],
   },
-  nutrition: null,
+  nutrition: {
+    authority: "nutritionStateService",
+    resolution: { status: "resolved", reasonCodes: [] },
+    activeConstraints: {
+      generationContext: "standard",
+      starchSlotsExhausted: false,
+      calorieBudgetExhausted: false,
+      proteinBudgetMet: false,
+      consumedStarchExhausted: true,
+      projectedStarchConflict: true,
+    },
+    projectedRemaining: {
+      calories: 500,
+      protein: 40,
+      carbs: 30,
+      fat: 20,
+      starchyCarbs: 0,
+      fibrousCarbs: 20,
+      starchMealsRemaining: 0,
+    },
+    remaining: {
+      calories: 500,
+      protein: 40,
+      carbs: 30,
+      fat: 20,
+      starchyCarbs: 0,
+      fibrousCarbs: 20,
+      starchMealsRemaining: 0,
+    },
+    starch: {
+      consumed: {
+        targetGrams: 30,
+        confirmedGrams: 30,
+        uncertainGrams: 0,
+        remainingGrams: 0,
+        mealsUsed: 1,
+        mealsRemaining: 0,
+        exhausted: true,
+        classificationStatus: "VERIFIED",
+      },
+      projected: {
+        reservedGrams: 0,
+        projectedGrams: 30,
+        projectedRemainingGrams: 0,
+        projectedMealsUsed: 1,
+        projectedConflict: true,
+      },
+    },
+  } as any,
   behavior: null,
   gaps: ["flavor.spiceComplexity"],
   notices: [],
   blockedReasons: [],
-  rejectedCandidateSignatures: [],
   internalFingerprint: "internal-only",
 };
 
@@ -71,46 +121,64 @@ const prompt = buildHumanFoodPromptBlock(context);
 assert.match(prompt, /Cuisine: Vietnamese/);
 assert.match(prompt, /Effective diet: vegetarian/);
 assert.match(prompt, /Hard allergy exclusions: peanut/);
+assert.match(prompt, /Canonical nutrition authority: nutritionStateService/);
+assert.match(prompt, /Consumed-starch authority: 0g/);
 assert.doesNotMatch(prompt, /internal-only/);
 
-const issued = issueHumanFoodContextReceipt(context);
-assert.ok(issued.receipt.length >= 32);
-assert.equal(
-  redeemHumanFoodContextReceipt({
-    receipt: issued.receipt,
-    actorUserId: "actor-a",
-    subjectUserId: "subject-a",
-    creator: "dessert_creator",
-    generationChainId: "chain-a",
-  }),
-  context,
-);
-assert.equal(
-  redeemHumanFoodContextReceipt({
-    receipt: issued.receipt,
-    actorUserId: "actor-b",
-    subjectUserId: "subject-a",
-    creator: "dessert_creator",
-  }),
-  null,
-);
-assert.equal(
-  redeemHumanFoodContextReceipt({
-    receipt: issued.receipt,
-    actorUserId: "actor-a",
-    subjectUserId: "subject-a",
-    creator: "beverage_creator",
-  }),
-  null,
-);
-
 assert.deepEqual(
-  validateHumanFoodResult({ ingredients: [{ name: "oats" }] }, context),
+  validateHumanFoodResult({
+    ingredients: [{ name: "non-starchy vegetables" }],
+    nutrition: { calories: 350, carbs: 20, fat: 12, starchyCarbs: 0 },
+  }, context),
   { valid: true, violations: [] },
 );
 assert.equal(
   validateHumanFoodResult({ ingredients: [{ name: "peanut butter" }] }, context).valid,
   false,
 );
+assert.equal(
+  validateHumanFoodResult({
+    ingredients: [{ name: "rice" }],
+    nutrition: { calories: 600, carbs: 45, fat: 25, starchyCarbs: 20 },
+  }, context).valid,
+  false,
+);
 
-console.log("Human Food Context contract tests passed");
+const executionState = createHumanFoodRequestExecutionState();
+recordRejectedHumanFoodCandidate(executionState, {
+  name: "First Bowl",
+  ingredients: [{ name: "rice" }, { name: "tofu" }],
+});
+assert.match(buildRejectedCandidatePrompt(executionState), /first bowl\|rice,tofu/);
+
+const frozen = freezeHumanFoodContext(structuredClone(context));
+assert.equal(Object.isFrozen(frozen), true);
+assert.equal(Object.isFrozen(frozen.flavor), true);
+
+async function verifyRequestScopes(): Promise<void> {
+  let resolveCount = 0;
+  const resolver = async () => {
+    resolveCount += 1;
+    return frozen;
+  };
+  const requestInput = {
+    actorUserId: "actor-a",
+    subjectUserId: "subject-a",
+    creator: "dessert_creator" as const,
+  };
+  const firstRequest = createHumanFoodRequestScope(requestInput, resolver);
+  const [firstA, firstB] = await Promise.all([firstRequest.resolve(), firstRequest.resolve()]);
+  assert.equal(firstA, firstB);
+  assert.equal(resolveCount, 1);
+
+  const rerollRequest = createHumanFoodRequestScope(requestInput, resolver);
+  assert.equal(await rerollRequest.resolve(), frozen);
+  assert.equal(resolveCount, 2);
+}
+
+verifyRequestScopes()
+  .then(() => console.log("Human Food Context contract tests passed"))
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

@@ -4,17 +4,12 @@ import { users } from "@shared/schema";
 import {
   HUMAN_FOOD_CONTEXT_VERSION,
   type HumanFoodContext,
-  type HumanFoodContextPublicMeta,
   type HumanFoodCreator,
 } from "../../../shared/humanFoodContext";
 import { db } from "../../db";
 import { derivePreferenceProfile } from "../behavioralMemoryService";
 import { resolveDailyNutritionState } from "../nutritionStateService";
 import { resolveFlavorCompatibility } from "./flavorCompatibility";
-import {
-  issueHumanFoodContextReceipt,
-  redeemHumanFoodContextReceipt,
-} from "./contextReceipt";
 
 const CONTEXT_TTL_MS = 15 * 60 * 1000;
 
@@ -23,8 +18,6 @@ export interface ResolveHumanFoodContextInput {
   subjectUserId: string;
   creator: HumanFoodCreator;
   correlationId?: string | null;
-  receipt?: string | null;
-  generationChainId?: string | null;
   dietOverride?: string | null;
   cuisine?: string | null;
   cuisineIntensity?: string | null;
@@ -55,26 +48,21 @@ function fingerprint(context: Omit<HumanFoodContext, "internalFingerprint">): st
     .digest("base64url");
 }
 
+export function freezeHumanFoodContext<T>(value: T): T {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const nested of Object.values(value as Record<string, unknown>)) {
+      freezeHumanFoodContext(nested);
+    }
+  }
+  return value;
+}
+
 export async function resolveHumanFoodContext(
   input: ResolveHumanFoodContextInput,
 ): Promise<HumanFoodContext> {
   if (!input.actorUserId || !input.subjectUserId) {
     throw Object.assign(new Error("Authenticated food context is required"), { status: 401 });
-  }
-
-  if (input.receipt) {
-    const existing = redeemHumanFoodContextReceipt({
-      receipt: input.receipt,
-      actorUserId: input.actorUserId,
-      subjectUserId: input.subjectUserId,
-      creator: input.creator,
-      generationChainId: input.generationChainId,
-    });
-    if (existing) return existing;
-    throw Object.assign(new Error("Food context receipt is invalid or expired"), {
-      status: 409,
-      code: "HUMAN_FOOD_CONTEXT_RECEIPT_INVALID",
-    });
   }
 
   const [profile] = await db
@@ -160,7 +148,7 @@ export async function resolveHumanFoodContext(
     creator: input.creator,
     actorUserId: input.actorUserId,
     subjectUserId: input.subjectUserId,
-    generationChainId: input.generationChainId || randomUUID(),
+    generationChainId: randomUUID(),
     correlationId: input.correlationId || randomUUID(),
     resolvedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + CONTEXT_TTL_MS).toISOString(),
@@ -187,24 +175,7 @@ export async function resolveHumanFoodContext(
     gaps: [...new Set(gaps)],
     notices,
     blockedReasons: [],
-    rejectedCandidateSignatures: [],
   };
 
-  return { ...base, internalFingerprint: fingerprint(base) };
-}
-
-export function issueHumanFoodContextMeta(
-  context: HumanFoodContext,
-): HumanFoodContextPublicMeta {
-  const receipt = issueHumanFoodContextReceipt(context);
-  return {
-    version: HUMAN_FOOD_CONTEXT_VERSION,
-    status: context.status,
-    receipt: receipt.receipt,
-    expiresAt: receipt.expiresAt,
-    generationChainId: receipt.generationChainId,
-    correlationId: receipt.correlationId,
-    gaps: context.gaps,
-    notices: context.notices,
-  };
+  return freezeHumanFoodContext({ ...base, internalFingerprint: fingerprint(base) });
 }

@@ -126,19 +126,18 @@ dessertCreatorRouter.post("/", async (req, res) => {
       return res.status(400).json({ error: "Flavor family is required" });
     }
 
-    const { resolveHumanFoodContext, issueHumanFoodContextMeta } = await import("../services/humanFoodContext/resolveHumanFoodContext");
+    const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
     const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
-    const humanFoodContext = await resolveHumanFoodContext({
+    const humanFoodRequestScope = createHumanFoodRequestScope({
       actorUserId: userId,
       subjectUserId: userId,
       creator: "dessert_creator",
       correlationId: (req as any).id,
-      receipt: typeof req.body.humanFoodContextReceipt === "string" ? req.body.humanFoodContextReceipt : null,
-      generationChainId: typeof req.body.humanFoodGenerationChainId === "string" ? req.body.humanFoodGenerationChainId : null,
       dietOverride: typeof dietOverride === "string" ? dietOverride : null,
       cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
       cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
     });
+    const humanFoodContext = await humanFoodRequestScope.resolve();
     if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
       return res.status(409).json({
         code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
@@ -198,7 +197,10 @@ dessertCreatorRouter.post("/", async (req, res) => {
     const cultureOverride = req.body?.cultureOverride?.trim() || null;
     if (cultureOverride) {
       dessertEnvelope.cuisinePreference = cultureOverride;
-      dessertEnvelope.cuisineIntensity = "balanced";
+      dessertEnvelope.cuisineIntensity =
+        humanFoodContext.flavor.cuisineIntensity.value as any
+        ?? dessertEnvelope.cuisineIntensity
+        ?? "balanced";
     }
 
     const dessertProtocolBlock = enforceBeforeGenerate(dessertEnvelope, {
@@ -382,11 +384,10 @@ CELEBRATION CAKE REQUIREMENTS:
     }
 
     const prompt = `
-${humanFoodPrompt}
-
 You are a master pastry chef + nutrition expert inside the My Perfect Meals system.
 Generate a FULL structured dessert recipe.
 ${dessertProtocolBlock ? `\n${dessertProtocolBlock}\n` : ""}${_dessertDishDirective ? `\n${_dessertDishDirective.adaptationBlock}\n` : ""}${sweetenerGuidance}${dessertBehavioralMemorySection ? `\n${dessertBehavioralMemorySection}\n` : ""}${chefAdaptBlock}${softOverrideBlock}${strictMode === true ? `\n${buildStrictModeBlock(dessertIdentifier)}\n` : ""}
+${humanFoodPrompt}
 
 Return JSON ONLY, following this exact schema:
 
@@ -405,12 +406,14 @@ Return JSON ONLY, following this exact schema:
     "calories": 0,
     "protein": 0,
     "carbs": 0,
+    "starchyCarbs": 0,
     "fat": 0
   },
   ${dessertCategory === "cake" ? `"perSliceNutrition": {
     "calories": 0,
     "protein": 0,
     "carbs": 0,
+    "starchyCarbs": 0,
     "fat": 0,
     "sliceSize": "1 oz"
   },
@@ -582,7 +585,6 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       ...meal,
       imageUrl,
       medicalBadges,
-      humanFoodContext: issueHumanFoodContextMeta(humanFoodContext),
       ...(alphaGalBadge && { alphaGalBadge }),
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
       complianceSection: dessertCompliance,

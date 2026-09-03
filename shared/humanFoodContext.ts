@@ -82,24 +82,5 @@ export interface HumanFoodContext {
   gaps: string[];
   notices: string[];
   blockedReasons: string[];
-  rejectedCandidateSignatures: string[];
   internalFingerprint: string;
-}
-
-export interface HumanFoodContextReceipt {
-  receipt: string;
-  expiresAt: string;
-  generationChainId: string;
-  correlationId: string;
-}
-
-export interface HumanFoodContextPublicMeta {
-  version: typeof HUMAN_FOOD_CONTEXT_VERSION;
-  status: HumanFoodResolutionStatus;
-  receipt: string;
-  expiresAt: string;
-  generationChainId: string;
-  correlationId: string;
-  gaps: string[];
-  notices: string[];
 }

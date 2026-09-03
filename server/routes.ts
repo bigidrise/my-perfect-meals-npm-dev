@@ -1193,20 +1193,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // caller's own identity, preventing IDOR on PHI-adjacent health data.
       const effectiveUserId: string = delegatedClientId ?? authUserId;
       let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
+      let humanFoodExecutionState: import("./services/humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState | undefined;
       if (type === "create-with-chef") {
-        const { resolveHumanFoodContext } = await import("./services/humanFoodContext/resolveHumanFoodContext");
+        const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
         const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
-        humanFoodContext = await resolveHumanFoodContext({
+        const humanFoodRequestScope = createHumanFoodRequestScope({
           actorUserId: authUserId,
           subjectUserId: effectiveUserId,
           creator: "recipe_maker",
           correlationId: (req as any).id,
-          receipt: typeof req.body.humanFoodContextReceipt === "string" ? req.body.humanFoodContextReceipt : null,
-          generationChainId: typeof req.body.humanFoodGenerationChainId === "string" ? req.body.humanFoodGenerationChainId : null,
           dietOverride: typeof dietOverride === "string" ? dietOverride : null,
           cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
           cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
         });
+        humanFoodContext = await humanFoodRequestScope.resolve();
+        humanFoodExecutionState = humanFoodRequestScope.executionState;
         if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
           return res.status(409).json({
             success: false,
@@ -1518,6 +1519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clinicalGenerationContext: budgetGenerationContext,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         correlationId: (req as any).id,
+        humanFoodExecutionState,
         // Temporary diet override — replaces profile diet for one generation.
         // Source priority: explicit dietOverride field > dietType query param.
         // Using dietType as the source means the existing Create a Dish UI (which sends
@@ -1830,7 +1832,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (humanFoodContext && result.success) {
         const { validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
-        const { issueHumanFoodContextMeta } = await import("./services/humanFoodContext/resolveHumanFoodContext");
         const outgoing = [
           ...(result.meal ? [result.meal] : []),
           ...(result.meals ?? []),
@@ -1845,7 +1846,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "The generated recipe did not pass final food-context validation.",
           });
         }
-        (result as any).humanFoodContext = issueHumanFoodContextMeta(humanFoodContext);
       }
       res.json(result);
 
@@ -5425,19 +5425,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Authentication is required to resolve food context.",
         });
       }
-      const { resolveHumanFoodContext, issueHumanFoodContextMeta } = await import("./services/humanFoodContext/resolveHumanFoodContext");
+      const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
       const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
-      const humanFoodContext = await resolveHumanFoodContext({
+      const {
+        recordRejectedHumanFoodCandidate,
+        buildRejectedCandidatePrompt,
+      } = await import("./services/humanFoodContext/requestExecutionState");
+      const humanFoodRequestScope = createHumanFoodRequestScope({
         actorUserId: serverAuthUserId,
         subjectUserId: serverAuthUserId,
         creator: humanFoodCreator,
         correlationId: (req as any).id,
-        receipt: typeof req.body.humanFoodContextReceipt === "string" ? req.body.humanFoodContextReceipt : null,
-        generationChainId: typeof req.body.humanFoodGenerationChainId === "string" ? req.body.humanFoodGenerationChainId : null,
         dietOverride: typeof dietOverride === "string" ? dietOverride : null,
         cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
         cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
       });
+      const humanFoodContext = await humanFoodRequestScope.resolve();
+      const humanFoodExecutionState = humanFoodRequestScope.executionState;
       if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
         return res.status(409).json({
           success: false,
@@ -5446,7 +5450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
         });
       }
-      cravingInput = `${cravingInput || ""}\n\n${buildCreatorHumanFoodPrompt(humanFoodCreator, humanFoodContext)}`.trim();
+      cravingInput = `${cravingInput || ""}\n\n${buildCreatorHumanFoodPrompt(humanFoodCreator, humanFoodContext, humanFoodExecutionState)}`.trim();
 
       // ── Load protocol envelope (single DB query — drives all enforcement) ──
       const protocolEnvelope = userId
@@ -5726,6 +5730,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // guardrail itself is NOT weakened — retry output is revalidated
         // against the exact same ceiling before being served.
         if (_bglGatedOptions.length === 0 && mealOptions.length > 0) {
+          mealOptions.forEach((candidate: any) =>
+            recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate)
+          );
           const _bglEffectiveCeiling = _bglCarbCeiling + BGL_CARB_TOLERANCE;
           console.warn(
             `🩸 [BGL Gate/CravingCreator] All options exceeded ${_bglCarbCeiling}g ceiling — ` +
@@ -5736,7 +5743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Solve for the actual numeric ceiling — no ingredient-type
             // assumptions ("gluten-free"/"sugar-free" do not guarantee low carb).
             const _bglRetryClause =
-              ` [CLINICAL CARB CONSTRAINT — the user's current blood glucose state requires each serving to contain ${_bglCarbCeiling}g of total carbohydrates or less. Keep this the SAME dish the user asked for (do not replace it with a different food); reformulate its ingredients and portions so total carbs per serving are at or below ${_bglCarbCeiling}g while preserving the dish's identity, flavor profile, and all other dietary constraints.]`;
+              ` [CLINICAL CARB CONSTRAINT — the user's current blood glucose state requires each serving to contain ${_bglCarbCeiling}g of total carbohydrates or less. Keep this the SAME dish the user asked for (do not replace it with a different food); reformulate its ingredients and portions so total carbs per serving are at or below ${_bglCarbCeiling}g while preserving the dish's identity, flavor profile, and all other dietary constraints. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}]`;
             const _bglRetryOptions = await generateCravingMealOptions(
               `${cravingInput}${_bglRetryClause}`,
               targetMealType || "lunch",
@@ -5946,6 +5953,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
 
           if (safeAdaptedOptions.length === 0 && scannedOptions.length > 0) {
+            scannedOptions.forEach((candidate: any) =>
+              recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate)
+            );
             // ── Intelligent retry: use the specific detected violation terms as explicit
             // exclusions so the LLM cannot repeat the same mistake. One retry only.
             const detectedViolationList = Array.from(_allDetectedViolations).slice(0, 12);
@@ -5953,8 +5963,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let retrySucceeded = false;
             try {
               const retryExclusionClause = detectedViolationList.length > 0
-                ? ` [ALLERGEN RETRY — previous attempt leaked these terms, which MUST NOT appear in any ingredient, stock, broth, sauce, or preparation: ${detectedViolationList.join(", ")}. Remove ALL of them completely.]`
-                : ` [ALLERGEN RETRY — regenerate with no allergen derivatives whatsoever.]`;
+                ? ` [ALLERGEN RETRY — previous attempt leaked these terms, which MUST NOT appear in any ingredient, stock, broth, sauce, or preparation: ${detectedViolationList.join(", ")}. Remove ALL of them completely. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}]`
+                : ` [ALLERGEN RETRY — regenerate with no allergen derivatives whatsoever. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}]`;
               const retryInput = `${cravingInput}${retryExclusionClause}`;
               const retryOptions = await generateCravingMealOptions(
                 retryInput,
@@ -6148,7 +6158,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         meals: imagedOptions,
         generationSource: 'ai',
-        humanFoodContext: issueHumanFoodContextMeta(humanFoodContext),
         ...(dietAdapted && { dietAdapted: true, dietNotice })
       });
     } catch (error: any) {
