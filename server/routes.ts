@@ -5573,7 +5573,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
           }
         } catch (err) {
-          console.warn("⚠️ [GLP-1/CravingCreator] Could not resolve context:", err);
+          console.error("🚫 [GLP-1/CravingCreator] Context resolution failed closed:", err);
+          return res.status(503).json({
+            status: "review_required",
+            reasonCode: "glp1_context_unavailable",
+            retryable: true,
+            message: "We couldn't safely verify your current GLP-1 meal targets. Please try again shortly.",
+          });
         }
       }
 
@@ -5667,6 +5673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
         _dishDirective,
         skipImages === true,   // fastMode — gpt-4o-mini + 1500 tokens on Try 3 More path
+        humanFoodExecutionState,
       );
 
       if (!mealOptions || mealOptions.length === 0) {
@@ -5757,6 +5764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
               _dishDirective,
               skipImages === true,
+              humanFoodExecutionState,
             );
             if (_bglRetryOptions && _bglRetryOptions.length > 0) {
               // Revalidate against the SAME ceiling — the guardrail is never bypassed.
@@ -5979,6 +5987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
                 _dishDirective,
                 skipImages === true,
+                humanFoodExecutionState,
               );
               if (retryOptions && retryOptions.length > 0) {
                 const retrySafe = retryOptions.filter(meal => {
