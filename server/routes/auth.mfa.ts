@@ -31,7 +31,10 @@ import {
   destroySession,
   regenerateSession,
 } from "../lib/sessionSecurity";
-import { rotateAuthToken } from "../services/authTokenService";
+import {
+  AuthSecurityStateChangedError,
+  rotateAuthToken,
+} from "../services/authTokenService";
 import { AUTH_ATTEMPT_SCOPES, createAuthAttemptSubject } from "../services/authAttemptTracker";
 import { authAttemptTracker } from "../services/authAttemptTrackingService";
 
@@ -57,7 +60,11 @@ async function clearVerificationFailures(userId: string, scope: string): Promise
 
 async function ensureAuthToken(user: any): Promise<any> {
   const { authToken, authTokenCreatedAt, authTokenMfaVerifiedAt } =
-    await rotateAuthToken(user.id, { mfaVerified: true });
+    await rotateAuthToken(user.id, {
+      mfaVerified: true,
+      expectedSecurityVersion: user.authSecurityVersion,
+      requireMfaEnabled: true,
+    });
   return { ...user, authToken, authTokenCreatedAt, authTokenMfaVerifiedAt };
 }
 
@@ -110,6 +117,19 @@ router.get("/status", requireAuth, async (req, res) => {
 router.post("/setup/begin", requireAuth, async (req, res) => {
   const user = (req as AuthenticatedRequest).authUser;
   try {
+    const [current] = await db
+      .select({ mfaEnabled: users.mfaEnabled })
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+    if (!current) return res.status(401).json({ error: "Authentication required" });
+    if (current.mfaEnabled) {
+      return res.status(409).json({
+        error: "MFA is already enabled. Disable the current factor before enrolling a replacement.",
+        code: "MFA_ALREADY_ENABLED",
+      });
+    }
+
     const secret = generateTotpSecret();
     (req as any).session.pendingMfaSecret = secret;
 
@@ -152,6 +172,7 @@ router.post("/setup/confirm", requireAuth, async (req, res) => {
     const rawBackupCodes = generateBackupCodes();
     const hashedCodes = rawBackupCodes.map(hashBackupCode);
 
+    const sessionSecurityVersion = (req as any).session?.authSecurityVersion;
     const [enrolled] = await db.update(users)
       .set({
         mfaEnabled: true,
@@ -163,11 +184,19 @@ router.post("/setup/confirm", requireAuth, async (req, res) => {
         authTokenMfaVerifiedAt: null,
         authSecurityVersion: sql`${users.authSecurityVersion} + 1`,
       })
-      .where(eq(users.id, userId))
+      .where(and(
+        eq(users.id, userId),
+        eq(users.mfaEnabled, false),
+        eq(users.authSecurityVersion, sessionSecurityVersion),
+      ))
       .returning({ authSecurityVersion: users.authSecurityVersion });
 
     if (!enrolled) throw new Error("MFA enrollment update returned no user");
-    const credential = await rotateAuthToken(userId, { mfaVerified: true });
+    const credential = await rotateAuthToken(userId, {
+      mfaVerified: true,
+      expectedSecurityVersion: enrolled.authSecurityVersion,
+      requireMfaEnabled: true,
+    });
     await regenerateSession(req);
     (req as any).session.userId = userId;
     (req as any).session.authSecurityVersion = enrolled.authSecurityVersion;
@@ -181,6 +210,12 @@ router.post("/setup/confirm", requireAuth, async (req, res) => {
       backupCodes: rawBackupCodes, // shown ONCE — user must save these
     });
   } catch (err) {
+    if (err instanceof AuthSecurityStateChangedError) {
+      return res.status(401).json({
+        error: "Authentication state changed. Please sign in and try again.",
+        code: "AUTH_REAUTHENTICATION_REQUIRED",
+      });
+    }
     console.error("[mfa/setup/confirm] error:", err);
     res.status(500).json({ error: "Failed to save MFA settings" });
   }
@@ -227,6 +262,12 @@ router.post("/challenge", async (req, res) => {
     const payload = await buildLoginResponse(authenticatedUser, req);
     res.json(payload);
   } catch (err) {
+    if (err instanceof AuthSecurityStateChangedError) {
+      return res.status(401).json({
+        error: "Authentication state changed. Please sign in again.",
+        code: "AUTH_REAUTHENTICATION_REQUIRED",
+      });
+    }
     console.error("[mfa/challenge] error:", err);
     res.status(500).json({ error: "MFA challenge failed" });
   }
@@ -292,6 +333,12 @@ router.post("/challenge/backup", async (req, res) => {
     const payload = await buildLoginResponse(authenticatedUser, req);
     res.json(payload);
   } catch (err) {
+    if (err instanceof AuthSecurityStateChangedError) {
+      return res.status(401).json({
+        error: "Authentication state changed. Please sign in again.",
+        code: "AUTH_REAUTHENTICATION_REQUIRED",
+      });
+    }
     console.error("[mfa/challenge/backup] error:", err);
     res.status(500).json({ error: "Backup code verification failed" });
   }

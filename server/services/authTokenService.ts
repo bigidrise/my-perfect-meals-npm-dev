@@ -5,6 +5,13 @@ import { db } from "../db";
 
 export const BEARER_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
+export class AuthSecurityStateChangedError extends Error {
+  constructor() {
+    super("Authentication security state changed during credential issuance");
+    this.name = "AuthSecurityStateChangedError";
+  }
+}
+
 export function isBearerTokenFresh(
   createdAt: Date | null | undefined,
   now = new Date(),
@@ -35,15 +42,29 @@ export async function findUserByValidAuthToken(
 
 export async function rotateAuthToken(
   userId: string,
-  options: { mfaVerified?: boolean } = {},
+  options: {
+    mfaVerified?: boolean;
+    expectedSecurityVersion?: number;
+    requireMfaEnabled?: boolean;
+  } = {},
 ) {
   const authToken = crypto.randomBytes(32).toString("hex");
   const authTokenCreatedAt = new Date();
   const authTokenMfaVerifiedAt = options.mfaVerified ? authTokenCreatedAt : null;
-  await db
+  const predicates = [eq(users.id, userId)];
+  if (options.expectedSecurityVersion !== undefined) {
+    predicates.push(eq(users.authSecurityVersion, options.expectedSecurityVersion));
+  }
+  if (options.requireMfaEnabled === true) {
+    predicates.push(eq(users.mfaEnabled, true));
+  }
+
+  const [updated] = await db
     .update(users)
     .set({ authToken, authTokenCreatedAt, authTokenMfaVerifiedAt })
-    .where(eq(users.id, userId));
+    .where(and(...predicates))
+    .returning({ id: users.id });
+  if (!updated) throw new AuthSecurityStateChangedError();
   return { authToken, authTokenCreatedAt, authTokenMfaVerifiedAt };
 }
 

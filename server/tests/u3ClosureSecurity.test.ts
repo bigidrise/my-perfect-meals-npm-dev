@@ -57,7 +57,8 @@ describe("U3 closure bearer and MFA invariants", () => {
     expect(login).toContain("authToken: issuedCredential?.authToken ?? null");
 
     const challenge = read("server/routes/auth.mfa.ts");
-    expect(challenge).toContain("rotateAuthToken(user.id, { mfaVerified: true })");
+    expect(challenge).toContain("expectedSecurityVersion: user.authSecurityVersion");
+    expect(challenge).toContain("requireMfaEnabled: true");
 
     const auth = read("server/middleware/requireAuth.ts");
     const mfa = read("server/middleware/requireMfa.ts");
@@ -81,7 +82,8 @@ describe("U3 closure bearer and MFA invariants", () => {
     expect(mfa.match(/authSecurityVersion: sql/g)).toHaveLength(2);
     expect(mfa.match(/authTokenMfaVerifiedAt: null/g)).toHaveLength(2);
     expect(mfa).toContain("await destroySession(req)");
-    expect(mfa).toContain("await rotateAuthToken(userId, { mfaVerified: true })");
+    expect(mfa).toContain("expectedSecurityVersion: enrolled.authSecurityVersion");
+    expect(mfa).toContain("MFA_ALREADY_ENABLED");
   });
 
   it("refuses production readiness without the security schema", () => {

@@ -24,6 +24,7 @@ import {
   regenerateSession,
 } from "../lib/sessionSecurity";
 import {
+  AuthSecurityStateChangedError,
   findUserByValidAuthToken,
   revokeAuthToken,
   rotateAuthToken,
@@ -451,7 +452,9 @@ router.post("/api/auth/login", async (req, res) => {
     }
 
     // Successful password authentication rotates the bearer credential.
-    const { authToken } = await rotateAuthToken(user.id);
+    const { authToken } = await rotateAuthToken(user.id, {
+      expectedSecurityVersion: user.authSecurityVersion,
+    });
 
     await regenerateSession(req);
     (req.session as any).userId = user.id;
@@ -485,6 +488,12 @@ router.post("/api/auth/login", async (req, res) => {
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
+    if (error instanceof AuthSecurityStateChangedError) {
+      return res.status(401).json({
+        error: "Authentication state changed. Please sign in again.",
+        code: "AUTH_REAUTHENTICATION_REQUIRED",
+      });
+    }
     console.error("Login error:", error);
     res.status(500).json({ error: "Failed to login" });
   }
@@ -698,7 +707,7 @@ router.post("/api/auth/reset-password", async (req, res) => {
       resetTokenExpires: null,
     }).where(and(
       eq(users.id, matchedUser.id),
-      eq(users.resetTokenHash, matchedUser.resetTokenHash),
+      eq(users.resetTokenHash, matchedUser.resetTokenHash!),
       gt(users.resetTokenExpires!, now),
     )).returning({ id: users.id });
 
