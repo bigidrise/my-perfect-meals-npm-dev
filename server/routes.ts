@@ -1194,7 +1194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const effectiveUserId: string = delegatedClientId ?? authUserId;
       let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
       let humanFoodExecutionState: import("./services/humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState | undefined;
-      if (type === "create-with-chef") {
+      const stage2dHumanFoodTypes = new Set(["create-with-chef", "snack-creator", "premade", "craving"]);
+      if (stage2dHumanFoodTypes.has(type)) {
         const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
         const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
         const humanFoodRequestScope = createHumanFoodRequestScope({
@@ -1492,8 +1493,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const result = await generateMealUnified({
-        type,
+      const generationRequest = {
+        // Stage 2D callers share one context-aware implementation so the same
+        // prompt, execution state, retry loop, substitutions, and fallback rules
+        // apply to Recipe Maker, general meals, snacks, and premades.
+        type: stage2dHumanFoodTypes.has(type) ? "create-with-chef" : type,
         mealType,
         input: effectiveInput,
         userId: effectiveUserId,
@@ -1544,7 +1548,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // scanGeneratedOutput to suppress post-gen violations for these allergens
         // (and their derivatives via ALLERGEN_EXPANSION) for this single generation.
         overriddenAllergens: _unifiedOverriddenAllergens.length ? _unifiedOverriddenAllergens : undefined,
-      });
+      };
+      const result = await generateMealUnified(generationRequest);
 
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/generate', result.source as any, durationMs);
@@ -1666,6 +1671,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Universal Human Food final gate (Stage 2D) ───────────────────────
+      // Every in-scope canonical general-meal candidate converges here after
+      // generation, internal retries, substitutions, and fallbacks. A single
+      // request-local repair may run with the same immutable context.
+      if (humanFoodContext && result.success && (result.meal || result.meals?.length)) {
+        const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
+        const { enforceFinalCreatorCandidates } = await import(
+          "./services/humanFoodContext/enforceFinalCreatorCandidates"
+        );
+        const { validateMealForDiet } = await import("./services/guardrails/index");
+        const { validateClinicalMacros } = await import("./services/clinicalMacroGate");
+        const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
+        const finalProtocolEnvelope =
+          (await loadUserProtocolEnvelope(effectiveUserId).catch(() => null)) ?? buildGuestEnvelope();
+        const requestedDish =
+          typeof effectiveInput === "string" && effectiveInput.trim().length <= 120
+            ? effectiveInput.trim()
+            : undefined;
+        const requestedCategory = String(mealType || "meal").toLowerCase();
+        const exemptDishNameTerms = requestedDish
+          ? new Set(
+              getRequestedDishExemptTerms(requestedDish, finalProtocolEnvelope.allergies)
+                .map((term) => term.toLowerCase()),
+            )
+          : undefined;
+        const gateContext =
+          budgetGenerationContext && budgetGenerationContext !== "standard"
+            ? budgetGenerationContext
+            : (effectiveDietType ?? "standard");
+        const carbCeiling = effectiveRemainingMacros?.carbs ?? Number.POSITIVE_INFINITY;
+        const fatCeiling = effectiveRemainingMacros?.fat ?? Number.POSITIVE_INFINITY;
+
+        const toHumanFoodCandidate = (meal: any) => {
+          const candidateText = [
+            meal?.name,
+            meal?.description,
+            ...(meal?.ingredients ?? []).map((ingredient: any) =>
+              typeof ingredient === "string"
+                ? ingredient
+                : ingredient?.name ?? ingredient?.item ?? "",
+            ),
+            ...(Array.isArray(meal?.instructions)
+              ? meal.instructions
+              : [meal?.instructions ?? ""]),
+          ].join(" ").toLowerCase();
+          const evidencedPreference = (
+            field: { value: string | null; available: boolean },
+          ): string | undefined => {
+            if (!field.available || !field.value) return undefined;
+            return candidateText.includes(field.value.toLowerCase())
+              ? field.value
+              : undefined;
+          };
+          const protocolProof = scanGeneratedOutput(meal, finalProtocolEnvelope, {
+            generatorName: "unified_meal_final_evidence",
+            overriddenAllergens: _unifiedOverriddenAllergens.length
+              ? _unifiedOverriddenAllergens
+              : undefined,
+            exemptDishNameTerms,
+          });
+          const clinicalProof = validateClinicalMacros(
+            gateContext,
+            carbCeiling,
+            fatCeiling,
+            meal?.carbs,
+            meal?.fat,
+          );
+          const glp1Proof = serverGlp1Targets
+            ? validateMealForDiet({
+                ...meal,
+                macros: {
+                  calories: meal?.calories,
+                  protein: meal?.protein,
+                  carbs: meal?.carbs,
+                  fat: meal?.fat,
+                },
+              }, null, undefined, requestedCategory === "snack", serverGlp1Targets).isValid
+            : undefined;
+          return {
+            ...meal,
+            category: meal?.category ?? requestedCategory,
+            nutrition: {
+              calories: meal?.calories,
+              protein: meal?.protein,
+              carbs: meal?.carbs,
+              fat: meal?.fat,
+              starchyCarbs: meal?.starchyCarbs,
+            },
+            evidence: {
+              sourceType: "generated_recipe" as const,
+              ingredientEvidence: "structured_generation" as const,
+              preparationEvidence: "structured_generation" as const,
+              nutritionEvidence: "structured_generation" as const,
+              dietaryIdentityCompliant: protocolProof.passed,
+              clinicalDirectivesCompliant:
+                humanFoodContext!.safety.healthConditions.length > 0
+                  ? protocolProof.passed && clinicalProof.passed
+                  : undefined,
+              glp1Compliant: glp1Proof,
+              diabetesCompliant:
+                humanFoodContext!.safety.healthConditions.some((condition) =>
+                  condition.toLowerCase().includes("diabet"),
+                )
+                  ? clinicalProof.passed
+                  : undefined,
+              cuisine: evidencedPreference(humanFoodContext!.flavor.cuisine),
+              cuisineIntensity: evidencedPreference(humanFoodContext!.flavor.cuisineIntensity),
+              heat: evidencedPreference(humanFoodContext!.flavor.heat),
+              seasoningIntensity: evidencedPreference(humanFoodContext!.flavor.seasoningIntensity),
+              broadFlavor: evidencedPreference(humanFoodContext!.flavor.broadFlavor),
+              flavorStyle: evidencedPreference(humanFoodContext!.flavor.flavorStyle),
+            },
+          };
+        };
+        const validateFinalCandidate = (meal: any) =>
+          validateHumanFoodCandidate(toHumanFoodCandidate(meal), humanFoodContext!, {
+            requestedDish,
+            requestedCategory,
+            executionState: humanFoodExecutionState,
+          });
+        const initialCandidates: any[] =
+          result.meals?.length ? result.meals : result.meal ? [result.meal] : [];
+        const finalEnforcement = await enforceFinalCreatorCandidates({
+          candidates: initialCandidates,
+          validate: validateFinalCandidate,
+          repair: async (repairInstructions) => {
+            const repairResult = await generateMealUnified({
+              ...generationRequest,
+              type: "create-with-chef",
+              count: 1,
+              input:
+                `Repair this exact ${requestedCategory} candidate while preserving its identity:\n` +
+                `${JSON.stringify(initialCandidates[0])}\n\n` +
+                repairInstructions.join("\n"),
+              generationContext: [
+                generationRequest.generationContext,
+                repairInstructions.join("\n"),
+              ].filter(Boolean).join("\n\n"),
+              humanFoodExecutionState,
+            });
+            return repairResult.success
+              ? repairResult.meals?.length
+                ? repairResult.meals
+                : repairResult.meal
+                  ? [repairResult.meal]
+                  : []
+              : [];
+          },
+        });
+        if (finalEnforcement.accepted.length === 0) {
+          const validations = finalEnforcement.validations.map(({ result: validation }) => validation);
+          const reviewRequired = validations.some((validation) => validation.outcome === "review_required");
+          return res.status(reviewRequired ? 409 : 422).json({
+            success: false,
+            status: reviewRequired ? "review_required" : "blocked",
+            code: reviewRequired
+              ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+              : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+            retryable: false,
+            error: "No generated meal passed universal final validation.",
+            findings: validations.flatMap((validation) => validation.findings),
+            authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
+          });
+        }
+        const acceptedWithEvidence = finalEnforcement.accepted.map((meal: any) => {
+          const validatedCandidate = toHumanFoodCandidate(meal);
+          return {
+            ...meal,
+            category: validatedCandidate.category,
+            evidence: validatedCandidate.evidence,
+          };
+        });
+        result.meals = acceptedWithEvidence;
+        result.meal = acceptedWithEvidence[0];
+      }
+
       // ── Compliance bundle: attach complianceSection + dietClassification ──
       // Every meal leaving the server MUST pass through buildMealComplianceBundle.
       // This matches the exact pattern used in craving-creator and fridge-rescue routes.
@@ -1690,11 +1871,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Part 5 — Final Consistency Check ─────────────────────────────────
       // Sanitize meal name(s) to match the user's detected diet before sending.
       // Catches any concept-word mismatches the AI might have slipped through.
-      if (result.success && userId) {
+      if (result.success) {
         try {
           const [unifiedUserRow] = await db
             .select({ dietaryRestrictions: users.dietaryRestrictions })
-            .from(users).where(eq(users.id, userId)).limit(1);
+            .from(users).where(eq(users.id, effectiveUserId)).limit(1);
           const unifiedDiet = getPrimaryDiet((unifiedUserRow?.dietaryRestrictions as string[]) || []);
           if (unifiedDiet) {
             if (result.meal) {
@@ -1725,7 +1906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // ── Protocol Stamp — attach appliedProtocol so clients can verify protocol was applied ──
-      if (result.success && userId) {
+      if (result.success) {
         try {
           const [stampRow] = await db
             .select({
@@ -1733,7 +1914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               performanceContext: users.performanceContext,
               competitionPrepContext: users.competitionPrepContext,
             })
-            .from(users).where(eq(users.id, userId)).limit(1);
+            .from(users).where(eq(users.id, effectiveUserId)).limit(1);
 
           if (stampRow) {
             const track = stampRow.activeProtocolTrack as string | null;
@@ -1831,19 +2012,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ─────────────────────────────────────────────────────────────────────────────
 
       if (humanFoodContext && result.success) {
-        const { validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+        const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
         const outgoing = [
           ...(result.meal ? [result.meal] : []),
           ...(result.meals ?? []),
         ];
-        const invalid = outgoing.find((meal: any) =>
-          !validateCreatorHumanFoodResult("recipe_maker", meal, humanFoodContext!).valid
-        );
+        const invalid = outgoing
+          .map((meal: any) => ({
+            meal,
+            validation: validateHumanFoodCandidate({
+              ...meal,
+              category: meal?.category ?? String(mealType || "meal").toLowerCase(),
+              nutrition: {
+                calories: meal?.calories,
+                protein: meal?.protein,
+                carbs: meal?.carbs,
+                fat: meal?.fat,
+                starchyCarbs: meal?.starchyCarbs,
+              },
+              evidence: {
+                ...(meal?.evidence ?? {}),
+                sourceType: "generated_recipe",
+                ingredientEvidence: "structured_generation",
+                preparationEvidence: "structured_generation",
+                nutritionEvidence: "structured_generation",
+              },
+            }, humanFoodContext!, {
+              requestedDish: typeof effectiveInput === "string" ? effectiveInput : undefined,
+              requestedCategory: String(mealType || "meal").toLowerCase(),
+              executionState: humanFoodExecutionState,
+            }),
+          }))
+          .find(({ validation }) => validation.outcome !== "pass");
         if (invalid) {
-          return res.status(422).json({
+          const reviewRequired = invalid.validation.outcome === "review_required";
+          return res.status(reviewRequired ? 409 : 422).json({
             success: false,
-            code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+            status: invalid.validation.outcome,
+            code: reviewRequired
+              ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+              : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
             error: "The generated recipe did not pass final food-context validation.",
+            findings: invalid.validation.findings,
           });
         }
       }
