@@ -9,6 +9,9 @@ import { db } from '../db';
 import { clientLinks } from '../db/schema/procare';
 import { eq, and } from 'drizzle-orm';
 import { enforceCarbs } from '../utils/carbClassifier';
+import { rerollCanonicalWeeklyMeal, regenerateCanonicalWeeklyDay, WeeklyMealGenerationError } from '../services/canonicalWeeklyMealPlanning';
+import { requireAuth } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -17,6 +20,20 @@ type WeekBoard = {
   lists: { breakfast: any[]; lunch: any[]; dinner: any[]; snacks: any[] };
   meta: { createdAt: string; lastUpdatedAt: string };
 };
+
+function hasUnsafeGeneratedMeal(payload: any): boolean {
+  const visit = (value: any): boolean => {
+    if (Array.isArray(value)) return value.some(visit);
+    if (!value || typeof value !== "object") return false;
+    const generated = value.canonicalGenerator || value.humanFoodValidation;
+    if (generated) {
+      const validation = value.humanFoodValidation;
+      return !validation || validation.outcome !== "pass" || !validation.authoritativeContextFingerprint;
+    }
+    return Object.values(value).some(visit);
+  };
+  return visit(payload);
+}
 
 // Legacy store (keep for backward compatibility)
 const store: { board: any|null } = { board: null };
@@ -496,14 +513,17 @@ export default function weekBoardRoutes(app: Express) {
 
   // PUT specific week board (save/replace the week)
   // Canva-style image lifecycle: Process all images before save
-  app.put("/api/week-board/:weekStartISO", async (req: Request, res: Response) => {
+  app.put("/api/week-board/:weekStartISO", requireAuth, async (req: Request, res: Response) => {
     const { weekStartISO } = req.params;
     if (!isValidISODate(weekStartISO)) {
       return res.status(400).json({ error: 'Invalid weekStartISO format (YYYY-MM-DD)' });
     }
 
     try {
-      const userId = await resolveUserId(req);
+      const userId = getAuthUserId(req);
+      if (hasUnsafeGeneratedMeal(req.body?.week ?? req.body)) {
+        return res.status(422).json({ error: "GENERATED_MEAL_VALIDATION_REQUIRED" });
+      }
       // Accept the same shape your current /api/week-board expects
       const incoming = normalizeBoard(req.body?.week ?? req.body);
       
@@ -577,15 +597,21 @@ export default function weekBoardRoutes(app: Express) {
   // PUT weekly board with idempotent saves (query param version)
   // Canva-style image lifecycle: Process all images before save
   // Supports ?bt= for builder type isolation; ?ns= accepted as fallback
-  app.put("/api/weekly-board", async (req: Request, res: Response) => {
+  app.put("/api/weekly-board", requireAuth, async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
     const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
     
     try {
-      const userId = await resolveUserId(req);
+      const userId = getAuthUserId(req);
+      if (hasUnsafeGeneratedMeal(req.body?.week ?? req.body)) {
+        return res.status(422).json({ error: "GENERATED_MEAL_VALIDATION_REQUIRED" });
+      }
 
-      const incoming = normalizeBoard(req.body?.week ?? req.body);
+       const incoming = normalizeBoard(req.body?.week ?? req.body);
+       // Only generated meals carry this marker. A client cannot use PUT to
+       // downgrade a known-invalid generated candidate; ordinary manual board
+       // editing remains deliberately unaffected.
       const opId = req.body?.opId; // Idempotent operation ID (for future use)
       
       // Canva-style image gate: Process all meal images before save
@@ -636,6 +662,84 @@ export default function weekBoardRoutes(app: Express) {
         return res.status(401).json({ error: 'Authentication required' });
       }
       throw error;
+    }
+  });
+
+  // Canonical regeneration adapters for the JSONB weekly-board shape. The
+  // board stays Monday-keyed, while canonical generation receives the actual
+  // user-local date and Sunday-indexed seven-day view.
+  const boardWeekView = (board: any, dateISO: string) => {
+    const sunday = new Date(`${dateISO}T12:00:00Z`);
+    sunday.setUTCDate(sunday.getUTCDate() - sunday.getUTCDay());
+    const dates = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(sunday); date.setUTCDate(date.getUTCDate() + index);
+      return date.toISOString().slice(0, 10);
+    });
+    return {
+      weeks: [{ days: dates.map(date => ({
+        date,
+        meals: Object.values((board.days?.[date] ?? {}) as Record<string, any[]>).flatMap(items => Array.isArray(items) ? items : []),
+      })) }],
+    };
+  };
+  const dayIndexFor = (dateISO: string) => new Date(`${dateISO}T12:00:00Z`).getUTCDay();
+
+  app.post("/api/weekly-board/regenerate-day", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const dateISO = String(req.body?.dateISO ?? "");
+      if (!isValidISODate(dateISO)) return res.status(400).json({ error: "Invalid dateISO" });
+      const weekStartISO = String(req.body?.week ?? req.query.week ?? getWeekStartISO());
+      if (toMondayISO(dateISO) !== weekStartISO) return res.status(400).json({ error: "DATE_OUTSIDE_WEEK" });
+      const namespace = String(req.body?.bt ?? req.query.bt ?? req.body?.ns ?? req.query.ns ?? "");
+      const userId = getAuthUserId(req);
+      const board = await getWeekBoard(userId, weekStartISO, namespace);
+      if (!board) return res.status(404).json({ error: "Weekly board not found" });
+      const dayIndex = dayIndexFor(dateISO);
+      const generated = await regenerateCanonicalWeeklyDay({
+        userId, existingPlan: boardWeekView(board, dateISO), dayIndex, correlationId: (req as any).id,
+      });
+      const day = generated.plan.weeks[0].days[dayIndex];
+      const next = { ...(board as any), days: { ...(board as any).days } };
+      // Canonical day meals are returned as a direct replacement; preserve
+      // all unrelated board date objects byte-for-byte.
+      next.days[dateISO] = { breakfast: [], lunch: [], dinner: [], snacks: day.meals };
+      await upsertWeekBoard(userId, weekStartISO, next, namespace);
+      return res.json({ weekStartISO, dateISO, day: next.days[dateISO], meta: generated.meta });
+    } catch (error) {
+      const typed = error instanceof WeeklyMealGenerationError ? error : null;
+      return res.status(typed?.status ?? 500).json({ error: typed?.code ?? "DAY_REGENERATION_FAILED" });
+    }
+  });
+
+  app.post("/api/weekly-board/reroll-meal", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const dateISO = String(req.body?.dateISO ?? "");
+      const slot = String(req.body?.slot ?? "");
+      const index = Number(req.body?.index);
+      if (!isValidISODate(dateISO) || !slot || !Number.isInteger(index) || index < 0) {
+        return res.status(400).json({ error: "dateISO, slot, and nonnegative index are required" });
+      }
+      const weekStartISO = String(req.body?.week ?? req.query.week ?? getWeekStartISO());
+      if (toMondayISO(dateISO) !== weekStartISO) return res.status(400).json({ error: "DATE_OUTSIDE_WEEK" });
+      const namespace = String(req.body?.bt ?? req.query.bt ?? req.body?.ns ?? req.query.ns ?? "");
+      const userId = getAuthUserId(req);
+      const board: any = await getWeekBoard(userId, weekStartISO, namespace);
+      const oldMeal = board?.days?.[dateISO]?.[slot]?.[index];
+      if (!oldMeal) return res.status(404).json({ error: "Meal slot not found" });
+      const dayIndex = dayIndexFor(dateISO);
+      const view = boardWeekView(board, dateISO);
+      const mealIndex = view.weeks[0].days[dayIndex].meals.indexOf(oldMeal);
+      const rerolled = await rerollCanonicalWeeklyMeal({
+        userId, existingPlan: view, dayIndex, mealIndex, excludeItemId: oldMeal.id, correlationId: (req as any).id,
+      });
+      const replacement = rerolled.plan.weeks[0].days[dayIndex].meals[mealIndex];
+      const next = { ...board, days: { ...board.days, [dateISO]: { ...board.days[dateISO], [slot]: [...board.days[dateISO][slot]] } } };
+      next.days[dateISO][slot][index] = replacement;
+      await upsertWeekBoard(userId, weekStartISO, next, namespace);
+      return res.json({ weekStartISO, dateISO, slot, index, meal: replacement, meta: rerolled.meta });
+    } catch (error) {
+      const typed = error instanceof WeeklyMealGenerationError ? error : null;
+      return res.status(typed?.status ?? 500).json({ error: typed?.code ?? "MEAL_REROLL_FAILED" });
     }
   });
 

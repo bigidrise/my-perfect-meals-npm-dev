@@ -5,10 +5,9 @@ import { eq, desc, and } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import { createMealRemindersForWeek } from "../services/mealReminder";
 import { rescheduleSingleMealReminder } from "../services/mealReminderSingle";
-import { weeklyMealPlanningServiceA } from "../services/weeklyMealPlanningServiceA";
-import { weeklyMealPlanningServiceB } from "../services/weeklyMealPlanningServiceB";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { generateCanonicalWeeklyMealPlan, WeeklyMealGenerationError } from "../services/canonicalWeeklyMealPlanning";
 
 const r = Router();
 
@@ -27,26 +26,21 @@ r.post("/generate", requireAuth, async (req: any, res) => {
       variant = "AUTO"
     } = req.body;
 
-    // Determine which service to use (A/B testing)
-    const chosen = variant === "AUTO" ? (Math.random() < 0.5 ? "A" : "B") : variant;
-    const service = chosen === "A" ? weeklyMealPlanningServiceA : weeklyMealPlanningServiceB;
-
-    // Generate the plan
-    const result = await service.generate({
+    const result = await generateCanonicalWeeklyMealPlan({
+      userId,
       weeks,
       mealsPerDay,
       snacksPerDay,
       targets,
-      diet: "balanced", // Default, can be overridden
-      medicalFlags: [],
-      allergies: []
-    } as any);
+      dietOverride: typeof req.body.diet === "string" ? req.body.diet : undefined,
+      correlationId: req.id,
+    });
 
     // Create meta object with planning mode and schedule info
     const meta = {
       ...result.meta,
       planningMode,
-      variant: chosen,
+      variant: "canonical",
       ...(scheduleTimes && { scheduleTimes })
     };
 
@@ -74,7 +68,8 @@ r.post("/generate", requireAuth, async (req: any, res) => {
     });
   } catch (error: any) {
     console.error("Error generating meal plan:", error);
-    res.status(500).json({ error: error.message });
+    const status = error instanceof WeeklyMealGenerationError ? error.status : (error.status ?? 500);
+    res.status(status).json({ error: error.code ?? error.message });
   }
 });
 

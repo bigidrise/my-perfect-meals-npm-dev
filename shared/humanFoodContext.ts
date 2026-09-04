@@ -3,6 +3,7 @@ import type { DailyNutritionState } from "./dailyNutritionPrescription";
 export const HUMAN_FOOD_CONTEXT_VERSION = "human-food-context.v1" as const;
 
 export type HumanFoodCreator =
+  | "weekly_meal_plan"
   | "recipe_maker"
   | "create_a_dish"
   | "craving_creator"

@@ -7,6 +7,9 @@ import { weeklyMealPlanningServiceA } from "../services/weeklyMealPlanningServic
 import { weeklyMealPlanningServiceB } from "../services/weeklyMealPlanningServiceB";
 import { simpleMealPlanning } from "../services/simpleMealPlanning";
 import { weeklyMealPlanningServiceC } from "../services/weeklyMealPlanningServiceC";
+import { requireAuth } from "../middleware/requireAuth";
+import { getAuthUserId } from "../utils/getAuthUserId";
+import { generateCanonicalWeeklyMealPlan, WeeklyMealGenerationError } from "../services/canonicalWeeklyMealPlanning";
 
 const router = Router();
 type MealPlanGeneratorResult = {
@@ -48,13 +51,16 @@ const generateMealPlanSchema = z.object({
 });
 
 // Unified meal plan generation endpoint with A/B switching
-router.post("/api/meal-plans/generate", async (req, res) => {
+router.post("/api/meal-plans/generate", requireAuth, async (req, res) => {
   try {
-    // For now, use a default user ID - in production this would come from authentication
-    const userId = "00000000-0000-0000-0000-000000000001";
-    
     const validatedData = generateMealPlanSchema.parse(req.body);
     const { weeks, mealsPerDay, snacksPerDay, targets, diet, medicalFlags, variant, planningMode } = validatedData;
+    const userId = getAuthUserId(req);
+    const canonical = await generateCanonicalWeeklyMealPlan({
+      userId, weeks, mealsPerDay, snacksPerDay, targets, dietOverride: diet,
+      correlationId: (req as any).id,
+    });
+    return res.json(canonical);
 
     // Get user's A/B preference
     const user = await db.query.users.findFirst({ 
@@ -156,7 +162,8 @@ router.post("/api/meal-plans/generate", async (req, res) => {
     res.json({ meals });
   } catch (error) {
     console.error("Meal plan generation error:", error);
-    res.status(500).json({ error: "Failed to generate meal plan" });
+    const typed = error instanceof WeeklyMealGenerationError ? error : null;
+    res.status(typed?.status ?? 500).json({ error: typed?.code ?? "Failed to generate meal plan" });
   }
 });
 

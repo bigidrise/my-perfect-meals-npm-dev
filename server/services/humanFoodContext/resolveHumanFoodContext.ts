@@ -18,6 +18,14 @@ export interface ResolveHumanFoodContextInput {
   subjectUserId: string;
   creator: HumanFoodCreator;
   correlationId?: string | null;
+  /**
+   * User-local calendar date for this resolution. Weekly planning must supply
+   * this explicitly; resolving "now" for every slot incorrectly shares one
+   * day's reservations and clinical state across the week.
+   */
+  dateISO?: string;
+  /** Board reservation being replaced; excluded only for its own date. */
+  excludeItemId?: string;
   dietOverride?: string | null;
   cuisine?: string | null;
   cuisineIntensity?: string | null;
@@ -97,10 +105,11 @@ export async function resolveHumanFoodContext(
   let status: HumanFoodContext["status"] = "resolved";
 
   try {
-    nutrition = await resolveDailyNutritionState(
-      input.subjectUserId,
-      localDate(profile.timezone),
-    );
+    const dateISO = input.dateISO ?? localDate(profile.timezone);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+      throw new Error("dateISO must be a YYYY-MM-DD user-local calendar date");
+    }
+    nutrition = await resolveDailyNutritionState(input.subjectUserId, dateISO, input.excludeItemId);
   } catch {
     status = "review_required";
     gaps.push("daily_nutrition_state");
