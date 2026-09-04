@@ -782,6 +782,9 @@ async function initializeApp() {
     const { logger } = await import("./middleware/logger");
     const { createApiRateLimit } = await import("./middleware/rateLimit");
     const { errorHandler } = await import("./middleware/errorHandler");
+    const { isTrustedRequestOrigin, registerCsrfProtection } = await import(
+      "./lib/csrfProtection"
+    );
     const { resolveCuisineMiddleware } = await import(
       "./middleware/resolveCuisineMiddleware"
     );
@@ -796,24 +799,21 @@ async function initializeApp() {
 
       const allowed =
         !normalizedOrigin ||
-        normalizedOrigin.endsWith(".replit.app") ||
-        normalizedOrigin.endsWith(".replit.dev") ||
-        normalizedOrigin.endsWith(".repl.co") ||
-        normalizedOrigin.endsWith(".vercel.app") ||
+        isTrustedRequestOrigin(req) ||
         normalizedOrigin === "https://myperfectmeals.com" ||
         normalizedOrigin === "https://www.myperfectmeals.com" ||
         normalizedOrigin === "https://app.myperfectmeals.com" ||
         normalizedOrigin === "https://myperfectmeals.ai" ||
         normalizedOrigin === "https://www.myperfectmeals.ai" ||
         normalizedOrigin === "https://app.myperfectmeals.ai" ||
-        // Capacitor / Ionic native origins
-        normalizedOrigin === "https://localhost" || // Android Capacitor
-        normalizedOrigin === "http://localhost" || // Android fallback
+        // Non-browser Capacitor / Ionic native origins
         normalizedOrigin === "capacitor://localhost" || // iOS Capacitor
         normalizedOrigin === "ionic://localhost"; // Ionic WebView
 
       if (allowed) {
-        res.header("Access-Control-Allow-Origin", normalizedOrigin ?? "*");
+        if (normalizedOrigin) {
+          res.header("Access-Control-Allow-Origin", normalizedOrigin);
+        }
         res.header("Access-Control-Allow-Credentials", "true");
       }
 
@@ -823,11 +823,11 @@ async function initializeApp() {
       );
       res.header(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization, x-user-id, x-device-id, x-auth-token",
+        "Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with",
       );
 
       if (req.method === "OPTIONS") {
-        return res.sendStatus(204);
+        return allowed ? res.sendStatus(204) : res.sendStatus(403);
       }
       next();
     });
@@ -910,6 +910,7 @@ async function initializeApp() {
     console.log("✅ [INIT] PostgreSQL session store configured");
 
     app.use(session(sessionConfig));
+    registerCsrfProtection(app);
 
     // Cache control for macros
     app.use((req, res, next) => {
