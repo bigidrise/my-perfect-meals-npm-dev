@@ -48,6 +48,8 @@ export interface HumanFoodCandidateEvidence {
   flavorStyle?: string;
   dishIdentityPreserved?: boolean;
   categoryIdentityPreserved?: boolean;
+  dietaryIdentityCompliant?: boolean;
+  clinicalDirectivesCompliant?: boolean;
   glp1Compliant?: boolean;
   diabetesCompliant?: boolean;
   halalCertification?: "verified" | "claimed" | "unknown";
