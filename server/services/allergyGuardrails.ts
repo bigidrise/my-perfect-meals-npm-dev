@@ -302,7 +302,7 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "sour cream", "creme fraiche", "custard", "pudding",
     "milk chocolate", "hot chocolate", "latte", "cappuccino", "milkshake",
     "cream sauce", "alfredo", "bechamel", "white sauce", "queso",
-    "lactose", "whey protein concentrate"
+    "lactose", "whey protein concentrate", "ghee"
   ],
   
   // Also accept without space
@@ -316,7 +316,7 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "sour cream", "creme fraiche", "custard", "pudding",
     "milk chocolate", "hot chocolate", "latte", "cappuccino", "milkshake",
     "cream sauce", "alfredo", "bechamel", "white sauce", "queso",
-    "lactose", "whey protein concentrate"
+    "lactose", "whey protein concentrate", "ghee"
   ],
   
   // Also accept just "lactose" as shorthand for lactose intolerance
@@ -330,7 +330,7 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "sour cream", "creme fraiche", "custard", "pudding",
     "milk chocolate", "hot chocolate", "latte", "cappuccino", "milkshake",
     "cream sauce", "alfredo", "bechamel", "white sauce", "queso",
-    "lactose", "whey protein concentrate"
+    "lactose", "whey protein concentrate", "ghee"
   ],
   
   // Eggs
