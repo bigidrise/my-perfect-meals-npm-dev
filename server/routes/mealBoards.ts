@@ -21,6 +21,10 @@ router.use(requireAuth, requireEssentialAccess);
 router.get("/users/:userId/boards/:program/current", enforceBuilderFromParam("program"), async (req, res) => {
   try {
     const { userId, program } = req.params;
+    const authUserId: string = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!authUserId) return res.status(401).json({ error: "Unauthorized" });
+    if (userId !== authUserId) return res.status(403).json({ error: "Forbidden" });
+
     const { days = "7", start } = req.query as { days?: string; start?: string };
     const startDate = start ? new Date(start) : new Date();
     startDate.setHours(0, 0, 0, 0);
@@ -65,8 +69,16 @@ router.get("/users/:userId/boards/:program/current", enforceBuilderFromParam("pr
 // Add item to board
 router.post("/boards/:boardId/items", async (req, res) => {
   try {
+    const authUserId: string = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!authUserId) return res.status(401).json({ error: "Unauthorized" });
+
     const { boardId } = req.params;
     const { dayIndex, slot, mealId, title, servings, macros, ingredients } = req.body;
+
+    // Verify ownership before creating an item or reading board-scoped data.
+    const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+    if (board.userId !== authUserId) return res.status(403).json({ error: "Forbidden" });
 
     const [item] = await db.insert(mealBoardItems).values({
       boardId,
@@ -79,14 +91,11 @@ router.post("/boards/:boardId/items", async (req, res) => {
       ingredients: ingredients || []
     }).returning();
 
-    const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
-    if (board) {
-      await db.update(mealBoards).set({
-        lastUpdatedByUserId: board.userId,
-        lastUpdatedByRole: "client",
-        updatedAt: new Date(),
-      }).where(eq(mealBoards.id, boardId));
-    }
+    await db.update(mealBoards).set({
+      lastUpdatedByUserId: board.userId,
+      lastUpdatedByRole: "client",
+      updatedAt: new Date(),
+    }).where(eq(mealBoards.id, boardId));
 
     res.json(item);
   } catch (error) {
@@ -165,16 +174,20 @@ router.delete("/boards/:boardId/items/:itemId", async (req, res) => {
 // Repeat day to the rest of the board
 router.post("/boards/:boardId/repeat-day", async (req, res) => {
   try {
+    const authUserId: string = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!authUserId) return res.status(401).json({ error: "Unauthorized" });
+
     const { boardId } = req.params;
     const { sourceDayIndex } = req.body as { sourceDayIndex: number };
-
-    const source = await db.select().from(mealBoardItems)
-      .where(and(eq(mealBoardItems.boardId, boardId), eq(mealBoardItems.dayIndex, sourceDayIndex)));
 
     const [board] = await db.select().from(mealBoards).where(eq(mealBoards.id, boardId)).limit(1);
     if (!board) {
       return res.status(404).json({ error: "Board not found" });
     }
+    if (board.userId !== authUserId) return res.status(403).json({ error: "Forbidden" });
+
+    const source = await db.select().from(mealBoardItems)
+      .where(and(eq(mealBoardItems.boardId, boardId), eq(mealBoardItems.dayIndex, sourceDayIndex)));
 
     const targets = Array.from({ length: board.days }, (_, d) => d).filter(d => d !== sourceDayIndex);
 
@@ -314,6 +327,9 @@ router.post("/boards/:boardId/items/:itemId/log", requireAuth, async (req, res) 
 // Commit board to shopping list + macros
 router.post("/boards/:boardId/commit", async (req, res) => {
   try {
+    const authUserId: string = (req as any).authUser?.id || (req.session as any)?.userId;
+    if (!authUserId) return res.status(401).json({ error: "Unauthorized" });
+
     const { boardId } = req.params;
     const { scope, dayIndex } = req.body as { scope: "day" | "week"; dayIndex?: number };
 
@@ -321,6 +337,7 @@ router.post("/boards/:boardId/commit", async (req, res) => {
     if (!board) {
       return res.status(404).json({ error: "Board not found" });
     }
+    if (board.userId !== authUserId) return res.status(403).json({ error: "Forbidden" });
 
     const items = await db.select().from(mealBoardItems).where(eq(mealBoardItems.boardId, boardId));
 

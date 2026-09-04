@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { db } from "../db";
 import { founderConsent, founderTestimonials } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -10,7 +11,7 @@ const router = Router();
  * POST /api/founders/consent
  * Store user consent for Week-3 testimonial reminder
  */
-router.post("/consent", async (req, res) => {
+router.post("/consent", requireAuth, async (req, res) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -19,12 +20,16 @@ router.post("/consent", async (req, res) => {
     });
 
     const { userId, cohort, hasConsented } = schema.parse(req.body);
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
+    if (userId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
     // Upsert consent record
     const existing = await db
       .select()
       .from(founderConsent)
-      .where(eq(founderConsent.userId, userId))
+      .where(eq(founderConsent.userId, authUserId))
       .limit(1);
 
     if (existing.length > 0) {
@@ -36,11 +41,11 @@ router.post("/consent", async (req, res) => {
           consentedAt: hasConsented ? new Date() : null,
           reminderScheduled: hasConsented, // Schedule reminder if consented
         })
-        .where(eq(founderConsent.userId, userId));
+        .where(eq(founderConsent.userId, authUserId));
     } else {
       // Create new
       await db.insert(founderConsent).values({
-        userId,
+        userId: authUserId,
         cohort,
         hasConsented,
         consentedAt: hasConsented ? new Date() : null,
@@ -66,7 +71,7 @@ router.post("/consent", async (req, res) => {
  * POST /api/founders
  * Save founder testimonial (quote + media)
  */
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -79,10 +84,14 @@ router.post("/", async (req, res) => {
     });
 
     const data = schema.parse(req.body);
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
+    if (data.userId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
     const [testimonial] = await db
       .insert(founderTestimonials)
-      .values(data as any)
+      .values({ ...data, userId: authUserId } as any)
       .returning();
 
     res.json({ 
@@ -130,14 +139,18 @@ router.get("/", async (req, res) => {
  * GET /api/founders/consent/:userId
  * Get user's consent status
  */
-router.get("/consent/:userId", async (req, res) => {
+router.get("/consent/:userId", requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
+    if (userId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
     const [consent] = await db
       .select()
       .from(founderConsent)
-      .where(eq(founderConsent.userId, userId))
+      .where(eq(founderConsent.userId, authUserId))
       .limit(1);
 
     res.json({ consent: consent || null });

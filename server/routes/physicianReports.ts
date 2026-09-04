@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { storage } from '../storage';
 import { z } from 'zod';
+import { type AuthenticatedRequest } from '../middleware/requireAuth';
+import { verifyPhysicianClientAccess } from '../services/procareAccessService';
+import { handleOrgIsolationError } from '../lib/orgIsolation';
 
 const router = Router();
 
@@ -34,10 +37,44 @@ const createPhysicianReportSchema = z.object({
   clinicalNotes: z.string().optional(),
 });
 
+/**
+ * Uses the authenticated account by default. A different report owner is only
+ * permitted for an active ProCare physician-client relationship.
+ */
+async function authorizeReportOwner(
+  req: AuthenticatedRequest,
+  res: any,
+  requestedUserId: string,
+): Promise<boolean> {
+  const authenticatedUserId = req.authUser?.id;
+  if (!authenticatedUserId) {
+    res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    return false;
+  }
+
+  if (requestedUserId === authenticatedUserId) return true;
+
+  try {
+    if (await verifyPhysicianClientAccess(authenticatedUserId, requestedUserId)) {
+      return true;
+    }
+    res.status(403).json({ error: 'Not authorized to access this user\'s physician reports' });
+    return false;
+  } catch (error) {
+    if (handleOrgIsolationError(error, res)) return false;
+    console.error('[physician-reports] Authorization check failed:', error);
+    res.status(503).json({ error: 'Authorization check failed. Please try again.' });
+    return false;
+  }
+}
+
 // POST /api/physician-reports - Create a new physician medical report
 router.post('/', async (req, res) => {
   try {
     const reportData = createPhysicianReportSchema.parse(req.body);
+    if (!await authorizeReportOwner(req as AuthenticatedRequest, res, reportData.userId)) {
+      return;
+    }
     const report = await storage.createPhysicianReport(reportData);
     
     res.json({
@@ -84,6 +121,9 @@ router.get('/view/:accessCode', async (req, res) => {
 router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+    if (!await authorizeReportOwner(req as AuthenticatedRequest, res, userId)) {
+      return;
+    }
     const reports = await storage.getUserPhysicianReports(userId);
     
     // Return summary info only (not full report data)
@@ -113,10 +153,20 @@ router.delete('/:id', async (req, res) => {
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
-    
-    // Deactivate instead of delete (soft delete)
-    report.isActive = false;
-    report.updatedAt = new Date();
+
+    const authenticatedUserId = (req as AuthenticatedRequest).authUser?.id;
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+    if (report.userId !== authenticatedUserId) {
+      return res.status(403).json({ error: 'Not authorized to revoke this physician report' });
+    }
+
+    // Soft deletion must go through storage so it is persisted.
+    const deactivated = await storage.deactivatePhysicianReport(id);
+    if (!deactivated) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
     
     res.json({ success: true, message: 'Report deactivated' });
   } catch (error) {
