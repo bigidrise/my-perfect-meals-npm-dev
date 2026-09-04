@@ -13,5 +13,7 @@ declare module "express-session" {
     mfaVerified?: boolean;
     /** Temporary TOTP secret during MFA setup (before user confirms first code) */
     pendingMfaSecret?: string;
+    /** Per-session synchronizer token required for cookie-authenticated mutations */
+    csrfToken?: string;
   }
 }

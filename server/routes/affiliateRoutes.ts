@@ -487,9 +487,14 @@ export async function handleRewardfulWebhook(req: any, res: any) {
       return res.status(200).json({ received: true });
     }
 
-    // HMAC verification — check signature if secret is configured
+    // HMAC verification is mandatory because this callback is intentionally
+    // exempt from browser Origin checks.
     const webhookSecret = process.env.REWARDFUL_WEBHOOK_SECRET;
-    if (webhookSecret) {
+    if (!webhookSecret) {
+      console.error("[Rewardful Webhook] REWARDFUL_WEBHOOK_SECRET is not configured");
+      return res.status(503).json({ error: "Webhook verification unavailable" });
+    }
+    {
       const signature = req.headers["x-rewardful-signature"] as string | undefined;
       if (!signature) {
         console.warn("[Rewardful Webhook] Missing signature header");

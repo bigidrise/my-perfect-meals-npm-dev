@@ -68,3 +68,4 @@
 - [Professional glucose access](professional-glucose-access.md) — raw glucose requires verified clinical identity, exact active care relationship, org isolation, and current consent.
 - [Saved grocery evidence governance](saved-grocery-evidence-governance.md) — permanent favorites stay evidence-ranked and fail closed against the current profile.
 - [Auth security-state issuance](auth-security-state-issuance.md) — credential issuance must compare the security version verified before password or MFA acceptance.
+- [Browser CSRF boundary](browser-csrf-boundary.md) — cookie mutations require exact-origin session tokens; native bearer traffic and signed callbacks remain distinct.
