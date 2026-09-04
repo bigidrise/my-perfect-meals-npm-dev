@@ -92,6 +92,7 @@ import trialRouter from './routes/trial';
 import mfaRoutes from './routes/auth.mfa';
 import { requireMfa } from './middleware/requireMfa';
 import { MealEngineService } from "./services/mealEngineService";
+import { generateCanonicalWeeklyMealPlan, WeeklyMealGenerationError } from "./services/canonicalWeeklyMealPlanning";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
 import { buildAcePromptBlock } from "./services/ace/buildAcePromptBlock";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
@@ -794,34 +795,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ⚡ PRIORITY ROUTE: Classic Builder - MUST BE FIRST before any middleware
-  app.post("/api/meal-plan/generate", (req, res) => {
-    console.log("🏗️ PRIORITY Classic Builder route hit - responding immediately!");
-
-    res.json({ 
-      plan: {
-        id: `plan-${Date.now()}`,
-        userId: "00000000-0000-0000-0000-000000000001",
-        weeks: 1,
-        mealsPerDay: 3,
-        snacksPerDay: 1,
-        targets: { calories: 2000, protein: 140 },
-        scheduleTimes: { breakfast: "07:00", lunch: "12:00", dinner: "18:30" },
-        planningMode: "CLASSIC",
-        variant: "AUTO",
-        meals: [
-          { id: 1, name: "Avocado Toast with Eggs", type: "breakfast", calories: 380, protein: 18, day: 0, scheduledTime: "07:00" },
-          { id: 2, name: "Grilled Chicken Salad", type: "lunch", calories: 450, protein: 35, day: 0, scheduledTime: "12:00" },
-          { id: 3, name: "Salmon with Vegetables", type: "dinner", calories: 520, protein: 42, day: 0, scheduledTime: "18:30" },
-          { id: 4, name: "Mixed Nuts", type: "snack", calories: 180, protein: 6, day: 0, scheduledTime: "15:30" }
-        ]
-      },
-      meta: {
-        generatedAt: new Date().toISOString(),
-        planningMode: "CLASSIC",
-        variant: "AUTO",
-        totalMeals: 4
-      }
-    });
+  app.post("/api/meal-plan/generate", requireAuth, async (req, res) => {
+    try {
+      const body = req.body ?? {};
+      const result = await generateCanonicalWeeklyMealPlan({
+        userId: getAuthUserId(req),
+        weeks: body.weeks,
+        mealsPerDay: body.mealsPerDay,
+        snacksPerDay: body.snacksPerDay,
+        targets: body.targets,
+        dietOverride: typeof body.diet === "string" ? body.diet : undefined,
+        correlationId: (req as any).id,
+      });
+      return res.json(result);
+    } catch (error) {
+      const typed = error instanceof WeeklyMealGenerationError ? error : null;
+      return res.status(typed?.status ?? (error as any)?.status ?? 500)
+        .json({ error: typed?.code ?? "WEEKLY_MEAL_GENERATION_FAILED" });
+    }
   });
 
   // Load studio membership for all API routes (non-blocking - just attaches membership info to req)
@@ -4992,35 +4983,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/meal-plans route moved to mealPlanArchive.routes.ts to handle AI meal plan acceptance
 
-  app.post("/api/meal-plans/generate", async (req, res) => {
+  app.post("/api/meal-plans/generate", requireAuth, async (req, res) => {
     try {
-      const { userId } = req.body;
-
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // 🚨 SAFETY: This endpoint uses pre-curated recipes, not AI generation
-      // Recipes are manually curated so no allergen enforcement needed here
-      // For AI-generated meals, use the unified pipeline which has full safety checks
-      
-      const generatedPlan = await generateMealPlan(user);
-      const [mealPlan] = await db.insert(mealPlans).values({
-        userId,
-        name: `AI Generated Plan - Week of ${new Date().toLocaleDateString()}`,
-        weekOf: new Date(),
-        meals: generatedPlan.meals as any,
-        totalCalories: generatedPlan.totalCalories,
-        totalProtein: generatedPlan.totalProtein,
-        totalCarbs: generatedPlan.totalCarbs,
-        totalFat: generatedPlan.totalFat,
-        isActive: true
-      }).returning();
-
-      res.json(mealPlan);
+      return res.json(await generateCanonicalWeeklyMealPlan({
+        userId: getAuthUserId(req), weeks: req.body?.weeks,
+        mealsPerDay: req.body?.mealsPerDay, snacksPerDay: req.body?.snacksPerDay,
+        targets: req.body?.targets, dietOverride: typeof req.body?.diet === "string" ? req.body.diet : undefined,
+        correlationId: (req as any).id,
+      }));
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      const typed = error instanceof WeeklyMealGenerationError ? error : null;
+      res.status(typed?.status ?? 500).json({ error: typed?.code ?? error.message });
     }
   });
 
