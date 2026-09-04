@@ -873,6 +873,34 @@ async function initializeApp() {
         ? { rejectUnauthorized: false }
         : undefined,
     });
+    const securitySchema = await sessionPool.query<{
+      throttle_table: string | null;
+      mfa_token_column: boolean;
+      security_version_column: boolean;
+    }>(`
+      SELECT
+        to_regclass('public.auth_attempt_throttles')::text AS throttle_table,
+        EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'users'
+            AND column_name = 'auth_token_mfa_verified_at'
+        ) AS mfa_token_column,
+        EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'users'
+            AND column_name = 'auth_security_version'
+        ) AS security_version_column
+    `);
+    const schemaRow = securitySchema.rows[0];
+    if (
+      !schemaRow?.throttle_table ||
+      schemaRow.mfa_token_column !== true ||
+      schemaRow.security_version_column !== true
+    ) {
+      throw new Error(
+        "Required U3 authentication security schema is missing; refusing production readiness",
+      );
+    }
     sessionConfig.store = new PgSession({
       pool: sessionPool,
       tableName: "session",
@@ -1054,7 +1082,9 @@ async function initializeApp() {
 
     // business — Clinical Business multi-seat subscription management
     const businessRouter = (await import("./routes/businessRoutes")).default;
-    app.use("/api/business", businessRouter);
+    const { requireMfa } = await import("./middleware/requireMfa");
+    // Keep the production mount identical to registerRoutes() in development.
+    app.use("/api/business", requireAuth, requireMfa, businessRouter);
 
     // partner — partner identity records (promo codes, commission terms, timeline)
     const partnerRouter = (await import("./routes/partnerRoutes")).default;

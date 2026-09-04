@@ -115,8 +115,8 @@ describe("U3 session architecture invariants", () => {
     const authSource = read("routes/auth.session.ts");
     const mfaSource = read("routes/auth.mfa.ts");
 
-    expect(authSource.match(/await regenerateSession\(req\)/g)).toHaveLength(3);
-    expect(mfaSource.match(/await regenerateSession\(req\)/g)).toHaveLength(2);
+    expect(authSource.match(/await regenerateSession\(req\)/g)).toHaveLength(4);
+    expect(mfaSource.match(/await regenerateSession\(req\)/g)).toHaveLength(3);
     expect(authSource).toContain("await destroySession(req)");
     expect(authSource).toContain("clearSessionCookie(res)");
   });

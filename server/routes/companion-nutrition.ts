@@ -15,6 +15,7 @@ import { scanRecipeForFelineToxins } from "../services/felineToxicFirewall";
 import { checkIngredientSafety, scanRecipeForToxins } from "../services/companionToxicFirewall";
 import { checkFelineIngredientSafety } from "../services/felineToxicFirewall";
 import OpenAI from "openai";
+import { findUserByValidAuthToken } from "../services/authTokenService";
 
 const router = express.Router();
 const openai = new OpenAI();
@@ -44,11 +45,7 @@ const requireAuth = async (req: any, res: any, next: any) => {
   const token = req.headers["x-auth-token"] as string | undefined;
   if (token) {
     try {
-      const [tokenUser] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.authToken, token))
-        .limit(1);
+      const tokenUser = await findUserByValidAuthToken(token);
       if (tokenUser) req.user = { id: tokenUser.id };
     } catch {}
   }

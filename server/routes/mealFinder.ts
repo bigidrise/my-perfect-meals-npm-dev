@@ -12,6 +12,7 @@ import { loadUserProtocolEnvelope } from '../services/protocolEnvelope';
 import { resolveDailyNutritionState } from '../services/nutritionStateService';
 import { buildRemainingMacrosBlock } from '../services/restaurantMealGeneratorAI';
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from '../services/glp1/resolveGLP1GlobalContext';
+import { findUserByValidAuthToken } from '../services/authTokenService';
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.post('/meal-finder', async (req, res) => {
     const authToken = req.headers['x-auth-token'] as string | undefined;
     if (authToken) {
       try {
-        const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, authToken)).limit(1);
+        const tokenUser = await findUserByValidAuthToken(authToken);
         if (tokenUser) userId = tokenUser.id;
       } catch {}
     }
