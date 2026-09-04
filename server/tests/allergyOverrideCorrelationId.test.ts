@@ -113,6 +113,46 @@ jest.mock("../services/nutritionContext/getActiveNutritionContext", () => ({
   }),
 }));
 
+jest.mock("../services/humanFoodContext/requestScope", () => ({
+  createHumanFoodRequestScope: jest.fn((input: any) => ({
+    executionState: { rejectedCandidateSignatures: [] },
+    resolve: jest.fn().mockResolvedValue({
+      version: "human-food-context.v1",
+      status: "resolved",
+      creator: input.creator,
+      actorUserId: input.actorUserId,
+      subjectUserId: input.subjectUserId,
+      generationChainId: "audit-fixture-chain",
+      correlationId: input.correlationId ?? TEST_CORRELATION_ID,
+      resolvedAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-01T00:05:00.000Z",
+      diet: {
+        stored: [],
+        effective: [],
+        source: "unavailable",
+        requestOverride: null,
+        adaptationOutcome: "not_needed",
+      },
+      flavor: Object.fromEntries(
+        ["heat", "seasoningIntensity", "broadFlavor", "flavorStyle", "cuisine", "cuisineIntensity", "spiceComplexity"]
+          .map((key) => [key, { value: null, source: "unavailable", available: false }]),
+      ),
+      safety: {
+        allergies: [],
+        avoidedFoods: [],
+        dislikedFoods: [],
+        healthConditions: [],
+      },
+      nutrition: null,
+      behavior: null,
+      gaps: [],
+      notices: [],
+      blockedReasons: [],
+      internalFingerprint: "audit-fixture-context",
+    }),
+  })),
+}));
+
 jest.mock("../services/glp1/resolveGLP1GlobalContext", () => ({
   resolveGLP1GlobalContext: jest.fn().mockResolvedValue({
     isActive: false,
@@ -196,24 +236,72 @@ jest.mock("../services/guardrails", () => ({
   validateMealForDiet: jest.fn(() => ({ isValid: true, violations: [] })),
 }));
 
-// OpenAI — return a minimal valid beverage/dessert JSON
-const MOCK_MEAL_JSON = JSON.stringify({
-  name: "Test Peanut Smoothie",
-  description: "A test smoothie.",
-  ingredients: [{ name: "banana", amount: "1", unit: "each" }],
-  instructions: "Blend everything.",
-  nutrition: { calories: 250, protein: 8, carbs: 35, fat: 6 },
-  servingSize: "1 drink",
-  reasoning: "Test.",
-  imageUrl: "",
-});
+// OpenAI — preserve the identity and physical form requested by each route.
+function mockMealForPrompt(prompt: string) {
+  const normalized = prompt.toLowerCase();
+  const isCake = normalized.includes("peanut butter cake");
+  const isPie = normalized.includes("peanut butter pie");
+  const isMilkshake = normalized.includes("peanut butter milkshake");
+  const meal = isCake
+    ? {
+        name: "Peanut Butter Cake",
+        category: "cake",
+        description: "A sliceable peanut butter cake with a tender crumb.",
+        ingredients: [{ name: "peanut butter", amount: "2", unit: "tbsp" }],
+        instructions: "Bake in a cake pan until set, then slice.",
+        servingSize: "1 serving",
+      }
+    : isPie
+      ? {
+          name: "Peanut Butter Pie",
+          category: "pie",
+          description: "A sliceable peanut butter pie in a crisp pie crust.",
+          ingredients: [
+            { name: "peanut butter", amount: "2", unit: "tbsp" },
+            { name: "pie crust", amount: "1", unit: "each" },
+          ],
+          instructions: "Fill the pie crust, chill until set, then slice.",
+          servingSize: "1 serving",
+        }
+      : isMilkshake
+        ? {
+            name: "Peanut Butter Milkshake",
+            category: "milkshake",
+            description: "A thick blended peanut butter milkshake.",
+            ingredients: [{ name: "peanut butter", amount: "2", unit: "tbsp" }],
+            instructions: "Blend until thick and creamy.",
+            servingSize: "1 drink",
+          }
+        : {
+            name: "Peanut Butter Smoothie",
+            category: "smoothie",
+            description: "A blended peanut butter smoothie.",
+            ingredients: [
+              { name: "peanut butter", amount: "2", unit: "tbsp" },
+              { name: "banana", amount: "1", unit: "each" },
+            ],
+            instructions: "Blend everything until smooth.",
+            servingSize: "1 drink",
+          };
+  return JSON.stringify({
+    ...meal,
+    servings: 1,
+    nutrition: { calories: 250, protein: 8, carbs: 35, starchyCarbs: 20, fat: 6 },
+    perServingNutrition: { calories: 250, protein: 8, carbs: 35, starchyCarbs: 20, fat: 6 },
+    reasoning: "Test.",
+    imageUrl: "",
+  });
+}
 
 jest.mock("openai", () => {
   const MockOpenAI = jest.fn().mockImplementation(() => ({
     chat: {
       completions: {
-        create: jest.fn().mockResolvedValue({
-          choices: [{ message: { content: MOCK_MEAL_JSON } }],
+        create: jest.fn().mockImplementation(async ({ messages }: any) => {
+          const prompt = messages?.map((message: any) => message.content).join("\n") ?? "";
+          return {
+            choices: [{ message: { content: mockMealForPrompt(prompt) } }],
+          };
         }),
       },
     },
