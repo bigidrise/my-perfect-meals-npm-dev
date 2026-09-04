@@ -396,6 +396,8 @@ export const users = pgTable("users", {
   // Token-based authentication (secure alternative to session)
   authToken: text("auth_token").unique(), // 256-bit random token for API authentication
   authTokenCreatedAt: timestamp("auth_token_created_at", { withTimezone: true }),
+  authTokenMfaVerifiedAt: timestamp("auth_token_mfa_verified_at", { withTimezone: true }),
+  authSecurityVersion: integer("auth_security_version").notNull().default(0),
   // Multi-factor authentication (TOTP / RFC 6238)
   mfaEnabled: boolean("mfa_enabled").notNull().default(false),
   mfaSecret: varchar("mfa_secret", { length: 128 }),        // base32 TOTP secret — NEVER expose to client after setup
@@ -653,6 +655,27 @@ export const users = pgTable("users", {
   stripeCustomerIdUnique: uniqueIndex("users_stripe_customer_id_uniq").on(t.stripeCustomerId),
   stripeSubscriptionIdUnique: uniqueIndex("users_stripe_subscription_id_uniq").on(t.stripeSubscriptionId),
   organizationIdx: index("idx_users_organization_id").on(t.organizationId),
+}));
+
+/**
+ * Durable, privacy-preserving authentication verification throttle state.
+ *
+ * subject is an HMAC digest, never a user ID, email address, IP address, or
+ * authenticator secret. This is intentionally one mutable row per
+ * subject/scope rather than an unbounded event log.
+ */
+export const authAttemptThrottles = pgTable("auth_attempt_throttles", {
+  subject: varchar("subject", { length: 80 }).notNull(),
+  scope: varchar("scope", { length: 64 }).notNull(),
+  failureCount: integer("failure_count").notNull().default(0),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull().defaultNow(),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull().default(sql`now() + interval '24 hours'`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  subjectScopePk: primaryKey({ columns: [t.subject, t.scope], name: "auth_attempt_throttles_subject_scope_pk" }),
+  lockedUntilIdx: index("auth_attempt_throttles_locked_until_idx").on(t.lockedUntil),
+  expiresAtIdx: index("auth_attempt_throttles_expires_at_idx").on(t.expiresAt),
 }));
 
 // Administrative review trail for legacy accounts whose email addresses differ

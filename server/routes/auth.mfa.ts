@@ -12,7 +12,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import {
@@ -26,21 +26,39 @@ import {
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { autoAcceptPendingInvites, lookupExistingMembership } from "../services/inviteAutoAccept";
 import { selfHealProCareState } from "../services/procareActivation";
-import { regenerateSession } from "../lib/sessionSecurity";
+import {
+  clearSessionCookie,
+  destroySession,
+  regenerateSession,
+} from "../lib/sessionSecurity";
+import { rotateAuthToken } from "../services/authTokenService";
+import { AUTH_ATTEMPT_SCOPES, createAuthAttemptSubject } from "../services/authAttemptTracker";
+import { authAttemptTracker } from "../services/authAttemptTrackingService";
 
 const router = Router();
 
+async function isVerificationThrottled(res: any, userId: string, scope: string): Promise<boolean> {
+  const subject = createAuthAttemptSubject("mfa-user", userId);
+  if (!(await authAttemptTracker.isLocked(subject, scope))) return false;
+  res.status(429).json({ error: "Too many failed verification attempts. Try again in 15 minutes." });
+  return true;
+}
+
+async function recordVerificationFailure(res: any, userId: string, scope: string): Promise<boolean> {
+  const state = await authAttemptTracker.recordFailure(createAuthAttemptSubject("mfa-user", userId), scope);
+  if (!state.lockedUntil) return false;
+  res.status(429).json({ error: "Too many failed verification attempts. Try again in 15 minutes." });
+  return true;
+}
+
+async function clearVerificationFailures(userId: string, scope: string): Promise<void> {
+  await authAttemptTracker.clear(createAuthAttemptSubject("mfa-user", userId), scope);
+}
+
 async function ensureAuthToken(user: any): Promise<any> {
-  if (user.authToken) return user;
-
-  const authToken = crypto.randomBytes(32).toString("hex");
-  const authTokenCreatedAt = new Date();
-  await db
-    .update(users)
-    .set({ authToken, authTokenCreatedAt })
-    .where(eq(users.id, user.id));
-
-  return { ...user, authToken, authTokenCreatedAt };
+  const { authToken, authTokenCreatedAt, authTokenMfaVerifiedAt } =
+    await rotateAuthToken(user.id, { mfaVerified: true });
+  return { ...user, authToken, authTokenCreatedAt, authTokenMfaVerifiedAt };
 }
 
 // ── Shared helper: build the full login response object ──────────────────────
@@ -121,32 +139,45 @@ router.post("/setup/confirm", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "A 6-digit authenticator code is required." });
   }
 
-  if (!(await verifyTotp(secret, code))) {
-    logAudit({ actor: userId, action: "MFA_CHALLENGE_FAILED", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { phase: "setup_confirm" } });
-    return res.status(400).json({ error: "Invalid code. Check your authenticator app and try again." });
-  }
-
   try {
+    if (await isVerificationThrottled(res, userId, AUTH_ATTEMPT_SCOPES.mfaSetupConfirm)) return;
+
+    if (!(await verifyTotp(secret, code))) {
+      if (await recordVerificationFailure(res, userId, AUTH_ATTEMPT_SCOPES.mfaSetupConfirm)) return;
+      logAudit({ actor: userId, action: "MFA_CHALLENGE_FAILED", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { phase: "setup_confirm" } });
+      return res.status(400).json({ error: "Invalid code. Check your authenticator app and try again." });
+    }
+    await clearVerificationFailures(userId, AUTH_ATTEMPT_SCOPES.mfaSetupConfirm);
+
     const rawBackupCodes = generateBackupCodes();
     const hashedCodes = rawBackupCodes.map(hashBackupCode);
 
-    await db.update(users)
+    const [enrolled] = await db.update(users)
       .set({
         mfaEnabled: true,
         mfaSecret: secret,
         mfaBackupCodes: hashedCodes as any,
         mfaEnrolledAt: new Date(),
+        authToken: null,
+        authTokenCreatedAt: null,
+        authTokenMfaVerifiedAt: null,
+        authSecurityVersion: sql`${users.authSecurityVersion} + 1`,
       })
-      .where(eq(users.id, userId));
+      .where(eq(users.id, userId))
+      .returning({ authSecurityVersion: users.authSecurityVersion });
 
-    // Clear pending secret from session; mark session as MFA-verified
-    delete (req as any).session.pendingMfaSecret;
+    if (!enrolled) throw new Error("MFA enrollment update returned no user");
+    const credential = await rotateAuthToken(userId, { mfaVerified: true });
+    await regenerateSession(req);
+    (req as any).session.userId = userId;
+    (req as any).session.authSecurityVersion = enrolled.authSecurityVersion;
     (req as any).session.mfaVerified = true;
 
     logAudit({ actor: userId, action: "MFA_ENROLLED", resourceType: "auth", route: req.path, ip: getClientIp(req as any) });
 
     res.json({
       success: true,
+      authToken: credential.authToken,
       backupCodes: rawBackupCodes, // shown ONCE — user must save these
     });
   } catch (err) {
@@ -175,16 +206,20 @@ router.post("/challenge", async (req, res) => {
       return res.status(400).json({ error: "MFA not configured for this account." });
     }
 
+    if (await isVerificationThrottled(res, user.id, AUTH_ATTEMPT_SCOPES.mfaTotp)) return;
     if (!(await verifyTotp(user.mfaSecret, code))) {
+      if (await recordVerificationFailure(res, user.id, AUTH_ATTEMPT_SCOPES.mfaTotp)) return;
       logAudit({ actor: user.id, action: "MFA_CHALLENGE_FAILED", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { method: "totp" } });
       return res.status(401).json({ error: "Invalid code. Try again or use a backup code." });
     }
+    await clearVerificationFailures(user.id, AUTH_ATTEMPT_SCOPES.mfaTotp);
 
     const authenticatedUser = await ensureAuthToken(user);
 
     // Rotate away from the pre-authentication session before promotion.
     await regenerateSession(req);
     (req as any).session.userId = user.id;
+    (req as any).session.authSecurityVersion = user.authSecurityVersion;
     (req as any).session.mfaVerified = true;
 
     logAudit({ actor: user.id, action: "MFA_CHALLENGE_SUCCESS", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { method: "totp" } });
@@ -216,10 +251,12 @@ router.post("/challenge/backup", async (req, res) => {
       return res.status(400).json({ error: "MFA not configured for this account." });
     }
 
+    if (await isVerificationThrottled(res, user.id, AUTH_ATTEMPT_SCOPES.mfaBackup)) return;
     const hashedCodes = user.mfaBackupCodes as string[];
     const { valid, remaining } = verifyAndConsumeBackupCode(hashedCodes, code);
 
     if (!valid) {
+      if (await recordVerificationFailure(res, user.id, AUTH_ATTEMPT_SCOPES.mfaBackup)) return;
       logAudit({ actor: user.id, action: "MFA_CHALLENGE_FAILED", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { method: "backup" } });
       return res.status(401).json({ error: "Invalid backup code." });
     }
@@ -235,15 +272,18 @@ router.post("/challenge/backup", async (req, res) => {
       .returning({ id: users.id });
 
     if (!consumed) {
+      if (await recordVerificationFailure(res, user.id, AUTH_ATTEMPT_SCOPES.mfaBackup)) return;
       logAudit({ actor: user.id, action: "MFA_CHALLENGE_FAILED", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { method: "backup", reason: "already_consumed" } });
       return res.status(401).json({ error: "Invalid backup code." });
     }
+    await clearVerificationFailures(user.id, AUTH_ATTEMPT_SCOPES.mfaBackup);
 
     const authenticatedUser = await ensureAuthToken(user);
 
     // Rotate away from the pre-authentication session before promotion.
     await regenerateSession(req);
     (req as any).session.userId = user.id;
+    (req as any).session.authSecurityVersion = user.authSecurityVersion;
     (req as any).session.mfaVerified = true;
 
     logAudit({ actor: user.id, action: "MFA_CHALLENGE_SUCCESS", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { method: "backup" } });
@@ -273,6 +313,7 @@ router.delete("/", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "MFA is not enabled on this account." });
     }
 
+    if (await isVerificationThrottled(res, user.id, AUTH_ATTEMPT_SCOPES.mfaDisable)) return;
     let verified = false;
     if (code) {
       verified = await verifyTotp(user.mfaSecret, code);
@@ -283,9 +324,11 @@ router.delete("/", requireAuth, async (req, res) => {
     }
 
     if (!verified) {
+      if (await recordVerificationFailure(res, user.id, AUTH_ATTEMPT_SCOPES.mfaDisable)) return;
       logAudit({ actor: userId, action: "MFA_CHALLENGE_FAILED", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { phase: "disable" } });
       return res.status(401).json({ error: "Invalid code. MFA not disabled." });
     }
+    await clearVerificationFailures(user.id, AUTH_ATTEMPT_SCOPES.mfaDisable);
 
     await db.update(users)
       .set({
@@ -293,14 +336,19 @@ router.delete("/", requireAuth, async (req, res) => {
         mfaSecret: null,
         mfaBackupCodes: null,
         mfaEnrolledAt: null,
+        authToken: null,
+        authTokenCreatedAt: null,
+        authTokenMfaVerifiedAt: null,
+        authSecurityVersion: sql`${users.authSecurityVersion} + 1`,
       })
       .where(eq(users.id, userId));
 
-    delete (req as any).session.mfaVerified;
+    await destroySession(req);
+    clearSessionCookie(res);
 
     logAudit({ actor: userId, action: "MFA_DISABLED", resourceType: "auth", route: req.path, ip: getClientIp(req as any) });
 
-    res.json({ success: true });
+    res.json({ success: true, requiresLogin: true });
   } catch (err) {
     console.error("[mfa/disable] error:", err);
     res.status(500).json({ error: "Failed to disable MFA" });

@@ -24,6 +24,7 @@ import {
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
+import { findUserByValidAuthToken } from "./services/authTokenService";
 import { createApiRateLimit } from "./middleware/rateLimit";
 import { getAuthUserId } from "./utils/getAuthUserId";
 import { emitActivityEvent } from "./services/coaching/activityEvents";
@@ -847,7 +848,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/promotions', promotionRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
   app.use('/api/white-label', whiteLabelRouter);
-  app.use('/api/business', businessRouter);
+  // Business administration is privileged even for users whose system role is
+  // "client"; requireMfa derives active owner/admin authority from the DB.
+  app.use('/api/business', requireAuth, requireMfa, businessRouter);
 
   // Partner Center — referral tools, monthly campaigns, messaging guidelines
   const marketingCenterRouter = (await import('./routes/marketingCenterRoutes')).default;
@@ -3378,7 +3381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         const token = req.headers["x-auth-token"] as string;
         if (token) {
-          const [user] = await db.select().from(users).where(eq(users.authToken, token)).limit(1);
+          const user = await findUserByValidAuthToken(token);
           userId = user?.id;
         }
       }
@@ -5148,8 +5151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const sessionUserId = (req as any).session?.userId as string | undefined;
 
         if (token) {
-          const [tokenUser] = await db.select({ id: users.id }).from(users)
-            .where(eq(users.authToken, token)).limit(1);
+          const tokenUser = await findUserByValidAuthToken(token);
           if (tokenUser) barcodeUserId = String(tokenUser.id);
         } else if (sessionUserId) {
           barcodeUserId = String(sessionUserId);
@@ -5531,7 +5533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const token = req.headers["x-auth-token"] as string | undefined;
         if (token) {
           try {
-            const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, token)).limit(1);
+            const tokenUser = await findUserByValidAuthToken(token);
             if (tokenUser) userId = tokenUser.id;
           } catch { /* non-fatal */ }
         }
@@ -9395,24 +9397,24 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Keep training ahead of every broad /api/pro mount. Express runs middleware
   // on prefix matches even when the mounted router has no matching handler, so
   // placing this later causes unrelated Studio gates to intercept completion.
-  app.use("/api/pro/training", requireAuth, procareTrainingRouter);
+  app.use("/api/pro/training", requireAuth, requireMfa, procareTrainingRouter);
 
-  app.use("/api/pro/board", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
+  app.use("/api/pro/board", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
 
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
 
   const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
 
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
-  app.use("/api/pro/workspace", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
+  app.use("/api/pro/workspace", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
@@ -9420,12 +9422,12 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Consumer relationship management is Pro-or-higher. Provider Studio access
   // remains independently protected by requireProCareAccess on /api/pro and
   // /api/studios; this mount must not grant professional workspace access.
-  app.use("/api/care-team", requireAuth, requireProAccess, careTeamRoutes);
-  app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
+  app.use("/api/care-team", requireAuth, requireMfa, requireProAccess, careTeamRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, procareRoutes);
   // requireAuth is applied per-route inside clinicalInterventionsRouter —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
   app.use("/api", clinicalInterventionsRouter);
-  app.use("/api/studios", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
+  app.use("/api/studios", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   // requireAuth is applied per-route inside cycleProtocolRoutes —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
@@ -9434,7 +9436,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/legal", legalRoutes);
 
   app.use("/api/founders", foundersRoutes);
-  app.use("/api/physician-reports", requireAuth, requirePremiumAccess, physicianReportsRoutes);
+  app.use("/api/physician-reports", requireAuth, requireMfa, requirePremiumAccess, physicianReportsRoutes);
   app.use("/api/users", usersProfileRouter);
   app.use("/api/professionals", availabilityRouter);
   app.use("/api", availabilityRouter);

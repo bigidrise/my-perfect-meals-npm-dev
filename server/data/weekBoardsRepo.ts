@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { weekBoards, users } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
+import { findUserByValidAuthToken } from '../services/authTokenService';
 
 // We'll add a local simple normalizer to avoid circular imports
 function simpleNormalizeBoard(board: any): any {
@@ -127,11 +128,7 @@ export async function resolveUserId(req: any): Promise<string> {
   const token = req.headers['x-auth-token'] as string | undefined;
   if (token) {
     try {
-      const [user] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.authToken, token))
-        .limit(1);
+      const user = await findUserByValidAuthToken(token);
       if (user) {
         return user.id;
       }

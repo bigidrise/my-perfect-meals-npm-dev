@@ -188,11 +188,8 @@ router.post("/safety-check", async (req: any, res) => {
       const token = req.headers["x-auth-token"] as string | undefined;
       if (token) {
         try {
-          const [tokenUser] = await db
-            .select({ id: users.id })
-            .from(users)
-            .where(eq(users.authToken, token))
-            .limit(1);
+          const { findUserByValidAuthToken } = await import("../services/authTokenService");
+          const tokenUser = await findUserByValidAuthToken(token);
           if (tokenUser) resolvedUserId = tokenUser.id;
         } catch { /* non-fatal */ }
       }
