@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react";
+import { scrubSentryBreadcrumb, scrubSentryData, scrubSentryEvent } from "@shared/sentryScrubber";
 
 let initialized = false;
 
@@ -36,7 +37,10 @@ export function initSentry(): void {
     beforeSend(event) {
       // Don't send events in development
       if (import.meta.env.DEV) return null;
-      return event;
+      return scrubSentryEvent(event);
+    },
+    beforeBreadcrumb(breadcrumb) {
+      return scrubSentryBreadcrumb(breadcrumb);
     },
   });
 
@@ -46,7 +50,10 @@ export function initSentry(): void {
 
 export function setUserContext(userId: string, email: string): void {
   if (!initialized) return;
-  Sentry.setUser({ id: userId, email });
+  // Signature remains stable while identity collection is disabled.
+  void userId;
+  void email;
+  Sentry.setUser(null);
 }
 
 export function clearUserContext(): void {
@@ -58,7 +65,8 @@ export function captureException(err: unknown, context?: Record<string, unknown>
   if (!initialized) return;
   Sentry.withScope((scope) => {
     if (context) {
-      Object.entries(context).forEach(([key, val]) => scope.setExtra(key, val));
+      const scrubbed = scrubSentryData(context) as Record<string, unknown>;
+      Object.entries(scrubbed).forEach(([key, val]) => scope.setExtra(key, val));
     }
     Sentry.captureException(err);
   });

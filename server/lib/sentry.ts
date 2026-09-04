@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/node";
 import type { Express, Request, Response, NextFunction } from "express";
+import { scrubSentryBreadcrumb, scrubSentryData, scrubSentryEvent } from "../../shared/sentryScrubber";
 
 let initialized = false;
 
@@ -15,6 +16,12 @@ export function initSentry(): void {
     environment: process.env.NODE_ENV || "development",
     tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0.0,
     sendDefaultPii: false,
+    beforeSend(event) {
+      return scrubSentryEvent(event);
+    },
+    beforeBreadcrumb(breadcrumb) {
+      return scrubSentryBreadcrumb(breadcrumb);
+    },
     ignoreErrors: [
       "ECONNRESET",
       "ECONNREFUSED",
@@ -40,7 +47,8 @@ export function captureException(err: unknown, context?: Record<string, unknown>
   if (!initialized) return;
   Sentry.withScope((scope) => {
     if (context) {
-      Object.entries(context).forEach(([key, val]) => scope.setExtra(key, val));
+      const scrubbed = scrubSentryData(context) as Record<string, unknown>;
+      Object.entries(scrubbed).forEach(([key, val]) => scope.setExtra(key, val));
     }
     Sentry.captureException(err);
   });
@@ -48,7 +56,10 @@ export function captureException(err: unknown, context?: Record<string, unknown>
 
 export function setUserContext(userId: string, email: string): void {
   if (!initialized) return;
-  Sentry.setUser({ id: userId, email });
+  // Keep the public signature for callers, but never transmit identity.
+  void userId;
+  void email;
+  Sentry.setUser(null);
 }
 
 export function clearUserContext(): void {

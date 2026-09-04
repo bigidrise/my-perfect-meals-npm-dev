@@ -65,7 +65,7 @@ export function testChefNavigationImperative(query: string) {
     // In a real app, you'd use this path with your router
     // For example: window.location.href = result.path;
   } else {
-    console.log(`❌ Chef couldn't find: ${result.message}`);
+    console.log("❌ Chef navigation lookup was unsuccessful");
   }
   
   return result;

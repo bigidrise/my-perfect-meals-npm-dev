@@ -239,9 +239,9 @@ export function safeLocalStorageSet(key: string, value: unknown): void {
         import("./sentry").then(({ Sentry }) => {
           Sentry.addBreadcrumb({
             category: "storage",
-            message: `safeLocalStorageSet failed for key: ${key}`,
+            message: "safeLocalStorageSet failed",
             level: "warning",
-            data: { key, error: err instanceof Error ? err.message : String(err) },
+            data: { operation: "safeLocalStorageSet", outcome: "failed" },
           });
         }).catch(() => {
           // Sentry unavailable — remain non-throwing
