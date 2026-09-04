@@ -5,6 +5,7 @@ import type { HumanFoodRequestExecutionState } from "../requestExecutionState";
 import { buildRejectedCandidatePrompt } from "../requestExecutionState";
 
 const CREATOR_DIRECTIVES: Record<HumanFoodCreator, string> = {
+  weekly_meal_plan: "Build date-specific weekly meals while preserving the authoritative daily context and validated week-level variety.",
   recipe_maker: "Build a complete recipe while preserving the chosen meal-builder intent.",
   create_a_dish: "Preserve the requested named dish and adapt it transparently when needed.",
   craving_creator: "Satisfy the craving with meaningful variety across candidates.",
