@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 
-import { User, getCurrentUser, getAuthHeaders, getAuthToken, clearAuthToken } from "@/lib/auth";
+import { User, getCurrentUser, getAuthHeaders, getAuthToken, clearAuthToken, setCachedUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import i18n, { resolveI18nLang } from "@/i18n";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
@@ -191,7 +191,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.removeItem("mpm:oncologySupportIntent");
         }
         setUser(updatedUser);
-        localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
+        setCachedUser(updatedUser);
         setUserContext(String(updatedUser.id), updatedUser.email);
         console.log("✅ [AuthContext] User refreshed");
         return updatedUser;
@@ -389,7 +389,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           onboardingCompletedAt: new Date().toISOString(),
         };
         setUser(demoUser);
-        localStorage.setItem("mpm_current_user", JSON.stringify(demoUser));
+        setCachedUser(demoUser);
       } else if (isGuestMode()) {
         const guestSession = getGuestSession();
         const guestUser: User = {

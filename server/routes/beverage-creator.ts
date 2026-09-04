@@ -49,7 +49,10 @@ import {
   validateLiquidNutritionOutput,
 } from "../services/hydration/hydrationContextService";
 import { getAuthUserId } from "../utils/getAuthUserId";
-import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
+import type {
+  HumanFoodFinalValidationResult,
+  HumanFoodValidationFinding,
+} from "../../shared/humanFoodValidation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -772,34 +775,36 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         String(candidate?.category ?? "").toLowerCase() === requestedBeverageCategory;
       const servingMatches = candidate?.servingSize === serving.label;
       const liquidProof = validateLiquidNutritionOutput(candidate, activeLiquidProtocol);
-      const liquidFailureMessage = "message" in liquidProof ? liquidProof.message : undefined;
       if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && liquidProof.passed) return result;
       const preserveOutcome: HumanFoodFinalValidationResult["outcome"] = !liquidProof.passed
         ? "blocked"
         : result.outcome === "blocked" || result.outcome === "review_required"
           ? result.outcome
           : "repairable";
-      return {
-        ...result,
-        outcome: preserveOutcome,
-        findings: [...result.findings, {
-          dimension: "nutrition" as const,
-          outcome: liquidProof.passed ? "repairable" as const : "blocked" as const,
-          code: !liquidProof.passed
-            ? "liquid_nutrition_conflict"
-            : !finiteNutrition
+      const liquidFinding: HumanFoodValidationFinding = "message" in liquidProof
+        ? {
+            dimension: "nutrition",
+            outcome: "blocked",
+            code: "liquid_nutrition_conflict",
+            message: liquidProof.message,
+            assurance: "structured_evidence",
+          }
+        : {
+            dimension: "nutrition",
+            outcome: "repairable",
+            code: !finiteNutrition
               ? "final_nutrition_invalid"
               : !categoryMatches
                 ? "final_category_mismatch"
                 : "final_serving_mismatch",
-          message: !liquidProof.passed
-            ? liquidFailureMessage
-            : "Final beverage structure or scaling could not be verified.",
-          assurance: "structured_evidence" as const,
-          repairHint: liquidProof.passed
-            ? `Return finite nutrition, category "${requestedBeverageCategory}", and servingSize "${serving.label}".`
-            : undefined,
-        }],
+            message: "Final beverage structure or scaling could not be verified.",
+            assurance: "structured_evidence",
+            repairHint: `Return finite nutrition, category "${requestedBeverageCategory}", and servingSize "${serving.label}".`,
+          };
+      return {
+        ...result,
+        outcome: preserveOutcome,
+        findings: [...result.findings, liquidFinding],
         repairInstructions: preserveOutcome === "repairable"
           ? [...result.repairInstructions,
               `Return numeric total and per-serving nutrition multiplied to ${serving.count} servings, category "${requestedBeverageCategory}", and servingSize "${serving.label}".`]
