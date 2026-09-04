@@ -12,6 +12,7 @@ import {
   buildForbiddenTermsFromAllergens,
   canonicalAllergenKey,
   getRequestedDishExemptTerms,
+  scanMealsForAllergenViolations,
 } from "../allergyGuardrails";
 import { evaluateWholeFoodCandidate } from "../wholeFoodStandard";
 import {
@@ -54,15 +55,6 @@ const DIETS_REQUIRING_STRUCTURED_EVIDENCE = new Set([
   "carnivore",
 ]);
 
-const ALLERGY_ALIASES: Record<string, string[]> = {
-  dairy: ["milk", "cheese", "butter", "cream", "ghee", "whey", "casein"],
-  lactose: ["milk", "cream", "ghee", "whey", "lactose"],
-  shellfish: ["shrimp", "prawn", "crab", "lobster", "crayfish", "shellfish stock"],
-  gluten: ["wheat", "barley", "rye", "malt", "regular soy sauce"],
-  peanut: ["peanut", "groundnut"],
-  tree_nut: ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut"],
-};
-
 function normalize(value: unknown): string {
   return String(value ?? "").toLowerCase().replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -87,16 +79,6 @@ function hasTerm(text: string, term: string): boolean {
   const normalized = normalize(term);
   if (normalized.length < 3) return false;
   return new RegExp(`(^|[^a-z0-9])${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`, "i").test(text);
-}
-
-function aliasesFor(term: string): string[] {
-  const normalized = normalize(term);
-  const canonical = canonicalAllergenKey(term);
-  return Array.from(new Set([
-    normalized,
-    ...buildForbiddenTermsFromAllergens([canonical]),
-    ...(ALLERGY_ALIASES[normalized.replace(/ /g, "_")] ?? []),
-  ]));
 }
 
 function add(
@@ -152,17 +134,24 @@ export function validateHumanFoodCandidate(
   }
 
   for (const allergy of context.safety.allergies) {
-    const exemptTerms = new Set(
-      getRequestedDishExemptTerms(options.requestedDish ?? "", [canonicalAllergenKey(allergy)])
-        .map(normalize),
+    const canonicalAllergy = canonicalAllergenKey(allergy);
+    const exemptTerms = new Set<string>(
+      getRequestedDishExemptTerms(options.requestedDish ?? "", [canonicalAllergy])
+        .map((term) => term.toLowerCase()),
     );
-    const matched = aliasesFor(allergy).filter(
-      (term) => !exemptTerms.has(normalize(term)) && hasTerm(text, term),
-    );
-    if (matched.length) add(findings, {
+    const scanCandidate = {
+      ...candidate,
+      ingredients: (candidate.ingredients ?? []).flatMap((ingredient) =>
+        typeof ingredient === "string"
+          ? [ingredient]
+          : [ingredient.name, ingredient.item].filter((value): value is string => Boolean(value)),
+      ),
+    };
+    const scan = scanMealsForAllergenViolations([scanCandidate], [canonicalAllergy], exemptTerms);
+    if (scan.unsafe.length > 0) add(findings, {
       dimension: "allergy", outcome: "blocked", code: `allergy:${normalize(allergy)}`,
       message: `The candidate contains a confirmed allergy or intolerance conflict: ${allergy}.`,
-      assurance: "deterministic", matchedTerms: matched,
+      assurance: "deterministic", matchedTerms: Array.from(scan.violations),
     });
   }
   for (const avoided of context.safety.avoidedFoods) {
@@ -188,7 +177,7 @@ export function validateHumanFoodCandidate(
       message: `The candidate conflicts with the effective ${diet} identity.`,
       assurance: "deterministic", matchedTerms: matched,
     });
-    if (DIETS_REQUIRING_STRUCTURED_EVIDENCE.has(key)) {
+    if (DIETS_REQUIRING_STRUCTURED_EVIDENCE.has(key) && evidence.dietaryIdentityCompliant !== true) {
       add(findings, {
         dimension: "dietary_identity",
         outcome: "review_required",
@@ -256,6 +245,24 @@ export function validateHumanFoodCandidate(
   const conditions = context.safety.healthConditions.map(normalize);
   const glp1Active = conditions.some((condition) => condition.includes("glp 1") || condition.includes("semaglutide") || condition.includes("tirzepatide"));
   const diabetesActive = conditions.some((condition) => condition.includes("diabet"));
+  const otherClinicalDirectives = conditions.filter((condition) =>
+    !condition.includes("glp 1") &&
+    !condition.includes("semaglutide") &&
+    !condition.includes("tirzepatide") &&
+    !condition.includes("diabet"),
+  );
+  if (otherClinicalDirectives.length > 0) {
+    if (evidence.clinicalDirectivesCompliant === false) add(findings, {
+      dimension: "clinical", outcome: "blocked", code: "clinical_directive_noncompliant",
+      message: "Structured clinical evidence marks the candidate noncompliant with an active directive.",
+      assurance: "structured_evidence",
+    });
+    else if (evidence.clinicalDirectivesCompliant !== true) add(findings, {
+      dimension: "clinical", outcome: "review_required", code: "clinical_directive_evidence_missing",
+      message: "Active clinical directives cannot be guaranteed without structured evidence.",
+      assurance: "structured_evidence",
+    });
+  }
   if (glp1Active) {
     if (evidence.glp1Compliant === false) add(findings, {
       dimension: "clinical", outcome: "blocked", code: "glp1_noncompliant",

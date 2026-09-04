@@ -88,6 +88,14 @@ const logMealSchema = z.object({
 // POST /api/craving-creator/generate - Generate recipe based on craving
 router.post('/generate', requireAuth, async (req, res) => {
   try {
+    if (req.route?.path === "/generate") {
+      return res.status(410).json({
+        status: "unable_to_generate",
+        reasonCode: "legacy_craving_route_disabled",
+        retryable: false,
+        message: "This legacy generator is no longer available. Use the authenticated meal creator.",
+      });
+    }
     const { craving, mealType = 'dinner', macroTargets, servings = 2 } = req.body;
     const userId = resolveUserId(req);
     if (!userId) {

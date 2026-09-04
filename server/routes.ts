@@ -5261,73 +5261,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This path ignores dietOverride and always uses user?.dietaryRestrictions.
   // Do NOT add new callers; route for eventual removal when WMC2 is retired.
   app.post("/api/craving-creator/generate", async (req, res) => {
-    try {
-      const { userId, courseStyle, craving, mealType, servings = 1, includeImage = false, variation = 0, safetyMode, overrideToken } = req.body;
-      
-      // Support both courseStyle (legacy) and craving (new) patterns
-      const inputText = craving || courseStyle || "";
-
-      console.log(`🎯 Craving Creator Generate: ${inputText} for user ${userId}`);
-
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
-      if (userId && inputText) {
-        const safetyCheck = await enforceSafetyProfile(userId, inputText, "craving-creator-generate", {
-          safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken,
-          correlationId: (req as any).id
-        });
-        if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
-        if (safetyCheck.result === "AMBIGUOUS") {
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyAmbiguous: true,
-            ambiguousTerms: safetyCheck.ambiguousTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
-      }
-
-      const meal = await generateCravingMeal(
-        (mealType || courseStyle) as any, // MealType
-        inputText || `${courseStyle} meal${variation ? ` variation ${variation}` : ''}`,
-        { userId: userId || "1" }
-      );
-
-      res.json(meal);
-    } catch (error) {
-      console.error("Craving Creator generation failed:", error);
-      res.status(500).json({ error: "Failed to generate meal" });
-    }
+    return res.status(410).json({
+      status: "unable_to_generate",
+      reasonCode: "legacy_craving_route_disabled",
+      retryable: false,
+      message: "This legacy generator is no longer available. Use the authenticated meal creator.",
+    });
   });
 
   // ⚠️ LEGACY — same as /generate above. No active client caller.
   app.post("/api/craving-creator/regenerate", async (req, res) => {
-    try {
-      const { userId, courseStyle, includeImage = true } = req.body;
-
-      console.log(`🔄 Craving Creator Regenerate: ${courseStyle} for user ${userId}`);
-
-      const meal = await generateCravingMeal(
-        courseStyle as any, // MealType
-        `regenerate ${courseStyle} meal`,
-        { userId: userId || "1" }
-      );
-
-      res.json(meal);
-    } catch (error) {
-      console.error("Craving Creator regeneration failed:", error);
-      res.status(500).json({ error: "Failed to regenerate meal" });
-    }
+    return res.status(410).json({
+      status: "unable_to_generate",
+      reasonCode: "legacy_craving_route_disabled",
+      retryable: false,
+      message: "This legacy generator is no longer available. Use the authenticated meal creator.",
+    });
   });
 
   // 🔒🔒🔒 CRAVING CREATOR API LOCKDOWN - DO NOT MODIFY
@@ -5425,6 +5374,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Authentication is required to resolve food context.",
         });
       }
+      const requestDietOverride =
+        typeof dietOverride === "string"
+          ? dietOverride
+          : typeof dietaryRestrictions === "string"
+            ? dietaryRestrictions
+            : null;
       const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
       const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
       const {
@@ -5436,7 +5391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subjectUserId: serverAuthUserId,
         creator: humanFoodCreator,
         correlationId: (req as any).id,
-        dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+        dietOverride: requestDietOverride,
         cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
         cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
       });
@@ -5524,16 +5479,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // builder dietOverride REPLACES profile diet (replacement, not merge).
       // Allergies, medical, specialty, and religious rules are enforced separately
       // by the protocol envelope — they are never affected by this resolver.
-      const _resolvedPrimaryDiet: string[] = (() => {
-        if (dietOverride && typeof dietOverride === "string" && dietOverride.trim()) {
-          console.log(`🔀 [CRAVING] Diet override: "${dietOverride.trim()}" replaces profile diet`);
-          return [dietOverride.trim()];
-        }
-        if (dietaryRestrictions) {
-          return (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean);
-        }
-        return [];
-      })();
+      const _resolvedPrimaryDiet: string[] = humanFoodContext.diet.effective.slice();
+      if (requestDietOverride) {
+        console.log(`🔀 [CRAVING] Authoritative diet override: "${requestDietOverride}" replaces profile diet`);
+      }
 
       // ── Build diet-aware adaptation / override block ──────────────────────
       // NOW we know the user's actual diet — build the right block, never
@@ -6059,10 +6008,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Creator System 2-pass transformation — applied AFTER all safety/protocol filters.
-      // If kitchenSlug is provided, the kitchen config takes priority over the user's own active system.
-      // Modifies only name, description, instructions. Macros, ingredients, servings NEVER touched.
-      if (user && !_cravingGlp1Targets) {
-        try {
+      // Kept as one reusable request-local function so a bounded universal repair
+      // receives the same final transformation before it is revalidated.
+      const applyFinalCreatorTransformation = async (options: any[]): Promise<any[]> => {
+        if (user && !_cravingGlp1Targets) {
+          try {
           const { resolveActiveSystem } = await import("./services/creatorSystems/resolver");
           const { applyCreatorTransformation } = await import("./services/creatorSystems/applyCreatorTransformation");
           const { resolveKitchenSystem } = await import("./services/creatorSystems/resolveKitchenSystem");
@@ -6081,16 +6031,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           if (creatorSystem.id !== "default") {
-            scannedOptions = await Promise.all(
-              scannedOptions.map(meal => applyCreatorTransformation(meal, creatorSystem, "meal"))
+            return await Promise.all(
+              options.map(meal => applyCreatorTransformation(meal, creatorSystem, "meal"))
             );
           }
-        } catch (err) {
-          console.error("[CreatorSystem] Transformation failed in craving-creator — using base options:", err);
+          } catch (err) {
+            console.error("[CreatorSystem] Transformation failed in craving-creator — using base options:", err);
+          }
+        } else if (user && _cravingGlp1Targets) {
+          console.log("[CreatorSystem] Skipped for GLP-1-active request so no unvalidated transformation runs after the clinical gate.");
         }
-      } else if (user && _cravingGlp1Targets) {
-        console.log("[CreatorSystem] Skipped for GLP-1-active request so no unvalidated transformation runs after the clinical gate.");
+        return options;
+      };
+      scannedOptions = await applyFinalCreatorTransformation(scannedOptions);
+
+      // ── Stage 2C universal final-validation gate ───────────────────────────
+      // Every candidate-producing branch above converges here: initial output,
+      // BGL/allergen retries, emergency fallback, and creator transformation.
+      // A repair is generated at most once, with the same immutable context and
+      // request-local rejection state, then passes through protocol/clinical
+      // filtering, creator transformation, and this validator again.
+      const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
+      const { validateMealForDiet: validateFinalMealForDiet } = await import("./services/guardrails/index");
+      const candidateComplianceEvidence = (meal: any) => {
+        const protocolProof = scanGeneratedOutput(meal, _filterEnvelope, {
+          generatorName: "craving_creator_final_evidence",
+          skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+          overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+          exemptDishNameTerms: _adaptExemptTerms,
+        });
+        const carbs = meal.nutrition?.carbs ?? meal.carbs;
+        const glucoseState = protocolEnvelope.diabeticGlucoseState;
+        const carbCeiling = glucoseState === "high-risk" ? 15
+          : glucoseState === "elevated" ? 25
+          : glucoseState === "low" ? 45
+          : 35;
+        const diabetesCompliant = protocolEnvelope.hasDiabetes
+          ? protocolProof.passed && (
+              glucoseState === "low" ||
+              glucoseState === "low-normal" ||
+              (carbs != null && Number(carbs) <= carbCeiling + 10)
+            )
+          : undefined;
+        const glp1Compliant = _cravingGlp1Targets
+          ? validateFinalMealForDiet({
+              name: meal.name,
+              ingredients: meal.ingredients ?? [],
+              instructions: meal.instructions,
+              macros: {
+                calories: meal.nutrition?.calories ?? meal.calories,
+                protein: meal.nutrition?.protein ?? meal.protein,
+                carbs,
+                fat: meal.nutrition?.fat ?? meal.fat,
+              },
+            } as any, "glp1", undefined, targetMealType === "snack", _cravingGlp1Targets).isValid
+          : undefined;
+        return {
+          protocolCompliant: protocolProof.passed,
+          diabetesCompliant,
+          glp1Compliant,
+        };
+      };
+      const toFinalValidationCandidate = (meal: any) => {
+        const complianceEvidence = candidateComplianceEvidence(meal);
+        return ({
+        ...meal,
+        category: meal.category ?? meal.mealType ?? targetMealType ?? "meal",
+        nutrition: {
+          calories: meal.nutrition?.calories ?? meal.calories,
+          protein: meal.nutrition?.protein ?? meal.protein,
+          carbs: meal.nutrition?.carbs ?? meal.carbs,
+          fat: meal.nutrition?.fat ?? meal.fat,
+          starchyCarbs: meal.nutrition?.starchyCarbs ?? meal.starchyCarbs,
+        },
+        evidence: {
+          ...(meal.evidence ?? {}),
+          sourceType: "generated_recipe",
+          ingredientEvidence: "structured_generation",
+          preparationEvidence: "structured_generation",
+          nutritionEvidence: "structured_generation",
+          dietaryIdentityCompliant: complianceEvidence.protocolCompliant,
+          clinicalDirectivesCompliant:
+            humanFoodContext.safety.healthConditions.length > 0
+              ? complianceEvidence.protocolCompliant
+              : undefined,
+          glp1Compliant: complianceEvidence.glp1Compliant,
+          diabetesCompliant: complianceEvidence.diabetesCompliant,
+          cuisine: humanFoodContext.flavor.cuisine.value ?? undefined,
+          cuisineIntensity: humanFoodContext.flavor.cuisineIntensity.value ?? undefined,
+          heat: humanFoodContext.flavor.heat.value ?? undefined,
+          seasoningIntensity: humanFoodContext.flavor.seasoningIntensity.value ?? undefined,
+          broadFlavor: humanFoodContext.flavor.broadFlavor.value ?? undefined,
+          flavorStyle: humanFoodContext.flavor.flavorStyle.value ?? undefined,
+        },
+        });
+      };
+      const runFinalValidation = (meal: any) => validateHumanFoodCandidate(
+        toFinalValidationCandidate(meal),
+        humanFoodContext,
+        {
+          requestedDish: rawCravingInput || "",
+          requestedCategory: targetMealType || "lunch",
+          dishDirective: _dishDirective,
+          executionState: humanFoodExecutionState,
+        },
+      );
+
+      const { enforceFinalCreatorCandidates } = await import(
+        "./services/humanFoodContext/enforceFinalCreatorCandidates"
+      );
+      const finalEnforcement = await enforceFinalCreatorCandidates({
+        candidates: scannedOptions,
+        validate: runFinalValidation,
+        repair: async (repairInstructions: string[]) => {
+          try {
+          const repairClause = repairInstructions.join(" ");
+          const repairOptions = await generateCravingMealOptions(
+            `${cravingInput}\n\n[UNIVERSAL FINAL-VALIDATION REPAIR — ONE ATTEMPT ONLY]\n${repairClause}`,
+            targetMealType || "lunch",
+            userId,
+            bodyDietRestrictions,
+            excludeMeals,
+            strictMode === true,
+            (generationMode === "recipe" ? "recipe" : "meal"),
+            (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
+              ? cultureOverride.trim()
+              : undefined,
+            _cravingGlp1Targets,
+            _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            _dishDirective,
+            skipImages === true,
+            humanFoodExecutionState,
+          );
+          const protocolSafeRepairs = filterMealsByProtocol(repairOptions ?? [], _filterEnvelope, {
+            generatorName: "craving_creator_final_repair",
+            skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+            overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            exemptDishNameTerms: _adaptExemptTerms,
+            dishIdentity: {
+              requestedDish: rawCravingInput || "",
+              directive: _dishDirective,
+              results: _identityResults,
+            },
+          });
+          const clinicallySafeRepairs = protocolEnvelope.hasDiabetes
+            ? protocolSafeRepairs.filter((meal: any) => {
+                const carbs = meal.carbs ?? meal.nutrition?.carbs;
+                const state = protocolEnvelope.diabeticGlucoseState;
+                const ceiling = state === "high-risk" ? 15 : state === "elevated" ? 25 : state === "low" ? 45 : 35;
+                return (state === "low" || state === "low-normal") || (carbs != null && Number(carbs) <= ceiling + 10);
+              })
+            : protocolSafeRepairs;
+            return await applyFinalCreatorTransformation(clinicallySafeRepairs);
+          } catch (repairError) {
+            console.error("[HumanFoodFinalValidation] Bounded repair failed:", repairError);
+            return [];
+          }
+        },
+      });
+
+      // Never leak a blocked/review/repairable candidate. If no final candidate
+      // passes, return the strongest typed outcome observed.
+      if (finalEnforcement.accepted.length === 0) {
+        const strongest = finalEnforcement.validations.find(({ result }) => result.outcome === "blocked")
+          ?? finalEnforcement.validations.find(({ result }) => result.outcome === "review_required")
+          ?? finalEnforcement.validations.find(({ result }) => result.outcome === "repairable");
+        const outcome = strongest?.result.outcome ?? "blocked";
+        return res.status(outcome === "review_required" ? 409 : 422).json({
+          status: outcome,
+          code: outcome === "review_required"
+            ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+            : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+          retryable: false,
+          message: outcome === "review_required"
+            ? "We couldn't verify enough evidence to return this food safely."
+            : "We couldn't produce a version that passed your final food protections.",
+          findings: strongest?.result.findings ?? [],
+          authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
+        });
       }
+      scannedOptions = finalEnforcement.accepted;
 
       // Format and optionally scale each option
       const formattedOptions = scannedOptions.map(meal => {
@@ -6137,6 +6257,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         return formatted;
       });
+
+      // Formatting/scaling changes ingredient quantities and nutrition totals.
+      // Revalidate that exact final payload before any image work or response.
+      const postFormatResults = formattedOptions.map((meal: any) => ({
+        meal,
+        result: runFinalValidation(meal),
+      }));
+      const postFormatFailure = postFormatResults.find(
+        ({ result }) => result.outcome !== "pass",
+      );
+      if (postFormatFailure) {
+        const outcome = postFormatFailure.result.outcome;
+        return res.status(outcome === "review_required" ? 409 : 422).json({
+          status: outcome,
+          code: outcome === "review_required"
+            ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+            : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+          retryable: false,
+          message: "The final formatted food did not pass universal validation.",
+          findings: postFormatFailure.result.findings,
+          authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
+        });
+      }
 
       // ── Unified Image Pipeline: generate permanent imageUrls in parallel before responding ─
       // Matches the architecture used by /api/meals/generate and /api/meals/fridge-rescue.
