@@ -153,19 +153,16 @@ export async function runStorageStartupDiagnostic(): Promise<void> {
   console.log("│ [Storage Diagnostic] Starting image upload pipeline test");
   console.log(`│ Tag: ${tag}`);
   console.log(
-    `│ S3_BUCKET_NAME             : ${process.env.S3_BUCKET_NAME || "❌ MISSING"}`
+    `│ S3_BUCKET_NAME             : ${process.env.S3_BUCKET_NAME ? "SET" : "❌ MISSING"}`
   );
   console.log(
-    `│ AWS_REGION                 : ${process.env.AWS_REGION || "❌ MISSING"}`
+    `│ AWS_REGION                 : ${process.env.AWS_REGION ? "SET" : "❌ MISSING"}`
   );
   console.log(
-    `│ AWS_ACCESS_KEY_ID          : ${process.env.AWS_ACCESS_KEY_ID ? "SET (" + process.env.AWS_ACCESS_KEY_ID.slice(0, 8) + "…)" : "❌ MISSING"}`
+    `│ PUBLIC_OBJECT_SEARCH_PATHS : ${process.env.PUBLIC_OBJECT_SEARCH_PATHS ? "SET" : "❌ MISSING"}`
   );
   console.log(
-    `│ PUBLIC_OBJECT_SEARCH_PATHS : ${process.env.PUBLIC_OBJECT_SEARCH_PATHS || "❌ MISSING"}`
-  );
-  console.log(
-    `│ Resolved bucket            : ${getPublicBucketName() || "❌ could not resolve"}`
+    `│ Resolved bucket            : ${getPublicBucketName() ? "AVAILABLE" : "❌ could not resolve"}`
   );
   console.log("│");
 
@@ -178,7 +175,7 @@ export async function runStorageStartupDiagnostic(): Promise<void> {
   console.log("│ [Path 1] uploadImageToPermanentStorage() — production server path …");
   const path1 = await testCurrentUploadPath(tag);
   if (path1.success) {
-    console.log(`│   ✅ SUCCEEDED  → ${path1.url}`);
+    console.log("│   ✅ SUCCEEDED");
     console.log(
       "│   Path type   :",
       path1.url?.startsWith("http")
@@ -186,7 +183,7 @@ export async function runStorageStartupDiagnostic(): Promise<void> {
         : "Replit Object Storage (relative path)"
     );
   } else {
-    console.log(`│   ❌ FAILED     → ${path1.error}`);
+    console.log("│   ❌ FAILED     → diagnostic details omitted");
   }
 
   // ── PATH 2: objectStorageClient GCS SDK direct write ─────────────────────
@@ -194,12 +191,12 @@ export async function runStorageStartupDiagnostic(): Promise<void> {
   console.log("│ [Path 2] objectStorageClient GCS SDK direct write …");
   const path2 = await testGCSSDKPath(tag);
   if (path2.success) {
-    console.log(`│   ✅ SUCCEEDED  → ${path2.url}`);
+    console.log("│   ✅ SUCCEEDED");
     console.log(
       "│   Verified     : object exists + correct byte count + deleted after test"
     );
   } else {
-    console.log(`│   ❌ FAILED     → ${path2.error}`);
+    console.log("│   ❌ FAILED     → diagnostic details omitted");
   }
 
   // ── SUMMARY ──────────────────────────────────────────────────────────────

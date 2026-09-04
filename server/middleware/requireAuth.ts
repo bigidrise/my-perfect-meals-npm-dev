@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { resolveAccessTier, type AccessTier } from "../lib/accessTier";
 import { loadOrgContext } from "../lib/orgContext";
 import { computeEffectiveAccess } from "../services/effectiveAccess";
+import { findUserByValidAuthToken } from "../services/authTokenService";
 
 // ── Idle session timeout thresholds ───────────────────────────────────────────
 // Clinical roles require a 15-minute timeout per HIPAA §164.312(a)(2)(iii).
@@ -175,20 +176,20 @@ export async function requireAuth(
     // Idle timeout is NOT applied here — mobile OS handles app lifecycle and
     // the auth token has its own revocation path.
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.authToken, token))
-        .limit(1);
+      const user = await findUserByValidAuthToken(token);
 
       if (user) {
+        (req as any).bearerMfaVerified =
+          user.authTokenMfaVerifiedAt instanceof Date &&
+          user.authTokenCreatedAt instanceof Date &&
+          user.authTokenMfaVerifiedAt.getTime() >= user.authTokenCreatedAt.getTime();
         (req as AuthenticatedRequest).authUser = await buildAuthUserWithEffectiveAccess(user);
         (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
         return next();
       }
 
       // Token present but not found in DB
-      console.warn(`[requireAuth] 401 token_not_found — route: ${route}, tokenPrefix: ${token.slice(0, 8)}…`);
+      console.warn(`[requireAuth] 401 invalid_or_expired_token — route: ${route}`);
     } catch (error) {
       console.error(`[requireAuth] 401 db_error (token lookup) — route: ${route}`, error);
     }
@@ -202,6 +203,15 @@ export async function requireAuth(
         .limit(1);
 
       if (user) {
+        const sessionSecurityVersion = (req as any).session?.authSecurityVersion;
+        if (sessionSecurityVersion !== user.authSecurityVersion) {
+          (req as any).session.destroy?.(() => {});
+          res.status(401).json({
+            error: "Your authentication state has changed. Please sign in again.",
+            code: "AUTH_REAUTHENTICATION_REQUIRED",
+          });
+          return;
+        }
         // ── Idle session timeout (HIPAA §164.312(a)(2)(iii)) ──────────────────
         const role = (user.role as string) ?? "client";
         const professionalRole = (user.professionalRole as string) ?? null;

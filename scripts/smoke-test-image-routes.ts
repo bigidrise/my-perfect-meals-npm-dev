@@ -306,7 +306,6 @@ function printResult(result: TestResult, isCache = false) {
 
 async function main() {
   console.log(`\n🔍 Image-route smoke test — ${BASE_URL}`);
-  console.log(`   Auth token: ${AUTH_TOKEN ? `${AUTH_TOKEN.substring(0, 8)}… (provided)` : "NOT PROVIDED — tests will be skipped"}`);
   console.log("\nRound 1: Full route generation (15–60 s per route — DALL-E + S3 upload).");
   console.log("Round 2: Cache check — two sequential /api/meals/generate-image calls.");
   console.log("         2nd call must hit the in-memory cache (≤ 2 s).\n");

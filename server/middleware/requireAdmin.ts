@@ -3,6 +3,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
+import { requireMfa } from "./requireMfa";
 
 export async function requireAdmin(
   req: Request,
@@ -28,7 +29,9 @@ export async function requireAdmin(
       return;
     }
 
-    next();
+    // Keep every existing requireAdmin route behind the centralized MFA policy,
+    // including routes that are mounted independently of /api/admin.
+    await requireMfa(req, res, next);
   } catch (error) {
     console.error("[requireAdmin] DB error during admin check:", error);
     res.status(500).json({ error: "Internal server error" });

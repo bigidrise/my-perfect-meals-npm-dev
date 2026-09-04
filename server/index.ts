@@ -250,6 +250,12 @@ if (!process.env.SESSION_SECRET) {
   }
 }
 
+if (process.env.NODE_ENV === "production") {
+  throw new Error(
+    "server/index.ts is development-only and cannot provide durable production sessions; use server/prod.ts",
+  );
+}
+
 // Session middleware for authentication
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',

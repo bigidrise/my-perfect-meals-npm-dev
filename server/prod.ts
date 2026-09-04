@@ -51,15 +51,15 @@ const clientDistForSsr = path.resolve(__dirname, "../client/dist");
 let isInitialized = false;
 let initError: Error | null = null;
 
-// CRITICAL: Health checks MUST respond IMMEDIATELY - no middleware, no delays
-// Cloud Run checks root path (/) for readiness
 app.get("/healthz", (_req, res) => {
-  res.status(200).send("ok");
+  if (initError) return res.status(503).send("initialization failed");
+  if (!isInitialized) return res.status(503).send("starting");
+  return res.status(200).send("ok");
 });
 
 app.get("/", (_req, res, next) => {
   if (!isInitialized) {
-    return res.status(200).send("ok - server starting");
+    return res.status(503).send("server starting");
   }
   next();
 });
@@ -845,10 +845,16 @@ async function initializeApp() {
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: false }));
 
-    // PostgreSQL-backed session store (production-ready, no MemoryStore)
-    // Guarded: if DATABASE_URL is missing, fall back to MemoryStore with warning
+    // PostgreSQL-backed session store. Production must never fall back to the
+    // process-local MemoryStore because Autoscale may run multiple instances.
+    if (!process.env.DATABASE_URL) {
+      throw new Error(
+        "DATABASE_URL is required for durable production sessions",
+      );
+    }
+
     const sessionConfig: any = {
-      secret: process.env.SESSION_SECRET || "mpm-session-secret-dev-only",
+      secret: process.env.SESSION_SECRET!,
       resave: false,
       saveUninitialized: false,
       cookie: {
@@ -859,34 +865,49 @@ async function initializeApp() {
       },
     };
 
-    if (process.env.DATABASE_URL) {
-      try {
-        const PgSession = connectPgSimple(session);
-        const sessionPool = new pg.Pool({
-          connectionString: process.env.DATABASE_URL,
-          max: 5,
-          ssl: process.env.DATABASE_URL.includes("sslmode=require")
-            ? { rejectUnauthorized: false }
-            : undefined,
-        });
-        sessionConfig.store = new PgSession({
-          pool: sessionPool,
-          tableName: "session",
-          createTableIfMissing: true,
-          pruneSessionInterval: 60 * 15,
-        });
-        console.log("✅ [INIT] PostgreSQL session store configured");
-      } catch (pgSessionErr) {
-        console.warn(
-          "⚠️ [INIT] Failed to create PG session store, using default:",
-          pgSessionErr,
-        );
-      }
-    } else {
-      console.warn(
-        "⚠️ [INIT] DATABASE_URL not set, sessions will use default MemoryStore",
+    const PgSession = connectPgSimple(session);
+    const sessionPool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 5,
+      ssl: process.env.DATABASE_URL.includes("sslmode=require")
+        ? { rejectUnauthorized: false }
+        : undefined,
+    });
+    const securitySchema = await sessionPool.query<{
+      throttle_table: string | null;
+      mfa_token_column: boolean;
+      security_version_column: boolean;
+    }>(`
+      SELECT
+        to_regclass('public.auth_attempt_throttles')::text AS throttle_table,
+        EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'users'
+            AND column_name = 'auth_token_mfa_verified_at'
+        ) AS mfa_token_column,
+        EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'users'
+            AND column_name = 'auth_security_version'
+        ) AS security_version_column
+    `);
+    const schemaRow = securitySchema.rows[0];
+    if (
+      !schemaRow?.throttle_table ||
+      schemaRow.mfa_token_column !== true ||
+      schemaRow.security_version_column !== true
+    ) {
+      throw new Error(
+        "Required U3 authentication security schema is missing; refusing production readiness",
       );
     }
+    sessionConfig.store = new PgSession({
+      pool: sessionPool,
+      tableName: "session",
+      createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15,
+    });
+    console.log("✅ [INIT] PostgreSQL session store configured");
 
     app.use(session(sessionConfig));
 
@@ -1061,7 +1082,9 @@ async function initializeApp() {
 
     // business — Clinical Business multi-seat subscription management
     const businessRouter = (await import("./routes/businessRoutes")).default;
-    app.use("/api/business", businessRouter);
+    const { requireMfa } = await import("./middleware/requireMfa");
+    // Keep the production mount identical to registerRoutes() in development.
+    app.use("/api/business", requireAuth, requireMfa, businessRouter);
 
     // partner — partner identity records (promo codes, commission terms, timeline)
     const partnerRouter = (await import("./routes/partnerRoutes")).default;

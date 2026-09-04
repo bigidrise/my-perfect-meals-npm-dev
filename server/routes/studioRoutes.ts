@@ -22,6 +22,7 @@ import {
   normalizeEmailIdentity,
   resolveEmailIdentityForUser,
 } from "../services/emailIdentityService";
+import { findUserByValidAuthToken } from "../services/authTokenService";
 
 const router = Router();
 
@@ -31,11 +32,7 @@ async function getUserId(req: any): Promise<string | null> {
   if (req.session?.userId) return req.session.userId as string;
   const authToken = req.headers["x-auth-token"] as string;
   if (authToken) {
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.authToken, authToken))
-      .limit(1);
+    const user = await findUserByValidAuthToken(authToken);
     if (user) return user.id;
   }
   return null;
