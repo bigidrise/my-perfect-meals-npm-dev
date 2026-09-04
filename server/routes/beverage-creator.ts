@@ -49,6 +49,7 @@ import {
   validateLiquidNutritionOutput,
 } from "../services/hydration/hydrationContextService";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -584,6 +585,7 @@ Return JSON ONLY, following this exact schema:
 
 {
   "name": "",
+  "category": "${effectiveCategory}",
   "description": "",
   "ingredients": [
     {
@@ -600,6 +602,10 @@ Return JSON ONLY, following this exact schema:
     "starchyCarbs": 0,
     "fat": 0
   },
+  "perServingNutrition": {
+    "calories": 0, "protein": 0, "carbs": 0, "starchyCarbs": 0, "fat": 0
+  },
+  "servings": ${serving.count},
   "servingSize": "${serving.label}",
   "reasoning": "",
   "imageUrl": ""
@@ -659,6 +665,147 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       beverageContext.builder,
       !!beverageGlp1ResolvedTargets,
     );
+    const { validateHumanFoodCandidate } = await import("../services/humanFoodContext/finalValidation");
+    const { enforceFinalCreatorCandidates } = await import(
+      "../services/humanFoodContext/enforceFinalCreatorCandidates"
+    );
+    const { validateMealForDiet: validateBeverageForGlp1 } = await import("../services/guardrails");
+    const requestedBeverage = _beverageIsNamed ? _beverageIdentifier : undefined;
+    const requestedBeverageCategory = String(effectiveCategory || "beverage").toLowerCase();
+    const toFinalBeverageCandidate = (candidate: any) => {
+      const text = [
+        candidate?.name,
+        candidate?.description,
+        ...(candidate?.ingredients ?? []).map((item: any) =>
+          typeof item === "string" ? item : item?.name ?? item?.item ?? "",
+        ),
+        ...(Array.isArray(candidate?.instructions)
+          ? candidate.instructions
+          : [candidate?.instructions ?? ""]),
+      ].join(" ").toLowerCase();
+      const evidenced = (field: { available: boolean; value: string | null }) =>
+        field.available && field.value && text.includes(field.value.toLowerCase())
+          ? field.value
+          : undefined;
+      const protocolProof = scanGeneratedOutput(candidate, beverageEnvelope, {
+        generatorName: "beverage_creator_final_evidence",
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+        overriddenAllergens: _overriddenBeverageAllergens.length
+          ? _overriddenBeverageAllergens
+          : undefined,
+      });
+      const medicalProof = validateBeverageOutput(
+        candidate,
+        beverageEnvelope,
+        beverageContext.builder,
+      );
+      const liquidProof = validateLiquidNutritionOutput(candidate, activeLiquidProtocol);
+      const nutrition = candidate?.nutrition ?? {};
+      const glp1Proof = beverageGlp1ResolvedTargets
+        ? validateBeverageForGlp1({
+            name: String(candidate?.name ?? ""),
+            ingredients: (candidate?.ingredients ?? []).map((item: any) => ({
+              name: String(typeof item === "string" ? item : item?.name ?? item?.item ?? ""),
+            })),
+            macros: {
+              calories: Number(nutrition.calories),
+              protein: Number(nutrition.protein),
+              carbs: Number(nutrition.carbs),
+              fat: Number(nutrition.fat),
+            },
+          }, null, undefined, true, beverageGlp1ResolvedTargets).isValid
+        : undefined;
+      return {
+        ...candidate,
+        category: candidate?.category,
+        nutrition: {
+          calories: Number(nutrition.calories),
+          protein: Number(nutrition.protein),
+          carbs: Number(nutrition.carbs),
+          fat: Number(nutrition.fat),
+          starchyCarbs: Number(nutrition.starchyCarbs),
+        },
+        evidence: {
+          sourceType: "generated_recipe" as const,
+          ingredientEvidence: "structured_generation" as const,
+          preparationEvidence: "structured_generation" as const,
+          nutritionEvidence: "structured_generation" as const,
+          dietaryIdentityCompliant: protocolProof.passed,
+          clinicalDirectivesCompliant:
+            humanFoodContext.safety.healthConditions.length > 0
+              ? protocolProof.passed && medicalProof.passed && liquidProof.passed
+              : undefined,
+          glp1Compliant: glp1Proof,
+          diabetesCompliant:
+            humanFoodContext.safety.healthConditions.some((condition) =>
+              condition.toLowerCase().includes("diabet"),
+            )
+              ? protocolProof.passed && medicalProof.passed
+              : undefined,
+          cuisine: evidenced(humanFoodContext.flavor.cuisine),
+          cuisineIntensity: evidenced(humanFoodContext.flavor.cuisineIntensity),
+          heat: evidenced(humanFoodContext.flavor.heat),
+          seasoningIntensity: evidenced(humanFoodContext.flavor.seasoningIntensity),
+          broadFlavor: evidenced(humanFoodContext.flavor.broadFlavor),
+          flavorStyle: evidenced(humanFoodContext.flavor.flavorStyle),
+        },
+      };
+    };
+    const validateFinalBeverageCandidate = (candidate: any): HumanFoodFinalValidationResult => {
+      const result = validateHumanFoodCandidate(toFinalBeverageCandidate(candidate), humanFoodContext, {
+        requestedDish: requestedBeverage,
+        requestedCategory: requestedBeverageCategory,
+        dishDirective: _beverageDishDirective,
+        executionState: humanFoodExecutionState,
+      });
+      const nutrition = candidate?.nutrition ?? {};
+      const perServing = candidate?.perServingNutrition ?? {};
+      const nutritionKeys = ["calories", "protein", "carbs", "fat", "starchyCarbs"];
+      const finiteNutrition = [...nutritionKeys.map((key) => nutrition[key]), ...nutritionKeys.map((key) => perServing[key])]
+        .every((value) => typeof value === "number" && Number.isFinite(value));
+      const scalingMatches = finiteNutrition &&
+        candidate?.servings === serving.count &&
+        nutritionKeys.every((key) =>
+          Math.abs(nutrition[key] - perServing[key] * serving.count) <= 1,
+        );
+      const categoryMatches =
+        String(candidate?.category ?? "").toLowerCase() === requestedBeverageCategory;
+      const servingMatches = candidate?.servingSize === serving.label;
+      const liquidProof = validateLiquidNutritionOutput(candidate, activeLiquidProtocol);
+      const liquidFailureMessage = "message" in liquidProof ? liquidProof.message : undefined;
+      if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && liquidProof.passed) return result;
+      const preserveOutcome: HumanFoodFinalValidationResult["outcome"] = !liquidProof.passed
+        ? "blocked"
+        : result.outcome === "blocked" || result.outcome === "review_required"
+          ? result.outcome
+          : "repairable";
+      return {
+        ...result,
+        outcome: preserveOutcome,
+        findings: [...result.findings, {
+          dimension: "nutrition" as const,
+          outcome: liquidProof.passed ? "repairable" as const : "blocked" as const,
+          code: !liquidProof.passed
+            ? "liquid_nutrition_conflict"
+            : !finiteNutrition
+              ? "final_nutrition_invalid"
+              : !categoryMatches
+                ? "final_category_mismatch"
+                : "final_serving_mismatch",
+          message: !liquidProof.passed
+            ? liquidFailureMessage
+            : "Final beverage structure or scaling could not be verified.",
+          assurance: "structured_evidence" as const,
+          repairHint: liquidProof.passed
+            ? `Return finite nutrition, category "${requestedBeverageCategory}", and servingSize "${serving.label}".`
+            : undefined,
+        }],
+        repairInstructions: preserveOutcome === "repairable"
+          ? [...result.repairInstructions,
+              `Return numeric total and per-serving nutrition multiplied to ${serving.count} servings, category "${requestedBeverageCategory}", and servingSize "${serving.label}".`]
+          : [],
+      };
+    };
 
     async function generateValidatedAlternatives(
       rejection: BeverageProtocolRejection,
@@ -724,15 +871,6 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             beverageContext.builder,
           );
           if (!candidateMedicalValidation.passed) continue;
-          if (!validateCreatorHumanFoodResult(
-            "beverage_creator",
-            candidate,
-            humanFoodContext,
-          ).valid) {
-            recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate);
-            continue;
-          }
-
           if (_beverageIsNamed) {
             const candidateIdentity = validateDishIdentity(
               _beverageIdentifier,
@@ -777,13 +915,15 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           const identity = normalizedName.trim().toLowerCase();
           if (seenNames.has(identity)) continue;
           seenNames.add(identity);
-          alternatives.push({
+          const finalAlternative = {
             ...candidate,
             name: normalizedName,
             ingredients: normalizedCandidateIngredients,
-            servingSize: candidate.servingSize || serving.label,
+            servingSize: candidate.servingSize,
             imageUrl: null,
-          });
+          };
+          if (validateFinalBeverageCandidate(finalAlternative).outcome !== "pass") continue;
+          alternatives.push(finalAlternative);
           if (alternatives.length === 2) break;
         }
 
@@ -1135,14 +1275,70 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     }
 
     // Creator System 2-pass transformation — applied after all safety checks and normalization.
+    const beverageCreatorSystem =
+      userId && userId !== "1" ? await resolveCreatorSystemForUser(userId) : null;
     if (userId && userId !== "1") {
-      const creatorSystem = await resolveCreatorSystemForUser(userId);
-      meal = await applyCreatorTransformation(meal, creatorSystem, "beverage");
+      meal = await applyCreatorTransformation(meal, beverageCreatorSystem!, "beverage");
     }
 
     // Final response-only title guard. Explicit request values take precedence
     // over profile context so an override/selection is the identity shown.
     meal.name = ensureBeverageDietTitle(meal.name, titleDietRestrictions, rawLang);
+
+    const finalBeverageEnforcement = await enforceFinalCreatorCandidates({
+      candidates: [meal],
+      validate: validateFinalBeverageCandidate,
+      repair: async (repairInstructions) => {
+        const repairCompletion = await getOpenAI().chat.completions.create({
+          model: "gpt-4o",
+          messages: [{
+            role: "user",
+            content:
+              `${prompt}\n\nRepair this rejected beverage without changing the requested drink identity, ` +
+              `category, serving count, cuisine, flavor, sweetness, or texture.\n` +
+              `${JSON.stringify(meal)}\n\n${repairInstructions.join("\n")}`,
+          }],
+          response_format: { type: "json_object" },
+        });
+        let repaired = JSON.parse(repairCompletion.choices[0]?.message?.content || "{}");
+        repaired.ingredients = normalizeIngredients(repaired.ingredients || []);
+        const repairedMedical = validateBeverageOutput(
+          repaired,
+          beverageEnvelope,
+          beverageContext.builder,
+        );
+        if (!repairedMedical.passed) {
+          attemptBeverageAutoFix(repaired, repairedMedical.violations);
+        }
+        if (beverageCreatorSystem) {
+          repaired = await applyCreatorTransformation(repaired, beverageCreatorSystem, "beverage");
+        }
+        repaired.name = ensureBeverageDietTitle(repaired.name, titleDietRestrictions, rawLang);
+        return [repaired];
+      },
+    });
+    if (finalBeverageEnforcement.accepted.length === 0) {
+      const validations = finalBeverageEnforcement.validations.map(({ result }) => result);
+      const reviewRequired = validations.some(({ outcome }) => outcome === "review_required");
+      return res.status(reviewRequired ? 409 : 422).json({
+        code: reviewRequired
+          ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+          : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+        status: reviewRequired ? "review_required" : "blocked",
+        message: "No beverage passed universal final validation.",
+        retryable: false,
+        findings: validations.flatMap(({ findings }) => findings),
+        authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
+      });
+    }
+    meal = finalBeverageEnforcement.accepted[0];
+    if (validateFinalBeverageCandidate(meal).outcome !== "pass") {
+      return res.status(422).json({
+        code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+        message: "The final beverage response did not pass universal validation.",
+        retryable: false,
+      });
+    }
 
     if (isDev) console.log("[BEVERAGE] Sending response (image handled client-side)...");
 
@@ -1159,13 +1355,6 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
     const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
       buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
-    const humanFoodValidation = validateCreatorHumanFoodResult("beverage_creator", meal, humanFoodContext);
-    if (!humanFoodValidation.valid) {
-      return res.status(422).json({
-        code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
-        message: "The beverage did not pass final food-context validation.",
-      });
-    }
     return res.json({
       ...meal,
       imageUrl,

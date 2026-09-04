@@ -13,6 +13,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { getResolvedTargets, setPerfSelectedDate } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { addCalendarDays, localYYYYMMDD } from "@/utils/dates";
 import {
   computeDemandProfile,
   FUEL_DEMAND_LABELS,
@@ -128,15 +129,14 @@ const DOW_SCHED_KEYS = ["sunday","monday","tuesday","wednesday","thursday","frid
 const DOW_SHORT_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const DOW_FULL_LABELS  = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
-function getThisWeekDates() {
-  const now = new Date();
-  const todayDow = now.getDay();
+function getThisWeekDates(todayDateStr: string) {
+  const [year, month, day] = todayDateStr.split("-").map(Number);
+  // UTC is used only for calendar arithmetic after the authoritative local date is known.
+  const todayDow = new Date(Date.UTC(year, month - 1, day, 12)).getUTCDay();
   return DOW_SCHED_KEYS.map((day, i) => {
-    const d = new Date(now);
-    d.setDate(now.getDate() - todayDow + i);
     return {
       day,
-      dateStr:  d.toISOString().split("T")[0],
+      dateStr:  addCalendarDays(todayDateStr, i - todayDow),
       short:    DOW_SHORT_LABELS[i],
       full:     DOW_FULL_LABELS[i],
       isPast:   i < todayDow,
@@ -472,7 +472,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
   const [checkInLoading, setCheckInLoading] = useState(false);
 
   // Date-aware coaching plan — selectedDate drives which day's plan is shown
-  const todayDateStr = new Date().toISOString().split("T")[0];
+  const todayDateStr = localYYYYMMDD(new Date(), (user as any)?.timezone);
   const [selectedDate, setSelectedDate] = useState<string>(todayDateStr);
   const isViewingToday = selectedDate === todayDateStr;
 
@@ -687,7 +687,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
         return;
       }
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = localYYYYMMDD(new Date(), (user as any)?.timezone);
       const carbTargetG = carbCycleData?.state.carbTargetG ?? 0;
       const starchVal = checkInStarch ? parseFloat(checkInStarch) : (carbTargetG || 0);
 
@@ -1172,7 +1172,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
           {(() => {
             const sched = (user as any)?.weeklyTrainingSchedule;
             if (!sched) return null;
-            const weekDates = getThisWeekDates();
+            const weekDates = getThisWeekDates(todayDateStr);
             return (
               <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
                 <div className="flex items-center justify-between mb-3">
