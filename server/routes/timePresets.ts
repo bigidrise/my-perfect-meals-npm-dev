@@ -2,16 +2,16 @@ import { Router } from "express";
 import { db } from "../db";
 import { userTimePresets } from "../../shared/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
+const actorId = (req: any) => (req as AuthenticatedRequest).authUser.id;
+
 // List user's time presets
-router.get("/time-presets", async (req, res) => {
+router.get("/time-presets", requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId || "");
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
+    const userId = actorId(req);
     
     const presets = await db.select().from(userTimePresets)
       .where(eq(userTimePresets.userId, userId))
@@ -25,11 +25,12 @@ router.get("/time-presets", async (req, res) => {
 });
 
 // Create or update time preset
-router.post("/time-presets/save", async (req, res) => {
+router.post("/time-presets/save", requireAuth, async (req, res) => {
   try {
-    const { userId, id, name, times, notify, isDefault } = req.body;
+    const { id, name, times, notify, isDefault } = req.body;
+    const userId = actorId(req);
     
-    if (!userId || !name || !times || !notify) {
+    if (!name || !times || !notify) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -77,12 +78,13 @@ router.post("/time-presets/save", async (req, res) => {
 });
 
 // Delete time preset
-router.post("/time-presets/delete", async (req, res) => {
+router.post("/time-presets/delete", requireAuth, async (req, res) => {
   try {
-    const { userId, id } = req.body;
+    const { id } = req.body;
+    const userId = actorId(req);
     
-    if (!userId || !id) {
-      return res.status(400).json({ error: "userId and id are required" });
+    if (!id) {
+      return res.status(400).json({ error: "id is required" });
     }
     
     await db.delete(userTimePresets)
@@ -99,12 +101,9 @@ router.post("/time-presets/delete", async (req, res) => {
 });
 
 // Get user's default time preset
-router.get("/time-presets/default", async (req, res) => {
+router.get("/time-presets/default", requireAuth, async (req, res) => {
   try {
-    const userId = String(req.query.userId || "");
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required" });
-    }
+    const userId = actorId(req);
     
     const [defaultPreset] = await db.select().from(userTimePresets)
       .where(and(

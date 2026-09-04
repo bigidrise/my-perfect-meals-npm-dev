@@ -4,8 +4,17 @@ import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import { parsePhoneNumber } from "libphonenumber-js";
 import twilio from "twilio";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
+
+router.use("/users/:userId", requireAuth, (req, res, next) => {
+  const authUserId = (req as AuthenticatedRequest).authUser.id;
+  if (req.params.userId !== authUserId) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+});
 
 // Initialize Twilio client
 const twilioClient = twilio(
@@ -16,7 +25,7 @@ const twilioClient = twilio(
 // GET phone state
 router.get("/users/:userId/phone", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = (req as AuthenticatedRequest).authUser.id;
     const [u] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!u) return res.status(404).json({ error: "User not found" });
     
@@ -35,7 +44,7 @@ router.get("/users/:userId/phone", async (req, res) => {
 // Request verification code
 router.post("/users/:userId/phone/request-code", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = (req as AuthenticatedRequest).authUser.id;
     const raw = (req.body?.phone || "").toString().trim();
     
     const p = parsePhoneNumber(raw, "US"); // adjust default region if needed
@@ -68,7 +77,7 @@ router.post("/users/:userId/phone/request-code", async (req, res) => {
 // Verify code
 router.post("/users/:userId/phone/verify", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = (req as AuthenticatedRequest).authUser.id;
     const code = (req.body?.code || "").toString().trim();
     const [u] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
@@ -93,7 +102,7 @@ router.post("/users/:userId/phone/verify", async (req, res) => {
 // SMS consent
 router.put("/users/:userId/sms-consent", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = (req as AuthenticatedRequest).authUser.id;
     const consent = !!req.body?.consent;
 
     await db.update(users).set({
