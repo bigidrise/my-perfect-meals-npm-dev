@@ -772,6 +772,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         String(candidate?.category ?? "").toLowerCase() === requestedBeverageCategory;
       const servingMatches = candidate?.servingSize === serving.label;
       const liquidProof = validateLiquidNutritionOutput(candidate, activeLiquidProtocol);
+      const liquidFailureMessage = "message" in liquidProof ? liquidProof.message : undefined;
       if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && liquidProof.passed) return result;
       const preserveOutcome: HumanFoodFinalValidationResult["outcome"] = !liquidProof.passed
         ? "blocked"
@@ -792,7 +793,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
                 ? "final_category_mismatch"
                 : "final_serving_mismatch",
           message: !liquidProof.passed
-            ? liquidProof.message
+            ? liquidFailureMessage
             : "Final beverage structure or scaling could not be verified.",
           assurance: "structured_evidence" as const,
           repairHint: liquidProof.passed

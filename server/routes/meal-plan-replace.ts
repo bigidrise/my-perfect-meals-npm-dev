@@ -49,8 +49,12 @@ router.post("/api/meal-plan/replace/custom", requireAuth, async (req: any, res) 
       excludeItemId: (cur.plan as any)?.days?.[dayIndex]?.meals?.[mealIndex]?.id,
       correlationId: req.id,
     });
-    await setCurrentPlan(userId, rerolled.plan, { ...(cur.meta ?? {}), ...rerolled.meta });
-    res.json({ userId, plan: rerolled.plan, meta: { ...(cur.meta ?? {}), ...rerolled.meta } });
+    const currentMeta = cur.meta !== null && typeof cur.meta === "object" && !Array.isArray(cur.meta)
+      ? cur.meta
+      : {};
+    const mergedMeta = { ...currentMeta, ...rerolled.meta };
+    await setCurrentPlan(userId, rerolled.plan, mergedMeta);
+    res.json({ userId, plan: rerolled.plan, meta: mergedMeta });
   } catch (e) {
     console.error("Custom replacement error:", e);
     const typed = e instanceof WeeklyMealGenerationError ? e : null;
