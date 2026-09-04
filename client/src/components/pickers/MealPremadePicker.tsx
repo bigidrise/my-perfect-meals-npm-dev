@@ -796,7 +796,7 @@ export default function MealPremadePicker({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          type: "fridge-rescue",
+          type: "premade",
           mealType: generationMealType,
           input: ingredientsList,
           userId,

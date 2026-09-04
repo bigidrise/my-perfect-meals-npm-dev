@@ -205,6 +205,19 @@ export const AVOIDANCE_EXPANSION: Record<string, string[]> = {
 /** Aliases that genuinely denote the same allergy category — nothing else. */
 const ALLERGEN_KEY_ALIASES: Record<string, string> = {
   milk: "dairy",                    // "milk allergy" IS a dairy allergy (distinct from lactose intolerance)
+  milks: "dairy",
+  "milk allergy": "dairy",
+  "milk allergies": "dairy",
+  "milk protein": "dairy",
+  "milk proteins": "dairy",
+  "milk protein allergy": "dairy",
+  "milk protein allergies": "dairy",
+  "dairy milk": "dairy",
+  "dairy (milk)": "dairy",
+  "dairy allergy": "dairy",
+  "dairy allergies": "dairy",
+  "dairy (milk) allergy": "dairy",
+  "dairy (milk) allergies": "dairy",
   "shell fish": "shellfish",
   "tree nut": "tree nuts",
   treenut: "tree nuts",
@@ -221,7 +234,7 @@ export function canonicalAllergenKey(raw: string): string {
   const k = (raw || "")
     .trim()
     .toLowerCase()
-    .replace(/[_-]+/g, " ")
+    .replace(/[_/-]+/g, " ")
     .replace(/\s+/g, " ");
   const aliased = ALLERGEN_KEY_ALIASES[k] ?? k;
   // Restore canonical hyphenation where the expansion table uses it
@@ -302,7 +315,7 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "sour cream", "creme fraiche", "custard", "pudding",
     "milk chocolate", "hot chocolate", "latte", "cappuccino", "milkshake",
     "cream sauce", "alfredo", "bechamel", "white sauce", "queso",
-    "lactose", "whey protein concentrate"
+    "lactose", "whey protein concentrate", "ghee"
   ],
   
   // Also accept without space
@@ -316,7 +329,7 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "sour cream", "creme fraiche", "custard", "pudding",
     "milk chocolate", "hot chocolate", "latte", "cappuccino", "milkshake",
     "cream sauce", "alfredo", "bechamel", "white sauce", "queso",
-    "lactose", "whey protein concentrate"
+    "lactose", "whey protein concentrate", "ghee"
   ],
   
   // Also accept just "lactose" as shorthand for lactose intolerance
@@ -330,7 +343,7 @@ export const ALLERGEN_EXPANSION: Record<string, string[]> = {
     "sour cream", "creme fraiche", "custard", "pudding",
     "milk chocolate", "hot chocolate", "latte", "cappuccino", "milkshake",
     "cream sauce", "alfredo", "bechamel", "white sauce", "queso",
-    "lactose", "whey protein concentrate"
+    "lactose", "whey protein concentrate", "ghee"
   ],
   
   // Eggs
