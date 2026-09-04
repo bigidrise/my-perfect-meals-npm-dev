@@ -56,8 +56,17 @@ router.post("/api/meal-plans/generate", requireAuth, async (req, res) => {
     const validatedData = generateMealPlanSchema.parse(req.body);
     const { weeks, mealsPerDay, snacksPerDay, targets, diet, medicalFlags, variant, planningMode } = validatedData;
     const userId = getAuthUserId(req);
+    if (typeof targets.calories !== "number" || typeof targets.protein !== "number") {
+      return res.status(400).json({ error: "ValidationError", message: "Calories and protein targets are required." });
+    }
+    const canonicalTargets = {
+      calories: targets.calories,
+      protein: targets.protein,
+      ...(targets.carbs === undefined ? {} : { carbs: targets.carbs }),
+      ...(targets.fats === undefined ? {} : { fats: targets.fats }),
+    };
     const canonical = await generateCanonicalWeeklyMealPlan({
-      userId, weeks, mealsPerDay, snacksPerDay, targets, dietOverride: diet,
+      userId, weeks, mealsPerDay, snacksPerDay, targets: canonicalTargets, dietOverride: diet,
       correlationId: (req as any).id,
     });
     return res.json(canonical);
