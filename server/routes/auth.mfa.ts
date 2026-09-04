@@ -12,7 +12,8 @@
 import { Router } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import {
   generateTotpSecret,
@@ -25,8 +26,22 @@ import {
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { autoAcceptPendingInvites, lookupExistingMembership } from "../services/inviteAutoAccept";
 import { selfHealProCareState } from "../services/procareActivation";
+import { regenerateSession } from "../lib/sessionSecurity";
 
 const router = Router();
+
+async function ensureAuthToken(user: any): Promise<any> {
+  if (user.authToken) return user;
+
+  const authToken = crypto.randomBytes(32).toString("hex");
+  const authTokenCreatedAt = new Date();
+  await db
+    .update(users)
+    .set({ authToken, authTokenCreatedAt })
+    .where(eq(users.id, user.id));
+
+  return { ...user, authToken, authTokenCreatedAt };
+}
 
 // ── Shared helper: build the full login response object ──────────────────────
 // Must stay in sync with the login handler in auth.session.ts
@@ -165,14 +180,16 @@ router.post("/challenge", async (req, res) => {
       return res.status(401).json({ error: "Invalid code. Try again or use a backup code." });
     }
 
-    // Challenge passed — promote to full session
-    delete (req as any).session.pendingMfaUserId;
+    const authenticatedUser = await ensureAuthToken(user);
+
+    // Rotate away from the pre-authentication session before promotion.
+    await regenerateSession(req);
     (req as any).session.userId = user.id;
     (req as any).session.mfaVerified = true;
 
     logAudit({ actor: user.id, action: "MFA_CHALLENGE_SUCCESS", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { method: "totp" } });
 
-    const payload = await buildLoginResponse(user, req);
+    const payload = await buildLoginResponse(authenticatedUser, req);
     res.json(payload);
   } catch (err) {
     console.error("[mfa/challenge] error:", err);
@@ -207,20 +224,32 @@ router.post("/challenge/backup", async (req, res) => {
       return res.status(401).json({ error: "Invalid backup code." });
     }
 
-    // Consume the used backup code
-    await db.update(users)
+    // Consume the used backup code atomically. Matching the original code list
+    // prevents two concurrent submissions from both succeeding.
+    const [consumed] = await db.update(users)
       .set({ mfaBackupCodes: remaining as any })
-      .where(eq(users.id, user.id));
+      .where(and(
+        eq(users.id, user.id),
+        eq(users.mfaBackupCodes, hashedCodes as any),
+      ))
+      .returning({ id: users.id });
 
-    // Promote to full session
-    delete (req as any).session.pendingMfaUserId;
+    if (!consumed) {
+      logAudit({ actor: user.id, action: "MFA_CHALLENGE_FAILED", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { method: "backup", reason: "already_consumed" } });
+      return res.status(401).json({ error: "Invalid backup code." });
+    }
+
+    const authenticatedUser = await ensureAuthToken(user);
+
+    // Rotate away from the pre-authentication session before promotion.
+    await regenerateSession(req);
     (req as any).session.userId = user.id;
     (req as any).session.mfaVerified = true;
 
     logAudit({ actor: user.id, action: "MFA_CHALLENGE_SUCCESS", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { method: "backup" } });
     logAudit({ actor: user.id, action: "MFA_BACKUP_USED", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { remaining: remaining.length } });
 
-    const payload = await buildLoginResponse(user, req);
+    const payload = await buildLoginResponse(authenticatedUser, req);
     res.json(payload);
   } catch (err) {
     console.error("[mfa/challenge/backup] error:", err);

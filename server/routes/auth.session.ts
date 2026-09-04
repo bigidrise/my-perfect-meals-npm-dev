@@ -18,6 +18,11 @@ import {
 } from "../services/preRegistrationAccess";
 import { findOrganizationalPilotInvitation } from "../services/organizationalPilotInvitationService";
 import { inspectPilotAuthorizationToken } from "../services/organizationalPilotAuthorizationService";
+import {
+  clearSessionCookie,
+  destroySession,
+  regenerateSession,
+} from "../lib/sessionSecurity";
 
 const router = Router();
 
@@ -275,10 +280,8 @@ router.post("/api/auth/signup", async (req, res) => {
       return createdUser;
     });
 
-  // Set session cookie for mobile compatibility (guard for prod where session may be undefined)
-  if (req.session) {
-    (req.session as any).userId = newUser.id;
-  }
+  await regenerateSession(req);
+  (req.session as any).userId = newUser.id;
 
   console.log("✅ Created new user ID:", newUser.id);
   logAudit({
@@ -410,10 +413,8 @@ router.post("/api/auth/login", async (req, res) => {
     // Set pendingMfaUserId on the session so the /mfa/challenge endpoint can
     // verify the code and promote to a full session.
     if (user.mfaEnabled) {
-      if (req.session) {
-        (req.session as any).pendingMfaUserId = user.id;
-        delete (req.session as any).userId; // no full session until TOTP verified
-      }
+      await regenerateSession(req);
+      (req.session as any).pendingMfaUserId = user.id;
       logAudit({ actor: user.id, action: "AUTH_LOGIN", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { mfaRequired: true } });
       return res.json({ mfaRequired: true });
     }
@@ -429,10 +430,8 @@ router.post("/api/auth/login", async (req, res) => {
       await db.update(users).set(updateFields).where(eq(users.id, user.id));
     }
 
-    // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
-    if (req.session) {
-      (req.session as any).userId = user.id;
-    }
+    await regenerateSession(req);
+    (req.session as any).userId = user.id;
 
     console.log("✅ User logged in, ID:", user.id);
     logAudit({ actor: user.id, action: "AUTH_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
@@ -511,9 +510,8 @@ router.post("/api/auth/logout", requireAuth, async (req: any, res) => {
   const userId = req.authUser.id;
   try {
     await db.update(users).set({ authToken: null, authTokenCreatedAt: null }).where(eq(users.id, userId));
-    if (req.session) {
-      req.session.destroy?.(() => {});
-    }
+    await destroySession(req);
+    clearSessionCookie(res);
     console.log(`✅ [logout] Token invalidated for user ${userId}`);
     logAudit({ actor: userId, action: "AUTH_LOGOUT", resourceType: "auth", route: "/api/auth/logout", ip: getClientIp(req as any) });
     return res.json({ success: true });

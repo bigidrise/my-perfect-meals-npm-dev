@@ -51,15 +51,15 @@ const clientDistForSsr = path.resolve(__dirname, "../client/dist");
 let isInitialized = false;
 let initError: Error | null = null;
 
-// CRITICAL: Health checks MUST respond IMMEDIATELY - no middleware, no delays
-// Cloud Run checks root path (/) for readiness
 app.get("/healthz", (_req, res) => {
-  res.status(200).send("ok");
+  if (initError) return res.status(503).send("initialization failed");
+  if (!isInitialized) return res.status(503).send("starting");
+  return res.status(200).send("ok");
 });
 
 app.get("/", (_req, res, next) => {
   if (!isInitialized) {
-    return res.status(200).send("ok - server starting");
+    return res.status(503).send("server starting");
   }
   next();
 });
@@ -845,10 +845,16 @@ async function initializeApp() {
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: false }));
 
-    // PostgreSQL-backed session store (production-ready, no MemoryStore)
-    // Guarded: if DATABASE_URL is missing, fall back to MemoryStore with warning
+    // PostgreSQL-backed session store. Production must never fall back to the
+    // process-local MemoryStore because Autoscale may run multiple instances.
+    if (!process.env.DATABASE_URL) {
+      throw new Error(
+        "DATABASE_URL is required for durable production sessions",
+      );
+    }
+
     const sessionConfig: any = {
-      secret: process.env.SESSION_SECRET || "mpm-session-secret-dev-only",
+      secret: process.env.SESSION_SECRET!,
       resave: false,
       saveUninitialized: false,
       cookie: {
@@ -859,34 +865,21 @@ async function initializeApp() {
       },
     };
 
-    if (process.env.DATABASE_URL) {
-      try {
-        const PgSession = connectPgSimple(session);
-        const sessionPool = new pg.Pool({
-          connectionString: process.env.DATABASE_URL,
-          max: 5,
-          ssl: process.env.DATABASE_URL.includes("sslmode=require")
-            ? { rejectUnauthorized: false }
-            : undefined,
-        });
-        sessionConfig.store = new PgSession({
-          pool: sessionPool,
-          tableName: "session",
-          createTableIfMissing: true,
-          pruneSessionInterval: 60 * 15,
-        });
-        console.log("✅ [INIT] PostgreSQL session store configured");
-      } catch (pgSessionErr) {
-        console.warn(
-          "⚠️ [INIT] Failed to create PG session store, using default:",
-          pgSessionErr,
-        );
-      }
-    } else {
-      console.warn(
-        "⚠️ [INIT] DATABASE_URL not set, sessions will use default MemoryStore",
-      );
-    }
+    const PgSession = connectPgSimple(session);
+    const sessionPool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 5,
+      ssl: process.env.DATABASE_URL.includes("sslmode=require")
+        ? { rejectUnauthorized: false }
+        : undefined,
+    });
+    sessionConfig.store = new PgSession({
+      pool: sessionPool,
+      tableName: "session",
+      createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15,
+    });
+    console.log("✅ [INIT] PostgreSQL session store configured");
 
     app.use(session(sessionConfig));
 

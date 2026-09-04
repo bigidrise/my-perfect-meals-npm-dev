@@ -20,6 +20,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import type { AuthenticatedRequest } from "./requireAuth";
+import { isMfaVerifiedForUser } from "../lib/sessionSecurity";
 
 // System roles with clinical access
 const CLINICAL_SYSTEM_ROLES = new Set(["coach", "admin"]);
@@ -58,7 +59,7 @@ export async function requireMfa(
       .limit(1);
 
     const mfaEnabled = row?.mfaEnabled ?? false;
-    const mfaVerified = (req as any).session?.mfaVerified === true;
+    const mfaVerified = isMfaVerifiedForUser(req, userId);
 
     if (mfaEnabled && !mfaVerified) {
       res.status(403).json({
