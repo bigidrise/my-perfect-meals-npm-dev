@@ -306,12 +306,12 @@ export default function SnackPickerDrawer({
       
       console.log(`🎨 Generating snack with ingredients:`, ingredientsList);
       
-      // Use the SAME unified endpoint as AI Meal Creator and Premades - routes through Fridge Rescue
+      // Use the canonical unified endpoint as a premade snack request.
       const response = await fetch(apiUrl('/api/meals/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'fridge-rescue',
+          type: 'premade',
           mealType: 'snack',
           input: ingredientsList,
           userId: '1',

@@ -3823,7 +3823,11 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
           console.warn(`[CHEF SANITY] Ingredient sanity failed — attempt ${attemptCount} — regenerating`);
           continue;
         }
-        console.error(`[CHEF SANITY] Sanity unresolvable after ${attemptCount} attempts — serving as-is`);
+        console.error(`[CHEF SANITY] Sanity unresolvable after ${attemptCount} attempts — failing closed`);
+        throw Object.assign(
+          new Error("Ingredient quantities remained unsafe after bounded regeneration."),
+          { status: 422, code: "INGREDIENT_SANITY_RETRY_EXHAUSTED" },
+        );
       }
 
       // ── Nutrition plausibility gate ───────────────────────────────────────
@@ -3860,8 +3864,11 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         }
         if (!plausible) {
           console.error(
-            `[NUTRITION PLAUSIBILITY] Mismatch unresolvable after ${attemptCount} attempts — ` +
-            `reported=${repPerServing} est=${Math.round(estPerServing)} ratio=${ratio.toFixed(2)} — serving as-is`
+            `[NUTRITION PLAUSIBILITY] Mismatch unresolvable after ${attemptCount} attempts — failing closed`
+          );
+          throw Object.assign(
+            new Error("Nutrition evidence remained implausible after bounded regeneration."),
+            { status: 422, code: "NUTRITION_PLAUSIBILITY_RETRY_EXHAUSTED" },
           );
         }
       }

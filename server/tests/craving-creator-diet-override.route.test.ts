@@ -215,32 +215,23 @@ const PIPELINE_SRC = fs.readFileSync(
 
 describe("A. Structural — routes.ts /api/meals/craving-creator diet override", () => {
 
-  it("_resolvedPrimaryDiet wraps dietaryRestrictions body field into an array", () => {
-    // The route at line 5141-5142 wraps the string "keto" into ["keto"].
-    // If this line is removed, the override is silently dropped before generation.
+  it("resolves a single request diet override before authoritative context resolution", () => {
     const block = ROUTES_SRC.slice(
-      ROUTES_SRC.indexOf("_resolvedPrimaryDiet"),
-      ROUTES_SRC.indexOf("_resolvedPrimaryDiet") + 600,
+      ROUTES_SRC.indexOf("const requestDietOverride"),
+      ROUTES_SRC.indexOf("const requestDietOverride") + 1200,
     );
-    // Wraps both string and array forms
-    expect(block).toContain("Array.isArray(dietaryRestrictions)");
-    // Falls through to handle the string case
-    expect(block).toContain("[dietaryRestrictions]");
+    expect(block).toContain('typeof dietOverride === "string"');
+    expect(block).toContain('typeof dietaryRestrictions === "string"');
+    expect(block).toContain("dietOverride: requestDietOverride");
   });
 
-  it("dietOverride is checked FIRST (explicit builder override wins over dietaryRestrictions)", () => {
-    // The route resolves diet priority: dietOverride > dietaryRestrictions > empty.
-    // This ensures a programmatic override (dietOverride body field, e.g. from an admin caller)
-    // cannot be overridden by a client-sent dietaryRestrictions field.
+  it("uses the resolved Human Food Context as the only effective diet source", () => {
     const block = ROUTES_SRC.slice(
-      ROUTES_SRC.indexOf("_resolvedPrimaryDiet"),
-      ROUTES_SRC.indexOf("_resolvedPrimaryDiet") + 600,
+      ROUTES_SRC.indexOf("const _resolvedPrimaryDiet"),
+      ROUTES_SRC.indexOf("const _resolvedPrimaryDiet") + 250,
     );
-    const dietOverridePos      = block.indexOf("dietOverride");
-    const dietRestrictionsPos  = block.indexOf("dietaryRestrictions");
-    expect(dietOverridePos).toBeGreaterThan(-1);
-    expect(dietRestrictionsPos).toBeGreaterThan(-1);
-    expect(dietOverridePos).toBeLessThan(dietRestrictionsPos); // dietOverride checked first
+    expect(block).toContain("humanFoodContext.diet.effective.slice()");
+    expect(block).not.toContain("dietaryRestrictions");
   });
 
   it("generateCravingMealOptions is called with bodyDietRestrictions (the resolved diet)", () => {
