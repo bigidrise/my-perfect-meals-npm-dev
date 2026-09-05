@@ -24,6 +24,7 @@ import {
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
+import { findUserByValidAuthToken } from "./services/authTokenService";
 import { createApiRateLimit } from "./middleware/rateLimit";
 import { getAuthUserId } from "./utils/getAuthUserId";
 import { emitActivityEvent } from "./services/coaching/activityEvents";
@@ -92,6 +93,7 @@ import trialRouter from './routes/trial';
 import mfaRoutes from './routes/auth.mfa';
 import { requireMfa } from './middleware/requireMfa';
 import { MealEngineService } from "./services/mealEngineService";
+import { generateCanonicalWeeklyMealPlan, WeeklyMealGenerationError } from "./services/canonicalWeeklyMealPlanning";
 import { generateFridgeRescueMeals } from "./services/fridgeRescueGenerator";
 import { buildAcePromptBlock } from "./services/ace/buildAcePromptBlock";
 import { getBuilderSwitchStatus, attemptBuilderSwitch } from "./services/builderSwitchService";
@@ -794,34 +796,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ⚡ PRIORITY ROUTE: Classic Builder - MUST BE FIRST before any middleware
-  app.post("/api/meal-plan/generate", (req, res) => {
-    console.log("🏗️ PRIORITY Classic Builder route hit - responding immediately!");
-
-    res.json({ 
-      plan: {
-        id: `plan-${Date.now()}`,
-        userId: "00000000-0000-0000-0000-000000000001",
-        weeks: 1,
-        mealsPerDay: 3,
-        snacksPerDay: 1,
-        targets: { calories: 2000, protein: 140 },
-        scheduleTimes: { breakfast: "07:00", lunch: "12:00", dinner: "18:30" },
-        planningMode: "CLASSIC",
-        variant: "AUTO",
-        meals: [
-          { id: 1, name: "Avocado Toast with Eggs", type: "breakfast", calories: 380, protein: 18, day: 0, scheduledTime: "07:00" },
-          { id: 2, name: "Grilled Chicken Salad", type: "lunch", calories: 450, protein: 35, day: 0, scheduledTime: "12:00" },
-          { id: 3, name: "Salmon with Vegetables", type: "dinner", calories: 520, protein: 42, day: 0, scheduledTime: "18:30" },
-          { id: 4, name: "Mixed Nuts", type: "snack", calories: 180, protein: 6, day: 0, scheduledTime: "15:30" }
-        ]
-      },
-      meta: {
-        generatedAt: new Date().toISOString(),
-        planningMode: "CLASSIC",
-        variant: "AUTO",
-        totalMeals: 4
-      }
-    });
+  app.post("/api/meal-plan/generate", requireAuth, async (req, res) => {
+    try {
+      const body = req.body ?? {};
+      const result = await generateCanonicalWeeklyMealPlan({
+        userId: getAuthUserId(req),
+        weeks: body.weeks,
+        mealsPerDay: body.mealsPerDay,
+        snacksPerDay: body.snacksPerDay,
+        targets: body.targets,
+        dietOverride: typeof body.diet === "string" ? body.diet : undefined,
+        correlationId: (req as any).id,
+      });
+      return res.json(result);
+    } catch (error) {
+      const typed = error instanceof WeeklyMealGenerationError ? error : null;
+      return res.status(typed?.status ?? (error as any)?.status ?? 500)
+        .json({ error: typed?.code ?? "WEEKLY_MEAL_GENERATION_FAILED" });
+    }
   });
 
   // Load studio membership for all API routes (non-blocking - just attaches membership info to req)
@@ -856,7 +848,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/promotions', promotionRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
   app.use('/api/white-label', whiteLabelRouter);
-  app.use('/api/business', businessRouter);
+  // Business administration is privileged even for users whose system role is
+  // "client"; requireMfa derives active owner/admin authority from the DB.
+  app.use('/api/business', requireAuth, requireMfa, businessRouter);
 
   // Partner Center — referral tools, monthly campaigns, messaging guidelines
   const marketingCenterRouter = (await import('./routes/marketingCenterRoutes')).default;
@@ -1194,7 +1188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const effectiveUserId: string = delegatedClientId ?? authUserId;
       let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
       let humanFoodExecutionState: import("./services/humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState | undefined;
-      if (type === "create-with-chef") {
+      const stage2dHumanFoodTypes = new Set(["create-with-chef", "snack-creator", "premade", "craving"]);
+      if (stage2dHumanFoodTypes.has(type)) {
         const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
         const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
         const humanFoodRequestScope = createHumanFoodRequestScope({
@@ -1240,31 +1235,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           inputText,
           safetyMode: safetyMode || "STRICT",
           overrideToken,
-          allowAdaptableAllergyConflict: type === "create-with-chef",
         });
         const routeResponse = toRouteResponse(enforcement);
         if (routeResponse.blocked || routeResponse.reviewRequired) {
           return res.status(400).json({ source: 'error', ...routeResponse.errorPayload });
-        }
-        if (enforcement.adaptableAllergyConflict && humanFoodContext) {
-          const { buildCreatorAllergenAdaptationPrompt } = await import("./services/humanFoodContext/adapters");
-          const adaptationPrompt = buildCreatorAllergenAdaptationPrompt(
-            "recipe_maker",
-            inputText,
-            {
-              result: "BLOCKED",
-              blockedTerms: enforcement.adaptableAllergyConflict.matchedTerms,
-              blockedCategories: enforcement.adaptableAllergyConflict.allergens,
-              ambiguousTerms: [],
-              message: "Automatic allergen adaptation required.",
-              allergyConflict: enforcement.adaptableAllergyConflict,
-            },
-            humanFoodContext,
-          );
-          req.body.generationContext = [
-            req.body.generationContext,
-            adaptationPrompt,
-          ].filter(Boolean).join("\n\n");
         }
         // Sole authorization source: the enforcement result exposes the
         // allergen only after the token was validated, one-time claimed,
@@ -1513,8 +1487,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const result = await generateMealUnified({
-        type,
+      const generationRequest = {
+        // Stage 2D callers share one context-aware implementation so the same
+        // prompt, execution state, retry loop, substitutions, and fallback rules
+        // apply to Recipe Maker, general meals, snacks, and premades.
+        type: stage2dHumanFoodTypes.has(type) ? "create-with-chef" : type,
         mealType,
         input: effectiveInput,
         userId: effectiveUserId,
@@ -1565,7 +1542,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // scanGeneratedOutput to suppress post-gen violations for these allergens
         // (and their derivatives via ALLERGEN_EXPANSION) for this single generation.
         overriddenAllergens: _unifiedOverriddenAllergens.length ? _unifiedOverriddenAllergens : undefined,
-      });
+      };
+      const result = await generateMealUnified(generationRequest);
 
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/generate', result.source as any, durationMs);
@@ -1687,6 +1665,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // ── Universal Human Food final gate (Stage 2D) ───────────────────────
+      // Every in-scope canonical general-meal candidate converges here after
+      // generation, internal retries, substitutions, and fallbacks. A single
+      // request-local repair may run with the same immutable context.
+      if (humanFoodContext && result.success && (result.meal || result.meals?.length)) {
+        const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
+        const { enforceFinalCreatorCandidates } = await import(
+          "./services/humanFoodContext/enforceFinalCreatorCandidates"
+        );
+        const { validateMealForDiet } = await import("./services/guardrails/index");
+        const { validateClinicalMacros } = await import("./services/clinicalMacroGate");
+        const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
+        const finalProtocolEnvelope =
+          (await loadUserProtocolEnvelope(effectiveUserId).catch(() => null)) ?? buildGuestEnvelope();
+        const requestedDish =
+          typeof effectiveInput === "string" && effectiveInput.trim().length <= 120
+            ? effectiveInput.trim()
+            : undefined;
+        const requestedCategory = String(mealType || "meal").toLowerCase();
+        const exemptDishNameTerms = requestedDish
+          ? new Set(
+              getRequestedDishExemptTerms(requestedDish, finalProtocolEnvelope.allergies)
+                .map((term) => term.toLowerCase()),
+            )
+          : undefined;
+        const gateContext =
+          budgetGenerationContext && budgetGenerationContext !== "standard"
+            ? budgetGenerationContext
+            : (effectiveDietType ?? "standard");
+        const carbCeiling = effectiveRemainingMacros?.carbs ?? Number.POSITIVE_INFINITY;
+        const fatCeiling = effectiveRemainingMacros?.fat ?? Number.POSITIVE_INFINITY;
+
+        const toHumanFoodCandidate = (meal: any) => {
+          const candidateText = [
+            meal?.name,
+            meal?.description,
+            ...(meal?.ingredients ?? []).map((ingredient: any) =>
+              typeof ingredient === "string"
+                ? ingredient
+                : ingredient?.name ?? ingredient?.item ?? "",
+            ),
+            ...(Array.isArray(meal?.instructions)
+              ? meal.instructions
+              : [meal?.instructions ?? ""]),
+          ].join(" ").toLowerCase();
+          const evidencedPreference = (
+            field: { value: string | null; available: boolean },
+          ): string | undefined => {
+            if (!field.available || !field.value) return undefined;
+            return candidateText.includes(field.value.toLowerCase())
+              ? field.value
+              : undefined;
+          };
+          const protocolProof = scanGeneratedOutput(meal, finalProtocolEnvelope, {
+            generatorName: "unified_meal_final_evidence",
+            overriddenAllergens: _unifiedOverriddenAllergens.length
+              ? _unifiedOverriddenAllergens
+              : undefined,
+            exemptDishNameTerms,
+          });
+          const clinicalProof = validateClinicalMacros(
+            gateContext,
+            carbCeiling,
+            fatCeiling,
+            meal?.carbs,
+            meal?.fat,
+          );
+          const glp1Proof = serverGlp1Targets
+            ? validateMealForDiet({
+                ...meal,
+                macros: {
+                  calories: meal?.calories,
+                  protein: meal?.protein,
+                  carbs: meal?.carbs,
+                  fat: meal?.fat,
+                },
+              }, null, undefined, requestedCategory === "snack", serverGlp1Targets).isValid
+            : undefined;
+          return {
+            ...meal,
+            category: meal?.category ?? requestedCategory,
+            nutrition: {
+              calories: meal?.calories,
+              protein: meal?.protein,
+              carbs: meal?.carbs,
+              fat: meal?.fat,
+              starchyCarbs: meal?.starchyCarbs,
+            },
+            evidence: {
+              sourceType: "generated_recipe" as const,
+              ingredientEvidence: "structured_generation" as const,
+              preparationEvidence: "structured_generation" as const,
+              nutritionEvidence: "structured_generation" as const,
+              dietaryIdentityCompliant: protocolProof.passed,
+              clinicalDirectivesCompliant:
+                humanFoodContext!.safety.healthConditions.length > 0
+                  ? protocolProof.passed && clinicalProof.passed
+                  : undefined,
+              glp1Compliant: glp1Proof,
+              diabetesCompliant:
+                humanFoodContext!.safety.healthConditions.some((condition) =>
+                  condition.toLowerCase().includes("diabet"),
+                )
+                  ? clinicalProof.passed
+                  : undefined,
+              cuisine: evidencedPreference(humanFoodContext!.flavor.cuisine),
+              cuisineIntensity: evidencedPreference(humanFoodContext!.flavor.cuisineIntensity),
+              heat: evidencedPreference(humanFoodContext!.flavor.heat),
+              seasoningIntensity: evidencedPreference(humanFoodContext!.flavor.seasoningIntensity),
+              broadFlavor: evidencedPreference(humanFoodContext!.flavor.broadFlavor),
+              flavorStyle: evidencedPreference(humanFoodContext!.flavor.flavorStyle),
+            },
+          };
+        };
+        const validateFinalCandidate = (meal: any) =>
+          validateHumanFoodCandidate(toHumanFoodCandidate(meal), humanFoodContext!, {
+            requestedDish,
+            requestedCategory,
+            executionState: humanFoodExecutionState,
+          });
+        const initialCandidates: any[] =
+          result.meals?.length ? result.meals : result.meal ? [result.meal] : [];
+        const finalEnforcement = await enforceFinalCreatorCandidates({
+          candidates: initialCandidates,
+          validate: validateFinalCandidate,
+          repair: async (repairInstructions) => {
+            const repairResult = await generateMealUnified({
+              ...generationRequest,
+              type: "create-with-chef",
+              count: 1,
+              input:
+                `Repair this exact ${requestedCategory} candidate while preserving its identity:\n` +
+                `${JSON.stringify(initialCandidates[0])}\n\n` +
+                repairInstructions.join("\n"),
+              generationContext: [
+                generationRequest.generationContext,
+                repairInstructions.join("\n"),
+              ].filter(Boolean).join("\n\n"),
+              humanFoodExecutionState,
+            });
+            return repairResult.success
+              ? repairResult.meals?.length
+                ? repairResult.meals
+                : repairResult.meal
+                  ? [repairResult.meal]
+                  : []
+              : [];
+          },
+        });
+        if (finalEnforcement.accepted.length === 0) {
+          const validations = finalEnforcement.validations.map(({ result: validation }) => validation);
+          const reviewRequired = validations.some((validation) => validation.outcome === "review_required");
+          return res.status(reviewRequired ? 409 : 422).json({
+            success: false,
+            status: reviewRequired ? "review_required" : "blocked",
+            code: reviewRequired
+              ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+              : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+            retryable: false,
+            error: "No generated meal passed universal final validation.",
+            findings: validations.flatMap((validation) => validation.findings),
+            authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
+          });
+        }
+        const acceptedWithEvidence = finalEnforcement.accepted.map((meal: any) => {
+          const validatedCandidate = toHumanFoodCandidate(meal);
+          return {
+            ...meal,
+            category: validatedCandidate.category,
+            evidence: validatedCandidate.evidence,
+          };
+        });
+        result.meals = acceptedWithEvidence;
+        result.meal = acceptedWithEvidence[0];
+      }
+
       // ── Compliance bundle: attach complianceSection + dietClassification ──
       // Every meal leaving the server MUST pass through buildMealComplianceBundle.
       // This matches the exact pattern used in craving-creator and fridge-rescue routes.
@@ -1711,11 +1865,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Part 5 — Final Consistency Check ─────────────────────────────────
       // Sanitize meal name(s) to match the user's detected diet before sending.
       // Catches any concept-word mismatches the AI might have slipped through.
-      if (result.success && userId) {
+      if (result.success) {
         try {
           const [unifiedUserRow] = await db
             .select({ dietaryRestrictions: users.dietaryRestrictions })
-            .from(users).where(eq(users.id, userId)).limit(1);
+            .from(users).where(eq(users.id, effectiveUserId)).limit(1);
           const unifiedDiet = getPrimaryDiet((unifiedUserRow?.dietaryRestrictions as string[]) || []);
           if (unifiedDiet) {
             if (result.meal) {
@@ -1746,7 +1900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // ── Protocol Stamp — attach appliedProtocol so clients can verify protocol was applied ──
-      if (result.success && userId) {
+      if (result.success) {
         try {
           const [stampRow] = await db
             .select({
@@ -1754,7 +1908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               performanceContext: users.performanceContext,
               competitionPrepContext: users.competitionPrepContext,
             })
-            .from(users).where(eq(users.id, userId)).limit(1);
+            .from(users).where(eq(users.id, effectiveUserId)).limit(1);
 
           if (stampRow) {
             const track = stampRow.activeProtocolTrack as string | null;
@@ -1852,19 +2006,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ─────────────────────────────────────────────────────────────────────────────
 
       if (humanFoodContext && result.success) {
-        const { validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+        const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
         const outgoing = [
           ...(result.meal ? [result.meal] : []),
           ...(result.meals ?? []),
         ];
-        const invalid = outgoing.find((meal: any) =>
-          !validateCreatorHumanFoodResult("recipe_maker", meal, humanFoodContext!).valid
-        );
+        const invalid = outgoing
+          .map((meal: any) => ({
+            meal,
+            validation: validateHumanFoodCandidate({
+              ...meal,
+              category: meal?.category ?? String(mealType || "meal").toLowerCase(),
+              nutrition: {
+                calories: meal?.calories,
+                protein: meal?.protein,
+                carbs: meal?.carbs,
+                fat: meal?.fat,
+                starchyCarbs: meal?.starchyCarbs,
+              },
+              evidence: {
+                ...(meal?.evidence ?? {}),
+                sourceType: "generated_recipe",
+                ingredientEvidence: "structured_generation",
+                preparationEvidence: "structured_generation",
+                nutritionEvidence: "structured_generation",
+              },
+            }, humanFoodContext!, {
+              requestedDish: typeof effectiveInput === "string" ? effectiveInput : undefined,
+              requestedCategory: String(mealType || "meal").toLowerCase(),
+              executionState: humanFoodExecutionState,
+            }),
+          }))
+          .find(({ validation }) => validation.outcome !== "pass");
         if (invalid) {
-          return res.status(422).json({
+          const reviewRequired = invalid.validation.outcome === "review_required";
+          return res.status(reviewRequired ? 409 : 422).json({
             success: false,
-            code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
+            status: invalid.validation.outcome,
+            code: reviewRequired
+              ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+              : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
             error: "The generated recipe did not pass final food-context validation.",
+            findings: invalid.validation.findings,
           });
         }
       }
@@ -2309,10 +2492,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   */
 
   // CRITICAL: Register meal plan archive API FIRST to avoid Vite middleware interference
-  app.post("/api/meal-plan-archive", async (req, res) => {
+  app.post("/api/meal-plan-archive", requireAuth, async (req, res) => {
     try {
       console.log("🎯 PRIORITY MEAL PLAN ARCHIVE ROUTE HIT!");
-      const userId = "test-user-123"; // Demo user ID
+      const userId = (req as AuthenticatedRequest).authUser.id;
 
       // Import database connection
       const { db } = await import("./db");
@@ -2364,8 +2547,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/wmc2/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const { wmc2Regenerate } = await import("./services/wmc2Adapter");
-      const result = await wmc2Regenerate(req.params.userId, req.body);
+      const result = await wmc2Regenerate(authUserId, req.body);
       res.json(result);
     } catch (error) {
       console.error("WMC2 regeneration failed:", error);
@@ -3043,10 +3230,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   weekBoardRoutes(app);
 
   // Enhanced Meal Logs API for macro tracking
-  app.post("/api/meal-logs-enhanced", async (req, res) => {
+  app.post("/api/meal-logs-enhanced", requireAuth, async (req, res) => {
     try {
       const { eq } = await import("drizzle-orm");
-      const mealData = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const mealData = { ...req.body, userId: authUserId };
 
       // Insert into enhanced meal logs table
       const [insertedLog] = await db
@@ -3198,7 +3389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         const token = req.headers["x-auth-token"] as string;
         if (token) {
-          const [user] = await db.select().from(users).where(eq(users.authToken, token)).limit(1);
+          const user = await findUserByValidAuthToken(token);
           userId = user?.id;
         }
       }
@@ -3315,9 +3506,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/progress", myProgressRouter);
 
   // Food Log API - Log meals as eaten
-  app.post("/api/meal-logs", async (req, res) => {
+  app.post("/api/meal-logs", requireAuth, async (req, res) => {
     try {
-      const parsed = insertMealLogSchema.parse(req.body);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const parsed = insertMealLogSchema.parse({ ...req.body, userId: authUserId });
       const mealLog = await storage.createMealLog(parsed);
       res.json(mealLog);
     } catch (error) {
@@ -3327,12 +3522,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get meal logs with infinite query support - used by MealJournalPage
-  app.get("/api/meal-logs", async (req, res) => {
+  app.get("/api/meal-logs", requireAuth, async (req, res) => {
     try {
       const { userId, from, to, limit = "50", cursor } = req.query;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!userId) {
         return res.status(400).json({ error: "userId is required" });
+      }
+      if (String(userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       // Convert date strings to Date objects if provided
@@ -3340,7 +3539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = to ? new Date(to as string) : undefined;
 
       // Get meals with date filtering
-      let meals = await storage.getMealLogs(userId as string, startDate, endDate);
+      let meals = await storage.getMealLogs(authUserId, startDate, endDate);
 
       // Apply cursor-based pagination
       const pageSize = parseInt(limit as string);
@@ -3369,11 +3568,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 🚨 SAFETY: This endpoint uses template-based generation (not AI) with user.allergies passed to profile
   app.post("/api/weekly-meal-plan/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const userId = authUserId;
       const { mealsPerDay = 3, snacksPerDay = 1, duration = 7 } = req.body;
 
       // Get user data directly
-      const [user] = await db.select().from(users).where(eq(users.id, userId.toString())).limit(1);
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -3408,34 +3611,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // User routes
-  app.post("/api/users", async (req, res) => {
-    try {
-      const userData: any = insertUserSchema.parse(req.body);
-      // Ensure mealPlanVariant is a valid enum value or undefined
-      const validatedData = {
-        ...userData,
-        mealPlanVariant: userData.mealPlanVariant && ['A', 'B', 'AUTO'].includes(userData.mealPlanVariant as string) 
-          ? (userData.mealPlanVariant as 'A' | 'B' | 'AUTO')
-          : undefined,
-        // Ensure role is valid enum value
-        role: (userData as any).role && ['admin', 'coach', 'client'].includes((userData as any).role) 
-          ? ((userData as any).role as 'admin' | 'coach' | 'client')
-          : 'client',
-        // Ensure onboardingMode is valid enum value
-        onboardingMode: (userData as any).onboardingMode && ['independent', 'procare'].includes((userData as any).onboardingMode)
-          ? ((userData as any).onboardingMode as 'independent' | 'procare')
-          : 'independent'
-      };
-      const [user] = await db.insert(users).values([validatedData as any]).returning();
-      res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
+  app.post("/api/users", (_req, res) => {
+    return res.status(410).json({
+      code: "LEGACY_USER_CREATION_RETIRED",
+      error: "Accounts must be created through the authenticated signup flow.",
+    });
   });
 
-  app.get("/api/users/:id", async (req, res) => {
+  app.get("/api/users/:id", requireAuth, async (req, res) => {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.id !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const [user] = await db.select().from(users).where(eq(users.id, authUserId)).limit(1);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -3507,9 +3696,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User subscription routes
-  app.get("/api/users/:id/subscription", async (req, res) => {
+  app.get("/api/users/:id/subscription", requireAuth, async (req, res) => {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.id !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const [user] = await db.select().from(users).where(eq(users.id, authUserId)).limit(1);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -4028,20 +4221,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authReq = req as AuthenticatedRequest;
       const physicianId = authReq.authUser.id;
       const clientUserId = req.params.userId;
+      if (authReq.authUser.professionalRole !== "physician") {
+        return res.status(403).json({ error: "Physician role required" });
+      }
+      try {
+        const { verifyPhysicianClientAccess } = await import("./services/procareAccessService");
+        if (!(await verifyPhysicianClientAccess(physicianId, clientUserId))) {
+          return res.status(403).json({ error: "No active physician relationship for this client" });
+        }
+      } catch (error) {
+        const { handleOrgIsolationError } = await import("./lib/orgIsolation");
+        if (handleOrgIsolationError(error, res)) return;
+        throw error;
+      }
       const ALLOWED_TYPES = ["hypothyroid", "hyperthyroid", "hashimotos"];
       const { thyroidType } = req.body;
       const value = thyroidType === null || thyroidType === undefined
         ? null
         : ALLOWED_TYPES.includes(thyroidType) ? thyroidType : null;
-
-      const [membership] = await db
-        .select()
-        .from(studioMemberships)
-        .where(eq(studioMemberships.clientUserId, clientUserId as any))
-        .limit(1);
-      if (!membership) {
-        return res.status(403).json({ error: "No active studio relationship for this client" });
-      }
 
       await db.update(users).set({ thyroidType: value } as any).where(eq(users.id, clientUserId as any));
       console.log(`[pro/thyroid-type] Physician ${physicianId} set thyroidType → ${value ?? "cleared"} for user ${clientUserId}`);
@@ -4061,16 +4258,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const physicianId = authReq.authUser.id;
       const clientUserId = req.params.userId;
       const { active } = req.body;
-
-      // Verify active studio membership — requester must be a professional linked to this client
-      const [membership] = await db
-        .select()
-        .from(studioMemberships)
-        .where(eq(studioMemberships.clientUserId, clientUserId as any))
-        .limit(1);
-
-      if (!membership) {
-        return res.status(403).json({ error: "No active studio relationship for this client" });
+      if (authReq.authUser.professionalRole !== "physician") {
+        return res.status(403).json({ error: "Physician role required" });
+      }
+      try {
+        const { verifyPhysicianClientAccess } = await import("./services/procareAccessService");
+        if (!(await verifyPhysicianClientAccess(physicianId, clientUserId))) {
+          return res.status(403).json({ error: "No active physician relationship for this client" });
+        }
+      } catch (error) {
+        const { handleOrgIsolationError } = await import("./lib/orgIsolation");
+        if (handleOrgIsolationError(error, res)) return;
+        throw error;
       }
 
       const [clientRow] = await db
@@ -4792,9 +4991,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Meal plan routes
-  app.get("/api/meal-plans/:userId", async (req, res) => {
+  app.get("/api/meal-plans/:userId", requireAuth, async (req, res) => {
     try {
-      const plans = await db.select().from(mealPlans).where(eq(mealPlans.userId, req.params.userId));
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const plans = await db.select().from(mealPlans).where(eq(mealPlans.userId, authUserId));
       res.json(plans);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4803,42 +5006,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/meal-plans route moved to mealPlanArchive.routes.ts to handle AI meal plan acceptance
 
-  app.post("/api/meal-plans/generate", async (req, res) => {
+  app.post("/api/meal-plans/generate", requireAuth, async (req, res) => {
     try {
-      const { userId } = req.body;
-
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // 🚨 SAFETY: This endpoint uses pre-curated recipes, not AI generation
-      // Recipes are manually curated so no allergen enforcement needed here
-      // For AI-generated meals, use the unified pipeline which has full safety checks
-      
-      const generatedPlan = await generateMealPlan(user);
-      const [mealPlan] = await db.insert(mealPlans).values({
-        userId,
-        name: `AI Generated Plan - Week of ${new Date().toLocaleDateString()}`,
-        weekOf: new Date(),
-        meals: generatedPlan.meals as any,
-        totalCalories: generatedPlan.totalCalories,
-        totalProtein: generatedPlan.totalProtein,
-        totalCarbs: generatedPlan.totalCarbs,
-        totalFat: generatedPlan.totalFat,
-        isActive: true
-      }).returning();
-
-      res.json(mealPlan);
+      return res.json(await generateCanonicalWeeklyMealPlan({
+        userId: getAuthUserId(req), weeks: req.body?.weeks,
+        mealsPerDay: req.body?.mealsPerDay, snacksPerDay: req.body?.snacksPerDay,
+        targets: req.body?.targets, dietOverride: typeof req.body?.diet === "string" ? req.body.diet : undefined,
+        correlationId: (req as any).id,
+      }));
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      const typed = error instanceof WeeklyMealGenerationError ? error : null;
+      res.status(typed?.status ?? 500).json({ error: typed?.code ?? error.message });
     }
   });
 
-  app.patch("/api/meal-plans/:id", async (req, res) => {
+  app.patch("/api/meal-plans/:id", requireAuth, async (req, res) => {
     try {
-      const updates = req.body;
-      const [mealPlan] = await db.update(mealPlans).set(updates).where(eq(mealPlans.id, req.params.id)).returning();
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      const { id: _ignoredId, userId: _ignoredUserId, ...updates } = req.body ?? {};
+      const [mealPlan] = await db
+        .update(mealPlans)
+        .set(updates)
+        .where(and(
+          eq(mealPlans.id, req.params.id),
+          eq(mealPlans.userId, authUserId),
+        ))
+        .returning();
       if (!mealPlan) {
         return res.status(404).json({ message: "Meal plan not found" });
       }
@@ -4849,13 +5042,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Meal log routes
-  app.get("/api/meal-logs/:userId", async (req, res) => {
+  app.get("/api/meal-logs/:userId", requireAuth, async (req, res) => {
     try {
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const { startDate, endDate } = req.query;
       const start = startDate ? new Date(startDate as string) : undefined;
       const end = endDate ? new Date(endDate as string) : undefined;
 
-      const mealLogs = await storage.getMealLogs(req.params.userId, start, end);
+      const mealLogs = await storage.getMealLogs(authUserId, start, end);
       res.json(mealLogs);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4891,9 +5088,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meal-logs", async (req, res) => {
+  app.post("/api/meal-logs", requireAuth, async (req, res) => {
     try {
-      const mealLogData = insertMealLogSchema.parse(req.body);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const mealLogData = insertMealLogSchema.parse({ ...req.body, userId: authUserId });
       const mealLog = await storage.createMealLog(mealLogData);
       res.json(mealLog);
     } catch (error: any) {
@@ -4902,22 +5103,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Glycemic settings routes
-  app.get("/api/glycemic-settings", async (req, res) => {
+  app.get("/api/glycemic-settings", requireAuth, async (req, res) => {
     try {
-      const userId = req.query.userId as string || "1"; // Default to demo user
-      const settings = await storage.getUserGlycemicSettings(userId);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.query.userId && String(req.query.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const settings = await storage.getUserGlycemicSettings(authUserId);
       res.json(settings || {});
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.post("/api/glycemic-settings", async (req, res) => {
+  app.post("/api/glycemic-settings", requireAuth, async (req, res) => {
     try {
-      const userId = req.body.userId || "1"; // Default to demo user
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const settingsData = insertUserGlycemicSettingsSchema.parse({
         ...req.body,
-        userId
+        userId: authUserId
       });
       const settings = await storage.createOrUpdateGlycemicSettings(settingsData);
       res.json(settings);
@@ -4926,12 +5133,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/glycemic-settings", async (req, res) => {
+  app.put("/api/glycemic-settings", requireAuth, async (req, res) => {
     try {
-      const userId = req.body.userId || "1";
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const settingsData = insertUserGlycemicSettingsSchema.parse({
         ...req.body,
-        userId
+        userId: authUserId
       });
       const settings = await storage.createOrUpdateGlycemicSettings(settingsData);
       res.json(settings);
@@ -4986,8 +5196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const sessionUserId = (req as any).session?.userId as string | undefined;
 
         if (token) {
-          const [tokenUser] = await db.select({ id: users.id }).from(users)
-            .where(eq(users.authToken, token)).limit(1);
+          const tokenUser = await findUserByValidAuthToken(token);
           if (tokenUser) barcodeUserId = String(tokenUser.id);
         } else if (sessionUserId) {
           barcodeUserId = String(sessionUserId);
@@ -5094,7 +5303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shopping list add route removed
 
   // Food diary routes for barcode scanning
-  app.post("/api/diary/log", async (req, res) => {
+  app.post("/api/diary/log", requireAuth, async (req, res) => {
     try {
       const { 
         user_id = "1", 
@@ -5105,6 +5314,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         serving_label, 
         servings = 1 
       } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+
+      if (String(user_id) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       console.log(`📝 Diary log request:`, { user_id, date_local, meal_slot, food_id, servings });
 
@@ -5117,7 +5331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { logFood } = await import("./services/barcodeService");
       const result = await logFood({
-        userId: user_id,
+        userId: authUserId,
         dateLocal: date_local,
         mealSlot: meal_slot,
         foodId: food_id,
@@ -5126,7 +5340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         servings: parseFloat(servings)
       });
 
-      console.log(`✅ Food logged successfully for ${user_id}`);
+      console.log(`✅ Food logged successfully for ${authUserId}`);
       res.json(result);
     } catch (error: any) {
       console.error(`❌ Diary log error:`, error);
@@ -5137,9 +5351,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/diary/:user_id/:date_local", async (req, res) => {
+  app.get("/api/diary/:user_id/:date_local", requireAuth, async (req, res) => {
     try {
       const { user_id, date_local } = req.params;
+      if (user_id !== (req as AuthenticatedRequest).authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       console.log(`📊 Getting diary for ${user_id} on ${date_local}`);
 
       // TODO: Query database when schema is available
@@ -5155,7 +5372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate totals
       const { getDayTotals } = await import("./services/barcodeService");
-      const totals = await getDayTotals(user_id, date_local);
+      const totals = await getDayTotals((req as AuthenticatedRequest).authUser.id, date_local);
 
       res.json({
         entries: grouped,
@@ -5248,8 +5465,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shopping list generation from meal plan removed
 
   // Weekly meal plan generation route for Step 5
-  app.post("/api/users/:userId/meal-plan/generate", async (req, res) => {
-    const userId = req.params.userId;
+  app.post("/api/users/:userId/meal-plan/generate", requireAuth, async (req, res) => {
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
+    if (req.params.userId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const userId = authUserId;
     const {
       diet,
       planDuration,
@@ -5282,73 +5503,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This path ignores dietOverride and always uses user?.dietaryRestrictions.
   // Do NOT add new callers; route for eventual removal when WMC2 is retired.
   app.post("/api/craving-creator/generate", async (req, res) => {
-    try {
-      const { userId, courseStyle, craving, mealType, servings = 1, includeImage = false, variation = 0, safetyMode, overrideToken } = req.body;
-      
-      // Support both courseStyle (legacy) and craving (new) patterns
-      const inputText = craving || courseStyle || "";
-
-      console.log(`🎯 Craving Creator Generate: ${inputText} for user ${userId}`);
-
-      // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
-      if (userId && inputText) {
-        const safetyCheck = await enforceSafetyProfile(userId, inputText, "craving-creator-generate", {
-          safetyMode: safetyMode || "STRICT",
-          overrideToken: overrideToken,
-          correlationId: (req as any).id
-        });
-        if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
-        if (safetyCheck.result === "AMBIGUOUS") {
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyAmbiguous: true,
-            ambiguousTerms: safetyCheck.ambiguousTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
-      }
-
-      const meal = await generateCravingMeal(
-        (mealType || courseStyle) as any, // MealType
-        inputText || `${courseStyle} meal${variation ? ` variation ${variation}` : ''}`,
-        { userId: userId || "1" }
-      );
-
-      res.json(meal);
-    } catch (error) {
-      console.error("Craving Creator generation failed:", error);
-      res.status(500).json({ error: "Failed to generate meal" });
-    }
+    return res.status(410).json({
+      status: "unable_to_generate",
+      reasonCode: "legacy_craving_route_disabled",
+      retryable: false,
+      message: "This legacy generator is no longer available. Use the authenticated meal creator.",
+    });
   });
 
   // ⚠️ LEGACY — same as /generate above. No active client caller.
   app.post("/api/craving-creator/regenerate", async (req, res) => {
-    try {
-      const { userId, courseStyle, includeImage = true } = req.body;
-
-      console.log(`🔄 Craving Creator Regenerate: ${courseStyle} for user ${userId}`);
-
-      const meal = await generateCravingMeal(
-        courseStyle as any, // MealType
-        `regenerate ${courseStyle} meal`,
-        { userId: userId || "1" }
-      );
-
-      res.json(meal);
-    } catch (error) {
-      console.error("Craving Creator regeneration failed:", error);
-      res.status(500).json({ error: "Failed to regenerate meal" });
-    }
+    return res.status(410).json({
+      status: "unable_to_generate",
+      reasonCode: "legacy_craving_route_disabled",
+      retryable: false,
+      message: "This legacy generator is no longer available. Use the authenticated meal creator.",
+    });
   });
 
   // 🔒🔒🔒 CRAVING CREATOR API LOCKDOWN - DO NOT MODIFY
@@ -5420,7 +5590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const token = req.headers["x-auth-token"] as string | undefined;
         if (token) {
           try {
-            const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, token)).limit(1);
+            const tokenUser = await findUserByValidAuthToken(token);
             if (tokenUser) userId = tokenUser.id;
           } catch { /* non-fatal */ }
         }
@@ -5446,12 +5616,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Authentication is required to resolve food context.",
         });
       }
+      const requestDietOverride =
+        typeof dietOverride === "string"
+          ? dietOverride
+          : typeof dietaryRestrictions === "string"
+            ? dietaryRestrictions
+            : null;
       const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
-      const {
-        buildCreatorHumanFoodPrompt,
-        buildCreatorAllergenAdaptationPrompt,
-        validateCreatorHumanFoodResult,
-      } = await import("./services/humanFoodContext/adapters");
+      const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
       const {
         recordRejectedHumanFoodCandidate,
         buildRejectedCandidatePrompt,
@@ -5461,7 +5633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subjectUserId: serverAuthUserId,
         creator: humanFoodCreator,
         correlationId: (req as any).id,
-        dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+        dietOverride: requestDietOverride,
         cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
         cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
       });
@@ -5475,11 +5647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
         });
       }
-      const humanFoodPrompt = buildCreatorHumanFoodPrompt(
-        humanFoodCreator,
-        humanFoodContext,
-        humanFoodExecutionState,
-      );
+      cravingInput = `${cravingInput || ""}\n\n${buildCreatorHumanFoodPrompt(humanFoodCreator, humanFoodContext, humanFoodExecutionState)}`.trim();
 
       // ── Load protocol envelope (single DB query — drives all enforcement) ──
       const protocolEnvelope = userId
@@ -5489,40 +5657,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
       let dietNotice = "";
-      let automaticAllergenAdaptation = false;
-      let automaticAllergenAdaptationPrompt = "";
       // Declared here so it survives the safety block scope and reaches generation + filtering.
       // Allergen-specific only — one authorized ingredient's enforcement is suspended per request.
       // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
       let _overriddenAllergens: string[] = [];
-      if (userId && rawCravingInput && safetyMode !== "ALLERGEN_ADAPT") {
-        const safetyCheck = await enforceSafetyProfile(userId, rawCravingInput, "meals-craving-creator", {
+      if (userId && cravingInput && safetyMode !== "ALLERGEN_ADAPT") {
+        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
-          const adaptationPrompt = buildCreatorAllergenAdaptationPrompt(
-            humanFoodCreator,
-            rawCravingInput,
-            safetyCheck,
-            humanFoodContext,
-          );
-          if (adaptationPrompt) {
-            automaticAllergenAdaptation = true;
-            automaticAllergenAdaptationPrompt = adaptationPrompt;
-            console.log(`[AllergenAdapt] Automatic adaptation active for ${humanFoodCreator}; user=${userId}`);
-          } else {
-            console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
-            return res.status(400).json({
-              success: false,
-              error: safetyCheck.message,
-              safetyBlocked: true,
-              blockedTerms: safetyCheck.blockedTerms,
-              suggestion: safetyCheck.suggestion,
-              allergyConflict: safetyCheck.allergyConflict ?? null,
-            });
-          }
+          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          return res.status(400).json({
+            success: false,
+            error: safetyCheck.message,
+            safetyBlocked: true,
+            blockedTerms: safetyCheck.blockedTerms,
+            suggestion: safetyCheck.suggestion,
+            allergyConflict: safetyCheck.allergyConflict ?? null,
+          });
         }
         if (safetyCheck.result === "AMBIGUOUS") {
           return res.status(400).json({
@@ -5544,11 +5698,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (safetyMode === "ALLERGEN_ADAPT") {
         console.log(`[AllergenAdapt] Allergen pre-check skipped for user ${userId} — DAL adaptation mode active`);
       }
-      cravingInput = [
-        rawCravingInput || "",
-        humanFoodPrompt,
-        automaticAllergenAdaptationPrompt,
-      ].filter(Boolean).join("\n\n").trim();
 
       // Validate servings (1-10)
       const validatedServings = Math.max(1, Math.min(10, parseInt(servings) || 1));
@@ -5572,16 +5721,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // builder dietOverride REPLACES profile diet (replacement, not merge).
       // Allergies, medical, specialty, and religious rules are enforced separately
       // by the protocol envelope — they are never affected by this resolver.
-      const _resolvedPrimaryDiet: string[] = (() => {
-        if (dietOverride && typeof dietOverride === "string" && dietOverride.trim()) {
-          console.log(`🔀 [CRAVING] Diet override: "${dietOverride.trim()}" replaces profile diet`);
-          return [dietOverride.trim()];
-        }
-        if (dietaryRestrictions) {
-          return (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean);
-        }
-        return [];
-      })();
+      const _resolvedPrimaryDiet: string[] = humanFoodContext.diet.effective.slice();
+      if (requestDietOverride) {
+        console.log(`🔀 [CRAVING] Authoritative diet override: "${requestDietOverride}" replaces profile diet`);
+      }
 
       // ── Build diet-aware adaptation / override block ──────────────────────
       // NOW we know the user's actual diet — build the right block, never
@@ -5589,9 +5732,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (dietAdaptOverride === true) {
         const userDietRestrictions = (user?.dietaryRestrictions as string[]) || [];
         const chefDiet = getPrimaryDiet(userDietRestrictions);
-        cravingInput = `${cravingInput} ${buildChefAdaptationBlock(chefDiet)}`;
+        cravingInput = `${rawCravingInput} ${buildChefAdaptationBlock(chefDiet)}`;
       } else if (userDietOverride === true) {
-        cravingInput = `${cravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
+        cravingInput = `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
       }
 
       // ── GLP-1 canonical context — pre-generation ─────────────────────────
@@ -5610,7 +5753,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : "lunch",
           );
           if (glp1Ctx.isActive) {
-            _cravingGlp1Targets = glp1Ctx.resolvedTargets ?? undefined;
+            if (!glp1Ctx.resolvedTargets) {
+              console.error("🚫 [GLP-1/CravingCreator] Active context returned without resolved targets.");
+              return res.status(503).json({
+                status: "review_required",
+                reasonCode: "glp1_context_unavailable",
+                retryable: true,
+                message: "We couldn't safely verify your current GLP-1 meal targets. Please try again shortly.",
+              });
+            }
+            _cravingGlp1Targets = glp1Ctx.resolvedTargets;
             console.log(
               `💊 [GLP-1/CravingCreator] Active — sources=[${glp1Ctx.activationSources.join(",")}]` +
               (_cravingGlp1Targets
@@ -5621,7 +5773,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
           }
         } catch (err) {
-          console.warn("⚠️ [GLP-1/CravingCreator] Could not resolve context:", err);
+          console.error("🚫 [GLP-1/CravingCreator] Context resolution failed closed:", err);
+          return res.status(503).json({
+            status: "review_required",
+            reasonCode: "glp1_context_unavailable",
+            retryable: true,
+            message: "We couldn't safely verify your current GLP-1 meal targets. Please try again shortly.",
+          });
         }
       }
 
@@ -5689,7 +5847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // stock) and Phase 3 correctly kills every option. This block names the prohibited
       // categories, lists all derivative terms, and instructs the model to preserve dish
       // identity by replacing the allergen's functional role rather than just deleting it.
-      if ((safetyMode === "ALLERGEN_ADAPT" || automaticAllergenAdaptation) && protocolEnvelope.allergies.length > 0) {
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
         try {
           const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
           const allergenBlock = buildAllergenAdaptPromptBlock(protocolEnvelope.allergies, rawCravingInput || "");
@@ -5715,6 +5873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
         _dishDirective,
         skipImages === true,   // fastMode — gpt-4o-mini + 1500 tokens on Try 3 More path
+        humanFoodExecutionState,
       );
 
       if (!mealOptions || mealOptions.length === 0) {
@@ -5805,6 +5964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
               _dishDirective,
               skipImages === true,
+              humanFoodExecutionState,
             );
             if (_bglRetryOptions && _bglRetryOptions.length > 0) {
               // Revalidate against the SAME ceiling — the guardrail is never bypassed.
@@ -5873,7 +6033,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // gumbo is stripped for its own name before Phase 3 ever sees it, and the
       // retry dies the same way — producing a spurious allergen_adaptation_failed.
       let _adaptExemptTerms: Set<string> | undefined;
-      if ((safetyMode === "ALLERGEN_ADAPT" || automaticAllergenAdaptation) && protocolEnvelope.allergies.length > 0) {
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
         try {
           const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
           const terms = getRequestedDishExemptTerms(rawCravingInput || "", protocolEnvelope.allergies).map(t => t.toLowerCase());
@@ -5898,6 +6058,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (cleanOptions.length === 0 && _bglGatedOptions.length > 0) {
+        if (_cravingGlp1Targets) {
+          console.error("🚫 [GLP-1/CravingCreator] Protocol filtering removed every clinically validated option; refusing unvalidated emergency fallback.");
+          return res.status(422).json({
+            status: "unable_to_generate",
+            reasonCode: "glp1_compliance_retry_exhausted",
+            retryable: true,
+            message: "We couldn't safely adapt this dish to your current GLP-1 targets and dietary protections. Try a lighter preparation or a smaller portion.",
+          });
+        }
         console.warn(`⚠️ [ProtocolEnvelope] ALL options violated protocol — attempting emergency compliant fallback`);
         // Fallback directive carries MORE explicit dish-identity language, not less.
         let _fallbackDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
@@ -5974,7 +6143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // When the user chose "Make it safe for me", the DAL adapted the dish but
       // the LLM may still include hidden allergen derivatives (shrimp paste, fish
       // sauce, shellfish broth). Scan each option and exclude any that leaked.
-      if ((safetyMode === "ALLERGEN_ADAPT" || automaticAllergenAdaptation) && protocolEnvelope.allergies.length > 0) {
+      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
         try {
           const { buildForbiddenTermsFromAllergens, scanMealsForAllergenViolations } = await import("./services/allergyGuardrails");
           // Requested-dish exemption: adaptation intentionally keeps the dish's
@@ -6027,6 +6196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
                 _dishDirective,
                 skipImages === true,
+                humanFoodExecutionState,
               );
               if (retryOptions && retryOptions.length > 0) {
                 const retrySafe = retryOptions.filter(meal => {
@@ -6080,10 +6250,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Creator System 2-pass transformation — applied AFTER all safety/protocol filters.
-      // If kitchenSlug is provided, the kitchen config takes priority over the user's own active system.
-      // Modifies only name, description, instructions. Macros, ingredients, servings NEVER touched.
-      if (user) {
-        try {
+      // Kept as one reusable request-local function so a bounded universal repair
+      // receives the same final transformation before it is revalidated.
+      const applyFinalCreatorTransformation = async (options: any[]): Promise<any[]> => {
+        if (user && !_cravingGlp1Targets) {
+          try {
           const { resolveActiveSystem } = await import("./services/creatorSystems/resolver");
           const { applyCreatorTransformation } = await import("./services/creatorSystems/applyCreatorTransformation");
           const { resolveKitchenSystem } = await import("./services/creatorSystems/resolveKitchenSystem");
@@ -6102,14 +6273,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           if (creatorSystem.id !== "default") {
-            scannedOptions = await Promise.all(
-              scannedOptions.map(meal => applyCreatorTransformation(meal, creatorSystem, "meal"))
+            return await Promise.all(
+              options.map(meal => applyCreatorTransformation(meal, creatorSystem, "meal"))
             );
           }
-        } catch (err) {
-          console.error("[CreatorSystem] Transformation failed in craving-creator — using base options:", err);
+          } catch (err) {
+            console.error("[CreatorSystem] Transformation failed in craving-creator — using base options:", err);
+          }
+        } else if (user && _cravingGlp1Targets) {
+          console.log("[CreatorSystem] Skipped for GLP-1-active request so no unvalidated transformation runs after the clinical gate.");
         }
+        return options;
+      };
+      scannedOptions = await applyFinalCreatorTransformation(scannedOptions);
+
+      // ── Stage 2C universal final-validation gate ───────────────────────────
+      // Every candidate-producing branch above converges here: initial output,
+      // BGL/allergen retries, emergency fallback, and creator transformation.
+      // A repair is generated at most once, with the same immutable context and
+      // request-local rejection state, then passes through protocol/clinical
+      // filtering, creator transformation, and this validator again.
+      const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
+      const { validateMealForDiet: validateFinalMealForDiet } = await import("./services/guardrails/index");
+      const candidateComplianceEvidence = (meal: any) => {
+        const protocolProof = scanGeneratedOutput(meal, _filterEnvelope, {
+          generatorName: "craving_creator_final_evidence",
+          skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+          overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+          exemptDishNameTerms: _adaptExemptTerms,
+        });
+        const carbs = meal.nutrition?.carbs ?? meal.carbs;
+        const glucoseState = protocolEnvelope.diabeticGlucoseState;
+        const carbCeiling = glucoseState === "high-risk" ? 15
+          : glucoseState === "elevated" ? 25
+          : glucoseState === "low" ? 45
+          : 35;
+        const diabetesCompliant = protocolEnvelope.hasDiabetes
+          ? protocolProof.passed && (
+              glucoseState === "low" ||
+              glucoseState === "low-normal" ||
+              (carbs != null && Number(carbs) <= carbCeiling + 10)
+            )
+          : undefined;
+        const glp1Compliant = _cravingGlp1Targets
+          ? validateFinalMealForDiet({
+              name: meal.name,
+              ingredients: meal.ingredients ?? [],
+              instructions: meal.instructions,
+              macros: {
+                calories: meal.nutrition?.calories ?? meal.calories,
+                protein: meal.nutrition?.protein ?? meal.protein,
+                carbs,
+                fat: meal.nutrition?.fat ?? meal.fat,
+              },
+            } as any, "glp1", undefined, targetMealType === "snack", _cravingGlp1Targets).isValid
+          : undefined;
+        return {
+          protocolCompliant: protocolProof.passed,
+          diabetesCompliant,
+          glp1Compliant,
+        };
+      };
+      const toFinalValidationCandidate = (meal: any) => {
+        const complianceEvidence = candidateComplianceEvidence(meal);
+        return ({
+        ...meal,
+        category: meal.category ?? meal.mealType ?? targetMealType ?? "meal",
+        nutrition: {
+          calories: meal.nutrition?.calories ?? meal.calories,
+          protein: meal.nutrition?.protein ?? meal.protein,
+          carbs: meal.nutrition?.carbs ?? meal.carbs,
+          fat: meal.nutrition?.fat ?? meal.fat,
+          starchyCarbs: meal.nutrition?.starchyCarbs ?? meal.starchyCarbs,
+        },
+        evidence: {
+          ...(meal.evidence ?? {}),
+          sourceType: "generated_recipe",
+          ingredientEvidence: "structured_generation",
+          preparationEvidence: "structured_generation",
+          nutritionEvidence: "structured_generation",
+          dietaryIdentityCompliant: complianceEvidence.protocolCompliant,
+          clinicalDirectivesCompliant:
+            humanFoodContext.safety.healthConditions.length > 0
+              ? complianceEvidence.protocolCompliant
+              : undefined,
+          glp1Compliant: complianceEvidence.glp1Compliant,
+          diabetesCompliant: complianceEvidence.diabetesCompliant,
+          cuisine: humanFoodContext.flavor.cuisine.value ?? undefined,
+          cuisineIntensity: humanFoodContext.flavor.cuisineIntensity.value ?? undefined,
+          heat: humanFoodContext.flavor.heat.value ?? undefined,
+          seasoningIntensity: humanFoodContext.flavor.seasoningIntensity.value ?? undefined,
+          broadFlavor: humanFoodContext.flavor.broadFlavor.value ?? undefined,
+          flavorStyle: humanFoodContext.flavor.flavorStyle.value ?? undefined,
+        },
+        });
+      };
+      const runFinalValidation = (meal: any) => validateHumanFoodCandidate(
+        toFinalValidationCandidate(meal),
+        humanFoodContext,
+        {
+          requestedDish: rawCravingInput || "",
+          requestedCategory: targetMealType || "lunch",
+          dishDirective: _dishDirective,
+          executionState: humanFoodExecutionState,
+        },
+      );
+
+      const { enforceFinalCreatorCandidates } = await import(
+        "./services/humanFoodContext/enforceFinalCreatorCandidates"
+      );
+      const finalEnforcement = await enforceFinalCreatorCandidates({
+        candidates: scannedOptions,
+        validate: runFinalValidation,
+        repair: async (repairInstructions: string[]) => {
+          try {
+          const repairClause = repairInstructions.join(" ");
+          const repairOptions = await generateCravingMealOptions(
+            `${cravingInput}\n\n[UNIVERSAL FINAL-VALIDATION REPAIR — ONE ATTEMPT ONLY]\n${repairClause}`,
+            targetMealType || "lunch",
+            userId,
+            bodyDietRestrictions,
+            excludeMeals,
+            strictMode === true,
+            (generationMode === "recipe" ? "recipe" : "meal"),
+            (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
+              ? cultureOverride.trim()
+              : undefined,
+            _cravingGlp1Targets,
+            _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            _dishDirective,
+            skipImages === true,
+            humanFoodExecutionState,
+          );
+          const protocolSafeRepairs = filterMealsByProtocol(repairOptions ?? [], _filterEnvelope, {
+            generatorName: "craving_creator_final_repair",
+            skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+            overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            exemptDishNameTerms: _adaptExemptTerms,
+            dishIdentity: {
+              requestedDish: rawCravingInput || "",
+              directive: _dishDirective,
+              results: _identityResults,
+            },
+          });
+          const clinicallySafeRepairs = protocolEnvelope.hasDiabetes
+            ? protocolSafeRepairs.filter((meal: any) => {
+                const carbs = meal.carbs ?? meal.nutrition?.carbs;
+                const state = protocolEnvelope.diabeticGlucoseState;
+                const ceiling = state === "high-risk" ? 15 : state === "elevated" ? 25 : state === "low" ? 45 : 35;
+                return (state === "low" || state === "low-normal") || (carbs != null && Number(carbs) <= ceiling + 10);
+              })
+            : protocolSafeRepairs;
+            return await applyFinalCreatorTransformation(clinicallySafeRepairs);
+          } catch (repairError) {
+            console.error("[HumanFoodFinalValidation] Bounded repair failed:", repairError);
+            return [];
+          }
+        },
+      });
+
+      // Never leak a blocked/review/repairable candidate. If no final candidate
+      // passes, return the strongest typed outcome observed.
+      if (finalEnforcement.accepted.length === 0) {
+        const strongest = finalEnforcement.validations.find(({ result }) => result.outcome === "blocked")
+          ?? finalEnforcement.validations.find(({ result }) => result.outcome === "review_required")
+          ?? finalEnforcement.validations.find(({ result }) => result.outcome === "repairable");
+        const outcome = strongest?.result.outcome ?? "blocked";
+        return res.status(outcome === "review_required" ? 409 : 422).json({
+          status: outcome,
+          code: outcome === "review_required"
+            ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+            : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+          retryable: false,
+          message: outcome === "review_required"
+            ? "We couldn't verify enough evidence to return this food safely."
+            : "We couldn't produce a version that passed your final food protections.",
+          findings: strongest?.result.findings ?? [],
+          authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
+        });
       }
+      scannedOptions = finalEnforcement.accepted;
 
       // Format and optionally scale each option
       const formattedOptions = scannedOptions.map(meal => {
@@ -6156,6 +6499,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         return formatted;
       });
+
+      // Formatting/scaling changes ingredient quantities and nutrition totals.
+      // Revalidate that exact final payload before any image work or response.
+      const postFormatResults = formattedOptions.map((meal: any) => ({
+        meal,
+        result: runFinalValidation(meal),
+      }));
+      const postFormatFailure = postFormatResults.find(
+        ({ result }) => result.outcome !== "pass",
+      );
+      if (postFormatFailure) {
+        const outcome = postFormatFailure.result.outcome;
+        return res.status(outcome === "review_required" ? 409 : 422).json({
+          status: outcome,
+          code: outcome === "review_required"
+            ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+            : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+          retryable: false,
+          message: "The final formatted food did not pass universal validation.",
+          findings: postFormatFailure.result.findings,
+          authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
+        });
+      }
 
       // ── Unified Image Pipeline: generate permanent imageUrls in parallel before responding ─
       // Matches the architecture used by /api/meals/generate and /api/meals/fridge-rescue.
@@ -6291,17 +6657,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meal-plans/generate-enforced", async (req, res) => {
+  app.post("/api/meal-plans/generate-enforced", requireAuth, async (req, res) => {
     try {
       const { userId, overrides } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!userId) {
         return res.status(400).json({ error: "userId required for onboarding enforcement" });
       }
+      if (String(userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       console.log("🛡️ Generating weekly meal plan with medical validation for:", userId);
 
-      const meals = await generateWeeklyMeals(userId);
+      const meals = await generateWeeklyMeals({
+        userId: authUserId,
+        mealTypes: ["breakfast", "lunch", "dinner"],
+        dietaryRestrictions: [],
+        allergies: [],
+        medicalFlags: [],
+      });
 
       console.log("✅ Generated", meals.length, "meals with medical badges");
       res.json({ 
@@ -6318,9 +6694,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This old route was returning {meal: firstMeal} instead of {meals: allMeals}
 
   // Testosterone support meal plan generation
-  app.post("/api/users/:userId/testosterone-meal-plan", async (req, res) => {
+  app.post("/api/users/:userId/testosterone-meal-plan", requireAuth, async (req, res) => {
     try {
-      const userId = req.params.userId;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const userId = authUserId;
       const { testosteroneLevel, activityLevel } = req.body;
 
       // Get user data for medical personalization
@@ -6871,11 +7251,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Duplicate handlers removed to fix production 404 errors
 
   // Meal Reminder API Routes
-  app.post("/api/users/:userId/reminders", async (req, res) => {
+  app.post("/api/users/:userId/reminders", requireAuth, async (req, res) => {
     try {
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const reminderData = insertMealReminderSchema.parse({
         ...req.body,
-        userId: req.params.userId
+        userId: authUserId
       });
 
       const reminder = await storage.createMealReminder(reminderData);
@@ -6890,9 +7274,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/reminders", async (req, res) => {
+  app.get("/api/users/:userId/reminders", requireAuth, async (req, res) => {
     try {
-      const reminders = await storage.getMealReminders(req.params.userId);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const reminders = await storage.getMealReminders(authUserId);
       res.json(reminders);
     } catch (error: any) {
       console.error("Failed to get meal reminders:", error);
@@ -6900,12 +7288,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:userId/reminders/:reminderId", async (req, res) => {
+  app.delete("/api/users/:userId/reminders/:reminderId", requireAuth, async (req, res) => {
     try {
       const { userId, reminderId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       // Verify the reminder belongs to the user
-      const reminders = await storage.getMealReminders(userId);
+      const reminders = await storage.getMealReminders(authUserId);
       const reminder = reminders.find(r => r.id === reminderId);
 
       if (!reminder) {
@@ -6929,12 +7321,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:userId/reminders/:reminderId", async (req, res) => {
+  app.patch("/api/users/:userId/reminders/:reminderId", requireAuth, async (req, res) => {
     try {
       const { userId, reminderId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       // Verify the reminder belongs to the user
-      const reminders = await storage.getMealReminders(userId);
+      const reminders = await storage.getMealReminders(authUserId);
       const reminder = reminders.find(r => r.id === reminderId);
 
       if (!reminder) {
@@ -6961,8 +7357,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Debug endpoint to list all scheduled reminders
-  app.get("/api/debug/reminders", async (req, res) => {
+  app.get("/api/debug/reminders", requireAuth, async (req, res) => {
     try {
+      if (!(req as AuthenticatedRequest).authUser.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
       const scheduledReminders = reminderService.getScheduledReminders();
       res.json({
         totalScheduled: scheduledReminders.length,
@@ -7279,9 +7678,13 @@ Provide recommendations in JSON format with the following structure:
     }
   });
 
-  app.get("/api/kids/veggie-explorer/:userId/progress", async (req, res) => {
+  app.get("/api/kids/veggie-explorer/:userId/progress", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const { db } = await import("./db");
       const { kidsVeggieExplorer, kidsVegetablesCatalog } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
@@ -7297,7 +7700,7 @@ Provide recommendations in JSON format with the following structure:
         })
         .from(kidsVeggieExplorer)
         .leftJoin(kidsVegetablesCatalog, eq(kidsVeggieExplorer.vegetableId, kidsVegetablesCatalog.id))
-        .where(eq(kidsVeggieExplorer.userId, userId));
+        .where(eq(kidsVeggieExplorer.userId, authUserId));
 
       res.json({ data: progress });
     } catch (error) {
@@ -7307,11 +7710,16 @@ Provide recommendations in JSON format with the following structure:
   });
 
   // Meal Logging API Routes
-  app.post("/api/meal-logs", async (req, res) => {
+  app.post("/api/meal-logs", requireAuth, async (req, res) => {
     try {
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       // Transform date if it's a string
       const transformedBody = {
         ...req.body,
+        userId: authUserId,
         date: req.body.date ? new Date(req.body.date) : new Date()
       };
 
@@ -7325,13 +7733,17 @@ Provide recommendations in JSON format with the following structure:
     }
   });
 
-  app.get("/api/meal-logs/:userId", async (req, res) => {
+  app.get("/api/meal-logs/:userId", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const { startDate, endDate } = req.query;
 
       const mealLogs = await storage.getMealLogs(
-        userId,
+        authUserId,
         startDate ? new Date(startDate as string) : undefined,
         endDate ? new Date(endDate as string) : undefined
       );
@@ -7741,10 +8153,10 @@ function getMealIngredientsDatabase() {
   // Water logs routes — canonical mount in server/index.ts
 
   // POST /api/meal-plan-archive - Direct route to avoid Vite middleware interference
-  app.post("/api/meal-plan-archive", async (req, res) => {
+  app.post("/api/meal-plan-archive", requireAuth, async (req, res) => {
     try {
       console.log("🎯 MEAL PLAN ARCHIVE ROUTE HIT DIRECTLY!");
-      const userId = "test-user-123"; // Demo user ID - in real app would come from auth
+      const userId = (req as AuthenticatedRequest).authUser.id;
 
       console.log("Received meal plan archive request");
 
@@ -7850,12 +8262,16 @@ function getMealIngredientsDatabase() {
   });
 
   // Meal Log API - Enhanced version with barcode support
-  app.post("/api/meal-log", async (req, res) => {
+  app.post("/api/meal-log", requireAuth, async (req, res) => {
     try {
       const { userId, localDate, mealSlot, barcode, servings, customName } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!userId || !localDate || !mealSlot) {
         return res.status(400).json({ error: "Missing required fields: userId, localDate, mealSlot" });
+      }
+      if (String(userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       console.log(`🍽️ Adding meal log entry: ${userId} | ${localDate} | ${mealSlot} | barcode: ${barcode}`);
@@ -7898,7 +8314,7 @@ function getMealIngredientsDatabase() {
       const [mealLog] = await db
         .insert(mealLogsEnhanced)
         .values({
-          userId,
+          userId: authUserId,
           date: localDate,
           mealSlot,
           source,
@@ -7925,12 +8341,16 @@ function getMealIngredientsDatabase() {
   });
 
   // GLP-1 Meal Log API - accepts pre-calculated nutrition data
-  app.post("/api/meal-log/glp1", async (req, res) => {
+  app.post("/api/meal-log/glp1", requireAuth, async (req, res) => {
     try {
       const { userId, localDate, mealSlot, mealName, servings, nutrition } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!userId || !localDate || !mealSlot || !mealName || !nutrition) {
         return res.status(400).json({ error: "Missing required fields: userId, localDate, mealSlot, mealName, nutrition" });
+      }
+      if (String(userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       console.log(`[GLP-1 meal log] userId=${userId} date=${localDate} slot=${mealSlot}`);
@@ -7945,7 +8365,7 @@ function getMealIngredientsDatabase() {
       const [mealLog] = await db
         .insert(mealLogsEnhanced)
         .values({
-          userId,
+          userId: authUserId,
           date: localDate,
           mealSlot,
           source: "glp1_meals",
@@ -8011,13 +8431,17 @@ function getMealIngredientsDatabase() {
   });
 
   // 2. Log food entry to diary
-  app.post("/api/diary/log", async (req, res) => {
+  app.post("/api/diary/log", requireAuth, async (req, res) => {
     try {
       const { user_id, date_local, meal_slot, food_id, barcode, serving_label, servings } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       // Validation
       if (!user_id || !date_local || !meal_slot || !food_id || !serving_label || servings === undefined) {
         return res.status(400).json({ error: "Missing required fields" });
+      }
+      if (String(user_id) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       if (!["breakfast", "lunch", "dinner", "snack"].includes(meal_slot)) {
@@ -8030,7 +8454,7 @@ function getMealIngredientsDatabase() {
 
       const { logFood } = await import("./services/barcodeService");
       const result = await logFood({
-        userId: user_id,
+        userId: authUserId,
         dateLocal: date_local,
         mealSlot: meal_slot,
         foodId: food_id,
@@ -8090,16 +8514,20 @@ function getMealIngredientsDatabase() {
   });
 
   // 4. Get day totals for nutrition dashboard
-  app.get("/api/diary/totals", async (req, res) => {
+  app.get("/api/diary/totals", requireAuth, async (req, res) => {
     try {
       const { user_id, date_local } = req.query;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!user_id || !date_local) {
         return res.status(400).json({ error: "user_id and date_local are required" });
       }
+      if (String(user_id) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       const { getDayTotals } = await import("./services/barcodeService");
-      const totals = await getDayTotals(String(user_id), String(date_local));
+      const totals = await getDayTotals(authUserId, String(date_local));
 
       res.json(totals);
     } catch (error) {
@@ -8109,26 +8537,33 @@ function getMealIngredientsDatabase() {
   });
 
   // 5. Delete diary entry (for undo functionality)
-  app.delete("/api/diary/:entry_id", async (req, res) => {
+  app.delete("/api/diary/:entry_id", requireAuth, async (req, res) => {
     try {
       const { entry_id } = req.params;
       const { user_id, date_local } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!entry_id) {
         return res.status(400).json({ error: "Entry ID is required" });
       }
+      if (user_id && String(user_id) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       const { db } = await import("./db");
       const { foodDiary } = await import("@shared/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, and } = await import("drizzle-orm");
 
-      // Delete the entry
-      await db.delete(foodDiary).where(eq(foodDiary.id, entry_id));
+      // Ownership is enforced by the mutation predicate to prevent TOCTOU access.
+      await db.delete(foodDiary).where(and(
+        eq(foodDiary.id, entry_id),
+        eq(foodDiary.userId, authUserId)
+      ));
 
       // Return updated totals if user info provided
       if (user_id && date_local) {
         const { getDayTotals } = await import("./services/barcodeService");
-        const totals = await getDayTotals(user_id, date_local);
+        const totals = await getDayTotals(authUserId, date_local);
         res.json({ success: true, totals });
       } else {
         res.json({ success: true });
@@ -8140,9 +8575,12 @@ function getMealIngredientsDatabase() {
   });
 
   // 6. Get user's food diary for a specific date
-  app.get("/api/diary/:user_id/:date_local", async (req, res) => {
+  app.get("/api/diary/:user_id/:date_local", requireAuth, async (req, res) => {
     try {
       const { user_id, date_local } = req.params;
+      if (user_id !== (req as AuthenticatedRequest).authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       const { db } = await import("./db");
       const { foodDiary } = await import("@shared/schema");
@@ -8153,7 +8591,7 @@ function getMealIngredientsDatabase() {
         .from(foodDiary)
         .where(
           and(
-            eq(foodDiary.userId, user_id),
+            eq(foodDiary.userId, (req as AuthenticatedRequest).authUser.id),
             eq(foodDiary.dateLocal, date_local)
           )
         )
@@ -8170,7 +8608,7 @@ function getMealIngredientsDatabase() {
 
       // Calculate totals
       const { getDayTotals } = await import("./services/barcodeService");
-      const totals = await getDayTotals(user_id, date_local);
+      const totals = await getDayTotals((req as AuthenticatedRequest).authUser.id, date_local);
 
       res.json({
         entries: grouped,
@@ -8226,9 +8664,9 @@ function getMealIngredientsDatabase() {
 
   const httpServer = createServer(app);
   // Recipe action routes
-  app.post("/api/recipes/:id/save", async (req, res) => {
+  app.post("/api/recipes/:id/save", requireAuth, async (req, res) => {
     try {
-      const userId = "00000000-0000-0000-0000-000000000001"; // Default user ID
+      const userId = (req as AuthenticatedRequest).authUser.id;
       const recipeId = req.params.id;
 
       // For now, just return success - in production this would save to a favorites table
@@ -8241,9 +8679,9 @@ function getMealIngredientsDatabase() {
     }
   });
 
-  app.post("/api/recipes/:id/add-to-week", async (req, res) => {
+  app.post("/api/recipes/:id/add-to-week", requireAuth, async (req, res) => {
     try {
-      const userId = "00000000-0000-0000-0000-000000000001"; // Default user ID
+      const userId = (req as AuthenticatedRequest).authUser.id;
       const recipeId = req.params.id;
       const { day, slot } = req.body;
 
@@ -8443,18 +8881,22 @@ function getMealIngredientsDatabase() {
   });
 
   // User Meal Preferences API endpoints for Cafeteria Setup
-  app.get("/api/user-meal-prefs/:userId", async (req, res) => {
+  app.get("/api/user-meal-prefs/:userId", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const [prefs] = await db
         .select()
         .from(userMealPrefs)
-        .where(eq(userMealPrefs.userId, userId));
+        .where(eq(userMealPrefs.userId, authUserId));
 
       if (!prefs) {
         // Return default preferences if none exist
         return res.json({
-          userId,
+          userId: authUserId,
           goal: "maint",
           likes: [],
           avoid: [],
@@ -8470,12 +8912,16 @@ function getMealIngredientsDatabase() {
     }
   });
 
-  app.put("/api/user-meal-prefs/:userId", async (req, res) => {
+  app.put("/api/user-meal-prefs/:userId", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const validatedData: any = insertUserMealPrefsSchema.parse({
         ...req.body,
-        userId,
+        userId: authUserId,
         updatedAt: new Date(),
       });
 
@@ -9088,24 +9534,24 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Keep training ahead of every broad /api/pro mount. Express runs middleware
   // on prefix matches even when the mounted router has no matching handler, so
   // placing this later causes unrelated Studio gates to intercept completion.
-  app.use("/api/pro/training", requireAuth, procareTrainingRouter);
+  app.use("/api/pro/training", requireAuth, requireMfa, procareTrainingRouter);
 
-  app.use("/api/pro/board", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
+  app.use("/api/pro/board", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
 
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
 
   const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
 
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
-  app.use("/api/pro/workspace", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
+  app.use("/api/pro/workspace", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
@@ -9113,12 +9559,12 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Consumer relationship management is Pro-or-higher. Provider Studio access
   // remains independently protected by requireProCareAccess on /api/pro and
   // /api/studios; this mount must not grant professional workspace access.
-  app.use("/api/care-team", requireAuth, requireProAccess, careTeamRoutes);
-  app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
+  app.use("/api/care-team", requireAuth, requireMfa, requireProAccess, careTeamRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, procareRoutes);
   // requireAuth is applied per-route inside clinicalInterventionsRouter —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
   app.use("/api", clinicalInterventionsRouter);
-  app.use("/api/studios", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
+  app.use("/api/studios", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   // requireAuth is applied per-route inside cycleProtocolRoutes —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
@@ -9127,7 +9573,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/legal", legalRoutes);
 
   app.use("/api/founders", foundersRoutes);
-  app.use("/api/physician-reports", requireAuth, requirePremiumAccess, physicianReportsRoutes);
+  app.use("/api/physician-reports", requireAuth, requireMfa, requirePremiumAccess, physicianReportsRoutes);
   app.use("/api/users", usersProfileRouter);
   app.use("/api/professionals", availabilityRouter);
   app.use("/api", availabilityRouter);

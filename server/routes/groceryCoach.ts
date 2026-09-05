@@ -655,7 +655,7 @@ router.post("/swap-ingredient", async (req, res) => {
     // service hiccup should not block replacing an ingredient. Clinical constraints
     // ARE enforced when the context IS available.
     const ctx = await buildGroceryCoachContext(userId);
-    const { envelope, glp1Targets, savedRows, isClinical, hasDiabetes } = ctx;
+    const { envelope, glp1Targets, compliantSavedRows, isClinical, hasDiabetes } = ctx;
 
     // ── Nutritional-role classification (deterministic, zero AI cost) ─────────
     const role      = classifyNutritionalRole(ingredientToReplace);
@@ -793,7 +793,7 @@ router.post("/swap-ingredient", async (req, res) => {
       //    products. The AI may hallucinate a savedOption that was never saved;
       //    accepting it would surface a non-personalised suggestion as "From Your
       //    Saved Groceries", which misleads the user.
-      const memberRow = savedRows.find(
+      const memberRow = compliantSavedRows.find(
         (r) => r.productName?.toLowerCase().trim() === savedItemName.toLowerCase().trim(),
       );
       if (!memberRow) {

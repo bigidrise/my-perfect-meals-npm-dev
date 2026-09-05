@@ -307,10 +307,23 @@ describe("allergen override — category-aware suppression", () => {
     expect(allergenKeysMatch("fish", "shellfish")).toBe(false);
     expect(allergenKeysMatch("shellfish", "fish")).toBe(false);
     expect(allergenKeysMatch("lactose intolerance", "dairy")).toBe(false);
+    expect(allergenKeysMatch("dairy", "dairy (milk)")).toBe(true);
+    expect(allergenKeysMatch("dairy (milk)", "dairy")).toBe(true);
+    expect(allergenKeysMatch("milk", "dairy")).toBe(true);
+    expect(allergenKeysMatch("MILK-PROTEIN ALLERGY", "dairy")).toBe(true);
+    expect(allergenKeysMatch("dairy/milk", "dairy")).toBe(true);
     expect(allergenKeysMatch("shellfish", "Shellfish")).toBe(true);
     expect(allergenKeysMatch("peanut", "peanuts")).toBe(true);
-    expect(allergenKeysMatch("milk", "dairy")).toBe(true);
     expect(allergenKeysMatch("tree nut", "tree nuts")).toBe(true);
+  });
+
+  test("dairy override removes only dairy and leaves unrelated allergies active", () => {
+    const { buildGuardrailContext } = require("../services/dishAdaptation/dishAdaptationLayer");
+    const ctx = buildGuardrailContext({
+      allergies: ["dairy (milk)", "shellfish", "eggs"],
+      overriddenAllergens: ["dairy"],
+    });
+    expect(ctx.activeAllergens).toEqual(["shellfish", "eggs"]);
   });
 });
 

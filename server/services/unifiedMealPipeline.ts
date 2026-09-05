@@ -80,6 +80,22 @@ import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
 import { isClinicalAdaptationActive } from './clinicalMacroGate';
 
+export class GLP1ComplianceRetryExhaustedError extends Error {
+  readonly status = 422;
+  readonly code = "glp1_compliance_retry_exhausted";
+  readonly retryable = true;
+  readonly violations: string[];
+
+  constructor(kind: "meal" | "snack", violations: string[], attempts: number) {
+    super(
+      `We couldn't safely adapt this ${kind} to your current GLP-1 targets after ${attempts} attempts. ` +
+      `Try a lighter preparation or a smaller portion.`,
+    );
+    this.name = "GLP1ComplianceRetryExhaustedError";
+    this.violations = [...violations];
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // IMAGE PERSISTENCE HELPER — DEPRECATED THIN WRAPPER
 // Redirects all callers to the canonical generateMealImageUnified pipeline,
@@ -1979,6 +1995,7 @@ export async function generateCravingMealOptions(
    *  trims the text-generation cost too. Quality is still adequate for variety
    *  cards since the initial capture already anchored the dish concept. */
   fastMode: boolean = false,
+  humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -2448,19 +2465,31 @@ export async function generateCravingMealOptions(
       if (finalOptions.length === 0 && beforeCount > 0) {
         console.warn(`💊 [VARIETY ENGINE] All options eliminated by GLP-1 — attempting concept-transformation retry`);
         try {
+          if (humanFoodExecutionState) {
+            const { recordRejectedHumanFoodCandidate } = await import("./humanFoodContext/requestExecutionState");
+            rawFiltered.slice(0, 3).forEach((candidate: any) =>
+              recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate)
+            );
+          }
+          const rejectedCandidatePrompt = humanFoodExecutionState
+            ? (await import("./humanFoodContext/requestExecutionState"))
+                .buildRejectedCandidatePrompt(humanFoodExecutionState)
+            : "";
           const transformHint = [
-            `CRITICAL — CONCEPT TRANSFORMATION REQUIRED:`,
+            `CRITICAL — CLINICAL ADAPTATION REQUIRED:`,
             `Every previous option failed GLP-1 compliance. The traditional form of this dish`,
             `cannot meet ≥${glp1Targets!.targetProteinGrams}g protein / ≤${glp1Targets!.maximumToleratedFatGrams}g fat.`,
             ``,
-            `You MUST transform the concept — keep the flavor profile, rebuild around a protein anchor:`,
-            `  • Desserts/pastries → protein bowl, mousse, or yogurt parfait with the same spices/fruit`,
+            `You MUST adapt the requested dish while keeping it recognizable — never replace it with an unrelated generic meal:`,
+            `  • Desserts/pastries → a smaller, leaner version of the same dessert or pastry with a protein-supporting filling`,
             `  • Cream sauces → cottage cheese or silken-tofu base with the same aromatics`,
-            `  • Buttery crusts → almond crumble topping or eliminated entirely`,
+            `  • Buttery crusts → a thinner compliant crust or reduced-fat crumble that preserves the requested format`,
             `  • Sugary fillings → fresh/roasted fruit sweetened only with cinnamon or vanilla`,
+            `  • Sushi, gumbo, noodles, and other named dishes must remain visibly and textually recognizable as that dish`,
             ``,
-            `The dish NAME must reflect the transformation (e.g. "Spiced Apple Protein Bowl",`,
-            `"Chocolate Protein Mousse Cup") — not the original dish name.`,
+            `Preserve the original craving, cuisine, dietary identity, allergy exclusions, seasoning and flavor profile,`,
+            `daily nutrition limits, starch constraints, and named-dish identity carried in the original request.`,
+            rejectedCandidatePrompt,
             `Every option MUST have ≥${glp1Targets!.targetProteinGrams}g protein and ≤${glp1Targets!.maximumToleratedFatGrams}g fat. No exceptions.`,
           ].join('\n');
 
@@ -3794,7 +3823,11 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
           console.warn(`[CHEF SANITY] Ingredient sanity failed — attempt ${attemptCount} — regenerating`);
           continue;
         }
-        console.error(`[CHEF SANITY] Sanity unresolvable after ${attemptCount} attempts — serving as-is`);
+        console.error(`[CHEF SANITY] Sanity unresolvable after ${attemptCount} attempts — failing closed`);
+        throw Object.assign(
+          new Error("Ingredient quantities remained unsafe after bounded regeneration."),
+          { status: 422, code: "INGREDIENT_SANITY_RETRY_EXHAUSTED" },
+        );
       }
 
       // ── Nutrition plausibility gate ───────────────────────────────────────
@@ -3831,8 +3864,11 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         }
         if (!plausible) {
           console.error(
-            `[NUTRITION PLAUSIBILITY] Mismatch unresolvable after ${attemptCount} attempts — ` +
-            `reported=${repPerServing} est=${Math.round(estPerServing)} ratio=${ratio.toFixed(2)} — serving as-is`
+            `[NUTRITION PLAUSIBILITY] Mismatch unresolvable after ${attemptCount} attempts — failing closed`
+          );
+          throw Object.assign(
+            new Error("Nutrition evidence remained implausible after bounded regeneration."),
+            { status: 422, code: "NUTRITION_PLAUSIBILITY_RETRY_EXHAUSTED" },
           );
         }
       }
@@ -3866,15 +3902,18 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
             v.toLowerCase().includes('glp') || v.toLowerCase().includes('fat') ||
             v.toLowerCase().includes('protein') || v.toLowerCase().includes('portion')
           );
-          if (glp1Violations.length > 0 && attemptCount < MAX_REGENERATION_ATTEMPTS) {
-            lastFixHint =
-              `GLP-1 CLINICAL CONSTRAINT VIOLATION — regenerate strictly compliant:\n` +
-              glp1Violations.join('; ') + '\n' +
-              `Reduce fat to under ${glp1Targets?.maximumToleratedFatGrams ?? 15}g, ` +
-              `target ${glp1Targets?.targetProteinGrams ?? 25}g protein, ` +
-              `keep meal small and easily digestible.`;
-            console.warn(`⚠️ [GLP-1] Post-gen violation (attempt ${attemptCount}) — scheduling regeneration: ${glp1Violations.join(', ')}`);
-            continue;
+          if (glp1Violations.length > 0) {
+            if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+              lastFixHint =
+                `GLP-1 CLINICAL CONSTRAINT VIOLATION — regenerate strictly compliant:\n` +
+                glp1Violations.join('; ') + '\n' +
+                `Reduce fat to under ${glp1Targets?.maximumToleratedFatGrams ?? 15}g, ` +
+                `target ${glp1Targets?.targetProteinGrams ?? 25}g protein, ` +
+                `keep meal small and easily digestible.`;
+              console.warn(`⚠️ [GLP-1] Post-gen violation (attempt ${attemptCount}) — scheduling regeneration: ${glp1Violations.join(', ')}`);
+              continue;
+            }
+            throw new GLP1ComplianceRetryExhaustedError("meal", glp1Violations, attemptCount);
           }
           console.warn(`⚠️ Meal has guardrail violations: ${validation.violations.join(', ')}`);
         }
@@ -3910,9 +3949,10 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
           }
           // Fail closed — return a clinical error rather than serving a meal
           // that violates the patient's fat ceiling or protein floor.
-          throw new Error(
-            `[GLP-1] Meal exceeds patient clinical limits after ${attemptCount} attempts: ` +
-            glp1MacroCheck.violations.join('; ')
+          throw new GLP1ComplianceRetryExhaustedError(
+            "meal",
+            glp1MacroCheck.violations,
+            attemptCount,
           );
         } else {
           console.log(
@@ -4614,15 +4654,18 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
             v.toLowerCase().includes('glp') || v.toLowerCase().includes('fat') ||
             v.toLowerCase().includes('protein') || v.toLowerCase().includes('portion')
           );
-          if (glp1Violations.length > 0 && snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
-            snackLastFixHint =
-              `GLP-1 CLINICAL CONSTRAINT VIOLATION — regenerate strictly compliant:\n` +
-              glp1Violations.join('; ') + '\n' +
-              `Reduce fat to under ${glp1Targets?.maximumToleratedFatGrams ?? 8}g, ` +
-              `target ${glp1Targets?.targetProteinGrams ?? 8}g protein, ` +
-              `keep snack very small (${glp1Targets?.resolvedSnackCalories ?? 150} kcal max).`;
-            console.warn(`⚠️ [GLP-1] Post-gen snack violation (attempt ${snackAttemptCount}) — scheduling regeneration: ${glp1Violations.join(', ')}`);
-            continue;
+          if (glp1Violations.length > 0) {
+            if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+              snackLastFixHint =
+                `GLP-1 CLINICAL CONSTRAINT VIOLATION — regenerate strictly compliant:\n` +
+                glp1Violations.join('; ') + '\n' +
+                `Reduce fat to under ${glp1Targets?.maximumToleratedFatGrams ?? 8}g, ` +
+                `target ${glp1Targets?.targetProteinGrams ?? 8}g protein, ` +
+                `keep snack very small (${glp1Targets?.resolvedSnackCalories ?? 150} kcal max).`;
+              console.warn(`⚠️ [GLP-1] Post-gen snack violation (attempt ${snackAttemptCount}) — scheduling regeneration: ${glp1Violations.join(', ')}`);
+              continue;
+            }
+            throw new GLP1ComplianceRetryExhaustedError("snack", glp1Violations, snackAttemptCount);
           }
           console.warn(`⚠️ Snack has guardrail violations: ${validation.violations.join(', ')}`);
         }
@@ -4655,9 +4698,10 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
           }
           // Fail closed — return a clinical error rather than serving a snack
           // that violates the patient's fat ceiling or protein floor.
-          throw new Error(
-            `[GLP-1] Snack exceeds patient clinical limits after ${snackAttemptCount} attempts: ` +
-            glp1MacroCheck.violations.join('; ')
+          throw new GLP1ComplianceRetryExhaustedError(
+            "snack",
+            glp1MacroCheck.violations,
+            snackAttemptCount,
           );
         } else {
           console.log(

@@ -36,7 +36,7 @@ export function initNativeDemoMode(): boolean {
   
   console.log("📱 Demo mode: Auto-logging in demo user for video recording");
   
-  localStorage.setItem("mpm_current_user", JSON.stringify(DEMO_USER));
+  setCachedUser(DEMO_USER);
   localStorage.setItem("userId", DEMO_USER.id);
   localStorage.setItem("isAuthenticated", "true");
   localStorage.setItem("mpm_auth_token", "demo-token-ios-preview");
@@ -195,6 +195,8 @@ export interface User {
     assignedBuilder?: string | null;
 
   } | null;
+  /** Purpose-limited cache flag; the membership object itself is never persisted. */
+  hasStudioMembership?: boolean;
 
   goalType?: "lose" | "maintain" | "gain" | null;
 
@@ -320,6 +322,65 @@ export interface User {
     trialDays: number | null;
     acceptedAt: string;
   } | null;
+}
+
+/**
+ * The only user data permitted in persistent browser storage. The full profile
+ * remains in React memory after refresh; this cache only restores auth/access
+ * and onboarding routing while that refresh is in progress.
+ */
+export interface CachedUser {
+  id: string;
+  email: string;
+  entitlements?: string[];
+  planLookupKey?: string | null;
+  selectedMealBuilder?: MealBuilderType | null;
+  isTester?: boolean;
+  isSandbox?: boolean;
+  accessTier?: AccessTier;
+  role?: UserRole;
+  isProCare?: boolean;
+  activeBoard?: MealBuilderType | null;
+  builderSwitchUnlimited?: boolean;
+  onboardingCompletedAt?: string | null;
+  professionalRole?: User["professionalRole"];
+  procareTrainingCompleted?: boolean;
+  phase2GateEnabled?: boolean;
+  proCareEligible?: boolean;
+  monetizationEligible?: boolean;
+  isAdmin?: boolean;
+  mfaEnabled?: boolean;
+  trialEndsAt?: string | null;
+  isTrialActive?: boolean;
+  daysRemaining?: number;
+  trialTier?: string | null;
+  hasStudioMembership?: boolean;
+}
+
+/** Return a minimized, persistence-safe representation of a user. */
+export function toCachedUser(user: User): CachedUser {
+  const {
+    id, email, entitlements, planLookupKey, selectedMealBuilder,
+    isTester, isSandbox, accessTier, role, isProCare, activeBoard,
+    builderSwitchUnlimited, onboardingCompletedAt, professionalRole,
+    procareTrainingCompleted, phase2GateEnabled, proCareEligible,
+    monetizationEligible, isAdmin, mfaEnabled, trialEndsAt, isTrialActive,
+    daysRemaining, trialTier,
+  } = user;
+  return {
+    id, email, entitlements, planLookupKey, selectedMealBuilder,
+    isTester, isSandbox, accessTier, role, isProCare, activeBoard,
+    builderSwitchUnlimited, onboardingCompletedAt, professionalRole,
+    procareTrainingCompleted, phase2GateEnabled, proCareEligible,
+    monetizationEligible, isAdmin, mfaEnabled, trialEndsAt, isTrialActive,
+    daysRemaining, trialTier,
+    hasStudioMembership: user.hasStudioMembership ?? Boolean(user.studioMembership),
+  };
+}
+
+/** Persist only the routing/access cache, never the full profile. */
+export function setCachedUser(user: User): void {
+  localStorage.setItem("mpm_current_user", JSON.stringify(toCachedUser(user)));
 }
 
 export function getAuthToken(): string | null {
@@ -459,8 +520,8 @@ export async function signUp(
       onboardingCompletedAt: null,
     };
 
-    // Save to localStorage for offline access
-    localStorage.setItem("mpm_current_user", JSON.stringify(user));
+    // Cache only auth and routing fields; the full profile stays in memory.
+    setCachedUser(user);
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
@@ -516,7 +577,7 @@ export async function login(
       mfaEnabled: userData.mfaEnabled || false,
     };
 
-    localStorage.setItem("mpm_current_user", JSON.stringify(user));
+    setCachedUser(user);
     localStorage.setItem("userId", user.id);
     localStorage.setItem("isAuthenticated", "true");
 
@@ -582,7 +643,7 @@ export async function completeMfaChallenge(
     mfaEnabled: userData.mfaEnabled || false,
   };
 
-  localStorage.setItem("mpm_current_user", JSON.stringify(user));
+  setCachedUser(user);
   localStorage.setItem("userId", user.id);
   localStorage.setItem("isAuthenticated", "true");
 
@@ -613,5 +674,11 @@ export function logout(): void {
 
 export function getCurrentUser(): User | null {
   const userStr = localStorage.getItem("mpm_current_user");
-  return userStr ? JSON.parse(userStr) : null;
+  if (!userStr) return null;
+
+  // Rewrite caches created by older app versions so sensitive profile fields
+  // are removed as soon as an authenticated session is restored.
+  const cachedUser = toCachedUser(JSON.parse(userStr) as User);
+  setCachedUser(cachedUser);
+  return cachedUser;
 }

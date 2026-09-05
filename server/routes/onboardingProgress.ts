@@ -1,10 +1,31 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { db } from "../db";
 import { onboardingProgress } from "../../shared/schema";
 import { eq, and } from "drizzle-orm";
 import { mergeStepIntoPreferences } from "../services/onboardingMergeService";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const r = Router();
+
+async function allowDeviceOrAuthenticatedSelf(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const suppliedUserId = String(req.body?.userId ?? req.query.userId ?? "").trim();
+  if (!suppliedUserId) return next();
+
+  await requireAuth(req, res, () => {
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
+    if (suppliedUserId !== authUserId) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    next();
+  });
+}
+
+r.use("/onboarding", allowDeviceOrAuthenticatedSelf);
 
 /**
  * GET /api/onboarding/progress
@@ -13,7 +34,9 @@ const r = Router();
  */
 r.get("/onboarding/progress", async (req, res) => {
   const deviceId = (req as any).deviceId as string;
-  const userId = (req.query.userId as string | undefined) || undefined;
+  const userId = req.query.userId
+    ? (req as AuthenticatedRequest).authUser.id
+    : undefined;
 
   try {
     const rows = await db.select().from(onboardingProgress)
@@ -53,7 +76,9 @@ const MAX_REQUESTS_PER_WINDOW = 5; // Max 5 requests per 10 seconds
  */
 r.put("/onboarding/step/:stepKey", async (req, res) => {
   const deviceId = (req as any).deviceId as string;
-  const userId = (req.body?.userId as string | undefined) || undefined;
+  const userId = req.body?.userId
+    ? (req as AuthenticatedRequest).authUser.id
+    : undefined;
   const stepKey = req.params.stepKey;
   const data = (req.body?.data ?? {}) as Record<string, any>;
   const completed = !!req.body?.completed;
@@ -153,7 +178,9 @@ r.put("/onboarding/step/:stepKey", async (req, res) => {
  */
 r.delete("/onboarding/step/:stepKey", async (req, res) => {
   const deviceId = (req as any).deviceId as string;
-  const userId = (req.query.userId as string | undefined) || undefined;
+  const userId = req.query.userId
+    ? (req as AuthenticatedRequest).authUser.id
+    : undefined;
   const stepKey = req.params.stepKey;
 
   try {
@@ -175,7 +202,9 @@ r.delete("/onboarding/step/:stepKey", async (req, res) => {
  */
 r.post("/onboarding/reset-all", async (req, res) => {
   const deviceId = (req as any).deviceId as string;
-  const userId = (req.body?.userId as string | undefined) || undefined;
+  const userId = req.body?.userId
+    ? (req as AuthenticatedRequest).authUser.id
+    : undefined;
 
   try {
     const baseMatch = userId
@@ -196,7 +225,9 @@ r.post("/onboarding/reset-all", async (req, res) => {
  */
 r.post("/onboarding/claim", async (req, res) => {
   const deviceId = (req as any).deviceId as string;
-  const userId = (req.body?.userId || "").toString().trim();
+  const userId = req.body?.userId
+    ? (req as AuthenticatedRequest).authUser.id
+    : "";
   if (!userId) return res.status(400).json({ error: "Missing userId" });
 
   try {

@@ -3,8 +3,12 @@ import { db } from "../db";
 import { mealPlans, shoppingListItems, mealPlansCurrent } from "../../shared/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { extractIngredients, mergeIngredients } from "../services/ingredients";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const r = Router();
+r.use(requireAuth);
+
+const actorId = (req: any) => (req as AuthenticatedRequest).authUser.id;
 
 function weekStartOf(dateIso?: string) {
   const d = dateIso ? new Date(dateIso) : new Date();
@@ -18,7 +22,7 @@ function weekStartOf(dateIso?: string) {
 // GET current week's stored plan (or 404 if none)
 r.get("/current", async (req, res) => {
   try {
-    const userId = String(req.query.userId || "1");
+    const userId = actorId(req);
     const row = (await db.select().from(mealPlans)
       .where(and(eq(mealPlans.userId, userId), eq(mealPlans.isActive, true)))).at(0);
     if (!row) return res.status(404).json({ message: "No active plan found." });
@@ -32,7 +36,7 @@ r.get("/current", async (req, res) => {
 // GET list of meal plans available (most recent first)
 r.get("/all", async (req, res) => {
   try {
-    const userId = String(req.query.userId || "1");
+    const userId = actorId(req);
     const rows = await db.select().from(mealPlans)
       .where(eq(mealPlans.userId, userId))
       .orderBy(desc(mealPlans.createdAt));
@@ -52,7 +56,7 @@ r.get("/all", async (req, res) => {
 // GET a specific meal plan
 r.get("/:planId", async (req, res) => {
   try {
-    const userId = String(req.query.userId || "1");
+    const userId = actorId(req);
     const planId = req.params.planId;
     const row = (await db.select().from(mealPlans)
       .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))).at(0);
@@ -67,7 +71,7 @@ r.get("/:planId", async (req, res) => {
 // POST save a generated plan
 r.post("/save", async (req, res) => {
   try {
-    const userId = String(req.body?.userId || "1");
+    const userId = actorId(req);
     const { name, type, weeklyPlan, totalDailyCalories, totalDailyProtein, totalDailyCarbs, totalDailyFat } = req.body;
     
     if (!weeklyPlan) return res.status(400).json({ error: "weeklyPlan required" });
@@ -95,7 +99,7 @@ r.post("/save", async (req, res) => {
 // DELETE a specific meal plan
 r.delete("/:planId", async (req, res) => {
   try {
-    const userId = String(req.query.userId || "1");
+    const userId = actorId(req);
     const planId = req.params.planId;
     await db.delete(mealPlans)
       .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)));
@@ -109,7 +113,7 @@ r.delete("/:planId", async (req, res) => {
 // PUT activate a meal plan
 r.put("/:planId/activate", async (req, res) => {
   try {
-    const userId = String(req.body?.userId || "1");
+    const userId = actorId(req);
     const planId = req.params.planId;
     
     // Deactivate all existing plans
@@ -133,7 +137,7 @@ r.put("/:planId/activate", async (req, res) => {
 // POST add a meal plan's ingredients to shopping list
 r.post("/:planId/add-to-shopping-list", async (req, res) => {
   try {
-    const userId = String(req.body?.userId || req.query.userId || "1");
+    const userId = actorId(req);
     const planId = req.params.planId;
 
     const row = (await db.select().from(mealPlans)

@@ -52,7 +52,11 @@ function fail(label: string, detail = ""): void {
 async function post(path: string, body: Record<string, unknown>, headers: Record<string, string> = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+      ...headers,
+    },
     body: JSON.stringify(body),
   });
   let json: unknown = null;

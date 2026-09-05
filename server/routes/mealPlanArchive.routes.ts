@@ -2,14 +2,15 @@ import { Router } from "express";
 import { db } from "../db";
 import { aiMealPlanArchive } from "@shared/schema";
 import { eq, desc, and } from "drizzle-orm";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
 // GET /api/meal-plan-archive - List archived meal plans for user  
-router.get("/meal-plan-archive", async (req, res) => {
+router.get("/meal-plan-archive", requireAuth, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 20;
-    const userId = "test-user-123"; // Demo user ID - in real app would come from auth
+    const userId = (req as AuthenticatedRequest).authUser.id;
     
     const plans = await db
       .select()
@@ -26,14 +27,17 @@ router.get("/meal-plan-archive", async (req, res) => {
 });
 
 // GET /api/meal-plan-archive/:id - Get single meal plan
-router.get("/meal-plan-archive/:id", async (req, res) => {
+router.get("/meal-plan-archive/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     
     const plan = await db
       .select()
       .from(aiMealPlanArchive)
-      .where(eq(aiMealPlanArchive.id, id))
+      .where(and(
+        eq(aiMealPlanArchive.id, id),
+        eq(aiMealPlanArchive.userId, (req as AuthenticatedRequest).authUser.id),
+      ))
       .limit(1);
     
     if (plan.length === 0) {
@@ -48,10 +52,10 @@ router.get("/meal-plan-archive/:id", async (req, res) => {
 });
 
 // POST /api/meal-plan-archive - Create/accept new meal plan
-router.post("/meal-plan-archive", async (req, res) => {
+router.post("/meal-plan-archive", requireAuth, async (req, res) => {
   try {
     console.log("🎯 MEAL PLAN ARCHIVE ROUTE HIT!");
-    const userId = "test-user-123"; // Demo user ID - in real app would come from auth
+    const userId = (req as AuthenticatedRequest).authUser.id;
     
     console.log("Received meal plan archive request");
     
@@ -96,10 +100,10 @@ router.post("/meal-plan-archive", async (req, res) => {
 });
 
 // DELETE /api/meal-plans/:id - Delete meal plan
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = "test-user-123"; // Demo user ID - in real app would come from auth
+    const userId = (req as AuthenticatedRequest).authUser.id;
     
     const result = await db
       .delete(aiMealPlanArchive)
@@ -121,11 +125,11 @@ router.delete("/:id", async (req, res) => {
 });
 
 // POST /api/meal-plans/:id/repeat - Repeat meal plan
-router.post("/:id/repeat", async (req, res) => {
+router.post("/:id/repeat", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { weeks = 1, startDate } = req.body;
-    const userId = "test-user-123"; // Demo user ID - in real app would come from auth
+    const userId = (req as AuthenticatedRequest).authUser.id;
     
     // Get original plan
     const originalPlan = await db

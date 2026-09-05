@@ -24,6 +24,7 @@ import { getDishAdaptationDirective, buildGuardrailContext } from "../services/d
 import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
 import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -127,11 +128,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
     }
 
     const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
-    const {
-      buildCreatorHumanFoodPrompt,
-      buildCreatorAllergenAdaptationPrompt,
-      validateCreatorHumanFoodResult,
-    } = await import("../services/humanFoodContext/adapters");
+    const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
     const humanFoodRequestScope = createHumanFoodRequestScope({
       actorUserId: userId,
       subjectUserId: userId,
@@ -143,10 +140,6 @@ dessertCreatorRouter.post("/", async (req, res) => {
     });
     const humanFoodContext = await humanFoodRequestScope.resolve();
     const humanFoodExecutionState = humanFoodRequestScope.executionState;
-    const {
-      recordRejectedHumanFoodCandidate,
-      buildRejectedCandidatePrompt,
-    } = await import("../services/humanFoodContext/requestExecutionState");
     if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
       return res.status(409).json({
         code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
@@ -154,7 +147,20 @@ dessertCreatorRouter.post("/", async (req, res) => {
         message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
       });
     }
-    let humanFoodPrompt = buildCreatorHumanFoodPrompt("dessert_creator", humanFoodContext);
+    const humanFoodPrompt = buildCreatorHumanFoodPrompt("dessert_creator", humanFoodContext);
+    const { resolveGLP1GlobalContext } = await import("../services/glp1/resolveGLP1GlobalContext");
+    const dessertGlp1Context = await resolveGLP1GlobalContext(
+      userId,
+      new Date().toISOString().split("T")[0],
+      "snack",
+    );
+    if (dessertGlp1Context.isActive && !dessertGlp1Context.resolvedTargets) {
+      return res.status(503).json({
+        code: "GLP1_CONTEXT_UNAVAILABLE",
+        message: "GLP-1 dessert targets could not be resolved safely.",
+      });
+    }
+    const dessertGlp1Targets = dessertGlp1Context.resolvedTargets;
 
     // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
     let dietAdapted = false;
@@ -169,25 +175,14 @@ dessertCreatorRouter.post("/", async (req, res) => {
         correlationId: (req as any).id
       });
       if (safetyCheck.result === "BLOCKED") {
-        const adaptationPrompt = buildCreatorAllergenAdaptationPrompt(
-          "dessert_creator",
-          inputText,
-          safetyCheck,
-          humanFoodContext,
-        );
-        if (adaptationPrompt) {
-          humanFoodPrompt = `${humanFoodPrompt}\n\n${adaptationPrompt}`;
-          console.log(`[DESSERT] Automatic allergen adaptation active; requestId=${(req as any).id ?? "unavailable"}`);
-        } else {
-          console.log(`[DESSERT] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
-          return res.status(400).json({
-            success: false,
-            error: safetyCheck.message,
-            safetyBlocked: true,
-            blockedTerms: safetyCheck.blockedTerms,
-            suggestion: safetyCheck.suggestion
-          });
-        }
+        console.log(`[DESSERT] Request blocked by safety policy; requestId=${(req as any).id ?? "unavailable"}`);
+        return res.status(400).json({
+          success: false,
+          error: safetyCheck.message,
+          safetyBlocked: true,
+          blockedTerms: safetyCheck.blockedTerms,
+          suggestion: safetyCheck.suggestion
+        });
       }
       if (safetyCheck.result === "AMBIGUOUS") {
         return res.status(400).json({
@@ -413,6 +408,7 @@ Return JSON ONLY, following this exact schema:
 
 {
   "name": "",
+  "category": "${dessertCategory || "dessert"}",
   "description": "",
   "ingredients": [
     {
@@ -429,6 +425,10 @@ Return JSON ONLY, following this exact schema:
     "starchyCarbs": 0,
     "fat": 0
   },
+  "perServingNutrition": {
+    "calories": 0, "protein": 0, "carbs": 0, "starchyCarbs": 0, "fat": 0
+  },
+  "servings": ${serving.count},
   ${dessertCategory === "cake" ? `"perSliceNutrition": {
     "calories": 0,
     "protein": 0,
@@ -468,57 +468,39 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
 - DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
 `;
 
+    if (isDev) console.log("[DESSERT] Calling OpenAI GPT-4o...");
+    const completion = await getOpenAI().chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    });
+    if (isDev) console.log("[DESSERT] OpenAI response received");
+
     let meal: any;
-    let dessertScan: ReturnType<typeof scanGeneratedOutput> | null = null;
-    const MAX_DESSERT_ATTEMPTS = 3;
-    for (let attempt = 1; attempt <= MAX_DESSERT_ATTEMPTS; attempt++) {
-      const retryPrompt = attempt > 1
-        ? `\n\nPREVIOUS CANDIDATE REJECTED. Use a materially different safe ingredient strategy while preserving the requested dessert category, cuisine, and dish identity.\n${dessertScan?.message ?? ""}\n${buildRejectedCandidatePrompt(humanFoodExecutionState)}`
-        : "";
-      if (isDev) console.log(`[DESSERT] Calling OpenAI GPT-4o (attempt ${attempt})...`);
-      const completion = await getOpenAI().chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt + retryPrompt }],
-        response_format: { type: "json_object" },
+    try {
+      const rawText = completion.choices[0]?.message?.content || "{}";
+      meal = JSON.parse(rawText);
+      if (isDev) console.log("[DESSERT] Generated response parsed");
+    } catch (parseErr) {
+      console.error("Dessert Creator JSON parse error:", parseErr);
+      return res
+        .status(500)
+        .json({ error: "AI returned invalid JSON for dessert" });
+    }
+
+    // ── Post-gen protocol scan ──────────────────────────────────────────────
+    const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
+      generatorName: 'dessert_creator',
+      skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+      overriddenAllergens: _overriddenDessertAllergens.length > 0 ? _overriddenDessertAllergens : undefined,
+    });
+    if (!dessertScan.passed) {
+        console.log(`[DESSERT] Generated result rejected by protocol; requestId=${(req as any).id ?? "unavailable"}`);
+      return res.status(400).json({
+        error: "PROTOCOL_VIOLATION",
+        message: dessertScan.message,
+        retryable: true,
       });
-      if (isDev) console.log("[DESSERT] OpenAI response received");
-
-      try {
-        const rawText = completion.choices[0]?.message?.content || "{}";
-        meal = JSON.parse(rawText);
-      } catch (parseErr) {
-        console.error("Dessert Creator JSON parse error:", parseErr);
-        if (attempt < MAX_DESSERT_ATTEMPTS) continue;
-        return res.status(500).json({ error: "AI returned invalid JSON for dessert" });
-      }
-
-      dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
-        generatorName: 'dessert_creator',
-        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
-        overriddenAllergens: _overriddenDessertAllergens.length > 0 ? _overriddenDessertAllergens : undefined,
-      });
-      const candidateHumanFoodValidation = validateCreatorHumanFoodResult(
-        "dessert_creator",
-        meal,
-        humanFoodContext,
-      );
-      if (dessertScan.passed && candidateHumanFoodValidation.valid) break;
-
-      recordRejectedHumanFoodCandidate(humanFoodExecutionState, meal);
-      if (dessertScan.passed) {
-        dessertScan = {
-          passed: false,
-          message: `Human Food Context validation failed: ${candidateHumanFoodValidation.violations.join(", ")}`,
-        } as any;
-      }
-      console.log(`[DESSERT] Candidate rejected (attempt ${attempt}); requestId=${(req as any).id ?? "unavailable"}`);
-      if (attempt >= MAX_DESSERT_ATTEMPTS) {
-        return res.status(400).json({
-          error: "PROTOCOL_VIOLATION",
-          message: dessertScan?.message ?? "The dessert could not be verified against your food safety requirements.",
-          retryable: true,
-        });
-      }
     }
 
     // ── Dish Identity Validator (Phase 5) ─────────────────────────────────────
@@ -592,9 +574,200 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     }
 
     // Creator System 2-pass transformation — applied after all safety checks and normalization.
+    const dessertCreatorSystem =
+      userId && userId !== "1" ? await resolveCreatorSystemForUser(userId) : null;
     if (userId && userId !== "1") {
-      const creatorSystem = await resolveCreatorSystemForUser(userId);
-      meal = await applyCreatorTransformation(meal, creatorSystem, "dessert");
+      meal = await applyCreatorTransformation(meal, dessertCreatorSystem!, "dessert");
+    }
+
+    // Universal final gate: validate the exact transformed dessert, permit one
+    // same-context repair, then validate the exact object returned to the client.
+    const { validateHumanFoodCandidate } = await import("../services/humanFoodContext/finalValidation");
+    const { enforceFinalCreatorCandidates } = await import(
+      "../services/humanFoodContext/enforceFinalCreatorCandidates"
+    );
+    const { validateMealForDiet: validateDessertForGlp1 } = await import("../services/guardrails");
+    const { validateDiabeticMeal } = await import("../services/guardrails/validators/diabeticValidator");
+    const requestedDessert = _dessertIsNamed ? dessertIdentifier : undefined;
+    const requestedCategory = String(dessertCategory || "dessert").toLowerCase();
+    const toFinalDessertCandidate = (candidate: any) => {
+      const text = [
+        candidate?.name,
+        candidate?.description,
+        ...(candidate?.ingredients ?? []).map((item: any) =>
+          typeof item === "string" ? item : item?.name ?? item?.item ?? "",
+        ),
+        ...(Array.isArray(candidate?.instructions)
+          ? candidate.instructions
+          : [candidate?.instructions ?? ""]),
+      ].join(" ").toLowerCase();
+      const evidenced = (field: { available: boolean; value: string | null }) =>
+        field.available && field.value && text.includes(field.value.toLowerCase())
+          ? field.value
+          : undefined;
+      const protocolProof = scanGeneratedOutput(candidate, dessertEnvelope, {
+        generatorName: "dessert_creator_final_evidence",
+        skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+        overriddenAllergens: _overriddenDessertAllergens.length
+          ? _overriddenDessertAllergens
+          : undefined,
+      });
+      const nutrition = candidate?.nutrition ?? {};
+      const glp1Proof = dessertGlp1Targets
+        ? validateDessertForGlp1({
+            name: String(candidate?.name ?? ""),
+            ingredients: (candidate?.ingredients ?? []).map((item: any) => ({
+              name: String(typeof item === "string" ? item : item?.name ?? item?.item ?? ""),
+            })),
+            macros: {
+              calories: Number(nutrition.calories),
+              protein: Number(nutrition.protein),
+              carbs: Number(nutrition.carbs),
+              fat: Number(nutrition.fat),
+            },
+          }, null, undefined, true, dessertGlp1Targets).isValid
+        : undefined;
+      const diabetesActive = humanFoodContext.safety.healthConditions.some((condition) =>
+        condition.toLowerCase().includes("diabet"),
+      );
+      const diabetesProof = diabetesActive
+        ? validateDiabeticMeal({
+            name: String(candidate?.name ?? ""),
+            ingredients: candidate?.ingredients ?? [],
+            macros: {
+              calories: Number(nutrition.calories),
+              protein: Number(nutrition.protein),
+              carbs: Number(nutrition.carbs),
+              fat: Number(nutrition.fat),
+            },
+          } as any).isValid
+        : undefined;
+      return {
+        ...candidate,
+        category: candidate?.category,
+        nutrition: {
+          calories: Number(nutrition.calories),
+          protein: Number(nutrition.protein),
+          carbs: Number(nutrition.carbs),
+          fat: Number(nutrition.fat),
+          starchyCarbs: Number(nutrition.starchyCarbs),
+        },
+        evidence: {
+          sourceType: "generated_recipe" as const,
+          ingredientEvidence: "structured_generation" as const,
+          preparationEvidence: "structured_generation" as const,
+          nutritionEvidence: "structured_generation" as const,
+          dietaryIdentityCompliant: protocolProof.passed,
+          clinicalDirectivesCompliant: undefined,
+          glp1Compliant: glp1Proof,
+          diabetesCompliant: diabetesProof,
+          cuisine: evidenced(humanFoodContext.flavor.cuisine),
+          cuisineIntensity: evidenced(humanFoodContext.flavor.cuisineIntensity),
+          heat: evidenced(humanFoodContext.flavor.heat),
+          seasoningIntensity: evidenced(humanFoodContext.flavor.seasoningIntensity),
+          broadFlavor: evidenced(humanFoodContext.flavor.broadFlavor),
+          flavorStyle: evidenced(humanFoodContext.flavor.flavorStyle),
+        },
+      };
+    };
+    const validateFinalDessert = (candidate: any): HumanFoodFinalValidationResult => {
+      const result = validateHumanFoodCandidate(toFinalDessertCandidate(candidate), humanFoodContext, {
+        requestedDish: requestedDessert,
+        requestedCategory,
+        dishDirective: _dessertDishDirective,
+        executionState: humanFoodExecutionState,
+      });
+      const nutrition = candidate?.nutrition ?? {};
+      const perServing = candidate?.perServingNutrition ?? {};
+      const nutritionKeys = ["calories", "protein", "carbs", "fat", "starchyCarbs"];
+      const finiteNutrition = [...nutritionKeys.map((key) => nutrition[key]), ...nutritionKeys.map((key) => perServing[key])]
+        .every((value) => typeof value === "number" && Number.isFinite(value));
+      const scalingMatches = finiteNutrition &&
+        candidate?.servings === serving.count &&
+        nutritionKeys.every((key) =>
+          Math.abs(nutrition[key] - perServing[key] * serving.count) <= 1,
+        );
+      const categoryMatches =
+        String(candidate?.category ?? "").toLowerCase() === requestedCategory;
+      const servingMatches = candidate?.servingSize === serving.label;
+      if (finiteNutrition && scalingMatches && categoryMatches && servingMatches) return result;
+      const preserveOutcome: HumanFoodFinalValidationResult["outcome"] =
+        result.outcome === "blocked" || result.outcome === "review_required"
+          ? result.outcome
+          : "repairable";
+      return {
+        ...result,
+        outcome: preserveOutcome,
+        findings: [
+          ...result.findings,
+          ...(!finiteNutrition || !scalingMatches ? [{
+            dimension: "nutrition" as const, outcome: "repairable" as const,
+            code: "final_nutrition_invalid", message: "Final nutrition must contain finite, correctly scaled total and per-serving values.",
+            assurance: "structured_evidence" as const, repairHint: "Return numeric total and per-serving nutrition that multiply to the requested serving count.",
+          }] : []),
+          ...(!categoryMatches ? [{
+            dimension: "dish_identity" as const, outcome: "repairable" as const,
+            code: "final_category_mismatch", message: "Final dessert category changed.",
+            assurance: "structured_evidence" as const, repairHint: `Keep category "${requestedCategory}".`,
+          }] : []),
+          ...(!servingMatches ? [{
+            dimension: "nutrition" as const, outcome: "repairable" as const,
+            code: "final_serving_mismatch", message: "Final serving size changed.",
+            assurance: "structured_evidence" as const, repairHint: `Keep servingSize "${serving.label}" and scale nutrition to it.`,
+          }] : []),
+        ],
+        repairInstructions: preserveOutcome === "repairable" ? [
+          ...result.repairInstructions,
+          ...(!finiteNutrition || !scalingMatches ? ["Return numeric total and per-serving nutrition that multiply to the requested serving count."] : []),
+          ...(!categoryMatches ? [`Keep category "${requestedCategory}".`] : []),
+          ...(!servingMatches ? [`Keep servingSize "${serving.label}" and scale nutrition to it.`] : []),
+        ] : [],
+      };
+    };
+    const finalDessertEnforcement = await enforceFinalCreatorCandidates({
+      candidates: [meal],
+      validate: validateFinalDessert,
+      repair: async (repairInstructions) => {
+        const repairCompletion = await getOpenAI().chat.completions.create({
+          model: "gpt-4o",
+          messages: [{
+            role: "user",
+            content:
+              `${prompt}\n\nRepair this rejected dessert without changing the requested dessert identity, ` +
+              `serving count, cuisine, flavor, sweetness, or texture.\n` +
+              `${JSON.stringify(meal)}\n\n${repairInstructions.join("\n")}`,
+          }],
+          response_format: { type: "json_object" },
+        });
+        let repaired = JSON.parse(repairCompletion.choices[0]?.message?.content || "{}");
+        repaired.ingredients = normalizeIngredients(repaired.ingredients || []);
+        if (dessertCreatorSystem) {
+          repaired = await applyCreatorTransformation(repaired, dessertCreatorSystem, "dessert");
+        }
+        return [repaired];
+      },
+    });
+    if (finalDessertEnforcement.accepted.length === 0) {
+      const validations = finalDessertEnforcement.validations.map(({ result }) => result);
+      const reviewRequired = validations.some(({ outcome }) => outcome === "review_required");
+      return res.status(reviewRequired ? 409 : 422).json({
+        code: reviewRequired
+          ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
+          : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+        status: reviewRequired ? "review_required" : "blocked",
+        message: "No dessert passed universal final validation.",
+        retryable: false,
+        findings: validations.flatMap(({ findings }) => findings),
+        authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
+      });
+    }
+    meal = finalDessertEnforcement.accepted[0];
+    if (validateFinalDessert(meal).outcome !== "pass") {
+      return res.status(422).json({
+        code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+        message: "The final dessert response did not pass universal validation.",
+        retryable: false,
+      });
     }
 
     if (isDev) console.log("[DESSERT] Sending response (image handled client-side)...");
@@ -612,13 +785,6 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
 
     const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =
       buildMealComplianceBundle(meal, dessertEnvelope, { isChefAdapted: dietAdapted });
-    const humanFoodValidation = validateCreatorHumanFoodResult("dessert_creator", meal, humanFoodContext);
-    if (!humanFoodValidation.valid) {
-      return res.status(422).json({
-        code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
-        message: "The dessert did not pass final food-context validation.",
-      });
-    }
     return res.json({
       ...meal,
       imageUrl,

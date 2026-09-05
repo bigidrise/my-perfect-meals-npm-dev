@@ -242,12 +242,12 @@ export default function AntiInflammatoryMenuBuilder() {
     let cancelled = false;
     apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
       .then((data) => {
-        console.log("[AntiInflamBuilder] labs fetch →", JSON.stringify(data?.protocolSignal ?? null));
+        console.log("[AntiInflamBuilder] Lab protocol status received");
         if (cancelled) return;
 
         // Physician-assigned oncology takes precedence over lab-derived protocol signal
         if (data?.oncologySupportEnabled) {
-          console.log("[AntiInflamBuilder] oncology support active → setting mode to oncology-support");
+          console.log("[AntiInflamBuilder] Oncology support status active");
           setClinicalModeState('oncology-support');
           return;
         }
@@ -263,7 +263,7 @@ export default function AntiInflammatoryMenuBuilder() {
             if (clientId) {
               const stripped = proStore.stripMedicalFlags(clientId);
               if (stripped) {
-                console.log("[AntiInflamBuilder] Stripped stale oncologySupport flag — DB says it is off.");
+                console.log("[AntiInflamBuilder] Stale oncology status cleared");
               }
             }
           } catch {/* localStorage may be unavailable */}
@@ -316,14 +316,14 @@ export default function AntiInflammatoryMenuBuilder() {
           };
           const mappedMode = conditionModeMap[data.specialtyCondition] as ClinicalMode | undefined;
           if (mappedMode) {
-            console.log("[AntiInflamBuilder] specialtyCondition →", data.specialtyCondition, "→ mode:", mappedMode);
+            console.log("[AntiInflamBuilder] Specialty protocol status applied");
             setClinicalModeState(mappedMode);
             return;
           }
         }
         if (!data?.protocolSignal?.protocol) return;
         const labMode = data.protocolSignal.protocol as ClinicalMode;
-        console.log("[AntiInflamBuilder] setting clinicalMode from labs →", labMode);
+        console.log("[AntiInflamBuilder] Lab protocol status applied");
         setClinicalModeState(labMode);
         // Also capture in labDerivedConditions so the indicator dot lights up.
         setLabDerivedConditions((prev) => prev.includes(labMode) ? prev : [...prev, labMode]);

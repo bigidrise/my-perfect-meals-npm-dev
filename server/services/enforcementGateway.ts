@@ -24,7 +24,6 @@
  */
 
 import { loadSafetyProfile, enforceSafetyProfile, type SafetyOptions } from "./safetyProfileService";
-import type { AllergyConflict } from "./allergyGuardrails";
 import { scanTextForHighRiskIngredients } from "./ingredientIntelligence";
 import { evaluateRelationshipRules, type RuleViolation } from "./guardrails/rules/culturalRules";
 import { AVOIDANCE_EXPANSION, scanForHiddenDietaryViolations } from "./allergyGuardrails";
@@ -104,11 +103,6 @@ export interface EnforcementRequest {
    * Currently unused — derived automatically from user profile.
    */
   protocolOverride?: string[];
-  /**
-   * Human Food creators may adapt incidental pre-generation allergy conflicts.
-   * Identity-collapse conflicts and all post-generation violations still block.
-   */
-  allowAdaptableAllergyConflict?: boolean;
 }
 
 export interface EnforcementBlock {
@@ -141,7 +135,6 @@ export interface EnforcementResult {
    * meal on the allergen the user just authorized.
    */
   overriddenAllergen?: string;
-  adaptableAllergyConflict?: AllergyConflict;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -404,17 +397,6 @@ export async function runEnforcement(request: EnforcementRequest): Promise<Enfor
   );
 
   if (safetyAssessment.result === "BLOCKED") {
-    if (
-      request.phase === "pre_generation"
-      && request.allowAdaptableAllergyConflict === true
-      && safetyAssessment.allergyConflict?.type === "conflict_adaptable"
-    ) {
-      warnings.push("An incidental allergy conflict requires automatic adaptation.");
-      const adaptableResult = buildResult("ALLOW", blocks, warnings, auditId, request);
-      adaptableResult.adaptableAllergyConflict = safetyAssessment.allergyConflict;
-      return adaptableResult;
-    }
-
     blocks.push({
       tier: 1,
       tierLabel: "Allergy / Safety",

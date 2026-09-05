@@ -1,18 +1,107 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { bodyFatEntries } from "../db/schema/bodyComposition";
+import { clientLinks } from "../db/schema/procare";
+import { careTeamMember } from "../db/schema/careTeam";
+import { studioMemberships, studios } from "../db/schema/studio";
 import { eq, and, desc, gte, lt } from "drizzle-orm";
 import { createBodyFatSchema, updateBodyFatSchema } from "../../shared/bodyCompositionSchema";
-import { requireAuth } from "../middleware/requireAuth";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
+import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 
 const router = Router();
+
+/**
+ * The /users/:userId routes are self-service endpoints. ProCare access, when
+ * applicable, is deliberately handled through the separate /pro routes below.
+ */
+function requireSelfBodyCompositionUser(
+  req: AuthenticatedRequest,
+  res: Response,
+): string | null {
+  const authenticatedUserId = req.authUser?.id;
+  if (!authenticatedUserId) {
+    res.status(401).json({ error: "Authentication required" });
+    return null;
+  }
+
+  if (req.params.userId !== authenticatedUserId) {
+    res.status(403).json({ error: "Forbidden: body composition belongs to another user" });
+    return null;
+  }
+
+  return authenticatedUserId;
+}
+
+async function authorizeBodyCompositionProfessional(
+  req: AuthenticatedRequest,
+  res: Response,
+  clientId: string,
+): Promise<string | null> {
+  const professional = req.authUser;
+  if (!professional?.id) {
+    res.status(401).json({ error: "Authentication required" });
+    return null;
+  }
+  if (professional.professionalRole !== "trainer" && professional.professionalRole !== "physician") {
+    res.status(403).json({ error: "This body composition control is only available to trainers and physicians" });
+    return null;
+  }
+
+  try {
+    await assertSameOrg(professional.id, clientId);
+  } catch (error) {
+    if (handleOrgIsolationError(error, res)) return null;
+    throw error;
+  }
+
+  const [careTeamRelationship] = await db
+    .select({ id: careTeamMember.id })
+    .from(careTeamMember)
+    .where(and(
+      eq(careTeamMember.userId, clientId),
+      eq(careTeamMember.proUserId, professional.id),
+      eq(careTeamMember.role, professional.professionalRole),
+      eq(careTeamMember.status, "active"),
+    ))
+    .limit(1);
+  if (careTeamRelationship) return professional.id;
+
+  const [clientLink] = await db
+    .select({ id: clientLinks.id })
+    .from(clientLinks)
+    .where(and(
+      eq(clientLinks.clientUserId, clientId),
+      eq(clientLinks.proUserId, professional.id),
+      eq(clientLinks.active, true),
+    ))
+    .limit(1);
+  if (clientLink) return professional.id;
+
+  const [studioRelationship] = await db
+    .select({ id: studioMemberships.id })
+    .from(studioMemberships)
+    .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
+    .where(and(
+      eq(studios.ownerUserId, professional.id),
+      eq(studioMemberships.clientUserId, clientId),
+      eq(studioMemberships.status, "active"),
+      eq(studioMemberships.isArchived, false),
+    ))
+    .limit(1);
+  if (studioRelationship) return professional.id;
+
+  res.status(403).json({ error: "No active professional relationship with this client" });
+  return null;
+}
 
 // GET /api/users/:userId/body-composition/latest
 // Returns the latest effective body fat entry with precedence: trainer/physician > client
 router.get("/users/:userId/body-composition/latest", requireAuth, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = requireSelfBodyCompositionUser(req as AuthenticatedRequest, res);
+    if (!userId) return;
 
     // First try to get the most recent trainer/physician entry
     const [trainerEntry] = await db.select()
@@ -68,7 +157,8 @@ router.get("/users/:userId/body-composition/latest", requireAuth, async (req, re
 // Returns all body fat entries for the user
 router.get("/users/:userId/body-composition/history", requireAuth, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = requireSelfBodyCompositionUser(req as AuthenticatedRequest, res);
+    if (!userId) return;
     const { limit = "20" } = req.query;
 
     const entries = await db.select()
@@ -89,7 +179,8 @@ router.get("/users/:userId/body-composition/history", requireAuth, async (req, r
 // duplicate rows from accumulating each time the Macro Calculator saves.
 router.post("/users/:userId/body-composition", requireAuth, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = requireSelfBodyCompositionUser(req as AuthenticatedRequest, res);
+    if (!userId) return;
     const data = createBodyFatSchema.parse(req.body);
 
     const source = data.source || "client";
@@ -123,7 +214,10 @@ router.post("/users/:userId/body-composition", requireAuth, async (req, res) => 
             goalBodyFatPct: data.goalBodyFatPct?.toString() ?? null,
             recordedAt: new Date(data.recordedAt),
           })
-          .where(eq(bodyFatEntries.id, existing.id))
+          .where(and(
+            eq(bodyFatEntries.id, existing.id),
+            eq(bodyFatEntries.userId, userId),
+          ))
           .returning();
       } else {
         [entry] = await db.insert(bodyFatEntries).values({
@@ -166,7 +260,9 @@ router.post("/users/:userId/body-composition", requireAuth, async (req, res) => 
 // Update an existing body fat entry
 router.put("/users/:userId/body-composition/:entryId", requireAuth, async (req, res) => {
   try {
-    const { userId, entryId } = req.params;
+    const userId = requireSelfBodyCompositionUser(req as AuthenticatedRequest, res);
+    if (!userId) return;
+    const { entryId } = req.params;
     const data = updateBodyFatSchema.parse(req.body);
 
     const updateData: any = { updatedAt: new Date() };
@@ -209,7 +305,9 @@ router.put("/users/:userId/body-composition/:entryId", requireAuth, async (req, 
 // Delete a body fat entry
 router.delete("/users/:userId/body-composition/:entryId", requireAuth, async (req, res) => {
   try {
-    const { userId, entryId } = req.params;
+    const userId = requireSelfBodyCompositionUser(req as AuthenticatedRequest, res);
+    if (!userId) return;
+    const { entryId } = req.params;
 
     const [deleted] = await db.delete(bodyFatEntries)
       .where(and(
@@ -233,7 +331,8 @@ router.delete("/users/:userId/body-composition/:entryId", requireAuth, async (re
 // Update only the goalBodyFatPct on the latest client entry (or create a minimal entry)
 router.patch("/users/:userId/body-composition/goal", requireAuth, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = requireSelfBodyCompositionUser(req as AuthenticatedRequest, res);
+    if (!userId) return;
     const schema = z.object({ goalBodyFatPct: z.number().min(3).max(60) });
     const { goalBodyFatPct } = schema.parse(req.body);
 
@@ -249,7 +348,10 @@ router.patch("/users/:userId/body-composition/goal", requireAuth, async (req, re
     if (latestClient) {
       const [updated] = await db.update(bodyFatEntries)
         .set({ goalBodyFatPct: goalBodyFatPct.toString(), updatedAt: new Date() })
-        .where(eq(bodyFatEntries.id, latestClient.id))
+        .where(and(
+          eq(bodyFatEntries.id, latestClient.id),
+          eq(bodyFatEntries.userId, userId),
+        ))
         .returning();
       return res.json({ entry: updated });
     }
@@ -276,6 +378,12 @@ router.patch("/users/:userId/body-composition/goal", requireAuth, async (req, re
 router.get("/pro/clients/:clientId/body-composition", requireAuth, async (req, res) => {
   try {
     const { clientId } = req.params;
+    const professionalId = await authorizeBodyCompositionProfessional(
+      req as AuthenticatedRequest,
+      res,
+      clientId,
+    );
+    if (!professionalId) return;
 
     const [entry] = await db.select()
       .from(bodyFatEntries)
@@ -295,6 +403,12 @@ router.get("/pro/clients/:clientId/body-composition", requireAuth, async (req, r
 router.post("/pro/clients/:clientId/body-composition", requireAuth, async (req, res) => {
   try {
     const { clientId } = req.params;
+    const professionalId = await authorizeBodyCompositionProfessional(
+      req as AuthenticatedRequest,
+      res,
+      clientId,
+    );
+    if (!professionalId) return;
     const data = createBodyFatSchema.parse(req.body);
 
     // Source must be trainer or physician for ProCare entries
@@ -306,7 +420,7 @@ router.post("/pro/clients/:clientId/body-composition", requireAuth, async (req, 
       goalBodyFatPct: data.goalBodyFatPct?.toString() ?? null,
       scanMethod: data.scanMethod,
       source,
-      createdById: data.createdById || null,
+      createdById: professionalId,
       notes: data.notes || null,
       recordedAt: new Date(data.recordedAt),
     }).returning();

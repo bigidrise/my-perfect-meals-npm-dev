@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { trialAccessInvites, users } from "@shared/schema";
-import { eq, sql, and, isNotNull, gt, isNull } from "drizzle-orm";
+import { eq, sql, and, or, isNotNull, gt, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
@@ -18,47 +18,60 @@ import {
 } from "../services/preRegistrationAccess";
 import { findOrganizationalPilotInvitation } from "../services/organizationalPilotInvitationService";
 import { inspectPilotAuthorizationToken } from "../services/organizationalPilotAuthorizationService";
+import {
+  clearSessionCookie,
+  destroySession,
+  regenerateSession,
+} from "../lib/sessionSecurity";
+import {
+  AuthSecurityStateChangedError,
+  findUserByValidAuthToken,
+  revokeAuthToken,
+  rotateAuthToken,
+} from "../services/authTokenService";
+import { AUTH_ATTEMPT_SCOPES, createAuthAttemptSubject } from "../services/authAttemptTracker";
+import { authAttemptTracker } from "../services/authAttemptTrackingService";
+import { requiresPrivilegedMfa } from "../lib/privilegedMfaPolicy";
+import { businessMembers, businesses } from "../db/schema/business";
 
 const router = Router();
 
+async function loginRequiresPrivilegedMfa(user: typeof users.$inferSelect): Promise<boolean> {
+  if (requiresPrivilegedMfa({
+    isFounder: user.isFounder,
+    isAdmin: user.isAdmin,
+    role: user.role,
+    professionalRole: user.professionalRole,
+    isBusinessOwner: false,
+    isBusinessAdmin: false,
+  })) return true;
+
+  const [authority] = await db
+    .select({
+      ownerId: businesses.id,
+      adminId: businessMembers.id,
+    })
+    .from(businesses)
+    .leftJoin(
+      businessMembers,
+      and(
+        eq(businessMembers.businessId, businesses.id),
+        eq(businessMembers.userId, user.id),
+        eq(businessMembers.status, "active"),
+        eq(businessMembers.role, "admin"),
+      ),
+    )
+    .where(or(
+      eq(businesses.ownerUserId, user.id),
+      eq(businessMembers.userId, user.id),
+    ))
+    .limit(1);
+
+  return authority?.ownerId != null || authority?.adminId != null;
+}
+
 function generateAuthToken(): string {
   return crypto.randomBytes(32).toString("hex");
-}
-
-// ─── Account lockout (in-memory, resets on server restart) ───────────────────
-// Protects against brute-force credential stuffing.
-// Using email as key so unauthenticated callers can't enumerate by userId.
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
-
-interface LockoutEntry { count: number; lockedUntil: number | null }
-const loginAttempts = new Map<string, LockoutEntry>();
-
-function getLockoutEntry(email: string): LockoutEntry {
-  return loginAttempts.get(email) ?? { count: 0, lockedUntil: null };
-}
-
-function isLockedOut(email: string): boolean {
-  const entry = getLockoutEntry(email);
-  if (!entry.lockedUntil) return false;
-  if (Date.now() < entry.lockedUntil) return true;
-  loginAttempts.delete(email);
-  return false;
-}
-
-function recordFailedAttempt(email: string): { locked: boolean } {
-  const entry = getLockoutEntry(email);
-  const count = entry.count + 1;
-  if (count >= MAX_LOGIN_ATTEMPTS) {
-    loginAttempts.set(email, { count, lockedUntil: Date.now() + LOCKOUT_DURATION_MS });
-    return { locked: true };
-  }
-  loginAttempts.set(email, { count, lockedUntil: null });
-  return { locked: false };
-}
-
-function clearLockout(email: string): void {
-  loginAttempts.delete(email);
 }
 
 // ─── Password policy (NIST SP 800-63B aligned) ───────────────────────────────
@@ -130,9 +143,6 @@ router.post("/api/auth/signup", async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Generate auth token
-    const authToken = generateAuthToken();
-    
     // Check if email is in tester/admin allowlists
     const isTester = isTesterEmail(email);
     const isAdmin = isAdminEmail(email);
@@ -197,8 +207,6 @@ router.post("/api/auth/signup", async (req, res) => {
       email,
       username: email.split("@")[0],
       password: hashedPassword,
-      authToken,
-      authTokenCreatedAt: new Date(),
       isTester,
       isAdmin,
       isFounder: isTester, // tester-allowlisted signups are founder/partner accounts
@@ -275,10 +283,9 @@ router.post("/api/auth/signup", async (req, res) => {
       return createdUser;
     });
 
-  // Set session cookie for mobile compatibility (guard for prod where session may be undefined)
-  if (req.session) {
-    (req.session as any).userId = newUser.id;
-  }
+  await regenerateSession(req);
+  (req.session as any).userId = newUser.id;
+  (req.session as any).authSecurityVersion = newUser.authSecurityVersion;
 
   console.log("✅ Created new user ID:", newUser.id);
   logAudit({
@@ -314,12 +321,18 @@ router.post("/api/auth/signup", async (req, res) => {
     }
 
     const membership = inviteResult.membership || await lookupExistingMembership(newUser.id);
+    const [currentUser] = await db.select().from(users).where(eq(users.id, newUser.id)).limit(1);
+    const privilegedSignup = currentUser ? await loginRequiresPrivilegedMfa(currentUser) : true;
+    const issuedCredential = privilegedSignup
+      ? null
+      : await rotateAuthToken(newUser.id);
 
     res.json({
       id: newUser.id,
       email: newUser.email,
       username: newUser.username,
-      authToken,
+      authToken: issuedCredential?.authToken ?? null,
+      mfaEnrollmentRequired: privilegedSignup,
       isProCare: newUser.isProCare || false,
       professionalRole: newUser.professionalRole || null,
       role: newUser.role || "client",
@@ -366,7 +379,10 @@ router.post("/api/auth/login", async (req, res) => {
     const [user] = identity.status === "unique" || identity.status === "legacy_exact"
       ? await db.select().from(users).where(eq(users.id, identity.user.id)).limit(1)
       : [];
-    const lockoutKey = user ? `user:${user.id}` : normalizedEmail;
+    const loginSubject = createAuthAttemptSubject(
+      user ? "user" : "login-email",
+      user ? user.id : normalizedEmail,
+    );
 
     // A normalized address with multiple legacy accounts cannot select one by
     // position. The caller must use the precise stored spelling or seek review.
@@ -377,15 +393,16 @@ router.post("/api/auth/login", async (req, res) => {
     }
 
     // ── Lockout check ─────────────────────────────────────────────────────────
-    if (isLockedOut(lockoutKey)) {
+    if (await authAttemptTracker.isLocked(loginSubject, AUTH_ATTEMPT_SCOPES.loginPassword)) {
       return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
     }
     
     if (!user) {
-      const result = recordFailedAttempt(lockoutKey);
+      const result = await authAttemptTracker.recordFailure(loginSubject, AUTH_ATTEMPT_SCOPES.loginPassword);
       logAudit({ actor: "anonymous", action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "user_not_found" } });
-      if (result.locked) {
+      if (result.lockedUntil) {
         logAudit({ actor: "anonymous", action: "AUTH_LOCKOUT", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
+        return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
       }
       return res.status(401).json({ error: "Invalid email or password" });
     }
@@ -393,9 +410,9 @@ router.post("/api/auth/login", async (req, res) => {
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      const result = recordFailedAttempt(lockoutKey);
-      logAudit({ actor: user.id, action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "bad_password", attempt: getLockoutEntry(lockoutKey).count } });
-      if (result.locked) {
+      const result = await authAttemptTracker.recordFailure(loginSubject, AUTH_ATTEMPT_SCOPES.loginPassword);
+      logAudit({ actor: user.id, action: "AUTH_FAILED_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any), meta: { reason: "bad_password", attempt: result.failureCount } });
+      if (result.lockedUntil) {
         logAudit({ actor: user.id, action: "AUTH_LOCKOUT", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
         return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." });
       }
@@ -403,36 +420,45 @@ router.post("/api/auth/login", async (req, res) => {
     }
 
     // Successful login — clear failed attempt counter
-    clearLockout(lockoutKey);
+    await authAttemptTracker.clear(loginSubject, AUTH_ATTEMPT_SCOPES.loginPassword);
 
     // ── MFA gate ──────────────────────────────────────────────────────────────
     // If the user has MFA enabled, pause here and require a TOTP challenge.
     // Set pendingMfaUserId on the session so the /mfa/challenge endpoint can
     // verify the code and promote to a full session.
     if (user.mfaEnabled) {
-      if (req.session) {
-        (req.session as any).pendingMfaUserId = user.id;
-        delete (req.session as any).userId; // no full session until TOTP verified
-      }
+      // Password acceptance is not sufficient to keep an existing mobile
+      // bearer credential active while the MFA challenge is pending.
+      await revokeAuthToken(user.id);
+      await regenerateSession(req);
+      (req.session as any).pendingMfaUserId = user.id;
+      (req.session as any).authSecurityVersion = user.authSecurityVersion;
       logAudit({ actor: user.id, action: "AUTH_LOGIN", resourceType: "auth", route: req.path, ip: getClientIp(req as any), meta: { mfaRequired: true } });
       return res.json({ mfaRequired: true });
     }
 
-    // Login: only regenerate auth token if missing — never overwrite isTester from login
-    const authToken = user.authToken || generateAuthToken();
-    const updateFields: any = {};
-    if (!user.authToken) {
-      updateFields.authToken = authToken;
-      updateFields.authTokenCreatedAt = new Date();
-    }
-    if (Object.keys(updateFields).length > 0) {
-      await db.update(users).set(updateFields).where(eq(users.id, user.id));
+    if (await loginRequiresPrivilegedMfa(user)) {
+      // Permit enrollment through the browser session, but do not issue a
+      // bearer credential or allow privileged mounts until MFA is complete.
+      await revokeAuthToken(user.id);
+      await regenerateSession(req);
+      (req.session as any).userId = user.id;
+      (req.session as any).authSecurityVersion = user.authSecurityVersion;
+      return res.status(403).json({
+        error: "Two-factor authentication must be enabled for privileged access.",
+        code: "MFA_ENROLLMENT_REQUIRED",
+        mfaEnrollmentRequired: true,
+      });
     }
 
-    // Set session cookie for mobile compatibility (guard for PROD where session may be undefined)
-    if (req.session) {
-      (req.session as any).userId = user.id;
-    }
+    // Successful password authentication rotates the bearer credential.
+    const { authToken } = await rotateAuthToken(user.id, {
+      expectedSecurityVersion: user.authSecurityVersion,
+    });
+
+    await regenerateSession(req);
+    (req.session as any).userId = user.id;
+    (req.session as any).authSecurityVersion = user.authSecurityVersion;
 
     console.log("✅ User logged in, ID:", user.id);
     logAudit({ actor: user.id, action: "AUTH_LOGIN", resourceType: "auth", route: "/api/auth/login", ip: getClientIp(req as any) });
@@ -462,6 +488,12 @@ router.post("/api/auth/login", async (req, res) => {
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
+    if (error instanceof AuthSecurityStateChangedError) {
+      return res.status(401).json({
+        error: "Authentication state changed. Please sign in again.",
+        code: "AUTH_REAUTHENTICATION_REQUIRED",
+      });
+    }
     console.error("Login error:", error);
     res.status(500).json({ error: "Failed to login" });
   }
@@ -479,7 +511,7 @@ router.get("/api/auth/session", async (req: any, res) => {
   }
   
   try {
-    const [user] = await db.select().from(users).where(eq(users.authToken, token)).limit(1);
+    const user = await findUserByValidAuthToken(token);
     
     if (!user) {
       return res.status(401).json({ error: "Invalid auth token" });
@@ -510,10 +542,9 @@ router.get("/api/auth/session", async (req: any, res) => {
 router.post("/api/auth/logout", requireAuth, async (req: any, res) => {
   const userId = req.authUser.id;
   try {
-    await db.update(users).set({ authToken: null, authTokenCreatedAt: null }).where(eq(users.id, userId));
-    if (req.session) {
-      req.session.destroy?.(() => {});
-    }
+    await revokeAuthToken(userId);
+    await destroySession(req);
+    clearSessionCookie(res);
     console.log(`✅ [logout] Token invalidated for user ${userId}`);
     logAudit({ actor: userId, action: "AUTH_LOGOUT", resourceType: "auth", route: "/api/auth/logout", ip: getClientIp(req as any) });
     return res.json({ success: true });
@@ -666,15 +697,23 @@ router.post("/api/auth/reset-password", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const newAuthToken = generateAuthToken();
-
-    await db.update(users).set({
+    const [consumedReset] = await db.update(users).set({
       password: hashedPassword,
-      authToken: newAuthToken,
-      authTokenCreatedAt: new Date(),
+      authToken: null,
+      authTokenCreatedAt: null,
+      authTokenMfaVerifiedAt: null,
+      authSecurityVersion: sql`${users.authSecurityVersion} + 1`,
       resetTokenHash: null,
       resetTokenExpires: null,
-    }).where(eq(users.id, matchedUser.id));
+    }).where(and(
+      eq(users.id, matchedUser.id),
+      eq(users.resetTokenHash, matchedUser.resetTokenHash!),
+      gt(users.resetTokenExpires!, now),
+    )).returning({ id: users.id });
+
+    if (!consumedReset) {
+      return res.status(400).json({ error: "Invalid or expired reset token" });
+    }
 
     // Verify the update actually landed
     const [verify] = await db.select({ password: users.password })
@@ -688,7 +727,8 @@ router.post("/api/auth/reset-password", async (req, res) => {
 
     res.json({
       message: "Password reset successful",
-      authToken: newAuthToken,
+      requiresLogin: true,
+      mfaRequired: matchedUser.mfaEnabled === true,
     });
   } catch (error: any) {
     console.error("Reset password error:", error);
