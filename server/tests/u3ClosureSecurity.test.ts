@@ -73,7 +73,9 @@ describe("U3 closure bearer and MFA invariants", () => {
     expect(auth).toContain("sessionSecurityVersion !== user.authSecurityVersion");
     expect(auth).toContain("AUTH_REAUTHENTICATION_REQUIRED");
     expect(session).toContain("authSecurityVersion: sql`${users.authSecurityVersion} + 1`");
-    expect(session).toContain("eq(users.resetTokenHash, matchedUser.resetTokenHash)");
+    expect(session).toMatch(
+      /where\(and\(\s*eq\(users\.id,\s*matchedUser\.id\),\s*eq\(users\.resetTokenHash,\s*matchedUser\.resetTokenHash!?\),\s*gt\(users\.resetTokenExpires!?,\s*now\),\s*\)\)/s,
+    );
     expect(session).toContain("if (!consumedReset)");
   });
 
