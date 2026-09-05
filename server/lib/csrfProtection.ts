@@ -3,6 +3,12 @@ import type { Express, NextFunction, Request, Response } from "express";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const CSRF_HEADER = "x-csrf-token";
+const PREAUTHENTICATION_PATHS = new Set([
+  "/api/auth/signup",
+  "/api/auth/login",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+]);
 
 function normalizeOrigin(value: string): string {
   return value.replace(/\/$/, "");
@@ -106,9 +112,10 @@ export function csrfProtection(
     return;
   }
 
-  // Public callbacks and pre-authentication routes have no authenticated
-  // browser session to exploit. Origin validation above still blocks login CSRF.
-  if (!req.session?.userId) {
+  // Pre-authentication routes must remain usable when a browser carries a stale
+  // authenticated session cookie. Exact-origin validation above still blocks
+  // login CSRF; these routes do not mutate the existing authenticated account.
+  if (PREAUTHENTICATION_PATHS.has(req.path) || !req.session?.userId) {
     next();
     return;
   }

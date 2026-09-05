@@ -137,6 +137,47 @@ describe("U4 CSRF protection", () => {
     expect(validNext).toHaveBeenCalledTimes(1);
   });
 
+  it("allows exact-origin pre-authentication requests with a stale session", () => {
+    for (const path of [
+      "/api/auth/signup",
+      "/api/auth/login",
+      "/api/auth/forgot-password",
+      "/api/auth/reset-password",
+    ]) {
+      const next = jest.fn();
+      csrfProtection(
+        request({
+          path,
+          session: { userId: "stale-user", csrfToken: "existing-token" },
+          headers: { origin: "https://app.myperfectmeals.ai" },
+        }),
+        response(),
+        next,
+      );
+      expect(next).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("still rejects stale-session login from an untrusted origin", () => {
+    const res = response();
+    const next = jest.fn();
+    csrfProtection(
+      request({
+        path: "/api/auth/login",
+        session: { userId: "stale-user", csrfToken: "existing-token" },
+        headers: { origin: "https://attacker.example" },
+      }),
+      res,
+      next,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "CSRF_ORIGIN_REJECTED" }),
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it("allows safe methods, public callbacks, and explicit bearer requests", () => {
     for (const req of [
       request({ method: "GET" }),
