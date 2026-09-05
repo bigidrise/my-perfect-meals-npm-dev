@@ -69,7 +69,7 @@ function getFeatureNameFromPath(path: string): string {
 }
 
 function CoachingAdminGate({ component: Component }: { component: React.ComponentType }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
   if (!user) return null;
   if (user.id !== COACHING_ADMIN_USER_ID) {
@@ -915,8 +915,10 @@ export default function Router() {
 
   // Routes that DON'T require onboarding or macro completion
   const ungatedRoutes = [
-    // Dev-only responsive modal test harness — never gated, never in production bundle
-    ...(import.meta.env.DEV ? ["/test-modal-bounds"] : []),
+    // Dev-only responsive regression harnesses — never gated in development
+    ...(import.meta.env.DEV
+      ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__"]
+      : []),
     "/", "/auth", "/welcome", "/login", "/signup",
     "/guest-builder", "/guest-suite",
     "/forgot-password", "/reset-password", "/pilot/activate",
@@ -948,7 +950,7 @@ export default function Router() {
 
   // Onboarding + Macro route guards with toast feedback
   useEffect(() => {
-    if (!user || isUngatedRoute || isMacroRoute) return;
+    if (loading || !user || isUngatedRoute || isMacroRoute) return;
     if (user.id.startsWith("guest-") || user.isTester) return;
     if (guardRedirectedRef.current) return;
 
@@ -1002,7 +1004,7 @@ export default function Router() {
       setTimeout(() => { guardRedirectedRef.current = false; }, 1000);
       return;
     }
-  }, [location, user, isProfessionalUser]);
+  }, [location, user, loading, isProfessionalUser]);
 
   return (
     <>
@@ -1341,10 +1343,14 @@ export default function Router() {
         />
         {/* Admin Dashboard — role-checked on both server and client */}
         <Route path="/admin" component={AdminDashboard} />
-        {/* Modal regression-guard test harness — only active in DEV or Playwright */}
-        <Route path="/__modal-test__" component={lazy(() => import("@/pages/ModalTestHarness"))} />
-        {/* Sheet/Drawer regression-guard test harness — only active in DEV or Playwright */}
-        <Route path="/__sheet-test__" component={lazy(() => import("@/pages/SheetTestHarness"))} />
+        {import.meta.env.DEV && (
+          <>
+            {/* Modal regression-guard test harness — development only */}
+            <Route path="/__modal-test__" component={lazy(() => import("@/pages/ModalTestHarness"))} />
+            {/* Sheet/Drawer regression-guard test harness — development only */}
+            <Route path="/__sheet-test__" component={lazy(() => import("@/pages/SheetTestHarness"))} />
+          </>
+        )}
         {/* 404 fallback */}
         <Route component={NotFound} />
       </Switch>

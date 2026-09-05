@@ -106,8 +106,10 @@ export default function AppRouter({ children }: AppRouterProps) {
     }
 
     const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m",
-      // Dev-only: responsive modal bounds test harness (never deployed in production)
-      ...(import.meta.env.DEV ? ["/test-modal-bounds"] : []),
+      // Dev-only: responsive regression harnesses (never public in production)
+      ...(import.meta.env.DEV
+        ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__"]
+        : []),
     ];
     const isPublicRoute =
       isExactPublicMarketingRoute(location) ||
