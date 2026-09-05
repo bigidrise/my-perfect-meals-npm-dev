@@ -2,12 +2,17 @@ import { Router } from "express";
 import { db } from "../db";
 import { notificationJobs } from "../../shared/schema";
 import { and, eq, gte } from "drizzle-orm";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
-router.get("/adherence/:userId", async (req, res) => {
+router.get("/adherence/:userId", requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
+    if (userId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 

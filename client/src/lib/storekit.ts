@@ -6,6 +6,7 @@ import {
 } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { setCachedUser } from "@/lib/auth";
 import { Subscriptions } from "@squareetlabs/capacitor-subscriptions";
 
 function getPlugin(): any | null {
@@ -109,7 +110,7 @@ export async function purchaseProduct(
       productIdentifier: iosProduct.productId,
     });
 
-    console.log("[StoreKit] Purchase result:", JSON.stringify(purchaseResult));
+    console.log("[StoreKit] Purchase response received for:", iosProduct.productId);
 
     if (purchaseResult.responseCode !== 0) {
       if (purchaseResult.responseCode === 3) {
@@ -123,7 +124,7 @@ export async function purchaseProduct(
       const latestTx = await plugin.getLatestTransaction({
         productIdentifier: iosProduct.productId,
       });
-      console.log("[StoreKit] Latest transaction:", JSON.stringify(latestTx));
+      console.log("[StoreKit] Latest transaction response received");
       if (latestTx.responseCode === 0 && latestTx.data) {
         transactionId = latestTx.data.transactionId || latestTx.data.originalId || transactionId;
       }
@@ -131,7 +132,7 @@ export async function purchaseProduct(
       console.warn("[StoreKit] Failed to get transaction, using fallback:", txError);
     }
 
-    console.log("[StoreKit] Purchase successful:", transactionId);
+    console.log("[StoreKit] Purchase successful for:", iosProduct.productId);
 
     await verifyAndActivate(transactionId, iosProduct.productId);
 
@@ -153,7 +154,7 @@ export async function purchaseProduct(
 
 function isSubscriptionActive(txData: any): boolean {
   const expiryRaw = txData.expiryDate || txData.expirationDate || txData.expiresDate;
-  console.log("[StoreKit] Checking expiry:", expiryRaw, "type:", typeof expiryRaw);
+  console.log("[StoreKit] Checking subscription expiry status");
 
   if (expiryRaw) {
     let expiresMs: number;
@@ -169,7 +170,7 @@ function isSubscriptionActive(txData: any): boolean {
 
     if (!isNaN(expiresMs)) {
       const now = Date.now();
-      console.log("[StoreKit] Expiry ms:", expiresMs, "Now:", now, "Active:", expiresMs > now);
+      console.log("[StoreKit] Subscription expiry status evaluated");
       if (expiresMs < now) {
         return false;
       }
@@ -198,7 +199,7 @@ export async function restorePurchases(): Promise<PurchaseResult[]> {
       const latestTx = await plugin.getLatestTransaction({
         productIdentifier: productId,
       });
-      console.log("[StoreKit] Restore tx result:", productId, "code:", latestTx?.responseCode, "data:", JSON.stringify(latestTx?.data));
+      console.log("[StoreKit] Restore transaction response received for:", productId);
 
       if (latestTx && latestTx.responseCode === 0 && latestTx.data) {
         const txData = latestTx.data;
@@ -294,7 +295,7 @@ async function verifyAndActivate(
     throw new Error(`Unknown product: ${productId}`);
   }
 
-  console.log("[StoreKit] Verifying with server:", { userId: existingUser.id, transactionId, productId, internalSku });
+  console.log("[StoreKit] Verifying purchase with server for:", productId);
 
   // x-auth-token is required — requireAuth is enforced on this endpoint.
   // On native iOS, cookie-based sessions are unreliable, so the header is essential.
@@ -336,11 +337,13 @@ async function verifyAndActivate(
     throw new Error("Invalid response from server");
   }
 
-  console.log("[StoreKit] Verification successful:", JSON.stringify(data));
+  console.log("[StoreKit] Purchase verification successful for:", productId);
 
   if (data.user) {
     const mergedUser = { ...existingUser, ...data.user };
-    localStorage.setItem("mpm_current_user", JSON.stringify(mergedUser));
+    // The server response may include a full profile. Merge entitlement updates
+    // first, then persist only the routing/access cache.
+    setCachedUser(mergedUser);
     window.dispatchEvent(new Event("mpm:user-updated"));
   }
 }

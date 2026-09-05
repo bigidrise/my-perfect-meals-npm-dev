@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 interface AlcoholEntry {
   id: string;
@@ -13,9 +14,10 @@ interface AlcoholEntry {
 const alcoholLog: AlcoholEntry[] = [];
 const router = Router();
 
-router.post("/alcohol/log", (req: Request, res: Response) => {
-  const { userId, type, quantity, notes } = req.body || {};
-  if (!userId || !type || typeof quantity !== "number") {
+router.post("/alcohol/log", requireAuth, (req: Request, res: Response) => {
+  const { type, quantity, notes } = req.body || {};
+  const userId = (req as AuthenticatedRequest).authUser.id;
+  if (!type || typeof quantity !== "number") {
     return res.status(400).json({ error: "Missing required fields" });
   }
   const entry: AlcoholEntry = {
@@ -30,16 +32,16 @@ router.post("/alcohol/log", (req: Request, res: Response) => {
   res.status(201).json(entry);
 });
 
-router.get("/alcohol/history", (req: Request, res: Response) => {
-  const userId = String(req.query.userId || "");
-  if (!userId) return res.status(400).json({ error: "Missing userId" });
+router.get("/alcohol/history", requireAuth, (req: Request, res: Response) => {
+  const userId = (req as AuthenticatedRequest).authUser.id;
   const history = alcoholLog.filter((e) => e.userId === userId);
   res.json(history);
 });
 
-router.delete("/alcohol/:id", (req: Request, res: Response) => {
+router.delete("/alcohol/:id", requireAuth, (req: Request, res: Response) => {
   const { id } = req.params;
-  const idx = alcoholLog.findIndex((e) => e.id === id);
+  const userId = (req as AuthenticatedRequest).authUser.id;
+  const idx = alcoholLog.findIndex((e) => e.id === id && e.userId === userId);
   if (idx === -1) return res.status(404).json({ error: "Not found" });
   alcoholLog.splice(idx, 1);
   res.json({ success: true });

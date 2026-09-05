@@ -4,6 +4,7 @@ import { db } from '../db';
 import { contests, contestEntries, contestVotes, insertContestSchema, insertContestEntrySchema, insertContestVoteSchema } from '../../shared/schema';
 import { eq, and, gte, lte, desc, count } from 'drizzle-orm';
 import { conciergeService } from '../conciergeService';
+import { requireAuth, type AuthenticatedRequest } from '../middleware/requireAuth';
 
 const router = express.Router();
 
@@ -217,9 +218,12 @@ router.get('/user-contest-status/:contestId/:userId', async (req, res) => {
 });
 
 // Get personalized concierge reminders for a user
-router.get('/reminders/:userId', async (req, res) => {
+router.get('/reminders/:userId', requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== (req as AuthenticatedRequest).authUser.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     const reminders = await conciergeService.getPersonalizedReminders(userId);
     res.json(reminders);
   } catch (error) {
@@ -229,9 +233,12 @@ router.get('/reminders/:userId', async (req, res) => {
 });
 
 // Get voice prompts for concierge assistant
-router.get('/voice-prompts/:userId', async (req, res) => {
+router.get('/voice-prompts/:userId', requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== (req as AuthenticatedRequest).authUser.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     const prompts = await conciergeService.getConciergeVoicePrompts(userId);
     res.json(prompts);
   } catch (error) {

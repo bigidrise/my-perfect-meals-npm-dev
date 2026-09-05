@@ -8,6 +8,7 @@ const apiRateLimit = createApiRateLimit();
 import { bumpPlan, bumpError } from "./wmc2Telemetry";
 import { pushError } from "../services/errorLog";
 import { costGuardCheck } from "../services/costGuard";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
@@ -29,8 +30,11 @@ router.post("/api/wmc2/generate", apiRateLimit, async (req, res) => {
   }
 });
 
-router.post("/api/wmc2/:userId/regenerate", apiRateLimit, async (req, res) => {
+router.post("/api/wmc2/:userId/regenerate", requireAuth, apiRateLimit, async (req, res) => {
   const userId = String(req.params?.userId || "anon");
+  if (userId !== (req as AuthenticatedRequest).authUser.id) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
   try { 
     costGuardCheck(userId); 
     const result = await wmc2Regenerate(userId, req.body);

@@ -65,6 +65,7 @@ export interface IStorage {
   getPhysicianReport(accessCode: string): Promise<any | undefined>;
   getPhysicianReportById(id: string): Promise<any | undefined>;
   getUserPhysicianReports(userId: string): Promise<any[]>;
+  deactivatePhysicianReport(id: string): Promise<boolean>;
   trackPhysicianReportView(accessCode: string): Promise<void>;
 
   // Glucose log methods
@@ -765,6 +766,18 @@ export class MemStorage implements IStorage {
     return Array.from(this.physicianReports.values())
       .filter((report) => report.userId === userId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async deactivatePhysicianReport(id: string): Promise<boolean> {
+    const report = this.physicianReports.get(id);
+    if (!report) return false;
+
+    this.physicianReports.set(id, {
+      ...report,
+      isActive: false,
+      updatedAt: new Date(),
+    });
+    return true;
   }
 
   async trackPhysicianReportView(accessCode: string): Promise<void> {

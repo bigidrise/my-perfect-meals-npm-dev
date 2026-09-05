@@ -19,7 +19,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import HeightInput from "@/components/inputs/HeightInput";
 import { getDeviceId } from "@/utils/deviceId";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAuthToken, getAuthHeaders } from "@/lib/auth";
+import { getAuthToken, getAuthHeaders, setCachedUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import DisclaimerModal from "@/components/DisclaimerModal";
 
@@ -278,10 +278,6 @@ export default function OnboardingStandalone() {
     scrollToTop();
   }, [currentStep]);
 
-  useEffect(() => {
-    localStorage.setItem("onboardingData", JSON.stringify(data));
-  }, [data]);
-
   const isStepValid = (): boolean => {
     switch (currentStep) {
       case 1:
@@ -381,7 +377,8 @@ export default function OnboardingStandalone() {
         console.log("✅ Onboarding data saved to server and synced to profile");
       } catch (profileError) {
         console.error("Failed to save onboarding profile data:", profileError);
-        // Continue anyway - data is saved locally
+        // Preserve the existing completion flow without retaining a sensitive
+        // browser-side copy of the profile.
       }
       
       // Save Safety PIN if provided (separate try-catch so profile failure doesn't block PIN)
@@ -435,7 +432,7 @@ export default function OnboardingStandalone() {
             dietaryRestrictions: [...data.dietaryRestrictions, ...data.customDietaryRestrictions],
           };
           setUser(updatedUser);
-          localStorage.setItem("mpm_current_user", JSON.stringify(updatedUser));
+          setCachedUser(updatedUser);
         }
 
         // Also refresh from server to get the full profile
@@ -445,7 +442,7 @@ export default function OnboardingStandalone() {
       
       localStorage.setItem("onboardingCompleted", "true");
       localStorage.setItem("completedProfile", "true");
-      localStorage.setItem("onboardingData", JSON.stringify(data));
+      localStorage.removeItem("onboardingData");
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("selectedBuilder", selectedBuilder);
 
@@ -490,10 +487,6 @@ export default function OnboardingStandalone() {
       updateData({ customDietaryRestrictions: [...data.customDietaryRestrictions, trimmed] });
       setCustomDietaryInput("");
     }
-  };
-
-  const handleSaveStep2 = () => {
-    localStorage.setItem("onboardingData", JSON.stringify(data));
   };
 
   const renderStep1 = () => (

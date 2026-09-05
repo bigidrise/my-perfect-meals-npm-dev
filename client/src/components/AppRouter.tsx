@@ -81,7 +81,7 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (user.role === "admin") return false;
     if (user.id.startsWith("guest-")) return false;
     if (isProfessional(user)) return false;
-    if (user.studioMembership) return false;
+    if (user.studioMembership || user.hasStudioMembership) return false;
     if (!hasActivePaidSubscription(user)) return false;
     return !user.onboardingCompletedAt;
   }, [user, loading, isAppleReviewMode]);

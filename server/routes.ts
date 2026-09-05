@@ -24,6 +24,7 @@ import {
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
+import { findUserByValidAuthToken } from "./services/authTokenService";
 import { createApiRateLimit } from "./middleware/rateLimit";
 import { getAuthUserId } from "./utils/getAuthUserId";
 import { emitActivityEvent } from "./services/coaching/activityEvents";
@@ -847,7 +848,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/promotions', promotionRouter);
   app.post('/api/webhooks/rewardful', handleRewardfulWebhook);
   app.use('/api/white-label', whiteLabelRouter);
-  app.use('/api/business', businessRouter);
+  // Business administration is privileged even for users whose system role is
+  // "client"; requireMfa derives active owner/admin authority from the DB.
+  app.use('/api/business', requireAuth, requireMfa, businessRouter);
 
   // Partner Center — referral tools, monthly campaigns, messaging guidelines
   const marketingCenterRouter = (await import('./routes/marketingCenterRoutes')).default;
@@ -2489,10 +2492,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   */
 
   // CRITICAL: Register meal plan archive API FIRST to avoid Vite middleware interference
-  app.post("/api/meal-plan-archive", async (req, res) => {
+  app.post("/api/meal-plan-archive", requireAuth, async (req, res) => {
     try {
       console.log("🎯 PRIORITY MEAL PLAN ARCHIVE ROUTE HIT!");
-      const userId = "test-user-123"; // Demo user ID
+      const userId = (req as AuthenticatedRequest).authUser.id;
 
       // Import database connection
       const { db } = await import("./db");
@@ -2544,8 +2547,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/wmc2/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const { wmc2Regenerate } = await import("./services/wmc2Adapter");
-      const result = await wmc2Regenerate(req.params.userId, req.body);
+      const result = await wmc2Regenerate(authUserId, req.body);
       res.json(result);
     } catch (error) {
       console.error("WMC2 regeneration failed:", error);
@@ -3223,10 +3230,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   weekBoardRoutes(app);
 
   // Enhanced Meal Logs API for macro tracking
-  app.post("/api/meal-logs-enhanced", async (req, res) => {
+  app.post("/api/meal-logs-enhanced", requireAuth, async (req, res) => {
     try {
       const { eq } = await import("drizzle-orm");
-      const mealData = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const mealData = { ...req.body, userId: authUserId };
 
       // Insert into enhanced meal logs table
       const [insertedLog] = await db
@@ -3378,7 +3389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         const token = req.headers["x-auth-token"] as string;
         if (token) {
-          const [user] = await db.select().from(users).where(eq(users.authToken, token)).limit(1);
+          const user = await findUserByValidAuthToken(token);
           userId = user?.id;
         }
       }
@@ -3495,9 +3506,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/progress", myProgressRouter);
 
   // Food Log API - Log meals as eaten
-  app.post("/api/meal-logs", async (req, res) => {
+  app.post("/api/meal-logs", requireAuth, async (req, res) => {
     try {
-      const parsed = insertMealLogSchema.parse(req.body);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const parsed = insertMealLogSchema.parse({ ...req.body, userId: authUserId });
       const mealLog = await storage.createMealLog(parsed);
       res.json(mealLog);
     } catch (error) {
@@ -3507,12 +3522,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get meal logs with infinite query support - used by MealJournalPage
-  app.get("/api/meal-logs", async (req, res) => {
+  app.get("/api/meal-logs", requireAuth, async (req, res) => {
     try {
       const { userId, from, to, limit = "50", cursor } = req.query;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!userId) {
         return res.status(400).json({ error: "userId is required" });
+      }
+      if (String(userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       // Convert date strings to Date objects if provided
@@ -3520,7 +3539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = to ? new Date(to as string) : undefined;
 
       // Get meals with date filtering
-      let meals = await storage.getMealLogs(userId as string, startDate, endDate);
+      let meals = await storage.getMealLogs(authUserId, startDate, endDate);
 
       // Apply cursor-based pagination
       const pageSize = parseInt(limit as string);
@@ -3549,11 +3568,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 🚨 SAFETY: This endpoint uses template-based generation (not AI) with user.allergies passed to profile
   app.post("/api/weekly-meal-plan/:userId/regenerate", requireAuth, requireEssentialAccess, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const userId = authUserId;
       const { mealsPerDay = 3, snacksPerDay = 1, duration = 7 } = req.body;
 
       // Get user data directly
-      const [user] = await db.select().from(users).where(eq(users.id, userId.toString())).limit(1);
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -3588,34 +3611,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // User routes
-  app.post("/api/users", async (req, res) => {
-    try {
-      const userData: any = insertUserSchema.parse(req.body);
-      // Ensure mealPlanVariant is a valid enum value or undefined
-      const validatedData = {
-        ...userData,
-        mealPlanVariant: userData.mealPlanVariant && ['A', 'B', 'AUTO'].includes(userData.mealPlanVariant as string) 
-          ? (userData.mealPlanVariant as 'A' | 'B' | 'AUTO')
-          : undefined,
-        // Ensure role is valid enum value
-        role: (userData as any).role && ['admin', 'coach', 'client'].includes((userData as any).role) 
-          ? ((userData as any).role as 'admin' | 'coach' | 'client')
-          : 'client',
-        // Ensure onboardingMode is valid enum value
-        onboardingMode: (userData as any).onboardingMode && ['independent', 'procare'].includes((userData as any).onboardingMode)
-          ? ((userData as any).onboardingMode as 'independent' | 'procare')
-          : 'independent'
-      };
-      const [user] = await db.insert(users).values([validatedData as any]).returning();
-      res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
+  app.post("/api/users", (_req, res) => {
+    return res.status(410).json({
+      code: "LEGACY_USER_CREATION_RETIRED",
+      error: "Accounts must be created through the authenticated signup flow.",
+    });
   });
 
-  app.get("/api/users/:id", async (req, res) => {
+  app.get("/api/users/:id", requireAuth, async (req, res) => {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.id !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const [user] = await db.select().from(users).where(eq(users.id, authUserId)).limit(1);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -3687,9 +3696,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User subscription routes
-  app.get("/api/users/:id/subscription", async (req, res) => {
+  app.get("/api/users/:id/subscription", requireAuth, async (req, res) => {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, req.params.id)).limit(1);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.id !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const [user] = await db.select().from(users).where(eq(users.id, authUserId)).limit(1);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -4208,20 +4221,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authReq = req as AuthenticatedRequest;
       const physicianId = authReq.authUser.id;
       const clientUserId = req.params.userId;
+      if (authReq.authUser.professionalRole !== "physician") {
+        return res.status(403).json({ error: "Physician role required" });
+      }
+      try {
+        const { verifyPhysicianClientAccess } = await import("./services/procareAccessService");
+        if (!(await verifyPhysicianClientAccess(physicianId, clientUserId))) {
+          return res.status(403).json({ error: "No active physician relationship for this client" });
+        }
+      } catch (error) {
+        const { handleOrgIsolationError } = await import("./lib/orgIsolation");
+        if (handleOrgIsolationError(error, res)) return;
+        throw error;
+      }
       const ALLOWED_TYPES = ["hypothyroid", "hyperthyroid", "hashimotos"];
       const { thyroidType } = req.body;
       const value = thyroidType === null || thyroidType === undefined
         ? null
         : ALLOWED_TYPES.includes(thyroidType) ? thyroidType : null;
-
-      const [membership] = await db
-        .select()
-        .from(studioMemberships)
-        .where(eq(studioMemberships.clientUserId, clientUserId as any))
-        .limit(1);
-      if (!membership) {
-        return res.status(403).json({ error: "No active studio relationship for this client" });
-      }
 
       await db.update(users).set({ thyroidType: value } as any).where(eq(users.id, clientUserId as any));
       console.log(`[pro/thyroid-type] Physician ${physicianId} set thyroidType → ${value ?? "cleared"} for user ${clientUserId}`);
@@ -4241,16 +4258,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const physicianId = authReq.authUser.id;
       const clientUserId = req.params.userId;
       const { active } = req.body;
-
-      // Verify active studio membership — requester must be a professional linked to this client
-      const [membership] = await db
-        .select()
-        .from(studioMemberships)
-        .where(eq(studioMemberships.clientUserId, clientUserId as any))
-        .limit(1);
-
-      if (!membership) {
-        return res.status(403).json({ error: "No active studio relationship for this client" });
+      if (authReq.authUser.professionalRole !== "physician") {
+        return res.status(403).json({ error: "Physician role required" });
+      }
+      try {
+        const { verifyPhysicianClientAccess } = await import("./services/procareAccessService");
+        if (!(await verifyPhysicianClientAccess(physicianId, clientUserId))) {
+          return res.status(403).json({ error: "No active physician relationship for this client" });
+        }
+      } catch (error) {
+        const { handleOrgIsolationError } = await import("./lib/orgIsolation");
+        if (handleOrgIsolationError(error, res)) return;
+        throw error;
       }
 
       const [clientRow] = await db
@@ -4972,9 +4991,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Meal plan routes
-  app.get("/api/meal-plans/:userId", async (req, res) => {
+  app.get("/api/meal-plans/:userId", requireAuth, async (req, res) => {
     try {
-      const plans = await db.select().from(mealPlans).where(eq(mealPlans.userId, req.params.userId));
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const plans = await db.select().from(mealPlans).where(eq(mealPlans.userId, authUserId));
       res.json(plans);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4997,10 +5020,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/meal-plans/:id", async (req, res) => {
+  app.patch("/api/meal-plans/:id", requireAuth, async (req, res) => {
     try {
-      const updates = req.body;
-      const [mealPlan] = await db.update(mealPlans).set(updates).where(eq(mealPlans.id, req.params.id)).returning();
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      const { id: _ignoredId, userId: _ignoredUserId, ...updates } = req.body ?? {};
+      const [mealPlan] = await db
+        .update(mealPlans)
+        .set(updates)
+        .where(and(
+          eq(mealPlans.id, req.params.id),
+          eq(mealPlans.userId, authUserId),
+        ))
+        .returning();
       if (!mealPlan) {
         return res.status(404).json({ message: "Meal plan not found" });
       }
@@ -5011,13 +5042,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Meal log routes
-  app.get("/api/meal-logs/:userId", async (req, res) => {
+  app.get("/api/meal-logs/:userId", requireAuth, async (req, res) => {
     try {
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const { startDate, endDate } = req.query;
       const start = startDate ? new Date(startDate as string) : undefined;
       const end = endDate ? new Date(endDate as string) : undefined;
 
-      const mealLogs = await storage.getMealLogs(req.params.userId, start, end);
+      const mealLogs = await storage.getMealLogs(authUserId, start, end);
       res.json(mealLogs);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -5053,9 +5088,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meal-logs", async (req, res) => {
+  app.post("/api/meal-logs", requireAuth, async (req, res) => {
     try {
-      const mealLogData = insertMealLogSchema.parse(req.body);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const mealLogData = insertMealLogSchema.parse({ ...req.body, userId: authUserId });
       const mealLog = await storage.createMealLog(mealLogData);
       res.json(mealLog);
     } catch (error: any) {
@@ -5064,22 +5103,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Glycemic settings routes
-  app.get("/api/glycemic-settings", async (req, res) => {
+  app.get("/api/glycemic-settings", requireAuth, async (req, res) => {
     try {
-      const userId = req.query.userId as string || "1"; // Default to demo user
-      const settings = await storage.getUserGlycemicSettings(userId);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.query.userId && String(req.query.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const settings = await storage.getUserGlycemicSettings(authUserId);
       res.json(settings || {});
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.post("/api/glycemic-settings", async (req, res) => {
+  app.post("/api/glycemic-settings", requireAuth, async (req, res) => {
     try {
-      const userId = req.body.userId || "1"; // Default to demo user
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const settingsData = insertUserGlycemicSettingsSchema.parse({
         ...req.body,
-        userId
+        userId: authUserId
       });
       const settings = await storage.createOrUpdateGlycemicSettings(settingsData);
       res.json(settings);
@@ -5088,12 +5133,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/glycemic-settings", async (req, res) => {
+  app.put("/api/glycemic-settings", requireAuth, async (req, res) => {
     try {
-      const userId = req.body.userId || "1";
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const settingsData = insertUserGlycemicSettingsSchema.parse({
         ...req.body,
-        userId
+        userId: authUserId
       });
       const settings = await storage.createOrUpdateGlycemicSettings(settingsData);
       res.json(settings);
@@ -5148,8 +5196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const sessionUserId = (req as any).session?.userId as string | undefined;
 
         if (token) {
-          const [tokenUser] = await db.select({ id: users.id }).from(users)
-            .where(eq(users.authToken, token)).limit(1);
+          const tokenUser = await findUserByValidAuthToken(token);
           if (tokenUser) barcodeUserId = String(tokenUser.id);
         } else if (sessionUserId) {
           barcodeUserId = String(sessionUserId);
@@ -5256,7 +5303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shopping list add route removed
 
   // Food diary routes for barcode scanning
-  app.post("/api/diary/log", async (req, res) => {
+  app.post("/api/diary/log", requireAuth, async (req, res) => {
     try {
       const { 
         user_id = "1", 
@@ -5267,6 +5314,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         serving_label, 
         servings = 1 
       } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+
+      if (String(user_id) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       console.log(`📝 Diary log request:`, { user_id, date_local, meal_slot, food_id, servings });
 
@@ -5279,7 +5331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { logFood } = await import("./services/barcodeService");
       const result = await logFood({
-        userId: user_id,
+        userId: authUserId,
         dateLocal: date_local,
         mealSlot: meal_slot,
         foodId: food_id,
@@ -5288,7 +5340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         servings: parseFloat(servings)
       });
 
-      console.log(`✅ Food logged successfully for ${user_id}`);
+      console.log(`✅ Food logged successfully for ${authUserId}`);
       res.json(result);
     } catch (error: any) {
       console.error(`❌ Diary log error:`, error);
@@ -5299,9 +5351,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/diary/:user_id/:date_local", async (req, res) => {
+  app.get("/api/diary/:user_id/:date_local", requireAuth, async (req, res) => {
     try {
       const { user_id, date_local } = req.params;
+      if (user_id !== (req as AuthenticatedRequest).authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       console.log(`📊 Getting diary for ${user_id} on ${date_local}`);
 
       // TODO: Query database when schema is available
@@ -5317,7 +5372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate totals
       const { getDayTotals } = await import("./services/barcodeService");
-      const totals = await getDayTotals(user_id, date_local);
+      const totals = await getDayTotals((req as AuthenticatedRequest).authUser.id, date_local);
 
       res.json({
         entries: grouped,
@@ -5410,8 +5465,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shopping list generation from meal plan removed
 
   // Weekly meal plan generation route for Step 5
-  app.post("/api/users/:userId/meal-plan/generate", async (req, res) => {
-    const userId = req.params.userId;
+  app.post("/api/users/:userId/meal-plan/generate", requireAuth, async (req, res) => {
+    const authUserId = (req as AuthenticatedRequest).authUser.id;
+    if (req.params.userId !== authUserId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const userId = authUserId;
     const {
       diet,
       planDuration,
@@ -5531,7 +5590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const token = req.headers["x-auth-token"] as string | undefined;
         if (token) {
           try {
-            const [tokenUser] = await db.select({ id: users.id }).from(users).where(eq(users.authToken, token)).limit(1);
+            const tokenUser = await findUserByValidAuthToken(token);
             if (tokenUser) userId = tokenUser.id;
           } catch { /* non-fatal */ }
         }
@@ -6598,17 +6657,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meal-plans/generate-enforced", async (req, res) => {
+  app.post("/api/meal-plans/generate-enforced", requireAuth, async (req, res) => {
     try {
       const { userId, overrides } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!userId) {
         return res.status(400).json({ error: "userId required for onboarding enforcement" });
       }
+      if (String(userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       console.log("🛡️ Generating weekly meal plan with medical validation for:", userId);
 
-      const meals = await generateWeeklyMeals(userId);
+      const meals = await generateWeeklyMeals({
+        userId: authUserId,
+        mealTypes: ["breakfast", "lunch", "dinner"],
+        dietaryRestrictions: [],
+        allergies: [],
+        medicalFlags: [],
+      });
 
       console.log("✅ Generated", meals.length, "meals with medical badges");
       res.json({ 
@@ -6625,9 +6694,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This old route was returning {meal: firstMeal} instead of {meals: allMeals}
 
   // Testosterone support meal plan generation
-  app.post("/api/users/:userId/testosterone-meal-plan", async (req, res) => {
+  app.post("/api/users/:userId/testosterone-meal-plan", requireAuth, async (req, res) => {
     try {
-      const userId = req.params.userId;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const userId = authUserId;
       const { testosteroneLevel, activityLevel } = req.body;
 
       // Get user data for medical personalization
@@ -7178,11 +7251,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Duplicate handlers removed to fix production 404 errors
 
   // Meal Reminder API Routes
-  app.post("/api/users/:userId/reminders", async (req, res) => {
+  app.post("/api/users/:userId/reminders", requireAuth, async (req, res) => {
     try {
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const reminderData = insertMealReminderSchema.parse({
         ...req.body,
-        userId: req.params.userId
+        userId: authUserId
       });
 
       const reminder = await storage.createMealReminder(reminderData);
@@ -7197,9 +7274,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/reminders", async (req, res) => {
+  app.get("/api/users/:userId/reminders", requireAuth, async (req, res) => {
     try {
-      const reminders = await storage.getMealReminders(req.params.userId);
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.params.userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const reminders = await storage.getMealReminders(authUserId);
       res.json(reminders);
     } catch (error: any) {
       console.error("Failed to get meal reminders:", error);
@@ -7207,12 +7288,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:userId/reminders/:reminderId", async (req, res) => {
+  app.delete("/api/users/:userId/reminders/:reminderId", requireAuth, async (req, res) => {
     try {
       const { userId, reminderId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       // Verify the reminder belongs to the user
-      const reminders = await storage.getMealReminders(userId);
+      const reminders = await storage.getMealReminders(authUserId);
       const reminder = reminders.find(r => r.id === reminderId);
 
       if (!reminder) {
@@ -7236,12 +7321,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:userId/reminders/:reminderId", async (req, res) => {
+  app.patch("/api/users/:userId/reminders/:reminderId", requireAuth, async (req, res) => {
     try {
       const { userId, reminderId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       // Verify the reminder belongs to the user
-      const reminders = await storage.getMealReminders(userId);
+      const reminders = await storage.getMealReminders(authUserId);
       const reminder = reminders.find(r => r.id === reminderId);
 
       if (!reminder) {
@@ -7268,8 +7357,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Debug endpoint to list all scheduled reminders
-  app.get("/api/debug/reminders", async (req, res) => {
+  app.get("/api/debug/reminders", requireAuth, async (req, res) => {
     try {
+      if (!(req as AuthenticatedRequest).authUser.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
       const scheduledReminders = reminderService.getScheduledReminders();
       res.json({
         totalScheduled: scheduledReminders.length,
@@ -7586,9 +7678,13 @@ Provide recommendations in JSON format with the following structure:
     }
   });
 
-  app.get("/api/kids/veggie-explorer/:userId/progress", async (req, res) => {
+  app.get("/api/kids/veggie-explorer/:userId/progress", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const { db } = await import("./db");
       const { kidsVeggieExplorer, kidsVegetablesCatalog } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
@@ -7604,7 +7700,7 @@ Provide recommendations in JSON format with the following structure:
         })
         .from(kidsVeggieExplorer)
         .leftJoin(kidsVegetablesCatalog, eq(kidsVeggieExplorer.vegetableId, kidsVegetablesCatalog.id))
-        .where(eq(kidsVeggieExplorer.userId, userId));
+        .where(eq(kidsVeggieExplorer.userId, authUserId));
 
       res.json({ data: progress });
     } catch (error) {
@@ -7614,11 +7710,16 @@ Provide recommendations in JSON format with the following structure:
   });
 
   // Meal Logging API Routes
-  app.post("/api/meal-logs", async (req, res) => {
+  app.post("/api/meal-logs", requireAuth, async (req, res) => {
     try {
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (req.body?.userId && String(req.body.userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       // Transform date if it's a string
       const transformedBody = {
         ...req.body,
+        userId: authUserId,
         date: req.body.date ? new Date(req.body.date) : new Date()
       };
 
@@ -7632,13 +7733,17 @@ Provide recommendations in JSON format with the following structure:
     }
   });
 
-  app.get("/api/meal-logs/:userId", async (req, res) => {
+  app.get("/api/meal-logs/:userId", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const { startDate, endDate } = req.query;
 
       const mealLogs = await storage.getMealLogs(
-        userId,
+        authUserId,
         startDate ? new Date(startDate as string) : undefined,
         endDate ? new Date(endDate as string) : undefined
       );
@@ -8048,10 +8153,10 @@ function getMealIngredientsDatabase() {
   // Water logs routes — canonical mount in server/index.ts
 
   // POST /api/meal-plan-archive - Direct route to avoid Vite middleware interference
-  app.post("/api/meal-plan-archive", async (req, res) => {
+  app.post("/api/meal-plan-archive", requireAuth, async (req, res) => {
     try {
       console.log("🎯 MEAL PLAN ARCHIVE ROUTE HIT DIRECTLY!");
-      const userId = "test-user-123"; // Demo user ID - in real app would come from auth
+      const userId = (req as AuthenticatedRequest).authUser.id;
 
       console.log("Received meal plan archive request");
 
@@ -8157,12 +8262,16 @@ function getMealIngredientsDatabase() {
   });
 
   // Meal Log API - Enhanced version with barcode support
-  app.post("/api/meal-log", async (req, res) => {
+  app.post("/api/meal-log", requireAuth, async (req, res) => {
     try {
       const { userId, localDate, mealSlot, barcode, servings, customName } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!userId || !localDate || !mealSlot) {
         return res.status(400).json({ error: "Missing required fields: userId, localDate, mealSlot" });
+      }
+      if (String(userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       console.log(`🍽️ Adding meal log entry: ${userId} | ${localDate} | ${mealSlot} | barcode: ${barcode}`);
@@ -8205,7 +8314,7 @@ function getMealIngredientsDatabase() {
       const [mealLog] = await db
         .insert(mealLogsEnhanced)
         .values({
-          userId,
+          userId: authUserId,
           date: localDate,
           mealSlot,
           source,
@@ -8232,12 +8341,16 @@ function getMealIngredientsDatabase() {
   });
 
   // GLP-1 Meal Log API - accepts pre-calculated nutrition data
-  app.post("/api/meal-log/glp1", async (req, res) => {
+  app.post("/api/meal-log/glp1", requireAuth, async (req, res) => {
     try {
       const { userId, localDate, mealSlot, mealName, servings, nutrition } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!userId || !localDate || !mealSlot || !mealName || !nutrition) {
         return res.status(400).json({ error: "Missing required fields: userId, localDate, mealSlot, mealName, nutrition" });
+      }
+      if (String(userId) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       console.log(`[GLP-1 meal log] userId=${userId} date=${localDate} slot=${mealSlot}`);
@@ -8252,7 +8365,7 @@ function getMealIngredientsDatabase() {
       const [mealLog] = await db
         .insert(mealLogsEnhanced)
         .values({
-          userId,
+          userId: authUserId,
           date: localDate,
           mealSlot,
           source: "glp1_meals",
@@ -8318,13 +8431,17 @@ function getMealIngredientsDatabase() {
   });
 
   // 2. Log food entry to diary
-  app.post("/api/diary/log", async (req, res) => {
+  app.post("/api/diary/log", requireAuth, async (req, res) => {
     try {
       const { user_id, date_local, meal_slot, food_id, barcode, serving_label, servings } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       // Validation
       if (!user_id || !date_local || !meal_slot || !food_id || !serving_label || servings === undefined) {
         return res.status(400).json({ error: "Missing required fields" });
+      }
+      if (String(user_id) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       if (!["breakfast", "lunch", "dinner", "snack"].includes(meal_slot)) {
@@ -8337,7 +8454,7 @@ function getMealIngredientsDatabase() {
 
       const { logFood } = await import("./services/barcodeService");
       const result = await logFood({
-        userId: user_id,
+        userId: authUserId,
         dateLocal: date_local,
         mealSlot: meal_slot,
         foodId: food_id,
@@ -8397,16 +8514,20 @@ function getMealIngredientsDatabase() {
   });
 
   // 4. Get day totals for nutrition dashboard
-  app.get("/api/diary/totals", async (req, res) => {
+  app.get("/api/diary/totals", requireAuth, async (req, res) => {
     try {
       const { user_id, date_local } = req.query;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!user_id || !date_local) {
         return res.status(400).json({ error: "user_id and date_local are required" });
       }
+      if (String(user_id) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       const { getDayTotals } = await import("./services/barcodeService");
-      const totals = await getDayTotals(String(user_id), String(date_local));
+      const totals = await getDayTotals(authUserId, String(date_local));
 
       res.json(totals);
     } catch (error) {
@@ -8416,26 +8537,33 @@ function getMealIngredientsDatabase() {
   });
 
   // 5. Delete diary entry (for undo functionality)
-  app.delete("/api/diary/:entry_id", async (req, res) => {
+  app.delete("/api/diary/:entry_id", requireAuth, async (req, res) => {
     try {
       const { entry_id } = req.params;
       const { user_id, date_local } = req.body;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
 
       if (!entry_id) {
         return res.status(400).json({ error: "Entry ID is required" });
       }
+      if (user_id && String(user_id) !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       const { db } = await import("./db");
       const { foodDiary } = await import("@shared/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, and } = await import("drizzle-orm");
 
-      // Delete the entry
-      await db.delete(foodDiary).where(eq(foodDiary.id, entry_id));
+      // Ownership is enforced by the mutation predicate to prevent TOCTOU access.
+      await db.delete(foodDiary).where(and(
+        eq(foodDiary.id, entry_id),
+        eq(foodDiary.userId, authUserId)
+      ));
 
       // Return updated totals if user info provided
       if (user_id && date_local) {
         const { getDayTotals } = await import("./services/barcodeService");
-        const totals = await getDayTotals(user_id, date_local);
+        const totals = await getDayTotals(authUserId, date_local);
         res.json({ success: true, totals });
       } else {
         res.json({ success: true });
@@ -8447,9 +8575,12 @@ function getMealIngredientsDatabase() {
   });
 
   // 6. Get user's food diary for a specific date
-  app.get("/api/diary/:user_id/:date_local", async (req, res) => {
+  app.get("/api/diary/:user_id/:date_local", requireAuth, async (req, res) => {
     try {
       const { user_id, date_local } = req.params;
+      if (user_id !== (req as AuthenticatedRequest).authUser.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       const { db } = await import("./db");
       const { foodDiary } = await import("@shared/schema");
@@ -8460,7 +8591,7 @@ function getMealIngredientsDatabase() {
         .from(foodDiary)
         .where(
           and(
-            eq(foodDiary.userId, user_id),
+            eq(foodDiary.userId, (req as AuthenticatedRequest).authUser.id),
             eq(foodDiary.dateLocal, date_local)
           )
         )
@@ -8477,7 +8608,7 @@ function getMealIngredientsDatabase() {
 
       // Calculate totals
       const { getDayTotals } = await import("./services/barcodeService");
-      const totals = await getDayTotals(user_id, date_local);
+      const totals = await getDayTotals((req as AuthenticatedRequest).authUser.id, date_local);
 
       res.json({
         entries: grouped,
@@ -8533,9 +8664,9 @@ function getMealIngredientsDatabase() {
 
   const httpServer = createServer(app);
   // Recipe action routes
-  app.post("/api/recipes/:id/save", async (req, res) => {
+  app.post("/api/recipes/:id/save", requireAuth, async (req, res) => {
     try {
-      const userId = "00000000-0000-0000-0000-000000000001"; // Default user ID
+      const userId = (req as AuthenticatedRequest).authUser.id;
       const recipeId = req.params.id;
 
       // For now, just return success - in production this would save to a favorites table
@@ -8548,9 +8679,9 @@ function getMealIngredientsDatabase() {
     }
   });
 
-  app.post("/api/recipes/:id/add-to-week", async (req, res) => {
+  app.post("/api/recipes/:id/add-to-week", requireAuth, async (req, res) => {
     try {
-      const userId = "00000000-0000-0000-0000-000000000001"; // Default user ID
+      const userId = (req as AuthenticatedRequest).authUser.id;
       const recipeId = req.params.id;
       const { day, slot } = req.body;
 
@@ -8750,18 +8881,22 @@ function getMealIngredientsDatabase() {
   });
 
   // User Meal Preferences API endpoints for Cafeteria Setup
-  app.get("/api/user-meal-prefs/:userId", async (req, res) => {
+  app.get("/api/user-meal-prefs/:userId", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const [prefs] = await db
         .select()
         .from(userMealPrefs)
-        .where(eq(userMealPrefs.userId, userId));
+        .where(eq(userMealPrefs.userId, authUserId));
 
       if (!prefs) {
         // Return default preferences if none exist
         return res.json({
-          userId,
+          userId: authUserId,
           goal: "maint",
           likes: [],
           avoid: [],
@@ -8777,12 +8912,16 @@ function getMealIngredientsDatabase() {
     }
   });
 
-  app.put("/api/user-meal-prefs/:userId", async (req, res) => {
+  app.put("/api/user-meal-prefs/:userId", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUserId = (req as AuthenticatedRequest).authUser.id;
+      if (userId !== authUserId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       const validatedData: any = insertUserMealPrefsSchema.parse({
         ...req.body,
-        userId,
+        userId: authUserId,
         updatedAt: new Date(),
       });
 
@@ -9395,24 +9534,24 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Keep training ahead of every broad /api/pro mount. Express runs middleware
   // on prefix matches even when the mounted router has no matching handler, so
   // placing this later causes unrelated Studio gates to intercept completion.
-  app.use("/api/pro/training", requireAuth, procareTrainingRouter);
+  app.use("/api/pro/training", requireAuth, requireMfa, procareTrainingRouter);
 
-  app.use("/api/pro/board", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
+  app.use("/api/pro/board", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proWeekBoardRoutes);
 
   const proBiometricsRoutes = (await import("./routes/proBiometricsRoutes")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBiometricsRoutes);
 
   const proProgramHistoryRoutes = (await import("./routes/proProgramHistory")).default;
-  app.use("/api/pro", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proProgramHistoryRoutes);
 
   const workspaceRoutes = (await import("./routes/workspaceRoutes")).default;
-  app.use("/api/pro/workspace", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
+  app.use("/api/pro/workspace", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, workspaceRoutes);
 
   const proTabletRoutes = (await import("./routes/proTabletRoutes")).default;
-  app.use("/api/pro/tablet", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, proTabletRoutes);
+  app.use("/api/pro/tablet", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proTabletRoutes);
 
   const clientTabletRoutes = (await import("./routes/clientTabletRoutes")).default;
   app.use("/api/client/tablet", requireAuth, clientTabletRoutes);
@@ -9420,12 +9559,12 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // Consumer relationship management is Pro-or-higher. Provider Studio access
   // remains independently protected by requireProCareAccess on /api/pro and
   // /api/studios; this mount must not grant professional workspace access.
-  app.use("/api/care-team", requireAuth, requireProAccess, careTeamRoutes);
-  app.use("/api/pro", requireAuth, requireProCareAccess, requireMfa, procareRoutes);
+  app.use("/api/care-team", requireAuth, requireMfa, requireProAccess, careTeamRoutes);
+  app.use("/api/pro", requireAuth, requireMfa, requireProCareAccess, procareRoutes);
   // requireAuth is applied per-route inside clinicalInterventionsRouter —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
   app.use("/api", clinicalInterventionsRouter);
-  app.use("/api/studios", requireAuth, requireProCareAccess, requirePhase1Cert, requirePhase2Training, requireMfa, studioRoutes);
+  app.use("/api/studios", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, studioRoutes);
   const cycleProtocolRoutes = (await import("./routes/cycleProtocolRoutes")).default;
   // requireAuth is applied per-route inside cycleProtocolRoutes —
   // do NOT add it here at the bare /api prefix (blocks login and all other public endpoints).
@@ -9434,7 +9573,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   app.use("/api/legal", legalRoutes);
 
   app.use("/api/founders", foundersRoutes);
-  app.use("/api/physician-reports", requireAuth, requirePremiumAccess, physicianReportsRoutes);
+  app.use("/api/physician-reports", requireAuth, requireMfa, requirePremiumAccess, physicianReportsRoutes);
   app.use("/api/users", usersProfileRouter);
   app.use("/api/professionals", availabilityRouter);
   app.use("/api", availabilityRouter);

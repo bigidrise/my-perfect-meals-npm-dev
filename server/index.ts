@@ -37,6 +37,10 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { resolveMealImageStorageContext } from "./services/mealImageBucket";
 import { registerMarketingPageRoutes } from "./marketingPages";
+import {
+  isTrustedRequestOrigin,
+  registerCsrfProtection,
+} from "./lib/csrfProtection";
 
 // ⬇️ New: AI/Meals API router (this file must exist: server/routes/meals.ts)
 import mealsRouter from "./routes/meals";
@@ -162,27 +166,28 @@ app.use((req, res, next) => {
   // Normalize origin: strip any trailing slash Android WebView sometimes appends.
   const normalizedOrigin = origin?.replace(/\/$/, "");
 
-  // Allow same-origin requests (no Origin header), explicitly listed origins,
-  // and any Vercel preview deployments.
+  // Allow same-origin requests (no Origin header) and exact trusted origins.
   const allowed =
     !normalizedOrigin ||
     allowedOrigins.has(normalizedOrigin) ||
-    normalizedOrigin.endsWith('.vercel.app');
+    isTrustedRequestOrigin(req);
 
   if (allowed) {
-    res.setHeader('Access-Control-Allow-Origin', normalizedOrigin ?? '*');
+    if (normalizedOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', normalizedOrigin);
+    }
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token'
+    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with'
   );
 
   // Answer OPTIONS preflights immediately — nothing else should run for these.
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
+    return allowed ? res.sendStatus(204) : res.sendStatus(403);
   }
 
   next();
@@ -250,6 +255,12 @@ if (!process.env.SESSION_SECRET) {
   }
 }
 
+if (process.env.NODE_ENV === "production") {
+  throw new Error(
+    "server/index.ts is development-only and cannot provide durable production sessions; use server/prod.ts",
+  );
+}
+
 // Session middleware for authentication
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',
@@ -262,6 +273,7 @@ app.use(session({
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   }
 }));
+registerCsrfProtection(app);
 
 // Disable caching on macros and studio endpoints to prevent stale 304s
 app.use((req, res, next) => {
