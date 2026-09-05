@@ -58,10 +58,18 @@ const VARIANTS = [
 
 /** Navigate to the sheet test harness for a specific variant. */
 async function gotoVariant(page: Page, variant: string): Promise<void> {
-  await page.goto(`/__sheet-test__?variant=${variant}`, {
-    waitUntil: "networkidle",
-    timeout: 20_000,
+  await page.route("**/release-manifest.json**", (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        version: "dev",
+        releaseId: "e2e-current-release",
+        notes: [],
+      }),
+    });
   });
+  await page.goto(`/__sheet-test__?variant=${variant}`);
   await expect(
     page.getByTestId("sheet-test-harness"),
     `Harness root must render for variant=${variant}`,

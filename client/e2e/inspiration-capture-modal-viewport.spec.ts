@@ -84,7 +84,20 @@ async function mockAuth(page: Page): Promise<void> {
     localStorage.setItem("mpm_current_user", JSON.stringify(u));
     localStorage.setItem("isAuthenticated", "true");
     localStorage.setItem("mpm.skipWelcomeGate", "true");
+    localStorage.setItem("copilot_autoplay_enabled", "false");
   }, FAKE_USER);
+
+  await page.route("**/release-manifest.json**", (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        version: "dev",
+        releaseId: "e2e-current-release",
+        notes: [],
+      }),
+    })
+  );
 
   // Catch-all: return 200 {} for any API we haven't explicitly stubbed
   await page.route("**/api/**", (r) =>
@@ -111,6 +124,42 @@ async function mockAuth(page: Page): Promise<void> {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ meals: [], total: 0, page: 1, limit: 20, hasMore: false }),
+    })
+  );
+  await page.route(`**/api/users/${FAKE_USER.id}/compliance**`, (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        complianceScore: null,
+        calorieCompliance: 0,
+        proteinCompliance: 0,
+        loggingCompliance: 0,
+        mealConsistency: 0,
+        mealCompletion: null,
+        mealLogging: 0,
+        macroAdherence: 0,
+        macroAdherenceEligible: false,
+        hydrationAdherence: null,
+        hydrationEligible: false,
+        calorieAverage7: 0,
+        proteinAverage7: 0,
+        loggedDays7: 0,
+        windowDays: 7,
+        proteinGoalDays: 0,
+        calorieGoalDays: 0,
+        mealSlots: { breakfast: 0, lunch: 0, dinner: 0 },
+        completedMealSlots: { breakfast: 0, lunch: 0, dinner: 0 },
+        mealActivity: {
+          expectedMealCount: 0,
+          completedMealCount: 0,
+          plannedMealDays: 0,
+          completedMealDays: 0,
+          completionRate: null,
+        },
+        biggestOpportunity: "",
+        coachingSummary: "",
+      }),
     })
   );
 
@@ -167,7 +216,6 @@ async function mockAuth(page: Page): Promise<void> {
 // Returns the [role="dialog"] locator once it is visible on screen.
 async function openModal(page: Page) {
   await page.goto("/dashboard");
-  await page.waitForLoadState("networkidle", { timeout: 15000 });
 
   // The Recipe Maker card has data-testid="card-recipe-scan" on /dashboard.
   // Clicking it calls setShowInspirationModal(true) when the user has
