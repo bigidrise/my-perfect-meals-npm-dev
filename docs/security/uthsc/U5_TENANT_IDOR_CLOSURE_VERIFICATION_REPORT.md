@@ -1,7 +1,7 @@
 # U5 Tenant / Organization / IDOR Isolation Closure Verification Report
 
-**Review date:** 2026-09-04  
-**Disposition:** **PARTIAL**  
+**Review date:** 2026-09-04
+**Disposition:** **PARTIAL**
 **Concrete P0/P1 authorization defects remaining:** **0**
 
 ## Scope
