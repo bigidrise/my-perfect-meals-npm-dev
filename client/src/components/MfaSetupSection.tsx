@@ -59,8 +59,13 @@ export function MfaSetupSection({
     setPhase("loading");
     try {
       const data = await apiRequest("/api/auth/mfa/status");
-      setStatus(data as MfaStatus);
-      setPhase("idle");
+      const nextStatus = data as MfaStatus;
+      setStatus(nextStatus);
+      if (enrollmentRequired && !nextStatus.mfaEnabled) {
+        await beginSetup();
+      } else {
+        setPhase("idle");
+      }
     } catch (e: any) {
       console.error("[MFA] fetchStatus failed:", e?.message, e);
       setPhase("idle");
@@ -119,14 +124,23 @@ export function MfaSetupSection({
     }
   }
 
-  function copyToClipboard(text: string, type: "secret" | "backup") {
-    navigator.clipboard.writeText(text);
-    if (type === "secret") {
-      setCopiedSecret(true);
-      setTimeout(() => setCopiedSecret(false), 2000);
-    } else {
-      setCopiedBackup(true);
-      setTimeout(() => setCopiedBackup(false), 2000);
+  async function copyToClipboard(text: string, type: "secret" | "backup") {
+    setErr(null);
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === "secret") {
+        setCopiedSecret(true);
+        setTimeout(() => setCopiedSecret(false), 2000);
+      } else {
+        setCopiedBackup(true);
+        setTimeout(() => setCopiedBackup(false), 2000);
+      }
+    } catch {
+      setErr(
+        type === "secret"
+          ? "We couldn't copy the setup key automatically. Press and hold the selectable key below to copy it manually."
+          : "We couldn't copy the backup codes automatically. Select and copy them manually.",
+      );
     }
   }
 
@@ -293,39 +307,78 @@ export function MfaSetupSection({
   // ── Setup QR ─────────────────────────────────────────────────────────────────
   if (phase === "setup-qr") {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Shield className="w-5 h-5 text-orange-400 shrink-0" />
-          <div>
-            <p className="font-semibold text-white">{t("mfa.scanTitle")}</p>
-            <p className="text-xs text-white/50">{t("mfa.scanApps")}</p>
+      <div className="space-y-5">
+        <section className="space-y-3" aria-labelledby="mfa-qr-heading">
+          <div className="flex items-center gap-3">
+            <Shield className="w-5 h-5 text-orange-400 shrink-0" />
+            <div>
+              <h2 id="mfa-qr-heading" className="font-semibold text-white">Scan QR code</h2>
+              <p className="text-xs text-white/50">
+                If My Perfect Meals is open on a computer or another device, scan this QR code with your authenticator app.
+              </p>
+            </div>
           </div>
-        </div>
 
-        {qrDataUri && (
-          <div className="flex justify-center">
-            <img
-              src={qrDataUri}
-              alt={t("mfa.qrAlt")}
-              className="w-44 h-44 rounded-xl bg-white p-2"
-            />
-          </div>
-        )}
+          {qrDataUri && (
+            <div className="flex justify-center">
+              <img
+                src={qrDataUri}
+                alt={t("mfa.qrAlt")}
+                className="w-44 h-44 rounded-xl bg-white p-2"
+              />
+            </div>
+          )}
+        </section>
 
         {secret && (
-          <div className="space-y-1">
-            <p className="text-xs text-white/40">{t("mfa.manualKeyPrompt")}</p>
+          <section
+            className="space-y-3 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4"
+            aria-labelledby="mfa-manual-heading"
+          >
+            <div>
+              <h2 id="mfa-manual-heading" className="font-semibold text-white">Using this phone?</h2>
+              <p className="mt-1 text-sm text-white/70">
+                You do not need to create another My Perfect Meals account. Add My Perfect Meals to your authenticator app using the setup key below.
+              </p>
+            </div>
+
             <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-2">
-              <span className="flex-1 font-mono text-xs text-white/70 break-all">{secret}</span>
+              <span className="flex-1 select-all font-mono text-sm text-white/80 break-all" aria-label="Authenticator setup key">
+                {secret}
+              </span>
               <button
                 type="button"
                 onClick={() => copyToClipboard(secret, "secret")}
-                className="shrink-0 text-white/40"
+                className="shrink-0 inline-flex min-h-11 items-center gap-2 rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white"
               >
                 {copiedSecret ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                {copiedSecret ? "Setup key copied" : "Copy setup key"}
               </button>
             </div>
-          </div>
+
+            {err && (
+              <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-900/30 px-3 py-2.5">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                <span className="text-sm text-red-300">{err}</span>
+              </div>
+            )}
+
+            <ol className="list-decimal space-y-1 pl-5 text-sm text-white/70">
+              <li>Tap <strong className="text-white">Copy setup key</strong>.</li>
+              <li>Open your authenticator app.</li>
+              <li>Choose <strong className="text-white">Add account</strong> or <strong className="text-white">Enter a setup key</strong>.</li>
+              <li>Use <strong className="text-white">My Perfect Meals</strong> as the account or service name if asked.</li>
+              <li>Paste the setup key and choose <strong className="text-white">Time based</strong> if asked.</li>
+              <li>Return here and enter the 6-digit authentication code.</li>
+            </ol>
+
+            <p className="text-sm text-white/70">
+              “Add account” in your authenticator app does not create a new My Perfect Meals account. It only adds two-factor authentication to your existing My Perfect Meals login.
+            </p>
+            <p className="text-xs text-white/50">
+              If your authenticator already has an entry with this name, do not delete it automatically. Give this authenticator entry a descriptive label, such as “My Perfect Meals” or “My Perfect Meals – personal.” This changes only the label inside your authenticator app, not your My Perfect Meals account.
+            </p>
+          </section>
         )}
 
         <button
