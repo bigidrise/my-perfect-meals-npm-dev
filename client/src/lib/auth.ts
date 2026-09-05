@@ -537,7 +537,7 @@ export async function signUp(
 export async function login(
   email: string,
   password: string
-): Promise<User | { mfaRequired: true }> {
+): Promise<User | { mfaRequired: true } | { mfaEnrollmentRequired: true }> {
   try {
     const response = await fetch(apiUrl("/api/auth/login"), {
       method: "POST",
@@ -548,6 +548,13 @@ export async function login(
 
     if (!response.ok) {
       const error = await response.json();
+      if (
+        response.status === 403 &&
+        error.code === "MFA_ENROLLMENT_REQUIRED" &&
+        error.mfaEnrollmentRequired === true
+      ) {
+        return { mfaEnrollmentRequired: true };
+      }
       throw new Error(error.error || "Failed to login");
     }
 

@@ -14,6 +14,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Shield, ShieldCheck, ShieldOff, Copy, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { setAuthToken } from "@/lib/auth";
 
 interface MfaStatus {
   mfaEnabled: boolean;
@@ -28,7 +29,15 @@ type Phase =
   | "setup-backup"
   | "disable-confirm";
 
-export function MfaSetupSection() {
+interface MfaSetupSectionProps {
+  enrollmentRequired?: boolean;
+  onEnrollmentComplete?: () => Promise<void> | void;
+}
+
+export function MfaSetupSection({
+  enrollmentRequired = false,
+  onEnrollmentComplete,
+}: MfaSetupSectionProps = {}) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<MfaStatus | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
@@ -80,6 +89,10 @@ export function MfaSetupSection() {
     setErr(null);
     try {
       const data = await apiRequest("/api/auth/mfa/setup/confirm", { method: "POST", body: JSON.stringify({ code: confirmCode.trim() }) });
+      const authToken = (data as any).authToken;
+      if (authToken) {
+        setAuthToken(authToken);
+      }
       setBackupCodes((data as any).backupCodes || []);
       setPhase("setup-backup");
       setStatus({ mfaEnabled: true, enrolledAt: new Date().toISOString() });
@@ -114,6 +127,22 @@ export function MfaSetupSection() {
     } else {
       setCopiedBackup(true);
       setTimeout(() => setCopiedBackup(false), 2000);
+    }
+  }
+
+  async function finishEnrollment() {
+    setBusy(true);
+    setErr(null);
+    try {
+      if (onEnrollmentComplete) {
+        await onEnrollmentComplete();
+      } else {
+        setPhase("idle");
+      }
+    } catch (e: any) {
+      setErr(e?.message || "Two-factor authentication was enabled, but the session could not be refreshed. Please sign in again.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -163,10 +192,18 @@ export function MfaSetupSection() {
           {t("mfa.backupCodesNote")}
         </p>
 
+        {err && (
+          <div className="flex items-start gap-2 bg-red-900/30 border border-red-500/30 rounded-xl px-3 py-2.5">
+            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+            <span className="text-sm text-red-300">{err}</span>
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={() => setPhase("idle")}
-          className="w-full bg-orange-600 text-white font-semibold rounded-xl py-3"
+          onClick={finishEnrollment}
+          disabled={busy}
+          className="w-full bg-orange-600 disabled:opacity-50 text-white font-semibold rounded-xl py-3"
         >
           {t("mfa.savedBackupBtn")}
         </button>
@@ -299,13 +336,15 @@ export function MfaSetupSection() {
           {t("mfa.addedAccountNext")}
         </button>
 
-        <button
-          type="button"
-          onClick={() => setPhase("idle")}
-          className="w-full text-white/40 text-sm py-1"
-        >
-          {t("mfa.cancel")}
-        </button>
+        {!enrollmentRequired && (
+          <button
+            type="button"
+            onClick={() => setPhase("idle")}
+            className="w-full text-white/40 text-sm py-1"
+          >
+            {t("mfa.cancel")}
+          </button>
+        )}
       </div>
     );
   }

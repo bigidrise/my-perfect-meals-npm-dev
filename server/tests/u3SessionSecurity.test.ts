@@ -111,6 +111,20 @@ describe("U3 session architecture invariants", () => {
     );
   });
 
+  it("trusts the Replit proxy before production session middleware is mounted", () => {
+    const productionSource = read("prod.ts");
+    const trustProxyIndex = productionSource.indexOf(
+      'app.set("trust proxy", 1)',
+    );
+    const sessionMiddlewareIndex = productionSource.indexOf(
+      "app.use(session(sessionConfig))",
+    );
+
+    expect(trustProxyIndex).toBeGreaterThan(-1);
+    expect(sessionMiddlewareIndex).toBeGreaterThan(-1);
+    expect(trustProxyIndex).toBeLessThan(sessionMiddlewareIndex);
+  });
+
   it("rotates session IDs at every authentication promotion boundary", () => {
     const authSource = read("routes/auth.session.ts");
     const mfaSource = read("routes/auth.mfa.ts");

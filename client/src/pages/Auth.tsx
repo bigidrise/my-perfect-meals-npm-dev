@@ -7,6 +7,7 @@ import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { MfaChallengeModal } from "@/components/MfaChallengeModal";
+import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
 
 export default function Auth() {
@@ -44,6 +45,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const [showMfaChallenge, setShowMfaChallenge] = useState(false);
+  const [showMfaEnrollment, setShowMfaEnrollment] = useState(false);
 
   async function acceptInviteToken(token: string): Promise<{ ok: boolean; error?: string }> {
     try {
@@ -238,6 +240,10 @@ export default function Auth() {
         return;
       } else {
         const loginResult = await login(email.trim(), pwd);
+        if ("mfaEnrollmentRequired" in loginResult && loginResult.mfaEnrollmentRequired) {
+          setShowMfaEnrollment(true);
+          return;
+        }
         if ("mfaRequired" in loginResult && loginResult.mfaRequired) {
           setShowMfaChallenge(true);
           return;
@@ -252,6 +258,32 @@ export default function Auth() {
         setLoginFailCount((n) => n + 1);
       }
     }
+  }
+
+  if (showMfaEnrollment) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/70 p-6 shadow-2xl">
+          <div className="mb-5">
+            <h1 className="text-xl font-semibold text-white">Secure your account</h1>
+            <p className="mt-2 text-sm text-white/60">
+              Two-factor authentication is required for privileged access. Set it up to continue.
+            </p>
+          </div>
+          <MfaSetupSection
+            enrollmentRequired
+            onEnrollmentComplete={async () => {
+              const freshUser = await refreshUser();
+              if (!freshUser) {
+                throw new Error("Your secure session could not be refreshed. Please sign in again.");
+              }
+              setShowMfaEnrollment(false);
+              await proceedAfterLogin(freshUser);
+            }}
+          />
+        </div>
+      </div>
+    );
   }
 
   if (showMfaChallenge) {

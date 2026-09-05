@@ -46,6 +46,11 @@ if (!process.env.SESSION_SECRET) {
 }
 
 const app = express();
+// Replit terminates TLS at a single reverse-proxy hop. Express must trust that
+// hop before secure cookies, req.protocol, req.ip, or rate limiting are used.
+// Without this, express-session will not emit the Secure MFA-pending session
+// cookie because the proxied request appears to be plain HTTP.
+app.set("trust proxy", 1);
 
 const clientDistForSsr = path.resolve(__dirname, "../client/dist");
 let isInitialized = false;
