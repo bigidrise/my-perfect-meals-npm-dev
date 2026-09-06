@@ -36,7 +36,7 @@ describe("SafetyGuardBanner food governance choices", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Use recommended alternative" }));
+    fireEvent.click(screen.getByRole("button", { name: "shopping.findProduct.alternatives" }));
     fireEvent.click(screen.getByRole("button", { name: "Continue anyway" }));
 
     expect(onAcceptAlternative).toHaveBeenCalledTimes(1);
@@ -62,6 +62,6 @@ describe("SafetyGuardBanner food governance choices", () => {
     );
 
     expect(screen.queryByRole("button", { name: "Continue anyway" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Use recommended alternative" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "shopping.findProduct.alternatives" })).not.toBeInTheDocument();
   });
 });

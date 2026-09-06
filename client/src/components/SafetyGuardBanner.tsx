@@ -1,4 +1,5 @@
 import { AlertTriangle, Shield, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface SafetyAlertState {
   show: boolean;
@@ -15,13 +16,15 @@ export interface SafetyAlertState {
   recommendedAlternative?: string;
 }
 
+type SafetyGuardAction = () => void | Promise<void>;
+
 interface SafetyGuardBannerProps {
   alert: SafetyAlertState;
   mealRequest: string;
   onDismiss: () => void;
   onOverrideSuccess: (token: string) => void;
-  onContinueAnyway?: () => void | Promise<void>;
-  onAcceptAlternative?: () => void | Promise<void>;
+  onContinueAnyway?: SafetyGuardAction;
+  onAcceptAlternative?: SafetyGuardAction;
   continuingAnyway?: boolean;
   className?: string;
 }
@@ -36,6 +39,8 @@ export function SafetyGuardBanner({
   continuingAnyway = false,
   className = ""
 }: SafetyGuardBannerProps) {
+  const { t } = useTranslation();
+
   if (!alert.show || alert.result === "SAFE") {
     return null;
   }
@@ -99,7 +104,7 @@ export function SafetyGuardBanner({
                   disabled={continuingAnyway}
                   className="rounded-lg border border-emerald-400/60 bg-emerald-950/60 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/70 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Use recommended alternative
+                  {t("shopping.findProduct.alternatives")}
                 </button>
               )}
               <button
@@ -110,9 +115,6 @@ export function SafetyGuardBanner({
               >
                 {continuingAnyway ? "Recording acknowledgement..." : "Continue anyway"}
               </button>
-              <span className="self-center text-xs text-white/60">
-                This applies only to this request. All safety protections remain active.
-              </span>
             </div>
           )}
         </div>
