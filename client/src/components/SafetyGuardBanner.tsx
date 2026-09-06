@@ -1,5 +1,4 @@
 import { AlertTriangle, Shield, X } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 export interface SafetyAlertState {
   show: boolean;
@@ -25,6 +24,8 @@ interface SafetyGuardBannerProps {
   onOverrideSuccess: (token: string) => void;
   onContinueAnyway?: SafetyGuardAction;
   onAcceptAlternative?: SafetyGuardAction;
+  alignedActionLabel?: string;
+  continueActionLabel?: string;
   continuingAnyway?: boolean;
   className?: string;
 }
@@ -36,17 +37,27 @@ export function SafetyGuardBanner({
   onOverrideSuccess,
   onContinueAnyway,
   onAcceptAlternative,
+  alignedActionLabel,
+  continueActionLabel,
   continuingAnyway = false,
   className = ""
 }: SafetyGuardBannerProps) {
-  const { t } = useTranslation();
-
   if (!alert.show || alert.result === "SAFE") {
     return null;
   }
 
   const isBlocked = alert.result === "BLOCKED";
   const isAdvisory = alert.result === "ADVISORY";
+  const planName = alert.reasonCode?.startsWith("dietary_identity:")
+    ? alert.reasonCode.slice("dietary_identity:".length)
+    : undefined;
+  const formattedPlanName = planName
+    ? `${planName.charAt(0).toUpperCase()}${planName.slice(1)}`
+    : undefined;
+  const profileAlignedLabel = alignedActionLabel
+    ?? (formattedPlanName ? `Follow My ${formattedPlanName} Plan` : "Keep My Saved Preference");
+  const consciousChoiceLabel = continueActionLabel
+    ?? (alert.requestedFood ? `Continue With ${alert.requestedFood}` : "Continue Anyway");
 
   return (
     <div className={`rounded-lg border p-4 ${isBlocked ? "bg-amber-950/50 border-amber-500/50" : "bg-yellow-950/50 border-yellow-500/50"} ${className}`}>
@@ -97,23 +108,21 @@ export function SafetyGuardBanner({
 
           {isAdvisory && alert.overrideAllowed && onContinueAnyway && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {onAcceptAlternative && (
-                <button
-                  type="button"
-                  onClick={onAcceptAlternative}
-                  disabled={continuingAnyway}
-                  className="rounded-lg border border-emerald-400/60 bg-emerald-950/60 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/70 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {t("shopping.findProduct.alternatives")}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={onAcceptAlternative ?? onDismiss}
+                disabled={continuingAnyway}
+                className="rounded-lg border border-emerald-400/60 bg-emerald-950/60 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/70 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {profileAlignedLabel}
+              </button>
               <button
                 type="button"
                 onClick={onContinueAnyway}
                 disabled={continuingAnyway}
                 className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {continuingAnyway ? "Recording acknowledgement..." : "Continue anyway"}
+                {continuingAnyway ? "Recording acknowledgement..." : consciousChoiceLabel}
               </button>
             </div>
           )}

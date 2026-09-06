@@ -12,3 +12,5 @@ The persistent Nutrition Life Plan establishes the default, but an explicit conf
 The one-action override behavior has been owner-confirmed in Development. For guided location searches, disclose and acknowledge the conflict on step 2 before advancing; “Continue anyway” should advance to step 3, which then behaves normally.
 
 Cuisine is ordinarily a default preference rather than a governed contradiction. An explicit cuisine request supersedes it silently for that action, then the next independent action returns to the saved cuisine default.
+
+Every dietary-accountability intervention must present two meaningful actions: remain aligned with the saved plan, or knowingly continue with the conflicting request for one action. A continue-only interruption is not acceptable.

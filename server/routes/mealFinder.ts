@@ -13,6 +13,11 @@ import { resolveDailyNutritionState } from '../services/nutritionStateService';
 import { buildRemainingMacrosBlock } from '../services/restaurantMealGeneratorAI';
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from '../services/glp1/resolveGLP1GlobalContext';
 import { findUserByValidAuthToken } from '../services/authTokenService';
+import {
+  claimAdvisoryOverrideToken,
+  commitAdvisoryOverrideToken,
+  rollbackAdvisoryOverrideToken,
+} from '../services/safetyPinService';
 
 const router = express.Router();
 
@@ -22,8 +27,21 @@ const router = express.Router();
  * Returns: Array of restaurant + meal recommendations
  */
 router.post('/meal-finder', async (req, res) => {
+  let claimedGovernanceToken: string | undefined;
+  const releaseClaimedGovernanceToken = () => {
+    if (claimedGovernanceToken) {
+      rollbackAdvisoryOverrideToken(claimedGovernanceToken);
+      claimedGovernanceToken = undefined;
+    }
+  };
   try {
-    const { mealQuery, zipCode, dietaryRestrictions, priceRange } = req.body;
+    const {
+      mealQuery,
+      zipCode,
+      dietaryRestrictions,
+      priceRange,
+      governanceOverrideToken,
+    } = req.body;
     
     // Validate request
     if (!mealQuery || typeof mealQuery !== 'string') {
@@ -132,13 +150,46 @@ router.post('/meal-finder', async (req, res) => {
       ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
       : [];
 
+    let acknowledgedDietIdentity: string | undefined;
+    if (governanceOverrideToken) {
+      if (!userId) {
+        return res.status(403).json({
+          error: "An authenticated acknowledgement is required for this request.",
+          code: "FOOD_GOVERNANCE_OVERRIDE_INVALID",
+        });
+      }
+      const advisoryToken = claimAdvisoryOverrideToken(
+        governanceOverrideToken,
+        userId,
+        mealQuery,
+        "find-meals",
+      );
+      if (!advisoryToken) {
+        return res.status(403).json({
+          error: "This acknowledgement expired or does not match the current food request. Please review the recommendation again.",
+          code: "FOOD_GOVERNANCE_OVERRIDE_INVALID",
+        });
+      }
+      claimedGovernanceToken = governanceOverrideToken;
+      if (advisoryToken.reasonCode.startsWith("dietary_identity:")) {
+        acknowledgedDietIdentity = advisoryToken.reasonCode.slice("dietary_identity:".length);
+      }
+    }
+
+    const profileDietRestrictions = Array.isArray(contextUser?.dietaryRestrictions)
+      ? contextUser.dietaryRestrictions
+      : [];
+    const effectiveDietRestrictions = Array.from(
+      new Set([...profileDietRestrictions, ...bodyDietRestrictions]),
+    ).filter((diet) => diet.toLowerCase() !== acknowledgedDietIdentity?.toLowerCase());
+
     // Find meals — pass cuisine preference from the DB user profile so the
     // restaurant search query is biased toward the user's preferred cuisine type
     const rawResults = await findMealsNearby({
       mealQuery,
       zipCode,
       user: contextUser,
-      dietaryRestrictions: bodyDietRestrictions.length > 0 ? bodyDietRestrictions : undefined,
+      dietaryRestrictions: effectiveDietRestrictions.length > 0 ? effectiveDietRestrictions : undefined,
       priceRange: Array.isArray(priceRange) && priceRange.length > 0 ? priceRange : undefined,
       protocolBlock,
       builderBlock,
@@ -191,6 +242,10 @@ router.post('/meal-finder', async (req, res) => {
     // the client enriches each card independently through /api/meals/generate-image
     // after this response is sent.
 
+    if (claimedGovernanceToken) {
+      commitAdvisoryOverrideToken(claimedGovernanceToken);
+      claimedGovernanceToken = undefined;
+    }
     return res.status(200).json({
       success: true,
       query: mealQuery,
@@ -203,6 +258,7 @@ router.post('/meal-finder', async (req, res) => {
     });
     
   } catch (error) {
+    releaseClaimedGovernanceToken();
     console.error('❌ Meal Finder error:', error);
     return res.status(500).json({ 
       error: 'Failed to find meals',
