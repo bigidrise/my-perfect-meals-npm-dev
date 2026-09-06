@@ -174,8 +174,25 @@ function classifyByTerminalWords(lastWord: string, lastTwo: string): DishType | 
   return null;
 }
 
+function isLettuceCupDish(name: string): boolean {
+  const normalized = name.toLowerCase().replace(/[-_/]+/g, " ").replace(/\s+/g, " ").trim();
+  return /\blettuce (?:wraps?|cups?|leaves)\b/.test(normalized)
+    || /\b(?:served|wrapped|filled|held|nested)\s+(?:in|inside|with)\s+(?:crisp\s+|fresh\s+)?lettuce (?:cups?|leaves)\b/.test(normalized);
+}
+
 export function detectDishType(name: string): DishType {
   const lower = name.toLowerCase();
+
+  // Lettuce wraps/cups are open leafy vessels, not rolled bread wraps.
+  // Resolve this semantic exception before terminal-word and generic "wrap" rules.
+  if (isLettuceCupDish(lower)) {
+    return {
+      type: "handheld",
+      presentation: "two or three open lettuce cups arranged on a plate with the filling clearly visible",
+      textureDescription: "crisp whole lettuce leaves cupping the cooked filling, fresh and ready to eat",
+      structuralIdentity: "two or three open lettuce leaves or lettuce cups holding the visible filling. The lettuce leaves form the edible cups; there is NO tortilla, flatbread, pita, sandwich bread, burrito shell, or rolled bread.",
+    };
+  }
 
   // ── TERMINAL-WORD PRIORITY (right-to-left) ──────────────────────────────────
   // The last word(s) of a dish name define its type. Run this FIRST.
