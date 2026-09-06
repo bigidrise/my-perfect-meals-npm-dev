@@ -32,42 +32,11 @@ import {
 import { AUTH_ATTEMPT_SCOPES, createAuthAttemptSubject } from "../services/authAttemptTracker";
 import { authAttemptTracker } from "../services/authAttemptTrackingService";
 import { requiresPrivilegedMfa } from "../lib/privilegedMfaPolicy";
-import { businessMembers, businesses } from "../db/schema/business";
 
 const router = Router();
 
 async function loginRequiresPrivilegedMfa(user: typeof users.$inferSelect): Promise<boolean> {
-  if (requiresPrivilegedMfa({
-    isFounder: user.isFounder,
-    isAdmin: user.isAdmin,
-    role: user.role,
-    professionalRole: user.professionalRole,
-    isBusinessOwner: false,
-    isBusinessAdmin: false,
-  })) return true;
-
-  const [authority] = await db
-    .select({
-      ownerId: businesses.id,
-      adminId: businessMembers.id,
-    })
-    .from(businesses)
-    .leftJoin(
-      businessMembers,
-      and(
-        eq(businessMembers.businessId, businesses.id),
-        eq(businessMembers.userId, user.id),
-        eq(businessMembers.status, "active"),
-        eq(businessMembers.role, "admin"),
-      ),
-    )
-    .where(or(
-      eq(businesses.ownerUserId, user.id),
-      eq(businessMembers.userId, user.id),
-    ))
-    .limit(1);
-
-  return authority?.ownerId != null || authority?.adminId != null;
+  return requiresPrivilegedMfa({ email: user.email });
 }
 
 function generateAuthToken(): string {
