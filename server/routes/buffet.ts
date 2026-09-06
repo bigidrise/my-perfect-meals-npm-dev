@@ -17,15 +17,19 @@ import { resolveDailyNutritionState } from "../services/nutritionStateService";
 import { buildRemainingMacrosBlock } from "../services/restaurantMealGeneratorAI";
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
 
 const router = Router();
 
 router.post("/recommend", async (req, res) => {
+  let humanFoodScope: ReturnType<typeof createHumanFoodRequestScope> | null = null;
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-    const { foodsDescription, categories, requestedFood } = req.body as {
+    const { foodsDescription, categories, requestedFood, governanceOverrideToken } = req.body as {
       foodsDescription?: string;
       requestedFood?: string;
+      governanceOverrideToken?: string;
       categories?: {
         proteins?: string;
         vegetables?: string;
@@ -38,6 +42,20 @@ router.post("/recommend", async (req, res) => {
 
     if (!foodsDescription?.trim() && !categories) {
       return res.status(400).json({ error: "Describe the foods available at the buffet." });
+    }
+    const actionRequest = requestedFood?.trim() || foodsDescription?.trim() || Object.values(categories ?? {}).join(" ");
+    humanFoodScope = createHumanFoodRequestScope({
+      actorUserId: userId,
+      subjectUserId: userId,
+      creator: "buffet",
+      correlationId: (req as any).id,
+      actionRequest,
+      authorizationAction: "buffet",
+      advisoryOverrideToken: governanceOverrideToken ?? null,
+    });
+    const humanFoodContext = await humanFoodScope.resolve();
+    if (humanFoodContext.status === "blocked" || humanFoodContext.status === "review_required") {
+      return res.status(503).json({ error: "Food guidance is temporarily unavailable. Please try again.", retryable: true });
     }
 
     const nutritionContext = await getActiveNutritionContext(userId);
@@ -82,6 +100,7 @@ router.post("/recommend", async (req, res) => {
       remainingMacrosBlock: remainingMacrosBlock || undefined,
       glp1RecommendationBlock: glp1Block || undefined,
       protocolEnvelope,
+      humanFoodContext,
     });
 
     // ── GLP-1 post-gen plate filtering ────────────────────────────────────────
@@ -124,6 +143,20 @@ router.post("/recommend", async (req, res) => {
       }
     }
 
+    const invalidRecommendation = filtered.find((rec: any) => !validateHumanFoodResult({
+      ingredients: rec.meal?.ingredients ?? [],
+      nutrition: {
+        calories: rec.meal?.calories,
+        protein: rec.meal?.proteinGrams,
+        carbs: rec.meal?.carbohydrateGrams,
+        fat: rec.meal?.fatGrams,
+        starchyCarbs: rec.meal?.starchyCarbGrams,
+      },
+    }, humanFoodContext).valid);
+    if (invalidRecommendation || filtered.length === 0) {
+      return res.status(422).json({ error: "HUMAN_FOOD_FINAL_VALIDATION_FAILED" });
+    }
+    await humanFoodScope.completeAuthorization();
     return res.json({ recommendations: filtered });
   } catch (err) {
     console.error("[Buffet] Error:", err);
@@ -131,6 +164,8 @@ router.post("/recommend", async (req, res) => {
       error: "Failed to generate buffet recommendations.",
       details: err instanceof Error ? err.message : "Unknown error",
     });
+  } finally {
+    await humanFoodScope?.releaseAuthorization();
   }
 });
 

@@ -21,6 +21,11 @@ import { resolveDailyNutritionState } from "../services/nutritionStateService";
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
 import { computeAlphaGalBadge } from "../services/medicalBadges";
 import { emitActivityEvent } from "../services/coaching/activityEvents";
+import {
+  claimAdvisoryOverrideToken,
+  commitAdvisoryOverrideToken,
+  rollbackAdvisoryOverrideToken,
+} from "../services/safetyPinService";
 
 // ── Alpha-gal condition detection keys (mirrors medicalBadges.ts) ─────────────
 const ALPHA_GAL_KEYS = [
@@ -79,9 +84,24 @@ const router = Router();
 // When the engine has menu data → AI selects from real items.
 // When the engine has no data → returns explicit unavailable state, no invention.
 router.post("/guide", async (req, res) => {
+  let claimedGovernanceToken: string | undefined;
+  const releaseClaimedGovernanceToken = () => {
+    if (claimedGovernanceToken) {
+      rollbackAdvisoryOverrideToken(claimedGovernanceToken);
+      claimedGovernanceToken = undefined;
+    }
+  };
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-    const { restaurantName, craving, cuisine, zipCode, dietaryRestrictions } = req.body;
+    const {
+      restaurantName,
+      craving,
+      cuisine,
+      zipCode,
+      dietaryRestrictions,
+      governanceOverrideToken,
+      governanceAction = "restaurant-guide",
+    } = req.body;
     
     if (!restaurantName || !craving) {
       return res.status(400).json({ 
@@ -111,13 +131,37 @@ router.post("/guide", async (req, res) => {
       console.warn(`⚠️ [Guide] Could not fetch user profile:`, userError);
     }
 
-    // Merge body-supplied dietary restrictions into user so engine pre-filter is constrained
+    // An acknowledgement is a one-action exception. Claim it against the exact
+    // authenticated user/request before deriving this request's diet context.
+    // Never modify the persisted profile; the next request starts from it again.
+    let acknowledgedDietIdentity: string | undefined;
+    if (governanceOverrideToken) {
+      const advisoryToken = claimAdvisoryOverrideToken(
+        governanceOverrideToken,
+        userId,
+        craving,
+        governanceAction,
+      );
+      if (!advisoryToken) {
+        return res.status(403).json({
+          error: "This acknowledgement expired or does not match the current food request. Please review the recommendation again.",
+          code: "FOOD_GOVERNANCE_OVERRIDE_INVALID",
+        });
+      }
+      claimedGovernanceToken = governanceOverrideToken;
+      if (advisoryToken.reasonCode.startsWith("dietary_identity:")) {
+        acknowledgedDietIdentity = advisoryToken.reasonCode.slice("dietary_identity:".length);
+      }
+    }
+
+    // Merge body-supplied restrictions into an action-only diet context. Remove
+    // only the acknowledged identity, retaining all other profile protections.
     const bodyDiet: string[] = dietaryRestrictions
       ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
       : [];
     const effectiveDiet: string[] = Array.from(
       new Set([...((user?.dietaryRestrictions as string[]) || []), ...bodyDiet])
-    );
+    ).filter(diet => diet.toLowerCase() !== acknowledgedDietIdentity?.toLowerCase());
     const effectiveAllergies: string[] = (user?.allergies as string[]) || [];
 
     // ── Step 1: Resolve location (for display, not for engine routing) ─────────
@@ -167,9 +211,11 @@ router.post("/guide", async (req, res) => {
       const todayISO = new Date().toISOString().slice(0, 10);
       const fallbackGlp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
       if (fallbackGlp1Ctx === null) {
+        releaseClaimedGovernanceToken();
         return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
       }
       if (fallbackGlp1Ctx.isActive && !fallbackGlp1Ctx.resolvedTargets) {
+        releaseClaimedGovernanceToken();
         return res.status(503).json({ error: "GLP-1 clinical targets temporarily unavailable. Please try again.", retryable: true });
       }
 
@@ -209,6 +255,9 @@ router.post("/guide", async (req, res) => {
         fallbackContext?.combinedBlock,
         fallbackGlp1Block,
       ].filter(Boolean).join("\n\n") || undefined;
+      const fallbackActionEnvelope = fallbackContext?.envelope && acknowledgedDietIdentity
+        ? { ...fallbackContext.envelope, dietaryIdentity: effectiveDiet }
+        : fallbackContext?.envelope;
 
       const aiUser = bodyDiet.length > 0
         ? { ...(user || {}), dietaryRestrictions: effectiveDiet } as any
@@ -220,7 +269,7 @@ router.post("/guide", async (req, res) => {
         cravingContext: craving,
         user: aiUser,
         protocolBlock: fallbackProtocolBlock,
-        protocolEnvelope: fallbackContext?.envelope || undefined,
+        protocolEnvelope: fallbackActionEnvelope,
         builderBlock: fallbackContext?.builderBlock || undefined,
         remainingMacrosBlock: fallbackRemainingMacrosBlock || undefined,
       });
@@ -255,6 +304,12 @@ router.post("/guide", async (req, res) => {
       // Attach alpha-gal safety badges when user has the condition active.
       const aiRecsWithBadges = attachAlphaGalBadges(filteredAiRecs, isAlphaGalActive(user));
 
+      if (aiRecsWithBadges.length > 0 && claimedGovernanceToken) {
+        commitAdvisoryOverrideToken(claimedGovernanceToken);
+        claimedGovernanceToken = undefined;
+      } else if (claimedGovernanceToken) {
+        releaseClaimedGovernanceToken();
+      }
       res.json({
         recommendations: aiRecsWithBadges,
         restaurantInfo,
@@ -306,9 +361,11 @@ router.post("/guide", async (req, res) => {
     const todayISO = new Date().toISOString().slice(0, 10);
     const guideGlp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
     if (guideGlp1Ctx === null) {
+      releaseClaimedGovernanceToken();
       return res.status(503).json({ error: "Clinical guidance temporarily unavailable. Please try again.", retryable: true });
     }
     if (guideGlp1Ctx.isActive && !guideGlp1Ctx.resolvedTargets) {
+      releaseClaimedGovernanceToken();
       return res.status(503).json({ error: "GLP-1 clinical targets temporarily unavailable. Please try again.", retryable: true });
     }
     const [guideContext] = await Promise.all([
@@ -326,6 +383,9 @@ router.post("/guide", async (req, res) => {
       guideContext.combinedBlock,
       guideGlp1Block,
     ].filter(Boolean).join("\n\n") || guideContext.combinedBlock;
+    const guideActionEnvelope = acknowledgedDietIdentity
+      ? { ...guideContext.envelope, dietaryIdentity: effectiveDiet }
+      : guideContext.envelope;
 
     // ── Step 4: AI reasons over verified items ─────────────────────────────────
     const aiUser = bodyDiet.length > 0
@@ -342,7 +402,7 @@ router.post("/guide", async (req, res) => {
       craving,
       user: aiUser,
       protocolBlock: guideProtocolBlock,
-      protocolEnvelope: guideContext.envelope,
+      protocolEnvelope: guideActionEnvelope,
       builderBlock: guideContext.builderBlock || undefined,
     });
 
@@ -384,6 +444,12 @@ router.post("/guide", async (req, res) => {
       isAlphaGalActive(user)
     );
 
+    if (finalRecommendations.length > 0 && claimedGovernanceToken) {
+      commitAdvisoryOverrideToken(claimedGovernanceToken);
+      claimedGovernanceToken = undefined;
+    } else if (claimedGovernanceToken) {
+      releaseClaimedGovernanceToken();
+    }
     res.json({
       status: "ok",
       recommendations: finalRecommendations,
@@ -427,6 +493,7 @@ router.post("/guide", async (req, res) => {
     }
 
   } catch (error) {
+    releaseClaimedGovernanceToken();
     console.error("[Guide] Error:", error);
     return res.status(500).json({ 
       error: "Failed to generate restaurant recommendations",

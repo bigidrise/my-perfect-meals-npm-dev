@@ -275,6 +275,23 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
     expect(dalBlock).toContain("? _resolvedPrimaryDiet");
   });
 
+  it("keeps an acknowledged identity waiver through prompt, pipeline, and finalization", () => {
+    const routeBlock = ROUTES_SRC.slice(
+      ROUTES_SRC.indexOf('app.post("/api/meals/craving-creator"'),
+      ROUTES_SRC.indexOf('// NEW: Onboarding-enforced meal generation routes'),
+    );
+    // The one-action identity override must become the Human Food Context's
+    // effective diet, survive prompt augmentation, and reach every generator.
+    expect(routeBlock).toContain('requestDietOverride = "omnivore"');
+    expect(routeBlock).toContain("[ACKNOWLEDGED DIETARY IDENTITY OVERRIDE:");
+    expect(routeBlock).toContain("_authorizedDietaryIdentityOverride");
+    expect(routeBlock).toContain("humanFoodContext.diet.effective.slice()");
+    expect(routeBlock).not.toContain("cravingInput = `${rawCravingInput}");
+    expect(routeBlock).toContain("reservedAdvisoryOverrideToken");
+    expect(routeBlock).toContain("rollbackAdvisoryOverrideToken(reservedAdvisoryOverrideToken)");
+    expect(routeBlock).toContain("commitAdvisoryOverrideToken(reservedAdvisoryOverrideToken)");
+  });
+
   it("unifiedMealPipeline also uses REPLACEMENT semantics in generateCravingMealOptions", () => {
     // Line 2073: "REPLACES the profile diet" comment confirms the replacement intent.
     // Line 2078: dietRestrictions = [...dietaryRestrictionsOverride]
@@ -438,6 +455,21 @@ const KETO_OVERRIDE_ENVELOPE = {
   dietaryIdentity: ["keto"],
 };
 
+const OMNIVORE_ONE_ACTION_ENVELOPE = {
+  ...VEGAN_PROTOCOL_ENVELOPE,
+  dietaryIdentity: ["omnivore"],
+};
+
+const STEAK_MEAL = {
+  name: "Pan-Seared Steak",
+  description: "Steak with roasted asparagus.",
+  ingredients: [
+    { name: "beef steak", quantity: "8", unit: "oz" },
+    { name: "asparagus", quantity: "1", unit: "cup" },
+  ],
+  instructions: "Season the steak and sear until browned.",
+};
+
 describe("C. Functional — filterMealsByProtocol: vegan vs keto-override envelope", () => {
 
   it("vegan envelope BLOCKS the keto cake (cream cheese + eggs are vegan-illegal)", () => {
@@ -489,6 +521,12 @@ describe("C. Functional — filterMealsByProtocol: vegan vs keto-override envelo
       generatorName: "craving_creator",
     });
     expect(passed.length).toBe(2);
+  });
+
+  it("keeps the one-action diet envelope separate from the persistent profile envelope", () => {
+    expect(OMNIVORE_ONE_ACTION_ENVELOPE.dietaryIdentity).toEqual(["omnivore"]);
+    expect(VEGAN_PROTOCOL_ENVELOPE.dietaryIdentity).toEqual(["vegan"]);
+    expect(OMNIVORE_ONE_ACTION_ENVELOPE).not.toBe(VEGAN_PROTOCOL_ENVELOPE);
   });
 });
 

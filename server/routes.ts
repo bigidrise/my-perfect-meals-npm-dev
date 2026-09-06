@@ -1124,6 +1124,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generationContext,
         dietOverride,
         servings: reqServings = 1,
+        advisoryOverrideToken,
+        governanceOverrideToken,
+        actionRequest: _actionRequest,
+        authorizationAction: _authorizationAction,
       } = req.body;
 
       // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
@@ -1192,11 +1196,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const effectiveUserId: string = delegatedClientId ?? authUserId;
       let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
       let humanFoodExecutionState: import("./services/humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState | undefined;
+      let humanFoodRequestScope: import("./services/humanFoodContext/requestScope").HumanFoodRequestScope | undefined;
       const stage2dHumanFoodTypes = new Set(["create-with-chef", "snack-creator", "premade", "craving"]);
       if (stage2dHumanFoodTypes.has(type)) {
         const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
         const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
-        const humanFoodRequestScope = createHumanFoodRequestScope({
+        // Bind acknowledgements to the actual request this endpoint executes;
+        // do not trust a body-supplied action label.
+        const canonicalActionRequest = typeof input === "string"
+          ? input.trim()
+          : Array.isArray(input)
+            ? input.join(", ").trim()
+            : "";
+        const canonicalAdvisoryToken = typeof advisoryOverrideToken === "string"
+          ? advisoryOverrideToken
+          : typeof governanceOverrideToken === "string"
+            ? governanceOverrideToken
+            : null;
+        humanFoodRequestScope = createHumanFoodRequestScope({
           actorUserId: authUserId,
           subjectUserId: effectiveUserId,
           creator: "recipe_maker",
@@ -1204,6 +1221,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dietOverride: typeof dietOverride === "string" ? dietOverride : null,
           cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
           cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+          actionRequest: canonicalActionRequest,
+          authorizationAction: "recipe_maker",
+          advisoryOverrideToken: canonicalAdvisoryToken,
         });
         humanFoodContext = await humanFoodRequestScope.resolve();
         humanFoodExecutionState = humanFoodRequestScope.executionState;
@@ -2055,6 +2075,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
+      const completedOutput = result.meal ?? result.meals?.find((meal: any) =>
+        typeof meal?.name === "string" && meal.name.trim().length > 0,
+      );
+      if (humanFoodRequestScope && result.success) {
+        if (!completedOutput || typeof completedOutput.name !== "string" || !completedOutput.name.trim()) {
+          throw new Error("Final recipe-maker output is empty");
+        }
+        await humanFoodRequestScope.completeAuthorization();
+      }
       res.json(result);
 
     } catch (error: any) {
@@ -2070,6 +2099,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(error?.code ? { code: error.code } : {}),
         source: 'error'
       });
+    } finally {
+      // Failed, rejected, and empty executions restore a reserved
+      // acknowledgement. Completed scopes remain idempotently settled.
+      await humanFoodRequestScope?.releaseAuthorization();
     }
   });
 
@@ -5580,6 +5613,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/meals/craving-creator", async (req, res) => {
+    // An advisory acknowledgement is a one-action authorization. Keep it reserved
+    // until this request has actually fulfilled, so a transient context/generation
+    // failure does not make the user repeat the acknowledgement.
+    let reservedAdvisoryOverrideToken: string | null = null;
+    let advisoryOverrideFulfilled = false;
     try {
       const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, governanceOverrideToken, governanceDecision, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug, skipImages } = req.body;
 
@@ -5642,6 +5680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           governanceOverrideToken,
           serverAuthUserId,
           rawCravingInput || "",
+          humanFoodCreator === "create_a_dish" ? "create-dish" : humanFoodCreator,
         );
         if (!advisoryToken) {
           return res.status(403).json({
@@ -5650,6 +5689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "This acknowledgement expired or does not match the current food request. Please review the recommendation again.",
           });
         }
+        reservedAdvisoryOverrideToken = governanceOverrideToken;
         try {
           await logSafetyOverride(
             serverAuthUserId,
@@ -5659,7 +5699,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `User acknowledged advisory avoidance for ${advisoryToken.matchedTerm}`,
             (req as any).id,
           );
-          commitAdvisoryOverrideToken(governanceOverrideToken);
           _overriddenRequestedFoods = [advisoryToken.matchedTerm];
           if (advisoryToken.reasonCode.startsWith("avoidance:")) {
             _overriddenAvoidances = [advisoryToken.matchedTerm];
@@ -5687,6 +5726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }).catch(error => console.error("[FoodGovernance] Override event failed:", error));
         } catch (auditError) {
           rollbackAdvisoryOverrideToken(governanceOverrideToken);
+          reservedAdvisoryOverrideToken = null;
           console.error("[FoodGovernance] Advisory audit insert failed:", auditError);
           return res.status(503).json({
             success: false,
@@ -5850,11 +5890,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Allergies, medical, specialty, and religious rules are enforced separately
       // by the protocol envelope — they are never affected by this resolver.
       const _resolvedPrimaryDiet: string[] = humanFoodContext.diet.effective.slice();
+      const _authorizedDietaryIdentityOverride = _overriddenDietaryIdentities.length > 0;
       const _authorizedCreateDishDietOverride =
-        humanFoodCreator === "create_a_dish" && _overriddenDietaryIdentities.length > 0;
+        humanFoodCreator === "create_a_dish" && _authorizedDietaryIdentityOverride;
       const _effectiveSkipAdaptableConflicts =
         dietAdaptOverride === true ||
-        _authorizedCreateDishDietOverride ||
+        _authorizedDietaryIdentityOverride ||
         (humanFoodCreator !== "create_a_dish" && userDietOverride === true);
       if (requestDietOverride) {
         console.log(`🔀 [CRAVING] Authoritative diet override: "${requestDietOverride}" replaces profile diet`);
@@ -5863,15 +5904,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Build diet-aware adaptation / override block ──────────────────────
       // NOW we know the user's actual diet — build the right block, never
       // cross-contaminating carnivore with pareve, vegan with meat, etc.
-      if (dietAdaptOverride === true) {
+      if (dietAdaptOverride === true && !_authorizedDietaryIdentityOverride) {
         const userDietRestrictions = (user?.dietaryRestrictions as string[]) || [];
         const chefDiet = getPrimaryDiet(userDietRestrictions);
-        cravingInput = `${rawCravingInput} ${buildChefAdaptationBlock(chefDiet)}`;
+        // Keep the authoritative Human Food Context and any request-scoped
+        // acknowledgement in the prompt. Rebuilding from raw input here used to
+        // silently discard both before generation and downstream retries.
+        cravingInput = `${cravingInput}\n\n${buildChefAdaptationBlock(chefDiet)}`;
       } else if (
-        (humanFoodCreator === "create_a_dish" && _overriddenDietaryIdentities.length > 0) ||
+        _authorizedDietaryIdentityOverride ||
         (humanFoodCreator !== "create_a_dish" && userDietOverride === true)
       ) {
-        cravingInput = `${rawCravingInput} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
+        cravingInput = `${cravingInput}\n\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`;
       }
 
       // ── GLP-1 canonical context — pre-generation ─────────────────────────
@@ -5932,10 +5976,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // When a builder diet override is active, use it as the sole dietary identity
       // in the guardrail context so a vegan profile doesn't reject a keto meal the
       // user explicitly requested. Without override, merge envelope + profile as before.
-      const _dalDietIdentity = _authorizedCreateDishDietOverride
-        ? protocolEnvelope.dietaryIdentity.filter(
-            value => !_overriddenDietaryIdentities.includes(value.trim().toLowerCase()),
-          )
+      const _dalDietIdentity = _authorizedDietaryIdentityOverride
+        ? _resolvedPrimaryDiet
         : _resolvedPrimaryDiet.length > 0
           ? _resolvedPrimaryDiet
           : [...protocolEnvelope.dietaryIdentity, ...((user?.dietaryRestrictions as string[]) || [])];
@@ -6168,13 +6210,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // the diet-override toggle is on, so the condition must also trigger on
       // dietaryRestrictions — not just the explicit dietOverride body field.
       const _overrideDietActive =
-        _authorizedCreateDishDietOverride ||
+        _authorizedDietaryIdentityOverride ||
         (_resolvedPrimaryDiet.length > 0 && humanFoodCreator !== "create_a_dish" && (dietOverride || dietaryRestrictions));
-      const _filterDietaryIdentity = _authorizedCreateDishDietOverride
-        ? protocolEnvelope.dietaryIdentity.filter(
-            value => !_overriddenDietaryIdentities.includes(value.trim().toLowerCase()),
-          )
-        : _resolvedPrimaryDiet;
+      const _filterDietaryIdentity = _resolvedPrimaryDiet;
       const _filterEnvelope = _overrideDietActive
         ? { ...protocolEnvelope, dietaryIdentity: _filterDietaryIdentity, procedural: deriveProcedureRules(_filterDietaryIdentity) }
         : protocolEnvelope;
@@ -6750,6 +6788,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         ...(dietAdapted && { dietAdapted: true, dietNotice })
       });
+      // The response is now fully validated and fulfilled. The finally block
+      // consumes the reservation; every prior return/throw restores it.
+      advisoryOverrideFulfilled = true;
     } catch (error: any) {
       console.error("❌ Craving creator error:", error);
       if (Number.isInteger(error?.status)) {
@@ -6779,6 +6820,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Adjust your dietary settings if they may be creating an impossible combination",
         ],
       });
+    } finally {
+      if (reservedAdvisoryOverrideToken) {
+        if (advisoryOverrideFulfilled) {
+          commitAdvisoryOverrideToken(reservedAdvisoryOverrideToken);
+        } else {
+          rollbackAdvisoryOverrideToken(reservedAdvisoryOverrideToken);
+        }
+      }
     }
   });
 

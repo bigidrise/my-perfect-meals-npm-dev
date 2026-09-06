@@ -6,6 +6,10 @@ import { buildRejectedCandidatePrompt } from "../requestExecutionState";
 
 const CREATOR_DIRECTIVES: Record<HumanFoodCreator, string> = {
   weekly_meal_plan: "Build date-specific weekly meals while preserving the authoritative daily context and validated week-level variety.",
+  grocery_coach: "Recommend one practical grocery-ready meal while preserving explicit owned-ingredient intent.",
+  fridge_rescue: "Build meals from the user's available ingredients without silently discarding their requested food.",
+  buffet: "Build plates only from the foods physically available at the buffet.",
+  meal_refinement: "Apply only the requested refinement while preserving the rest of the existing meal.",
   recipe_maker: "Build a complete recipe while preserving the chosen meal-builder intent.",
   create_a_dish: "Preserve the requested named dish and adapt it transparently when needed.",
   craving_creator: "Satisfy the craving with meaningful variety across candidates.",

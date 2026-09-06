@@ -83,6 +83,36 @@ function hasTerm(text: string, term: string): boolean {
   return new RegExp(`(^|[^a-z0-9])${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`, "i").test(text);
 }
 
+function hasExactAuthorization(
+  context: HumanFoodContext,
+  dimension: "dietary_identity" | "avoidance",
+  ruleCode: string,
+  matchedTerm: string,
+): boolean {
+  const normalizedRule = normalize(ruleCode);
+  const normalizedTerm = normalize(matchedTerm);
+  return context.authorization.status === "authorized" &&
+    context.authorization.waivers.some((waiver) =>
+      waiver.dimension === dimension &&
+      normalize(waiver.ruleCode) === normalizedRule &&
+      normalize(waiver.matchedTerm) === normalizedTerm,
+    );
+}
+
+function hasAuthorizedDietaryRequest(
+  context: HumanFoodContext,
+  ruleCode: string,
+  candidateText: string,
+): boolean {
+  const normalizedRule = normalize(ruleCode);
+  return context.authorization.status === "authorized" &&
+    context.authorization.waivers.some((waiver) =>
+      waiver.dimension === "dietary_identity" &&
+      normalize(waiver.ruleCode) === normalizedRule &&
+      hasTerm(candidateText, waiver.matchedTerm),
+    );
+}
+
 function add(
   findings: HumanFoodValidationFinding[],
   finding: HumanFoodValidationFinding,
@@ -157,7 +187,10 @@ export function validateHumanFoodCandidate(
     });
   }
   for (const avoided of context.safety.avoidedFoods) {
-    if (hasTerm(text, avoided)) add(findings, {
+    if (
+      hasTerm(text, avoided) &&
+      !hasExactAuthorization(context, "avoidance", `avoidance:${normalize(avoided)}`, avoided)
+    ) add(findings, {
       dimension: "avoidance", outcome: "repairable", code: `avoidance:${normalize(avoided)}`,
       message: `The candidate contains an avoided food: ${avoided}.`, assurance: "deterministic",
       repairHint: `Replace ${avoided} without changing the requested dish or cuisine.`,
@@ -173,7 +206,15 @@ export function validateHumanFoodCandidate(
 
   for (const diet of context.diet.effective) {
     const key = normalize(diet);
-    const matched = (DIET_BLOCKS[key] ?? []).filter((term) => hasTerm(text, term));
+    const dietaryRequestAuthorized = hasAuthorizedDietaryRequest(
+      context,
+      `dietary_identity:${key}`,
+      text,
+    );
+    const matched = (DIET_BLOCKS[key] ?? []).filter((term) =>
+      hasTerm(text, term) &&
+      !dietaryRequestAuthorized,
+    );
     if (matched.length) add(findings, {
       dimension: "dietary_identity", outcome: "blocked", code: `dietary_identity:${key}`,
       message: `The candidate conflicts with the effective ${diet} identity.`,

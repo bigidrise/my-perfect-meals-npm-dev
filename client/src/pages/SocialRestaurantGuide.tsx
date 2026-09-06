@@ -72,6 +72,8 @@ import { ChefHat, Globe, Loader2 as TranslateLoader } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import VoiceInputButton from "@/components/voice/VoiceInputButton";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -415,6 +417,16 @@ export default function RestaurantGuidePage() {
 
   const { toast } = useToast();
   const { user } = useAuth();
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert,
+    governanceOverrideToken,
+    acknowledgeAdvisory,
+  } = useSafetyGuardPrecheck();
+  const [continuingWithRequest, setContinuingWithRequest] = useState(false);
+  const [pendingAcknowledgedSearch, setPendingAcknowledgedSearch] = useState(false);
 
   // 🔋 Progress bar state (real-time ticker like HolidayFeast)
   const [progress, setProgress] = useState(0);
@@ -467,10 +479,10 @@ export default function RestaurantGuidePage() {
     const session = serverSessionData?.session;
     if (!session?.meals?.length) return;
     serverRestoredRef.current = true;
-    const userDiet = normalizeDiet(user?.dietaryRestrictions);
     const normalized = normalizeCachedMeals(session.meals as any[]);
-    const meals = filterMealsByDiet(userDiet, normalized, (m) => m);
-    setGeneratedMeals(meals.length > 0 ? meals : normalized);
+    // Restaurant responses are already filtered by the server's action
+    // context. Re-filtering here can erase a one-action acknowledged request.
+    setGeneratedMeals(normalized);
     setRestaurantInput(session.restaurantName || "");
     setCravingInput(session.craving || "");
     setMatchedCuisine(session.cuisine || null);
@@ -516,6 +528,8 @@ export default function RestaurantGuidePage() {
       craving: string;
       cuisine: string;
       zipCode: string;
+      governanceOverrideToken?: string;
+      acknowledgedAction?: boolean;
     }) => {
       return apiRequest("/api/restaurants/guide", {
         method: "POST",
@@ -527,17 +541,24 @@ export default function RestaurantGuidePage() {
           zipCode: params.zipCode,
           userId: localStorage.getItem("userId") || "1",
           dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
+          ...(params.governanceOverrideToken ? { governanceOverrideToken: params.governanceOverrideToken } : {}),
+          ...(params.governanceOverrideToken ? { governanceAction: "restaurant-guide" } : {}),
         }),
       });
     },
     onMutate: () => {
       startProgressTicker();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, params) => {
       stopProgressTicker();
-      const userDiet = normalizeDiet(user?.dietaryRestrictions);
       const rawRecs = data.recommendations || [];
-      const compliantRecs = filterMealsByDiet(userDiet, rawRecs, (r) => r);
+      // An acknowledgement applies only to this action; do not re-apply the
+      // saved identity filter to the server-authorized response.
+      const actionWasAcknowledged = Boolean(params.acknowledgedAction);
+      const userDiet = normalizeDiet(user?.dietaryRestrictions);
+      const compliantRecs = actionWasAcknowledged
+        ? rawRecs
+        : filterMealsByDiet(userDiet, rawRecs, (r) => r);
       if (compliantRecs.length === 0) {
         const identityDiets = new Set(["kosher", "halal", "vegan", "vegetarian", "pescatarian"]);
         const isIdentityDiet = identityDiets.has(userDiet);
@@ -602,7 +623,7 @@ export default function RestaurantGuidePage() {
     },
   });
 
-  const handleSearch = () => {
+  const beginSearch = (actionToken?: string) => {
     if (!cravingInput.trim() || !restaurantInput.trim()) {
       toast({
         title: t("restaurant.errorMissing"),
@@ -643,8 +664,35 @@ export default function RestaurantGuidePage() {
       craving: cravingInput,
       cuisine: match || "American",
       zipCode: zipCode,
+      governanceOverrideToken: actionToken,
+      acknowledgedAction: Boolean(actionToken),
     });
   };
+  const handleSearch = async () => {
+    if (!cravingInput.trim() || !restaurantInput.trim() || !zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
+      return beginSearch();
+    }
+    const safe = await checkSafety(cravingInput, "restaurant-guide");
+    if (safe) beginSearch();
+  };
+  const handleContinueWithRequest = async () => {
+    setContinuingWithRequest(true);
+    try {
+      if (await acknowledgeAdvisory(cravingInput, "restaurant-guide")) {
+        setPendingAcknowledgedSearch(true);
+      } else {
+        toast({ title: t("restaurant.generationFailed"), description: "We couldn't record your acknowledgement. Please try again.", variant: "destructive" });
+      }
+    } finally {
+      setContinuingWithRequest(false);
+    }
+  };
+  useEffect(() => {
+    if (pendingAcknowledgedSearch && governanceOverrideToken) {
+      setPendingAcknowledgedSearch(false);
+      beginSearch(governanceOverrideToken);
+    }
+  }, [pendingAcknowledgedSearch, governanceOverrideToken]);
 
   const handleUseLocation = async () => {
     setIsGettingLocation(true);
@@ -905,6 +953,21 @@ export default function RestaurantGuidePage() {
                       {t("common.next")}
                     </Button>
                   </div>
+                  <SafetyGuardBanner
+                    alert={safetyAlert}
+                    mealRequest={cravingInput}
+                    onDismiss={clearAlert}
+                    onOverrideSuccess={() => {}}
+                    onAcceptAlternative={() => {
+                      if (safetyAlert.recommendedAlternative) {
+                        setCravingInput(safetyAlert.recommendedAlternative);
+                        clearAlert();
+                      }
+                    }}
+                    onContinueAnyway={handleContinueWithRequest}
+                    continuingAnyway={continuingWithRequest || safetyChecking}
+                    className="mt-4"
+                  />
                 </CardContent>
               </Card>
             </motion.div>

@@ -227,6 +227,8 @@ export default function BeverageCreator() {
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    governanceOverrideToken,
+    acknowledgeAdvisory,
     dietAdaptPayload,
   } = useSafetyGuardPrecheck();
 
@@ -268,14 +270,14 @@ export default function BeverageCreator() {
   useEffect(() => {
     if (
       pendingGeneration &&
-      overrideToken &&
+      (overrideToken || governanceOverrideToken) &&
       !isGenerating &&
       !safetyChecking
     ) {
       setPendingGeneration(false);
       handleGenerateBeverage(false, overrideToken);
     }
-  }, [pendingGeneration, overrideToken, isGenerating, safetyChecking]);
+  }, [pendingGeneration, overrideToken, governanceOverrideToken, isGenerating, safetyChecking]);
 
   useCopilotPageExplanation();
 
@@ -345,6 +347,10 @@ export default function BeverageCreator() {
     setProgress(100);
   };
 
+  const beverageActionRequest = () =>
+    customBeverageDescription.trim() ||
+    `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
+
   async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false, userDietOverride = false) {
     const hasCustomDesc = customBeverageDescription.trim().length > 0;
 
@@ -367,9 +373,7 @@ export default function BeverageCreator() {
     }
 
     if (safetyEnabled && !hasActiveOverride && !overrideToken) {
-      const requestDescription =
-        `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
-      const isSafe = await checkSafety(requestDescription, "beverage-creator");
+      const isSafe = await checkSafety(beverageActionRequest(), "beverage_creator");
       if (!isSafe) {
         return;
       }
@@ -433,6 +437,12 @@ export default function BeverageCreator() {
           safetyMode:
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
+          // Canonical acknowledgement is validated against this exact action.
+          // governanceOverrideToken remains for legacy route compatibility.
+          advisoryOverrideToken: governanceOverrideToken,
+          governanceOverrideToken,
+          actionRequest: beverageActionRequest(),
+          authorizationAction: "beverage_creator",
           skipPalate: !flavorPersonal,
           dietAdaptOverride,
           userDietOverride,
@@ -787,11 +797,16 @@ export default function BeverageCreator() {
 
               <SafetyGuardBanner
                 alert={safetyAlert}
-                mealRequest={`${beverageCategory} ${flavorFamily} ${specificDrink}`.trim()}
+                mealRequest={beverageActionRequest()}
                 onDismiss={clearSafetyAlert}
                 onOverrideSuccess={(token) =>
                   handleSafetyOverride(false, token)
                 }
+                onContinueAnyway={async () => {
+                  if (await acknowledgeAdvisory(beverageActionRequest(), "beverage_creator")) {
+                    setPendingGeneration(true);
+                  }
+                }}
               />
 
               <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10 space-y-2">

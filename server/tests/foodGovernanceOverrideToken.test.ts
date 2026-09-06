@@ -41,17 +41,22 @@ describe("food governance advisory override tokens", () => {
     expect(claimAdvisoryOverrideToken(token, "user-a", "Pork Chop")).toBeNull();
   });
 
-  it("can be restored only when audit persistence fails", () => {
+  it("restores a reservation when transient context resolution fails before fulfillment", () => {
     const token = issueAdvisoryOverrideToken(
       "user-a",
-      "avoidance:pork",
-      "pork",
-      "Pork Chop",
+      "dietary_identity:vegan",
+      "steak",
+      "Steak",
     );
 
-    expect(claimAdvisoryOverrideToken(token, "user-a", "Pork Chop")).not.toBeNull();
+    // The route claims before resolving Human Food Context. A failed context
+    // resolution must roll this reservation back rather than consume it.
+    expect(claimAdvisoryOverrideToken(token, "user-a", "Steak")).toMatchObject({
+      reasonCode: "dietary_identity:vegan",
+      matchedTerm: "steak",
+    });
     rollbackAdvisoryOverrideToken(token);
-    expect(claimAdvisoryOverrideToken(token, "user-a", "Pork Chop")).not.toBeNull();
+    expect(claimAdvisoryOverrideToken(token, "user-a", "Steak")).not.toBeNull();
   });
 
   it("rejects an expired token", () => {
