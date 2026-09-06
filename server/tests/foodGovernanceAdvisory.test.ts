@@ -103,4 +103,77 @@ describe("server-authoritative food governance advisory classification", () => {
     });
     expect(result.reasonCode).toMatch(/^allergy:/);
   });
+
+  it("classifies vegan steak as a bypassable dietary-identity advisory with the actual reason", async () => {
+    mockUser.dietaryRestrictions = ["vegan"];
+
+    const result = await enforceSafetyProfile(
+      mockUser.id,
+      "Steak",
+      "create-dish",
+      { safetyMode: "STRICT" },
+    );
+
+    expect(result).toMatchObject({
+      result: "ADVISORY",
+      reasonCode: "dietary_identity:vegan",
+      enforcementLevel: "advisory",
+      overrideAllowed: true,
+      requestedFood: "steak",
+    });
+    expect(result.message).toContain("Nutrition Life Plan");
+    expect(result.message).toContain("vegan");
+    expect(result.recommendedAlternative).toContain("vegan-friendly");
+  });
+
+  it("suppresses only the server-authorized dietary identity for one request", async () => {
+    mockUser.dietaryRestrictions = ["vegan"];
+
+    const result = await enforceSafetyProfile(
+      mockUser.id,
+      "Steak",
+      "create-dish",
+      {
+        safetyMode: "STRICT",
+        ignoredDietaryRestrictions: ["vegan"],
+      },
+    );
+
+    expect(result.result).toBe("SAFE");
+  });
+
+  it("does not warn for a compatible request", async () => {
+    mockUser.dietaryRestrictions = ["vegan"];
+
+    const result = await enforceSafetyProfile(
+      mockUser.id,
+      "Roasted cauliflower with lentils",
+      "create-dish",
+      { safetyMode: "STRICT" },
+    );
+
+    expect(result.result).toBe("SAFE");
+  });
+
+  it("keeps an allergy hard block above a dietary-identity override", async () => {
+    mockUser.allergies = ["shrimp"];
+    mockUser.dietaryRestrictions = ["vegan"];
+
+    const result = await enforceSafetyProfile(
+      mockUser.id,
+      "Shrimp",
+      "create-dish",
+      {
+        safetyMode: "STRICT",
+        ignoredDietaryRestrictions: ["vegan"],
+      },
+    );
+
+    expect(result).toMatchObject({
+      result: "BLOCKED",
+      enforcementLevel: "hard_block",
+      overrideAllowed: false,
+    });
+  });
+
 });

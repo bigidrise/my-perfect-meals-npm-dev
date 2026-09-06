@@ -217,8 +217,8 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
 
   it("resolves a single request diet override before authoritative context resolution", () => {
     const block = ROUTES_SRC.slice(
-      ROUTES_SRC.indexOf("const requestDietOverride"),
-      ROUTES_SRC.indexOf("const requestDietOverride") + 1200,
+      ROUTES_SRC.indexOf("let requestDietOverride"),
+      ROUTES_SRC.indexOf("let requestDietOverride") + 8000,
     );
     expect(block).toContain('typeof dietOverride === "string"');
     expect(block).toContain('typeof dietaryRestrictions === "string"');
@@ -255,7 +255,7 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
       ROUTES_SRC.indexOf("_overrideDietActive"),
       ROUTES_SRC.indexOf("_overrideDietActive") + 600,
     );
-    expect(envBlock).toContain("dietaryIdentity: _resolvedPrimaryDiet");
+    expect(envBlock).toContain("dietaryIdentity: _filterDietaryIdentity");
     // Must check dietaryRestrictions (the field CreateDishPage actually sends)
     expect(envBlock).toContain("dietaryRestrictions");
     // And the dietOverride field (for programmatic/admin callers)
@@ -570,7 +570,7 @@ describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not veg
     expect(questionMarkIdx).toBeGreaterThan(-1);
     expect(colonIdx).toBeGreaterThan(questionMarkIdx);
 
-    const trueBranchPos  = ternaryBlock.indexOf("_resolvedPrimaryDiet", questionMarkIdx);
+    const trueBranchPos  = ternaryBlock.indexOf("_filterDietaryIdentity", questionMarkIdx);
     const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonIdx);
 
     // TRUE branch: _resolvedPrimaryDiet must appear after ? and before the ternary colon
@@ -598,7 +598,7 @@ describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not veg
     const conditionPos   = ternaryBlock.indexOf("_overrideDietActive");
     const questionPos    = ternaryBlock.indexOf("?");
     const colonPos       = ternaryBlock.indexOf(": protocolEnvelope.dietaryIdentity");
-    const trueBranchPos  = ternaryBlock.indexOf("_resolvedPrimaryDiet", questionPos);
+    const trueBranchPos  = ternaryBlock.indexOf("_filterDietaryIdentity", questionPos);
     const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonPos);
 
     // Condition appears first, then ?, then TRUE branch (_resolvedPrimaryDiet), then :, then FALSE branch

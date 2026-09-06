@@ -511,18 +511,7 @@ export default function CreateDishPage() {
 
     const prompt = buildPrompt();
 
-    // 🥗 DietGuard pre-flight — cultural/dietary identity gets highest priority.
-    // Must run BEFORE SafetyGuard so protocol conflicts (halal/kosher/vegan)
-    // show the Protocol Conflict modal instead of the generic safety banner.
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt" && !continueAnywayRef.current) {
-      const dietOk = checkDiet(prompt);
-      if (!dietOk) {
-        return;
-      }
-    }
-
-    // 🔐 SafetyGuard pre-flight — allergy/intolerance check (runs after diet so
-    // cultural protocol conflicts are never shadowed by the safety banner).
+    // 🔐 Server-authoritative food-governance preflight.
     if (!skipPreflight && !hasActiveOverride) {
       const isSafe = await checkSafety(prompt, "create-dish");
       if (!isSafe) {
@@ -571,7 +560,8 @@ export default function CreateDishPage() {
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
           dietAdaptOverride,
-          userDietOverride,
+          userDietOverride: false,
+          ...(dietAdaptOverride ? { governanceDecision: "accept_alternative" } : {}),
           safetyMode: allergenSafeModeRef.current ? "ALLERGEN_ADAPT" : (overrideToken ? "CUSTOM_AUTHENTICATED" : (safetyEnabled ? "STRICT" : "DISABLED")),
           ...(overrideToken ? { overrideToken } : {}),
           ...(governanceOverrideToken ? { governanceOverrideToken } : {}),
@@ -917,6 +907,10 @@ export default function CreateDishPage() {
                       handleSafetyOverride(false, token)
                     }
                     continuingAnyway={acknowledgingAdvisory}
+                    onAcceptAlternative={() => {
+                      clearSafetyAlert();
+                      handleGenerateDish(true, true, false);
+                    }}
                     onContinueAnyway={async () => {
                       setAcknowledgingAdvisory(true);
                       const acknowledged = await acknowledgeAdvisory(buildPrompt(), "create-dish");

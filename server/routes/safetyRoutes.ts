@@ -201,6 +201,25 @@ router.post("/safety-check", async (req: any, res) => {
         safetyMode: "STRICT",
         correlationId: (req as any).id,
       });
+      if (safetyCheck.result === "ADVISORY" && safetyCheck.reasonCode) {
+        const { emitActivityEvent } = await import("../services/coaching/activityEvents");
+        emitActivityEvent({
+          ownerUserId: resolvedUserId,
+          eventType: "recommendation_conflict_detected",
+          eventClass: "usage",
+          sourceFeature: builderId === "create-dish" ? "create_a_dish" : "meal_builder",
+          entityType: "food_decision",
+          entityId: (req as any).id,
+          metadata: {
+            ruleCategory: safetyCheck.reasonCode.split(":")[0],
+            reasonCode: safetyCheck.reasonCode,
+            enforcementLevel: safetyCheck.enforcementLevel,
+            requestedFood: safetyCheck.requestedFood,
+            recommendationOffered: Boolean(safetyCheck.recommendedAlternative),
+            correlationId: (req as any).id,
+          },
+        }).catch(error => console.error("[FoodGovernance] Conflict event failed:", error));
+      }
       return res.json({
         result: safetyCheck.result,
         blockedTerms: safetyCheck.blockedTerms,
