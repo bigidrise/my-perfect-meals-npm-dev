@@ -395,7 +395,7 @@ router.post("/api/auth/login", async (req, res) => {
     // If the user has MFA enabled, pause here and require a TOTP challenge.
     // Set pendingMfaUserId on the session so the /mfa/challenge endpoint can
     // verify the code and promote to a full session.
-    if (user.mfaEnabled) {
+    if (user.mfaEnabled && await loginRequiresPrivilegedMfa(user)) {
       // Password acceptance is not sufficient to keep an existing mobile
       // bearer credential active while the MFA challenge is pending.
       await revokeAuthToken(user.id);
