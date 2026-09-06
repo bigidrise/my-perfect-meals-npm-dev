@@ -423,6 +423,7 @@ export default function RestaurantGuidePage() {
     checkSafety,
     clearAlert,
     governanceOverrideToken,
+    clearGovernanceOverrideToken,
     acknowledgeAdvisory,
   } = useSafetyGuardPrecheck();
   const [continuingWithRequest, setContinuingWithRequest] = useState(false);
@@ -657,6 +658,11 @@ export default function RestaurantGuidePage() {
     setMatchedCuisine(match || null);
     setRestaurantInfo(null);
     advanceGuided("generating");
+
+    // The acknowledgement belongs to this request only. Clear the client copy
+    // as soon as it is handed to the mutation so a later Restaurant Assistant
+    // session cannot resend an already-consumed token and receive a 403.
+    if (actionToken) clearGovernanceOverrideToken();
 
     // Generate meals with craving, restaurant, and ZIP code
     generateMealsMutation.mutate({

@@ -7,7 +7,7 @@ The persistent Nutrition Life Plan establishes the default, but an explicit conf
 
 **Why:** MPM should demonstrate that it remembers and understands the user while preserving informed human control: identify meaningful contradictions, recommend, and let the human decide without disabling the rest of personalization.
 
-**How to apply:** Represent acknowledgement as one canonical server-authoritative action scope shared by every applicable food surface and every downstream prompt, retry, fallback, filter, and validator. Do not implement separate page-specific meanings for the same choice.
+**How to apply:** Represent acknowledgement as one canonical server-authoritative action scope shared by every applicable food surface and every downstream prompt, retry, fallback, filter, and validator. Once a client hands an acknowledgement token to its authorized request, discard the client copy regardless of the request outcome; a later action must precheck again rather than resend a consumed token. Do not implement separate page-specific meanings for the same choice.
 
 The one-action override behavior has been owner-confirmed in Development. For guided location searches, disclose and acknowledge the conflict on step 2 before advancing; “Continue anyway” should advance to step 3, which then behaves normally.
 
