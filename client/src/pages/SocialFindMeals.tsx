@@ -59,6 +59,7 @@ import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import VoiceInputButton from "@/components/voice/VoiceInputButton";
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
   kosher:        { label: "Kosher Certified", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
@@ -221,7 +222,6 @@ export default function MealFinder() {
   const { user } = useAuth();
   const quickTour = useQuickTour("social-find-meals");
   const { speak, stop } = useChefVoice();
-
   const FIND_MEALS_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { title: t("findMeals.tourStep1Title"), description: t("findMeals.tourStep1Desc") },
     { title: t("findMeals.tourStep2Title"), description: t("findMeals.tourStep2Desc") },
@@ -596,6 +596,12 @@ export default function MealFinder() {
                       </button>
                     )}
                   </div>
+                  <VoiceInputButton
+                    value={mealQuery}
+                    onChange={setMealQuery}
+                    mode="append"
+                    label="Add meal request by voice"
+                  />
                   <DietCuisineControlRow
                     savedCuisine={user?.cuisinePreference}
                     dietOverrideEnabled={dietOverrideEnabled}
