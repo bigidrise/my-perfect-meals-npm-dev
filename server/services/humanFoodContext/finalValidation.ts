@@ -55,6 +55,8 @@ const DIETS_REQUIRING_STRUCTURED_EVIDENCE = new Set([
   "carnivore",
 ]);
 
+const UNRESTRICTED_DIETARY_IDENTITIES = new Set(["omnivore"]);
+
 function normalize(value: unknown): string {
   return String(value ?? "").toLowerCase().replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -185,7 +187,12 @@ export function validateHumanFoodCandidate(
         message: `${diet} compatibility requires structured composition evidence that this contract cannot infer from ingredient terms alone.`,
         assurance: "structured_evidence",
       });
-    } else if (!DIET_BLOCKS[key] && key !== "halal" && key !== "kosher") {
+    } else if (
+      !DIET_BLOCKS[key] &&
+      key !== "halal" &&
+      key !== "kosher" &&
+      !UNRESTRICTED_DIETARY_IDENTITIES.has(key)
+    ) {
       add(findings, {
         dimension: "dietary_identity",
         outcome: "review_required",

@@ -6439,6 +6439,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ?? finalEnforcement.validations.find(({ result }) => result.outcome === "review_required")
           ?? finalEnforcement.validations.find(({ result }) => result.outcome === "repairable");
         const outcome = strongest?.result.outcome ?? "blocked";
+        const findings = strongest?.result.findings ?? [];
+        const { buildCreateDishValidationOutcome } = await import(
+          "./services/humanFoodContext/createDishOutcome"
+        );
         return res.status(outcome === "review_required" ? 409 : 422).json({
           status: outcome,
           code: outcome === "review_required"
@@ -6448,7 +6452,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: outcome === "review_required"
             ? "We couldn't verify enough evidence to return this food safely."
             : "We couldn't produce a version that passed your final food protections.",
-          findings: strongest?.result.findings ?? [],
+          findings,
+          outcome: buildCreateDishValidationOutcome(outcome, findings),
           authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
         });
       }
@@ -6511,6 +6516,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       if (postFormatFailure) {
         const outcome = postFormatFailure.result.outcome;
+        const { buildCreateDishValidationOutcome } = await import(
+          "./services/humanFoodContext/createDishOutcome"
+        );
         return res.status(outcome === "review_required" ? 409 : 422).json({
           status: outcome,
           code: outcome === "review_required"
@@ -6519,6 +6527,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           retryable: false,
           message: "The final formatted food did not pass universal validation.",
           findings: postFormatFailure.result.findings,
+          outcome: buildCreateDishValidationOutcome(
+            outcome,
+            postFormatFailure.result.findings,
+          ),
           authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
         });
       }
@@ -6572,6 +6584,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         meals: imagedOptions,
         generationSource: 'ai',
+        outcome: {
+          type: dietAdapted ? "REQUEST_ADAPTED" : "REQUEST_FULFILLED",
+          governingReasonCode: dietAdapted ? "DIETARY_IDENTITY_ADAPTATION" : null,
+          explanation: dietAdapted ? dietNotice : null,
+          requestedDishPreserved: true,
+          ingredientsOrPreparationAdapted: dietAdapted,
+          alternativesAvailable: false,
+        },
         ...(dietAdapted && { dietAdapted: true, dietNotice })
       });
     } catch (error: any) {
