@@ -253,6 +253,31 @@ describe("detectDishType — structural identity taxonomy", () => {
     expect(taco.structuralIdentity).not.toContain("filled handheld food with visible ingredients inside");
     expect(taco.structuralIdentity.toLowerCase()).toContain("tortilla");
   });
+
+  it.each([
+    "Chicken Lettuce Wraps",
+    "Turkey Lettuce Wraps",
+    "Asian Chicken Lettuce Wraps",
+    "Chicken Lettuce Cups",
+    "Protein Served in Lettuce Leaves",
+  ])('"%s" is classified as open lettuce cups rather than a bread wrap', (name) => {
+    const identity = detectDishType(name).structuralIdentity.toLowerCase();
+    expect(identity).toContain("lettuce");
+    expect(identity).toContain("holding the visible filling");
+    expect(identity).toContain("no tortilla");
+    expect(identity).not.toContain("flatbread rolled tightly");
+  });
+
+  it.each([
+    "Chicken Tortilla Wrap",
+    "Grilled Chicken Flatbread Wrap",
+    "Turkey Sandwich Wrap",
+    "Chicken Burrito",
+  ])('"%s" preserves its bread or tortilla structure', (name) => {
+    const identity = detectDishType(name).structuralIdentity.toLowerCase();
+    expect(identity).toMatch(/flatbread|tortilla/);
+    expect(identity).not.toContain("lettuce leaves form the edible cups");
+  });
 });
 
 describe("buildMealImagePrompt — structural identity in CONTRACT 1", () => {
@@ -291,6 +316,28 @@ describe("buildMealImagePrompt — structural identity in CONTRACT 1", () => {
     );
     expect(prompt).toContain("bowl");
     expect(prompt).toContain("NOT a plate");
+  });
+
+  it("lettuce-wrap prompt requests realistic lettuce cups with filling and no bread", () => {
+    const prompt = buildMealImagePrompt(
+      "Chicken Lettuce Wraps",
+      ["ground chicken", "butter lettuce leaves", "bell pepper", "green onion"],
+      "meal"
+    );
+    expect(prompt).toContain("open lettuce leaves or lettuce cups holding the visible filling");
+    expect(prompt).toContain("NO tortilla, flatbread, pita, sandwich bread, burrito shell, or rolled bread");
+    expect(prompt).toContain("realistic food photography");
+    expect(prompt).toContain("CONTRACT 2: INGREDIENT AUTHORIZATION");
+  });
+
+  it("genuine tortilla-wrap prompt remains a compact rolled flatbread", () => {
+    const prompt = buildMealImagePrompt(
+      "Chicken Tortilla Wrap",
+      ["grilled chicken", "flour tortilla", "lettuce", "tomato"],
+      "meal"
+    );
+    expect(prompt).toContain("compact flatbread rolled tightly around the filling");
+    expect(prompt).not.toContain("lettuce leaves form the edible cups");
   });
 });
 
