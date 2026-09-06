@@ -9761,6 +9761,12 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   // placing this later causes unrelated Studio gates to intercept completion.
   app.use("/api/pro/training", requireAuth, requireMfa, procareTrainingRouter);
 
+  // Client self-service relationship routes must be registered before every
+  // broad /api/pro professional gate, which otherwise intercepts clients with
+  // a 403 before these handlers can run.
+  const procareClientRoutes = (await import("./routes/procareClientRoutes")).default;
+  app.use("/api/pro", requireAuth, requireMfa, procareClientRoutes);
+
   app.use("/api/pro/board", requireAuth, requireMfa, requireProCareAccess, requirePhase1Cert, requirePhase2Training, proBoardRoutes);
 
   const proWeekBoardRoutes = (await import("./routes/proWeekBoard")).default;

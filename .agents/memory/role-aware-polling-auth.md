@@ -7,4 +7,4 @@ Never globally sign out a user solely because a background request receives a 40
 
 **Why:** A professional dashboard poll was sent to a client-only route. The valid professional session correctly received an access denial, but a generic polling handler interpreted it as token revocation and forced a page reload/sign-out loop.
 
-**How to apply:** Keep fatal session invalidation limited to a dedicated session probe or endpoints whose authorization applies to every caller in that polling context. For role- or workspace-scoped polls, surface access errors locally and verify the endpoint matches the active role before starting the interval.
+**How to apply:** Keep fatal session invalidation limited to a dedicated session probe or endpoints whose authorization applies to every caller in that polling context. For role- or workspace-scoped polls, surface access errors locally and verify the endpoint matches the active role before starting the interval. Mount client self-service routes before broad professional route-prefix gates; Express applies prefix middleware even when the gated router has no matching handler.
