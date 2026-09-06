@@ -17,6 +17,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import CultureBadge from "@/components/CultureBadge";
 import PairingResultCard from "@/components/pairings/PairingResultCard";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const STORAGE_KEY = "mpm_wine_list_helper_results";
 
@@ -226,6 +227,15 @@ export default function WineListHelper() {
                     className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50 min-h-[120px] resize-y"
                     maxLength={8000}
                   />
+                  <VoiceInputButton
+                    value={wineListText}
+                    onChange={setWineListText}
+                    mode="append"
+                    separator="\n"
+                    maxLength={8000}
+                    label="Add wine list entries by voice"
+                    className="mt-2"
+                  />
                 </div>
 
                 <div>
@@ -238,6 +248,15 @@ export default function WineListHelper() {
                     placeholder="e.g., steak, pasta, seafood..."
                     className="w-full bg-black text-white border border-white/30 px-3 py-2 rounded-lg text-sm placeholder:text-white/50"
                     maxLength={200}
+                  />
+                  <VoiceInputButton
+                    value={mealContext}
+                    onChange={setMealContext}
+                    mode="append"
+                    separator=" "
+                    maxLength={200}
+                    label="Add meal context by voice"
+                    className="mt-2"
                   />
                 </div>
 

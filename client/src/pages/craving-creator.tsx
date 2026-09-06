@@ -143,6 +143,7 @@ import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -1050,6 +1051,20 @@ export default function CravingCreator() {
                         />
                       )}
                     </div>
+                    <VoiceInputButton
+                      value={cravingInput}
+                      onChange={(value) => {
+                        setCravingInput(value);
+                        if (dishFailureAlert.show) {
+                          setDishFailureAlert({ show: false, message: "" });
+                        }
+                      }}
+                      mode="append"
+                      separator=" "
+                      maxLength={300}
+                      label="Add craving description by voice"
+                      className="mt-2"
+                    />
                     <p className="text-md text-white mt-1 text-center">
                       Use keyboard or voice texting for input.
                     </p>

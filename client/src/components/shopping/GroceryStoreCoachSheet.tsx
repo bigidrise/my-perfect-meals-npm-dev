@@ -24,13 +24,11 @@ import {
   ArrowLeftRight,
   Wand2,
   RotateCcw,
-  Mic,
-  MicOff,
   PackageSearch,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useSpeechToText } from "@/hooks/useSpeechToText";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
+import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
@@ -321,7 +319,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const [productSearchOwnerKey, setProductSearchOwnerKey] = useState<string | null>(null);
   const [productError, setProductError] = useState<string | null>(null);
   const [productAddedKeys, setProductAddedKeys] = useState<Set<string>>(new Set());
-  const speech = useSpeechToText();
 
   // Same session-restore pattern as the meal result, scoped per user.
   const PRODUCT_SESSION_KEY = useMemo(
@@ -449,8 +446,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setSwapCustomLoading(false);
       setSwapSelected(null);
       setSwapError(null);
-      // Find a Product: stop any live mic; result state is preserved intentionally.
-      if (speech.state === "listening") speech.stop();
       setProductError(null);
       if (loadingInterval.current) clearInterval(loadingInterval.current);
     }
@@ -509,30 +504,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     }
   }, [productSearch, PRODUCT_SESSION_KEY, productSearchOwnerKey]);
 
-  // Mirror live speech transcript into the product input while listening.
-  useEffect(() => {
-    if (speech.state === "listening" && speech.text) {
-      setProductQuery(speech.text);
-    }
-  }, [speech.text, speech.state]);
-
-  const handleProductVoiceToggle = useCallback(() => {
-    if (speech.state === "listening") {
-      speech.stop();
-      return;
-    }
-    if (!speech.supported) {
-      toast({ title: t("findProduct.voiceUnsupported"), variant: "destructive" });
-      return;
-    }
-    speech.reset();
-    speech.start();
-  }, [speech, toast, t]);
-
   const handleProductSearch = useCallback(async (queryOverride?: string) => {
     const query = (queryOverride ?? productQuery).trim();
     if (!query) return;
-    if (speech.state === "listening") speech.stop();
     const gen = sessionGenRef.current; // capture before first await
     setProductPhase("loading");
     setProductError(null);
@@ -559,7 +533,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setProductError(serverMsg ?? t("findProduct.errorGeneric"));
       setProductPhase("idle");
     }
-  }, [productQuery, speech, t, PRODUCT_SESSION_KEY]);
+  }, [productQuery, t, PRODUCT_SESSION_KEY]);
 
   const handleCompareAnother = useCallback(() => {
     try { localStorage.removeItem(PRODUCT_SESSION_KEY); } catch {}
@@ -984,22 +958,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           color: "white", fontSize: 16, outline: "none",
                         }}
                       />
-                      <button
-                        onClick={handleProductVoiceToggle}
-                        title={speech.state === "listening" ? t("findProduct.voiceStop") : t("findProduct.voiceStart")}
-                        data-testid="button-product-voice"
-                        style={{
-                          padding: "0 14px", borderRadius: 12, flexShrink: 0,
-                          background: speech.state === "listening" ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.05)",
-                          border: speech.state === "listening" ? "1px solid rgba(239,68,68,0.5)" : "1px solid rgba(255,255,255,0.1)",
-                          color: speech.state === "listening" ? "#f87171" : "rgba(255,255,255,0.6)",
-                          cursor: "pointer", display: "flex", alignItems: "center",
-                        }}
-                      >
-                        {speech.state === "listening"
-                          ? <MicOff style={{ width: 17, height: 17 }} />
-                          : <Mic style={{ width: 17, height: 17 }} />}
-                      </button>
+                      <VoiceInputButton
+                        value={productQuery}
+                        onChange={setProductQuery}
+                        mode="replace"
+                        label={t("findProduct.voiceStart")}
+                        className="shrink-0"
+                      />
                       <button
                         onClick={() => handleProductSearch()}
                         disabled={!productQuery.trim()}
@@ -1737,6 +1702,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   fontFamily: "inherit",
                 }}
               />
+              <VoiceInputButton
+                value={input}
+                onChange={setInput}
+                label="Describe your meal needs by voice"
+                className="shrink-0"
+              />
               <button
                 onClick={handleSubmit}
                 disabled={!input.trim()}
@@ -1871,6 +1842,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
                         color: "white", fontSize: 14, outline: "none",
                       }}
+                    />
+                    <VoiceInputButton
+                      value={swapCustom}
+                      onChange={setSwapCustom}
+                      disabled={swapCustomLoading}
+                      label="Describe your preferred swap by voice"
+                      className="shrink-0"
                     />
                     <button
                       onClick={() => { if (swapCustom.trim()) handleSwapRequest(swapTarget!, swapCustom.trim()); }}

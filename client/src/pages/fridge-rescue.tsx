@@ -91,6 +91,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -922,6 +923,14 @@ const FridgeRescuePage = () => {
                       />
                     )}
                   </div>
+                  <VoiceInputButton
+                    value={ingredients}
+                    onChange={setIngredients}
+                    mode="append"
+                    separator=", "
+                    label="Add ingredients by voice"
+                    className="mt-2"
+                  />
                   <p className="text-md text-white mt-1 text-center">
                     Use keyboard or speech-to-text for input
                   </p>

@@ -21,6 +21,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { post, ApiError } from "@/lib/api";
+import VoiceInputButton from "@/components/voice/VoiceInputButton";
 
 // ── Quick-action chips ────────────────────────────────────────────────────────
 const QUICK_CHIPS = [
@@ -452,6 +453,16 @@ export default function MealRefinementSheet({
                       <Send style={{ width: 14, height: 14 }} />
                     </button>
                   </div>
+                    <VoiceInputButton
+                      value={input}
+                      onChange={(value) => {
+                        setInput(value);
+                        if (value) setSelectedChip(null);
+                        setError(null);
+                      }}
+                      mode="append"
+                      label="Add refinement by voice"
+                    />
                 </div>
 
                 {/* Apply button (for chip selection) */}

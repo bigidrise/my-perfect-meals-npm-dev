@@ -71,6 +71,7 @@ import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageEx
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { PillButton } from "@/components/ui/pill-button";
 import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface StructuredIngredient {
   name: string;
@@ -808,6 +809,15 @@ export default function CreateDishPage() {
                         />
                       )}
                     </div>
+                    <VoiceInputButton
+                      value={dishInput}
+                      onChange={setDishInput}
+                      mode="append"
+                      separator=" "
+                      maxLength={300}
+                      label="Add dish description by voice"
+                      className="mt-2"
+                    />
                     <p className="text-xs text-white/50 mt-1 text-right">
                       {dishInput.length}/300
                     </p>
@@ -883,6 +893,15 @@ export default function CreateDishPage() {
                       placeholder={t("createDish.notesPlaceholder")}
                       className="w-full px-3 py-2 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
                       maxLength={250}
+                    />
+                    <VoiceInputButton
+                      value={notes}
+                      onChange={setNotes}
+                      mode="append"
+                      separator=" "
+                      maxLength={250}
+                      label="Add dish notes by voice"
+                      className="mt-2"
                     />
                     <p className="text-xs text-white/50 mt-1 text-right">
                       {notes.length}/250
