@@ -16,6 +16,7 @@ describe("patchFetchForCredentials", () => {
 
   beforeEach(() => {
     delete (window as any).__fetchCredsPatched;
+    window.localStorage.clear();
     originalFetch = jest.fn().mockResolvedValue({ ok: true });
     window.fetch = originalFetch as unknown as typeof fetch;
   });
@@ -72,6 +73,32 @@ describe("patchFetchForCredentials", () => {
       headers: { "x-auth-token": "bearer" },
     });
     expect(originalFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the stored bearer token for authenticated API mutations without CSRF bootstrap", async () => {
+    mockIsNativePlatform.mockReturnValue(false);
+    window.localStorage.setItem("mpm_auth_token", "stored-auth-token");
+    patchFetchForCredentials();
+
+    await window.fetch("/api/meals/craving-creator", { method: "POST" });
+
+    expect(originalFetch).toHaveBeenCalledTimes(1);
+    const requestInit = originalFetch.mock.calls[0][1] as RequestInit;
+    expect(new Headers(requestInit.headers).get("x-auth-token")).toBe(
+      "stored-auth-token",
+    );
+  });
+
+  it("does not attach a stale stored bearer token to pre-authentication requests", async () => {
+    mockIsNativePlatform.mockReturnValue(false);
+    window.localStorage.setItem("mpm_auth_token", "stale-auth-token");
+    patchFetchForCredentials();
+
+    await window.fetch("/api/auth/login", { method: "POST" });
+
+    expect(originalFetch).toHaveBeenCalledTimes(1);
+    const requestInit = originalFetch.mock.calls[0][1] as RequestInit;
+    expect(new Headers(requestInit.headers).has("x-auth-token")).toBe(false);
   });
 
   it.each([

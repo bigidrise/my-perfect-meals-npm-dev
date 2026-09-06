@@ -3,6 +3,8 @@
 import { Capacitor } from "@capacitor/core";
 import { resolveApiBase } from "@/lib/resolveApiBase";
 
+const AUTH_TOKEN_STORAGE_KEY = "mpm_auth_token";
+
 function getRequestUrl(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
   if (typeof Request !== "undefined" && input instanceof Request) return input.url;
@@ -147,6 +149,14 @@ export function patchFetchForCredentials() {
       })();
       if (isApiRequest) {
         headers.set("x-requested-with", "XMLHttpRequest");
+        if (!isPreAuthenticationPath(url) && !hasHeader(headers, "x-auth-token")) {
+          const storedAuthToken = window.localStorage.getItem(
+            AUTH_TOKEN_STORAGE_KEY,
+          );
+          if (storedAuthToken) {
+            headers.set("x-auth-token", storedAuthToken);
+          }
+        }
         requestInit.headers = headers;
       }
 
