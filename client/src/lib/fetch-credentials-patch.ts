@@ -104,6 +104,8 @@ export function patchFetchForCredentials() {
         "/api/auth/signup",
         "/api/auth/forgot-password",
         "/api/auth/reset-password",
+        "/api/auth/mfa/challenge",
+        "/api/auth/mfa/challenge/backup",
       ].includes(path);
     } catch {
       return false;
