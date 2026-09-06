@@ -11,6 +11,9 @@ import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } fro
 import { getLanguageInstruction } from "../utils/languageInstruction";
 import { buildGroceryCoachContext } from "../services/groceryCoachContext";
 import { classifyNutritionalRole, nutritionalRoleLabel, isRoleCompatible } from "../services/groceryNutritionalRole";
+import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
+import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
 
 const router = express.Router();
 
@@ -35,10 +38,11 @@ function detectMealType(message: string): "breakfast" | "lunch" | "dinner" | "sn
 }
 
 router.post("/recommend", async (req, res) => {
+  let humanFoodScope: ReturnType<typeof createHumanFoodRequestScope> | null = null;
   try {
     const userId = resolveUserId(req);
 
-    const { message, conversationHistory: rawHistory, servingCount } = req.body;
+    const { message, conversationHistory: rawHistory, servingCount, governanceOverrideToken } = req.body;
     // Normalize conversationHistory: must be an array of objects with string role/content.
     // Accepts missing, null, non-array, and entries that are null or non-objects.
     const conversationHistory: Array<{ role: string; content: string }> = (() => {
@@ -59,6 +63,19 @@ router.post("/recommend", async (req, res) => {
     // Auth is enforced by requireAuth + requireProAccess at the router mount.
     if (!userId) {
       return res.status(401).json({ error: "Not authenticated" });
+    }
+    humanFoodScope = createHumanFoodRequestScope({
+      actorUserId: userId,
+      subjectUserId: userId,
+      creator: "grocery_coach",
+      correlationId: (req as any).id,
+      actionRequest: message,
+      authorizationAction: "grocery-coach",
+      advisoryOverrideToken: typeof governanceOverrideToken === "string" ? governanceOverrideToken : null,
+    });
+    const humanFoodContext = await humanFoodScope.resolve();
+    if (humanFoodContext.status === "blocked" || humanFoodContext.status === "review_required") {
+      return res.status(503).json({ error: "Food guidance is temporarily unavailable. Please try again.", retryable: true });
     }
 
     const finalServingCount = Math.max(1, Math.min(12, Number(servingCount) || 1));
@@ -277,6 +294,7 @@ ${sessionAvoidList}`;
 Your mission: turn "I don't know what to eat" into "Here is exactly what to buy, how much to buy, and why it fits your goals."
 
 USER HEALTH PROFILE AND CONSTRAINTS:
+${buildHumanFoodPromptBlock(humanFoodContext)}
 ${protocolContext || "No dietary restrictions or conditions on file — apply general healthy eating principles."}
 ${glp1RecommendationBlock ? `\n${glp1RecommendationBlock}` : ""}
 ${macroContext ? `\n${macroContext}` : ""}
@@ -506,6 +524,13 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
 
     // ── Post-generation protocol scan ─────────────────────────────────────────
     try {
+      const passesCanonicalFinalValidation = (candidate: any) => validateHumanFoodResult({
+        ingredients: [
+          ...(candidate.shoppingList ?? []).map((item: any) => ({ name: item.item })),
+          ...(candidate.ownedIngredients ?? []).map((item: any) => ({ name: item.item })),
+        ],
+        nutrition: candidate.macros,
+      }, humanFoodContext);
       const buildMealForScan = (r: any) => ({
         name: r.meal?.name ?? "Grocery Coach Recommendation",
         description: r.meal?.description,
@@ -561,9 +586,14 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
               skipAdaptableConflicts: true,
             });
             if (retryScan.passed) {
+              const canonicalValidation = passesCanonicalFinalValidation(retryResult);
+              if (!canonicalValidation.valid) {
+                return res.status(422).json({ error: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", findings: canonicalValidation.violations });
+              }
               retryPassed = true;
               console.log(`✅ [GroceryCoach] Retry passed protocol scan.`);
               if (userId) saveToHistory(userId, retryResult?.meal ? { ...retryResult.meal, varietyMetadata: retryResult.varietyMetadata } : null);
+              await humanFoodScope.completeAuthorization();
               return res.json({ ...retryResult, servingCount: finalServingCount });
             }
             retryScanViolations = retryScan.violations
@@ -591,12 +621,28 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       throw scanErr;
     }
 
+    const canonicalValidation = validateHumanFoodResult({
+      ingredients: [
+        ...(result.shoppingList ?? []).map((item: any) => ({ name: item.item })),
+        ...(result.ownedIngredients ?? []).map((item: any) => ({ name: item.item })),
+      ],
+      nutrition: result.macros,
+    }, humanFoodContext);
+    if (!canonicalValidation.valid) {
+      return res.status(422).json({ error: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", findings: canonicalValidation.violations });
+    }
+    if (!result.meal?.name || (!(result.shoppingList?.length) && !(result.ownedIngredients?.length))) {
+      return res.status(422).json({ error: "HUMAN_FOOD_RESULT_EMPTY" });
+    }
     if (userId) saveToHistory(userId, result?.meal ? { ...result.meal, varietyMetadata: result.varietyMetadata } : null);
 
+    await humanFoodScope.completeAuthorization();
     return res.json({ ...result, servingCount: finalServingCount });
   } catch (err: any) {
     console.error("[GroceryCoach] Error:", err?.message);
     return res.status(500).json({ error: "Your coach is unavailable right now. Please try again." });
+  } finally {
+    await humanFoodScope?.releaseAuthorization();
   }
 });
 

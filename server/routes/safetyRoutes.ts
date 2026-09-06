@@ -301,6 +301,7 @@ router.post("/food-governance/acknowledge", requireAuth, async (req: any, res) =
       assessment.reasonCode,
       assessment.requestedFood,
       input,
+      builderId,
     );
     return res.json({
       success: true,

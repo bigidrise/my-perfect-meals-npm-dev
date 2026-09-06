@@ -25,6 +25,9 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
     context.safety.avoidedFoods.length
       ? `- Hard user avoidances: ${context.safety.avoidedFoods.join(", ")}`
       : null,
+    context.authorization.status === "authorized"
+      ? `- Authorized one-action exception: ${context.authorization.waivers.map((waiver) => `${waiver.ruleCode} for "${waiver.matchedTerm}"`).join(", ")}. Honor only this exception; all allergies and every other protection remain hard constraints.`
+      : null,
     context.safety.dislikedFoods.length
       ? `- Disliked foods: ${context.safety.dislikedFoods.join(", ")}`
       : null,

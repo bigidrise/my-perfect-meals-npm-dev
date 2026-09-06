@@ -71,6 +71,11 @@ interface Meal {
 interface SafetyOptions {
   safetyMode?: 'STRICT' | 'CUSTOM' | 'CUSTOM_AUTHENTICATED' | 'ALLERGEN_ADAPT';
   overrideToken?: string;
+  advisoryOverrideToken?: string;
+  /** Compatibility field retained while creator routes migrate. */
+  governanceOverrideToken?: string;
+  actionRequest?: string;
+  authorizationAction?: string;
 }
 
 export interface ExplicitOverride {
@@ -177,6 +182,10 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string):
           diversityContext: diversityContext || null,
           safetyMode: safetyOptions?.safetyMode || "STRICT",
           overrideToken: safetyOptions?.overrideToken,
+          advisoryOverrideToken: safetyOptions?.advisoryOverrideToken,
+          governanceOverrideToken: safetyOptions?.governanceOverrideToken,
+          actionRequest: safetyOptions?.actionRequest,
+          authorizationAction: safetyOptions?.authorizationAction,
           strictMode: strictMode === true,
           explicitOverride: explicitOverride || null,
           userDietOverride: userDietOverride === true,

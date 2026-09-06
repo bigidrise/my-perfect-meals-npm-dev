@@ -129,6 +129,8 @@ export function CreateWithChefModal({
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    governanceOverrideToken,
+    acknowledgeAdvisory,
     allergyConflictPayload,
     restoreBlockedAlert,
   } = useSafetyGuardPrecheck();
@@ -161,11 +163,11 @@ export function CreateWithChefModal({
   };
   
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !generating && !safetyChecking) {
+    if (pendingGeneration && (overrideToken || governanceOverrideToken) && !generating && !safetyChecking) {
       setPendingGeneration(false);
       executeGeneration(description.trim());
     }
-  }, [pendingGeneration, overrideToken, generating, safetyChecking]);
+  }, [pendingGeneration, overrideToken, governanceOverrideToken, generating, safetyChecking]);
 
   useEffect(() => {
     if (!open) {
@@ -208,6 +210,10 @@ export function CreateWithChefModal({
           ? "ALLERGEN_ADAPT"
           : (!safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT"),
         overrideToken: !safetyEnabled && !isAllergenAdaptMode ? overrideToken || undefined : undefined,
+        advisoryOverrideToken: governanceOverrideToken,
+        governanceOverrideToken,
+        actionRequest: mealDescription,
+        authorizationAction: "recipe_maker",
       },
       strictMode,
       explicitOverride,
@@ -368,7 +374,7 @@ export function CreateWithChefModal({
       return;
     }
 
-    const isSafe = await checkSafety(description.trim(), `create-with-chef-${mealType}`);
+    const isSafe = await checkSafety(description.trim(), "recipe_maker");
 
     if (!isSafe && allergyConflictPayload.current) {
       // Allergen conflict — show modal instead of SafetyGuardBanner
@@ -391,7 +397,7 @@ export function CreateWithChefModal({
       return;
     }
 
-    const isSafe = await checkSafety(description.trim(), `create-with-chef-${mealType}`);
+    const isSafe = await checkSafety(description.trim(), "recipe_maker");
     if (isSafe) {
       await executeGeneration(description.trim());
     }
@@ -414,7 +420,7 @@ export function CreateWithChefModal({
       await executeGeneration(description.trim(), override);
       return;
     }
-    const isSafe = await checkSafety(description.trim(), `create-with-chef-${mealType}`);
+    const isSafe = await checkSafety(description.trim(), "recipe_maker");
     if (isSafe) {
       await executeGeneration(description.trim(), override);
     }
@@ -466,7 +472,7 @@ export function CreateWithChefModal({
       return;
     }
 
-    const isSafe = await checkSafety(newDescription, `create-with-chef-${mealType}`);
+    const isSafe = await checkSafety(newDescription, "recipe_maker");
     if (isSafe) {
       await executeGeneration(newDescription);
     }
@@ -639,6 +645,11 @@ export function CreateWithChefModal({
                   mealRequest={description}
                   onDismiss={clearSafetyAlert}
                   onOverrideSuccess={(token) => handleSafetyOverride(false, token)}
+                  onContinueAnyway={async () => {
+                    if (await acknowledgeAdvisory(description.trim(), "recipe_maker")) {
+                      setPendingGeneration(true);
+                    }
+                  }}
                 />
               )}
 

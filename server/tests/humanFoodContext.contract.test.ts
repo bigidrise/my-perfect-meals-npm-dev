@@ -61,6 +61,12 @@ const context: HumanFoodContext = {
     dislikedFoods: [],
     healthConditions: [],
   },
+  authorization: {
+    status: "none",
+    action: null,
+    reservationId: null,
+    waivers: [],
+  },
   nutrition: {
     authority: "nutritionStateService",
     resolution: { status: "resolved", reasonCodes: [] },
@@ -143,6 +149,30 @@ assert.equal(
   }, context).valid,
   false,
 );
+const authorizedAvoidanceContext: HumanFoodContext = {
+  ...context,
+  authorization: {
+    status: "authorized",
+    action: "grocery-coach",
+    reservationId: "reservation-a",
+    waivers: [{ dimension: "avoidance", ruleCode: "avoidance:mushroom", matchedTerm: "mushroom" }],
+  },
+};
+assert.equal(
+  validateHumanFoodResult({
+    ingredients: [{ name: "mushroom" }],
+    nutrition: { calories: 350, carbs: 20, fat: 12, starchyCarbs: 0 },
+  }, authorizedAvoidanceContext).valid,
+  true,
+);
+assert.equal(
+  validateHumanFoodResult({
+    ingredients: [{ name: "peanut butter" }],
+    nutrition: { calories: 350, carbs: 20, fat: 12, starchyCarbs: 0 },
+  }, authorizedAvoidanceContext).valid,
+  false,
+);
+assert.match(buildHumanFoodPromptBlock(authorizedAvoidanceContext), /Authorized one-action exception/);
 
 const executionState = createHumanFoodRequestExecutionState();
 recordRejectedHumanFoodCandidate(executionState, {

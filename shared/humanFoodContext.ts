@@ -4,6 +4,10 @@ export const HUMAN_FOOD_CONTEXT_VERSION = "human-food-context.v1" as const;
 
 export type HumanFoodCreator =
   | "weekly_meal_plan"
+  | "grocery_coach"
+  | "fridge_rescue"
+  | "buffet"
+  | "meal_refinement"
   | "recipe_maker"
   | "create_a_dish"
   | "craving_creator"
@@ -57,6 +61,30 @@ export interface HumanFoodSafetyContext {
   healthConditions: string[];
 }
 
+/**
+ * A server-claimed, request-scoped exception. This is deliberately a rule
+ * reference rather than a general purpose "override": only the listed rule
+ * and matched term may be waived during this one execution.
+ */
+export type HumanFoodAuthorizationDimension = "dietary_identity" | "avoidance";
+
+export interface HumanFoodAuthorizationWaiver {
+  dimension: HumanFoodAuthorizationDimension;
+  ruleCode: string;
+  matchedTerm: string;
+}
+
+export interface HumanFoodAuthorization {
+  status: "none" | "authorized";
+  action: string | null;
+  /**
+   * Opaque server reservation identifier. It is not a client authorization;
+   * completion or release must be performed by the server request scope.
+   */
+  reservationId: string | null;
+  waivers: HumanFoodAuthorizationWaiver[];
+}
+
 export interface HumanFoodBehaviorContext {
   preferredCuisines: string[];
   preferredProteins: string[];
@@ -78,6 +106,7 @@ export interface HumanFoodContext {
   diet: HumanFoodDietContext;
   flavor: HumanFoodFlavorContext;
   safety: HumanFoodSafetyContext;
+  authorization: HumanFoodAuthorization;
   nutrition: DailyNutritionState | null;
   behavior: HumanFoodBehaviorContext | null;
   gaps: string[];

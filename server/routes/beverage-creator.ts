@@ -53,6 +53,7 @@ import type {
   HumanFoodFinalValidationResult,
   HumanFoodValidationFinding,
 } from "../../shared/humanFoodValidation";
+import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,7 @@ function classifyBeverageIntent(text: string): string {
 
 beverageCreatorRouter.post("/", async (req, res) => {
   if (isDev) console.log("[BEVERAGE] POST request received");
+  let humanFoodRequestScope: HumanFoodRequestScope | undefined;
   try {
     const userId = getAuthUserId(req);
     const {
@@ -143,6 +145,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
       cultureOverride: _cultureOverride,
       cuisineOverride: _cuisineOverride,
       hydrationHandoff,
+      advisoryOverrideToken,
+      governanceOverrideToken,
+      actionRequest: _actionRequest,
+      authorizationAction: _authorizationAction,
     } = req.body ?? {};
 
     let trustedHydrationHandoff: ReturnType<typeof verifyHydrationHandoff> | null = null;
@@ -182,7 +188,17 @@ beverageCreatorRouter.post("/", async (req, res) => {
 
     const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
     const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
-    const humanFoodRequestScope = createHumanFoodRequestScope({
+    // Bind acknowledgement to the route's actual request, never a body field
+    // that could describe a different drink.
+    const canonicalActionRequest = hasCustomDesc
+      ? customBeverageDescription.trim()
+      : [beverageCategory, flavorFamily, specificDrink].filter(Boolean).join(" ").trim();
+    const canonicalAdvisoryToken = typeof advisoryOverrideToken === "string"
+      ? advisoryOverrideToken
+      : typeof governanceOverrideToken === "string"
+        ? governanceOverrideToken
+        : null;
+    humanFoodRequestScope = createHumanFoodRequestScope({
       actorUserId: userId,
       subjectUserId: userId,
       creator: "beverage_creator",
@@ -190,6 +206,9 @@ beverageCreatorRouter.post("/", async (req, res) => {
       dietOverride: typeof dietOverride === "string" ? dietOverride : null,
       cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
       cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+      actionRequest: canonicalActionRequest,
+      authorizationAction: "beverage_creator",
+      advisoryOverrideToken: canonicalAdvisoryToken,
     });
     const humanFoodContext = await humanFoodRequestScope.resolve();
     const humanFoodExecutionState = humanFoodRequestScope.executionState;
@@ -1360,6 +1379,10 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
 
     const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
       buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
+    if (typeof meal?.name !== "string" || !meal.name.trim()) {
+      throw new Error("Final beverage output is empty");
+    }
+    await humanFoodRequestScope.completeAuthorization();
     return res.json({
       ...meal,
       imageUrl,
@@ -1394,6 +1417,8 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       error: status === 500 ? "Failed to create beverage" : err.message,
       ...(err?.code ? { code: err.code } : {}),
     });
+  } finally {
+    await humanFoodRequestScope?.releaseAuthorization();
   }
 });
 

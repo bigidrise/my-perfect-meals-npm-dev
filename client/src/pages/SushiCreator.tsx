@@ -422,6 +422,8 @@ export default function SushiCreator() {
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    governanceOverrideToken,
+    acknowledgeAdvisory,
   } = useSafetyGuardPrecheck();
 
   // 🥔 StarchGuard preflight system (Phase 3 Nutrition Budget Engine)
@@ -455,11 +457,11 @@ export default function SushiCreator() {
 
   // Effect: Auto-generate when override token is set and generation is pending
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !isGenerating) {
+    if (pendingGeneration && (overrideToken || governanceOverrideToken) && !isGenerating) {
       setPendingGeneration(false);
       handleGenerateMeal(true); // true = skip preflight (already have override)
     }
-  }, [pendingGeneration, overrideToken, isGenerating]);
+  }, [pendingGeneration, overrideToken, governanceOverrideToken, isGenerating]);
 
   // 🥔 Real-time Starch Guard check - triggers immediately as user types starchy ingredients
   useEffect(() => {
@@ -486,7 +488,10 @@ export default function SushiCreator() {
 
     // 🔐 Preflight safety check - BEFORE starting progress bar
     if (!skipPreflight && !hasActiveOverride) {
-      const isSafe = await checkSafety(cravingInput, "craving-creator");
+      const isSafe = await checkSafety(
+        sushiStyle ? `${sushiStyle}: ${cravingInput}` : cravingInput,
+        "sushi_creator",
+      );
       if (!isSafe) {
         // Banner will show automatically via safetyAlert state
         return;
@@ -549,6 +554,12 @@ export default function SushiCreator() {
           sweetenerPreferences,
           safetyMode: hasActiveOverride ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: hasActiveOverride ? overrideToken : undefined,
+          // This surface shares the craving/CreateDish backend. Send both names
+          // while its backend migration remains owned by that shared route.
+          advisoryOverrideToken: governanceOverrideToken,
+          governanceOverrideToken,
+          actionRequest: sushiStyle ? `${sushiStyle}: ${cravingInput}` : cravingInput,
+          authorizationAction: "sushi_creator",
           skipPalate: !flavorPersonal,
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
@@ -1083,11 +1094,17 @@ export default function SushiCreator() {
                   {/* SafetyGuard Preflight Banner */}
                   <SafetyGuardBanner
                     alert={safetyAlert}
-                    mealRequest={cravingInput}
+                    mealRequest={sushiStyle ? `${sushiStyle}: ${cravingInput}` : cravingInput}
                     onDismiss={clearSafetyAlert}
                     onOverrideSuccess={(token) =>
                       handleSafetyOverride(false, token)
                     }
+                    onContinueAnyway={async () => {
+                      const actionRequest = sushiStyle ? `${sushiStyle}: ${cravingInput}` : cravingInput;
+                      if (await acknowledgeAdvisory(actionRequest, "sushi_creator")) {
+                        setPendingGeneration(true);
+                      }
+                    }}
                   />
 
                   {/* StarchGuard Intercept (Phase 3 Nutrition Budget Engine) */}

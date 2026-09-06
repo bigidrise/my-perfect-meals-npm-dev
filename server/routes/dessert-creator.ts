@@ -25,6 +25,7 @@ import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityVal
 import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
+import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -97,6 +98,7 @@ const isDev = process.env.NODE_ENV === "development";
 
 dessertCreatorRouter.post("/", async (req, res) => {
   if (isDev) console.log("[DESSERT] POST request received");
+  let humanFoodRequestScope: HumanFoodRequestScope | undefined;
   try {
     const userId = getAuthUserId(req);
     const {
@@ -115,6 +117,10 @@ dessertCreatorRouter.post("/", async (req, res) => {
       customDessertDescription,
       dietAdaptOverride,
       userDietOverride,
+      advisoryOverrideToken,
+      governanceOverrideToken,
+      actionRequest: _actionRequest,
+      authorizationAction: _authorizationAction,
     } = req.body ?? {};
 
     const hasCustomDescription = !!(customDessertDescription && typeof customDessertDescription === 'string' && customDessertDescription.trim().length > 0);
@@ -129,7 +135,18 @@ dessertCreatorRouter.post("/", async (req, res) => {
 
     const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
     const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
-    const humanFoodRequestScope = createHumanFoodRequestScope({
+    // The client-provided action request is intentionally not trusted as the
+    // binding value. Derive it from this execution's inputs so a token cannot
+    // be replayed for a different dessert.
+    const canonicalActionRequest = hasCustomDescription
+      ? customDessertDescription.trim()
+      : [dessertCategory, flavorFamily, specificDessert].filter(Boolean).join(" ").trim();
+    const canonicalAdvisoryToken = typeof advisoryOverrideToken === "string"
+      ? advisoryOverrideToken
+      : typeof governanceOverrideToken === "string"
+        ? governanceOverrideToken
+        : null;
+    humanFoodRequestScope = createHumanFoodRequestScope({
       actorUserId: userId,
       subjectUserId: userId,
       creator: "dessert_creator",
@@ -137,6 +154,9 @@ dessertCreatorRouter.post("/", async (req, res) => {
       dietOverride: typeof dietOverride === "string" ? dietOverride : null,
       cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
       cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
+      actionRequest: canonicalActionRequest,
+      authorizationAction: "dessert_creator",
+      advisoryOverrideToken: canonicalAdvisoryToken,
     });
     const humanFoodContext = await humanFoodRequestScope.resolve();
     const humanFoodExecutionState = humanFoodRequestScope.executionState;
@@ -785,6 +805,13 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
 
     const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =
       buildMealComplianceBundle(meal, dessertEnvelope, { isChefAdapted: dietAdapted });
+    // Claim consumption only after the exact final candidate is validated and
+    // a nonempty result is about to leave the route. Every earlier return and
+    // thrown failure is released in finally.
+    if (typeof meal?.name !== "string" || !meal.name.trim()) {
+      throw new Error("Final dessert output is empty");
+    }
+    await humanFoodRequestScope.completeAuthorization();
     return res.json({
       ...meal,
       imageUrl,
@@ -810,6 +837,8 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       error: status === 500 ? "Failed to create dessert" : err.message,
       ...(err?.code ? { code: err.code } : {}),
     });
+  } finally {
+    await humanFoodRequestScope?.releaseAuthorization();
   }
 });
 

@@ -27,6 +27,7 @@ interface AdvisoryOverrideTokenData {
   reasonCode: string;
   matchedTerm: string;
   mealRequest: string;
+  action: string;
 }
 
 interface RateLimitData {
@@ -131,6 +132,7 @@ export function issueAdvisoryOverrideToken(
   reasonCode: string,
   matchedTerm: string,
   mealRequest: string,
+  action = "preflight",
 ): string {
   const token = crypto.randomBytes(32).toString("hex");
   activeAdvisoryOverrideTokens[token] = {
@@ -138,6 +140,7 @@ export function issueAdvisoryOverrideToken(
     reasonCode,
     matchedTerm,
     mealRequest: normalizeAdvisoryRequest(mealRequest),
+    action: normalizeAdvisoryRequest(action),
     expiresAt: Date.now() + OVERRIDE_TOKEN_EXPIRY_MS,
   };
   return token;
@@ -147,13 +150,15 @@ export function claimAdvisoryOverrideToken(
   token: string,
   userId: string,
   mealRequest: string,
+  action = "preflight",
 ): AdvisoryOverrideTokenData | null {
   const data = activeAdvisoryOverrideTokens[token];
   if (
     !data ||
     data.userId !== userId ||
     data.expiresAt < Date.now() ||
-    data.mealRequest !== normalizeAdvisoryRequest(mealRequest)
+    data.mealRequest !== normalizeAdvisoryRequest(mealRequest) ||
+    data.action !== normalizeAdvisoryRequest(action)
   ) {
     if (data?.expiresAt && data.expiresAt < Date.now()) {
       delete activeAdvisoryOverrideTokens[token];
