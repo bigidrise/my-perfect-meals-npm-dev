@@ -129,6 +129,7 @@ import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "sushiCreator.cache.v1";
@@ -994,6 +995,15 @@ export default function SushiCreator() {
                         />
                       )}
                     </div>
+                    <VoiceInputButton
+                      value={cravingInput}
+                      onChange={setCravingInput}
+                      mode="append"
+                      separator=" "
+                      maxLength={300}
+                      label="Add sushi description by voice"
+                      className="mt-2"
+                    />
                     <p className="text-xs text-white/70 mt-1 text-right">
                       {cravingInput.length}/300
                     </p>

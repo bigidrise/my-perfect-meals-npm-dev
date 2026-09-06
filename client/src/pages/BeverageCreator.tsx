@@ -69,6 +69,7 @@ import {
   type BeverageProtocolFailure,
 } from "@/components/BeverageProtocolFailurePanel";
 import { useTranslation } from "react-i18next";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const BEVERAGE_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -641,6 +642,14 @@ export default function BeverageCreator() {
                     />
                   )}
                 </div>
+                <VoiceInputButton
+                  value={customBeverageDescription}
+                  onChange={setCustomBeverageDescription}
+                  mode="append"
+                  separator=" "
+                  label="Add beverage description by voice"
+                  className="mt-2"
+                />
                 {customBeverageDescription.trim().length > 0 && (
                   <p className="text-xs text-blue-300 mt-1">
                     We'll use your description — selections below are now optional.

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { Home, Mic, Save, Download, Trash2, Lightbulb } from "lucide-react";
+import { Home, Mic, Save, Download, Trash2, Lightbulb, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -358,6 +358,28 @@ export default function GetInspiration() {
         className="max-w-4xl mx-auto px-4 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        <div
+          role="note"
+          aria-label="Journal privacy notice"
+          data-testid="journal-privacy-notice"
+          className="mb-6 rounded-2xl border border-emerald-300/30 bg-emerald-950/70 p-4 text-white shadow-xl backdrop-blur-xl"
+        >
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
+            <div>
+              <h2 className="font-semibold text-emerald-100">Your journal stays private</h2>
+              <p className="mt-1 text-sm leading-relaxed text-white/90">
+                Entries saved here stay in this browser. They are not sent to My Perfect Meals
+                servers or used by MPM AI coaches, meal recommendations, or personalization.
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-white/70">
+                Voice Input uses your browser&apos;s speech-recognition service to turn speech
+                into text. My Perfect Meals does not retain the raw audio.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Daily Motivation Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}

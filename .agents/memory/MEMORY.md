@@ -71,3 +71,4 @@
 - [Browser CSRF boundary](browser-csrf-boundary.md) — cookie mutations require exact-origin session tokens; native bearer traffic and signed callbacks remain distinct.
 - [Duplicate-route authorization](duplicate-route-authorization.md) — secure every production-effective registration; a later guarded router cannot protect an earlier match.
 - [Reason-coded food outcomes](reason-coded-food-outcomes.md) — every governed food adaptation or block must identify what changed and the exact rule that caused it.
+- [Short-form food voice input](short-form-food-voice-input.md) — voice only populates editable text; normal submission and governance remain authoritative.

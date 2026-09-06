@@ -62,6 +62,7 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -648,6 +649,14 @@ export default function DessertCreator() {
                     />
                   )}
                 </div>
+                <VoiceInputButton
+                  value={customDessertDescription}
+                  onChange={setCustomDessertDescription}
+                  mode="append"
+                  separator=" "
+                  label="Add dessert description by voice"
+                  className="mt-2"
+                />
                 {customDessertDescription.trim().length > 0 && (
                   <p className="text-xs text-orange-300 mt-1">
                     We'll use your description — selections below are now optional.

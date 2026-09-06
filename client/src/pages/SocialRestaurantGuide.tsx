@@ -71,6 +71,7 @@ import {
 import { ChefHat, Globe, Loader2 as TranslateLoader } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import VoiceInputButton from "@/components/voice/VoiceInputButton";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -812,6 +813,12 @@ export default function RestaurantGuidePage() {
                       </button>
                     )}
                   </div>
+                  <VoiceInputButton
+                    value={cravingInput}
+                    onChange={(value) => setCravingInput(value)}
+                    mode="append"
+                    label="Add craving by voice"
+                  />
                   <Button
                     onClick={() => advanceGuided("step2")}
                     disabled={!cravingInput.trim()}
@@ -867,6 +874,12 @@ export default function RestaurantGuidePage() {
                       </button>
                     )}
                   </div>
+                  <VoiceInputButton
+                    value={restaurantInput}
+                    onChange={(value) => setRestaurantInput(value)}
+                    mode="replace"
+                    label="Enter restaurant name by voice"
+                  />
                   <div className="flex gap-3">
                     <Button
                       onClick={() => advanceGuided("step1")}
