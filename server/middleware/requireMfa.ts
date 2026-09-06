@@ -1,14 +1,12 @@
 /**
- * requireMfa — centralized per-session MFA gate for privileged authority
+ * requireMfa — centralized per-session MFA gate for designated accounts
  *
  * Applied to ProCare / studio / tablet routes. Checks:
- * Privileged principals (founders, system admins, active business owners/admins,
- * and clinical professionals) must be enrolled and have completed the MFA
- * challenge in this session. Consumers are deliberately outside this policy.
+ * Accounts explicitly designated by the central MFA policy must be enrolled
+ * and have completed the MFA challenge in this session.
  *
- * Authority is derived from the database for every request. In particular, do
- * not use the session's historical role or tester label: a role/membership
- * removal must take effect before the next privileged operation.
+ * Identity is derived from the database for every request rather than trusting
+ * a historical email or role stored in the session.
  *
  * SECURITY — FAIL CLOSED: A DB error must never silently pass clinical access
  * through. If the MFA check cannot complete, this middleware returns 503 so the
@@ -18,8 +16,7 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { businessMembers, businesses } from "../db/schema/business";
-import { and, eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import type { AuthenticatedRequest } from "./requireAuth";
 import { isMfaVerifiedForUser } from "../lib/sessionSecurity";
@@ -38,10 +35,7 @@ export async function requireMfa(
     const [row] = await db
       .select({
         mfaEnabled: users.mfaEnabled,
-        isFounder: users.isFounder,
-        isAdmin: users.isAdmin,
-        role: users.role,
-        professionalRole: users.professionalRole,
+        email: users.email,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -52,34 +46,7 @@ export async function requireMfa(
       return;
     }
 
-    const [businessAuthority] = await db
-      .select({
-        isBusinessOwner: businesses.id,
-        isBusinessAdmin: businessMembers.id,
-      })
-      .from(businesses)
-      .leftJoin(
-        businessMembers,
-        and(
-          eq(businessMembers.businessId, businesses.id),
-          eq(businessMembers.userId, userId),
-          eq(businessMembers.status, "active"),
-          eq(businessMembers.role, "admin"),
-        ),
-      )
-      .where(
-        or(
-          eq(businesses.ownerUserId, userId),
-          eq(businessMembers.userId, userId),
-        ),
-      )
-      .limit(1);
-
-    if (!requiresPrivilegedMfa({
-      ...row,
-      isBusinessOwner: businessAuthority?.isBusinessOwner != null,
-      isBusinessAdmin: businessAuthority?.isBusinessAdmin != null,
-    })) {
+    if (!requiresPrivilegedMfa({ email: row.email })) {
       next();
       return;
     }

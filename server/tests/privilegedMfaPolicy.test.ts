@@ -1,36 +1,20 @@
 import { requiresPrivilegedMfa } from "../lib/privilegedMfaPolicy";
 
-const consumer = {
-  isFounder: false,
-  isAdmin: false,
-  role: "client",
-  professionalRole: null,
-  isBusinessOwner: false,
-  isBusinessAdmin: false,
-};
-
 describe("central privileged MFA policy", () => {
   it.each([
-    { isFounder: true },
-    { isAdmin: true },
-    { role: "admin" },
-    { role: "coach" },
-    { professionalRole: "physician" },
-    { professionalRole: "nurse_practitioner" },
-    { professionalRole: "dietitian" },
-    { professionalRole: "trainer" },
-    { isBusinessOwner: true },
-    { isBusinessAdmin: true },
-  ])("requires MFA for privileged authority %#", (authority) => {
-    expect(requiresPrivilegedMfa({ ...consumer, ...authority })).toBe(true);
+    "bigidrise@gmail.com",
+    " BIGIDRISE@gmail.com ",
+  ])("requires MFA for the designated account: %s", (email) => {
+    expect(requiresPrivilegedMfa({ email })).toBe(true);
   });
 
-  it("does not require MFA for a consumer", () => {
-    expect(requiresPrivilegedMfa(consumer)).toBe(false);
-  });
-
-  it("does not exempt a tester when another source grants authority", () => {
-    // Tester status is intentionally absent from the policy's authority input.
-    expect(requiresPrivilegedMfa({ ...consumer, professionalRole: "trainer" })).toBe(true);
+  it.each([
+    null,
+    "",
+    "pepper.totten@yahoo.com",
+    "admin@myperfectmeals.com",
+    "trainer@myperfectmeals.com",
+  ])("does not require MFA for any other account: %s", (email) => {
+    expect(requiresPrivilegedMfa({ email })).toBe(false);
   });
 });
