@@ -146,7 +146,7 @@ export function VoiceInputButton({
           "inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
           state === "recording"
             ? "border-red-300 bg-red-600 text-white hover:bg-red-500"
-            : "border-orange-300/40 bg-black/70 text-white hover:border-orange-300 hover:bg-black/90",
+            : "border-emerald-400/80 bg-emerald-950/45 text-white hover:border-emerald-300 hover:bg-emerald-900/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
           (disabled || isBusy) && "cursor-not-allowed opacity-60",
         )}
       >
