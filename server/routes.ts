@@ -1098,6 +1098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/meals/generate", requireAuth, requireEssentialAccess, async (req, res) => {
     console.log("🔄 Unified meal generation endpoint hit");
     const startTime = Date.now();
+    let humanFoodRequestScope: import("./services/humanFoodContext/requestScope").HumanFoodRequestScope | undefined;
     
     try {
       const { 
@@ -1196,7 +1197,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const effectiveUserId: string = delegatedClientId ?? authUserId;
       let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
       let humanFoodExecutionState: import("./services/humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState | undefined;
-      let humanFoodRequestScope: import("./services/humanFoodContext/requestScope").HumanFoodRequestScope | undefined;
       const stage2dHumanFoodTypes = new Set(["create-with-chef", "snack-creator", "premade", "craving"]);
       if (stage2dHumanFoodTypes.has(type)) {
         const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
