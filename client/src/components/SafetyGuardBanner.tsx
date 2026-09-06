@@ -2,12 +2,17 @@ import { AlertTriangle, Shield, X } from "lucide-react";
 
 export interface SafetyAlertState {
   show: boolean;
-  result: "SAFE" | "BLOCKED" | "AMBIGUOUS";
+  result: "SAFE" | "BLOCKED" | "AMBIGUOUS" | "ADVISORY";
   blockedTerms: string[];
   blockedCategories: string[];
   ambiguousTerms: string[];
   message: string;
   suggestion?: string;
+  reasonCode?: string;
+  enforcementLevel?: "advisory" | "hard_block";
+  overrideAllowed?: boolean;
+  requestedFood?: string;
+  recommendedAlternative?: string;
 }
 
 interface SafetyGuardBannerProps {
@@ -15,6 +20,8 @@ interface SafetyGuardBannerProps {
   mealRequest: string;
   onDismiss: () => void;
   onOverrideSuccess: (token: string) => void;
+  onContinueAnyway?: () => void | Promise<void>;
+  continuingAnyway?: boolean;
   className?: string;
 }
 
@@ -23,6 +30,8 @@ export function SafetyGuardBanner({
   mealRequest,
   onDismiss,
   onOverrideSuccess,
+  onContinueAnyway,
+  continuingAnyway = false,
   className = ""
 }: SafetyGuardBannerProps) {
   if (!alert.show || alert.result === "SAFE") {
@@ -30,6 +39,7 @@ export function SafetyGuardBanner({
   }
 
   const isBlocked = alert.result === "BLOCKED";
+  const isAdvisory = alert.result === "ADVISORY";
 
   return (
     <div className={`rounded-lg border p-4 ${isBlocked ? "bg-amber-950/50 border-amber-500/50" : "bg-yellow-950/50 border-yellow-500/50"} ${className}`}>
@@ -45,7 +55,7 @@ export function SafetyGuardBanner({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <h4 className={`font-semibold ${isBlocked ? "text-amber-400" : "text-yellow-400"}`}>
-              {isBlocked ? "⚠️ Allergy Protection Active" : "⚠️ Ingredient Warning"}
+              {isBlocked ? "⚠️ Allergy Protection Active" : isAdvisory ? "Saved Food Avoidance" : "⚠️ Ingredient Warning"}
             </h4>
             <button 
               onClick={onDismiss}
@@ -76,6 +86,22 @@ export function SafetyGuardBanner({
             <p className="text-white/60 text-xs">
               💡 Suggestion: {alert.suggestion}
             </p>
+          )}
+
+          {isAdvisory && alert.overrideAllowed && onContinueAnyway && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onContinueAnyway}
+                disabled={continuingAnyway}
+                className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {continuingAnyway ? "Recording acknowledgement..." : "Continue anyway"}
+              </button>
+              <span className="self-center text-xs text-white/60">
+                This applies only to this request. All safety protections remain active.
+              </span>
+            </div>
           )}
         </div>
       </div>

@@ -20,6 +20,7 @@ import {
   removeUserPin,
   verifyPinAndIssueOverrideToken,
   createAllergyEditToken,
+  issueAdvisoryOverrideToken,
 } from "../services/safetyPinService";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 
@@ -208,6 +209,11 @@ router.post("/safety-check", async (req: any, res) => {
         message: safetyCheck.message,
         suggestion: safetyCheck.suggestion,
         allergyConflict: safetyCheck.allergyConflict ?? null,
+        reasonCode: safetyCheck.reasonCode,
+        enforcementLevel: safetyCheck.enforcementLevel,
+        overrideAllowed: safetyCheck.overrideAllowed,
+        requestedFood: safetyCheck.requestedFood,
+        recommendedAlternative: safetyCheck.recommendedAlternative,
       });
     }
 
@@ -245,6 +251,48 @@ router.post("/safety-check", async (req: any, res) => {
   } catch (error: any) {
     console.error("Error in safety preflight check:", error);
     res.status(500).json({ error: "Failed to perform safety check" });
+  }
+});
+
+router.post("/food-governance/acknowledge", requireAuth, async (req: any, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { input, builderId = "preflight", reasonCode } = req.body;
+    if (!input || typeof input !== "string" || !reasonCode || typeof reasonCode !== "string") {
+      return res.status(400).json({ error: "Request text and reason code are required" });
+    }
+    const assessment = await enforceSafetyProfile(userId, input, builderId, {
+      safetyMode: "STRICT",
+      correlationId: (req as any).id,
+    });
+    if (
+      assessment.result !== "ADVISORY" ||
+      assessment.enforcementLevel !== "advisory" ||
+      assessment.overrideAllowed !== true ||
+      assessment.reasonCode !== reasonCode ||
+      !assessment.requestedFood
+    ) {
+      return res.status(403).json({
+        error: "This food-governance rule cannot be bypassed.",
+        overrideAllowed: false,
+      });
+    }
+    const governanceOverrideToken = issueAdvisoryOverrideToken(
+      userId,
+      assessment.reasonCode,
+      assessment.requestedFood,
+      input,
+    );
+    return res.json({
+      success: true,
+      governanceOverrideToken,
+      reasonCode: assessment.reasonCode,
+      requestedFood: assessment.requestedFood,
+      message: `Acknowledged. Chef will include ${assessment.requestedFood} for this request while preserving all other protections.`,
+    });
+  } catch (error) {
+    console.error("[FoodGovernance] Advisory acknowledgement failed:", error);
+    return res.status(500).json({ error: "Failed to acknowledge this recommendation" });
   }
 });
 

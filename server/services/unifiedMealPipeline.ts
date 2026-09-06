@@ -1996,6 +1996,7 @@ export async function generateCravingMealOptions(
    *  cards since the initial capture already anchored the dish concept. */
   fastMode: boolean = false,
   humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
+  overriddenAvoidances?: string[],
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -2066,11 +2067,17 @@ export async function generateCravingMealOptions(
       const rawAvoidances: string[] = [
         ...((u?.dislikedFoods as string[]) || []),
         ...((u?.avoidedFoods as string[]) || []),
-      ];
-      _varietyAvoidances = rawAvoidances;
-      if (rawAvoidances.length > 0) {
-        avoidanceBlock = buildVarietyAvoidanceBlock(rawAvoidances);
-        console.log(`[VARIETY ENGINE] Avoidance block active for user ${userId}: ${rawAvoidances.length} items`);
+      ].flatMap(value => value.split(",")).map(value => value.trim()).filter(Boolean);
+      const normalizedOverrides = new Set(
+        (overriddenAvoidances ?? []).map(value => value.trim().toLowerCase()),
+      );
+      const enforcedAvoidances = rawAvoidances.filter(
+        value => !normalizedOverrides.has(value.toLowerCase()),
+      );
+      _varietyAvoidances = enforcedAvoidances;
+      if (enforcedAvoidances.length > 0) {
+        avoidanceBlock = buildVarietyAvoidanceBlock(enforcedAvoidances);
+        console.log(`[VARIETY ENGINE] Avoidance block active for user ${userId}: ${enforcedAvoidances.length} items`);
       }
     } catch (err) {
       console.warn("[VARIETY ENGINE] Could not fetch user profile:", err);
