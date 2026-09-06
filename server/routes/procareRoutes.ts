@@ -16,7 +16,6 @@ import {
   constructWebhookEvent,
 } from "../services/stripeProcare";
 import { endLink, getActiveLink } from "../services/clientLinkService";
-import { deactivateProCareClient } from "../services/procareActivation";
 import { studios } from "../db/schema/studio";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireProAccess } from "../middleware/requireProAccess";
@@ -34,7 +33,6 @@ import {
   type UserExtrasForSummary,
 } from "../services/nutritionSummary/buildNutritionSummary";
 import { filterNutritionSummaryForProvider } from "../services/procareClientDataPolicy";
-import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
 import {
   professionalGlucosePeriodSchema,
   type ProfessionalGlucoseContext,
@@ -755,115 +753,6 @@ router.get("/clients/:clientId/board-lock", requireAuth, requireProAccess, requi
   } catch (error) {
     console.error("[workspace] GET board-lock error:", error);
     res.status(500).json({ error: "Failed to read board lock status" });
-  }
-});
-
-// ─── ProCare Connection Status ─────────────────────────────────────────────────
-// GET /api/pro/connection-status — returns the caller's active ProCare connection
-// Used by the More page to show connected-state card vs. code-input card.
-//
-// [PHASE2-EXEMPT] — Client-facing introspection endpoint. The caller is a client
-// looking up their own active ProCare connection (which pro they are linked to).
-// No client data is exposed to a professional actor. Phase 2 gate not applicable.
-router.get("/connection-status", async (req, res) => {
-  try {
-    const authUser = (req as AuthenticatedRequest).authUser;
-    const userId = authUser?.id;
-    if (!userId) return res.status(401).json({ error: "Authentication required" });
-
-    const [activeLink] = await db
-      .select({
-        proUserId: clientLinks.proUserId,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        username: users.username,
-        professionalRole: users.professionalRole,
-      })
-      .from(clientLinks)
-      .innerJoin(users, eq(users.id, clientLinks.proUserId))
-      .where(and(eq(clientLinks.clientUserId, userId), eq(clientLinks.active, true)));
-
-    if (!activeLink) {
-      return res.json({ connected: false });
-    }
-
-    const eligibility = evaluateConsumerProCareAccess({
-      accessTier: authUser.accessTier,
-      planLookupKey: authUser.planLookupKey,
-      providerRole: activeLink.professionalRole,
-      isInternalAccount:
-        authUser.isFounder || authUser.isSandbox || authUser.isTester,
-    });
-    if (!eligibility.allowed && "code" in eligibility) {
-      return res.json({
-        connected: false,
-        reason: eligibility.code,
-        requiredTier: eligibility.requiredTier,
-      });
-    }
-
-    const [studio] = await db
-      .select({ id: studios.id, name: studios.name, type: studios.type })
-      .from(studios)
-      .where(
-        and(
-          eq(studios.ownerUserId, activeLink.proUserId),
-          eq(studios.status, "active"),
-        ),
-      );
-
-    // Provider messaging is a Studio workspace capability. A stale client link
-    // without an active Studio must not advertise a usable connection.
-    if (!studio) {
-      return res.json({ connected: false });
-    }
-
-    const providerName = activeLink.firstName && activeLink.lastName
-      ? `${activeLink.firstName} ${activeLink.lastName}`
-      : activeLink.firstName || activeLink.username || "Your Provider";
-
-    return res.json({
-      connected: true,
-      provider: {
-        userId: activeLink.proUserId,
-        name: providerName,
-        role: activeLink.professionalRole || "trainer",
-        studioName: studio.name,
-        studioId: studio.id,
-      },
-    });
-  } catch (error) {
-    console.error("❌ [connection-status] Error:", error);
-    res.status(500).json({ error: "Failed to fetch connection status" });
-  }
-});
-
-// ─── Client Self-Disconnect ─────────────────────────────────────────────────────
-// POST /api/pro/disconnect-self — authenticated client disconnects from their provider
-//
-// [PHASE2-EXEMPT] — Client self-action. The caller IS the client; this route ends
-// the client's own link to their pro. No client data is exposed to a professional
-// actor. Phase 2 gate not applicable.
-router.post("/disconnect-self", async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).authUser?.id;
-    if (!userId) return res.status(401).json({ error: "Authentication required" });
-
-    const [activeLink] = await db
-      .select()
-      .from(clientLinks)
-      .where(and(eq(clientLinks.clientUserId, userId), eq(clientLinks.active, true)));
-
-    if (!activeLink) {
-      return res.status(404).json({ error: "No active ProCare connection found" });
-    }
-
-    await deactivateProCareClient(userId, activeLink.proUserId, userId, "client_self_disconnect");
-
-    return res.json({ success: true, disconnectedFrom: activeLink.proUserId });
-  } catch (error) {
-    console.error("❌ [disconnect-self] Error:", error);
-    res.status(500).json({ error: "Failed to disconnect" });
   }
 });
 
