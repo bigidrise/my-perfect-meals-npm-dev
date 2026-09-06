@@ -13,8 +13,7 @@
  *   drawer         Vaul Drawer           — drag-to-dismiss bottom drawer
  *   all            All variants stacked (default)
  *
- * Gate: only accessible when navigator.webdriver === true (Playwright) OR
- *       import.meta.env.DEV is true (local development).
+ * Gate: only accessible when import.meta.env.DEV is true.
  *
  * Architecture reference: docs/responsive-ui-regression-guard.md
  */
@@ -41,9 +40,7 @@ import { Button } from "@/components/ui/button";
 // ── Security gate ─────────────────────────────────────────────────────────────
 
 function isAllowed(): boolean {
-  if (import.meta.env.DEV) return true;
-  if (typeof navigator !== "undefined" && navigator.webdriver) return true;
-  return false;
+  return import.meta.env.DEV;
 }
 
 // ── Placeholder body content ───────────────────────────────────────────────────

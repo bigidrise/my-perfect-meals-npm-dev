@@ -32,42 +32,11 @@ import {
 import { AUTH_ATTEMPT_SCOPES, createAuthAttemptSubject } from "../services/authAttemptTracker";
 import { authAttemptTracker } from "../services/authAttemptTrackingService";
 import { requiresPrivilegedMfa } from "../lib/privilegedMfaPolicy";
-import { businessMembers, businesses } from "../db/schema/business";
 
 const router = Router();
 
 async function loginRequiresPrivilegedMfa(user: typeof users.$inferSelect): Promise<boolean> {
-  if (requiresPrivilegedMfa({
-    isFounder: user.isFounder,
-    isAdmin: user.isAdmin,
-    role: user.role,
-    professionalRole: user.professionalRole,
-    isBusinessOwner: false,
-    isBusinessAdmin: false,
-  })) return true;
-
-  const [authority] = await db
-    .select({
-      ownerId: businesses.id,
-      adminId: businessMembers.id,
-    })
-    .from(businesses)
-    .leftJoin(
-      businessMembers,
-      and(
-        eq(businessMembers.businessId, businesses.id),
-        eq(businessMembers.userId, user.id),
-        eq(businessMembers.status, "active"),
-        eq(businessMembers.role, "admin"),
-      ),
-    )
-    .where(or(
-      eq(businesses.ownerUserId, user.id),
-      eq(businessMembers.userId, user.id),
-    ))
-    .limit(1);
-
-  return authority?.ownerId != null || authority?.adminId != null;
+  return requiresPrivilegedMfa({ email: user.email });
 }
 
 function generateAuthToken(): string {
@@ -426,7 +395,7 @@ router.post("/api/auth/login", async (req, res) => {
     // If the user has MFA enabled, pause here and require a TOTP challenge.
     // Set pendingMfaUserId on the session so the /mfa/challenge endpoint can
     // verify the code and promote to a full session.
-    if (user.mfaEnabled) {
+    if (user.mfaEnabled && await loginRequiresPrivilegedMfa(user)) {
       // Password acceptance is not sufficient to keep an existing mobile
       // bearer credential active while the MFA challenge is pending.
       await revokeAuthToken(user.id);
