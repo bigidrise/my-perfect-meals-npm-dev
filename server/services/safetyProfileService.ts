@@ -15,6 +15,8 @@ export interface SafetyOptions {
   correlationId?: string;
   /** Trusted request-scoped advisory overrides already authorized by the server. */
   ignoredAvoidances?: string[];
+  /** Trusted request-scoped dietary identities already authorized by the server. */
+  ignoredDietaryRestrictions?: string[];
 }
 
 export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED" | "DIET_ADAPT" | "ADVISORY";
@@ -440,6 +442,9 @@ export async function enforceSafetyProfile(
   const ignoredAvoidances = new Set(
     ((options as SafetyOptions & { ignoredAvoidances?: string[] })?.ignoredAvoidances ?? []).map(normalize),
   );
+  const ignoredDietaryRestrictions = new Set(
+    (options?.ignoredDietaryRestrictions ?? []).map(normalize),
+  );
   
   const profile = await loadSafetyProfile(userId);
   
@@ -592,21 +597,41 @@ export async function enforceSafetyProfile(
     };
   }
 
-  // === PATH 3: DIET CHECK — soft adaptation, AI handles generation ===
+  // === PATH 4: DIETARY IDENTITY CHECK — advisory, explicit choice required ===
   if (profile.dietaryRestrictions.length > 0) {
-    const dietTermBank = buildDietTermBank(profile);
+    const activeDietaryRestrictions = profile.dietaryRestrictions
+      .map(normalize)
+      .filter(diet => !ignoredDietaryRestrictions.has(diet));
+    const dietTermBank = buildDietTermBank({
+      ...profile,
+      dietaryRestrictions: activeDietaryRestrictions,
+    });
     const dietMatches = findMatchedTerms(userText, dietTermBank);
 
     if (dietMatches.length > 0) {
-      const primaryDiet = profile.dietaryRestrictions[0];
-      console.log(`[SafetyGuard] Diet adaptation required; requestId=${correlationId ?? "unavailable"}`);
+      const primaryDiet = activeDietaryRestrictions[0];
+      if (!primaryDiet) {
+        return {
+          result: "SAFE",
+          blockedTerms: [],
+          blockedCategories: [],
+          ambiguousTerms: [],
+          message: "Acknowledged dietary preference override applies to this request only",
+        };
+      }
+      const requestedFood = dietMatches[0];
       return {
-        result: "DIET_ADAPT",
+        result: "ADVISORY",
         blockedTerms: dietMatches,
-        blockedCategories: [],
+        blockedCategories: ["dietary identity"],
         ambiguousTerms: [],
-        message: `Your request conflicts with your ${primaryDiet} diet`,
-        suggestion: `Chef can create a ${primaryDiet}-friendly version for you.`
+        reasonCode: `dietary_identity:${primaryDiet}`,
+        enforcementLevel: "advisory",
+        overrideAllowed: true,
+        requestedFood,
+        message: `Your Nutrition Life Plan is currently set to ${primaryDiet}, and ${requestedFood} does not match that dietary preference.`,
+        suggestion: `Chef can create a ${primaryDiet}-friendly alternative, or you may consciously continue with ${requestedFood}.`,
+        recommendedAlternative: `Create a ${primaryDiet}-friendly version that preserves the character of the requested dish.`,
       };
     }
   }

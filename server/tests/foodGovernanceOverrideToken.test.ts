@@ -53,4 +53,19 @@ describe("food governance advisory override tokens", () => {
     rollbackAdvisoryOverrideToken(token);
     expect(claimAdvisoryOverrideToken(token, "user-a", "Pork Chop")).not.toBeNull();
   });
+
+  it("rejects an expired token", () => {
+    const now = jest.spyOn(Date, "now");
+    now.mockReturnValue(1_000);
+    const token = issueAdvisoryOverrideToken(
+      "user-a",
+      "dietary_identity:vegan",
+      "steak",
+      "Steak",
+    );
+    now.mockReturnValue(1_000 + 5 * 60 * 1000 + 1);
+
+    expect(claimAdvisoryOverrideToken(token, "user-a", "Steak")).toBeNull();
+    now.mockRestore();
+  });
 });

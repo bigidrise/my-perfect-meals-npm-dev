@@ -21,6 +21,7 @@ interface SafetyGuardBannerProps {
   onDismiss: () => void;
   onOverrideSuccess: (token: string) => void;
   onContinueAnyway?: () => void | Promise<void>;
+  onAcceptAlternative?: () => void | Promise<void>;
   continuingAnyway?: boolean;
   className?: string;
 }
@@ -31,6 +32,7 @@ export function SafetyGuardBanner({
   onDismiss,
   onOverrideSuccess,
   onContinueAnyway,
+  onAcceptAlternative,
   continuingAnyway = false,
   className = ""
 }: SafetyGuardBannerProps) {
@@ -90,6 +92,16 @@ export function SafetyGuardBanner({
 
           {isAdvisory && alert.overrideAllowed && onContinueAnyway && (
             <div className="mt-3 flex flex-wrap gap-2">
+              {onAcceptAlternative && (
+                <button
+                  type="button"
+                  onClick={onAcceptAlternative}
+                  disabled={continuingAnyway}
+                  className="rounded-lg border border-emerald-400/60 bg-emerald-950/60 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/70 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Use recommended alternative
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onContinueAnyway}

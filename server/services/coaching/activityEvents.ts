@@ -80,6 +80,12 @@ export type PlatformEventType =
   | "craving_meal_generated"                 // usage
   | "inspiration_meal_generated"             // usage
 
+  // ── Food Governance Decisions ───────────────────────────────────────────────
+  | "recommendation_conflict_detected"       // usage — a plan rule was evaluated and explained
+  | "recommended_alternative_accepted"       // engagement — user chose the plan-aligned option
+  | "advisory_override_chosen"               // engagement — user consciously continued
+  | "food_logged_as_consumed"                // consumption — only after explicit food logging
+
   // ── Coaching ────────────────────────────────────────────────────────────────
   | "coach_message_sent"                     // usage
   | "coach_plan_accepted"                    // engagement
