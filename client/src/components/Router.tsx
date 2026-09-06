@@ -69,7 +69,7 @@ function getFeatureNameFromPath(path: string): string {
 }
 
 function CoachingAdminGate({ component: Component }: { component: React.ComponentType }) {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   if (!user) return null;
   if (user.id !== COACHING_ADMIN_USER_ID) {
@@ -892,7 +892,7 @@ export default function Router() {
 
   const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
 
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const isClinicianUser =
     user?.role === "coach" ||
