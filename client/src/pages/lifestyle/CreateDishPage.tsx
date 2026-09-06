@@ -301,6 +301,8 @@ export default function CreateDishPage() {
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    governanceOverrideToken,
+    acknowledgeAdvisory,
     allergyConflictPayload,
     restoreBlockedAlert,
   } = useSafetyGuardPrecheck();
@@ -320,6 +322,7 @@ export default function CreateDishPage() {
     }
   };
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  const [acknowledgingAdvisory, setAcknowledgingAdvisory] = useState(false);
 
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
@@ -484,11 +487,11 @@ export default function CreateDishPage() {
   };
 
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !isGenerating) {
+    if (pendingGeneration && (overrideToken || governanceOverrideToken) && !isGenerating) {
       setPendingGeneration(false);
       handleGenerateDish(true);
     }
-  }, [pendingGeneration, overrideToken, isGenerating]);
+  }, [pendingGeneration, overrideToken, governanceOverrideToken, isGenerating]);
 
   const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false, userDietOverride = false) => {
     const effectiveUserDietOverride = userDietOverride || continueAnywayRef.current;
@@ -570,6 +573,7 @@ export default function CreateDishPage() {
           userDietOverride,
           safetyMode: allergenSafeModeRef.current ? "ALLERGEN_ADAPT" : (overrideToken ? "CUSTOM_AUTHENTICATED" : (safetyEnabled ? "STRICT" : "DISABLED")),
           ...(overrideToken ? { overrideToken } : {}),
+          ...(governanceOverrideToken ? { governanceOverrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
           humanFoodCreator: "create_a_dish",
@@ -893,6 +897,21 @@ export default function CreateDishPage() {
                     onOverrideSuccess={(token) =>
                       handleSafetyOverride(false, token)
                     }
+                    continuingAnyway={acknowledgingAdvisory}
+                    onContinueAnyway={async () => {
+                      setAcknowledgingAdvisory(true);
+                      const acknowledged = await acknowledgeAdvisory(buildPrompt(), "create-dish");
+                      setAcknowledgingAdvisory(false);
+                      if (acknowledged) {
+                        setPendingGeneration(true);
+                      } else {
+                        toast({
+                          title: "Could not continue",
+                          description: "Please review the recommendation again and retry.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
                     className="mt-3"
                   />
 
