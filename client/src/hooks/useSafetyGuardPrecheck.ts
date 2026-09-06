@@ -44,7 +44,7 @@ interface UseSafetyGuardPrecheckResult {
   hasActiveOverride: boolean;
   governanceOverrideToken: string | undefined;
   clearGovernanceOverrideToken: () => void;
-  acknowledgeAdvisory: (input: string, builderId?: string) => Promise<boolean>;
+  acknowledgeAdvisory: (input: string, builderId?: string, reasonCode?: string) => Promise<boolean>;
   dietAdaptPayload: MutableRefObject<DietAdaptPayload | null>;
   /** Set when a BLOCKED result includes an allergyConflict payload.
    *  Cleared after the modal is handled (user picks an option or cancels). */
@@ -175,13 +175,17 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
   const acknowledgeAdvisory = useCallback(async (
     input: string,
     builderId: string = "preflight",
+    explicitReasonCode?: string,
   ): Promise<boolean> => {
-    if (
+    const reasonCode = explicitReasonCode ?? alert.reasonCode;
+    if (!reasonCode) {
+      return false;
+    }
+    if (!explicitReasonCode && (
       alert.result !== "ADVISORY" ||
       alert.enforcementLevel !== "advisory" ||
-      alert.overrideAllowed !== true ||
-      !alert.reasonCode
-    ) {
+      alert.overrideAllowed !== true
+    )) {
       return false;
     }
     try {
@@ -189,7 +193,7 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ input, builderId, reasonCode: alert.reasonCode }),
+        body: JSON.stringify({ input, builderId, reasonCode }),
       });
       if (!response.ok) return false;
       const data = await response.json();
