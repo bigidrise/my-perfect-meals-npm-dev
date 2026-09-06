@@ -49,7 +49,11 @@ describe("U3 closure bearer and MFA invariants", () => {
 
   it("does not issue a privileged mobile token before MFA", () => {
     const login = read("server/routes/auth.session.ts");
-    expect(login).toContain("if (user.mfaEnabled)");
+    expect(login).toContain(
+      "if (user.mfaEnabled && await loginRequiresPrivilegedMfa(user))",
+    );
+    expect(login).toContain("(req.session as any).pendingMfaUserId = user.id");
+    expect(login).toContain("return res.json({ mfaRequired: true })");
     expect(login).toContain("await revokeAuthToken(user.id)");
     expect(login).toContain("if (await loginRequiresPrivilegedMfa(user))");
     expect(login).toContain("mfaEnrollmentRequired: true");
@@ -57,6 +61,13 @@ describe("U3 closure bearer and MFA invariants", () => {
     expect(login).toContain("authToken: issuedCredential?.authToken ?? null");
 
     const challenge = read("server/routes/auth.mfa.ts");
+    expect(challenge).toContain("if (!(await verifyTotp(user.mfaSecret, code)))");
+    expect(challenge).toContain(
+      'return res.status(401).json({ error: "Invalid code. Try again or use a backup code." })',
+    );
+    expect(challenge).toContain("await regenerateSession(req)");
+    expect(challenge).toContain("(req as any).session.userId = user.id");
+    expect(challenge).toContain("(req as any).session.mfaVerified = true");
     expect(challenge).toContain("expectedSecurityVersion: user.authSecurityVersion");
     expect(challenge).toContain("requireMfaEnabled: true");
 

@@ -70,6 +70,7 @@ import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { PillButton } from "@/components/ui/pill-button";
+import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
 
 interface StructuredIngredient {
   name: string;
@@ -605,6 +606,18 @@ export default function CreateDishPage() {
             title: "No options fit your current plan",
             description: data.message || "Your health protocol eliminated all generated options. Try a lower-carb dish, or adjust your glucose settings.",
             duration: 8000,
+          });
+          return;
+        }
+        const safeServerMessage = getCreateDishServerErrorMessage(data);
+        if (safeServerMessage) {
+          stopProgressTicker();
+          setIsGenerating(false);
+          toast({
+            title: "Couldn't create this dish",
+            description: safeServerMessage,
+            variant: "warning",
+            duration: 10000,
           });
           return;
         }

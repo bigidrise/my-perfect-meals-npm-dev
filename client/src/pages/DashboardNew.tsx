@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { InformationModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import {
   Calculator,
@@ -47,6 +48,7 @@ import { useCopilot } from "@/components/copilot/CopilotContext";
 
 import {
   hasActivePaidSubscription,
+  hasPaidPlan,
 } from "@/lib/subscriptionCheck";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -118,6 +120,7 @@ export default function DashboardNew() {
   const showMarketplace = useOrgFlag("partnerMarketplace");
   const [showScanner, setShowScanner] = useState(false);
   const [isGuidedMode, setIsGuidedMode] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showInspirationModal, setShowInspirationModal] = useState(false);
   const [lastRecipeScan, setLastRecipeScan] = useState<any>(() => {
     try { return JSON.parse(localStorage.getItem("mpm.recipe.lastScan") ?? "null"); } catch { return null; }
@@ -813,6 +816,16 @@ export default function DashboardNew() {
       }, 100); // 100ms delay - short enough to preserve user gesture for audio autoplay
     }
   }, [openCopilot]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (hasPaidPlan(user)) return;
+    if (user.isTester) return;
+    const dismissKey = `mpm.dismiss.subscriptionModal.${user.id}`;
+    if (localStorage.getItem(dismissKey) === "true") return;
+    setShowSubscriptionModal(true);
+  }, [user]);
+
 
   // Greeting priority: nickname > firstName > username-derived name > fallback
   const firstName =
@@ -1868,6 +1881,37 @@ export default function DashboardNew() {
           }
         }}
       />
+
+      <InformationModal open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal} className="sm:max-w-md bg-black/90 text-white border-orange-500/40 backdrop-blur-lg" title={<span className="font-bold text-center block">{t("upgradeTitle")}</span>} description={t("upgradeDesc")}>
+          <div className="mt-4 space-y-2 text-sm text-white/80">
+            <div>• {t("upgradeItem1")}</div>
+            <div>• {t("upgradeItem2")}</div>
+            <div>• {t("upgradeItem3")}</div>
+            <div>• {t("upgradeItem4")}</div>
+          </div>
+          <div className="mt-6 space-y-3">
+            <Button
+              className="w-full bg-orange-600 hover:bg-orange-700"
+              onClick={() => {
+                if (user) localStorage.setItem(`mpm.dismiss.subscriptionModal.${user.id}`, "true");
+                setShowSubscriptionModal(false);
+                setLocation("/pricing");
+              }}
+            >
+              {t("explorePlans")}
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-orange-400 hover:bg-orange-500/10"
+              onClick={() => {
+                if (user) localStorage.setItem(`mpm.dismiss.subscriptionModal.${user.id}`, "true");
+                setShowSubscriptionModal(false);
+              }}
+            >
+              {t("continueCurrentPlan")}
+            </Button>
+          </div>
+      </InformationModal>
 
       {showWorkspaceChooser && (
         <WorkspaceChooser

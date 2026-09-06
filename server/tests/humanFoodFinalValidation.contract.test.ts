@@ -67,6 +67,50 @@ function generatedEvidence(overrides: HumanFoodCandidate["evidence"] = {}) {
 }
 
 describe("universal Human Food final-validation contract", () => {
+  it("accepts omnivore as an unrestricted dietary identity", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Herb-Marinated Grilled Pork Chop",
+      category: "dinner",
+      ingredients: ["pork chop", "olive oil", "garlic", "rosemary", "spinach", "tomato"],
+      instructions: "Marinate the pork chop, then grill until cooked through.",
+      evidence: generatedEvidence(),
+    }, context({
+      diet: {
+        stored: ["omnivore"],
+        effective: ["omnivore"],
+        source: "profile",
+        requestOverride: null,
+        adaptationOutcome: "not_needed",
+      },
+    }), { requestedDish: "pork chop", requestedCategory: "dinner" });
+
+    expect(result.outcome).toBe("pass");
+    expect(result.findings).toEqual([]);
+  });
+
+  it("continues to require review for genuinely unknown dietary identities", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Vegetable Plate",
+      ingredients: ["spinach", "tomato", "carrot"],
+      evidence: generatedEvidence(),
+    }, context({
+      diet: {
+        stored: ["unmapped_custom_diet"],
+        effective: ["unmapped_custom_diet"],
+        source: "profile",
+        requestOverride: null,
+        adaptationOutcome: "not_needed",
+      },
+    }));
+
+    expect(result.outcome).toBe("review_required");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "dietary_identity_unsupported:unmapped custom diet",
+      }),
+    ]));
+  });
+
   it("blocks lactose derivatives while preserving Indian cuisine evidence", () => {
     const result = validateHumanFoodCandidate({
       name: "Palak Paneer",
