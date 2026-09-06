@@ -672,8 +672,17 @@ export default function RestaurantGuidePage() {
     if (!cravingInput.trim() || !restaurantInput.trim() || !zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
       return beginSearch();
     }
+    if (governanceOverrideToken) {
+      return beginSearch(governanceOverrideToken);
+    }
     const safe = await checkSafety(cravingInput, "restaurant-guide");
     if (safe) beginSearch();
+  };
+  const handleStep2Continue = async () => {
+    if (!cravingInput.trim() || !restaurantInput.trim()) return;
+    if (governanceOverrideToken || await checkSafety(cravingInput, "restaurant-guide")) {
+      advanceGuided("step3");
+    }
   };
   const handleContinueWithRequest = async () => {
     setContinuingWithRequest(true);
@@ -690,9 +699,9 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     if (pendingAcknowledgedSearch && governanceOverrideToken) {
       setPendingAcknowledgedSearch(false);
-      beginSearch(governanceOverrideToken);
+      advanceGuided("step3");
     }
-  }, [pendingAcknowledgedSearch, governanceOverrideToken]);
+  }, [pendingAcknowledgedSearch, governanceOverrideToken, advanceGuided]);
 
   const handleUseLocation = async () => {
     setIsGettingLocation(true);
@@ -909,7 +918,7 @@ export default function RestaurantGuidePage() {
                       onKeyPress={(e) =>
                         e.key === "Enter" &&
                         restaurantInput.trim() &&
-                        advanceGuided("step3")
+                        handleStep2Continue()
                       }
                     />
                     {restaurantInput && (
@@ -946,8 +955,8 @@ export default function RestaurantGuidePage() {
                       {t("common.back")}
                     </Button>
                     <Button
-                      onClick={() => advanceGuided("step3")}
-                      disabled={!restaurantInput.trim()}
+                      onClick={handleStep2Continue}
+                      disabled={!restaurantInput.trim() || safetyChecking}
                       className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold"
                     >
                       {t("common.next")}
