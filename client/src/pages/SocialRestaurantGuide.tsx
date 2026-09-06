@@ -968,11 +968,18 @@ export default function RestaurantGuidePage() {
                     onDismiss={clearAlert}
                     onOverrideSuccess={() => {}}
                     onAcceptAlternative={() => {
-                      if (safetyAlert.recommendedAlternative) {
-                        setCravingInput(safetyAlert.recommendedAlternative);
-                        clearAlert();
-                      }
+                      const plan = safetyAlert.reasonCode?.startsWith("dietary_identity:")
+                        ? safetyAlert.reasonCode.slice("dietary_identity:".length)
+                        : normalizeDiet(user?.dietaryRestrictions);
+                      setCravingInput(plan && plan !== "none" ? `${plan} meal` : "");
+                      clearAlert();
+                      advanceGuided("step3");
                     }}
+                    alignedActionLabel={
+                      safetyAlert.reasonCode?.startsWith("dietary_identity:")
+                        ? `Use My ${safetyAlert.reasonCode.slice("dietary_identity:".length).replace(/^./, (letter) => letter.toUpperCase())} Plan`
+                        : "Use My Saved Preference"
+                    }
                     onContinueAnyway={handleContinueWithRequest}
                     continuingAnyway={continuingWithRequest || safetyChecking}
                     className="mt-4"

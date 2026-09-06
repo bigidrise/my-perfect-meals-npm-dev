@@ -43,6 +43,7 @@ interface UseSafetyGuardPrecheckResult {
   overrideToken: string | undefined;
   hasActiveOverride: boolean;
   governanceOverrideToken: string | undefined;
+  clearGovernanceOverrideToken: () => void;
   acknowledgeAdvisory: (input: string, builderId?: string) => Promise<boolean>;
   dietAdaptPayload: MutableRefObject<DietAdaptPayload | null>;
   /** Set when a BLOCKED result includes an allergyConflict payload.
@@ -206,6 +207,10 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
     setAlert(EMPTY_SAFETY_ALERT);
   }, []);
 
+  const clearGovernanceOverrideToken = useCallback(() => {
+    setGovernanceOverrideToken(undefined);
+  }, []);
+
   const setOverrideToken = useCallback((token: string) => {
     setOverrideTokenState(token);
     setAlert(EMPTY_SAFETY_ALERT);
@@ -232,6 +237,7 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
     overrideToken,
     hasActiveOverride: !!overrideToken || !!governanceOverrideToken,
     governanceOverrideToken,
+    clearGovernanceOverrideToken,
     acknowledgeAdvisory,
     dietAdaptPayload,
     allergyConflictPayload,

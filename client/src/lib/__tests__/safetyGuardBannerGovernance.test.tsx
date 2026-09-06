@@ -36,8 +36,8 @@ describe("SafetyGuardBanner food governance choices", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "shopping.findProduct.alternatives" }));
-    fireEvent.click(screen.getByRole("button", { name: "Continue anyway" }));
+    fireEvent.click(screen.getByRole("button", { name: "Follow My Vegan Plan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue With steak" }));
 
     expect(onAcceptAlternative).toHaveBeenCalledTimes(1);
     expect(onContinueAnyway).toHaveBeenCalledTimes(1);
@@ -61,7 +61,23 @@ describe("SafetyGuardBanner food governance choices", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Continue anyway" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "shopping.findProduct.alternatives" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue With steak" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Follow My Vegan Plan" })).not.toBeInTheDocument();
+  });
+
+  it("always offers a profile-aligned choice even when the surface has no custom handler", () => {
+    const onDismiss = jest.fn();
+    render(
+      <SafetyGuardBanner
+        alert={advisory}
+        mealRequest="Steak"
+        onDismiss={onDismiss}
+        onOverrideSuccess={jest.fn()}
+        onContinueAnyway={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Follow My Vegan Plan" }));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });
