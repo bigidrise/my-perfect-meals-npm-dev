@@ -13,9 +13,13 @@ export interface SafetyOptions {
   overrideToken?: string;
   /** Express request correlation ID — stored in the audit row to trace the override back to the generation request */
   correlationId?: string;
+  /** Trusted request-scoped advisory overrides already authorized by the server. */
+  ignoredAvoidances?: string[];
+  /** Trusted request-scoped dietary identities already authorized by the server. */
+  ignoredDietaryRestrictions?: string[];
 }
 
-export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED" | "DIET_ADAPT";
+export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED" | "DIET_ADAPT" | "ADVISORY";
 
 export interface SafetyAssessment {
   result: SafetyResult;
@@ -37,6 +41,11 @@ export interface SafetyAssessment {
    * Only present when result === "BLOCKED" and the block is allergy-driven.
    */
   allergyConflict?: AllergyConflict;
+  reasonCode?: string;
+  enforcementLevel?: "advisory" | "hard_block";
+  overrideAllowed?: boolean;
+  requestedFood?: string;
+  recommendedAlternative?: string;
 }
 
 export interface SafetyProfile {
@@ -264,6 +273,13 @@ function buildDietTermBank(profile: SafetyProfile): Set<string> {
   return terms;
 }
 
+function normalizeAvoidanceEntries(values: string[]): string[] {
+  return values
+    .flatMap(value => value.split(","))
+    .map(normalize)
+    .filter(Boolean);
+}
+
 export function buildActiveTermBank(profile: SafetyProfile): Set<string> {
   const allergyTerms = buildAllergyTermBank(profile);
   const dietTerms = buildDietTermBank(profile);
@@ -423,6 +439,12 @@ export async function enforceSafetyProfile(
   const safetyMode = options?.safetyMode || "STRICT";
   const overrideToken = options?.overrideToken;
   const correlationId = options?.correlationId;
+  const ignoredAvoidances = new Set(
+    ((options as SafetyOptions & { ignoredAvoidances?: string[] })?.ignoredAvoidances ?? []).map(normalize),
+  );
+  const ignoredDietaryRestrictions = new Set(
+    (options?.ignoredDietaryRestrictions ?? []).map(normalize),
+  );
   
   const profile = await loadSafetyProfile(userId);
   
@@ -499,10 +521,37 @@ export async function enforceSafetyProfile(
       message: `🚨 Safety Alert: Your request includes "${primaryTerm}" which conflicts with ${primaryCategory}. For your safety, this meal cannot be generated.`,
       suggestion: `Try requesting with ${substitute} instead.`,
       allergyConflict: classifyAllergyConflict(userText, allergyMatches, allergyCategories) ?? undefined,
+      reasonCode: `allergy:${normalize(primaryTerm)}`,
+      enforcementLevel: "hard_block",
+      overrideAllowed: false,
+      requestedFood: primaryTerm,
     };
   }
 
-  // === PATH 2: AMBIGUOUS DISH CHECK — allergy-only, no change ===
+  // === PATH 2: USER AVOIDANCE CHECK — advisory, explicit acknowledgement allowed ===
+  // This is intentionally below allergy enforcement. Acknowledging an avoidance can
+  // never suppress an allergy, clinical rule, or dietary identity requirement.
+  const avoidanceMatches = normalizeAvoidanceEntries(profile.avoidIngredients)
+    .filter(term => !ignoredAvoidances.has(term))
+    .filter(term => findMatchedTerms(userText, new Set([term])).length > 0);
+  if (avoidanceMatches.length > 0) {
+    const requestedFood = avoidanceMatches[0];
+    return {
+      result: "ADVISORY",
+      blockedTerms: avoidanceMatches,
+      blockedCategories: ["saved food avoidance"],
+      ambiguousTerms: [],
+      reasonCode: `avoidance:${requestedFood}`,
+      enforcementLevel: "advisory",
+      overrideAllowed: true,
+      requestedFood,
+      message: `You asked to avoid ${requestedFood}, so Chef recommends choosing a different food.`,
+      suggestion: `Choose another protein or continue anyway to make ${requestedFood} for this request.`,
+      recommendedAlternative: "Choose another protein or ingredient that fits your saved preferences.",
+    };
+  }
+
+  // === PATH 3: AMBIGUOUS DISH CHECK — allergy-only, no change ===
   const ambiguousDishes = checkAmbiguousDishes(userText, profile);
 
   if (ambiguousDishes.length > 0) {
@@ -548,21 +597,41 @@ export async function enforceSafetyProfile(
     };
   }
 
-  // === PATH 3: DIET CHECK — soft adaptation, AI handles generation ===
+  // === PATH 4: DIETARY IDENTITY CHECK — advisory, explicit choice required ===
   if (profile.dietaryRestrictions.length > 0) {
-    const dietTermBank = buildDietTermBank(profile);
+    const activeDietaryRestrictions = profile.dietaryRestrictions
+      .map(normalize)
+      .filter(diet => !ignoredDietaryRestrictions.has(diet));
+    const dietTermBank = buildDietTermBank({
+      ...profile,
+      dietaryRestrictions: activeDietaryRestrictions,
+    });
     const dietMatches = findMatchedTerms(userText, dietTermBank);
 
     if (dietMatches.length > 0) {
-      const primaryDiet = profile.dietaryRestrictions[0];
-      console.log(`[SafetyGuard] Diet adaptation required; requestId=${correlationId ?? "unavailable"}`);
+      const primaryDiet = activeDietaryRestrictions[0];
+      if (!primaryDiet) {
+        return {
+          result: "SAFE",
+          blockedTerms: [],
+          blockedCategories: [],
+          ambiguousTerms: [],
+          message: "Acknowledged dietary preference override applies to this request only",
+        };
+      }
+      const requestedFood = dietMatches[0];
       return {
-        result: "DIET_ADAPT",
+        result: "ADVISORY",
         blockedTerms: dietMatches,
-        blockedCategories: [],
+        blockedCategories: ["dietary identity"],
         ambiguousTerms: [],
-        message: `Your request conflicts with your ${primaryDiet} diet`,
-        suggestion: `Chef can create a ${primaryDiet}-friendly version for you.`
+        reasonCode: `dietary_identity:${primaryDiet}`,
+        enforcementLevel: "advisory",
+        overrideAllowed: true,
+        requestedFood,
+        message: `Your Nutrition Life Plan is currently set to ${primaryDiet}, and ${requestedFood} does not match that dietary preference.`,
+        suggestion: `Chef can create a ${primaryDiet}-friendly alternative, or you may consciously continue with ${requestedFood}.`,
+        recommendedAlternative: `Create a ${primaryDiet}-friendly version that preserves the character of the requested dish.`,
       };
     }
   }

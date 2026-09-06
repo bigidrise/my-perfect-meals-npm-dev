@@ -217,8 +217,8 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
 
   it("resolves a single request diet override before authoritative context resolution", () => {
     const block = ROUTES_SRC.slice(
-      ROUTES_SRC.indexOf("const requestDietOverride"),
-      ROUTES_SRC.indexOf("const requestDietOverride") + 1200,
+      ROUTES_SRC.indexOf("let requestDietOverride"),
+      ROUTES_SRC.indexOf("let requestDietOverride") + 8000,
     );
     expect(block).toContain('typeof dietOverride === "string"');
     expect(block).toContain('typeof dietaryRestrictions === "string"');
@@ -255,7 +255,7 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
       ROUTES_SRC.indexOf("_overrideDietActive"),
       ROUTES_SRC.indexOf("_overrideDietActive") + 600,
     );
-    expect(envBlock).toContain("dietaryIdentity: _resolvedPrimaryDiet");
+    expect(envBlock).toContain("dietaryIdentity: _filterDietaryIdentity");
     // Must check dietaryRestrictions (the field CreateDishPage actually sends)
     expect(envBlock).toContain("dietaryRestrictions");
     // And the dietOverride field (for programmatic/admin callers)
@@ -273,6 +273,23 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
     );
     expect(dalBlock).toContain("_resolvedPrimaryDiet.length > 0");
     expect(dalBlock).toContain("? _resolvedPrimaryDiet");
+  });
+
+  it("keeps an acknowledged identity waiver through prompt, pipeline, and finalization", () => {
+    const routeBlock = ROUTES_SRC.slice(
+      ROUTES_SRC.indexOf('app.post("/api/meals/craving-creator"'),
+      ROUTES_SRC.indexOf('// NEW: Onboarding-enforced meal generation routes'),
+    );
+    // The one-action identity override must become the Human Food Context's
+    // effective diet, survive prompt augmentation, and reach every generator.
+    expect(routeBlock).toContain('requestDietOverride = "omnivore"');
+    expect(routeBlock).toContain("[ACKNOWLEDGED DIETARY IDENTITY OVERRIDE:");
+    expect(routeBlock).toContain("_authorizedDietaryIdentityOverride");
+    expect(routeBlock).toContain("humanFoodContext.diet.effective.slice()");
+    expect(routeBlock).not.toContain("cravingInput = `${rawCravingInput}");
+    expect(routeBlock).toContain("reservedAdvisoryOverrideToken");
+    expect(routeBlock).toContain("rollbackAdvisoryOverrideToken(reservedAdvisoryOverrideToken)");
+    expect(routeBlock).toContain("commitAdvisoryOverrideToken(reservedAdvisoryOverrideToken)");
   });
 
   it("unifiedMealPipeline also uses REPLACEMENT semantics in generateCravingMealOptions", () => {
@@ -438,6 +455,21 @@ const KETO_OVERRIDE_ENVELOPE = {
   dietaryIdentity: ["keto"],
 };
 
+const OMNIVORE_ONE_ACTION_ENVELOPE = {
+  ...VEGAN_PROTOCOL_ENVELOPE,
+  dietaryIdentity: ["omnivore"],
+};
+
+const STEAK_MEAL = {
+  name: "Pan-Seared Steak",
+  description: "Steak with roasted asparagus.",
+  ingredients: [
+    { name: "beef steak", quantity: "8", unit: "oz" },
+    { name: "asparagus", quantity: "1", unit: "cup" },
+  ],
+  instructions: "Season the steak and sear until browned.",
+};
+
 describe("C. Functional — filterMealsByProtocol: vegan vs keto-override envelope", () => {
 
   it("vegan envelope BLOCKS the keto cake (cream cheese + eggs are vegan-illegal)", () => {
@@ -489,6 +521,12 @@ describe("C. Functional — filterMealsByProtocol: vegan vs keto-override envelo
       generatorName: "craving_creator",
     });
     expect(passed.length).toBe(2);
+  });
+
+  it("keeps the one-action diet envelope separate from the persistent profile envelope", () => {
+    expect(OMNIVORE_ONE_ACTION_ENVELOPE.dietaryIdentity).toEqual(["omnivore"]);
+    expect(VEGAN_PROTOCOL_ENVELOPE.dietaryIdentity).toEqual(["vegan"]);
+    expect(OMNIVORE_ONE_ACTION_ENVELOPE).not.toBe(VEGAN_PROTOCOL_ENVELOPE);
   });
 });
 
@@ -570,7 +608,7 @@ describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not veg
     expect(questionMarkIdx).toBeGreaterThan(-1);
     expect(colonIdx).toBeGreaterThan(questionMarkIdx);
 
-    const trueBranchPos  = ternaryBlock.indexOf("_resolvedPrimaryDiet", questionMarkIdx);
+    const trueBranchPos  = ternaryBlock.indexOf("_filterDietaryIdentity", questionMarkIdx);
     const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonIdx);
 
     // TRUE branch: _resolvedPrimaryDiet must appear after ? and before the ternary colon
@@ -598,7 +636,7 @@ describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not veg
     const conditionPos   = ternaryBlock.indexOf("_overrideDietActive");
     const questionPos    = ternaryBlock.indexOf("?");
     const colonPos       = ternaryBlock.indexOf(": protocolEnvelope.dietaryIdentity");
-    const trueBranchPos  = ternaryBlock.indexOf("_resolvedPrimaryDiet", questionPos);
+    const trueBranchPos  = ternaryBlock.indexOf("_filterDietaryIdentity", questionPos);
     const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonPos);
 
     // Condition appears first, then ?, then TRUE branch (_resolvedPrimaryDiet), then :, then FALSE branch

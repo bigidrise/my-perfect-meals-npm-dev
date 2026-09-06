@@ -10,15 +10,16 @@
  * Renders exclusively through AwayFromHomeMealCard.
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { Mic, MicOff, ChefHat, Loader2, RotateCcw, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
+import { ChefHat, Loader2, RotateCcw, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import AwayFromHomeMealCard from "@/components/away-from-home/AwayFromHomeMealCard";
+import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 
@@ -46,12 +47,8 @@ export default function MyPerfectBuffetPage() {
   const [showCategories, setShowCategories] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [recording, setRecording] = useState(false);
   const [recommendations, setRecommendations] = useState<AwayFromHomeRecommendation[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
 
   // Restore last recommendations on mount
   useEffect(() => {
@@ -67,43 +64,6 @@ export default function MyPerfectBuffetPage() {
   }, []);
 
   if (!user) return null;
-
-  // ── Voice input ────────────────────────────────────────────────────────────
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        try {
-          const form = new FormData();
-          form.append("audio", blob, "buffet.webm");
-          const resp = await fetch("/api/voice/transcribe", { method: "POST", body: form });
-          const data = await resp.json();
-          if (data.transcript) {
-            setFoodsDescription((prev) =>
-              prev.trim() ? `${prev.trim()}, ${data.transcript}` : data.transcript
-            );
-          }
-        } catch {
-          setError("Could not transcribe voice — please type your foods.");
-        }
-        setRecording(false);
-      };
-      mediaRecorderRef.current = mr;
-      mr.start();
-      setRecording(true);
-    } catch {
-      setError("Microphone access denied — please type your foods.");
-    }
-  }
-
-  function stopRecording() {
-    mediaRecorderRef.current?.stop();
-  }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   async function handleSubmit() {
@@ -231,22 +191,13 @@ export default function MyPerfectBuffetPage() {
 
                 {/* Voice button */}
                 <div className="px-4 pb-4 flex items-center gap-3">
-                  <button
-                    onPointerDown={startRecording}
-                    onPointerUp={stopRecording}
-                    onPointerLeave={stopRecording}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                      recording
-                        ? "bg-red-600/30 border border-red-500/50 text-red-300 animate-pulse"
-                        : "bg-white/10 border border-white/20 text-white"
-                    }`}
-                  >
-                    {recording ? (
-                      <><MicOff className="h-3.5 w-3.5" /> Release to transcribe</>
-                    ) : (
-                      <><Mic className="h-3.5 w-3.5" /> Hold to speak</>
-                    )}
-                  </button>
+                  <VoiceInputButton
+                    value={foodsDescription}
+                    onChange={setFoodsDescription}
+                    separator=", "
+                    disabled={loading}
+                    label="Describe buffet foods by voice"
+                  />
                   {foodsDescription && (
                     <button
                       onClick={() => setFoodsDescription("")}

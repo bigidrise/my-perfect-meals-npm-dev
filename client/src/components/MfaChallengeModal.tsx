@@ -12,7 +12,7 @@ import { completeMfaChallenge } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 
 interface Props {
-  onSuccess: (user: User) => void;
+  onSuccess: (user: User) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -29,7 +29,7 @@ export function MfaChallengeModal({ onSuccess, onCancel }: Props) {
     setLoading(true);
     try {
       const user = await completeMfaChallenge(code.trim(), useBackup);
-      onSuccess(user);
+      await onSuccess(user);
     } catch (err: any) {
       setError(err?.message || "Verification failed. Please try again.");
     } finally {

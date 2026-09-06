@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import VoiceInputButton from "@/components/voice/VoiceInputButton";
 
 interface ReplaceMealMenuProps {
   isOpen: boolean;
@@ -211,6 +212,12 @@ export function ReplaceMealMenu({
                   value={cravingText}
                   onChange={(e) => setCravingText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleCravingReplace()}
+                />
+                <VoiceInputButton
+                  value={cravingText}
+                  onChange={(value) => setCravingText(value)}
+                  mode="append"
+                  label="Add craving by voice"
                 />
               </div>
 

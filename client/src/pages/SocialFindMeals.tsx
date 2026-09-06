@@ -59,6 +59,9 @@ import { ChefHat } from "lucide-react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import VoiceInputButton from "@/components/voice/VoiceInputButton";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
   kosher:        { label: "Kosher Certified", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
@@ -221,6 +224,17 @@ export default function MealFinder() {
   const { user } = useAuth();
   const quickTour = useQuickTour("social-find-meals");
   const { speak, stop } = useChefVoice();
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert,
+    governanceOverrideToken,
+    clearGovernanceOverrideToken,
+    acknowledgeAdvisory,
+  } = useSafetyGuardPrecheck();
+  const [continuingWithRequest, setContinuingWithRequest] = useState(false);
+  const [pendingAcknowledgedStep1, setPendingAcknowledgedStep1] = useState(false);
 
   const FIND_MEALS_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { title: t("findMeals.tourStep1Title"), description: t("findMeals.tourStep1Desc") },
@@ -329,7 +343,7 @@ export default function MealFinder() {
   }, []);
 
   const findMealsMutation = useMutation({
-    mutationFn: async (data: { mealQuery: string; zipCode: string }) => {
+    mutationFn: async (data: { mealQuery: string; zipCode: string; governanceOverrideToken?: string; acknowledgedAction?: boolean }) => {
       setProgress(60);
       const progressInterval = setInterval(() => {
         setProgress((prev) => Math.min(prev + Math.random() * 10, 90));
@@ -346,6 +360,10 @@ export default function MealFinder() {
               : normalizeDiet(user?.dietaryRestrictions),
             priceRange: selectedPrice && selectedPrice.range.length > 0 ? selectedPrice.range : undefined,
             ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cuisineOverride: cuisineOverrideValue } : {}),
+            ...(data.governanceOverrideToken ? {
+              governanceOverrideToken: data.governanceOverrideToken,
+              governanceAction: "find-meals",
+            } : {}),
           }),
           headers: { "Content-Type": "application/json" },
         });
@@ -358,11 +376,14 @@ export default function MealFinder() {
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, params) => {
       const rawResults = data.results || [];
-      // Dietary compliance: filter BEFORE render — never show non-compliant options
+      // Preserve a server-authorized one-action result. Searches without an
+      // acknowledgement still receive the normal client-side diet filter.
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      const newResults = filterMealsByDiet(userDiet, rawResults, (r) => r);
+      const newResults = params.acknowledgedAction
+        ? rawResults
+        : filterMealsByDiet(userDiet, rawResults, (r) => r);
       setResults(newResults);
 
       if (newResults.length === 0) {
@@ -443,8 +464,55 @@ export default function MealFinder() {
     setResults([]);
     clearMealFinderCache();
     advanceGuided("generating");
-    findMealsMutation.mutate({ mealQuery, zipCode });
+    const actionToken = governanceOverrideToken;
+    findMealsMutation.mutate({
+      mealQuery,
+      zipCode,
+      governanceOverrideToken: actionToken,
+      acknowledgedAction: Boolean(actionToken),
+    });
+    if (actionToken) clearGovernanceOverrideToken();
   };
+
+  const handleStep1Continue = async () => {
+    if (!mealQuery.trim()) return;
+    if (await checkSafety(mealQuery, "find-meals")) {
+      advanceGuided("step2");
+    }
+  };
+
+  const handleContinueWithRequest = async () => {
+    setContinuingWithRequest(true);
+    try {
+      if (await acknowledgeAdvisory(mealQuery, "find-meals")) {
+        setPendingAcknowledgedStep1(true);
+      } else {
+        toast({
+          title: t("findMeals.searchFailed"),
+          description: "We couldn't record your acknowledgement. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setContinuingWithRequest(false);
+    }
+  };
+
+  const handleFollowSavedPlan = () => {
+    const plan = safetyAlert.reasonCode?.startsWith("dietary_identity:")
+      ? safetyAlert.reasonCode.slice("dietary_identity:".length)
+      : normalizeDiet(user?.dietaryRestrictions);
+    setMealQuery(plan && plan !== "none" ? `${plan} food` : "");
+    clearAlert();
+    advanceGuided("step2");
+  };
+
+  useEffect(() => {
+    if (pendingAcknowledgedStep1 && governanceOverrideToken) {
+      setPendingAcknowledgedStep1(false);
+      advanceGuided("step2");
+    }
+  }, [pendingAcknowledgedStep1, governanceOverrideToken, advanceGuided]);
 
   const handleUseLocation = async () => {
     setIsGettingLocation(true);
@@ -582,7 +650,7 @@ export default function MealFinder() {
                       onKeyPress={(e) =>
                         e.key === "Enter" &&
                         mealQuery.trim() &&
-                        advanceGuided("step2")
+                        handleStep1Continue()
                       }
                       data-testid="findmeals-search"
                     />
@@ -596,6 +664,12 @@ export default function MealFinder() {
                       </button>
                     )}
                   </div>
+                  <VoiceInputButton
+                    value={mealQuery}
+                    onChange={setMealQuery}
+                    mode="append"
+                    label="Add meal request by voice"
+                  />
                   <DietCuisineControlRow
                     savedCuisine={user?.cuisinePreference}
                     dietOverrideEnabled={dietOverrideEnabled}
@@ -608,12 +682,27 @@ export default function MealFinder() {
                     onCuisineChange={setCuisineOverrideValue}
                   />
                   <Button
-                    onClick={() => advanceGuided("step2")}
-                    disabled={!mealQuery.trim()}
+                    onClick={handleStep1Continue}
+                    disabled={!mealQuery.trim() || safetyChecking}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 text-lg font-semibold"
                   >
                     {t("common.next")}
                   </Button>
+                  <SafetyGuardBanner
+                    alert={safetyAlert}
+                    mealRequest={mealQuery}
+                    onDismiss={clearAlert}
+                    onOverrideSuccess={() => {}}
+                    onAcceptAlternative={handleFollowSavedPlan}
+                    alignedActionLabel={
+                      safetyAlert.reasonCode?.startsWith("dietary_identity:")
+                        ? `Find ${safetyAlert.reasonCode.slice("dietary_identity:".length).replace(/^./, (letter) => letter.toUpperCase())} Restaurants`
+                        : "Use My Saved Preference"
+                    }
+                    onContinueAnyway={handleContinueWithRequest}
+                    continuingAnyway={continuingWithRequest || safetyChecking}
+                    className="mt-4"
+                  />
                 </CardContent>
               </Card>
             </motion.div>

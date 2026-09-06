@@ -10,6 +10,10 @@ import { db } from "../../db";
 import { derivePreferenceProfile } from "../behavioralMemoryService";
 import { resolveDailyNutritionState } from "../nutritionStateService";
 import { resolveFlavorCompatibility } from "./flavorCompatibility";
+import {
+  claimAdvisoryOverrideToken,
+  rollbackAdvisoryOverrideToken,
+} from "../safetyPinService";
 
 const CONTEXT_TTL_MS = 15 * 60 * 1000;
 
@@ -33,6 +37,12 @@ export interface ResolveHumanFoodContextInput {
   seasoningIntensity?: string | null;
   broadFlavor?: string | null;
   flavorStyle?: string | null;
+  /** Exact user request that the acknowledgement was issued for. */
+  actionRequest?: string | null;
+  /** Creator/action receiving the acknowledgement; defaults to this creator. */
+  authorizationAction?: string | null;
+  /** Server-issued acknowledgement token. Never trust client waiver fields. */
+  advisoryOverrideToken?: string | null;
 }
 
 function localDate(timeZone?: string | null): string {
@@ -54,6 +64,46 @@ function fingerprint(context: Omit<HumanFoodContext, "internalFingerprint">): st
   return createHmac("sha256", key)
     .update(JSON.stringify(context))
     .digest("base64url");
+}
+
+function normalizeRulePart(value: string): string {
+  return value.trim().toLowerCase().replace(/[_-]/g, " ").replace(/\s+/g, " ");
+}
+
+function resolveAdvisoryAuthorization(input: ResolveHumanFoodContextInput): HumanFoodContext["authorization"] {
+  if (!input.advisoryOverrideToken || !input.actionRequest?.trim()) {
+    return { status: "none", action: null, reservationId: null, waivers: [] };
+  }
+  const action = input.authorizationAction?.trim() || input.creator;
+  const claim = claimAdvisoryOverrideToken(
+    input.advisoryOverrideToken,
+    input.actorUserId,
+    input.actionRequest,
+    action,
+  );
+  if (!claim) return { status: "none", action: null, reservationId: null, waivers: [] };
+
+  const parsed = /^(dietary_identity|avoidance):(.+)$/i.exec(claim.reasonCode);
+  const matchedTerm = normalizeRulePart(claim.matchedTerm);
+  // A token can only waive one supported rule and one authoritative matched
+  // term. For dietary identity the rule subject (for example "vegan") is
+  // intentionally distinct from the conflicting food (for example "steak").
+  if (!parsed || !normalizeRulePart(parsed[2]) || !matchedTerm) {
+    // This reservation cannot safely authorize anything. Return it so an
+    // invalid/tampered shape does not burn an otherwise retryable token.
+    rollbackAdvisoryOverrideToken(input.advisoryOverrideToken);
+    return { status: "none", action: null, reservationId: null, waivers: [] };
+  }
+  return {
+    status: "authorized",
+    action,
+    reservationId: randomUUID(),
+    waivers: [{
+      dimension: parsed[1].toLowerCase() as "dietary_identity" | "avoidance",
+      ruleCode: `${parsed[1].toLowerCase()}:${normalizeRulePart(parsed[2])}`,
+      matchedTerm,
+    }],
+  };
 }
 
 export function freezeHumanFoodContext<T>(value: T): T {
@@ -151,6 +201,7 @@ export async function resolveHumanFoodContext(
   if (!effectiveDiet.length) gaps.push("diet.preference");
   if (status === "resolved" && gaps.length) status = "resolved_with_gaps";
 
+  const authorization = resolveAdvisoryAuthorization(input);
   const base: Omit<HumanFoodContext, "internalFingerprint"> = {
     version: HUMAN_FOOD_CONTEXT_VERSION,
     status,
@@ -179,6 +230,7 @@ export async function resolveHumanFoodContext(
       dislikedFoods: profile.dislikedFoods ?? [],
       healthConditions: profile.healthConditions ?? [],
     },
+    authorization,
     nutrition,
     behavior,
     gaps: [...new Set(gaps)],
@@ -186,5 +238,13 @@ export async function resolveHumanFoodContext(
     blockedReasons: [],
   };
 
-  return freezeHumanFoodContext({ ...base, internalFingerprint: fingerprint(base) });
+  try {
+    return freezeHumanFoodContext({ ...base, internalFingerprint: fingerprint(base) });
+  } catch (error) {
+    // A context that never resolved must not strand its claimed authorization.
+    if (authorization.status === "authorized" && input.advisoryOverrideToken) {
+      rollbackAdvisoryOverrideToken(input.advisoryOverrideToken);
+    }
+    throw error;
+  }
 }

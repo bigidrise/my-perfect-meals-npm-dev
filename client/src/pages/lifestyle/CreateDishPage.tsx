@@ -70,6 +70,8 @@ import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { PillButton } from "@/components/ui/pill-button";
+import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface StructuredIngredient {
   name: string;
@@ -300,6 +302,8 @@ export default function CreateDishPage() {
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    governanceOverrideToken,
+    acknowledgeAdvisory,
     allergyConflictPayload,
     restoreBlockedAlert,
   } = useSafetyGuardPrecheck();
@@ -319,6 +323,7 @@ export default function CreateDishPage() {
     }
   };
   const [pendingGeneration, setPendingGeneration] = useState(false);
+  const [acknowledgingAdvisory, setAcknowledgingAdvisory] = useState(false);
 
   const { user } = useAuth();
   const sweetenerPreferences = user?.sweetenerPreferences || [];
@@ -483,11 +488,11 @@ export default function CreateDishPage() {
   };
 
   useEffect(() => {
-    if (pendingGeneration && overrideToken && !isGenerating) {
+    if (pendingGeneration && (overrideToken || governanceOverrideToken) && !isGenerating) {
       setPendingGeneration(false);
       handleGenerateDish(true);
     }
-  }, [pendingGeneration, overrideToken, isGenerating]);
+  }, [pendingGeneration, overrideToken, governanceOverrideToken, isGenerating]);
 
   const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false, userDietOverride = false) => {
     const effectiveUserDietOverride = userDietOverride || continueAnywayRef.current;
@@ -506,18 +511,7 @@ export default function CreateDishPage() {
 
     const prompt = buildPrompt();
 
-    // 🥗 DietGuard pre-flight — cultural/dietary identity gets highest priority.
-    // Must run BEFORE SafetyGuard so protocol conflicts (halal/kosher/vegan)
-    // show the Protocol Conflict modal instead of the generic safety banner.
-    if (!skipPreflight && activeDiet && dietDecision !== "let_chef_adapt" && !continueAnywayRef.current) {
-      const dietOk = checkDiet(prompt);
-      if (!dietOk) {
-        return;
-      }
-    }
-
-    // 🔐 SafetyGuard pre-flight — allergy/intolerance check (runs after diet so
-    // cultural protocol conflicts are never shadowed by the safety banner).
+    // 🔐 Server-authoritative food-governance preflight.
     if (!skipPreflight && !hasActiveOverride) {
       const isSafe = await checkSafety(prompt, "create-dish");
       if (!isSafe) {
@@ -566,9 +560,11 @@ export default function CreateDishPage() {
           excludeMeals: getRecentMeals(),
           strictMode: keepItSimple,
           dietAdaptOverride,
-          userDietOverride,
+          userDietOverride: false,
+          ...(dietAdaptOverride ? { governanceDecision: "accept_alternative" } : {}),
           safetyMode: allergenSafeModeRef.current ? "ALLERGEN_ADAPT" : (overrideToken ? "CUSTOM_AUTHENTICATED" : (safetyEnabled ? "STRICT" : "DISABLED")),
           ...(overrideToken ? { overrideToken } : {}),
+          ...(governanceOverrideToken ? { governanceOverrideToken } : {}),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
           humanFoodCreator: "create_a_dish",
@@ -605,6 +601,18 @@ export default function CreateDishPage() {
             title: "No options fit your current plan",
             description: data.message || "Your health protocol eliminated all generated options. Try a lower-carb dish, or adjust your glucose settings.",
             duration: 8000,
+          });
+          return;
+        }
+        const safeServerMessage = getCreateDishServerErrorMessage(data);
+        if (safeServerMessage) {
+          stopProgressTicker();
+          setIsGenerating(false);
+          toast({
+            title: "Couldn't create this dish",
+            description: safeServerMessage,
+            variant: "warning",
+            duration: 10000,
           });
           return;
         }
@@ -791,6 +799,15 @@ export default function CreateDishPage() {
                         />
                       )}
                     </div>
+                    <VoiceInputButton
+                      value={dishInput}
+                      onChange={setDishInput}
+                      mode="append"
+                      separator=" "
+                      maxLength={300}
+                      label="Add dish description by voice"
+                      className="mt-2"
+                    />
                     <p className="text-xs text-white/50 mt-1 text-right">
                       {dishInput.length}/300
                     </p>
@@ -867,6 +884,15 @@ export default function CreateDishPage() {
                       className="w-full px-3 py-2 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
                       maxLength={250}
                     />
+                    <VoiceInputButton
+                      value={notes}
+                      onChange={setNotes}
+                      mode="append"
+                      separator=" "
+                      maxLength={250}
+                      label="Add dish notes by voice"
+                      className="mt-2"
+                    />
                     <p className="text-xs text-white/50 mt-1 text-right">
                       {notes.length}/250
                     </p>
@@ -880,6 +906,25 @@ export default function CreateDishPage() {
                     onOverrideSuccess={(token) =>
                       handleSafetyOverride(false, token)
                     }
+                    continuingAnyway={acknowledgingAdvisory}
+                    onAcceptAlternative={() => {
+                      clearSafetyAlert();
+                      handleGenerateDish(true, true, false);
+                    }}
+                    onContinueAnyway={async () => {
+                      setAcknowledgingAdvisory(true);
+                      const acknowledged = await acknowledgeAdvisory(buildPrompt(), "create-dish");
+                      setAcknowledgingAdvisory(false);
+                      if (acknowledged) {
+                        setPendingGeneration(true);
+                      } else {
+                        toast({
+                          title: "Could not continue",
+                          description: "Please review the recommendation again and retry.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
                     className="mt-3"
                   />
 

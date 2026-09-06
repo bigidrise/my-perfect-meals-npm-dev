@@ -19,13 +19,18 @@ export interface AllergyConflictPayload {
 }
 
 interface PreflightResult {
-  result: "SAFE" | "BLOCKED" | "AMBIGUOUS" | "DIET_ADAPT";
+  result: "SAFE" | "BLOCKED" | "AMBIGUOUS" | "DIET_ADAPT" | "ADVISORY";
   blockedTerms: string[];
   blockedCategories: string[];
   ambiguousTerms: string[];
   message: string;
   suggestion?: string;
   allergyConflict?: AllergyConflictPayload | null;
+  reasonCode?: string;
+  enforcementLevel?: "advisory" | "hard_block";
+  overrideAllowed?: boolean;
+  requestedFood?: string;
+  recommendedAlternative?: string;
 }
 
 interface UseSafetyGuardPrecheckResult {
@@ -37,6 +42,9 @@ interface UseSafetyGuardPrecheckResult {
   setOverrideToken: (token: string) => void;
   overrideToken: string | undefined;
   hasActiveOverride: boolean;
+  governanceOverrideToken: string | undefined;
+  clearGovernanceOverrideToken: () => void;
+  acknowledgeAdvisory: (input: string, builderId?: string) => Promise<boolean>;
   dietAdaptPayload: MutableRefObject<DietAdaptPayload | null>;
   /** Set when a BLOCKED result includes an allergyConflict payload.
    *  Cleared after the modal is handled (user picks an option or cancels). */
@@ -49,6 +57,7 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
   const [checking, setChecking] = useState(false);
   const [alert, setAlert] = useState<SafetyAlertState>(EMPTY_SAFETY_ALERT);
   const [overrideToken, setOverrideTokenState] = useState<string | undefined>();
+  const [governanceOverrideToken, setGovernanceOverrideToken] = useState<string | undefined>();
 
   // Ref so callers can read synchronously right after checkSafety() resolves
   const dietAdaptPayload = useRef<DietAdaptPayload | null>(null);
@@ -64,7 +73,7 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
       return true;
     }
 
-    if (overrideToken) {
+    if (overrideToken || governanceOverrideToken) {
       return true;
     }
 
@@ -141,12 +150,17 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
       allergyConflictPayload.current = null;
       setAlert({
         show: true,
-        result: data.result as "SAFE" | "BLOCKED" | "AMBIGUOUS",
+        result: data.result as "SAFE" | "BLOCKED" | "AMBIGUOUS" | "ADVISORY",
         blockedTerms: data.blockedTerms,
         blockedCategories: data.blockedCategories,
         ambiguousTerms: data.ambiguousTerms,
         message: data.message,
-        suggestion: data.suggestion
+        suggestion: data.suggestion,
+        reasonCode: data.reasonCode,
+        enforcementLevel: data.enforcementLevel,
+        overrideAllowed: data.overrideAllowed,
+        requestedFood: data.requestedFood,
+        recommendedAlternative: data.recommendedAlternative,
       });
 
       return false;
@@ -156,10 +170,45 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
     } finally {
       setChecking(false);
     }
-  }, [overrideToken]);
+  }, [overrideToken, governanceOverrideToken]);
+
+  const acknowledgeAdvisory = useCallback(async (
+    input: string,
+    builderId: string = "preflight",
+  ): Promise<boolean> => {
+    if (
+      alert.result !== "ADVISORY" ||
+      alert.enforcementLevel !== "advisory" ||
+      alert.overrideAllowed !== true ||
+      !alert.reasonCode
+    ) {
+      return false;
+    }
+    try {
+      const response = await fetch(apiUrl("/api/food-governance/acknowledge"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ input, builderId, reasonCode: alert.reasonCode }),
+      });
+      if (!response.ok) return false;
+      const data = await response.json();
+      if (!data.governanceOverrideToken) return false;
+      setGovernanceOverrideToken(data.governanceOverrideToken);
+      setAlert(EMPTY_SAFETY_ALERT);
+      return true;
+    } catch (error) {
+      console.error("[FoodGovernance] Advisory acknowledgement failed:", error);
+      return false;
+    }
+  }, [alert]);
 
   const clearAlert = useCallback(() => {
     setAlert(EMPTY_SAFETY_ALERT);
+  }, []);
+
+  const clearGovernanceOverrideToken = useCallback(() => {
+    setGovernanceOverrideToken(undefined);
   }, []);
 
   const setOverrideToken = useCallback((token: string) => {
@@ -186,7 +235,10 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
     setAlert,
     setOverrideToken,
     overrideToken,
-    hasActiveOverride: !!overrideToken,
+    hasActiveOverride: !!overrideToken || !!governanceOverrideToken,
+    governanceOverrideToken,
+    clearGovernanceOverrideToken,
+    acknowledgeAdvisory,
     dietAdaptPayload,
     allergyConflictPayload,
     restoreBlockedAlert,

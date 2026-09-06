@@ -13,7 +13,7 @@
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope } from './protocolEnvelope';
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
@@ -1996,6 +1996,8 @@ export async function generateCravingMealOptions(
    *  cards since the initial capture already anchored the dish concept. */
   fastMode: boolean = false,
   humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
+  overriddenAvoidances?: string[],
+  overriddenDietaryIdentities?: string[],
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const category = inferCravingCategory(cravingInput, validMealType);
@@ -2034,6 +2036,10 @@ export async function generateCravingMealOptions(
       }).from(users).where(eq(users.id, userId)).limit(1);
 
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
+      if (overriddenDietaryIdentities?.length) {
+        const ignoredDiets = new Set(overriddenDietaryIdentities.map(value => value.trim().toLowerCase()));
+        dietRestrictions = dietRestrictions.filter(value => !ignoredDiets.has(value.trim().toLowerCase()));
+      }
       varietyMeasurementSystem = ((u?.measurementSystem as MeasurementSystem) ?? "imperial");
 
       // Store oncology fields for the activation check below
@@ -2066,11 +2072,17 @@ export async function generateCravingMealOptions(
       const rawAvoidances: string[] = [
         ...((u?.dislikedFoods as string[]) || []),
         ...((u?.avoidedFoods as string[]) || []),
-      ];
-      _varietyAvoidances = rawAvoidances;
-      if (rawAvoidances.length > 0) {
-        avoidanceBlock = buildVarietyAvoidanceBlock(rawAvoidances);
-        console.log(`[VARIETY ENGINE] Avoidance block active for user ${userId}: ${rawAvoidances.length} items`);
+      ].flatMap(value => value.split(",")).map(value => value.trim()).filter(Boolean);
+      const normalizedOverrides = new Set(
+        (overriddenAvoidances ?? []).map(value => value.trim().toLowerCase()),
+      );
+      const enforcedAvoidances = rawAvoidances.filter(
+        value => !normalizedOverrides.has(value.toLowerCase()),
+      );
+      _varietyAvoidances = enforcedAvoidances;
+      if (enforcedAvoidances.length > 0) {
+        avoidanceBlock = buildVarietyAvoidanceBlock(enforcedAvoidances);
+        console.log(`[VARIETY ENGINE] Avoidance block active for user ${userId}: ${enforcedAvoidances.length} items`);
       }
     } catch (err) {
       console.warn("[VARIETY ENGINE] Could not fetch user profile:", err);
@@ -2089,7 +2101,20 @@ export async function generateCravingMealOptions(
     try {
       const envelope = await loadUserProtocolEnvelope(userId);
       if (envelope) {
-        const promptBlock = enforceBeforeGenerate(envelope, {
+        const effectiveEnvelope = overriddenDietaryIdentities?.length
+          ? (() => {
+              const ignoredDiets = new Set(overriddenDietaryIdentities.map(value => value.trim().toLowerCase()));
+              const dietaryIdentity = envelope.dietaryIdentity.filter(
+                value => !ignoredDiets.has(value.trim().toLowerCase()),
+              );
+              return {
+                ...envelope,
+                dietaryIdentity,
+                procedural: deriveProcedureRules(dietaryIdentity),
+              };
+            })()
+          : envelope;
+        const promptBlock = enforceBeforeGenerate(effectiveEnvelope, {
           userInput: cravingInput,
           generatorName: 'craving_creator',
           actorId: userId,
@@ -2104,7 +2129,7 @@ export async function generateCravingMealOptions(
         }
         if (promptBlock.layers.procedural) {
           proceduralBlock = promptBlock.layers.procedural;
-          console.log(`[VARIETY ENGINE] Procedural enforcement active for user ${userId} (${envelope.dietaryIdentity.join(', ')})`);
+          console.log(`[VARIETY ENGINE] Procedural enforcement active for user ${userId} (${effectiveEnvelope.dietaryIdentity.join(', ')})`);
         }
       }
     } catch (err) {

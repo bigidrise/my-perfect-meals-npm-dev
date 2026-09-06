@@ -21,6 +21,8 @@ import { buildCravingInstructions } from "./restaurantMealGeneratorAI";
 import { randomUUID } from "crypto";
 import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "./wholeFoodStandard";
 import { enforceBeforeGenerate, scanGeneratedOutput, type UserProtocolEnvelope } from "./protocolEnvelope";
+import type { HumanFoodContext } from "../../shared/humanFoodContext";
+import { buildHumanFoodPromptBlock } from "./humanFoodContext/buildHumanFoodPromptBlock";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -54,6 +56,8 @@ export interface BuffetRecommendationRequest {
   /** GLP-1 recommendation-surface guidance block from buildGLP1RecommendationBlock() */
   glp1RecommendationBlock?: string;
   protocolEnvelope: UserProtocolEnvelope;
+  /** Immutable, server-resolved action context for this recommendation. */
+  humanFoodContext?: HumanFoodContext;
 }
 
 /** Derive fibrousCarbs from fiber (application rule — never ask AI for this) */
@@ -136,7 +140,7 @@ function mapPlate(parsed: Record<string, unknown>): AwayFromHomeRecommendation {
 export async function generateBuffetRecommendations(
   req: BuffetRecommendationRequest
 ): Promise<AwayFromHomeRecommendation[]> {
-  const { foodsDescription, categories, nutritionContext, requestedFood, remainingMacrosBlock, glp1RecommendationBlock, protocolEnvelope } = req;
+  const { foodsDescription, categories, nutritionContext, requestedFood, remainingMacrosBlock, glp1RecommendationBlock, protocolEnvelope, humanFoodContext } = req;
 
   const foodsLines: string[] = [];
   if (foodsDescription.trim()) {
@@ -207,6 +211,7 @@ Return ONLY valid JSON with this exact shape (no markdown, no explanation):
 
   const userPrompt = `USER NUTRITION PROFILE:
 ${nutritionContext.combinedBlock || "(standard healthy adult — no active protocols)"}
+${humanFoodContext ? buildHumanFoodPromptBlock(humanFoodContext) : ""}
 ${enforceBeforeGenerate(protocolEnvelope, { userInput: foodsDescription, generatorName: "buffet" }).combined}
 ${glp1RecommendationBlock ?? ""}
 ${cravingInstructions}

@@ -36,7 +36,19 @@ export function validateHumanFoodResult(
   if (!result || typeof result !== "object") violations.push("result_not_object");
   if (!text) violations.push("ingredients_missing");
 
-  for (const forbidden of [...context.safety.allergies, ...context.safety.avoidedFoods]) {
+  const authorizedAvoidanceTerms = new Set(
+    context.authorization.status === "authorized"
+      ? context.authorization.waivers
+          .filter((waiver) => waiver.dimension === "avoidance")
+          .map((waiver) => normalize(waiver.matchedTerm))
+      : [],
+  );
+  // Allergies are never waivable. An acknowledgement can waive only the exact
+  // avoidance term that the server bound to this action.
+  for (const forbidden of [
+    ...context.safety.allergies,
+    ...context.safety.avoidedFoods.filter((food) => !authorizedAvoidanceTerms.has(normalize(food))),
+  ]) {
     const term = normalize(forbidden);
     if (term.length >= 3 && text.includes(term)) {
       violations.push(`forbidden_ingredient:${term}`);

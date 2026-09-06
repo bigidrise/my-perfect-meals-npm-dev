@@ -62,6 +62,7 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -238,6 +239,8 @@ export default function DessertCreator() {
     setOverrideToken,
     overrideToken,
     hasActiveOverride,
+    governanceOverrideToken,
+    acknowledgeAdvisory,
   } = useSafetyGuardPrecheck();
 
   // Handle safety override continuation - auto-generate when override token received
@@ -254,14 +257,14 @@ export default function DessertCreator() {
   useEffect(() => {
     if (
       pendingGeneration &&
-      overrideToken &&
+      (overrideToken || governanceOverrideToken) &&
       !isGenerating &&
       !safetyChecking
     ) {
       setPendingGeneration(false);
       handleGenerateDessert(false, overrideToken);
     }
-  }, [pendingGeneration, overrideToken, isGenerating, safetyChecking]);
+  }, [pendingGeneration, overrideToken, governanceOverrideToken, isGenerating, safetyChecking]);
 
   useCopilotPageExplanation();
 
@@ -336,6 +339,10 @@ export default function DessertCreator() {
     setProgress(100);
   };
 
+  const dessertActionRequest = () =>
+    customDessertDescription.trim() ||
+    `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
+
   async function handleGenerateDessert(skipPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
     const userDietOverride = continueAnywayRef.current;
     continueAnywayRef.current = false;
@@ -362,10 +369,7 @@ export default function DessertCreator() {
 
     // SafetyGuard preflight check if safety is enabled and no override
     if (safetyEnabled && !hasActiveOverride && !overrideToken) {
-      const requestDescription = hasCustomDescription
-        ? customDessertDescription.trim()
-        : `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
-      const isSafe = await checkSafety(requestDescription, "dessert-creator");
+      const isSafe = await checkSafety(dessertActionRequest(), "dessert_creator");
       if (!isSafe) {
         return; // Banner will show automatically
       }
@@ -416,6 +420,12 @@ export default function DessertCreator() {
           safetyMode:
             !safetyEnabled && overrideToken ? "CUSTOM_AUTHENTICATED" : "STRICT",
           overrideToken: !safetyEnabled ? overrideToken : undefined,
+          // Canonical acknowledgement is exact-action-bound server-side.
+          // governanceOverrideToken remains for compatibility with older routes.
+          advisoryOverrideToken: governanceOverrideToken,
+          governanceOverrideToken,
+          actionRequest: dessertActionRequest(),
+          authorizationAction: "dessert_creator",
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
           customDessertDescription: customDessertDescription.trim() || undefined,
@@ -648,6 +658,14 @@ export default function DessertCreator() {
                     />
                   )}
                 </div>
+                <VoiceInputButton
+                  value={customDessertDescription}
+                  onChange={setCustomDessertDescription}
+                  mode="append"
+                  separator=" "
+                  label="Add dessert description by voice"
+                  className="mt-2"
+                />
                 {customDessertDescription.trim().length > 0 && (
                   <p className="text-xs text-orange-300 mt-1">
                     We'll use your description — selections below are now optional.
@@ -853,11 +871,16 @@ export default function DessertCreator() {
               {/* SafetyGuard Preflight Banner */}
               <SafetyGuardBanner
                 alert={safetyAlert}
-                mealRequest={`${dessertCategory} ${flavorFamily} ${specificDessert}`.trim()}
+                mealRequest={dessertActionRequest()}
                 onDismiss={clearSafetyAlert}
                 onOverrideSuccess={(token) =>
                   handleSafetyOverride(false, token)
                 }
+                onContinueAnyway={async () => {
+                  if (await acknowledgeAdvisory(dessertActionRequest(), "dessert_creator")) {
+                    setPendingGeneration(true);
+                  }
+                }}
               />
 
               {/* DietGuard Intercept — advisory panel, fires at generate time */}

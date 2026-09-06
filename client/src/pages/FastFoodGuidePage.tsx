@@ -73,6 +73,9 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
+import VoiceInputButton from "@/components/voice/VoiceInputButton";
+import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
+import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -369,6 +372,16 @@ export default function FastFoodGuidePage() {
 
   const { toast } = useToast();
   const { user } = useAuth();
+  const {
+    checking: safetyChecking,
+    alert: safetyAlert,
+    checkSafety,
+    clearAlert,
+    governanceOverrideToken,
+    acknowledgeAdvisory,
+  } = useSafetyGuardPrecheck();
+  const [continuingWithRequest, setContinuingWithRequest] = useState(false);
+  const [pendingAcknowledgedSearch, setPendingAcknowledgedSearch] = useState(false);
 
   // 🔋 Progress bar state (real-time ticker like HolidayFeast)
   const [progress, setProgress] = useState(0);
@@ -456,6 +469,8 @@ export default function FastFoodGuidePage() {
       craving: string;
       cuisine: string;
       zipCode: string;
+      governanceOverrideToken?: string;
+      acknowledgedAction?: boolean;
     }) => {
       return apiRequest("/api/restaurants/guide", {
         method: "POST",
@@ -470,18 +485,23 @@ export default function FastFoodGuidePage() {
             ? dietOverrideValue
             : normalizeDiet(user?.dietaryRestrictions),
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cuisineOverride: cuisineOverrideValue } : {}),
+          ...(params.governanceOverrideToken ? { governanceOverrideToken: params.governanceOverrideToken } : {}),
+          ...(params.governanceOverrideToken ? { governanceAction: "fast-food-guide" } : {}),
         }),
       });
     },
     onMutate: () => {
       startProgressTicker();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, params) => {
       stopProgressTicker();
-      // Dietary compliance: filter BEFORE render — never show non-compliant recommendations
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       const rawRecs = data.recommendations || [];
-      const compliantRecs = filterMealsByDiet(userDiet, rawRecs, (r) => r);
+      // A governance acknowledgement is scoped to this request, so rendering
+      // must preserve its server-authorized action context.
+      const compliantRecs = params.acknowledgedAction
+        ? rawRecs
+        : filterMealsByDiet(userDiet, rawRecs, (r) => r);
       if (compliantRecs.length === 0) {
         const identityDiets = new Set([
           "kosher",
@@ -550,7 +570,7 @@ export default function FastFoodGuidePage() {
     },
   });
 
-  const handleSearch = () => {
+  const beginSearch = (actionToken?: string) => {
     if (!cravingInput.trim() || !restaurantInput.trim()) {
       toast({
         title: "Missing Information",
@@ -591,8 +611,35 @@ export default function FastFoodGuidePage() {
       craving: cravingInput,
       cuisine: match || "American",
       zipCode: zipCode,
+      governanceOverrideToken: actionToken,
+      acknowledgedAction: Boolean(actionToken),
     });
   };
+  const handleSearch = async () => {
+    if (!cravingInput.trim() || !restaurantInput.trim() || !zipCode.trim() || !/^\d{5}$/.test(zipCode)) {
+      return beginSearch();
+    }
+    const safe = await checkSafety(cravingInput, "fast-food-guide");
+    if (safe) beginSearch();
+  };
+  const handleContinueWithRequest = async () => {
+    setContinuingWithRequest(true);
+    try {
+      if (await acknowledgeAdvisory(cravingInput, "fast-food-guide")) {
+        setPendingAcknowledgedSearch(true);
+      } else {
+        toast({ title: "Generation Failed", description: "We couldn't record your acknowledgement. Please try again.", variant: "destructive" });
+      }
+    } finally {
+      setContinuingWithRequest(false);
+    }
+  };
+  useEffect(() => {
+    if (pendingAcknowledgedSearch && governanceOverrideToken) {
+      setPendingAcknowledgedSearch(false);
+      beginSearch(governanceOverrideToken);
+    }
+  }, [pendingAcknowledgedSearch, governanceOverrideToken]);
 
   const handleUseLocation = async () => {
     setIsGettingLocation(true);
@@ -755,6 +802,12 @@ export default function FastFoodGuidePage() {
                       </button>
                     )}
                   </div>
+                  <VoiceInputButton
+                    value={cravingInput}
+                    onChange={(value) => setCravingInput(value)}
+                    mode="append"
+                    label="Add craving by voice"
+                  />
                   <DietCuisineControlRow
                     savedCuisine={user?.cuisinePreference}
                     dietOverrideEnabled={dietOverrideEnabled}
@@ -821,6 +874,12 @@ export default function FastFoodGuidePage() {
                       </button>
                     )}
                   </div>
+                  <VoiceInputButton
+                    value={restaurantInput}
+                    onChange={(value) => setRestaurantInput(value)}
+                    mode="replace"
+                    label="Enter restaurant name by voice"
+                  />
                   <div className="flex gap-3">
                     <Button
                       onClick={() => advanceGuided("step1")}
@@ -846,6 +905,21 @@ export default function FastFoodGuidePage() {
                       Next
                     </Button>
                   </div>
+                  <SafetyGuardBanner
+                    alert={safetyAlert}
+                    mealRequest={cravingInput}
+                    onDismiss={clearAlert}
+                    onOverrideSuccess={() => {}}
+                    onAcceptAlternative={() => {
+                      if (safetyAlert.recommendedAlternative) {
+                        setCravingInput(safetyAlert.recommendedAlternative);
+                        clearAlert();
+                      }
+                    }}
+                    onContinueAnyway={handleContinueWithRequest}
+                    continuingAnyway={continuingWithRequest || safetyChecking}
+                    className="mt-4"
+                  />
                 </CardContent>
               </Card>
             </motion.div>

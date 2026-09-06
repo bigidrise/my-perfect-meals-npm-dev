@@ -291,9 +291,9 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
         <MfaChallengeModal
           onSuccess={async (u: User) => {
-            setShowMfaChallenge(false);
             try {
               await proceedAfterLogin(u);
+              setShowMfaChallenge(false);
             } catch (e: any) {
               setErr(e?.message || "Login failed.");
               setShowMfaChallenge(false);

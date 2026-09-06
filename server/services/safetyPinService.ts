@@ -21,6 +21,15 @@ interface AllergyEditTokenData {
   expiresAt: number;
 }
 
+interface AdvisoryOverrideTokenData {
+  userId: string;
+  expiresAt: number;
+  reasonCode: string;
+  matchedTerm: string;
+  mealRequest: string;
+  action: string;
+}
+
 interface RateLimitData {
   attempts: number;
   lockedUntil: number | null;
@@ -32,6 +41,8 @@ const activeOverrideTokens: Record<string, TokenData> = {};
 // that arrives while the audit insert is in flight will see no token and be rejected.
 const reservedOverrideTokens: Record<string, TokenData> = {};
 const activeAllergyEditTokens: Record<string, AllergyEditTokenData> = {};
+const activeAdvisoryOverrideTokens: Record<string, AdvisoryOverrideTokenData> = {};
+const reservedAdvisoryOverrideTokens: Record<string, AdvisoryOverrideTokenData> = {};
 const pinRateLimits: Record<string, RateLimitData> = {};
 
 setInterval(() => {
@@ -51,6 +62,16 @@ setInterval(() => {
   Object.keys(activeAllergyEditTokens).forEach((token) => {
     if (activeAllergyEditTokens[token].expiresAt < now) {
       delete activeAllergyEditTokens[token];
+    }
+  });
+  Object.keys(activeAdvisoryOverrideTokens).forEach((token) => {
+    if (activeAdvisoryOverrideTokens[token].expiresAt < now) {
+      delete activeAdvisoryOverrideTokens[token];
+    }
+  });
+  Object.keys(reservedAdvisoryOverrideTokens).forEach((token) => {
+    if (reservedAdvisoryOverrideTokens[token].expiresAt < now) {
+      delete reservedAdvisoryOverrideTokens[token];
     }
   });
   Object.keys(pinRateLimits).forEach((userId) => {
@@ -98,6 +119,67 @@ export function _resetTokenStoreForTesting(): void {
   for (const k of Object.keys(activeOverrideTokens)) delete activeOverrideTokens[k];
   for (const k of Object.keys(reservedOverrideTokens)) delete reservedOverrideTokens[k];
   for (const k of Object.keys(activeAllergyEditTokens)) delete activeAllergyEditTokens[k];
+  for (const k of Object.keys(activeAdvisoryOverrideTokens)) delete activeAdvisoryOverrideTokens[k];
+  for (const k of Object.keys(reservedAdvisoryOverrideTokens)) delete reservedAdvisoryOverrideTokens[k];
+}
+
+function normalizeAdvisoryRequest(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function issueAdvisoryOverrideToken(
+  userId: string,
+  reasonCode: string,
+  matchedTerm: string,
+  mealRequest: string,
+  action = "preflight",
+): string {
+  const token = crypto.randomBytes(32).toString("hex");
+  activeAdvisoryOverrideTokens[token] = {
+    userId,
+    reasonCode,
+    matchedTerm,
+    mealRequest: normalizeAdvisoryRequest(mealRequest),
+    action: normalizeAdvisoryRequest(action),
+    expiresAt: Date.now() + OVERRIDE_TOKEN_EXPIRY_MS,
+  };
+  return token;
+}
+
+export function claimAdvisoryOverrideToken(
+  token: string,
+  userId: string,
+  mealRequest: string,
+  action = "preflight",
+): AdvisoryOverrideTokenData | null {
+  const data = activeAdvisoryOverrideTokens[token];
+  if (
+    !data ||
+    data.userId !== userId ||
+    data.expiresAt < Date.now() ||
+    data.mealRequest !== normalizeAdvisoryRequest(mealRequest) ||
+    data.action !== normalizeAdvisoryRequest(action)
+  ) {
+    if (data?.expiresAt && data.expiresAt < Date.now()) {
+      delete activeAdvisoryOverrideTokens[token];
+    }
+    return null;
+  }
+  reservedAdvisoryOverrideTokens[token] = data;
+  delete activeAdvisoryOverrideTokens[token];
+  return data;
+}
+
+export function commitAdvisoryOverrideToken(token: string): void {
+  delete reservedAdvisoryOverrideTokens[token];
+}
+
+export function rollbackAdvisoryOverrideToken(token: string): void {
+  const data = reservedAdvisoryOverrideTokens[token];
+  if (data) {
+    if (data.expiresAt >= Date.now()) activeAdvisoryOverrideTokens[token] = data;
+    delete reservedAdvisoryOverrideTokens[token];
+  }
 }
 
 export type SafetyMode = "STRICT" | "CUSTOM" | "CUSTOM_AUTHENTICATED" | "ALLERGEN_ADAPT";

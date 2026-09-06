@@ -6,6 +6,7 @@ description: Phase roadmap, design constraints, and policy model for the two-wor
 ## Two permanent worlds
 - **Personal world:** nutrition, health, diary — belongs to the user forever, never affected by org membership
 - **Professional world:** businesses, clients, revenue — contextual, org-funded or independently purchased
+- A Studio or care relationship may control an explicitly assigned clinical protocol, but it never transfers ownership of the user's personal or religious dietary identity. Profile saves must keep those fields operationally separate.
 
 ## Current constraint (Phase 1)
 - `UNIQUE(businessId, userId)` constraint stays — removing it before the Professional Context engine exists creates an uninterpretable state
