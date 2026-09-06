@@ -533,32 +533,43 @@ export default function EditProfilePage() {
         throw new Error(txt || "Failed to update profile");
       }
 
-      // Save specialty condition — enforces three-tier hierarchy server-side
-      const condRes = await fetch(apiUrl("/api/user/specialty-condition"), {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authToken ? { "x-auth-token": authToken } : {}),
-        },
-        credentials: "include",
-        body: JSON.stringify({ conditions: specialtyConditions }),
-      });
-      if (!condRes.ok) {
-        const condErr = await condRes.json().catch(() => ({}));
-        if (condErr.error === "lab_driven") {
-          toast({
-            title: "Protocol locked by lab values",
-            description: "One or more protocols are controlled by your lab results. Go to Biometrics → Lab Values to update them.",
-            variant: "destructive",
-          });
-        } else if (condErr.error === "physician_locked") {
-          toast({
-            title: "Protocol controlled by your physician",
-            description: "Contact your care team to make changes to your active protocols.",
-            variant: "destructive",
-          });
+      const savedSpecialtyConditions: string[] =
+        (user as any)?.specialtyConditions ??
+        (user?.specialtyCondition ? [user.specialtyCondition] : []);
+      const specialtyConditionsChanged =
+        JSON.stringify([...specialtyConditions].sort()) !==
+        JSON.stringify([...savedSpecialtyConditions].sort());
+
+      // Health protocols have separate clinical ownership rules. Do not submit
+      // this provider-controlled field when the user only changed unrelated
+      // profile data such as their personal dietary preference.
+      if (specialtyConditionsChanged) {
+        const condRes = await fetch(apiUrl("/api/user/specialty-condition"), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "x-auth-token": authToken } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ conditions: specialtyConditions }),
+        });
+        if (!condRes.ok) {
+          const condErr = await condRes.json().catch(() => ({}));
+          if (condErr.error === "lab_driven") {
+            toast({
+              title: "Protocol locked by lab values",
+              description: "One or more protocols are controlled by your lab results. Go to Biometrics → Lab Values to update them.",
+              variant: "destructive",
+            });
+          } else if (condErr.error === "physician_locked") {
+            toast({
+              title: "Protocol controlled by your physician",
+              description: "Contact your care team to make changes to your active protocols.",
+              variant: "destructive",
+            });
+          }
+          // Still allow the rest of the save (profile data saved OK — only conditions were blocked)
         }
-        // Still allow the rest of the save (profile data saved OK — only conditions were blocked)
       }
 
       // Save thyroid type (only relevant when thyroid-support is active, but always sync)
