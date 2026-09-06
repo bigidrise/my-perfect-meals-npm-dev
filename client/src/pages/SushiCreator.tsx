@@ -231,7 +231,6 @@ export default function SushiCreator() {
   const [declinedMealDate, setDeclinedMealDate] = useState("");
   const [declinedMealName, setDeclinedMealName] = useState("");
   const [replacingMeal, setReplacingMeal] = useState<any>(null);
-  const continueAnywayRef = useRef(false);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -423,6 +422,7 @@ export default function SushiCreator() {
     overrideToken,
     hasActiveOverride,
     governanceOverrideToken,
+    clearGovernanceOverrideToken,
     acknowledgeAdvisory,
   } = useSafetyGuardPrecheck();
 
@@ -471,8 +471,6 @@ export default function SushiCreator() {
   }, [cravingInput, starchDecision, checkStarch]);
 
   const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
-    const userDietOverride = continueAnywayRef.current;
-    continueAnywayRef.current = false;
     console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
     setDietAdaptedNotice(null);
 
@@ -536,6 +534,10 @@ export default function SushiCreator() {
 
     try {
       setGenerationFailure(HIDDEN_FAILURE);
+      const actionGovernanceToken = governanceOverrideToken;
+      if (actionGovernanceToken) {
+        clearGovernanceOverrideToken();
+      }
       const url = apiUrl("/api/meals/craving-creator");
       console.log("📡 Fetching:", url);
       const response = await fetch(url, {
@@ -556,8 +558,8 @@ export default function SushiCreator() {
           overrideToken: hasActiveOverride ? overrideToken : undefined,
           // This surface shares the craving/CreateDish backend. Send both names
           // while its backend migration remains owned by that shared route.
-          advisoryOverrideToken: governanceOverrideToken,
-          governanceOverrideToken,
+          advisoryOverrideToken: actionGovernanceToken,
+          governanceOverrideToken: actionGovernanceToken,
           actionRequest: sushiStyle ? `${sushiStyle}: ${cravingInput}` : cravingInput,
           authorizationAction: "sushi_creator",
           skipPalate: !flavorPersonal,
@@ -565,7 +567,6 @@ export default function SushiCreator() {
           strictMode: keepItSimple,
           generationMode,
           dietAdaptOverride,
-          userDietOverride,
           cookMethod: cookMethod || undefined,
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           humanFoodCreator: "sushi_creator",
@@ -1142,9 +1143,14 @@ export default function SushiCreator() {
                         clearDietAlert();
                         handleGenerateMeal(true, true);
                       } else if (decision === "continue_anyway") {
-                        continueAnywayRef.current = true;
                         clearDietAlert();
-                        handleGenerateMeal(true);
+                        const actionRequest = sushiStyle ? `${sushiStyle}: ${cravingInput}` : cravingInput;
+                        const reasonCode = dietAlert.diet ? `dietary_identity:${dietAlert.diet}` : undefined;
+                        void acknowledgeAdvisory(actionRequest, "sushi_creator", reasonCode).then((acknowledged) => {
+                          if (acknowledged) {
+                            setPendingGeneration(true);
+                          }
+                        });
                       }
                     }}
                     className="mt-3"
