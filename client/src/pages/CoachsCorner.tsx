@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -877,6 +878,13 @@ export default function CoachsCorner() {
               rows={1}
               className="flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
               style={{ lineHeight: "1.5", minHeight: "44px", maxHeight: "120px" }}
+            />
+            <VoiceInputButton
+              value={inputText}
+              onChange={setInputText}
+              disabled={isLoading || bootstrapLoading}
+              label="Use voice input for Coach's Corner"
+              className="shrink-0"
             />
             <Button
               onClick={handleSend}

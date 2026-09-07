@@ -38,6 +38,7 @@ import type { DiversityContext } from "@/lib/diversityContext";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface CreateWithChefModalProps {
   open: boolean;
@@ -602,18 +603,27 @@ export function CreateWithChefModal({
             <>
               {/* Normal input mode */}
               <div>
+                <div className="flex items-end gap-2">
                 <Input
                   placeholder={getPlaceholder()}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={isProcessing}
-                  className="bg-black/40 border-white/20 text-white placeholder:text-white/40 focus:border-orange-400/50"
+                  className="flex-1 bg-black/40 border-white/20 text-white placeholder:text-white/40 focus:border-orange-400/50"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !isProcessing) {
                       handleGenerate();
                     }
                   }}
                 />
+                <VoiceInputButton
+                  value={description}
+                  onChange={setDescription}
+                  disabled={isProcessing}
+                  label={t("createWithChef.voiceInput", { defaultValue: "Use voice input to describe your meal" })}
+                  className="shrink-0"
+                />
+                </div>
                 <p className="text-xs text-white/40 mt-2">
                   {t("createWithChef.inputHint")}
                 </p>

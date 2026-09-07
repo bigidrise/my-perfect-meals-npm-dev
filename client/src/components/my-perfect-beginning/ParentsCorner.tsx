@@ -34,6 +34,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { get, post, patch, del } from "@/lib/api";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -652,6 +653,13 @@ export default function ParentsCorner({ childContext = {}, onBack }: ParentsCorn
               min-h-[42px] max-h-[120px] leading-relaxed
             "
             style={{ fieldSizing: "content" } as any}
+          />
+          <VoiceInputButton
+            value={input}
+            onChange={setInput}
+            disabled={loading}
+            label={t("parentsCorner.voiceInput", { defaultValue: "Use voice input" })}
+            className="shrink-0"
           />
           <button
             type="submit"

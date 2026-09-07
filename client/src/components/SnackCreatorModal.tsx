@@ -25,6 +25,7 @@ import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { isAllergyRelatedError } from "@/utils/allergyAlert";
 import { detectBuilderConflict, isCoachableBuilder } from "@/lib/builderGuardrailConfig";
 import { BuilderOverrideDialog } from "@/components/meal/BuilderOverrideDialog";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface SnackCreatorModalProps {
   open: boolean;
@@ -276,18 +277,27 @@ export function SnackCreatorModal({
 
         <div className="space-y-4 pt-2">
           <div>
+            <div className="flex items-end gap-2">
             <Input
               placeholder={t("snack.placeholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isProcessing}
-              className="bg-black/40 border-white/20 text-white placeholder:text-white/40 focus:border-lime-400/50"
+              className="flex-1 bg-black/40 border-white/20 text-white placeholder:text-white/40 focus:border-lime-400/50"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !isProcessing) {
                   handleGenerate();
                 }
               }}
             />
+            <VoiceInputButton
+              value={description}
+              onChange={setDescription}
+              disabled={isProcessing}
+              label={t("snack.voiceInput", { defaultValue: "Use voice input to describe your snack" })}
+              className="shrink-0"
+            />
+            </div>
             <p className="text-xs text-white/40 mt-2">
               {t("snack.tagline")}
             </p>

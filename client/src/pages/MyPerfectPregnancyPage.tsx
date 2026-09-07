@@ -10,6 +10,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupModal";
 import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -695,6 +696,13 @@ export default function MyPerfectPregnancyPage() {
                   placeholder="Ask about food safety, nausea, nutrients…"
                   rows={2}
                   className="flex-1 bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-pink-400/60 resize-none"
+                />
+                <VoiceInputButton
+                  value={input}
+                  onChange={setInput}
+                  disabled={loading}
+                  label="Use voice input for Pregnancy Coach"
+                  className="shrink-0"
                 />
                 <button
                   onClick={sendMessage}
