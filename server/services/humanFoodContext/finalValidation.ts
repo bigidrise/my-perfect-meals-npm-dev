@@ -53,6 +53,20 @@ const DIETS_REQUIRING_STRUCTURED_EVIDENCE = new Set([
   "mediterranean",
   "paleo",
   "carnivore",
+  // Canonical meal-builder protocols. These are supported only when the
+  // generator supplies positive structured evidence from its protocol scan.
+  "anti inflammatory",
+  "oncology support",
+  "liver support",
+  "kidney disease",
+  "heart failure",
+  "liver disease",
+  "diabetic",
+  "glp1",
+  "beachbody",
+  "performance",
+  "general nutrition",
+  "procare",
 ]);
 
 const UNRESTRICTED_DIETARY_IDENTITIES = new Set(["omnivore"]);
