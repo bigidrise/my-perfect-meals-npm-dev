@@ -11,6 +11,7 @@ describe("voice input coverage", () => {
     "client/src/pages/CoachsCorner.tsx",
     "client/src/components/CreateWithChefModal.tsx",
     "client/src/components/SnackCreatorModal.tsx",
+    "client/src/components/JustDescribeItModal.tsx",
   ])("uses the shared voice input in %s", (file) => {
     expect(read(file)).toContain("<VoiceInputButton");
   });

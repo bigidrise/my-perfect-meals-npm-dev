@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Minus, Plus, CheckCircle2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface MacroEstimate {
   protein: number;
@@ -187,13 +188,22 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
           {/* Input screen */}
           {!estimate && (
             <>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Two scoops of vanilla ice cream, a large Cinnabon, grilled chicken sandwich..."
-                className="w-full h-28 p-3 rounded-xl bg-black/40 border border-white/20 text-white placeholder:text-white/40 text-sm resize-none focus:outline-none focus:border-amber-500/50"
-                autoFocus
-              />
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Two scoops of vanilla ice cream, a large Cinnabon, grilled chicken sandwich..."
+                  className="min-w-0 flex-1 h-28 p-3 rounded-xl bg-black/40 border border-white/20 text-white placeholder:text-white/40 text-sm resize-none focus:outline-none focus:border-amber-500/50"
+                  autoFocus
+                />
+                <VoiceInputButton
+                  value={description}
+                  onChange={setDescription}
+                  disabled={loading}
+                  label="Use voice input to describe what you ate"
+                  className="shrink-0"
+                />
+              </div>
               <p className="text-xs text-white/50 mt-2 mb-4">
                 Include portion size if you can — "large", "small", "half", etc.
               </p>
