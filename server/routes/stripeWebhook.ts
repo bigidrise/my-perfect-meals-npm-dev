@@ -20,6 +20,7 @@ import {
 } from "../services/stripeBillingEventService";
 import { planFromSubscription } from "../services/stripePlanCatalog";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
+import { verifyStripeWebhookEvent } from "../services/stripeWebhookSignature";
 import { applyBusinessSubscriptionTransition } from "../services/businessSubscriptionService";
 
 const router = Router();
@@ -135,7 +136,12 @@ router.post("/", async (req, res) => {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    event = verifyStripeWebhookEvent({
+      stripe,
+      rawBody: req.body,
+      signature: sig,
+      webhookSecret,
+    });
   } catch (err: any) {
     console.error("❌ Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);

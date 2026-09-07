@@ -5,6 +5,17 @@ import { requireAuth } from "../middleware/requireAuth";
 import { getTrustedCheckoutPlan } from "../services/stripePlanCatalog";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 import { reconcileCheckoutSession } from "../services/stripeReconciliationService";
+import {
+  CheckoutBillingConflictError,
+  consumerCheckoutIdempotencyKey,
+  findBlockingMpmSubscription,
+  resolveCanonicalCheckoutCustomer,
+} from "../services/stripeCheckoutGuard";
+import { updateUserSubscription } from "../services/subscriptionService";
+import { claimStripeIdentityOwnership } from "../services/stripeIdentityOwnershipService";
+import { db } from "../db";
+import { users } from "@shared/schema";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 const router = Router();
@@ -77,6 +88,81 @@ router.post("/checkout", requireAuth, async (req, res) => {
       });
     }
 
+    const [billingUser] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!billingUser) {
+      return res.status(401).json({ error: "Authenticated billing account was not found." });
+    }
+
+    const customer = await resolveCanonicalCheckoutCustomer({
+      stripe,
+      user: billingUser,
+      persistCustomerId: async (customerId) => {
+        const linked = await db.transaction(async (tx) => {
+          await claimStripeIdentityOwnership(tx, {
+            ownerUserId: billingUser.id,
+            stripeCustomerId: customerId,
+          });
+          return tx
+            .update(users)
+            .set({ stripeCustomerId: customerId })
+            .where(and(
+              eq(users.id, billingUser.id),
+              or(isNull(users.stripeCustomerId), eq(users.stripeCustomerId, customerId)),
+            ))
+            .returning({ id: users.id });
+        });
+        if (linked.length !== 1) {
+          throw new CheckoutBillingConflictError(
+            "BILLING_IDENTITY_REVIEW_REQUIRED",
+            "The application account has a conflicting Stripe customer.",
+          );
+        }
+      },
+    });
+
+    const blocking = await findBlockingMpmSubscription({
+      stripe,
+      customerId: customer.id,
+      storedSubscriptionId: billingUser.stripeSubscriptionId,
+    });
+    if (blocking) {
+      const repairId = `checkout-preflight:${blocking.subscription.id}`;
+      const repaired = await updateUserSubscription({
+        userId,
+        lookupKey: blocking.planLookupKey,
+        stripeCustomerId: customer.id,
+        stripeSubscriptionId: blocking.subscription.id,
+        mutation: {
+          eventId: repairId,
+          eventCreatedAt: new Date(),
+          eventRank: 90,
+          source: "reconciliation",
+        },
+      });
+      if (!repaired.updated && repaired.reason !== "STALE_EVENT") {
+        throw new CheckoutBillingConflictError(
+          "BILLING_IDENTITY_REVIEW_REQUIRED",
+          "The active Stripe subscription could not be assigned safely.",
+        );
+      }
+      return res.status(409).json({
+        code: "SUBSCRIPTION_ALREADY_ACTIVE",
+        error: "This account already has an active subscription.",
+        billingPath: "/settings",
+      });
+    }
+
     console.log(
       `📋 Checkout request | plan=${lookupKey} | priceId=${priceId} | keyMode=${keyMode} | user=${userId}`,
     );
@@ -115,6 +201,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      customer: customer.id,
 
       line_items: [
         {
@@ -150,6 +237,8 @@ router.post("/checkout", requireAuth, async (req, res) => {
           context: body.context ?? "unknown",
         },
       },
+    }, {
+      idempotencyKey: consumerCheckoutIdempotencyKey(userId, trustedPlan.planLookupKey),
     });
 
     if (!session.url) {
@@ -165,6 +254,13 @@ router.post("/checkout", requireAuth, async (req, res) => {
     console.error("❌ Stripe checkout error:", err?.message || err);
 
     const msg = err?.message || "";
+    if (err instanceof CheckoutBillingConflictError) {
+      console.warn(`[checkout] ${err.code}; user=${getUserId(req) ?? "unknown"}`);
+      return res.status(409).json({
+        code: err.code,
+        error: "Billing identity needs review before another purchase can be started.",
+      });
+    }
     if (msg.includes("disabled outside the production billing runtime")) {
       return res.status(503).json({
         error: "Live billing is only available from the production application.",
