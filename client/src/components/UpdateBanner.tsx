@@ -14,6 +14,10 @@
  */
 
 import { useState } from "react";
+import {
+  acknowledgeRelease,
+  isReleaseAcknowledged,
+} from "@/lib/releaseVersion";
 
 interface UpdateBannerProps {
   show: boolean;
@@ -23,19 +27,14 @@ interface UpdateBannerProps {
 }
 
 export function UpdateBanner({ show, releaseNotes = [], releaseId = "" }: UpdateBannerProps) {
-  // Dismiss key is stable across routine technical redeployments.
-  // Falls back to a generic key if releaseId is not yet loaded (during hydration).
-  const dismissKey = releaseId
-    ? `mpm_update_dismissed_${releaseId}`
-    : "mpm_update_dismissed_fallback";
-
-  const [dismissed, setDismissed] = useState(
-    () => localStorage.getItem(dismissKey) === "1"
-  );
+  const [acknowledgedReleaseId, setAcknowledgedReleaseId] = useState("");
+  const dismissed =
+    !!releaseId &&
+    (acknowledgedReleaseId === releaseId || isReleaseAcknowledged(releaseId));
 
   // Hard guard 1: no new deployment detected.
   // Hard guard 2: no release notes — NEVER show an empty "What's New" banner.
-  if (!show || releaseNotes.length === 0 || dismissed) return null;
+  if (!show || !releaseId || releaseNotes.length === 0 || dismissed) return null;
 
   return (
     <div className="fixed bottom-20 left-0 right-0 z-[9999] flex justify-center px-4 pointer-events-none">
@@ -53,15 +52,20 @@ export function UpdateBanner({ show, releaseNotes = [], releaseId = "" }: Update
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              if (!acknowledgeRelease(releaseId)) return;
+              setAcknowledgedReleaseId(releaseId);
+              window.location.reload();
+            }}
             className="flex-1 text-sm font-semibold text-center bg-orange-600 text-white rounded-full py-2 active:scale-[0.98] transition-transform"
           >
             Refresh now
           </button>
           <button
             onClick={() => {
-              localStorage.setItem(dismissKey, "1");
-              setDismissed(true);
+              if (acknowledgeRelease(releaseId)) {
+                setAcknowledgedReleaseId(releaseId);
+              }
             }}
             className="text-sm font-semibold text-white/40 active:scale-[0.98] transition-transform"
           >

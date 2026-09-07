@@ -18,6 +18,20 @@ const PROFESSIONAL_ROUTE_PREFIXES = [
   "/pro/",
 ];
 
+const PUBLIC_ROUTES = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m"];
+
+function isPublicAppRoute(path: string): boolean {
+  const devRoutes = import.meta.env.DEV
+    ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__"]
+    : [];
+  return (
+    isExactPublicMarketingRoute(path) ||
+    [...PUBLIC_ROUTES, ...devRoutes].some(
+      route => path === route || path.startsWith(route + "/"),
+    )
+  );
+}
+
 function isInProfessionalWorkspace(path: string): boolean {
   return PROFESSIONAL_ROUTE_PREFIXES.some(prefix => path.startsWith(prefix));
 }
@@ -46,6 +60,7 @@ export default function AppRouter({ children }: AppRouterProps) {
   const [location, setLocation] = useLocation();
   const [showWelcomeGate, setShowWelcomeGate] = useState(false);
   const { user, loading } = useAuth();
+  const isPublicRoute = useMemo(() => isPublicAppRoute(location), [location]);
 
   const shouldShowBottomNav = useMemo(() => {
     const hideOnRoutes = [
@@ -104,16 +119,6 @@ export default function AppRouter({ children }: AppRouterProps) {
     if (location.startsWith("/onboarding") || location.startsWith("/macro-counter")) {
       return;
     }
-
-    const publicRoutes = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m",
-      // Dev-only: responsive regression harnesses (never public in production)
-      ...(import.meta.env.DEV
-        ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__"]
-        : []),
-    ];
-    const isPublicRoute =
-      isExactPublicMarketingRoute(location) ||
-      publicRoutes.some(route => location === route || location.startsWith(route + "/"));
 
     if (loading && isAuthenticated && !isPublicRoute) {
       return;
@@ -182,7 +187,23 @@ export default function AppRouter({ children }: AppRouterProps) {
         setLocation("/welcome");
       }
     }
-  }, [location, setLocation, needsOnboarding, loading, isPaidUser, isAppleReviewMode]);
+  }, [location, setLocation, needsOnboarding, loading, isPaidUser, isAppleReviewMode, isPublicRoute, user]);
+
+  if (loading && !isPublicRoute) {
+    return (
+      <div
+        className="flex h-[100dvh] w-full flex-col items-center justify-center bg-black"
+        data-testid="authenticated-startup-loading"
+      >
+        <img
+          src="/icons/chef.png?v=2026b"
+          alt=""
+          className="mb-4 h-20 w-20"
+        />
+        <p className="text-sm text-white/60">Loading your personalized experience…</p>
+      </div>
+    );
+  }
 
   if (showWelcomeGate) {
     return (
