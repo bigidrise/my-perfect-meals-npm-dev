@@ -15,6 +15,7 @@ import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 import { setUserContext, clearUserContext } from "@/lib/sentry";
 import { clearNutritionCache } from "@/hooks/nutritionStateCache";
 import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
+import { createSingleFlight } from "@/lib/singleFlight";
 
 interface AuthContextType {
   user: User | null;
@@ -54,8 +55,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isSlowStart, setIsSlowStart] = useState(false);
   const slowStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasFinishedInitialLoad = useRef(false);
+  const profileRefreshSingleFlight = useRef(createSingleFlight<User | null>());
 
-  const refreshUser = useCallback(async (): Promise<User | null> => {
+  const fetchFreshUser = useCallback(async (): Promise<User | null> => {
     const token = getAuthToken();
     if (!token) {
       console.log("⚠️ [AuthContext] No token - skipping refresh");
@@ -221,6 +223,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw error;
     }
   }, []);
+
+  const refreshUser = useCallback(
+    (): Promise<User | null> =>
+      profileRefreshSingleFlight.current.run(fetchFreshUser),
+    [fetchFreshUser],
+  );
 
   // Show "Waking up…" screen if initial auth check takes > 2 seconds.
   // Only fires once on mount — not on subsequent refreshes.
