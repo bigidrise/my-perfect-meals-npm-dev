@@ -37,11 +37,12 @@ fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; FAILED=$((FAILED+1)); }
 warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNED=$((WARNED+1)); }
 header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 
-# ── DEV bucket ID — the ONE bucket that must never reach production ───────────
+# ── Canonical isolated meal-image buckets ─────────────────────────────────────
 # Cross-reference: server/objectStorage.ts ACTIVE_BUCKET_ID must equal this
 # value (it is the active bucket for the dev workspace).  If you update one,
 # update the other.
 DEV_BUCKET="replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b"
+PROD_BUCKET="replit-objstore-3ccef2ce-f691-43ed-bb6e-fd72e925a491"
 # Dev workspace hostname fragment — any DATABASE_URL containing this is pointing at dev
 DEV_HOSTNAME_FRAGMENT="replit.dev"
 
@@ -81,18 +82,18 @@ done
 header "3. Object Storage — environment isolation (CRITICAL)"
 
 BUCKET_ID="${DEFAULT_OBJECT_STORAGE_BUCKET_ID:-}"
+STORAGE_ENV="${MEAL_IMAGE_STORAGE_ENV:-}"
 
-if [ -z "$BUCKET_ID" ]; then
+if [ "$STORAGE_ENV" != "development" ] && [ "$STORAGE_ENV" != "production" ]; then
+  fail "MEAL_IMAGE_STORAGE_ENV must be explicitly set to development or production"
+elif [ -z "$BUCKET_ID" ]; then
   fail "DEFAULT_OBJECT_STORAGE_BUCKET_ID is NOT set — images will fail to load"
-elif [ "$BUCKET_ID" = "$DEV_BUCKET" ]; then
-  fail "FATAL: DEFAULT_OBJECT_STORAGE_BUCKET_ID is the DEV bucket ($DEV_BUCKET)"
-  echo ""
-  echo -e "  ${RED}This is exactly the configuration that caused the image outage.${NC}"
-  echo "  Set DEFAULT_OBJECT_STORAGE_BUCKET_ID to the production bucket ID in the"
-  echo "  Replit deployment secrets, then re-run this script."
-  echo ""
+elif [ "$STORAGE_ENV" = "development" ] && [ "$BUCKET_ID" != "$DEV_BUCKET" ]; then
+  fail "Development meal-image storage must use the canonical Development bucket"
+elif [ "$STORAGE_ENV" = "production" ] && [ "$BUCKET_ID" != "$PROD_BUCKET" ]; then
+  fail "Production meal-image storage must use the canonical Production bucket"
 else
-  pass "Storage bucket is a non-dev bucket — $BUCKET_ID"
+  pass "Meal-image storage environment and canonical bucket match ($STORAGE_ENV)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
