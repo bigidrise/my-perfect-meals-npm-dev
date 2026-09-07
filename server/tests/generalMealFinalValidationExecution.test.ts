@@ -25,6 +25,7 @@ const baseContext = (overrides: Partial<HumanFoodContext> = {}): HumanFoodContex
   safety: { allergies: [], avoidedFoods: [], dislikedFoods: [], healthConditions: [] },
   nutrition: null,
   behavior: null,
+  authorization: { status: "not_required", waivers: [] },
   gaps: [],
   notices: [],
   blockedReasons: [],
@@ -84,6 +85,34 @@ describe("Stage 2D canonical general-meal final validation", () => {
     expect(result.accepted).toHaveLength(1);
     expect(result.validations.every(({ result: item }) =>
       item.authoritativeContextFingerprint === "stage-2d-context")).toBe(true);
+  });
+
+  it("does not block generated meals only because a profile flavor preference is not explicit in the recipe", () => {
+    const context = baseContext({
+      flavor: {
+        ...baseContext().flavor,
+        cuisine: { value: "Mediterranean", source: "profile", available: true },
+      },
+    });
+    expect(validateHumanFoodCandidate(
+      meal("Turkey and Vegetable Plate", ["turkey breast", "broccoli"]),
+      context,
+      { requestedDish: "turkey and vegetables", requestedCategory: "dinner" },
+    ).outcome).toBe("pass");
+  });
+
+  it("still requires evidence for an explicit requested cuisine", () => {
+    const context = baseContext({
+      flavor: {
+        ...baseContext().flavor,
+        cuisine: { value: "Mediterranean", source: "request", available: true },
+      },
+    });
+    expect(validateHumanFoodCandidate(
+      meal("Turkey and Vegetable Plate", ["turkey breast", "broccoli"]),
+      context,
+      { requestedDish: "turkey and vegetables", requestedCategory: "dinner" },
+    ).outcome).toBe("review_required");
   });
 
   it.each([

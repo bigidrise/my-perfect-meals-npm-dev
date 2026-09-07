@@ -4365,7 +4365,28 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     console.error('❌ Create With Chef generation failed:', error);
     
     // Fallback to deterministic template
-    const fallback = getDeterministicFallback(validMealType, [description]);
+    const fallback = glp1Targets
+      ? {
+          ...getDeterministicFallback(validMealType, [description]),
+          name: "Lean Turkey and Steamed Vegetable Plate",
+          description: "A small, high-protein plate designed for GLP-1 tolerance.",
+          ingredients: [
+            { name: "skinless turkey breast", quantity: "5", unit: "oz" },
+            { name: "steamed broccoli", quantity: "1", unit: "cup" },
+            { name: "lemon juice", quantity: "1", unit: "tsp" },
+            { name: "salt", quantity: "1/4", unit: "tsp" },
+          ],
+          instructions: [
+            "Cook the turkey breast thoroughly without added oil.",
+            "Steam the broccoli until tender.",
+            "Plate a small portion and finish with lemon juice and salt.",
+          ],
+          calories: Math.min(glp1Targets.resolvedMealCalories, 280),
+          protein: Math.max(glp1Targets.targetProteinGrams, 35),
+          carbs: 12,
+          fat: Math.min(glp1Targets.maximumToleratedFatGrams, 2),
+        }
+      : getDeterministicFallback(validMealType, [description]);
     const CHEF_DIET_VALIDATION_REQUIRED = ['vegan', 'vegetarian', 'pescatarian'];
     const chefFallbackPrimaryDiet = dietType ? String(dietType).toLowerCase() : '';
     const fallbackMeal: UnifiedMeal = {
@@ -4897,7 +4918,26 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
     console.error('❌ Snack Creator generation failed:', error);
     
     // Fallback to deterministic template for snacks
-    const fallback = getDeterministicFallback('snack', [cravingDescription]);
+    const fallback = glp1Targets
+      ? {
+          ...getDeterministicFallback('snack', [cravingDescription]),
+          name: "Strawberry Egg White Protein Cup",
+          description: "A small, very low-fat protein snack with fresh strawberry.",
+          ingredients: [
+            { name: "liquid egg whites", quantity: "1", unit: "cup" },
+            { name: "sliced strawberries", quantity: "1/2", unit: "cup" },
+            { name: "cinnamon", quantity: "1/4", unit: "tsp" },
+          ],
+          instructions: [
+            "Cook the egg whites gently in a nonstick pan without added oil.",
+            "Serve with the sliced strawberries and cinnamon.",
+          ],
+          calories: Math.min(glp1Targets.resolvedSnackCalories, 180),
+          protein: Math.max(Math.round(glp1Targets.minimumProteinFloor * 0.5), 26),
+          carbs: 8,
+          fat: 0,
+        }
+      : getDeterministicFallback('snack', [cravingDescription]);
     const SNACK_DIET_VALIDATION_REQUIRED = ['vegan', 'vegetarian', 'pescatarian'];
     const snackFallbackPrimaryDiet = dietType ? String(dietType).toLowerCase() : '';
     const fallbackSnack: UnifiedMeal = {

@@ -8,6 +8,9 @@ import {
 } from "@/lib/storekit";
 
 export const IOS_BLOCK_ERROR = "IOS_APP_EXTERNAL_PAYMENTS_BLOCKED";
+export const SUBSCRIPTION_ALREADY_ACTIVE = "SUBSCRIPTION_ALREADY_ACTIVE";
+
+const pendingCheckoutPlans = new Set<string>();
 
 export interface CheckoutOptions {
   customerEmail?: string;
@@ -47,6 +50,12 @@ export async function startCheckout(
   priceLookupKey: CheckoutLookupKey,
   opts?: CheckoutOptions,
 ) {
+  if (pendingCheckoutPlans.has(priceLookupKey)) {
+    const pendingError = new Error("Checkout is already being started.");
+    (pendingError as any).code = "CHECKOUT_ALREADY_PENDING";
+    throw pendingError;
+  }
+  pendingCheckoutPlans.add(priceLookupKey);
   // iOS native shell handling
   if (isIosNativeShell()) {
     try {
@@ -120,7 +129,10 @@ export async function startCheckout(
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data?.error || "Checkout failed");
+      const checkoutError = new Error(data?.error || "Checkout failed");
+      (checkoutError as any).code = data?.code;
+      (checkoutError as any).billingPath = data?.billingPath;
+      throw checkoutError;
     }
 
     if (!data?.url) {
@@ -138,6 +150,8 @@ export async function startCheckout(
   } catch (error) {
     console.error("[Checkout Error]", error);
     throw error;
+  } finally {
+    pendingCheckoutPlans.delete(priceLookupKey);
   }
 }
 

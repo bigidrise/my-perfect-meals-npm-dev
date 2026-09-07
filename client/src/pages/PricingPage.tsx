@@ -23,7 +23,7 @@ import {
   getDisplayFeaturesForTier,
   IOS_DISPLAY_FEATURES,
 } from "@shared/planFeatures";
-import { startCheckout, IOS_BLOCK_ERROR } from "@/lib/checkout";
+import { startCheckout, IOS_BLOCK_ERROR, SUBSCRIPTION_ALREADY_ACTIVE } from "@/lib/checkout";
 import { getAuthHeaders } from "@/lib/auth";
 import {
   isIosNativeShell,
@@ -524,6 +524,14 @@ export default function PricingPage() {
     } catch (error) {
       if ((error as any)?.code === IOS_BLOCK_ERROR) {
         toast({ ...IOS_PAYMENT_MESSAGE, variant: "default" });
+        return;
+      }
+      if ((error as any)?.code === SUBSCRIPTION_ALREADY_ACTIVE) {
+        toast({
+          title: "Subscription already active",
+          description: "Your payment is confirmed. Opening billing settings.",
+        });
+        setLocation((error as any)?.billingPath || "/settings");
         return;
       }
       toast({

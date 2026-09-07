@@ -53,6 +53,20 @@ const DIETS_REQUIRING_STRUCTURED_EVIDENCE = new Set([
   "mediterranean",
   "paleo",
   "carnivore",
+  // Canonical meal-builder protocols. These are supported only when the
+  // generator supplies positive structured evidence from its protocol scan.
+  "anti inflammatory",
+  "oncology support",
+  "liver support",
+  "kidney disease",
+  "heart failure",
+  "liver disease",
+  "diabetic",
+  "glp1",
+  "beachbody",
+  "performance",
+  "general nutrition",
+  "procare",
 ]);
 
 const UNRESTRICTED_DIETARY_IDENTITIES = new Set(["omnivore"]);
@@ -91,7 +105,7 @@ function hasExactAuthorization(
 ): boolean {
   const normalizedRule = normalize(ruleCode);
   const normalizedTerm = normalize(matchedTerm);
-  return context.authorization.status === "authorized" &&
+  return context.authorization?.status === "authorized" &&
     context.authorization.waivers.some((waiver) =>
       waiver.dimension === dimension &&
       normalize(waiver.ruleCode) === normalizedRule &&
@@ -105,7 +119,7 @@ function hasAuthorizedDietaryRequest(
   candidateText: string,
 ): boolean {
   const normalizedRule = normalize(ruleCode);
-  return context.authorization.status === "authorized" &&
+  return context.authorization?.status === "authorized" &&
     context.authorization.waivers.some((waiver) =>
       waiver.dimension === "dietary_identity" &&
       normalize(waiver.ruleCode) === normalizedRule &&
@@ -124,12 +138,15 @@ function preferenceMismatch(
   findings: HumanFoodValidationFinding[],
   dimension: "cuisine" | "flavor",
   code: string,
-  expected: { available: boolean; value: string | null },
+  expected: { available: boolean; value: string | null; source?: string },
   actual: string | undefined,
   label: string,
 ): void {
   if (!expected.available || !expected.value) return;
   if (!actual) {
+    // Stored/profile flavor signals are preferences, not safety constraints.
+    // Only an explicit request must fail closed when structured evidence is absent.
+    if (expected.source !== "request") return;
     add(findings, {
       dimension,
       outcome: "review_required",

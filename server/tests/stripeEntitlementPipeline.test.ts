@@ -258,6 +258,39 @@ describe("trusted Stripe entitlement pipeline", () => {
     expect(client).not.toContain("localStorage.setItem");
   });
 
+  it("prevents duplicate consumer subscriptions at the authoritative server boundary", () => {
+    const checkout = source("server/routes/stripeCheckout.ts");
+    const guard = source("server/services/stripeCheckoutGuard.ts");
+    const client = source("client/src/lib/checkout.ts");
+    const pricing = source("client/src/pages/PricingPage.tsx");
+
+    expect(checkout).toContain("resolveCanonicalCheckoutCustomer");
+    expect(checkout).toContain("findBlockingMpmSubscription");
+    expect(checkout).toContain('code: "SUBSCRIPTION_ALREADY_ACTIVE"');
+    expect(checkout).toContain("customer: customer.id");
+    expect(checkout).toContain("consumerCheckoutIdempotencyKey");
+    expect(guard).toContain("metadata['userId']");
+    expect(guard).not.toContain("customers.list({ email");
+    expect(client).toContain("pendingCheckoutPlans");
+    expect(pricing).toContain("SUBSCRIPTION_ALREADY_ACTIVE");
+  });
+
+  it("keeps the canonical webhook outside user auth while requiring raw-body signatures", () => {
+    const dev = source("server/index.ts");
+    const prod = source("server/prod.ts");
+    const webhook = source("server/routes/stripeWebhook.ts");
+
+    for (const boot of [dev, prod]) {
+      expect(boot.indexOf('app.use("/api/stripe/webhook", express.raw'))
+        .toBeLessThan(boot.indexOf("app.use(express.json"));
+    }
+    expect(webhook).toContain("verifyStripeWebhookEvent");
+    expect(source("server/services/stripeWebhookSignature.ts"))
+      .toContain("stripe.webhooks.constructEvent");
+    expect(webhook).not.toContain("requireAuth");
+    expect(webhook).toContain("claimBillingEvent");
+  });
+
   it("runs the billing migration in development and production boot paths", () => {
     expect(source("server/index.ts")).toContain("runStripeBillingMigration");
     expect(source("server/prod.ts")).toContain("runStripeBillingMigration");
