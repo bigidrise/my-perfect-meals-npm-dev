@@ -156,6 +156,96 @@ describe("universal Human Food final-validation contract", () => {
     ]));
   });
 
+  it("accepts GLP-1 as supported when its required structured evidence is positive", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Herbed Shrimp and Egg White Breakfast Bowl",
+      category: "breakfast",
+      ingredients: ["shrimp", "egg whites", "spinach", "mushrooms", "tomato"],
+      nutrition: { calories: 350, protein: 58, carbs: 12, fat: 7, starchyCarbs: 0 },
+      evidence: generatedEvidence({
+        dietaryIdentityCompliant: true,
+        glp1Compliant: true,
+      }),
+    }, context({
+      diet: {
+        stored: [],
+        effective: ["glp1"],
+        source: "request",
+        requestOverride: "glp1",
+        adaptationOutcome: "request_override_applied",
+      },
+    }), { requestedCategory: "breakfast" });
+
+    expect(result.outcome).toBe("pass");
+    expect(result.findings.some((finding) =>
+      finding.code === "dietary_identity_unsupported:glp1")).toBe(false);
+  });
+
+  it.each([undefined, false])(
+    "keeps GLP-1 fail-closed when structured dietary evidence is %s",
+    (dietaryIdentityCompliant) => {
+      const result = validateHumanFoodCandidate({
+        name: "Breakfast Bowl",
+        category: "breakfast",
+        ingredients: ["egg whites", "spinach", "tomato"],
+        evidence: generatedEvidence({
+          dietaryIdentityCompliant,
+          glp1Compliant: true,
+        }),
+      }, context({
+        diet: {
+          stored: [],
+          effective: ["glp1"],
+          source: "request",
+          requestOverride: "glp1",
+          adaptationOutcome: "request_override_applied",
+        },
+      }));
+
+      expect(result.outcome).toBe("review_required");
+      expect(result.findings).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          code: "dietary_identity_evidence_required:glp1",
+        }),
+      ]));
+    },
+  );
+
+  it("accepts general nutrition with positive structured evidence", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Chicken and Vegetable Plate",
+      category: "dinner",
+      ingredients: ["chicken breast", "broccoli", "tomato", "olive oil"],
+      evidence: generatedEvidence({ dietaryIdentityCompliant: true }),
+    }, context({
+      diet: {
+        stored: [],
+        effective: ["general-nutrition"],
+        source: "request",
+        requestOverride: "general-nutrition",
+        adaptationOutcome: "request_override_applied",
+      },
+    }));
+
+    expect(result.outcome).toBe("pass");
+  });
+
+  it.each([
+    ["Create with Chef", "dinner", "Chicken and Vegetable Plate"],
+    ["Snack Creator", "snack", "Apple and Hard-Boiled Egg Snack"],
+  ])("allows a valid ordinary %s candidate", (_creator, category, name) => {
+    const result = validateHumanFoodCandidate({
+      name,
+      category,
+      ingredients: category === "snack"
+        ? ["apple", "hard-boiled egg"]
+        : ["chicken breast", "broccoli", "tomato"],
+      evidence: generatedEvidence(),
+    }, context(), { requestedCategory: category });
+
+    expect(result.outcome).toBe("pass");
+  });
+
   it("blocks lactose derivatives while preserving Indian cuisine evidence", () => {
     const result = validateHumanFoodCandidate({
       name: "Palak Paneer",
