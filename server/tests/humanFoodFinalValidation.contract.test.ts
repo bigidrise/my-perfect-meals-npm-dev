@@ -111,6 +111,51 @@ describe("universal Human Food final-validation contract", () => {
     ]));
   });
 
+  it("accepts a canonical builder protocol with positive structured evidence", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Turmeric Quinoa Breakfast Bowl",
+      category: "breakfast",
+      ingredients: ["quinoa", "spinach", "turmeric", "blueberries", "olive oil"],
+      instructions: "Cook the quinoa and serve with the vegetables, turmeric, and berries.",
+      evidence: generatedEvidence({ dietaryIdentityCompliant: true }),
+    }, context({
+      diet: {
+        stored: ["vegan"],
+        effective: ["anti-inflammatory"],
+        source: "request",
+        requestOverride: "anti-inflammatory",
+        adaptationOutcome: "request_override_applied",
+      },
+    }), { requestedDish: "breakfast", requestedCategory: "breakfast" });
+
+    expect(result.outcome).toBe("pass");
+    expect(result.findings).toEqual([]);
+  });
+
+  it("still requires evidence for a canonical builder protocol", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Breakfast Bowl",
+      category: "breakfast",
+      ingredients: ["quinoa", "spinach"],
+      evidence: generatedEvidence({ dietaryIdentityCompliant: false }),
+    }, context({
+      diet: {
+        stored: [],
+        effective: ["anti-inflammatory"],
+        source: "request",
+        requestOverride: "anti-inflammatory",
+        adaptationOutcome: "request_override_applied",
+      },
+    }), { requestedDish: "breakfast", requestedCategory: "breakfast" });
+
+    expect(result.outcome).toBe("review_required");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "dietary_identity_evidence_required:anti inflammatory",
+      }),
+    ]));
+  });
+
   it("blocks lactose derivatives while preserving Indian cuisine evidence", () => {
     const result = validateHumanFoodCandidate({
       name: "Palak Paneer",
