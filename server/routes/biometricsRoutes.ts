@@ -583,6 +583,7 @@ router.post('/analyze-photo', requireAuth, requireActiveAccess, async (req, res)
             content: `You are a nutrition analysis expert. The user will describe a food or meal in plain text. Estimate its macronutrients based on typical portion sizes.
 Return ONLY valid JSON in this exact format:
 {
+  "status": "success",
   "calories": <number>,
   "protein": <number in grams>,
   "carbs": <number in grams>,
@@ -594,27 +595,35 @@ Be realistic with portion sizes. If you cannot estimate macros, return zeros wit
           { role: 'user', content: `Estimate the macros for: ${text}` },
         ];
       } else {
-        // Image-based macro estimation
+        // Image-based nutrition-label or food-photo analysis
         const imageUrl = image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`;
         messages = [
           {
             role: 'system',
-            content: `You are a nutrition analysis expert. Analyze the food in the image and estimate its macronutrients.
+            content: `You are a nutrition analysis expert. Analyze the image for reliable nutrition evidence.
 Return ONLY valid JSON in this exact format:
 {
+  "status": "success" | "barcode_only" | "nutrition_facts_unreadable",
   "calories": <number>,
   "protein": <number in grams>,
   "carbs": <number in grams>,
   "fat": <number in grams>,
   "description": "<brief description of the food>"
 }
-Be realistic with portion sizes shown. If you cannot identify food, return zeros with description explaining why.`,
+Rules:
+- Use "barcode_only" when a barcode/UPC is visible but readable Nutrition Facts are not. Return zero macros.
+- Use "nutrition_facts_unreadable" when a Nutrition Facts panel is missing, cropped, blurry, obscured, or otherwise insufficient to support the macros. Return zero macros.
+- Use "success" only when a readable Nutrition Facts panel or clearly identifiable food provides enough evidence for the returned macros.
+- Never invent macro values when usable nutrition evidence is absent.
+- Be realistic with portions for identifiable food photos.`,
           },
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Analyze this food image and estimate the macros:' },
-              { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } },
+              { type: 'text', text: 'Read the Nutrition Facts panel or analyze clearly identifiable food. Classify barcode-only and unreadable images as instructed.' },
+              // Nutrition Facts text is small; low detail downscales it too
+              // aggressively and was producing zero-value "successes".
+              { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
             ],
           },
         ];
@@ -630,25 +639,65 @@ Be realistic with portion sizes shown. If you cannot identify food, return zeros
 
       const content = response.choices[0]?.message?.content ?? '{}';
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      if (!jsonMatch) throw new Error('Vision analysis returned no structured result');
+      const parsed = JSON.parse(jsonMatch[0]);
+      const isTextRequest = text && typeof text === 'string';
+      const status = isTextRequest ? 'success' : parsed.status;
+
+      if (
+        status !== 'success' &&
+        status !== 'barcode_only' &&
+        status !== 'nutrition_facts_unreadable'
+      ) {
+        throw new Error('Vision analysis returned an invalid evidence status');
+      }
+
+      if (status !== 'success') {
+        const description =
+          status === 'barcode_only'
+            ? 'We found a barcode, not a Nutrition Facts label. Turn the package around and take a clear photo of the Nutrition Facts panel.'
+            : "We couldn't read the Nutrition Facts from this photo. Take another photo with the full Nutrition Facts panel clearly visible.";
+        return res.json({
+          status,
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          description,
+          source: 'ai',
+        });
+      }
+
+      const macroValues = [parsed.calories, parsed.protein, parsed.carbs, parsed.fat].map(Number);
+      if (macroValues.some((value) => !Number.isFinite(value) || value < 0)) {
+        throw new Error('Analysis returned invalid macro values');
+      }
+      if (macroValues.every((value) => value === 0)) {
+        return res.json({
+          status: 'nutrition_facts_unreadable',
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          description: "We couldn't read the Nutrition Facts from this photo. Take another photo with the full Nutrition Facts panel clearly visible.",
+          source: 'ai',
+        });
+      }
 
       res.json({
-        calories: Math.round(parsed.calories ?? 0),
-        protein: Math.round(parsed.protein ?? 0),
-        carbs: Math.round(parsed.carbs ?? 0),
-        fat: Math.round(parsed.fat ?? 0),
+        status: 'success',
+        calories: Math.round(macroValues[0]),
+        protein: Math.round(macroValues[1]),
+        carbs: Math.round(macroValues[2]),
+        fat: Math.round(macroValues[3]),
         description: parsed.description ?? 'Food analyzed',
         source: 'ai'
       });
     } catch (aiError: any) {
-      console.log('AI photo analysis unavailable, using deterministic fallback');
-      res.json({
-        calories: 350,
-        protein: 25,
-        carbs: 35,
-        fat: 12,
-        description: 'Estimated meal (AI unavailable - using average meal values)',
-        source: 'fallback'
+      console.error('AI photo analysis unavailable:', aiError?.message);
+      return res.status(503).json({
+        error: 'Nutrition analysis is temporarily unavailable',
+        detail: 'Please try again with a clear photo of the full Nutrition Facts panel.'
       });
     }
 
