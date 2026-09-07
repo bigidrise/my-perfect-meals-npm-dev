@@ -24,7 +24,7 @@ export async function requireAdmin(
       .limit(1);
 
     if (!user || !user.isAdmin) {
-      console.warn(`[requireAdmin] 403 forbidden — userId: ${authReq.authUser.id}, email: ${authReq.authUser.email}`);
+      console.warn("[requireAdmin] 403 forbidden");
       res.status(403).json({ error: "Forbidden", code: "ADMIN_REQUIRED" });
       return;
     }

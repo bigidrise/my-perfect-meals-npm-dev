@@ -115,7 +115,7 @@ router.post("/guide", async (req, res) => {
       });
     }
 
-    console.log(`🍽️ [Guide] "${craving}" at "${restaurantName}" near ZIP ${zipCode}`);
+    console.log("🍽️ [Guide] Restaurant guide request received");
     
     const generationStart = Date.now();
 
@@ -695,7 +695,7 @@ router.post("/find-nearby", async (req, res) => {
       : visible.filter((r) => r.tier === "ADAPTABLE").sort((a, b) => b.score - a.score);
 
     console.log(
-      `✅ [find-nearby] diet=${dietStr} cuisine=${cuisinePreference ?? "any"} zip=${zipCode} total=${places.length} high=${highMatch.length} adaptable=${adaptable.length} blocked=${scored.length - visible.length}`
+      `✅ [find-nearby] total=${places.length} high=${highMatch.length} adaptable=${adaptable.length} blocked=${scored.length - visible.length}`
     );
 
     if (isCertDiet && highMatch.length === 0) {

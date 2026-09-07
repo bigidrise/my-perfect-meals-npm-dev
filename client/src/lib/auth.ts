@@ -590,7 +590,7 @@ export async function login(
       localStorage.removeItem("appleReviewFullAccess");
     }
 
-    console.log("✅ User logged in — isProCare:", user.isProCare, "role:", user.professionalRole);
+    console.log("✅ User logged in");
 
     return user;
   } catch (error: any) {

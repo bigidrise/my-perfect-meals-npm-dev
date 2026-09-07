@@ -66,7 +66,7 @@ export async function ensureStudioForTrainer(trainerUserId: string): Promise<Ens
     }).onConflictDoNothing();
 
     if (newStudio) {
-      console.log(`🏗️ [StudioBridge] Auto-created ${studioType} "${studioName}" for trainer ${trainerUserId}`);
+      console.log(`🏗️ [StudioBridge] Auto-created ${studioType}`);
     }
 
     return {

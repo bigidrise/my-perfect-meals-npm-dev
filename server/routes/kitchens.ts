@@ -193,7 +193,7 @@ router.post("/partner-inquiry", async (req, res) => {
       html,
     });
 
-    console.log(`[Kitchens] Partner inquiry received from ${email}`);
+    console.log("[Kitchens] Partner inquiry received");
     return res.json({ ok: true });
   } catch (err: any) {
     console.error("[Kitchens] partner-inquiry error:", err);
@@ -232,7 +232,7 @@ router.post("/contact-inquiry", async (req, res) => {
       html,
     });
 
-    console.log(`[Kitchens] Contact inquiry received from ${email}`);
+    console.log("[Kitchens] Contact inquiry received");
     return res.json({ ok: true });
   } catch (err: any) {
     console.error("[Kitchens] contact-inquiry error:", err);

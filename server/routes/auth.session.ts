@@ -599,7 +599,7 @@ router.post("/api/auth/forgot-password", async (req, res) => {
       console.log(`📧 [FORGOT-PASSWORD] Reset link generated`);
 
       if (!emailServiceAvailable()) {
-        console.warn(`⚠️ [FORGOT-PASSWORD] RESEND_API_KEY not configured — password reset email skipped for ${normalizedEmail}`);
+        console.warn("⚠️ [FORGOT-PASSWORD] RESEND_API_KEY not configured — password reset email skipped");
       } else {
         try {
           const { sendPasswordResetEmail } = await import("../services/emailService");

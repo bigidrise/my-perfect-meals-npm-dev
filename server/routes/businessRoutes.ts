@@ -768,7 +768,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       });
     }
 
-    console.log(`✅ [business] Invite sent | business=${business.id} | to=${email} | type=${invitationType}`);
+    console.log(`✅ [business] Invite sent | type=${invitationType}`);
     return res.json({ success: true, inviteLink, message: `Invitation created for ${email}.` });
   } catch (err) {
     console.error("[business/invite] error:", err);

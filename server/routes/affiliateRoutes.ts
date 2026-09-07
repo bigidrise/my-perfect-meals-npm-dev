@@ -523,7 +523,7 @@ export async function handleRewardfulWebhook(req: any, res: any) {
       .limit(1);
 
     if (!account) {
-      console.log(`[Rewardful Webhook] ${event.type} for unknown affiliate ${affiliateId} (${email}) — ignored`);
+      console.log(`[Rewardful Webhook] ${event.type} for unknown affiliate — ignored`);
       return res.status(200).json({ received: true });
     }
 

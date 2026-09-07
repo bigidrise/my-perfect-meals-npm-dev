@@ -63,7 +63,7 @@ router.post('/meal-finder', async (req, res) => {
       });
     }
     
-    console.log(`📍 Meal Finder request: "${mealQuery}" near ZIP ${zipCode}`);
+    console.log("📍 Meal Finder request received");
     
     // ── Resolve userId from auth token header ──────────────────────────────
     let userId: string | undefined;
