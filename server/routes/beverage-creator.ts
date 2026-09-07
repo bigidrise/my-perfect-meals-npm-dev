@@ -188,6 +188,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
 
     const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
     const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
+    const { resolveRequestDietOverride } = await import("../services/humanFoodContext/requestDiet");
     // Bind acknowledgement to the route's actual request, never a body field
     // that could describe a different drink.
     const canonicalActionRequest = hasCustomDesc
@@ -203,7 +204,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       subjectUserId: userId,
       creator: "beverage_creator",
       correlationId: (req as any).id,
-      dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+      dietOverride: resolveRequestDietOverride(dietOverride, dietaryPreferences),
       cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
       cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
       actionRequest: canonicalActionRequest,
