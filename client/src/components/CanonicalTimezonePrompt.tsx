@@ -28,7 +28,7 @@ function timezoneLabel(timezone: string): string {
 }
 
 export function CanonicalTimezonePrompt() {
-  const { user, refreshUser } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const deviceTimezone = useMemo(detectedTimezone, []);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -40,7 +40,7 @@ export function CanonicalTimezonePrompt() {
       : null;
 
   useEffect(() => {
-    if (!user || !deviceTimezone) return;
+    if (loading || !user || !deviceTimezone) return;
 
     if (!canonicalTimezone) {
       void apiRequest("/api/users/profile", {
@@ -62,7 +62,7 @@ export function CanonicalTimezonePrompt() {
     ) {
       setOpen(true);
     }
-  }, [canonicalTimezone, deviceTimezone, mismatchKey, refreshUser, user]);
+  }, [canonicalTimezone, deviceTimezone, loading, mismatchKey, refreshUser, user]);
 
   if (!user || !canonicalTimezone || !deviceTimezone || canonicalTimezone === deviceTimezone) {
     return null;
