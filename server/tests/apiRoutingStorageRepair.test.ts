@@ -41,10 +41,9 @@ describe("development routing and meal-image storage repair", () => {
     })).toBe("https://app.myperfectmeals.com");
   });
 
-  test("DEV always writes and serves images from its attached bucket", () => {
+  test("development NODE_ENV defaults to the Development bucket without an override", () => {
     const devContext = resolveMealImageStorageContext({
       nodeEnv: "development",
-      configuredBucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
     });
 
     expect(devContext).toEqual({
@@ -59,9 +58,29 @@ describe("development routing and meal-image storage repair", () => {
       .toThrow("active bucket");
   });
 
-  test("production requires its exact configured bucket and remaps only its legacy reads", () => {
+  test("a published runtime can explicitly select isolated Development storage", () => {
+    const devPublishedContext = resolveMealImageStorageContext({
+      nodeEnv: "production",
+      storageEnvironment: "development",
+      configuredBucketId: DEVELOPMENT_MEAL_IMAGE_BUCKET_ID,
+    });
+
+    expect(devPublishedContext).toEqual({
+      environment: "development",
+      bucketId: DEVELOPMENT_MEAL_IMAGE_BUCKET_ID,
+    });
+    expect(resolveMealImageReadBucket(LEGACY_2A68, devPublishedContext))
+      .toBe(LEGACY_2A68);
+    expect(() => assertActiveMealImageWriteBucket(
+      PRODUCTION_MEAL_IMAGE_BUCKET_ID,
+      devPublishedContext,
+    )).toThrow("active bucket");
+  });
+
+  test("production requires its exact explicit environment and bucket", () => {
     const productionContext = resolveMealImageStorageContext({
       nodeEnv: "production",
+      storageEnvironment: "production",
       configuredBucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
     });
     expect(productionContext).toEqual({
@@ -77,8 +96,35 @@ describe("development routing and meal-image storage repair", () => {
     expect(resolveMealImageReadBucket(unknownBucket, productionContext)).toBe(unknownBucket);
     expect(() => resolveMealImageStorageContext({
       nodeEnv: "production",
+      storageEnvironment: "production",
       configuredBucketId: DEVELOPMENT_MEAL_IMAGE_BUCKET_ID,
     })).toThrow("canonical production bucket");
+  });
+
+  test("production runtime fails closed when storage environment is missing or invalid", () => {
+    expect(() => resolveMealImageStorageContext({
+      nodeEnv: "production",
+      storageEnvironment: "",
+      configuredBucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
+    })).toThrow("must explicitly configure MEAL_IMAGE_STORAGE_ENV");
+    expect(() => resolveMealImageStorageContext({
+      nodeEnv: "production",
+      storageEnvironment: "staging",
+      configuredBucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
+    })).toThrow("must be either development or production");
+  });
+
+  test("explicit Development storage rejects the Production bucket", () => {
+    expect(() => resolveMealImageStorageContext({
+      nodeEnv: "production",
+      storageEnvironment: "development",
+      configuredBucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
+    })).toThrow("canonical development bucket");
+    expect(() => resolveMealImageStorageContext({
+      nodeEnv: "development",
+      storageEnvironment: "production",
+      configuredBucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID,
+    })).toThrow("Development runtime cannot select");
   });
 
   test("DEV keeps legacy URLs unchanged and all health handlers resolve the active context", () => {

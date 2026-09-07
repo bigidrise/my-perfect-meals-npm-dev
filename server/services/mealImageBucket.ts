@@ -22,14 +22,16 @@ export interface MealImageStorageContext {
 export interface MealImageStorageContextInput {
   nodeEnv?: string;
   configuredBucketId?: string;
+  storageEnvironment?: string;
 }
 
 /**
  * Resolve the only bucket allowed to receive new meal-image writes.
  *
- * Production fails closed unless its explicit configuration points at the
- * canonical production bucket. Development always uses its attached bucket,
- * so a misplaced shared secret cannot make DEV mutate production images.
+ * Published runtimes keep NODE_ENV=production for normal application behavior,
+ * while MEAL_IMAGE_STORAGE_ENV explicitly selects their isolated image bucket.
+ * A production-mode runtime must declare this setting and every explicit
+ * context must point at its exact canonical bucket.
  */
 export function resolveMealImageStorageContext(
   input: MealImageStorageContextInput = {},
@@ -37,8 +39,33 @@ export function resolveMealImageStorageContext(
   const isProduction = (input.nodeEnv ?? process.env.NODE_ENV) === "production";
   const configuredBucketId =
     input.configuredBucketId ?? process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+  const explicitEnvironment =
+    input.storageEnvironment ?? process.env.MEAL_IMAGE_STORAGE_ENV;
 
-  if (isProduction) {
+  if (!explicitEnvironment) {
+    if (isProduction) {
+      throw new Error(
+        "Production runtime must explicitly configure MEAL_IMAGE_STORAGE_ENV",
+      );
+    }
+    return { environment: "development", bucketId: DEVELOPMENT_MEAL_IMAGE_BUCKET_ID };
+  }
+
+  if (
+    explicitEnvironment !== "development" &&
+    explicitEnvironment !== "production"
+  ) {
+    throw new Error(
+      "MEAL_IMAGE_STORAGE_ENV must be either development or production",
+    );
+  }
+
+  if (explicitEnvironment === "production") {
+    if (!isProduction) {
+      throw new Error(
+        "Development runtime cannot select the production meal-image storage environment",
+      );
+    }
     if (configuredBucketId !== PRODUCTION_MEAL_IMAGE_BUCKET_ID) {
       throw new Error(
         "Production meal-image storage must be explicitly configured with the canonical production bucket",
@@ -47,6 +74,11 @@ export function resolveMealImageStorageContext(
     return { environment: "production", bucketId: PRODUCTION_MEAL_IMAGE_BUCKET_ID };
   }
 
+  if (configuredBucketId !== DEVELOPMENT_MEAL_IMAGE_BUCKET_ID) {
+    throw new Error(
+      "Development meal-image storage must be explicitly configured with the canonical development bucket",
+    );
+  }
   return { environment: "development", bucketId: DEVELOPMENT_MEAL_IMAGE_BUCKET_ID };
 }
 
