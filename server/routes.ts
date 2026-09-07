@@ -5799,7 +5799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          console.log(`🚫 [SAFETY] Blocked craving request; blockedTermCount=${safetyCheck.blockedTerms.length}; correlationId=${(req as any).id}`);
           return res.status(400).json({
             success: false,
             error: safetyCheck.message,
