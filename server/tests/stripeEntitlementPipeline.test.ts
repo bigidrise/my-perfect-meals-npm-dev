@@ -138,7 +138,41 @@ describe("trusted Stripe entitlement pipeline", () => {
 
     expect(businessHandler).toContain('getTrustedCheckoutPlan("clinical_business_monthly")');
     expect(businessHandler).toContain("price: trustedBusinessPlan.priceId");
+    expect(businessHandler).toContain("const requestedSeats = 1");
+    expect(businessHandler).toContain('code: "INITIAL_ORGANIZATION_OWNER_SEAT_ONLY"');
+    expect(businessHandler).toContain("quantity: requestedSeats");
     expect(businessHandler).not.toContain("process.env.STRIPE_CLINICAL_BUSINESS_MONTHLY_PRICE_ID");
+  });
+
+  it("keeps later Organization seat management separate from initial owner checkout", () => {
+    const businessRoutes = source("server/routes/businessRoutes.ts");
+    const seatHandler = businessRoutes.slice(businessRoutes.indexOf('router.post("/seats"'));
+
+    expect(seatHandler).toContain("newSeats");
+    expect(seatHandler).toContain("quantity: newSeats");
+    expect(seatHandler).toContain('"always_invoice"');
+    expect(seatHandler).toContain("assertStripeBillingOwnership(stripeKey)");
+    expect(seatHandler).toContain("pg_advisory_xact_lock");
+    expect(seatHandler).toContain("currentQuantity !== newSeats");
+    expect(seatHandler).toContain("idempotencyKey: `mpm-business-seats:");
+    expect(seatHandler).toContain("${operationId}");
+  });
+
+  it("serializes professional invite acceptance with seat reductions", () => {
+    const businessRoutes = source("server/routes/businessRoutes.ts");
+    const acceptHandler = businessRoutes.slice(
+      businessRoutes.indexOf('router.post("/invite/:token/accept"'),
+      businessRoutes.indexOf('router.patch("/name"'),
+    );
+    const seatHandler = businessRoutes.slice(businessRoutes.indexOf('router.post("/seats"'));
+
+    expect(acceptHandler).toContain("pg_advisory_xact_lock(hashtext(${business.id}))");
+    expect(acceptHandler).toContain('eq(businessMembers.status, "active")');
+    expect(acceptHandler).toContain('seatError.code = "SEATS_FULL"');
+    expect(seatHandler).toContain("pg_advisory_xact_lock(hashtext(${biz.id}))");
+    expect(seatHandler.indexOf("pg_advisory_xact_lock")).toBeLessThan(
+      seatHandler.indexOf("const activeSeats"),
+    );
   });
 
   it("database-enforces unique Stripe ownership for users and businesses", () => {

@@ -53,7 +53,6 @@ export default function PricingPage() {
     null,
   );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
-  const [businessSeats, setBusinessSeats] = useState(4);
   const [businessCheckoutLoading, setBusinessCheckoutLoading] = useState(false);
 
   const [procareRole, setProcareRole] = useState<"trainer" | "physician">(
@@ -553,7 +552,7 @@ export default function PricingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ seats: businessSeats }),
+        body: JSON.stringify({ seats: 1 }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -1048,9 +1047,9 @@ export default function PricingPage() {
                 Organization
               </span>
             </div>
-            <h2 className="text-2xl font-bold text-white">Full Access for Your Whole Team</h2>
+            <h2 className="text-2xl font-bold text-white">Organization / Business Suite</h2>
             <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
-              For coaching businesses, wellness organizations, and healthcare practices. One subscription — centralized billing, full Clinical access for every assigned seat.
+              Start with one professional owner seat. Invite clients to try My Perfect Meals, then add professional seats later from your Organization Dashboard.
             </p>
           </div>
 
@@ -1060,15 +1059,15 @@ export default function PricingPage() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold">Organization</h3>
-                    <Badge className="bg-blue-600/80 text-white border border-blue-400/30">Team Plan</Badge>
+                    <Badge className="bg-blue-600/80 text-white border border-blue-400/30">Business Suite</Badge>
                   </div>
-                  <p className="text-blue-300 text-sm font-medium">$44.99 per seat / month</p>
+                  <p className="text-blue-300 text-sm font-medium">One organization owner</p>
                   <div className="flex items-baseline gap-1 pt-1">
-                    <span className="text-3xl font-bold">${(44.99 * businessSeats).toFixed(2)}</span>
+                    <span className="text-3xl font-bold">$44.99</span>
                     <span className="text-white text-sm">/ month</span>
                   </div>
                   <p className="text-white text-xs">
-                    {businessSeats} seat{businessSeats > 1 ? "s" : ""} · Full Clinical access for each assigned user
+                    Includes one professional owner seat with full Clinical and ProCare access
                   </p>
                 </div>
               </CardHeader>
@@ -1076,42 +1075,10 @@ export default function PricingPage() {
               <Separator className="bg-white/10" />
 
               <CardContent className="pt-5">
-                {/* Seat selector */}
-                <div className="mb-5">
-                  <p className="text-sm text-white/70 mb-3 font-medium">Number of seats</p>
-                  <div className="flex items-center justify-between bg-white/5 border border-white/15 rounded-xl px-4 py-3">
-                    <button
-                      onClick={() => setBusinessSeats(Math.max(1, businessSeats - 1))}
-                      className="w-9 h-9 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
-                    >
-                      −
-                    </button>
-                    <div className="text-center">
-                      <span className="text-2xl font-bold text-white">{businessSeats}</span>
-                      <p className="text-white/50 text-xs mt-0.5">seat{businessSeats !== 1 ? "s" : ""}</p>
-                    </div>
-                    <button
-                      onClick={() => setBusinessSeats(Math.min(250, businessSeats + 1))}
-                      className="w-9 h-9 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
-                    >
-                      +
-                    </button>
-                  </div>
-                  {businessSeats >= 11 && businessSeats <= 50 && (
-                    <p className="text-amber-400/80 text-xs mt-2 px-1">
-                      For 11–50 seats, we recommend a quick setup call so your team gets onboarded smoothly.
-                    </p>
-                  )}
-                  {businessSeats > 50 && (
-                    <p className="text-amber-400/80 text-xs mt-2 px-1">
-                      For 50+ seats, contact us for enterprise pricing and a dedicated onboarding experience.
-                    </p>
-                  )}
-                  <div className="mt-3 bg-blue-600/10 border border-blue-500/20 rounded-xl px-3 py-2.5">
-                    <p className="text-blue-200/80 text-xs leading-relaxed">
-                      <span className="font-semibold text-blue-300">Each seat = one active user.</span> Count every person who will use the platform — including yourself as the organization owner. For example: owner + spouse + 2 coaches = 4 seats.
-                    </p>
-                  </div>
+                <div className="mb-5 bg-blue-600/10 border border-blue-500/20 rounded-xl px-3 py-2.5">
+                  <p className="text-blue-200/80 text-xs leading-relaxed">
+                    Your subscription starts with you as the organization owner. Client trials do not require a paid professional seat. Add coaches, trainers, physicians, or staff later through Manage Seats.
+                  </p>
                 </div>
 
                 {/* Features */}
@@ -1145,7 +1112,7 @@ export default function PricingPage() {
                   {businessCheckoutLoading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />Processing…</>
                   ) : (
-                    `Start an Organization — $${(44.99 * businessSeats).toFixed(2)}/mo`
+                    "Start an Organization — $44.99/mo"
                   )}
                 </button>
                 <p className="text-white/40 text-xs text-center mt-2">

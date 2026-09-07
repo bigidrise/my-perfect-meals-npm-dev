@@ -2,9 +2,9 @@
  * BusinessSetup.tsx
  *
  * First-time business signup flow. Shown immediately after a user creates a
- * business account (/auth?role=business). Collects org name + seat count,
+ * business account (/auth?role=business). Collects the organization name,
  * creates the businesses row (POST /api/business/create-org), then redirects
- * to Stripe checkout (POST /api/stripe/checkout/business).
+ * to Stripe checkout for one owner seat (POST /api/stripe/checkout/business).
  *
  * This page is intentionally ungated — the user has not yet paid.
  */
@@ -14,14 +14,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { Building2, Users, ChevronRight, Loader2, CheckCircle } from "lucide-react";
 
-const SEAT_OPTIONS = [
-  { value: 2, label: "2 seats", sublabel: "Small team" },
-  { value: 5, label: "5 seats", sublabel: "Growing team" },
-  { value: 10, label: "10 seats", sublabel: "Mid-size team" },
-  { value: 25, label: "25 seats", sublabel: "Large team" },
-  { value: 50, label: "50 seats", sublabel: "Enterprise" },
-];
-
 export default function BusinessSetup() {
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -29,9 +21,6 @@ export default function BusinessSetup() {
   const pilotMode = new URLSearchParams(search).get("pilot") === "1";
 
   const [orgName, setOrgName] = useState("");
-  const [seats, setSeats] = useState(5);
-  const [customSeats, setCustomSeats] = useState("");
-  const [useCustom, setUseCustom] = useState(false);
   const [step, setStep] = useState<"form" | "redirecting">("form");
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -57,7 +46,6 @@ export default function BusinessSetup() {
           if (!pilotRes.ok) throw new Error(pilotData.error || "Could not load pilot setup.");
           setPilotSetup(pilotData);
           setOrgName(pilotData.organizationName);
-          setSeats(pilotData.professionalCapacity);
           return;
         }
         const res = await fetch("/api/business/check-status", {
@@ -76,8 +64,6 @@ export default function BusinessSetup() {
     })();
   }, [pilotMode]);
 
-  const resolvedSeats = useCustom ? (parseInt(customSeats) || 0) : seats;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -86,11 +72,6 @@ export default function BusinessSetup() {
       setErr("Please enter your organization name (at least 2 characters).");
       return;
     }
-    if (!resolvedSeats || resolvedSeats < 1 || resolvedSeats > 250) {
-      setErr("Seat count must be between 1 and 250.");
-      return;
-    }
-
     setSubmitting(true);
     try {
       if (pilotMode) {
@@ -128,7 +109,7 @@ export default function BusinessSetup() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ seats: resolvedSeats }),
+        body: JSON.stringify({ seats: 1 }),
       });
       const checkoutData = await checkoutRes.json();
       if (!checkoutRes.ok) {
@@ -191,16 +172,16 @@ export default function BusinessSetup() {
             />
           </div>
 
-          {/* Seat count */}
+          {/* Initial owner access or authorized pilot capacity */}
           <div>
             <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-2">
-              {pilotMode ? "Authorized Professional Capacity" : "Number of Seats"}
+              {pilotMode ? "Authorized Professional Capacity" : "Initial Professional Access"}
             </label>
             {pilotMode ? (
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
                   <p className="text-xs text-white/50">Professional seats</p>
-                  <p className="mt-1 text-2xl font-bold text-orange-300">{pilotSetup?.professionalCapacity ?? seats}</p>
+                  <p className="mt-1 text-2xl font-bold text-orange-300">{pilotSetup?.professionalCapacity ?? 0}</p>
                 </div>
                 <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4">
                   <p className="text-xs text-white/50">Client capacity</p>
@@ -208,66 +189,28 @@ export default function BusinessSetup() {
                 </div>
               </div>
             ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {SEAT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => { setSeats(opt.value); setUseCustom(false); }}
-                  className={`py-2.5 px-2 rounded-xl border text-center transition-all ${
-                    !useCustom && seats === opt.value
-                      ? "bg-orange-600/30 border-orange-500/60 text-white"
-                      : "bg-white/5 border-white/10 text-white/60 active:bg-white/10"
-                  }`}
-                >
-                  <div className="text-sm font-bold">{opt.value}</div>
-                  <div className="text-xs text-white/40">{opt.sublabel}</div>
-                </button>
-              ))}
-              {/* Custom */}
-              <button
-                type="button"
-                onClick={() => setUseCustom(true)}
-                className={`py-2.5 px-2 rounded-xl border text-center transition-all ${
-                  useCustom
-                    ? "bg-orange-600/30 border-orange-500/60 text-white"
-                    : "bg-white/5 border-white/10 text-white/60 active:bg-white/10"
-                }`}
-              >
-                <div className="text-sm font-bold">Custom</div>
-                <div className="text-xs text-white/40">1–250</div>
-              </button>
-            </div>
-            )}
-            {!pilotMode && useCustom && (
-              <input
-                className="mt-2 w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
-                type="number"
-                min={1}
-                max={250}
-                placeholder="Enter seat count"
-                value={customSeats}
-                onChange={(e) => setCustomSeats(e.target.value)}
-                autoFocus
-              />
+              <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+                <p className="text-xs text-white/50">Organization owner</p>
+                <p className="mt-1 text-2xl font-bold text-orange-300">1 professional seat</p>
+              </div>
             )}
             <p className="text-white/30 text-xs mt-2">
               {pilotMode
                 ? `These limits come from the approved authorization and cannot be increased here. The ${pilotSetup?.durationDays ?? 30}-day clock remains stopped while the pilot is Preparing.`
-                : "Each seat covers one team member (coaches, trainers, staff). You occupy seat 1 as the owner."}
+                : "You occupy the owner seat. Invite clients into complimentary trials, then add professional seats later from Manage Seats in your Organization Dashboard."}
             </p>
           </div>
 
           {/* Price preview */}
-          {!pilotMode && resolvedSeats >= 1 && (
+          {!pilotMode && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between">
               <div>
-                <p className="text-white/50 text-xs">Estimated monthly</p>
-                <p className="text-white font-bold text-base">${(44.99 * resolvedSeats).toFixed(2)}/mo</p>
+                <p className="text-white/50 text-xs">Organization / Business Suite</p>
+                <p className="text-white font-bold text-base">$44.99/mo</p>
               </div>
               <div className="text-right">
-                <p className="text-white/50 text-xs">Seats</p>
-                <p className="text-orange-300 font-bold text-base">{resolvedSeats}</p>
+                <p className="text-white/50 text-xs">Initial access</p>
+                <p className="text-orange-300 font-bold text-base">1 owner</p>
               </div>
             </div>
           )}
@@ -295,7 +238,7 @@ export default function BusinessSetup() {
 
           <button
             type="submit"
-            disabled={submitting || orgName.trim().length < 2 || resolvedSeats < 1}
+            disabled={submitting || orgName.trim().length < 2}
             className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
