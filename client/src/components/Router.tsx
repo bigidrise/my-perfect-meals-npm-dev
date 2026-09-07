@@ -1,20 +1,20 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
-import GeneralNutritionBuilder from "@/pages/pro/GeneralNutritionBuilder";
-import GeneralNutritionBuilderEntry from "@/pages/pro/GeneralNutritionBuilderEntry";
-import GeneralNutritionTrainingPage from "@/pages/GeneralNutritionTrainingPage";
-import DiabeticTrainingPage from "@/pages/DiabeticTrainingPage";
-import DiabeticBuilderEntry from "@/pages/physician/DiabeticBuilderEntry";
-import GLP1TrainingPage from "@/pages/GLP1TrainingPage";
-import GLP1BuilderEntry from "@/pages/physician/GLP1BuilderEntry";
-import AntiInflammatoryTrainingPage from "@/pages/AntiInflammatoryTrainingPage";
-import AntiInflammatoryBuilderEntry from "@/pages/physician/AntiInflammatoryBuilderEntry";
+const GeneralNutritionBuilder = lazy(() => import("@/pages/pro/GeneralNutritionBuilder"));
+const GeneralNutritionBuilderEntry = lazy(() => import("@/pages/pro/GeneralNutritionBuilderEntry"));
+const GeneralNutritionTrainingPage = lazy(() => import("@/pages/GeneralNutritionTrainingPage"));
+const DiabeticTrainingPage = lazy(() => import("@/pages/DiabeticTrainingPage"));
+const DiabeticBuilderEntry = lazy(() => import("@/pages/physician/DiabeticBuilderEntry"));
+const GLP1TrainingPage = lazy(() => import("@/pages/GLP1TrainingPage"));
+const GLP1BuilderEntry = lazy(() => import("@/pages/physician/GLP1BuilderEntry"));
+const AntiInflammatoryTrainingPage = lazy(() => import("@/pages/AntiInflammatoryTrainingPage"));
+const AntiInflammatoryBuilderEntry = lazy(() => import("@/pages/physician/AntiInflammatoryBuilderEntry"));
 import ScrollRestorer from "@/components/ScrollRestorer";
 import BottomNav from "@/components/BottomNav";
 import { withPageErrorBoundary } from "@/components/PageErrorBoundary";
 import { withGate } from "@/components/GatedRoute";
-import ABTestingDemo from "@/pages/ABTestingDemo";
+const ABTestingDemo = lazy(() => import("@/pages/ABTestingDemo"));
 import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
@@ -397,8 +397,8 @@ import CertifiedProfessionalUnlock from "@/pages/procare/CertifiedProfessionalUn
 
 // Additional component imports
 // DELETED: MealPlanningHubRevised (comprehensive-meal-planning-revised)
-import CravingCreator from "@/pages/craving-creator";
-import FridgeRescuePage from "@/pages/fridge-rescue";
+const CravingCreator = lazy(() => import("@/pages/craving-creator"));
+const FridgeRescuePage = lazy(() => import("@/pages/fridge-rescue"));
 import {
   BreakfastMealsHub,
   LunchMealsHub,
@@ -502,146 +502,146 @@ import GetInspiration from "@/pages/GetInspiration";
 import ShoppingListMasterView from "@/pages/ShoppingListMasterView";
 
 // Pro Portal (core MVP feature)
-import CareTeam from "@/pages/CareTeam";
-import PhysicianCareTeam from "@/pages/care-team/PhysicianCareTeam";
-import TrainerCareTeam from "@/pages/care-team/TrainerCareTeam";
-import PhysicianPortal from "@/pages/pro/PhysicianPortal";
-import MorePage from "@/pages/More";
-import TipsStrategiesPage from "@/pages/TipsStrategiesPage";
-import ProPortal from "@/pages/ProPortal";
-import ProClients from "@/pages/pro/ProClients";
-import ProClientsPhysician from "@/pages/pro/ProClientsPhysician";
-import ProClientDashboard from "@/pages/pro/ProClientDashboard";
-import TrainerClientDashboard from "@/pages/pro/TrainerClientDashboard";
-import ClinicianClientDashboard from "@/pages/pro/ClinicianClientDashboard";
-import ProClientNutritionPlan from "@/pages/ProClientNutritionPlan";
-import ProBoardViewer from "@/pages/pro/ProBoardViewer";
-import WorkspaceShell from "@/pages/pro/WorkspaceShell";
-import PerformanceCompetitionBuilder from "@/pages/pro/PerformanceCompetitionBuilder";
+const CareTeam = lazy(() => import("@/pages/CareTeam"));
+const PhysicianCareTeam = lazy(() => import("@/pages/care-team/PhysicianCareTeam"));
+const TrainerCareTeam = lazy(() => import("@/pages/care-team/TrainerCareTeam"));
+const PhysicianPortal = lazy(() => import("@/pages/pro/PhysicianPortal"));
+const MorePage = lazy(() => import("@/pages/More"));
+const TipsStrategiesPage = lazy(() => import("@/pages/TipsStrategiesPage"));
+const ProPortal = lazy(() => import("@/pages/ProPortal"));
+const ProClients = lazy(() => import("@/pages/pro/ProClients"));
+const ProClientsPhysician = lazy(() => import("@/pages/pro/ProClientsPhysician"));
+const ProClientDashboard = lazy(() => import("@/pages/pro/ProClientDashboard"));
+const TrainerClientDashboard = lazy(() => import("@/pages/pro/TrainerClientDashboard"));
+const ClinicianClientDashboard = lazy(() => import("@/pages/pro/ClinicianClientDashboard"));
+const ProClientNutritionPlan = lazy(() => import("@/pages/ProClientNutritionPlan"));
+const ProBoardViewer = lazy(() => import("@/pages/pro/ProBoardViewer"));
+const WorkspaceShell = lazy(() => import("@/pages/pro/WorkspaceShell"));
+const PerformanceCompetitionBuilder = lazy(() => import("@/pages/pro/PerformanceCompetitionBuilder"));
 
 // Physician Hub Pages
-import DiabeticHub from "@/pages/physician/DiabeticHub";
-import DiabetesSupportPage from "@/pages/physician/DiabetesSupportPage";
-import DiabeticMenuBuilder from "@/pages/physician/DiabeticMenuBuilder";
-import GLP1Hub from "@/pages/physician/GLP1Hub";
-import GLP1MealBuilder from "@/pages/physician/GLP1MealBuilder";
-import AntiInflammatoryMenuBuilder from "@/pages/physician/AntiInflammatoryMenuBuilder";
+const DiabeticHub = lazy(() => import("@/pages/physician/DiabeticHub"));
+const DiabetesSupportPage = lazy(() => import("@/pages/physician/DiabetesSupportPage"));
+const DiabeticMenuBuilder = lazy(() => import("@/pages/physician/DiabeticMenuBuilder"));
+const GLP1Hub = lazy(() => import("@/pages/physician/GLP1Hub"));
+const GLP1MealBuilder = lazy(() => import("@/pages/physician/GLP1MealBuilder"));
+const AntiInflammatoryMenuBuilder = lazy(() => import("@/pages/physician/AntiInflammatoryMenuBuilder"));
 
 // Creator Studio pages
-import CreatorStartPage from "@/pages/creator/CreatorStartPage";
-import CreatorSetupPage from "@/pages/creator/CreatorSetupPage";
-import CreatorStudioPage from "@/pages/creator/CreatorStudioPage";
-import CreatorStudioLanding from "@/pages/creator/CreatorStudioLanding";
+const CreatorStartPage = lazy(() => import("@/pages/creator/CreatorStartPage"));
+const CreatorSetupPage = lazy(() => import("@/pages/creator/CreatorSetupPage"));
+const CreatorStudioPage = lazy(() => import("@/pages/creator/CreatorStudioPage"));
+const CreatorStudioLanding = lazy(() => import("@/pages/creator/CreatorStudioLanding"));
 
 // Craving pages
-import ChefsKitchenPage from "@/pages/lifestyle/ChefsKitchenPage";
-import CreateDishPage from "@/pages/lifestyle/CreateDishPage";
-import GatheringsPage from "@/pages/lifestyle/GatheringsPage";
-import MyPerfectGetaway from "@/pages/lifestyle/MyPerfectGetaway";
-import MyPerfectBeginningPage from "@/pages/lifestyle/MyPerfectBeginningPage";
-import MyPerfectBeginningStub from "@/pages/lifestyle/MyPerfectBeginningStub";
-import MyPerfectBeginningCreateMealPage from "@/pages/lifestyle/MyPerfectBeginningCreateMealPage";
-import MyPerfectBeginningProfilePage from "@/pages/lifestyle/MyPerfectBeginningProfilePage";
-import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
-import TrainingNutritionHub from "@/pages/TrainingNutritionHub";
-import PerformanceNutritionSetupPage from "@/pages/PerformanceNutritionSetupPage";
-import CravingCreatorLanding from "@/pages/CravingCreatorLanding";
-import SushiCreator from "@/pages/SushiCreator";
-import BeverageCreatorHub from "@/pages/BeverageCreatorHub";
-import AthleteBeverageCreator from "@/pages/AthleteBeverageCreator";
-import CravingDessertCreator from "@/pages/CravingDessertCreator";
-import BeverageCreator from "@/pages/BeverageCreator";
-import ChefPairings from "@/pages/ChefPairings";
-import PairingsHub from "@/pages/lifestyle/PairingsHub";
-import PairingsAI from "@/pages/lifestyle/PairingsAI";
-import WineListHelper from "@/pages/lifestyle/WineListHelper";
-import ReduceDrinkingPlan from "@/pages/lifestyle/ReduceDrinkingPlan";
+const ChefsKitchenPage = lazy(() => import("@/pages/lifestyle/ChefsKitchenPage"));
+const CreateDishPage = lazy(() => import("@/pages/lifestyle/CreateDishPage"));
+const GatheringsPage = lazy(() => import("@/pages/lifestyle/GatheringsPage"));
+const MyPerfectGetaway = lazy(() => import("@/pages/lifestyle/MyPerfectGetaway"));
+const MyPerfectBeginningPage = lazy(() => import("@/pages/lifestyle/MyPerfectBeginningPage"));
+const MyPerfectBeginningStub = lazy(() => import("@/pages/lifestyle/MyPerfectBeginningStub"));
+const MyPerfectBeginningCreateMealPage = lazy(() => import("@/pages/lifestyle/MyPerfectBeginningCreateMealPage"));
+const MyPerfectBeginningProfilePage = lazy(() => import("@/pages/lifestyle/MyPerfectBeginningProfilePage"));
+const MyPerfectPregnancyPage = lazy(() => import("@/pages/MyPerfectPregnancyPage"));
+const TrainingNutritionHub = lazy(() => import("@/pages/TrainingNutritionHub"));
+const PerformanceNutritionSetupPage = lazy(() => import("@/pages/PerformanceNutritionSetupPage"));
+const CravingCreatorLanding = lazy(() => import("@/pages/CravingCreatorLanding"));
+const SushiCreator = lazy(() => import("@/pages/SushiCreator"));
+const BeverageCreatorHub = lazy(() => import("@/pages/BeverageCreatorHub"));
+const AthleteBeverageCreator = lazy(() => import("@/pages/AthleteBeverageCreator"));
+const CravingDessertCreator = lazy(() => import("@/pages/CravingDessertCreator"));
+const BeverageCreator = lazy(() => import("@/pages/BeverageCreator"));
+const ChefPairings = lazy(() => import("@/pages/ChefPairings"));
+const PairingsHub = lazy(() => import("@/pages/lifestyle/PairingsHub"));
+const PairingsAI = lazy(() => import("@/pages/lifestyle/PairingsAI"));
+const WineListHelper = lazy(() => import("@/pages/lifestyle/WineListHelper"));
+const ReduceDrinkingPlan = lazy(() => import("@/pages/lifestyle/ReduceDrinkingPlan"));
 // DELETED: CravingPresets
 // RETIRED: CravingStudio, DessertStudio, FridgeRescueStudio — moved to client/src/legacy/studio-retired/
 import EditProfilePage from "@/pages/profile/EditProfilePage";
 import CoachingPreferencesPage from "@/pages/profile/CoachingPreferencesPage";
 import LanguagePreferencesPage from "@/pages/profile/LanguagePreferencesPage";
-import SavedMeals from "@/pages/SavedMeals";
+const SavedMeals = lazy(() => import("@/pages/SavedMeals"));
 
 // DELETED: AlcoholHubLanding, AlcoholLeanAndSocial, AlcoholSmartSips, MocktailsLowCalMixers, AlcoholLog
 // DELETED: BeerPairing, BourbonSpirits, MealPairingAI, WinePairing (replaced by /lifestyle/pairings-ai)
-import WeaningOffTool from "@/pages/weaning-off-tool";
+const WeaningOffTool = lazy(() => import("@/pages/weaning-off-tool"));
 
 // Socializing Hub pages
-import SocializingHub from "@/pages/SocializingHub";
-import SocialFindMeals from "@/pages/SocialFindMeals";
-import SocialRestaurantGuide from "@/pages/SocialRestaurantGuide";
-import FastFoodGuidePage from "@/pages/FastFoodGuidePage";
-import RestaurantFinderPage from "@/pages/RestaurantFinderPage";
-import MyPerfectBuffetPage from "@/pages/MyPerfectBuffetPage";
+const SocializingHub = lazy(() => import("@/pages/SocializingHub"));
+const SocialFindMeals = lazy(() => import("@/pages/SocialFindMeals"));
+const SocialRestaurantGuide = lazy(() => import("@/pages/SocialRestaurantGuide"));
+const FastFoodGuidePage = lazy(() => import("@/pages/FastFoodGuidePage"));
+const RestaurantFinderPage = lazy(() => import("@/pages/RestaurantFinderPage"));
+const MyPerfectBuffetPage = lazy(() => import("@/pages/MyPerfectBuffetPage"));
 
 // Founders page
-import FoundersPage from "@/pages/Founders";
-import CoachesComingSoon from "@/pages/CoachesComingSoon";
-import BusinessCenter from "@/pages/BusinessCenter";
+const FoundersPage = lazy(() => import("@/pages/Founders"));
+const CoachesComingSoon = lazy(() => import("@/pages/CoachesComingSoon"));
+const BusinessCenter = lazy(() => import("@/pages/BusinessCenter"));
 import { BusinessSuiteGate } from "@/components/BusinessSuiteGate";
-import BusinessCenterSection from "@/pages/BusinessCenterSection";
-import PartnerCenter from "@/pages/PartnerCenter";
-import PromotionsHub from "@/pages/business/PromotionsHub";
-import PromoRedemption from "@/pages/PromoRedemption";
-import AdminCampaignManager from "@/pages/admin/AdminCampaignManager";
-import BugReportsDashboard from "@/pages/admin/BugReportsDashboard";
-import AcademyLandingPage from "@/pages/AcademyLandingPage";
-import PartnerProgramsHub from "@/pages/PartnerProgramsHub";
-import HowPartnershipsWork from "@/pages/HowPartnershipsWork";
-import PartnerManagement from "@/pages/PartnerManagement";
-import FoundingPartnerProgram from "@/pages/FoundingPartnerProgram";
-import FoundingAffiliatePage from "@/pages/FoundingAffiliatePage";
-import IndustryPartnerships from "@/pages/IndustryPartnerships";
-import WhiteLabelSolutions from "@/pages/WhiteLabelSolutions";
-import PublicPartnersHub from "@/pages/PublicPartnersHub";
-import PublicHealthcarePartnerships from "@/pages/PublicHealthcarePartnerships";
-import AffiliateOpportunities from "@/pages/AffiliateOpportunities";
-import AffiliatePathPage from "@/pages/AffiliatePathPage";
-import AffiliateProgramOverview from "@/pages/AffiliateProgramOverview";
-import AffiliateDashboard from "@/pages/AffiliateDashboard";
-import CertificationDashboard from "@/pages/certification/CertificationDashboard";
-import CertificationLesson from "@/pages/certification/CertificationLesson";
-import CertificationQuiz from "@/pages/certification/CertificationQuiz";
-import CertificationComplete from "@/pages/certification/CertificationComplete";
-import CertificationCertificateView from "@/pages/certification/CertificationCertificateView";
-import AcademyHome from "@/pages/academy/AcademyHome";
-import PlatformMasteryDashboard from "@/pages/academy/PlatformMasteryDashboard";
-import PlatformMasteryComplete from "@/pages/academy/PlatformMasteryComplete";
-import LessonReader from "@/pages/academy/LessonReader";
-import LearningHub from "@/pages/learning/LearningHub";
-import PlatformCertDashboard from "@/pages/learning/PlatformCertDashboard";
-import PlatformCertVideo from "@/pages/learning/PlatformCertVideo";
-import PlatformCertQuiz from "@/pages/learning/PlatformCertQuiz";
-import PlatformCertComplete from "@/pages/learning/PlatformCertComplete";
-import UpdatesInbox from "@/pages/learning/UpdatesInbox";
-import AdminCertifications from "@/pages/admin/AdminCertifications";
+const BusinessCenterSection = lazy(() => import("@/pages/BusinessCenterSection"));
+const PartnerCenter = lazy(() => import("@/pages/PartnerCenter"));
+const PromotionsHub = lazy(() => import("@/pages/business/PromotionsHub"));
+const PromoRedemption = lazy(() => import("@/pages/PromoRedemption"));
+const AdminCampaignManager = lazy(() => import("@/pages/admin/AdminCampaignManager"));
+const BugReportsDashboard = lazy(() => import("@/pages/admin/BugReportsDashboard"));
+const AcademyLandingPage = lazy(() => import("@/pages/AcademyLandingPage"));
+const PartnerProgramsHub = lazy(() => import("@/pages/PartnerProgramsHub"));
+const HowPartnershipsWork = lazy(() => import("@/pages/HowPartnershipsWork"));
+const PartnerManagement = lazy(() => import("@/pages/PartnerManagement"));
+const FoundingPartnerProgram = lazy(() => import("@/pages/FoundingPartnerProgram"));
+const FoundingAffiliatePage = lazy(() => import("@/pages/FoundingAffiliatePage"));
+const IndustryPartnerships = lazy(() => import("@/pages/IndustryPartnerships"));
+const WhiteLabelSolutions = lazy(() => import("@/pages/WhiteLabelSolutions"));
+const PublicPartnersHub = lazy(() => import("@/pages/PublicPartnersHub"));
+const PublicHealthcarePartnerships = lazy(() => import("@/pages/PublicHealthcarePartnerships"));
+const AffiliateOpportunities = lazy(() => import("@/pages/AffiliateOpportunities"));
+const AffiliatePathPage = lazy(() => import("@/pages/AffiliatePathPage"));
+const AffiliateProgramOverview = lazy(() => import("@/pages/AffiliateProgramOverview"));
+const AffiliateDashboard = lazy(() => import("@/pages/AffiliateDashboard"));
+const CertificationDashboard = lazy(() => import("@/pages/certification/CertificationDashboard"));
+const CertificationLesson = lazy(() => import("@/pages/certification/CertificationLesson"));
+const CertificationQuiz = lazy(() => import("@/pages/certification/CertificationQuiz"));
+const CertificationComplete = lazy(() => import("@/pages/certification/CertificationComplete"));
+const CertificationCertificateView = lazy(() => import("@/pages/certification/CertificationCertificateView"));
+const AcademyHome = lazy(() => import("@/pages/academy/AcademyHome"));
+const PlatformMasteryDashboard = lazy(() => import("@/pages/academy/PlatformMasteryDashboard"));
+const PlatformMasteryComplete = lazy(() => import("@/pages/academy/PlatformMasteryComplete"));
+const LessonReader = lazy(() => import("@/pages/academy/LessonReader"));
+const LearningHub = lazy(() => import("@/pages/learning/LearningHub"));
+const PlatformCertDashboard = lazy(() => import("@/pages/learning/PlatformCertDashboard"));
+const PlatformCertVideo = lazy(() => import("@/pages/learning/PlatformCertVideo"));
+const PlatformCertQuiz = lazy(() => import("@/pages/learning/PlatformCertQuiz"));
+const PlatformCertComplete = lazy(() => import("@/pages/learning/PlatformCertComplete"));
+const UpdatesInbox = lazy(() => import("@/pages/learning/UpdatesInbox"));
+const AdminCertifications = lazy(() => import("@/pages/admin/AdminCertifications"));
 
 // SimpleWalkthroughDemo quarantined - replaced by Quick Tour system
 
 // DELETED: AffiliatesPage
 
 // Vitals Logger - Creating a placeholder for this route
-import MyPerfectBeginning from "@/pages/lifestyle/MyPerfectBeginning";
+const MyPerfectBeginning = lazy(() => import("@/pages/lifestyle/MyPerfectBeginning"));
 const VitalsLogger = () => <div>Vitals Logger - Coming Soon</div>;
 
 // Supplement Hub imports
 // REMOVED: SupplementHubLanding (landing page not used - Copilot now routes to /supplement-hub directly)
-import SupplementHub from "@/pages/supplement-hub";
-import SupplementEducationPage from "@/pages/supplement-education";
+const SupplementHub = lazy(() => import("@/pages/supplement-hub"));
+const SupplementEducationPage = lazy(() => import("@/pages/supplement-education"));
 
 // Companion Nutrition Intelligence (My Perfect Pets)
-import PetsHub from "@/pages/PetsHub";
-import CompanionNutritionHub from "@/pages/CompanionNutritionHub";
-import DogProfileSetup from "@/pages/companion/DogProfileSetup";
-import CompanionMealGenerator from "@/pages/companion/CompanionMealGenerator";
-import DogIngredientScanner from "@/pages/companion/DogIngredientScanner";
-import CatNutritionHub from "@/pages/companion/CatNutritionHub";
-import CatIngredientScanner from "@/pages/companion/CatIngredientScanner";
-import CatProfileSetup from "@/pages/companion/CatProfileSetup";
+const PetsHub = lazy(() => import("@/pages/PetsHub"));
+const CompanionNutritionHub = lazy(() => import("@/pages/CompanionNutritionHub"));
+const DogProfileSetup = lazy(() => import("@/pages/companion/DogProfileSetup"));
+const CompanionMealGenerator = lazy(() => import("@/pages/companion/CompanionMealGenerator"));
+const DogIngredientScanner = lazy(() => import("@/pages/companion/DogIngredientScanner"));
+const CatNutritionHub = lazy(() => import("@/pages/companion/CatNutritionHub"));
+const CatIngredientScanner = lazy(() => import("@/pages/companion/CatIngredientScanner"));
+const CatProfileSetup = lazy(() => import("@/pages/companion/CatProfileSetup"));
 
 // Admin Dashboard
-import AdminDashboard from "@/pages/AdminDashboard";
+const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 
 import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
 
