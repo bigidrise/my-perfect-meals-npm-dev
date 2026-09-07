@@ -2099,7 +2099,7 @@ export default function MyBiometrics() {
             </Button>
 
             {/* Ingredient Intelligence */}
-            <>
+            <div className="hidden" aria-hidden="true">
                 <Button
                   onClick={handleIngredientScan}
                   className="w-full bg-orange-600/80 text-md text-white mb-1"
@@ -2110,7 +2110,7 @@ export default function MyBiometrics() {
                 <p className="text-xs text-white/40 text-center leading-snug mb-3 px-2">
                   Understand packaged foods using your wellness profile, dietary preferences, and health goals.
                 </p>
-              </>
+              </div>
 
 
             <div
