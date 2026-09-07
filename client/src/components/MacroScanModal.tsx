@@ -14,6 +14,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 
 export interface MacroResult {
+  status: "success" | "barcode_only" | "nutrition_facts_unreadable";
   calories: number;
   protein: number;
   carbs: number;
@@ -30,7 +31,7 @@ interface MacroScanModalProps {
 type InputMode = "upload" | "camera" | "voice" | "text";
 type Phase = "capture" | "processing" | "error";
 
-function resizeImageToBase64(file: File, maxPx = 900): Promise<string> {
+function resizeImageToBase64(file: File, maxPx = 1600): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -45,7 +46,7 @@ function resizeImageToBase64(file: File, maxPx = 900): Promise<string> {
       const ctx = canvas.getContext("2d");
       if (!ctx) return reject(new Error("Canvas not supported"));
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/jpeg", 0.82));
+      resolve(canvas.toDataURL("image/jpeg", 0.9));
     };
     img.onerror = reject;
     img.src = url;
@@ -97,6 +98,14 @@ export default function MacroScanModal({
           throw new Error(err.error || err.detail || "Analysis failed");
         }
         const result: MacroResult = await res.json();
+        if (result.status !== "success") {
+          setErrorMsg(
+            result.description ||
+              "We couldn't read the Nutrition Facts from this photo. Take another photo with the full Nutrition Facts panel clearly visible.",
+          );
+          setPhase("error");
+          return;
+        }
         onSuccess(result);
         handleClose(false);
       } catch (e: any) {
@@ -170,10 +179,10 @@ export default function MacroScanModal({
         {/* Header */}
         <DialogHeader className="mb-5">
           <div className="flex items-center justify-center">
-            <DialogTitle className="text-xl font-bold text-white">MacroScan</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-white">Nutrition Label Scan</DialogTitle>
           </div>
           <p className="text-white/60 text-sm text-center mt-1">
-            Scan a nutrition label, food photo, or describe what you ate — we'll estimate the macros.
+            Take a photo of the Nutrition Facts label — not the barcode.
           </p>
         </DialogHeader>
 
@@ -187,13 +196,17 @@ export default function MacroScanModal({
               <div className="relative overflow-hidden rounded-full inline-flex">
                 <PillButton active={mode === "upload"} onClick={() => setMode("upload")}>
                   <ImagePlus className="h-3 w-3 mr-1" />
-                  Choose Photo
+                  Nutrition Facts Photo
                 </PillButton>
                 <input
                   ref={uploadInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => { setMode("upload"); handleImageFile(e.target.files?.[0]); }}
+                  onChange={(e) => {
+                    setMode("upload");
+                    handleImageFile(e.target.files?.[0]);
+                    e.currentTarget.value = "";
+                  }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
               </div>
@@ -202,14 +215,18 @@ export default function MacroScanModal({
               <div className="relative overflow-hidden rounded-full inline-flex">
                 <PillButton active={mode === "camera"} onClick={() => setMode("camera")}>
                   <Camera className="h-3 w-3 mr-1" />
-                  Camera
+                  Scan Nutrition Facts
                 </PillButton>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   capture="environment"
-                  onChange={(e) => { setMode("camera"); handleImageFile(e.target.files?.[0]); }}
+                  onChange={(e) => {
+                    setMode("camera");
+                    handleImageFile(e.target.files?.[0]);
+                    e.currentTarget.value = "";
+                  }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
               </div>
@@ -230,18 +247,46 @@ export default function MacroScanModal({
               </PillButton>
             </div>
 
+            {(mode === "upload" || mode === "camera") && (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-center">
+                  <p className="text-sm font-semibold text-amber-200">
+                    Point your camera at the Nutrition Facts panel
+                  </p>
+                  <p className="mt-1 text-xs text-white/65">
+                    Make sure calories, protein, carbohydrates, and fat are visible.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg border border-emerald-500/35 bg-emerald-500/10 p-3">
+                    <div className="font-bold text-emerald-300">✓ THIS</div>
+                    <div className="mt-1 font-semibold text-white">Nutrition Facts</div>
+                    <div className="mt-1 text-white/60">Calories · Protein · Carbs · Fat</div>
+                  </div>
+                  <div className="rounded-lg border border-red-500/35 bg-red-500/10 p-3">
+                    <div className="font-bold text-red-300">✕ NOT THIS</div>
+                    <div className="mt-1 font-mono tracking-tighter text-white">|||| ||| ||||||</div>
+                    <div className="mt-1 text-white/60">Do not scan the barcode</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Choose Photo drop zone */}
             {mode === "upload" && (
               <div className="relative overflow-hidden w-full rounded-xl">
                 <div className="w-full py-5 rounded-xl border-2 border-dashed border-amber-500/40 bg-amber-500/5 flex flex-col items-center gap-2">
                   <ImagePlus className="h-8 w-8 text-amber-400" />
-                  <span className="text-sm font-medium text-amber-300">Choose from Gallery</span>
-                  <span className="text-xs text-white/40">Nutrition labels, food photos, screenshots</span>
+                  <span className="text-sm font-medium text-amber-300">Choose Nutrition Facts Photo</span>
+                  <span className="text-xs text-white/40">Use a clear photo of the full label</span>
                 </div>
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleImageFile(e.target.files?.[0])}
+                  onChange={(e) => {
+                    handleImageFile(e.target.files?.[0]);
+                    e.currentTarget.value = "";
+                  }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
               </div>
@@ -252,14 +297,17 @@ export default function MacroScanModal({
               <div className="relative overflow-hidden w-full rounded-xl">
                 <div className="w-full py-5 rounded-xl border-2 border-dashed border-amber-500/40 bg-amber-500/5 flex flex-col items-center gap-2">
                   <Camera className="h-8 w-8 text-amber-400" />
-                  <span className="text-sm font-medium text-amber-300">Open Camera</span>
-                  <span className="text-xs text-white/40">Point at a nutrition label or food</span>
+                  <span className="text-sm font-medium text-amber-300">Scan Nutrition Facts</span>
+                  <span className="text-xs text-white/40">Photograph the panel, not the barcode</span>
                 </div>
                 <input
                   type="file"
                   accept="image/*"
                   capture="environment"
-                  onChange={(e) => handleImageFile(e.target.files?.[0])}
+                  onChange={(e) => {
+                    handleImageFile(e.target.files?.[0]);
+                    e.currentTarget.value = "";
+                  }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
               </div>
