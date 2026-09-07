@@ -442,7 +442,7 @@ router.post("/send-invite", requireAuth, requireEmailService, async (req: Reques
       appUrl,
     });
 
-    console.log(`[CoachInvite] Invite created — coach: ${coach.slug}, client email: ${email}`);
+    console.log("[CoachInvite] Invite created");
     return res.json({ ok: true, token });
   } catch (err) {
     console.error("[CoachInvite] Failed:", err);

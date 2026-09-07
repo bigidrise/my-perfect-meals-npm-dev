@@ -679,7 +679,7 @@ router.put("/glp1-protocol/:clientUserId", requireAuth, requireProAccess, requir
       .set({ medicalConditions: updated as any, updatedAt: new Date() } as any)
       .where(eq(users.id, clientUserId as any));
 
-    console.log(`[glp1-protocol PUT] Physician ${requesterId} (${ownerName ?? "unknown"}) ${enabled ? "assigned" : "removed"} GLP-1 Active for client ${clientUserId}`);
+    console.log(`[glp1-protocol PUT] GLP-1 Active ${enabled ? "assigned" : "removed"}`);
     logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "glp1_protocol", table: "users", field: "medical_conditions", route: req.path, ip: getClientIp(req as any), meta: { enabled } });
     res.json({ ok: true, glp1Active: enabled, medicalConditions: updated });
   } catch (error: any) {
