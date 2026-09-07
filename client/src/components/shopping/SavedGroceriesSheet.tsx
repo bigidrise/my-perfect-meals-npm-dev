@@ -548,7 +548,11 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                           <div
                             key={item.id}
                             style={{
-                              display: "flex", alignItems: "center", gap: 10,
+                               display: "grid",
+                               gridTemplateColumns: "auto minmax(0, 1fr)",
+                               alignItems: "start",
+                               columnGap: 10,
+                               rowGap: 10,
                               padding: "10px 12px", borderRadius: 10,
                               background: "rgba(255,255,255,0.04)",
                               border: "1px solid rgba(255,255,255,0.07)",
@@ -576,15 +580,21 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                                 textAlign: "left", padding: 0,
                               }}
                             >
-                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                <div style={{ color: "white", fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
+                               <div style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
+                                 <div style={{
+                                   color: "white",
+                                   fontWeight: 600,
+                                   fontSize: 14,
+                                   lineHeight: 1.35,
+                                   overflowWrap: "anywhere",
+                                 }}>
                                   {item.productName}
                                 </div>
                                 {hasAnalysis && (
-                                  <ChevronRight style={{ width: 13, height: 13, color: "rgba(249,115,22,0.6)", flexShrink: 0 }} />
+                                   <ChevronRight style={{ width: 13, height: 13, marginTop: 3, color: "rgba(249,115,22,0.6)", flexShrink: 0 }} />
                                 )}
                               </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
                                 {item.brand && (
                                   <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>
                                     {item.brand}
@@ -626,43 +636,59 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                               )}
                             </button>
 
-                            {/* Add to list */}
-                            <PillButton
-                              type="button"
-                              variant={isBlocked ? "rose" : onList || isAdded ? "emerald" : "amber"}
-                              active={onList || isAdded}
-                              onClick={() => handleAddToList(item)}
-                              disabled={isAdding || isAdded || onList || isBlocked || bulkAdding}
-                              className="!px-2 !text-[8px] shrink-0"
+                             <div
+                               style={{
+                                 gridColumn: "1 / -1",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "flex-end",
+                                 gap: 8,
+                                 flexWrap: "wrap",
+                                 paddingTop: 2,
+                                 borderTop: "1px solid rgba(255,255,255,0.06)",
+                               }}
                             >
-                              {isAdding ? (
-                                <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} />
-                              ) : onList ? (
-                                <><CheckCircle2 style={{ width: 13, height: 13 }} /> Already on list</>
-                              ) : isBlocked ? (
-                                <><AlertTriangle style={{ width: 13, height: 13 }} /> Blocked</>
-                              ) : isAdded ? (
-                                <><CheckCircle2 style={{ width: 13, height: 13 }} /> Added</>
-                              ) : (
-                                <><ShoppingCart style={{ width: 13, height: 13 }} /> Add</>
-                              )}
-                            </PillButton>
+                               {/* Add to list */}
+                               <PillButton
+                                 type="button"
+                                 variant={isBlocked ? "rose" : onList || isAdded ? "emerald" : "amber"}
+                                 active={onList || isAdded}
+                                 onClick={() => handleAddToList(item)}
+                                 disabled={isAdding || isAdded || onList || isBlocked || bulkAdding}
+                                 className="!px-3 !text-[9px] shrink-0"
+                               >
+                                 {isAdding ? (
+                                   <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} />
+                                 ) : onList ? (
+                                   <><CheckCircle2 style={{ width: 13, height: 13 }} /> Already on list</>
+                                 ) : isBlocked ? (
+                                   <><AlertTriangle style={{ width: 13, height: 13 }} /> Blocked</>
+                                 ) : isAdded ? (
+                                   <><CheckCircle2 style={{ width: 13, height: 13 }} /> Added</>
+                                 ) : (
+                                   <><ShoppingCart style={{ width: 13, height: 13 }} /> Add</>
+                                 )}
+                               </PillButton>
 
-                            {/* Unsave */}
-                            <button
-                              onClick={() => handleRemove(item)}
-                              disabled={isRemoving}
-                              style={{
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                width: 30, height: 30, borderRadius: 6, border: "none",
-                                background: "rgba(239,68,68,0.08)", cursor: "pointer", flexShrink: 0,
-                              }}
-                            >
-                              {isRemoving
-                                ? <Loader2 style={{ width: 13, height: 13, color: "#ef4444", animation: "spin 1s linear infinite" }} />
-                                : <Trash2 style={{ width: 13, height: 13, color: "rgba(239,68,68,0.6)" }} />
-                              }
-                            </button>
+                               {/* Unsave */}
+                               <button
+                                 onClick={() => handleRemove(item)}
+                                 disabled={isRemoving}
+                                 aria-label={`Remove ${itemDisplayName(item)} from saved groceries`}
+                                 title="Remove from saved groceries"
+                                 style={{
+                                   display: "flex", alignItems: "center", justifyContent: "center",
+                                   width: 32, height: 32, borderRadius: 8,
+                                   border: "1px solid rgba(239,68,68,0.18)",
+                                   background: "rgba(239,68,68,0.08)", cursor: "pointer", flexShrink: 0,
+                                 }}
+                               >
+                                 {isRemoving
+                                   ? <Loader2 style={{ width: 13, height: 13, color: "#ef4444", animation: "spin 1s linear infinite" }} />
+                                   : <Trash2 style={{ width: 13, height: 13, color: "rgba(239,68,68,0.7)" }} />
+                                 }
+                               </button>
+                             </div>
                           </div>
                         );
                       })}
