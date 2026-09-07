@@ -4,8 +4,10 @@ import { PillButton } from "@/components/ui/pill-button";
 
 export default function WelcomeGate({
   onComplete,
+  previewMode = false,
 }: {
   onComplete: () => void;
+  previewMode?: boolean;
 }) {
   const [fade, setFade] = useState(false);
   const [skipNextTime, setSkipNextTime] = useState(
@@ -13,6 +15,12 @@ export default function WelcomeGate({
   );
 
   const chooseMode = (mode: "guided" | "self") => {
+    if (previewMode) {
+      setFade(true);
+      setTimeout(onComplete, 300);
+      return;
+    }
+
     localStorage.setItem("coachMode", mode);
     sessionStorage.setItem("mpm.welcomeGateDone", "true");
 
@@ -41,23 +49,48 @@ export default function WelcomeGate({
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-md"
           data-testid="welcome-gate"
         >
-          <div className="text-center space-y-6 px-6 max-w-md">
-            <h1 className="text-2xl font-bold text-white">Choose Your Journey</h1>
-            <p className="text-sm text-white/80">Select the experience that best fits your style. You can turn copilot on and off at anytime.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+          <div className="relative w-full max-w-md space-y-6 px-6 text-center">
+            {previewMode && (
+              <button
+                type="button"
+                onClick={onComplete}
+                className="absolute -top-8 right-4 rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-xs font-semibold text-white"
+                aria-label="Close welcome screen preview"
+              >
+                Close preview
+              </button>
+            )}
+            <h1 className="text-2xl font-bold text-white">
+              Choose How You'd Like to Get Started
+            </h1>
+            <p className="text-sm text-white/80">
+              Choose the experience that works best for you. You can change this anytime.
+            </p>
+            <div className="flex flex-col gap-4 mt-6">
               <button
                 onClick={() => chooseMode("guided")}
-                className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl border border-white/20 transition-all"
+                className="w-full rounded-xl border border-white/20 bg-white/10 px-5 py-4 text-left text-white transition-all hover:bg-white/20"
                 data-testid="button-coach-mode"
               >
-                My Perfect Copilot
+                <span className="block font-semibold">
+                  My Perfect Copilot — Guide Me
+                </span>
+                <span className="mt-1 block text-xs font-semibold uppercase tracking-wide text-amber-300">
+                  Recommended for new users
+                </span>
+                <span className="mt-2 block text-sm leading-relaxed text-white/70">
+                  Get step-by-step guidance as you set up and use My Perfect Meals.
+                </span>
               </button>
               <button
                 onClick={() => chooseMode("self")}
-                className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl border border-white/20 transition-all"
+                className="w-full rounded-xl border border-white/20 bg-white/10 px-5 py-4 text-left text-white transition-all hover:bg-white/20"
                 data-testid="button-self-mode"
               >
-                Do-it-Yourself
+                <span className="block font-semibold">Explore on My Own</span>
+                <span className="mt-2 block text-sm leading-relaxed text-white/70">
+                  Use My Perfect Meals independently and explore the tools at your own pace.
+                </span>
               </button>
             </div>
 

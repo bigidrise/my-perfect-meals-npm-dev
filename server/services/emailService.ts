@@ -425,6 +425,13 @@ export async function sendCareTeamInvite({
               <strong>New to My Perfect Meals?</strong> Click the button above and create your account using <strong>${to}</strong>. Your invitation will connect automatically after setup.
             </p>
 
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 18px 0;">
+              <p style="color: #111827; font-size: 15px; line-height: 1.5; margin: 0 0 6px; font-weight: 700;">New to the platform?</p>
+              <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0;">
+                When you first sign in, you'll be asked how you'd like to get started. Choose <strong>My Perfect Copilot — Guide Me</strong> for step-by-step guidance, or <strong>Explore on My Own</strong> if you'd rather navigate the platform yourself. You can change this choice anytime.
+              </p>
+            </div>
+
             <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 16px; margin: 24px 0;">
               <p style="color: #9a3412; font-size: 13px; margin: 0 0 8px; font-weight: 600;">📋 Backup access code</p>
               <p style="color: #374151; font-size: 13px; margin: 0 0 10px; line-height: 1.5;">Copy and paste this code into the <strong>Connect with Your Provider</strong> section on the <strong>More</strong> page of the app.</p>
