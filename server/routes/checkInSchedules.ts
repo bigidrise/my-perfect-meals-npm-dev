@@ -287,7 +287,7 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
 
     if (clientUser?.email) {
       if (!emailServiceAvailable()) {
-        console.warn(`[CheckIn] Email service not configured — cancellation email skipped for ${clientUser.email}`);
+        console.warn("[CheckIn] Email service not configured — cancellation email skipped");
       } else {
         const clientName = clientUser.nickname || clientUser.firstName || "there";
         await sendEmail({

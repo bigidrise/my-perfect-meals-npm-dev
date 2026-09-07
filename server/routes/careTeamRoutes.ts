@@ -70,9 +70,7 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
 
     // Block self-invites — caller cannot invite their own email address
     if (callerUser?.email && callerUser.email.trim().toLowerCase() === email) {
-      console.warn(
-        `⚠️ [CareTeam Invite] Self-invite blocked — callerEmail="${callerUser.email}" inviteEmail="${email}" isPro=${callerIsPro} userId=${userId}`
-      );
+      console.warn(`⚠️ [CareTeam Invite] Self-invite blocked — isPro=${callerIsPro}`);
       const msg = callerIsPro
         ? `The email you entered (${email}) matches the email registered to your professional account. Enter your client's email address instead.`
         : "You cannot send a care team invite to yourself. Enter your provider's email address.";
@@ -117,7 +115,7 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
         .returning();
       member = m;
     } else {
-      console.log(`ℹ️ [CareTeam Invite] Pro caller (${callerUser?.professionalRole}) inviting patient — deferring careTeamMember creation to /connect`);
+      console.log("ℹ️ [CareTeam Invite] Pro caller inviting patient — deferring careTeamMember creation to /connect");
     }
 
     await db.insert(careInvite).values({
@@ -218,7 +216,7 @@ router.post("/connect", requireAuth, async (req, res) => {
     });
 
     if (!eligibility.allowed && "code" in eligibility) {
-      console.log(`🔒 [CareTeam Connect] Blocked — client ${userId}; providerRole=${pro?.professionalRole ?? "unknown"}; code=${eligibility.code}; tier=${eligibility.consumerTier}`);
+      console.log(`🔒 [CareTeam Connect] Blocked — code=${eligibility.code}; tier=${eligibility.consumerTier}`);
       return res.status(403).json({
         error: eligibility.code,
         code: eligibility.code,

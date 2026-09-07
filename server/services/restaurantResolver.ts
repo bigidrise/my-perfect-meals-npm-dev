@@ -79,7 +79,7 @@ export async function resolveRestaurantsByZip(
     overrideQuery
   } = request;
 
-  console.log(`🔍 Resolving restaurants for "${query}" near ZIP ${zipCode} (mode: ${searchMode})`);
+  console.log(`🔍 Resolving restaurants (mode: ${searchMode})`);
 
   const coords = await zipToCoordinates(zipCode);
   if (!coords) {

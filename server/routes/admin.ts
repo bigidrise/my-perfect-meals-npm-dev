@@ -262,7 +262,7 @@ router.post("/email-identity-conflicts/:userId/review", async (req, res) => {
     resolution,
     note,
   });
-  console.log(`[admin] email identity review: userId=${targetUser.id} by admin=${actor.email} resolution=${resolution}`);
+  console.log(`[admin] email identity review: resolution=${resolution}`);
   return res.json({ ok: true });
 });
 
@@ -293,7 +293,7 @@ router.post("/email-identity-conflicts/:userId/change-email", async (req, res) =
     resolution: "email_changed_for_verified_user",
     note: `Changed to ${normalizedReplacement}`,
   });
-  console.log(`[admin] email identity remediation: userId=${targetUser.id} by admin=${actor.email}`);
+  console.log("[admin] email identity remediation completed");
   return res.json({ ok: true, userId: targetUser.id, email: normalizedReplacement });
 });
 
@@ -322,7 +322,7 @@ router.post("/users/:userId/complete-onboarding", async (req, res) => {
       .update(users)
       .set({ onboardingCompletedAt: new Date() })
       .where(eq(users.id, userId));
-    console.log(`[admin] complete-onboarding: userId=${userId} by admin=${actor.email}`);
+    console.log("[admin] complete-onboarding completed");
     return res.json({ ok: true });
   } catch (err) {
     console.error("[admin] complete-onboarding error:", err);
@@ -338,7 +338,7 @@ router.post("/users/:userId/reset-onboarding", async (req, res) => {
       .update(users)
       .set({ onboardingCompletedAt: null })
       .where(eq(users.id, userId));
-    console.log(`[admin] reset-onboarding: userId=${userId} by admin=${actor.email}`);
+    console.log("[admin] reset-onboarding completed");
     return res.json({ ok: true });
   } catch (err) {
     console.error("[admin] reset-onboarding error:", err);
@@ -354,7 +354,7 @@ router.post("/users/:userId/reset-pin", async (req, res) => {
       .update(users)
       .set({ safetyPinHash: null, safetyPinSetAt: null })
       .where(eq(users.id, userId));
-    console.log(`[admin] reset-pin: userId=${userId} by admin=${actor.email}`);
+    console.log("[admin] reset-pin completed");
     return res.json({ ok: true });
   } catch (err) {
     console.error("[admin] reset-pin error:", err);
@@ -372,7 +372,7 @@ router.post("/users/:userId/force-logout", async (req, res) => {
       .update(users)
       .set({ authToken: newToken, authTokenCreatedAt: new Date() })
       .where(eq(users.id, userId));
-    console.log(`[admin] force-logout: userId=${userId} by admin=${actor.email}`);
+    console.log("[admin] force-logout completed");
     return res.json({ ok: true });
   } catch (err) {
     console.error("[admin] force-logout error:", err);
@@ -392,7 +392,7 @@ router.post("/users/:userId/refresh-subscription", async (req, res) => {
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    console.log(`[admin] refresh-subscription requested: userId=${userId} stripeCustomer=${user.stripeCustomerId} by admin=${actor.email}`);
+    console.log("[admin] refresh-subscription requested");
     return res.json({ ok: true, note: "Subscription data logged. Stripe webhook sync should re-sync entitlements automatically." });
   } catch (err) {
     console.error("[admin] refresh-subscription error:", err);
@@ -408,7 +408,7 @@ router.post("/users/:userId/grant-founder", async (req, res) => {
       .update(users)
       .set({ isFounder: true, isTester: false })
       .where(eq(users.id, userId));
-    console.log(`[admin] grant-founder: userId=${userId} by admin=${actor.email}`);
+    console.log("[admin] grant-founder completed");
     return res.json({ ok: true });
   } catch (err) {
     console.error("[admin] grant-founder error:", err);
@@ -424,7 +424,7 @@ router.post("/users/:userId/revoke-founder", async (req, res) => {
       .update(users)
       .set({ isFounder: false })
       .where(eq(users.id, userId));
-    console.log(`[admin] revoke-founder: userId=${userId} by admin=${actor.email}`);
+    console.log("[admin] revoke-founder completed");
     return res.json({ ok: true });
   } catch (err) {
     console.error("[admin] revoke-founder error:", err);
@@ -445,7 +445,7 @@ router.post("/users/:userId/disable", async (req, res) => {
       .update(users)
       .set({ authToken: deadToken, subscriptionStatus: "disabled" })
       .where(eq(users.id, userId));
-    console.log(`[admin] disable: userId=${userId} by admin=${actor.email}`);
+    console.log("[admin] disable completed");
     return res.json({ ok: true });
   } catch (err) {
     console.error("[admin] disable error:", err);
@@ -463,7 +463,7 @@ router.post("/users/:userId/enable", async (req, res) => {
       .update(users)
       .set({ authToken: newToken, authTokenCreatedAt: new Date(), subscriptionStatus: "active" })
       .where(eq(users.id, userId));
-    console.log(`[admin] enable: userId=${userId} by admin=${actor.email}`);
+    console.log("[admin] enable completed");
     return res.json({ ok: true });
   } catch (err) {
     console.error("[admin] enable error:", err);
@@ -524,10 +524,10 @@ router.post("/users/:userId/send-password-reset", async (req, res) => {
         resetLink,
         userName: user.firstName || user.email.split("@")[0],
       });
-      console.log(`[admin] send-password-reset: sent to ${user.email} by admin=${actor.email}`);
+      console.log("[admin] send-password-reset: sent");
       return res.json({ ok: true, note: `Password setup email sent to ${user.email}` });
     } else {
-      console.warn(`[admin] send-password-reset: email service unavailable — token generated but not sent for ${user.email}`);
+      console.warn("[admin] send-password-reset: email service unavailable — token generated but not sent");
       return res.json({ ok: true, note: `Email service not configured. Share this link manually: ${resetLink}` });
     }
   } catch (err) {
@@ -578,7 +578,7 @@ router.post("/repair-image-cache", async (req, res) => {
       await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, key));
     }
 
-    console.log(`[admin/repair-image-cache] Removed ${staleKeys.length} stale entries by ${actor.email}`);
+    console.log(`[admin/repair-image-cache] Removed ${staleKeys.length} stale entries`);
     return res.json({
       removed: staleKeys.length,
       meals: staleRows.map(r => ({ name: r.mealName, url: r.imageUrl.substring(0, 60) + "..." })),
@@ -654,7 +654,7 @@ router.post("/run-grandfather-migration", async (req, res) => {
         )
     `);
     const rowCount = (result as any).rowCount ?? (result as any).count ?? 0;
-    console.log(`✅ [admin/run-grandfather-migration] ${rowCount} professional(s) grandfathered (procare_training_completed=true) — triggered by ${actor.email}`);
+    console.log(`✅ [admin/run-grandfather-migration] ${rowCount} professional(s) grandfathered (procare_training_completed=true)`);
     return res.json({
       ok: true,
       rowsUpdated: rowCount,
@@ -999,7 +999,7 @@ router.post("/certifications/marketing-coaching/notify-waitlist", requireEmailSe
     const skipped = (total ?? 0) - claimed.length;
 
     console.log(
-      `[admin/notify-waitlist] ${total} waitlisted — ${claimed.length} claimed, ${skipped} skipped (already notified) — force=${force} — triggered by ${actor.email}`
+      `[admin/notify-waitlist] ${total} waitlisted — ${claimed.length} claimed, ${skipped} skipped (already notified) — force=${force}`
     );
 
     if (claimed.length === 0) {

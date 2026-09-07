@@ -356,7 +356,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
   const primaryDiet = getPrimaryDiet(effectiveDiet) ?? null;
   const effectiveCuisine = cuisinePreference ?? (user?.cuisinePreference as string | null | undefined) ?? null;
 
-  console.log(`🔍 Finding meals for "${mealQuery}" near ZIP ${zipCode} | diet: ${primaryDiet ?? 'none'} | cuisine: ${effectiveCuisine ?? 'any'} | price: ${priceRange ? JSON.stringify(priceRange) : 'any'}`);
+  console.log(`🔍 Finding meals | diet: ${primaryDiet ?? 'none'} | cuisine: ${effectiveCuisine ?? 'any'} | priceFilterApplied=${Boolean(priceRange)}`);
 
   // ── Step 1: Resolve restaurants with diet+cuisine-aware fallback ─────────
   const { labeled, coords } = await resolveWithFallback(mealQuery, zipCode, primaryDiet, effectiveCuisine);

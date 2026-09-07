@@ -5572,7 +5572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
-          console.log(`🚫 [SAFETY] Blocked request for user ${userId}: ${safetyCheck.blockedTerms.join(", ")}`);
+          console.log(`🚫 [SAFETY] Blocked request; result=${safetyCheck.result}; blockedTermCount=${safetyCheck.blockedTerms.length}; correlationId=${(req as any).id}`);
           return res.status(400).json({
             success: false,
             error: safetyCheck.message,
@@ -5861,10 +5861,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         if (safetyCheck.overriddenAllergen) {
           _overriddenAllergens = [safetyCheck.overriddenAllergen];
-          console.log(`[AllergyOverride] Request-scoped override active — allergen: ${safetyCheck.overriddenAllergen}, user: ${userId}, correlationId: ${safetyCheck.correlationId}`);
+          console.log(`[AllergyOverride] Request-scoped override active; correlationId=${safetyCheck.correlationId}`);
         }
       } else if (safetyMode === "ALLERGEN_ADAPT") {
-        console.log(`[AllergenAdapt] Allergen pre-check skipped for user ${userId} — DAL adaptation mode active`);
+        console.log(`[AllergenAdapt] Allergen pre-check skipped — DAL adaptation mode active; correlationId=${(req as any).id}`);
       }
 
       // Validate servings (1-10)
@@ -5872,7 +5872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const startTime = Date.now();
       console.log("🔥 CRAVING ROUTE HIT", startTime);
-      console.log("🎯 Craving creator request:", { targetMealType, cravingInput, userId, servings: validatedServings });
+      console.log("🎯 Craving creator request:", { targetMealType, servings: validatedServings, correlationId: (req as any).id });
 
       // Get user data for medical personalization
       let user = null;

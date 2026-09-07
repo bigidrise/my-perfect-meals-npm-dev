@@ -91,7 +91,7 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
     const firstName = user.firstName ?? "Affiliate";
     const lastName = user.lastName ?? "Member";
 
-    console.log(`[Affiliate] Activating ${track} for userId=${userId} (${user.email})`);
+    console.log(`[Affiliate] Activating ${track}`);
 
     if (!CAMPAIGN_ID) {
       console.warn("[Affiliate] REWARDFUL_CAMPAIGN_ID not set — skipping Rewardful API call");

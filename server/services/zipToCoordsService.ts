@@ -25,7 +25,7 @@ const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 export async function zipToCoordinates(zipCode: string): Promise<Coordinates | null> {
   // Validate ZIP code format (5 digits)
   if (!/^\d{5}$/.test(zipCode)) {
-    console.error('❌ Invalid ZIP code format:', zipCode);
+    console.error("❌ Invalid ZIP code format");
     return null;
   }
 
@@ -34,7 +34,7 @@ export async function zipToCoordinates(zipCode: string): Promise<Coordinates | n
   if (cached) {
     const age = Date.now() - cached.timestamp;
     if (age < CACHE_DURATION_MS) {
-      console.log(`✅ Using cached coordinates for ZIP ${zipCode}`);
+      console.log("✅ Using cached coordinates");
       return cached.coords;
     } else {
       // Expired cache entry
@@ -47,7 +47,7 @@ export async function zipToCoordinates(zipCode: string): Promise<Coordinates | n
 
   if (apiKey) {
     try {
-      console.log(`🔍 Geocoding ZIP code: ${zipCode}`);
+      console.log("🔍 Geocoding ZIP code");
       const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipCode}&key=${apiKey}`;
       const response = await axios.get(url, { timeout: 5000 });
 
@@ -55,18 +55,18 @@ export async function zipToCoordinates(zipCode: string): Promise<Coordinates | n
         const location = response.data.results[0].geometry.location;
         const coords: Coordinates = { lat: location.lat, lng: location.lng };
         cache.set(zipCode, { coords, timestamp: Date.now() });
-        console.log(`✅ Geocoded ZIP ${zipCode} to (${coords.lat}, ${coords.lng})`);
+        console.log("✅ Geocoding completed");
         return coords;
       } else if (response.data.status === 'REQUEST_DENIED') {
-        console.warn(`⚠️ Google Geocoding API not enabled for ZIP ${zipCode} — falling back to Nominatim`);
+        console.warn("⚠️ Google Geocoding API not enabled — falling back to Nominatim");
       } else {
-        console.warn(`⚠️ Google geocoding status ${response.data.status} for ZIP ${zipCode} — falling back to Nominatim`);
+        console.warn(`⚠️ Google geocoding status ${response.data.status} — falling back to Nominatim`);
       }
     } catch (error) {
-      console.warn(`⚠️ Google geocoding error for ZIP ${zipCode} — falling back to Nominatim:`, (error as Error).message);
+      console.warn("⚠️ Google geocoding error — falling back to Nominatim:", (error as Error).message);
     }
   } else {
-    console.log(`📍 No Google key — geocoding ZIP ${zipCode} via Nominatim`);
+    console.log("📍 No Google key — geocoding via Nominatim");
   }
 
   // Nominatim fallback: forward geocoding ZIP → coords
@@ -78,7 +78,7 @@ export async function zipToCoordinates(zipCode: string): Promise<Coordinates | n
  */
 async function zipToCoordinatesNominatim(zipCode: string): Promise<Coordinates | null> {
   try {
-    console.log(`🗺️ Nominatim forward geocoding ZIP: ${zipCode}`);
+    console.log("🗺️ Nominatim forward geocoding");
     const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${zipCode}&countrycodes=us&limit=1`;
     const response = await axios.get(url, {
       timeout: 8000,
@@ -86,7 +86,7 @@ async function zipToCoordinatesNominatim(zipCode: string): Promise<Coordinates |
     });
 
     if (!response.data || response.data.length === 0) {
-      console.error(`❌ Nominatim: no results for ZIP ${zipCode}`);
+      console.error("❌ Nominatim: no results");
       return null;
     }
 
@@ -97,17 +97,17 @@ async function zipToCoordinatesNominatim(zipCode: string): Promise<Coordinates |
     };
 
     if (isNaN(coords.lat) || isNaN(coords.lng)) {
-      console.error(`❌ Nominatim: invalid coordinates for ZIP ${zipCode}`);
+      console.error("❌ Nominatim: invalid coordinates");
       return null;
     }
 
     // Cache so we don't hit Nominatim on every request
     cache.set(zipCode, { coords, timestamp: Date.now() });
-    console.log(`✅ Nominatim geocoded ZIP ${zipCode} to (${coords.lat}, ${coords.lng})`);
+    console.log("✅ Nominatim geocoding completed");
     return coords;
 
   } catch (error) {
-    console.error(`❌ Nominatim forward geocoding error for ZIP ${zipCode}:`, error);
+    console.error("❌ Nominatim forward geocoding error:", error);
     return null;
   }
 }
