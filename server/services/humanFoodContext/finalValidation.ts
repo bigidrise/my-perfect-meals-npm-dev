@@ -223,6 +223,7 @@ export function validateHumanFoodCandidate(
 
   for (const diet of context.diet.effective) {
     const key = normalize(diet);
+    const requiresStructuredEvidence = DIETS_REQUIRING_STRUCTURED_EVIDENCE.has(key);
     const dietaryRequestAuthorized = hasAuthorizedDietaryRequest(
       context,
       `dietary_identity:${key}`,
@@ -237,14 +238,16 @@ export function validateHumanFoodCandidate(
       message: `The candidate conflicts with the effective ${diet} identity.`,
       assurance: "deterministic", matchedTerms: matched,
     });
-    if (DIETS_REQUIRING_STRUCTURED_EVIDENCE.has(key) && evidence.dietaryIdentityCompliant !== true) {
-      add(findings, {
-        dimension: "dietary_identity",
-        outcome: "review_required",
-        code: `dietary_identity_evidence_required:${key}`,
-        message: `${diet} compatibility requires structured composition evidence that this contract cannot infer from ingredient terms alone.`,
-        assurance: "structured_evidence",
-      });
+    if (requiresStructuredEvidence) {
+      if (evidence.dietaryIdentityCompliant !== true) {
+        add(findings, {
+          dimension: "dietary_identity",
+          outcome: "review_required",
+          code: `dietary_identity_evidence_required:${key}`,
+          message: `${diet} compatibility requires structured composition evidence that this contract cannot infer from ingredient terms alone.`,
+          assurance: "structured_evidence",
+        });
+      }
     } else if (
       !DIET_BLOCKS[key] &&
       key !== "halal" &&
