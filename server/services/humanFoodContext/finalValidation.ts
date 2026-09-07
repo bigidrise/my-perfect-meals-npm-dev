@@ -124,12 +124,15 @@ function preferenceMismatch(
   findings: HumanFoodValidationFinding[],
   dimension: "cuisine" | "flavor",
   code: string,
-  expected: { available: boolean; value: string | null },
+  expected: { available: boolean; value: string | null; source?: string },
   actual: string | undefined,
   label: string,
 ): void {
   if (!expected.available || !expected.value) return;
   if (!actual) {
+    // Stored/profile flavor signals are preferences, not safety constraints.
+    // Only an explicit request must fail closed when structured evidence is absent.
+    if (expected.source !== "request") return;
     add(findings, {
       dimension,
       outcome: "review_required",
