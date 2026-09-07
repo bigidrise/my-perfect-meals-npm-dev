@@ -210,6 +210,7 @@ export default function BusinessDashboard() {
   // Manage seats modal
   const [seatModalOpen, setSeatModalOpen] = useState(false);
   const [managedSeats, setManagedSeats] = useState(4);
+  const seatChangeOperationRef = useRef<string | null>(null);
   const [managingSeats, setManagingSeats] = useState(false);
 
   // Client ownership policy
@@ -589,11 +590,17 @@ export default function BusinessDashboard() {
   };
 
   const handleManageSeats = async () => {
+    const operationId = seatChangeOperationRef.current ?? crypto.randomUUID();
+    seatChangeOperationRef.current = operationId;
     setManagingSeats(true);
     try {
       const res = await fetch("/api/business/seats", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": operationId,
+          ...getAuthHeaders(),
+        },
         credentials: "include",
         body: JSON.stringify({ seats: managedSeats }),
       });
@@ -603,6 +610,7 @@ export default function BusinessDashboard() {
         return;
       }
       toast({ title: `Seats updated to ${managedSeats}`, description: "Your Stripe subscription has been adjusted." });
+      seatChangeOperationRef.current = null;
       setSeatModalOpen(false);
       fetchData();
     } catch {

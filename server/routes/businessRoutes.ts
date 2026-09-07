@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { randomBytes } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
 import { eq, and, ne, sql, isNull, gt, or } from "drizzle-orm";
@@ -35,6 +35,8 @@ import {
   updateClaimedChampionSetup,
 } from "../services/organizationalPilotAuthorizationService";
 import { organizationalPilots } from "../db/schema/pilotProgram";
+import { activateProCareClient, ActivationError } from "../services/procareActivation";
+import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -1220,14 +1222,23 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     const [invite] = await db
       .select()
       .from(businessInvitations)
-      .where(and(eq(businessInvitations.token, token), eq(businessInvitations.status, "pending")))
+      .where(eq(businessInvitations.token, token))
       .limit(1);
 
     if (!invite) {
+      return res.status(404).json({ error: "Invitation not found." });
+    }
+
+    const isIdempotentClientAcceptance =
+      invite.invitationType === "client"
+      && invite.status === "accepted"
+      && invite.acceptedByUserId === userId;
+
+    if (invite.status !== "pending" && !isIdempotentClientAcceptance) {
       return res.status(404).json({ error: "Invitation not found or already used." });
     }
 
-    if (new Date() > new Date(invite.expiresAt)) {
+    if (invite.status === "pending" && new Date() > new Date(invite.expiresAt)) {
       await db.update(businessInvitations).set({ status: "expired" }).where(eq(businessInvitations.token, token));
       return res.status(410).json({ error: "This invitation has expired." });
     }
@@ -1266,6 +1277,54 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     // ── Client invitation path — extend trial, no seat consumed ──────────────
     if (invite.invitationType === "client") {
       const trialDays = invite.trialDays ?? 30;
+      if (
+        business.plan !== "clinical_business_monthly"
+        || !business.stripeCustomerId
+        || !business.stripeSubscriptionId
+      ) {
+        return res.status(403).json({
+          error: "This invitation is not from a verified paid Organization.",
+          code: "PAID_ORGANIZATION_REQUIRED",
+        });
+      }
+
+      const [ownerMembership] = await db
+        .select({ userId: businessMembers.userId })
+        .from(businessMembers)
+        .where(and(
+          eq(businessMembers.businessId, business.id),
+          eq(businessMembers.userId, business.ownerUserId),
+          eq(businessMembers.role, "owner"),
+          eq(businessMembers.status, "active"),
+        ))
+        .limit(1);
+
+      if (!ownerMembership) {
+        return res.status(409).json({
+          error: "This Organization does not have an active professional owner.",
+          code: "ORGANIZATION_OWNER_NOT_READY",
+        });
+      }
+
+      let activation;
+      try {
+        activation = await activateProCareClient(
+          userId,
+          ownerMembership.userId,
+          "paid_business_client_invite",
+        );
+      } catch (error) {
+        if (error instanceof ActivationError) {
+          const isRelationshipConflict = error.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL";
+          return res.status(isRelationshipConflict ? 409 : 422).json({
+            error: isRelationshipConflict
+              ? "This client is already connected to another professional."
+              : "The Organization owner is not ready to accept ProCare clients.",
+            code: error.code,
+          });
+        }
+        throw error;
+      }
 
       // Guard: skip the trial_ends_at write for users who already have an active
       // paid subscription. Their access is governed by Stripe billing, not by
@@ -1282,7 +1341,7 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       const hasActivePaidPlan =
         acceptingUser?.planLookupKey != null && acceptingUser.planLookupKey !== "";
 
-      if (!hasActivePaidPlan) {
+      if (!hasActivePaidPlan && !isIdempotentClientAcceptance) {
         // Set trial to MAX(existing end, now + N days).
         // Using COALESCE so NULL trial_ends_at is treated as a past date, not a GREATEST-stopper.
         // This means a brand-new user (7-day default trial) gets exactly 30 days from acceptance,
@@ -1297,25 +1356,35 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
                   trial_reminders_sent = CASE WHEN ${trialDays} > 7 THEN '{}'::text[] ELSE trial_reminders_sent END
               WHERE id = ${userId}`
         );
-      } else {
+      } else if (hasActivePaidPlan) {
         console.log(
           `ℹ️ [business] Client invite accepted by paid subscriber — trial_ends_at write skipped | user=${userId} | planLookupKey=${acceptingUser.planLookupKey}`
         );
       }
 
-      await db
-        .update(businessInvitations)
-        .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
-        .where(eq(businessInvitations.id, invite.id));
+      if (!isIdempotentClientAcceptance) {
+        await db
+          .update(businessInvitations)
+          .set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: userId })
+          .where(and(
+            eq(businessInvitations.id, invite.id),
+            eq(businessInvitations.status, "pending"),
+          ));
+      }
 
       const programName = invite.programName || "My Perfect Meals Complimentary Access";
-      console.log(`✅ [business] Client invite accepted | business=${business.id} | user=${userId} | days=${trialDays}`);
+      console.log(
+        `✅ [business] Client invite accepted | business=${business.id} | user=${userId} | days=${trialDays} | proCareOwner=${ownerMembership.userId} | alreadyAccepted=${isIdempotentClientAcceptance}`,
+      );
       return res.json({
         success: true,
+        alreadyAccepted: isIdempotentClientAcceptance,
         invitationType: "client",
         businessName: business.name,
         programName,
         trialDays,
+        proCareConnected: true,
+        studioId: activation.studioId,
       });
     }
 
@@ -1358,17 +1427,6 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       });
     }
 
-    // ── Seat availability check ────────────────────────────────────────────────
-    // Only needed for brand-new members or removed members re-joining.
-    // (Active members are already counted and were rejected above.)
-    const usedSeats = await getActiveSeats(business.id);
-    if (usedSeats >= business.seatLimit) {
-      return res.status(400).json({
-        error: "All seats are currently in use. Please contact the business owner.",
-        code: "SEATS_FULL",
-      });
-    }
-
     // ── Snapshot personal plan before activating membership ───────────────────
     // We NEVER overwrite the user's Stripe planLookupKey with the business plan.
     // Effective access is computed at runtime from the membership row itself.
@@ -1402,6 +1460,28 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     // with a 23505 unique-violation, which we map to ALREADY_IN_ANOTHER_BUSINESS.
     try {
       await db.transaction(async (tx) => {
+        // Serialize professional-seat activation with seat-count changes.
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${business.id}))`);
+
+        const [lockedBusiness] = await tx
+          .select({ seatLimit: businesses.seatLimit })
+          .from(businesses)
+          .where(eq(businesses.id, business.id))
+          .limit(1);
+        const [seatUsage] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(businessMembers)
+          .where(and(
+            eq(businessMembers.businessId, business.id),
+            eq(businessMembers.status, "active"),
+          ));
+        const usedSeats = Number(seatUsage?.count ?? 0);
+        if (!lockedBusiness || usedSeats >= lockedBusiness.seatLimit) {
+          const seatError = new Error("All seats are currently in use.") as Error & { code: string };
+          seatError.code = "SEATS_FULL";
+          throw seatError;
+        }
+
         if (existing) {
           // Re-activate a previously-removed member row — never insert a duplicate.
           // Also set noticeDismissedAt so the stale removal-notice banner is cleared
@@ -1432,6 +1512,12 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
           .where(eq(businessInvitations.id, invite.id));
       });
     } catch (txErr: any) {
+      if (txErr.code === "SEATS_FULL") {
+        return res.status(400).json({
+          error: "All seats are currently in use. Please contact the business owner.",
+          code: "SEATS_FULL",
+        });
+      }
       // PostgreSQL unique-violation code: 23505.
       // The partial index name contains "one_active_per_user" — match on both
       // to avoid swallowing unrelated unique violations (e.g. business_id+user_id).
@@ -1499,6 +1585,11 @@ router.post("/seats", requireAuth, requireProAccess, async (req, res) => {
   if (!Number.isInteger(newSeats) || newSeats < 1 || newSeats > 250) {
     return res.status(400).json({ error: "Seat count must be between 1 and 250." });
   }
+  const requestedOperationId = req.get("Idempotency-Key")?.trim();
+  if (requestedOperationId && requestedOperationId.length > 200) {
+    return res.status(400).json({ error: "Invalid seat-change operation identifier." });
+  }
+  const operationId = requestedOperationId || randomUUID();
 
   try {
     const seatsResolved = await resolveAuthorizedBusiness(userId, "owner_only");
@@ -1506,28 +1597,65 @@ router.post("/seats", requireAuth, requireProAccess, async (req, res) => {
     const biz = seatsResolved.business;
     if (biz.status !== "active") return res.status(400).json({ error: "Business subscription is not active." });
 
-    const activeSeats = await getActiveSeats(biz.id);
-    if (newSeats < activeSeats) {
-      return res.status(400).json({
-        error: `Cannot reduce to ${newSeats} seat${newSeats !== 1 ? "s" : ""}. You have ${activeSeats} active member${activeSeats !== 1 ? "s" : ""} using seats. Remove members first.`,
-      });
-    }
+    await db.transaction(async (tx) => {
+      // Serialize seat changes across app instances so Stripe and the local
+      // seat limit cannot be updated by overlapping requests out of order.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${biz.id}))`);
 
-    // Update Stripe subscription quantity if we have a live subscription ID
-    if (stripe && biz.stripeSubscriptionId && !biz.stripeSubscriptionId.startsWith("dev_")) {
-      const subscription = await stripe.subscriptions.retrieve(biz.stripeSubscriptionId);
-      const itemId = subscription.items.data[0]?.id;
-      if (!itemId) return res.status(500).json({ error: "Could not locate subscription item on Stripe." });
+      const [lockedBusiness] = await tx
+        .select()
+        .from(businesses)
+        .where(eq(businesses.id, biz.id))
+        .limit(1);
+      if (!lockedBusiness || lockedBusiness.status !== "active") {
+        throw new Error("Business subscription is not active.");
+      }
+      const [seatUsage] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(businessMembers)
+        .where(and(
+          eq(businessMembers.businessId, biz.id),
+          eq(businessMembers.status, "active"),
+        ));
+      const activeSeats = Number(seatUsage?.count ?? 0);
+      if (newSeats < activeSeats) {
+        throw new Error(
+          `Cannot reduce to ${newSeats} seat${newSeats !== 1 ? "s" : ""}. You have ${activeSeats} active member${activeSeats !== 1 ? "s" : ""} using seats. Remove members first.`,
+        );
+      }
 
-      await stripe.subscriptions.update(biz.stripeSubscriptionId, {
-        items: [{ id: itemId, quantity: newSeats }],
-        proration_behavior: "always_invoice",
-      });
-      console.log(`✅ [business/seats] Stripe quantity updated → ${newSeats} | biz=${biz.id} | owner=${userId}`);
-    }
+      // Update Stripe subscription quantity if we have a live subscription ID.
+      if (
+        stripe
+        && lockedBusiness.stripeSubscriptionId
+        && !lockedBusiness.stripeSubscriptionId.startsWith("dev_")
+      ) {
+        assertStripeBillingOwnership(stripeKey);
+        const subscription = await stripe.subscriptions.retrieve(lockedBusiness.stripeSubscriptionId);
+        const itemId = subscription.items.data[0]?.id;
+        if (!itemId) throw new Error("Could not locate subscription item on Stripe.");
 
-    // Sync local seatLimit
-    await db.update(businesses).set({ seatLimit: newSeats, updatedAt: new Date() }).where(eq(businesses.id, biz.id));
+        const currentQuantity = subscription.items.data[0]?.quantity ?? 0;
+        if (currentQuantity !== newSeats) {
+          await stripe.subscriptions.update(
+            lockedBusiness.stripeSubscriptionId,
+            {
+              items: [{ id: itemId, quantity: newSeats }],
+              proration_behavior: "always_invoice",
+            },
+            {
+              idempotencyKey: `mpm-business-seats:${biz.id}:${operationId}`,
+            },
+          );
+          console.log(`✅ [business/seats] Stripe quantity updated → ${newSeats} | biz=${biz.id} | owner=${userId}`);
+        }
+      }
+
+      await tx
+        .update(businesses)
+        .set({ seatLimit: newSeats, updatedAt: new Date() })
+        .where(eq(businesses.id, biz.id));
+    });
     console.log(`✅ [business/seats] local seatLimit updated → ${newSeats} | biz=${biz.id}`);
 
     return res.json({ success: true, seatLimit: newSeats });
