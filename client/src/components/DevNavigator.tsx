@@ -5,16 +5,18 @@ import { proStore, type ClientProfile } from "@/lib/proData";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
+import WelcomeGate from "@/components/WelcomeGate";
 
 interface NavSection {
   title: string;
-  routes: { path: string; label: string }[];
+  routes: { path: string; label: string; preview?: "welcome-gate" }[];
 }
 
 const NAV_SECTIONS: NavSection[] = [
   {
     title: "Auth & Onboarding",
     routes: [
+      { path: "dev-preview:welcome-gate", label: "Choose How to Get Started", preview: "welcome-gate" },
       { path: "/welcome", label: "Welcome" },
       { path: "/auth", label: "Auth / Login" },
       { path: "/forgot-password", label: "Forgot Password" },
@@ -472,6 +474,7 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
 
 export default function DevNavigator() {
   const [open, setOpen] = useState(false);
+  const [showWelcomePreview, setShowWelcomePreview] = useState(false);
   const [, setLocation] = useLocation();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["Pro Dashboard Preview"]));
 
@@ -490,10 +493,24 @@ export default function DevNavigator() {
     });
   };
 
-  const navigate = (path: string) => {
+  const navigate = (path: string, preview?: "welcome-gate") => {
+    if (preview === "welcome-gate") {
+      setOpen(false);
+      setShowWelcomePreview(true);
+      return;
+    }
     setLocation(path);
     setOpen(false);
   };
+
+  if (showWelcomePreview) {
+    return (
+      <WelcomeGate
+        previewMode
+        onComplete={() => setShowWelcomePreview(false)}
+      />
+    );
+  }
 
   if (!open) {
     return (
@@ -569,11 +586,13 @@ export default function DevNavigator() {
                   {section.routes.map((route) => (
                     <button
                       key={route.path}
-                      onClick={() => navigate(route.path)}
+                      onClick={() => navigate(route.path, route.preview)}
                       className="w-full flex items-center justify-between px-4 py-2.5 active:bg-white/10 transition-colors"
                     >
                       <span className="text-white/80 text-sm">{route.label}</span>
-                      <span className="text-[10px] text-white/30 font-mono">{route.path}</span>
+                      <span className="text-[10px] text-white/30 font-mono">
+                        {route.preview ? "Preview" : route.path}
+                      </span>
                     </button>
                   ))}
                 </div>
