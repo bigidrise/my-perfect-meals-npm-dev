@@ -91,7 +91,7 @@ function hasExactAuthorization(
 ): boolean {
   const normalizedRule = normalize(ruleCode);
   const normalizedTerm = normalize(matchedTerm);
-  return context.authorization.status === "authorized" &&
+  return context.authorization?.status === "authorized" &&
     context.authorization.waivers.some((waiver) =>
       waiver.dimension === dimension &&
       normalize(waiver.ruleCode) === normalizedRule &&
@@ -105,7 +105,7 @@ function hasAuthorizedDietaryRequest(
   candidateText: string,
 ): boolean {
   const normalizedRule = normalize(ruleCode);
-  return context.authorization.status === "authorized" &&
+  return context.authorization?.status === "authorized" &&
     context.authorization.waivers.some((waiver) =>
       waiver.dimension === "dietary_identity" &&
       normalize(waiver.ruleCode) === normalizedRule &&

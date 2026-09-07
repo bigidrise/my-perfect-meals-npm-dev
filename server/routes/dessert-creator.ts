@@ -135,6 +135,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
 
     const { createHumanFoodRequestScope } = await import("../services/humanFoodContext/requestScope");
     const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("../services/humanFoodContext/adapters");
+    const { resolveRequestDietOverride } = await import("../services/humanFoodContext/requestDiet");
     // The client-provided action request is intentionally not trusted as the
     // binding value. Derive it from this execution's inputs so a token cannot
     // be replayed for a different dessert.
@@ -151,7 +152,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
       subjectUserId: userId,
       creator: "dessert_creator",
       correlationId: (req as any).id,
-      dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+      dietOverride: resolveRequestDietOverride(dietOverride, dietaryPreferences),
       cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
       cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
       actionRequest: canonicalActionRequest,

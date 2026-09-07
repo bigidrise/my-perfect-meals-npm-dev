@@ -1201,6 +1201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (stage2dHumanFoodTypes.has(type)) {
         const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
         const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
+        const { resolveRequestDietOverride } = await import("./services/humanFoodContext/requestDiet");
         // Bind acknowledgements to the actual request this endpoint executes;
         // do not trust a body-supplied action label.
         const canonicalActionRequest = typeof input === "string"
@@ -1218,7 +1219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subjectUserId: effectiveUserId,
           creator: "recipe_maker",
           correlationId: (req as any).id,
-          dietOverride: typeof dietOverride === "string" ? dietOverride : null,
+          dietOverride: resolveRequestDietOverride(dietOverride, dietType),
           cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
           cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
           actionRequest: canonicalActionRequest,
