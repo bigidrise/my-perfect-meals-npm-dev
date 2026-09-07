@@ -21,6 +21,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { BUILD_VERSION } from "@/buildVersion";
+import { isManifestVersionNewer } from "@/lib/releaseVersion";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -74,12 +75,11 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
-  // A new deployment exists when the fetched version differs from the baked-in BUILD_VERSION.
-  // But the banner only appears if notes are non-empty (enforced in UpdateBanner).
+  // Only a demonstrably newer timestamp version is an update. Older, equal,
+  // missing, or malformed manifests fail closed and never trigger a reload loop.
   const hasUpdate =
-    BUILD_VERSION !== "dev" &&
-    latestVersion !== null &&
-    latestVersion !== BUILD_VERSION;
+    latestReleaseId.length > 0 &&
+    isManifestVersionNewer(BUILD_VERSION, latestVersion);
 
   return (
     <UpdateContext.Provider

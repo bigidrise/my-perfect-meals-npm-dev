@@ -31,6 +31,15 @@ describe("privacy logging remediation source contracts", () => {
     expect(line).not.toContain("blockedTerms.join");
   });
 
+  it("keeps craving safety-block logs aggregate without user or blocked-term content", () => {
+    const line = sourceLine(routesSource, "[SAFETY] Blocked craving request;");
+
+    expect(line).toContain("blockedTermCount=${safetyCheck.blockedTerms.length}");
+    expect(line).toContain("correlationId=${(req as any).id}");
+    expect(line).not.toContain("${userId}");
+    expect(line).not.toContain("blockedTerms.join");
+  });
+
   it("does not log the overridden allergen or persistent user ID", () => {
     const line = sourceLine(routesSource, "[AllergyOverride] Request-scoped override active;");
 

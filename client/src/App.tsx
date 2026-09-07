@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -26,7 +26,6 @@ import { CopilotSystem } from "@/components/copilot/CopilotSystem";
 import type { CopilotAction } from "@/components/copilot/CopilotContext";
 import { setNavigationHandler, setModalHandler } from "@/components/copilot/CopilotCommandRegistry";
 import { useLocation } from "wouter";
-import { useTranslation } from "react-i18next";
 import { initNativeDemoMode } from "@/lib/auth";
 import { RootViewport } from "./layouts/RootViewport";
 import { setupNotificationListeners } from "@/services/mealReminderService";
@@ -73,8 +72,6 @@ function UpdateBannerMount() {
 }
 
 export default function App() {
-  const { t } = useTranslation();
-  const [isAppReady, setIsAppReady] = useState(false);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -122,12 +119,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Quick app readiness check
-    const timer = setTimeout(() => setIsAppReady(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
     // Load Rewardful affiliate tracking
     const key = import.meta.env.VITE_REWARDFUL_PUBLIC_KEY as string;
     if (key) {
@@ -155,31 +146,6 @@ export default function App() {
         break;
     }
   };
-
-  // Show branded loading shell until app is ready
-  // This prevents white flash / 404 during boot sequence
-  if (!isAppReady) {
-    return (
-      <div 
-        style={{
-          backgroundColor: "#000",
-          height: "100dvh",
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column"
-        }}
-      >
-        <img 
-          src="/icons/chef.png?v=2026b" 
-          alt="Loading" 
-          style={{ width: "80px", height: "80px", marginBottom: "16px" }}
-        />
-        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px" }}>{t("common.loading")}</p>
-      </div>
-    );
-  }
 
   // Browser tests need the real pickers, but not unrelated global widgets that
   // require a complete production account. This route is unavailable outside
