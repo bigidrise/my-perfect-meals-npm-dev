@@ -22,6 +22,7 @@ import { proStore } from "@/lib/proData";
 import { getNutritionBaseline, clearResolvedTargetsCache, unlinkUser } from "@/lib/macroResolver";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
+import { createSingleFlight } from "@/lib/singleFlight";
 
 const POLL_INTERVAL_MS = 45_000;
 const LS_USER_CLIENT_MAP = "mpm_user_client_map";
@@ -39,38 +40,44 @@ function getClientId(userId: string): string | null {
 }
 
 export function useMacroTargetSync() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const userIdRef = useRef<string | undefined>(undefined);
   const isProCareRef = useRef<boolean | undefined>(undefined);
+  const authLoadingRef = useRef(true);
+  const macroSyncSingleFlight = useRef(createSingleFlight<void>());
 
   useEffect(() => {
     userIdRef.current = user?.id;
     isProCareRef.current = !!(user as any)?.isProCare;
-  }, [user?.id, (user as any)?.isProCare]);
+    authLoadingRef.current = loading;
+  }, [loading, user?.id, (user as any)?.isProCare]);
 
   useEffect(() => {
     const sync = async () => {
-      const userId = userIdRef.current;
-      if (!userId) return;
+      const requestedUserId = userIdRef.current;
+      if (authLoadingRef.current || !requestedUserId) return;
 
-      // Protocol Ownership Model: if the user is no longer connected to ProCare,
-      // clear the stale client mapping AND strip any physician medical flags from
-      // localStorage so they don't persist and incorrectly attribute macro targets
-      // or clinical protocols to a physician/professional.
-      if (isProCareRef.current === false) {
-        const clientId = getClientId(userId);
-        if (clientId) {
-          proStore.stripMedicalFlags(clientId);
-          unlinkUser(userId);
-          clearResolvedTargetsCache();
-          window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
-          console.log("[MacroTargetSync] Cleared ProCare mapping — isProCare=false, stale clientId removed.");
+      await macroSyncSingleFlight.current.run(async () => {
+        const userId = requestedUserId;
+
+        // Protocol Ownership Model: if the user is no longer connected to ProCare,
+        // clear the stale client mapping AND strip any physician medical flags from
+        // localStorage so they don't persist and incorrectly attribute macro targets
+        // or clinical protocols to a physician/professional.
+        if (isProCareRef.current === false) {
+          const clientId = getClientId(userId);
+          if (clientId) {
+            proStore.stripMedicalFlags(clientId);
+            unlinkUser(userId);
+            clearResolvedTargetsCache();
+            window.dispatchEvent(new CustomEvent("mpm:targetsUpdated"));
+            console.log("[MacroTargetSync] Cleared ProCare mapping — isProCare=false, stale clientId removed.");
+          }
         }
-      }
 
-      const clientId = getClientId(userId);
+        const clientId = getClientId(userId);
 
-      if (!clientId) {
+        if (!clientId) {
         // Self-managed user: server/DB is always the authority.
         // localStorage is a fast cache — we always refresh it from the server so
         // stale values (set weeks ago, on another device, or by an old build) never
@@ -128,13 +135,13 @@ export function useMacroTargetSync() {
           // Silent — network failures should not surface to the user
         }
 
-        return;
-      }
+          return;
+        }
 
-      // ProCare client: sync from DB into proStore
-      try {
-        const data = await apiRequest(`/api/users/${userId}/macro-targets`, { cache: "no-store" });
-        if (!data.hasTargets) return;
+        // ProCare client: sync from DB into proStore
+        try {
+          const data = await apiRequest(`/api/users/${userId}/macro-targets`, { cache: "no-store" });
+          if (!data.hasTargets) return;
 
         // Compare API values with what the resolver currently sees
         const current = getNutritionBaseline(userId);
@@ -171,8 +178,19 @@ export function useMacroTargetSync() {
           "[MacroTargetSync] ProCare targets updated from API →",
           `protein=${apiProtein} starchy=${apiStarchy} fibrous=${apiFibrous} fat=${apiFat}`
         );
-      } catch {
-        // Silent — network failures should not surface to the user
+        } catch {
+          // Silent — network failures should not surface to the user
+        }
+      });
+
+      // If identity changed while the previous user's request was in flight,
+      // immediately synchronize the newly resolved authenticated user.
+      if (
+        !authLoadingRef.current &&
+        userIdRef.current &&
+        userIdRef.current !== requestedUserId
+      ) {
+        void sync();
       }
     };
 
@@ -192,5 +210,5 @@ export function useMacroTargetSync() {
       document.removeEventListener("visibilitychange", onVisibility);
       clearInterval(interval);
     };
-  }, [user?.id]);
+  }, [loading, user?.id]);
 }
