@@ -49,23 +49,22 @@ const TARGETS_KEY = (userId?: string) => `mpm.macroTargets.${userId ?? "anon"}`;
 
 // NEW: Persistent macro targets (not date-specific - stays until you change it)
 export async function setMacroTargets(targets: MacroTargets, userId?: string): Promise<void> {
-  // Save to localStorage for offline support
   const key = TARGETS_KEY(userId);
-  localStorage.setItem(key, JSON.stringify(targets));
 
   // Guest users only save to localStorage (they don't exist in database)
   if (!userId || userId.startsWith('guest-')) {
+    localStorage.setItem(key, JSON.stringify(targets));
     console.log('✅ Macro targets saved to localStorage (guest user)');
     return;
   }
 
-  // For real users, also save to the database.
-  // NOTE: localStorage was already saved above, so it's safe to throw here —
-  // the data is not lost, it just won't persist across devices/logouts.
+  // For authenticated users, the database is authoritative. Do not expose
+  // replacement targets locally until the server confirms the atomic save.
   await apiRequest(`/api/users/${userId}/macro-targets`, {
     method: 'POST',
     body: JSON.stringify(targets),
   });
+  localStorage.setItem(key, JSON.stringify(targets));
 
   console.log('✅ Macro targets saved to database and localStorage');
 }

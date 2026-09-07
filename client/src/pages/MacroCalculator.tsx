@@ -32,6 +32,16 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PillButton } from "@/components/ui/pill-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -814,6 +824,15 @@ export default function MacroCounter() {
   // Starch Meal Strategy: "one" = 1 starch meal/day, "flex" = split across 2 meals
   // Start with undefined so user must make an active choice (UX improvement)
   const existingTargets = getMacroTargets(user?.id);
+  const hasExistingMacroTargets = !!existingTargets && [
+    existingTargets.calories,
+    existingTargets.protein_g,
+    existingTargets.carbs_g,
+    existingTargets.fat_g,
+  ].some((value) => Number.isFinite(value) && value > 0);
+  const [recalculationConfirmation, setRecalculationConfirmation] = useState<
+    "first" | "second" | null
+  >(null);
   const [starchStrategy, setStarchStrategy] = useState<
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
@@ -1042,6 +1061,19 @@ export default function MacroCounter() {
     setGuidedStep("entry");
     setShowResults(false);
   }, []);
+
+  const requestMacroRecalculation = useCallback(() => {
+    if (hasExistingMacroTargets) {
+      setRecalculationConfirmation("first");
+      return;
+    }
+    resetGuidedFlow();
+  }, [hasExistingMacroTargets, resetGuidedFlow]);
+
+  const confirmMacroRecalculation = useCallback(() => {
+    setRecalculationConfirmation(null);
+    resetGuidedFlow();
+  }, [resetGuidedFlow]);
 
   // Check if we're past a certain step (for showing completed items)
   const isPastStep = (step: GuidedStep): boolean => {
@@ -3507,7 +3539,7 @@ export default function MacroCounter() {
                     </div>
                   </div>
                   <Button
-                    onClick={resetGuidedFlow}
+                    onClick={requestMacroRecalculation}
                     variant="outline"
                     className="bg-black/60 text-white  border border-white/60 hover:bg-black/80 hover:text-white"
                     data-testid="recalculate-with-chef"
@@ -4416,6 +4448,66 @@ export default function MacroCounter() {
           )}
         </div>
       </motion.div>
+
+      <AlertDialog
+        open={recalculationConfirmation === "first"}
+        onOpenChange={(open) => {
+          if (!open) setRecalculationConfirmation(null);
+        }}
+      >
+        <AlertDialogContent className="bg-black/95 border border-white/20 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recalculate Your Macros?</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">
+              You already have macro targets saved. Recalculating will create new
+              targets based on your current information.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                setRecalculationConfirmation("second");
+              }}
+              className="bg-lime-600 text-white hover:bg-lime-500"
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={recalculationConfirmation === "second"}
+        onOpenChange={(open) => {
+          if (!open) setRecalculationConfirmation(null);
+        }}
+      >
+        <AlertDialogContent className="bg-black/95 border border-white/20 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace Your Current Macro Targets?</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">
+              Your current targets will remain in place until you complete the new
+              calculation. When you save the new calculation, it will replace your
+              current macro targets.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">
+              Keep Current Targets
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmMacroRecalculation}
+              className="bg-orange-600 text-white hover:bg-orange-500"
+            >
+              Recalculate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <QuickTourModal
         isOpen={quickTour.shouldShow}
