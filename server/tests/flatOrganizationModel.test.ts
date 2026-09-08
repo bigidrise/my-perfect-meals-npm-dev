@@ -14,6 +14,7 @@ describe("flat ordinary Organization backend model", () => {
   const pricing = read("client/src/pages/PricingPage.tsx");
   const dashboard = read("client/src/pages/BusinessDashboard.tsx");
   const successCenter = read("client/src/pages/OrganizationSuccessCenter.tsx");
+  const orgContext = read("client/src/contexts/OrgContext.tsx");
   const setup = read("client/src/pages/BusinessSetup.tsx");
 
   test("ordinary checkout is and remains Stripe quantity one", () => {
@@ -39,6 +40,12 @@ describe("flat ordinary Organization backend model", () => {
     expect(successCenter).not.toContain(
       '<NarrationBar sections={[{ heading: mod.title, text: mod.narration }]} />',
     );
+  });
+
+  test("partial Organization config cannot crash feature-flag consumers", () => {
+    expect(orgContext).toContain("...DEFAULT_ORG_CONFIG.featureFlags");
+    expect(orgContext).toContain("...(data?.featureFlags ?? {})");
+    expect(orgContext).toContain("org.featureFlags?.[flag] === true");
   });
 
   test("ordinary invitations and acceptance do not enforce purchased seats", () => {

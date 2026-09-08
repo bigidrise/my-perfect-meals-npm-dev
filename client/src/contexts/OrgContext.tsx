@@ -110,10 +110,18 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         return r.json();
       })
       .then((data: OrgConfig) => {
-        setOrg(data);
-        applyOrgTheme(data);
-        if (data.appName) {
-          document.title = data.appName;
+        const normalizedOrg: OrgConfig = {
+          ...DEFAULT_ORG_CONFIG,
+          ...data,
+          featureFlags: {
+            ...DEFAULT_ORG_CONFIG.featureFlags,
+            ...(data?.featureFlags ?? {}),
+          },
+        };
+        setOrg(normalizedOrg);
+        applyOrgTheme(normalizedOrg);
+        if (normalizedOrg.appName) {
+          document.title = normalizedOrg.appName;
         }
       })
       .catch(() => {
@@ -123,7 +131,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hasFlag = useCallback(
-    (flag: keyof OrgFeatureFlags) => org.featureFlags[flag] === true,
+    (flag: keyof OrgFeatureFlags) => org.featureFlags?.[flag] === true,
     [org]
   );
 
