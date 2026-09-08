@@ -44,6 +44,11 @@ import {
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 
 interface BusinessData {
+  workspace: {
+    organizationId: string;
+    locationId: string;
+    locationName: string;
+  };
   business: {
     id: string;
     name: string;
@@ -91,6 +96,31 @@ interface BusinessData {
     acceptedAt: string | null;
     inviterName: string | null;
   }[];
+  clients?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    status: string;
+    joinedAt: string | null;
+  }[];
+  organizationPolicies?: {
+    requireAcademy: boolean;
+    requireProfessionalVerification: boolean;
+  };
+}
+
+interface WorkspaceOption {
+  id: string;
+  name: string;
+  role: string;
+  locations: Array<{ id: string; name: string; role: string; isDefault: boolean }>;
+}
+
+interface ActiveWorkspace {
+  organizationId: string;
+  organizationName: string;
+  locationId: string;
+  locationName: string;
 }
 
 interface MembershipData {
@@ -157,6 +187,10 @@ export default function BusinessDashboard() {
   const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(fromCheckout);
+  const [workspaceOptions, setWorkspaceOptions] = useState<WorkspaceOption[]>([]);
+  const [activeWorkspace, setActiveWorkspace] = useState<ActiveWorkspace | null>(null);
+  const [workspaceSelectionRequired, setWorkspaceSelectionRequired] = useState(false);
+  const [switchingWorkspace, setSwitchingWorkspace] = useState(false);
 
   // Setup screen state
   const [setupMode, setSetupMode] = useState(false);
@@ -178,6 +212,7 @@ export default function BusinessDashboard() {
   const hasProAccess = user?.accessTier === "PAID_FULL";
   const [clientEmail, setClientEmail] = useState("");
   const [clientProgramName, setClientProgramName] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
   const [clientTrialOption, setClientTrialOption] = useState("30");
   const [clientInviteLoading, setClientInviteLoading] = useState(false);
 
@@ -237,6 +272,16 @@ export default function BusinessDashboard() {
     }
   }, [ownerData]);
 
+  useEffect(() => {
+    if (ownerData?.organizationPolicies) {
+      setOrgPolicies(ownerData.organizationPolicies);
+    }
+  }, [
+    ownerData?.workspace.organizationId,
+    ownerData?.organizationPolicies?.requireAcademy,
+    ownerData?.organizationPolicies?.requireProfessionalVerification,
+  ]);
+
   const handleToggleOrgPolicy = async (flag: "requireAcademy" | "requireProfessionalVerification", value: boolean) => {
     setSavingOrgPolicies(true);
     const next = { ...orgPolicies, [flag]: value };
@@ -288,6 +333,37 @@ export default function BusinessDashboard() {
 
   const fetchData = async (): Promise<boolean> => {
     try {
+      const [optionsRes, activeRes] = await Promise.all([
+        fetch("/api/business/workspace/options", {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+          cache: "no-store",
+        }),
+        fetch("/api/business/workspace/active", {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+          cache: "no-store",
+        }),
+      ]);
+      if (optionsRes.ok) {
+        const optionsJson = await optionsRes.json();
+        setWorkspaceOptions(
+          Array.isArray(optionsJson.organizations) ? optionsJson.organizations : [],
+        );
+      }
+      if (!activeRes.ok) {
+        const activeError = await activeRes.json().catch(() => ({}));
+        if (activeError.code === "WORKSPACE_SELECTION_REQUIRED") {
+          setWorkspaceSelectionRequired(true);
+          setViewMode("none");
+          return false;
+        }
+        throw new Error(activeError.error || "Could not resolve workspace.");
+      }
+      const activeJson = await activeRes.json();
+      setActiveWorkspace(activeJson.workspace);
+      setWorkspaceSelectionRequired(false);
+
       // Try owner first
       const ownerRes = await fetch("/api/business/mine", {
         headers: { ...getAuthHeaders() },
@@ -335,6 +411,35 @@ export default function BusinessDashboard() {
     } catch {
       setViewMode("none");
       return false;
+    }
+  };
+
+  const handleWorkspaceSwitch = async (organizationId: string, locationId: string) => {
+    setSwitchingWorkspace(true);
+    try {
+      const response = await fetch("/api/business/workspace/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ organizationId, locationId }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not switch workspace.");
+      setActiveWorkspace(body.workspace);
+      setOwnerData(null);
+      setMemberData(null);
+      setLoading(true);
+      const found = await fetchData();
+      if (!found) throw new Error("The selected workspace could not be loaded.");
+    } catch (error: any) {
+      toast({
+        title: "Could not switch workspace",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setSwitchingWorkspace(false);
     }
   };
 
@@ -587,6 +692,36 @@ export default function BusinessDashboard() {
   }
 
   // ── No business found (and not polling) ────────────────────────────────────
+  if (workspaceSelectionRequired) {
+    const locations = workspaceOptions.flatMap((organization) =>
+      organization.locations.map((location) => ({ organization, location })));
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-black/70 border border-orange-500/30 text-white p-5 space-y-4">
+          <div>
+            <h1 className="text-xl font-bold">Select your workspace</h1>
+            <p className="text-white/60 text-sm mt-1">
+              Choose the Organization and Location you want to manage.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {locations.map(({ organization, location }) => (
+              <button
+                key={location.id}
+                disabled={switchingWorkspace}
+                onClick={() => handleWorkspaceSwitch(organization.id, location.id)}
+                className="w-full text-left rounded-xl border border-white/10 bg-white/5 px-4 py-3 hover:border-orange-400/40 disabled:opacity-50"
+              >
+                <span className="block font-semibold">{organization.name}</span>
+                <span className="block text-sm text-white/55">{location.name}</span>
+              </button>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   if (viewMode === "none" || viewMode === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex flex-col items-center justify-center px-4 text-center">
@@ -903,6 +1038,30 @@ export default function BusinessDashboard() {
       )}
 
       <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+
+        {workspaceOptions.reduce((count, option) => count + option.locations.length, 0) > 1 && activeWorkspace && (
+          <Card className="bg-white/5 border border-orange-500/20 text-white p-4">
+            <label className="text-white/50 text-xs font-semibold uppercase tracking-wide block mb-2">
+              Organization / Location
+            </label>
+            <select
+              value={`${activeWorkspace.organizationId}:${activeWorkspace.locationId}`}
+              disabled={switchingWorkspace}
+              onChange={(event) => {
+                const [organizationId, locationId] = event.target.value.split(":");
+                handleWorkspaceSwitch(organizationId, locationId);
+              }}
+              className="w-full rounded-xl border border-white/15 bg-black/60 px-3 py-2.5 text-sm text-white disabled:opacity-50"
+            >
+              {workspaceOptions.flatMap((organization) =>
+                organization.locations.map((location) => (
+                  <option key={location.id} value={`${organization.id}:${location.id}`}>
+                    {organization.name} — {location.name}
+                  </option>
+                )))}
+            </select>
+          </Card>
+        )}
 
         {/* Launch Guide Checklist — shown until dismissed */}
         {!launchGuideDismissed && (() => {
@@ -1308,7 +1467,7 @@ export default function BusinessDashboard() {
         {/* Active Members */}
         <div>
           <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
-            Active Members ({members.length})
+            Team / People ({members.length})
           </h2>
           <div className="space-y-2">
             {members.map((m) => (
@@ -1331,6 +1490,7 @@ export default function BusinessDashboard() {
                       )}
                     </div>
                     <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
+                     <p className="text-green-400/80 text-xs mt-0.5">Active</p>
                   </button>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Badge className={`text-xs border-0 ${m.role === "owner" ? "bg-orange-600/80 text-white" : "bg-white/10 text-white/70"}`}>
@@ -1367,7 +1527,7 @@ export default function BusinessDashboard() {
         {invitations.length > 0 && (
           <div>
             <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
-              Pending Invitations ({invitations.length})
+              Invitation Pending ({invitations.length})
             </h2>
             <div className="space-y-2">
               {invitations.map((inv) => (
@@ -1377,7 +1537,7 @@ export default function BusinessDashboard() {
                     <div className="min-w-0">
                       <p className="text-sm truncate">{inv.email}</p>
                       <p className="text-white/40 text-xs">
-                        {inv.role.charAt(0).toUpperCase() + inv.role.slice(1)} · Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                         Name pending · {inv.role.charAt(0).toUpperCase() + inv.role.slice(1)} · Invitation Pending
                       </p>
                     </div>
                   </div>
@@ -1408,6 +1568,36 @@ export default function BusinessDashboard() {
       </div>
 
         {/* Client Invitations */}
+        {(ownerData.clients?.length ?? 0) > 0 && (
+          <div>
+            <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
+              Clients ({ownerData.clients?.length ?? 0})
+            </h2>
+            <input
+              type="search"
+              value={clientSearch}
+              onChange={(event) => setClientSearch(event.target.value)}
+              placeholder="Search clients"
+              className="w-full mb-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35"
+            />
+            <div className="space-y-2">
+              {ownerData.clients
+                ?.filter((client) => {
+                  const query = clientSearch.trim().toLowerCase();
+                  if (!query) return true;
+                  return `${client.name ?? ""} ${client.email ?? ""}`.toLowerCase().includes(query);
+                })
+                .map((client) => (
+                <Card key={client.id} className="bg-white/5 border border-white/10 text-white p-3">
+                  <p className="text-sm font-medium">{client.name || client.email || "Client"}</p>
+                  <p className="text-white/50 text-xs">{client.email || ""}</p>
+                  <p className="text-green-400/80 text-xs mt-0.5">Active</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {(() => {
           const clientInvites = ownerData.clientInvitations ?? [];
           return (

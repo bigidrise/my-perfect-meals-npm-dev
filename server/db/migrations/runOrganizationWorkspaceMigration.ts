@@ -84,6 +84,25 @@ export async function runOrganizationWorkspaceMigration(
     )
   `);
 
+  await database.execute(sql`
+    ALTER TABLE business_members
+      ADD COLUMN IF NOT EXISTS location_id uuid
+        REFERENCES organization_locations(id) ON DELETE RESTRICT
+  `);
+  await database.execute(sql`
+    CREATE INDEX IF NOT EXISTS business_members_location_status_idx
+      ON business_members(location_id, status)
+  `);
+  await database.execute(sql`
+    ALTER TABLE business_invitations
+      ADD COLUMN IF NOT EXISTS location_id uuid
+        REFERENCES organization_locations(id) ON DELETE RESTRICT
+  `);
+  await database.execute(sql`
+    CREATE INDEX IF NOT EXISTS business_invitations_location_status_type_idx
+      ON business_invitations(location_id, status, invitation_type)
+  `);
+
   // A missing canonical Organization is represented deterministically by the
   // legacy Business identity. The unique source link makes retries idempotent
   // and avoids name-based matching or duplicate Organizations.
@@ -202,5 +221,20 @@ export async function runOrganizationWorkspaceMigration(
       SET status = EXCLUDED.status,
           role = EXCLUDED.role,
           updated_at = now()
+  `);
+
+  await database.execute(sql`
+    UPDATE business_members bm
+       SET location_id = l.id
+      FROM organization_locations l
+     WHERE bm.location_id IS NULL
+       AND l.source_business_id = bm.business_id
+  `);
+  await database.execute(sql`
+    UPDATE business_invitations bi
+       SET location_id = l.id
+      FROM organization_locations l
+     WHERE bi.location_id IS NULL
+       AND l.source_business_id = bi.business_id
   `);
 }

@@ -74,6 +74,7 @@ async function reservedCount(
 
 export async function createOrganizationalPilotInvitation(input: {
   businessId: string;
+  locationId: string;
   pilotId: string;
   invitedByUserId: string;
   email: string;
@@ -144,6 +145,7 @@ export async function createOrganizationalPilotInvitation(input: {
 
     const [invite] = await tx.insert(businessInvitations).values({
       businessId: input.businessId,
+      locationId: input.locationId,
       email: normalizedEmail,
       token: tokenHash,
       tokenHash,
