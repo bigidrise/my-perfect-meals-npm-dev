@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Sparkles } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/apiRequest";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { AcademyProgression } from "@shared/academyProgression";
-
-const DISMISSED_PREFERENCE = "quickStartHeaderDismissed";
-
-type AppPreferences = Record<string, unknown>;
 
 interface QuickStartPopoverProps {
   compact?: boolean;
@@ -18,50 +14,18 @@ interface QuickStartPopoverProps {
 export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [isDismissing, setIsDismissing] = useState(false);
 
-  const { data: preferences, isLoading: preferencesLoading } = useQuery<AppPreferences>({
-    queryKey: ["/api/users", user?.id, "app-preferences"],
-    queryFn: () => apiRequest(`/api/users/${user!.id}/app-preferences`),
-    enabled: !!user?.id,
-    staleTime: 60_000,
-  });
-
-  const { data: progression, isLoading: progressionLoading } = useQuery<AcademyProgression>({
+  const { data: progression } = useQuery<AcademyProgression>({
     queryKey: ["/api/certifications/academy-progression", user?.id],
     queryFn: () => apiRequest("/api/certifications/academy-progression"),
     enabled: !!user?.id,
     staleTime: 60_000,
   });
 
-  if (
-    !user?.id ||
-    preferencesLoading ||
-    progressionLoading ||
-    preferences?.[DISMISSED_PREFERENCE] === true ||
-    progression?.phase1.complete === true
-  ) {
-    return null;
-  }
+  if (!user?.id) return null;
 
-  const dismissPermanently = async () => {
-    setIsDismissing(true);
-    try {
-      await apiRequest(`/api/users/${user.id}/app-preferences`, {
-        method: "PATCH",
-        body: JSON.stringify({ [DISMISSED_PREFERENCE]: true }),
-      });
-      queryClient.setQueryData<AppPreferences>(
-        ["/api/users", user.id, "app-preferences"],
-        (current = {}) => ({ ...current, [DISMISSED_PREFERENCE]: true }),
-      );
-      setOpen(false);
-    } finally {
-      setIsDismissing(false);
-    }
-  };
+  const hasCompletedPhaseOne = progression?.phase1.complete === true;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -70,15 +34,23 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
           type="button"
           className={
             compact
-              ? "flex items-center gap-1 text-[10px] font-semibold leading-none text-amber-300 hover:text-amber-200 transition-colors"
-              : "flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-400/15 hover:text-amber-200 transition-colors"
+              ? `flex items-center gap-1 text-[10px] font-semibold leading-none transition-colors ${
+                  hasCompletedPhaseOne
+                    ? "text-white/60 hover:text-white"
+                    : "text-amber-300 hover:text-amber-200"
+                }`
+              : `flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                  hasCompletedPhaseOne
+                    ? "border-white/15 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                    : "border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/15 hover:text-amber-200"
+                }`
           }
           aria-label="Open Quick Start"
           data-testid="button-quick-start"
         >
           <Sparkles className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
           <span>Quick Start</span>
-          {!compact && (
+          {!compact && !hasCompletedPhaseOne && (
             <span className="rounded-full bg-amber-300/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-200">
               Recommended
             </span>
@@ -98,12 +70,18 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
             </p>
           </div>
 
-          <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-300">Highly recommended</p>
-            <p className="mt-1 text-sm leading-relaxed text-white/80">
-              Take a few minutes to explore the App Library and learn what your platform can do.
+          {hasCompletedPhaseOne ? (
+            <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm leading-relaxed text-white/75">
+              Return to the App Library anytime for a refresher on the platform and its tools.
             </p>
-          </div>
+          ) : (
+            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-300">Highly recommended</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/80">
+                Take a few minutes to explore the App Library and learn what your platform can do.
+              </p>
+            </div>
+          )}
 
           <button
             type="button"
@@ -116,18 +94,11 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
             Open App Library
           </button>
 
-          <p className="text-center text-xs leading-relaxed text-white/50">
-            Complete the App Library and Quick Start will automatically disappear.
-          </p>
-
-          <button
-            type="button"
-            onClick={dismissPermanently}
-            disabled={isDismissing}
-            className="w-full text-center text-xs font-medium text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline disabled:cursor-wait disabled:opacity-50"
-          >
-            {isDismissing ? "Saving…" : "Don't show this again"}
-          </button>
+          {!hasCompletedPhaseOne && (
+            <p className="text-center text-xs leading-relaxed text-white/50">
+              Complete Platform Mastery Phase 1 and Quick Start will shift to a quieter refresher.
+            </p>
+          )}
         </div>
       </PopoverContent>
     </Popover>

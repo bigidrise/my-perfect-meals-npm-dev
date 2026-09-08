@@ -957,10 +957,10 @@ export default function DashboardNew() {
                 </span>
               )}
             </div>
-            {/* CENTER: MPM — always mathematically centered */}
-            <div className="justify-self-center flex flex-col items-center gap-1">
-              <h1 className="text-md font-bold leading-none text-white">{t("mpmLabel")}</h1>
+            {/* CENTER: Quick Start sits directly left of MPM */}
+            <div className="justify-self-center flex items-center gap-2">
               <QuickStartPopover compact />
+              <h1 className="text-md font-bold leading-none text-white">{t("mpmLabel")}</h1>
             </div>
             {/* RIGHT: Bug report + Hub */}
             <div className="justify-self-end flex items-center gap-2">
