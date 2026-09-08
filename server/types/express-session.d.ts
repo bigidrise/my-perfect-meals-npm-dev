@@ -15,5 +15,8 @@ declare module "express-session" {
     pendingMfaSecret?: string;
     /** Per-session synchronizer token required for cookie-authenticated mutations */
     csrfToken?: string;
+    /** Server-validated Business Suite workspace selection. */
+    activeOrganizationId?: string;
+    activeLocationId?: string;
   }
 }

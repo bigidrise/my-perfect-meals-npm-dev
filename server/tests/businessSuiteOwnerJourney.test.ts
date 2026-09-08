@@ -87,22 +87,6 @@ describe("Business Suite owner-first journey", () => {
     expect(checkout).toContain('getTrustedCheckoutPlan("clinical_business_monthly")');
   });
 
-  test("blocks Organization checkout when the owner already belongs to another Organization", () => {
-    const createOrgHandler = businessRoutes.slice(
-      businessRoutes.indexOf('router.post("/create-org"'),
-      businessRoutes.indexOf('router.post("/dev-seed"'),
-    );
-
-    expect(createOrgHandler).toContain("activeMembership");
-    expect(createOrgHandler).toContain('eq(businessMembers.status, "active")');
-    expect(createOrgHandler).toContain('code: "ALREADY_IN_ANOTHER_BUSINESS"');
-    expect(createOrgHandler.indexOf("activeMembership")).toBeLessThan(
-      createOrgHandler.indexOf("tx.insert(businesses)"),
-    );
-    expect(createOrgHandler).toContain("conflictErr?.cause ?? conflictErr");
-    expect(createOrgHandler).toContain('constraintName.includes("one_active_per_user")');
-  });
-
   test("MFA failures send only affected users to Account Security", () => {
     expect(setup).toContain('createData.code === "MFA_ENROLLMENT_REQUIRED"');
     expect(setup).toContain('createData.code === "MFA_REQUIRED"');
