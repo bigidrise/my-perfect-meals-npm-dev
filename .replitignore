@@ -1,0 +1,30 @@
+# Generated web builds are recreated during publishing.
+dist/
+client/dist/
+
+# Replit/agent state and local tool caches are not application source.
+.git/
+.local/
+.cache/
+.agents/
+.config/
+.pythonlibs/
+
+# Uploaded source/reference assets are not served by the production app.
+attached_assets/
+
+# Test and development output.
+test-results/
+playwright-report/
+coverage/
+screenshots/
+downloads/
+research/
+
+# Native projects and design artifacts are not part of this web deployment.
+ios/
+android/
+artifacts/
+
+# Project documentation is not required at runtime.
+docs/
