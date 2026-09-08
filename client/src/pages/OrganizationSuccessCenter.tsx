@@ -25,6 +25,7 @@ import {
   Zap,
   ArrowRight,
   History,
+  Settings,
 } from "lucide-react";
 import { NarrationBar } from "@/components/NarrationBar";
 import { getAuthHeaders } from "@/lib/auth";
