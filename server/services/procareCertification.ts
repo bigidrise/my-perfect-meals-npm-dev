@@ -1,5 +1,6 @@
 export const PROCARE_CERTIFICATION_TYPE = "procare_certification";
 export const LEGACY_PROCARE_CERTIFICATION_TYPE = "platform";
+export const LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE = "procare_training";
 export const PROCARE_FINAL_ASSESSMENT_ID = "final";
 export const PROCARE_PASSING_SCORE = 80;
 export const PROCARE_FINAL_QUESTION_COUNT = 20;
@@ -75,7 +76,8 @@ const PROCARE_EVIDENCE_IDS = new Set<string>(PROCARE_REQUIRED_SEQUENCE);
 export function isProCareCertificationType(certType: string): boolean {
   return (
     certType === PROCARE_CERTIFICATION_TYPE ||
-    certType === LEGACY_PROCARE_CERTIFICATION_TYPE
+    certType === LEGACY_PROCARE_CERTIFICATION_TYPE ||
+    certType === LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE
   );
 }
 
@@ -115,6 +117,67 @@ export function hasCompletedLegacyProCareCertification(
   return validateProCareCertificationProgress(
     filterProCareProgress(progress),
   ).complete;
+}
+
+/**
+ * Historical completions issued under "procare_training" are unambiguous
+ * ProCare credentials. Unlike the overloaded "platform" type, they do not
+ * require module-level evidence to distinguish them from Platform Mastery.
+ */
+export function hasCompletedProCareTrainingCertification(
+  certifications: ProCareCertificationEvidence[],
+  legacyPlatformProgress: ProCareProgressEvidence[],
+): boolean {
+  if (
+    certifications.some(
+      (row) =>
+        (row.certificationType === PROCARE_CERTIFICATION_TYPE ||
+          row.certificationType ===
+            LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE) &&
+        row.status === "completed",
+    )
+  ) {
+    return true;
+  }
+
+  return hasCompletedLegacyProCareCertification(
+    certifications,
+    legacyPlatformProgress,
+  );
+}
+
+export function selectProCareCertificateForDisplay<
+  T extends ProCareCertificationEvidence,
+>(
+  certifications: T[],
+  legacyPlatformProgress: ProCareProgressEvidence[],
+): T | undefined {
+  const canonical = certifications.find(
+    (cert) => cert.certificationType === PROCARE_CERTIFICATION_TYPE,
+  );
+  if (canonical) return canonical;
+
+  const legacyTraining = certifications.find(
+    (cert) =>
+      cert.certificationType ===
+        LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE &&
+      cert.status === "completed",
+  );
+  if (legacyTraining) return legacyTraining;
+
+  const legacyPlatform = certifications.find(
+    (cert) =>
+      cert.certificationType === LEGACY_PROCARE_CERTIFICATION_TYPE &&
+      cert.isCertificationTrack !== true,
+  );
+  if (
+    legacyPlatform &&
+    hasLegacyProCareProgressEvidence(legacyPlatformProgress)
+  ) {
+    return legacyPlatform;
+  }
+
+  return undefined;
 }
 
 export function filterProCareProgress<T extends ProCareProgressEvidence>(

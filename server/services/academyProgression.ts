@@ -11,7 +11,10 @@ import {
   certificationModuleProgress,
   userCertifications,
 } from "../db/schema/certifications";
-import { hasCompletedLegacyProCareCertification } from "./procareCertification";
+import {
+  hasCompletedProCareTrainingCertification,
+  LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE,
+} from "./procareCertification";
 
 const PROCARE_PROFESSIONAL_ROLES = new Set([
   "trainer",
@@ -39,6 +42,7 @@ export async function getAcademyProgression(userId: string) {
             "marketing_coaching",
             "platform",
             "procare_certification",
+            LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE,
           ]),
         ),
       ),
@@ -59,6 +63,7 @@ export async function getAcademyProgression(userId: string) {
             "marketing_coaching",
             SPECIALIST_CERTIFICATION_TYPE,
             "procare_certification",
+            LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE,
           ]),
         ),
       ),
@@ -88,7 +93,7 @@ export async function getAcademyProgression(userId: string) {
           required.includes(row.moduleId),
       )
       .map((row) => row.moduleId);
-  const legacyProCareComplete = hasCompletedLegacyProCareCertification(
+  const proCareTrainingComplete = hasCompletedProCareTrainingCertification(
     certRows,
     progressRows
       .filter((row) => row.certificationType === "platform")
@@ -114,7 +119,7 @@ export async function getAcademyProgression(userId: string) {
     legacyMarketingComplete: completed("marketing_coaching"),
     specialistCredentialComplete: completed(SPECIALIST_CERTIFICATION_TYPE),
     proCareTrainingComplete:
-      completed("procare_certification") || legacyProCareComplete,
+      proCareTrainingComplete,
     proCareTrainingEligible: PROCARE_PROFESSIONAL_ROLES.has(
       user?.professionalRole ?? "",
     ),
