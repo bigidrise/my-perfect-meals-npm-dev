@@ -274,3 +274,27 @@ U7 is **CLOSED PARTIAL**.
 The lifecycle inventory and evidence review are complete. Repository remediation
 is blocked by required retention/disposition decisions and external provider
 evidence. No destructive or speculative changes were made.
+
+## 10. Final checkpoint evidence
+
+The platform checkpoint containing this U7 report is:
+
+```text
+9e605cbdd2c05fc4d2ffde81520dcd108157df47
+```
+
+That checkpoint changed only:
+
+```text
+docs/security/uthsc/U7_DATA_DELETION_LIFECYCLE_CLOSURE_REPORT.md
+```
+
+Immediately before this evidence-only report amendment, the working tree was
+clean:
+
+```text
+## dev...origin/dev [ahead 5]
+```
+
+After this evidence-only amendment, the expected working-tree change is limited
+to this report.
