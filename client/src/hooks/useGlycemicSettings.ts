@@ -12,6 +12,7 @@ async function fetchGlycemicSettings(): Promise<GlycemicSettings> {
     lowRangeCarbs: data.lowRangeCarbs ?? [],
     midRangeCarbs: data.midRangeCarbs ?? [],
     highRangeCarbs: data.highRangeCarbs ?? [],
+    glycemicPreferencesConfigured: data.glycemicPreferencesConfigured ?? false,
     updatedAt: data.updatedAt ?? null,
   };
 }
@@ -42,6 +43,7 @@ export function useGlycemicSettings() {
       lowRangeCarbs: [],
       midRangeCarbs: [],
       highRangeCarbs: [],
+      glycemicPreferencesConfigured: false,
     },
     isLoading: query.isLoading,
     isError: query.isError,

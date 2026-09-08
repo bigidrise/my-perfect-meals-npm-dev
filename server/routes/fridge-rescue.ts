@@ -11,6 +11,9 @@ import {
   getSafeSubstitute,
   logSafetyEnforcement 
 } from "../services/allergyGuardrails";
+import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
+import { validateMealForDiet } from "../services/guardrails";
 
 const router = express.Router();
 
@@ -48,7 +51,30 @@ const logMealSchema = z.object({
 router.post('/generate', requireAuth, async (req: any, res) => {
   try {
     const input = fridgeRescueSchema.parse(req.body);
-    const userId = req.body.userId || req.user?.id;
+    // Ingredient choices may originate with the client, but safety context must
+    // always be bound to the authenticated subject, never req.body.userId.
+    const userId = req.authUser?.id || req.session?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+    const foodScope = createHumanFoodRequestScope({
+      actorUserId: String(userId),
+      subjectUserId: String(userId),
+      creator: "fridge_rescue",
+      correlationId: req.id,
+      actionRequest: input.ingredients.join(", "),
+      authorizationAction: "fridge_rescue",
+      advisoryOverrideToken: typeof req.body?.advisoryOverrideToken === "string"
+        ? req.body.advisoryOverrideToken
+        : undefined,
+    });
+    const foodContext = await foodScope.resolve();
+    if (foodContext.status === "blocked" || foodContext.status === "review_required") {
+      await foodScope.releaseAuthorization();
+      return res.status(409).json({
+        code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+        status: foodContext.status,
+        message: foodContext.notices[0] || "Required food context could not be resolved safely.",
+      });
+    }
 
     // 🚨 CRITICAL SAFETY CHECK: Block requests with forbidden ingredients
     if (userId) {
@@ -99,10 +125,44 @@ router.post('/generate', requireAuth, async (req: any, res) => {
       prepTime: 20,
       cookTime: 25
     };
+    const diabetesActive = foodContext.safety.healthConditions.some((condition) =>
+      /diabet/i.test(String(condition)),
+    );
+    const diabetesCompliant = !diabetesActive || validateMealForDiet({
+      name: generatedRecipe.title,
+      ingredients: generatedRecipe.ingredients,
+      instructions: generatedRecipe.instructions,
+      macros: generatedRecipe.nutrition,
+    }, "diabetic").isValid;
+    const humanFoodValidation = validateHumanFoodCandidate({
+      name: generatedRecipe.title,
+      ingredients: generatedRecipe.ingredients,
+      instructions: generatedRecipe.instructions,
+      nutrition: generatedRecipe.nutrition,
+      evidence: {
+        sourceType: "generated_recipe",
+        ingredientEvidence: "structured_generation",
+        preparationEvidence: "structured_generation",
+        nutritionEvidence: "structured_generation",
+        diabetesCompliant,
+      },
+    }, foodContext, {
+      executionState: foodScope.executionState,
+      requestedDish: input.ingredients.join(", "),
+    });
+    if (humanFoodValidation.outcome !== "pass") {
+      await foodScope.releaseAuthorization();
+      return res.status(422).json({
+        code: "FRIDGE_RESCUE_CANDIDATE_REJECTED",
+        message: "The generated recipe does not safely satisfy your active food context.",
+        validation: humanFoodValidation,
+      });
+    }
+    await foodScope.completeAuthorization();
 
     res.json({
       success: true,
-      recipe: generatedRecipe,
+      recipe: { ...generatedRecipe, humanFoodValidation },
       source: 'fridge-rescue'
     });
   } catch (error) {

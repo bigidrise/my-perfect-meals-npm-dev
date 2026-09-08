@@ -5162,6 +5162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const settingsData = insertUserGlycemicSettingsSchema.parse({
         ...req.body,
+        glycemicPreferencesConfigured: true,
         userId: authUserId
       });
       const settings = await storage.createOrUpdateGlycemicSettings(settingsData);
@@ -5179,6 +5180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const settingsData = insertUserGlycemicSettingsSchema.parse({
         ...req.body,
+        glycemicPreferencesConfigured: true,
         userId: authUserId
       });
       const settings = await storage.createOrUpdateGlycemicSettings(settingsData);
@@ -7044,6 +7046,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ingredientNames = (ingredients as any[]).map((i: any) =>
         typeof i === "string" ? i : (i.name || i.item || "")
       ).filter(Boolean);
+      // This duplicate registration is retained for deployments that initialize
+      // routes.ts without the shared meals router. Bind image recreation to the
+      // authenticated user's server-resolved glucose context just as the shared
+      // endpoint does; never accept a caller's claimed allowlist.
+      const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
+      const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
+      const imageFoodScope = createHumanFoodRequestScope({
+        actorUserId: getAuthUserId(req),
+        subjectUserId: getAuthUserId(req),
+        creator: "recipe_maker",
+        correlationId: (req as any).id,
+        actionRequest: mealName,
+        authorizationAction: "recipe_maker",
+      });
+      const imageFoodContext = await imageFoodScope.resolve();
+      if (imageFoodContext.status === "blocked" || imageFoodContext.status === "review_required") {
+        return res.status(409).json({ error: "Food context could not be resolved safely.", code: "HUMAN_FOOD_CONTEXT_UNRESOLVED" });
+      }
+      if (imageFoodContext.diabetesFoodPreferences?.preferencesConfigured && ingredientNames.length === 0) {
+        return res.status(422).json({ error: "Ingredients are required to safely recreate this image.", code: "IMAGE_INGREDIENTS_REQUIRED_FOR_GLUCOSE_VALIDATION" });
+      }
+      const imageValidation = validateHumanFoodCandidate({
+        name: mealName,
+        ingredients: ingredientNames,
+        evidence: {
+          sourceType: "generated_recipe",
+          ingredientEvidence: "structured_generation",
+          preparationEvidence: "structured_generation",
+          nutritionEvidence: "structured_generation",
+        },
+      }, imageFoodContext);
+      const glucoseFinding = imageValidation.findings.find((finding) =>
+        finding.dimension === "glucose_food_preference",
+      );
+      if (glucoseFinding) {
+        return res.status(422).json({ error: glucoseFinding.message, code: "GLUCOSE_PRODUCE_NOT_ALLOWED" });
+      }
       const imageUrl = await generateMealImageUnified(
         mealName,
         ingredientNames,

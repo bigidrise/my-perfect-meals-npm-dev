@@ -4,6 +4,7 @@ export type GlycemicSettings = {
   lowRangeCarbs: string[];            // carbs preferred when glucose is LOW (<80 mg/dL)
   midRangeCarbs: string[];            // carbs preferred when glucose is IN RANGE (80–140)
   highRangeCarbs: string[];           // carbs preferred when glucose is ELEVATED (>140)
+  glycemicPreferencesConfigured: boolean;
   updatedAt?: string | null;
 };
 

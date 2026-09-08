@@ -93,6 +93,25 @@ export interface HumanFoodBehaviorContext {
   profileVersion: string | null;
 }
 
+export interface DiabetesFoodPreferenceContext {
+  state: "LOW" | "IN_RANGE" | "HIGH" | "STALE" | "NONE";
+  preferenceBand: "LOW" | "IN_RANGE" | "HIGH" | null;
+  valueMgdl: number | null;
+  context: "FASTED" | "PRE_MEAL" | "POST_MEAL_1H" | "POST_MEAL_2H" | "RANDOM" | null;
+  source: "LOG" | "SETTINGS" | null;
+  ageMinutes: number | null;
+  criticalLow: boolean;
+  criticalHigh: boolean;
+  preferencesConfigured: boolean;
+  selectedFruits: string[];
+  selectedVegetables: string[];
+  safetyOverride: {
+    active: boolean;
+    reason: "HYPOGLYCEMIA_TREATMENT" | null;
+    allowedProduce: string[];
+  };
+}
+
 export interface HumanFoodContext {
   version: typeof HUMAN_FOOD_CONTEXT_VERSION;
   status: HumanFoodResolutionStatus;
@@ -109,6 +128,7 @@ export interface HumanFoodContext {
   authorization: HumanFoodAuthorization;
   nutrition: DailyNutritionState | null;
   behavior: HumanFoodBehaviorContext | null;
+  diabetesFoodPreferences: DiabetesFoodPreferenceContext | null;
   gaps: string[];
   notices: string[];
   blockedReasons: string[];

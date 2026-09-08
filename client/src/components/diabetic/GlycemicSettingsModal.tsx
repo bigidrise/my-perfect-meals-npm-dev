@@ -39,6 +39,8 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
         lowRangeCarbs,
         midRangeCarbs,
         highRangeCarbs,
+        // Empty arrays are an intentional, configured choice.
+        glycemicPreferencesConfigured: true,
       });
       toast({ title: "Glucose carb preferences saved" });
       onClose();
