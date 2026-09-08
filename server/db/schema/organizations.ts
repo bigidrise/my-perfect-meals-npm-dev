@@ -120,6 +120,8 @@ export const organizations = pgTable(
     onboardingHeadline: text("onboarding_headline"),
     poweredByVisible: boolean("powered_by_visible").notNull().default(true),
     customDomain: varchar("custom_domain", { length: 255 }),
+    /** Backward-compatible canonical link for a legacy self-service Business. */
+    sourceBusinessId: uuid("source_business_id"),
 
     featureFlags: jsonb("feature_flags")
       .$type<OrgFeatureFlags>()
@@ -132,5 +134,6 @@ export const organizations = pgTable(
   (t) => ({
     slugIdx: uniqueIndex("idx_organizations_slug").on(t.slug),
     statusIdx: index("idx_organizations_status").on(t.activeStatus),
+    sourceBusinessIdx: uniqueIndex("idx_organizations_source_business").on(t.sourceBusinessId),
   })
 );
