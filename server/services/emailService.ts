@@ -2,6 +2,19 @@ import { Resend } from 'resend';
 
 const EMAIL_FROM = 'My Perfect Meals <noreply@mail.myperfectmeals.com>';
 
+function escapeEmailHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function safeEmailSubject(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").trim();
+}
+
 /**
  * Returns a human-readable label for a raw trialSource value.
  * Mirrors the mapping used on the client-side TrialStatusCard.
@@ -1167,6 +1180,11 @@ export async function sendBusinessInviteEmail({
   const expiryStr = expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const resolvedProgram = programName || "My Perfect Meals Complimentary Access";
   const resolvedDays = trialDays ?? 30;
+  const safeBusinessName = escapeEmailHtml(businessName);
+  const safeInviterName = escapeEmailHtml(inviterName);
+  const safeInviteLink = escapeEmailHtml(inviteLink);
+  const safeRecipient = escapeEmailHtml(to);
+  const safeProgram = escapeEmailHtml(resolvedProgram);
 
   // ── Client invitation email ────────────────────────────────────────────────
   if (invitationType === 'client') {
@@ -1174,15 +1192,15 @@ export async function sendBusinessInviteEmail({
       const { data, error } = await resend.emails.send({
         from: EMAIL_FROM,
         to: [to],
-        subject: `${businessName} invited you to ${resolvedProgram}`,
+        subject: safeEmailSubject(`${businessName} invited you to ${resolvedProgram}`),
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
 
             <!-- Header -->
             <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); padding: 36px 30px; border-radius: 12px 12px 0 0; text-align: center;">
               <p style="color: #93c5fd; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">My Perfect Meals</p>
-              <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2;">Welcome to ${resolvedProgram}</h1>
-              <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${businessName} has given you <strong style="color: white;">${resolvedDays} days</strong> of complimentary access</p>
+              <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2;">You're invited to My Perfect Meals</h1>
+              <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${safeBusinessName} has invited you to <strong style="color: white;">${safeProgram}</strong> with ${resolvedDays} days of complimentary access.</p>
             </div>
 
             <!-- Body -->
@@ -1191,7 +1209,7 @@ export async function sendBusinessInviteEmail({
               <!-- Sent by -->
               <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px 20px; margin-bottom: 28px;">
                 <p style="color: #374151; font-size: 14px; margin: 0;">
-                  <strong style="color: #1d4ed8;">Sent by ${inviterName}</strong> on behalf of ${businessName}
+                  <strong style="color: #1d4ed8;">Sent by ${safeInviterName}</strong> on behalf of ${safeBusinessName}
                 </p>
               </div>
 
@@ -1206,12 +1224,16 @@ export async function sendBusinessInviteEmail({
 
               <!-- CTA -->
               <div style="text-align: center; margin: 0 0 32px;">
-                <a href="${inviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">
-                  Activate Your Access →
+                 <a href="${safeInviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">
+                   Accept Invitation →
                 </a>
                 <p style="color: #6b7280; font-size: 13px; margin: 10px 0 0;">
-                  This invitation is reserved for ${to}. Create a free account to get started.
+                   This invitation is reserved for ${safeRecipient}.
                 </p>
+                 <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 16px 0 0;">
+                   <strong>Already have My Perfect Meals?</strong> Sign in with your existing account and accept this invitation.<br/>
+                   <strong>New to My Perfect Meals?</strong> Create your account from this invitation. Both paths connect you to ${safeBusinessName} and its ProCare Studio.
+                 </p>
               </div>
 
               <!-- Expiry notice -->
@@ -1224,7 +1246,7 @@ export async function sendBusinessInviteEmail({
               <!-- Fallback link -->
               <p style="color: #6b7280; font-size: 12px; line-height: 1.6; margin: 0;">
                 Button not working? Copy and paste this link:<br/>
-                <span style="word-break: break-all; color: #2563eb;">${inviteLink}</span>
+                 <span style="word-break: break-all; color: #2563eb;">${safeInviteLink}</span>
               </p>
             </div>
 
@@ -1232,7 +1254,7 @@ export async function sendBusinessInviteEmail({
             <div style="background: #1f2937; padding: 20px 30px; border-radius: 0 0 12px 12px; text-align: center;">
               <p style="color: #6b7280; font-size: 12px; margin: 0;">
                 My Perfect Meals &mdash; Clinical Nutrition Platform<br/>
-                <span style="color: #4b5563;">Questions? Contact ${inviterName} or reply to this email.</span>
+                 <span style="color: #4b5563;">Questions? Contact ${safeInviterName} or reply to this email.</span>
               </p>
             </div>
 
