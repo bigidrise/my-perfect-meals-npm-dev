@@ -12,11 +12,12 @@ import "dotenv/config";
 import OpenAI from "openai";
 import { Pool } from "pg";
 import { sql as drizzleSql, neon } from "drizzle-orm";
+import { getDatabaseTlsConfig } from "../server/lib/databaseTls";
 
 // ─── DB (same connection string the app uses) ────────────────────────────────
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: getDatabaseTlsConfig(process.env.DATABASE_URL, { requireTls: true }),
   max: 3,
 });
 

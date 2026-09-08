@@ -12,6 +12,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import pg from "pg";
+import { getDatabaseTlsConfig } from "./lib/databaseTls";
 import { resolveMealImageStorageContext } from "./services/mealImageBucket";
 import {
   createStaticFileMiddleware,
@@ -871,9 +872,7 @@ async function initializeApp() {
     const sessionPool = new pg.Pool({
       connectionString: process.env.DATABASE_URL,
       max: 5,
-      ssl: process.env.DATABASE_URL.includes("sslmode=require")
-        ? { rejectUnauthorized: false }
-        : undefined,
+      ssl: getDatabaseTlsConfig(process.env.DATABASE_URL),
     });
     const securitySchema = await sessionPool.query<{
       throttle_table: string | null;
