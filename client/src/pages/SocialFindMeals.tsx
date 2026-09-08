@@ -613,6 +613,31 @@ export default function MealFinder() {
                 <p className="text-white/70 mb-6">
                   {t("findMeals.entryDesc")}
                 </p>
+                <div className="mb-6 rounded-xl border border-orange-300/25 bg-orange-950/30 p-4 text-left">
+                  <h3 className="mb-2 text-lg font-semibold text-orange-200">
+                    {t("findMeals.orderingEducationTitle", {
+                      defaultValue: "Find the Cuisine. Then Make It Work for You.",
+                    })}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-white/80">
+                    {t("findMeals.orderingEducationBody", {
+                      defaultValue:
+                        "Google Places helps My Perfect Meals find nearby restaurants based on location, restaurant type, and cuisine. Menus can change, so every suggested meal may not appear exactly as shown.",
+                    })}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/80">
+                    {t("findMeals.orderingEducationGuidance", {
+                      defaultValue:
+                        "We’ll show you what to look for, adjustments to consider, and how to ask for a meal that better fits your goals. The restaurant decides what it can accommodate.",
+                    })}
+                  </p>
+                  <p className="mt-3 text-sm font-semibold text-orange-100">
+                    {t("findMeals.orderingEducationClosing", {
+                      defaultValue:
+                        "Find the restaurant. Understand your options. Know how to order.",
+                    })}
+                  </p>
+                </div>
                 <Button
                   onClick={() => advanceGuided("step1")}
                   className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"
