@@ -191,6 +191,7 @@ export default function BusinessDashboard() {
   const [activeWorkspace, setActiveWorkspace] = useState<ActiveWorkspace | null>(null);
   const [workspaceSelectionRequired, setWorkspaceSelectionRequired] = useState(false);
   const [switchingWorkspace, setSwitchingWorkspace] = useState(false);
+  const [additionalClinicsOpen, setAdditionalClinicsOpen] = useState(false);
 
   // Setup screen state
   const [setupMode, setSetupMode] = useState(false);
@@ -1063,6 +1064,22 @@ export default function BusinessDashboard() {
           </Card>
         )}
 
+        {workspaceOptions.reduce((count, option) => count + option.locations.length, 0) === 1 && activeWorkspace && (
+          <button
+            type="button"
+            onClick={() => setAdditionalClinicsOpen(true)}
+            className="w-full text-left rounded-xl border border-orange-500/20 bg-white/5 p-4 text-white transition-colors hover:border-orange-400/40 hover:bg-white/[0.07]"
+          >
+            <span className="block text-xs font-semibold uppercase tracking-wide text-white/50">
+              Current clinic
+            </span>
+            <span className="mt-1 block text-sm font-semibold">{activeWorkspace.locationName}</span>
+            <span className="mt-2 block text-xs font-medium text-orange-300">
+              Add additional clinics if needed
+            </span>
+          </button>
+        )}
+
         {/* Launch Guide Checklist — shown until dismissed */}
         {!launchGuideDismissed && (() => {
           const hasInvited = (ownerData?.invitations.length ?? 0) > 0 || (ownerData?.members.length ?? 1) > 1;
@@ -1851,6 +1868,24 @@ export default function BusinessDashboard() {
               </button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={additionalClinicsOpen} onOpenChange={setAdditionalClinicsOpen}>
+        <DialogContent className="bg-black/90 border border-orange-500/30 text-white max-w-sm mx-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white text-base font-bold">Add another clinic</DialogTitle>
+          </DialogHeader>
+          <p className="text-white/70 text-sm leading-relaxed">
+            Your Organization currently has one clinic. Additional clinic setup is not self-service yet. When another clinic is added, this area automatically becomes your Organization and Location switcher.
+          </p>
+          <button
+            type="button"
+            className="mt-2 w-full rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white hover:bg-orange-500"
+            onClick={() => setAdditionalClinicsOpen(false)}
+          >
+            Got it
+          </button>
         </DialogContent>
       </Dialog>
 
