@@ -1856,6 +1856,25 @@ router.post("/create-org", requireAuth, async (req, res) => {
       .from(businesses)
       .where(eq(businesses.ownerUserId, userId))
       .limit(1);
+
+    // An account can hold only one active Organization membership. Block
+    // owner setup before Stripe Checkout when the user is already active in a
+    // different Organization, rather than leaking the database constraint.
+    const [activeMembership] = await db
+      .select({ businessId: businessMembers.businessId })
+      .from(businessMembers)
+      .where(and(
+        eq(businessMembers.userId, userId),
+        eq(businessMembers.status, "active"),
+      ))
+      .limit(1);
+    if (activeMembership && activeMembership.businessId !== existing?.id) {
+      return res.status(409).json({
+        code: "ALREADY_IN_ANOTHER_BUSINESS",
+        error: "You are already an active member of another Organization. Leave that Organization before starting your own Organization subscription.",
+      });
+    }
+
     if (existing) {
       // Update name if they're changing it
       if (existing.name !== orgName) {
@@ -1904,11 +1923,27 @@ router.post("/create-org", requireAuth, async (req, res) => {
         return biz;
       });
     } catch (conflictErr: any) {
-      // Unique constraint on ownerUserId means a concurrent request already created the org.
-      // Re-read and return it rather than surfacing a 500.
+      const databaseError = conflictErr?.cause ?? conflictErr;
       const isUniqueViolation =
-        conflictErr?.code === "23505" || // PostgreSQL unique violation
+        databaseError?.code === "23505" || // PostgreSQL unique violation
         String(conflictErr?.message).includes("unique");
+      const constraintName: string =
+        databaseError?.constraint_name ?? databaseError?.constraint ?? "";
+
+      // A concurrent invitation acceptance can race the preflight. Preserve
+      // the one-active-membership rule and return the same actionable result.
+      if (
+        isUniqueViolation
+        && constraintName.includes("one_active_per_user")
+      ) {
+        return res.status(409).json({
+          code: "ALREADY_IN_ANOTHER_BUSINESS",
+          error: "You are already an active member of another Organization. Leave that Organization before starting your own Organization subscription.",
+        });
+      }
+
+      // Unique constraint on ownerUserId means a concurrent request already
+      // created the org. Re-read and return it rather than surfacing a 500.
       if (isUniqueViolation) {
         const [race] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
         if (race) {
