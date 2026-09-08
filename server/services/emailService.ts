@@ -1218,7 +1218,7 @@ export async function sendBusinessInviteEmail({
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; AI-powered personalized meal plans</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Dietary tracking &amp; biometric monitoring</td></tr>
-                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Clinical nutrition protocols &amp; guidance</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Nutrition tools and personalized guidance</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; No credit card required to get started</td></tr>
               </table>
 
@@ -1232,7 +1232,7 @@ export async function sendBusinessInviteEmail({
                 </p>
                  <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 16px 0 0;">
                    <strong>Already have My Perfect Meals?</strong> Sign in with your existing account and accept this invitation.<br/>
-                   <strong>New to My Perfect Meals?</strong> Create your account from this invitation. Both paths connect you to ${safeBusinessName} and its ProCare Studio.
+                   <strong>New to My Perfect Meals?</strong> Create your account from this invitation. Both paths connect you to ${safeBusinessName} in My Perfect Meals.
                  </p>
               </div>
 
