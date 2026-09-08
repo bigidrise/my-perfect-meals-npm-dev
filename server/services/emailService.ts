@@ -1218,7 +1218,7 @@ export async function sendBusinessInviteEmail({
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; AI-powered personalized meal plans</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Dietary tracking &amp; biometric monitoring</td></tr>
-                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Clinical nutrition protocols &amp; guidance</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Nutrition tools and personalized guidance</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; No credit card required to get started</td></tr>
               </table>
 
@@ -1232,7 +1232,7 @@ export async function sendBusinessInviteEmail({
                 </p>
                  <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 16px 0 0;">
                    <strong>Already have My Perfect Meals?</strong> Sign in with your existing account and accept this invitation.<br/>
-                   <strong>New to My Perfect Meals?</strong> Create your account from this invitation. Both paths connect you to ${safeBusinessName} and its ProCare Studio.
+                   <strong>New to My Perfect Meals?</strong> Create your account from this invitation. Both paths connect you to ${safeBusinessName} in My Perfect Meals.
                  </p>
               </div>
 
@@ -1304,10 +1304,10 @@ export async function sendBusinessInviteEmail({
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; AI-powered meal generation &amp; customization</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Clinical nutrition tools &amp; dietary protocols</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Biometric monitoring &amp; progress tracking</td></tr>
-                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; ProCare Studio — manage your own clients</td></tr>
+                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; ProCare Studio — available after professional setup and required training</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Professional resources &amp; certification programs</td></tr>
               </table>
-              <p style="color: #374151; font-size: 13px; line-height: 1.6; margin: 14px 0 0;">If you do not already have a paid entitlement, accepting this invitation includes one 30-day introductory access period. Organization membership does not provide permanent paid professional access; continued professional use requires a valid entitlement and applicable readiness, training, and security requirements.</p>
+              <p style="color: #374151; font-size: 13px; line-height: 1.6; margin: 14px 0 0;">Accepting connects your account to ${safeBusinessName}. If you do not already have active access, you will receive one 30-day introductory period for the My Perfect Meals consumer platform. Organization membership does not provide permanent paid professional access.</p>
             </div>
 
             <!-- CTA -->
@@ -1367,7 +1367,7 @@ export async function sendBusinessInviteEmail({
                 </td>
                 <td style="vertical-align: top; padding-left: 12px;">
                   <strong style="color: #111827; font-size: 14px;">Your Studio unlocks automatically</strong><br/>
-                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">Once training is complete, your ProCare Studio activates. Manage clients, generate meal plans, and access all clinical tools.</span>
+                  <span style="color: #6b7280; font-size: 13px; line-height: 1.6;">After Provider setup, Platform Mastery, required ProCare training and readiness steps, and confirmation of a valid professional entitlement, your ProCare Studio becomes available.</span>
                 </td>
               </tr>
             </table>

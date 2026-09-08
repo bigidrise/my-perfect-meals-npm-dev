@@ -68,6 +68,7 @@ export const businessMembers = pgTable("business_members", {
   id: uuid("id").defaultRandom().primaryKey(),
   businessId: uuid("business_id").notNull(),
   userId: text("user_id").notNull(),
+  locationId: uuid("location_id"),
   role: text("role").$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
   status: text("status").$type<"active" | "removed">().notNull().default("active"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
@@ -84,6 +85,7 @@ export type InsertBusinessMember = typeof businessMembers.$inferInsert;
 export const businessInvitations = pgTable("business_invitations", {
   id: uuid("id").defaultRandom().primaryKey(),
   businessId: uuid("business_id").notNull(),
+  locationId: uuid("location_id"),
   email: text("email").notNull(),
   token: text("token").notNull().unique(),
   /** New pilot invitations use a digest in both token fields; raw legacy

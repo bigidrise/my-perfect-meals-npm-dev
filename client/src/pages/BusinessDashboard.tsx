@@ -44,6 +44,11 @@ import {
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 
 interface BusinessData {
+  workspace: {
+    organizationId: string;
+    locationId: string;
+    locationName: string;
+  };
   business: {
     id: string;
     name: string;
@@ -91,6 +96,31 @@ interface BusinessData {
     acceptedAt: string | null;
     inviterName: string | null;
   }[];
+  clients?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    status: string;
+    joinedAt: string | null;
+  }[];
+  organizationPolicies?: {
+    requireAcademy: boolean;
+    requireProfessionalVerification: boolean;
+  };
+}
+
+interface WorkspaceOption {
+  id: string;
+  name: string;
+  role: string;
+  locations: Array<{ id: string; name: string; role: string; isDefault: boolean }>;
+}
+
+interface ActiveWorkspace {
+  organizationId: string;
+  organizationName: string;
+  locationId: string;
+  locationName: string;
 }
 
 interface MembershipData {
@@ -157,6 +187,11 @@ export default function BusinessDashboard() {
   const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(fromCheckout);
+  const [workspaceOptions, setWorkspaceOptions] = useState<WorkspaceOption[]>([]);
+  const [activeWorkspace, setActiveWorkspace] = useState<ActiveWorkspace | null>(null);
+  const [workspaceSelectionRequired, setWorkspaceSelectionRequired] = useState(false);
+  const [switchingWorkspace, setSwitchingWorkspace] = useState(false);
+  const [additionalClinicsOpen, setAdditionalClinicsOpen] = useState(false);
 
   // Setup screen state
   const [setupMode, setSetupMode] = useState(false);
@@ -178,6 +213,7 @@ export default function BusinessDashboard() {
   const hasProAccess = user?.accessTier === "PAID_FULL";
   const [clientEmail, setClientEmail] = useState("");
   const [clientProgramName, setClientProgramName] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
   const [clientTrialOption, setClientTrialOption] = useState("30");
   const [clientInviteLoading, setClientInviteLoading] = useState(false);
 
@@ -237,6 +273,16 @@ export default function BusinessDashboard() {
     }
   }, [ownerData]);
 
+  useEffect(() => {
+    if (ownerData?.organizationPolicies) {
+      setOrgPolicies(ownerData.organizationPolicies);
+    }
+  }, [
+    ownerData?.workspace.organizationId,
+    ownerData?.organizationPolicies?.requireAcademy,
+    ownerData?.organizationPolicies?.requireProfessionalVerification,
+  ]);
+
   const handleToggleOrgPolicy = async (flag: "requireAcademy" | "requireProfessionalVerification", value: boolean) => {
     setSavingOrgPolicies(true);
     const next = { ...orgPolicies, [flag]: value };
@@ -288,6 +334,37 @@ export default function BusinessDashboard() {
 
   const fetchData = async (): Promise<boolean> => {
     try {
+      const [optionsRes, activeRes] = await Promise.all([
+        fetch("/api/business/workspace/options", {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+          cache: "no-store",
+        }),
+        fetch("/api/business/workspace/active", {
+          headers: { ...getAuthHeaders() },
+          credentials: "include",
+          cache: "no-store",
+        }),
+      ]);
+      if (optionsRes.ok) {
+        const optionsJson = await optionsRes.json();
+        setWorkspaceOptions(
+          Array.isArray(optionsJson.organizations) ? optionsJson.organizations : [],
+        );
+      }
+      if (!activeRes.ok) {
+        const activeError = await activeRes.json().catch(() => ({}));
+        if (activeError.code === "WORKSPACE_SELECTION_REQUIRED") {
+          setWorkspaceSelectionRequired(true);
+          setViewMode("none");
+          return false;
+        }
+        throw new Error(activeError.error || "Could not resolve workspace.");
+      }
+      const activeJson = await activeRes.json();
+      setActiveWorkspace(activeJson.workspace);
+      setWorkspaceSelectionRequired(false);
+
       // Try owner first
       const ownerRes = await fetch("/api/business/mine", {
         headers: { ...getAuthHeaders() },
@@ -335,6 +412,35 @@ export default function BusinessDashboard() {
     } catch {
       setViewMode("none");
       return false;
+    }
+  };
+
+  const handleWorkspaceSwitch = async (organizationId: string, locationId: string) => {
+    setSwitchingWorkspace(true);
+    try {
+      const response = await fetch("/api/business/workspace/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ organizationId, locationId }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not switch workspace.");
+      setActiveWorkspace(body.workspace);
+      setOwnerData(null);
+      setMemberData(null);
+      setLoading(true);
+      const found = await fetchData();
+      if (!found) throw new Error("The selected workspace could not be loaded.");
+    } catch (error: any) {
+      toast({
+        title: "Could not switch workspace",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setSwitchingWorkspace(false);
     }
   };
 
@@ -458,7 +564,7 @@ export default function BusinessDashboard() {
     }
   };
 
-  const handleClientInvite = async (deliveryMethod: "email" | "link" | "mailto") => {
+  const handleClientInvite = async (deliveryMethod: "email" | "link") => {
     if (!clientEmail.includes("@")) {
       toast({ title: "Valid email required", variant: "destructive" });
       return;
@@ -490,25 +596,11 @@ export default function BusinessDashboard() {
         return;
       }
       const link: string = json.inviteLink;
-      const programLabel = clientProgramName.trim() || "My Perfect Meals Complimentary Access";
-
       if (deliveryMethod === "email") {
         toast({ title: t("businessDashboard.success.invitationSent"), description: `${clientEmail} will receive an email.` });
-      } else if (deliveryMethod === "link") {
+      } else {
         await navigator.clipboard.writeText(link);
         toast({ title: "Link copied!", description: "Share this link with your client." });
-      } else {
-        // Open Email: generate the same message the MPM email would send
-        const subject = encodeURIComponent(`You're invited to ${programLabel}`);
-        const body = encodeURIComponent(
-          `Hi,\n\n` +
-          `I'd like to invite you to ${programLabel} — ${resolvedTrialDays} days of complimentary access to My Perfect Meals.\n\n` +
-          `Click the link below to activate your access:\n${link}\n\n` +
-                  `This invitation is reserved for ${clientEmail}.\n` +
-                  `Already have My Perfect Meals? Sign in with that same account and accept the invitation.\n` +
-                  `New to My Perfect Meals? Create your account from this invitation.\n`
-        );
-        window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, "_blank");
       }
       setClientInviteOpen(false);
       resetClientForm();
@@ -601,6 +693,36 @@ export default function BusinessDashboard() {
   }
 
   // ── No business found (and not polling) ────────────────────────────────────
+  if (workspaceSelectionRequired) {
+    const locations = workspaceOptions.flatMap((organization) =>
+      organization.locations.map((location) => ({ organization, location })));
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-black/70 border border-orange-500/30 text-white p-5 space-y-4">
+          <div>
+            <h1 className="text-xl font-bold">Select your workspace</h1>
+            <p className="text-white/60 text-sm mt-1">
+              Choose the Organization and Location you want to manage.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {locations.map(({ organization, location }) => (
+              <button
+                key={location.id}
+                disabled={switchingWorkspace}
+                onClick={() => handleWorkspaceSwitch(organization.id, location.id)}
+                className="w-full text-left rounded-xl border border-white/10 bg-white/5 px-4 py-3 hover:border-orange-400/40 disabled:opacity-50"
+              >
+                <span className="block font-semibold">{organization.name}</span>
+                <span className="block text-sm text-white/55">{location.name}</span>
+              </button>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   if (viewMode === "none" || viewMode === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex flex-col items-center justify-center px-4 text-center">
@@ -917,6 +1039,46 @@ export default function BusinessDashboard() {
       )}
 
       <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+
+        {workspaceOptions.reduce((count, option) => count + option.locations.length, 0) > 1 && activeWorkspace && (
+          <Card className="bg-white/5 border border-orange-500/20 text-white p-4">
+            <label className="text-white/50 text-xs font-semibold uppercase tracking-wide block mb-2">
+              Organization / Location
+            </label>
+            <select
+              value={`${activeWorkspace.organizationId}:${activeWorkspace.locationId}`}
+              disabled={switchingWorkspace}
+              onChange={(event) => {
+                const [organizationId, locationId] = event.target.value.split(":");
+                handleWorkspaceSwitch(organizationId, locationId);
+              }}
+              className="w-full rounded-xl border border-white/15 bg-black/60 px-3 py-2.5 text-sm text-white disabled:opacity-50"
+            >
+              {workspaceOptions.flatMap((organization) =>
+                organization.locations.map((location) => (
+                  <option key={location.id} value={`${organization.id}:${location.id}`}>
+                    {organization.name} — {location.name}
+                  </option>
+                )))}
+            </select>
+          </Card>
+        )}
+
+        {workspaceOptions.reduce((count, option) => count + option.locations.length, 0) === 1 && activeWorkspace && (
+          <button
+            type="button"
+            onClick={() => setAdditionalClinicsOpen(true)}
+            className="w-full text-left rounded-xl border border-orange-500/20 bg-white/5 p-4 text-white transition-colors hover:border-orange-400/40 hover:bg-white/[0.07]"
+          >
+            <span className="block text-xs font-semibold uppercase tracking-wide text-white/50">
+              Current clinic
+            </span>
+            <span className="mt-1 block text-sm font-semibold">{activeWorkspace.locationName}</span>
+            <span className="mt-2 block text-xs font-medium text-orange-300">
+              Add additional clinics if needed
+            </span>
+          </button>
+        )}
 
         {/* Launch Guide Checklist — shown until dismissed */}
         {!launchGuideDismissed && (() => {
@@ -1322,7 +1484,7 @@ export default function BusinessDashboard() {
         {/* Active Members */}
         <div>
           <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
-            Active Members ({members.length})
+            Team / People ({members.length})
           </h2>
           <div className="space-y-2">
             {members.map((m) => (
@@ -1345,6 +1507,7 @@ export default function BusinessDashboard() {
                       )}
                     </div>
                     <p className="text-white/50 text-xs truncate">{m.email || ""}</p>
+                     <p className="text-green-400/80 text-xs mt-0.5">Active</p>
                   </button>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Badge className={`text-xs border-0 ${m.role === "owner" ? "bg-orange-600/80 text-white" : "bg-white/10 text-white/70"}`}>
@@ -1381,7 +1544,7 @@ export default function BusinessDashboard() {
         {invitations.length > 0 && (
           <div>
             <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
-              Pending Invitations ({invitations.length})
+              Invitation Pending ({invitations.length})
             </h2>
             <div className="space-y-2">
               {invitations.map((inv) => (
@@ -1391,7 +1554,7 @@ export default function BusinessDashboard() {
                     <div className="min-w-0">
                       <p className="text-sm truncate">{inv.email}</p>
                       <p className="text-white/40 text-xs">
-                        {inv.role.charAt(0).toUpperCase() + inv.role.slice(1)} · Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                         Name pending · {inv.role.charAt(0).toUpperCase() + inv.role.slice(1)} · Invitation Pending
                       </p>
                     </div>
                   </div>
@@ -1422,6 +1585,36 @@ export default function BusinessDashboard() {
       </div>
 
         {/* Client Invitations */}
+        {(ownerData.clients?.length ?? 0) > 0 && (
+          <div>
+            <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2 px-1">
+              Clients ({ownerData.clients?.length ?? 0})
+            </h2>
+            <input
+              type="search"
+              value={clientSearch}
+              onChange={(event) => setClientSearch(event.target.value)}
+              placeholder="Search clients"
+              className="w-full mb-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35"
+            />
+            <div className="space-y-2">
+              {ownerData.clients
+                ?.filter((client) => {
+                  const query = clientSearch.trim().toLowerCase();
+                  if (!query) return true;
+                  return `${client.name ?? ""} ${client.email ?? ""}`.toLowerCase().includes(query);
+                })
+                .map((client) => (
+                <Card key={client.id} className="bg-white/5 border border-white/10 text-white p-3">
+                  <p className="text-sm font-medium">{client.name || client.email || "Client"}</p>
+                  <p className="text-white/50 text-xs">{client.email || ""}</p>
+                  <p className="text-green-400/80 text-xs mt-0.5">Active</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {(() => {
           const clientInvites = ownerData.clientInvitations ?? [];
           return (
@@ -1564,6 +1757,13 @@ export default function BusinessDashboard() {
                 ))}
               </div>
             </div>
+            {!ownerData?.pilot && (
+              <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2.5">
+                <p className="text-xs leading-relaxed text-blue-100/80">
+                  Team members receive one-time 30-day introductory My Perfect Meals access unless they already have valid access.
+                </p>
+              </div>
+            )}
             <button
               className="w-full py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               onClick={handleInvite}
@@ -1600,67 +1800,63 @@ export default function BusinessDashboard() {
                 onChange={(e) => setClientEmail(e.target.value)}
               />
             </div>
-            <div>
-              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                Program Name <span className="text-white/30 normal-case font-normal">(optional)</span>
-              </label>
-              <input
-                type="text"
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
-                placeholder="My Perfect Meals Complimentary Access"
-                value={clientProgramName}
-                onChange={(e) => setClientProgramName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Trial Length</label>
-              <div className="flex flex-wrap gap-2">
-                {["7", "14", "30"].map((d) => (
-                  <button
-                    key={d}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === d ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
-                    onClick={() => setClientTrialOption(d)}
-                  >
-                    {d} Days
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Invitation Preview */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Invitation Preview</p>
-              <div className="space-y-1.5">
-                {[
-                  `${resolvedTrialDays} days complimentary access`,
-                  "Uses a secure invitation link",
-                  "Must be redeemed using this email",
-                  "Does not affect team member invitations",
-                  "Converts to Free plan when trial expires",
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                    <span className="text-white/70 text-xs">{item}</span>
+            {!ownerData?.pilot && (
+              <>
+                <div>
+                  <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
+                    Business Name <span className="text-white/30 normal-case font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
+                    placeholder={ownerData?.business?.name || "Your organization name"}
+                    value={clientProgramName}
+                    onChange={(e) => setClientProgramName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Trial Length</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["7", "14", "30"].map((d) => (
+                      <button
+                        key={d}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === d ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
+                        onClick={() => setClientTrialOption(d)}
+                      >
+                        {d} Days
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-            {/* Three delivery options */}
+                </div>
+                {/* Invitation Preview */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Invitation Preview</p>
+                  <div className="space-y-1.5">
+                    {[
+                      `${resolvedTrialDays} days complimentary access`,
+                      "Uses a secure invitation link",
+                      "Must be redeemed using this email",
+                      "Does not affect team member invitations",
+                      "Complimentary access ends when the trial expires",
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-2">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                        <span className="text-white/70 text-xs">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+            {/* Invitation delivery options */}
             <div className="space-y-2">
               <button
                 className="w-full py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                onClick={() => handleClientInvite("mailto")}
-                disabled={clientInviteLoading}
-              >
-                <ExternalLink className="w-4 h-4" />
-                Open Email
-              </button>
-              <button
-                className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 onClick={() => handleClientInvite("email")}
                 disabled={clientInviteLoading}
               >
                 {clientInviteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                {t("businessDashboard.sendEmail")}
+                Send Invitation
               </button>
               <button
                 className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
@@ -1668,10 +1864,28 @@ export default function BusinessDashboard() {
                 disabled={clientInviteLoading}
               >
                 <Copy className="w-4 h-4" />
-                {t("businessDashboard.copyLink")}
+                Create &amp; Copy Link
               </button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={additionalClinicsOpen} onOpenChange={setAdditionalClinicsOpen}>
+        <DialogContent className="bg-black/90 border border-orange-500/30 text-white max-w-sm mx-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white text-base font-bold">Add another clinic</DialogTitle>
+          </DialogHeader>
+          <p className="text-white/70 text-sm leading-relaxed">
+            Your Organization currently has one clinic. Additional clinic setup is not self-service yet. When another clinic is added, this area automatically becomes your Organization and Location switcher.
+          </p>
+          <button
+            type="button"
+            className="mt-2 w-full rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white hover:bg-orange-500"
+            onClick={() => setAdditionalClinicsOpen(false)}
+          >
+            Got it
+          </button>
         </DialogContent>
       </Dialog>
 

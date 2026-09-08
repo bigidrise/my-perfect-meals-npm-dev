@@ -713,6 +713,8 @@ async function initializeApp() {
           await runPilotProcareMigration(database as any);
           const { runPilotProgramMigration } = await import("./db/migrations/runPilotProgramMigration");
           await runPilotProgramMigration(database as any);
+          const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
+          await runOrganizationWorkspaceMigration(database as any);
            const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
            await runHydrationHubMigration(database as any);
            const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");

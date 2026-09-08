@@ -20,25 +20,48 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
   const [organizationWorkspaces, setOrganizationWorkspaces] = useState<Array<{
     authorizationId: string | null;
     businessId: string | null;
+    organizationId?: string;
+    locationId?: string;
+    locationName?: string;
     organizationName: string;
     action: "setup" | "open";
   }>>([]);
   const [organizationError, setOrganizationError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/business/workspaces", {
-      headers: getAuthHeaders(),
-      credentials: "include",
-    })
-      .then(async (response) => {
-        if (!response.ok) return { workspaces: [] };
-        return response.json();
+    Promise.all([
+      fetch("/api/business/workspaces", {
+        headers: getAuthHeaders(),
+        credentials: "include",
+      }).then(async (response) => response.ok ? response.json() : { workspaces: [] }),
+      fetch("/api/business/workspace/options", {
+        headers: getAuthHeaders(),
+        credentials: "include",
+      }).then(async (response) => response.ok ? response.json() : { organizations: [] }),
+    ])
+      .then(([legacyBody, workspaceBody]) => {
+        const pending = (Array.isArray(legacyBody.workspaces) ? legacyBody.workspaces : [])
+          .filter((workspace: any) => workspace.action === "setup");
+        const canonical = (Array.isArray(workspaceBody.organizations) ? workspaceBody.organizations : [])
+          .flatMap((organization: any) =>
+            (Array.isArray(organization.locations) ? organization.locations : [])
+              .map((location: any) => ({
+                authorizationId: null,
+                businessId: null,
+                organizationId: organization.id,
+                organizationName: organization.name,
+                locationId: location.id,
+                locationName: location.name,
+                action: "open" as const,
+              })));
+        const legacyOpen = canonical.length === 0
+          ? (Array.isArray(legacyBody.workspaces) ? legacyBody.workspaces : [])
+              .filter((workspace: any) => workspace.action === "open")
+          : [];
+        setOrganizationWorkspaces([...pending, ...canonical, ...legacyOpen]);
       })
-      .then((body) => setOrganizationWorkspaces(Array.isArray(body.workspaces) ? body.workspaces : []))
       .catch(() => setOrganizationWorkspaces([]));
   }, []);
-
-  localStorage.removeItem("mpm_workspace_preference");
 
   const workspaceName = user?.professionalRole === "physician"
     ? "Physicians Clinic"
@@ -99,6 +122,21 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
         setLocation("/business/setup?pilot=1");
         return;
       }
+      if (workspace.organizationId && workspace.locationId) {
+        const response = await fetch("/api/business/workspace/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            organizationId: workspace.organizationId,
+            locationId: workspace.locationId,
+          }),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(body.error || "Could not open this Organization Location.");
+        }
+      }
       setLocation("/business-dashboard");
     } catch (error: any) {
       setOrganizationError(error?.message || "Could not open this organization.");
@@ -149,7 +187,7 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
 
           {organizationWorkspaces.map((workspace) => (
             <button
-              key={workspace.authorizationId ?? workspace.businessId}
+              key={workspace.authorizationId ?? workspace.locationId ?? workspace.businessId}
               onClick={() => handleOrganizationChoice(workspace)}
               disabled={checking}
               className="w-full p-5 rounded-2xl bg-orange-500/10 border border-orange-400/30 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
@@ -162,7 +200,11 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
                   <h3 className="text-white font-semibold text-base">Business / Organization</h3>
                   <p className="text-orange-200 text-sm mt-0.5">{workspace.organizationName}</p>
                   <p className="text-white/50 text-xs mt-1">
-                    {workspace.action === "setup" ? "Set Up Organization" : "Open Business Suite"}
+                     {workspace.action === "setup"
+                       ? "Set Up Organization"
+                       : workspace.locationName
+                         ? `Open ${workspace.locationName}`
+                         : "Open Business Suite"}
                   </p>
                 </div>
               </div>

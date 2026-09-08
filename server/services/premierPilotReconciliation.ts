@@ -14,6 +14,7 @@ import {
   PilotAuthorizationError,
 } from "./organizationalPilotAuthorizationService";
 import { createOrganizationalPilotInvitation } from "./organizationalPilotInvitationService";
+import { ensureCanonicalWorkspaceForBusiness } from "./organizationWorkspaceService";
 
 export const PREMIER_PILOT_RECONCILIATION = {
   organizationName: "Premier Health",
@@ -197,6 +198,7 @@ export async function reconcilePremierPilot(approvedByUserId: string) {
     return { business, pilot, adminMembership };
   });
 
+  const canonicalWorkspace = await ensureCanonicalWorkspaceForBusiness(result.business.id);
   const invitationResults: Array<{ email: string; state: "active" | "pending" }> = [];
   for (const participant of PREMIER_PILOT_RECONCILIATION.participants.filter(
     (item) => item.email !== PREMIER_PILOT_RECONCILIATION.championEmail,
@@ -208,10 +210,16 @@ export async function reconcilePremierPilot(approvedByUserId: string) {
         eq(businessMembers.userId, identity.identity.user.id),
       )).limit(1))[0];
       const member = existing
-        ? (await db.update(businessMembers).set({ role: "nurse", status: "active", removedAt: null })
+        ? (await db.update(businessMembers).set({
+            locationId: canonicalWorkspace.locationId,
+            role: "nurse",
+            status: "active",
+            removedAt: null,
+          })
             .where(eq(businessMembers.id, existing.id)).returning())[0]
         : (await db.insert(businessMembers).values({
             businessId: result.business.id,
+            locationId: canonicalWorkspace.locationId,
             userId: identity.identity.user.id,
             role: "nurse",
             status: "active",
@@ -248,6 +256,7 @@ export async function reconcilePremierPilot(approvedByUserId: string) {
     if (!existingInvitation) {
       await createOrganizationalPilotInvitation({
         businessId: result.business.id,
+        locationId: canonicalWorkspace.locationId,
         pilotId: result.pilot.id,
         invitedByUserId: approvedByUserId,
         email: participant.email,

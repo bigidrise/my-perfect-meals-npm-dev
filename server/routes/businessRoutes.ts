@@ -34,6 +34,16 @@ import {
   PilotAuthorizationError,
   updateClaimedChampionSetup,
 } from "../services/organizationalPilotAuthorizationService";
+import organizationWorkspaceRouter from "./organizationWorkspaceRoutes";
+import {
+  ensureCanonicalWorkspaceForBusiness,
+  resolveActiveWorkspace,
+  WorkspaceContextError,
+} from "../services/organizationWorkspaceService";
+import {
+  locationMemberships,
+  organizationMemberships,
+} from "../db/schema/workspaces";
 import { organizationalPilots } from "../db/schema/pilotProgram";
 import { activateProCareClient, ActivationError } from "../services/procareActivation";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
@@ -44,6 +54,8 @@ const stripe = stripeKey
   : null;
 
 const router = Router();
+
+router.use("/workspace", organizationWorkspaceRouter);
 const CLIENT_TRIAL_DURATIONS = [7, 14, 30] as const;
 const ORGANIZATION_INVITE_SEND_WINDOW_MS = 60 * 1000;
 const ORGANIZATION_INVITE_SEND_LIMIT = 20;
@@ -201,7 +213,7 @@ router.patch("/pilot-setup", requireAuth, async (req, res) => {
 router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
     if (!resolved) return res.status(403).json({ error: "No business account found." });
     const populationType = req.body?.populationType;
     const participantRole = req.body?.participantRole as PilotInvitationRole;
@@ -222,6 +234,7 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
     }
     const created = await createOrganizationalPilotInvitation({
       businessId: resolved.business.id,
+      locationId: resolved.locationId,
       pilotId: req.params.pilotId,
       invitedByUserId: userId,
       email: req.body?.email,
@@ -424,16 +437,82 @@ async function resolveAuthorizedBusiness(
   return { business: adminBiz, callerRole: "admin" };
 }
 
+async function resolveSelectedBusiness(req: any): Promise<{
+  business: typeof businesses.$inferSelect;
+  organizationId: string;
+  locationId: string;
+  locationName: string;
+  organizationRole: string;
+  locationRole: string;
+}> {
+  const userId = req.authUser?.id as string;
+  const sessionSelection =
+    typeof req.session?.activeOrganizationId === "string"
+    && typeof req.session?.activeLocationId === "string"
+      ? {
+          organizationId: req.session.activeOrganizationId,
+          locationId: req.session.activeLocationId,
+        }
+      : null;
+  const context = await resolveActiveWorkspace(userId, sessionSelection);
+  const matches = await db
+    .select()
+    .from(businesses)
+    .where(eq(businesses.organizationId, context.organizationId));
+  if (matches.length !== 1) {
+    throw new WorkspaceContextError(
+      "The selected Organization does not have one canonical Business account.",
+      "INVALID_WORKSPACE_SELECTION",
+      409,
+    );
+  }
+  return {
+    business: matches[0],
+    organizationId: context.organizationId,
+    locationId: context.locationId,
+    locationName: context.locationName,
+    organizationRole: context.organizationRole,
+    locationRole: context.locationRole,
+  };
+}
+
+async function resolveDashboardBusiness(
+  req: any,
+  capability: Capability,
+) {
+  const selected = await resolveSelectedBusiness(req);
+  const callerRole: CallerRole =
+    selected.organizationRole === "owner" ? "owner" : "admin";
+  if (
+    !["owner", "admin"].includes(selected.organizationRole)
+    || (capability === "owner_only" && callerRole !== "owner")
+  ) {
+    throw new WorkspaceContextError(
+      "This workspace role cannot manage the Organization Dashboard.",
+      "INVALID_WORKSPACE_SELECTION",
+      403,
+    );
+  }
+  return { ...selected, callerRole };
+}
+
+function sendDashboardWorkspaceError(res: any, error: unknown) {
+  if (error instanceof WorkspaceContextError) {
+    return res.status(error.status).json({ error: error.message, code: error.code });
+  }
+  return null;
+}
+
 // ── GET /api/business/mine — owner OR admin fetches the organization dashboard data
 router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) {
       return res.status(404).json({ error: "No business account found." });
     }
-    const { business, callerRole } = resolved;
+    const { business, callerRole, organizationId, locationId, locationName } = resolved;
 
     // Fetch the owner's acquisition source
     const [ownerRow] = await db
@@ -445,18 +524,22 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     const rawMembers = await db
       .select({
-        id: businessMembers.id,
-        userId: businessMembers.userId,
-        role: businessMembers.role,
-        status: businessMembers.status,
-        joinedAt: businessMembers.joinedAt,
+        id: locationMemberships.id,
+        userId: locationMemberships.userId,
+        role: locationMemberships.role,
+        status: locationMemberships.status,
+        joinedAt: locationMemberships.createdAt,
         name: users.username,
         email: users.email,
         planLookupKey: users.planLookupKey,
       })
-      .from(businessMembers)
-      .leftJoin(users, eq(users.id, businessMembers.userId))
-      .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.status, "active")));
+      .from(locationMemberships)
+      .leftJoin(users, eq(users.id, locationMemberships.userId))
+      .where(and(
+        eq(locationMemberships.locationId, locationId),
+        eq(locationMemberships.status, "active"),
+      ))
+      .orderBy(sql`lower(coalesce(${users.username}, ${users.email}))`);
 
     // planLost: true when the member has no paid plan (null planLookupKey) and is not the owner
     // (the owner's subscription is irrelevant — their seat is reserved for business management)
@@ -473,6 +556,7 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       .where(
         and(
           eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.locationId, locationId),
           eq(businessInvitations.status, "pending"),
           gt(businessInvitations.expiresAt, now),
           eq(businessInvitations.invitationType, "team_member"),
@@ -516,11 +600,37 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       .where(
         and(
           eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.locationId, locationId),
           eq(businessInvitations.invitationType, "client"),
         ),
       )
       .orderBy(sql`${businessInvitations.createdAt} DESC`)
       .limit(200);
+
+    const clients = await db
+      .select({
+        id: users.id,
+        name: users.username,
+        email: users.email,
+        status: businessInvitations.status,
+        joinedAt: businessInvitations.acceptedAt,
+      })
+      .from(businessInvitations)
+      .innerJoin(users, eq(users.id, businessInvitations.acceptedByUserId))
+      .where(and(
+        eq(businessInvitations.businessId, business.id),
+        eq(businessInvitations.locationId, locationId),
+        eq(businessInvitations.invitationType, "client"),
+        eq(businessInvitations.status, "accepted"),
+      ))
+      .orderBy(sql`lower(coalesce(${users.username}, ${users.email}))`);
+
+    const { organizations } = await import("../db/schema/organizations");
+    const [selectedOrganization] = await db
+      .select({ featureFlags: organizations.featureFlags })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1);
 
     const usedSeats = members.length;
     const planLostCount = members.filter((m) => m.planLost).length;
@@ -538,10 +648,17 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     return res.json({
       business,
+      workspace: { organizationId, locationId, locationName },
       pilot: pilot ?? null,
       members,
       invitations,
       clientInvitations,
+      clients,
+      organizationPolicies: {
+        requireAcademy: selectedOrganization?.featureFlags?.requireAcademy !== false,
+        requireProfessionalVerification:
+          selectedOrganization?.featureFlags?.requireProfessionalVerification !== false,
+      },
       usedSeats,
       availableSeats: business.seatLimit - usedSeats,
       planLostCount,
@@ -549,6 +666,8 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       signupSource,
     });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/mine] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -558,29 +677,24 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 router.get("/membership", requireAuth, requireProAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
-    const [membership] = await db
-      .select({
-        memberId: businessMembers.id,
-        role: businessMembers.role,
-        status: businessMembers.status,
-        joinedAt: businessMembers.joinedAt,
-        businessId: businesses.id,
-        businessName: businesses.name,
-        seatLimit: businesses.seatLimit,
-        ownerUserId: businesses.ownerUserId,
-        independentClientPolicy: businesses.independentClientPolicy,
-      })
-      .from(businessMembers)
-      .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
-      .where(and(eq(businessMembers.userId, userId), eq(businessMembers.status, "active")))
-      .limit(1);
-
-    if (!membership) {
-      return res.status(404).json({ error: "Not a member of any business." });
-    }
+    const resolved = await resolveSelectedBusiness(req);
+    const membership = {
+      memberId: resolved.locationId,
+      role: resolved.locationRole,
+      status: "active",
+      joinedAt: null,
+      businessId: resolved.business.id,
+      businessName: resolved.business.name,
+      seatLimit: resolved.business.seatLimit,
+      ownerUserId: resolved.business.ownerUserId,
+      independentClientPolicy: resolved.business.independentClientPolicy,
+      locationId: resolved.locationId,
+    };
 
     return res.json({ membership });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/membership] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -631,12 +745,12 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   }
 
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) {
       return res.status(403).json({ error: "No business account found." });
     }
-    const { business } = resolved;
+    const { business, locationId } = resolved;
     const invitationIdentity = await resolveEmailIdentityForEmail(email);
     if (invitationIdentity.candidates.length > 1) {
       return res.status(409).json({
@@ -661,6 +775,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         .where(
           and(
             eq(businessInvitations.businessId, business.id),
+            eq(businessInvitations.locationId, locationId),
             eq(businessInvitations.status, "pending"),
             gt(businessInvitations.expiresAt, now),
             eq(businessInvitations.invitationType, "team_member"),
@@ -683,6 +798,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         .from(businessInvitations)
         .where(and(
           eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.locationId, locationId),
           eq(businessInvitations.invitedByUserId, userId),
           gt(businessInvitations.createdAt, sentSince),
         ));
@@ -701,6 +817,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       .where(
         and(
           eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.locationId, locationId),
           eq(businessInvitations.email, email.toLowerCase()),
           eq(businessInvitations.status, "pending"),
           gt(businessInvitations.expiresAt, now),
@@ -720,6 +837,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       .where(
         and(
           eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.locationId, locationId),
           eq(businessInvitations.email, email.toLowerCase()),
           eq(businessInvitations.status, "pending"),
           eq(businessInvitations.invitationType, invitationType as any),
@@ -736,12 +854,12 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       if (existingUser) {
         const [existingMember] = await db
           .select()
-          .from(businessMembers)
+          .from(locationMemberships)
           .where(
             and(
-              eq(businessMembers.businessId, business.id),
-              eq(businessMembers.userId, existingUser.id),
-              eq(businessMembers.status, "active"),
+              eq(locationMemberships.locationId, locationId),
+              eq(locationMemberships.userId, existingUser.id),
+              eq(locationMemberships.status, "active"),
             ),
           )
           .limit(1);
@@ -758,6 +876,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     await db.insert(businessInvitations).values({
       businessId: business.id,
+      locationId,
       email: email.toLowerCase(),
       token,
       role: isClient ? "staff" : (role as any),
@@ -808,6 +927,8 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     console.log(`✅ [business] Invite sent | type=${invitationType}`);
     return res.json({ success: true, inviteLink, message: `Invitation created for ${email}.` });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/invite] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -826,7 +947,7 @@ router.patch("/members/:memberId/restore", requireAuth, requireProOrOrgAdmin, as
   const { memberId } = req.params;
 
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) {
       return res.status(403).json({ error: "No business account found." });
@@ -883,17 +1004,20 @@ router.delete("/members/:memberId", requireAuth, requireProOrOrgAdmin, async (re
   const { memberId } = req.params;
 
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) {
       return res.status(403).json({ error: "No business account found." });
     }
-    const { business, callerRole } = resolved;
+    const { business, callerRole, locationId } = resolved;
 
     const [member] = await db
       .select()
-      .from(businessMembers)
-      .where(and(eq(businessMembers.id, memberId), eq(businessMembers.businessId, business.id)))
+      .from(locationMemberships)
+      .where(and(
+        eq(locationMemberships.id, memberId),
+        eq(locationMemberships.locationId, locationId),
+      ))
       .limit(1);
 
     if (!member) {
@@ -911,13 +1035,15 @@ router.delete("/members/:memberId", requireAuth, requireProOrOrgAdmin, async (re
     }
 
     await db
-      .update(businessMembers)
-      .set({ status: "removed", removedAt: new Date() })
-      .where(eq(businessMembers.id, memberId));
+      .update(locationMemberships)
+      .set({ status: "revoked", updatedAt: new Date() })
+      .where(eq(locationMemberships.id, memberId));
 
     console.log(`✅ [business] Member removed | business=${business.id} | member=${memberId}`);
     return res.json({ success: true });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/members/remove] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -952,12 +1078,12 @@ router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (r
   const { token } = req.params;
 
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) {
       return res.status(403).json({ error: "No business account found." });
     }
-    const { business } = resolved;
+    const { business, locationId } = resolved;
 
     await db
       .update(businessInvitations)
@@ -966,12 +1092,15 @@ router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (r
         and(
           eq(businessInvitations.token, token),
           eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.locationId, locationId),
           eq(businessInvitations.status, "pending"),
         ),
       );
 
     return res.json({ success: true });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/invitations/cancel] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -983,12 +1112,12 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
   const { token } = req.params;
 
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) {
       return res.status(403).json({ error: "No business account found." });
     }
-    const { business } = resolved;
+    const { business, locationId } = resolved;
 
     const [invite] = await db
       .select()
@@ -997,6 +1126,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
         and(
           eq(businessInvitations.token, token),
           eq(businessInvitations.businessId, business.id),
+          eq(businessInvitations.locationId, locationId),
           or(
             eq(businessInvitations.status, "pending"),
             eq(businessInvitations.status, "expired"),
@@ -1053,6 +1183,8 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
 
     return res.json({ success: true, message: "Invite resent.", newToken });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/invitations/resend] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -1069,7 +1201,7 @@ router.patch("/policy", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   }
 
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) {
       return res.status(403).json({ error: "No business account found." });
@@ -1090,6 +1222,8 @@ router.patch("/policy", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     console.log(`✅ [business] Policy updated | business=${business.id} | ${oldPolicy} → ${policy}`);
     return res.json({ success: true, policy });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/policy] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -1108,7 +1242,7 @@ router.patch("/org-policies", requireAuth, requireProOrOrgAdmin, async (req, res
   }
 
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) return res.status(403).json({ error: "No business account found." });
     const business = { id: resolved.business.id, organizationId: resolved.business.organizationId };
@@ -1140,6 +1274,8 @@ router.patch("/org-policies", requireAuth, requireProOrOrgAdmin, async (req, res
     console.log(`✅ [business] Org policies updated | org=${business.organizationId} | ${JSON.stringify(merged)}`);
     return res.json({ success: true, featureFlags: merged });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/org-policies] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -1444,17 +1580,30 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     // Must run BEFORE the seat-count check so we emit the correct error and
     // never create a duplicate row.  A removed member re-accepting a new invite
     // re-activates their existing row instead of inserting a second one.
+    if (!invite.locationId) {
+      return res.status(409).json({
+        error: "Invitation is missing its Organization Location context.",
+        code: "INVITATION_WORKSPACE_MISSING",
+      });
+    }
+    const [existingLocationAccess] = await db
+      .select({ id: locationMemberships.id })
+      .from(locationMemberships)
+      .where(and(
+        eq(locationMemberships.locationId, invite.locationId),
+        eq(locationMemberships.userId, userId),
+        eq(locationMemberships.status, "active"),
+      ))
+      .limit(1);
+    if (existingLocationAccess) {
+      return res.status(400).json({ error: "You are already a member of this Location." });
+    }
+
     const [existing] = await db
       .select()
       .from(businessMembers)
       .where(and(eq(businessMembers.businessId, business.id), eq(businessMembers.userId, userId)))
       .limit(1);
-
-    if (existing && existing.status === "active") {
-      // User is already an active member (covers downgraded-but-not-removed members
-      // who somehow receive a second invite link — reject cleanly without touching seats).
-      return res.status(400).json({ error: "You are already a member of this business." });
-    }
 
     // ── Cross-business duplicate check ────────────────────────────────────────
     // A user may not hold active seats in two businesses simultaneously.
@@ -1506,8 +1655,16 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
             eq(businessMembers.userId, userId),
           ))
           .limit(1);
-        if (lockedExisting?.status === "active") {
-          const memberError = new Error("You are already a member of this business.") as Error & { code: string };
+        const [lockedLocationAccess] = await tx.select({ id: locationMemberships.id })
+          .from(locationMemberships)
+          .where(and(
+            eq(locationMemberships.locationId, lockedInvite.locationId!),
+            eq(locationMemberships.userId, userId),
+            eq(locationMemberships.status, "active"),
+          ))
+          .limit(1);
+        if (lockedLocationAccess) {
+          const memberError = new Error("You are already a member of this Location.") as Error & { code: string };
           memberError.code = "ALREADY_MEMBER";
           throw memberError;
         }
@@ -1528,7 +1685,11 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
         }
 
         const [lockedBusiness] = await tx
-          .select({ seatLimit: businesses.seatLimit, plan: businesses.plan })
+          .select({
+            seatLimit: businesses.seatLimit,
+            plan: businesses.plan,
+            organizationId: businesses.organizationId,
+          })
           .from(businesses)
           .where(eq(businesses.id, business.id))
           .limit(1);
@@ -1546,13 +1707,18 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
           throw seatError;
         }
 
-        if (lockedExisting) {
+        if (lockedExisting?.status === "removed") {
           // Re-activate a previously-removed member row — never insert a duplicate.
           // Also set noticeDismissedAt so the stale removal-notice banner is cleared
           // immediately on re-join and never shown to an active member.
           await tx
             .update(businessMembers)
-            .set({ status: "active", joinedAt: new Date(), noticeDismissedAt: new Date() })
+            .set({
+              locationId: lockedInvite.locationId,
+              status: "active",
+              joinedAt: new Date(),
+              noticeDismissedAt: new Date(),
+            })
             .where(eq(businessMembers.id, lockedExisting.id));
 
           // Belt-and-suspenders: dismiss any other undismissed removal-notice rows
@@ -1561,14 +1727,41 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
           // path (admin restore, direct API, etc.) gets the same guarantee by
           // calling one function rather than duplicating the WHERE clause.
           await clearRemovalNotice(tx, userId, business.id);
-        } else {
+        } else if (!lockedExisting) {
           await tx.insert(businessMembers).values({
             businessId: business.id,
+            locationId: lockedInvite.locationId,
             userId,
             role: invite.role as any,
             status: "active",
           });
         }
+
+        if (!lockedInvite.locationId || !lockedBusiness?.organizationId) {
+          const contextError = new Error("Invitation is missing its Organization Location context.") as Error & { code: string };
+          contextError.code = "INVITATION_WORKSPACE_MISSING";
+          throw contextError;
+        }
+        await tx.insert(organizationMemberships).values({
+          organizationId: lockedBusiness.organizationId,
+          userId,
+          role: "member",
+          status: "active",
+          updatedAt: new Date(),
+        }).onConflictDoUpdate({
+          target: [organizationMemberships.organizationId, organizationMemberships.userId],
+          set: { status: "active", updatedAt: new Date() },
+        });
+        await tx.insert(locationMemberships).values({
+          locationId: lockedInvite.locationId,
+          userId,
+          role: invite.role as any,
+          status: "active",
+          updatedAt: new Date(),
+        }).onConflictDoUpdate({
+          target: [locationMemberships.locationId, locationMemberships.userId],
+          set: { role: invite.role as any, status: "active", updatedAt: new Date() },
+        });
 
         // A flat organization preserves membership but does not convey
         // permanent sponsored professional access. Give an unpaid invitee one
@@ -1633,6 +1826,9 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       if (txErr.code === "INVITATION_NOT_PENDING" || txErr.code === "ALREADY_MEMBER") {
         return res.status(409).json({ error: txErr.message, code: txErr.code });
       }
+      if (txErr.code === "INVITATION_WORKSPACE_MISSING") {
+        return res.status(409).json({ error: txErr.message, code: txErr.code });
+      }
       // PostgreSQL unique-violation code: 23505.
       // The partial index name contains "one_active_per_user" — match on both
       // to avoid swallowing unrelated unique violations (e.g. business_id+user_id).
@@ -1675,7 +1871,7 @@ router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   }
 
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
 
     if (!resolved) return res.status(403).json({ error: "No business account found." });
 
@@ -1686,6 +1882,8 @@ router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     return res.json({ success: true });
   } catch (err) {
+    const workspaceError = sendDashboardWorkspaceError(res, err);
+    if (workspaceError) return workspaceError;
     console.error("[business/name] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
@@ -1856,6 +2054,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
       .from(businesses)
       .where(eq(businesses.ownerUserId, userId))
       .limit(1);
+
     if (existing) {
       // Update name if they're changing it
       if (existing.name !== orgName) {
@@ -1873,6 +2072,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
       }
       // Repair: ensure professionalRole is set
       await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+      await ensureCanonicalWorkspaceForBusiness(existing.id);
       return res.json({ businessId: existing.id, created: false });
     }
 
@@ -1904,21 +2104,23 @@ router.post("/create-org", requireAuth, async (req, res) => {
         return biz;
       });
     } catch (conflictErr: any) {
-      // Unique constraint on ownerUserId means a concurrent request already created the org.
-      // Re-read and return it rather than surfacing a 500.
       const isUniqueViolation =
         conflictErr?.code === "23505" || // PostgreSQL unique violation
         String(conflictErr?.message).includes("unique");
+      // Unique constraint on ownerUserId means a concurrent request already
+      // created the org. Re-read and return it rather than surfacing a 500.
       if (isUniqueViolation) {
         const [race] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
         if (race) {
           console.warn(`[business/create-org] race resolved | biz=${race.id} | owner=${userId}`);
+          await ensureCanonicalWorkspaceForBusiness(race.id);
           return res.json({ businessId: race.id, created: false });
         }
       }
       throw conflictErr;
     }
 
+    await ensureCanonicalWorkspaceForBusiness(newBiz!.id);
     console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | owner=${userId} | name="${orgName}"`);
     return res.json({ businessId: newBiz!.id, created: true });
   } catch (err: any) {
