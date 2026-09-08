@@ -116,6 +116,38 @@ server/prod.ts
 server/tests/databaseTls.test.ts
 ```
 
+### 3.4 Subsequent U9 coverage completion
+
+The original U8 repair removed every explicit
+`rejectUnauthorized: false`. During the later U9 integrated audit, three
+additional operational scripts were found to instantiate PostgreSQL pools
+without using the shared resolver:
+
+```text
+scripts/add-classification-source.ts
+scripts/migrate-partner-records.ts
+scripts/verify-reinvite-flow.ts
+```
+
+U9 bounded repair #1 subsequently routed those scripts through
+`getDatabaseTlsConfig` and added static regression coverage requiring every
+PostgreSQL Pool/Client under `scripts/` to use the shared policy unless an
+explicit documented local-only exception is present.
+
+After that subsequent repair:
+
+- focused database TLS tests passed **11/11**;
+- every current PostgreSQL script client was covered by the shared policy;
+- no documented local-only exception was present;
+- no `rejectUnauthorized: false` remained in `server/` or `scripts/`;
+- server TypeScript passed;
+- `npm run validate` passed with zero hard failures and only the accepted
+  61-route warning; and
+- `git diff --check` passed.
+
+This addendum preserves the original U8 evidence and records the later U9
+completion; it does not claim Production provider or endpoint verification.
+
 ## 4. Verification evidence
 
 - Focused database TLS tests: **10/10 passed**.
