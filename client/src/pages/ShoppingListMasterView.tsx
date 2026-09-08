@@ -643,8 +643,15 @@ export default function ShoppingListMasterView() {
               <span className="bg-orange-500/20 border border-orange-400/20 rounded-lg px-2 py-0.5 text-[10px] text-orange-300 font-semibold uppercase tracking-wide flex-shrink-0">
                 {hasGroceryCoachAccess ? "Pro" : "🔒 Pro"}
               </span>
-              <span className="basis-full block lg:hidden text-orange-300/60 text-xs leading-snug">
-                {hasGroceryCoachAccess ? "Recommends a meal + saves a full recipe card to Favorites." : "Upgrade to Pro to unlock"}
+              <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-orange-300/60 text-xs leading-snug">
+                {hasGroceryCoachAccess ? (
+                  <>
+                    <span className="block">Recommends a meal + saves</span>
+                    <span className="block">a full recipe card to Favorites.</span>
+                  </>
+                ) : (
+                  "Upgrade to Pro to unlock"
+                )}
               </span>
             </Button>
           </div>
@@ -661,7 +668,7 @@ export default function ShoppingListMasterView() {
                 <span className="block text-white font-semibold text-sm leading-tight">Saved Groceries</span>
                 <span className="hidden lg:block text-orange-300/50 text-xs mt-0.5">Products you've saved — Coach remembers these</span>
               </span>
-              <span className="basis-full block lg:hidden text-orange-300/50 text-xs leading-snug">
+              <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-orange-300/50 text-xs leading-snug">
                 Products you've saved — Coach remembers these
               </span>
             </Button>
@@ -685,7 +692,7 @@ export default function ShoppingListMasterView() {
                 <span className="bg-cyan-500/20 border border-cyan-400/20 rounded-lg px-2 py-0.5 text-[10px] text-cyan-300 font-semibold uppercase tracking-wide flex-shrink-0">
                   New
                 </span>
-                <span className="basis-full block lg:hidden text-cyan-300/60 text-xs leading-snug">
+                <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-cyan-300/60 text-xs leading-snug">
                   Take a picture of the label — see if it’s right for you.
                 </span>
               </Button>
