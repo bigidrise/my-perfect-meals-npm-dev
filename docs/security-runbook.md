@@ -20,7 +20,7 @@ This document defines MPM's operational security posture: how infrastructure is 
 |---|---|---|---|
 | **Development** | Replit (shared workspace) | Active development, feature work | No — test data only |
 | **Staging** | Replit (when needed) | Pre-release validation | No — test data only |
-| **Production** | Replit Deployments (current) | Live user traffic | Yes |
+| **Production** | Provider/configuration not inspected by U8/U9 | Live user traffic | Production data classification requires current operational evidence |
 
 ### Environment Separation Policy
 
@@ -30,9 +30,14 @@ This document defines MPM's operational security posture: how infrastructure is 
 - `BILLING_ENFORCED` is the master paywall switch — unset in dev, `"true"` in production
 - `MPM_TESTER_EMAILS` is empty in production post-launch; populated for designated testers only
 
-### Production Hosting Gap (Known)
+### Production Hosting Evidence Gap (Known)
 
-Current production runs on Replit Deployments. Replit does not offer a HIPAA BAA for standard plans. This is the primary infrastructure risk identified in `docs/vendor-baa-map.md` (P0 item). Before enterprise HIPAA attestation, production must migrate to a HIPAA-eligible hosting provider (AWS ECS, GCP Cloud Run, or Azure Container Apps).
+The repository contains Replit deployment configuration, but U8/U9 did not
+inspect the active Production deployment, geography, account tier, or
+contractual coverage. Replit BAA availability for the applicable account and
+service must be confirmed externally. UTHSC and legal/compliance must determine
+whether the evidenced hosting posture is acceptable; this runbook does not
+prescribe a provider migration without that determination.
 
 The application is migration-ready: `server/prod.ts` is the standalone production entry point with no Replit-specific dependencies.
 
@@ -70,7 +75,10 @@ The application is migration-ready: `server/prod.ts` is the standalone productio
 ## 3. Secrets Management
 
 ### Current Approach
-All secrets are stored as **Replit environment variables** (encrypted at rest by the platform). Never committed to source control.
+Application secrets are supplied through **Replit environment variables** and
+must never be committed to source control. Replit documents encryption for its
+secrets service generally; effective Production access policy and
+account-specific configuration remain external evidence.
 
 ### Required Secrets (Production)
 
@@ -105,20 +113,23 @@ All secrets are stored as **Replit environment variables** (encrypted at rest by
 ## 4. Database
 
 ### Provider
-**Neon (PostgreSQL)** — serverless Postgres. Connection via `DATABASE_URL` environment variable.
+The application uses PostgreSQL through `DATABASE_URL` and contains
+Neon-specific configuration. U8/U9 did not inspect Production, so the active
+Production database provider is **UNKNOWN** pending external evidence.
 
 ### Connection Security
-- All connections use TLS (SSL mode enforced by pg driver)
+- Application runtime pools and production-capable PostgreSQL scripts use the
+  shared certificate-verifying TLS policy for Neon and TLS-requesting URLs
 - SSL warning on `prefer`/`require` modes — production should use `sslmode=verify-full`
 - Connection string never logged; never appears in error messages
 
 ### Encryption at Rest
-- Neon encrypts data at rest by default (AES-256)
-- Verify encryption is enabled on the Neon dashboard for the production project
+- Production database encryption at rest is **UNKNOWN** and requires
+  project-specific provider/configuration evidence
 
 ### Access Control
-- Only the application server connects to the database
-- No direct public access to the database; no developer query access to production without explicit temporary credential
+- Production network exposure, private networking, firewall rules, and
+  developer access policy are **UNKNOWN** pending Production/provider evidence
 - Drizzle ORM is used for all queries — no raw string concatenation SQL
 
 ### Migrations
@@ -127,7 +138,8 @@ All secrets are stored as **Replit environment variables** (encrypted at rest by
 - Never run migrations against production without a prior staging test
 
 ### BAA Status
-Neon BAA availability unverified. See `docs/vendor-baa-map.md` for action item.
+Database-provider identity, BAA availability, and executed-agreement status
+require external/provider confirmation.
 
 ---
 
@@ -138,8 +150,8 @@ Neon BAA availability unverified. See `docs/vendor-baa-map.md` for action item.
 - **Replit Object Storage** (`server/replit_integrations/object_storage/`) — user uploads via GCS backend
 
 ### Encryption
-- S3: SSE-S3 (server-side encryption) enabled by default on all objects
-- Replit Object Storage: encryption managed by Google Cloud Storage
+- Effective Production encryption, key management, region, versioning, and
+  lifecycle settings are **UNKNOWN** pending project-specific provider evidence
 
 ### Access Control
 - Profile photos and user-uploaded content: review `ACL: "public-read"` in `presignUpload()` — this should be `private` for any health-related uploads; only meal images intended for public sharing should be `public-read`
@@ -147,7 +159,8 @@ Neon BAA availability unverified. See `docs/vendor-baa-map.md` for action item.
 - Object ACL policy system (`server/objectAcl.ts`) controls per-object access
 
 ### BAA Status
-AWS S3 BAA available (not yet signed). See `docs/vendor-baa-map.md` P1 items.
+Storage-provider BAA availability and executed-agreement status require
+external/provider confirmation.
 
 ---
 
@@ -215,19 +228,17 @@ The `audit_log` table has no automatic purge. Retention enforcement:
 - Sentry DSN stored in `SENTRY_DSN` (server) and `VITE_SENTRY_DSN` (client)
 - Initialized at startup: `[Sentry] ✅ Initialized — env: development`
 
-### PHI Scrubbing Gap (Known)
-Sentry currently captures exceptions without a `beforeSend` PHI scrubbing hook. Stack traces that include request context for T1 routes (oncology, GLP-1, nutrition strategy) may transmit PHI to Sentry's servers.
+### Application Scrubbing Boundary
+- Server and client initialization set `sendDefaultPii: false`
+- Shared `beforeSend` and `beforeBreadcrumb` processing strips request content,
+  user data, query strings, fragments, and sensitive values to a bounded
+  diagnostic allowlist
+- Client replay masks text and blocks media
+- `server/tests/sentryScrubber.test.ts` verifies the application scrubber
 
-**Action required (P2):** Add `beforeSend` hook to scrub the following from error payloads before transmission:
-```typescript
-// Fields to strip from request body in Sentry events
-const SCRUB_FIELDS = [
-  'oncologySupportContext', 'medicalConditions', 'glucose',
-  'glp1', 'thyroidMedication', 'password', 'authToken', 'email'
-];
-```
-
-Sentry BAA available under Business/Enterprise plan — not yet signed.
+This is repository/application evidence only. Production Sentry project
+configuration, retention, region, access policy, and contractual/BAA status
+remain **NEEDS EXTERNAL/PROVIDER CONFIRMATION**.
 
 ---
 
@@ -314,26 +325,27 @@ ORDER BY created_at DESC;
 | Passwords hashed (bcrypt) | ✅ Done | Cost factor 10 |
 | Auth tokens: random 32-byte hex | ✅ Done | Invalidated on logout |
 | Auth tokens never in logs | ✅ Done | Policy enforced |
-| All routes require auth by default | ✅ Done | `requireAuth` middleware |
+| Protected-route authentication and actor binding | 🔶 Partial | Verified controls exist; U5 retains PARTIAL and policy-dependent route/object classifications |
 | Org isolation on all cross-user routes | ✅ Done | Phase 1 + 1B |
 | Clinical route gating (physician-only) | ✅ Done | `verifyClinicalAccess` |
 | Audit logging (T1/T2 reads + writes) | ✅ Done | Phase 3 |
-| AI prompt sanitization | ✅ Done | Phase 4 |
+| AI prompt identifier minimization | 🔶 Partial | Verified for selected flows; no universal boundary covers every OpenAI call site |
 | Name removed from AI prompts | ✅ Done | `[anonymous]` in promptBuilder |
 | HTTPS / TLS in transit | ✅ Replit platform | Verify on migration to new host |
 | Production secrets in env vars | ✅ Done | Never in source control |
 | Stripe webhook signature verification | ✅ Done | `stripeWebhook.ts` |
 | Dev-only routes not in production | ✅ Done | `server/prod.ts` vs `server/index.ts` |
 | `BILLING_ENFORCED` launch switch | ✅ Done | Master paywall control |
-| AWS S3 BAA signed | ❌ Not yet | P1 — sign via AWS console |
-| Sentry `beforeSend` PHI scrubbing | ❌ Not yet | P2 — add before enterprise launch |
-| Production hosting on HIPAA-eligible provider | ❌ Not yet | P0 — before enterprise attestation |
-| Neon BAA verified | ❌ Not yet | P0 — contact Neon |
-| OpenAI Enterprise BAA or PHI-free prompts | ❌ Not yet | P0 — before enterprise attestation |
-| Twilio BAA signed | ❌ Not yet | P2 |
-| SendGrid BAA signed | ❌ Not yet | P2 |
-| Encryption at rest verified (Neon, S3) | 🔶 Partial | Verify both on dashboard |
-| Backup / point-in-time recovery verified | 🔶 Unverified | Verify Neon PITR configuration |
+| AWS S3 contractual/BAA evidence | ❓ External | Confirm provider availability and executed-account coverage |
+| Sentry application scrubbing | ✅ Done | Repository implementation and regression tests verified |
+| Sentry provider/contract evidence | ❓ External | Confirm Production settings, retention, region, access, and agreement status |
+| Production hosting eligibility | ❓ External / UTHSC | Confirm active provider/configuration and institutional requirements |
+| Database provider/BAA evidence | ❓ External | Active provider and agreement status unverified |
+| OpenAI contractual or PHI-minimized operating posture | ❓ External / UTHSC | Confirm agreement/configuration or approve a bounded architecture |
+| Twilio contractual/BAA evidence | ❓ External | Confirm provider availability and executed-account coverage |
+| SendGrid contractual/BAA evidence | ❓ External | Confirm provider availability and executed-account coverage |
+| Encryption at rest verified (database, storage) | 🔶 Partial | Requires project-specific Production/provider evidence |
+| Backup / point-in-time recovery verified | 🔶 Unverified | Requires project-specific Production/provider evidence |
 | Secrets rotation procedure documented | ✅ Done | Section 3 above |
 | Role & permission matrix documented | ✅ Done | `docs/role-permission-matrix.md` |
 | Vendor / BAA map documented | ✅ Done | `docs/vendor-baa-map.md` |

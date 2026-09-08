@@ -1,6 +1,6 @@
 # MyPerfectMeals — Vendor & BAA Mapping
 
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active  
 **Effective:** 2026-05-22  
 **Owner:** Engineering / Compliance  
@@ -10,9 +10,16 @@
 
 ## Purpose
 
-This document is the authoritative reference for every third-party vendor that touches MPM user data. It identifies which vendors receive PHI, whether a Business Associate Agreement (BAA) is available, current risk level, and what action is required before enterprise partnerships or HIPAA attestation.
+This document inventories third-party vendors that may touch MPM user data and
+tracks evidence still required before institutional review. Repository evidence
+can establish integration paths and payload categories; it cannot establish the
+active Production provider, account tier, current BAA availability, or whether
+an agreement is executed.
 
-Under HIPAA, any vendor who creates, receives, maintains, or transmits PHI on behalf of a covered entity is a **Business Associate** and must sign a BAA. Vendors without a signed BAA who receive PHI create a reportable violation.
+Legal/compliance and UTHSC must determine which services are Business
+Associates and which agreements are required for the intended use. Every BAA
+availability/signature entry below is **NEEDS EXTERNAL/PROVIDER CONFIRMATION**
+unless supported by a current account-specific agreement.
 
 ---
 
@@ -20,32 +27,32 @@ Under HIPAA, any vendor who creates, receives, maintains, or transmits PHI on be
 
 | Level | Meaning |
 |---|---|
-| 🔴 CRITICAL | PHI flows to vendor; BAA not available or not signed; must resolve before enterprise launch |
-| 🟠 HIGH | PHI may flow; BAA available but not signed, or BAA chain uncertain |
-| 🟡 MEDIUM | PHI flows in limited form; BAA available; action required |
-| 🟢 LOW | No PHI flows; no BAA required |
+| 🔴 CRITICAL | Potential PHI flow with unresolved provider/contractual evidence; institutional review required |
+| 🟠 HIGH | Potential PHI flow with incomplete account-specific evidence |
+| 🟡 MEDIUM | Limited or conditional data flow requiring evidence or policy confirmation |
+| 🟢 LOW | No expected PHI flow; contractual scope still requires UTHSC/legal determination |
 | ⚪ N/A | Vendor inactive or PHI flow eliminated by architecture |
 
 ---
 
 ## Vendor Table
 
-| # | Vendor | Role | PHI Flows? | BAA Available | Risk | Status |
+| # | Vendor | Role | Potential data flow | Contract/BAA evidence | Risk | Status |
 |---|---|---|---|---|---|---|
-| 1 | **OpenAI** | AI meal generation, assistant, biometric analysis | **Yes — T1 Clinical** | Enterprise tier only | 🟠 HIGH | No BAA signed |
-| 2 | **Neon (PostgreSQL)** | Primary database | **Yes — All tiers** | Verify required | 🔴 CRITICAL | Unverified |
-| 3 | **Replit** | Hosting platform | **Yes — All tiers** | Not available (standard) | 🔴 CRITICAL | Structural blocker |
-| 4 | **AWS S3** | User image and file storage | **Yes — T2/T3** | Yes (via AWS HIPAA BAA) | 🟠 HIGH | No BAA signed |
-| 5 | **Replit Object Storage** | User uploads (via Google Cloud backend) | **Yes — T2/T3** | GCS BAA available; chain through Replit unclear | 🟠 HIGH | Chain unverified |
-| 6 | **Sentry** | Error monitoring | **Potentially — T1/T3** | Yes | 🟡 MEDIUM | No BAA signed; PHI in errors unverified |
-| 7 | **Resend** | Primary transactional email | **T3 PII (to/from); possibly T2** | Not publicly offered | 🟡 MEDIUM | No BAA; scope PHI in email bodies |
-| 8 | **SendGrid** | Legacy/backup email | **T3 PII; possibly T2** | Yes (Twilio-owned; HIPAA eligible) | 🟡 MEDIUM | No BAA signed |
-| 9 | **Twilio** | SMS notifications | **T3 PII; possibly T2** | Yes (HIPAA-eligible product tier) | 🟡 MEDIUM | No BAA signed |
-| 10 | **ElevenLabs** | Text-to-speech voice output | **Possibly T2** | Not publicly available | 🟡 MEDIUM | No BAA; voice content includes dietary context |
+| 1 | **OpenAI** | AI meal generation, assistant, biometric analysis | **T1/T2 may be sent by selected flows** | Needs external/provider confirmation | 🟠 HIGH | Account/configuration unverified |
+| 2 | **PostgreSQL provider** | Primary database role | **All stored tiers** | Needs provider identity and contract evidence | 🔴 CRITICAL | Active Production provider unverified |
+| 3 | **Replit** | Repository/deployment platform | **Potentially all tiers depending on Production configuration** | Needs account-specific confirmation | 🔴 CRITICAL | Production configuration unverified |
+| 4 | **AWS S3** | User image and file storage | **Potentially T2/T3** | Needs account-specific confirmation | 🟠 HIGH | Agreement/configuration unverified |
+| 5 | **Replit Object Storage** | User uploads | **Potentially T2/T3** | Needs provider-chain confirmation | 🟠 HIGH | Chain/configuration unverified |
+| 6 | **Sentry** | Error monitoring | **Potentially T1/T3; application scrubber verified** | Needs account-specific confirmation | 🟡 MEDIUM | Provider settings/contract unverified |
+| 7 | **Resend** | Primary transactional email | **T3 PII; possibly T2** | Needs provider confirmation | 🟡 MEDIUM | Contract and payload scope unverified |
+| 8 | **SendGrid** | Legacy/backup email | **T3 PII; possibly T2** | Needs provider confirmation | 🟡 MEDIUM | Contract and active use unverified |
+| 9 | **Twilio** | SMS notifications | **T3 PII; possibly T2** | Needs provider confirmation | 🟡 MEDIUM | Contract and payload scope unverified |
+| 10 | **ElevenLabs** | Text-to-speech voice output | **Possibly T2** | Needs provider confirmation | 🟡 MEDIUM | Contract and payload scope unverified |
 | 11 | **Stripe** | Payment processing | **No PHI — financial only** | Not applicable (PCI-DSS scope) | 🟢 LOW | No action needed |
 | 12 | **Google Places API** | Restaurant search | **No PHI — query only** | Not applicable | 🟢 LOW | No action needed |
 | 13 | **VAPID / Web Push** | Push notifications | **Possibly T2 (notification content)** | Protocol-level; FCM/APN in delivery chain | 🟡 MEDIUM | Keep notification content generic; no clinical data |
-| 14 | **Facebook Graph API** | Community group integration | **No PHI if properly scoped** | Not available | 🟢 LOW | Verify no PHI in payload; keep to content IDs only |
+| 14 | **Facebook Graph API** | Community group integration | **No PHI if properly scoped** | Needs provider confirmation if in scope | 🟢 LOW | Verify no PHI in payload; keep to content IDs only |
 | 15 | **YouTube Data API** | Cooking tutorial fetching | **No PHI — content lookup only** | Not applicable | 🟢 LOW | No action needed |
 | 16 | **Redis** | Session cache / job queues | **Potentially T2/T3 when active** | Depends on provider | ⚪ N/A | Currently disabled; assess before re-enabling |
 
@@ -62,15 +69,21 @@ Under HIPAA, any vendor who creates, receives, maintains, or transmits PHI on be
 **PHI exposure:**
 - T1 Clinical: medical conditions (diabetes, GLP-1, oncology, renal, cardiac, thyroid), real-time blood glucose, medication names, oncology symptom flags
 - T2 Behavioral: macro targets, dietary restrictions, consumption patterns
-- T3 PII: previously included user name — **removed by Phase 4 sanitization**
+- T3 PII: identifier minimization is verified for selected Phase 4 prompt flows,
+  not as a universal boundary over every OpenAI call site
 
-**Phase 4 mitigations applied:**
-- `sanitizeIdentifiers()` strips email addresses, phone numbers, and UUID-style IDs from all `ProtocolPromptBlock.combined` strings before any API call
+**Flow-specific Phase 4 mitigations:**
+- `sanitizeIdentifiers()` strips email addresses, phone numbers, and UUID-style
+  IDs from the reviewed `ProtocolPromptBlock.combined` flow
 - `profile.name` removed from `buildMealPrompt()` — replaced with `[anonymous]`
 - Medical/dietary clinical content still present in prompts by design (required for safety guardrails)
+- Other direct OpenAI call sites require separate payload evidence; no universal
+  sanitizer is claimed
 
 **BAA:**  
-Available under OpenAI's Enterprise tier. Standard API does not include BAA coverage. This is the primary gap — all AI generation that involves T1 data requires an enterprise agreement or a restructured approach where PHI is not sent in prompts.
+**NEEDS EXTERNAL/PROVIDER CONFIRMATION.** Current account tier,
+HIPAA-eligible configuration, BAA availability/execution, retention, region,
+training use, and deletion behavior were not established by U8/U9.
 
 **Risk:** 🟠 HIGH
 
@@ -84,16 +97,21 @@ Available under OpenAI's Enterprise tier. Standard API does not include BAA cove
 
 ---
 
-### 2. Neon (PostgreSQL)
+### 2. PostgreSQL provider
 
-**Role:** Primary production database. Stores all user data across all PHI tiers.
+**Role:** Primary database role. The repository contains Neon-specific support,
+but the active Production provider/configuration was not inspected.
 
 **PHI exposure:** Everything — T1 Clinical, T2 Behavioral, T3 PII, T4 Operational.
 
 **BAA:**  
-Neon offers SOC 2 Type II certification. BAA availability depends on account tier. Standard plans likely do not include BAA. Enterprise/dedicated deployments may be available.
+**NEEDS EXTERNAL/PROVIDER CONFIRMATION.** Confirm the active provider, account
+tier, current certifications, BAA availability/execution, region, retention,
+and subprocessor terms directly.
 
-**Alternative:** Self-managed PostgreSQL on a HIPAA-eligible cloud provider (AWS RDS, Google Cloud SQL, Azure Database for PostgreSQL — all offer BAA). Migration cost is significant but this is the most defensible path.
+**Alternative:** Evaluate a managed or self-managed PostgreSQL service whose
+account-specific security and contractual evidence satisfies UTHSC. Migration
+cost and suitability require separate assessment.
 
 **Risk:** 🔴 CRITICAL
 
@@ -109,15 +127,19 @@ Neon offers SOC 2 Type II certification. BAA availability depends on account tie
 
 ### 3. Replit
 
-**Role:** Application hosting platform. All server code executes here; all network traffic flows through Replit's infrastructure.
+**Role:** Repository and configured deployment platform. Active Production
+hosting and traffic flow were not inspected by U8/U9.
 
 **PHI exposure:** All tiers (platform-level — code, memory, network, storage all pass through Replit's systems).
 
-**BAA:** Not available on standard or team plans. Replit is a developer platform, not a HIPAA-eligible hosting provider.
+**BAA/eligibility:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION** for the applicable
+account and service. U8/U9 did not establish current availability or executed
+coverage.
 
-**This is the biggest structural issue for HIPAA attestation.**
+**This is a material unresolved hosting/contract evidence question.**
 
-Healthcare enterprise partners' security teams will ask: "Where does your application run?" If the answer is "Replit," they will identify the BAA gap immediately.
+Institutional reviewers will require evidence of the active hosting provider,
+service tier, data flow, and applicable contractual coverage.
 
 **Options:**
 
@@ -149,9 +171,10 @@ Healthcare enterprise partners' security teams will ask: "Where does your applic
 - T3: Profile photos (PII/biometric indicator)
 - Potentially T1: Ingredient scan images or lab document uploads if ever added
 
-**BAA:** Available. AWS offers a BAA for S3 as part of their HIPAA-eligible services portfolio. Standard AWS agreement; free to add.
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION.** Verify applicable service
+eligibility and executed account coverage directly.
 
-**Risk:** 🟠 HIGH (no BAA signed)
+**Risk:** 🟠 HIGH (agreement and Production configuration unverified)
 
 **Action required:**  
 - Sign AWS BAA (covered under AWS's standard HIPAA BAA — applies to all eligible services in the account)
@@ -169,12 +192,14 @@ Healthcare enterprise partners' security teams will ask: "Where does your applic
 
 **PHI exposure:** Same as AWS S3 — user-uploaded content.
 
-**BAA:** Google Cloud Storage offers a BAA. However, the BAA chain through Replit's integration layer (the sidecar) is unverified — it's unclear whether Replit's integration constitutes a covered sub-processor relationship.
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION.** The contractual and
+subprocessor chain through the Replit integration is unverified.
 
 **Risk:** 🟠 HIGH
 
 **Action required:**  
-- Consolidate object storage to AWS S3 (BAA signed) or Google Cloud Storage (direct, BAA signed)
+- Consolidate object storage only after the selected account has verified
+  contractual coverage and approved Production configuration
 - Retire Replit Object Storage for production PHI workloads until the BAA chain is verified
 
 **Owner:** Engineering  
@@ -189,16 +214,16 @@ Healthcare enterprise partners' security teams will ask: "Where does your applic
 **PHI exposure:**  
 Stack traces may include request bodies, response data, or logged variables that contain PHI if an exception occurs mid-generation or mid-route. The risk is subtle but real — a thrown error in an oncology route could capture the patient context in the trace.
 
-**BAA:** Sentry offers a BAA under their Business and Enterprise plans.
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION.** Account tier, current
+availability, and executed coverage were not established.
 
 **Risk:** 🟡 MEDIUM
 
 **Action required:**  
-- Upgrade to Sentry Business/Enterprise and sign BAA
-- Configure Sentry `beforeSend` hook to scrub PHI fields from error payloads before transmission:
-  - Strip request body fields: `oncologySupportContext`, `medicalConditions`, `glucose*`
-  - Strip user-identifiable metadata beyond user ID
-- Document the scrubbing configuration
+- Confirm provider configuration, retention, region, access policy, and
+  contractual status
+- Preserve the verified application `beforeSend`/`beforeBreadcrumb` scrubber
+  and regression coverage
 
 **Owner:** Engineering  
 **Priority:** P2
@@ -212,13 +237,15 @@ Stack traces may include request bodies, response data, or logged variables that
 **PHI exposure:**  
 Email `to` addresses are T3 PII. Email body content may include health-adjacent context (e.g., "Your coach has updated your nutrition plan" with a meal plan link). Direct PHI in email bodies should be avoided — email is not a secure channel.
 
-**BAA:** Resend does not publicly offer BAAs. This is a meaningful gap if email bodies ever contain clinical language.
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION.** This remains material if
+email bodies contain clinical language.
 
 **Risk:** 🟡 MEDIUM
 
 **Action required:**  
 - Audit all email templates to confirm no T1/T2 content in email bodies — links only, no health data
-- Evaluate migration to SendGrid (Twilio-owned, HIPAA-eligible BAA available) for enterprise tier
+- Evaluate alternate email providers only after account-specific eligibility
+  and contractual evidence is obtained
 - Add `[REDACTED]` policy to any email template that might include condition-specific language
 
 **Owner:** Engineering + Product  
@@ -232,9 +259,10 @@ Email `to` addresses are T3 PII. Email body content may include health-adjacent 
 
 **PHI exposure:** Same as Resend.
 
-**BAA:** Yes — SendGrid (Twilio-owned) offers a BAA under their HIPAA-eligible tier. This makes SendGrid the better long-term choice over Resend if email BAA coverage is needed.
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION.** Confirm service eligibility,
+account tier, and executed coverage before selecting it for this purpose.
 
-**Risk:** 🟡 MEDIUM (no BAA signed despite availability)
+**Risk:** 🟡 MEDIUM (contract and active configuration unverified)
 
 **Action required:**  
 - If BAA-covered email is required: activate SendGrid as primary provider and sign BAA
@@ -252,7 +280,8 @@ Email `to` addresses are T3 PII. Email body content may include health-adjacent 
 **PHI exposure:**  
 SMS message content may include health-adjacent language (check-in reminders, coaching messages). SMS is not encrypted in transit (carrier-level) and should not carry T1 content.
 
-**BAA:** Twilio offers a BAA under their HIPAA-eligible product tier (requires a specific agreement).
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION.** Confirm product eligibility,
+account tier, and executed coverage.
 
 **Risk:** 🟡 MEDIUM
 
@@ -273,7 +302,8 @@ SMS message content may include health-adjacent language (check-in reminders, co
 **PHI exposure:**  
 Text sent to ElevenLabs for synthesis may include dietary context and meal-specific language (e.g., instructions referencing dietary restrictions). Not T1 by itself, but combined with user identity it approaches T2.
 
-**BAA:** ElevenLabs does not publicly advertise a BAA program. This is a meaningful gap if voice content includes personalized health context.
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION.** This remains material if
+voice content includes personalized health context.
 
 **Risk:** 🟡 MEDIUM
 
@@ -293,7 +323,9 @@ Text sent to ElevenLabs for synthesis may include dietary context and meal-speci
 
 **PHI exposure:** None. Stripe receives billing information (card data, billing address) — covered under PCI-DSS, not HIPAA. No health data flows to Stripe.
 
-**BAA:** Not required.
+**Contractual scope:** **NEEDS UTHSC/LEGAL DETERMINATION.** Repository evidence
+supports a payment-only integration boundary, but does not make a legal
+determination.
 
 **Risk:** 🟢 LOW
 
@@ -307,7 +339,8 @@ Text sent to ElevenLabs for synthesis may include dietary context and meal-speci
 
 **PHI exposure:** None. Only location/search queries sent; no user health data included.
 
-**BAA:** Not required.
+**Contractual scope:** **NEEDS UTHSC/LEGAL DETERMINATION.** Repository evidence
+supports a location/search boundary, but does not make a legal determination.
 
 **Risk:** 🟢 LOW
 
@@ -322,7 +355,9 @@ Text sent to ElevenLabs for synthesis may include dietary context and meal-speci
 **PHI exposure:**  
 Push notification payloads may reach FCM/APNs servers. Content should be generic (e.g., "You have a new message from your coach") — never include condition names, lab values, or clinical language.
 
-**BAA:** Google FCM and Apple APNs are not HIPAA BAA signatories for standard developer accounts. Keep notification bodies PHI-free.
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION.** Regardless of contract
+status, keep notification bodies free of clinical content unless explicitly
+approved.
 
 **Risk:** 🟡 MEDIUM (if content contains PHI); 🟢 LOW (if content stays generic)
 
@@ -337,11 +372,13 @@ Push notification payloads may reach FCM/APNs servers. Content should be generic
 
 ### 16. Redis
 
-**Role:** Session cache, SMS worker queues, notification queues. Currently disabled in production (`📡 Redis temporarily disabled`).
+**Role:** Session cache, SMS worker queues, and notification queues. Current
+repository/runtime evidence indicates Redis is disabled; Production was not
+inspected.
 
 **PHI exposure:** When active, Redis caches session state and job payloads that may include user IDs and behavioral data (T2/T3).
 
-**BAA:** Depends on provider (Redis Cloud, AWS ElastiCache, Upstash, etc.). AWS ElastiCache is HIPAA-eligible with BAA.
+**BAA:** **NEEDS EXTERNAL/PROVIDER CONFIRMATION** when a provider is selected.
 
 **Risk:** ⚪ N/A (currently disabled)
 
@@ -361,54 +398,57 @@ Push notification payloads may reach FCM/APNs servers. Content should be generic
 
 | Action | Vendor | Owner |
 |---|---|---|
-| Negotiate OpenAI Enterprise BAA **or** redesign prompts to be PHI-free | OpenAI | Engineering + Legal |
-| Verify Neon BAA availability; migrate to AWS RDS if unavailable | Neon | Engineering + Legal |
-| Define production hosting strategy on HIPAA-eligible infrastructure | Replit | Engineering + Legal |
+| Obtain account-specific contract/configuration evidence or approve a minimized-payload architecture | OpenAI | Engineering + Legal |
+| Identify the active Production database provider and obtain contract/configuration evidence | PostgreSQL provider | Engineering + Legal |
+| Establish the active Production hosting evidence and obtain UTHSC acceptance | Hosting provider | Engineering + Legal |
 
 ### P1 — Required before handling real patient data in production
 
 | Action | Vendor | Owner |
 |---|---|---|
-| Sign AWS HIPAA BAA; verify S3 encryption and ACL posture | AWS S3 | Engineering |
+| Confirm account-specific contractual coverage; verify S3 encryption and ACL posture | AWS S3 | Engineering |
 | Consolidate object storage; verify or retire Replit Object Storage for PHI workloads | Replit Object Storage | Engineering |
 
 ### P2 — Required before enterprise partner onboarding
 
 | Action | Vendor | Owner |
 |---|---|---|
-| Sign Sentry BAA; add `beforeSend` PHI scrubbing hook | Sentry | Engineering |
-| Audit email templates; migrate to SendGrid (BAA) if PHI touches email | Resend / SendGrid | Engineering + Product |
-| Sign Twilio BAA; audit SMS content templates | Twilio | Engineering + Legal |
+| Confirm Sentry provider/contract evidence; preserve verified application scrubbing | Sentry | Engineering |
+| Audit email templates and obtain provider/contract evidence for the selected service | Resend / SendGrid | Engineering + Product |
+| Obtain Twilio provider/contract evidence; audit SMS content templates | Twilio | Engineering + Legal |
 | Audit push notification content — enforce PHI-free bodies | VAPID / FCM / APNs | Engineering |
 
 ### P3 — Before feature expansion
 
 | Action | Vendor | Owner |
 |---|---|---|
-| Evaluate ElevenLabs BAA; audit voice content for PHI | ElevenLabs | Engineering |
-| Select HIPAA-eligible Redis provider before re-enabling | Redis | Engineering |
+| Obtain ElevenLabs provider/contract evidence; audit voice content for PHI | ElevenLabs | Engineering |
+| Select a provider accepted by UTHSC before re-enabling Redis | Redis | Engineering |
 
 ---
 
-## BAA Status Tracker
+## Contract and BAA Evidence Tracker
 
-| Vendor | BAA Available | BAA Signed | Date | Notes |
-|---|---|---|---|---|
-| OpenAI | Enterprise only | ❌ No | — | Requires enterprise tier upgrade |
-| Neon | TBD | ❌ No | — | Needs verification |
-| Replit | ❌ No (standard) | ❌ No | — | Structural — production hosting decision required |
-| AWS S3 | ✅ Yes | ❌ No | — | Free; sign via AWS console |
-| Replit Object Storage (GCS) | Chain unclear | ❌ No | — | Consolidate first |
-| Sentry | ✅ Yes (Business+) | ❌ No | — | Requires plan upgrade |
-| Resend | ❌ Not offered | ❌ No | — | Evaluate migration to SendGrid |
-| SendGrid | ✅ Yes (HIPAA tier) | ❌ No | — | Preferred email provider for enterprise |
-| Twilio | ✅ Yes (HIPAA tier) | ❌ No | — | Requires HIPAA tier agreement |
-| ElevenLabs | ❌ Not public | ❌ No | — | Monitor; architect PHI-free voice |
-| Stripe | N/A (PCI-DSS) | N/A | — | No action needed |
-| Google Places | N/A | N/A | — | No action needed |
-| Facebook Graph | N/A | N/A | — | No PHI; no action |
-| YouTube Data | N/A | N/A | — | No PHI; no action |
-| Redis | Depends on provider | ❌ No | — | Select provider when re-enabling |
+No executed agreement was inspected during U8/U9. “Unknown” means the
+repository cannot establish either availability or signature status.
+
+| Vendor/service | Availability evidence | Executed agreement evidence | Notes |
+|---|---|---|---|
+| OpenAI | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Confirm account tier and operating configuration |
+| PostgreSQL provider | NEEDS PROVIDER IDENTIFICATION/CONFIRMATION | UNKNOWN | Active Production provider unverified |
+| Replit | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Confirm applicable account/service and Production role |
+| AWS S3 | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Confirm account coverage and bucket configuration |
+| Replit Object Storage | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Confirm contractual/subprocessor chain |
+| Sentry | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Application scrubber is verified separately |
+| Resend | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Confirm payload scope and provider terms |
+| SendGrid | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Confirm active use, tier, and terms |
+| Twilio | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Confirm active use, tier, and terms |
+| ElevenLabs | NEEDS EXTERNAL/PROVIDER CONFIRMATION | UNKNOWN | Confirm payload scope and provider terms |
+| Stripe | NEEDS UTHSC/LEGAL DETERMINATION IF IN SCOPE | UNKNOWN | Payment data flow must remain separate from clinical data |
+| Google Places | NEEDS UTHSC/LEGAL DETERMINATION IF IN SCOPE | UNKNOWN | Verify actual payload remains search/location only |
+| Facebook Graph | NEEDS UTHSC/LEGAL DETERMINATION IF IN SCOPE | UNKNOWN | Verify actual payload remains nonclinical |
+| YouTube Data | NEEDS UTHSC/LEGAL DETERMINATION IF IN SCOPE | UNKNOWN | Verify actual payload remains content lookup only |
+| Redis | NEEDS PROVIDER SELECTION/CONFIRMATION | UNKNOWN | Reassess before re-enabling |
 
 ---
 
@@ -417,3 +457,4 @@ Push notification payloads may reach FCM/APNs servers. Content should be generic
 | Date | Change |
 |---|---|
 | 2026-05-22 | v1.0 — Initial vendor/BAA map. Covers all active integrations as of Phase 4 completion. |
+| 2026-09-08 | v1.1 — Reconciled provider, BAA, Production identity, Sentry, and flow-specific OpenAI claims with U8/U9 evidence. |
