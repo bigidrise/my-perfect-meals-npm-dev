@@ -60,7 +60,7 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
       <PopoverContent
         align={compact ? "center" : "end"}
         sideOffset={10}
-        className="z-[80] w-[calc(100vw-2rem)] max-w-sm border-amber-400/25 bg-zinc-950 p-4 text-white shadow-2xl"
+        className="z-[80] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-sm overflow-y-auto border-amber-400/25 bg-zinc-950 p-4 text-white shadow-2xl"
       >
         <div className="space-y-3">
           <div>
@@ -70,18 +70,52 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
             </p>
           </div>
 
-          {hasCompletedPhaseOne ? (
-            <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm leading-relaxed text-white/75">
-              Return to the App Library anytime for a refresher on the platform and its tools.
+          <div
+            className={
+              hasCompletedPhaseOne
+                ? "rounded-lg border border-white/10 bg-white/5 p-3"
+                : "rounded-lg border border-amber-400/20 bg-amber-400/10 p-3"
+            }
+          >
+            <p
+              className={
+                hasCompletedPhaseOne
+                  ? "text-xs font-bold uppercase tracking-wide text-white/60"
+                  : "text-xs font-bold uppercase tracking-wide text-amber-300"
+              }
+            >
+              {hasCompletedPhaseOne ? "My Perfect Meals Academy" : "Highly recommended"}
             </p>
-          ) : (
-            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-300">Highly recommended</p>
-              <p className="mt-1 text-sm leading-relaxed text-white/80">
-                Take a few minutes to explore the App Library and learn what your platform can do.
-              </p>
-            </div>
-          )}
+            <p className="mt-1 text-sm font-semibold text-white">
+              {hasCompletedPhaseOne
+                ? "Return to My Perfect Meals Academy anytime."
+                : "Start with My Perfect Meals Academy."}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-white/80">
+              The Academy walks you through the platform and teaches you how to use its features and tools. Take a few minutes to get started so you understand what's available, where to find it, and how to get the most from My Perfect Meals.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setLocation("/academy");
+            }}
+            className="w-full rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
+          >
+            Start My Perfect Meals Academy
+          </button>
+
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-white/60">Explore the platform</p>
+            <p className="mt-1 text-sm font-semibold text-white">
+              Want to see everything My Perfect Meals offers?
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-white/70">
+              Visit the App Library to browse the platform's tools and features and read about what each one can do.
+            </p>
+          </div>
 
           <button
             type="button"
@@ -89,9 +123,9 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
               setOpen(false);
               setLocation("/learn");
             }}
-            className="w-full rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
+            className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
           >
-            Open App Library
+            Explore App Library
           </button>
 
           {!hasCompletedPhaseOne && (
