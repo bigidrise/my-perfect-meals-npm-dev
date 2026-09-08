@@ -13,6 +13,7 @@ describe("flat ordinary Organization backend model", () => {
   const proCareActivation = read("server/services/procareActivation.ts");
   const pricing = read("client/src/pages/PricingPage.tsx");
   const dashboard = read("client/src/pages/BusinessDashboard.tsx");
+  const successCenter = read("client/src/pages/OrganizationSuccessCenter.tsx");
   const setup = read("client/src/pages/BusinessSetup.tsx");
 
   test("ordinary checkout is and remains Stripe quantity one", () => {
@@ -30,6 +31,14 @@ describe("flat ordinary Organization backend model", () => {
     expect(dashboard).not.toContain("Manage Seats");
     expect(dashboard).not.toContain("Team Seats");
     expect(dashboard).not.toContain("44.99 * managedSeats");
+  });
+
+  test("Organization Success Center narration uses stable sections", () => {
+    expect(successCenter).toContain("const sections = useMemo(");
+    expect(successCenter).toContain("<SuccessCenterNarration");
+    expect(successCenter).not.toContain(
+      '<NarrationBar sections={[{ heading: mod.title, text: mod.narration }]} />',
+    );
   });
 
   test("ordinary invitations and acceptance do not enforce purchased seats", () => {
