@@ -2084,18 +2084,34 @@ export default function MyBiometrics() {
             <Button
                 data-wt="bio-scan-button"
                 onClick={handlePhotoUpload}
-                className="w-full bg-lime-600 hover:bg-lime-600 text-md text-white mb-3"
+                className="w-full h-auto bg-lime-600 hover:bg-lime-600 text-white mb-3 py-3"
                 data-testid="button-photo-upload"
               >
-                📸 MacroScan
+                <span className="flex min-w-0 flex-col items-center gap-0.5 text-center">
+                  <span className="text-md font-semibold">📸 MacroScan</span>
+                  <span
+                    className="text-xs font-normal leading-snug text-white/85 whitespace-normal"
+                    data-testid="text-macro-scan-subtitle"
+                  >
+                    Scan the nutrition label on the package.
+                  </span>
+                </span>
               </Button>
 
             <Button
               onClick={() => setOpenDescribe(true)}
-              className="w-full bg-amber-600/80 hover:bg-amber-600 text-md text-white mb-3"
+              className="w-full h-auto bg-amber-600/80 hover:bg-amber-600 text-white mb-3 py-3"
               data-testid="button-just-describe"
             >
-              ✏️ Just Describe It
+              <span className="flex min-w-0 flex-col items-center gap-0.5 text-center">
+                <span className="text-md font-semibold">✏️ Just Describe It</span>
+                <span
+                  className="text-xs font-normal leading-snug text-white/85 whitespace-normal"
+                  data-testid="text-just-describe-subtitle"
+                >
+                  No label or macros? Just describe what you ate.
+                </span>
+              </span>
             </Button>
 
             {/* Ingredient Intelligence */}

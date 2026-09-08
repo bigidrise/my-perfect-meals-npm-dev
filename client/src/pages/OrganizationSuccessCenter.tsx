@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useOrgFlag } from "@/contexts/OrgContext";
@@ -42,6 +42,21 @@ interface PolicyHistoryItem {
   changed_at: string;
   changed_by_name: string | null;
   changed_by_email: string | null;
+}
+
+function SuccessCenterNarration({
+  title,
+  narration,
+}: {
+  title: string;
+  narration: string;
+}) {
+  const sections = useMemo(
+    () => [{ heading: title, text: narration }],
+    [title, narration],
+  );
+
+  return <NarrationBar sections={sections} />;
 }
 
 export default function OrganizationSuccessCenter() {
@@ -725,7 +740,10 @@ export default function OrganizationSuccessCenter() {
               {isOpen && (
                 <div className="px-4 pb-4 border-t border-white/10 pt-3 space-y-3">
                   {mod.narration && (
-                    <NarrationBar sections={[{ heading: mod.title, text: mod.narration }]} />
+                    <SuccessCenterNarration
+                      title={mod.title}
+                      narration={mod.narration}
+                    />
                   )}
                   {mod.content}
                 </div>
