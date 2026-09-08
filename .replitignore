@@ -1,7 +1,3 @@
-# Generated web builds are recreated during publishing.
-dist/
-client/dist/
-
 # Replit/agent state and local tool caches are not application source.
 .git/
 .local/
