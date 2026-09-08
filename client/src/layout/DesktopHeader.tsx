@@ -7,6 +7,7 @@ import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { useTranslation } from "react-i18next";
 import { BugReportButton } from "@/components/BugReportButton";
+import { QuickStartPopover } from "@/components/QuickStartPopover";
 
 /** Maps route paths to routeTitles i18n keys */
 const ROUTE_KEY_MAP: Record<string, string> = {
@@ -184,6 +185,7 @@ export default function DesktopHeader() {
       </div>
 
       <div className="flex items-center gap-3">
+        {location === "/dashboard" && <QuickStartPopover />}
         {user && (
           <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${BADGE_CLASSES[planBadge.variant]}`}>
             {tc(planBadge.text)}
