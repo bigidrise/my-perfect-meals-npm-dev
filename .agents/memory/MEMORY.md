@@ -78,3 +78,4 @@
 - [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
 - [Organization config resilience](organization-config-resilience.md) — authenticated tenant config may be partial; normalize it over complete defaults before feature-flag reads.
 - [Organization Location isolation](organization-location-isolation.md) — parent administration never implies Location access; active context is an exact authorized pair.
+- [Autoscale runtime dependencies](autoscale-runtime-dependencies.md) — do not exclude node_modules from this app's Replit publish bundle; builds can pass while startup dependencies vanish.

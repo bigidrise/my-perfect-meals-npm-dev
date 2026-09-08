@@ -1,5 +1,4 @@
-# Dependencies and generated web builds are recreated during publishing.
-node_modules/
+# Generated web builds are recreated during publishing.
 dist/
 client/dist/
 
