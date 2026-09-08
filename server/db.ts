@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { getDatabaseTlsConfig } from "./lib/databaseTls";
 import * as schema from "@shared/schema";
 import * as mybestlifeSchema from "./db/schema/mybestlife";
 import * as hydrationSchema from "./db/schema/hydration";
@@ -51,6 +52,8 @@ function getDatabaseUrl(): string {
   return databaseUrl;
 }
 
+const databaseUrl = getDatabaseUrl();
+
 // Use connection pool with keepalive to prevent idle disconnections.
 // min: 3  — pre-warm 3 connections at startup so the first burst of requests
 //            (dashboard + Favorites loading simultaneously) doesn't queue behind
@@ -59,14 +62,14 @@ function getDatabaseUrl(): string {
 //            10 slots was regularly exhausted, causing saved_meals to queue for
 //            1700ms while waiting for a free connection.
 export const pool = new Pool({
-  connectionString: getDatabaseUrl(),
+  connectionString: databaseUrl,
   min: 3,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
-  ssl: getDatabaseUrl().includes('neon.tech') ? { rejectUnauthorized: false } : undefined,
+  ssl: getDatabaseTlsConfig(databaseUrl),
 });
 
 // Handle pool errors without crashing

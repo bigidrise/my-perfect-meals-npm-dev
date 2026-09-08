@@ -1,7 +1,11 @@
 import { Pool } from "pg";
+import { getDatabaseTlsConfig } from "../server/lib/databaseTls";
 
 async function migrate() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: getDatabaseTlsConfig(process.env.DATABASE_URL),
+  });
   const client = await pool.connect();
   try {
     await client.query(`

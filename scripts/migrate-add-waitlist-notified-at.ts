@@ -9,10 +9,11 @@
  */
 
 import { Pool } from "pg";
+import { getDatabaseTlsConfig } from "../server/lib/databaseTls";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: getDatabaseTlsConfig(process.env.DATABASE_URL, { requireTls: true }),
 });
 
 async function run() {

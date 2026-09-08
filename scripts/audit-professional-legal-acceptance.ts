@@ -1,4 +1,5 @@
 import { Client } from "pg";
+import { getDatabaseTlsConfig } from "../server/lib/databaseTls";
 import { LEGAL_DOCUMENTS } from "../shared/legalDocuments";
 
 type AcceptanceRow = {
@@ -29,7 +30,7 @@ async function main() {
   }
   const client = new Client({
     connectionString: databaseUrl,
-    ssl: databaseUrl.includes("neon.tech") ? { rejectUnauthorized: false } : undefined,
+    ssl: getDatabaseTlsConfig(databaseUrl),
   });
   await client.connect();
 

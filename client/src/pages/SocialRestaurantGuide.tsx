@@ -824,6 +824,31 @@ export default function RestaurantGuidePage() {
                 <p className="text-white/70 mb-6">
                   {t("restaurant.entryDesc")}
                 </p>
+                <div className="mb-6 rounded-xl border border-orange-300/25 bg-orange-950/30 p-4 text-left">
+                  <h3 className="mb-2 text-lg font-semibold text-orange-200">
+                    {t("restaurant.orderingEducationTitle", {
+                      defaultValue: "Know What to Order. Know How to Ask.",
+                    })}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-white/80">
+                    {t("restaurant.orderingEducationBody", {
+                      defaultValue:
+                        "Google Places helps My Perfect Meals identify the restaurant, location, and cuisine. Because menus and ingredients can change, an exact suggested meal may not always appear on the current menu.",
+                    })}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/80">
+                    {t("restaurant.orderingEducationGuidance", {
+                      defaultValue:
+                        "We’ll show you what to look for and how to ask about reasonable changes, such as different sides, sauces on the side, removing ingredients, or another preparation method. The restaurant decides what it can accommodate.",
+                    })}
+                  </p>
+                  <p className="mt-3 text-sm font-semibold text-orange-100">
+                    {t("restaurant.orderingEducationClosing", {
+                      defaultValue:
+                        "You don’t have to guess how to stay on track—we’ll show you what to ask for.",
+                    })}
+                  </p>
+                </div>
                 <Button
                   onClick={() => advanceGuided("step1")}
                   className="bg-lime-600 text-white px-8 py-3 text-lg font-semibold"

@@ -9,9 +9,13 @@
  * This column powers ledger reliability upgrades in C2 daily nutrition state.
  */
 import { Pool } from "pg";
+import { getDatabaseTlsConfig } from "../server/lib/databaseTls";
 
 async function run() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: getDatabaseTlsConfig(process.env.DATABASE_URL),
+  });
   const client = await pool.connect();
   try {
     await client.query(`

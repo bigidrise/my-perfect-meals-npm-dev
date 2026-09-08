@@ -21,6 +21,7 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { randomBytes } from "crypto";
+import { getDatabaseTlsConfig } from "../server/lib/databaseTls";
 import { eq, and, sql } from "drizzle-orm";
 import {
   businesses,
@@ -31,7 +32,10 @@ import { users } from "../shared/schema";
 
 const { Pool } = pg;
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: getDatabaseTlsConfig(process.env.DATABASE_URL),
+});
 const db = drizzle(pool);
 
 // ── helpers ───────────────────────────────────────────────────────────────────
