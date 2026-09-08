@@ -87,4 +87,43 @@ describe("database TLS configuration", () => {
     roots.forEach(scan);
     expect(offenders).toEqual([]);
   });
+
+  it("requires every PostgreSQL script client to use the shared TLS policy", () => {
+    const scriptsRoot = path.resolve(__dirname, "../../scripts");
+    const offenders: string[] = [];
+
+    function scan(directory: string): void {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+          scan(entryPath);
+          continue;
+        }
+        if (!entry.name.endsWith(".ts")) continue;
+
+        const source = fs.readFileSync(entryPath, "utf8");
+        const importsPg =
+          /from\s+["']pg["']/.test(source) ||
+          /require\(\s*["']pg["']\s*\)/.test(source);
+        const createsPgClient =
+          /new\s+(?:pg\.)?(?:Pool|Client)\s*\(/.test(source);
+        const hasSharedPolicy = source.includes("getDatabaseTlsConfig");
+        const hasDocumentedLocalOnlyException = source.includes(
+          "DATABASE_TLS_LOCAL_ONLY_EXCEPTION",
+        );
+
+        if (
+          importsPg &&
+          createsPgClient &&
+          !hasSharedPolicy &&
+          !hasDocumentedLocalOnlyException
+        ) {
+          offenders.push(path.relative(process.cwd(), entryPath));
+        }
+      }
+    }
+
+    scan(scriptsRoot);
+    expect(offenders).toEqual([]);
+  });
 });
