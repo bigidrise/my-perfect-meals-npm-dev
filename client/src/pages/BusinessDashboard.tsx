@@ -458,7 +458,7 @@ export default function BusinessDashboard() {
     }
   };
 
-  const handleClientInvite = async (deliveryMethod: "email" | "link" | "mailto") => {
+  const handleClientInvite = async (deliveryMethod: "email" | "link") => {
     if (!clientEmail.includes("@")) {
       toast({ title: "Valid email required", variant: "destructive" });
       return;
@@ -490,25 +490,11 @@ export default function BusinessDashboard() {
         return;
       }
       const link: string = json.inviteLink;
-      const programLabel = clientProgramName.trim() || "My Perfect Meals Complimentary Access";
-
       if (deliveryMethod === "email") {
         toast({ title: t("businessDashboard.success.invitationSent"), description: `${clientEmail} will receive an email.` });
-      } else if (deliveryMethod === "link") {
+      } else {
         await navigator.clipboard.writeText(link);
         toast({ title: "Link copied!", description: "Share this link with your client." });
-      } else {
-        // Open Email: generate the same message the MPM email would send
-        const subject = encodeURIComponent(`You're invited to ${programLabel}`);
-        const body = encodeURIComponent(
-          `Hi,\n\n` +
-          `I'd like to invite you to ${programLabel} — ${resolvedTrialDays} days of complimentary access to My Perfect Meals.\n\n` +
-          `Click the link below to activate your access:\n${link}\n\n` +
-                  `This invitation is reserved for ${clientEmail}.\n` +
-                  `Already have My Perfect Meals? Sign in with that same account and accept the invitation.\n` +
-                  `New to My Perfect Meals? Create your account from this invitation.\n`
-        );
-        window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, "_blank");
       }
       setClientInviteOpen(false);
       resetClientForm();
@@ -1564,6 +1550,13 @@ export default function BusinessDashboard() {
                 ))}
               </div>
             </div>
+            {!ownerData?.pilot && (
+              <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2.5">
+                <p className="text-xs leading-relaxed text-blue-100/80">
+                  Team members receive one-time 30-day introductory My Perfect Meals access unless they already have valid access.
+                </p>
+              </div>
+            )}
             <button
               className="w-full py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               onClick={handleInvite}
@@ -1600,67 +1593,63 @@ export default function BusinessDashboard() {
                 onChange={(e) => setClientEmail(e.target.value)}
               />
             </div>
-            <div>
-              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                Program Name <span className="text-white/30 normal-case font-normal">(optional)</span>
-              </label>
-              <input
-                type="text"
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
-                placeholder="My Perfect Meals Complimentary Access"
-                value={clientProgramName}
-                onChange={(e) => setClientProgramName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Trial Length</label>
-              <div className="flex flex-wrap gap-2">
-                {["7", "14", "30"].map((d) => (
-                  <button
-                    key={d}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === d ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
-                    onClick={() => setClientTrialOption(d)}
-                  >
-                    {d} Days
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Invitation Preview */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Invitation Preview</p>
-              <div className="space-y-1.5">
-                {[
-                  `${resolvedTrialDays} days complimentary access`,
-                  "Uses a secure invitation link",
-                  "Must be redeemed using this email",
-                  "Does not affect team member invitations",
-                  "Converts to Free plan when trial expires",
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                    <span className="text-white/70 text-xs">{item}</span>
+            {!ownerData?.pilot && (
+              <>
+                <div>
+                  <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
+                    Program Name <span className="text-white/30 normal-case font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
+                    placeholder="My Perfect Meals Complimentary Access"
+                    value={clientProgramName}
+                    onChange={(e) => setClientProgramName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Trial Length</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["7", "14", "30"].map((d) => (
+                      <button
+                        key={d}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === d ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
+                        onClick={() => setClientTrialOption(d)}
+                      >
+                        {d} Days
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-            {/* Three delivery options */}
+                </div>
+                {/* Invitation Preview */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Invitation Preview</p>
+                  <div className="space-y-1.5">
+                    {[
+                      `${resolvedTrialDays} days complimentary access`,
+                      "Uses a secure invitation link",
+                      "Must be redeemed using this email",
+                      "Does not affect team member invitations",
+                      "Complimentary access ends when the trial expires",
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-2">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                        <span className="text-white/70 text-xs">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+            {/* Invitation delivery options */}
             <div className="space-y-2">
               <button
                 className="w-full py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                onClick={() => handleClientInvite("mailto")}
-                disabled={clientInviteLoading}
-              >
-                <ExternalLink className="w-4 h-4" />
-                Open Email
-              </button>
-              <button
-                className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 onClick={() => handleClientInvite("email")}
                 disabled={clientInviteLoading}
               >
                 {clientInviteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                {t("businessDashboard.sendEmail")}
+                Send Invitation
               </button>
               <button
                 className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
@@ -1668,7 +1657,7 @@ export default function BusinessDashboard() {
                 disabled={clientInviteLoading}
               >
                 <Copy className="w-4 h-4" />
-                {t("businessDashboard.copyLink")}
+                Create &amp; Copy Link
               </button>
             </div>
           </div>
