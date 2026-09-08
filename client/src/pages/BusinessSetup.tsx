@@ -99,6 +99,16 @@ export default function BusinessSetup() {
       });
       const createData = await createRes.json();
       if (!createRes.ok) {
+        if (createData.code === "MFA_ENROLLMENT_REQUIRED") {
+          setErr("Two-factor authentication must be enabled before starting an Organization. Open Account Security in More to finish setup.");
+          setSubmitting(false);
+          return;
+        }
+        if (createData.code === "MFA_REQUIRED") {
+          setErr("Please complete two-factor verification for this session, then try again.");
+          setSubmitting(false);
+          return;
+        }
         setErr(createData.error || "Could not create your organization. Please try again.");
         setSubmitting(false);
         return;
@@ -233,6 +243,15 @@ export default function BusinessSetup() {
           {err && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
               <p className="text-red-300 text-sm">{err}</p>
+              {err.includes("Account Security") && (
+                <button
+                  type="button"
+                  onClick={() => setLocation("/more")}
+                  className="mt-2 text-sm font-semibold text-orange-300 underline underline-offset-2"
+                >
+                  Open Account Security
+                </button>
+              )}
             </div>
           )}
 

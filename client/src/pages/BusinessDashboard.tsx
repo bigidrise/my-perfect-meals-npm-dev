@@ -184,18 +184,14 @@ export default function BusinessDashboard() {
   const [clientEmail, setClientEmail] = useState("");
   const [clientProgramName, setClientProgramName] = useState("");
   const [clientTrialOption, setClientTrialOption] = useState("30");
-  const [clientCustomDays, setClientCustomDays] = useState("30");
   const [clientInviteLoading, setClientInviteLoading] = useState(false);
 
-  const resolvedTrialDays = clientTrialOption === "custom"
-    ? (parseInt(clientCustomDays) || 30)
-    : parseInt(clientTrialOption);
+  const resolvedTrialDays = parseInt(clientTrialOption);
 
   const resetClientForm = () => {
     setClientEmail("");
     setClientProgramName("");
     setClientTrialOption("30");
-    setClientCustomDays("30");
   };
 
   // Actions
@@ -519,7 +515,9 @@ export default function BusinessDashboard() {
           `Hi,\n\n` +
           `I'd like to invite you to ${programLabel} — ${resolvedTrialDays} days of complimentary access to My Perfect Meals.\n\n` +
           `Click the link below to activate your access:\n${link}\n\n` +
-          `This invitation is reserved for ${clientEmail}. You'll create a free account to get started.\n`
+                  `This invitation is reserved for ${clientEmail}.\n` +
+                  `Already have My Perfect Meals? Sign in with that same account and accept the invitation.\n` +
+                  `New to My Perfect Meals? Create your account from this invitation.\n`
         );
         window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, "_blank");
       }
@@ -1737,7 +1735,7 @@ export default function BusinessDashboard() {
             <div>
               <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Trial Length</label>
               <div className="flex flex-wrap gap-2">
-                {["7", "14", "30", "60", "90"].map((d) => (
+                {["7", "14", "30"].map((d) => (
                   <button
                     key={d}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === d ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
@@ -1746,24 +1744,7 @@ export default function BusinessDashboard() {
                     {d} Days
                   </button>
                 ))}
-                <button
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === "custom" ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
-                  onClick={() => setClientTrialOption("custom")}
-                >
-                  Custom
-                </button>
               </div>
-              {clientTrialOption === "custom" && (
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  className="mt-2 w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400"
-                  placeholder="Days (1–365)"
-                  value={clientCustomDays}
-                  onChange={(e) => setClientCustomDays(e.target.value)}
-                />
-              )}
             </div>
             {/* Invitation Preview */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-4">

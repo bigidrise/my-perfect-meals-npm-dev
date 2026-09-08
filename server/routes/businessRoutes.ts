@@ -44,6 +44,11 @@ const stripe = stripeKey
   : null;
 
 const router = Router();
+const CLIENT_TRIAL_DURATIONS = [7, 14, 30] as const;
+
+function isAllowedClientTrialDuration(value: number): boolean {
+  return CLIENT_TRIAL_DURATIONS.includes(value as (typeof CLIENT_TRIAL_DURATIONS)[number]);
+}
 
 function handlePilotInvitationError(res: any, error: unknown) {
   if (error instanceof PilotInvitationError) {
@@ -610,8 +615,11 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
   if (isClient) {
     const days = Number(trialDays);
-    if (!days || days < 1 || days > 365) {
-      return res.status(400).json({ error: "Trial length must be between 1 and 365 days." });
+    if (!isAllowedClientTrialDuration(days)) {
+      return res.status(400).json({
+        error: "Complimentary access must be 7, 14, or 30 days.",
+        code: "INVALID_CLIENT_TRIAL_DURATION",
+      });
     }
   }
 
@@ -719,7 +727,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     const token = generateInviteToken();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const resolvedTrialDays = isClient ? (Number(trialDays) || 30) : null;
+    const resolvedTrialDays = isClient ? Number(trialDays) : null;
 
     await db.insert(businessInvitations).values({
       businessId: business.id,
@@ -1277,6 +1285,12 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     // ── Client invitation path — extend trial, no seat consumed ──────────────
     if (invite.invitationType === "client") {
       const trialDays = invite.trialDays ?? 30;
+      if (!isAllowedClientTrialDuration(trialDays)) {
+        return res.status(409).json({
+          error: "This invitation has an unsupported complimentary access period. Please ask the Organization to send a new invitation.",
+          code: "INVALID_CLIENT_TRIAL_DURATION",
+        });
+      }
       if (
         business.plan !== "clinical_business_monthly"
         || !business.stripeCustomerId
