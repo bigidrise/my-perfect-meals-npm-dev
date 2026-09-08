@@ -474,10 +474,10 @@ export default function MorePage() {
                     </h3>
                     <p className="text-xs text-white/60 truncate">
                        {businessCard?.status === "active"
-                        ? `${businessCard.name}${businessCard.mode === "owner" && businessCard.usedSeats != null && businessCard.seatLimit != null ? ` · ${businessCard.usedSeats} of ${businessCard.seatLimit} seats used` : ""}`
+                        ? `${businessCard.name} · Clients & Team Members`
                          : businessCard
                            ? `${businessCard.name} · Setup before payment`
-                        : "$44.99/month · Set up your Business Suite"}
+                         : "$44.99/month · Set up your Business Suite"}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-blue-300 flex-shrink-0" />

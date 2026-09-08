@@ -201,9 +201,17 @@ router.post("/", async (req, res) => {
         if (subscription.status !== "active" && subscription.status !== "trialing") {
           throw new Error(`Completed checkout subscription is not active (${subscription.status})`);
         }
+        if (
+          trustedPlan.planLookupKey === "clinical_business_monthly"
+          && subscription.items.data[0]?.quantity !== 1
+        ) {
+          throw new Error("Flat organization subscriptions must retain Stripe quantity 1");
+        }
 
         const subscriptionType = metadata.subscriptionType ?? "individual";
-        const seatCount = metadata.seatCount ? Number(metadata.seatCount) : 1;
+          // Ordinary clinical_business_monthly checkout is flat. Never accept
+          // client metadata (or Stripe quantity) as professional capacity.
+          const seatCount = 1;
 
         if (subscriptionType === "business_seat") {
           const { businesses } = await import("../db/schema/business");
@@ -220,7 +228,6 @@ router.post("/", async (req, res) => {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
             status: "active",
-            seatLimit: seatCount,
             mutation: {
               eventId: event.id,
               eventCreatedAt: new Date(event.created * 1000),
@@ -317,7 +324,7 @@ router.post("/", async (req, res) => {
           }
 
           console.log(
-            `✅ [webhook] checkout.session.completed — business_seat | user ${userId} → ${trustedPlan.planLookupKey} | seats=${seatCount} | total=$${(44.99 * seatCount).toFixed(2)}/mo`,
+            `✅ [webhook] checkout.session.completed — flat organization | user ${userId} → ${trustedPlan.planLookupKey} | quantity=1 | total=$44.99/mo`,
           );
         } else {
           const mutationResult = await updateUserSubscription({
@@ -371,6 +378,12 @@ router.post("/", async (req, res) => {
         }
 
         const trustedPlan = planFromSubscription(subscription);
+        if (
+          trustedPlan?.planLookupKey === "clinical_business_monthly"
+          && subscription.items.data[0]?.quantity !== 1
+        ) {
+          throw new Error("Flat organization subscriptions must retain Stripe quantity 1");
+        }
         if (trustedPlan && (subscription.status === "active" || subscription.status === "trialing")) {
             if (trustedPlan.planLookupKey === "clinical_business_monthly") {
               const transition = await applyBusinessSubscriptionTransition({
@@ -380,7 +393,6 @@ router.post("/", async (req, res) => {
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscriptionId,
                 status: "active",
-                seatLimit: subscription.items.data[0]?.quantity,
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -573,6 +585,12 @@ router.post("/", async (req, res) => {
           console.log(`[webhook] ${event.type} — price is not mapped to a trusted plan, skipping`);
           break;
         }
+        if (
+          trustedPlan.planLookupKey === "clinical_business_monthly"
+          && subscription.items.data[0]?.quantity !== 1
+        ) {
+          throw new Error("Flat organization subscriptions must retain Stripe quantity 1");
+        }
 
         const user = await resolveStripeEventUser({
           stripeCustomerId: customerId,
@@ -595,7 +613,6 @@ router.post("/", async (req, res) => {
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscription.id,
                 status: "active",
-                seatLimit: subscription.items.data[0]?.quantity,
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),

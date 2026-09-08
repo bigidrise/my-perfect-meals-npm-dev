@@ -71,7 +71,17 @@ export interface DeactivationResult {
 export async function activateProCareClient(
   clientUserId: string,
   proUserId: string,
-  source: string
+  source: string,
+  finalizeInTransaction?: (
+    tx: any,
+    activation: {
+      studioId: string;
+      membershipId: string;
+      clientLinkId: string;
+      alreadyActive: boolean;
+      restored: boolean;
+    },
+  ) => Promise<void>,
 ): Promise<ActivationResult> {
   if (clientUserId === proUserId) {
     throw new ActivationError("SELF_ACTIVATION", "Cannot activate a user as their own ProCare client");
@@ -229,6 +239,16 @@ export async function activateProCareClient(
       }
     } else {
       clientLink = existingActiveLink;
+    }
+
+    if (finalizeInTransaction) {
+      await finalizeInTransaction(tx, {
+        studioId: studio.id,
+        membershipId: membership.id,
+        clientLinkId: clientLink.id,
+        alreadyActive,
+        restored,
+      });
     }
 
     return { membership, clientLink, alreadyActive, restored };

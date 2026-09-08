@@ -198,7 +198,13 @@ export async function applyBusinessSubscriptionTransition(input: {
           ? { stripeCheckoutSessionId: input.checkoutSessionId }
           : {}),
         status: input.status,
-        ...(input.seatLimit != null && input.seatLimit > 0
+        // clinical_business_monthly is a flat organization product. Its Stripe
+        // line-item quantity is always one and is never an authority for
+        // professional capacity. Keep the legacy argument for non-flat
+        // business products only.
+        ...(business.plan !== "clinical_business_monthly"
+          && input.seatLimit != null
+          && input.seatLimit > 0
           ? { seatLimit: input.seatLimit }
           : {}),
         stripeLastEventCreatedAt: input.mutation.eventCreatedAt,

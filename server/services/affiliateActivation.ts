@@ -129,12 +129,13 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
       .where(eq(partnerRecords.userId, userId))
       .limit(1);
     if (partnerRecord) {
-      const stamps: Record<string, Date> = { updatedAt: new Date() };
+      const stamps: Record<string, Date | string> = {
+        updatedAt: new Date(),
+        rewardfulAffiliateId: affiliate.id,
+      };
       if (!partnerRecord.rewardfulCreatedAt) stamps.rewardfulCreatedAt = activatedAt;
       if (!partnerRecord.acceptedAt) stamps.acceptedAt = activatedAt;
-      if (Object.keys(stamps).length > 1) {
-        await db.update(partnerRecords).set(stamps as any).where(eq(partnerRecords.userId, userId));
-      }
+      await db.update(partnerRecords).set(stamps as any).where(eq(partnerRecords.userId, userId));
     }
 
     console.log(`[Affiliate] ✅ Rewardful affiliate created: ${affiliate.id} | state=${affiliate.state}`);

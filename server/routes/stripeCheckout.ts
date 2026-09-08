@@ -316,8 +316,8 @@ router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
 /**
  * POST /api/stripe/checkout/business
  * Creates the initial Stripe Checkout Session for a Clinical Business owner.
- * New organizations always begin with exactly one professional owner seat.
- * Additional professional seats are purchased later through /api/business/seats.
+ * New organizations use one flat-fee subscription with Stripe quantity 1.
+ * Client and professional invitations never change billing quantity.
  * Price ID is resolved through the same server-owned trusted catalog used by
  * consumer checkout.
  */
@@ -333,11 +333,11 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "User not authenticated" });
   }
 
-  const clientRequestedSeats = req.body?.seats == null ? 1 : Number(req.body.seats);
-  if (clientRequestedSeats !== 1) {
+  const clientRequestedQuantity = req.body?.seats == null ? 1 : Number(req.body.seats);
+  if (clientRequestedQuantity !== 1) {
     return res.status(400).json({
-      code: "INITIAL_ORGANIZATION_OWNER_SEAT_ONLY",
-      error: "New organizations begin with one owner seat. Add professional seats later from your Organization Dashboard.",
+      code: "FLAT_ORGANIZATION_QUANTITY_ONLY",
+      error: "The Organization subscription is a flat $44.99 monthly fee.",
     });
   }
   const requestedSeats = 1;
@@ -467,7 +467,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     }
 
     console.log(
-      `✅ Business checkout session created | seats=${requestedSeats} | total=$${(44.99 * requestedSeats).toFixed(2)}/mo | user=${userId}`,
+      `✅ Business checkout session created | quantity=1 | total=$44.99/mo | user=${userId}`,
     );
 
     return res.json({ url: session.url });

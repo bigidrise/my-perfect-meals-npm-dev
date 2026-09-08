@@ -56,6 +56,12 @@ export async function reconcileCheckoutSession(args: {
   if (!trustedPlan) {
     throw new Error("Stripe price is not mapped to a trusted MPM plan");
   }
+  if (
+    trustedPlan.planLookupKey === "clinical_business_monthly"
+    && subscription.items.data[0]?.quantity !== 1
+  ) {
+    throw new Error("Flat organization subscriptions must retain Stripe quantity 1");
+  }
 
   if (subscription.status !== "active" && subscription.status !== "trialing") {
     return { status: "pending", subscriptionStatus: subscription.status };
@@ -84,7 +90,8 @@ export async function reconcileCheckoutSession(args: {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscription.id,
             status: "active",
-            seatLimit: subscription.items.data[0]?.quantity,
+            // The ordinary organization plan is flat; Stripe quantity is not
+            // professional capacity.
             mutation: {
               eventId,
               eventCreatedAt,

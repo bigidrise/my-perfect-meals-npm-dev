@@ -1049,7 +1049,7 @@ export async function sendBusinessWelcomeEmail({
           <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); padding: 36px 30px; border-radius: 12px 12px 0 0; text-align: center;">
             <p style="color: #93c5fd; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">My Perfect Meals</p>
             <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; line-height: 1.2;">Your Business Account is Active</h1>
-            <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${orgName} &mdash; ${seatCount} seat${seatCount !== 1 ? 's' : ''}</p>
+            <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${orgName} &mdash; Organization plan active</p>
           </div>
 
           <!-- Body -->
@@ -1057,7 +1057,7 @@ export async function sendBusinessWelcomeEmail({
 
             <h2 style="color: #111827; font-size: 20px; margin: 0 0 12px;">Hi ${ownerName},</h2>
             <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
-              Payment is confirmed and your Clinical Business account for <strong>${orgName}</strong> is live. You have <strong>${seatCount} seat${seatCount !== 1 ? 's' : ''}</strong> available — here's how to get the most out of them right away.
+              Payment is confirmed and your Organization account for <strong>${orgName}</strong> is live. Invite your professional team at no additional per-invite charge; each unpaid team professional can receive one 30-day introductory access period.
             </p>
 
             <!-- CTA -->
@@ -1114,7 +1114,7 @@ export async function sendBusinessWelcomeEmail({
               <p style="color: #1d4ed8; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px;">Account Summary</p>
               <p style="color: #374151; font-size: 14px; margin: 0; line-height: 1.8;">
                 <strong>Organization:</strong> ${orgName}<br/>
-                <strong>Seats available:</strong> ${seatCount}<br/>
+                <strong>Team invitations:</strong> Included with your flat Organization plan<br/>
                 <strong>Plan:</strong> Clinical Business Monthly
               </p>
             </div>
@@ -1270,7 +1270,7 @@ export async function sendBusinessInviteEmail({
     }
   }
 
-  // ── Team member invitation email (existing) ────────────────────────────────
+  // ── Team member invitation email ───────────────────────────────────────────
   const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
 
   try {
@@ -1299,7 +1299,7 @@ export async function sendBusinessInviteEmail({
 
             <!-- What you get -->
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 20px 24px; margin-bottom: 28px;">
-              <h3 style="color: #1d4ed8; font-size: 15px; font-weight: 700; margin: 0 0 14px;">As a Clinical Business member, you'll have access to:</h3>
+              <h3 style="color: #1d4ed8; font-size: 15px; font-weight: 700; margin: 0 0 14px;">Your organization membership includes:</h3>
               <table style="width: 100%; border-collapse: collapse;">
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; AI-powered meal generation &amp; customization</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Clinical nutrition tools &amp; dietary protocols</td></tr>
@@ -1307,6 +1307,7 @@ export async function sendBusinessInviteEmail({
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; ProCare Studio — manage your own clients</td></tr>
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Professional resources &amp; certification programs</td></tr>
               </table>
+              <p style="color: #374151; font-size: 13px; line-height: 1.6; margin: 14px 0 0;">If you do not already have a paid entitlement, accepting this invitation includes one 30-day introductory access period. Organization membership does not provide permanent paid professional access; continued professional use requires a valid entitlement and applicable readiness, training, and security requirements.</p>
             </div>
 
             <!-- CTA -->
@@ -1315,7 +1316,8 @@ export async function sendBusinessInviteEmail({
                 Accept Invitation →
               </a>
               <p style="color: #6b7280; font-size: 13px; margin: 10px 0 0;">
-                New to My Perfect Meals? You'll create a free account first.
+                <strong>Already have My Perfect Meals?</strong> Sign in with your existing account to accept.<br/>
+                <strong>New to My Perfect Meals?</strong> Create your account using this invitation. Both paths connect you to ${safeBusinessName}.
               </p>
             </div>
 

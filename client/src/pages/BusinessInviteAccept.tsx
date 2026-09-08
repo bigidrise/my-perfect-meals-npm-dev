@@ -59,7 +59,7 @@ const NEXT_STEPS = [
   {
     num: 5,
     title: "Your Studio unlocks automatically",
-    detail: "Once training is complete, your ProCare Studio activates. Manage clients, generate meal plans, and access all clinical tools from your personal dashboard.",
+    detail: "Once training is complete and you have a valid professional entitlement, your ProCare Studio activates. Manage clients, generate meal plans, and access clinical tools from your personal dashboard.",
     highlight: true,
   },
 ];
@@ -206,6 +206,7 @@ export default function BusinessInviteAccept() {
                 "Biometric monitoring & progress tracking",
                 "ProCare Studio (unlocks after training)",
                 "Professional certification programs",
+                "A one-time 30-day introductory entitlement",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2">
                   <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
@@ -430,6 +431,7 @@ export default function BusinessInviteAccept() {
               "Biometric monitoring & progress tracking",
               "ProCare Studio — manage your own clients",
               "Professional resources & certification programs",
+                "A one-time 30-day introductory entitlement",
             ].map((item) => (
               <div key={item} className="flex items-center gap-2">
                 <CheckCircle className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
@@ -439,11 +441,17 @@ export default function BusinessInviteAccept() {
           </div>
         </div>
 
+        <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl px-4 py-3">
+          <p className="text-amber-300 text-xs leading-relaxed">
+            This invitation includes a one-time 30-day introductory entitlement for professional access. After that period, you need another valid entitlement to continue using professional features.
+          </p>
+        </div>
+
         {/* What happens next preview */}
         <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
           <p className="text-white/70 text-sm font-semibold mb-3">After you accept, you'll:</p>
           <div className="space-y-2">
-            {["Complete your personal profile", "Create your Provider account", "Complete Platform Mastery + ProCare training", "Your Studio unlocks automatically"].map((s, i) => (
+            {["Complete your personal profile", "Create your Provider account", "Complete Platform Mastery + ProCare training", "Your Studio unlocks with training and a valid entitlement"].map((s, i) => (
               <div key={s} className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-blue-600/50 flex items-center justify-center text-xs text-white font-bold flex-shrink-0">
                   {i + 1}
@@ -512,7 +520,7 @@ export default function BusinessInviteAccept() {
         {/* Expiry */}
         <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl px-4 py-3">
           <p className="text-amber-300 text-xs">
-            This invitation expires on <span className="font-semibold">{expiryDate}</span>. Accept before then to claim your seat.
+            This invitation expires on <span className="font-semibold">{expiryDate}</span>. Accept before then to join the organization.
           </p>
         </div>
 

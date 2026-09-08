@@ -15,16 +15,27 @@ const mockStripePayment = {
   userId: "",
 };
 
-const mockActivateProCareClient = jest.fn(async (clientUserId: string, _proUserId: string) => ({
-  studioId: "mock-studio-id",
-  studioName: "Mock Studio",
-  studioType: "studio",
-  membershipId: `mock-membership-${clientUserId}`,
-  clientLinkId: `mock-link-${clientUserId}`,
-  alreadyActive: false,
-  restored: false,
-  ownerUserId: "mock-owner-id",
-}));
+const mockActivateProCareClient = jest.fn(async (
+  clientUserId: string,
+  _proUserId: string,
+  _source: string,
+  finalizeInTransaction?: (tx: any, activation: any) => Promise<void>,
+) => {
+  const activation = {
+    studioId: "mock-studio-id",
+    studioName: "Mock Studio",
+    studioType: "studio",
+    membershipId: `mock-membership-${clientUserId}`,
+    clientLinkId: `mock-link-${clientUserId}`,
+    alreadyActive: false,
+    restored: false,
+    ownerUserId: "mock-owner-id",
+  };
+  if (finalizeInTransaction) {
+    await db.transaction((tx) => finalizeInTransaction(tx, activation));
+  }
+  return activation;
+});
 
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, res: any, next: any) => {
@@ -226,8 +237,8 @@ describe("email identity safety", () => {
 
   it("updates subscription state by a resolved primary key, never by email or customer-wide update", () => {
     expect(subscriptionServiceSource).toContain("resolveSubscriptionUser");
-    expect(subscriptionServiceSource).toContain(".where(eq(users.id, verifiedUser.id))");
-    expect(subscriptionServiceSource).toContain(".where(eq(users.id, user.id))");
+    expect(subscriptionServiceSource).toContain("eq(users.id, verifiedUser.id)");
+    expect(subscriptionServiceSource).toContain("eq(users.id, user.id)");
     expect(subscriptionServiceSource).not.toContain(".where(eq(users.email");
     expect(subscriptionServiceSource).not.toContain(".where(eq(users.stripeCustomerId, stripeCustomerId))");
   });
@@ -607,6 +618,7 @@ describe("email identity safety — database-backed invitation routes", () => {
       uniqueUserId,
       uniqueBusinessOwnerId,
       "paid_business_client_invite",
+      expect.any(Function),
     );
 
     const invite = await firstRow(
@@ -632,6 +644,7 @@ describe("email identity safety — database-backed invitation routes", () => {
       uniqueUserId,
       uniqueBusinessOwnerId,
       "paid_business_client_invite",
+      expect.any(Function),
     );
     const repeatedUser = await firstRow(
       db.select({ trialEndsAt: users.trialEndsAt }).from(users).where(eq(users.id, uniqueUserId)),
@@ -658,6 +671,7 @@ describe("email identity safety — database-backed invitation routes", () => {
       conflictingClientId,
       uniqueBusinessOwnerId,
       "paid_business_client_invite",
+      expect.any(Function),
     );
     const invite = await firstRow(
       db.select().from(businessInvitations).where(eq(businessInvitations.id, conflictingBusinessInviteId)),

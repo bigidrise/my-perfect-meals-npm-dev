@@ -67,7 +67,7 @@ router.get("/identity", requireAuth, async (req, res) => {
 
     // Lazy backfill: if acceptedAt or rewardfulCreatedAt are missing but the user
     // already has a live Rewardful affiliate, stamp them now so the timeline reflects reality.
-    if (!record.acceptedAt || !record.rewardfulCreatedAt) {
+    if (!record.acceptedAt || !record.rewardfulCreatedAt || !record.rewardfulAffiliateId) {
       const [affiliateAccount] = await db
         .select({ rewardfulAffiliateId: userAffiliateAccounts.rewardfulAffiliateId, activatedAt: userAffiliateAccounts.activatedAt })
         .from(userAffiliateAccounts)
@@ -75,10 +75,13 @@ router.get("/identity", requireAuth, async (req, res) => {
         .limit(1);
 
       if (affiliateAccount?.rewardfulAffiliateId) {
-        const stamps: Record<string, Date> = { updatedAt: new Date() };
+        const stamps: Record<string, Date | string> = { updatedAt: new Date() };
         const ts = affiliateAccount.activatedAt ?? new Date();
         if (!record.acceptedAt) stamps.acceptedAt = ts;
         if (!record.rewardfulCreatedAt) stamps.rewardfulCreatedAt = ts;
+        if (!record.rewardfulAffiliateId) {
+          stamps.rewardfulAffiliateId = affiliateAccount.rewardfulAffiliateId;
+        }
         await db.update(partnerRecords).set(stamps as any).where(eq(partnerRecords.userId, userId));
         record = { ...record, ...stamps };
       }

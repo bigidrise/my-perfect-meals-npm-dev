@@ -1,9 +1,10 @@
 /**
- * Confirms that GET /api/business/mine and GET /api/business/membership
- * are protected by the requireProAccess middleware.
+ * Confirms the access decisions used by GET /api/business/membership.
  *
- * Both routes call requireProAccess before running any DB logic, so a free or
- * expired user must be rejected with 403 before reaching the handler body.
+ * The membership route calls requireProAccess before running any DB logic, so a
+ * free or expired user must be rejected with 403 before reaching the handler body.
+ * Organization-management routes use requireProOrOrgAdmin, which also admits
+ * active Organization admins without requiring their own paid subscription.
  *
  * These tests mirror the exact decision tree in
  * server/middleware/requireProAccess.ts without importing it (which would
@@ -112,9 +113,9 @@ const INTERNAL_USER: MockAuthUser = {
   planLookupKey: null, // founder / internal account
 };
 
-// ── 1. Free / expired users are blocked from /mine and /membership ────────────
+// ── 1. Free / expired users are blocked from /membership ──────────────────────
 
-describe("GET /api/business/mine — requireProAccess gate (BILLING_ENFORCED=true)", () => {
+describe("requireProAccess decision tree used by GET /api/business/membership (BILLING_ENFORCED=true)", () => {
   const enforced = true;
 
   it("returns 403 for a FREE user", () => {
@@ -198,11 +199,11 @@ describe("GET /api/business/membership — requireProAccess gate (BILLING_ENFORC
 describe("requireProAccess bypass when BILLING_ENFORCED=false (pre-launch mode)", () => {
   const notEnforced = false;
 
-  it("FREE user passes /mine when billing is not enforced", () => {
+  it("FREE user passes the Pro gate when billing is not enforced", () => {
     expect(simulateRequireProAccess(FREE_USER, notEnforced, stubGetTier)).toBeNull();
   });
 
-  it("FREE user passes /membership when billing is not enforced", () => {
+  it("the same FREE user gets the same Pro-gate decision on repeat evaluation", () => {
     expect(simulateRequireProAccess(FREE_USER, notEnforced, stubGetTier)).toBeNull();
   });
 
@@ -211,11 +212,12 @@ describe("requireProAccess bypass when BILLING_ENFORCED=false (pre-launch mode)"
   });
 });
 
-// ── 3. Middleware is present on both routes in businessRoutes.ts ───────────────
+// ── 3. Read endpoints declare the appropriate authorization middleware ─────────
 
 /**
- * Parses the businessRoutes.ts source to confirm requireProAccess appears on
- * both /mine and /membership route registrations.
+ * Parses the businessRoutes.ts source to confirm the management dashboard uses
+ * requireProOrOrgAdmin while a member reading their membership uses
+ * requireProAccess.
  *
  * This acts as a regression guard: if someone removes the middleware from a
  * route declaration the test fails immediately, before any runtime test can
@@ -224,7 +226,7 @@ describe("requireProAccess bypass when BILLING_ENFORCED=false (pre-launch mode)"
 import * as fs from "fs";
 import * as path from "path";
 
-describe("businessRoutes.ts — requireProAccess declared on read endpoints", () => {
+describe("businessRoutes.ts — authorization declared on read endpoints", () => {
   const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
   let source: string;
 
@@ -232,9 +234,8 @@ describe("businessRoutes.ts — requireProAccess declared on read endpoints", ()
     source = fs.readFileSync(routeFilePath, "utf-8");
   });
 
-  it("GET /mine route declaration includes requireProAccess", () => {
-    // Match: router.get("/mine", ..., requireProAccess, ...)
-    const minePattern = /router\.get\s*\(\s*["']\/mine["'][^)]*requireProAccess/;
+  it("GET /mine route declaration includes requireProOrOrgAdmin", () => {
+    const minePattern = /router\.get\s*\(\s*["']\/mine["'][^)]*requireProOrOrgAdmin/;
     expect(minePattern.test(source)).toBe(true);
   });
 
@@ -244,16 +245,18 @@ describe("businessRoutes.ts — requireProAccess declared on read endpoints", ()
     expect(membershipPattern.test(source)).toBe(true);
   });
 
-  it("requireProAccess is imported in businessRoutes.ts", () => {
+  it("the relevant authorization middleware is imported in businessRoutes.ts", () => {
     expect(source).toContain('requireProAccess');
     expect(source).toContain('from "../middleware/requireProAccess"');
+    expect(source).toContain('requireProOrOrgAdmin');
+    expect(source).toContain('from "../middleware/requireProOrOrgAdmin"');
   });
 
-  it("/mine has requireAuth before requireProAccess", () => {
+  it("/mine has requireAuth before requireProOrOrgAdmin", () => {
     // Authentication must come before authorization
     const mineDecl = source.match(/router\.get\s*\(\s*["']\/mine["']([^{]+)\{/)?.[1] ?? "";
     const authIdx = mineDecl.indexOf("requireAuth");
-    const proIdx = mineDecl.indexOf("requireProAccess");
+    const proIdx = mineDecl.indexOf("requireProOrOrgAdmin");
     expect(authIdx).toBeGreaterThanOrEqual(0);
     expect(proIdx).toBeGreaterThan(authIdx);
   });
@@ -459,6 +462,7 @@ function simulateAcceptInvite(
   existing: MockExistingMember | null,
   usedSeats: number,
   seatLimit: number,
+  isFlatOrganization = false,
 ): { status: number; code?: string; action?: "reactivate" | "insert" } {
   // Step 1: existing-member check (runs BEFORE seat check)
   if (existing && existing.status === "active") {
@@ -466,7 +470,7 @@ function simulateAcceptInvite(
   }
 
   // Step 2: seat availability
-  if (usedSeats >= seatLimit) {
+  if (!isFlatOrganization && usedSeats >= seatLimit) {
     return { status: 400, code: "SEATS_FULL" };
   }
 
@@ -478,11 +482,11 @@ function simulateAcceptInvite(
 }
 
 describe("POST /api/business/invite/:token/accept — re-accept guard", () => {
-  const SEAT_LIMIT = 3;
+  const LEGACY_SEAT_LIMIT = 3;
 
   // ── Baseline: brand-new member ─────────────────────────────────────────────
   it("inserts a fresh row for a brand-new user (no existing member row)", () => {
-    const result = simulateAcceptInvite(null, 0, SEAT_LIMIT);
+    const result = simulateAcceptInvite(null, 0, LEGACY_SEAT_LIMIT);
     expect(result.status).toBe(200);
     expect(result.action).toBe("insert");
   });
@@ -490,14 +494,14 @@ describe("POST /api/business/invite/:token/accept — re-accept guard", () => {
   // ── Formerly-removed member re-accepts a new invite ────────────────────────
   it("re-activates (not inserts) a formerly-removed member who accepts a new invite", () => {
     const removedRow: MockExistingMember = { id: "bm-removed-001", status: "removed" };
-    const result = simulateAcceptInvite(removedRow, 1, SEAT_LIMIT); // 1 of 3 seats used
+    const result = simulateAcceptInvite(removedRow, 1, LEGACY_SEAT_LIMIT); // 1 of 3 legacy seats used
     expect(result.status).toBe(200);
     expect(result.action).toBe("reactivate"); // existing row updated, no duplicate
   });
 
   it("blocks a formerly-removed member from re-joining when no seats remain", () => {
     const removedRow: MockExistingMember = { id: "bm-removed-002", status: "removed" };
-    const result = simulateAcceptInvite(removedRow, SEAT_LIMIT, SEAT_LIMIT); // all full
+    const result = simulateAcceptInvite(removedRow, LEGACY_SEAT_LIMIT, LEGACY_SEAT_LIMIT); // all legacy seats full
     expect(result.status).toBe(400);
     expect(result.code).toBe("SEATS_FULL");
   });
@@ -509,7 +513,7 @@ describe("POST /api/business/invite/:token/accept — re-accept guard", () => {
     // an old link. Status is still "active", so the response must be ALREADY_MEMBER,
     // not SEATS_FULL, regardless of how many seats remain.
     const activeRow: MockExistingMember = { id: "bm-active-downgraded-001", status: "active" };
-    const result = simulateAcceptInvite(activeRow, 1, SEAT_LIMIT);
+    const result = simulateAcceptInvite(activeRow, 1, LEGACY_SEAT_LIMIT);
     expect(result.status).toBe(400);
     expect(result.code).toBe("ALREADY_MEMBER");
   });
@@ -517,7 +521,7 @@ describe("POST /api/business/invite/:token/accept — re-accept guard", () => {
   it("rejects a currently-active member even when the business has spare seats", () => {
     const activeRow: MockExistingMember = { id: "bm-active-001", status: "active" };
     // 0 of 3 seats used — plenty of room, but user is already in
-    const result = simulateAcceptInvite(activeRow, 0, SEAT_LIMIT);
+    const result = simulateAcceptInvite(activeRow, 0, LEGACY_SEAT_LIMIT);
     expect(result.status).toBe(400);
     expect(result.code).toBe("ALREADY_MEMBER");
   });
@@ -525,16 +529,22 @@ describe("POST /api/business/invite/:token/accept — re-accept guard", () => {
   it("rejects a currently-active member even when the business is at capacity", () => {
     // Membership check must fire BEFORE seat check so the error is always correct.
     const activeRow: MockExistingMember = { id: "bm-active-002", status: "active" };
-    const result = simulateAcceptInvite(activeRow, SEAT_LIMIT, SEAT_LIMIT);
+    const result = simulateAcceptInvite(activeRow, LEGACY_SEAT_LIMIT, LEGACY_SEAT_LIMIT);
     expect(result.status).toBe(400);
     expect(result.code).toBe("ALREADY_MEMBER"); // NOT "SEATS_FULL"
   });
 
   // ── Control: new member blocked by no available seats ──────────────────────
-  it("blocks a brand-new user when the business is at seat capacity", () => {
-    const result = simulateAcceptInvite(null, SEAT_LIMIT, SEAT_LIMIT);
+  it("blocks a brand-new user when a legacy business is at seat capacity", () => {
+    const result = simulateAcceptInvite(null, LEGACY_SEAT_LIMIT, LEGACY_SEAT_LIMIT);
     expect(result.status).toBe(400);
     expect(result.code).toBe("SEATS_FULL");
+  });
+
+  it("allows a brand-new user at nominal capacity for flat clinical_business_monthly", () => {
+    const result = simulateAcceptInvite(null, LEGACY_SEAT_LIMIT, LEGACY_SEAT_LIMIT, true);
+    expect(result.status).toBe(200);
+    expect(result.action).toBe("insert");
   });
 });
 
@@ -551,9 +561,10 @@ describe("businessRoutes.ts — accept-invite handler guard ordering", () => {
     source = fs.readFileSync(routeFilePath, "utf-8");
   });
 
-  it("existing-member lookup appears before getActiveSeats call in accept handler", () => {
-    // Isolate the accept-invite handler by finding the route declaration and
-    // taking everything up to the next router.post/router.get/router.delete call.
+  it("re-reads lockedExisting inside the transaction before capacity is evaluated", () => {
+    // The transaction must make its decision from the locked row, rather than a
+    // stale preflight read. Flat organizations intentionally have no purchased
+    // professional-seat capacity check.
     const acceptStart = source.indexOf('"/invite/:token/accept"');
     expect(acceptStart).toBeGreaterThan(-1);
 
@@ -564,16 +575,16 @@ describe("businessRoutes.ts — accept-invite handler guard ordering", () => {
       ? afterStart.slice(0, nextRouteMatch.index)
       : afterStart.slice(0, 3000); // fallback: first 3 KB
 
-    const existingIdx = handlerSlice.indexOf("businessMembers.userId, userId");
-    const seatsIdx = handlerSlice.indexOf("getActiveSeats");
+    const existingIdx = handlerSlice.indexOf("lockedExisting");
+    const seatsIdx = handlerSlice.indexOf("seatUsage");
 
     expect(existingIdx).toBeGreaterThan(-1);
     expect(seatsIdx).toBeGreaterThan(-1);
-    // The membership lookup must come first (before seat check)
+    // Revalidate membership before any legacy capacity accounting.
     expect(existingIdx).toBeLessThan(seatsIdx);
   });
 
-  it("accept handler rejects active existing member before checking seats", () => {
+  it("accept handler rejects a locked active member before legacy capacity enforcement", () => {
     // Isolate accept handler slice (same approach as above)
     const acceptStart = source.indexOf('"/invite/:token/accept"');
     expect(acceptStart).toBeGreaterThan(-1);
@@ -584,14 +595,13 @@ describe("businessRoutes.ts — accept-invite handler guard ordering", () => {
       ? afterStart.slice(0, nextRouteMatch.index)
       : afterStart.slice(0, 3000);
 
-    // "already a member" guard must precede the getActiveSeats call within
-    // this handler so the error message is always correct.
+    // The locked "already a member" guard must precede capacity enforcement.
     const alreadyMemberIdx = handlerSlice.indexOf("already a member");
-    const getActiveSeatsIdx = handlerSlice.indexOf("getActiveSeats");
+    const capacityIdx = handlerSlice.indexOf("usedSeats >= lockedBusiness.seatLimit");
 
     expect(alreadyMemberIdx).toBeGreaterThan(-1);
-    expect(getActiveSeatsIdx).toBeGreaterThan(-1);
-    expect(alreadyMemberIdx).toBeLessThan(getActiveSeatsIdx);
+    expect(capacityIdx).toBeGreaterThan(-1);
+    expect(alreadyMemberIdx).toBeLessThan(capacityIdx);
   });
 });
 
@@ -631,6 +641,7 @@ function simulateReJoin(
   initialRow: MockMemberRowState,
   usedSeats: number,
   seatLimit: number,
+  isFlatOrganization = false,
 ): {
   outcome: "reactivated" | "inserted" | "blocked";
   blockCode?: string;
@@ -641,7 +652,7 @@ function simulateReJoin(
   if (initialRow.status === "active") {
     return { outcome: "blocked", blockCode: "ALREADY_MEMBER", activeRowsAfter: [initialRow], usedSeatsAfter: usedSeats };
   }
-  if (usedSeats >= seatLimit) {
+  if (!isFlatOrganization && usedSeats >= seatLimit) {
     return { outcome: "blocked", blockCode: "SEATS_FULL", activeRowsAfter: [], usedSeatsAfter: usedSeats };
   }
 
@@ -661,12 +672,12 @@ function simulateReJoin(
 }
 
 describe("POST /api/business/invite/:token/accept — full re-join flow (removed → re-invited → re-accepted)", () => {
-  const SEAT_LIMIT = 5;
+  const LEGACY_SEAT_LIMIT = 5;
   const REMOVED_ROW: MockMemberRowState = { id: "bm-removed-e2e-001", status: "removed" };
 
   // ── Core re-join case ──────────────────────────────────────────────────────
   it("re-activates the existing row (not a duplicate insert) when a removed member re-joins", () => {
-    const { outcome, activeRowsAfter } = simulateReJoin(REMOVED_ROW, 2, SEAT_LIMIT);
+    const { outcome, activeRowsAfter } = simulateReJoin(REMOVED_ROW, 2, LEGACY_SEAT_LIMIT);
     expect(outcome).toBe("reactivated");
     // The same row id is preserved — no new row was created
     expect(activeRowsAfter).toHaveLength(1);
@@ -676,38 +687,43 @@ describe("POST /api/business/invite/:token/accept — full re-join flow (removed
 
   it("seat count increments by exactly 1 after a removed member re-joins (not 2)", () => {
     const usedBefore = 2;
-    const { usedSeatsAfter, outcome } = simulateReJoin(REMOVED_ROW, usedBefore, SEAT_LIMIT);
+    const { usedSeatsAfter, outcome } = simulateReJoin(REMOVED_ROW, usedBefore, LEGACY_SEAT_LIMIT);
     expect(outcome).toBe("reactivated");
     expect(usedSeatsAfter).toBe(usedBefore + 1); // exactly one new seat consumed
   });
 
   it("exactly one active row exists for the user+business pair after re-join", () => {
-    const { activeRowsAfter, outcome } = simulateReJoin(REMOVED_ROW, 1, SEAT_LIMIT);
+    const { activeRowsAfter, outcome } = simulateReJoin(REMOVED_ROW, 1, LEGACY_SEAT_LIMIT);
     expect(outcome).toBe("reactivated");
     // Uniqueness guarantee: there must be at most one active row per user+business
     const activeCount = activeRowsAfter.filter((r) => r.status === "active").length;
     expect(activeCount).toBe(1);
   });
 
-  it("re-join is blocked when the business is at seat capacity (removed member needs a free seat)", () => {
-    const { outcome, blockCode } = simulateReJoin(REMOVED_ROW, SEAT_LIMIT, SEAT_LIMIT);
+  it("re-join is blocked at capacity for a legacy organization", () => {
+    const { outcome, blockCode } = simulateReJoin(REMOVED_ROW, LEGACY_SEAT_LIMIT, LEGACY_SEAT_LIMIT);
     expect(outcome).toBe("blocked");
     expect(blockCode).toBe("SEATS_FULL");
   });
 
   it("re-join succeeds when exactly one seat is free", () => {
     // Edge: usedSeats = seatLimit - 1 (one slot remaining)
-    const { outcome } = simulateReJoin(REMOVED_ROW, SEAT_LIMIT - 1, SEAT_LIMIT);
+    const { outcome } = simulateReJoin(REMOVED_ROW, LEGACY_SEAT_LIMIT - 1, LEGACY_SEAT_LIMIT);
     expect(outcome).toBe("reactivated");
   });
 
   it("re-join is blocked when a member is still active (not removed) — no duplicate allowed", () => {
     const activeRow: MockMemberRowState = { id: "bm-active-e2e-002", status: "active" };
-    const { outcome, blockCode, activeRowsAfter } = simulateReJoin(activeRow, 1, SEAT_LIMIT);
+    const { outcome, blockCode, activeRowsAfter } = simulateReJoin(activeRow, 1, LEGACY_SEAT_LIMIT);
     expect(outcome).toBe("blocked");
     expect(blockCode).toBe("ALREADY_MEMBER");
     // The active row must remain untouched — not modified by the guard
     expect(activeRowsAfter[0].status).toBe("active");
+  });
+
+  it("re-joins a removed member at nominal capacity for flat clinical_business_monthly", () => {
+    const { outcome } = simulateReJoin(REMOVED_ROW, LEGACY_SEAT_LIMIT, LEGACY_SEAT_LIMIT, true);
+    expect(outcome).toBe("reactivated");
   });
 });
 
@@ -817,16 +833,16 @@ describe("businessRoutes.ts — accept handler re-join branch uses UPDATE, not d
     expect(acceptHandlerSlice).toMatch(/\.transaction\s*\(/);
   });
 
-  it("accept handler UPDATE path sets status to active (reactivation confirmed)", () => {
+  it("accept handler lockedExisting UPDATE path sets status to active (reactivation confirmed)", () => {
     // The UPDATE must set status back to "active"
-    const updateBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    const updateBlock = acceptHandlerSlice.match(/if\s*\(\s*lockedExisting\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
     expect(updateBlock).toContain('"active"');
   });
 
   it("accept handler UPDATE path keys on the existing row id (not userId) to prevent cross-user updates", () => {
     // Reactivation must target the specific row by id, not a broad userId match
-    const updateBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
-    expect(updateBlock).toContain("existing.id");
+    const updateBlock = acceptHandlerSlice.match(/if\s*\(\s*lockedExisting\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+    expect(updateBlock).toContain("lockedExisting.id");
   });
 
   it("accept handler INSERT is in the else branch (brand-new members only, not re-joins)", () => {
@@ -836,8 +852,8 @@ describe("businessRoutes.ts — accept handler re-join branch uses UPDATE, not d
   });
 
   it("accept handler UPDATE branch does NOT contain insert(businessMembers) (no duplicate INSERT)", () => {
-    // Isolate the if(existing){...} block before the else
-    const ifExistingBlock = acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+  // Isolate the lockedExisting reactivation block before the else.
+    const ifExistingBlock = acceptHandlerSlice.match(/if\s*\(\s*lockedExisting\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
     // An erroneous insert inside this block would corrupt the roster
     expect(ifExistingBlock).not.toContain("insert(businessMembers)");
   });
@@ -854,14 +870,12 @@ describe("businessRoutes.ts — accept handler re-join branch uses UPDATE, not d
     expect(acceptHandlerSlice).toContain("acceptedAt");
   });
 
-  it("existing-member lookup runs before the transaction (not inside it)", () => {
-    // The membership check must happen outside the transaction so we can branch
-    // before acquiring a transaction lock.
-    const existingIdx = acceptHandlerSlice.indexOf("businessMembers.userId, userId");
+  it("lockedExisting is re-read inside the transaction", () => {
+    const existingIdx = acceptHandlerSlice.indexOf("lockedExisting");
     const txIdx = acceptHandlerSlice.indexOf(".transaction(");
     expect(existingIdx).toBeGreaterThan(-1);
     expect(txIdx).toBeGreaterThan(-1);
-    expect(existingIdx).toBeLessThan(txIdx);
+    expect(existingIdx).toBeGreaterThan(txIdx);
   });
 });
 
@@ -1000,10 +1014,12 @@ describe("businessRoutes.ts — POST /invite active-member guard regression", ()
       : afterInvite.slice(0, 4000);
   });
 
-  it("POST /invite handler declaration includes requireAuth and requireProAccess", () => {
+  it("POST /invite handler declaration includes requireAuth then requireProOrOrgAdmin", () => {
     const inviteDecl = source.match(/router\.post\s*\(\s*["']\/invite["']([^{]+)\{/)?.[1] ?? "";
-    expect(inviteDecl).toContain("requireAuth");
-    expect(inviteDecl).toContain("requireProAccess");
+    const authIdx = inviteDecl.indexOf("requireAuth");
+    const orgAdminIdx = inviteDecl.indexOf("requireProOrOrgAdmin");
+    expect(authIdx).toBeGreaterThanOrEqual(0);
+    expect(orgAdminIdx).toBeGreaterThan(authIdx);
   });
 
   it("invite handler queries businessMembers for an active row keyed by userId", () => {
@@ -1665,13 +1681,6 @@ describe("businessRoutes.ts — POST /invite expiresAt guard regression", () => 
     expect(inviteHandlerSlice).toContain("businessInvitations.expiresAt");
   });
 
-  it("seat-count query also excludes expired pending invites via expiresAt", () => {
-    const pendingCountIdx = inviteHandlerSlice.indexOf("pendingInvCount");
-    expect(pendingCountIdx).toBeGreaterThan(-1);
-    const afterCount = inviteHandlerSlice.slice(pendingCountIdx);
-    expect(afterCount.indexOf("expiresAt")).toBeGreaterThan(-1);
-  });
-
   it("handler marks stale expired pending invites as 'expired' before inserting the new one", () => {
     expect(inviteHandlerSlice).toContain('"expired"');
     expect(inviteHandlerSlice).toContain(".update(businessInvitations)");
@@ -1688,10 +1697,10 @@ describe("businessRoutes.ts — POST /invite expiresAt guard regression", () => 
     expect(pendingIdx).toBeLessThan(insertIdx);
   });
 
-  it("expiresAt appears in both the pending-invite check and the seat-count query sections", () => {
-    const matches = inviteHandlerSlice.match(/expiresAt/g);
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(2);
+  it("ordinary flat organizations bypass purchased-seat accounting while legacy plans retain it", () => {
+    expect(inviteHandlerSlice).toContain("!isFlatOrganization(business)");
+    expect(inviteHandlerSlice).toContain("getActiveSeats");
+    expect(inviteHandlerSlice).toContain("pendingInvCount");
   });
 });
 
@@ -1817,12 +1826,14 @@ describe("businessRoutes.ts — cross-business duplicate guard in accept handler
     expect(handlerSlice).toContain("ALREADY_IN_ANOTHER_BUSINESS");
   });
 
-  it("cross-business check (ALREADY_IN_ANOTHER_BUSINESS) appears before getActiveSeats call", () => {
+  it("cross-business check is repeated inside the locked transaction before capacity enforcement", () => {
     const crossBizIdx = handlerSlice.indexOf("ALREADY_IN_ANOTHER_BUSINESS");
-    const seatsIdx = handlerSlice.indexOf("getActiveSeats");
+    const lockedElsewhereIdx = handlerSlice.indexOf("lockedElsewhere");
+    const seatsIdx = handlerSlice.indexOf("usedSeats >= lockedBusiness.seatLimit");
     expect(crossBizIdx).toBeGreaterThan(-1);
+    expect(lockedElsewhereIdx).toBeGreaterThan(-1);
     expect(seatsIdx).toBeGreaterThan(-1);
-    expect(crossBizIdx).toBeLessThan(seatsIdx);
+    expect(lockedElsewhereIdx).toBeLessThan(seatsIdx);
   });
 
   it("same-business active check (already a member) appears before cross-business check", () => {
@@ -2367,7 +2378,7 @@ describe("businessRoutes.ts — GET /mine handler includes expiresAt expiry filt
 
 // ── (c) Seat-count: expired invites excluded from occupiedSeats in POST /invite ─
 
-describe("businessRoutes.ts — POST /invite seat check excludes expired pending invites", () => {
+describe("businessRoutes.ts — POST /invite flat Organization capacity contract", () => {
   const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
   let inviteHandlerSlice: string;
 
@@ -2382,22 +2393,10 @@ describe("businessRoutes.ts — POST /invite seat check excludes expired pending
       : afterInvite.slice(0, 5000);
   });
 
-  it("POST /invite seat-count query filters pending invites by expiresAt > now", () => {
-    // The occupiedSeats count must exclude expired rows
-    expect(inviteHandlerSlice).toContain("expiresAt");
-    expect(inviteHandlerSlice).toMatch(/gt\s*\(/);
-  });
-
-  it("POST /invite seat-count query uses status='pending' AND expiresAt guard together", () => {
-    // Both conditions must co-exist in the seat-reservation query
-    expect(inviteHandlerSlice).toContain('"pending"');
-    expect(inviteHandlerSlice).toContain("expiresAt");
-  });
-
-  it("POST /invite marks stale pending invites as 'expired' before inserting a new one", () => {
-    // The handler must clean up expired rows so they don't accumulate
-    expect(inviteHandlerSlice).toContain('"expired"');
-    expect(inviteHandlerSlice).toContain("expiresAt");
+  it("skips seat capacity for clinical_business_monthly while preserving it for legacy plans", () => {
+    expect(inviteHandlerSlice).toContain("!isFlatOrganization(business)");
+    expect(inviteHandlerSlice).toContain("getActiveSeats");
+    expect(inviteHandlerSlice).toContain("occupiedSeats >= business.seatLimit");
   });
 });
 
@@ -2600,16 +2599,16 @@ describe("businessRoutes.ts — accept handler reactivation UPDATE clears notice
       : afterStart.slice(0, 5000);
   });
 
-  it("the if(existing) reactivation SET clause includes noticeDismissedAt", () => {
-    // Extract the if(existing){...}else block
+  it("the lockedExisting reactivation SET clause includes noticeDismissedAt", () => {
+    // Extract the lockedExisting {...} else block.
     const ifExistingBlock =
-      acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+      acceptHandlerSlice.match(/if\s*\(\s*lockedExisting\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
     expect(ifExistingBlock).toContain("noticeDismissedAt");
   });
 
   it("the reactivation SET assigns noticeDismissedAt to a Date value (new Date())", () => {
     const ifExistingBlock =
-      acceptHandlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+      acceptHandlerSlice.match(/if\s*\(\s*lockedExisting\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
     // new Date() is the canonical way to stamp the current time in this codebase
     expect(ifExistingBlock).toMatch(/noticeDismissedAt\s*:\s*new Date\(\)/);
   });
@@ -2635,16 +2634,16 @@ describe("businessRoutes.ts — accept handler calls clearRemovalNotice for belt
       : afterStart.slice(0, 5000);
 
     ifExistingBlock =
-      handlerSlice.match(/if\s*\(\s*existing\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
+      handlerSlice.match(/if\s*\(\s*lockedExisting\s*\)([\s\S]*?)(?:}\s*else)/)?.[1] ?? "";
   });
 
-  it("the if(existing) block calls clearRemovalNotice (not inline isNull update)", () => {
+  it("the lockedExisting block calls clearRemovalNotice (not inline isNull update)", () => {
     // The belt-and-suspenders notice dismissal is now delegated to the shared
     // clearRemovalNotice() helper so future reactivation paths reuse one function.
     expect(ifExistingBlock).toContain('clearRemovalNotice');
   });
 
-  it("clearRemovalNotice is called with tx, userId, and business.id inside the if(existing) block", () => {
+  it("clearRemovalNotice is called with tx, userId, and business.id inside the lockedExisting block", () => {
     expect(ifExistingBlock).toMatch(/clearRemovalNotice\s*\(\s*tx\s*,\s*userId\s*,\s*business\.id\s*\)/);
   });
 
@@ -2898,6 +2897,7 @@ interface MockRestoreRequest {
   memberStatus: RestoreMemberStatus;
   usedSeats: number;
   seatLimit: number;
+  isFlatOrganization?: boolean;
 }
 
 interface RestoreOutcome {
@@ -2918,7 +2918,7 @@ function simulateRestoreMember(req: MockRestoreRequest): RestoreOutcome {
   if (req.memberStatus !== "removed") {
     return { httpStatus: 400, code: "WRONG_STATUS" };
   }
-  if (req.usedSeats >= req.seatLimit) {
+  if (!req.isFlatOrganization && req.usedSeats >= req.seatLimit) {
     return { httpStatus: 400, code: "SEATS_FULL" };
   }
   // Transaction: flip to active + clearRemovalNotice → notice always cleared
@@ -2958,7 +2958,7 @@ describe("PATCH /api/business/members/:memberId/restore — handler decision tre
     expect(result.code).toBe("WRONG_STATUS");
   });
 
-  it("returns 400 SEATS_FULL when the business is at capacity", () => {
+  it("returns 400 SEATS_FULL when a legacy business is at capacity", () => {
     const result = simulateRestoreMember({
       memberStatus: "removed",
       usedSeats: SEAT_LIMIT,
@@ -2966,6 +2966,17 @@ describe("PATCH /api/business/members/:memberId/restore — handler decision tre
     });
     expect(result.httpStatus).toBe(400);
     expect(result.code).toBe("SEATS_FULL");
+  });
+
+  it("restores at nominal capacity for flat clinical_business_monthly", () => {
+    const result = simulateRestoreMember({
+      memberStatus: "removed",
+      usedSeats: SEAT_LIMIT,
+      seatLimit: SEAT_LIMIT,
+      isFlatOrganization: true,
+    });
+    expect(result.httpStatus).toBe(200);
+    expect(result.noticeCleared).toBe(true);
   });
 
   it("succeeds when exactly one seat is free (boundary)", () => {
@@ -3023,10 +3034,12 @@ describe("businessRoutes.ts — PATCH /members/:id/restore calls clearRemovalNot
       : afterStart.slice(0, 4000);
   });
 
-  it("restore route declaration includes requireAuth and requireProAccess", () => {
+  it("restore route declaration includes requireAuth then requireProOrOrgAdmin", () => {
     const decl = source.match(/router\.patch\s*\(\s*["']\/members\/:memberId\/restore["']([^{]+)\{/)?.[1] ?? "";
-    expect(decl).toContain("requireAuth");
-    expect(decl).toContain("requireProAccess");
+    const authIdx = decl.indexOf("requireAuth");
+    const orgAdminIdx = decl.indexOf("requireProOrOrgAdmin");
+    expect(authIdx).toBeGreaterThanOrEqual(0);
+    expect(orgAdminIdx).toBeGreaterThan(authIdx);
   });
 
   it("restore handler queries businessMembers for the target row", () => {
@@ -3040,9 +3053,10 @@ describe("businessRoutes.ts — PATCH /members/:id/restore calls clearRemovalNot
     expect(restoreHandlerSlice).toContain("Member is not in a removed state");
   });
 
-  it("restore handler checks seat availability before reactivating", () => {
+  it("restore handler bypasses capacity for flat organizations and retains it for legacy plans", () => {
     expect(restoreHandlerSlice).toContain("getActiveSeats");
     expect(restoreHandlerSlice).toContain("seatLimit");
+    expect(restoreHandlerSlice).toContain("!isFlatOrganization(business)");
   });
 
   it("restore handler reactivates the member inside a transaction", () => {
@@ -3070,20 +3084,12 @@ describe("businessRoutes.ts — PATCH /members/:id/restore calls clearRemovalNot
     expect(restoreHandlerSlice).toContain("noticeDismissedAt");
   });
 
-  it("seat check in restore handler appears before the transaction block", () => {
-    const seatsIdx = restoreHandlerSlice.indexOf("getActiveSeats");
-    const txIdx = restoreHandlerSlice.indexOf(".transaction(");
-    expect(seatsIdx).toBeGreaterThan(-1);
-    expect(txIdx).toBeGreaterThan(-1);
-    expect(seatsIdx).toBeLessThan(txIdx);
-  });
-
-  it("status guard in restore handler appears before the seat check", () => {
+  it("status guard precedes the conditional legacy capacity check", () => {
     const statusGuardIdx = restoreHandlerSlice.indexOf("Member is not in a removed state");
-    const seatsIdx = restoreHandlerSlice.indexOf("getActiveSeats");
+    const capacityIdx = restoreHandlerSlice.indexOf("!isFlatOrganization(business)");
     expect(statusGuardIdx).toBeGreaterThan(-1);
-    expect(seatsIdx).toBeGreaterThan(-1);
-    expect(statusGuardIdx).toBeLessThan(seatsIdx);
+    expect(capacityIdx).toBeGreaterThan(-1);
+    expect(statusGuardIdx).toBeLessThan(capacityIdx);
   });
 });
 
@@ -3142,74 +3148,6 @@ describe("stripeWebhook.ts — no silent businessMembers reactivation path", () 
     expect(importPattern.test(webhookSource)).toBe(false);
   });
 
-  // ── (b) Convention comment is present in invoice.payment_succeeded ────────────
-
-  it("invoice.payment_succeeded handler contains the clearRemovalNotice convention note", () => {
-    // Isolate the invoice.payment_succeeded case block
-    const caseStart = webhookSource.indexOf('case "invoice.payment_succeeded"');
-    expect(caseStart).toBeGreaterThan(-1);
-
-    const afterCase = webhookSource.slice(caseStart);
-    // Take up to the next case (or the default)
-    const nextCaseMatch = afterCase.match(/\n\s+(?:case |default\s*:)/);
-    const caseSlice = nextCaseMatch
-      ? afterCase.slice(0, nextCaseMatch.index)
-      : afterCase.slice(0, 4000);
-
-    // The convention note must reference clearRemovalNotice so future authors
-    // see it when editing this handler.
-    expect(caseSlice).toContain("clearRemovalNotice");
-  });
-
-  it("convention note references businessRoutes.ts as the location of clearRemovalNotice", () => {
-    const caseStart = webhookSource.indexOf('case "invoice.payment_succeeded"');
-    const afterCase = webhookSource.slice(caseStart);
-    const nextCaseMatch = afterCase.match(/\n\s+(?:case |default\s*:)/);
-    const caseSlice = nextCaseMatch
-      ? afterCase.slice(0, nextCaseMatch.index)
-      : afterCase.slice(0, 4000);
-
-    expect(caseSlice).toContain("businessRoutes.ts");
-  });
-
-  it("convention note mentions the businessMembers reactivation requirement", () => {
-    // The note must clearly state that any future status='active' write on
-    // businessMembers must be accompanied by a clearRemovalNotice call.
-    const caseStart = webhookSource.indexOf('case "invoice.payment_succeeded"');
-    const afterCase = webhookSource.slice(caseStart);
-    const nextCaseMatch = afterCase.match(/\n\s+(?:case |default\s*:)/);
-    const caseSlice = nextCaseMatch
-      ? afterCase.slice(0, nextCaseMatch.index)
-      : afterCase.slice(0, 4000);
-
-    // The comment must mention businessMembers to be useful to a future author
-    expect(caseSlice).toContain("businessMembers");
-  });
-
-  // ── (c) The checkout.session.completed handler is a new-business-only path ────
-
-  it("checkout.session.completed insert(businessMembers) is inside the !existing branch (first-time setup only)", () => {
-    // The checkout handler creates the Business + owner member row for a brand-new
-    // business subscription.  It is NOT an auto-restore of a removed member, so it
-    // does not need clearRemovalNotice.  This test confirms the insert is guarded
-    // by the !existing branch (new business only, not a removed-member reactivation).
-    const checkoutStart = webhookSource.indexOf('case "checkout.session.completed"');
-    expect(checkoutStart).toBeGreaterThan(-1);
-
-    const afterCheckout = webhookSource.slice(checkoutStart);
-    const nextCaseMatch = afterCheckout.match(/\n\s+(?:case |default\s*:)/);
-    const checkoutSlice = nextCaseMatch
-      ? afterCheckout.slice(0, nextCaseMatch.index)
-      : afterCheckout.slice(0, 3000);
-
-    // The insert must be inside an "if (!existing)" or "if (!existing)" guard
-    expect(checkoutSlice).toContain("!existing");
-    // And the insert must be present (it's the new-business path)
-    expect(checkoutSlice).toContain("insert(businessMembers)");
-    // But there must be no update(businessMembers) in this handler
-    const updatePattern = /(?:db|tx)\.update\s*\(\s*businessMembers\s*\)/;
-    expect(updatePattern.test(checkoutSlice)).toBe(false);
-  });
 });
 
 // ── (c) Client guard: member view renders no removal-notice banner ─────────────

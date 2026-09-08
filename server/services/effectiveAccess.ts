@@ -133,6 +133,36 @@ export async function computeEffectiveAccess(
     .limit(1);
 
   if (membership) {
+    // The ordinary flat-fee organization product is not a pooled professional
+    // plan. A membership preserves organization/history context, but paid
+    // access must come from the member's own entitlement (or the one-time
+    // introductory trial granted when their invite is accepted).
+    if (membership.plan === "clinical_business_monthly") {
+      const effectiveLookupKey =
+        user.personalPlanLookupKey ?? user.planLookupKey ?? null;
+      const trialEnd = user.trialEndsAt
+        ? (user.trialEndsAt instanceof Date ? user.trialEndsAt : new Date(user.trialEndsAt))
+        : null;
+      const hasActiveTrial = !effectiveLookupKey && trialEnd != null && trialEnd > new Date();
+      const tier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess)
+        ? TRIAL_UNLOCKS_TIER
+        : getTierForLookupKey(effectiveLookupKey);
+      return {
+        planLookupKey: effectiveLookupKey,
+        entitlements: getEntitlementsForTier(tier) as string[],
+        tier,
+        sponsoredByBusinessId: null,
+        sponsoredByBusinessName: null,
+        sponsoredProCareAccess: false,
+        pilotProCareAccess: Boolean(pilotGrant),
+        pilotProCareGrantId: pilotGrant?.id ?? null,
+        pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
+        pilotFullAccess: Boolean(pilotFullAccess),
+        pilotParticipantId: pilotFullAccess?.participantId ?? null,
+        pilotProgramName: pilotFullAccess?.programName ?? null,
+        pilotFullAccessEndsAt: pilotFullAccess?.expiresAt ?? null,
+      };
+    }
     const baseMembershipTier = getTierForLookupKey(membership.plan);
     const effectiveMembershipTier: PlanTier = pilotFullAccess
       ? TRIAL_UNLOCKS_TIER

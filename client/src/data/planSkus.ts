@@ -137,7 +137,7 @@ export const PLAN_SKUS: PlanSku[] = [
   {
     sku: "mpm_trainer_5",
     label: "ProCare Trainer 5",
-    price: 49.99,
+    price: 44.99,
     group: "pro",
     clients: 5,
     blurb: "For trainers managing up to 5 clients",
