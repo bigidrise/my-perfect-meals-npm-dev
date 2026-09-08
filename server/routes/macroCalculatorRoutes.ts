@@ -7,8 +7,6 @@
  */
 import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth";
-import { db } from "../db";
-import { sql } from "drizzle-orm";
 import {
   computeMacros,
   resolvePerformanceMacroStrategy,
@@ -106,45 +104,6 @@ router.post("/macro-calculator/compute", requireAuth, async (req, res) => {
     };
 
     const result = computeMacros(input);
-
-    // Phase 3B: persist today's prescription so Coach's Corner can compute adherence.
-    // Fire-and-forget — never block the calculator response.
-    const userId = (req as any).authUser?.id;
-    if (userId) {
-      const prescDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-      const prescSource =
-        overlay === "standard" || overlay === "recovery"
-          ? "macro_calculator"
-          : "performance_overlay";
-      const prescDayType =
-        overlay !== "standard" && overlay !== "recovery" ? overlay : null;
-      db.execute(sql`
-        INSERT INTO daily_nutrition_prescriptions (
-          user_id, date,
-          target_calories, target_protein, target_total_carbs,
-          target_starchy_carbs, target_fibrous_carbs, target_fat,
-          source, performance_day_type, updated_at
-        ) VALUES (
-          ${userId}, ${prescDate}::date,
-          ${result.target}, ${result.macros.protein.g},
-          ${result.macros.carbs.g}, ${result.macros.carbs.starchy}, ${result.macros.carbs.fibrous},
-          ${result.macros.fat.g},
-          ${prescSource}, ${prescDayType ?? null}, NOW()
-        )
-        ON CONFLICT (user_id, date) DO UPDATE SET
-          target_calories      = EXCLUDED.target_calories,
-          target_protein       = EXCLUDED.target_protein,
-          target_total_carbs   = EXCLUDED.target_total_carbs,
-          target_starchy_carbs = EXCLUDED.target_starchy_carbs,
-          target_fibrous_carbs = EXCLUDED.target_fibrous_carbs,
-          target_fat           = EXCLUDED.target_fat,
-          source               = EXCLUDED.source,
-          performance_day_type = EXCLUDED.performance_day_type,
-          updated_at           = NOW()
-      `).catch((err) =>
-        console.error("[MacroCalculator] Prescription persist failed:", err.message)
-      );
-    }
 
     return res.json({ ok: true, ...result });
   } catch (err) {

@@ -74,6 +74,7 @@ import { NutritionPersonalizationSummaryCard } from "@/components/protocol/Nutri
 import { TodaysPrescriptionCard } from "@/components/dashboard/TodaysPrescriptionCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
 import { TrialStatusCard } from "@/components/TrialStatusCard";
+import { QuickStartPopover } from "@/components/QuickStartPopover";
 import CoachCornerCard from "@/components/ace/CoachCornerCard";
 import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
 
@@ -956,8 +957,11 @@ export default function DashboardNew() {
                 </span>
               )}
             </div>
-            {/* CENTER: MPM — always mathematically centered */}
-            <h1 className="justify-self-center text-md font-bold text-white">{t("mpmLabel")}</h1>
+            {/* CENTER: Quick Start sits directly left of MPM */}
+            <div className="justify-self-center flex items-center gap-2">
+              <QuickStartPopover compact />
+              <h1 className="text-md font-bold leading-none text-white">{t("mpmLabel")}</h1>
+            </div>
             {/* RIGHT: Bug report + Hub */}
             <div className="justify-self-end flex items-center gap-2">
               <BugReportButton />

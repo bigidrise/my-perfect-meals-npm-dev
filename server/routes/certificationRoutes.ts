@@ -29,6 +29,7 @@ import {
   hasLegacyProCareProgressEvidence,
   isProCareCourseStructure,
   LEGACY_PROCARE_CERTIFICATION_TYPE,
+  LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE,
   PROCARE_CERTIFICATION_TYPE,
   PROCARE_FINAL_ASSESSMENT_ID,
   PROCARE_FINAL_QUESTION_COUNT,
@@ -37,6 +38,7 @@ import {
   PROCARE_REQUIRED_SEQUENCE,
   PROCARE_VIDEO_MODULE_IDS,
   scoreAssessment,
+  selectProCareCertificateForDisplay,
   selectProCareFinalAssessmentQuestions,
   validateCompleteAssessmentSubmission,
   validateProCareCertificationProgress,
@@ -230,27 +232,16 @@ async function findProCareCertificateForDisplay(
         inArray(userCertifications.certificationType, [
           PROCARE_CERTIFICATION_TYPE,
           LEGACY_PROCARE_CERTIFICATION_TYPE,
+          LEGACY_PROCARE_TRAINING_CERTIFICATION_TYPE,
         ]),
       ),
     );
 
-  const canonical = certs.find(
-    (cert) => cert.certificationType === PROCARE_CERTIFICATION_TYPE,
-  );
-  if (canonical) return canonical;
-
-  const legacy = certs.find(
-    (cert) =>
-      cert.certificationType === LEGACY_PROCARE_CERTIFICATION_TYPE &&
-      cert.isCertificationTrack !== true,
-  );
   if (
-    legacy &&
-    hasLegacyProCareProgressEvidence(progress) &&
     (requestedCertType === PROCARE_CERTIFICATION_TYPE ||
       requestedCertType === LEGACY_PROCARE_CERTIFICATION_TYPE)
   ) {
-    return legacy;
+    return selectProCareCertificateForDisplay(certs, progress);
   }
 
   return undefined;

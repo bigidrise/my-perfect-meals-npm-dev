@@ -30,7 +30,6 @@ import {
   Loader2,
   CheckCircle,
   Crown,
-  Settings,
   BookOpen,
   ChevronRight,
   ChevronDown,
@@ -48,7 +47,6 @@ interface BusinessData {
   business: {
     id: string;
     name: string;
-    seatLimit: number;
     status: string;
     plan: string;
     independentClientPolicy?: string;
@@ -79,8 +77,6 @@ interface BusinessData {
     token: string;
     expiresAt: string;
   }[];
-  usedSeats: number;
-  availableSeats: number;
   planLostCount?: number;
   signupSource?: string | null;
   clientInvitations?: {
@@ -101,7 +97,6 @@ interface MembershipData {
   membership: {
     role: string;
     businessName: string;
-    seatLimit: number;
     joinedAt: string;
     independentClientPolicy?: string;
   };
@@ -184,18 +179,14 @@ export default function BusinessDashboard() {
   const [clientEmail, setClientEmail] = useState("");
   const [clientProgramName, setClientProgramName] = useState("");
   const [clientTrialOption, setClientTrialOption] = useState("30");
-  const [clientCustomDays, setClientCustomDays] = useState("30");
   const [clientInviteLoading, setClientInviteLoading] = useState(false);
 
-  const resolvedTrialDays = clientTrialOption === "custom"
-    ? (parseInt(clientCustomDays) || 30)
-    : parseInt(clientTrialOption);
+  const resolvedTrialDays = parseInt(clientTrialOption);
 
   const resetClientForm = () => {
     setClientEmail("");
     setClientProgramName("");
     setClientTrialOption("30");
-    setClientCustomDays("30");
   };
 
   // Actions
@@ -206,11 +197,6 @@ export default function BusinessDashboard() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [savingName, setSavingName] = useState(false);
-
-  // Manage seats modal
-  const [seatModalOpen, setSeatModalOpen] = useState(false);
-  const [managedSeats, setManagedSeats] = useState(4);
-  const [managingSeats, setManagingSeats] = useState(false);
 
   // Client ownership policy
   const [policyValue, setPolicyValue] = useState<string>("allowed_with_disclosure");
@@ -518,7 +504,9 @@ export default function BusinessDashboard() {
           `Hi,\n\n` +
           `I'd like to invite you to ${programLabel} — ${resolvedTrialDays} days of complimentary access to My Perfect Meals.\n\n` +
           `Click the link below to activate your access:\n${link}\n\n` +
-          `This invitation is reserved for ${clientEmail}. You'll create a free account to get started.\n`
+                  `This invitation is reserved for ${clientEmail}.\n` +
+                  `Already have My Perfect Meals? Sign in with that same account and accept the invitation.\n` +
+                  `New to My Perfect Meals? Create your account from this invitation.\n`
         );
         window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, "_blank");
       }
@@ -585,30 +573,6 @@ export default function BusinessDashboard() {
       toast({ title: "Error", description: "Could not update name.", variant: "destructive" });
     } finally {
       setSavingName(false);
-    }
-  };
-
-  const handleManageSeats = async () => {
-    setManagingSeats(true);
-    try {
-      const res = await fetch("/api/business/seats", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify({ seats: managedSeats }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast({ title: "Could not update seats", description: data.error || "Please try again.", variant: "destructive" });
-        return;
-      }
-      toast({ title: `Seats updated to ${managedSeats}`, description: "Your Stripe subscription has been adjusted." });
-      setSeatModalOpen(false);
-      fetchData();
-    } catch {
-      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
-    } finally {
-      setManagingSeats(false);
     }
   };
 
@@ -830,7 +794,7 @@ export default function BusinessDashboard() {
           </div>
 
           <p className="text-white/25 text-xs text-center px-4">
-            Seat management and billing are controlled by your team owner. Contact them with any questions.
+            Organization settings are controlled by your team owner. Contact them with any questions.
           </p>
         </div>
       </div>
@@ -840,9 +804,9 @@ export default function BusinessDashboard() {
   // ── Owner / Admin view ──────────────────────────────────────────────────────
   if (!ownerData) return null;
   // isAdminView: true when the caller is an Organization Admin (not the Owner).
-  // Admins see the full management dashboard but cannot access billing/seat controls.
+  // Admins see the full day-to-day management dashboard.
   const isAdminView = viewMode === "admin";
-  const { business, members, invitations, usedSeats, availableSeats } = ownerData;
+  const { business, members, invitations } = ownerData;
 
   // ── Pending billing (org provisioned but Stripe not yet completed) ──────────
   if (business.status === "pending_billing") {
@@ -855,7 +819,7 @@ export default function BusinessDashboard() {
           <div>
             <h2 className="text-white text-xl font-bold mb-2">Organization Account Approved</h2>
             <p className="text-white/60 text-sm leading-relaxed mb-1">
-              Your organization has been set up. Complete your subscription to activate team invites and seat management.
+              Your organization has been set up. Complete your subscription to activate client and team management.
             </p>
             <p className="text-white/40 text-xs leading-relaxed">
               Once billing is confirmed, you can invite team members and manage your organization.
@@ -878,8 +842,6 @@ export default function BusinessDashboard() {
     );
   }
 
-  const seatsFull = availableSeats <= 0;
-
   // ── First-time setup screen ─────────────────────────────────────────────────
   if (setupMode) {
     return (
@@ -891,14 +853,14 @@ export default function BusinessDashboard() {
             </div>
             <h1 className="text-white text-2xl font-bold">Welcome to Your Organization</h1>
             <p className="text-white/60 text-sm mt-2">
-              Your {business.seatLimit}-seat team account is active. Let's get set up.
+              Your Organization plan is active. Let's get set up.
             </p>
           </div>
 
           <Card className="bg-white/5 border border-orange-500/20 text-white p-5 space-y-4">
             <div className="flex items-center gap-2 text-orange-300 text-sm font-semibold">
               <CheckCircle className="w-4 h-4" />
-              1 of {business.seatLimit} seats used (you)
+              Your Organization Dashboard is ready.
             </div>
 
             <div>
@@ -941,7 +903,7 @@ export default function BusinessDashboard() {
             </button>
             <div className="flex-1">
               <h1 className="text-white font-bold text-base leading-tight">Organization Dashboard</h1>
-              <p className="text-white/50 text-xs">Manage team members, seats &amp; invitations</p>
+              <p className="text-white/50 text-xs">Manage clients, team members &amp; invitations</p>
             </div>
             <button
               onClick={() => fetchData()}
@@ -980,7 +942,7 @@ export default function BusinessDashboard() {
                   { done: true, label: "Organization named" },
                   {
                     done: hasInvited,
-                    label: "Invite your team — assign purchased seats to coaches or trainers",
+                    label: "Invite your team — add coaches, trainers, or staff",
                     action: () => setInviteOpen(true),
                   },
                   {
@@ -1081,48 +1043,26 @@ export default function BusinessDashboard() {
           <div className="flex items-start gap-2.5 px-1">
             <HelpCircle className="w-4 h-4 text-blue-400/70 flex-shrink-0 mt-0.5" />
             <p className="text-white/50 text-xs leading-relaxed">
-              Admins can invite members and manage day-to-day operations. Seat purchases and billing changes are reserved for the Organization Owner.
+              Admins can invite members and manage day-to-day organization operations.
             </p>
           </div>
         )}
 
-        {/* Seat Counter */}
+        {/* Organization overview */}
         <Card className="bg-white/5 border border-orange-500/20 text-white p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-orange-400" />
-              <span className="font-semibold text-sm">{t("businessDashboard.teamSeats")}</span>
+              <span className="font-semibold text-sm">Clients & Team Members</span>
             </div>
-            <span className={`text-lg font-bold ${seatsFull ? "text-red-400" : "text-orange-300"}`}>
-              {usedSeats} / {business.seatLimit}
-            </span>
           </div>
-          <div className="w-full bg-white/10 rounded-full h-2 mb-3">
-            <div
-              className={`h-2 rounded-full transition-all ${seatsFull ? "bg-red-500" : "bg-orange-500"}`}
-              style={{ width: `${Math.min((usedSeats / business.seatLimit) * 100, 100)}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            {seatsFull ? (
-              <p className="text-red-400 text-xs">All seats are in use. Remove a member or add more seats.</p>
-            ) : (
-              <p className="text-white/50 text-xs">{availableSeats} seat{availableSeats !== 1 ? "s" : ""} available</p>
-            )}
-            {!isAdminView && (
-              <button
-                className="text-orange-400 text-xs font-semibold flex items-center gap-1 active:opacity-60 transition-opacity"
-                onClick={() => { setManagedSeats(business.seatLimit); setSeatModalOpen(true); }}
-              >
-                <Settings className="w-3 h-3" />
-                Manage
-              </button>
-            )}
-          </div>
+          <p className="mt-2 text-white/60 text-xs leading-relaxed">
+            Your flat $44.99/month Organization plan lets you manage client invitations and professional team members in one place.
+          </p>
         </Card>
 
-        <InfoCallout title="What is a team seat?">
-          A seat is a spot for a staff member — a coach, trainer, physician, or any professional on your team who needs access to the platform. Each person you invite as a team member consumes one seat. Seats are billed as part of your Organization plan, and you can add or remove them at any time.
+        <InfoCallout title="Professional team invitations">
+          Invite coaches, trainers, physicians, and staff to join your organization. Each professional receives a one-time 30-day introductory entitlement; after it ends, they need another valid entitlement to continue professional access.
         </InfoCallout>
 
         {/* Invite Buttons */}
@@ -1130,10 +1070,10 @@ export default function BusinessDashboard() {
           <button
             className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={() => setInviteOpen(true)}
-            disabled={seatsFull || business.status !== "active"}
+            disabled={business.status !== "active"}
           >
             <UserPlus className="w-4 h-4" />
-            {seatsFull ? "No Seats" : t("businessDashboard.inviteTeamMember")}
+            {t("businessDashboard.inviteTeamMember")}
           </button>
           <button
             className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
@@ -1151,8 +1091,8 @@ export default function BusinessDashboard() {
         </div>
 
         <InfoCallout title="Team Member vs. Client Invitation — what's the difference?">
-          <p><span className="text-white/75 font-medium">Invite Team Member</span> is for your staff — coaches, trainers, and physicians who work inside your organization. They get a seat, log in with their own account, and access ProCare Studio to manage clients.</p>
-          <p className="mt-1.5"><span className="text-white/75 font-medium">Invite Client</span> is for patients and end-users. They don't consume a seat. Instead, they receive a link granting free complimentary access for 30, 60, or 90 days. When that period ends, they keep a free account and can upgrade on their own.</p>
+          <p><span className="text-white/75 font-medium">Invite Team Member</span> is for your staff — coaches, trainers, physicians, and other professionals who work inside your organization. They sign in with their own account and receive a one-time 30-day introductory entitlement.</p>
+          <p className="mt-1.5"><span className="text-white/75 font-medium">Invite Client</span> is for patients and end-users. They receive a link granting 7, 14, or 30 days of complimentary access. When that period ends, they keep a free account and can upgrade on their own.</p>
         </InfoCallout>
 
         {/* Partner & Revenue Center */}
@@ -1373,7 +1313,7 @@ export default function BusinessDashboard() {
                 {ownerData.planLostCount} member{(ownerData.planLostCount ?? 0) !== 1 ? "s have" : " has"} downgraded to Free
               </p>
               <p className="text-yellow-200/60 text-xs mt-0.5 leading-relaxed">
-                These seats are occupied but the members no longer have a paid plan. Remove them to reclaim the seats.
+                These members no longer have a valid entitlement for professional access. Review their status or remove them from the organization as appropriate.
               </p>
             </div>
           </div>
@@ -1491,7 +1431,7 @@ export default function BusinessDashboard() {
             </h2>
             <div className="mb-3">
               <InfoCallout title="How does complimentary access work?">
-                <p>When you invite a client, they receive a secure link granting them full platform access for the number of days you choose (30, 60, or 90). This is completely free for them — no credit card, no commitment.</p>
+                <p>When you invite a client, they receive a secure link granting them full platform access for 7, 14, or 30 days. This is completely free for them — no credit card, no commitment.</p>
                 <p className="mt-1.5">When the trial expires, their account automatically <span className="text-white/75 font-medium">converts to a Free plan</span>. They keep their account and can continue using free features or upgrade on their own. They won't lose their data. You'll see the status of each invitation — Pending, Active, or Expired — in the list below.</p>
               </InfoCallout>
             </div>
@@ -1590,60 +1530,6 @@ export default function BusinessDashboard() {
           );
         })()}
 
-      {/* Manage Seats Modal */}
-      <Dialog open={seatModalOpen} onOpenChange={setSeatModalOpen}>
-        <DialogContent className="bg-gray-900 border border-orange-500/20 text-white max-w-sm mx-auto">
-          <DialogHeader>
-            <DialogTitle className="text-white">Manage Seats</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 pt-2">
-            <div>
-              <p className="text-white/60 text-sm mb-4">
-                Adjust your team size. Stripe will prorate the change immediately.
-                You currently have <span className="text-white font-semibold">{ownerData?.usedSeats ?? 0}</span> active member{(ownerData?.usedSeats ?? 0) !== 1 ? "s" : ""} using seats.
-              </p>
-              <div className="flex items-center justify-between bg-white/5 border border-white/15 rounded-xl px-4 py-4">
-                <button
-                  onClick={() => setManagedSeats((s) => Math.max(ownerData?.usedSeats ?? 1, s - 1))}
-                  className="w-10 h-10 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
-                >
-                  −
-                </button>
-                <div className="text-center">
-                  <span className="text-3xl font-bold text-white">{managedSeats}</span>
-                  <p className="text-white/50 text-xs mt-1">seat{managedSeats !== 1 ? "s" : ""} · ${(44.99 * managedSeats).toFixed(2)}/mo</p>
-                </div>
-                <button
-                  onClick={() => setManagedSeats((s) => Math.min(250, s + 1))}
-                  className="w-10 h-10 rounded-full bg-white/10 text-white font-bold text-xl flex items-center justify-center active:bg-white/20 select-none"
-                >
-                  +
-                </button>
-              </div>
-              {managedSeats >= 11 && managedSeats <= 50 && (
-                <p className="text-amber-400/80 text-xs mt-2">For 11–50 seats, reach out to us for smooth team onboarding.</p>
-              )}
-              {managedSeats > 50 && (
-                <p className="text-amber-400/80 text-xs mt-2">For 50+ seats, contact us for enterprise pricing.</p>
-              )}
-            </div>
-            <button
-              className="w-full py-3 rounded-lg bg-orange-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 active:bg-orange-700"
-              onClick={handleManageSeats}
-              disabled={managingSeats || managedSeats === (ownerData?.business?.seatLimit ?? 0)}
-            >
-              {managingSeats ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</>
-              ) : (
-                managedSeats === (ownerData?.business?.seatLimit ?? 0)
-                  ? "No change"
-                  : `Update to ${managedSeats} seat${managedSeats !== 1 ? "s" : ""} — $${(44.99 * managedSeats).toFixed(2)}/mo`
-              )}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Invite Modal */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="bg-gray-900 border border-orange-500/20 text-white max-w-sm mx-auto">
@@ -1729,7 +1615,7 @@ export default function BusinessDashboard() {
             <div>
               <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">Trial Length</label>
               <div className="flex flex-wrap gap-2">
-                {["7", "14", "30", "60", "90"].map((d) => (
+                {["7", "14", "30"].map((d) => (
                   <button
                     key={d}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === d ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
@@ -1738,24 +1624,7 @@ export default function BusinessDashboard() {
                     {d} Days
                   </button>
                 ))}
-                <button
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${clientTrialOption === "custom" ? "bg-orange-600 text-white" : "bg-white/10 text-white/70 hover:bg-white/15"}`}
-                  onClick={() => setClientTrialOption("custom")}
-                >
-                  Custom
-                </button>
               </div>
-              {clientTrialOption === "custom" && (
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  className="mt-2 w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400"
-                  placeholder="Days (1–365)"
-                  value={clientCustomDays}
-                  onChange={(e) => setClientCustomDays(e.target.value)}
-                />
-              )}
             </div>
             {/* Invitation Preview */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-4">
@@ -1765,7 +1634,7 @@ export default function BusinessDashboard() {
                   `${resolvedTrialDays} days complimentary access`,
                   "Uses a secure invitation link",
                   "Must be redeemed using this email",
-                  "No team seat consumed",
+                  "Does not affect team member invitations",
                   "Converts to Free plan when trial expires",
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-2">

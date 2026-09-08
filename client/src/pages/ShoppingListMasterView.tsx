@@ -630,18 +630,28 @@ export default function ShoppingListMasterView() {
               onClick={() => hasGroceryCoachAccess
                 ? setGroceryCoachOpen(true)
                 : requestUpgrade({ requiredTier: "pro", featureName: "Grocery Coach" })}
-              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-950/80 to-black/80 rounded-2xl py-3 h-auto border border-orange-500/40 text-left"
+              className="relative w-full flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-1.5 bg-gradient-to-r from-orange-950/80 to-black/80 rounded-2xl py-3 h-auto border border-orange-500/40 text-left"
               data-testid="button-grocery-store-coach"
             >
               <span className="text-xl">🧑‍🍳</span>
               <span className="flex-1 min-w-0">
                 <span className="block text-white font-semibold text-sm leading-tight">Grocery Store Coach</span>
-                <span className="block text-orange-300/60 text-xs mt-0.5">
+                <span className="hidden lg:block text-orange-300/60 text-xs mt-0.5">
                   {hasGroceryCoachAccess ? "Recommends a meal + saves a full recipe card to Favorites." : "Upgrade to Pro to unlock"}
                 </span>
               </span>
               <span className="bg-orange-500/20 border border-orange-400/20 rounded-lg px-2 py-0.5 text-[10px] text-orange-300 font-semibold uppercase tracking-wide flex-shrink-0">
                 {hasGroceryCoachAccess ? "Pro" : "🔒 Pro"}
+              </span>
+              <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-orange-300/60 text-xs leading-snug">
+                {hasGroceryCoachAccess ? (
+                  <>
+                    <span className="block">Recommends a meal + saves</span>
+                    <span className="block">a full recipe card to Favorites.</span>
+                  </>
+                ) : (
+                  "Upgrade to Pro to unlock"
+                )}
               </span>
             </Button>
           </div>
@@ -650,13 +660,16 @@ export default function ShoppingListMasterView() {
           <div className="relative mt-2">
             <Button
               onClick={() => setSavedGroceriesOpen(true)}
-              className="relative w-full flex items-center gap-3 bg-gradient-to-r from-orange-900/40 to-black/60 rounded-2xl py-3 h-auto border border-orange-500/20 text-left"
+              className="relative w-full flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-1.5 bg-gradient-to-r from-orange-900/40 to-black/60 rounded-2xl py-3 h-auto border border-orange-500/20 text-left"
               data-testid="button-saved-groceries"
             >
               <span className="text-xl">🔖</span>
               <span className="flex-1 min-w-0">
                 <span className="block text-white font-semibold text-sm leading-tight">Saved Groceries</span>
-                <span className="block text-orange-300/50 text-xs mt-0.5">Products you've saved — Coach remembers these</span>
+                <span className="hidden lg:block text-orange-300/50 text-xs mt-0.5">Products you've saved — Coach remembers these</span>
+              </span>
+              <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-orange-300/50 text-xs leading-snug">
+                Products you've saved — Coach remembers these
               </span>
             </Button>
           </div>
@@ -666,16 +679,21 @@ export default function ShoppingListMasterView() {
               <div className="absolute inset-0 rounded-2xl bg-cyan-500/10 blur-md scale-105" />
               <Button
                 onClick={handleShoppingScan}
-                className="relative w-full flex items-center gap-3 bg-gradient-to-r from-cyan-900/70 to-blue-950/80 rounded-2xl py-3 h-auto border border-cyan-500/30 text-left"
+                className="relative w-full flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-1.5 bg-gradient-to-r from-cyan-900/70 to-blue-950/80 rounded-2xl py-3 h-auto border border-cyan-500/30 text-left"
                 data-testid="button-shopping-smart-scan"
               >
                 <span className="text-xl">🧾</span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-white font-semibold text-sm leading-tight">Product Scan</span>
-                  <span className="block text-cyan-300/60 text-xs mt-0.5">Analyze ingredients before you buy</span>
+                  <span className="hidden lg:block text-cyan-300/60 text-xs leading-snug mt-0.5 whitespace-nowrap">
+                    Take a picture of the label — see if it’s right for you.
+                  </span>
                 </span>
                 <span className="bg-cyan-500/20 border border-cyan-400/20 rounded-lg px-2 py-0.5 text-[10px] text-cyan-300 font-semibold uppercase tracking-wide flex-shrink-0">
                   New
+                </span>
+                <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-cyan-300/60 text-xs leading-snug">
+                  Take a picture of the label — see if it’s right for you.
                 </span>
               </Button>
             </div>

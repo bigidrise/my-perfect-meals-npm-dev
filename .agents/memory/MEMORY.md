@@ -73,3 +73,7 @@
 - [Reason-coded food outcomes](reason-coded-food-outcomes.md) — every governed food adaptation or block must identify what changed and the exact rule that caused it.
 - [Short-form food voice input](short-form-food-voice-input.md) — voice only populates editable text; normal submission and governance remain authoritative.
 - [One-action food choice](one-action-food-choice.md) — profiles set defaults; an informed explicit choice governs one food action without changing the profile.
+- [Macro replacement boundary](macro-replacement-boundary.md) — recalculation is preview-only; saved targets remain authoritative until a final confirmed save succeeds.
+- [Business invitation identity](business-invitation-identity.md) — one email-bound invitation connects existing or new accounts through the same acceptance path.
+- [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
+- [Organization config resilience](organization-config-resilience.md) — authenticated tenant config may be partial; normalize it over complete defaults before feature-flag reads.

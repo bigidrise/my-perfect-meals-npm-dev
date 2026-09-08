@@ -630,7 +630,7 @@ export const AFFILIATE_MODULES: CertificationModule[] = [
             "Client creates a profile → coach finds them in search → coach adds them to the studio → client is automatically connected",
             "Coach sends an invitation → client receives and accepts it → client is connected to the studio → coach gains access to the client folder",
             "Client requests to join the studio → coach reviews and approves the request → client completes a questionnaire → coaching begins",
-            "Coach purchases a client seat → enters client contact information → platform automatically creates the client's account and connects them",
+            "Coach enters client contact information and the platform automatically creates the client's account without the client accepting an invitation",
           ],
           correctIndex: 1,
           explanation: "The connection process is: (1) coach sends an invitation from ProCare, (2) client receives the invitation, (3) client accepts — which connects them to the studio, (4) coach can now access the client's folder. No client information is visible before acceptance. This sequence ensures informed consent and protects client privacy.",

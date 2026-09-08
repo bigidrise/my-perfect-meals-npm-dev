@@ -15,16 +15,27 @@ const mockStripePayment = {
   userId: "",
 };
 
-const mockActivateProCareClient = jest.fn(async (clientUserId: string, _proUserId: string) => ({
-  studioId: "mock-studio-id",
-  studioName: "Mock Studio",
-  studioType: "studio",
-  membershipId: `mock-membership-${clientUserId}`,
-  clientLinkId: `mock-link-${clientUserId}`,
-  alreadyActive: false,
-  restored: false,
-  ownerUserId: "mock-owner-id",
-}));
+const mockActivateProCareClient = jest.fn(async (
+  clientUserId: string,
+  _proUserId: string,
+  _source: string,
+  finalizeInTransaction?: (tx: any, activation: any) => Promise<void>,
+) => {
+  const activation = {
+    studioId: "mock-studio-id",
+    studioName: "Mock Studio",
+    studioType: "studio",
+    membershipId: `mock-membership-${clientUserId}`,
+    clientLinkId: `mock-link-${clientUserId}`,
+    alreadyActive: false,
+    restored: false,
+    ownerUserId: "mock-owner-id",
+  };
+  if (finalizeInTransaction) {
+    await db.transaction((tx) => finalizeInTransaction(tx, activation));
+  }
+  return activation;
+});
 
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, res: any, next: any) => {
@@ -109,6 +120,7 @@ import { users } from "@shared/schema";
 import { careInvite, careTeamMember } from "../db/schema/careTeam";
 import { studios, studioInvites, studioMemberships, coachingInvites } from "../db/schema/studio";
 import { businesses, businessInvitations, businessMembers } from "../db/schema/business";
+import { ActivationError } from "../services/procareActivation";
 import {
   normalizeEmailIdentity,
   resolveEmailIdentity,
@@ -225,8 +237,8 @@ describe("email identity safety", () => {
 
   it("updates subscription state by a resolved primary key, never by email or customer-wide update", () => {
     expect(subscriptionServiceSource).toContain("resolveSubscriptionUser");
-    expect(subscriptionServiceSource).toContain(".where(eq(users.id, verifiedUser.id))");
-    expect(subscriptionServiceSource).toContain(".where(eq(users.id, user.id))");
+    expect(subscriptionServiceSource).toContain("eq(users.id, verifiedUser.id)");
+    expect(subscriptionServiceSource).toContain("eq(users.id, user.id)");
     expect(subscriptionServiceSource).not.toContain(".where(eq(users.email");
     expect(subscriptionServiceSource).not.toContain(".where(eq(users.stripeCustomerId, stripeCustomerId))");
   });
@@ -264,6 +276,10 @@ describe("email identity safety — database-backed invitation routes", () => {
   const duplicateCapitalizedEmail = `${duplicateEmail[0].toUpperCase()}${duplicateEmail.slice(1)}`;
   const uniqueUserId = randomUUID();
   const uniqueEmail = `unique-${fixtureId.slice(0, 12)}@example.test`;
+  const conflictingClientId = randomUUID();
+  const conflictingClientEmail = `conflict-${fixtureId.slice(0, 12)}@example.test`;
+  const unpaidClientId = randomUUID();
+  const unpaidClientEmail = `unpaid-${fixtureId.slice(0, 12)}@example.test`;
   const trialBeforeAcceptance = new Date("2020-01-01T00:00:00.000Z");
 
   const careInviteId = randomUUID();
@@ -274,6 +290,12 @@ describe("email identity safety — database-backed invitation routes", () => {
   const coachingInviteId = randomUUID();
   const uniqueBusinessId = randomUUID();
   const uniqueBusinessInviteId = randomUUID();
+  const conflictingBusinessInviteId = randomUUID();
+  const businessOwnerId = randomUUID();
+  const uniqueBusinessOwnerId = randomUUID();
+  const unpaidBusinessId = randomUUID();
+  const unpaidBusinessInviteId = randomUUID();
+  const unpaidBusinessOwnerId = randomUUID();
   const coachUserId = randomUUID();
   const coachStudioId = randomUUID();
   const coachToken = `coach-${fixtureId}`;
@@ -287,6 +309,11 @@ describe("email identity safety — database-backed invitation routes", () => {
     await seedUser(duplicateLowerId, duplicateEmail, "lower", trialBeforeAcceptance);
     await seedUser(duplicateCapitalizedId, duplicateCapitalizedEmail, "capitalized", trialBeforeAcceptance);
     await seedUser(uniqueUserId, uniqueEmail, "unique", trialBeforeAcceptance);
+    await seedUser(conflictingClientId, conflictingClientEmail, "conflicting-client", trialBeforeAcceptance);
+    await seedUser(unpaidClientId, unpaidClientEmail, "unpaid-client", trialBeforeAcceptance);
+    await seedUser(businessOwnerId, `business-owner-${fixtureId.slice(0, 12)}@example.test`, "business-owner");
+    await seedUser(uniqueBusinessOwnerId, `unique-business-owner-${fixtureId.slice(0, 12)}@example.test`, "unique-business-owner");
+    await seedUser(unpaidBusinessOwnerId, `unpaid-business-owner-${fixtureId.slice(0, 12)}@example.test`, "unpaid-business-owner");
     await seedUser(coachUserId, `coach-${fixtureId.slice(0, 12)}@example.test`, "coach");
 
     await db.insert(studios).values([
@@ -330,15 +357,50 @@ describe("email identity safety — database-backed invitation routes", () => {
       {
         id: businessId,
         name: "Email Identity Regression Business",
-        ownerUserId: `business-owner-${fixtureId}`,
+        ownerUserId: businessOwnerId,
         seatLimit: 5,
+        plan: "clinical_business_monthly",
         status: "active",
+        stripeCustomerId: `cus_business_${fixtureId}`,
+        stripeSubscriptionId: `sub_business_${fixtureId}`,
       },
       {
         id: uniqueBusinessId,
         name: "Email Identity Unique Acceptance Business",
-        ownerUserId: `unique-business-owner-${fixtureId}`,
+        ownerUserId: uniqueBusinessOwnerId,
         seatLimit: 5,
+        plan: "clinical_business_monthly",
+        status: "active",
+        stripeCustomerId: `cus_unique_${fixtureId}`,
+        stripeSubscriptionId: `sub_unique_${fixtureId}`,
+      },
+      {
+        id: unpaidBusinessId,
+        name: "Email Identity Unpaid Business",
+        ownerUserId: unpaidBusinessOwnerId,
+        seatLimit: 1,
+        plan: "clinical_business_monthly",
+        status: "active",
+      },
+    ]);
+
+    await db.insert(businessMembers).values([
+      {
+        businessId,
+        userId: businessOwnerId,
+        role: "owner",
+        status: "active",
+      },
+      {
+        businessId: uniqueBusinessId,
+        userId: uniqueBusinessOwnerId,
+        role: "owner",
+        status: "active",
+      },
+      {
+        businessId: unpaidBusinessId,
+        userId: unpaidBusinessOwnerId,
+        role: "owner",
         status: "active",
       },
     ]);
@@ -351,7 +413,7 @@ describe("email identity safety — database-backed invitation routes", () => {
         token: `business-${fixtureId}`,
         role: "staff",
         status: "pending",
-        invitedByUserId: `business-owner-${fixtureId}`,
+        invitedByUserId: businessOwnerId,
         expiresAt: new Date(Date.now() + 86_400_000),
         invitationType: "client",
         trialDays: 30,
@@ -363,7 +425,31 @@ describe("email identity safety — database-backed invitation routes", () => {
         token: `business-unique-${fixtureId}`,
         role: "staff",
         status: "pending",
-        invitedByUserId: `unique-business-owner-${fixtureId}`,
+        invitedByUserId: uniqueBusinessOwnerId,
+        expiresAt: new Date(Date.now() + 86_400_000),
+        invitationType: "client",
+        trialDays: 30,
+      },
+      {
+        id: conflictingBusinessInviteId,
+        businessId: uniqueBusinessId,
+        email: conflictingClientEmail,
+        token: `business-conflict-${fixtureId}`,
+        role: "staff",
+        status: "pending",
+        invitedByUserId: uniqueBusinessOwnerId,
+        expiresAt: new Date(Date.now() + 86_400_000),
+        invitationType: "client",
+        trialDays: 30,
+      },
+      {
+        id: unpaidBusinessInviteId,
+        businessId: unpaidBusinessId,
+        email: unpaidClientEmail,
+        token: `business-unpaid-${fixtureId}`,
+        role: "staff",
+        status: "pending",
+        invitedByUserId: unpaidBusinessOwnerId,
         expiresAt: new Date(Date.now() + 86_400_000),
         invitationType: "client",
         trialDays: 30,
@@ -409,18 +495,29 @@ describe("email identity safety — database-backed invitation routes", () => {
     await db.delete(businessMembers).where(eq(businessMembers.userId, duplicateLowerId)).catch(() => {});
     await db.delete(businessMembers).where(eq(businessMembers.userId, duplicateCapitalizedId)).catch(() => {});
     await db.delete(businessMembers).where(eq(businessMembers.userId, uniqueUserId)).catch(() => {});
+    await db.delete(businessMembers).where(eq(businessMembers.userId, businessOwnerId)).catch(() => {});
+    await db.delete(businessMembers).where(eq(businessMembers.userId, uniqueBusinessOwnerId)).catch(() => {});
+    await db.delete(businessMembers).where(eq(businessMembers.userId, unpaidBusinessOwnerId)).catch(() => {});
     await db.delete(coachingInvites).where(eq(coachingInvites.id, coachingInviteId)).catch(() => {});
     await db.delete(studioInvites).where(eq(studioInvites.id, studioInviteId)).catch(() => {});
     await db.delete(careInvite).where(eq(careInvite.id, careInviteId)).catch(() => {});
     await db.delete(businessInvitations).where(eq(businessInvitations.id, businessInviteId)).catch(() => {});
     await db.delete(businessInvitations).where(eq(businessInvitations.id, uniqueBusinessInviteId)).catch(() => {});
+    await db.delete(businessInvitations).where(eq(businessInvitations.id, conflictingBusinessInviteId)).catch(() => {});
+    await db.delete(businessInvitations).where(eq(businessInvitations.id, unpaidBusinessInviteId)).catch(() => {});
     await db.delete(businesses).where(eq(businesses.id, businessId)).catch(() => {});
     await db.delete(businesses).where(eq(businesses.id, uniqueBusinessId)).catch(() => {});
+    await db.delete(businesses).where(eq(businesses.id, unpaidBusinessId)).catch(() => {});
     await db.delete(studios).where(eq(studios.id, studioId)).catch(() => {});
     await db.delete(studios).where(eq(studios.id, coachStudioId)).catch(() => {});
     await db.delete(users).where(eq(users.id, duplicateLowerId)).catch(() => {});
     await db.delete(users).where(eq(users.id, duplicateCapitalizedId)).catch(() => {});
     await db.delete(users).where(eq(users.id, uniqueUserId)).catch(() => {});
+    await db.delete(users).where(eq(users.id, conflictingClientId)).catch(() => {});
+    await db.delete(users).where(eq(users.id, businessOwnerId)).catch(() => {});
+    await db.delete(users).where(eq(users.id, uniqueBusinessOwnerId)).catch(() => {});
+    await db.delete(users).where(eq(users.id, unpaidClientId)).catch(() => {});
+    await db.delete(users).where(eq(users.id, unpaidBusinessOwnerId)).catch(() => {});
     await db.delete(users).where(eq(users.id, coachUserId)).catch(() => {});
   }, 30_000);
 
@@ -516,6 +613,13 @@ describe("email identity safety — database-backed invitation routes", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.invitationType).toBe("client");
+    expect(res.body.proCareConnected).toBe(true);
+    expect(mockActivateProCareClient).toHaveBeenCalledWith(
+      uniqueUserId,
+      uniqueBusinessOwnerId,
+      "paid_business_client_invite",
+      expect.any(Function),
+    );
 
     const invite = await firstRow(
       db.select().from(businessInvitations).where(eq(businessInvitations.id, uniqueBusinessInviteId)),
@@ -527,5 +631,75 @@ describe("email identity safety — database-backed invitation routes", () => {
     );
     expect(user.trialEndsAt).not.toBeNull();
     expect(user.trialEndsAt!.getTime()).toBeGreaterThan(trialBeforeAcceptance.getTime());
+
+    const firstTrialEnd = user.trialEndsAt!.getTime();
+    mockActivateProCareClient.mockClear();
+    const repeated = await request(businessApp)
+      .post(`/api/business/invite/business-unique-${fixtureId}/accept`)
+      .send();
+
+    expect(repeated.status).toBe(200);
+    expect(repeated.body.alreadyAccepted).toBe(true);
+    expect(mockActivateProCareClient).toHaveBeenCalledWith(
+      uniqueUserId,
+      uniqueBusinessOwnerId,
+      "paid_business_client_invite",
+      expect.any(Function),
+    );
+    const repeatedUser = await firstRow(
+      db.select({ trialEndsAt: users.trialEndsAt }).from(users).where(eq(users.id, uniqueUserId)),
+    );
+    expect(repeatedUser.trialEndsAt?.getTime()).toBe(firstTrialEnd);
+  });
+
+  it("rejects paid Organization client acceptance when the canonical relationship service finds another active professional", async () => {
+    authenticate(conflictingClientId, conflictingClientEmail);
+    mockActivateProCareClient.mockRejectedValueOnce(
+      new ActivationError(
+        "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL",
+        "Client already belongs to another professional",
+      ),
+    );
+
+    const res = await request(businessApp)
+      .post(`/api/business/invite/business-conflict-${fixtureId}/accept`)
+      .send();
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL");
+    expect(mockActivateProCareClient).toHaveBeenCalledWith(
+      conflictingClientId,
+      uniqueBusinessOwnerId,
+      "paid_business_client_invite",
+      expect.any(Function),
+    );
+    const invite = await firstRow(
+      db.select().from(businessInvitations).where(eq(businessInvitations.id, conflictingBusinessInviteId)),
+    );
+    expect(invite.status).toBe("pending");
+    const user = await firstRow(
+      db.select({ trialEndsAt: users.trialEndsAt }).from(users).where(eq(users.id, conflictingClientId)),
+    );
+    expect(user.trialEndsAt?.getTime()).toBe(trialBeforeAcceptance.getTime());
+  });
+
+  it("rejects client activation from an active-looking Organization without verified Stripe billing", async () => {
+    authenticate(unpaidClientId, unpaidClientEmail);
+
+    const res = await request(businessApp)
+      .post(`/api/business/invite/business-unpaid-${fixtureId}/accept`)
+      .send();
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("PAID_ORGANIZATION_REQUIRED");
+    expect(mockActivateProCareClient).not.toHaveBeenCalled();
+    const invite = await firstRow(
+      db.select().from(businessInvitations).where(eq(businessInvitations.id, unpaidBusinessInviteId)),
+    );
+    expect(invite.status).toBe("pending");
+    const user = await firstRow(
+      db.select({ trialEndsAt: users.trialEndsAt }).from(users).where(eq(users.id, unpaidClientId)),
+    );
+    expect(user.trialEndsAt?.getTime()).toBe(trialBeforeAcceptance.getTime());
   });
 });

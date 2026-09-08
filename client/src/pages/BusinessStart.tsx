@@ -1,155 +1,192 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { Building2, Users, CreditCard, Zap, CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  ShieldCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAuthHeaders } from "@/lib/auth";
+
+type OrganizationState = {
+  exists: boolean;
+  status: string | null;
+  name: string | null;
+  callerRole?: string;
+};
+
+const journey = [
+  {
+    icon: Building2,
+    title: "Set up your organization",
+    description: "Enter the required business information before payment.",
+  },
+  {
+    icon: CreditCard,
+    title: "Activate your Business Suite",
+    description: "Subscribe for a flat $44.99/month Organization plan.",
+  },
+  {
+    icon: UserPlus,
+    title: "Invite your clients",
+    description: "Invite clients from your Organization Dashboard and choose a 7, 14, or 30-day complimentary trial.",
+  },
+  {
+    icon: Users,
+    title: "Existing members connect automatically",
+    description: "They sign in to the same My Perfect Meals account and accept—no duplicate account required.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "New members create an account",
+    description: "They create an account from the invitation, then continue into the same acceptance flow.",
+  },
+  {
+    icon: CheckCircle2,
+    title: "Work with them in ProCare",
+    description: "Accepted clients connect to your organization and appear in ProCare Studio.",
+  },
+];
 
 export default function BusinessStart() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { user, loading } = useAuth();
+  const [organization, setOrganization] = useState<OrganizationState | null>(null);
+  const [checking, setChecking] = useState(false);
 
-  // Redirect already-signed-in business owners straight to their dashboard
   useEffect(() => {
-    if (!loading && user?.professionalRole === "business") {
-      setLocation("/business-dashboard");
+    if (!user) {
+      setOrganization(null);
+      return;
     }
-  }, [user, loading, setLocation]);
 
-  // Suppress the landing page content while redirecting to avoid a flash
-  if (!loading && user?.professionalRole === "business") {
-    return null;
-  }
+    let cancelled = false;
+    setChecking(true);
+    fetch("/api/business/check-status", {
+      headers: getAuthHeaders() as HeadersInit,
+      credentials: "include",
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unable to check organization status");
+        return response.json();
+      })
+      .then((data: OrganizationState) => {
+        if (!cancelled) setOrganization(data);
+      })
+      .catch(() => {
+        if (!cancelled) setOrganization({ exists: false, status: null, name: null });
+      })
+      .finally(() => {
+        if (!cancelled) setChecking(false);
+      });
 
-  // Pass through any source/referral params so analytics can track which link was shared
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   const params = new URLSearchParams(search);
   const source = params.get("source") || params.get("ref") || null;
+  const isActive = organization?.exists && organization.status === "active";
+  const isIncomplete = organization?.exists && !isActive;
 
-  function handleGetStarted() {
-    const target = new URLSearchParams();
-    target.set("role", "business");
-    target.set("mode", "signup");
+  function handlePrimaryAction() {
+    if (isActive) {
+      setLocation("/business-dashboard");
+      return;
+    }
+    if (user) {
+      setLocation("/business/setup");
+      return;
+    }
+
+    const target = new URLSearchParams({ role: "business", mode: "signup" });
     if (source) target.set("source", source);
     setLocation(`/auth?${target.toString()}`);
   }
 
+  const actionLabel = isActive
+    ? "Open Organization Dashboard"
+    : isIncomplete
+      ? "Complete Organization Setup"
+      : user
+        ? "Start Your Organization"
+        : "Create an Account to Start";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-black to-black text-white flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-5 border-b border-white/8">
-        <div className="flex items-center gap-2">
-          <Building2 className="w-6 h-6 text-orange-400" />
-          <span className="font-bold text-lg tracking-tight">My Perfect Meals</span>
-          <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/25">
-            For Organizations
+    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-black to-blue-950/30 text-white">
+      <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10">
+        <button className="flex items-center gap-2 text-left" onClick={() => setLocation(user ? "/more" : "/")}>
+          <Building2 className="w-6 h-6 text-blue-400" />
+          <span className="font-bold tracking-tight">My Perfect Meals</span>
+          <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-200 border border-blue-500/25">
+            Business Suite
           </span>
-        </div>
-        <button
-          onClick={() => setLocation("/auth?mode=login")}
-          className="text-sm text-white/60 hover:text-white transition-colors"
-        >
-          Sign in
         </button>
+        {!loading && !user && (
+          <button onClick={() => setLocation("/auth?mode=login")} className="text-sm text-white/70 hover:text-white">
+            Sign in
+          </button>
+        )}
       </header>
 
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center max-w-2xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-300 text-xs font-semibold mb-8">
-          <Zap className="w-3.5 h-3.5" />
-          Get your team live in minutes
-        </div>
-
-        <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-5 tracking-tight">
-          Nutrition intelligence{" "}
-          <span className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">
-            for your whole organization
-          </span>
-        </h1>
-
-        <p className="text-lg text-white/70 mb-10 max-w-xl leading-relaxed">
-          Create your organization account, choose member seats, complete checkout, and your
-          entire team gets personalized nutrition guidance — live the same day.
-        </p>
-
-        {/* Steps */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 text-left">
-          {[
-            {
-              icon: <Building2 className="w-5 h-5 text-orange-400" />,
-              step: "1",
-              title: "Create your account",
-              desc: "Set up your organization profile in under two minutes.",
-            },
-            {
-              icon: <Users className="w-5 h-5 text-orange-400" />,
-              step: "2",
-              title: "Choose your seats",
-              desc: "Pick how many members you're covering — scale up anytime.",
-            },
-            {
-              icon: <CreditCard className="w-5 h-5 text-orange-400" />,
-              step: "3",
-              title: "Pay & go live",
-              desc: "Secure checkout, then share invite links with your team instantly.",
-            },
-          ].map((item) => (
-            <div
-              key={item.step}
-              className="rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col gap-3"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-xs font-bold text-orange-300">
-                  {item.step}
-                </div>
-                {item.icon}
-              </div>
-              <div>
-                <p className="font-semibold text-sm mb-1">{item.title}</p>
-                <p className="text-xs text-white/55 leading-relaxed">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* What's included */}
-        <div className="w-full rounded-2xl bg-white/4 border border-white/10 p-6 mb-10 text-left">
-          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">
-            What your team gets
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+        <section className="text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-300 mb-3">
+            Start Your Organization
           </p>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              "Personalized meal plans for every member",
-              "AI nutrition coach available 24/7",
-              "Performance & recovery nutrition",
-              "Dietary restriction & allergy support",
-              "Admin dashboard to manage your roster",
-              "Scales from 5 to 500+ members",
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-2 text-sm text-white/75">
-                <CheckCircle2 className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">$44.99/month</h1>
+          <p className="mt-5 text-base sm:text-lg leading-relaxed text-white/70 max-w-2xl mx-auto">
+            Turn My Perfect Meals into a business platform for your clients and team. Set up your organization,
+            invite existing members or new clients, and manage them from your Organization Dashboard and ProCare Studio.
+          </p>
+          {organization?.name && (
+            <p className="mt-4 text-sm text-blue-200">
+              {isActive ? "Active organization" : "Setup in progress"}: <strong>{organization.name}</strong>
+            </p>
+          )}
+        </section>
+
+        <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-white/50">How it works</h2>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {journey.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="flex gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-500/15 text-blue-300">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{index + 1}. {item.title}</p>
+                    <p className="mt-1 text-xs sm:text-sm leading-relaxed text-white/60">{item.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="mt-8 text-center">
+          <button
+            onClick={handlePrimaryAction}
+            disabled={loading || checking}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 py-4 font-bold hover:bg-blue-500 disabled:cursor-wait disabled:opacity-60"
+            data-testid="business-suite-primary-action"
+          >
+            {loading || checking ? "Checking Organization…" : actionLabel}
+            {!loading && !checking && <ArrowRight className="h-5 w-5" />}
+          </button>
+          <p className="mt-3 text-xs text-white/40">
+            Organization information is completed before secure checkout.
+          </p>
         </div>
-
-        {/* CTA */}
-        <button
-          onClick={handleGetStarted}
-          className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-orange-500 hover:bg-orange-400 active:scale-[0.98] text-white font-bold text-base transition-all shadow-lg shadow-orange-500/25"
-        >
-          Create your organization account
-          <ArrowRight className="w-5 h-5" />
-        </button>
-
-        <p className="mt-4 text-xs text-white/35">
-          No commitment until checkout. Setup takes under 2 minutes.
-        </p>
       </main>
-
-      {/* Footer */}
-      <footer className="px-6 py-5 border-t border-white/8 text-center text-xs text-white/30">
-        © {new Date().getFullYear()} My Perfect Meals · Built for gyms, clinics &amp; teams
-      </footer>
     </div>
   );
 }

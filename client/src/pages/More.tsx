@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2, Gift } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2, Gift, ChevronRight } from "lucide-react";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
@@ -74,6 +74,7 @@ export default function MorePage() {
   const [businessCard, setBusinessCard] = useState<{
     mode: "owner" | "member";
     name: string;
+    status: "active" | "incomplete";
     usedSeats?: number;
     seatLimit?: number;
     role?: string;
@@ -91,6 +92,7 @@ export default function MorePage() {
           setBusinessCard({
             mode: "owner",
             name: data.business.name,
+            status: "active",
             usedSeats: data.usedSeats,
             seatLimit: data.business.seatLimit,
           });
@@ -105,8 +107,24 @@ export default function MorePage() {
           setBusinessCard({
             mode: "member",
             name: data.membership.businessName,
+            status: "active",
             role: data.membership.role,
           });
+          return;
+        }
+        const statusRes = await fetch("/api/business/check-status", {
+          headers: getAuthHeaders() as HeadersInit,
+          credentials: "include",
+        });
+        if (statusRes.ok) {
+          const data = await statusRes.json();
+          if (data.exists) {
+            setBusinessCard({
+              mode: data.callerRole === "owner" ? "owner" : "member",
+              name: data.name,
+              status: data.status === "active" ? "active" : "incomplete",
+            });
+          }
         }
       } catch {
         // Non-fatal
@@ -432,7 +450,43 @@ export default function MorePage() {
             );
           })()}
 
-          {/* Business Center */}
+          {/* Business Suite — organization ownership and team/client management */}
+          <div className="relative">
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(37,99,235,0.25), rgba(0,0,0,0))" }} />
+            <Card
+              className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/40 to-black backdrop-blur-lg border border-blue-500/40 hover:border-blue-400/70 hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+              style={{ backgroundColor: "transparent" }}
+              onClick={() => setLocation(businessCard?.status === "active" ? "/business-dashboard" : "/business/start")}
+              data-testid="card-business-suite"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-600/20">
+                    <Building2 className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-white">
+                      {businessCard?.status === "active"
+                        ? "Open Organization Dashboard"
+                        : businessCard
+                          ? "Complete Organization Setup"
+                          : "Start Your Organization"}
+                    </h3>
+                    <p className="text-xs text-white/60 truncate">
+                       {businessCard?.status === "active"
+                        ? `${businessCard.name} · Clients & Team Members`
+                         : businessCard
+                           ? `${businessCard.name} · Setup before payment`
+                         : "$44.99/month · Set up your Business Suite"}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-blue-300 flex-shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Business education, Academy, partnerships, and promotions */}
           <div className="relative">
             <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.5), rgba(245,158,11,0.25), rgba(0,0,0,0))" }} />
             <Card
@@ -484,41 +538,6 @@ export default function MorePage() {
                         ? ` · Invited by ${user.activeClientAccess.inviterName}`
                         : ""}
                     </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Organization Card */}
-          {businessCard && (
-            <Card
-              className="cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/40 to-black backdrop-blur-lg border border-blue-500/40 transition-all duration-300 rounded-xl shadow-md overflow-hidden"
-              style={{ backgroundColor: "transparent" }}
-              onClick={() => setLocation("/business-dashboard")}
-              data-testid="card-clinical-business"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-600/20">
-                    <Building2 className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {businessCard.mode === "owner" ? (
-                      <>
-                        <h3 className="text-sm font-semibold text-white">{t("orgDashTitle")}</h3>
-                        <p className="text-xs text-white/60 truncate">
-                          {businessCard.name} · {businessCard.usedSeats} of {businessCard.seatLimit} seats used
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="text-sm font-semibold text-white">{t("myTeamTitle")}</h3>
-                        <p className="text-xs text-white/60 truncate">
-                          {businessCard.name} · {businessCard.role ? businessCard.role.charAt(0).toUpperCase() + businessCard.role.slice(1) : "Member"}
-                        </p>
-                      </>
-                    )}
                   </div>
                 </div>
               </CardContent>

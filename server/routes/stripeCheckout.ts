@@ -315,11 +315,11 @@ router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
 
 /**
  * POST /api/stripe/checkout/business
- * Creates a Stripe Checkout Session for Clinical Business (multi-seat).
- * Seat count is validated server-side (1–250). Price ID is resolved through
- * the same server-owned trusted catalog used by consumer checkout.
- * Soft tier guidance (11-50: recommend call; 51+: contact sales) is enforced in UI only —
- * the backend accepts any value up to 250 so enterprise orders via sales can still proceed.
+ * Creates the initial Stripe Checkout Session for a Clinical Business owner.
+ * New organizations use one flat-fee subscription with Stripe quantity 1.
+ * Client and professional invitations never change billing quantity.
+ * Price ID is resolved through the same server-owned trusted catalog used by
+ * consumer checkout.
  */
 router.post("/checkout/business", requireAuth, async (req, res) => {
   if (!stripe) {
@@ -333,12 +333,14 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "User not authenticated" });
   }
 
-  const requestedSeats = Number(req.body.seats);
-  if (!Number.isInteger(requestedSeats) || requestedSeats < 1 || requestedSeats > 250) {
+  const clientRequestedQuantity = req.body?.seats == null ? 1 : Number(req.body.seats);
+  if (clientRequestedQuantity !== 1) {
     return res.status(400).json({
-      error: "Seat count must be between 1 and 250. Contact us for larger teams.",
+      code: "FLAT_ORGANIZATION_QUANTITY_ONLY",
+      error: "The Organization subscription is a flat $44.99 monthly fee.",
     });
   }
+  const requestedSeats = 1;
 
   const trustedBusinessPlan = getTrustedCheckoutPlan("clinical_business_monthly");
   if (!trustedBusinessPlan) {
@@ -397,7 +399,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         code: existingBusiness ? "ORGANIZATION_CHECKOUT_UNAVAILABLE" : "ORGANIZATION_REQUIRED",
         error: existingBusiness
           ? "This organization already has active or conflicting billing."
-          : "Please complete organization setup before purchasing seats.",
+          : "Please complete organization setup before starting checkout.",
       });
     }
 
@@ -465,7 +467,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     }
 
     console.log(
-      `✅ Business checkout session created | seats=${requestedSeats} | total=$${(44.99 * requestedSeats).toFixed(2)}/mo | user=${userId}`,
+      `✅ Business checkout session created | quantity=1 | total=$44.99/mo | user=${userId}`,
     );
 
     return res.json({ url: session.url });

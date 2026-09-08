@@ -435,6 +435,8 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
     }
 
     const authUserId = (req as AuthenticatedRequest).authUser?.id ?? null;
+    const selfSavePrescriptionDate =
+      authUserId === userId ? todayInTimezone(await getUserTimezone(userId)) : null;
 
     const updatedUser = await db.transaction(async (tx) => {
       const [updated] = await tx
@@ -466,6 +468,36 @@ router.post("/users/:userId/macro-targets", requireAuth, async (req, res) => {
         fatG: fat_g,
         reason: typeof reason === "string" ? reason : null,
       });
+
+      // Computing is preview-only. Persist today's adherence prescription only
+      // at the same final, confirmed save boundary as the replacement targets.
+      if (selfSavePrescriptionDate) {
+        await tx.execute(sql`
+          INSERT INTO daily_nutrition_prescriptions (
+            user_id, date,
+            target_calories, target_protein, target_total_carbs,
+            target_starchy_carbs, target_fibrous_carbs, target_fat,
+            source, performance_day_type, updated_at
+          ) VALUES (
+            ${userId}, ${selfSavePrescriptionDate}::date,
+            ${calories}, ${protein_g}, ${carbs_g},
+            ${typeof starchyCarbs_g === "number" ? starchyCarbs_g : null},
+            ${typeof fibrousCarbs_g === "number" ? fibrousCarbs_g : null},
+            ${fat_g},
+            'macro_calculator', NULL, NOW()
+          )
+          ON CONFLICT (user_id, date) DO UPDATE SET
+            target_calories      = EXCLUDED.target_calories,
+            target_protein       = EXCLUDED.target_protein,
+            target_total_carbs   = EXCLUDED.target_total_carbs,
+            target_starchy_carbs = EXCLUDED.target_starchy_carbs,
+            target_fibrous_carbs = EXCLUDED.target_fibrous_carbs,
+            target_fat           = EXCLUDED.target_fat,
+            source               = EXCLUDED.source,
+            performance_day_type = NULL,
+            updated_at           = NOW()
+        `);
+      }
 
       return updated;
     });

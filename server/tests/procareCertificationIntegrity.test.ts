@@ -1,7 +1,10 @@
+import fs from "fs";
+import path from "path";
 import {
   buildAttemptHistoryModuleId,
   filterProCareProgress,
   hasCompletedLegacyProCareCertification,
+  hasCompletedProCareTrainingCertification,
   hasLegacyProCareProgressEvidence,
   isProCareCourseStructure,
   PROCARE_FINAL_ASSESSMENT_ID,
@@ -9,6 +12,7 @@ import {
   PROCARE_QUIZ_MODULE_IDS,
   PROCARE_VIDEO_MODULE_IDS,
   scoreAssessment,
+  selectProCareCertificateForDisplay,
   selectProCareFinalAssessmentQuestions,
   validateCompleteAssessmentSubmission,
   validateProCareCertificationProgress,
@@ -114,6 +118,99 @@ describe("Phase 3 ProCare compatibility identity", () => {
         completeProgress(),
       ),
     ).toBe(false);
+  });
+
+  it("recognizes canonical and legacy procare_training completion", () => {
+    expect(
+      hasCompletedProCareTrainingCertification(
+        [{ certificationType: "procare_certification", status: "completed" }],
+        [],
+      ),
+    ).toBe(true);
+    expect(
+      hasCompletedProCareTrainingCertification(
+        [{ certificationType: "procare_training", status: "completed" }],
+        [],
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps qualifying legacy platform completion recognized", () => {
+    expect(
+      hasCompletedProCareTrainingCertification(
+        [
+          {
+            certificationType: "platform",
+            status: "completed",
+            isCertificationTrack: false,
+          },
+        ],
+        completeProgress(),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not recognize missing or incomplete legacy training", () => {
+    expect(hasCompletedProCareTrainingCertification([], [])).toBe(false);
+    expect(
+      hasCompletedProCareTrainingCertification(
+        [{ certificationType: "procare_training", status: "in_progress" }],
+        [],
+      ),
+    ).toBe(false);
+  });
+
+  it("selects completed legacy training for the canonical Launchpad response", () => {
+    const legacy = {
+      certificationType: "procare_training",
+      status: "completed",
+      completedAt: "2026-08-21T16:12:32.333Z",
+    };
+
+    expect(selectProCareCertificateForDisplay([legacy], [])).toBe(legacy);
+  });
+
+  it("does not turn training recognition into paid access state", () => {
+    const legacy = {
+      certificationType: "procare_training",
+      status: "completed",
+    };
+
+    const selected = selectProCareCertificateForDisplay([legacy], []);
+    expect(selected).toEqual(legacy);
+    expect(selected).not.toHaveProperty("planLookupKey");
+    expect(selected).not.toHaveProperty("businessId");
+    expect(selected).not.toHaveProperty("stripeSubscriptionId");
+  });
+
+  it("keeps professional legal acceptance as an independent Studio gate", () => {
+    const readinessSource = fs.readFileSync(
+      path.resolve(__dirname, "../services/procareStudioReadiness.ts"),
+      "utf8",
+    );
+
+    expect(readinessSource).toContain(
+      'checkLegalAcceptance(providerUserId, "attestation")',
+    );
+    expect(readinessSource).toContain(
+      'checkLegalAcceptance(providerUserId, legalFlow)',
+    );
+    expect(readinessSource).toContain('code: "LEGAL_REACCEPT_REQUIRED"');
+  });
+
+  it("keeps the existing Phase 2 completion gate unchanged", () => {
+    const readinessSource = fs.readFileSync(
+      path.resolve(__dirname, "../services/procareStudioReadiness.ts"),
+      "utf8",
+    );
+
+    expect(readinessSource).toContain(
+      'process.env.PHASE2_GATE_ENABLED === "true"',
+    );
+    expect(readinessSource).toContain(
+      "requireTraining && !provider.procareTrainingCompleted",
+    );
+    expect(readinessSource).toContain('code: "PHASE2_TRAINING_REQUIRED"');
   });
 });
 

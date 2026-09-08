@@ -22,7 +22,12 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Global Error Boundary caught an error:', error, errorInfo);
+    console.error('Global Error Boundary caught an error:', {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack,
+      componentStack: errorInfo.componentStack,
+    });
     captureException(error, { componentStack: errorInfo.componentStack ?? undefined });
     // Feed into the in-memory diagnostics buffer so bug reports capture this error
     pushError(error, errorInfo.componentStack?.split('\n')[1]?.trim());

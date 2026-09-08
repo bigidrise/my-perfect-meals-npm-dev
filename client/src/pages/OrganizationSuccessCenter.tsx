@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useOrgFlag } from "@/contexts/OrgContext";
@@ -10,7 +10,6 @@ import {
   BookOpen,
   Users,
   UserPlus,
-  Settings,
   CreditCard,
   HelpCircle,
   Rocket,
@@ -26,6 +25,7 @@ import {
   Zap,
   ArrowRight,
   History,
+  Settings,
 } from "lucide-react";
 import { NarrationBar } from "@/components/NarrationBar";
 import { getAuthHeaders } from "@/lib/auth";
@@ -43,6 +43,21 @@ interface PolicyHistoryItem {
   changed_at: string;
   changed_by_name: string | null;
   changed_by_email: string | null;
+}
+
+function SuccessCenterNarration({
+  title,
+  narration,
+}: {
+  title: string;
+  narration: string;
+}) {
+  const sections = useMemo(
+    () => [{ heading: title, text: narration }],
+    [title, narration],
+  );
+
+  return <NarrationBar sections={sections} />;
 }
 
 export default function OrganizationSuccessCenter() {
@@ -116,17 +131,17 @@ export default function OrganizationSuccessCenter() {
       title: "Welcome to Your Organization",
       subtitle: "What you've unlocked and why it matters.",
       narration:
-        "Welcome to your MyPerfectMeals Organization. You've just set up something powerful — a centralized platform that gives every coach or practitioner on your team full clinical-grade nutrition tools under one subscription. Your team members each get their own personalized access: AI-powered meal creation, dietary tracking, biometric monitoring, and their own ProCare Studio to manage clients. You handle the seats and billing from one place. They handle their practice. Together, you run a stronger, more effective organization.",
+        "Welcome to your MyPerfectMeals Organization. You've just set up something powerful — a centralized platform for managing clients and professional team members. Invited professionals receive a one-time 30-day introductory entitlement and need another valid entitlement for ongoing professional access. Together, you run a stronger, more effective organization.",
       content: (
         <div className="space-y-3">
           <p className="text-white text-sm leading-relaxed">
-            You've set up something powerful — a centralized platform giving every coach or practitioner on your team full clinical-grade nutrition tools under one subscription.
+            You've set up something powerful — a centralized platform for managing clients and professional team members.
           </p>
           <div className="space-y-2">
             {[
-              "Each member gets their own full account with AI meal creation and dietary tracking",
-              "Every coach gets a ProCare Studio to manage their own clients independently",
-              "You control seats and billing from one central dashboard",
+              "Invite clients to 7-, 14-, or 30-day complimentary access",
+              "Invite and manage professional team members from one dashboard",
+              "Professionals receive a one-time 30-day introductory entitlement",
               "Members complete Platform Mastery training so quality stays consistent across your team",
             ].map((item) => (
               <div key={item} className="flex items-start gap-2">
@@ -144,13 +159,13 @@ export default function OrganizationSuccessCenter() {
       title: "First-Time Setup",
       subtitle: "Three steps to get your team running.",
       narration:
-        "Getting your organization running takes three steps. Step one: your account is already activated from your purchase. Step two: name your organization from the dashboard. Step three: invite your first team members by entering their email addresses. They'll receive an invitation link, click to accept, and land directly in their account with full access.",
+        "Getting your organization running takes three steps. Step one: your account is already activated from your purchase. Step two: name your organization from the dashboard. Step three: invite your first team members by entering their email addresses. They'll receive an invitation link, click to accept, and receive a one-time 30-day introductory entitlement.",
       content: (
         <div className="space-y-4">
           {[
-            { step: "1", title: "Your account is active", body: "As soon as you purchased, your organization was created. You already have full access and one seat (yours)." },
+            { step: "1", title: "Your account is active", body: "As soon as you purchased, your organization was created and your Organization Dashboard is ready." },
             { step: "2", title: "Name your organization", body: "From the Organization Dashboard, tap the pencil icon next to your organization name. This is what your team sees when they accept their invite." },
-            { step: "3", title: "Invite your team members", body: `Tap "Invite a Team Member" and enter their email. They receive a link, accept, and land in their account with full access — no separate purchase needed.` },
+            { step: "3", title: "Invite your team members", body: `Tap "Invite a Team Member" and enter their email. They receive a link, accept, and receive a one-time 30-day introductory entitlement.` },
           ].map(({ step, title, body }) => (
             <div key={step} className="flex gap-3">
               <div className="w-7 h-7 rounded-full bg-orange-600/80 flex items-center justify-center flex-shrink-0 text-white text-xs font-bold">{step}</div>
@@ -245,31 +260,20 @@ export default function OrganizationSuccessCenter() {
       ),
     },
     {
-      id: "seats",
+      id: "team_members",
       icon: <Settings className="w-5 h-5 text-orange-400" />,
-      title: "Seat Management",
-      subtitle: "Add, remove, invite, and track your team capacity.",
+      title: "Team Member Management",
+      subtitle: "Invite, manage roles, and review professional access.",
       narration:
-        "Your seat count determines how many people can be part of your organization at once. Each active member and each pending invitation uses one seat. You can add or remove seats anytime from the Organization Dashboard. Adding seats increases your monthly cost by the per-seat price. Changes are prorated on your Stripe invoice, so you only pay for what you use in a given billing period. When you remove a member, they lose organization access immediately but their personal account and data remain intact.",
+        "Your flat-rate Organization plan lets you invite and manage professional team members. Each invited professional receives a one-time 30-day introductory entitlement. After that period, they need another valid entitlement for ongoing professional access. When you remove a member, they lose organization membership immediately but their personal account and data remain intact.",
       content: (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-black/30 border border-white/15 rounded-xl p-3">
-              <p className="text-orange-400 text-xs font-semibold mb-1">Uses a seat</p>
-              <p className="text-white/90 text-xs">Active members, pending invites</p>
-            </div>
-            <div className="bg-black/30 border border-white/15 rounded-xl p-3">
-              <p className="text-green-400 text-xs font-semibold mb-1">Frees a seat</p>
-              <p className="text-white/90 text-xs">Removing members, expired invites</p>
-            </div>
-          </div>
           <div className="space-y-2">
             {[
-              "Inviting a coach — send invite, pending invite claims a seat immediately",
-              "Invite expires after 72 hours — seat opens back up automatically",
-              "Removing a coach — access ends immediately, seat freed",
-              "Adding seats — prorated immediately on your current invoice",
-              "Removing seats — takes effect at next billing cycle",
+              "Inviting a professional — send a secure invitation by email",
+              "Invited professionals receive a one-time 30-day introductory entitlement",
+              "Review roles and access status from the Organization Dashboard",
+              "Removing a professional ends organization membership immediately",
             ].map((item) => (
               <div key={item} className="flex items-start gap-2">
                 <CheckCircle className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
@@ -278,7 +282,7 @@ export default function OrganizationSuccessCenter() {
             ))}
           </div>
           <div className="bg-black/30 border border-white/15 rounded-xl p-3">
-            <p className="text-white/90 text-xs">To manage seats: tap the <span className="text-orange-400 font-semibold">Manage</span> link next to your seat counter on the Organization Dashboard.</p>
+            <p className="text-white/90 text-xs">To manage team members: use the invitations and member list in the Organization Dashboard.</p>
           </div>
         </div>
       ),
@@ -289,16 +293,16 @@ export default function OrganizationSuccessCenter() {
       title: "Inviting Your Team",
       subtitle: "How invitations work from send to acceptance.",
       narration:
-        "When you send an invitation, the person receives an email with a secure link. That link is valid for 72 hours. When they click it, they're walked through account creation or login if they already have an account. Once they accept, they're added to your organization and their seat is marked active. Pending invitations count against your available seat count the moment you send them.",
+        "When you send an invitation, the person receives an email with a secure link. That link is valid for 72 hours. When they click it, they're walked through account creation or login if they already have an account. Once they accept, they're added to your organization and receive a one-time 30-day introductory entitlement.",
       content: (
         <div className="space-y-3">
           <p className="text-white text-sm leading-relaxed">
             When you send an invitation, the person receives a secure email link valid for 72 hours.
           </p>
           <div className="bg-orange-600/10 border border-orange-500/30 rounded-xl p-3">
-            <p className="text-orange-300 text-xs font-semibold mb-1">Seats and invites</p>
+            <p className="text-orange-300 text-xs font-semibold mb-1">Professional access</p>
             <p className="text-white/90 text-xs leading-relaxed">
-              Pending invitations count against your seat capacity immediately. Expired invites (after 72 hours) release their seat automatically.
+              Invitations are valid for 72 hours. Accepted professionals receive a one-time 30-day introductory entitlement and need another valid entitlement for ongoing professional access.
             </p>
           </div>
           <div className="space-y-2">
@@ -346,7 +350,7 @@ export default function OrganizationSuccessCenter() {
           <div className="bg-orange-600/10 border border-orange-500/30 rounded-xl p-3">
             <p className="text-orange-300 text-xs font-semibold mb-1">Your policy controls one thing</p>
             <p className="text-white/90 text-xs leading-relaxed">
-              Your Client Ownership Policy determines whether coaches may enroll personal clients under their org-sponsored seat — not whether they may exist as independent professionals. Affiliate membership, certifications, and independent accounts are always available.
+              Your Client Ownership Policy determines whether coaches may enroll personal clients through your organization — not whether they may exist as independent professionals. Affiliate membership, certifications, and independent accounts are always available.
             </p>
           </div>
         </div>
@@ -379,7 +383,7 @@ export default function OrganizationSuccessCenter() {
           </div>
           <div className="bg-black/30 border border-white/15 rounded-xl p-3">
             <p className="text-white/90 text-xs leading-relaxed">
-              Removing a member from the dashboard ends their sponsored access immediately. They receive an in-app notification. Their personal account remains fully intact.
+              Removing a member from the dashboard ends their organization membership immediately. They receive an in-app notification. Their personal account remains fully intact.
             </p>
           </div>
           <div className="bg-orange-600/10 border border-orange-500/30 rounded-xl p-3">
@@ -395,18 +399,18 @@ export default function OrganizationSuccessCenter() {
       title: "Managing Members",
       subtitle: "Roles, removing coaches, and what happens to their data.",
       narration:
-        "Every team member you invite joins as a standard member with their own independent account. Their clients, meal plans, and ProCare Studio are entirely their own. What you control is their seat. When you remove a member, they immediately lose the organization access you sponsored. Their personal account and all their data remain safe — they just no longer have access to the clinical tools that required the organization subscription.",
+        "Every team member you invite joins with their own independent account. Their clients, meal plans, and ProCare Studio are entirely their own. Invited professionals receive a one-time 30-day introductory entitlement and require another valid entitlement for ongoing professional access. When you remove a member, they immediately lose organization membership while their personal account and data remain safe.",
       content: (
         <div className="space-y-3">
           <div className="bg-blue-600/10 border border-blue-500/20 rounded-xl p-3">
             <p className="text-blue-300 text-xs font-semibold mb-1">Organization relationship</p>
             <p className="text-white/90 text-xs leading-relaxed">
-              You sponsor access — you don't own your members' accounts. Their clients, sessions, and data belong to them individually.
+              You manage organization membership — you don't own your members' accounts. Their clients, sessions, and data belong to them individually.
             </p>
           </div>
           <div className="space-y-2">
             {[
-              "Removing a member immediately ends their sponsored access",
+              "Removing a member immediately ends organization membership",
               "They're notified inside the app with a clear explanation",
               "Their personal account, meals, and client data are untouched",
               "They can subscribe independently to restore clinical access",
@@ -426,11 +430,11 @@ export default function OrganizationSuccessCenter() {
       title: "ProCare Studio & Client Access",
       subtitle: "How coaches manage their own clients through your organization.",
       narration:
-        "Every member you add to your organization has access to ProCare Studio — their own professional client management space. They can enroll clients, review biometrics, assign meal plans, and communicate through the platform. This is independent of you. You provide the subscription that unlocks the tools; they manage their client relationships on their own.",
+        "Professionals with a valid entitlement have access to ProCare Studio — their own professional client management space. Invited professionals receive a one-time 30-day introductory entitlement, then need another valid entitlement for ongoing access. They manage their client relationships independently.",
       content: (
         <div className="space-y-3">
           <p className="text-white text-sm leading-relaxed">
-            Every member gets their own ProCare Studio — a full professional workspace for managing clients, reviewing health data, and coordinating care.
+            Eligible professionals get their own ProCare Studio — a full professional workspace for managing clients, reviewing health data, and coordinating care.
           </p>
           <div className="space-y-2">
             {[
@@ -476,14 +480,14 @@ export default function OrganizationSuccessCenter() {
       id: "billing",
       icon: <CreditCard className="w-5 h-5 text-orange-400" />,
       title: "Billing & Subscription",
-      subtitle: "How per-seat billing works and how to manage your subscription.",
+      subtitle: "Your flat-rate Organization subscription.",
       narration:
-        "Your subscription is billed monthly at $44.99 per seat. You're billed for the number of seats on your plan, not just the ones currently filled. When you add seats, Stripe prorates the change immediately. When you remove seats, the reduction applies at your next billing cycle.",
+        "Your Organization subscription is a flat $44.99 per month. It includes your Organization Dashboard, client invitations, and professional team invitations. Professional invitations provide a one-time 30-day introductory entitlement, not indefinite professional access.",
       content: (
         <div className="space-y-3">
           <div className="bg-black/30 border border-white/15 rounded-xl p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-white/90 text-sm">Price per seat</span>
+              <span className="text-white/90 text-sm">Organization plan</span>
               <span className="text-white font-semibold text-sm">$44.99 / mo</span>
             </div>
             <div className="flex items-center justify-between">
@@ -491,14 +495,14 @@ export default function OrganizationSuccessCenter() {
               <span className="text-white font-semibold text-sm">Monthly</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white/90 text-sm">Billed for</span>
-              <span className="text-white font-semibold text-sm">Seat count (not filled seats)</span>
+              <span className="text-white/90 text-sm">Includes</span>
+              <span className="text-white font-semibold text-sm">Client and team management</span>
             </div>
           </div>
           <div className="space-y-2">
             {[
-              "Adding seats: prorated immediately on current invoice",
-              "Removing seats: takes effect at next billing cycle",
+              "Invite clients to 7, 14, or 30 days of complimentary access",
+              "Invite professionals to a one-time 30-day introductory entitlement",
               "Cancel, update payment, or download invoices via Stripe portal",
             ].map((item) => (
               <div key={item} className="flex items-start gap-2">
@@ -615,9 +619,9 @@ export default function OrganizationSuccessCenter() {
             {[
               { title: "Client Ownership Stamping", desc: "Automatically classify each client as org-owned or personally-owned at enrollment." },
               { title: "Client Reassignment", desc: "Transfer organization clients to another coach before offboarding a team member." },
-              { title: "Enterprise Analytics", desc: "Seat utilization, client growth, and training completion dashboards for org owners." },
+               { title: "Enterprise Analytics", desc: "Team activity, client growth, and training completion dashboards for org owners." },
               { title: "Multi-Location Support", desc: "Manage multiple locations or departments under one enterprise account." },
-              { title: "Regional Managers", desc: "Delegate seat management and oversight to regional leads." },
+               { title: "Regional Managers", desc: "Delegate team management and oversight to regional leads." },
               { title: "Franchise & White-Label", desc: "Run My Perfect Meals under your own brand with custom onboarding." },
               { title: "Enterprise Reporting", desc: "Compliance reports, certification audits, and policy change documentation for enterprise clients." },
             ].map(({ title, desc }) => (
@@ -643,16 +647,15 @@ export default function OrganizationSuccessCenter() {
       content: (
         <div className="space-y-3">
           {[
-            { q: "Can my coaches have their own coaching business?", a: "Yes. Coaches can always become affiliates, earn commissions, and build their own independent practice. Your Client Ownership Policy controls whether they can enroll personal clients under your sponsored seat — not whether they can exist as independent professionals." },
+            { q: "Can my coaches have their own coaching business?", a: "Yes. Coaches can always become affiliates, earn commissions, and build their own independent practice. Your Client Ownership Policy controls whether they can enroll personal clients through your organization — not whether they can exist as independent professionals." },
             { q: "Can coaches become affiliates?", a: "Absolutely — and we encourage it. Any coach on your team can apply for affiliate status, receive their own promo code, and earn commissions independently. Their affiliate account is separate from their org membership." },
             { q: "Who owns the clients my coaches work with?", a: "It depends on how they were enrolled. Clients enrolled through your organization belong to the organization. Clients a coach brought independently belong to the coach. This separation is enforced by the platform." },
             { q: "What happens if a coach quits or is removed?", a: "Organization clients stay with you. Personal clients go with the coach. The coach's account, certifications, and data are completely unaffected. They can activate their own Professional subscription and continue practicing." },
             { q: "Can I change my policy later?", a: "Yes. Policy changes take effect immediately and are logged with a timestamp. Coaches who joined under a different policy will see the updated policy, and the change is visible in your Policy History." },
-            { q: "Can I add more seats?", a: "Yes — from the Organization Dashboard, tap Manage next to your seat counter. Changes are prorated by Stripe." },
-            { q: "Can I remove seats?", a: "Yes. Reducing your seat count takes effect at your next billing cycle. Note: you must remove a member before removing their seat." },
+            { q: "Can I invite professional team members?", a: "Yes. Your flat $44.99/month Organization plan includes professional team invitations. Each accepted professional receives a one-time 30-day introductory entitlement." },
             { q: "What happens to certifications if a coach leaves?", a: "Certifications stay with the coach forever. They are tied to the individual's account, not the organization." },
-            { q: "Can a member use their own subscription instead of my seat?", a: "No — once they accept your invite, your organization sponsorship covers their access." },
-            { q: "What if a coach already has their own subscription?", a: "Your sponsorship takes over and their personal subscription is paused. They won't be double charged." },
+            { q: "Can a member use their own subscription after the introductory entitlement?", a: "Yes. After the one-time 30-day introductory entitlement, a professional needs another valid entitlement to continue professional access." },
+            { q: "What if a coach already has their own subscription?", a: "Their existing entitlement remains relevant to their professional access. Organization membership and personal billing are managed separately." },
             { q: "What happens if I miss a payment?", a: "A brief grace period applies. If unresolved, member access is suspended until billing is current." },
           ].map(({ q, a }) => (
             <div key={q} className="bg-black/30 border border-white/15 rounded-xl p-3">
@@ -738,7 +741,10 @@ export default function OrganizationSuccessCenter() {
               {isOpen && (
                 <div className="px-4 pb-4 border-t border-white/10 pt-3 space-y-3">
                   {mod.narration && (
-                    <NarrationBar sections={[{ heading: mod.title, text: mod.narration }]} />
+                    <SuccessCenterNarration
+                      title={mod.title}
+                      narration={mod.narration}
+                    />
                   )}
                   {mod.content}
                 </div>
