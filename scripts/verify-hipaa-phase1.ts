@@ -17,6 +17,7 @@
  */
 
 import { Pool } from "pg";
+import { getDatabaseTlsConfig } from "../server/lib/databaseTls";
 import * as fs from "fs";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
@@ -24,7 +25,10 @@ const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
 const DB_URL = process.env.DATABASE_URL;
 if (!DB_URL) { console.error("DATABASE_URL not set"); process.exit(1); }
 
-const pool = new Pool({ connectionString: DB_URL, ssl: { rejectUnauthorized: false } });
+const pool = new Pool({
+  connectionString: DB_URL,
+  ssl: getDatabaseTlsConfig(DB_URL, { requireTls: true }),
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 async function req(method: string, path: string, body?: any, cookie?: string) {
