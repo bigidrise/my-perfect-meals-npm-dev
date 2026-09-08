@@ -696,7 +696,11 @@ export default function weekBoardRoutes(app: Express) {
       if (!board) return res.status(404).json({ error: "Weekly board not found" });
       const dayIndex = dayIndexFor(dateISO);
       const generated = await regenerateCanonicalWeeklyDay({
-        userId, existingPlan: boardWeekView(board, dateISO), dayIndex, correlationId: (req as any).id,
+        userId,
+        existingPlan: boardWeekView(board, dateISO),
+        dayIndex,
+        dietOverride: namespace === "diabetic" ? "diabetic" : undefined,
+        correlationId: (req as any).id,
       });
       const day = generated.plan.weeks[0].days[dayIndex];
       const next = { ...(board as any), days: { ...(board as any).days } };
@@ -730,7 +734,13 @@ export default function weekBoardRoutes(app: Express) {
       const view = boardWeekView(board, dateISO);
       const mealIndex = view.weeks[0].days[dayIndex].meals.indexOf(oldMeal);
       const rerolled = await rerollCanonicalWeeklyMeal({
-        userId, existingPlan: view, dayIndex, mealIndex, excludeItemId: oldMeal.id, correlationId: (req as any).id,
+        userId,
+        existingPlan: view,
+        dayIndex,
+        mealIndex,
+        excludeItemId: oldMeal.id,
+        dietOverride: namespace === "diabetic" ? "diabetic" : undefined,
+        correlationId: (req as any).id,
       });
       const replacement = rerolled.plan.weeks[0].days[dayIndex].meals[mealIndex];
       const next = { ...board, days: { ...board.days, [dateISO]: { ...board.days[dateISO], [slot]: [...board.days[dateISO][slot]] } } };

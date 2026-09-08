@@ -8,9 +8,14 @@ import type {
 } from '../types';
 import type { UnifiedMeal } from '../../unifiedMealPipeline';
 import { db } from '../../../db';
-import { glucoseLogs, diabetesProfile, Guardrails, DEFAULT_GUARDRAILS } from '../../../../shared/diabetes-schema';
+import { diabetesProfile, Guardrails, DEFAULT_GUARDRAILS } from '../../../../shared/diabetes-schema';
 import { userGlycemicSettings } from '../../../../shared/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { resolveUserGlucoseState } from '../../glucoseStateResolver';
+import {
+  classifyGlycemicProduce,
+  HYPOGLYCEMIA_PRODUCE_OVERRIDES,
+} from '../../glycemicProduceValidator';
 
 export type GlucoseState = 
   | 'low'
@@ -32,25 +37,8 @@ interface DiabeticContextData {
   hypoHistory: boolean;
 }
 
-function classifyGlucose(valueMgdl: number, context: string): GlucoseState {
-  if (valueMgdl < 70) return 'low';
-  if (valueMgdl <= 80) return 'low-normal';
-  
-  if (context === 'FASTED' || context === 'PRE_MEAL') {
-    if (valueMgdl <= 120) return 'in-range';
-    if (valueMgdl <= 180) return 'elevated';
-    return 'high-risk';
-  }
-  
-  if (context === 'POST_MEAL_1H' || context === 'POST_MEAL_2H') {
-    if (valueMgdl <= 140) return 'in-range';
-    if (valueMgdl <= 180) return 'elevated';
-    return 'high-risk';
-  }
-  
-  if (valueMgdl <= 140) return 'in-range';
-  if (valueMgdl <= 180) return 'elevated';
-  return 'high-risk';
+function toHubGlucoseState(state: "LOW" | "IN_RANGE" | "HIGH"): GlucoseState {
+  return state === "LOW" ? "low" : state === "HIGH" ? "high-risk" : "in-range";
 }
 
 async function fetchDiabeticContext(userId: string): Promise<DiabeticContextData> {
@@ -58,25 +46,22 @@ async function fetchDiabeticContext(userId: string): Promise<DiabeticContextData
     where: (p, { eq }) => eq(p.userId, userId)
   });
 
-  const [latestLog] = await db.select()
-    .from(glucoseLogs)
-    .where(eq(glucoseLogs.userId, userId))
-    .orderBy(desc(glucoseLogs.recordedAt))
-    .limit(1);
+  const glucose = await resolveUserGlucoseState(userId);
 
   let latestGlucose: DiabeticContextData['latestGlucose'] = null;
   
-  if (latestLog) {
-    const recordedAt = new Date(latestLog.recordedAt);
-    const now = new Date();
-    const ageMinutes = Math.floor((now.getTime() - recordedAt.getTime()) / (1000 * 60));
-    
+  if (
+    glucose.valueMgdl !== null &&
+    glucose.context &&
+    glucose.ageMinutes !== null &&
+    (glucose.state === "LOW" || glucose.state === "IN_RANGE" || glucose.state === "HIGH")
+  ) {
     latestGlucose = {
-      value: latestLog.valueMgdl,
-      context: latestLog.context,
-      state: classifyGlucose(latestLog.valueMgdl, latestLog.context),
-      recordedAt,
-      ageMinutes
+      value: glucose.valueMgdl,
+      context: glucose.context,
+      state: toHubGlucoseState(glucose.state),
+      recordedAt: new Date(Date.now() - glucose.ageMinutes * 60_000),
+      ageMinutes: glucose.ageMinutes,
     };
   }
 
@@ -136,7 +121,7 @@ export const diabeticHubModule: HubModule = {
   },
 
   async getGuardrails(userId: string): Promise<HubGuardrails> {
-    const [profile, glycemicRow] = await Promise.all([
+    const [profile, glycemicRow, glucose] = await Promise.all([
       db.query.diabetesProfile.findFirst({
         where: (p, { eq }) => eq(p.userId, userId)
       }),
@@ -150,7 +135,8 @@ export const diabeticHubModule: HubModule = {
         .from(userGlycemicSettings)
         .where(eq(userGlycemicSettings.userId, userId))
         .limit(1)
-        .then(rows => rows[0] ?? null)
+        .then(rows => rows[0] ?? null),
+      resolveUserGlucoseState(userId),
     ]);
 
     const guardrails = profile?.guardrails as Guardrails | null;
@@ -159,16 +145,11 @@ export const diabeticHubModule: HubModule = {
     const lowRangeCarbs: string[] = (glycemicRow?.lowRangeCarbs as string[]) || [];
     const midRangeCarbs: string[] = (glycemicRow?.midRangeCarbs as string[]) || [];
     const highRangeCarbs: string[] = (glycemicRow?.highRangeCarbs as string[]) || [];
-    // Legacy fallback: if no per-range data, use old flat array
-    const legacyCarbs: string[] = (glycemicRow?.preferredCarbs as string[]) || [];
-    // User's personally selected low-GI carbs from Glycemic Settings screen
-    const userPreferredCarbs: string[] = midRangeCarbs.length > 0 ? midRangeCarbs : legacyCarbs;
-
-    // Determine glucose state from user's entered blood glucose (for validation bypass)
-    const bloodGlucose = glycemicRow?.bloodGlucose ?? null;
-    const glucoseState: GlucoseState | null = bloodGlucose !== null
-      ? classifyGlucose(bloodGlucose, 'PRE_MEAL')
-      : null;
+    const userPreferredCarbs = glucose.activePreferences;
+    const glucoseState: GlucoseState | null =
+      glucose.state === "LOW" || glucose.state === "IN_RANGE" || glucose.state === "HIGH"
+        ? toHubGlucoseState(glucose.state)
+        : null;
     
     const basePreferred = [
       'leafy greens', 'broccoli', 'cauliflower', 'zucchini', 'asparagus',
@@ -177,7 +158,10 @@ export const diabeticHubModule: HubModule = {
     ];
 
     // Merge user's preferred carbs — deduplicated
-    const mergedPreferred = [...new Set([...basePreferred, ...userPreferredCarbs])];
+    const safeBasePreferred = glucose.preferencesConfigured
+      ? basePreferred.filter((item) => classifyGlycemicProduce(item) === null)
+      : basePreferred;
+    const mergedPreferred = [...new Set([...safeBasePreferred, ...userPreferredCarbs])];
 
     if (userPreferredCarbs.length > 0) {
       console.log(`🩺 [DIABETIC HUB] Loaded user glycemic preferences: ${userPreferredCarbs.join(", ")}`);
@@ -227,7 +211,26 @@ export const diabeticHubModule: HubModule = {
         'potato chips', 'chips', 'crackers', 'pretzels',
       ],
       preferredIngredients: mergedPreferred,
-      customRules: { dailyCarbLimit, mealFrequency, perMealCarbCeiling, glucoseState }
+      customRules: {
+        dailyCarbLimit,
+        mealFrequency,
+        perMealCarbCeiling,
+        glucoseState,
+        activeGlucosePreferences: glucose.activePreferences,
+        glucosePreferencesConfigured: glucose.preferencesConfigured,
+        glucosePreferenceBand: glucose.state,
+        hypoglycemiaPreferenceOverride:
+          glucose.state === "LOW" &&
+          glucose.preferencesConfigured &&
+          !glucose.activePreferences.some((item) => {
+            const canonical = classifyGlycemicProduce(item)?.canonical;
+            return canonical
+              ? HYPOGLYCEMIA_PRODUCE_OVERRIDES.includes(
+                  canonical as typeof HYPOGLYCEMIA_PRODUCE_OVERRIDES[number],
+                )
+              : false;
+          }),
+      }
     };
   },
 
@@ -266,25 +269,26 @@ export const diabeticHubModule: HubModule = {
     const isLowState = glucoseState === 'low' || glucoseState === 'low-normal';
     const isHighState = glucoseState === 'elevated' || glucoseState === 'high-risk';
 
-    let activeCarbs: string[] = [];
-    if (isLowState) {
-      activeCarbs = guardrails.lowRangeCarbs?.length ? guardrails.lowRangeCarbs : (guardrails.userPreferredCarbs || []);
-    } else if (isHighState) {
-      activeCarbs = guardrails.highRangeCarbs?.length ? guardrails.highRangeCarbs : (guardrails.userPreferredCarbs || []);
-    } else {
-      activeCarbs = guardrails.midRangeCarbs?.length ? guardrails.midRangeCarbs : (guardrails.userPreferredCarbs || []);
-    }
+    const activeCarbs = (guardrails.customRules?.activeGlucosePreferences as string[] | undefined) ?? [];
+    const preferencesConfigured = Boolean(guardrails.customRules?.glucosePreferencesConfigured);
+    const hypoglycemiaPreferenceOverride = Boolean(guardrails.customRules?.hypoglycemiaPreferenceOverride);
 
     // FIX 4: Force-priority carb instruction — language scales with urgency per state.
     let userCarbsLine = '';
-    if (activeCarbs.length > 0) {
+    if (preferencesConfigured && activeCarbs.length > 0) {
       if (isLowState) {
-        userCarbsLine = `Blood sugar is low — encourage fast-acting carbs to support recovery. Include options such as: ${activeCarbs.join(', ')}. These are appropriate right now. Berries and low-GI-only fruits are less ideal in this state.\n`;
+        userCarbsLine = `Blood sugar is low. Use these approved fruit and vegetable choices when clinically appropriate: ${activeCarbs.join(', ')}. Do not use other produce unless the explicit hypoglycemia treatment override below applies.\n`;
       } else if (isHighState) {
-        userCarbsLine = `LIMIT carb choices to these approved low-impact options only: ${activeCarbs.join(', ')}.\n`;
+        userCarbsLine = `STRICT PRODUCE ALLOWLIST: use only these approved fruit and vegetable choices: ${activeCarbs.join(', ')}. Do not add generic diabetic produce defaults.\n`;
       } else {
-        userCarbsLine = `PRIORITIZE these carb sources for this meal: ${activeCarbs.join(', ')}. Use these instead of generic diabetic defaults.\n`;
+        userCarbsLine = `STRICT PRODUCE ALLOWLIST: use only these approved fruit and vegetable choices: ${activeCarbs.join(', ')}. Do not add generic diabetic produce defaults.\n`;
       }
+    } else if (preferencesConfigured) {
+      userCarbsLine = "The active glucose preference band is intentionally configured with no approved fruit or vegetables. Do not include fruit or vegetables.";
+      if (hypoglycemiaPreferenceOverride) {
+        userCarbsLine += ` Because glucose is LOW, the narrow hypoglycemia treatment exception may use only: ${HYPOGLYCEMIA_PRODUCE_OVERRIDES.join(", ")}.`;
+      }
+      userCarbsLine += "\n";
     } else if (guardrails.userPreferredCarbs && guardrails.userPreferredCarbs.length > 0) {
       userCarbsLine = `PRIORITIZE these user-selected carb sources: ${guardrails.userPreferredCarbs.join(', ')}.\n`;
     }

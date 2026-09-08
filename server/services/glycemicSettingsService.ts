@@ -17,7 +17,8 @@ export async function saveGlycemicSettings(settings: {
   lowRangeCarbs?: string[],
   midRangeCarbs?: string[],
   highRangeCarbs?: string[],
-  defaultPortion: number
+  defaultPortion: number,
+  glycemicPreferencesConfigured?: boolean
 }) {
   const {
     userId, bloodGlucose, preferredCarbs, defaultPortion,
@@ -41,6 +42,7 @@ export async function saveGlycemicSettings(settings: {
         lowRangeCarbs,
         midRangeCarbs,
         highRangeCarbs,
+        glycemicPreferencesConfigured: true,
         defaultPortion: portionAsInt,
         updatedAt: new Date(),
       })
@@ -53,6 +55,7 @@ export async function saveGlycemicSettings(settings: {
       lowRangeCarbs,
       midRangeCarbs,
       highRangeCarbs,
+        glycemicPreferencesConfigured: true,
       defaultPortion: portionAsInt,
     });
   }
@@ -78,6 +81,7 @@ export async function getGlycemicSettings(userId: string) {
     lowRangeCarbs: settings.lowRangeCarbs ?? [],
     midRangeCarbs: settings.midRangeCarbs ?? [],
     highRangeCarbs: settings.highRangeCarbs ?? [],
+    glycemicPreferencesConfigured: settings.glycemicPreferencesConfigured,
   };
 }
 

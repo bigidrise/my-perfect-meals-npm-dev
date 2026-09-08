@@ -827,6 +827,8 @@ export const userGlycemicSettings = pgTable("user_glycemic_settings", {
   lowRangeCarbs: text("low_range_carbs").array().default(sql`ARRAY[]::text[]`),
   midRangeCarbs: text("mid_range_carbs").array().default(sql`ARRAY[]::text[]`),
   highRangeCarbs: text("high_range_carbs").array().default(sql`ARRAY[]::text[]`),
+  // Distinguishes an intentionally empty selection from legacy settings.
+  glycemicPreferencesConfigured: boolean("glycemic_preferences_configured").notNull().default(false),
   defaultPortion: integer("default_portion").default(100), // stored as integer (100 = 1.0 cups)
   updatedAt: timestamp("updated_at").defaultNow(),
 });

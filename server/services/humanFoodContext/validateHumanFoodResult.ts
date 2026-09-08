@@ -1,4 +1,5 @@
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import { validateGlycemicProduce } from "../glycemicProduceValidator";
 
 export interface HumanFoodValidationResult {
   valid: boolean;
@@ -56,6 +57,23 @@ export function validateHumanFoodResult(
   }
 
   const object = result as any;
+  if (context.diabetesFoodPreferences) {
+    const glucose = context.diabetesFoodPreferences;
+    const produce = validateGlycemicProduce({
+      ingredients: Array.isArray(object?.ingredients)
+        ? object.ingredients.map((item: any) => typeof item === "string" ? item : item?.name ?? item?.item ?? "")
+        : [],
+      activePreferences: [...glucose.selectedFruits, ...glucose.selectedVegetables],
+      preferencesConfigured: glucose.preferencesConfigured,
+      glucoseState: glucose.state,
+      safeLowGlucoseOverrides: glucose.safetyOverride.active
+        ? glucose.safetyOverride.allowedProduce
+        : [],
+    });
+    violations.push(...produce.violations.map((item) =>
+      `glucose_produce_not_allowed:${normalize(item.canonical)}`,
+    ));
+  }
   const nutrition = object?.nutrition ?? object ?? {};
   const remaining = context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
   const calories = finiteNumber(nutrition.calories ?? nutrition.kcal);

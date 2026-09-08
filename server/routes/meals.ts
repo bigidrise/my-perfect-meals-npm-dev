@@ -8,6 +8,8 @@ import { requireAuth } from "../middleware/requireAuth";
 import { createApiRateLimit } from "../middleware/rateLimit";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { generateMealImageUnified, type ImageSourceType } from "../services/mealImageGenerator";
+import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
 
 const imageRateLimit = createApiRateLimit();
 
@@ -62,6 +64,58 @@ router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res
       `name-driven fallback active (no recipe contract enforced). ` +
       `meal="${mealName.trim()}" sourceType="${sourceType}"`
     );
+  }
+
+  // Images are generated from client-supplied recipe details, so do not let an
+  // image recreation depict an unapproved fruit/vegetable for a configured
+  // diabetes glucose state. The allowlist itself is resolved server-side from
+  // the authenticated user; no client preference fields participate.
+  const userId = getAuthUserId(req);
+  if (userId) {
+    const scope = createHumanFoodRequestScope({
+      actorUserId: userId,
+      subjectUserId: userId,
+      creator: "recipe_maker",
+      correlationId: req.id,
+      actionRequest: mealName.trim(),
+      authorizationAction: "recipe_maker",
+    });
+    const context = await scope.resolve();
+    const glucosePreferences = context.diabetesFoodPreferences;
+    if (context.status === "blocked" || context.status === "review_required") {
+      return res.status(409).json({
+        imageUrl: null,
+        code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+        message: "Food context could not be resolved safely for image recreation.",
+      });
+    }
+    if (glucosePreferences?.preferencesConfigured && normalizedIngredients.length === 0) {
+      return res.status(422).json({
+        imageUrl: null,
+        code: "IMAGE_INGREDIENTS_REQUIRED_FOR_GLUCOSE_VALIDATION",
+        message: "Ingredients are required to safely recreate this image.",
+      });
+    }
+    const validation = validateHumanFoodCandidate({
+      name: mealName,
+      ingredients: normalizedIngredients,
+      evidence: {
+        sourceType: "generated_recipe",
+        ingredientEvidence: "structured_generation",
+        preparationEvidence: "structured_generation",
+        nutritionEvidence: "structured_generation",
+      },
+    }, context);
+    const glucoseFinding = validation.findings.find((finding) =>
+      finding.dimension === "glucose_food_preference",
+    );
+    if (glucoseFinding) {
+      return res.status(422).json({
+        imageUrl: null,
+        code: "GLUCOSE_PRODUCE_NOT_ALLOWED",
+        message: glucoseFinding.message,
+      });
+    }
   }
 
   try {

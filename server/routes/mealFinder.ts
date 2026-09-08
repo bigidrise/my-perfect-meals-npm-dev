@@ -13,6 +13,9 @@ import { resolveDailyNutritionState } from '../services/nutritionStateService';
 import { buildRemainingMacrosBlock } from '../services/restaurantMealGeneratorAI';
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from '../services/glp1/resolveGLP1GlobalContext';
 import { findUserByValidAuthToken } from '../services/authTokenService';
+import { createHumanFoodRequestScope } from '../services/humanFoodContext/requestScope';
+import { buildHumanFoodPromptBlock } from '../services/humanFoodContext/buildHumanFoodPromptBlock';
+import { applyRestaurantGlucoseProduceAdvisory } from '../services/restaurantGlucoseAdvisory';
 import {
   claimAdvisoryOverrideToken,
   commitAdvisoryOverrideToken,
@@ -79,6 +82,27 @@ router.post('/meal-finder', async (req, res) => {
       const reqUser = (req as any).authUser || (req as any).user;
       if (reqUser?.id && reqUser.id !== 'mock-user-id') userId = reqUser.id;
     }
+    // Anonymous finder requests have no server-owned glucose profile. For an
+    // authenticated request, bind all diabetes produce guidance to that user,
+    // not any client-provided preference/allowlist field.
+    let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | undefined;
+    if (userId) {
+      const foodScope = createHumanFoodRequestScope({
+        actorUserId: userId,
+        subjectUserId: userId,
+        creator: "recipe_maker",
+        correlationId: (req as any).id,
+        actionRequest: mealQuery,
+        authorizationAction: "find-meals",
+      });
+      humanFoodContext = await foodScope.resolve();
+      if (humanFoodContext.status === "blocked" || humanFoodContext.status === "review_required") {
+        return res.status(409).json({
+          error: "Food context could not be resolved safely.",
+          code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+        });
+      }
+    }
 
     // ── Resolve GLP-1 context FIRST — outside all catch-and-continue blocks ──
     // A resolver failure must return 503 and never fall through to unguarded
@@ -106,6 +130,10 @@ router.post('/meal-finder', async (req, res) => {
       try {
         const nutritionContext = await getActiveNutritionContext(userId);
         protocolBlock = nutritionContext.combinedBlock || undefined;
+        if (humanFoodContext) {
+          protocolBlock = [protocolBlock, buildHumanFoodPromptBlock(humanFoodContext)]
+            .filter(Boolean).join("\n\n");
+        }
         builderBlock = nutritionContext.builderBlock || undefined;
         // Use DB user object for full health conditions / dietary data
         const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -236,6 +264,9 @@ router.post('/meal-finder', async (req, res) => {
         console.log(`[MEAL-FINDER/GLP-1] Filtered ${results.length - glpFilteredResults.length} non-compliant meals`);
       }
     }
+    const glucoseFilteredResults = humanFoodContext
+      ? applyRestaurantGlucoseProduceAdvisory(glpFilteredResults, humanFoodContext)
+      : glpFilteredResults;
 
     // Image generation is deliberately client-owned and asynchronous. Returning
     // recommendation data now lets every card render its own shimmer immediately;
@@ -250,9 +281,9 @@ router.post('/meal-finder', async (req, res) => {
       success: true,
       query: mealQuery,
       zipCode,
-      results: glpFilteredResults,
-      count: glpFilteredResults.length,
-      ...(glpFilteredResults.length === 0 && {
+       results: glucoseFilteredResults,
+       count: glucoseFilteredResults.length,
+       ...(glucoseFilteredResults.length === 0 && {
         message: `No restaurants found serving "${mealQuery}" near ZIP ${zipCode}. Try a different search or ZIP code.`
       })
     });

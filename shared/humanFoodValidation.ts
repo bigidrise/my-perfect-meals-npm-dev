@@ -11,6 +11,7 @@ export type HumanFoodValidationDimension =
   | "avoidance"
   | "dietary_identity"
   | "clinical"
+  | "glucose_food_preference"
   | "nutrition"
   | "starch"
   | "whole_food"

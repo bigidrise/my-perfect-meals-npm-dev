@@ -26,6 +26,9 @@ import {
   commitAdvisoryOverrideToken,
   rollbackAdvisoryOverrideToken,
 } from "../services/safetyPinService";
+import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
+import { applyRestaurantGlucoseProduceAdvisory } from "../services/restaurantGlucoseAdvisory";
 
 // ── Alpha-gal condition detection keys (mirrors medicalBadges.ts) ─────────────
 const ALPHA_GAL_KEYS = [
@@ -114,6 +117,22 @@ router.post("/guide", async (req, res) => {
         error: "Valid 5-digit ZIP code is required" 
       });
     }
+    const humanFoodScope = createHumanFoodRequestScope({
+      actorUserId: userId,
+      subjectUserId: userId,
+      creator: "recipe_maker",
+      correlationId: (req as any).id,
+      actionRequest: craving,
+      authorizationAction: "restaurant-guide",
+    });
+    const humanFoodContext = await humanFoodScope.resolve();
+    if (humanFoodContext.status === "blocked" || humanFoodContext.status === "review_required") {
+      return res.status(409).json({
+        error: "Food context could not be resolved safely.",
+        code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+      });
+    }
+    const humanFoodPrompt = buildHumanFoodPromptBlock(humanFoodContext);
 
     console.log("🍽️ [Guide] Restaurant guide request received");
     
@@ -254,6 +273,7 @@ router.post("/guide", async (req, res) => {
       const fallbackProtocolBlock = [
         fallbackContext?.combinedBlock,
         fallbackGlp1Block,
+        humanFoodPrompt,
       ].filter(Boolean).join("\n\n") || undefined;
       const fallbackActionEnvelope = fallbackContext?.envelope && acknowledgedDietIdentity
         ? { ...fallbackContext.envelope, dietaryIdentity: effectiveDiet }
@@ -302,7 +322,10 @@ router.post("/guide", async (req, res) => {
       console.log(`✅ [Guide/AI] ${filteredAiRecs.length} recs in ${generationTime}ms`);
 
       // Attach alpha-gal safety badges when user has the condition active.
-      const aiRecsWithBadges = attachAlphaGalBadges(filteredAiRecs, isAlphaGalActive(user));
+      const aiRecsWithBadges = attachAlphaGalBadges(
+        applyRestaurantGlucoseProduceAdvisory(filteredAiRecs, humanFoodContext),
+        isAlphaGalActive(user),
+      );
 
       if (aiRecsWithBadges.length > 0 && claimedGovernanceToken) {
         commitAdvisoryOverrideToken(claimedGovernanceToken);
@@ -382,6 +405,7 @@ router.post("/guide", async (req, res) => {
     const guideProtocolBlock = [
       guideContext.combinedBlock,
       guideGlp1Block,
+      humanFoodPrompt,
     ].filter(Boolean).join("\n\n") || guideContext.combinedBlock;
     const guideActionEnvelope = acknowledgedDietIdentity
       ? { ...guideContext.envelope, dietaryIdentity: effectiveDiet }
@@ -440,7 +464,7 @@ router.post("/guide", async (req, res) => {
 
     // Attach alpha-gal safety badges when user has the condition active.
     const finalRecommendations = attachAlphaGalBadges(
-      verifiedFiltered,
+      applyRestaurantGlucoseProduceAdvisory(verifiedFiltered, humanFoodContext),
       isAlphaGalActive(user)
     );
 
@@ -607,6 +631,26 @@ router.post("/find-nearby", async (req, res) => {
     if (!zipCode || !/^\d{5}$/.test(zipCode)) {
       return res.status(400).json({ error: "Valid 5-digit ZIP code is required" });
     }
+    const nearbyFoodScope = createHumanFoodRequestScope({
+      actorUserId: userId,
+      subjectUserId: userId,
+      creator: "recipe_maker",
+      correlationId: (req as any).id,
+      actionRequest: "nearby restaurants",
+      authorizationAction: "find-nearby",
+    });
+    const nearbyFoodContext = await nearbyFoodScope.resolve();
+    if (nearbyFoodContext.status === "blocked" || nearbyFoodContext.status === "review_required") {
+      return res.status(409).json({ error: "Food context could not be resolved safely.", code: "HUMAN_FOOD_CONTEXT_UNRESOLVED" });
+    }
+    const nearbyGlucoseAdvisory = nearbyFoodContext.diabetesFoodPreferences?.preferencesConfigured
+      ? {
+          status: "advisory_unverified",
+          message: "Nearby restaurant listings do not verify ingredients. Ask for only your approved glucose-state fruits and vegetables; do not assume other produce is appropriate.",
+          approvedFruits: nearbyFoodContext.diabetesFoodPreferences.selectedFruits,
+          approvedVegetables: nearbyFoodContext.diabetesFoodPreferences.selectedVegetables,
+        }
+      : undefined;
 
     const apiKey = process.env.GOOGLE_PLACES_API_KEY;
     if (!apiKey) {
@@ -707,6 +751,7 @@ router.post("/find-nearby", async (req, res) => {
         adaptable: [],
         totalScored: scored.length,
         noResultsMessage: `No ${dietLabel}-certified restaurants found in your area.`,
+        ...(nearbyGlucoseAdvisory ? { glucoseProduceGuidance: nearbyGlucoseAdvisory } : {}),
         generatedAt: new Date().toISOString(),
       });
     }
@@ -717,6 +762,7 @@ router.post("/find-nearby", async (req, res) => {
       highMatch,
       adaptable,
       totalScored: scored.length,
+      ...(nearbyGlucoseAdvisory ? { glucoseProduceGuidance: nearbyGlucoseAdvisory } : {}),
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

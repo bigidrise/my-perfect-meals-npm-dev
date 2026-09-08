@@ -46,6 +46,7 @@ function context(overrides: Partial<HumanFoodContext> = {}): HumanFoodContext {
     },
     nutrition: null,
     behavior: null,
+    diabetesFoodPreferences: null,
     gaps: [],
     notices: [],
     blockedReasons: [],
@@ -67,6 +68,66 @@ function generatedEvidence(overrides: HumanFoodCandidate["evidence"] = {}) {
 }
 
 describe("universal Human Food final-validation contract", () => {
+  const glucosePreferenceContext = (
+    state: "LOW" | "IN_RANGE" | "HIGH",
+    selectedFruits: string[],
+    selectedVegetables: string[],
+    override = false,
+  ): HumanFoodContext["diabetesFoodPreferences"] => ({
+    state,
+    preferenceBand: state,
+    valueMgdl: state === "LOW" ? 62 : state === "HIGH" ? 190 : 110,
+    context: "RANDOM",
+    source: "LOG",
+    ageMinutes: 5,
+    criticalLow: false,
+    criticalHigh: false,
+    preferencesConfigured: true,
+    selectedFruits,
+    selectedVegetables,
+    safetyOverride: {
+      active: override,
+      reason: override ? "HYPOGLYCEMIA_TREATMENT" : null,
+      allowedProduce: override ? ["Banana"] : [],
+    },
+  });
+
+  it.each([
+    ["HIGH", ["Blueberries"], ["Broccoli", "Spinach"]],
+    ["IN_RANGE", ["Apple"], ["Broccoli"]],
+    ["LOW", ["Orange"], ["Broccoli"]],
+  ] as const)("rejects unapproved produce for configured %s preferences", (state, fruits, vegetables) => {
+    const result = validateHumanFoodCandidate({
+      name: "Chicken bowl",
+      ingredients: ["chicken breast", "broccoli", "banana"],
+      evidence: generatedEvidence(),
+    }, context({
+      diabetesFoodPreferences: glucosePreferenceContext(state, [...fruits], [...vegetables]),
+    }));
+
+    expect(result.outcome).toBe("repairable");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        dimension: "glucose_food_preference",
+        code: "glucose_produce_not_allowed:banana",
+      }),
+    ]));
+  });
+
+  it("allows only the explicit whole-produce hypoglycemia override", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Low glucose recovery plate",
+      ingredients: ["banana", "chicken breast"],
+      evidence: generatedEvidence(),
+    }, context({
+      diabetesFoodPreferences: glucosePreferenceContext("LOW", [], [], true),
+    }));
+
+    expect(result.findings.some((finding) =>
+      finding.dimension === "glucose_food_preference"
+    )).toBe(false);
+  });
+
   it("accepts omnivore as an unrestricted dietary identity", () => {
     const result = validateHumanFoodCandidate({
       name: "Herb-Marinated Grilled Pork Chop",

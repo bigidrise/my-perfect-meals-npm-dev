@@ -6,6 +6,11 @@ import {
   type HumanFoodContext,
   type HumanFoodCreator,
 } from "../../../shared/humanFoodContext";
+import { resolveUserGlucoseState } from "../glucoseStateResolver";
+import {
+  classifyGlycemicProduce,
+  HYPOGLYCEMIA_PRODUCE_OVERRIDES,
+} from "../glycemicProduceValidator";
 import { db } from "../../db";
 import { derivePreferenceProfile } from "../behavioralMemoryService";
 import { resolveDailyNutritionState } from "../nutritionStateService";
@@ -152,6 +157,7 @@ export async function resolveHumanFoodContext(
   const notices: string[] = [];
   let nutrition: HumanFoodContext["nutrition"] = null;
   let behavior: HumanFoodContext["behavior"] = null;
+  let diabetesFoodPreferences: HumanFoodContext["diabetesFoodPreferences"] = null;
   let status: HumanFoodContext["status"] = "resolved";
 
   try {
@@ -198,6 +204,48 @@ export async function resolveHumanFoodContext(
   const storedDiet = profile.dietaryRestrictions ?? [];
   const requestDiet = input.dietOverride?.trim() || null;
   const effectiveDiet = requestDiet ? [requestDiet] : storedDiet;
+  const diabetesActive = [...(profile.healthConditions ?? []), ...effectiveDiet]
+    .some((value) => normalizeRulePart(value).includes("diabet"));
+  if (diabetesActive) {
+    try {
+      const glucose = await resolveUserGlucoseState(input.subjectUserId);
+      const produce = glucose.activePreferences
+        .map(classifyGlycemicProduce)
+        .filter((item): item is NonNullable<typeof item> => item !== null);
+      const selectedFruits = produce
+        .filter((item) => item.category === "fruit")
+        .map((item) => item.canonical);
+      const selectedVegetables = produce
+        .filter((item) => item.category === "vegetable")
+        .map((item) => item.canonical);
+      const selectedHypoTreatmentAvailable = glucose.state === "LOW" &&
+        glucose.activePreferences.some((item) =>
+          HYPOGLYCEMIA_PRODUCE_OVERRIDES.includes(
+            (classifyGlycemicProduce(item)?.canonical ?? "") as typeof HYPOGLYCEMIA_PRODUCE_OVERRIDES[number],
+          ),
+        );
+      const hypoOverrideActive = glucose.state === "LOW" &&
+        glucose.preferencesConfigured &&
+        !selectedHypoTreatmentAvailable;
+      diabetesFoodPreferences = {
+        ...glucose,
+        preferenceBand: glucose.state === "LOW" || glucose.state === "IN_RANGE" || glucose.state === "HIGH"
+          ? glucose.state
+          : null,
+        selectedFruits,
+        selectedVegetables,
+        safetyOverride: {
+          active: hypoOverrideActive,
+          reason: hypoOverrideActive ? "HYPOGLYCEMIA_TREATMENT" : null,
+          allowedProduce: hypoOverrideActive ? [...HYPOGLYCEMIA_PRODUCE_OVERRIDES] : [],
+        },
+      };
+    } catch {
+      status = "review_required";
+      gaps.push("diabetes.glucose_food_preferences");
+      notices.push("Current glucose-based food preferences could not be resolved safely.");
+    }
+  }
   if (!effectiveDiet.length) gaps.push("diet.preference");
   if (status === "resolved" && gaps.length) status = "resolved_with_gaps";
 
@@ -233,6 +281,7 @@ export async function resolveHumanFoodContext(
     authorization,
     nutrition,
     behavior,
+    diabetesFoodPreferences,
     gaps: [...new Set(gaps)],
     notices,
     blockedReasons: [],

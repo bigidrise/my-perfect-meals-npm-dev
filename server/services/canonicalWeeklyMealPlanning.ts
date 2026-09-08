@@ -128,7 +128,16 @@ async function generateCanonicalDay(input: {
   }
   const source = await weeklyMealPlanningServiceA.generate({
     weeks: 1, mealsPerDay: input.mealsPerDay ?? 3, snacksPerDay: input.snacksPerDay ?? 0,
-    targets: input.targets ?? { calories: 2000, protein: 140 },
+    targets: input.targets ?? (
+      input.dietOverride === "diabetic" && context.nutrition
+        ? {
+            calories: context.nutrition.prescription.caloriesTarget,
+            protein: context.nutrition.prescription.proteinTarget,
+            carbs: context.nutrition.prescription.carbsTarget,
+            fats: context.nutrition.prescription.fatTarget,
+          }
+        : { calories: 2000, protein: 140 }
+    ),
     diet: context.diet.effective[0] ?? "balanced",
     medicalFlags: context.safety.healthConditions, userAllergens: context.safety.allergies,
   } as any);
