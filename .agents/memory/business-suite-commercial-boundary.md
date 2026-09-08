@@ -3,10 +3,10 @@ name: Business Suite commercial boundary
 description: Authoritative commercial intent for ordinary self-service Organizations versus professional staff and pilots.
 ---
 
-The ordinary self-service Business Suite is a flat $44.99/month Organization subscription for the owner. Client invitations do not consume professional seats or increase the subscription price. Owners may invite any reasonable number of clients, subject only to legitimate security and anti-abuse controls, with server-authoritative 7, 14, or 30-day complimentary access.
+The ordinary self-service Business Suite is a flat $44.99/month Organization subscription with Stripe quantity permanently 1. Client and professional invitations never increase billing quantity. Clients may receive server-authoritative 7, 14, or 30-day complimentary access; professional invitees may receive one 30-day introductory entitlement.
 
-Whether additional professional staff are included, capped, or separately billed is intentionally undecided. Do not infer that unlimited clients means unlimited sponsored trainers, physicians, nurses, or staff. Organizational Pilots and negotiated larger-organization arrangements remain separate.
+Organization membership and invitations do not provide permanent sponsored professional premium access. After introductory access expires, a professional needs another valid entitlement or falls back to the appropriate limited state. Membership, training history, attribution, and legitimate relationships persist independently. Organizational Pilots retain separate activation/funding and capacity authorities while sharing the core Organization experience where safe.
 
-**Why:** Client trials are an acquisition mechanism, while professional memberships may sponsor materially different access. Combining them could either charge small professionals for clients or unintentionally sponsor large clinical teams for one owner fee.
+**Why:** The flat fee removes adoption-blocking seat purchases without creating an indefinitely free commercial professional tier. Funding, membership, care relationships, affiliate attribution, and individual entitlement must remain separate.
 
-**How to apply:** Remove client metering from ordinary Business logic and copy. Before changing professional seat limits or Stripe quantity, obtain an explicit product decision and define migration/grandfathering treatment for existing subscriptions.
+**How to apply:** Ordinary self-service checkout stays at the existing live $44.99 Organization Price with quantity 1. Never add a client/team invitation billing multiplier. Preserve legacy paid records and Pilot capacities until a separately authorized migration.

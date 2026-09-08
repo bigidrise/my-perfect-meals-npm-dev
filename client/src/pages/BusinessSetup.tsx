@@ -4,7 +4,7 @@
  * First-time business signup flow. Shown immediately after a user creates a
  * business account (/auth?role=business). Collects the organization name,
  * creates the businesses row (POST /api/business/create-org), then redirects
- * to Stripe checkout for one owner seat (POST /api/stripe/checkout/business).
+ * to Stripe checkout for the flat Organization plan (POST /api/stripe/checkout/business).
  *
  * This page is intentionally ungated — the user has not yet paid.
  */
@@ -119,7 +119,7 @@ export default function BusinessSetup() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ seats: 1 }),
+        body: JSON.stringify({}),
       });
       const checkoutData = await checkoutRes.json();
       if (!checkoutRes.ok) {
@@ -161,7 +161,7 @@ export default function BusinessSetup() {
             {user?.email && <span className="text-white/70">{user.email} · </span>}
             {pilotMode
               ? "Confirm your organization details and authorized pilot capacity."
-              : "Name your organization and choose how many seats to purchase."}
+               : "Name your organization and activate your flat-rate Organization plan."}
           </p>
         </div>
 
@@ -182,10 +182,10 @@ export default function BusinessSetup() {
             />
           </div>
 
-          {/* Initial owner access or authorized pilot capacity */}
+          {/* Organization access or authorized pilot capacity */}
           <div>
             <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-2">
-              {pilotMode ? "Authorized Professional Capacity" : "Initial Professional Access"}
+              {pilotMode ? "Authorized Professional Capacity" : "Organization Plan"}
             </label>
             {pilotMode ? (
               <div className="grid grid-cols-2 gap-3">
@@ -200,14 +200,14 @@ export default function BusinessSetup() {
               </div>
             ) : (
               <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
-                <p className="text-xs text-white/50">Organization owner</p>
-                <p className="mt-1 text-2xl font-bold text-orange-300">1 professional seat</p>
+                <p className="text-xs text-white/50">Flat monthly plan</p>
+                <p className="mt-1 text-2xl font-bold text-orange-300">$44.99/month</p>
               </div>
             )}
             <p className="text-white/30 text-xs mt-2">
               {pilotMode
                 ? `These limits come from the approved authorization and cannot be increased here. The ${pilotSetup?.durationDays ?? 30}-day clock remains stopped while the pilot is Preparing.`
-                : "You occupy the owner seat. Invite clients into complimentary trials, then add professional seats later from Manage Seats in your Organization Dashboard."}
+                : "Invite and manage professional team members from your Organization Dashboard. Each invited professional receives a one-time 30-day introductory entitlement, then needs another valid entitlement to continue professional access."}
             </p>
           </div>
 
@@ -219,8 +219,8 @@ export default function BusinessSetup() {
                 <p className="text-white font-bold text-base">$44.99/mo</p>
               </div>
               <div className="text-right">
-                <p className="text-white/50 text-xs">Initial access</p>
-                <p className="text-orange-300 font-bold text-base">1 owner</p>
+                <p className="text-white/50 text-xs">Team invitations</p>
+                <p className="text-orange-300 font-bold text-base">Included</p>
               </div>
             </div>
           )}
@@ -228,8 +228,7 @@ export default function BusinessSetup() {
           {/* What's included */}
           <div className="space-y-1.5">
             {[
-              "Full platform access for every seat",
-              "Organization Dashboard with team management",
+              "Organization Dashboard with client and team management",
               "Client invitation & trial access tools",
               "Partner & Revenue Center (after certification)",
             ].map((item) => (
@@ -270,7 +269,7 @@ export default function BusinessSetup() {
           <p className="text-center text-white/30 text-xs">
             {pilotMode
               ? "No payment is required for this authorized pilot. Claiming setup does not start the pilot clock."
-              : "Secure checkout via Stripe. Cancel or adjust seats any time from your dashboard."}
+              : "Secure checkout via Stripe. Your flat Organization subscription is $44.99/month."}
           </p>
         </form>
       </div>

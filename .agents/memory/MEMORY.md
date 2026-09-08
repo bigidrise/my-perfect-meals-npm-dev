@@ -75,4 +75,4 @@
 - [One-action food choice](one-action-food-choice.md) — profiles set defaults; an informed explicit choice governs one food action without changing the profile.
 - [Macro replacement boundary](macro-replacement-boundary.md) — recalculation is preview-only; saved targets remain authoritative until a final confirmed save succeeds.
 - [Business invitation identity](business-invitation-identity.md) — one email-bound invitation connects existing or new accounts through the same acceptance path.
-- [Business Suite commercial boundary](business-suite-commercial-boundary.md) — ordinary clients are unmetered; professional staff capacity remains a separate product decision.
+- [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.

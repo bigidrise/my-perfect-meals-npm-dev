@@ -28,7 +28,7 @@ const journey = [
   {
     icon: CreditCard,
     title: "Activate your Business Suite",
-    description: "Subscribe for $44.99/month. Start with one professional owner and add professional team seats later.",
+    description: "Subscribe for a flat $44.99/month Organization plan.",
   },
   {
     icon: UserPlus,

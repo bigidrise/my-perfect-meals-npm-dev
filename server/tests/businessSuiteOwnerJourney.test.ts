@@ -80,8 +80,10 @@ describe("Business Suite owner-first journey", () => {
 
     expect(createIndex).toBeGreaterThan(-1);
     expect(checkoutIndex).toBeGreaterThan(createIndex);
-    expect(setup).toContain("JSON.stringify({ seats: 1 })");
-    expect(checkout).toContain("clientRequestedSeats !== 1");
+    expect(setup).not.toContain("JSON.stringify({ seats:");
+    expect(checkout).toContain("clientRequestedQuantity !== 1");
+    expect(checkout).toContain("const requestedSeats = 1");
+    expect(checkout).toContain("quantity: requestedSeats");
     expect(checkout).toContain('getTrustedCheckoutPlan("clinical_business_monthly")');
   });
 

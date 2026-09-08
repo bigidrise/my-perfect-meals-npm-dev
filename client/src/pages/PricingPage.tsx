@@ -552,7 +552,7 @@ export default function PricingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ seats: 1 }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -1049,7 +1049,7 @@ export default function PricingPage() {
             </div>
             <h2 className="text-2xl font-bold text-white">Organization / Business Suite</h2>
             <p className="text-white/60 text-sm mt-2 max-w-xl mx-auto">
-              Start with one professional owner seat. Invite clients to try My Perfect Meals, then add professional seats later from your Organization Dashboard.
+              A flat-rate Organization plan for managing clients and inviting your professional team.
             </p>
           </div>
 
@@ -1061,13 +1061,13 @@ export default function PricingPage() {
                     <h3 className="text-xl font-bold">Organization</h3>
                     <Badge className="bg-blue-600/80 text-white border border-blue-400/30">Business Suite</Badge>
                   </div>
-                  <p className="text-blue-300 text-sm font-medium">One organization owner</p>
+                  <p className="text-blue-300 text-sm font-medium">Flat-rate organization management</p>
                   <div className="flex items-baseline gap-1 pt-1">
                     <span className="text-3xl font-bold">$44.99</span>
                     <span className="text-white text-sm">/ month</span>
                   </div>
                   <p className="text-white text-xs">
-                    Includes one professional owner seat with full Clinical and ProCare access
+                    Includes organization management, client invitations, and professional team invitations
                   </p>
                 </div>
               </CardHeader>
@@ -1077,14 +1077,14 @@ export default function PricingPage() {
               <CardContent className="pt-5">
                 <div className="mb-5 bg-blue-600/10 border border-blue-500/20 rounded-xl px-3 py-2.5">
                   <p className="text-blue-200/80 text-xs leading-relaxed">
-                    Your subscription starts with you as the organization owner. Client trials do not require a paid professional seat. Add coaches, trainers, physicians, or staff later through Manage Seats.
+                    Invite clients to 7-, 14-, or 30-day complimentary access. Invited professionals receive a one-time 30-day introductory entitlement and then need another valid entitlement for ongoing professional access.
                   </p>
                 </div>
 
                 {/* Features */}
                 <div className="space-y-2.5">
                   {[
-                    "Full Clinical access for every assigned user",
+                    "Organization tools for client and team management",
                     "Clinical Lab Results Integration",
                     "Care Team Access (physician & trainer)",
                     "Performance Nutrition Builder",
@@ -1116,7 +1116,7 @@ export default function PricingPage() {
                   )}
                 </button>
                 <p className="text-white/40 text-xs text-center mt-2">
-                  Web billing only · Manage seats from your account dashboard
+                  Web billing only · Manage clients and team members from your Organization Dashboard
                 </p>
               </div>
             </Card>
