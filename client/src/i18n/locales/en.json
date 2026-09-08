@@ -604,7 +604,11 @@
     "scanningMenu": "Scanning the menu…",
     "howToUseTitle": "How to Use Restaurant Assistant",
     "entryTitle": "Restaurant Assistant",
-    "entryDesc": "Tell me where you're eating and what you're in the mood for, and I'll show you the best options from their menu.",
+    "entryDesc": "Tell me where you're eating and what you're in the mood for. I'll use the restaurant's cuisine and available information to suggest meals and show you how to order them your way.",
+    "orderingEducationTitle": "Know What to Order. Know How to Ask.",
+    "orderingEducationBody": "Google Places helps My Perfect Meals identify the restaurant, location, and cuisine. Because menus and ingredients can change, an exact suggested meal may not always appear on the current menu.",
+    "orderingEducationGuidance": "We'll show you what to look for and how to ask about reasonable changes, such as different sides, sauces on the side, removing ingredients, or another preparation method. The restaurant decides what it can accommodate.",
+    "orderingEducationClosing": "You don't have to guess how to stay on track—we'll show you what to ask for.",
     "recommendedAt": "Recommended Meals at"
   },
   "upgrade": {
@@ -1069,6 +1073,10 @@
     "socialHub": "Social Hub",
     "entryTitle": "Find My Meal",
     "entryDesc": "Tell me what you're craving and I'll find nearby restaurants with healthy options that fit your goals.",
+    "orderingEducationTitle": "Find the Cuisine. Then Make It Work for You.",
+    "orderingEducationBody": "Google Places helps My Perfect Meals find nearby restaurants based on location, restaurant type, and cuisine. Menus can change, so every suggested meal may not appear exactly as shown.",
+    "orderingEducationGuidance": "We'll show you what to look for, adjustments to consider, and how to ask for a meal that better fits your goals. The restaurant decides what it can accommodate.",
+    "orderingEducationClosing": "Find the restaurant. Understand your options. Know how to order.",
     "letsFindMeals": "Let's Find Meals",
     "step1": "Step 1",
     "step1Question": "What are you in the mood to eat?",
