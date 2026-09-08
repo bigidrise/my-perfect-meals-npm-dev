@@ -1597,12 +1597,12 @@ export default function BusinessDashboard() {
               <>
                 <div>
                   <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                    Program Name <span className="text-white/30 normal-case font-normal">(optional)</span>
+                    Business Name <span className="text-white/30 normal-case font-normal">(optional)</span>
                   </label>
                   <input
                     type="text"
                     className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-orange-400 placeholder-white/30"
-                    placeholder="My Perfect Meals Complimentary Access"
+                    placeholder={ownerData?.business?.name || "Your organization name"}
                     value={clientProgramName}
                     onChange={(e) => setClientProgramName(e.target.value)}
                   />
