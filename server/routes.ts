@@ -6164,6 +6164,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           correlationId: (req as any).id,
           stage: "model_candidates_returned",
           count: Array.isArray(mealOptions) ? mealOptions.length : 0,
+          caloriesPerServing: Array.isArray(mealOptions)
+            ? mealOptions.map((meal: any) => meal.nutrition?.calories ?? meal.calories ?? null)
+            : [],
         });
       }
 
@@ -6738,9 +6741,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           acceptedCount: finalEnforcement.accepted.length,
           repairAttempted: finalEnforcement.repairAttempted,
           repeatedRepairRejected: finalEnforcement.repeatedRepairRejected,
-          validations: finalEnforcement.validations.map(({ result }) => ({
+          validations: finalEnforcement.validations.map(({ candidate, result }) => ({
+            caloriesPerServing: (candidate as any)?.nutrition?.calories ?? (candidate as any)?.calories ?? null,
             outcome: result.outcome,
-            findingCodes: result.findings.map((finding) => finding.code),
+            findingCodes: result.findings.map((finding) => finding.code).join("|"),
           })),
         });
       }

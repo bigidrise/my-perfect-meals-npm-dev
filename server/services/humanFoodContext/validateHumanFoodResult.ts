@@ -75,7 +75,9 @@ export function validateHumanFoodResult(
     ));
   }
   const nutrition = object?.nutrition ?? object ?? {};
-  const remaining = context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
+  const remaining = context.nutrition?.prescription?.source === "fallback"
+    ? null
+    : context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
   const calories = finiteNumber(nutrition.calories ?? nutrition.kcal);
   const carbs = finiteNumber(nutrition.carbs ?? nutrition.carbs_g);
   const fat = finiteNumber(nutrition.fat ?? nutrition.fat_g);
