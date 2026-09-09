@@ -6611,12 +6611,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : undefined,
           glp1Compliant: complianceEvidence.glp1Compliant,
           diabetesCompliant: complianceEvidence.diabetesCompliant,
-          cuisine: humanFoodContext.flavor.cuisine.value ?? undefined,
-          cuisineIntensity: humanFoodContext.flavor.cuisineIntensity.value ?? undefined,
-          heat: humanFoodContext.flavor.heat.value ?? undefined,
-          seasoningIntensity: humanFoodContext.flavor.seasoningIntensity.value ?? undefined,
-          broadFlavor: humanFoodContext.flavor.broadFlavor.value ?? undefined,
-          flavorStyle: humanFoodContext.flavor.flavorStyle.value ?? undefined,
         },
         });
       };
