@@ -1790,6 +1790,9 @@ function buildVarietyPrompt(
   cuisineGroundingBlock: string = '',
   measurementSystem: MeasurementSystem = 'imperial'
 ): string {
+  const hasHardCreateDishIntent = cravingInput.includes(
+    "[CREATE A DISH — HARD CULINARY INTENT]",
+  );
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
     ? `USER DIET: ${primaryDiet.toUpperCase()} — ALL 3 options must comply fully. Zero exceptions.`
@@ -1837,16 +1840,19 @@ HIERARCHY (follow in this EXACT order):
 3. DISH FAMILY LOCK (non-negotiable)
    The user asked for: "${cravingInput}"
    Core dish to stay within: "${dishFamily}"
-   ALL 3 options must be variations of "${dishFamily}" — different preparations, textures, flavors, or proteins.
+   ALL 3 options must be variations of "${dishFamily}"${hasHardCreateDishIntent ? " while preserving every fixed Create a Dish form/cut, texture, and flavor requirement" : " — different preparations, textures, flavors, or proteins"}.
    Example: "soup" → Chicken Noodle Soup, Lentil Tomato Soup, Creamy Broccoli Soup.
    Example: "cheesecake" → Classic Baked Cheesecake, No-Bake Cheesecake, Cheesecake Parfait.
    NEVER drift to a completely different dish type. A rice plate is not a soup. A grilled protein is not a salad.
 
 4. VARIATION (apply last, within constraints above)
    Each option must differ meaningfully:
-   - Different preparation method (baked vs no-bake vs layered vs mousse vs parfait)
-   - Different texture or format (slice, cup, jar, bar)
-   - Different flavor accent (classic vs fruity vs nutty vs spiced)
+   ${hasHardCreateDishIntent
+     ? "- Vary only unconstrained side pairings, vegetables, garnishes, plating, and other dimensions not fixed by the Create a Dish intent."
+     : "- Different preparation method, texture or format, and flavor accent."}
+   ${hasHardCreateDishIntent
+     ? "- Never vary away from a selected form/cut, texture, or flavor."
+     : "- Use genuinely distinct preparations rather than minor wording changes."}
    NO minor wording changes — make each option genuinely distinct.
 
 ${excludeClause}
@@ -1894,6 +1900,9 @@ function buildRecipeVarietyPrompt(
   cuisineGroundingBlock: string = '',
   measurementSystem: MeasurementSystem = 'imperial'
 ): string {
+  const hasHardCreateDishIntent = cravingInput.includes(
+    "[CREATE A DISH — HARD CULINARY INTENT]",
+  );
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
     ? `DIET: ${primaryDiet.toUpperCase()} — ALL 3 options must comply. Zero exceptions.`
@@ -1919,10 +1928,12 @@ PRIORITY 2 — ALLERGEN SAFETY & DIET (non-negotiable):
 PRIORITY 3 — DISH VARIETY:
   The user requested: "${cravingInput}"
   Core dish family: "${dishFamily}"
-  Generate 3 distinct variations using different:
+  ${hasHardCreateDishIntent
+    ? "Generate 3 distinct variations while preserving every fixed Create a Dish form/cut, texture, and flavor requirement. Vary only unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions."
+    : `Generate 3 distinct variations using different:
   - Preparation methods (baked vs pan-fried vs stovetop)
   - Flavor profiles (classic vs herbed vs spiced)
-  - Textures or formats
+  - Textures or formats`}
 
 ${excludeClause}
 
@@ -2295,8 +2306,13 @@ export async function generateCravingMealOptions(
     );
   }
 
+  const hasHardCreateDishIntent = cravingInput.includes(
+    "[CREATE A DISH — HARD CULINARY INTENT]",
+  );
   const excludeClause = excludeMeals && excludeMeals.length > 0
-    ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
+    ? hasHardCreateDishIntent
+      ? `ANTI-REPETITION: Do NOT repeat these recently seen options: ${excludeMeals.join(", ")}. Preserve every fixed Create a Dish requirement and vary only unconstrained dimensions.`
+      : `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
     : "";
 
   const openai = getOpenAI();

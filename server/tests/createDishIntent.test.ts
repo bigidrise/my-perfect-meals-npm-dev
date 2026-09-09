@@ -36,7 +36,16 @@ async function chickenIntent() {
       canonicalName: expansion.ingredient.canonicalName,
       category: expansion.ingredient.category,
     },
-    resolvedCombination: expansion.resolvedCombination,
+    resolvedCombination: {
+      form: expansion.resolvedCombination?.form ?? null,
+      texture: expansion.resolvedCombination?.texture ?? null,
+      flavor: expansion.resolvedCombination?.flavor ?? null,
+      selectionSource: {
+        form: expansion.resolvedCombination?.selectionSource.form ?? "not_applicable",
+        texture: expansion.resolvedCombination?.selectionSource.texture ?? "not_applicable",
+        flavor: expansion.resolvedCombination?.selectionSource.flavor ?? "not_applicable",
+      },
+    },
   });
 }
 
@@ -60,9 +69,14 @@ describe("Create a Dish generation intent", () => {
   test("revalidates a coherent intent and builds an isolated culinary directive", async () => {
     const intent = await chickenIntent();
     const validated = await revalidateCreateDishIntent(intent, []);
-    expect(validated.resolvedCombination.method?.id).toBe("stir-fried");
+    expect(validated.resolvedCombination.form?.id).toBe("cubed");
+    expect(validated.resolvedCombination.texture?.id).toBe("tender-crisp");
+    expect(validated.resolvedCombination.flavor?.id).toBe("teriyaki");
     expect(buildCreateDishIntentPrompt(validated)).toContain(
-      "[CREATE A DISH — VALIDATED CULINARY INTENT]",
+      "[CREATE A DISH — HARD CULINARY INTENT]",
+    );
+    expect(buildCreateDishIntentPrompt(validated)).toContain(
+      "Do not vary any selected form/cut, texture, or flavor.",
     );
   });
 
@@ -74,7 +88,38 @@ describe("Create a Dish generation intent", () => {
           ...intent,
           resolvedCombination: {
             ...intent.resolvedCombination,
-            method: { ...intent.resolvedCombination.method!, id: "laser-cooked" },
+            form: { ...intent.resolvedCombination.form!, id: "laser-cut" },
+          },
+        },
+        [],
+      ),
+    ).rejects.toThrow();
+  });
+
+  test("rejects stale hidden Method and Cuisine expansion fields", async () => {
+    const intent = await chickenIntent();
+    await expect(
+      revalidateCreateDishIntent(
+        {
+          ...intent,
+          resolvedCombination: {
+            ...intent.resolvedCombination,
+            method: {
+              id: "air-fried",
+              label: "Air-Fried",
+              dimension: "method",
+              compatibleWith: [],
+              incompatibleWith: [],
+              source: "catalog",
+            },
+            cuisine: {
+              id: "cajun",
+              label: "Cajun",
+              dimension: "cuisine",
+              compatibleWith: [],
+              incompatibleWith: [],
+              source: "catalog",
+            },
           },
         },
         [],
