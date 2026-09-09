@@ -6732,6 +6732,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         },
       });
+      if (process.env.NODE_ENV === "development" && humanFoodCreator === "create_a_dish") {
+        console.log("[CreateDish:diagnostic] final validation summary", {
+          correlationId: (req as any).id,
+          acceptedCount: finalEnforcement.accepted.length,
+          repairAttempted: finalEnforcement.repairAttempted,
+          repeatedRepairRejected: finalEnforcement.repeatedRepairRejected,
+          validations: finalEnforcement.validations.map(({ result }) => ({
+            outcome: result.outcome,
+            findingCodes: result.findings.map((finding) => finding.code),
+          })),
+        });
+      }
 
       // Never leak a blocked/review/repairable candidate. If no final candidate
       // passes, return the strongest typed outcome observed.
