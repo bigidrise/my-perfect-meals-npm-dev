@@ -5,6 +5,20 @@ import {
 } from "../../../shared/createDishIngredientExpansion";
 import { expandCreateDishIngredient } from "./ingredientExpansionService";
 
+function normalizeIngredientOnlyText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function isBroadIngredientOnlyCreateDishIntent(
+  intent: CreateDishIntent,
+): boolean {
+  return normalizeIngredientOnlyText(intent.originalText) ===
+    normalizeIngredientOnlyText(intent.ingredient.canonicalName);
+}
+
 export async function revalidateCreateDishIntent(
   raw: unknown,
   allergyTags: string[],
