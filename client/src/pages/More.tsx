@@ -22,6 +22,12 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ClientLegalModal from "@/components/pro/ClientLegalModal";
 import { SponsorEndedBanner } from "@/components/SponsorEndedBanner";
 import { useTranslation } from "react-i18next";
+import {
+  businessCardPresentation,
+  INITIAL_BUSINESS_CARD_STATE,
+  resolveBusinessCardState,
+  type BusinessCardState,
+} from "@/lib/businessCardState";
 
 interface ProCareFeature {
   title: string;
@@ -50,7 +56,7 @@ type ConnectionStatus = {
 
 export default function MorePage() {
   const [, setLocation] = useLocation();
-  const { user, refreshUser } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
   const isDesktop = useIsDesktop();
   const { t } = useTranslation("more");
@@ -71,67 +77,43 @@ export default function MorePage() {
   const [showClientLegalModal, setShowClientLegalModal] = useState(false);
   const [pendingLegalFlow, setPendingLegalFlow] = useState<"client" | "patient_physician">("client");
 
-  const [businessCard, setBusinessCard] = useState<{
-    mode: "owner" | "member";
-    name: string;
-    status: "active" | "incomplete";
-    usedSeats?: number;
-    seatLimit?: number;
-    role?: string;
-  } | null>(null);
+  const [businessCard, setBusinessCard] = useState<BusinessCardState>(
+    INITIAL_BUSINESS_CARD_STATE,
+  );
+  const [businessLookupAttempt, setBusinessLookupAttempt] = useState(0);
 
   useEffect(() => {
-    async function fetchBusiness() {
-      try {
-        const ownerRes = await fetch("/api/business/mine", {
-          headers: getAuthHeaders() as HeadersInit,
-          credentials: "include",
-        });
-        if (ownerRes.ok) {
-          const data = await ownerRes.json();
-          setBusinessCard({
-            mode: "owner",
-            name: data.business.name,
-            status: "active",
-            usedSeats: data.usedSeats,
-            seatLimit: data.business.seatLimit,
-          });
-          return;
-        }
-        const memberRes = await fetch("/api/business/membership", {
-          headers: getAuthHeaders() as HeadersInit,
-          credentials: "include",
-        });
-        if (memberRes.ok) {
-          const data = await memberRes.json();
-          setBusinessCard({
-            mode: "member",
-            name: data.membership.businessName,
-            status: "active",
-            role: data.membership.role,
-          });
-          return;
-        }
-        const statusRes = await fetch("/api/business/check-status", {
-          headers: getAuthHeaders() as HeadersInit,
-          credentials: "include",
-        });
-        if (statusRes.ok) {
-          const data = await statusRes.json();
-          if (data.exists) {
-            setBusinessCard({
-              mode: data.callerRole === "owner" ? "owner" : "member",
-              name: data.name,
-              status: data.status === "active" ? "active" : "incomplete",
-            });
-          }
-        }
-      } catch {
-        // Non-fatal
-      }
+    let cancelled = false;
+    setBusinessCard(INITIAL_BUSINESS_CARD_STATE);
+
+    if (authLoading) return () => {
+      cancelled = true;
+    };
+
+    if (!user?.id) {
+      setBusinessCard({ state: "error" });
+      return () => {
+        cancelled = true;
+      };
     }
-    if (user) fetchBusiness();
-  }, [user]);
+
+    async function fetchBusiness() {
+      const nextState = await resolveBusinessCardState((path) =>
+        fetch(path, {
+          headers: getAuthHeaders() as HeadersInit,
+          credentials: "include",
+        }),
+      );
+      if (!cancelled) setBusinessCard(nextState);
+    }
+    void fetchBusiness();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user?.id, businessLookupAttempt]);
+
+  const businessCardView = businessCardPresentation(businessCard);
 
   useEffect(() => {
     document.title = "More | My Perfect Meals";
@@ -454,9 +436,20 @@ export default function MorePage() {
           <div className="relative">
             <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(37,99,235,0.25), rgba(0,0,0,0))" }} />
             <Card
-              className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-blue-950/40 to-black backdrop-blur-lg border border-blue-500/40 hover:border-blue-400/70 hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+              className={`relative bg-gradient-to-r from-black via-blue-950/40 to-black backdrop-blur-lg border border-blue-500/40 transition-all duration-300 rounded-xl shadow-md overflow-hidden ${
+                businessCard.state === "loading"
+                  ? "cursor-wait"
+                  : "cursor-pointer active:scale-[0.98] hover:border-blue-400/70 hover:shadow-[0_0_30px_rgba(59,130,246,0.4)]"
+              }`}
               style={{ backgroundColor: "transparent" }}
-              onClick={() => setLocation(businessCard?.status === "active" ? "/business-dashboard" : "/business/start")}
+              onClick={() => {
+                if (businessCard.state === "error") {
+                  setBusinessLookupAttempt((attempt: number) => attempt + 1);
+                } else if (businessCardView.destination) {
+                  setLocation(businessCardView.destination);
+                }
+              }}
+              aria-busy={businessCard.state === "loading"}
               data-testid="card-business-suite"
             >
               <CardContent className="p-4">
@@ -466,18 +459,10 @@ export default function MorePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-white">
-                      {businessCard?.status === "active"
-                        ? "Open Organization Dashboard"
-                        : businessCard
-                          ? "Complete Organization Setup"
-                          : "Start Your Organization"}
+                      {businessCardView.title}
                     </h3>
                     <p className="text-xs text-white/60 truncate">
-                       {businessCard?.status === "active"
-                        ? `${businessCard.name} · Clients & Team Members`
-                         : businessCard
-                           ? `${businessCard.name} · Setup before payment`
-                         : "$44.99/month · Set up your Business Suite"}
+                      {businessCardView.description}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-blue-300 flex-shrink-0" />
