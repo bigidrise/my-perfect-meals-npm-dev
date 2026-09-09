@@ -15,6 +15,7 @@ import {
   scanMealsForAllergenViolations,
 } from "../allergyGuardrails";
 import { evaluateWholeFoodCandidate } from "../wholeFoodStandard";
+import { validateGlycemicProduce } from "../glycemicProduceValidator";
 import {
   buildHumanFoodRepairInstructions,
   humanFoodCandidateSignature,
@@ -219,6 +220,38 @@ export function validateHumanFoodCandidate(
       message: `The candidate contains a disliked food: ${disliked}.`, assurance: "deterministic",
       repairHint: `Replace ${disliked} with a flavor-compatible ingredient.`,
     });
+  }
+
+  if (context.diabetesFoodPreferences) {
+    const glucosePreferences = context.diabetesFoodPreferences;
+    const ingredients = (candidate.ingredients ?? []).flatMap((ingredient) =>
+      typeof ingredient === "string"
+        ? [ingredient]
+        : [ingredient.name, ingredient.item].filter((value): value is string => Boolean(value)),
+    );
+    const produceValidation = validateGlycemicProduce({
+      ingredients,
+      activePreferences: [
+        ...glucosePreferences.selectedFruits,
+        ...glucosePreferences.selectedVegetables,
+      ],
+      preferencesConfigured: glucosePreferences.preferencesConfigured,
+      glucoseState: glucosePreferences.state,
+      safeLowGlucoseOverrides: glucosePreferences.safetyOverride.active
+        ? glucosePreferences.safetyOverride.allowedProduce
+        : [],
+    });
+    for (const violation of produceValidation.violations) {
+      add(findings, {
+        dimension: "glucose_food_preference",
+        outcome: "repairable",
+        code: `glucose_produce_not_allowed:${normalize(violation.canonical)}`,
+        message: `${violation.canonical} is not in the user's active ${glucosePreferences.preferenceBand ?? glucosePreferences.state} glucose food allowlist.`,
+        assurance: "deterministic",
+        matchedTerms: [violation.ingredient],
+        repairHint: `Remove ${violation.canonical} or replace it with an explicitly allowed fruit or vegetable without changing the requested dish or cuisine.`,
+      });
+    }
   }
 
   for (const diet of context.diet.effective) {

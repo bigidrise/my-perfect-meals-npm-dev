@@ -75,6 +75,8 @@
 - [One-action food choice](one-action-food-choice.md) — profiles set defaults; an informed explicit choice governs one food action without changing the profile.
 - [Macro replacement boundary](macro-replacement-boundary.md) — recalculation is preview-only; saved targets remain authoritative until a final confirmed save succeeds.
 - [Business invitation identity](business-invitation-identity.md) — one email-bound invitation connects existing or new accounts through the same acceptance path.
+- [Multi-organization membership](multi-organization-membership.md) — staff membership in one organization must not prevent owning another.
 - [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
 - [Organization config resilience](organization-config-resilience.md) — authenticated tenant config may be partial; normalize it over complete defaults before feature-flag reads.
 - [Organization Location isolation](organization-location-isolation.md) — parent administration never implies Location access; active context is an exact authorized pair.
+- [Diabetes glucose context boundary](diabetes-glucose-context-boundary.md) — all food surfaces enforce state produce choices; only the Diabetes Meal Builder consumes diabetes-specific numbers.

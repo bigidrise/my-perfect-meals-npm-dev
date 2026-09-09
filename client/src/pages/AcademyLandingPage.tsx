@@ -565,60 +565,6 @@ export default function AcademyLandingPage() {
           )}
         </motion.div>
 
-        {/* ── SPECIALIZE ── */}
-        <motion.div
-          className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.56 }}
-        >
-          <div className="px-5 pt-5 pb-4 border-b border-white/8">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-1">
-                  Specialize
-                </p>
-                <h3 className="text-base font-bold text-white">Clinical Deep Dives</h3>
-                <p className="text-xs text-white/50 mt-1">
-                  Earn a specialty designation for each clinical area you master
-                </p>
-              </div>
-              <div className="px-2.5 py-1 rounded-full bg-white/10 border border-white/15 flex-shrink-0">
-                <span className="text-white/50 text-xs font-semibold">Coming Soon</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-5 py-4">
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { icon: "🩺", label: "Diabetes Nutrition" },
-                { icon: "💉", label: "GLP-1 Support" },
-                { icon: "👩‍⚕️", label: "Women's Health" },
-                { icon: "🏋️", label: "Performance Nutrition" },
-                { icon: "🎗️", label: "Oncology Support" },
-                { icon: "👶", label: "Pediatrics" },
-              ].map((topic, i) => (
-                <motion.div
-                  key={i}
-                  className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/8 opacity-50"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 0.5, y: 0 }}
-                  transition={{ delay: 0.6 + i * 0.04 }}
-                >
-                  <span className="text-base">{topic.icon}</span>
-                  <p className="text-xs font-medium text-white/60 leading-tight">{topic.label}</p>
-                  <Lock className="h-3 w-3 text-white/20 ml-auto shrink-0" />
-                </motion.div>
-              ))}
-            </div>
-            <p className="text-center text-white/25 text-xs mt-4 leading-relaxed">
-              Specialty certifications unlock as each clinical program is released.
-              Foundational certification must be complete first.
-            </p>
-          </div>
-        </motion.div>
-
         {/* Philosophy note */}
         <motion.div
           className="p-4 rounded-2xl bg-orange-500/8 border border-orange-500/20"

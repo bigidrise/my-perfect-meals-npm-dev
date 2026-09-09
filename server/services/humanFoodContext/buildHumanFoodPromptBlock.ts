@@ -9,6 +9,7 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
   const nutrition = context.nutrition;
   const projected = nutrition?.projectedRemaining ?? nutrition?.remaining;
   const consumedStarch = nutrition?.starch?.consumed;
+  const glucosePreferences = context.diabetesFoodPreferences;
   const lines = [
     "HUMAN FOOD CONTEXT v1 — preserve through every retry, correction, and fallback:",
     `- Effective diet: ${context.diet.effective.join(", ") || "no optional diet preference available"}`,
@@ -30,6 +31,21 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
       : null,
     context.safety.dislikedFoods.length
       ? `- Disliked foods: ${context.safety.dislikedFoods.join(", ")}`
+      : null,
+    glucosePreferences
+      ? `- Canonical glucose state: ${glucosePreferences.state}` +
+        `${glucosePreferences.valueMgdl == null ? "" : ` at ${glucosePreferences.valueMgdl} mg/dL`}` +
+        `${glucosePreferences.source ? ` from ${glucosePreferences.source.toLowerCase()}` : ""}` +
+        `${glucosePreferences.ageMinutes == null ? "" : ` (${glucosePreferences.ageMinutes} minutes old)`}.`
+      : null,
+    glucosePreferences?.preferencesConfigured && glucosePreferences.preferenceBand
+      ? `- STRICT ${glucosePreferences.preferenceBand} glucose produce allowlist. Fruits: ` +
+        `${glucosePreferences.selectedFruits.join(", ") || "none selected"}. Vegetables: ` +
+        `${glucosePreferences.selectedVegetables.join(", ") || "none selected"}. ` +
+        "Do not add any other fruit or vegetable."
+      : null,
+    glucosePreferences?.safetyOverride.active
+      ? `- Narrow hypoglycemia treatment override is active. Only these otherwise-unselected whole produce treatments may be used: ${glucosePreferences.safetyOverride.allowedProduce.join(", ")}. This does not waive any allergy or other diabetic safety rule.`
       : null,
     context.behavior?.preferredCuisines.length
       ? `- Behavioral cuisine hints (soft only): ${context.behavior.preferredCuisines.join(", ")}`

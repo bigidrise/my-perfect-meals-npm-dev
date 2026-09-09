@@ -174,6 +174,28 @@ assert.equal(
 );
 assert.match(buildHumanFoodPromptBlock(authorizedAvoidanceContext), /Authorized one-action exception/);
 
+const glucoseProduceContext: HumanFoodContext = {
+  ...context,
+  diabetesFoodPreferences: {
+    state: "HIGH",
+    preferenceBand: "HIGH",
+    valueMgdl: 190,
+    context: "RANDOM",
+    source: "LOG",
+    ageMinutes: 5,
+    criticalLow: false,
+    criticalHigh: false,
+    preferencesConfigured: true,
+    selectedFruits: ["Blueberries"],
+    selectedVegetables: ["Broccoli"],
+    safetyOverride: { active: false, reason: null, allowedProduce: [] },
+  },
+};
+const glucosePrompt = buildHumanFoodPromptBlock(glucoseProduceContext);
+assert.match(glucosePrompt, /STRICT HIGH glucose produce allowlist/);
+assert.match(glucosePrompt, /Fruits: Blueberries\. Vegetables: Broccoli\./);
+assert.match(glucosePrompt, /Do not add any other fruit or vegetable/);
+
 const executionState = createHumanFoodRequestExecutionState();
 recordRejectedHumanFoodCandidate(executionState, {
   name: "First Bowl",
