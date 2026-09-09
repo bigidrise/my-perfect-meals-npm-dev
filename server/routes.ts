@@ -2135,6 +2135,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getAuthUserId(req);
       const { fridgeItems, servings = 4, count = 3, macroTargets, _aliasUsed, safetyMode, overrideToken, skipPalate, strictMode, dietAdaptOverride, userDietOverride, cultureOverride } = req.body;
 
+      const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
+      const { buildHumanFoodPromptBlock } = await import("./services/humanFoodContext/buildHumanFoodPromptBlock");
+      const fridgeHumanFoodScope = createHumanFoodRequestScope({
+        actorUserId: userId,
+        subjectUserId: userId,
+        creator: "fridge_rescue",
+        correlationId: (req as any).id,
+        actionRequest: Array.isArray(fridgeItems) ? fridgeItems.join(", ") : "",
+        authorizationAction: "fridge-rescue",
+        advisoryOverrideToken: typeof overrideToken === "string" ? overrideToken : null,
+      });
+      const fridgeHumanFoodContext = await fridgeHumanFoodScope.resolve();
+      if (
+        fridgeHumanFoodContext.status === "blocked" ||
+        fridgeHumanFoodContext.status === "review_required"
+      ) {
+        return res.status(409).json({
+          error: "Food context could not be resolved safely.",
+          code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
+          retryable: true,
+        });
+      }
+      const fridgeHumanFoodPrompt =
+        buildHumanFoodPromptBlock(fridgeHumanFoodContext);
+
       if (!fridgeItems || !Array.isArray(fridgeItems) || fridgeItems.length === 0) {
         console.error("[FRIDGE] validation error: invalid fridgeItems", fridgeItems);
         return res.status(400).json({ 
@@ -2350,6 +2375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         oncologyFridgeBlock || '',
         aceFridgeBlock || '',
         glp1FridgeBlock || '',
+        fridgeHumanFoodPrompt,
       ].filter(Boolean).join('\n\n') || undefined;
 
       // Generate multiple meals with proper macros and amounts
@@ -2442,7 +2468,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const fridgeMealsWithCompliance = glp1ValidatedFridgeMeals.map(meal => {
+      const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
+      const humanFoodValidatedFridgeMeals = glp1ValidatedFridgeMeals.filter((meal: any) => {
+        const validation = validateHumanFoodCandidate(
+          {
+            name: meal.name,
+            description: meal.description,
+            ingredients: meal.ingredients ?? [],
+            instructions: meal.instructions ?? [],
+          },
+          fridgeHumanFoodContext,
+        );
+        if (validation.outcome !== "pass") {
+          console.warn(
+            `[FRIDGE] Excluding "${meal.name}" after canonical Human Food validation:`,
+            validation.findings.map((finding) => finding.code),
+          );
+          return false;
+        }
+        return true;
+      });
+      if (
+        humanFoodValidatedFridgeMeals.length === 0 &&
+        glp1ValidatedFridgeMeals.length > 0
+      ) {
+        return res.status(422).json({
+          error: "GLUCOSE_PREFERENCE_VALIDATION_FAILED",
+          message: "Generated meals did not satisfy your current food preferences. Please try different fridge items.",
+          retryable: true,
+        });
+      }
+
+      const fridgeMealsWithCompliance = humanFoodValidatedFridgeMeals.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, fridgeProtocolEnvelope
         );

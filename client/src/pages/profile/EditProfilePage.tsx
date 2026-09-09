@@ -22,6 +22,7 @@ import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 import { isGuestMode } from "@/lib/guestMode";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useTranslation } from "react-i18next";
+import { isDiabetesFoodPreferenceEligible } from "@shared/diabetesEligibility";
 
 type StepId = 1 | 2 | 3 | 4 | 5;
 
@@ -186,6 +187,7 @@ export default function EditProfilePage() {
 
   const [step, setStep] = useState<StepId>(1);
   const [saving, setSaving] = useState(false);
+  const glycemicEligible = isDiabetesFoodPreferenceEligible(user as any);
 
   useEffect(() => {
     const stepPath = `/profile/edit-step-${step}`;
@@ -334,7 +336,7 @@ export default function EditProfilePage() {
     data: glycemicData,
     save: saveGlycemic,
     isSaving: glycemicSaving,
-  } = useGlycemicSettings();
+  } = useGlycemicSettings(glycemicEligible);
 
   const [lowRangeCarbs, setLowRangeCarbs] = useState<string[]>(glycemicData.lowRangeCarbs ?? []);
   const [midRangeCarbs, setMidRangeCarbs] = useState<string[]>(glycemicData.midRangeCarbs ?? []);
@@ -1632,7 +1634,7 @@ export default function EditProfilePage() {
                   <Button
                     className="flex-1 bg-lime-600 text-white"
                     disabled={!canContinueStep3}
-                    onClick={() => setStep(4)}
+                    onClick={() => setStep(glycemicEligible ? 4 : 5)}
                   >
                     Continue
                   </Button>
@@ -1642,7 +1644,7 @@ export default function EditProfilePage() {
           </StepShell>
         )}
 
-        {step === 4 && (
+        {step === 4 && glycemicEligible && (
           <StepShell
             title="Glucose-Based Carb Choices"
             subtitle="Your glucose-based carb choices help MPM decide which fruits and carb sources to prioritize when building meals for diabetic support."
@@ -1916,9 +1918,11 @@ export default function EditProfilePage() {
                 <p className="text-white/80 text-xs">
                   Sweeteners: {sweetenerPreferences.length > 0 ? sweetenerPreferences.join(", ") : "None selected"}
                 </p>
-                <p className="text-white/80 text-xs">
-                  Glucose Carb Choices: {[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length > 0 ? `${[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length} foods selected across ranges` : "None selected"}
-                </p>
+                {glycemicEligible && (
+                  <p className="text-white/80 text-xs">
+                    Glucose Carb Choices: {[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length > 0 ? `${[...new Set([...lowRangeCarbs, ...midRangeCarbs, ...highRangeCarbs])].length} foods selected across ranges` : "None selected"}
+                  </p>
+                )}
                 <p className="text-white/80 text-xs">
                   Heat Preference: {heatPreference === "none" ? "No Heat" : heatPreference === "mild" ? "Mild" : heatPreference === "medium" ? "Medium" : heatPreference === "hot" ? "Hot" : heatPreference === "very-hot" ? "Very Hot" : "Not Sure"}
                 </p>
@@ -1941,7 +1945,7 @@ export default function EditProfilePage() {
                 <Button
                   variant="outline"
                   className="flex-1 bg-black text-white"
-                  onClick={() => setStep(4)}
+                  onClick={() => setStep(glycemicEligible ? 4 : 3)}
                   disabled={saving}
                 >
                   Back

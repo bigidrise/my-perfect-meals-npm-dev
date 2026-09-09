@@ -21,12 +21,13 @@ async function saveGlycemicSettings(payload: GlycemicSettings): Promise<Glycemic
   return put<GlycemicSettings>("/api/glycemic-settings", payload);
 }
 
-export function useGlycemicSettings() {
+export function useGlycemicSettings(enabled = true) {
   const qc = useQueryClient();
 
   const query = useQuery({
     queryKey: KEY,
     queryFn: fetchGlycemicSettings,
+    enabled,
   });
 
   const mutation = useMutation({
