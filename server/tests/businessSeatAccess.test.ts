@@ -1852,64 +1852,8 @@ describe("businessRoutes.ts — cross-business duplicate guard in accept handler
   });
 });
 
-// ── 16. DB-level constraint violation → ALREADY_IN_ANOTHER_BUSINESS mapping ──
-/**
- * The partial unique index idx_business_members_one_active_per_user enforces the
- * one-active-seat-per-user rule at the DB layer.  If two concurrent requests both
- * pass the application-level pre-check, the second DB write will throw a PostgreSQL
- * 23505 unique-violation.  The accept handler must catch that error and return
- * ALREADY_IN_ANOTHER_BUSINESS instead of 500.
- *
- * These tests verify the error-classification logic in isolation (no live DB needed).
- */
-
-/**
- * Mirrors the constraint-violation classifier in the accept handler:
- *
- *   if (txErr.code === "23505" && constraintName.includes("one_active_per_user"))
- *     → ALREADY_IN_ANOTHER_BUSINESS
- *   else
- *     → re-throw (500)
- */
-function classifyTransactionError(err: { code?: string; constraint_name?: string; constraint?: string }): "ALREADY_IN_ANOTHER_BUSINESS" | "SERVER_ERROR" {
-  const constraintName: string = err.constraint_name ?? err.constraint ?? "";
-  if (err.code === "23505" && constraintName.includes("one_active_per_user")) {
-    return "ALREADY_IN_ANOTHER_BUSINESS";
-  }
-  return "SERVER_ERROR";
-}
-
-describe("Accept-invite transaction — DB constraint violation classifier", () => {
-  it("maps a 23505 unique-violation on one_active_per_user to ALREADY_IN_ANOTHER_BUSINESS", () => {
-    const pgError = { code: "23505", constraint_name: "idx_business_members_one_active_per_user" };
-    expect(classifyTransactionError(pgError)).toBe("ALREADY_IN_ANOTHER_BUSINESS");
-  });
-
-  it("also handles pg drivers that surface the constraint as 'constraint' not 'constraint_name'", () => {
-    const pgError = { code: "23505", constraint: "idx_business_members_one_active_per_user" };
-    expect(classifyTransactionError(pgError)).toBe("ALREADY_IN_ANOTHER_BUSINESS");
-  });
-
-  it("does NOT swallow an unrelated 23505 violation (e.g. business_id+user_id unique)", () => {
-    const pgError = { code: "23505", constraint_name: "business_members_business_id_user_id_key" };
-    expect(classifyTransactionError(pgError)).toBe("SERVER_ERROR");
-  });
-
-  it("does NOT swallow a non-unique-violation DB error (e.g. FK violation code 23503)", () => {
-    expect(classifyTransactionError({ code: "23503", constraint_name: "some_fk" })).toBe("SERVER_ERROR");
-  });
-
-  it("does NOT swallow a generic JS error with no PG code", () => {
-    expect(classifyTransactionError({})).toBe("SERVER_ERROR");
-  });
-});
-
-// ── 17. businessRoutes.ts source — constraint catch present in accept handler ─
-/**
- * Regression guard: verifies that the accept handler catches 23505 errors and
- * maps them to ALREADY_IN_ANOTHER_BUSINESS (not 500).
- */
-describe("businessRoutes.ts — accept handler catches DB constraint violation", () => {
+// ── 16. Cross-business concurrency remains application-serialized ───────────
+describe("businessRoutes.ts — accept handler serializes membership decisions", () => {
   const routeFilePath = path.resolve(__dirname, "../routes/businessRoutes.ts");
   let handlerSlice: string;
 
@@ -1923,20 +1867,14 @@ describe("businessRoutes.ts — accept handler catches DB constraint violation",
       : afterStart.slice(0, 6000);
   });
 
-  it("accept handler checks txErr.code === '23505'", () => {
-    expect(handlerSlice).toContain('"23505"');
+  it("uses a per-user transaction lock and rechecks active membership", () => {
+    expect(handlerSlice).toContain("pg_advisory_xact_lock(hashtext(${userId}))");
+    expect(handlerSlice).toContain("lockedElsewhere");
   });
 
-  it("accept handler inspects the constraint name for one_active_per_user", () => {
-    expect(handlerSlice).toContain("one_active_per_user");
-  });
-
-  it("accept handler re-throws errors that are not the one_active_per_user violation", () => {
+  it("does not depend on the removed global uniqueness index", () => {
+    expect(handlerSlice).not.toContain("one_active_per_user");
     expect(handlerSlice).toContain("throw txErr");
-  });
-
-  it("partial unique index name is consistent between boot migration and accept handler", () => {
-    expect(handlerSlice).toContain("one_active_per_user");
   });
 });
 

@@ -1629,10 +1629,9 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     }
 
     // Atomically update member row + mark invite accepted so they can never diverge.
-    // The partial unique index idx_business_members_one_active_per_user enforces
-    // one active seat per user across all businesses at the DB level.  Any concurrent
-    // request that races past the application-level pre-check will be rejected here
-    // with a 23505 unique-violation, which we map to ALREADY_IN_ANOTHER_BUSINESS.
+    // The per-user advisory lock serializes concurrent invitation acceptance.
+    // Membership uniqueness is scoped to (business_id, user_id), allowing an
+    // existing staff member to separately own another organization.
     try {
       await db.transaction(async (tx) => {
         // Serialize acceptance by both organization and user. Re-read the
@@ -1828,16 +1827,6 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
       }
       if (txErr.code === "INVITATION_WORKSPACE_MISSING") {
         return res.status(409).json({ error: txErr.message, code: txErr.code });
-      }
-      // PostgreSQL unique-violation code: 23505.
-      // The partial index name contains "one_active_per_user" — match on both
-      // to avoid swallowing unrelated unique violations (e.g. business_id+user_id).
-      const constraintName: string = txErr.constraint_name ?? txErr.constraint ?? "";
-      if (txErr.code === "23505" && constraintName.includes("one_active_per_user")) {
-        return res.status(400).json({
-          error: "You are already an active member of another business. Leave that business before joining a new one.",
-          code: "ALREADY_IN_ANOTHER_BUSINESS",
-        });
       }
       throw txErr; // re-throw so the outer catch returns 500
     }
