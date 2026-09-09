@@ -17,10 +17,11 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { getStripeSecretKey } from "../config/stripeEnvironment";
 
 const router = Router();
 
-const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
+const stripeKey = getStripeSecretKey();
 
 const keyMode = stripeKey.startsWith("sk_live_")
   ? "LIVE"
@@ -51,7 +52,7 @@ interface CheckoutRequestBody {
 router.post("/checkout", requireAuth, async (req, res) => {
   if (!stripe) {
     return res.status(503).json({
-      error: "Payment system not configured — STRIPE_SECRET_KEY is missing",
+      error: "Payment system not configured for this environment",
     });
   }
 
@@ -324,7 +325,7 @@ router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
 router.post("/checkout/business", requireAuth, async (req, res) => {
   if (!stripe) {
     return res.status(503).json({
-      error: "Payment system not configured — STRIPE_SECRET_KEY is missing",
+      error: "Payment system not configured for this environment",
     });
   }
 
