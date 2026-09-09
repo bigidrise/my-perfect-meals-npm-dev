@@ -32,9 +32,7 @@ import { requireProAccess } from "./middleware/requireProAccess";
 import healthRouter from "./routes/health.routes";
 import keepaliveRouter from "./routes/keepalive";
 import legalPagesRouter from "./routes/legal-pages";
-import { loadOrgContext, loadOrgBySlug, getDefaultOrgContext } from "./lib/orgContext";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { registerOrgConfigRoute } from "./routes/orgConfig";
 import { resolveMealImageStorageContext } from "./services/mealImageBucket";
 import { registerMarketingPageRoutes } from "./marketingPages";
 import {
@@ -1594,77 +1592,7 @@ async function start() {
   }
 
   // ── Org Config (public — must be registered BEFORE requireAuth middleware) ──
-  app.get("/api/org/config", async (req, res) => {
-    try {
-      if ((req as any).orgContext) {
-        return res.json((req as any).orgContext);
-      }
-      const sessionUserId = (req as any).session?.userId;
-      if (sessionUserId) {
-        const { db: orgDb } = await import("./db");
-
-        // 1. Check users.organizationId (white-label / clinical tenant)
-        const [user] = await orgDb
-          .select({ organizationId: users.organizationId })
-          .from(users)
-          .where(eq(users.id, sessionUserId))
-          .limit(1);
-
-        if (user?.organizationId) {
-          const directOrg = await loadOrgContext(user.organizationId);
-          // false-wins: if this org hides marketplace, short-circuit immediately
-          if (!directOrg.featureFlags.partnerMarketplace) return res.json(directOrg);
-          // partnerMarketplace: true — keep as candidate, still check business memberships
-        }
-
-        // 2. Check active business memberships — false-wins policy across all orgs
-        try {
-          const { businesses: bizTable, businessMembers: bizMembersTable } = await import("./db/schema/business");
-          const { isNotNull, and: andBiz } = await import("drizzle-orm");
-          const memberships = await orgDb
-            .select({ organizationId: bizTable.organizationId })
-            .from(bizMembersTable)
-            .innerJoin(bizTable, eq(bizTable.id, bizMembersTable.businessId))
-            .where(
-              andBiz(
-                eq(bizMembersTable.userId, sessionUserId),
-                eq(bizMembersTable.status, "active"),
-                isNotNull(bizTable.organizationId)
-              )
-            );
-
-          // false-wins: if any active org hides marketplace, return it immediately
-          for (const m of memberships) {
-            if (m.organizationId) {
-              const bizOrg = await loadOrgContext(m.organizationId);
-              if (!bizOrg.featureFlags.partnerMarketplace) return res.json(bizOrg);
-            }
-          }
-
-          // All business orgs allow marketplace — return first one if present
-          if (memberships.length > 0 && memberships[0].organizationId) {
-            return res.json(await loadOrgContext(memberships[0].organizationId));
-          }
-        } catch (bizErr) {
-          console.error("[org/config] Business membership lookup failed:", bizErr);
-        }
-
-        // 3. Fall back to users.organizationId org (partnerMarketplace: true at this point)
-        if (user?.organizationId) {
-          return res.json(await loadOrgContext(user.organizationId));
-        }
-      }
-      const slugHeader = req.headers["x-org-slug"] as string | undefined;
-      if (slugHeader) {
-        const org = await loadOrgBySlug(slugHeader);
-        if (org) return res.json(org);
-      }
-      return res.json(getDefaultOrgContext());
-    } catch (err) {
-      console.error("[org/config] Error:", err);
-      return res.json(getDefaultOrgContext());
-    }
-  });
+  registerOrgConfigRoute(app);
 
   // Adaptive Coaching Engine (ACE) — Sprint 1+2+3 routes
   // Daily Check-In (aceCheckin) retired — replaced by Coach's Corner. Route moved to server/legacy/aceCheckin.ts.
