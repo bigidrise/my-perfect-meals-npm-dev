@@ -1,6 +1,10 @@
 import type { LookupKey } from "../../client/src/data/planSkus";
+import {
+  getStripePriceEnvName,
+  getStripeSecretKey,
+} from "./stripeEnvironment";
 
-const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
+const stripeKey = getStripeSecretKey();
 
 const keyMode = stripeKey.startsWith("sk_live_")
   ? "LIVE"
@@ -20,10 +24,11 @@ function safePrice(
   planLabel: string,
   required = true,
 ): string {
-  const value = process.env[envVarName]?.trim();
+  const activeEnvVarName = getStripePriceEnvName(envVarName);
+  const value = process.env[activeEnvVarName]?.trim();
 
   if (!value) {
-    const message = `${required ? "❌ Missing" : "⚠️ Missing"} env var ${envVarName} for "${planLabel}"`;
+    const message = `${required ? "❌ Missing" : "⚠️ Missing"} env var ${activeEnvVarName} for "${planLabel}"`;
 
     if (required) {
       console.error(message);
