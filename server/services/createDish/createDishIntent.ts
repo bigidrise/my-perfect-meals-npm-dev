@@ -97,6 +97,16 @@ export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishInte
     steamed: ["steam", "steamed", "steaming"],
     boiled: ["boil", "boiled", "boiling"],
     poached: ["poach", "poached", "poaching"],
+    "crispy-exterior": ["crispy", "crisp", "crunchy", "air fry", "air-fry", "fried until golden"],
+    crispy: ["crispy", "crisp", "crunchy", "fry", "fried"],
+    tender: ["tender", "braise", "simmer", "slow cook", "poach"],
+    juicy: ["juicy", "rest before slicing", "retain moisture"],
+    charred: ["char", "charred", "grill marks"],
+    browned: ["brown", "browned", "sear", "seared"],
+    roasted: ["roast", "roasted", "bake until golden"],
+    delicate: ["delicate", "gently poach", "gently steam"],
+    "soft-curds": ["soft curds", "gently scramble"],
+    "tender-crisp": ["tender-crisp", "tender crisp", "stir fry", "stir-fry"],
   };
   const hasAffirmativeTerm = (text: string, terms: string[]) =>
     text
@@ -119,6 +129,10 @@ export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishInte
   }
   const method = intent.resolvedCombination.method;
   if (method && !hasAffirmativeTerm(instructions, termsFor(method.id, method.label))) {
+    return false;
+  }
+  const texture = intent.resolvedCombination.texture;
+  if (texture && !hasAffirmativeTerm(instructions, termsFor(texture.id, texture.label))) {
     return false;
   }
   const flavor = intent.resolvedCombination.flavor;

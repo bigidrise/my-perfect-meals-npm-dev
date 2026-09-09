@@ -215,7 +215,7 @@ const COOK_METHODS: { label: string; emoji: string }[] = [
   { label: "Any",      emoji: "✨" },
 ];
 
-const EXPANSION_DIMENSIONS: ExpansionDimension[] = ["form", "method", "texture", "flavor", "cuisine"];
+const EXPANSION_DIMENSIONS: ExpansionDimension[] = ["form", "texture", "flavor"];
 const expansionOptionKey: Record<ExpansionDimension, keyof ExpandIngredientResponse["options"]> = {
   form: "forms",
   method: "methods",
@@ -505,7 +505,9 @@ export default function CreateDishPage() {
           ingredientInput: text.trim(),
           creator: "create_a_dish",
           surprisePolicy: policy,
-          useAiForGaps: true,
+          // Phase 2 controls expose only catalog-backed IDs that generation can
+          // deterministically revalidate.
+          useAiForGaps: false,
         }),
       });
       if (!response.ok) throw new Error("expansion failed");
@@ -547,12 +549,38 @@ export default function CreateDishPage() {
       }
       setExpansionFallback(false);
       setIngredientExpansion(result);
-      setExpansionSelections(result.inferredSelectionIds || {});
+      setExpansionSelections({
+        form: result.inferredSelectionIds?.form ?? null,
+        texture: result.inferredSelectionIds?.texture ?? null,
+        flavor: result.inferredSelectionIds?.flavor ?? null,
+      });
     }, 420);
     return () => window.clearTimeout(timer);
   }, [dishInput]);
 
   const toggleExpansionSelection = (dimension: ExpansionDimension, id: string) => {
+    if (dimension === "texture") {
+      const selectedTexture = ingredientExpansion?.options.textures.find((option) => option.id === id);
+      const methodId = cookMethod === "Oven"
+        ? "baked"
+        : cookMethod === "Air Fryer"
+          ? "air-fried"
+          : cookMethod === "Grill"
+            ? "grilled"
+            : null;
+      if (
+        methodId &&
+        selectedTexture?.compatibleMethodIds?.length &&
+        !selectedTexture.compatibleMethodIds.includes(methodId)
+      ) {
+        toast({
+          title: "That texture doesn't match your cooking method",
+          description: `Choose a different texture or change the ${cookMethod} cooking method.`,
+          variant: "warning",
+        });
+        return;
+      }
+    }
     setDelegatedDimensions((current: ExpansionDimension[]) => current.filter((item: ExpansionDimension) => item !== dimension));
     setExpansionSelections((current: Partial<Record<ExpansionDimension, string | null>>) => ({
       ...current,
@@ -568,6 +596,34 @@ export default function CreateDishPage() {
   const surpriseAll = () => {
     setExpansionSelections({});
     setDelegatedDimensions(EXPANSION_DIMENSIONS);
+  };
+
+  const selectCookMethod = (nextMethod: string) => {
+    const updatedMethod = cookMethod === nextMethod ? "" : nextMethod;
+    const methodId = updatedMethod === "Oven"
+      ? "baked"
+      : updatedMethod === "Air Fryer"
+        ? "air-fried"
+        : updatedMethod === "Grill"
+          ? "grilled"
+          : null;
+    const selectedTextureId = expansionSelections.texture;
+    const selectedTexture = ingredientExpansion?.options.textures.find(
+      (option) => option.id === selectedTextureId,
+    );
+    if (
+      methodId &&
+      selectedTexture?.compatibleMethodIds?.length &&
+      !selectedTexture.compatibleMethodIds.includes(methodId)
+    ) {
+      setExpansionSelections((current) => ({ ...current, texture: null }));
+      toast({
+        title: "Texture choice cleared",
+        description: `${selectedTexture.label} doesn't match the ${nextMethod} cooking method.`,
+        variant: "warning",
+      });
+    }
+    setCookMethod(updatedMethod);
   };
 
   const chooseClarification = (choiceId: string, label: string) => {
@@ -1011,10 +1067,15 @@ export default function CreateDishPage() {
                           <p className="text-sm font-medium text-white">A little more direction?</p>
                           <p className="text-xs text-white/55">We understood the idea. Tune it, or let the chef choose.</p>
                         </div>
-                        <button
+                         <button
                           type="button"
                           onClick={surpriseAll}
-                          className="rounded-full border border-orange-300/40 px-3 py-1.5 text-xs font-semibold text-orange-100 transition-colors hover:bg-orange-400/15"
+                           aria-pressed={EXPANSION_DIMENSIONS.every((dimension) => delegatedDimensions.includes(dimension))}
+                           className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                             EXPANSION_DIMENSIONS.every((dimension) => delegatedDimensions.includes(dimension))
+                               ? "border-orange-300 bg-orange-400/25 text-orange-50"
+                               : "border-orange-300/40 text-orange-100 hover:bg-orange-400/15"
+                           }`}
                         >
                           Surprise Me
                         </button>
@@ -1041,7 +1102,7 @@ export default function CreateDishPage() {
                       )}
 
                       <div className="space-y-3">
-                        {(["form", "method", "texture", "flavor", "cuisine"] as ExpansionDimension[]).map((dimension) => {
+                        {EXPANSION_DIMENSIONS.map((dimension) => {
                           const options = ingredientExpansion.options[expansionOptionKey[dimension]];
                           if (!options?.length) return null;
                           return (
@@ -1051,7 +1112,12 @@ export default function CreateDishPage() {
                                 <button
                                   type="button"
                                   onClick={() => surpriseDimension(dimension)}
-                                  className="text-[11px] text-orange-200/75 underline decoration-orange-200/30 underline-offset-2 hover:text-orange-100"
+                                   aria-pressed={delegatedDimensions.includes(dimension)}
+                                   className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                                     delegatedDimensions.includes(dimension)
+                                       ? "border-orange-300 bg-orange-400/25 font-semibold text-orange-50"
+                                       : "border-orange-300/30 text-orange-200/80 hover:bg-orange-400/15 hover:text-orange-100"
+                                   }`}
                                 >
                                   Surprise Me
                                 </button>
@@ -1126,7 +1192,7 @@ export default function CreateDishPage() {
                           <PillButton
                             active={cookMethod === m.label}
                             variant="amber"
-                            onClick={() => setCookMethod(cookMethod === m.label ? "" : m.label)}
+                            onClick={() => selectCookMethod(m.label)}
                             className="w-14 text-lg leading-none py-2"
                           >
                             {m.emoji}
