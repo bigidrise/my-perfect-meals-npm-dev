@@ -6080,14 +6080,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bodyDietRestrictions = _resolvedPrimaryDiet.slice();
 
       let validatedCreateDishIntent: import("@shared/createDishIngredientExpansion").CreateDishIntent | null = null;
+      let enforceRequestedDishIdentity = true;
       if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
         try {
-          const { revalidateCreateDishIntent, buildCreateDishIntentPrompt } = await import(
+          const {
+            revalidateCreateDishIntent,
+            buildCreateDishIntentPrompt,
+            isBroadIngredientOnlyCreateDishIntent,
+          } = await import(
             "./services/createDish/createDishIntent"
           );
           validatedCreateDishIntent = await revalidateCreateDishIntent(
             rawCreateDishIntent,
             protocolEnvelope.allergies ?? [],
+          );
+          enforceRequestedDishIdentity = !isBroadIngredientOnlyCreateDishIntent(
+            validatedCreateDishIntent,
           );
           cravingInput = `${cravingInput}\n\n${buildCreateDishIntentPrompt(validatedCreateDishIntent)}`;
         } catch (intentError) {
@@ -6350,7 +6358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
         exemptDishNameTerms: _adaptExemptTerms,
         dishIdentity: {
-          requestedDish: rawCravingInput || "",
+          requestedDish: enforceRequestedDishIdentity ? rawCravingInput || "" : "",
           directive: _dishDirective,
           results: _identityResults,
         },
@@ -6674,7 +6682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         toFinalValidationCandidate(meal),
         humanFoodContext,
         {
-          requestedDish: rawCravingInput || "",
+          requestedDish: enforceRequestedDishIdentity ? rawCravingInput || "" : "",
           requestedCategory: targetMealType || "lunch",
           dishDirective: _dishDirective,
           executionState: humanFoodExecutionState,
@@ -6715,7 +6723,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
             exemptDishNameTerms: _adaptExemptTerms,
             dishIdentity: {
-              requestedDish: rawCravingInput || "",
+              requestedDish: enforceRequestedDishIdentity ? rawCravingInput || "" : "",
               directive: _dishDirective,
               results: _identityResults,
             },

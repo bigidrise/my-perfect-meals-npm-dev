@@ -4,6 +4,7 @@ import {
 } from "../../shared/createDishIngredientExpansion";
 import {
   buildCreateDishIntentPrompt,
+  isBroadIngredientOnlyCreateDishIntent,
   mealHonorsCreateDishIntent,
   revalidateCreateDishIntent,
 } from "../services/createDish/createDishIntent";
@@ -40,6 +41,22 @@ async function chickenIntent() {
 }
 
 describe("Create a Dish generation intent", () => {
+  test("distinguishes a broad ingredient from an explicit prepared dish", async () => {
+    const intent = await chickenIntent();
+    expect(
+      isBroadIngredientOnlyCreateDishIntent({
+        ...intent,
+        originalText: "Chicken!",
+      }),
+    ).toBe(true);
+    expect(
+      isBroadIngredientOnlyCreateDishIntent({
+        ...intent,
+        originalText: "crispy teriyaki chicken thighs",
+      }),
+    ).toBe(false);
+  });
+
   test("revalidates a coherent intent and builds an isolated culinary directive", async () => {
     const intent = await chickenIntent();
     const validated = await revalidateCreateDishIntent(intent, []);
