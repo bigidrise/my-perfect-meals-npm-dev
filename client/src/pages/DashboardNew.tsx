@@ -957,13 +957,13 @@ export default function DashboardNew() {
                 </span>
               )}
             </div>
-            {/* CENTER: Quick Start sits directly left of MPM */}
-            <div className="justify-self-center flex items-center gap-2">
+            {/* CENTER: compact Quick Start stays in one row without crowding mobile controls */}
+            <div className="justify-self-center flex items-center gap-1.5 min-w-0">
               <QuickStartPopover compact />
-              <h1 className="text-md font-bold leading-none text-white">{t("mpmLabel")}</h1>
+              <h1 className="text-md font-bold leading-none text-white whitespace-nowrap">{t("mpmLabel")}</h1>
             </div>
             {/* RIGHT: Bug report + Hub */}
-            <div className="justify-self-end flex items-center gap-2">
+            <div className="justify-self-end flex items-center gap-2 self-center">
               <BugReportButton />
               <ProfileSheet>
                 <button
