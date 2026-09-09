@@ -1463,14 +1463,11 @@ async function initializeApp() {
         await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS policy_snapshot text`);
         await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS policy_snapshot text`);
         await db.execute(sql`ALTER TABLE business_members ADD COLUMN IF NOT EXISTS policy_acknowledged_at timestamptz`);
-        // ── One-active-seat-per-user constraint ───────────────────────────────
-        // Prevents a user from holding active seats in two businesses simultaneously,
-        // even under concurrent invite-accept requests that bypass the application-
-        // level pre-check.  Only one row with status='active' per user_id is allowed.
+        // Membership identity is scoped to (business_id, user_id). A professional
+        // may remain staff in one organization while owning another; the global
+        // one-active-business-per-user index incorrectly blocked that valid case.
         await db.execute(sql`
-          CREATE UNIQUE INDEX IF NOT EXISTS idx_business_members_one_active_per_user
-          ON business_members(user_id)
-          WHERE status = 'active'
+          DROP INDEX IF EXISTS idx_business_members_one_active_per_user
         `);
         await db.execute(sql`
           CREATE TABLE IF NOT EXISTS business_policy_history (
