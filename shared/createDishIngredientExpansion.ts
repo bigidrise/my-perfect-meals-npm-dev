@@ -143,8 +143,17 @@ export const CreateDishIntentSchema = z.object({
     canonicalName: z.string().min(1),
     category: z.string().min(1),
   }),
-  resolvedCombination: ResolvedCombinationSchema,
-});
+  resolvedCombination: z.object({
+    form: ExpansionOptionSchema.nullable(),
+    texture: ExpansionOptionSchema.nullable(),
+    flavor: ExpansionOptionSchema.nullable(),
+    selectionSource: z.object({
+      form: z.enum(["user_selected", "system_selected", "not_applicable"]),
+      texture: z.enum(["user_selected", "system_selected", "not_applicable"]),
+      flavor: z.enum(["user_selected", "system_selected", "not_applicable"]),
+    }).strict(),
+  }).strict(),
+}).strict();
 
 export type ExpandIngredientRequest = z.infer<
   typeof ExpandIngredientRequestSchema

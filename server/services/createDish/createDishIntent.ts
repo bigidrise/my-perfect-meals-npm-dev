@@ -25,7 +25,7 @@ export async function revalidateCreateDishIntent(
 ): Promise<CreateDishIntent> {
   const parsed = CreateDishIntentSchema.parse(raw);
   const selectedOptionIds: Partial<Record<ExpansionDimension, string>> = {};
-  for (const dimension of ["form", "method", "texture", "flavor", "cuisine"] as const) {
+  for (const dimension of ["form", "texture", "flavor"] as const) {
     const selected = parsed.resolvedCombination[dimension];
     if (selected) selectedOptionIds[dimension] = selected.id;
   }
@@ -53,8 +53,14 @@ export async function revalidateCreateDishIntent(
       category: expansion.ingredient.category,
     },
     resolvedCombination: {
-      ...expansion.resolvedCombination,
-      selectionSource: parsed.resolvedCombination.selectionSource,
+      form: expansion.resolvedCombination.form,
+      texture: expansion.resolvedCombination.texture,
+      flavor: expansion.resolvedCombination.flavor,
+      selectionSource: {
+        form: parsed.resolvedCombination.selectionSource.form,
+        texture: parsed.resolvedCombination.selectionSource.texture,
+        flavor: parsed.resolvedCombination.selectionSource.flavor,
+      },
     },
   });
 }
@@ -64,14 +70,30 @@ export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
   const lines = [
     `Primary ingredient: ${intent.ingredient.canonicalName}`,
     resolved.form ? `Form/cut: ${resolved.form.label}` : null,
-    resolved.method ? `Cooking method: ${resolved.method.label}` : null,
     resolved.texture ? `Texture: ${resolved.texture.label}` : null,
     resolved.flavor ? `Flavor direction: ${resolved.flavor.label}` : null,
-    resolved.cuisine ? `Cuisine context: ${resolved.cuisine.label}` : null,
   ].filter(Boolean);
+  const fixedRequirements = [
+    `Use ${intent.ingredient.canonicalName} as the primary ingredient.`,
+    resolved.form
+      ? `Every candidate MUST use ${resolved.form.label} or a governed equivalent preparation of that form/cut.`
+      : null,
+    resolved.texture
+      ? `Every candidate MUST use preparation that produces a recognizable ${resolved.texture.label} texture.`
+      : null,
+    resolved.flavor
+      ? `Every candidate MUST retain a recognizable ${resolved.flavor.label} flavor profile.`
+      : null,
+  ].filter(Boolean);
+  const hasFixedDimensions = Boolean(resolved.form || resolved.texture || resolved.flavor);
   return `[CREATE A DISH — VALIDATED CULINARY INTENT]
 ${lines.join("\n")}
-Honor these culinary choices in the ingredient preparation and instructions. Safety, dietary, clinical, and nutrition requirements remain authoritative; adapt transparently if a conflict requires it.`;
+${hasFixedDimensions ? `[CREATE A DISH — HARD CULINARY INTENT]
+${fixedRequirements.join("\n")}
+These are fixed current-request requirements, not preferences or optional inspiration.
+Do not vary any selected form/cut, texture, or flavor. Create variety only through unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions.
+Explicit current culinary intent overrides general cuisine, broad-flavor, heat, and palate defaults when they conflict.` : "No expansion dimensions are fixed; preserve the existing flexible Create a Dish behavior."}
+Safety, allergies, dietary identity, clinical protocols, diabetes, GLP-1, and canonical nutrition requirements remain authoritative; adapt transparently if one requires a change.`;
 }
 
 export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishIntent): boolean {
@@ -139,10 +161,6 @@ export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishInte
   }
   const form = intent.resolvedCombination.form;
   if (form && !hasAffirmativeTerm(`${ingredients}. ${instructions}`, termsFor(form.id, form.label))) {
-    return false;
-  }
-  const method = intent.resolvedCombination.method;
-  if (method && !hasAffirmativeTerm(instructions, termsFor(method.id, method.label))) {
     return false;
   }
   const texture = intent.resolvedCombination.texture;

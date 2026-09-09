@@ -482,13 +482,13 @@ export default function CreateDishPage() {
   const expansionRequestRef = useRef(0);
 
   const expansionPolicy = () => ({
-    delegatedDimensions,
+    delegatedDimensions: delegatedDimensions.filter((dimension) =>
+      EXPANSION_DIMENSIONS.includes(dimension),
+    ),
     selectedOptionIds: {
       form: expansionSelections.form ?? null,
-      method: expansionSelections.method ?? null,
       texture: expansionSelections.texture ?? null,
       flavor: expansionSelections.flavor ?? null,
-      cuisine: expansionSelections.cuisine ?? null,
     },
   });
 
@@ -666,8 +666,8 @@ export default function CreateDishPage() {
     const ingredient = result.ingredient;
     const combination = result.resolvedCombination;
     const requestedStructuredIntent =
-      delegatedDimensions.length > 0 ||
-      Object.values(expansionSelections).some(Boolean);
+      delegatedDimensions.some((dimension) => EXPANSION_DIMENSIONS.includes(dimension)) ||
+      EXPANSION_DIMENSIONS.some((dimension) => Boolean(expansionSelections[dimension]));
     if (!combination && ingredient.status === "recognized" && requestedStructuredIntent) {
       throw new Error("CREATE_DISH_CHOICES_INVALID");
     }
@@ -682,7 +682,16 @@ export default function CreateDishPage() {
         canonicalName: ingredient.canonicalName,
         category: ingredient.category,
       },
-      resolvedCombination: combination,
+      resolvedCombination: {
+        form: combination.form,
+        texture: combination.texture,
+        flavor: combination.flavor,
+        selectionSource: {
+          form: combination.selectionSource.form,
+          texture: combination.selectionSource.texture,
+          flavor: combination.selectionSource.flavor,
+        },
+      },
     };
   };
 
