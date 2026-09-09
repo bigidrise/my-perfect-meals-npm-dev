@@ -13,7 +13,11 @@ import { convertToUserFriendlyUnits } from "../utils/unitConverter";
 import { generateMealFromPrompt } from "./universalMealGenerator";
 import { buildDishTypeHint, getSemanticFallback } from "./mealImageGenerator";
 import { normalizeMealName } from "./mealNameNormalizer";
-import { getGlycemicSettings } from "./glycemicSettingsService";
+import {
+  resolveUserGlucoseState,
+  type GlucoseStateResolution,
+} from "./glucoseStateResolver";
+import { filterCatalogByGlucosePreferences } from "./stableGlucoseFilter";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
 import { 
@@ -582,7 +586,7 @@ function buildSlots(days:number, types:MealType[]){
   return out; 
 }
 
-function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealType[], glycemicSettings?: any): Skeleton[] {
+function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealType[], glucose?: GlucoseStateResolution | null): Skeleton[] {
   // First, correct any meal type mismatches in the catalog
   const correctedCatalog = catalog.map(meal => correctMealType(meal));
   
@@ -603,17 +607,9 @@ function pickFromCatalog(req: WeeklyMealReq, catalog: Skeleton[], slots: MealTyp
     ).shouldBlock
   );
 
-  // Apply glycemic filtering if settings exist
-  if (glycemicSettings?.preferredCarbs?.length > 0) {
-    const preferredCarbs = glycemicSettings.preferredCarbs.map((c: string) => c.toLowerCase());
-    pool = pool.filter(s => 
-      s.ingredients.some(ing => 
-        preferredCarbs.some((carb: string) => 
-          ing.name.toLowerCase().includes(carb)
-        )
-      )
-    );
-    console.log(`🩸 Filtered to ${pool.length} meals matching preferred low-GI carbs`);
+  if (glucose?.preferencesConfigured) {
+    pool = filterCatalogByGlucosePreferences(pool, glucose);
+    console.log(`🩸 Filtered to ${pool.length} meals matching the active ${glucose.state} produce allowlist`);
   }
 
   const out: Skeleton[] = [];
@@ -708,10 +704,9 @@ async function instructBatch(items: Skeleton[], palatePrefs?: PalatePreferences,
 export async function generateWeeklyMeals(req: WeeklyMealReq): Promise<FinalMeal[]> {
   console.log("🎯 Starting stable meal generation with catalog system");
   
-  // Get glycemic settings for user
-  const glycemicSettings = await getGlycemicSettings(req.userId).catch(() => null);
-  if (glycemicSettings) {
-    console.log(`🩸 Loaded glycemic settings: glucose=${glycemicSettings.bloodGlucose}, carbs=${glycemicSettings.preferredCarbs?.length || 0}`);
+  const glucose = await resolveUserGlucoseState(req.userId).catch(() => null);
+  if (glucose) {
+    console.log(`🩸 Resolved canonical glucose state: state=${glucose.state}, configured=${glucose.preferencesConfigured}`);
   }
   
   // Build slots based on request
@@ -723,7 +718,7 @@ export async function generateWeeklyMeals(req: WeeklyMealReq): Promise<FinalMeal
   const catalog = loadCatalog();
   console.log(`📚 Loaded ${catalog.length} meal templates from catalog`);
   
-  const picked = pickFromCatalog(req, catalog, slots, glycemicSettings);
+  const picked = pickFromCatalog(req, catalog, slots, glucose);
   console.log(`✅ Selected ${picked.length} meals from catalog`);
   
   // Generate nutrition and instructions
@@ -781,12 +776,11 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
   // Create telemetry session for tracking
   const sessionId = telemetry.createSession("cravingCreator");
   
-  // Get glycemic settings for user if userId provided
-  let glycemicSettings = null;
+  let glucose: GlucoseStateResolution | null = null;
   if (userPrefs?.userId) {
-    glycemicSettings = await getGlycemicSettings(userPrefs.userId).catch(() => null);
-    if (glycemicSettings) {
-      console.log(`🩸 Loaded glycemic settings: glucose=${glycemicSettings.bloodGlucose}, carbs=${glycemicSettings.preferredCarbs?.length || 0}`);
+    glucose = await resolveUserGlucoseState(userPrefs.userId).catch(() => null);
+    if (glucose) {
+      console.log(`🩸 Resolved canonical glucose state: state=${glucose.state}, configured=${glucose.preferencesConfigured}`);
     }
   }
   
@@ -961,22 +955,13 @@ export async function generateCravingMeal(targetMealType: MealType, craving?: st
       (!userPrefs?.avoidIngredients?.length || !violatesAvoidance(s.ingredients, userPrefs.avoidIngredients));
   });
 
-  // Apply glycemic filtering if settings exist
-  if (glycemicSettings && glycemicSettings.preferredCarbs && glycemicSettings.preferredCarbs.length > 0) {
-    const preferredCarbs = glycemicSettings.preferredCarbs.map((c: string) => c.toLowerCase());
-    const originalCount = filtered.length;
-    const glycemicFiltered = filtered.filter(s => 
-      s.ingredients.some(ing => 
-        preferredCarbs.some((carb: string) => 
-          ing.name.toLowerCase().includes(carb)
-        )
-      )
-    );
-    if (glycemicFiltered.length > 0) {
-      filtered = glycemicFiltered;
-      console.log(`🩸 Applied glycemic filtering: ${filtered.length} meals match preferred low-GI carbs`);
-    } else if (originalCount > 0) {
-      telemetry.tagFallback(sessionId, "glycemic_filter_fallback", `No meals matched glycemic preferences, keeping ${originalCount} meals`);
+  if (glucose?.preferencesConfigured) {
+    filtered = filterCatalogByGlucosePreferences(filtered, glucose);
+    console.log(`🩸 Applied canonical ${glucose.state} produce allowlist: ${filtered.length} meals remain`);
+    if (filtered.length === 0) {
+      throw new Error(
+        `No catalog meal satisfies the configured ${glucose.state} glucose produce allowlist`,
+      );
     }
   }
 
