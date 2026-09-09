@@ -23,7 +23,7 @@ import {
   maskPlantMilks,
   maskNutButters,
 } from '../../allergyGuardrails';
-import { maskNonAnimalDietaryCompounds } from '../../semanticDietaryIngredients';
+import { maskNonAnimalDietaryCompounds } from '@shared/semanticDietaryIngredients';
 
 export type DietaryMode = 'vegan' | 'vegetarian' | 'pescatarian' | 'carnivore';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';

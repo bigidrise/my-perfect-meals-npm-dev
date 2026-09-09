@@ -2,7 +2,7 @@ import { validateDietaryRestriction } from "../services/guardrails/validators/di
 import {
   maskNonAnimalDietaryCompounds,
   structuredIngredientText,
-} from "../services/semanticDietaryIngredients";
+} from "../../shared/semanticDietaryIngredients";
 
 describe("semantic dietary ingredient validation", () => {
   it("gives dish titles no ingredient-presence authority", () => {

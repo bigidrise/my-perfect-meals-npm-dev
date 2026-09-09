@@ -51,7 +51,7 @@ import {
   maskPlantMilks,
   maskNutButters,
 } from "./allergyGuardrails";
-import { structuredIngredientText } from "./semanticDietaryIngredients";
+import { structuredIngredientText } from "@shared/semanticDietaryIngredients";
 import {
   getDiabeticContext,
   getGlucoseBasedMealGuidance,

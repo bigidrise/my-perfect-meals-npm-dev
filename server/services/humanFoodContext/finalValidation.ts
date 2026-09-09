@@ -19,7 +19,7 @@ import { validateGlycemicProduce } from "../glycemicProduceValidator";
 import {
   maskNonAnimalDietaryCompounds,
   structuredIngredientText,
-} from "../semanticDietaryIngredients";
+} from "@shared/semanticDietaryIngredients";
 import {
   buildHumanFoodRepairInstructions,
   humanFoodCandidateSignature,
