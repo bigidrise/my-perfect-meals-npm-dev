@@ -6159,6 +6159,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _overriddenAvoidances,
         _overriddenDietaryIdentities,
       );
+      if (process.env.NODE_ENV === "development" && humanFoodCreator === "create_a_dish") {
+        console.log("[CreateDish:diagnostic] candidate count", {
+          correlationId: (req as any).id,
+          stage: "model_candidates_returned",
+          count: Array.isArray(mealOptions) ? mealOptions.length : 0,
+        });
+      }
 
       if (!mealOptions || mealOptions.length === 0) {
         const hasGlp1    = _cravingGlp1Targets != null;
@@ -6345,6 +6352,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           results: _identityResults,
         },
       });
+      if (process.env.NODE_ENV === "development" && humanFoodCreator === "create_a_dish") {
+        console.log("[CreateDish:diagnostic] candidate count", {
+          correlationId: (req as any).id,
+          stage: "nutrition_safety_governance",
+          count: cleanOptions.length,
+        });
+      }
 
       if (cleanOptions.length === 0 && _bglGatedOptions.length > 0) {
         if (_cravingGlp1Targets) {
@@ -6745,6 +6759,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       scannedOptions = finalEnforcement.accepted;
+      if (process.env.NODE_ENV === "development" && humanFoodCreator === "create_a_dish") {
+        console.log("[CreateDish:diagnostic] candidate count", {
+          correlationId: (req as any).id,
+          stage: "final_enforcement",
+          count: scannedOptions.length,
+        });
+      }
 
       // Format and optionally scale each option
       let formattedOptions = scannedOptions.map(meal => {
@@ -6829,6 +6850,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         formattedOptions = formattedOptions.filter((meal: any) =>
           mealHonorsCreateDishIntent(meal, validatedCreateDishIntent!),
         );
+        if (process.env.NODE_ENV === "development") {
+          console.log("[CreateDish:diagnostic] candidate count", {
+            correlationId: (req as any).id,
+            stage: "create_dish_intent_evidence",
+            count: formattedOptions.length,
+          });
+        }
         if (formattedOptions.length === 0) {
           return res.status(422).json({
             status: "unable_to_generate",
@@ -6873,6 +6901,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
           message: "The generated food did not pass final food-context validation.",
+        });
+      }
+      if (process.env.NODE_ENV === "development" && humanFoodCreator === "create_a_dish") {
+        console.log("[CreateDish:diagnostic] candidate count", {
+          correlationId: (req as any).id,
+          stage: "final_meals_returned",
+          count: imagedOptions.length,
         });
       }
       // ─────────────────────────────────────────────────────────────────────────────────────

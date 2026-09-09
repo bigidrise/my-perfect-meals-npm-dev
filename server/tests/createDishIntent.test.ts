@@ -108,4 +108,28 @@ describe("Create a Dish generation intent", () => {
       ),
     ).toBe(false);
   });
+
+  test("requires governed preparation evidence for the selected texture", async () => {
+    const intent = await chickenIntent();
+    expect(
+      mealHonorsCreateDishIntent(
+        {
+          name: "Teriyaki Chicken",
+          ingredients: ["diced chicken", "teriyaki sauce"],
+          instructions: ["Stir fry quickly until the chicken is tender-crisp."],
+        },
+        intent,
+      ),
+    ).toBe(true);
+    expect(
+      mealHonorsCreateDishIntent(
+        {
+          name: "Teriyaki Chicken",
+          ingredients: ["diced chicken", "teriyaki sauce"],
+          instructions: ["Bake slowly until very soft."],
+        },
+        intent,
+      ),
+    ).toBe(false);
+  });
 });
