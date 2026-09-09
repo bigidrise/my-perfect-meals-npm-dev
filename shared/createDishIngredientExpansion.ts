@@ -119,6 +119,7 @@ export const ExpandIngredientResponseSchema = z.object({
     cuisines: z.array(ExpansionOptionSchema),
   }),
   resolvedCombination: ResolvedCombinationSchema.nullable(),
+  inferredSelectionIds: SurprisePolicySchema.shape.selectedOptionIds.default({}),
   warnings: z.array(
     z.object({
       code: z.enum([
@@ -134,6 +135,17 @@ export const ExpandIngredientResponseSchema = z.object({
   ),
 });
 
+export const CreateDishIntentSchema = z.object({
+  creator: z.literal("create_a_dish"),
+  originalText: z.string().trim().min(1).max(300),
+  ingredient: z.object({
+    canonicalId: z.string().min(1),
+    canonicalName: z.string().min(1),
+    category: z.string().min(1),
+  }),
+  resolvedCombination: ResolvedCombinationSchema,
+});
+
 export type ExpandIngredientRequest = z.infer<
   typeof ExpandIngredientRequestSchema
 >;
@@ -141,3 +153,4 @@ export type ExpandIngredientResponse = z.infer<
   typeof ExpandIngredientResponseSchema
 >;
 export type ExpansionDimension = z.infer<typeof ExpansionDimensionSchema>;
+export type CreateDishIntent = z.infer<typeof CreateDishIntentSchema>;

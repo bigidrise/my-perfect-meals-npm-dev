@@ -89,7 +89,11 @@ function recognize(input: string) {
   }
 
   const entry = CREATE_DISH_CULINARY_ENTRIES.find((candidate) =>
-    candidate.aliases.some((alias) => normalize(alias) === normalized),
+    candidate.aliases.some((alias) => {
+      const normalizedAlias = normalize(alias);
+      return normalizedAlias === normalized ||
+        new RegExp(`\\b${normalizedAlias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(normalized);
+    }),
   );
   if (!entry) {
     return {
@@ -109,6 +113,41 @@ function recognize(input: string) {
     category: entry.category,
     confidence: "high" as const,
   };
+}
+
+function inferSelectionIds(
+  input: string,
+  options: ExpansionOption[],
+): Partial<Record<ExpansionDimension, string>> {
+  const normalized = normalize(input);
+  const inferred: Partial<Record<ExpansionDimension, string>> = {};
+  const aliases: Record<string, string[]> = {
+    thigh: ["thigh", "thighs"],
+    breast: ["breast", "breasts"],
+    cubed: ["cubed", "cube", "cubes", "diced"],
+    cubes: ["cubed", "cube", "cubes", "diced"],
+    strips: ["strip", "strips", "sliced"],
+    "steak-cut": ["steak", "steaks"],
+    "pan-seared": ["pan seared", "seared", "sear"],
+    "stir-fried": ["stir fried", "stir fry", "stir-fry"],
+    "air-fried": ["air fried", "air fry", "air-fried"],
+    "crispy-exterior": ["crispy"],
+    crispy: ["crispy"],
+  };
+  for (const candidate of options) {
+    if (inferred[candidate.dimension]) continue;
+    const terms = [
+      normalize(candidate.id),
+      normalize(candidate.label),
+      ...(aliases[candidate.id] ?? []),
+    ];
+    if (terms.some((term) =>
+      new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(normalized)
+    )) {
+      inferred[candidate.dimension] = candidate.id;
+    }
+  }
+  return inferred;
 }
 
 function mappingsFor(entry: CreateDishCulinaryEntry): IngredientTechniqueMapping[] {
@@ -337,6 +376,7 @@ export async function expandCreateDishIngredient(
       ingredient,
       options: { forms: [], methods: [], textures: [], flavors: [], cuisines: [] },
       resolvedCombination: null,
+      inferredSelectionIds: {},
       warnings,
     });
   }
@@ -351,7 +391,10 @@ export async function expandCreateDishIngredient(
   const methodIds = Array.from(
     new Set(
       mappings.length
-        ? mappings.flatMap((mapping) => mapping.validMethods)
+        ? [
+            ...mappings.flatMap((mapping) => mapping.validMethods),
+            ...(entry.additionalMethodIds ?? []),
+          ]
         : entry.methodIds ?? [],
     ),
   ).filter((id) => !blockedMethodIds.has(id));
@@ -485,6 +528,7 @@ export async function expandCreateDishIngredient(
       cuisines: allOptions.filter((item) => item.dimension === "cuisine"),
     },
     resolvedCombination,
+    inferredSelectionIds: inferSelectionIds(request.ingredientInput, allOptions),
     warnings,
   });
 }
