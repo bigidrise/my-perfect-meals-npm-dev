@@ -5858,8 +5858,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Allergen-specific only — one authorized ingredient's enforcement is suspended per request.
       // All other allergies, GLP-1, diabetic, dietary identity, and protocol rules remain active.
       let _overriddenAllergens: string[] = [];
-      if (userId && cravingInput && safetyMode !== "ALLERGEN_ADAPT") {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator", {
+      if (userId && rawCravingInput && safetyMode !== "ALLERGEN_ADAPT") {
+        // Scan only the user's request. cravingInput already contains the internal
+        // Human Food context at this point, including foods it instructs the model
+        // to avoid; scanning that enrichment makes the safety layer match itself.
+        const safetyCheck = await enforceSafetyProfile(userId, rawCravingInput, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
           ignoredAvoidances: _overriddenAvoidances,
