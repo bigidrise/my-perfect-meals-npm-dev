@@ -19,6 +19,7 @@ export interface CreateDishCulinaryEntry {
   category: string;
   forms: CulinaryForm[];
   methodIds?: CookingMethodId[];
+  additionalMethodIds?: CookingMethodId[];
   flavors: CulinaryFlavor[];
 }
 
@@ -99,6 +100,7 @@ export const CREATE_DISH_CULINARY_ENTRIES: CreateDishCulinaryEntry[] = [
       ["shredded", "Shredded"],
       ["strips", "Strips"],
     ].map(([id, label]) => ({ id, label })),
+    additionalMethodIds: ["stir-fried"],
     flavors: [
       flavors.garlicHerb,
       flavors.cajun,

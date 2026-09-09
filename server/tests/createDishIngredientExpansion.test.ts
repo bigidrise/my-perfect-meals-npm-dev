@@ -46,6 +46,25 @@ describe("Create a Dish ingredient expansion", () => {
     expect(result.options.cuisines.find((item) => item.id === "japanese")?.dimension).toBe("cuisine");
   });
 
+  test("specific natural-language input is recognized and preserves inferred intent", async () => {
+    const result = await expandCreateDishIngredient(
+      request("crispy teriyaki chicken thighs"),
+    );
+    expect(result.ingredient.canonicalId).toBe("chicken");
+    expect(result.inferredSelectionIds).toMatchObject({
+      form: "thigh",
+      texture: "crispy-exterior",
+      flavor: "teriyaki",
+    });
+  });
+
+  test("Create-a-Dish compatibility adds stir-frying without replacing governed mappings", async () => {
+    const result = await expandCreateDishIngredient(request("Chicken"));
+    expect(result.options.methods.map((item) => item.id)).toEqual(
+      expect.arrayContaining(["grilled", "baked", "stir-fried"]),
+    );
+  });
+
   test("existing technique mappings and blocked methods remain authoritative", async () => {
     const salmon = await expandCreateDishIngredient(request("Salmon"));
     expect(salmon.options.methods.map((item) => item.id)).toContain("pan-seared");
@@ -57,6 +76,12 @@ describe("Create a Dish ingredient expansion", () => {
     expect(result.ingredient.status).toMatch(/^clarification_/);
     expect(result.ingredient.clarification?.choices.length).toBeGreaterThan(1);
     expect(result.options.forms).toEqual([]);
+  });
+
+  test("a clarified beef steak preserves the steak form", async () => {
+    const result = await expandCreateDishIngredient(request("Beef steak"));
+    expect(result.ingredient.canonicalId).toBe("beef");
+    expect(result.inferredSelectionIds.form).toBe("steak-cut");
   });
 
   test("nonsense input is unsupported and receives no generic options", async () => {

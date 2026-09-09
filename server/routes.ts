@@ -5679,7 +5679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let reservedAdvisoryOverrideToken: string | null = null;
     let advisoryOverrideFulfilled = false;
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, governanceOverrideToken, governanceDecision, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug, skipImages } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, governanceOverrideToken, governanceDecision, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug, skipImages, createDishIntent: rawCreateDishIntent } = req.body;
 
       // Adaptation block is built AFTER user is fetched (so we know their actual diet).
       // Start with the raw input — the safety check at line 3441 runs on clean input.
@@ -6060,6 +6060,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // _resolvedPrimaryDiet already incorporates the override (computed after user load).
       const bodyDietRestrictions = _resolvedPrimaryDiet.slice();
+
+      let validatedCreateDishIntent: import("@shared/createDishIngredientExpansion").CreateDishIntent | null = null;
+      if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
+        try {
+          const { revalidateCreateDishIntent, buildCreateDishIntentPrompt } = await import(
+            "./services/createDish/createDishIntent"
+          );
+          validatedCreateDishIntent = await revalidateCreateDishIntent(
+            rawCreateDishIntent,
+            protocolEnvelope.allergies ?? [],
+          );
+          cravingInput = `${cravingInput}\n\n${buildCreateDishIntentPrompt(validatedCreateDishIntent)}`;
+        } catch (intentError) {
+          console.warn("[CreateDishIntent] rejected invalid or tampered intent", intentError);
+          return res.status(400).json({
+            status: "invalid_request",
+            reasonCode: "invalid_create_dish_intent",
+            message: "Your preparation choices changed or are no longer available. Please review them and try again.",
+          });
+        }
+      }
 
       // ── Route-level oncology injection ────────────────────────────────────
       // The variety engine does its own DB query for specialtyCondition, but the
@@ -6708,7 +6729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       scannedOptions = finalEnforcement.accepted;
 
       // Format and optionally scale each option
-      const formattedOptions = scannedOptions.map(meal => {
+      let formattedOptions = scannedOptions.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, protocolEnvelope, { isChefAdapted: dietAdapted }
         );
@@ -6781,6 +6802,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ),
           authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
         });
+      }
+
+      if (validatedCreateDishIntent) {
+        const { mealHonorsCreateDishIntent } = await import(
+          "./services/createDish/createDishIntent"
+        );
+        formattedOptions = formattedOptions.filter((meal: any) =>
+          mealHonorsCreateDishIntent(meal, validatedCreateDishIntent!),
+        );
+        if (formattedOptions.length === 0) {
+          return res.status(422).json({
+            status: "unable_to_generate",
+            reasonCode: "create_dish_intent_not_preserved",
+            message: "We couldn't preserve those preparation choices safely. Try changing one choice or use Surprise Me.",
+          });
+        }
       }
 
       // ── Unified Image Pipeline: generate permanent imageUrls in parallel before responding ─
