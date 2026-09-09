@@ -10393,6 +10393,9 @@ Provide a single exceptional meal recommendation in JSON format with the followi
   const { default: cravingCreatorRouterShared } = await import("./routes/craving-creator");
   app.use("/api/craving-creator", requireAuth, requireProAccess, cravingCreatorRouterShared);
 
+  const { default: createDishExpansionRouter } = await import("./routes/createDishExpansion");
+  app.use("/api/create-a-dish", createDishExpansionRouter);
+
   const { default: breakfastRouterShared } = await import("./routes/breakfast");
   app.use("/api/breakfast", breakfastRouterShared);
 

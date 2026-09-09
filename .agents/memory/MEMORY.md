@@ -80,3 +80,4 @@
 - [Organization config resilience](organization-config-resilience.md) — authenticated tenant config may be partial; normalize it over complete defaults before feature-flag reads.
 - [Organization Location isolation](organization-location-isolation.md) — parent administration never implies Location access; active context is an exact authorized pair.
 - [Diabetes glucose context boundary](diabetes-glucose-context-boundary.md) — all food surfaces enforce state produce choices; only the Diabetes Meal Builder consumes diabetes-specific numbers.
+- [Create a Dish expansion isolation](create-dish-expansion-isolation.md) — expansion is typed culinary intent owned only by create_a_dish, never generic creator behavior.
