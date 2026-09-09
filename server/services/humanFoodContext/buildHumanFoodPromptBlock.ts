@@ -7,7 +7,10 @@ function line(label: string, value: string | null | undefined): string | null {
 export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
   const flavor = context.flavor;
   const nutrition = context.nutrition;
-  const projected = nutrition?.projectedRemaining ?? nutrition?.remaining;
+  const hasCanonicalNumericTargets = nutrition?.prescription?.source !== "fallback";
+  const projected = hasCanonicalNumericTargets
+    ? nutrition?.projectedRemaining ?? nutrition?.remaining
+    : null;
   const consumedStarch = nutrition?.starch?.consumed;
   const glucosePreferences = context.diabetesFoodPreferences;
   const lines = [
@@ -57,7 +60,9 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
       ? `- Canonical nutrition authority: ${nutrition.authority ?? "nutritionStateService"}; status ${nutrition.resolution?.status ?? "resolved"}; generation context ${nutrition.activeConstraints.generationContext}.`
       : null,
     projected
-      ? `- Projected remaining daily allocation after planned meals: ${projected.calories} kcal, ${projected.protein}g protein, ${projected.carbs}g total carbohydrate, ${projected.fat}g fat.`
+      ? `- HARD PER-CANDIDATE NUTRITION CEILINGS from the canonical projected remaining allocation: no candidate may exceed ${projected.calories} kcal, ${projected.carbs}g total carbohydrate, or ${projected.fat}g fat.`
+      : nutrition
+        ? "- Canonical numeric calorie and macro targets are unavailable. Use a standard meal portion; do not interpret unavailable targets as a zero-calorie budget."
       : null,
     consumedStarch
       ? `- Consumed-starch authority: ${consumedStarch.remainingGrams}g and ${consumedStarch.mealsRemaining} confirmed starch meal slot(s) remain; exhausted=${consumedStarch.exhausted}. Planned meals may create a projected conflict but cannot change consumed exhaustion.`

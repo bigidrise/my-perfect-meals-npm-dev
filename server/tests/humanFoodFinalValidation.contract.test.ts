@@ -1,6 +1,8 @@
 import { HUMAN_FOOD_CONTEXT_VERSION, type HumanFoodContext } from "../../shared/humanFoodContext";
 import type { HumanFoodCandidate } from "../../shared/humanFoodValidation";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
+import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
+import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { createHumanFoodRequestExecutionState } from "../services/humanFoodContext/requestExecutionState";
 
 function preference(value: string | null = null) {
@@ -44,6 +46,12 @@ function context(overrides: Partial<HumanFoodContext> = {}): HumanFoodContext {
       dislikedFoods: [],
       healthConditions: [],
     },
+    authorization: {
+      status: "none",
+      action: null,
+      reservationId: null,
+      waivers: [],
+    },
     nutrition: null,
     behavior: null,
     diabetesFoodPreferences: null,
@@ -68,6 +76,66 @@ function generatedEvidence(overrides: HumanFoodCandidate["evidence"] = {}) {
 }
 
 describe("universal Human Food final-validation contract", () => {
+  it("does not enforce fallback placeholder zeroes as canonical nutrition budgets", () => {
+    const fallbackContext = context({
+      nutrition: {
+        prescription: { source: "fallback" },
+        resolution: { status: "INSUFFICIENT_DATA", reasonCodes: ["fallback_prescription"] },
+        projectedRemaining: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+        remaining: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+        activeConstraints: { consumedStarchExhausted: false },
+      } as any,
+    });
+    const candidate = {
+      name: "Herb Chicken",
+      category: "dinner",
+      ingredients: ["chicken breast", "broccoli", "olive oil"],
+      instructions: "Grill the chicken and steam the broccoli.",
+      nutrition: { calories: 420, protein: 40, carbs: 12, fat: 18, starchyCarbs: 0 },
+      evidence: generatedEvidence(),
+    };
+
+    expect(validateHumanFoodCandidate(candidate, fallbackContext).findings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "projected_calories_budget_exceeded" }),
+      ]),
+    );
+    expect(validateHumanFoodResult(candidate, fallbackContext).violations).not.toContain(
+      "projected_calorie_budget_exceeded",
+    );
+    expect(buildHumanFoodPromptBlock(fallbackContext)).toContain(
+      "do not interpret unavailable targets as a zero-calorie budget",
+    );
+    expect(buildHumanFoodPromptBlock(fallbackContext)).not.toContain(
+      "no candidate may exceed 0 kcal",
+    );
+  });
+
+  it("keeps resolved positive nutrition overages repairable without bypassing the ceiling", () => {
+    const resolvedContext = context({
+      nutrition: {
+        prescription: { source: "user_default" },
+        resolution: { status: "RESOLVED", reasonCodes: [] },
+        projectedRemaining: { calories: 300, protein: 40, carbs: 25, fat: 12 },
+        activeConstraints: { consumedStarchExhausted: false },
+      } as any,
+    });
+    const result = validateHumanFoodCandidate({
+      name: "Herb Chicken",
+      ingredients: ["chicken breast", "broccoli", "olive oil"],
+      nutrition: { calories: 420, protein: 40, carbs: 20, fat: 10, starchyCarbs: 0 },
+      evidence: generatedEvidence(),
+    }, resolvedContext);
+
+    expect(result.outcome).toBe("repairable");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "projected_calories_budget_exceeded" }),
+    ]));
+    expect(buildHumanFoodPromptBlock(resolvedContext)).toContain(
+      "no candidate may exceed 300 kcal",
+    );
+  });
+
   const glucosePreferenceContext = (
     state: "LOW" | "IN_RANGE" | "HIGH",
     selectedFruits: string[],

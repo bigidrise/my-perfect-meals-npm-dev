@@ -313,7 +313,9 @@ export function validateHumanFoodCandidate(
   }
 
   const nutrition = candidate.nutrition;
-  const remaining = context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
+  const remaining = context.nutrition?.prescription?.source === "fallback"
+    ? null
+    : context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
   if (context.nutrition) {
     if (evidence.nutritionEvidence === "unknown") add(findings, {
       dimension: "nutrition", outcome: "review_required", code: "nutrition_evidence_unknown",
@@ -332,7 +334,9 @@ export function validateHumanFoodCandidate(
   }
   for (const macro of ["calories", "carbs", "fat"] as const) {
     if (remaining && nutrition?.[macro] != null && nutrition[macro]! > remaining[macro]) add(findings, {
-      dimension: "nutrition", outcome: "blocked", code: `projected_${macro}_budget_exceeded`,
+      dimension: "nutrition",
+      outcome: remaining[macro] > 0 ? "repairable" : "blocked",
+      code: `projected_${macro}_budget_exceeded`,
       message: `The candidate exceeds the canonical remaining ${macro} budget.`,
       assurance: "deterministic",
     });
