@@ -1,6 +1,7 @@
 import {
   evaluateRelationshipRules,
 } from "../../../server/services/guardrails/rules/culturalRules";
+import { maskFoodIntentDietaryCompounds } from "@shared/semanticDietaryIngredients";
 
 export type SupportedDiet = "vegan" | "vegetarian" | "keto" | "pescatarian" | "kosher" | "halal" | "paleo" | "gluten-free" | "carnivore";
 
@@ -20,8 +21,7 @@ const PLANT_MILK_PATTERN = /\b(almond|soy|oat|coconut|cashew|rice|hemp|pea|flax|
 const NUT_BUTTER_PATTERN  = /\b(peanut|almond|cashew|sunflower|apple|pumpkin)[\s-]*butter\b/gi;
 
 function normalizeForDietaryScanClient(text: string): string {
-  return text
-    .toLowerCase()
+  return maskFoodIntentDietaryCompounds(text)
     .replace(PLANT_MILK_PATTERN, "__PLANT_MILK__")
     .replace(NUT_BUTTER_PATTERN,  "__NUT_BUTTER__");
 }

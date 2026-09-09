@@ -1,7 +1,7 @@
 // server/services/allergyGuardrails.ts
 // CRITICAL SAFETY SYSTEM: Allergy and dietary restriction enforcement
 // This module provides hard-block enforcement for allergies across ALL meal generators
-import { maskNonAnimalDietaryCompounds } from "./semanticDietaryIngredients";
+import { maskNonAnimalDietaryCompounds } from "@shared/semanticDietaryIngredients";
 
 export interface UserSafetyProfile {
   allergies: string[];

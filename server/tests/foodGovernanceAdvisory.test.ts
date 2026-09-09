@@ -155,6 +155,58 @@ describe("server-authoritative food governance advisory classification", () => {
     expect(result.result).toBe("SAFE");
   });
 
+  it.each([
+    "Strawberry vegan ice cream",
+    "Chinese strawberry vegan ice cream",
+    "Strawberry ice cream with coconut milk",
+    "Strawberry ice cream with oat milk and cashew cream",
+    "Peanut butter ice cream made with almond milk",
+  ])("does not treat compound food intent as a vegan conflict: %s", async (request) => {
+    mockUser.dietaryRestrictions = ["vegan"];
+
+    const result = await enforceSafetyProfile(
+      mockUser.id,
+      request,
+      "craving-creator",
+      { safetyMode: "STRICT" },
+    );
+
+    expect(result.result).toBe("SAFE");
+    expect(result.message).not.toContain("Nutrition Life Plan is currently set");
+  });
+
+  it("still flags actual heavy cream even when the dish is called vegan ice cream", async () => {
+    mockUser.dietaryRestrictions = ["vegan"];
+
+    const result = await enforceSafetyProfile(
+      mockUser.id,
+      "Vegan strawberry ice cream made with heavy cream",
+      "craving-creator",
+      { safetyMode: "STRICT" },
+    );
+
+    expect(result).toMatchObject({
+      result: "ADVISORY",
+      reasonCode: "dietary_identity:vegan",
+      requestedFood: "cream",
+    });
+    expect(result.blockedTerms).toContain("cream");
+  });
+
+  it("keeps ingredient-specific allergies active inside safe compounds", async () => {
+    mockUser.allergies = ["tree nuts"];
+
+    const result = await enforceSafetyProfile(
+      mockUser.id,
+      "Strawberry ice cream made with almond milk",
+      "craving-creator",
+      { safetyMode: "STRICT" },
+    );
+
+    expect(result.result).toBe("BLOCKED");
+    expect(result.blockedTerms.some(term => term.includes("almond"))).toBe(true);
+  });
+
   it("keeps an allergy hard block above a dietary-identity override", async () => {
     mockUser.allergies = ["shrimp"];
     mockUser.dietaryRestrictions = ["vegan"];
