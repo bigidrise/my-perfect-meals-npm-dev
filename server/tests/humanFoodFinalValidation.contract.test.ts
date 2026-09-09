@@ -149,6 +149,96 @@ describe("universal Human Food final-validation contract", () => {
     expect(result.findings).toEqual([]);
   });
 
+  it.each([
+    {
+      name: "Strawberry Vegan Ice Cream",
+      description: "A creamy frozen strawberry dessert made with coconut cream.",
+      ingredients: ["strawberries", "coconut cream", "oat milk", "maple syrup"],
+      instructions: "Blend the strawberries with coconut cream and oat milk, then churn into ice cream.",
+    },
+    {
+      name: "Cashew Cream Cheesecake",
+      description: "A dairy-free cheesecake with a cashew cream cheese filling.",
+      ingredients: ["cashew cream cheese", "almond milk", "cocoa butter", "dates"],
+      instructions: "Blend the cashew cream cheese filling and chill until set.",
+    },
+  ])("does not mistake plant-based compound names for vegan violations: $name", (candidate) => {
+    const result = validateHumanFoodCandidate({
+      ...candidate,
+      category: "snack",
+      evidence: generatedEvidence({ dietaryIdentityCompliant: true }),
+    }, context({
+      diet: {
+        stored: ["vegan"],
+        effective: ["vegan"],
+        source: "request",
+        requestOverride: "vegan",
+        adaptationOutcome: "adapted",
+      },
+    }));
+
+    expect(result.findings).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "dietary_identity:vegan" }),
+    ]));
+  });
+
+  it("still blocks actual dairy when a plant-based compound is also present", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Strawberry Vegan Ice Cream",
+      ingredients: ["strawberries", "coconut cream", "dairy milk"],
+      instructions: "Blend coconut cream with dairy milk and freeze.",
+      evidence: generatedEvidence({ dietaryIdentityCompliant: false }),
+    }, context({
+      diet: {
+        stored: ["vegan"],
+        effective: ["vegan"],
+        source: "request",
+        requestOverride: "vegan",
+        adaptationOutcome: "adapted",
+      },
+    }));
+
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "dietary_identity:vegan" }),
+    ]));
+  });
+
+  it("does not turn processing uncertainty into a hard stop for a structured generated recipe", () => {
+    const result = validateHumanFoodCandidate({
+      name: "Japanese-Inspired Strawberry Vegan Ice Cream",
+      category: "snack",
+      description: "A frozen strawberry dessert with subtle matcha.",
+      ingredients: ["strawberries", "coconut cream", "oat milk", "matcha"],
+      instructions: "Blend, churn, and freeze until scoopable.",
+      evidence: generatedEvidence({
+        dietaryIdentityCompliant: true,
+        cuisine: "Japanese",
+      }),
+    }, context({
+      diet: {
+        stored: ["vegan"],
+        effective: ["vegan"],
+        source: "request",
+        requestOverride: "vegan",
+        adaptationOutcome: "adapted",
+      },
+      flavor: {
+        ...context().flavor,
+        cuisine: preference("Japanese"),
+      },
+    }), {
+      requestedDish: "strawberry vegan ice cream",
+      requestedCategory: "snack",
+    });
+
+    expect(result.findings).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "whole_food_evidence_insufficient" }),
+    ]));
+    expect(result.findings).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "dish_identity_lost" }),
+    ]));
+  });
+
   it("continues to require review for genuinely unknown dietary identities", () => {
     const result = validateHumanFoodCandidate({
       name: "Vegetable Plate",

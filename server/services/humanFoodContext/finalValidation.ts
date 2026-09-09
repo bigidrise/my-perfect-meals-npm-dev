@@ -46,6 +46,82 @@ const DIET_BLOCKS: Record<string, string[]> = {
   "gluten free": ["wheat", "barley", "rye", "malt", "regular soy sauce"],
 };
 
+/**
+ * Compound food names that contain a blocked animal-product word but do not
+ * themselves establish an animal-product conflict. The generated-recipe
+ * contract still requires positive structured dietary evidence; these phrases
+ * only prevent deterministic substring false positives such as "coconut milk"
+ * and the requested category name "ice cream".
+ */
+const DIET_SAFE_COMPOUNDS: Record<string, string[]> = {
+  vegan: [
+    "ice cream",
+    "almond milk",
+    "cashew milk",
+    "coconut milk",
+    "flax milk",
+    "hemp milk",
+    "oat milk",
+    "pea milk",
+    "plant milk",
+    "plant based milk",
+    "rice milk",
+    "soy milk",
+    "coconut cream",
+    "cashew cream",
+    "oat cream",
+    "plant cream",
+    "plant based cream",
+    "vegan cream",
+    "cashew cream cheese",
+    "vegan cream cheese",
+    "plant based cheese",
+    "vegan cheese",
+    "almond butter",
+    "cashew butter",
+    "cocoa butter",
+    "nut butter",
+    "peanut butter",
+    "plant based butter",
+    "seed butter",
+    "sunflower seed butter",
+    "vegan butter",
+  ],
+  "dairy free": [
+    "ice cream",
+    "almond milk",
+    "cashew milk",
+    "coconut milk",
+    "flax milk",
+    "hemp milk",
+    "oat milk",
+    "pea milk",
+    "plant milk",
+    "plant based milk",
+    "rice milk",
+    "soy milk",
+    "coconut cream",
+    "cashew cream",
+    "oat cream",
+    "plant cream",
+    "plant based cream",
+    "vegan cream",
+    "cashew cream cheese",
+    "vegan cream cheese",
+    "plant based cheese",
+    "vegan cheese",
+    "almond butter",
+    "cashew butter",
+    "cocoa butter",
+    "nut butter",
+    "peanut butter",
+    "plant based butter",
+    "seed butter",
+    "sunflower seed butter",
+    "vegan butter",
+  ],
+};
+
 const DIETS_REQUIRING_STRUCTURED_EVIDENCE = new Set([
   "balanced",
   "keto",
@@ -96,6 +172,18 @@ function hasTerm(text: string, term: string): boolean {
   const normalized = normalize(term);
   if (normalized.length < 3) return false;
   return new RegExp(`(^|[^a-z0-9])${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`, "i").test(text);
+}
+
+function withoutSafeDietCompounds(text: string, diet: string): string {
+  return [...(DIET_SAFE_COMPOUNDS[diet] ?? [])]
+    .sort((left, right) => right.length - left.length)
+    .reduce((remaining, phrase) => {
+      const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return remaining.replace(
+        new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "gi"),
+        "$1 $2",
+      );
+    }, text);
 }
 
 function hasExactAuthorization(
@@ -256,6 +344,7 @@ export function validateHumanFoodCandidate(
 
   for (const diet of context.diet.effective) {
     const key = normalize(diet);
+    const deterministicDietText = withoutSafeDietCompounds(text, key);
     const requiresStructuredEvidence = DIETS_REQUIRING_STRUCTURED_EVIDENCE.has(key);
     const dietaryRequestAuthorized = hasAuthorizedDietaryRequest(
       context,
@@ -263,7 +352,7 @@ export function validateHumanFoodCandidate(
       text,
     );
     const matched = (DIET_BLOCKS[key] ?? []).filter((term) =>
-      hasTerm(text, term) &&
+      hasTerm(deterministicDietText, term) &&
       !dietaryRequestAuthorized,
     );
     if (matched.length) add(findings, {
@@ -401,7 +490,11 @@ export function validateHumanFoodCandidate(
     recommendationSurface: "human_food_final_validation",
     practicalAlternativeAvailable: options.practicalWholeFoodAlternativeAvailable,
   });
-  if (wholeFood.classification === "uncertain") add(findings, {
+  const hasStructuredGeneratedComposition =
+    evidence.sourceType === "generated_recipe" &&
+    evidence.ingredientEvidence === "structured_generation" &&
+    evidence.preparationEvidence === "structured_generation";
+  if (wholeFood.classification === "uncertain" && !hasStructuredGeneratedComposition) add(findings, {
     dimension: "whole_food", outcome: "review_required", code: "whole_food_evidence_insufficient",
     message: wholeFood.reason, assurance: "structured_evidence",
   });
