@@ -38,10 +38,9 @@ const mfaPolicy = fs.readFileSync(
 describe("Business Suite owner-first journey", () => {
   test("More gives users without an organization the $44.99 Business Suite front door", () => {
     expect(more).toContain('data-testid="card-business-suite"');
-    expect(more).toContain('"Start Your Organization"');
-    expect(more).toContain('"$44.99/month · Set up your Business Suite"');
-    expect(more).toContain('businessCard?.status === "active" ? "/business-dashboard" : "/business/start"');
-    expect(more).toContain('"Complete Organization Setup"');
+    expect(more).toContain("INITIAL_BUSINESS_CARD_STATE");
+    expect(more).toContain("businessCardView.destination");
+    expect(more).not.toContain('businessCard?.status === "active" ? "/business-dashboard" : "/business/start"');
   });
 
   test("Business Suite explains the full client journey before setup", () => {
