@@ -1,6 +1,7 @@
 // server/services/allergyGuardrails.ts
 // CRITICAL SAFETY SYSTEM: Allergy and dietary restriction enforcement
 // This module provides hard-block enforcement for allergies across ALL meal generators
+import { maskNonAnimalDietaryCompounds } from "./semanticDietaryIngredients";
 
 export interface UserSafetyProfile {
   allergies: string[];
@@ -1904,7 +1905,7 @@ export function scanForHiddenDietaryViolations(
   options?: { skipMeatDairyCombinationCheck?: boolean }
 ): HiddenViolation[] {
   const violations: HiddenViolation[] = [];
-  const lower = normalizeForDietaryScan(mealText);
+  const lower = maskNonAnimalDietaryCompounds(normalizeForDietaryScan(mealText));
 
   const normalizedDiets = dietTypes.map(d => d.trim().toLowerCase());
   const isKosher      = normalizedDiets.some(d => d === "kosher" || d === "kosher-halal");
