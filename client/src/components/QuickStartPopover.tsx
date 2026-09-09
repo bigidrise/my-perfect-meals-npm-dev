@@ -34,10 +34,10 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
           type="button"
           className={
             compact
-              ? `flex items-center gap-1 text-[10px] font-semibold leading-none transition-colors ${
+              ? `flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors ${
                   hasCompletedPhaseOne
-                    ? "text-white/60 hover:text-white"
-                    : "text-amber-300 hover:text-amber-200"
+                    ? "border-white/15 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    : "border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/15 hover:text-amber-200"
                 }`
               : `flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                   hasCompletedPhaseOne
@@ -46,10 +46,11 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
                 }`
           }
           aria-label="Open Quick Start"
+          title={compact ? "Quick Start" : undefined}
           data-testid="button-quick-start"
         >
-          <Sparkles className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
-          <span>Quick Start</span>
+          <Sparkles className="h-3.5 w-3.5" />
+          {!compact && <span>Quick Start</span>}
           {!compact && !hasCompletedPhaseOne && (
             <span className="rounded-full bg-amber-300/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-200">
               Recommended
