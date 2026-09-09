@@ -166,7 +166,15 @@ export async function resolveHumanFoodContext(
       throw new Error("dateISO must be a YYYY-MM-DD user-local calendar date");
     }
     nutrition = await resolveDailyNutritionState(input.subjectUserId, dateISO, input.excludeItemId);
-  } catch {
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[HumanFoodContext:diagnostic] daily nutrition resolution failed", {
+        creator: input.creator,
+        correlationId: input.correlationId,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
     status = "review_required";
     gaps.push("daily_nutrition_state");
     notices.push("Daily nutrition context could not be resolved safely.");
@@ -240,7 +248,15 @@ export async function resolveHumanFoodContext(
           allowedProduce: hypoOverrideActive ? [...HYPOGLYCEMIA_PRODUCE_OVERRIDES] : [],
         },
       };
-    } catch {
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[HumanFoodContext:diagnostic] glucose preference resolution failed", {
+          creator: input.creator,
+          correlationId: input.correlationId,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+      }
       status = "review_required";
       gaps.push("diabetes.glucose_food_preferences");
       notices.push("Current glucose-based food preferences could not be resolved safely.");

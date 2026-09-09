@@ -5823,6 +5823,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const humanFoodExecutionState = humanFoodRequestScope.executionState;
       if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[CreateDish:diagnostic] generation stopped at human food context", {
+            creator: humanFoodCreator,
+            correlationId: (req as any).id,
+            status: humanFoodContext.status,
+            gaps: humanFoodContext.gaps,
+          });
+        }
         return res.status(409).json({
           success: false,
           code: "HUMAN_FOOD_CONTEXT_UNRESOLVED",
@@ -5905,6 +5913,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               },
             }).catch(error => console.error("[FoodGovernance] Alternative event failed:", error));
           } else {
+            if (process.env.NODE_ENV === "development" && humanFoodCreator === "create_a_dish") {
+              console.warn("[CreateDish:diagnostic] generation stopped for governance decision", {
+                correlationId: (req as any).id,
+                reasonCode: safetyCheck.reasonCode,
+                enforcementLevel: safetyCheck.enforcementLevel,
+              });
+            }
             return res.status(409).json({
               success: false,
               status: "advisory",
