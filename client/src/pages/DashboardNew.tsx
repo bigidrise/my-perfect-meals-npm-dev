@@ -50,7 +50,6 @@ import {
   hasActivePaidSubscription,
   hasPaidPlan,
 } from "@/lib/subscriptionCheck";
-import { getTierForLookupKey } from "@shared/planFeatures";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { BugReportButton } from "@/components/BugReportButton";
@@ -77,29 +76,6 @@ import { TrialStatusCard } from "@/components/TrialStatusCard";
 import { QuickStartPopover } from "@/components/QuickStartPopover";
 import CoachCornerCard from "@/components/ace/CoachCornerCard";
 import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
-
-type DashBadgeVariant = "free" | "paid" | "professional";
-
-function getMobilePlanBadge(user: any): { textKey: string; variant: DashBadgeVariant } | null {
-  if (!user) return null;
-  const key = (user.planLookupKey ?? "").toLowerCase();
-  if (key.includes("procare") || key.includes("trainer") || key.includes("physician")) {
-    return { textKey: "professionalBadge", variant: "professional" };
-  }
-  const tier = getTierForLookupKey(user.planLookupKey);
-  switch (tier) {
-    case "basic":    return { textKey: "essentialBadge", variant: "paid" };
-    case "premium":  return { textKey: "proBadge",       variant: "paid" };
-    case "ultimate": return { textKey: "clinicalBadge",  variant: "paid" };
-    default:         return { textKey: "freeBadge",      variant: "free" };
-  }
-}
-
-const DASH_BADGE_CLASSES: Record<DashBadgeVariant, string> = {
-  free:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
-  paid:         "bg-orange-500/15 border border-orange-500/25 text-orange-400",
-  professional: "bg-blue-500/15 border border-blue-500/25 text-blue-400",
-};
 
 interface FeatureCard {
   title: string;
@@ -131,7 +107,6 @@ export default function DashboardNew() {
   const [showMacroModal, setShowMacroModal] = useState(false);
   const handlePhotoLog = () => setShowMacroModal(true);
 
-  const mobilePlanBadge = getMobilePlanBadge(user);
   const isCoach = !!(user?.professionalRole);
   const isProCareClient = !!user?.isProCare && !isCoach;
   const { data: providerConnection } = useQuery<{ connected: boolean }>({
@@ -946,20 +921,12 @@ export default function DashboardNew() {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 h-14">
-            {/* LEFT: plan tier badge */}
+            {/* LEFT: compact Quick Start */}
             <div className="justify-self-start">
-              {mobilePlanBadge && (
-                <span
-                  className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${DASH_BADGE_CLASSES[mobilePlanBadge.variant]}`}
-                  style={{ lineHeight: "1.4" }}
-                >
-                  {t(mobilePlanBadge.textKey)}
-                </span>
-              )}
-            </div>
-            {/* CENTER: compact Quick Start stays in one row without crowding mobile controls */}
-            <div className="justify-self-center flex items-center gap-1.5 min-w-0">
               <QuickStartPopover compact />
+            </div>
+            {/* CENTER: MPM stays centered without competing controls */}
+            <div className="justify-self-center min-w-0">
               <h1 className="text-md font-bold leading-none text-white whitespace-nowrap">{t("mpmLabel")}</h1>
             </div>
             {/* RIGHT: Bug report + Hub */}
