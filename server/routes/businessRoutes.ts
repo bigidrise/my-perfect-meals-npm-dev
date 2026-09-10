@@ -51,6 +51,7 @@ import {
 } from "../services/organizationInvitationBatchService";
 import { activateProCareClient, ActivationError } from "../services/procareActivation";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
+import { loadOrgContext } from "../lib/orgContext";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -1112,6 +1113,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       : `${getAppUrl()}/auth?mode=signup&invite=${token}`;
 
     if (shouldSendEmail) {
+      const organizationContext = await loadOrgContext(business.organizationId);
       const emailResult = await sendBusinessInviteEmail({
         to: normalizedEmail,
         businessName: business.name,
@@ -1123,6 +1125,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         trialDays: resolvedTrialDays,
         programName: isClient ? (programName?.trim() || null) : undefined,
         recipientName: recipientName?.trim() || undefined,
+        supportEmail: organizationContext.supportEmail,
       });
       if (!emailResult) {
         await db
@@ -1384,6 +1387,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
       ? `${getAppUrl()}/business/join/${invite.token}`
       : `${getAppUrl()}/auth?mode=signup&invite=${invite.token}`;
 
+    const organizationContext = await loadOrgContext(business.organizationId);
     const emailResult = await sendBusinessInviteEmail({
       to: invite.email,
       businessName: business.name,
@@ -1394,6 +1398,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
       invitationType: (invite.invitationType ?? "team_member") as any,
       trialDays: invite.trialDays,
       programName: invite.programName,
+      supportEmail: organizationContext.supportEmail,
     });
     if (!emailResult) {
       await db

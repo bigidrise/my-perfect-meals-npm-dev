@@ -1164,6 +1164,7 @@ export async function sendBusinessInviteEmail({
   recipientName,
   founderVideoUrl,
   facebookGroupUrl,
+  supportEmail,
 }: {
   to: string;
   businessName: string;
@@ -1177,6 +1178,7 @@ export async function sendBusinessInviteEmail({
   recipientName?: string | null;
   founderVideoUrl?: string | null;
   facebookGroupUrl?: string | null;
+  supportEmail?: string | null;
 }) {
   if (!resend) {
     console.log('⚠️ Resend service not available - skipping business invite email');
@@ -1196,8 +1198,14 @@ export async function sendBusinessInviteEmail({
   const safeRecipientFirstName = escapeEmailHtml(
     recipientFirstName.charAt(0).toUpperCase() + recipientFirstName.slice(1),
   );
-  const safeFounderVideoUrl = founderVideoUrl ? escapeEmailHtml(founderVideoUrl) : null;
-  const safeFacebookGroupUrl = facebookGroupUrl ? escapeEmailHtml(facebookGroupUrl) : null;
+  const safeFounderVideoUrl = escapeEmailHtml(
+    founderVideoUrl || "https://youtu.be/X5AiYTHzyrQ",
+  );
+  const safeFacebookGroupUrl = escapeEmailHtml(
+    facebookGroupUrl || "https://www.facebook.com/groups/myperfectmealsofficial",
+  );
+  const resolvedSupportEmail = supportEmail?.trim() || "support@myperfectmeals.ai";
+  const safeSupportEmail = escapeEmailHtml(resolvedSupportEmail);
   const temporaryProfessionalAccessCopy = trialDays == null
     ? ""
     : ` with <strong style="color: white;">${resolvedDays} days of complimentary professional access</strong>`;
@@ -1290,7 +1298,7 @@ export async function sendBusinessInviteEmail({
             <div style="background: #1f2937; padding: 20px 30px; border-radius: 0 0 12px 12px; text-align: center;">
               <p style="color: #6b7280; font-size: 12px; margin: 0;">
                 Welcome to My Perfect Meals. We're glad you're here.<br/>
-                <span style="color: #9ca3af;">Need help getting started? <a href="mailto:support@myperfectmeals.ai" style="color: #93c5fd;">support@myperfectmeals.ai</a></span><br/><br/>
+                <span style="color: #9ca3af;">Need help getting started? <a href="mailto:${safeSupportEmail}" style="color: #93c5fd;">${safeSupportEmail}</a></span><br/><br/>
                 <span style="color: #6b7280;">My Perfect Meals provides nutrition education and decision-support tools and is not a substitute for medical care. Continue to follow the medical guidance provided by your healthcare professionals.</span>
               </p>
             </div>

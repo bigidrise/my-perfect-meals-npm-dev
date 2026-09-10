@@ -82,8 +82,12 @@ describe("unified organization invitation durations", () => {
     expect(email).toContain("${resolvedDays} days of complimentary access");
     expect(email).toContain("Open My Perfect Meals");
     expect(email).toContain("support@myperfectmeals.ai");
+    expect(email).toContain("https://youtu.be/X5AiYTHzyrQ");
+    expect(email).toContain("https://www.facebook.com/groups/myperfectmealsofficial");
+    expect(email).toContain("mailto:${safeSupportEmail}");
     expect(email).toContain("safeFounderVideoUrl ?");
     expect(email).toContain("safeFacebookGroupUrl ?");
+    expect(routes).toContain("supportEmail: organizationContext.supportEmail");
     expect(routes).toContain("recipientName: req.body?.participantName");
     expect(routes).toContain("recipientName: recipient.displayName");
   });
