@@ -180,8 +180,8 @@ export async function createOrganizationalPilotInvitation(input: {
     ...result,
     rawToken,
     inviteLink: input.populationType === "client"
-      ? `/business/join/${rawToken}`
-      : `/auth?mode=signup&invite=${rawToken}`,
+      ? `/business/join#token=${rawToken}`
+      : `/auth?organizationInvite=1#token=${rawToken}`,
   };
 }
 
@@ -277,8 +277,8 @@ export async function resendOrganizationalPilotInvitation(input: {
     rawToken,
     expiresAt,
     invitePath: invite.populationType === "client"
-      ? `/business/join/${rawToken}`
-      : `/auth?mode=signup&invite=${rawToken}`,
+      ? `/business/join#token=${rawToken}`
+      : `/auth?organizationInvite=1#token=${rawToken}`,
   };
 }
 

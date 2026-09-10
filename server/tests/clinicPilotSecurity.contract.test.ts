@@ -9,6 +9,7 @@ describe("Clinic pilot security integration contracts", () => {
   const dev = read("server/index.ts");
   const prod = read("server/prod.ts");
   const signup = read("server/routes/auth.session.ts");
+  const pilotInvitations = read("server/services/organizationalPilotInvitationService.ts");
 
   it("keeps raw tokens out of server URL paths and management responses", () => {
     expect(route).not.toMatch(/\/inspect\/:token/);
@@ -19,6 +20,12 @@ describe("Clinic pilot security integration contracts", () => {
     expect(route).toContain("joinPath: `/join/clinic#token=${created.rawToken}`");
     expect(read("client/src/pages/ClinicPilotJoinPage.tsx")).not.toContain("/join/clinic/:token");
     expect(read("client/src/pages/Auth.tsx")).not.toContain("clinicPilotToken=${");
+    expect(pilotInvitations).toContain("/business/join#token=${rawToken}");
+    expect(pilotInvitations).toContain("/auth?organizationInvite=1#token=${rawToken}");
+    expect(pilotInvitations).not.toContain("/business/join/${rawToken}");
+    expect(read("client/src/pages/BusinessInviteAccept.tsx")).toContain(
+      '"x-business-invitation-token": token',
+    );
   });
 
   it("keeps the public clinic join page outside authenticated navigation shells", () => {

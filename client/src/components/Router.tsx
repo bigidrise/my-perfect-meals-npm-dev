@@ -1049,7 +1049,7 @@ export default function Router() {
         <Route path="/business/setup" component={lazy(() => import("@/pages/BusinessSetup"))} />
         <Route path="/business/dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
         <Route path="/business-dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
-        <Route path="/business/join/:token" component={lazy(() => import("@/pages/BusinessInviteAccept"))} />
+        <Route path="/business/join" component={lazy(() => import("@/pages/BusinessInviteAccept"))} />
         <Route path="/org-success-center" component={lazy(() => import("@/pages/OrganizationSuccessCenter"))} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/household-profiles" component={HouseholdProfilesPage} />
