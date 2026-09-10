@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { GlassButton } from "@/components/glass";
 import { PillButton } from "@/components/ui/pill-button";
+import { IconPillOption } from "@/components/ui/icon-pill-option";
 import {
   Select,
   SelectContent,
@@ -718,23 +719,20 @@ export default function DessertCreator() {
                 <label className="block text-sm font-medium text-white mb-2">
                   Cooking method <span className="text-white/40 font-normal">(optional)</span>
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                   {[
                     { label: "Oven", emoji: "🔥" },
                     { label: "Stovetop", emoji: "🍳" },
                     { label: "Air Fryer", emoji: "💨" },
                     { label: "No-Bake", emoji: "❄️" },
                   ].map(({ label, emoji }) => (
-                    <div key={label} className="flex flex-col items-center gap-1">
-                      <PillButton
-                        active={cookMethod === label}
-                        variant="amber"
-                        onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                      >
-                        {emoji}
-                      </PillButton>
-                      <span className="text-[10px] text-white leading-tight text-center">{label}</span>
-                    </div>
+                    <IconPillOption
+                      key={label}
+                      icon={emoji}
+                      label={label}
+                      active={cookMethod === label}
+                      onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                    />
                   ))}
                 </div>
               </div>

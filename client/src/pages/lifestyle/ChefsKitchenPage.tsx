@@ -37,6 +37,7 @@ import {
 } from "@/utils/allergyAlert";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { IconPillOption } from "@/components/ui/icon-pill-option";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
@@ -655,22 +656,15 @@ export default function ChefsKitchenPage() {
                     <label className="block text-sm font-medium text-white mb-2">
                       Cooking method <span className="text-white/40 font-normal">(optional)</span>
                     </label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                       {COOK_METHODS.map(({ label, emoji }) => (
-                        <div key={label} className="flex flex-col items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                            className={`w-12 h-12 rounded-xl text-xl flex items-center justify-center border transition ${
-                              cookMethod === label
-                                ? "bg-orange-600 border-orange-500"
-                                : "bg-black/40 border-white/20 hover:border-white/40"
-                            }`}
-                          >
-                            {emoji}
-                          </button>
-                          <span className="text-[10px] text-white leading-tight text-center">{label}</span>
-                        </div>
+                        <IconPillOption
+                          key={label}
+                          icon={emoji}
+                          label={label}
+                          active={cookMethod === label}
+                          onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                        />
                       ))}
                     </div>
                   </div>

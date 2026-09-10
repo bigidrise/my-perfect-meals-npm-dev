@@ -34,6 +34,7 @@ import { Progress } from "@/components/ui/progress";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { IconPillOption } from "@/components/ui/icon-pill-option";
 import FavoriteButton from "@/components/FavoriteButton";
 import TrashButton from "@/components/ui/TrashButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -2596,7 +2597,7 @@ export default function MyPerfectBeginningCreateMealPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                     {[1, 2, 4, 6, 8].map(s => (
                       <button
                         key={s}
@@ -2633,18 +2634,13 @@ export default function MyPerfectBeginningCreateMealPage() {
                       { id: "Slow Cooker", label: "Slow Cooker", emoji: "🥘" },
                       { id: "No-Bake", label: "No-Bake", emoji: "❄️" },
                     ].map(m => (
-                      <button
+                      <IconPillOption
                         key={m.id}
-                        type="button"
+                        icon={m.emoji}
+                        label={m.label}
+                        active={cookingMethod === m.id}
                         onClick={() => setCookingMethod(m.id)}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                          cookingMethod === m.id
-                            ? "bg-orange-500/20 border-orange-400/50 text-orange-200"
-                            : "bg-white/5 border-white/10 text-white hover:border-white/25"
-                        }`}
-                      >
-                        <span>{m.emoji}</span>{m.label}
-                      </button>
+                      />
                     ))}
                   </div>
                 </CardContent>

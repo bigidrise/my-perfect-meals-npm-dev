@@ -57,6 +57,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { PillButton } from "@/components/ui/pill-button";
+import { IconPillOption } from "@/components/ui/icon-pill-option";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -688,28 +689,24 @@ export default function UltimateExperiencesPage() {
                     <label className="block text-sm font-medium mb-3 text-white">
                       What's the occasion?
                     </label>
-                    <div className="flex gap-6">
+                    <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                       {SITUATIONS.map((s) => (
-                        <div key={s.id} className="flex flex-col items-center gap-1.5">
-                          <PillButton
-                            active={situation === s.id}
-                            variant="amber"
-                            onClick={() => {
-                              setSituation(s.id);
-                              setSelectedEvent(null);
-                              setSelectedDishes([]);
-                              setProteinSource("");
-                              setCookingMethod("");
-                              setHarvestGuide(null);
-                              setOutdoorExperienceType("simple");
-                            }}
-                            disabled={isGenerating}
-                            className="w-16 text-lg leading-none py-2"
-                          >
-                            {s.emoji}
-                          </PillButton>
-                          <span className="text-xs text-white/80 font-medium">{s.label}</span>
-                        </div>
+                        <IconPillOption
+                          key={s.id}
+                          icon={s.emoji}
+                          label={s.label}
+                          active={situation === s.id}
+                          onClick={() => {
+                            setSituation(s.id);
+                            setSelectedEvent(null);
+                            setSelectedDishes([]);
+                            setProteinSource("");
+                            setCookingMethod("");
+                            setHarvestGuide(null);
+                            setOutdoorExperienceType("simple");
+                          }}
+                          disabled={isGenerating}
+                        />
                       ))}
                     </div>
                   </div>
@@ -720,22 +717,18 @@ export default function UltimateExperiencesPage() {
                       <label className="block text-sm font-medium mb-3 text-white">
                         Which holiday?
                       </label>
-                      <div className="flex flex-wrap gap-x-4 gap-y-3">
+                      <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                         {HOLIDAY_EVENTS.map((h) => (
-                          <div key={h.id} className="flex flex-col items-center gap-1.5">
-                            <PillButton
-                              active={selectedEvent === h.id}
-                              variant="amber"
-                              onClick={() =>
-                                setSelectedEvent(selectedEvent === h.id ? null : h.id)
-                              }
-                              disabled={isGenerating}
-                              className="w-16 text-lg leading-none py-2"
-                            >
-                              {h.emoji}
-                            </PillButton>
-                            <span className="text-xs text-white/80 font-medium text-center leading-tight">{h.label}</span>
-                          </div>
+                          <IconPillOption
+                            key={h.id}
+                            icon={h.emoji}
+                            label={h.label}
+                            active={selectedEvent === h.id}
+                            onClick={() =>
+                              setSelectedEvent(selectedEvent === h.id ? null : h.id)
+                            }
+                            disabled={isGenerating}
+                          />
                         ))}
                       </div>
                     </div>
@@ -989,20 +982,16 @@ export default function UltimateExperiencesPage() {
                         <label className="block text-sm font-medium mb-3 text-white">
                           What would you like to create?
                         </label>
-                        <div className="flex gap-6">
+                        <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                           {OUTDOOR_EXPERIENCE_TYPES.map((t) => (
-                            <div key={t.id} className="flex flex-col items-center gap-1.5">
-                              <PillButton
-                                active={outdoorExperienceType === t.id}
-                                variant="amber"
-                                onClick={() => setOutdoorExperienceType(t.id)}
-                                disabled={isGenerating}
-                                className="w-16 text-lg leading-none py-2"
-                              >
-                                {t.emoji}
-                              </PillButton>
-                              <span className="text-xs text-white/80 font-medium text-center leading-tight">{t.label}</span>
-                            </div>
+                            <IconPillOption
+                              key={t.id}
+                              icon={t.emoji}
+                              label={t.label}
+                              active={outdoorExperienceType === t.id}
+                              onClick={() => setOutdoorExperienceType(t.id)}
+                              disabled={isGenerating}
+                            />
                           ))}
                         </div>
                       </div>
@@ -1022,20 +1011,16 @@ export default function UltimateExperiencesPage() {
                           maxLength={200}
                           disabled={isGenerating}
                         />
-                        <div className="flex flex-wrap gap-x-4 gap-y-3 mt-2">
+                        <div className="flex flex-wrap items-end gap-x-3 gap-y-3 mt-2">
                           {OUTDOOR_INGREDIENTS.map((p) => (
-                            <div key={p.label} className="flex flex-col items-center gap-1">
-                              <PillButton
-                                active={proteinSource === p.label}
-                                variant="amber"
-                                onClick={() => setProteinSource(proteinSource === p.label ? "" : p.label)}
-                                disabled={isGenerating}
-                                className="w-14 text-lg leading-none py-2"
-                              >
-                                {p.emoji}
-                              </PillButton>
-                              <span className="text-xs text-white/80 font-medium text-center leading-tight">{p.label}</span>
-                            </div>
+                            <IconPillOption
+                              key={p.label}
+                              icon={p.emoji}
+                              label={p.label}
+                              active={proteinSource === p.label}
+                              onClick={() => setProteinSource(proteinSource === p.label ? "" : p.label)}
+                              disabled={isGenerating}
+                            />
                           ))}
                         </div>
                       </div>
@@ -1046,20 +1031,16 @@ export default function UltimateExperiencesPage() {
                           Cooking method{" "}
                           <span className="text-white/50 font-normal text-xs">(optional)</span>
                         </label>
-                        <div className="flex flex-wrap gap-x-4 gap-y-3">
+                        <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                           {OUTDOOR_METHODS.map((m) => (
-                            <div key={m.label} className="flex flex-col items-center gap-1">
-                              <PillButton
-                                active={cookingMethod === m.label}
-                                variant="amber"
-                                onClick={() => setCookingMethod(cookingMethod === m.label ? "" : m.label)}
-                                disabled={isGenerating}
-                                className="w-14 text-lg leading-none py-2"
-                              >
-                                {m.emoji}
-                              </PillButton>
-                              <span className="text-xs text-white/80 font-medium text-center leading-tight">{m.label}</span>
-                            </div>
+                            <IconPillOption
+                              key={m.label}
+                              icon={m.emoji}
+                              label={m.label}
+                              active={cookingMethod === m.label}
+                              onClick={() => setCookingMethod(cookingMethod === m.label ? "" : m.label)}
+                              disabled={isGenerating}
+                            />
                           ))}
                         </div>
                       </div>

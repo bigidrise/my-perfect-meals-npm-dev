@@ -8,6 +8,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { PillButton } from "@/components/ui/pill-button";
+import { IconPillOption } from "@/components/ui/icon-pill-option";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
@@ -986,7 +987,7 @@ const FridgeRescuePage = () => {
                   <label className="block text-sm font-medium text-white mb-2">
                     Cooking method <span className="text-white/40 font-normal">(optional)</span>
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                     {[
                       { label: "Stovetop", emoji: "🍳" },
                       { label: "Oven", emoji: "🔥" },
@@ -995,16 +996,13 @@ const FridgeRescuePage = () => {
                       { label: "Slow Cooker", emoji: "🫕" },
                       { label: "No-Cook", emoji: "🥗" },
                     ].map(({ label, emoji }) => (
-                      <div key={label} className="flex flex-col items-center gap-1">
-                        <PillButton
-                          active={cookMethod === label}
-                          variant="amber"
-                          onClick={() => setCookMethod(cookMethod === label ? "" : label)}
-                        >
-                          {emoji}
-                        </PillButton>
-                        <span className="text-[10px] text-white leading-tight text-center">{label}</span>
-                      </div>
+                      <IconPillOption
+                        key={label}
+                        icon={emoji}
+                        label={label}
+                        active={cookMethod === label}
+                        onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                      />
                     ))}
                   </div>
                 </div>
