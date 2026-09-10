@@ -443,6 +443,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           "/terms",
           "/privacy-policy",
           "/partners",
+          "/join/clinic",
           "/join/studio",
           ...(import.meta.env.DEV ? ["/__modal-test__", "/__sheet-test__"] : []),
         ];

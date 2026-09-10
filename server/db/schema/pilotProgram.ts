@@ -108,7 +108,7 @@ export const organizationalPilotEvents = pgTable("organizational_pilot_events", 
   historyIdx: index("organizational_pilot_events_history_idx").on(table.pilotId, table.createdAt),
 }));
 
-/** Development-only clinic patient enrollment links. Raw tokens are never stored. */
+/** Clinic patient enrollment links. Raw tokens are never stored. */
 export const clinicPilotEnrollmentLinks = pgTable("clinic_pilot_enrollment_links", {
   id: uuid("id").primaryKey().defaultRandom(),
   businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),

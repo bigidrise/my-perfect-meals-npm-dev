@@ -23,6 +23,7 @@ export default function Auth() {
     () => new URLSearchParams(search).get("pilotAuthorization"),
     [search],
   );
+  const clinicPilotToken = useMemo(() => new URLSearchParams(search).get("clinicPilotToken"), [search]);
   // returnTo is set by /join/studio (and similar pages) when redirecting an
   // unauthenticated user to login. Only same-origin paths are honoured.
   const urlReturnTo = useMemo(() => {
@@ -35,7 +36,7 @@ export default function Auth() {
     return p.get("source") || p.get("ref") || null;
   }, [search]);
   const [mode, setMode] = useState<"signup" | "login">(
-    isProCare || urlRole || urlInvite || pilotAuthorizationToken ? "signup" : urlMode === "signup" ? "signup" : "login"
+    isProCare || urlRole || urlInvite || pilotAuthorizationToken || clinicPilotToken ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -97,6 +98,20 @@ export default function Auth() {
     setUser(u);
     localStorage.setItem("isAuthenticated", "true");
     sessionStorage.removeItem("mpm.welcomeGateDone");
+
+    if (clinicPilotToken) {
+      const result = await fetch("/api/clinic-pilot/enroll", {
+        method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include", body: JSON.stringify({ token: clinicPilotToken }),
+      });
+      if (!result.ok) {
+        const data = await result.json().catch(() => ({}));
+        setErr(data.error || "Could not enroll in the clinic pilot.");
+        return;
+      }
+      setLocation(urlReturnTo || `/join/clinic/${encodeURIComponent(clinicPilotToken)}`);
+      return;
+    }
 
     // If an invite token is present, auto-accept it now that the user is
     // authenticated.  On success we always route to the business dashboard,
@@ -233,6 +248,7 @@ export default function Auth() {
           signupSource,
           urlInvite,
           pilotAuthorizationToken,
+          clinicPilotToken,
         );
         await proceedAfterLogin(u, { professionalSetupPending });
         return;

@@ -4,6 +4,7 @@ import { db } from "../db";
 import { businesses, businessMembers } from "../db/schema/business";
 import { clinicPilotEnrollmentLinks } from "../db/schema/pilotProgram";
 import { requireAuth } from "../middleware/requireAuth";
+import { requireMfa } from "../middleware/requireMfa";
 import {
   createClinicPilotEnrollmentLink, enrollClinicPatient, inspectClinicPilotEnrollmentLink,
   revokeClinicPilotEnrollmentLink,
@@ -23,9 +24,16 @@ async function isBusinessAdmin(userId: string, businessId: string) {
   return Boolean(member);
 }
 
-router.get("/links/:token", async (req, res) => {
+router.get("/inspect", async (req, res) => {
   try {
-    const link = await inspectClinicPilotEnrollmentLink(req.params.token);
+    const token = req.get("x-clinic-enrollment-token");
+    if (!token) {
+      return res.status(400).json({
+        error: "Enrollment token required.",
+        code: "CLINIC_TOKEN_REQUIRED",
+      });
+    }
+    const link = await inspectClinicPilotEnrollmentLink(token);
     if (!link) return res.status(404).json({ error: "Enrollment link not found." });
     return res.json({
       pilotId: link.pilotId, pilotName: link.pilotName, status: link.status,
@@ -35,13 +43,7 @@ router.get("/links/:token", async (req, res) => {
   } catch { return res.status(500).json({ error: "Unable to inspect enrollment link.", code: "CLINIC_LINK_INSPECT_FAILED" }); }
 });
 
-router.get("/join/:token", async (req, res) => {
-  const link = await inspectClinicPilotEnrollmentLink(req.params.token);
-  if (!link) return res.status(404).json({ error: "Enrollment link not found.", code: "LINK_NOT_FOUND" });
-  return res.json({ ...link, enrollmentPath: `/api/clinic-pilot/enroll` });
-});
-
-router.post("/links/:pilotId", requireAuth, async (req: any, res) => {
+router.post("/links/:pilotId", requireAuth, requireMfa, async (req: any, res) => {
   const businessId = typeof req.body?.businessId === "string" ? req.body.businessId : "";
   if (!businessId || !(await isBusinessAdmin(actor(req), businessId))) return res.status(403).json({ error: "Business administrator access required." });
   try {
@@ -54,7 +56,7 @@ router.post("/links/:pilotId", requireAuth, async (req: any, res) => {
   } catch (error: any) { return res.status(400).json({ error: "Unable to create clinic enrollment link.", code: error?.message || "CLINIC_LINK_CREATE_FAILED" }); }
 });
 
-router.get("/links", requireAuth, async (req: any, res) => {
+router.get("/links", requireAuth, requireMfa, async (req: any, res) => {
   const businessId = typeof req.query.businessId === "string" ? req.query.businessId : "";
   if (!businessId || !(await isBusinessAdmin(actor(req), businessId))) return res.status(403).json({ error: "Business administrator access required.", code: "BUSINESS_ADMIN_REQUIRED" });
   const links = await db.select({ id: clinicPilotEnrollmentLinks.id, pilotId: clinicPilotEnrollmentLinks.pilotId, status: clinicPilotEnrollmentLinks.status, expiresAt: clinicPilotEnrollmentLinks.expiresAt, capacity: clinicPilotEnrollmentLinks.capacity, createdAt: clinicPilotEnrollmentLinks.createdAt, revokedAt: clinicPilotEnrollmentLinks.revokedAt }).from(clinicPilotEnrollmentLinks).where(eq(clinicPilotEnrollmentLinks.businessId, businessId));
@@ -69,7 +71,7 @@ router.post("/enroll", requireAuth, async (req: any, res) => {
   } catch (error: any) { return res.status(400).json({ error: "Unable to enroll.", code: error?.message || "CLINIC_ENROLLMENT_FAILED" }); }
 });
 
-router.post("/links/:linkId/revoke", requireAuth, async (req: any, res) => {
+router.post("/links/:linkId/revoke", requireAuth, requireMfa, async (req: any, res) => {
   const [link] = await db.select({ businessId: clinicPilotEnrollmentLinks.businessId })
     .from(clinicPilotEnrollmentLinks)
     .where(eq(clinicPilotEnrollmentLinks.id, req.params.linkId)).limit(1);
