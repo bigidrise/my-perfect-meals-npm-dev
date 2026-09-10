@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 type Population = "client" | "professional";
 type EntryMode = "one" | "paste" | "csv";
+type InvitationContext = "standard" | "pilot";
 
 interface Recipient {
   email: string;
@@ -110,6 +111,7 @@ export default function OrganizationInvitationsAccess({
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [population, setPopulation] = useState<Population>("client");
+  const [invitationContext, setInvitationContext] = useState<InvitationContext>("standard");
   const [mode, setMode] = useState<EntryMode>("one");
   const [role, setRole] = useState("client");
   const [accessDurationDays, setAccessDurationDays] = useState<7 | 14 | 30>(30);
@@ -139,15 +141,50 @@ export default function OrganizationInvitationsAccess({
     setRole(next === "client" ? "client" : "staff");
     setReview(null);
   };
+  const usePilotContext = invitationContext === "pilot" && Boolean(pilot);
 
   const reviewRecipients = async () => {
-    if (!pilot) {
-      toast({ title: "Pilot required", description: "Bulk pilot invitations require an active organizational pilot.", variant: "destructive" });
+    if (!usePilotContext) {
+      const seen = new Set<string>();
+      const valid: ReviewResult["valid"] = [];
+      const duplicates: ReviewResult["duplicates"] = [];
+      const invalid: ReviewResult["invalid"] = [];
+      recipients.forEach((recipient, index) => {
+        const email = recipient.email.trim().toLowerCase();
+        const row = index + 1;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          invalid.push({ row, email, reason: "Valid email required." });
+          return;
+        }
+        if (seen.has(email)) {
+          duplicates.push({ row, email, reason: "Duplicate in this batch." });
+          return;
+        }
+        seen.add(email);
+        const displayName = [recipient.firstName, recipient.lastName].filter(Boolean).join(" ").trim() || null;
+        valid.push({ ...recipient, email, row, displayName });
+      });
+      setReview({
+        counts: {
+          total: recipients.length,
+          valid: valid.length,
+          duplicates: duplicates.length,
+          existingMembers: 0,
+          invalid: invalid.length,
+        },
+        valid,
+        duplicates,
+        existingMembers: [],
+        invalid,
+        capacity: valid.length,
+        availableCapacity: valid.length,
+        overCapacity: 0,
+      });
       return;
     }
     setBusy(true);
     try {
-      const response = await fetch(`/api/business/pilots/${pilot.id}/invitations/batch-review`, {
+      const response = await fetch(`/api/business/pilots/${pilot!.id}/invitations/batch-review`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
@@ -169,10 +206,48 @@ export default function OrganizationInvitationsAccess({
   };
 
   const sendInvitations = async () => {
-    if (!pilot || !review || review.counts.invalid || review.counts.duplicates || review.counts.existingMembers || review.overCapacity) return;
+    if (!review || review.counts.invalid || review.counts.duplicates || review.counts.existingMembers || review.overCapacity) return;
     setBusy(true);
     try {
-      const response = await fetch(`/api/business/pilots/${pilot.id}/invitations/batch-send`, {
+      if (!usePilotContext) {
+        let sent = 0;
+        const failed: string[] = [];
+        for (const recipient of review.valid) {
+          const response = await fetch("/api/business/invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            credentials: "include",
+            body: JSON.stringify({
+              email: recipient.email,
+              recipientName: recipient.displayName,
+              invitationType: population === "client" ? "client" : "team_member",
+              role: population === "client" ? "staff" : role === "provider" ? "physician" : role,
+              trialDays: accessDurationDays,
+              programName: "My Perfect Meals Complimentary Access",
+              sendEmail: true,
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (response.ok) sent += 1;
+          else failed.push(`${recipient.email}: ${data.error || "Could not send invitation."}`);
+        }
+        toast({
+          title: failed.length ? "Some invitations need attention" : "Invitations sent",
+          description: failed.length ? `${sent} sent. ${failed[0]}` : `${sent} sent.`,
+          variant: failed.length ? "destructive" : "default",
+        });
+        if (sent === 0) return;
+        setReview(null);
+        setSingleEmail("");
+        setSingleFirstName("");
+        setSingleLastName("");
+        setPasted("");
+        setCsvRecipients([]);
+        setCsvName("");
+        onRefresh();
+        return;
+      }
+      const response = await fetch(`/api/business/pilots/${pilot!.id}/invitations/batch-send`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
@@ -206,7 +281,7 @@ export default function OrganizationInvitationsAccess({
   };
 
   const createShareLink = async () => {
-    if (!pilot) return;
+    if (!pilot || !usePilotContext) return;
     setBusy(true);
     try {
       const response = await fetch(`/api/clinic-pilot/links/${pilot.id}`, {
@@ -283,6 +358,33 @@ export default function OrganizationInvitationsAccess({
                 </button>
               </div>
 
+              {pilot && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">Invitation context</p>
+                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/30 p-1">
+                    <button
+                      type="button"
+                      onClick={() => { setInvitationContext("standard"); setReview(null); }}
+                      className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${invitationContext === "standard" ? "bg-white text-black" : "text-white/60"}`}
+                    >
+                      Standard Organization
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setInvitationContext("pilot"); setReview(null); }}
+                      className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${invitationContext === "pilot" ? "bg-blue-600 text-white" : "text-white/60"}`}
+                    >
+                      Pilot Program
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-white/50">
+                    {invitationContext === "pilot"
+                      ? "Uses pilot participant records, capacity, and reporting."
+                      : "Uses the normal paid-organization invitation path."}
+                  </p>
+                </div>
+              )}
+
               {population === "professional" && (
                 <select value={role} onChange={(event) => { setRole(event.target.value); setReview(null); }} className="w-full rounded-xl border border-white/15 bg-black/60 px-3 py-2.5 text-sm">
                   <option value="staff">Staff</option>
@@ -357,7 +459,10 @@ export default function OrganizationInvitationsAccess({
                       <div key={label} className="rounded-lg bg-black/30 p-2 text-center"><p className="text-lg font-bold">{count}</p><p className="text-xs capitalize text-white/50">{label}</p></div>
                     ))}
                   </div>
-                  <p className="text-xs text-white/60">Access: {accessDurationDays} days per recipient · {review.availableCapacity} spaces available</p>
+                  <p className="text-xs text-white/60">
+                    Access: {accessDurationDays} days per recipient
+                    {usePilotContext ? ` · ${review.availableCapacity} pilot spaces available` : " · Standard organization invitation"}
+                  </p>
                   {(review.duplicates.length > 0 || review.existingMembers.length > 0 || review.invalid.length > 0 || review.overCapacity > 0) && (
                     <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
                       Resolve {review.duplicates.length} duplicate/pending, {review.existingMembers.length} existing member, {review.invalid.length} invalid, and {review.overCapacity} over-capacity recipient(s) before sending.
@@ -370,7 +475,7 @@ export default function OrganizationInvitationsAccess({
                 </div>
               )}
 
-              {population === "client" && pilot && (
+              {population === "client" && pilot && usePilotContext && (
                 <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4">
                   <h3 className="font-semibold">Immediate patient access</h3>
                   <p className="mt-1 text-xs text-white/60">Create a secure clinic link for texting, handouts, or an in-person QR scan. Each enrollee receives {accessDurationDays} days.</p>
