@@ -21,7 +21,12 @@ jest.mock("../services/imageLifecycle", () => ({
   ingestImageToPermanentStorage: jest.fn(),
 }));
 
-import { __testables, buildStableCacheKey, detectDishType } from "../services/mealImageGenerator";
+import {
+  __testables,
+  buildStableCacheKey,
+  detectDishType,
+  MAX_IMAGE_GENERATION_ATTEMPTS,
+} from "../services/mealImageGenerator";
 import { buildValidationPrompt } from "../services/mealImageValidator";
 
 const { buildMealImagePrompt, buildIngredientContract } = __testables;
@@ -80,6 +85,113 @@ describe("Create a Dish final owner image repair", () => {
       form: { id: "breast", label: "Breast" },
     });
     expect(cubed).not.toBe(whole);
+  });
+});
+
+describe("ambiguous savory-side recovery contract", () => {
+  const mealName = "Broiled Flank Steak with Cauliflower Mash";
+  const ingredients = ["flank steak", "cauliflower mash", "garlic", "olive oil"];
+
+  it("keeps cauliflower mash savory, plated, and out of dessert or drink vessels", () => {
+    expect(detectDishType(mealName).type).toBe("plated meal");
+    const prompt = buildMealImagePrompt(mealName, ingredients, "meal");
+    expect(prompt).toContain("savory dinner side");
+    expect(prompt).toContain("on the entrée plate beside the main food");
+    expect(prompt).toContain("Do NOT put this savory side in a glass");
+    expect(prompt).toContain("NOT dessert, pudding, mousse, smoothie");
+  });
+
+  it("does not promote a side mentioned only in the display name", () => {
+    expect(
+      __testables.buildSavorySidePresentationRequirements(
+        mealName,
+        ["flank steak", "garlic", "olive oil"],
+        "meal",
+      ),
+    ).toEqual([]);
+  });
+
+  it("uses one deterministic simplified third-attempt prompt", () => {
+    const prompt = __testables.buildSimplifiedRecoveryPrompt(
+      mealName,
+      ingredients,
+      "a plated entrée with steak as the central subject",
+    );
+    expect(MAX_IMAGE_GENERATION_ATTEMPTS).toBe(3);
+    expect(prompt).toContain(`MEAL: ${mealName}`);
+    expect(prompt).toContain("PRIMARY MAIN FOOD: flank steak");
+    expect(prompt).toContain("REQUIRED VISIBLE SAVORY SIDE: cauliflower mash");
+    expect(prompt).toContain("one simple, realistic, finished meal on a dinner plate");
+    expect(prompt).not.toContain("cinematic");
+  });
+
+  it.each([
+    ["Mashed Cauliflower", ["chicken", "mashed cauliflower"]],
+    ["Mashed Potatoes", ["pork tenderloin", "mashed potatoes"]],
+    ["Vegetable Purée", ["salmon", "vegetable purée"]],
+    ["Grits", ["shrimp", "grits"]],
+    ["Polenta", ["chicken", "polenta"]],
+    ["Creamed Spinach", ["steak", "creamed spinach"]],
+    ["Mashed Turnips", ["turkey", "mashed turnips"]],
+  ])("governs %s as an ambiguous savory side", (_label, recipe) => {
+    expect(
+      __testables.buildSavorySidePresentationRequirements(
+        `Entrée with ${_label}`,
+        recipe,
+        "meal",
+      ),
+    ).not.toEqual([]);
+  });
+
+  it("does not globally alter desserts, drinks, soups, or bowl meals", () => {
+    expect(
+      __testables.buildSavorySidePresentationRequirements(
+        "Berry Mousse",
+        ["berry puree", "yogurt"],
+        "dessert",
+      ),
+    ).toEqual([]);
+    expect(
+      __testables.buildSavorySidePresentationRequirements(
+        "Vegetable Smoothie",
+        ["vegetable puree", "water"],
+        "beverage",
+      ),
+    ).toEqual([]);
+    expect(
+      __testables.buildSavorySidePresentationRequirements(
+        "Creamy Vegetable Soup",
+        ["vegetable puree", "broth"],
+        "meal",
+      ),
+    ).toEqual([]);
+    expect(
+      __testables.buildSavorySidePresentationRequirements(
+        "Polenta Bowl",
+        ["polenta", "mushrooms"],
+        "meal",
+      ),
+    ).toEqual([]);
+  });
+
+  it("validates recovery before storage and falls back when recovery fails", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "server/services/mealImageGenerator.ts"),
+      "utf8",
+    );
+    const recoveryStart = source.indexOf("RECOVERY-START");
+    const recoveryValidation = source.indexOf("RECOVERY-VALIDATE-DONE");
+    const failureFallback = source.indexOf(
+      "Recipe fidelity validation failed after ${MAX_IMAGE_GENERATION_ATTEMPTS} attempts",
+      recoveryStart,
+    );
+    const storageStart = source.indexOf("STORAGE-START", recoveryStart);
+    expect(recoveryStart).toBeGreaterThan(-1);
+    expect(recoveryValidation).toBeGreaterThan(recoveryStart);
+    expect(failureFallback).toBeGreaterThan(recoveryValidation);
+    expect(storageStart).toBeGreaterThan(failureFallback);
   });
 });
 

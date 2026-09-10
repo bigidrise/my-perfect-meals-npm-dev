@@ -23,6 +23,7 @@
 - [Performance nutrition](performance-nutrition.md) — the MacroCalculator remains the always-live baseline beneath session modifiers.
 - [Shared resolver ownership](nutrition-resolver-ownership.md) — workflow pages resolve once and pass data into shared components.
 - [Production media delivery](production-image-differential-diagnosis.md) — diagnose image records on their exact saved-object path.
+- [Savory-side image recovery](savory-side-image-recovery.md) — ambiguous savory sides get bounded plated guidance and one strictly validated recovery attempt.
 - [Override propagation](override-propagation-pattern.md) — successful allergy PIN overrides must reach every post-generation validation path.
 - [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.

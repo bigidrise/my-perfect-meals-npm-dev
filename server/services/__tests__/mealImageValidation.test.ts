@@ -171,6 +171,14 @@ async function run() {
     assert(a.includes("CORRECTION FOR PREVIOUS ATTEMPT"), "includes correction context header");
     assert(a.includes("Follow ONLY the recipe contract ingredients"), "reasserts ingredient-only authority");
   }
+  {
+    const a = buildRetryExclusionAddendum(
+      "Broiled Flank Steak with Cauliflower Mash",
+      "dessert glass visible",
+    );
+    assert(!a.includes("clearly recognizable dessert"), "flank steak is not classified as flan on retry");
+    assert(a.includes("clearly recognizable plated dish"), "flank steak retry keeps a plated-meal target");
+  }
 
   // ── 6b. Retry addendum — structural identity ─────────────────────────────
   console.log("\n6b. Retry addendum carries structural identity when provided");
