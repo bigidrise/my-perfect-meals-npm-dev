@@ -130,4 +130,31 @@ describe("unified organization invitation durations", () => {
     expect(client).toContain("Pilot Program");
     expect(client).not.toContain('title: "Pilot required"');
   });
+
+  it("validates standard invitation email addresses and exposes pending resends", () => {
+    const routes = fs.readFileSync(
+      path.resolve(process.cwd(), "server/routes/businessRoutes.ts"),
+      "utf8",
+    );
+    const client = fs.readFileSync(
+      path.resolve(process.cwd(), "client/src/components/business/OrganizationInvitationsAccess.tsx"),
+      "utf8",
+    );
+    expect(routes).toContain("INVITATION_EMAIL_PATTERN");
+    expect(routes).toContain("PENDING_INVITATION_EXISTS");
+    expect(routes).toContain("Use Resend on the existing invitation.");
+    expect(client).toContain("Resend Email");
+    expect(client).toContain("/api/business/invitations/${invitation.token}/resend");
+  });
+
+  it("never reports an invitation email as sent when the provider rejects it", () => {
+    const routes = fs.readFileSync(
+      path.resolve(process.cwd(), "server/routes/businessRoutes.ts"),
+      "utf8",
+    );
+    expect(routes).toContain('status: "delivery_failed"');
+    expect(routes).toContain("INVITATION_EMAIL_DELIVERY_FAILED");
+    expect(routes).toContain("if (!emailResult)");
+    expect(routes).toContain("emailQueued: true");
+  });
 });

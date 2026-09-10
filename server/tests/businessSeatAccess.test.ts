@@ -1172,7 +1172,7 @@ describe("businessRoutes.ts — POST /invite pending-invite guard regression", (
       Math.max(0, pendingBlockIdx - 200),
       pendingBlockIdx + 100,
     );
-    expect(surrounding).toContain("400");
+    expect(surrounding).toContain("409");
   });
 
   it("pending-invite check is scoped to the current business (businessId guard present)", () => {

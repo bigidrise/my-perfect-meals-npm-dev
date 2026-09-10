@@ -92,7 +92,7 @@ export const businessInvitations = pgTable("business_invitations", {
    * tokens remain supported by the existing paid-business flow. */
   tokenHash: text("token_hash"),
   role: text("role").$type<"admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
-  status: text("status").$type<"pending" | "accepted" | "cancelled" | "expired">().notNull().default("pending"),
+  status: text("status").$type<"pending" | "delivery_failed" | "accepted" | "cancelled" | "expired">().notNull().default("pending"),
   invitedByUserId: text("invited_by_user_id").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),

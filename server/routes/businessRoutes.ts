@@ -64,6 +64,7 @@ const CLIENT_TRIAL_DURATIONS = [7, 14, 30] as const;
 const ORGANIZATION_INVITE_SEND_WINDOW_MS = 60 * 1000;
 const ORGANIZATION_INVITE_SEND_LIMIT = 20;
 const ORGANIZATION_RESEND_COOLDOWN_MS = 10 * 60 * 1000;
+const INVITATION_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isFlatOrganization(business: Pick<typeof businesses.$inferSelect, "plan">): boolean {
   return business.plan === "clinical_business_monthly";
@@ -742,7 +743,10 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         and(
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.locationId, locationId),
-          eq(businessInvitations.status, "pending"),
+          or(
+            eq(businessInvitations.status, "pending"),
+            eq(businessInvitations.status, "delivery_failed"),
+          ),
           gt(businessInvitations.expiresAt, now),
           eq(businessInvitations.invitationType, "team_member"),
         ),
@@ -908,7 +912,12 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     sendEmail?: boolean;
   };
 
-  if (!email || !email.includes("@")) {
+  const normalizedEmail = typeof email === "string" ? normalizeEmailIdentity(email) : "";
+  if (
+    !normalizedEmail ||
+    normalizedEmail.length > 254 ||
+    !INVITATION_EMAIL_PATTERN.test(normalizedEmail)
+  ) {
     return res.status(400).json({ error: "Valid email required." });
   }
 
@@ -938,7 +947,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       return res.status(403).json({ error: "No business account found." });
     }
     const { business, locationId } = resolved;
-    const invitationIdentity = await resolveEmailIdentityForEmail(email);
+    const invitationIdentity = await resolveEmailIdentityForEmail(normalizedEmail);
     if (invitationIdentity.candidates.length > 1) {
       return res.status(409).json({
         error: "This email address belongs to multiple legacy accounts. Ask an administrator to resolve the account identity before sending an invitation.",
@@ -1005,7 +1014,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         and(
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.locationId, locationId),
-          eq(businessInvitations.email, email.toLowerCase()),
+          eq(businessInvitations.email, normalizedEmail),
           eq(businessInvitations.status, "pending"),
           gt(businessInvitations.expiresAt, now),
           eq(businessInvitations.invitationType, invitationType as any),
@@ -1014,7 +1023,12 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       .limit(1);
 
     if (existingInvite) {
-      return res.status(400).json({ error: "A pending invitation already exists for this email." });
+      return res.status(409).json({
+        error: "A pending invitation already exists for this email. Use Resend on the existing invitation.",
+        code: "PENDING_INVITATION_EXISTS",
+        invitationId: existingInvite.id,
+        expiresAt: existingInvite.expiresAt,
+      });
     }
 
     // Expire stale pending invites for this email+type
@@ -1025,7 +1039,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         and(
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.locationId, locationId),
-          eq(businessInvitations.email, email.toLowerCase()),
+          eq(businessInvitations.email, normalizedEmail),
           eq(businessInvitations.status, "pending"),
           eq(businessInvitations.invitationType, invitationType as any),
           sql`${businessInvitations.expiresAt} <= ${now}`,
@@ -1061,10 +1075,10 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     const resolvedTrialDays = isClient ? Number(trialDays) : null;
 
-    await db.insert(businessInvitations).values({
+    const [createdInvitation] = await db.insert(businessInvitations).values({
       businessId: business.id,
       locationId,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       token,
       role: isClient ? "staff" : (role as any),
       status: "pending",
@@ -1074,7 +1088,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       trialDays: resolvedTrialDays,
       programName: isClient ? (programName?.trim() || null) : null,
       partnerRecordId: partnerRecordId ?? null,
-    });
+    }).returning({ id: businessInvitations.id });
 
     // Stamp policy snapshot for team member invites
     if (!isClient) {
@@ -1098,8 +1112,8 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       : `${getAppUrl()}/auth?mode=signup&invite=${token}`;
 
     if (shouldSendEmail) {
-      await sendBusinessInviteEmail({
-        to: email.toLowerCase(),
+      const emailResult = await sendBusinessInviteEmail({
+        to: normalizedEmail,
         businessName: business.name,
         inviterName: owner?.username || "Your organization",
         inviteLink,
@@ -1110,10 +1124,26 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         programName: isClient ? (programName?.trim() || null) : undefined,
         recipientName: recipientName?.trim() || undefined,
       });
+      if (!emailResult) {
+        await db
+          .update(businessInvitations)
+          .set({ status: "delivery_failed" })
+          .where(eq(businessInvitations.id, createdInvitation.id));
+        return res.status(502).json({
+          error: "The invitation was saved, but the email provider did not accept the message. You can retry it from Invitation Status.",
+          code: "INVITATION_EMAIL_DELIVERY_FAILED",
+          invitationId: createdInvitation.id,
+        });
+      }
     }
 
     console.log(`✅ [business] Invite sent | type=${invitationType}`);
-    return res.json({ success: true, inviteLink, message: `Invitation created for ${email}.` });
+    return res.json({
+      success: true,
+      emailQueued: shouldSendEmail,
+      inviteLink,
+      message: `Invitation created for ${normalizedEmail}.`,
+    });
   } catch (err) {
     const workspaceError = sendDashboardWorkspaceError(res, err);
     if (workspaceError) return workspaceError;
@@ -1317,6 +1347,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
           eq(businessInvitations.locationId, locationId),
           or(
             eq(businessInvitations.status, "pending"),
+            eq(businessInvitations.status, "delivery_failed"),
             eq(businessInvitations.status, "expired"),
           ),
         ),
@@ -1330,6 +1361,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
     // expiresAt is reset to now + seven days on every delivery. It therefore
     // provides a durable resend timestamp without a new mutable schema column.
     if (
+      invite.status === "pending" &&
       invite.expiresAt.getTime() >
       Date.now() + (7 * 24 * 60 * 60 * 1000 - ORGANIZATION_RESEND_COOLDOWN_MS)
     ) {
@@ -1340,11 +1372,6 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
     }
 
     const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const newToken = generateInviteToken();
-    await db
-      .update(businessInvitations)
-      .set({ status: "pending", expiresAt: newExpiry, token: newToken })
-      .where(eq(businessInvitations.id, invite.id));
 
     const [owner] = await db
       .select({ username: users.username })
@@ -1354,10 +1381,10 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
 
     const isClientResend = (invite.invitationType ?? "team_member") === "client";
     const inviteLink = isClientResend
-      ? `${getAppUrl()}/business/join/${newToken}`
-      : `${getAppUrl()}/auth?mode=signup&invite=${newToken}`;
+      ? `${getAppUrl()}/business/join/${invite.token}`
+      : `${getAppUrl()}/auth?mode=signup&invite=${invite.token}`;
 
-    await sendBusinessInviteEmail({
+    const emailResult = await sendBusinessInviteEmail({
       to: invite.email,
       businessName: business.name,
       inviterName: owner?.username || "Your team owner",
@@ -1368,8 +1395,23 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
       trialDays: invite.trialDays,
       programName: invite.programName,
     });
+    if (!emailResult) {
+      await db
+        .update(businessInvitations)
+        .set({ status: "delivery_failed" })
+        .where(eq(businessInvitations.id, invite.id));
+      return res.status(502).json({
+        error: "The email provider did not accept this resend. The invitation was not reported as sent.",
+        code: "INVITATION_EMAIL_DELIVERY_FAILED",
+      });
+    }
 
-    return res.json({ success: true, message: "Invite resent.", newToken });
+    await db
+      .update(businessInvitations)
+      .set({ status: "pending", expiresAt: newExpiry })
+      .where(eq(businessInvitations.id, invite.id));
+
+    return res.json({ success: true, emailQueued: true, message: "Invite resent." });
   } catch (err) {
     const workspaceError = sendDashboardWorkspaceError(res, err);
     if (workspaceError) return workspaceError;

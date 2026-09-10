@@ -80,6 +80,7 @@
 - [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
 - [Paid organization workspace visibility](paid-organization-workspace-visibility.md) — self-service organizations appear at login only after paid activation; pending setup stays hidden.
 - [Organization invitation clocks](organization-invitation-clocks.md) — organization, patient, and professional temporary access use separate clocks and entitlement types.
+- [Organization invitation delivery state](organization-invitation-delivery-state.md) — pending means provider-accepted; delivery failures must remain retryable and visible.
 - [Organization config resilience](organization-config-resilience.md) — authenticated tenant config may be partial; normalize it over complete defaults before feature-flag reads.
 - [Organization Location isolation](organization-location-isolation.md) — parent administration never implies Location access; active context is an exact authorized pair.
 - [Diabetes glucose context boundary](diabetes-glucose-context-boundary.md) — all food surfaces enforce state produce choices; only the Diabetes Meal Builder consumes diabetes-specific numbers.
