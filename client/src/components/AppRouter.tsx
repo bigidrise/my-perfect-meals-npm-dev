@@ -24,10 +24,6 @@ function isPublicAppRoute(path: string): boolean {
   const devRoutes = import.meta.env.DEV
     ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__"]
     : [];
-  if (location.startsWith("/join/clinic")) {
-    return <>{children}</>;
-  }
-
   return (
     isExactPublicMarketingRoute(path) ||
     [...PUBLIC_ROUTES, ...devRoutes].some(
@@ -220,6 +216,10 @@ export default function AppRouter({ children }: AppRouterProps) {
         }}
       />
     );
+  }
+
+  if (location.startsWith("/join/clinic")) {
+    return <>{children}</>;
   }
 
   return (

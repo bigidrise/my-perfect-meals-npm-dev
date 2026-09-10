@@ -890,7 +890,9 @@ export default function Router() {
     "/business/start",
   ];
 
-  const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
+  const shouldShowBottomNav =
+    !hideBottomNavRoutes.includes(location) &&
+    !location.startsWith("/join/clinic");
 
   const { user, loading } = useAuth();
 
@@ -1032,7 +1034,7 @@ export default function Router() {
         <Route path="/guest-suite" component={GuestBuilder} />
         <Route path="/home" component={Home} />
         <Route path="/auth" component={Auth} />
-        <Route path="/join/clinic/:token" component={lazy(() => import("@/pages/ClinicPilotJoinPage"))} />
+        <Route path="/join/clinic" component={lazy(() => import("@/pages/ClinicPilotJoinPage"))} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/pilot/activate" component={lazy(() => import("@/pages/PilotActivation"))} />
