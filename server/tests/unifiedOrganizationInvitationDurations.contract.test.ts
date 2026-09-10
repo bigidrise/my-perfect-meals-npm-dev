@@ -118,4 +118,16 @@ describe("unified organization invitation durations", () => {
     expect(routes).toContain('eq(businessInvitations.locationId, resolved.locationId)');
     expect(routes).toContain('resolveDashboardBusiness(req, "owner_only")');
   });
+
+  it("never infers pilot invitation context from the existence of an active pilot", () => {
+    const client = fs.readFileSync(
+      path.resolve(process.cwd(), "client/src/components/business/OrganizationInvitationsAccess.tsx"),
+      "utf8",
+    );
+    expect(client).toContain('useState<InvitationContext>("standard")');
+    expect(client).toContain('invitationContext === "pilot" && Boolean(pilot)');
+    expect(client).toContain("Standard Organization");
+    expect(client).toContain("Pilot Program");
+    expect(client).not.toContain('title: "Pilot required"');
+  });
 });

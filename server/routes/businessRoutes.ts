@@ -895,6 +895,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     trialDays,
     programName,
     partnerRecordId,
+    recipientName,
     sendEmail: shouldSendEmail = true,
   } = req.body as {
     email: string;
@@ -903,6 +904,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     trialDays?: number;
     programName?: string;
     partnerRecordId?: string;
+    recipientName?: string;
     sendEmail?: boolean;
   };
 
@@ -913,7 +915,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const isClient = invitationType === "client";
 
   if (!isClient) {
-    const validRoles = ["admin", "coach", "trainer", "physician", "staff"];
+    const validRoles = ["admin", "coach", "trainer", "physician", "nurse", "staff"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: "Invalid role." });
     }
@@ -1106,6 +1108,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         invitationType: invitationType as any,
         trialDays: resolvedTrialDays,
         programName: isClient ? (programName?.trim() || null) : undefined,
+        recipientName: recipientName?.trim() || undefined,
       });
     }
 
