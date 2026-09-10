@@ -22,8 +22,66 @@ jest.mock("../services/imageLifecycle", () => ({
 }));
 
 import { __testables, buildStableCacheKey, detectDishType } from "../services/mealImageGenerator";
+import { buildValidationPrompt } from "../services/mealImageValidator";
 
 const { buildMealImagePrompt, buildIngredientContract } = __testables;
+
+describe("Create a Dish final owner image repair", () => {
+  it.each([
+    "Crispy Korean-Inspired Tofu",
+    "Crispy Chicken",
+  ])("does not classify %s as a dessert crisp", (name) => {
+    expect(detectDishType(name).structuralIdentity).not.toContain("pastry crust");
+  });
+
+  it.each([
+    "Apple Crisp",
+    "Berry Crisp",
+  ])("keeps %s classified as a dessert crisp", (name) => {
+    expect(detectDishType(name).structuralIdentity).toContain("pastry crust");
+  });
+
+  it("projects Form, Texture, Flavor, and validated preparation into the prompt", () => {
+    const context = {
+      canonicalIngredient: "Chicken",
+      form: { id: "cubed", label: "Cubed" },
+      texture: { id: "crispy-exterior", label: "Crispy Exterior" },
+      flavor: { id: "teriyaki", label: "Teriyaki" },
+    };
+    const prompt = buildMealImagePrompt(
+      "Crispy Teriyaki Chicken",
+      ["cubed chicken", "teriyaki sauce"],
+      "meal",
+      undefined,
+      context,
+    );
+    expect(prompt).toContain("CREATE A DISH VISUAL INTENT");
+    expect(prompt).toContain("separate bite-sized cubes");
+    expect(prompt).toContain("crisp, browned exterior");
+    expect(prompt).toContain("Teriyaki");
+    const validatorPrompt = buildValidationPrompt(
+      "Crispy Teriyaki Chicken",
+      ["cubed chicken", "teriyaki sauce"],
+      detectDishType("Crispy Teriyaki Chicken").structuralIdentity,
+      __testables.createDishVisualRequirements(context),
+    );
+    expect(validatorPrompt).toContain("CHECK D — Create a Dish visual intent");
+    expect(validatorPrompt).toContain("separate bite-sized cubes");
+  });
+
+  it("partitions the image cache by authoritative Create a Dish visual intent", () => {
+    const base = ["chicken", "teriyaki sauce"];
+    const cubed = buildStableCacheKey("Teriyaki Chicken", base, "meal", undefined, {
+      canonicalIngredient: "Chicken",
+      form: { id: "cubed", label: "Cubed" },
+    });
+    const whole = buildStableCacheKey("Teriyaki Chicken", base, "meal", undefined, {
+      canonicalIngredient: "Chicken",
+      form: { id: "breast", label: "Breast" },
+    });
+    expect(cubed).not.toBe(whole);
+  });
+});
 
 // Loaded dish names whose traditional versions contain ingredients NOT in the
 // test recipe. The prompt must present only the recipe's ingredients and must

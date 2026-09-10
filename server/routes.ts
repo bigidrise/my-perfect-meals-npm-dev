@@ -5711,6 +5711,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : requestedCreator === "sushi_creator"
             ? "sushi_creator"
             : "craving_creator";
+      const logCreateDishAcceptance = (details: Record<string, unknown>) => {
+        if (
+          process.env.NODE_ENV === "development" &&
+          humanFoodCreator === "create_a_dish"
+        ) {
+          console.log("[CreateDishAcceptance]", {
+            correlationId: (req as any).id,
+            ...details,
+          });
+        }
+      };
       if (!serverAuthUserId) {
         return res.status(401).json({
           success: false,
@@ -6071,6 +6082,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const {
             revalidateCreateDishIntent,
             buildCreateDishIntentPrompt,
+            buildCreateDishIntentDishSubject,
             isBroadIngredientOnlyCreateDishIntent,
           } = await import(
             "./services/createDish/createDishIntent"
@@ -6083,6 +6095,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             validatedCreateDishIntent,
           );
           cravingInput = `${cravingInput}\n\n${buildCreateDishIntentPrompt(validatedCreateDishIntent)}`;
+          const resolved = validatedCreateDishIntent.resolvedCombination;
+          if (resolved.form || resolved.texture || resolved.flavor) {
+            _dishDirective = await getDishAdaptationDirective(
+              buildCreateDishIntentDishSubject(validatedCreateDishIntent),
+              _dalGuardrailCtx,
+              "first_pass",
+            );
+            logCreateDishAcceptance({
+              stage: "intent_revalidated",
+              ingredientId: validatedCreateDishIntent.ingredient.canonicalId,
+              formId: resolved.form?.id ?? null,
+              textureId: resolved.texture?.id ?? null,
+              flavorId: resolved.flavor?.id ?? null,
+              dalConstrainedByIntent: true,
+            });
+          }
         } catch (intentError) {
           console.warn("[CreateDishIntent] rejected invalid or tampered intent", intentError);
           return res.status(400).json({
@@ -6151,7 +6179,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         humanFoodExecutionState,
         _overriddenAvoidances,
         _overriddenDietaryIdentities,
+        humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
       );
+
+      if (humanFoodCreator === "create_a_dish") {
+        logCreateDishAcceptance({
+          stage: "model_candidates",
+          count: mealOptions?.length ?? 0,
+        });
+      }
 
       if (!mealOptions || mealOptions.length === 0) {
         const hasGlp1    = _cravingGlp1Targets != null;
@@ -6244,6 +6280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               humanFoodExecutionState,
               _overriddenAvoidances,
               _overriddenDietaryIdentities,
+              humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
             );
             if (_bglRetryOptions && _bglRetryOptions.length > 0) {
               // Revalidate against the SAME ceiling — the guardrail is never bypassed.
@@ -6481,6 +6518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 humanFoodExecutionState,
                 _overriddenAvoidances,
                 _overriddenDietaryIdentities,
+                humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
               );
               if (retryOptions && retryOptions.length > 0) {
                 const retrySafe = retryOptions.filter(meal => {
@@ -6684,6 +6722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             humanFoodExecutionState,
             _overriddenAvoidances,
             _overriddenDietaryIdentities,
+            humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
           );
           const protocolSafeRepairs = filterMealsByProtocol(repairOptions ?? [], _filterEnvelope, {
             generatorName: "craving_creator_final_repair",
@@ -6738,6 +6777,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       scannedOptions = finalEnforcement.accepted;
+      if (humanFoodCreator === "create_a_dish") {
+        logCreateDishAcceptance({
+          stage: "human_food_survivors",
+          count: scannedOptions.length,
+        });
+      }
+
+      if (validatedCreateDishIntent && scannedOptions.length > 0) {
+        const {
+          buildCreateDishIntentPrompt,
+          evaluateCreateDishIntentEvidence,
+        } = await import("./services/createDish/createDishIntent");
+        const initialEvidence = scannedOptions.map((meal: any) => ({
+          meal,
+          evidence: evaluateCreateDishIntentEvidence(meal, validatedCreateDishIntent!),
+        }));
+        const initialIntentSurvivors = initialEvidence
+          .filter(({ evidence }) => evidence.passed)
+          .map(({ meal }) => meal);
+        logCreateDishAcceptance({
+          stage: "intent_evidence",
+          candidates: scannedOptions.length,
+          survivors: initialIntentSurvivors.length,
+          failures: initialEvidence.map(({ evidence }) => evidence.failedDimensions),
+          repairAttempted: initialIntentSurvivors.length === 0,
+        });
+
+        if (initialIntentSurvivors.length > 0) {
+          scannedOptions = initialIntentSurvivors;
+        } else {
+          const failedDimensions = Array.from(new Set(
+            initialEvidence.flatMap(({ evidence }) => evidence.failedDimensions),
+          ));
+          try {
+            const intentRepairOptions = await generateCravingMealOptions(
+              `${cravingInput}\n\n[CREATE A DISH INTENT REPAIR — ONE ATTEMPT ONLY]\n` +
+              `The prior otherwise-valid candidates failed these fixed culinary dimensions: ${failedDimensions.join(", ")}.\n` +
+              `${buildCreateDishIntentPrompt(validatedCreateDishIntent)}\n` +
+              `Repair only those fixed dimensions. Do not change the user's selections or any safety, nutrition, clinical, allergy, avoidance, Cooking Method, or Cuisine requirement.`,
+              targetMealType || "lunch",
+              userId,
+              bodyDietRestrictions,
+              excludeMeals,
+              true,
+              (generationMode === "recipe" ? "recipe" : "meal"),
+              (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
+                ? cultureOverride.trim()
+                : undefined,
+              _cravingGlp1Targets,
+              _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+              _dishDirective,
+              skipImages === true,
+              humanFoodExecutionState,
+              _overriddenAvoidances,
+              _overriddenDietaryIdentities,
+              rawCravingInput,
+            );
+            const protocolSafeIntentRepairs = filterMealsByProtocol(
+              intentRepairOptions ?? [],
+              _filterEnvelope,
+              {
+                generatorName: "create_dish_intent_repair",
+                skipAdaptableConflicts: _effectiveSkipAdaptableConflicts,
+                overriddenAllergens: _overriddenAllergens.length > 0
+                  ? _overriddenAllergens
+                  : undefined,
+                exemptDishNameTerms: _adaptExemptTerms,
+                dishIdentity: {
+                  requestedDish: enforceRequestedDishIdentity ? rawCravingInput || "" : "",
+                  directive: _dishDirective,
+                  results: _identityResults,
+                },
+              },
+            );
+            const transformedIntentRepairs = await applyFinalCreatorTransformation(
+              protocolSafeIntentRepairs,
+            );
+            scannedOptions = transformedIntentRepairs.filter((meal: any) =>
+              runFinalValidation(meal).outcome === "pass" &&
+              evaluateCreateDishIntentEvidence(meal, validatedCreateDishIntent!).passed
+            );
+            logCreateDishAcceptance({
+              stage: "intent_repair",
+              modelCandidates: intentRepairOptions?.length ?? 0,
+              protocolSurvivors: protocolSafeIntentRepairs.length,
+              finalSurvivors: scannedOptions.length,
+              repairAttempted: true,
+            });
+          } catch (intentRepairError) {
+            scannedOptions = [];
+            logCreateDishAcceptance({
+              stage: "intent_repair",
+              finalSurvivors: 0,
+              repairAttempted: true,
+              outcome: "failed",
+            });
+          }
+        }
+      }
 
       // Format and optionally scale each option
       let formattedOptions = scannedOptions.map(meal => {
@@ -6851,7 +6989,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
                 .filter(Boolean);
               try {
-                const imageUrl = await generateMealImageUnified(meal.name, ingNames, sourceType);
+                const createDishContext = validatedCreateDishIntent
+                  ? {
+                      canonicalIngredient: validatedCreateDishIntent.ingredient.canonicalName,
+                      form: validatedCreateDishIntent.resolvedCombination.form,
+                      texture: validatedCreateDishIntent.resolvedCombination.texture,
+                      flavor: validatedCreateDishIntent.resolvedCombination.flavor,
+                    }
+                  : undefined;
+                const imageUrl = await generateMealImageUnified(
+                  meal.name,
+                  ingNames,
+                  sourceType,
+                  undefined,
+                  createDishContext,
+                );
+                if (validatedCreateDishIntent) {
+                  logCreateDishAcceptance({
+                    stage: "image_final",
+                    generated: Boolean(imageUrl),
+                    fallback: imageUrl?.startsWith("/images/fallback/") ?? false,
+                  });
+                }
                 return imageUrl ? { ...meal, imageUrl } : meal;
               } catch { return meal; } // image failure is non-fatal — meal still usable
             })
@@ -6872,6 +7031,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);
       console.log(`🍽️ Variety engine: ${imagedOptions.map((m: any) => m.name).join(" | ")}`);
+      if (humanFoodCreator === "create_a_dish") {
+        logCreateDishAcceptance({
+          stage: "meals_returned",
+          count: imagedOptions.length,
+        });
+      }
 
       // Record metrics for health endpoint
       const { recordGeneration } = await import("./services/aiHealthMetrics");

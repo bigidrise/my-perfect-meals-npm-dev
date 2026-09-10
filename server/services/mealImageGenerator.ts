@@ -279,7 +279,9 @@ export function detectDishType(name: string): DishType {
   if (lower.includes("scone") || lower.includes("biscuit") || lower.includes("roll")) {
     return { type: "baked good", presentation: "freshly baked scones or rolls on a plate", textureDescription: "golden, flaky baked goods, finished and ready to eat", structuralIdentity: "individual golden baked rolls or scones on a plate. NOT a sliced loaf, NOT a sandwich." };
   }
-  if (lower.includes("pie") || lower.includes("tart") || lower.includes("cobbler") || lower.includes("crisp") || lower.includes("crumble") || lower.includes("galette")) {
+  const hasDessertCrispPhrase =
+    /\b(?:apple|berry|blueberry|strawberry|peach|pear|cherry|rhubarb|fruit)\s+crisp\b/.test(lower);
+  if (lower.includes("pie") || lower.includes("tart") || lower.includes("cobbler") || hasDessertCrispPhrase || lower.includes("crumble") || lower.includes("galette")) {
     return { type: "baked dessert", presentation: "sliced or whole pie or tart served on a plate", textureDescription: "golden pastry crust with fruit or cream filling, finished dessert", structuralIdentity: "a golden pastry crust with visible filling, sliced or whole on a plate. NOT a cake, NOT a cookie, NOT a muffin." };
   }
   if (lower.includes("energy bar") || lower.includes("protein bar") || lower.includes("granola bar") || lower.includes("power bar")) {
@@ -418,10 +420,64 @@ REQUIRED VISIBLE INGREDIENTS: ${authorized}
 UNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with "${mealName}" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.`;
 }
 
-function buildMealImagePrompt(mealName: string, ingredients: string[], sourceType?: ImageSourceType, pediatricContext?: PediatricImageContext): string {
+function createDishVisualRequirements(context?: CreateDishImageContext): string[] {
+  if (!context) return [];
+  const requirements = [
+    `The primary food shown must be ${context.canonicalIngredient}.`,
+  ];
+  const formRules: Record<string, string> = {
+    cubed: "Show the primary ingredient as clearly visible, separate bite-sized cubes or pieces; never show it as an intact breast, fillet, roast, or slab.",
+    ground: "Show the primary ingredient in an unmistakably ground or minced preparation; never show slices or an intact roast.",
+    flaked: "Show the primary ingredient separated into visible natural flakes or flaked pieces; never show only an intact fillet.",
+    diced: "Show the primary ingredient as small, clearly visible diced pieces.",
+    strips: "Show the primary ingredient cut into clearly visible strips.",
+    shredded: "Show the primary ingredient visibly shredded.",
+  };
+  if (context.form) {
+    requirements.push(
+      formRules[context.form.id] ??
+        `Visibly preserve the selected ${context.form.label} form/cut for the primary ingredient.`,
+    );
+  }
+  const textureRules: Record<string, string> = {
+    "crispy-exterior": "Show a visibly crisp, browned exterior with defined golden edges.",
+    crunchy: "Show an appropriately crisp, browned surface that visually communicates crunch.",
+    crispy: "Show a visibly crisp, golden-brown surface.",
+  };
+  if (context.texture) {
+    requirements.push(
+      textureRules[context.texture.id] ??
+        `Visibly preserve the selected ${context.texture.label} texture where food photography can show it.`,
+    );
+  }
+  if (context.flavor) {
+    requirements.push(
+      `Represent ${context.flavor.label} only through recipe-authorized sauce, glaze, seasoning, or garnish; do not add stereotyped props or unauthorized ingredients.`,
+    );
+  }
+  if (context.cookingMethod) {
+    requirements.push(`Reflect the ${context.cookingMethod} cooking method where visually meaningful.`);
+  }
+  for (const detail of context.preparationDetails ?? []) {
+    requirements.push(`Validated visual preparation detail: ${detail}`);
+  }
+  return requirements;
+}
+
+function buildMealImagePrompt(
+  mealName: string,
+  ingredients: string[],
+  sourceType?: ImageSourceType,
+  pediatricContext?: PediatricImageContext,
+  createDishContext?: CreateDishImageContext,
+): string {
   const pediatricAddendum = pediatricContext ? buildPediatricContextAddendum(pediatricContext) : "";
   const ingredientContract = buildIngredientContract(mealName, ingredients);
   const hasContract = ingredientContract.length > 0;
+  const createDishRequirements = createDishVisualRequirements(createDishContext);
+  const createDishContract = createDishRequirements.length > 0
+    ? `\n\n━━ CONTRACT 4: CREATE A DISH VISUAL INTENT ━━\n${createDishRequirements.map(requirement => `- ${requirement}`).join("\n")}`
+    : "";
 
   // When sourceType is explicitly provided by the generator, use it as the
   // hard macro anchor. The name-based classifier refines presentation within
@@ -449,7 +505,7 @@ ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. N
 
 Style: cinematic, high-detail, natural lighting, realistic food photography.
 Camera: 3/4 angle or overhead depending on dish type.
-Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.${pediatricAddendum}`;
+Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.${createDishContract}${pediatricAddendum}`;
   }
 
   // No sourceType — fall back to full name-based classifier (legacy path)
@@ -474,11 +530,15 @@ ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. N
 Style: cinematic, high-detail, natural lighting, realistic food photography.
 Camera: 3/4 angle or overhead depending on dish type.
 Subject: the food dish alone, centered on a clean surface. No hands holding it, no person serving it, no lifestyle scene.
-Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans, no people, no hands.${pediatricAddendum}`;
+Background: clean, minimal, neutral surface, no clutter, no text, no logos, no humans, no people, no hands.${createDishContract}${pediatricAddendum}`;
 }
 
 // Exported for regression tests only — not part of the public generation API.
-export const __testables = { buildMealImagePrompt, buildIngredientContract };
+export const __testables = {
+  buildMealImagePrompt,
+  buildIngredientContract,
+  createDishVisualRequirements,
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SEMANTIC FALLBACK
@@ -535,7 +595,8 @@ export function getSemanticFallback(mealName: string): string {
 //     cannot be overridden), INGREDIENT AUTHORIZATION (filling/composition only),
 //     and PRESENTATION contracts. Fixes taco→salad form collapse. Flushes all
 //     v7 images generated under the old "dish name is a label only" prompt.
-const CACHE_VERSION = "v8";
+// v9: Create a Dish visual intent is part of prompt, validation, and cache identity.
+const CACHE_VERSION = "v9";
 
 // Map client-sent mealType values to canonical ImageSourceType strings.
 // Called by the /api/meals/generate-image endpoint when sourceType is absent.
@@ -549,7 +610,13 @@ export function normalizeMealTypeToSourceType(mealType?: string): ImageSourceTyp
   return 'meal';
 }
 
-export function buildStableCacheKey(mealName: string, ingredients: string[], sourceType?: string, contextTag?: string): string {
+export function buildStableCacheKey(
+  mealName: string,
+  ingredients: string[],
+  sourceType?: string,
+  contextTag?: string,
+  createDishContext?: CreateDishImageContext,
+): string {
   const normalizedName = mealName.toLowerCase().trim();
   // FULL recipe signature — the cache identity must cover the entire recipe
   // contract the prompt's allow/deny list AND the validator check against,
@@ -561,10 +628,22 @@ export function buildStableCacheKey(mealName: string, ingredients: string[], sou
   const typeContext = (sourceType || "meal").toLowerCase();
   // contextTag (e.g. pediatric stage) ensures pediatric images cache separately from adult ones.
   const tag = contextTag ? `|${contextTag.toLowerCase().trim()}` : "";
+  const createDishTag = createDishContext
+    ? `|create-dish:${JSON.stringify({
+        ingredient: createDishContext.canonicalIngredient.toLowerCase().trim(),
+        form: createDishContext.form?.id ?? null,
+        texture: createDishContext.texture?.id ?? null,
+        flavor: createDishContext.flavor?.id ?? null,
+        method: createDishContext.cookingMethod?.toLowerCase().trim() ?? null,
+        preparation: (createDishContext.preparationDetails ?? []).map(value =>
+          value.toLowerCase().trim()
+        ),
+      })}`
+    : "";
 
   return crypto
     .createHash('sha256')
-    .update(`${normalizedName}|${normalizedIngredients}|${typeContext}|${CACHE_VERSION}${tag}`)
+    .update(`${normalizedName}|${normalizedIngredients}|${typeContext}|${CACHE_VERSION}${tag}${createDishTag}`)
     .digest('hex')
     .substring(0, 32);
 }
@@ -648,6 +727,15 @@ export interface PediatricImageContext {
   activeConditionIds?: string[];
 }
 
+export interface CreateDishImageContext {
+  canonicalIngredient: string;
+  form?: { id: string; label: string } | null;
+  texture?: { id: string; label: string } | null;
+  flavor?: { id: string; label: string } | null;
+  preparationDetails?: string[];
+  cookingMethod?: string;
+}
+
 export interface MealImageRequest {
   mealName: string;
   ingredients: string[];
@@ -656,6 +744,7 @@ export interface MealImageRequest {
   mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   sourceType?: ImageSourceType;
   pediatricContext?: PediatricImageContext;
+  createDishContext?: CreateDishImageContext;
 }
 
 export interface GeneratedImage {
@@ -673,11 +762,17 @@ export interface GeneratedImage {
 export async function generateMealImage(request: MealImageRequest): Promise<GeneratedImage> {
   // NORMALIZATION — must happen before cache key derivation and before prompt construction
   const normalizedName = normalizeMealName(request.mealName);
-  const { ingredients, mealType, sourceType, pediatricContext } = request;
+  const { ingredients, mealType, sourceType, pediatricContext, createDishContext } = request;
   const mealName = normalizedName;
   // sourceType + optional pediatric stage are both in the cache key so pediatric and
   // adult images for the same dish name never share a cache entry.
-  const cacheKey = buildStableCacheKey(mealName, ingredients, sourceType, pediatricContext?.stage);
+  const cacheKey = buildStableCacheKey(
+    mealName,
+    ingredients,
+    sourceType,
+    pediatricContext?.stage,
+    createDishContext,
+  );
   const currentSignature = computeRecipeSignature(ingredients);
 
   // ── RECIPE CONTRACT REQUIRED — FAIL CLOSED ─────────────────────────────────
@@ -769,10 +864,20 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   }
 
   // ── LAYER 1: BUILD STRONG PROMPT ───────────────────────────────────────────
-  const prompt = buildMealImagePrompt(mealName, ingredients, sourceType, pediatricContext);
+  const prompt = buildMealImagePrompt(
+    mealName,
+    ingredients,
+    sourceType,
+    pediatricContext,
+    createDishContext,
+  );
 
   if (process.env.NODE_ENV === "development") {
-    console.log(`📝 IMAGE PROMPT for "${mealName}":\n${prompt}`);
+    console.log(
+      `[CreateDishImage:${traceId}] promptContract sourceType=${sourceType ?? "inferred"} ` +
+      `ingredientCount=${ingredients.length} createDish=${Boolean(createDishContext)} ` +
+      `visualRequirementCount=${createDishVisualRequirements(createDishContext).length}`,
+    );
   } else {
     console.log(`🎨 Generating image for: ${mealName}`);
   }
@@ -827,8 +932,10 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   let finalPrompt = prompt;
   console.log(`[IMG-LIFECYCLE:${traceId}] VALIDATE-START | +${Date.now()-_t0}ms`);
   const dishForValidation = detectDishType(mealName);
+  const visualRequirements = createDishVisualRequirements(createDishContext);
   let validation: ValidationResult = await validateImageAgainstRecipe(imageUrl, mealName, ingredients, {
     structuralIdentity: dishForValidation.structuralIdentity,
+    visualRequirements,
   });
   console.log(`[IMG-LIFECYCLE:${traceId}] VALIDATE-DONE | verdict=${validation.verdict}${validation.reason ? ` | reason=${validation.reason}` : ''} | +${Date.now()-_t0}ms`);
 
@@ -841,6 +948,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     if (retryUrl) {
       const retryValidation = await validateImageAgainstRecipe(retryUrl, mealName, ingredients, {
         structuralIdentity: dishForValidation.structuralIdentity,
+        visualRequirements,
       });
       console.log(`[IMG-LIFECYCLE:${traceId}] RETRY-VALIDATE-DONE | verdict=${retryValidation.verdict}${retryValidation.reason ? ` | reason=${retryValidation.reason}` : ''} | +${Date.now()-_t0}ms`);
       if (retryValidation.verdict !== "FAIL") {
@@ -858,9 +966,8 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       const fallback = getSemanticFallback(mealName);
       console.error(
         `[IMG-VALIDATION-FAIL:${traceId}] Recipe fidelity validation failed after retry — serving semantic fallback. ` +
-        `meal="${mealName}" | ingredients=${JSON.stringify(ingredients)} | ` +
-        `violation="${validation.reason}" | model=${validation.model} | ` +
-        `recipeSignature=${computeRecipeSignature(ingredients)} | prompt=${JSON.stringify(finalPrompt)}`
+        `ingredientCount=${ingredients.length} | model=${validation.model} | ` +
+        `recipeSignature=${computeRecipeSignature(ingredients)} | createDish=${Boolean(createDishContext)}`
       );
       // Deliberately NOT written to memCache or DB cache — next request retries fresh.
       return {
@@ -957,7 +1064,13 @@ export async function generateMealImages(requests: MealImageRequest[]): Promise<
         generateMealImage(req).catch(err => ({
           url: getSemanticFallback(req.mealName),
           prompt: `Error: ${err.message}`,
-          hash: buildStableCacheKey(req.mealName, req.ingredients, req.sourceType),
+          hash: buildStableCacheKey(
+            req.mealName,
+            req.ingredients,
+            req.sourceType,
+            req.pediatricContext?.stage,
+            req.createDishContext,
+          ),
           createdAt: new Date().toISOString(),
         }))
       )
@@ -976,7 +1089,13 @@ export async function generateMealImages(requests: MealImageRequest[]): Promise<
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function getCachedImage(request: MealImageRequest): GeneratedImage | null {
-  const cacheKey = buildStableCacheKey(request.mealName, request.ingredients, request.sourceType);
+  const cacheKey = buildStableCacheKey(
+    request.mealName,
+    request.ingredients,
+    request.sourceType,
+    request.pediatricContext?.stage,
+    request.createDishContext,
+  );
   const entry = memCache.get(cacheKey);
   if (!entry) return null;
   if (!isCacheRowServable(entry, computeRecipeSignature(request.ingredients))) return null;
@@ -1004,7 +1123,13 @@ export async function invalidateMealImageCache(request: MealImageRequest): Promi
   const ingredients = request.ingredients
     .map(i => (i || "").trim())
     .filter(Boolean);
-  const cacheKey = buildStableCacheKey(mealName, ingredients, request.sourceType, request.pediatricContext?.stage);
+  const cacheKey = buildStableCacheKey(
+    mealName,
+    ingredients,
+    request.sourceType,
+    request.pediatricContext?.stage,
+    request.createDishContext,
+  );
 
   memCache.delete(cacheKey);
   try {
@@ -1033,7 +1158,8 @@ export async function generateMealImageUnified(
   mealName: string,
   ingredients: Array<string | Record<string, any>> = [],
   sourceType?: ImageSourceType,
-  pediatricContext?: PediatricImageContext
+  pediatricContext?: PediatricImageContext,
+  createDishContext?: CreateDishImageContext,
 ): Promise<string> {
   if (!mealName || !mealName.trim()) {
     return getSemanticFallback("meal");
@@ -1057,7 +1183,13 @@ export async function generateMealImageUnified(
   // (e.g. server pre-warm fired by the pipeline + client request arriving
   // moments later), join the existing promise instead of spawning a second
   // DALL-E call.
-  const dedupeKey = buildStableCacheKey(normalizedName, ingredientNames, sourceType, pediatricContext?.stage);
+  const dedupeKey = buildStableCacheKey(
+    normalizedName,
+    ingredientNames,
+    sourceType,
+    pediatricContext?.stage,
+    createDishContext,
+  );
   const existing = inflightRequests.get(dedupeKey);
   if (existing) {
     console.log(`⚡ [img-dedup] joining in-flight request for: ${normalizedName}`);
@@ -1069,6 +1201,7 @@ export async function generateMealImageUnified(
     ingredients: ingredientNames,
     sourceType,
     pediatricContext,
+    createDishContext,
   }).then(r => r.url).finally(() => {
     inflightRequests.delete(dedupeKey);
   });

@@ -6,6 +6,7 @@ const USER_SAFE_CREATE_DISH_ERROR_CODES = new Set([
   "glp1_context_unavailable",
   "glp1_validation_unavailable",
   "glp1_compliance_retry_exhausted",
+  "create_dish_intent_not_preserved",
 ]);
 
 export function getCreateDishServerErrorMessage(data: unknown): string | null {

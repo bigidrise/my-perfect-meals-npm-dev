@@ -30,6 +30,81 @@ export interface CreateDishCulinaryEntry {
   flavors: CulinaryFlavor[];
 }
 
+export type CreateDishEvidenceDimension = "form" | "texture" | "flavor";
+
+/**
+ * Governed evidence used by both generation instructions and final verification.
+ * Keep these markers bounded to affirmative culinary meaning; they are not a
+ * general synonym dictionary.
+ */
+export const CREATE_DISH_GOVERNED_EVIDENCE: Record<
+  CreateDishEvidenceDimension,
+  Record<string, readonly string[]>
+> = {
+  form: {
+    cubed: ["cubed {{subject}}", "diced {{subject}}", "{{subject}} cut into cubes", "{{subject}} cut into bite-sized pieces"],
+    thigh: ["{{subject}} thigh", "{{subject}} thighs"],
+    breast: ["{{subject}} breast", "{{subject}} breasts"],
+    ground: ["ground {{subject}}", "minced {{subject}}", "{{subject}} is ground", "{{subject}} is minced", "crumble the {{subject}}"],
+    flaked: ["flaked {{subject}}", "flaky {{subject}}", "{{subject}} is flaky", "flake the {{subject}}", "{{subject}} flakes easily", "{{subject}} separates into flakes", "{{subject}} broken into flakes"],
+  },
+  texture: {
+    crunchy: ["crunchy", "crisp", "crispy", "golden and crisp", "golden-brown and crisp", "air fry", "air-fry", "fried until crisp"],
+    "crispy-exterior": ["crispy", "crisp", "crunchy", "air fry", "air-fry", "fried until golden", "golden-brown exterior"],
+    crispy: ["crispy", "crisp", "crunchy", "fry", "fried"],
+    tender: ["tender", "braise", "simmer", "slow cook", "poach"],
+    juicy: ["juicy", "rest before slicing", "retain moisture"],
+    charred: ["char", "charred", "grill marks"],
+    browned: ["brown", "browned", "sear", "seared"],
+    roasted: ["roast", "roasted", "bake until golden"],
+    delicate: ["delicate", "gently poach", "gently steam"],
+    "soft-curds": ["soft curds", "gently scramble"],
+    "tender-crisp": ["tender-crisp", "tender crisp", "stir fry", "stir-fry"],
+  },
+  flavor: {
+    "korean-inspired": ["korean-inspired", "korean inspired", "korean-style", "korean {{subject}}", "gochujang", "kimchi"],
+    "mexican-inspired": ["mexican-inspired", "mexican inspired", "mexican-style", "mexican {{subject}}", "chili-lime", "chile-lime", "adobo", "chipotle", "salsa verde"],
+    "lemon-herb": ["lemon herb", "lemon-herb", "lemon and herb", "lemon and herbs", "lemon with herb", "lemon with herbs"],
+  },
+};
+
+export function getCreateDishGovernedEvidenceTerms(
+  dimension: CreateDishEvidenceDimension,
+  id: string,
+  label: string,
+  subject?: string,
+): string[] {
+  const governedTerms = CREATE_DISH_GOVERNED_EVIDENCE[dimension][id] ?? [];
+  const normalizedSubject = subject?.toLowerCase().trim() ?? "";
+  const normalizedId = id.replace(/-/g, " ").toLowerCase();
+  const normalizedLabel = label.toLowerCase();
+  const formBaseTerms = dimension === "form" && normalizedSubject
+    ? (
+        normalizedSubject.includes(normalizedId) ||
+        normalizedSubject.includes(normalizedLabel)
+      )
+      ? [normalizedSubject]
+      : [
+          `${normalizedId} ${normalizedSubject}`,
+          `${normalizedSubject} ${normalizedId}`,
+          `${normalizedLabel} ${normalizedSubject}`,
+          `${normalizedSubject} ${normalizedLabel}`,
+          `${normalizedSubject} cut into ${normalizedLabel}`,
+        ]
+    : [];
+  return Array.from(new Set([
+    ...(dimension === "form"
+      ? formBaseTerms
+      : [normalizedId, normalizedLabel]),
+    ...governedTerms,
+  ]))
+    .map(term => subject
+      ? term.replaceAll("{{subject}}", subject.toLowerCase())
+      : term
+    )
+    .filter(term => !term.includes("{{subject}}"));
+}
+
 export const METHOD_TEXTURES: Partial<
   Record<CookingMethodId, { id: string; label: string }[]>
 > = {
