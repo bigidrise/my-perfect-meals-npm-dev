@@ -287,7 +287,7 @@ export function detectDishType(name: string): DishType {
   if (lower.includes("energy bar") || lower.includes("protein bar") || lower.includes("granola bar") || lower.includes("power bar")) {
     return { type: "snack bar", presentation: "energy bars sliced and arranged on a plate or board", textureDescription: "dense, chewy bars with visible nuts or seeds, finished snack", structuralIdentity: "dense rectangular bars arranged on a plate or board. NOT a cookie, NOT a brownie square." };
   }
-  if (lower.includes("pudding") || lower.includes("mousse") || lower.includes("custard") || lower.includes("flan") || lower.includes("panna cotta")) {
+  if (/\b(?:pudding|mousse|custard|flan|panna cotta)\b/.test(lower)) {
     return { type: "dessert", presentation: "served in a glass or bowl, garnished", textureDescription: "creamy, set dessert with smooth texture, finished and plated", structuralIdentity: "a smooth creamy dessert in a glass or small bowl, garnished on top. NOT a cake, NOT a cookie, NOT a plate of solid food." };
   }
   if (lower.includes("baked")) {
@@ -420,6 +420,62 @@ REQUIRED VISIBLE INGREDIENTS: ${authorized}
 UNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with "${mealName}" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.`;
 }
 
+const AMBIGUOUS_SAVORY_SIDE_PATTERNS: Array<{
+  label: string;
+  pattern: RegExp;
+}> = [
+  { label: "cauliflower mash", pattern: /\b(?:cauliflower mash|mashed cauliflower)\b/ },
+  { label: "mashed potatoes", pattern: /\bmashed (?:white |sweet )?potatoes?\b/ },
+  { label: "vegetable purée", pattern: /\b(?:vegetable|cauliflower|carrot|parsnip|celery root|pea|pumpkin|squash) puree\b/ },
+  { label: "grits", pattern: /\bgrits\b/ },
+  { label: "polenta", pattern: /\bpolenta\b/ },
+  {
+    label: "creamed or mashed savory vegetables",
+    pattern: /\b(?:creamed|mashed)\s+(?:spinach|greens|peas|carrots|parsnips|turnips|rutabaga|squash|pumpkin|broccoli|cauliflower|celery root)\b/,
+  },
+];
+
+function normalizedFoodText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function findAmbiguousSavorySides(
+  _mealName: string,
+  ingredients: string[],
+): string[] {
+  const foodText = normalizedFoodText(ingredients.join(" "));
+  return AMBIGUOUS_SAVORY_SIDE_PATTERNS
+    .filter(({ pattern }) => pattern.test(foodText))
+    .map(({ label }) => label);
+}
+
+function buildSavorySidePresentationRequirements(
+  mealName: string,
+  ingredients: string[],
+  sourceType?: ImageSourceType,
+): string[] {
+  if (sourceType === "dessert" || sourceType === "beverage") return [];
+  const dish = detectDishType(mealName);
+  if (
+    dish.type === "dessert" ||
+    dish.type === "baked dessert" ||
+    dish.type === "beverage" ||
+    dish.type === "bowl dish"
+  ) {
+    return [];
+  }
+  const sides = findAmbiguousSavorySides(mealName, ingredients);
+  if (sides.length === 0) return [];
+  return [
+    `Show ${sides.join(" and ")} as a savory dinner side in an appropriate scoop or purée presentation on the entrée plate beside the main food.`,
+    "Do NOT put this savory side in a glass, drinking vessel, dessert cup, or parfait vessel.",
+    "This is NOT dessert, pudding, mousse, smoothie, a drink, or any sweet presentation.",
+  ];
+}
+
 function createDishVisualRequirements(context?: CreateDishImageContext): string[] {
   if (!context) return [];
   const requirements = [
@@ -464,6 +520,50 @@ function createDishVisualRequirements(context?: CreateDishImageContext): string[
   return requirements;
 }
 
+export const MAX_IMAGE_GENERATION_ATTEMPTS = 3;
+
+function selectPrimaryMainFood(ingredients: string[], savorySides: string[]): string {
+  const sideText = normalizedFoodText(savorySides.join(" "));
+  const proteinPattern =
+    /\b(?:beef|steak|chicken|turkey|pork|lamb|salmon|tuna|cod|fish|shrimp|tofu|tempeh|seitan|eggs?)\b/;
+  const protein = ingredients.find(ingredient => proteinPattern.test(normalizedFoodText(ingredient)));
+  if (protein) return protein.trim();
+  return (
+    ingredients.find(ingredient => {
+      const normalized = normalizedFoodText(ingredient);
+      return normalized && !sideText.includes(normalized);
+    })?.trim() ||
+    ingredients[0]?.trim() ||
+    "the recipe's primary food"
+  );
+}
+
+function buildSimplifiedRecoveryPrompt(
+  mealName: string,
+  ingredients: string[],
+  structuralIdentity: string,
+  createDishContext?: CreateDishImageContext,
+): string {
+  const savorySides = findAmbiguousSavorySides(mealName, ingredients);
+  const primaryFood = selectPrimaryMainFood(ingredients, savorySides);
+  const savoryRequirements = buildSavorySidePresentationRequirements(
+    mealName,
+    ingredients,
+    "meal",
+  );
+  const createDishRequirements = createDishVisualRequirements(createDishContext);
+  return `SIMPLIFIED MEAL IMAGE RECOVERY
+MEAL: ${mealName}
+PRIMARY MAIN FOOD: ${primaryFood}
+REQUIRED RECIPE FOODS: ${ingredients.join(", ")}
+REQUIRED DISH FORM: ${structuralIdentity}
+${savorySides.length > 0 ? `REQUIRED VISIBLE SAVORY SIDE: ${savorySides.join(" and ")}` : ""}
+PRESENTATION: one simple, realistic, finished meal on a dinner plate.
+${savoryRequirements.join("\n")}
+${createDishRequirements.join("\n")}
+Do not show unauthorized foods. No people, hands, text, logos, or decorative props.`;
+}
+
 function buildMealImagePrompt(
   mealName: string,
   ingredients: string[],
@@ -477,6 +577,14 @@ function buildMealImagePrompt(
   const createDishRequirements = createDishVisualRequirements(createDishContext);
   const createDishContract = createDishRequirements.length > 0
     ? `\n\n━━ CONTRACT 4: CREATE A DISH VISUAL INTENT ━━\n${createDishRequirements.map(requirement => `- ${requirement}`).join("\n")}`
+    : "";
+  const savorySideRequirements = buildSavorySidePresentationRequirements(
+    mealName,
+    ingredients,
+    sourceType,
+  );
+  const savorySideContract = savorySideRequirements.length > 0
+    ? `\nSAVORY SIDE PRESENTATION:\n${savorySideRequirements.map(requirement => `- ${requirement}`).join("\n")}`
     : "";
 
   // When sourceType is explicitly provided by the generator, use it as the
@@ -498,7 +606,7 @@ ${ingredientContract}` : `
 No ingredient restriction — render the dish in its standard form.`}
 
 ━━ CONTRACT 3: PRESENTATION ━━
-Presentation: ${dish.presentation}. ${dish.textureDescription}.
+Presentation: ${dish.presentation}. ${dish.textureDescription}.${savorySideContract}
 ${anchor.rule}
 CRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.
 ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.
@@ -523,7 +631,7 @@ ${ingredientContract}` : `
 No ingredient restriction — render the dish as: ${mealName}. The dish must clearly look like ${mealName}. Do not generate any unrelated foods.`}
 
 ━━ CONTRACT 3: PRESENTATION ━━
-Presentation: ${dish.presentation}. ${dish.textureDescription}.
+Presentation: ${dish.presentation}. ${dish.textureDescription}.${savorySideContract}
 CRITICAL: Show ONLY the finished, cooked, plated dish — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.
 ABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only — zero human presence of any kind.
 
@@ -538,6 +646,9 @@ export const __testables = {
   buildMealImagePrompt,
   buildIngredientContract,
   createDishVisualRequirements,
+  findAmbiguousSavorySides,
+  buildSavorySidePresentationRequirements,
+  buildSimplifiedRecoveryPrompt,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -957,6 +1068,39 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         validation = retryValidation;
       } else {
         validation = retryValidation;
+        const recoveryEligible =
+          buildSavorySidePresentationRequirements(
+            mealName,
+            ingredients,
+            sourceType,
+          ).length > 0;
+        if (recoveryEligible) {
+          const recoveryPrompt = buildSimplifiedRecoveryPrompt(
+            mealName,
+            ingredients,
+            dishForValidation.structuralIdentity,
+            createDishContext,
+          );
+          console.log(`[IMG-LIFECYCLE:${traceId}] RECOVERY-START | attempt=${MAX_IMAGE_GENERATION_ATTEMPTS} | +${Date.now()-_t0}ms`);
+          const recoveryUrl = await callDalle(recoveryPrompt);
+          if (recoveryUrl) {
+            const recoveryValidation = await validateImageAgainstRecipe(
+              recoveryUrl,
+              mealName,
+              ingredients,
+              {
+                structuralIdentity: dishForValidation.structuralIdentity,
+                visualRequirements,
+              },
+            );
+            console.log(`[IMG-LIFECYCLE:${traceId}] RECOVERY-VALIDATE-DONE | verdict=${recoveryValidation.verdict}${recoveryValidation.reason ? ` | reason=${recoveryValidation.reason}` : ''} | +${Date.now()-_t0}ms`);
+            validation = recoveryValidation;
+            if (recoveryValidation.verdict === "PASS") {
+              imageUrl = recoveryUrl;
+              finalPrompt = recoveryPrompt;
+            }
+          }
+        }
       }
     }
 
@@ -965,7 +1109,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       // Serve the semantic fallback and log full failure context.
       const fallback = getSemanticFallback(mealName);
       console.error(
-        `[IMG-VALIDATION-FAIL:${traceId}] Recipe fidelity validation failed after retry — serving semantic fallback. ` +
+        `[IMG-VALIDATION-FAIL:${traceId}] Recipe fidelity validation failed after ${MAX_IMAGE_GENERATION_ATTEMPTS} attempts — serving semantic fallback. ` +
         `ingredientCount=${ingredients.length} | model=${validation.model} | ` +
         `recipeSignature=${computeRecipeSignature(ingredients)} | createDish=${Boolean(createDishContext)}`
       );

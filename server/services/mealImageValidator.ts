@@ -181,9 +181,9 @@ export function buildRetryExclusionAddendum(mealName: string, failReason: string
   // This prevents the retry from generating a random unrelated food.
   const lower = mealName.toLowerCase();
   let positiveTarget = `a clearly recognizable plated dish of "${mealName}"`;
-  if (/cheesecake|cake|tart|torte|soufflé|soufflé|crumble|brownie|pudding|mousse|flan|tiramisu|panna cotta|gelato|ice cream|sorbet|macaroon|macaron|profiterole|eclair|creme brulee/i.test(lower)) {
+  if (/\b(?:cheesecake|cake|tart|torte|soufflé|crumble|brownie|pudding|mousse|flan|tiramisu|panna cotta|gelato|ice cream|sorbet|macaroon|macaron|profiterole|eclair|creme brulee)\b/i.test(lower)) {
     positiveTarget = `a clearly recognizable dessert — specifically "${mealName}" with its characteristic structure (e.g., for cheesecake: a creamy filling on a crust or in a glass, topped with strawberry or fruit)`;
-  } else if (/smoothie|shake|milkshake|juice|latte|coffee|tea|cocktail|mocktail|beverage|drink|lemonade|soda/i.test(lower)) {
+  } else if (/\b(?:smoothie|shake|milkshake|juice|latte|coffee|tea|cocktail|mocktail|beverage|drink|lemonade|soda)\b/i.test(lower)) {
     positiveTarget = `a clearly recognizable drink — specifically "${mealName}" in a glass or cup`;
   } else if (/soup|stew|chowder|bisque|broth/i.test(lower)) {
     positiveTarget = `a clearly recognizable bowl of soup — specifically "${mealName}"`;
