@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Copy, Download, FileSpreadsheet, Mail, QrCode, Send, Upload, UserPlus, Users } from "lucide-react";
+import { Copy, Download, FileSpreadsheet, Loader2, Mail, QrCode, RefreshCw, Send, Upload, UserPlus, Users } from "lucide-react";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
@@ -33,6 +33,7 @@ interface InvitationSummary {
   status?: string;
   expiresAt: string;
   role?: string;
+  token?: string;
 }
 
 interface Props {
@@ -125,6 +126,7 @@ export default function OrganizationInvitationsAccess({
   const [busy, setBusy] = useState(false);
   const [shareLink, setShareLink] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [resendingToken, setResendingToken] = useState<string | null>(null);
 
   const invitations = population === "client" ? patientInvitations : teamInvitations;
   const recipients = useMemo(() => {
@@ -301,6 +303,33 @@ export default function OrganizationInvitationsAccess({
       toast({ title: "Link unavailable", description: error instanceof Error ? error.message : "Could not create patient link.", variant: "destructive" });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resendInvitation = async (invitation: InvitationSummary) => {
+    if (!invitation.token) {
+      toast({ title: "Resend unavailable", description: "This invitation does not have a standard organization resend token.", variant: "destructive" });
+      return;
+    }
+    setResendingToken(invitation.token);
+    try {
+      const response = await fetch(`/api/business/invitations/${invitation.token}/resend`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Could not resend this invitation.");
+      toast({ title: "Invitation resent", description: "The email provider accepted the resend." });
+      onRefresh();
+    } catch (error) {
+      toast({
+        title: "Resend failed",
+        description: error instanceof Error ? error.message : "Could not resend this invitation.",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingToken(null);
     }
   };
 
@@ -500,9 +529,22 @@ export default function OrganizationInvitationsAccess({
                 <div key={invitation.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
                   <p className="truncate text-sm font-medium">{invitation.email}</p>
                   <div className="mt-1 flex justify-between text-xs text-white/45">
-                    <span className="capitalize">{invitation.status || "pending"}</span>
+                    <span className="capitalize">{(invitation.status || "pending").replace(/_/g, " ")}</span>
                     <span>{new Date(invitation.expiresAt).toLocaleDateString()}</span>
                   </div>
+                  {invitation.token && ["pending", "expired", "delivery_failed"].includes(invitation.status || "pending") && (
+                    <button
+                      type="button"
+                      onClick={() => resendInvitation(invitation)}
+                      disabled={resendingToken === invitation.token}
+                      className="mt-3 w-full rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15 disabled:opacity-40"
+                    >
+                      {resendingToken === invitation.token
+                        ? <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />
+                        : <RefreshCw className="mr-1 inline h-3.5 w-3.5" />}
+                      Resend Email
+                    </button>
+                  )}
                 </div>
               ))}
             </aside>
