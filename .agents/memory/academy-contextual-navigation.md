@@ -14,3 +14,9 @@ On desktop, the application shell suppresses ordinary fixed mobile headers. Acad
 **Why:** A back button can exist correctly in the page component yet remain completely hidden by the desktop shell's mobile-header suppression rule.
 
 **How to apply:** Verify course navigation in the desktop shell as well as mobile; use the dedicated Academy navigation-header treatment for any new course page.
+
+The same My Perfect Meals Academy must remain accessible from both the ordinary More page and Business Suite. Adding the ordinary-user entry must not remove or relocate the Business Suite entry.
+
+**Why:** Ordinary users need a visible learning entry without implying that Academy is business-only, while business users still need Academy in their existing workspace.
+
+**How to apply:** Treat More and Business Suite as multiple entry points to the same `/academy` experience; never create a duplicate Academy.

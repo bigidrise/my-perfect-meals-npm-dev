@@ -343,7 +343,7 @@ registerMarketingPageRoutes(
 // Health checks and keep-alive first
 app.use("/api", healthRouter);
 app.use("/api", keepaliveRouter);
-// Development-only clinic patient pilot; the router and migration both fail closed in production.
+// Clinic patient pilot routes; migration is guarded by environment policy.
 app.use("/api/clinic-pilot", clinicPilotRouter);
 
 // ── Release identity — public, no auth, reads manifest baked at build time ───
@@ -1586,6 +1586,15 @@ app.get("/api/users/:id/streak", (req, res) => {
 const PORT = Number(process.env.PORT) || 5000;
 
 async function start() {
+  // Clinic entitlement reads can occur during startup backfills, so its
+  // development schema must exist before any service or route starts querying.
+  if (process.env.NODE_ENV !== "production") {
+    const { runClinicPilotDevelopmentMigration } = await import(
+      "./db/migrations/runClinicPilotDevelopmentMigration"
+    );
+    await runClinicPilotDevelopmentMigration();
+  }
+
   // Seed default organizations on every boot (idempotent)
   try {
     const { seedDefaultOrganizations } = await import("./lib/orgSeeder");
@@ -1736,10 +1745,6 @@ async function start() {
   }
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
-  if (process.env.NODE_ENV !== "production") {
-    const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
-    await runClinicPilotDevelopmentMigration();
-  }
   await registerRoutes(app);
 
   // API guard: any /api/* that slipped past routers -> JSON 404 (prevents SPA override)

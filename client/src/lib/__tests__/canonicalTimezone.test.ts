@@ -1,7 +1,7 @@
 import {
   SUPPORTED_TIMEZONES,
   timezoneLabel,
-} from "@/components/CanonicalTimezonePrompt";
+} from "@/lib/canonicalTimezones";
 
 describe("canonical timezone choices", () => {
   it("uses stable US labels for the bounded choices", () => {

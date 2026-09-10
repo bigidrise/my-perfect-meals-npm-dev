@@ -466,6 +466,7 @@ export async function signUp(
   signupSource?: string | null,
   inviteToken?: string | null,
   pilotAuthorizationToken?: string | null,
+  clinicPilotToken?: string | null,
 ): Promise<User> {
   if (password.length < 6) {
     throw new Error("Password must be at least 6 characters");
@@ -497,6 +498,7 @@ export async function signUp(
         ...(signupSource ? { signupSource } : {}),
         ...(inviteToken ? { inviteToken } : {}),
         ...(pilotAuthorizationToken ? { pilotAuthorizationToken } : {}),
+        ...(clinicPilotToken ? { clinicPilotToken } : {}),
       }),
     });
 

@@ -18,12 +18,16 @@ const PROFESSIONAL_ROUTE_PREFIXES = [
   "/pro/",
 ];
 
-const PUBLIC_ROUTES = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m"];
+const PUBLIC_ROUTES = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/join/clinic", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m"];
 
 function isPublicAppRoute(path: string): boolean {
   const devRoutes = import.meta.env.DEV
     ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__"]
     : [];
+  if (location.startsWith("/join/clinic")) {
+    return <>{children}</>;
+  }
+
   return (
     isExactPublicMarketingRoute(path) ||
     [...PUBLIC_ROUTES, ...devRoutes].some(
@@ -70,6 +74,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       "/forgot-password",
       "/reset-password",
       "/pilot/activate",
+      "/join/clinic",
       "/checkout-success",
       "/pricing",
       "/paywall",
