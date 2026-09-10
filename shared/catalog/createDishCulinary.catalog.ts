@@ -218,7 +218,7 @@ export const CREATE_DISH_CULINARY_ENTRIES: CreateDishCulinaryEntry[] = [
   {
     id: "beef",
     name: "Beef",
-    aliases: ["beef", "lean beef"],
+    aliases: ["beef", "lean beef", "steak"],
     category: "protein",
     forms: [
       ["steak-cut", "Steak Cut"],
@@ -557,6 +557,47 @@ export const CREATE_DISH_CULINARY_ENTRIES: CreateDishCulinaryEntry[] = [
       ["flaked", "Flaked"],
     ].map(([id, label]) => ({ id, label })),
     methodIds: ["baked", "grilled", "pan-seared", "poached", "steamed"],
+    flavors: [flavors.lemonPepper, flavors.garlicHerb, flavors.cajun, flavors.mediterranean],
+  },
+  {
+    id: "red-snapper",
+    name: "Red Snapper",
+    aliases: ["red snapper", "red snapper fillet"],
+    category: "seafood",
+    forms: [
+      ["fillet", "Fillet"],
+      ["whole", "Whole"],
+      ["chunks", "Chunks"],
+      ["flaked", "Flaked"],
+    ].map(([id, label]) => ({ id, label })),
+    methodIds: ["baked", "grilled", "pan-seared", "steamed"],
+    flavors: [flavors.lemonPepper, flavors.garlicHerb, flavors.cajun, flavors.mediterranean],
+  },
+  {
+    id: "whiting",
+    name: "Whiting",
+    aliases: ["whiting", "whiting fillet"],
+    category: "seafood",
+    forms: [
+      ["fillet", "Fillet"],
+      ["whole", "Whole"],
+      ["chunks", "Chunks"],
+      ["flaked", "Flaked"],
+    ].map(([id, label]) => ({ id, label })),
+    methodIds: ["baked", "grilled", "pan-seared", "steamed"],
+    flavors: [flavors.lemonPepper, flavors.garlicHerb, flavors.cajun, flavors.mediterranean],
+  },
+  {
+    id: "swordfish",
+    name: "Swordfish",
+    aliases: ["swordfish", "swordfish steak"],
+    category: "seafood",
+    forms: [
+      ["steak", "Steak"],
+      ["chunks", "Chunks"],
+      ["cubed", "Cubed"],
+    ].map(([id, label]) => ({ id, label })),
+    methodIds: ["baked", "grilled", "pan-seared"],
     flavors: [flavors.lemonPepper, flavors.garlicHerb, flavors.cajun, flavors.mediterranean],
   },
   {

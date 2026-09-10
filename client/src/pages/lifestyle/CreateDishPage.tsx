@@ -1140,18 +1140,16 @@ export default function CreateDishPage() {
                           <p className="text-sm font-medium text-white">A little more direction?</p>
                           <p className="text-xs text-white/55">We understood the idea. Tune it, or let the chef choose.</p>
                         </div>
-                         <button
-                          type="button"
-                          onClick={surpriseAll}
+                         <PillButton
+                           type="button"
+                           onClick={surpriseAll}
+                           active={EXPANSION_DIMENSIONS.every((dimension) => delegatedDimensions.includes(dimension))}
+                           variant="amber"
                            aria-pressed={EXPANSION_DIMENSIONS.every((dimension) => delegatedDimensions.includes(dimension))}
-                           className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                             EXPANSION_DIMENSIONS.every((dimension) => delegatedDimensions.includes(dimension))
-                               ? "border-orange-300 bg-orange-400/25 text-orange-50"
-                               : "border-orange-300/40 text-orange-100 hover:bg-orange-400/15"
-                           }`}
-                        >
+                           className="normal-case tracking-normal text-[11px]"
+                         >
                           Surprise Me
-                        </button>
+                         </PillButton>
                       </div>
 
                       {ingredientExpansion.ingredient.clarification && (
@@ -1161,14 +1159,15 @@ export default function CreateDishPage() {
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {ingredientExpansion.ingredient.clarification.choices.map((choice) => (
-                              <button
+                              <PillButton
                                 type="button"
                                 key={choice.id}
                                 onClick={() => chooseClarification(choice.id, choice.label)}
-                                className="max-w-full rounded-full border border-white/20 px-3 py-1.5 text-left text-xs text-white/85 hover:border-orange-300/60 hover:bg-orange-400/10"
+                                variant="amber"
+                                className="max-w-full normal-case tracking-normal text-[11px]"
                               >
                                 <span className="break-words">{choice.label}</span>
-                              </button>
+                              </PillButton>
                             ))}
                           </div>
                         </div>
@@ -1187,18 +1186,16 @@ export default function CreateDishPage() {
                                 <span className="text-xs font-semibold text-white/80">
                                   {EXPANSION_DIMENSION_LABELS[dimension]}
                                 </span>
-                                <button
+                                <PillButton
                                   type="button"
                                   onClick={() => surpriseDimension(dimension)}
-                                   aria-pressed={delegatedDimensions.includes(dimension)}
-                                   className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
-                                     delegatedDimensions.includes(dimension)
-                                       ? "border-orange-300 bg-orange-400/25 font-semibold text-orange-50"
-                                       : "border-orange-300/30 text-orange-200/80 hover:bg-orange-400/15 hover:text-orange-100"
-                                   }`}
+                                  active={delegatedDimensions.includes(dimension)}
+                                  variant="amber"
+                                  aria-pressed={delegatedDimensions.includes(dimension)}
+                                  className="normal-case tracking-normal text-[10px]"
                                 >
                                   Surprise Me
-                                </button>
+                                </PillButton>
                               </div>
                               <div className="flex max-w-full flex-wrap gap-2">
                                 {options.map((option) => {
@@ -1206,23 +1203,21 @@ export default function CreateDishPage() {
                                     dimension === "texture" &&
                                     !isTextureCompatibleWithCookMethod(option);
                                   return (
-                                    <button
+                                    <PillButton
                                       type="button"
                                       key={option.id}
                                       disabled={incompatible}
+                                      active={expansionSelections[dimension] === option.id}
+                                      variant="amber"
                                       aria-pressed={expansionSelections[dimension] === option.id}
                                       title={incompatible ? `${option.label} is not compatible with ${cookMethod}` : undefined}
                                       onClick={() => toggleExpansionSelection(dimension, option.id)}
-                                      className={`max-w-full rounded-full border px-3 py-1.5 text-left text-xs leading-snug transition-colors ${
-                                        expansionSelections[dimension] === option.id
-                                          ? "border-orange-300 bg-orange-400/20 text-orange-50 shadow-[0_0_0_1px_rgba(253,186,116,0.2)]"
-                                          : incompatible
-                                            ? "cursor-not-allowed border-white/10 bg-white/[0.03] text-white/30 line-through"
-                                            : "border-white/20 bg-white/5 text-white/80 hover:border-orange-300/60"
+                                      className={`max-w-full normal-case tracking-normal text-[11px] leading-snug ${
+                                        incompatible ? "cursor-not-allowed opacity-40 line-through" : ""
                                       }`}
                                     >
                                       <span className="break-words">{option.label}</span>
-                                    </button>
+                                    </PillButton>
                                   );
                                 })}
                               </div>

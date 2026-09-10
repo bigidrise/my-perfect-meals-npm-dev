@@ -30,6 +30,9 @@ describe("Create a Dish ingredient expansion", () => {
     ["Scallops", ["whole", "medallions", "skewered"]],
     ["Crab", ["whole", "picked-meat", "cakes"]],
     ["White fish", ["fillet", "chunks", "flaked"]],
+    ["Red snapper", ["fillet", "whole", "chunks"]],
+    ["Whiting", ["fillet", "whole", "chunks"]],
+    ["Swordfish", ["steak", "chunks", "cubed"]],
     ["Tempeh", ["slices", "strips", "cubes"]],
     ["Chickpeas", ["whole", "mashed", "crispy-roasted"]],
     ["Lentils", ["whole", "mashed", "patties"]],
@@ -124,17 +127,55 @@ describe("Create a Dish ingredient expansion", () => {
     expect(salmon.options.methods.map((item) => item.id)).not.toContain("fried");
   });
 
-  test.each(["Steak", "Fish", "Roast", "Chops"])("%s returns clarification", async (input) => {
+  test.each(["Fish", "Roast", "Chops"])("%s returns clarification", async (input) => {
     const result = await expandCreateDishIngredient(request(input));
     expect(result.ingredient.status).toMatch(/^clarification_/);
     expect(result.ingredient.clarification?.choices.length).toBeGreaterThan(1);
     expect(result.options.forms).toEqual([]);
   });
 
-  test("a clarified beef steak preserves the steak form", async () => {
-    const result = await expandCreateDishIngredient(request("Beef steak"));
+  test("plain steak resolves directly to beef and preserves the steak form", async () => {
+    const result = await expandCreateDishIngredient(request("Steak"));
     expect(result.ingredient.canonicalId).toBe("beef");
+    expect(result.ingredient.status).toBe("recognized");
+    expect(result.ingredient.clarification).toBeUndefined();
     expect(result.inferredSelectionIds.form).toBe("steak-cut");
+  });
+
+  test.each([
+    ["Tuna steak", "tuna", "steak"],
+    ["Swordfish steak", "swordfish", "steak"],
+    ["Cauliflower steak", "cauliflower", "steak"],
+  ])("%s preserves its explicit subject and steak form", async (input, canonicalId, formId) => {
+    const result = await expandCreateDishIngredient(request(input));
+    expect(result.ingredient.canonicalId).toBe(canonicalId);
+    expect(result.inferredSelectionIds.form).toBe(formId);
+  });
+
+  test("fish returns the complete bounded governed clarification set", async () => {
+    const result = await expandCreateDishIngredient(request("Fish"));
+    expect(result.ingredient.clarification?.choices).toEqual([
+      { id: "salmon", label: "Salmon" },
+      { id: "cod", label: "Cod" },
+      { id: "tilapia", label: "Tilapia" },
+      { id: "white-fish", label: "White Fish" },
+      { id: "red-snapper", label: "Red Snapper" },
+      { id: "whiting", label: "Whiting" },
+      { id: "swordfish", label: "Swordfish" },
+      { id: "tuna", label: "Tuna" },
+      { id: "surprise", label: "Surprise Me" },
+    ]);
+  });
+
+  test("fish forms remain species-appropriate", async () => {
+    const salmon = await expandCreateDishIngredient(request("Salmon"));
+    const swordfish = await expandCreateDishIngredient(request("Swordfish"));
+    const whiting = await expandCreateDishIngredient(request("Whiting"));
+    expect(salmon.options.forms.map((item) => item.id)).not.toContain("steak");
+    expect(swordfish.options.forms.map((item) => item.id)).toContain("steak");
+    expect(swordfish.options.forms.map((item) => item.id)).not.toContain("fillet");
+    expect(whiting.options.forms.map((item) => item.id)).toContain("fillet");
+    expect(whiting.options.forms.map((item) => item.id)).not.toContain("steak");
   });
 
   test("nonsense input is unsupported and receives no generic options", async () => {
