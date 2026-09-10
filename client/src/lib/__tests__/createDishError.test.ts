@@ -21,6 +21,17 @@ describe("getCreateDishServerErrorMessage", () => {
     ).toBe("Chicken thighs are on your Foods to Avoid list.");
   });
 
+  it("shows the bounded Create a Dish intent-preservation message", () => {
+    expect(
+      getCreateDishServerErrorMessage({
+        reasonCode: "create_dish_intent_not_preserved",
+        message: "We couldn't preserve those preparation choices safely. Try changing one choice or use Surprise Me.",
+      }),
+    ).toBe(
+      "We couldn't preserve those preparation choices safely. Try changing one choice or use Surprise Me.",
+    );
+  });
+
   it.each([
     { message: "Raw provider failure" },
     { code: "INTERNAL_PROVIDER_ERROR", message: "Raw provider failure" },

@@ -80,6 +80,7 @@ import { generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
 import { isClinicalAdaptationActive } from './clinicalMacroGate';
+import { resolveVarietyClassificationInput } from './createDish/varietyClassificationInput';
 
 export class GLP1ComplianceRetryExhaustedError extends Error {
   readonly status = 422;
@@ -2037,11 +2038,18 @@ export async function generateCravingMealOptions(
   humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
   overriddenAvoidances?: string[],
   overriddenDietaryIdentities?: string[],
+  /** Clean request text used only for category/dish classification. Generation
+   * still receives the fully augmented cravingInput with all safety directives. */
+  classificationInput?: string,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
-  const category = inferCravingCategory(cravingInput, validMealType);
-  const dishFamily = extractDishFamily(cravingInput);
-  console.log(`🎲 [VARIETY ENGINE] "${cravingInput}" → category: ${category}, dish: ${dishFamily}`);
+  const cleanClassificationInput = resolveVarietyClassificationInput(
+    cravingInput,
+    classificationInput,
+  );
+  const category = inferCravingCategory(cleanClassificationInput, validMealType);
+  const dishFamily = extractDishFamily(cleanClassificationInput);
+  console.log(`🎲 [VARIETY ENGINE] category=${category}; dish=${dishFamily}; classificationSource=${classificationInput ? "clean" : "generation"}`);
 
   // Fix B: Fetch dietary restrictions, allergies, AND health conditions from the user profile
   let dietRestrictions: string[] = [];

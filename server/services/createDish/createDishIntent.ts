@@ -4,6 +4,18 @@ import {
   type ExpansionDimension,
 } from "../../../shared/createDishIngredientExpansion";
 import { expandCreateDishIngredient } from "./ingredientExpansionService";
+import {
+  getCreateDishGovernedEvidenceTerms,
+} from "../../../shared/catalog/createDishCulinary.catalog";
+
+export interface CreateDishIntentEvidence {
+  ingredient: boolean;
+  form: boolean;
+  texture: boolean;
+  flavor: boolean;
+  passed: boolean;
+  failedDimensions: Array<"ingredient" | "form" | "texture" | "flavor">;
+}
 
 function normalizeIngredientOnlyText(value: string): string {
   return value
@@ -96,7 +108,19 @@ Explicit current culinary intent overrides general cuisine, broad-flavor, heat, 
 Safety, allergies, dietary identity, clinical protocols, diabetes, GLP-1, and canonical nutrition requirements remain authoritative; adapt transparently if one requires a change.`;
 }
 
-export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishIntent): boolean {
+export function buildCreateDishIntentDishSubject(intent: CreateDishIntent): string {
+  return [
+    intent.resolvedCombination.form?.label,
+    intent.resolvedCombination.texture?.label,
+    intent.resolvedCombination.flavor?.label,
+    intent.ingredient.canonicalName,
+  ].filter(Boolean).join(" ");
+}
+
+export function evaluateCreateDishIntentEvidence(
+  meal: unknown,
+  intent: CreateDishIntent,
+): CreateDishIntentEvidence {
   const candidate = (meal ?? {}) as Record<string, unknown>;
   const ingredients = Array.isArray(candidate.ingredients)
     ? candidate.ingredients
@@ -120,56 +144,107 @@ export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishInte
     .filter((value): value is string => typeof value === "string")
     .join(". ");
   const title = typeof candidate.name === "string" ? candidate.name : "";
-  const aliases: Record<string, string[]> = {
-    cubed: ["cubed", "cube", "diced"],
-    thigh: ["thigh", "thighs"],
-    breast: ["breast", "breasts"],
-    baked: ["bake", "baked", "baking", "oven-bake"],
-    grilled: ["grill", "grilled", "grilling"],
-    fried: ["fry", "fried", "frying"],
-    "air-fried": ["air-fry", "air fry", "air-fried", "air fried"],
-    "stir-fried": ["stir-fried", "stir fried", "stir-fry", "stir fry"],
-    "pan-seared": ["pan-seared", "pan seared", "sear"],
-    steamed: ["steam", "steamed", "steaming"],
-    boiled: ["boil", "boiled", "boiling"],
-    poached: ["poach", "poached", "poaching"],
-    "crispy-exterior": ["crispy", "crisp", "crunchy", "air fry", "air-fry", "fried until golden"],
-    crispy: ["crispy", "crisp", "crunchy", "fry", "fried"],
-    tender: ["tender", "braise", "simmer", "slow cook", "poach"],
-    juicy: ["juicy", "rest before slicing", "retain moisture"],
-    charred: ["char", "charred", "grill marks"],
-    browned: ["brown", "browned", "sear", "seared"],
-    roasted: ["roast", "roasted", "bake until golden"],
-    delicate: ["delicate", "gently poach", "gently steam"],
-    "soft-curds": ["soft curds", "gently scramble"],
-    "tender-crisp": ["tender-crisp", "tender crisp", "stir fry", "stir-fry"],
-  };
+  const escapeRegExp = (value: string) =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const hasAffirmativeTerm = (text: string, terms: string[]) =>
     text
       .toLowerCase()
       .split(/[.!?;\n]+/)
-      .some((sentence) => {
-        const containsTerm = terms.some((term) => sentence.includes(term));
-        const negated = /\b(do not|don't|without|avoid|instead of|never)\b/.test(sentence);
-        return containsTerm && !negated;
-      });
-  const termsFor = (id: string, label: string) =>
-    Array.from(new Set([id.replace(/-/g, " "), label.toLowerCase(), ...(aliases[id] ?? [])]));
-
-  if (!hasAffirmativeTerm(ingredients, [intent.ingredient.canonicalName.toLowerCase()])) {
-    return false;
-  }
+      .some((clause) =>
+        terms.some((term) => {
+          const pattern = new RegExp(
+            `(?:^|[^a-z0-9])${escapeRegExp(term.toLowerCase())}(?=$|[^a-z0-9])`,
+            "g",
+          );
+          return Array.from(clause.matchAll(pattern)).some((match) => {
+            const termStart =
+              (match.index ?? 0) + match[0].indexOf(term.toLowerCase());
+            const before = clause.slice(Math.max(0, termStart - 48), termStart);
+            const after = clause.slice(
+              termStart + term.length,
+              termStart + term.length + 40,
+            );
+            const negatedBefore =
+              /\b(?:no|not|never|without|instead of|rather than)\s+(?:(?:the|very|use|using)\s+){0,2}$/.test(before) ||
+              /\b(?:avoid|avoids|avoiding|do not|don't|does not|doesn't|is not|isn't|are not|aren't)\s+(?:(?:use|using|make|making)\s+)?$/.test(before);
+            const negatedAfter =
+              /^\s+(?:[a-z]+\s+){0,2}(?:is|are|should be)\s+not\b/.test(after);
+            const replacementSource =
+              (
+                /\breplace\b[^,]*$/.test(before) &&
+                /^\s+with\b/.test(after)
+              ) ||
+              (
+                /\bswap\b[^,]*$/.test(before) &&
+                /^\s+for\b/.test(after)
+              );
+            const substitutedAway =
+              /\bsubstitute\b[^,]*\bfor\s*$/.test(before);
+            return !negatedBefore &&
+              !negatedAfter &&
+              !replacementSource &&
+              !substitutedAway;
+          });
+        })
+      );
+  const ingredientPassed = hasAffirmativeTerm(
+    ingredients,
+    [intent.ingredient.canonicalName.toLowerCase()],
+  );
   const form = intent.resolvedCombination.form;
-  if (form && !hasAffirmativeTerm(`${ingredients}. ${instructions}`, termsFor(form.id, form.label))) {
-    return false;
-  }
+  const formTerms = form
+    ? getCreateDishGovernedEvidenceTerms(
+        "form",
+        form.id,
+        form.label,
+        intent.ingredient.canonicalName,
+      )
+    : [];
+  const formPassed = !form || hasAffirmativeTerm(
+    `${ingredients}. ${instructions}`,
+    formTerms,
+  );
   const texture = intent.resolvedCombination.texture;
-  if (texture && !hasAffirmativeTerm(instructions, termsFor(texture.id, texture.label))) {
-    return false;
-  }
+  const texturePassed = !texture || hasAffirmativeTerm(
+    instructions,
+    getCreateDishGovernedEvidenceTerms(
+      "texture",
+      texture.id,
+      texture.label,
+      intent.ingredient.canonicalName,
+    ),
+  );
   const flavor = intent.resolvedCombination.flavor;
-  if (flavor && !hasAffirmativeTerm(`${title}. ${ingredients}. ${instructions}`, termsFor(flavor.id, flavor.label))) {
-    return false;
-  }
-  return true;
+  const flavorTerms = flavor
+    ? getCreateDishGovernedEvidenceTerms(
+        "flavor",
+        flavor.id,
+        flavor.label,
+        intent.ingredient.canonicalName,
+      )
+    : [];
+  const flavorPassed = !flavor || hasAffirmativeTerm(
+    `${title}. ${ingredients}. ${instructions}`,
+    flavorTerms,
+  );
+  const dimensions = {
+    ingredient: ingredientPassed,
+    form: formPassed,
+    texture: texturePassed,
+    flavor: flavorPassed,
+  };
+  const failedDimensions = (Object.entries(dimensions) as Array<
+    ["ingredient" | "form" | "texture" | "flavor", boolean]
+  >)
+    .filter(([, passed]) => !passed)
+    .map(([dimension]) => dimension);
+  return {
+    ...dimensions,
+    passed: failedDimensions.length === 0,
+    failedDimensions,
+  };
+}
+
+export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishIntent): boolean {
+  return evaluateCreateDishIntentEvidence(meal, intent).passed;
 }

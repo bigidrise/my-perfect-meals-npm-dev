@@ -22,3 +22,9 @@ Generation must revalidate every option ID and compatibility against current ser
 **Why:** Method-first inference and Slow Cooker/No-Bake Surprise Me could otherwise create contradictory hard texture intent. Treating Cuisine as compatibility instead of ranking could reject an explicitly chosen adaptable flavor.
 
 **How to apply:** Disable or clear incompatible textures with an explanation, reconcile delegated textures against the current method at generation time, and keep Cuisine out of final expansion resolution.
+
+**Rule:** Classify from clean dish text, verify with catalog-owned subject-bound culinary evidence, and project the same validated intent into image generation and image validation.
+
+**Why:** Augmented instructions were mistaken for dish identity, literal evidence rejected valid culinary meaning, and title-plus-ingredient image prompts lost selected physical form or misread “crispy” as dessert “crisp.”
+
+**How to apply:** Keep safety-enriched generation text separate from classification input; use affirmative, negation-aware catalog evidence for final checks; pass deterministic Form/Texture/Flavor visual requirements through cache identity, prompt, and validator.

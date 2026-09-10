@@ -45,10 +45,19 @@ export function computeRecipeSignature(ingredients: string[]): string {
  * The single narrow question sent to the vision model. Kept exported so the
  * regression suite can assert the contract framing.
  */
-export function buildValidationPrompt(mealName: string, ingredients: string[], structuralIdentity?: string): string {
+export function buildValidationPrompt(
+  mealName: string,
+  ingredients: string[],
+  structuralIdentity?: string,
+  visualRequirements?: string[],
+): string {
   const checkC = structuralIdentity
     ? `\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: ${structuralIdentity}\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n`
     : '';
+
+  const checkD = visualRequirements?.length
+    ? `\nCHECK D — Create a Dish visual intent: Does the image visibly violate any authoritative requirement below?\n${visualRequirements.map(requirement => `- ${requirement}`).join("\n")}\nFlag only an obvious contradiction, such as an intact breast when visible cubes are required, sliced roast when ground meat is required, or a soft/pale surface when a crisp browned exterior is required.\n`
+    : "";
 
   return `You are a recipe-fidelity inspector for food photography.
 
@@ -60,7 +69,7 @@ The recipe ingredient list above is the ONLY source of truth. It outranks the di
 QUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?
 
 CHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?
-CHECK B — Wrong dish category: Does the image depict a completely different dish category than "${mealName}"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.${checkC}
+CHECK B — Wrong dish category: Does the image depict a completely different dish category than "${mealName}"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.${checkC}${checkD}
 Respond with exactly one line:
 PASS
 or
@@ -123,7 +132,12 @@ export async function validateImageAgainstRecipe(
   imageUrl: string,
   mealName: string,
   ingredients: string[],
-  opts?: { visionCaller?: VisionCaller; timeoutMs?: number; structuralIdentity?: string }
+  opts?: {
+    visionCaller?: VisionCaller;
+    timeoutMs?: number;
+    structuralIdentity?: string;
+    visualRequirements?: string[];
+  }
 ): Promise<ValidationResult> {
   const cleanIngredients = ingredients.map(i => (i || "").trim()).filter(Boolean);
   if (cleanIngredients.length === 0) {
@@ -131,7 +145,12 @@ export async function validateImageAgainstRecipe(
     return { verdict: "SKIPPED", reason: "no ingredients provided", model: VALIDATION_MODEL };
   }
 
-  const prompt = buildValidationPrompt(mealName, cleanIngredients, opts?.structuralIdentity);
+  const prompt = buildValidationPrompt(
+    mealName,
+    cleanIngredients,
+    opts?.structuralIdentity,
+    opts?.visualRequirements,
+  );
   const caller = opts?.visionCaller ?? defaultVisionCaller;
   const timeoutMs = opts?.timeoutMs ?? 20000;
 
