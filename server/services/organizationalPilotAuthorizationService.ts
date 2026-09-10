@@ -273,6 +273,7 @@ export async function getOrganizationWorkspaceOptions(userId: string) {
       eq(businessMembers.userId, userId),
       eq(businessMembers.status, "active"),
       inArray(businessMembers.role, ["owner", "admin"]),
+      eq(businesses.status, "active"),
     ));
 
   return [
