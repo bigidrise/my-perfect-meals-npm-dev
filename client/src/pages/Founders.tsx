@@ -98,6 +98,53 @@ export default function Founder() {
             Executive Leadership
           </h2>
 
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <div className="w-24 h-24 rounded-full overflow-hidden ring-1 ring-white/20 shadow-lg shrink-0 bg-white/10">
+              <img
+                src="/assets/amber-tischio.png"
+                alt="Amber Tischio"
+                className="w-full h-full object-cover object-top"
+                onError={(e) => {
+                  console.error("Failed to load Amber image");
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+
+            <div className="text-center sm:text-left">
+              <h3 className="text-xl font-semibold text-white">
+                Amber Tischio
+              </h3>
+
+              <p className="text-orange-400 text-sm font-medium">
+                Strategic Growth Director
+              </p>
+
+              <p className="text-white/70 text-sm leading-relaxed mt-4">
+                Amber Tischio is a healthcare growth executive with a master’s
+                degree in Clinical Psychology and expertise spanning behavioral
+                health, functional medicine, sales leadership, clinical
+                operations, and business strategy. She has built and led
+                high-performing teams, developed revenue and patient-conversion
+                systems, strengthened clinical operations, and helped scale
+                healthcare organizations to multiple six figures in monthly
+                revenue. Her background in psychology shapes a distinctly
+                different approach to both sales and customer experience—one
+                centered on understanding human behavior, building trust,
+                identifying what people actually need, and creating an
+                experience that naturally moves them toward action. Rather than
+                treating sales, service, and retention as separate functions,
+                Amber views the entire customer journey as one connected
+                experience. She currently serves as Director of Strategic Growth
+                for My Perfect Meals, bringing together her experience in human
+                behavior, healthcare, leadership, customer experience, and
+                scalable growth strategy.
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-white/10 my-8" />
+
           <div className="flex items-start gap-6">
             <div className="w-24 h-24 rounded-full overflow-hidden ring-1 ring-white/20 shadow-lg shrink-0 bg-white/10">
               <img
