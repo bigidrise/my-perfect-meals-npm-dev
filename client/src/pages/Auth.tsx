@@ -187,7 +187,17 @@ export default function Auth() {
 
     const isBusinessUser = fullUser?.professionalRole === "business";
 
-    if (isBusinessUser && mode === "signup") {
+    if (mode === "login" && organizationWorkspaceAvailable) {
+      // Canonical organization/location access is authoritative. A legacy
+      // billing/setup status must never send an existing workspace back through
+      // organization creation.
+      if (isBusinessUser) {
+        setLocation("/business-dashboard");
+      } else {
+        localStorage.removeItem("mpm_workspace_preference");
+        setShowWorkspaceChooser(true);
+      }
+    } else if (isBusinessUser && mode === "signup") {
       // New business signups go directly to org setup + seat purchase
       setLocation("/business/setup");
     } else if (isBusinessUser && mode === "login") {
@@ -213,7 +223,7 @@ export default function Auth() {
       } catch {
         setLocation("/business-dashboard");
       }
-    } else if ((isProfessional || organizationWorkspaceAvailable) && mode === "login") {
+    } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
     } else if (mode === "signup" && urlRole === "business") {
