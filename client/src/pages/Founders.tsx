@@ -83,8 +83,31 @@ export default function Founder() {
               </p>
 
               <p className="text-white/80 text-sm leading-relaxed max-w-xl">
-                Coach Idrise is the Founder and CEO of My Perfect Meals, an adaptive nutrition and wellness software platform designed to help people build long-term confidence with food through intelligent coaching, structured meal systems, and AI-driven personalization. With more than 30 years of experience in performance nutrition, body composition, and real-world coaching, his background combines elite athletics, clinical medical experience, behavioral coaching, and leadership across multiple disciplines. A former IFBB Professional Bodybuilder and Mr. USA 2002, Idrise has spent decades helping people improve their health, performance, and relationship with food through sustainable, real-life strategies rather than restriction-based dieting. His experience includes serving as an ICU Medic and EMT-I in the United States Air Force, working in high-pressure environments including corrections at San Quentin State Prison, and years of hands-on coaching with clients from all walks of life. In addition to his fitness and medical background, Idrise is pursuing a Bachelor’s degree in Business Administration with a concentration in Social Media Marketing and a minor in Generative Artificial Intelligence, combining modern AI strategy with decades of practical coaching experience. Through My Perfect Meals, he is building a new category of intelligent wellness technology focused on adaptive nutrition, behavior change, medical support integration, and real-world lifestyle coaching for everyday people.
+                Coach Idrise is the Founder and CEO of My Perfect Meals, an
+                adaptive AI nutrition and wellness platform built to help people
+                make better food decisions and develop healthier habits for
+                life.
+              </p>
 
+              <p className="text-white/80 text-sm leading-relaxed max-w-xl">
+                With more than 30 years of experience in nutrition, body
+                composition, fitness, and behavior-change coaching, Idrise has
+                worked with people across a wide range of health, lifestyle, and
+                performance goals.
+              </p>
+
+              <p className="text-white/80 text-sm leading-relaxed max-w-xl">
+                His background combines healthcare experience as a U.S. Air
+                Force ICU Medic and EMT, decades of hands-on coaching, and elite
+                athletics as a former IFBB Professional Bodybuilder and Mr. USA.
+              </p>
+
+              <p className="text-white/80 text-sm leading-relaxed max-w-xl">
+                Today, he brings that experience together with modern artificial
+                intelligence to develop My Perfect Meals—using personalized
+                nutrition, practical coaching, and behavior-change strategies
+                to help make healthy eating easier to understand, easier to
+                follow, and more sustainable in everyday life.
               </p>
 
           
@@ -97,6 +120,53 @@ export default function Founder() {
           <h2 className="text-2xl font-semibold mb-6">
             Executive Leadership
           </h2>
+
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <div className="w-24 h-24 rounded-full overflow-hidden ring-1 ring-white/20 shadow-lg shrink-0 bg-white/10">
+              <img
+                src="/assets/amber-tischio.png"
+                alt="Amber Tischio"
+                className="w-full h-full object-cover object-top"
+                onError={(e) => {
+                  console.error("Failed to load Amber image");
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+
+            <div className="text-center sm:text-left">
+              <h3 className="text-xl font-semibold text-white">
+                Amber Tischio
+              </h3>
+
+              <p className="text-orange-400 text-sm font-medium">
+                Strategic Growth Director
+              </p>
+
+              <p className="text-white/70 text-sm leading-relaxed mt-4">
+                Amber Tischio is a healthcare growth executive with a master’s
+                degree in Clinical Psychology and expertise spanning behavioral
+                health, functional medicine, sales leadership, clinical
+                operations, and business strategy. She has built and led
+                high-performing teams, developed revenue and patient-conversion
+                systems, strengthened clinical operations, and helped scale
+                healthcare organizations to multiple six figures in monthly
+                revenue. Her background in psychology shapes a distinctly
+                different approach to both sales and customer experience—one
+                centered on understanding human behavior, building trust,
+                identifying what people actually need, and creating an
+                experience that naturally moves them toward action. Rather than
+                treating sales, service, and retention as separate functions,
+                Amber views the entire customer journey as one connected
+                experience. She currently serves as Director of Strategic Growth
+                for My Perfect Meals, bringing together her experience in human
+                behavior, healthcare, leadership, customer experience, and
+                scalable growth strategy.
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-white/10 my-8" />
 
           <div className="flex items-start gap-6">
             <div className="w-24 h-24 rounded-full overflow-hidden ring-1 ring-white/20 shadow-lg shrink-0 bg-white/10">
@@ -117,33 +187,31 @@ export default function Founder() {
               </h3>
 
               <p className="text-orange-400 text-sm font-medium">
-                Chief Growth & Partnerships Officer
-              </p>
-
-              <p className="text-white/70 text-sm mt-1">
-                Fitness Icon · World Champion · Global Wellness Leader
+                Director of Business Development
               </p>
 
               <p className="text-white/70 text-sm leading-relaxed mt-4">
-                Monica Brant has been a global force in the fitness industry
-                since the early 1990s, recognized for her leadership,
-                discipline, faith, and lasting influence across health and
-                wellness. An international fitness icon and cover model with
-                more than 130 magazine covers spanning over three decades,
-                Monica rose to prominence following her breakthrough appearance
-                on the cover of Muscle & Fitness magazine in 1994 and went on
-                to become one of the most recognized women in fitness worldwide
-                through magazine features, interviews, competitions, and
-                speaking engagements. Throughout her career, she earned multiple
-                top placements at both the Olympia and Arnold Festival stages
-                and captured three world championship titles, including the
-                Fitness Olympia championship in 1998 and two WBFF World
-                Championships in 2010 and 2013, before concluding her
-                competitive career with an overall victory in the United Kingdom
-                in 2016. Beyond competition, Monica continues to inspire
-                audiences around the world through coaching, consulting,
-                speaking, and faith-driven wellness initiatives focused on
-                helping others grow physically, mentally, and spiritually.
+                Monica Brant is the Director of Business Development for My
+                Perfect Meals, helping build relationships, identify new
+                opportunities, and expand the platform&apos;s reach across
+                health, wellness, fitness, and community organizations.
+              </p>
+
+              <p className="text-white/70 text-sm leading-relaxed mt-4">
+                A three-time world fitness champion, including the 1998 Fitness
+                Olympia title, Monica has been a recognized leader in the
+                international fitness industry for more than three decades. Her
+                career includes more than 130 magazine covers, global
+                appearances, competitions, speaking engagements, and decades of
+                involvement in health and wellness.
+              </p>
+
+              <p className="text-white/70 text-sm leading-relaxed mt-4">
+                Today, Monica brings her extensive relationships, industry
+                experience, and global reputation to My Perfect Meals, focusing
+                on business development, strategic opportunities, and
+                partnerships that can bring the platform to more people and
+                organizations.
               </p>
             </div>
           </div>
