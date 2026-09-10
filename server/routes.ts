@@ -6989,12 +6989,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 .map((i: any) => (typeof i === 'string' ? i : i?.name || i?.item || ''))
                 .filter(Boolean);
               try {
+                const toImageDimension = (
+                  option: { id?: string; label?: string } | null | undefined,
+                ): { id: string; label: string } | null =>
+                  option?.id && option?.label
+                    ? { id: option.id, label: option.label }
+                    : null;
                 const createDishContext = validatedCreateDishIntent
                   ? {
                       canonicalIngredient: validatedCreateDishIntent.ingredient.canonicalName,
-                      form: validatedCreateDishIntent.resolvedCombination.form,
-                      texture: validatedCreateDishIntent.resolvedCombination.texture,
-                      flavor: validatedCreateDishIntent.resolvedCombination.flavor,
+                      form: toImageDimension(validatedCreateDishIntent.resolvedCombination.form),
+                      texture: toImageDimension(validatedCreateDishIntent.resolvedCombination.texture),
+                      flavor: toImageDimension(validatedCreateDishIntent.resolvedCombination.flavor),
                     }
                   : undefined;
                 const imageUrl = await generateMealImageUnified(
