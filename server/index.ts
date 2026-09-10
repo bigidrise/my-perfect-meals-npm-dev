@@ -123,6 +123,7 @@ import coachCornerRouter from "./routes/coachCorner";
 import myPerfectBeginningRouter from "./routes/myPerfectBeginning";
 import myPerfectBeginningGenerationRouter from "./routes/my-perfect-beginning";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
+import clinicPilotRouter from "./routes/clinicPilotRoutes";
 
 const app = express();
 
@@ -342,6 +343,8 @@ registerMarketingPageRoutes(
 // Health checks and keep-alive first
 app.use("/api", healthRouter);
 app.use("/api", keepaliveRouter);
+// Development-only clinic patient pilot; the router and migration both fail closed in production.
+app.use("/api/clinic-pilot", clinicPilotRouter);
 
 // ── Release identity — public, no auth, reads manifest baked at build time ───
 // The acceptance gate and monitoring read this after every publish to confirm
@@ -1733,6 +1736,10 @@ async function start() {
   }
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
+  if (process.env.NODE_ENV !== "production") {
+    const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
+    await runClinicPilotDevelopmentMigration();
+  }
   await registerRoutes(app);
 
   // API guard: any /api/* that slipped past routers -> JSON 404 (prevents SPA override)

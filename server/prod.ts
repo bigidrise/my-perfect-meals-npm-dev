@@ -1087,6 +1087,8 @@ async function initializeApp() {
     const { requireMfa } = await import("./middleware/requireMfa");
     // Keep the production mount identical to registerRoutes() in development.
     app.use("/api/business", requireAuth, requireMfa, businessRouter);
+    const clinicPilotRouter = (await import("./routes/clinicPilotRoutes")).default;
+    app.use("/api/clinic-pilot", clinicPilotRouter);
 
     // partner — partner identity records (promo codes, commission terms, timeline)
     const partnerRouter = (await import("./routes/partnerRoutes")).default;
@@ -1240,6 +1242,8 @@ async function initializeApp() {
     // Register main routes
     console.log("📋 [INIT] Registering main routes...");
     const { registerRoutes } = await import("./routes");
+    const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
+    await runClinicPilotDevelopmentMigration(); // no-op in production
     await registerRoutes(app);
     console.log(
       `✅ [INIT] Main routes registered in ${Date.now() - startTime}ms`,

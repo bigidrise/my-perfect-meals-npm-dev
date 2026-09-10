@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
-import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2, Gift, ChevronRight } from "lucide-react";
+import { Crown, Lock, Stethoscope, Dumbbell, LogOut, KeyRound, ClipboardEdit, CheckCircle2, Heart, Briefcase, UserPlus, X, Link2Off, ShieldCheck, Users, TrendingUp, Lightbulb, Building2, GraduationCap, Gift, ChevronRight } from "lucide-react";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
@@ -60,6 +60,7 @@ export default function MorePage() {
   const { requestUpgrade } = useUpgradeModal();
   const isDesktop = useIsDesktop();
   const { t } = useTranslation("more");
+  const { t: rootT } = useTranslation();
   const isAdmin = user?.role === "admin";
   const userRole = user?.professionalRole || null;
 
@@ -277,6 +278,30 @@ export default function MorePage() {
 >
   <div className="max-w-2xl mx-auto space-y-4">
     <SponsorEndedBanner />
+
+          {/* My Perfect Meals Academy — the ordinary-user learning hub */}
+          <div className="relative">
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.55), rgba(249,115,22,0.25), rgba(0,0,0,0))" }} />
+            <Card
+              className="relative cursor-pointer active:scale-[0.98] bg-gradient-to-r from-black via-orange-950/40 to-black backdrop-blur-lg border border-orange-500/40 hover:border-orange-500/70 hover:shadow-[0_0_30px_rgba(249,115,22,0.45)] transition-all duration-300 rounded-xl shadow-md overflow-hidden"
+              style={{ backgroundColor: "transparent" }}
+              onClick={() => setLocation("/academy")}
+              data-testid="card-academy"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-orange-500/20">
+                    <GraduationCap className="h-5 w-5 text-orange-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-white">{rootT("businessCenter.pillars.academy")}</h3>
+                    <p className="text-xs text-white/70">{rootT("businessCenter.pillars.academyDesc")}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-orange-300 flex-shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Tips & Strategies */}
           <div className="relative">

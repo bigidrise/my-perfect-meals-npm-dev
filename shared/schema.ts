@@ -352,7 +352,7 @@ export const users = pgTable("users", {
   personalSubscriptionStatus: text("personal_subscription_status"), // active | cancelled | null
   autoGenerateWeeklyPlan: boolean("auto_generate_weekly_plan").default(true), // auto-generate new 7-day plans
   // Enhanced notification system fields
-  timezone: text("timezone").default("America/Chicago"),
+  timezone: text("timezone").default("America/New_York"),
   timezoneUpdatedAt: timestamp("timezone_updated_at", { withTimezone: true }),
   phone: text("phone"),
   phoneVerified: boolean("phone_verified").default(false),
