@@ -1193,7 +1193,7 @@ export async function sendBusinessInviteEmail({
   const safeInviteLink = escapeEmailHtml(inviteLink);
   const safeRecipient = escapeEmailHtml(to);
   const safeProgram = escapeEmailHtml(resolvedProgram);
-  const recipientNameSource = recipientName?.trim() || to.split("@")[0]?.split(/[._+-]/)[0] || "there";
+  const recipientNameSource = recipientName?.trim() || "there";
   const recipientFirstName = recipientNameSource.split(/\s+/)[0];
   const safeRecipientFirstName = escapeEmailHtml(
     recipientFirstName.charAt(0).toUpperCase() + recipientFirstName.slice(1),
@@ -1242,28 +1242,28 @@ export async function sendBusinessInviteEmail({
                 <a href="${safeFounderVideoUrl}" style="display: inline-block; background: #111827; color: white; padding: 13px 24px; text-decoration: none; border-radius: 9px; font-weight: 700;">&#9654; Watch the Welcome Video</a>
               </div>` : ""}
 
-              <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 10px; padding: 18px 20px; margin-bottom: 28px;">
-                <h2 style="color: #111827; font-size: 17px; margin: 0 0 12px; font-weight: 700;">Getting started is simple</h2>
-                <ol style="color: #374151; font-size: 14px; line-height: 1.7; margin: 0; padding-left: 20px;">
-                  <li>Open My Perfect Meals using the button below.</li>
-                  <li>Create your account, or sign in with the email that received this invitation.</li>
-                  <li>Complete onboarding so your experience can be personalized.</li>
-                  <li>Go to your Dashboard and tap <strong>Quick Start</strong>.</li>
-                  <li>Visit <strong>My Perfect Meals Academy</strong> to learn the platform and its tools.</li>
-                </ol>
-              </div>
-
               <!-- CTA -->
               <div style="text-align: center; margin: 0 0 32px;">
                  <a href="${safeInviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">
                    Open My Perfect Meals
                 </a>
                 <p style="color: #6b7280; font-size: 13px; margin: 10px 0 0;">
-                   This invitation is reserved for ${safeRecipient}.
+                   For your security, please create your account or sign in using ${safeRecipient}.
                 </p>
                  <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 16px 0 0;">
                    Your ${resolvedDays} days of complimentary access begin when you activate this invitation.
                  </p>
+              </div>
+
+              <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 10px; padding: 18px 20px; margin-bottom: 28px;">
+                <h2 style="color: #111827; font-size: 17px; margin: 0 0 12px; font-weight: 700;">Getting started is simple</h2>
+                <ol style="color: #374151; font-size: 14px; line-height: 1.7; margin: 0; padding-left: 20px;">
+                  <li>Open My Perfect Meals using the button above.</li>
+                  <li>Create your account or sign in using the email that received this invitation.</li>
+                  <li>Complete onboarding so My Perfect Meals can personalize your experience.</li>
+                  <li>Go to your Dashboard and tap <strong>Quick Start</strong>.</li>
+                  <li>Quick Start will take you directly to <strong>My Perfect Meals Academy</strong>, where we'll show you how to use the platform step by step.</li>
+                </ol>
               </div>
 
               <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; margin-bottom: 24px;">
