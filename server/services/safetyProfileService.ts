@@ -5,8 +5,9 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, maskPlantMilks, maskNutButters, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
 import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
+import { maskFoodIntentDietaryCompounds } from "@shared/semanticDietaryIngredients";
 
 export interface SafetyOptions {
   safetyMode?: SafetyMode;
@@ -288,14 +289,7 @@ export function buildActiveTermBank(profile: SafetyProfile): Set<string> {
 
 function findMatchedTerms(text: string, termBank: Set<string>): string[] {
   const normalizedText = normalize(text);
-
-  // Mask plant milks so bare "milk" doesn't match "almond milk", "oat milk", etc.
-  const milkMaskedText     = maskPlantMilks(normalizedText);
-  const milkMaskedOriginal = maskPlantMilks(text.toLowerCase());
-
-  // Mask nut butters so bare "butter" doesn't match "peanut butter", "almond butter", etc.
-  const butterMaskedText     = maskNutButters(normalizedText);
-  const butterMaskedOriginal = maskNutButters(text.toLowerCase());
+  const semanticIntentText = maskFoodIntentDietaryCompounds(normalizedText);
 
   const matches: string[] = [];
   const termsArray = Array.from(termBank);
@@ -307,16 +301,16 @@ function findMatchedTerms(text: string, termBank: Set<string>): string[] {
 
     const isBareMilk   = (term === "milk");
     const isBareButter = (term === "butter");
+    const isBareCream = (term === "cream");
+    const isBareCheese = (term === "cheese");
+    const isDishConcept = (term === "ice cream");
 
     let textToScan: string;
     let origToScan: string;
 
-    if (isBareMilk) {
-      textToScan = milkMaskedText;
-      origToScan = milkMaskedOriginal;
-    } else if (isBareButter) {
-      textToScan = butterMaskedText;
-      origToScan = butterMaskedOriginal;
+    if (isBareMilk || isBareButter || isBareCream || isBareCheese || isDishConcept) {
+      textToScan = semanticIntentText;
+      origToScan = semanticIntentText;
     } else {
       textToScan = normalizedText;
       origToScan = text.toLowerCase();

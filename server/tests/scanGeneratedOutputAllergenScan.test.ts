@@ -103,7 +103,7 @@ describe("scanGeneratedOutput — allergen derivative scan from envelope.allergi
     expect(result2.violations.some(v => v.term === "shrimp")).toBe(false);
   });
 
-  test("exemptDishNameTerms exempts the dish name but never derivatives", () => {
+  test("dish names alone are not ingredient evidence, while structured derivatives remain blocked", () => {
     const exemptSet = new Set(
       getRequestedDishExemptTerms("gumbo", ["shellfish"]).map(t => t.toLowerCase()),
     );
@@ -123,7 +123,7 @@ describe("scanGeneratedOutput — allergen derivative scan from envelope.allergi
     // the adapted dish would always fail on its own name.
     expect(
       scanGeneratedOutput(safeGumbo, envelope, { generatorName: "test" }).passed,
-    ).toBe(false);
+    ).toBe(true);
     expect(
       scanGeneratedOutput(safeGumbo, envelope, {
         generatorName: "test",
@@ -392,6 +392,45 @@ describe("plant-milk masking — dairy allergy must not block almond/oat milk", 
     const result = scanGeneratedOutput(
       realDairyMeal,
       envelopeWithAllergies(["dairy"]),
+      { generatorName: "test" },
+    );
+    expect(result.passed).toBe(false);
+  });
+
+  test("dish title alone is not treated as dairy ingredient evidence", () => {
+    const result = scanGeneratedOutput(
+      {
+        name: "Strawberry Vegan Ice Cream",
+        description: "A creamy frozen dessert.",
+        ingredients: [
+          { name: "strawberries" },
+          { name: "coconut milk" },
+          { name: "cashew cream" },
+        ],
+        instructions: "Blend and churn until creamy.",
+      },
+      {
+        ...envelopeWithAllergies([]),
+        dietaryIdentity: ["vegan"],
+      },
+      { generatorName: "test" },
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  test("a vegan label cannot override structured heavy cream", () => {
+    const result = scanGeneratedOutput(
+      {
+        name: "Strawberry Vegan Ice Cream",
+        ingredients: [
+          { name: "strawberries" },
+          { name: "heavy cream" },
+        ],
+      },
+      {
+        ...envelopeWithAllergies([]),
+        dietaryIdentity: ["vegan"],
+      },
       { generatorName: "test" },
     );
     expect(result.passed).toBe(false);

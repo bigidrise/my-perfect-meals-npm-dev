@@ -51,6 +51,7 @@ import {
   maskPlantMilks,
   maskNutButters,
 } from "./allergyGuardrails";
+import { structuredIngredientText } from "@shared/semanticDietaryIngredients";
 import {
   getDiabeticContext,
   getGlucoseBasedMealGuidance,
@@ -2262,6 +2263,7 @@ export function scanGeneratedOutput(
 ): ProtocolScanResult {
   const generatorName = context?.generatorName || "unknown_generator";
   const mealText = extractMealTextForScan(meal);
+  const ingredientText = structuredIngredientText(meal.ingredients);
   const instructionsText = extractInstructionsText(meal);
   const wholeFoodDecision = evaluateWholeFoodCandidate(
     meal,
@@ -2270,7 +2272,7 @@ export function scanGeneratedOutput(
 
   // ── Ingredient-level scan ─────────────────────────────────────────────────
   const rawIngredientViolations = scanForHiddenDietaryViolations(
-    mealText,
+    ingredientText,
     envelope.dietaryIdentity,
     envelope.avoidances,
     { skipMeatDairyCombinationCheck: context?.skipAdaptableConflicts === true }
@@ -2289,7 +2291,7 @@ export function scanGeneratedOutput(
   //   • Dairy key  → use plant-milk-masked text (almond milk ≠ dairy violation)
   //   • Non-nut key + "butter" term → use nut-butter-masked text
   //   • Nut key    → use raw text ("almond milk" IS a nut violation)
-  const mealTextLower = mealText.toLowerCase();
+  const mealTextLower = ingredientText.toLowerCase();
   const mealTextPlantMilkMasked = maskPlantMilks(mealTextLower);
   const mealTextNutButterMasked = maskNutButters(mealTextLower);
 

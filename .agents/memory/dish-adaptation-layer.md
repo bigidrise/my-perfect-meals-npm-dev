@@ -26,3 +26,17 @@ Remaining phases (not shipped): Phase 5 (DAL on dessert/beverage/kids/restaurant
 The identity validator rejects a dish that keeps its name but arrives in a different physical format (cheesecake → parfait/bowl/mousse, stew → soup) — form mismatch is catastrophic even when name and defining components pass.
 **Why:** a model that can't solve a constraint escapes by converting the dish to another format while keeping the name.
 **How to apply:** form is judged from the generated meal's NAME only (descriptions/instructions legitimately mention "mixing bowl", bread, etc.), and a free-form dishForm string contributes only ONE primary allowed family — structural descriptors like "broth-based" must never whitelist a different presentation.
+
+## Candidate-derived identity evidence
+**Rule:** cuisine, flavor, and identity evidence must describe the generated candidate; never copy the requested context into candidate evidence as a fallback.
+
+**Why:** request-derived evidence lets a recipe prove its own compliance without actually expressing the requested cuisine, while plant-based compound names can be falsely rejected if validators treat words such as “milk” or “cream” as standalone animal products.
+
+**How to apply:** generators emit structured evidence from the finished recipe, normalizers preserve it, and final validators compare it with authoritative request context. Missing explicit-request evidence requires review; mismatches are repairable. Recognized plant compounds prevent deterministic substring false positives, but actual animal ingredients remain blocked.
+
+## Pre-generation food intent
+**Rule:** raw dish requests describe food identity, not verified ingredients; compound concepts must be interpreted before dietary token matching.
+
+**Why:** a preflight scan can reject a feasible transformation before structured generation and final validation ever run—for example, treating “cream” inside “vegan ice cream” as dairy evidence.
+
+**How to apply:** share semantic compound normalization between client and server preflight checks. Preserve term-specific allergy detection, then validate actual animal products from generated structured ingredients.

@@ -214,6 +214,14 @@ const PIPELINE_SRC = fs.readFileSync(
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("A. Structural — routes.ts /api/meals/craving-creator diet override", () => {
+  it("scans the clean user request instead of the internally enriched prompt", () => {
+    expect(ROUTES_SRC).toContain(
+      'enforceSafetyProfile(userId, rawCravingInput, "meals-craving-creator"',
+    );
+    expect(ROUTES_SRC).not.toContain(
+      'enforceSafetyProfile(userId, cravingInput, "meals-craving-creator"',
+    );
+  });
 
   it("resolves a single request diet override before authoritative context resolution", () => {
     const block = ROUTES_SRC.slice(

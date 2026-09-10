@@ -72,6 +72,13 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { PillButton } from "@/components/ui/pill-button";
 import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import type {
+  CreateDishIntent,
+  ExpandIngredientResponse,
+  ExpansionDimension,
+  ValidatedCookingMethodId,
+} from "../../../../shared/createDishIngredientExpansion";
+import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIngredientExpansion";
 
 interface StructuredIngredient {
   name: string;
@@ -208,6 +215,33 @@ const COOK_METHODS: { label: string; emoji: string }[] = [
   { label: "No-Bake",  emoji: "❄️" },
   { label: "Any",      emoji: "✨" },
 ];
+
+const EXPANSION_DIMENSIONS: ExpansionDimension[] = ["form", "texture", "flavor"];
+const EXPANSION_DIMENSION_LABELS: Record<ExpansionDimension, string> = {
+  form: "Form / Cut",
+  method: "Method",
+  texture: "Texture",
+  flavor: "Flavor",
+  cuisine: "Cuisine",
+};
+const COOK_METHOD_TO_EXPANSION_ID: Record<string, ValidatedCookingMethodId | null> = {
+  Stovetop: "pan-seared",
+  Oven: "baked",
+  "Air Fryer": "air-fried",
+  "Slow Cooker": null,
+  Grill: "grilled",
+  "No-Bake": null,
+  Any: null,
+};
+const SLOW_COOKER_TEXTURES = new Set(["tender", "fall-apart-tender", "juicy", "creamy"]);
+const NO_BAKE_TEXTURES = new Set(["creamy", "silky", "delicate"]);
+const expansionOptionKey: Record<ExpansionDimension, keyof ExpandIngredientResponse["options"]> = {
+  form: "forms",
+  method: "methods",
+  texture: "textures",
+  flavor: "flavors",
+  cuisine: "cuisines",
+};
 
 export default function CreateDishPage() {
   useCopilotPageExplanation();
@@ -458,6 +492,272 @@ export default function CreateDishPage() {
   );
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
+  const [ingredientExpansion, setIngredientExpansion] = useState<ExpandIngredientResponse | null>(null);
+  const [expansionSelections, setExpansionSelections] = useState<Partial<Record<ExpansionDimension, string | null>>>({});
+  const [delegatedDimensions, setDelegatedDimensions] = useState<ExpansionDimension[]>([]);
+  const [expansionBusy, setExpansionBusy] = useState(false);
+  const [expansionFallback, setExpansionFallback] = useState(false);
+  const lastExpandedTextRef = useRef("");
+  const expansionRequestRef = useRef(0);
+
+  const expansionPolicy = () => {
+    const mappedMethodId = COOK_METHOD_TO_EXPANSION_ID[cookMethod] ?? null;
+    const methodId = mappedMethodId && ingredientExpansion?.options.methods.some(
+      (option) => option.id === mappedMethodId,
+    )
+      ? mappedMethodId
+      : null;
+    return {
+      delegatedDimensions: delegatedDimensions.filter((dimension) =>
+        EXPANSION_DIMENSIONS.includes(dimension),
+      ),
+      selectedOptionIds: {
+        form: expansionSelections.form ?? null,
+        method: methodId,
+        texture: expansionSelections.texture ?? null,
+        flavor: expansionSelections.flavor ?? null,
+        cuisine: null,
+      },
+    };
+  };
+
+  const isTextureCompatibleWithCookMethod = (
+    texture: ExpandIngredientResponse["options"]["textures"][number] | undefined,
+    methodLabel = cookMethod,
+  ) => {
+    if (!texture || !methodLabel || methodLabel === "Any") return true;
+    if (methodLabel === "Slow Cooker") return SLOW_COOKER_TEXTURES.has(texture.id);
+    if (methodLabel === "No-Bake") return NO_BAKE_TEXTURES.has(texture.id);
+    const methodId = COOK_METHOD_TO_EXPANSION_ID[methodLabel];
+    return !methodId ||
+      !texture.compatibleMethodIds?.length ||
+      texture.compatibleMethodIds.includes(methodId);
+  };
+
+  const requestIngredientExpansion = async (
+    text: string,
+    policy = expansionPolicy(),
+  ): Promise<ExpandIngredientResponse | null> => {
+    if (!text.trim()) return null;
+    try {
+      const response = await fetch(apiUrl("/api/create-a-dish/expand-ingredient"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ingredientInput: text.trim(),
+          creator: "create_a_dish",
+          surprisePolicy: policy,
+          // Phase 2 controls expose only catalog-backed IDs that generation can
+          // deterministically revalidate.
+          useAiForGaps: false,
+        }),
+      });
+      if (!response.ok) throw new Error("expansion failed");
+      const parsed = ExpandIngredientResponseSchema.safeParse(await response.json());
+      if (!parsed.success) throw new Error("invalid expansion");
+      return parsed.data;
+    } catch {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const normalized = dishInput.trim().replace(/\s+/g, " ").toLowerCase();
+    if (normalized === lastExpandedTextRef.current) return;
+    const requestId = ++expansionRequestRef.current;
+    lastExpandedTextRef.current = normalized;
+    setIngredientExpansion(null);
+    setExpansionSelections({});
+    setDelegatedDimensions([]);
+    setExpansionFallback(false);
+    if (normalized.length < 3) return;
+    setExpansionBusy(true);
+    const timer = window.setTimeout(async () => {
+      const result = await requestIngredientExpansion(dishInput, {
+        delegatedDimensions: [],
+        selectedOptionIds: {
+          form: null,
+          method: null,
+          texture: null,
+          flavor: null,
+          cuisine: null,
+        },
+      });
+      if (requestId !== expansionRequestRef.current) return;
+      setExpansionBusy(false);
+      if (!result) {
+        setExpansionFallback(true);
+        return;
+      }
+      setExpansionFallback(false);
+      setIngredientExpansion(result);
+      const inferredTextureId = result.inferredSelectionIds?.texture ?? null;
+      const inferredTexture = result.options.textures.find(
+        (option) => option.id === inferredTextureId,
+      );
+      setExpansionSelections({
+        form: result.inferredSelectionIds?.form ?? null,
+        texture: isTextureCompatibleWithCookMethod(inferredTexture) ? inferredTextureId : null,
+        flavor: result.inferredSelectionIds?.flavor ?? null,
+      });
+    }, 420);
+    return () => window.clearTimeout(timer);
+  }, [dishInput]);
+
+  const toggleExpansionSelection = (dimension: ExpansionDimension, id: string) => {
+    if (dimension === "texture") {
+      const selectedTexture = ingredientExpansion?.options.textures.find((option) => option.id === id);
+      if (!isTextureCompatibleWithCookMethod(selectedTexture)) {
+        toast({
+          title: "That texture doesn't match your cooking method",
+          description: `Choose a different texture or change the ${cookMethod} cooking method.`,
+          variant: "warning",
+        });
+        return;
+      }
+    }
+    setDelegatedDimensions((current: ExpansionDimension[]) => current.filter((item: ExpansionDimension) => item !== dimension));
+    setExpansionSelections((current: Partial<Record<ExpansionDimension, string | null>>) => ({
+      ...current,
+      [dimension]: current[dimension] === id ? null : id,
+    }));
+  };
+
+  const surpriseDimension = (dimension: ExpansionDimension) => {
+    setExpansionSelections((current: Partial<Record<ExpansionDimension, string | null>>) => ({ ...current, [dimension]: null }));
+    setDelegatedDimensions((current: ExpansionDimension[]) => current.includes(dimension) ? current : [...current, dimension]);
+  };
+
+  const surpriseAll = () => {
+    setExpansionSelections({});
+    setDelegatedDimensions(EXPANSION_DIMENSIONS);
+  };
+
+  const selectCookMethod = (nextMethod: string) => {
+    const updatedMethod = cookMethod === nextMethod ? "" : nextMethod;
+    const selectedTextureId = expansionSelections.texture;
+    const selectedTexture = ingredientExpansion?.options.textures.find(
+      (option) => option.id === selectedTextureId,
+    );
+    if (
+      selectedTexture &&
+      !isTextureCompatibleWithCookMethod(selectedTexture, updatedMethod)
+    ) {
+      setExpansionSelections((current) => ({ ...current, texture: null }));
+      toast({
+        title: "Texture choice cleared",
+        description: `${selectedTexture.label} doesn't match the ${nextMethod} cooking method.`,
+        variant: "warning",
+      });
+    }
+    setCookMethod(updatedMethod);
+  };
+
+  const rankExpansionOptions = (
+    dimension: ExpansionDimension,
+    options: ExpandIngredientResponse["options"][keyof ExpandIngredientResponse["options"]],
+  ) => {
+    if (dimension !== "flavor" || !cuisineOverrideEnabled || !cuisineOverrideValue.trim()) {
+      return options;
+    }
+    const normalizedCuisine = cuisineOverrideValue.trim().toLowerCase().replace(/\s+/g, "-");
+    return [...options].sort((left, right) =>
+      Number(right.cuisineId === normalizedCuisine) - Number(left.cuisineId === normalizedCuisine)
+    );
+  };
+
+  const chooseClarification = (choiceId: string, label: string) => {
+    const originalDish = dishInput.trim().toLowerCase();
+    if (choiceId === "other") {
+      setDishInput("");
+      return;
+    }
+    if (choiceId === "surprise") {
+      const firstConcreteChoice = ingredientExpansion?.ingredient.clarification?.choices.find(
+        (choice: { id: string; label: string }) => choice.id !== "surprise" && choice.id !== "other",
+      );
+      if (firstConcreteChoice) {
+        setDishInput(
+          originalDish === "steak"
+            ? `${firstConcreteChoice.label} steak`
+            : originalDish === "fish"
+              ? `${firstConcreteChoice.label} fish`
+              : firstConcreteChoice.label,
+        );
+      }
+      return;
+    }
+    setDishInput(
+      originalDish === "steak"
+        ? `${label} steak`
+        : originalDish === "fish"
+          ? `${label} fish`
+          : label,
+    );
+  };
+
+  const getAuthoritativeExpansion = async (): Promise<CreateDishIntent | null> => {
+    const result = await requestIngredientExpansion(dishInput.trim(), expansionPolicy());
+    if (!result) {
+      setExpansionFallback(true);
+      return null;
+    }
+    setIngredientExpansion(result);
+    const ingredient = result.ingredient;
+    const combination = result.resolvedCombination;
+    const requestedStructuredIntent =
+      delegatedDimensions.some((dimension) => EXPANSION_DIMENSIONS.includes(dimension)) ||
+      EXPANSION_DIMENSIONS.some((dimension) => Boolean(expansionSelections[dimension]));
+    if (!combination && ingredient.status === "recognized" && requestedStructuredIntent) {
+      throw new Error("CREATE_DISH_CHOICES_INVALID");
+    }
+    if (!combination || ingredient.status === "unsupported" || !ingredient.canonicalId || !ingredient.canonicalName || !ingredient.category) {
+      return null;
+    }
+    let resolvedTexture = combination.texture;
+    let resolvedTextureSource = combination.selectionSource.texture;
+    if (!isTextureCompatibleWithCookMethod(resolvedTexture ?? undefined)) {
+      const compatibleTexture = delegatedDimensions.includes("texture")
+        ? result.options.textures.find((option) =>
+            isTextureCompatibleWithCookMethod(option)
+          ) ?? null
+        : null;
+      resolvedTexture = compatibleTexture;
+      resolvedTextureSource = compatibleTexture ? "system_selected" : "not_applicable";
+      setExpansionSelections((current) => ({ ...current, texture: compatibleTexture?.id ?? null }));
+      if (!compatibleTexture) {
+        setDelegatedDimensions((current) =>
+          current.filter((dimension) => dimension !== "texture")
+        );
+      }
+      toast({
+        title: compatibleTexture ? "Compatible texture selected" : "Texture choice cleared",
+        description: compatibleTexture
+          ? `${compatibleTexture.label} works with the ${cookMethod} cooking method.`
+          : `The ${cookMethod} cooking method will stay in control without a conflicting texture.`,
+        variant: "warning",
+      });
+    }
+    return {
+      creator: "create_a_dish",
+      originalText: dishInput.trim(),
+      ingredient: {
+        canonicalId: ingredient.canonicalId,
+        canonicalName: ingredient.canonicalName,
+        category: ingredient.category,
+      },
+      resolvedCombination: {
+        form: combination.form,
+        texture: resolvedTexture,
+        flavor: combination.flavor,
+        selectionSource: {
+          form: combination.selectionSource.form,
+          texture: resolvedTextureSource,
+          flavor: combination.selectionSource.flavor,
+        },
+      },
+    };
+  };
 
   const {
     alert: starchAlert,
@@ -544,6 +844,9 @@ export default function CreateDishPage() {
     startProgressTicker();
 
     try {
+      // Expansion is advisory: a failed or unsupported expansion must never
+      // interrupt the established generation path.
+      const createDishIntent = await getAuthoritativeExpansion();
       const url = apiUrl("/api/meals/craving-creator");
       const response = await fetch(url, {
         method: "POST",
@@ -568,6 +871,7 @@ export default function CreateDishPage() {
           ...(cuisineOverrideEnabled && cuisineOverrideValue ? { cultureOverride: cuisineOverrideValue } : {}),
           ...(activeKitchenSlug ? { kitchenSlug: activeKitchenSlug } : {}),
           humanFoodCreator: "create_a_dish",
+           ...(createDishIntent ? { createDishIntent } : {}),
         }),
       });
 
@@ -672,7 +976,13 @@ export default function CreateDishPage() {
     } catch (error: any) {
       stopProgressTicker();
       const errorMsg = error.message || "";
-      if (isAllergyRelatedError(errorMsg)) {
+      if (errorMsg === "CREATE_DISH_CHOICES_INVALID") {
+        toast({
+          title: "Review your preparation choices",
+          description: "Those choices don't work together. Change one choice or use Surprise Me.",
+          variant: "warning",
+        });
+      } else if (isAllergyRelatedError(errorMsg)) {
         toast({
           title: t("createDish.allergyAlert"),
           description: formatAllergyAlertDescription(errorMsg),
@@ -813,6 +1123,116 @@ export default function CreateDishPage() {
                     </p>
                   </div>
 
+                  {expansionFallback && (
+                    <p className="rounded-lg border border-orange-300/20 bg-orange-950/30 px-3 py-2 text-xs leading-relaxed text-orange-100/80">
+                      We couldn't load preparation ideas right now. You can still create your dish.
+                    </p>
+                  )}
+
+                  {expansionBusy && (
+                    <div className="h-12 animate-pulse rounded-lg border border-white/10 bg-white/5" aria-label="Understanding your dish" />
+                  )}
+
+                  {ingredientExpansion && ingredientExpansion.ingredient.status !== "unsupported" && (
+                    <div className="space-y-3 rounded-xl border border-orange-400/20 bg-black/25 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium text-white">A little more direction?</p>
+                          <p className="text-xs text-white/55">We understood the idea. Tune it, or let the chef choose.</p>
+                        </div>
+                         <button
+                          type="button"
+                          onClick={surpriseAll}
+                           aria-pressed={EXPANSION_DIMENSIONS.every((dimension) => delegatedDimensions.includes(dimension))}
+                           className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                             EXPANSION_DIMENSIONS.every((dimension) => delegatedDimensions.includes(dimension))
+                               ? "border-orange-300 bg-orange-400/25 text-orange-50"
+                               : "border-orange-300/40 text-orange-100 hover:bg-orange-400/15"
+                           }`}
+                        >
+                          Surprise Me
+                        </button>
+                      </div>
+
+                      {ingredientExpansion.ingredient.clarification && (
+                        <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
+                          <p className="mb-2 text-xs font-medium leading-relaxed text-white/85">
+                            {ingredientExpansion.ingredient.clarification.question}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {ingredientExpansion.ingredient.clarification.choices.map((choice) => (
+                              <button
+                                type="button"
+                                key={choice.id}
+                                onClick={() => chooseClarification(choice.id, choice.label)}
+                                className="max-w-full rounded-full border border-white/20 px-3 py-1.5 text-left text-xs text-white/85 hover:border-orange-300/60 hover:bg-orange-400/10"
+                              >
+                                <span className="break-words">{choice.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        {EXPANSION_DIMENSIONS.map((dimension) => {
+                          const options = rankExpansionOptions(
+                            dimension,
+                            ingredientExpansion.options[expansionOptionKey[dimension]],
+                          );
+                          if (!options?.length) return null;
+                          return (
+                            <div key={dimension} className="min-w-0">
+                              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-xs font-semibold text-white/80">
+                                  {EXPANSION_DIMENSION_LABELS[dimension]}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => surpriseDimension(dimension)}
+                                   aria-pressed={delegatedDimensions.includes(dimension)}
+                                   className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                                     delegatedDimensions.includes(dimension)
+                                       ? "border-orange-300 bg-orange-400/25 font-semibold text-orange-50"
+                                       : "border-orange-300/30 text-orange-200/80 hover:bg-orange-400/15 hover:text-orange-100"
+                                   }`}
+                                >
+                                  Surprise Me
+                                </button>
+                              </div>
+                              <div className="flex max-w-full flex-wrap gap-2">
+                                {options.map((option) => {
+                                  const incompatible =
+                                    dimension === "texture" &&
+                                    !isTextureCompatibleWithCookMethod(option);
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={option.id}
+                                      disabled={incompatible}
+                                      aria-pressed={expansionSelections[dimension] === option.id}
+                                      title={incompatible ? `${option.label} is not compatible with ${cookMethod}` : undefined}
+                                      onClick={() => toggleExpansionSelection(dimension, option.id)}
+                                      className={`max-w-full rounded-full border px-3 py-1.5 text-left text-xs leading-snug transition-colors ${
+                                        expansionSelections[dimension] === option.id
+                                          ? "border-orange-300 bg-orange-400/20 text-orange-50 shadow-[0_0_0_1px_rgba(253,186,116,0.2)]"
+                                          : incompatible
+                                            ? "cursor-not-allowed border-white/10 bg-white/[0.03] text-white/30 line-through"
+                                            : "border-white/20 bg-white/5 text-white/80 hover:border-orange-300/60"
+                                      }`}
+                                    >
+                                      <span className="break-words">{option.label}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <DietCuisineControlRow
                     savedCuisine={user?.cuisinePreference}
                     dietOverrideEnabled={dietOverrideEnabled}
@@ -860,7 +1280,7 @@ export default function CreateDishPage() {
                           <PillButton
                             active={cookMethod === m.label}
                             variant="amber"
-                            onClick={() => setCookMethod(cookMethod === m.label ? "" : m.label)}
+                            onClick={() => selectCookMethod(m.label)}
                             className="w-14 text-lg leading-none py-2"
                           >
                             {m.emoji}

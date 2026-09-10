@@ -17,6 +17,10 @@ import {
 import { evaluateWholeFoodCandidate } from "../wholeFoodStandard";
 import { validateGlycemicProduce } from "../glycemicProduceValidator";
 import {
+  maskNonAnimalDietaryCompounds,
+  structuredIngredientText,
+} from "@shared/semanticDietaryIngredients";
+import {
   buildHumanFoodRepairInstructions,
   humanFoodCandidateSignature,
   recordRejectedHumanFoodCandidate,
@@ -256,6 +260,9 @@ export function validateHumanFoodCandidate(
 
   for (const diet of context.diet.effective) {
     const key = normalize(diet);
+    const deterministicDietText = maskNonAnimalDietaryCompounds(
+      normalize(structuredIngredientText(candidate.ingredients, candidate.ingredientLabel)),
+    );
     const requiresStructuredEvidence = DIETS_REQUIRING_STRUCTURED_EVIDENCE.has(key);
     const dietaryRequestAuthorized = hasAuthorizedDietaryRequest(
       context,
@@ -263,7 +270,7 @@ export function validateHumanFoodCandidate(
       text,
     );
     const matched = (DIET_BLOCKS[key] ?? []).filter((term) =>
-      hasTerm(text, term) &&
+      hasTerm(deterministicDietText, term) &&
       !dietaryRequestAuthorized,
     );
     if (matched.length) add(findings, {
@@ -306,7 +313,9 @@ export function validateHumanFoodCandidate(
   }
 
   const nutrition = candidate.nutrition;
-  const remaining = context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
+  const remaining = context.nutrition?.prescription?.source === "fallback"
+    ? null
+    : context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
   if (context.nutrition) {
     if (evidence.nutritionEvidence === "unknown") add(findings, {
       dimension: "nutrition", outcome: "review_required", code: "nutrition_evidence_unknown",
@@ -325,7 +334,9 @@ export function validateHumanFoodCandidate(
   }
   for (const macro of ["calories", "carbs", "fat"] as const) {
     if (remaining && nutrition?.[macro] != null && nutrition[macro]! > remaining[macro]) add(findings, {
-      dimension: "nutrition", outcome: "blocked", code: `projected_${macro}_budget_exceeded`,
+      dimension: "nutrition",
+      outcome: remaining[macro] > 0 ? "repairable" : "blocked",
+      code: `projected_${macro}_budget_exceeded`,
       message: `The candidate exceeds the canonical remaining ${macro} budget.`,
       assurance: "deterministic",
     });
@@ -401,7 +412,11 @@ export function validateHumanFoodCandidate(
     recommendationSurface: "human_food_final_validation",
     practicalAlternativeAvailable: options.practicalWholeFoodAlternativeAvailable,
   });
-  if (wholeFood.classification === "uncertain") add(findings, {
+  const hasStructuredGeneratedComposition =
+    evidence.sourceType === "generated_recipe" &&
+    evidence.ingredientEvidence === "structured_generation" &&
+    evidence.preparationEvidence === "structured_generation";
+  if (wholeFood.classification === "uncertain" && !hasStructuredGeneratedComposition) add(findings, {
     dimension: "whole_food", outcome: "review_required", code: "whole_food_evidence_insufficient",
     message: wholeFood.reason, assurance: "structured_evidence",
   });

@@ -53,6 +53,7 @@ import {
   getSafeSubstitute,
   allergenKeysMatch,
 } from './allergyGuardrails';
+import { normalizeGeneratedFoodIdentityEvidence } from './generatedFoodIdentityEvidence';
 import { validateDietaryRestriction, type DietaryMode } from './guardrails/validators/dietaryRestrictionValidator';
 import { db } from '../db';
 import { users } from '@shared/schema';
@@ -79,6 +80,7 @@ import { generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
 import { isClinicalAdaptationActive } from './clinicalMacroGate';
+import { resolveVarietyClassificationInput } from './createDish/varietyClassificationInput';
 
 export class GLP1ComplianceRetryExhaustedError extends Error {
   readonly status = 422;
@@ -225,6 +227,12 @@ export interface UnifiedMeal {
    * Undefined / false means the badge should NOT be shown.
    */
   dietaryComplianceVerified?: boolean;
+  /**
+   * Candidate-derived food identity evidence. These values describe what the
+   * generated recipe actually contains; callers must never backfill them from
+   * the requested preference.
+   */
+  evidence?: import("../../shared/humanFoodValidation").HumanFoodCandidateEvidence;
 }
 
 /**
@@ -1012,7 +1020,16 @@ Respond with ONLY valid JSON in this exact format:
   "starchyCarbs": 20,
   "fibrousCarbs": 15,
   "fat": 15,
-  "cookingTime": "20 minutes"
+       "cookingTime": "20 minutes",
+       "evidence": {
+         "cuisine": "The cuisine this finished recipe actually expresses, or null",
+         "cuisineIntensity": "subtle, balanced, authentic, or null",
+         "heat": "mild, medium, hot, or null",
+         "seasoningIntensity": "light, balanced, strong, or null",
+         "broadFlavor": "The dominant finished flavor, or null",
+         "flavorStyle": "The finished flavor style, or null",
+         "dishIdentityPreserved": true
+       }
 }`;
 
       const response = await openai.chat.completions.create({
@@ -1774,6 +1791,9 @@ function buildVarietyPrompt(
   cuisineGroundingBlock: string = '',
   measurementSystem: MeasurementSystem = 'imperial'
 ): string {
+  const hasHardCreateDishIntent = cravingInput.includes(
+    "[CREATE A DISH — HARD CULINARY INTENT]",
+  );
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
     ? `USER DIET: ${primaryDiet.toUpperCase()} — ALL 3 options must comply fully. Zero exceptions.`
@@ -1821,16 +1841,19 @@ HIERARCHY (follow in this EXACT order):
 3. DISH FAMILY LOCK (non-negotiable)
    The user asked for: "${cravingInput}"
    Core dish to stay within: "${dishFamily}"
-   ALL 3 options must be variations of "${dishFamily}" — different preparations, textures, flavors, or proteins.
+   ALL 3 options must be variations of "${dishFamily}"${hasHardCreateDishIntent ? " while preserving every fixed Create a Dish form/cut, texture, and flavor requirement" : " — different preparations, textures, flavors, or proteins"}.
    Example: "soup" → Chicken Noodle Soup, Lentil Tomato Soup, Creamy Broccoli Soup.
    Example: "cheesecake" → Classic Baked Cheesecake, No-Bake Cheesecake, Cheesecake Parfait.
    NEVER drift to a completely different dish type. A rice plate is not a soup. A grilled protein is not a salad.
 
 4. VARIATION (apply last, within constraints above)
    Each option must differ meaningfully:
-   - Different preparation method (baked vs no-bake vs layered vs mousse vs parfait)
-   - Different texture or format (slice, cup, jar, bar)
-   - Different flavor accent (classic vs fruity vs nutty vs spiced)
+   ${hasHardCreateDishIntent
+     ? "- Vary only unconstrained side pairings, vegetables, garnishes, plating, and other dimensions not fixed by the Create a Dish intent."
+     : "- Different preparation method, texture or format, and flavor accent."}
+   ${hasHardCreateDishIntent
+     ? "- Never vary away from a selected form/cut, texture, or flavor."
+     : "- Use genuinely distinct preparations rather than minor wording changes."}
    NO minor wording changes — make each option genuinely distinct.
 
 ${excludeClause}
@@ -1860,6 +1883,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
 ${getMeasurementPromptBlock(measurementSystem)}
 NEVER use "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units.
 MEAL TYPE context: ${validMealType}
+ EVIDENCE RULE: Report only what the finished recipe actually demonstrates. Never copy a requested cuisine or flavor into evidence unless the ingredients, preparation, and resulting dish support it. Use null when unsupported.
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
 }
 
@@ -1877,6 +1901,9 @@ function buildRecipeVarietyPrompt(
   cuisineGroundingBlock: string = '',
   measurementSystem: MeasurementSystem = 'imperial'
 ): string {
+  const hasHardCreateDishIntent = cravingInput.includes(
+    "[CREATE A DISH — HARD CULINARY INTENT]",
+  );
   const primaryDiet = getPrimaryDiet(dietRestrictions);
   const dietLine = primaryDiet
     ? `DIET: ${primaryDiet.toUpperCase()} — ALL 3 options must comply. Zero exceptions.`
@@ -1902,10 +1929,12 @@ PRIORITY 2 — ALLERGEN SAFETY & DIET (non-negotiable):
 PRIORITY 3 — DISH VARIETY:
   The user requested: "${cravingInput}"
   Core dish family: "${dishFamily}"
-  Generate 3 distinct variations using different:
+  ${hasHardCreateDishIntent
+    ? "Generate 3 distinct variations while preserving every fixed Create a Dish form/cut, texture, and flavor requirement. Vary only unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions."
+    : `Generate 3 distinct variations using different:
   - Preparation methods (baked vs pan-fried vs stovetop)
   - Flavor profiles (classic vs herbed vs spiced)
-  - Textures or formats
+  - Textures or formats`}
 
 ${excludeClause}
 
@@ -1924,7 +1953,16 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
       "starchyCarbs": 40,
       "fibrousCarbs": 3,
       "fat": 12,
-      "cookingTime": "25 minutes"
+       "cookingTime": "25 minutes",
+       "evidence": {
+         "cuisine": "The cuisine this finished recipe actually expresses, or null",
+         "cuisineIntensity": "subtle, balanced, authentic, or null",
+         "heat": "mild, medium, hot, or null",
+         "seasoningIntensity": "light, balanced, strong, or null",
+         "broadFlavor": "The dominant finished flavor, or null",
+         "flavorStyle": "The finished flavor style, or null",
+         "dishIdentityPreserved": true
+       }
     },
     {},
     {}
@@ -1935,6 +1973,7 @@ ${getMeasurementPromptBlock(measurementSystem)}
 NEVER use "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units.
 CRITICAL SANITY CHECK: Before outputting, verify your ingredient counts are physically realistic for ${cravingInput}. A dozen rolls does not require 5 dozen eggs.
 MEAL TYPE context: ${validMealType}
+ EVIDENCE RULE: Report only what the finished recipe actually demonstrates. Never copy a requested cuisine or flavor into evidence unless the ingredients, preparation, and resulting dish support it. Use null when unsupported.
 ${strictMode ? `\n${buildStrictModeBlock(cravingInput)}` : ""}`;
 }
 
@@ -1948,7 +1987,7 @@ function parseVarietyContent(content: string): any[] {
 }
 
 /** Map a raw AI option object into a UnifiedMeal */
-function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMealType: string): UnifiedMeal {
+export function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMealType: string): UnifiedMeal {
   const starchyCarbs = opt.starchyCarbs ?? 0;
   const fibrousCarbs = opt.fibrousCarbs ?? 0;
   const totalCarbs = resolveAICarbsStrict(opt);
@@ -1968,7 +2007,8 @@ function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, validMeal
     difficulty: 'Easy',
     imageUrl: '',
     medicalBadges: [],
-    source: 'ai'
+    source: 'ai',
+    evidence: normalizeGeneratedFoodIdentityEvidence(opt.evidence),
   };
   return enforceCarbs(raw);
 }
@@ -1998,11 +2038,18 @@ export async function generateCravingMealOptions(
   humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
   overriddenAvoidances?: string[],
   overriddenDietaryIdentities?: string[],
+  /** Clean request text used only for category/dish classification. Generation
+   * still receives the fully augmented cravingInput with all safety directives. */
+  classificationInput?: string,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
-  const category = inferCravingCategory(cravingInput, validMealType);
-  const dishFamily = extractDishFamily(cravingInput);
-  console.log(`🎲 [VARIETY ENGINE] "${cravingInput}" → category: ${category}, dish: ${dishFamily}`);
+  const cleanClassificationInput = resolveVarietyClassificationInput(
+    cravingInput,
+    classificationInput,
+  );
+  const category = inferCravingCategory(cleanClassificationInput, validMealType);
+  const dishFamily = extractDishFamily(cleanClassificationInput);
+  console.log(`🎲 [VARIETY ENGINE] category=${category}; dish=${dishFamily}; classificationSource=${classificationInput ? "clean" : "generation"}`);
 
   // Fix B: Fetch dietary restrictions, allergies, AND health conditions from the user profile
   let dietRestrictions: string[] = [];
@@ -2267,8 +2314,13 @@ export async function generateCravingMealOptions(
     );
   }
 
+  const hasHardCreateDishIntent = cravingInput.includes(
+    "[CREATE A DISH — HARD CULINARY INTENT]",
+  );
   const excludeClause = excludeMeals && excludeMeals.length > 0
-    ? `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
+    ? hasHardCreateDishIntent
+      ? `ANTI-REPETITION: Do NOT repeat these recently seen options: ${excludeMeals.join(", ")}. Preserve every fixed Create a Dish requirement and vary only unconstrained dimensions.`
+      : `ANTI-REPETITION: Do NOT generate anything resembling these recently seen options — vary the primary ingredient, preparation, and concept: ${excludeMeals.join(", ")}`
     : "";
 
   const openai = getOpenAI();
@@ -4520,10 +4572,12 @@ TASK: Transform this craving into a HEALTHY snack: "${cravingDescription}"
 
 TRANSFORMATION RULES:
 - If they want something crunchy/salty → suggest nuts, seeds, veggie chips, roasted chickpeas
-- If they want something sweet → suggest fruit, dark chocolate, Greek yogurt parfait
+- If they want something sweet → suggest fruit, dark chocolate, or a diet-compatible parfait
 - If they want something chocolatey → suggest protein-rich chocolate alternatives
-- If they want something creamy → suggest Greek yogurt, cottage cheese, avocado-based
+- If they want something creamy or frozen → preserve the requested food identity and use diet-compatible yogurt, cream, milk, or avocado-based ingredients
 - If they want something fruity → suggest fresh fruit combos, smoothie bites, frozen treats
+- Preserve the requested food identity. If the user asks for ice cream, cookie, cheesecake, or another named food, transform incompatible ingredients instead of changing it into a generic snack
+- Every ingredient, description, and instruction must comply with the active dietary protocol; do not describe or instruct the use of an ingredient that was replaced
 - Keep calories reasonable (100-300 for snacks)
 - Prioritize protein and fiber over empty carbs
 - Make it genuinely delicious - this should satisfy the craving healthily
@@ -4548,7 +4602,7 @@ Every ingredient MUST use a precise, measurable quantity:
 - Nuts/seeds: oz or tbsp — e.g. "1 oz almonds", "2 tbsp sunflower seeds"
 - Fruits: cup or oz — e.g. "1 cup berries", "5 oz apple slices" (NEVER "1 apple")
 - Vegetables: cup — e.g. "1 cup carrot sticks"
-- Yogurt/dairy: cup or oz — e.g. "1 cup Greek yogurt"
+- Yogurt/dairy alternatives: cup or oz — e.g. "1 cup coconut yogurt"
 - Oils/dressings: tbsp or tsp — e.g. "1 tbsp almond butter"
 - Liquids: cup or fl oz — e.g. "8 fl oz almond milk"
 FORBIDDEN: "each", "piece", "serving", "handful", "unit", "units", "medium", "large", "small" as units
@@ -4558,7 +4612,7 @@ FORMAT: Return as JSON object:
   "name": "Creative snack name that sounds appetizing",
   "description": "Brief 1-2 sentence appetizing description explaining how this satisfies the craving",
   "ingredients": [
-    {"name": "Greek yogurt", "quantity": "1", "unit": "cup"},
+    {"name": "coconut yogurt", "quantity": "1", "unit": "cup"},
     {"name": "mixed berries", "quantity": "1/2", "unit": "cup"},
     {"name": "almonds", "quantity": "1", "unit": "oz"}
   ],

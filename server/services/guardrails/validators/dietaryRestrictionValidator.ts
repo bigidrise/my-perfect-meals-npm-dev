@@ -23,6 +23,7 @@ import {
   maskPlantMilks,
   maskNutButters,
 } from '../../allergyGuardrails';
+import { maskNonAnimalDietaryCompounds } from '@shared/semanticDietaryIngredients';
 
 export type DietaryMode = 'vegan' | 'vegetarian' | 'pescatarian' | 'carnivore';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
@@ -167,8 +168,7 @@ function isOpaque(name: string): boolean {
  *   1. Mask plant milks and nut butters to prevent false positives
  *   2. Normalize ingredient names through alias table
  *   3. Check normalized names against RESTRICTION_EXPANSION[diet]
- *   4. Check meal name and instructions for obvious red-flag terms
- *   5. Assess confidence — opaque ingredients downgrade to 'low'
+ *   4. Assess confidence — opaque ingredients downgrade to 'low'
  */
 export function validateDietaryRestriction(
   meal: MealToValidate,
@@ -184,7 +184,7 @@ export function validateDietaryRestriction(
     if (!raw.trim()) continue;
 
     // Step 1: mask plant milks and nut butters in the name to avoid false positives
-    const masked = maskNutButters(maskPlantMilks(raw));
+    const masked = maskNonAnimalDietaryCompounds(maskNutButters(maskPlantMilks(raw)));
 
     // Step 2: check for opaque/unverifiable ingredient names
     if (isOpaque(raw)) {
@@ -197,7 +197,7 @@ export function validateDietaryRestriction(
 
     for (const candidate of candidates) {
       // Mask again in case alias itself introduced a plant-milk token
-      const cleanCandidate = maskNutButters(maskPlantMilks(candidate));
+      const cleanCandidate = maskNonAnimalDietaryCompounds(maskNutButters(maskPlantMilks(candidate)));
 
       for (const term of forbidden) {
         const termLower = term.toLowerCase();
@@ -221,28 +221,7 @@ export function validateDietaryRestriction(
     }
   }
 
-  // Step 4: check meal name for red-flag terms (quick scan of critical terms only)
-  const criticalTerms = RESTRICTION_EXPANSION[diet]?.slice(0, 20) ?? [];
-  const nameLower = maskNutButters(maskPlantMilks(meal.name.toLowerCase()));
-  for (const term of criticalTerms) {
-    const termLower = term.toLowerCase();
-    const pattern = new RegExp(`\\b${termLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    if (pattern.test(nameLower)) {
-      const alreadyCaptured = dietaryViolations.some(v =>
-        v.reason.includes(`"${term}"`)
-      );
-      if (!alreadyCaptured) {
-        dietaryViolations.push({
-          ingredient: meal.name,
-          reason: `Meal name "${meal.name}" contains forbidden term: "${term}"`,
-          severity: getSeverity(termLower, diet),
-        });
-        blockedIngredients.push(meal.name);
-      }
-    }
-  }
-
-  // Step 5: determine confidence
+  // Step 4: determine confidence
   let confidence: ConfidenceLevel = 'high';
   if (hasOpaqueIngredient) {
     confidence = 'low';
