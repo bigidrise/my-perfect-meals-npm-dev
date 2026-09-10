@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomBytes, randomUUID } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
-import { eq, and, ne, sql, isNull, gt, or } from "drizzle-orm";
+import { eq, and, ne, sql, isNull, gt, or, inArray } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
@@ -44,7 +44,11 @@ import {
   locationMemberships,
   organizationMemberships,
 } from "../db/schema/workspaces";
-import { organizationalPilots } from "../db/schema/pilotProgram";
+import { organizationalPilotParticipants, organizationalPilots } from "../db/schema/pilotProgram";
+import {
+  MAX_ORGANIZATION_INVITATION_BATCH,
+  reviewOrganizationInvitationRecipients,
+} from "../services/organizationInvitationBatchService";
 import { activateProCareClient, ActivationError } from "../services/procareActivation";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 
@@ -269,6 +273,199 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
   } catch (error) {
     try { return handlePilotInvitationError(res, error); } catch (unexpected) {
       console.error("[business/pilot-invite/create] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+async function buildPilotInvitationBatchReview(req: any) {
+  const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
+  const populationType = req.body?.populationType;
+  if (populationType !== "professional" && populationType !== "client") {
+    throw new PilotInvitationError(
+      "populationType must be professional or client.",
+      "INVALID_POPULATION",
+    );
+  }
+  const participantRole = req.body?.participantRole as PilotInvitationRole;
+  const allowedRoles = populationType === "professional"
+    ? ["nurse", "provider", "coach", "staff"]
+    : ["client"];
+  if (!allowedRoles.includes(participantRole)) {
+    throw new PilotInvitationError(
+      "Invalid role for this participant population.",
+      "INVALID_ROLE",
+    );
+  }
+
+  const [pilot] = await db.select().from(organizationalPilots).where(and(
+    eq(organizationalPilots.id, req.params.pilotId),
+    eq(organizationalPilots.businessId, resolved.business.id),
+  )).limit(1);
+  if (!pilot || !["preparing", "active"].includes(pilot.status)) {
+    throw new PilotInvitationError(
+      "Organizational pilot not found or unavailable.",
+      "PILOT_NOT_AVAILABLE",
+      404,
+    );
+  }
+
+  let initial;
+  try {
+    initial = reviewOrganizationInvitationRecipients(req.body?.recipients);
+  } catch (error) {
+    throw new PilotInvitationError(
+      error instanceof Error ? error.message : "Invalid recipients.",
+      "INVALID_RECIPIENTS",
+    );
+  }
+  const candidateEmails = initial.valid.map((recipient) => recipient.email);
+  const existingEmails = new Set<string>();
+  const existingMemberEmails = new Set<string>();
+  if (candidateEmails.length > 0) {
+    const existingParticipants = await db.select({
+      email: organizationalPilotParticipants.normalizedEmail,
+    }).from(organizationalPilotParticipants).where(and(
+      eq(organizationalPilotParticipants.pilotId, pilot.id),
+      inArray(organizationalPilotParticipants.normalizedEmail, candidateEmails),
+      inArray(organizationalPilotParticipants.status, ["pending", "active"]),
+    ));
+    existingParticipants.forEach((participant) => existingEmails.add(participant.email));
+    if (populationType === "professional") {
+      const activeMembers = await db.select({ email: users.email })
+        .from(businessMembers)
+        .innerJoin(users, eq(users.id, businessMembers.userId))
+        .where(and(
+          eq(businessMembers.businessId, resolved.business.id),
+          eq(businessMembers.status, "active"),
+        ));
+      activeMembers.forEach((member) => {
+        if (member.email && candidateEmails.includes(normalizeEmailIdentity(member.email))) {
+          existingMemberEmails.add(member.email);
+        }
+      });
+    }
+  }
+  const review = reviewOrganizationInvitationRecipients(
+    req.body?.recipients,
+    existingEmails,
+    existingMemberEmails,
+  );
+  const [reserved] = await db.select({
+    count: sql<number>`count(*)::int`,
+  }).from(organizationalPilotParticipants).where(and(
+    eq(organizationalPilotParticipants.pilotId, pilot.id),
+    eq(organizationalPilotParticipants.populationType, populationType),
+    inArray(organizationalPilotParticipants.status, ["pending", "active"]),
+  ));
+  const capacity = populationType === "professional"
+    ? pilot.professionalCapacity
+    : pilot.clientCapacity;
+  const availableCapacity = Math.max(0, capacity - Number(reserved?.count ?? 0));
+
+  return {
+    resolved,
+    pilot,
+    populationType,
+    participantRole,
+    review,
+    capacity,
+    availableCapacity,
+    overCapacity: Math.max(0, review.valid.length - availableCapacity),
+  };
+}
+
+router.post("/pilots/:pilotId/invitations/batch-review", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+  try {
+    const result = await buildPilotInvitationBatchReview(req);
+    return res.json({
+      ...result.review,
+      capacity: result.capacity,
+      availableCapacity: result.availableCapacity,
+      overCapacity: result.overCapacity,
+      maxBatchSize: MAX_ORGANIZATION_INVITATION_BATCH,
+    });
+  } catch (error) {
+    try { return handlePilotInvitationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-invite/batch-review] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+router.post("/pilots/:pilotId/invitations/batch-send", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const result = await buildPilotInvitationBatchReview(req);
+    if (
+      result.review.invalid.length > 0
+      || result.review.duplicates.length > 0
+      || result.review.existingMembers.length > 0
+    ) {
+      return res.status(409).json({
+        error: "Recipients changed or require review. Review the batch again before sending.",
+        code: "BATCH_REVIEW_REQUIRED",
+        ...result.review,
+      });
+    }
+    if (result.overCapacity > 0) {
+      return res.status(409).json({
+        error: `This batch exceeds available ${result.populationType} capacity by ${result.overCapacity}.`,
+        code: "BATCH_CAPACITY_EXCEEDED",
+        availableCapacity: result.availableCapacity,
+        requested: result.review.valid.length,
+      });
+    }
+
+    const sent: Array<{ email: string; invitationId: string; emailQueued: boolean }> = [];
+    const failed: Array<{ email: string; error: string; code?: string }> = [];
+    for (const recipient of result.review.valid) {
+      try {
+        const created = await createOrganizationalPilotInvitation({
+          businessId: result.resolved.business.id,
+          locationId: result.resolved.locationId,
+          pilotId: result.pilot.id,
+          invitedByUserId: userId,
+          email: recipient.email,
+          populationType: result.populationType,
+          participantRole: result.participantRole,
+          participantName: recipient.displayName,
+          assignedProfessionalUserId: req.body?.assignedProfessionalUserId ?? null,
+        });
+        const inviteLink = `${getAppUrl()}${created.inviteLink}`;
+        const emailResult = await sendBusinessInviteEmail({
+          to: recipient.email,
+          businessName: result.resolved.business.name,
+          inviterName: "Your organization",
+          inviteLink,
+          role: result.participantRole,
+          expiresAt: created.invite.expiresAt,
+          invitationType: created.invite.invitationType,
+          trialDays: null,
+          programName: created.pilot.name,
+        });
+        sent.push({
+          email: recipient.email,
+          invitationId: created.invite.id,
+          emailQueued: Boolean(emailResult),
+        });
+      } catch (error) {
+        failed.push({
+          email: recipient.email,
+          error: error instanceof Error ? error.message : "Could not create invitation.",
+          ...(error instanceof PilotInvitationError ? { code: error.code } : {}),
+        });
+      }
+    }
+    return res.status(failed.length > 0 ? 207 : 201).json({
+      success: failed.length === 0,
+      sent,
+      failed,
+      counts: { requested: result.review.valid.length, sent: sent.length, failed: failed.length },
+    });
+  } catch (error) {
+    try { return handlePilotInvitationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-invite/batch-send] error:", unexpected);
       return res.status(500).json({ error: "Server error." });
     }
   }
@@ -1281,9 +1478,11 @@ router.patch("/org-policies", requireAuth, requireProOrOrgAdmin, async (req, res
   }
 });
 
-// ── GET /api/business/invite/:token — public: get invite details for accept page
-router.get("/invite/:token", async (req, res) => {
-  const { token } = req.params;
+// New invitation links submit tokens through a header so bearer credentials do
+// not appear in request URLs. The legacy path remains for previously sent links.
+async function inspectBusinessInvitation(req: any, res: any) {
+  const token = req.get("x-business-invitation-token") || req.params.token;
+  if (!token) return res.status(400).json({ error: "Invitation token is required." });
 
   try {
     const pilotInvite = await findOrganizationalPilotInvitation(token);
@@ -1375,12 +1574,15 @@ router.get("/invite/:token", async (req, res) => {
     console.error("[business/invite/get] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
-});
+}
 
-// ── POST /api/business/invite/:token/accept — authenticated user accepts invite
-router.post("/invite/:token/accept", requireAuth, async (req, res) => {
+router.get("/invite/inspect", inspectBusinessInvitation);
+router.get("/invite/:token", inspectBusinessInvitation);
+
+async function acceptBusinessInvitation(req: any, res: any) {
   const userId = (req as any).authUser?.id as string;
-  const { token } = req.params;
+  const token = req.body?.token || req.get("x-business-invitation-token") || req.params.token;
+  if (!token) return res.status(400).json({ error: "Invitation token is required." });
 
   try {
     const pilotInvite = await findOrganizationalPilotInvitation(token);
@@ -1848,7 +2050,10 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     console.error("[business/invite/accept] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
-});
+}
+
+router.post("/invite/accept", requireAuth, acceptBusinessInvitation);
+router.post("/invite/:token/accept", requireAuth, acceptBusinessInvitation);
 
 // ── PATCH /api/business/name — owner renames the business
 router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {

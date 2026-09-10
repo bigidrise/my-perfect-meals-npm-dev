@@ -9,4 +9,4 @@ Never create a duplicate account for an existing identity, build separate relati
 
 **Why:** Professionals should not need to know whether a recipient already uses My Perfect Meals, and identity duplication would fragment billing, history, consent, and ProCare relationships.
 
-**How to apply:** Bind invitations to normalized email and persisted Organization/inviter context. Preserve the token through login or signup, consume it idempotently, and keep client capacity separate from professional team seats.
+**How to apply:** Bind invitations to normalized email and persisted Organization/inviter context. Put bearer tokens only in URL fragments, scrub them into session storage immediately, and inspect or accept them through headers or POST bodies so request URLs and logs never contain them. Preserve the token through login or signup, consume it idempotently, and keep client capacity separate from professional team seats.

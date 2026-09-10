@@ -42,6 +42,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
+import OrganizationInvitationsAccess from "@/components/business/OrganizationInvitationsAccess";
 
 interface BusinessData {
   workspace: {
@@ -1079,6 +1080,16 @@ export default function BusinessDashboard() {
             </span>
           </button>
         )}
+
+        <OrganizationInvitationsAccess
+          businessId={ownerData.business.id}
+          businessName={ownerData.business.name}
+          pilot={ownerData.pilot ?? null}
+          isDesktop={isDesktop}
+          teamInvitations={ownerData.invitations}
+          patientInvitations={ownerData.clientInvitations ?? []}
+          onRefresh={fetchData}
+        />
 
         {/* Launch Guide Checklist — shown until dismissed */}
         {!launchGuideDismissed && (() => {

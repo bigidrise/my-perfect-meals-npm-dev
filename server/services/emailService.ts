@@ -1222,6 +1222,17 @@ export async function sendBusinessInviteEmail({
                 <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; No credit card required to get started</td></tr>
               </table>
 
+              <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 10px; padding: 18px 20px; margin-bottom: 28px;">
+                <h2 style="color: #111827; font-size: 17px; margin: 0 0 12px; font-weight: 700;">How to get started</h2>
+                <ol style="color: #374151; font-size: 14px; line-height: 1.7; margin: 0; padding-left: 20px;">
+                  <li>Open My Perfect Meals from the invitation below.</li>
+                  <li>Create your account, or sign in with the email that received this invitation.</li>
+                  <li>Complete your personal onboarding.</li>
+                  <li>Continue to your Dashboard and open <strong>Quick Start</strong>.</li>
+                  <li>Select <strong>My Perfect Meals Academy</strong> and begin the program.</li>
+                </ol>
+              </div>
+
               <!-- CTA -->
               <div style="text-align: center; margin: 0 0 32px;">
                  <a href="${safeInviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">

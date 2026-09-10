@@ -18,7 +18,18 @@ export default function Auth() {
   const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | "business" | null, [search]);
   // Invitation token carried from a team-member invite email.  When present this
   // signup is always business-intent; the token is auto-accepted after auth.
-  const urlInvite = useMemo(() => new URLSearchParams(search).get("invite"), [search]);
+  const urlInvite = useMemo(() => {
+    const params = new URLSearchParams(search);
+    if (params.get("organizationInvite") !== "1") {
+      return params.get("invite");
+    }
+    const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get("token");
+    if (fragmentToken) {
+      sessionStorage.setItem("mpm.organizationInviteToken", fragmentToken);
+      window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+    }
+    return fragmentToken ?? sessionStorage.getItem("mpm.organizationInviteToken");
+  }, [search]);
   const pilotAuthorizationToken = useMemo(
     () => new URLSearchParams(search).get("pilotAuthorization"),
     [search],
@@ -53,10 +64,11 @@ export default function Auth() {
 
   async function acceptInviteToken(token: string): Promise<{ ok: boolean; error?: string }> {
     try {
-      const res = await fetch(`/api/business/invite/${token}/accept`, {
+      const res = await fetch("/api/business/invite/accept", {
         method: "POST",
-        headers: { ...getAuthHeaders() },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
+        body: JSON.stringify({ token }),
       });
       const data = await res.json();
       if (!res.ok) return { ok: false, error: data.error };
@@ -130,6 +142,7 @@ export default function Auth() {
         setErr(result.error || "Could not accept invitation. Please try again.");
         return;
       }
+      sessionStorage.removeItem("mpm.organizationInviteToken");
       // Refresh session so the business membership is visible immediately
       try { await refreshUser(); } catch { /* non-fatal */ }
       setLocation("/business-dashboard");
