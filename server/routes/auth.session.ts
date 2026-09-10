@@ -17,6 +17,7 @@ import {
   resolveSignupTrial,
 } from "../services/preRegistrationAccess";
 import { findOrganizationalPilotInvitation } from "../services/organizationalPilotInvitationService";
+import { enrollClinicPatientInTransaction, inspectClinicPilotEnrollmentLink } from "../services/clinicPilotEnrollmentService";
 import { inspectPilotAuthorizationToken } from "../services/organizationalPilotAuthorizationService";
 import {
   clearSessionCookie,
@@ -121,6 +122,11 @@ router.post("/api/auth/signup", async (req, res) => {
     // current versioned legal acceptances through upgrade-to-procare.
     const isBusinessAccount = req.body.businessAccount === true;
     const inviteToken = typeof req.body.inviteToken === "string" ? req.body.inviteToken : null;
+    const clinicPilotToken = typeof req.body.clinicPilotToken === "string" ? req.body.clinicPilotToken : null;
+    const clinicPilotLink = clinicPilotToken ? await inspectClinicPilotEnrollmentLink(clinicPilotToken) : null;
+    if (clinicPilotToken && (!clinicPilotLink || !clinicPilotLink.available)) {
+      return res.status(410).json({ error: "Clinic enrollment link is unavailable.", code: "CLINIC_LINK_UNAVAILABLE" });
+    }
     const pilotInvite = inviteToken
       ? await findOrganizationalPilotInvitation(inviteToken)
       : null;
@@ -229,6 +235,9 @@ router.post("/api/auth/signup", async (req, res) => {
     // than issuing an untracked 30-day entitlement.
     const newUser = await db.transaction(async (tx) => {
       const [createdUser] = await tx.insert(users).values(userValues).returning();
+      if (clinicPilotToken) {
+        await enrollClinicPatientInTransaction(tx, clinicPilotToken, createdUser.id);
+      }
 
       if (pendingPreRegistrationAccess) {
         const [claimed] = await tx

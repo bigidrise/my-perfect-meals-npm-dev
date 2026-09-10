@@ -43,6 +43,7 @@ import {
   LifeBuoy,
   Sparkles,
   Globe,
+  GraduationCap,
 } from "lucide-react";
 import { logout, getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -379,6 +380,13 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         ]
       : []),
 
+    {
+      title: t("businessCenter.pillars.academy"),
+      description: t("businessCenter.pillars.academyDesc"),
+      icon: GraduationCap,
+      route: "/academy",
+      testId: "menu-academy",
+    },
     {
       title: t("menu.appLibrary"),
       description: t("menu.appLibraryDesc"),
