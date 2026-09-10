@@ -28,7 +28,29 @@ describe("More page organization card state", () => {
     );
     expect(businessCardPresentation(state)).toMatchObject({
       title: "Open Organization Dashboard",
-      destination: "/business-dashboard",
+      destination: "/business-organizations",
+    });
+  });
+
+  test("multiple organizations open the organization hub", async () => {
+    const state = await resolveBusinessCardState(async (path) => {
+      if (path === "/api/business/mine") {
+        return response({ business: { name: "Selected Org", seatLimit: 10 }, usedSeats: 2 });
+      }
+      if (path === "/api/business/workspace/options") {
+        return response({
+          organizations: [
+            { id: "org-a", name: "Organization A", role: "admin", locations: [{ id: "a", name: "Main" }] },
+            { id: "org-b", name: "Organization B", role: "admin", locations: [{ id: "b", name: "Main" }] },
+          ],
+        });
+      }
+      return response({}, 404);
+    });
+    expect(businessCardPresentation(state)).toMatchObject({
+      title: "Open Organization Hub",
+      description: "2 organizations · Choose a workspace",
+      destination: "/business-organizations",
     });
   });
 

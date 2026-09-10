@@ -112,6 +112,7 @@ export default function OrganizationInvitationsAccess({
   const [population, setPopulation] = useState<Population>("client");
   const [mode, setMode] = useState<EntryMode>("one");
   const [role, setRole] = useState("client");
+  const [accessDurationDays, setAccessDurationDays] = useState<7 | 14 | 30>(30);
   const [singleEmail, setSingleEmail] = useState("");
   const [singleFirstName, setSingleFirstName] = useState("");
   const [singleLastName, setSingleLastName] = useState("");
@@ -154,6 +155,7 @@ export default function OrganizationInvitationsAccess({
           recipients,
           populationType: population,
           participantRole: population === "client" ? "client" : role,
+          trialDays: accessDurationDays,
         }),
       });
       const data = await response.json();
@@ -178,6 +180,7 @@ export default function OrganizationInvitationsAccess({
           recipients: review.valid,
           populationType: population,
           participantRole: population === "client" ? "client" : role,
+          trialDays: accessDurationDays,
         }),
       });
       const data = await response.json();
@@ -210,7 +213,7 @@ export default function OrganizationInvitationsAccess({
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ businessId, capacity: pilot.clientCapacity }),
+        body: JSON.stringify({ businessId, capacity: pilot.clientCapacity, accessDurationDays }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not create patient link.");
@@ -289,6 +292,25 @@ export default function OrganizationInvitationsAccess({
                 </select>
               )}
 
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">Complimentary access</p>
+                <div className="flex gap-2">
+                  {([7, 14, 30] as const).map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => { setAccessDurationDays(days); setReview(null); }}
+                      className={`rounded-full px-3 py-1.5 text-sm font-semibold ${accessDurationDays === days ? "bg-orange-600 text-white" : "bg-white/10 text-white/70"}`}
+                    >
+                      {days} Days
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-white/50">
+                  Begins when each {population === "client" ? "patient accepts or enrolls" : "team member accepts"}.
+                </p>
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => { setMode("one"); setReview(null); }} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${mode === "one" ? "bg-white text-black" : "bg-white/10"}`}><UserPlus className="mr-1 inline h-3.5 w-3.5" />Invite One</button>
                 {isDesktop ? (
@@ -335,7 +357,7 @@ export default function OrganizationInvitationsAccess({
                       <div key={label} className="rounded-lg bg-black/30 p-2 text-center"><p className="text-lg font-bold">{count}</p><p className="text-xs capitalize text-white/50">{label}</p></div>
                     ))}
                   </div>
-                  <p className="text-xs text-white/60">Access: {pilot?.durationDays ?? 30}-Day Pilot · {review.availableCapacity} spaces available</p>
+                  <p className="text-xs text-white/60">Access: {accessDurationDays} days per recipient · {review.availableCapacity} spaces available</p>
                   {(review.duplicates.length > 0 || review.existingMembers.length > 0 || review.invalid.length > 0 || review.overCapacity > 0) && (
                     <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
                       Resolve {review.duplicates.length} duplicate/pending, {review.existingMembers.length} existing member, {review.invalid.length} invalid, and {review.overCapacity} over-capacity recipient(s) before sending.
@@ -351,7 +373,7 @@ export default function OrganizationInvitationsAccess({
               {population === "client" && pilot && (
                 <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4">
                   <h3 className="font-semibold">Immediate patient access</h3>
-                  <p className="mt-1 text-xs text-white/60">Create a secure clinic link for texting, handouts, or an in-person QR scan.</p>
+                  <p className="mt-1 text-xs text-white/60">Create a secure clinic link for texting, handouts, or an in-person QR scan. Each enrollee receives {accessDurationDays} days.</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button disabled={busy} onClick={createShareLink} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold"><Copy className="mr-1 inline h-3.5 w-3.5" />Copy Patient Link</button>
                     {qrDataUrl && <button onClick={() => setQrDataUrl(qrDataUrl)} className="rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold"><QrCode className="mr-1 inline h-3.5 w-3.5" />Show QR Code</button>}

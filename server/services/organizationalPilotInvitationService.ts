@@ -3,8 +3,10 @@ import { and, eq, gt, inArray, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import { businessInvitations, businessMembers, businesses } from "../db/schema/business";
 import {
+  clinicTrialEntitlements,
   organizationalPilotParticipants,
   organizationalPilots,
+  professionalTemporaryAccessEntitlements,
 } from "../db/schema/pilotProgram";
 import { users } from "@shared/schema";
 import {
@@ -13,6 +15,7 @@ import {
 } from "./pilotProgramAccess";
 import { normalizeEmailIdentity, resolveEmailIdentityForUser } from "./emailIdentityService";
 import { logAudit } from "../lib/auditLog";
+import { assertTemporaryAccessDuration, clinicTrialEnd } from "./clinicPilotEnrollmentService";
 
 export type PilotInvitationRole =
   | "champion"
@@ -83,11 +86,13 @@ export async function createOrganizationalPilotInvitation(input: {
   assignedProfessionalUserId?: string | null;
   participantName?: string | null;
   expiresAt?: Date;
+  trialDays: number;
 }) {
   const normalizedEmail = normalizeEmailIdentity(input.email);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     throw new PilotInvitationError("Valid email required.", "INVALID_EMAIL");
   }
+  assertTemporaryAccessDuration(input.trialDays);
   if (input.populationType === "professional" && input.participantRole === "client") {
     throw new PilotInvitationError("Professional invitations require a professional role.", "INVALID_ROLE");
   }
@@ -154,7 +159,7 @@ export async function createOrganizationalPilotInvitation(input: {
       invitedByUserId: input.invitedByUserId,
       expiresAt,
       invitationType: input.populationType === "client" ? "client" : "team_member",
-      trialDays: null,
+      trialDays: input.trialDays,
       programName: pilot.name,
       organizationalPilotId: input.pilotId,
       populationType: input.populationType,
@@ -317,7 +322,18 @@ export async function acceptOrganizationalPilotInvitation(rawToken: string, user
       inArray(organizationalPilots.status, ["preparing", "active"]),
     )).limit(1);
     if (!pilot) throw new PilotInvitationError("Organizational pilot is no longer available.", "PILOT_NOT_AVAILABLE", 410);
+    const [business] = await tx.select({
+      organizationId: businesses.organizationId,
+      status: businesses.status,
+    }).from(businesses).where(eq(businesses.id, invite.businessId)).limit(1);
+    if (!business || business.status !== "active") {
+      throw new PilotInvitationError("The originating organization is no longer active.", "BUSINESS_INACTIVE", 410);
+    }
 
+    const acceptedAt = new Date();
+    const trialDays = Number(invite.trialDays);
+    assertTemporaryAccessDuration(trialDays);
+    const accessEndsAt = clinicTrialEnd(acceptedAt, trialDays);
     let membershipId: string | null = null;
     if (participant.populationType === "professional") {
       const [elsewhere] = await tx.select({ businessId: businessMembers.businessId }).from(businessMembers)
@@ -332,7 +348,7 @@ export async function acceptOrganizationalPilotInvitation(rawToken: string, user
       if (existing?.status === "active") {
         membershipId = existing.id;
       } else if (existing) {
-        const [restored] = await tx.update(businessMembers).set({ status: "active", role: invite.role as any, joinedAt: new Date(), removedAt: null })
+        const [restored] = await tx.update(businessMembers).set({ status: "active", role: invite.role as any, joinedAt: acceptedAt, removedAt: null })
           .where(eq(businessMembers.id, existing.id)).returning({ id: businessMembers.id });
         membershipId = restored?.id ?? null;
       } else {
@@ -350,12 +366,37 @@ export async function acceptOrganizationalPilotInvitation(rawToken: string, user
       userId,
       businessMemberId: membershipId,
       status: "active",
-      acceptedAt: new Date(),
+      acceptedAt,
       updatedAt: new Date(),
     }).where(eq(organizationalPilotParticipants.id, participant.id));
+    if (participant.populationType === "client") {
+      await tx.insert(clinicTrialEntitlements).values({
+        userId,
+        pilotId: pilot.id,
+        linkId: null,
+        businessInvitationId: invite.id,
+        businessId: invite.businessId,
+        organizationId: business.organizationId,
+        participantId: participant.id,
+        provenance: "organization_patient_invitation",
+        startsAt: acceptedAt,
+        endsAt: accessEndsAt,
+      }).onConflictDoNothing();
+    } else {
+      await tx.insert(professionalTemporaryAccessEntitlements).values({
+        userId,
+        pilotId: pilot.id,
+        businessId: invite.businessId,
+        participantId: participant.id,
+        businessInvitationId: invite.id,
+        professionalRole: participant.participantRole,
+        startsAt: acceptedAt,
+        endsAt: accessEndsAt,
+      }).onConflictDoNothing();
+    }
     await tx.update(businessInvitations).set({
       status: "accepted",
-      acceptedAt: new Date(),
+      acceptedAt,
       acceptedByUserId: userId,
     }).where(eq(businessInvitations.id, invite.id));
 
@@ -364,7 +405,9 @@ export async function acceptOrganizationalPilotInvitation(rawToken: string, user
       invite,
       participantId: participant.id,
       membershipId,
-      pilotEndAt: pilot.pilotEndAt,
+      trialDays,
+      accessStartsAt: acceptedAt,
+      accessEndsAt,
     };
   });
 }

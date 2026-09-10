@@ -73,6 +73,7 @@ export async function getActivePilotFullAccess(userId: string, now: Date = new D
     .where(and(
       eq(organizationalPilotParticipants.userId, userId),
       eq(organizationalPilotParticipants.status, "active"),
+      eq(organizationalPilotParticipants.participantRole, "champion"),
       eq(organizationalPilots.status, "active"),
       lte(organizationalPilots.pilotStartAt, now),
       gt(organizationalPilots.pilotEndAt, now),

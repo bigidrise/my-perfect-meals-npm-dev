@@ -236,6 +236,10 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
     if (!allowedRoles.includes(participantRole)) {
       return res.status(400).json({ error: "Invalid role for this participant population.", code: "INVALID_ROLE" });
     }
+    const trialDays = Number(req.body?.trialDays);
+    if (!isAllowedClientTrialDuration(trialDays)) {
+      return res.status(400).json({ error: "Complimentary access must be 7, 14, or 30 days.", code: "INVALID_ACCESS_DURATION" });
+    }
     const created = await createOrganizationalPilotInvitation({
       businessId: resolved.business.id,
       locationId: resolved.locationId,
@@ -246,6 +250,7 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
       participantRole,
       assignedProfessionalUserId: req.body?.assignedProfessionalUserId ?? null,
       participantName: req.body?.participantName ?? null,
+      trialDays,
     });
     const inviteLink = `${getAppUrl()}${created.inviteLink}`;
     if (req.body?.sendEmail !== false) {
@@ -257,8 +262,9 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
         role: participantRole,
         expiresAt: created.invite.expiresAt,
         invitationType: created.invite.invitationType,
-        trialDays: null,
+        trialDays,
         programName: created.pilot.name,
+        recipientName: req.body?.participantName ?? undefined,
       });
     }
     return res.status(201).json({
@@ -267,6 +273,7 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
       participantId: created.participant.id,
       populationType,
       participantRole,
+      trialDays,
       expiresAt: created.invite.expiresAt,
       ...(req.body?.sendEmail === false ? { inviteLink } : {}),
     });
@@ -295,6 +302,13 @@ async function buildPilotInvitationBatchReview(req: any) {
     throw new PilotInvitationError(
       "Invalid role for this participant population.",
       "INVALID_ROLE",
+    );
+  }
+  const trialDays = Number(req.body?.trialDays);
+  if (!isAllowedClientTrialDuration(trialDays)) {
+    throw new PilotInvitationError(
+      "Complimentary access must be 7, 14, or 30 days.",
+      "INVALID_ACCESS_DURATION",
     );
   }
 
@@ -368,6 +382,7 @@ async function buildPilotInvitationBatchReview(req: any) {
     pilot,
     populationType,
     participantRole,
+    trialDays,
     review,
     capacity,
     availableCapacity,
@@ -431,6 +446,7 @@ router.post("/pilots/:pilotId/invitations/batch-send", requireAuth, requireProOr
           participantRole: result.participantRole,
           participantName: recipient.displayName,
           assignedProfessionalUserId: req.body?.assignedProfessionalUserId ?? null,
+          trialDays: result.trialDays,
         });
         const inviteLink = `${getAppUrl()}${created.inviteLink}`;
         const emailResult = await sendBusinessInviteEmail({
@@ -441,8 +457,9 @@ router.post("/pilots/:pilotId/invitations/batch-send", requireAuth, requireProOr
           role: result.participantRole,
           expiresAt: created.invite.expiresAt,
           invitationType: created.invite.invitationType,
-          trialDays: null,
+          trialDays: result.trialDays,
           programName: created.pilot.name,
+          recipientName: recipient.displayName,
         });
         sent.push({
           email: recipient.email,
@@ -474,11 +491,12 @@ router.post("/pilots/:pilotId/invitations/batch-send", requireAuth, requireProOr
 router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
     if (!resolved) return res.status(403).json({ error: "No business account found." });
     const [invite] = await db.select().from(businessInvitations).where(and(
       eq(businessInvitations.id, req.params.inviteId),
       eq(businessInvitations.businessId, resolved.business.id),
+      eq(businessInvitations.locationId, resolved.locationId),
     )).limit(1);
     if (!invite?.organizationalPilotId) return res.status(404).json({ error: "Pilot invitation not found." });
     const cancelled = await cancelOrganizationalPilotInvitation(invite.id, userId);
@@ -486,6 +504,8 @@ router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin,
       ? res.json({ success: true })
       : res.status(409).json({ error: "Invitation is no longer pending." });
   } catch (error) {
+    const workspaceError = sendDashboardWorkspaceError(res, error);
+    if (workspaceError) return workspaceError;
     console.error("[business/pilot-invite/cancel] error:", error);
     return res.status(500).json({ error: "Server error." });
   }
@@ -494,8 +514,14 @@ router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin,
 router.post("/pilot-invitations/:inviteId/resend", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
     if (!resolved) return res.status(403).json({ error: "No business account found." });
+    const [selectedInvite] = await db.select({ id: businessInvitations.id }).from(businessInvitations).where(and(
+      eq(businessInvitations.id, req.params.inviteId),
+      eq(businessInvitations.businessId, resolved.business.id),
+      eq(businessInvitations.locationId, resolved.locationId),
+    )).limit(1);
+    if (!selectedInvite) return res.status(404).json({ error: "Pilot invitation not found." });
     const resent = await resendOrganizationalPilotInvitation({
       inviteId: req.params.inviteId,
       businessId: resolved.business.id,
@@ -510,11 +536,13 @@ router.post("/pilot-invitations/:inviteId/resend", requireAuth, requireProOrOrgA
       role: resent.invite.participantRole ?? resent.invite.role,
       expiresAt: resent.expiresAt,
       invitationType: resent.invite.invitationType,
-      trialDays: null,
+      trialDays: resent.invite.trialDays,
       programName: resent.invite.programName ?? undefined,
     });
     return res.json({ success: true, expiresAt: resent.expiresAt });
   } catch (error) {
+    const workspaceError = sendDashboardWorkspaceError(res, error);
+    if (workspaceError) return workspaceError;
     try { return handlePilotInvitationError(res, error); } catch (unexpected) {
       console.error("[business/pilot-invite/resend] error:", unexpected);
       return res.status(500).json({ error: "Server error." });
@@ -582,7 +610,7 @@ async function getActiveSeats(businessId: string): Promise<number> {
 }
 
 /**
- * resolveAuthorizedBusiness — resolves the organization the caller is authorized
+ * Dashboard authorization capabilities.
  * to manage and returns their role within it.
  *
  * "admin_or_owner" — both Organization Owners and Organization Admins may act.
@@ -593,46 +621,6 @@ async function getActiveSeats(businessId: string): Promise<number> {
  */
 type CallerRole = "owner" | "admin";
 type Capability = "admin_or_owner" | "owner_only";
-
-async function resolveAuthorizedBusiness(
-  userId: string,
-  capability: Capability,
-): Promise<{ business: typeof businesses.$inferSelect; callerRole: CallerRole } | null> {
-  // Owner path — fastest lookup, most common case
-  const [ownerBiz] = await db
-    .select()
-    .from(businesses)
-    .where(eq(businesses.ownerUserId, userId))
-    .limit(1);
-  if (ownerBiz) return { business: ownerBiz, callerRole: "owner" };
-
-  // Owner-only actions stop here
-  if (capability === "owner_only") return null;
-
-  // Admin-membership path — resolve via businessMembers role
-  const [adminMembership] = await db
-    .select({ businessId: businessMembers.businessId })
-    .from(businessMembers)
-    .where(
-      and(
-        eq(businessMembers.userId, userId),
-        eq(businessMembers.role, "admin"),
-        eq(businessMembers.status, "active"),
-      ),
-    )
-    .limit(1);
-
-  if (!adminMembership) return null;
-
-  const [adminBiz] = await db
-    .select()
-    .from(businesses)
-    .where(eq(businesses.id, adminMembership.businessId))
-    .limit(1);
-
-  if (!adminBiz) return null;
-  return { business: adminBiz, callerRole: "admin" };
-}
 
 async function resolveSelectedBusiness(req: any): Promise<{
   business: typeof businesses.$inferSelect;
@@ -1598,7 +1586,9 @@ async function acceptBusinessInvitation(req: any, res: any) {
           businessName: pilotBusiness?.name ?? pilotInvite.programName,
           populationType: pilotInvite.populationType,
           participantRole: pilotInvite.participantRole,
-          pilotEndAt: accepted.alreadyAccepted ? null : accepted.pilotEndAt,
+          trialDays: pilotInvite.trialDays,
+          accessStartsAt: accepted.alreadyAccepted ? null : accepted.accessStartsAt,
+          accessEndsAt: accepted.alreadyAccepted ? null : accepted.accessEndsAt,
         });
       } catch (error) {
         try { return handlePilotInvitationError(res, error); } catch (unexpected) { throw unexpected; }
@@ -2099,7 +2089,7 @@ router.post("/seats", requireAuth, requireProAccess, async (req, res) => {
   const operationId = requestedOperationId || randomUUID();
 
   try {
-    const seatsResolved = await resolveAuthorizedBusiness(userId, "owner_only");
+    const seatsResolved = await resolveDashboardBusiness(req, "owner_only");
     if (!seatsResolved) return res.status(404).json({ error: "No business found for this account." });
     const biz = seatsResolved.business;
     if (biz.status !== "active") return res.status(400).json({ error: "Business subscription is not active." });

@@ -264,6 +264,7 @@ export async function reconcilePremierPilot(approvedByUserId: string) {
         participantRole: "nurse",
         participantName: participant.name,
         expiresAt: PREMIER_PILOT_RECONCILIATION.pilotEndAt,
+        trialDays: 30,
       });
     }
     invitationResults.push({ email: participant.email, state: "pending" });

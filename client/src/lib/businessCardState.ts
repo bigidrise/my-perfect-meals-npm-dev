@@ -1,6 +1,7 @@
 export type BusinessCardDetails = {
   mode: "owner" | "member";
   name: string;
+  organizationCount?: number;
   usedSeats?: number;
   seatLimit?: number;
   role?: string;
@@ -27,10 +28,14 @@ export async function resolveBusinessCardState(
     if (ownerRes.ok) {
       const data = await ownerRes.json();
       if (!data?.business?.name) return { state: "error" };
+      const workspaceRes = await request("/api/business/workspace/options");
+      const workspaceData = workspaceRes.ok ? await workspaceRes.json() : null;
+      const organizations = Array.isArray(workspaceData?.organizations) ? workspaceData.organizations : [];
       return {
         state: "active",
         mode: "owner",
-        name: data.business.name,
+        name: organizations.length === 1 ? organizations[0].name : data.business.name,
+        organizationCount: organizations.length || 1,
         usedSeats: data.usedSeats,
         seatLimit: data.business.seatLimit,
       };
@@ -40,12 +45,32 @@ export async function resolveBusinessCardState(
     if (memberRes.ok) {
       const data = await memberRes.json();
       if (!data?.membership?.businessName) return { state: "error" };
+      const workspaceRes = await request("/api/business/workspace/options");
+      const workspaceData = workspaceRes.ok ? await workspaceRes.json() : null;
+      const organizations = Array.isArray(workspaceData?.organizations) ? workspaceData.organizations : [];
       return {
         state: "active",
         mode: "member",
-        name: data.membership.businessName,
+        name: organizations.length === 1 ? organizations[0].name : data.membership.businessName,
+        organizationCount: organizations.length || 1,
         role: data.membership.role,
       };
+    }
+
+    if (ownerRes.status === 409 || memberRes.status === 409) {
+      const workspaceRes = await request("/api/business/workspace/options");
+      if (workspaceRes.ok) {
+        const workspaceData = await workspaceRes.json();
+        const organizations = Array.isArray(workspaceData?.organizations) ? workspaceData.organizations : [];
+        if (organizations.length > 0) {
+          return {
+            state: "active",
+            mode: organizations.some((organization: any) => organization.role === "owner") ? "owner" : "member",
+            name: organizations.length === 1 ? organizations[0].name : `${organizations.length} organizations`,
+            organizationCount: organizations.length,
+          };
+        }
+      }
     }
 
     // This is the only authoritative "none" check. The owner/member endpoints
@@ -71,14 +96,16 @@ export async function resolveBusinessCardState(
 export function businessCardPresentation(state: BusinessCardState): {
   title: string;
   description: string;
-  destination: "/business-dashboard" | "/business/start" | null;
+  destination: "/business-organizations" | "/business/start" | null;
 } {
   switch (state.state) {
     case "active":
       return {
-        title: "Open Organization Dashboard",
-        description: `${state.name} · Clients & Team Members`,
-        destination: "/business-dashboard",
+        title: state.organizationCount && state.organizationCount > 1 ? "Open Organization Hub" : "Open Organization Dashboard",
+        description: state.organizationCount && state.organizationCount > 1
+          ? `${state.organizationCount} organizations · Choose a workspace`
+          : `${state.name} · Clients & Team Members`,
+        destination: "/business-organizations",
       };
     case "incomplete":
       return {
