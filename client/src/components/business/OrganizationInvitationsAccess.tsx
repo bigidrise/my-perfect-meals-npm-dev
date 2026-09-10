@@ -248,7 +248,7 @@ export default function OrganizationInvitationsAccess({
 
   return (
     <>
-      <Card className="border border-orange-500/30 bg-gradient-to-br from-orange-500/15 to-white/5 p-4 text-white">
+      <Card className="border border-white/10 !bg-black/70 p-4 text-white shadow-2xl shadow-black/30 backdrop-blur-xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-300">Organization control center</p>
