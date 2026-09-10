@@ -20,6 +20,34 @@ describe("Create a Dish ingredient expansion", () => {
     ["Eggs", ["whole", "whisked", "separated"]],
     ["Broccoli", ["florets", "chopped", "stems"]],
     ["Octopus", ["tentacles", "whole-small", "sliced"]],
+    ["Turkey", ["breast", "ground", "strips"]],
+    ["Ground beef", ["ground", "patties"]],
+    ["Pork tenderloin", ["whole", "medallions", "sliced"]],
+    ["Cod", ["fillet", "chunks", "flaked"]],
+    ["Tilapia", ["fillet", "chunks", "flaked"]],
+    ["Tuna", ["steak", "chunks", "flaked"]],
+    ["Shrimp", ["whole-peeled", "chopped", "skewered"]],
+    ["Scallops", ["whole", "medallions", "skewered"]],
+    ["Crab", ["whole", "picked-meat", "cakes"]],
+    ["White fish", ["fillet", "chunks", "flaked"]],
+    ["Tempeh", ["slices", "strips", "cubes"]],
+    ["Chickpeas", ["whole", "mashed", "crispy-roasted"]],
+    ["Lentils", ["whole", "mashed", "patties"]],
+    ["Black beans", ["whole", "mashed", "refried"]],
+    ["Kidney beans", ["whole", "mashed"]],
+    ["White beans", ["whole", "mashed", "pureed"]],
+    ["Egg whites", ["separated", "whisked", "whole"]],
+    ["Cauliflower", ["florets", "steak", "riced"]],
+    ["Zucchini", ["sliced", "halves", "spiralized"]],
+    ["Bell pepper", ["strips", "diced", "halves"]],
+    ["Mushrooms", ["whole", "sliced", "quartered"]],
+    ["Eggplant", ["sliced", "cubed", "halves"]],
+    ["Asparagus", ["spears", "chopped", "whole"]],
+    ["Green beans", ["whole", "trimmed", "cut"]],
+    ["Brussels sprouts", ["whole", "halved", "shredded"]],
+    ["Cabbage", ["wedges", "shredded", "chopped"]],
+    ["Sweet potato", ["whole", "cubed", "wedges"]],
+    ["Potato", ["whole", "cubed", "wedges"]],
   ])("%s receives governed forms", async (input, expected) => {
     const result = await expandCreateDishIngredient(request(input));
     expect(result.ingredient.status).toBe("recognized");
@@ -58,6 +86,31 @@ describe("Create a Dish ingredient expansion", () => {
     });
   });
 
+  test.each([
+    ["I have chicken", "chicken", {}],
+    ["What can I do with salmon?", "salmon", {}],
+    ["I want crispy tofu", "tofu", { texture: "crispy-exterior" }],
+    ["Give me something teriyaki with chicken", "chicken", { flavor: "teriyaki" }],
+    ["I have some ground turkey", "turkey", { form: "ground" }],
+    ["Make shrimp kind of spicy", "shrimp", { flavor: "cajun" }],
+    ["I want something crunchy with chickpeas", "chickpeas", { texture: "crispy" }],
+    ["I want chicken thighs, crispy, maybe Cajun", "chicken", {
+      form: "thigh",
+      texture: "crispy-exterior",
+      flavor: "cajun",
+    }],
+  ])("recognizes realistic phrasing: %s", async (input, canonicalId, inferred) => {
+    const result = await expandCreateDishIngredient(request(input));
+    expect(result.ingredient.canonicalId).toBe(canonicalId);
+    expect(result.inferredSelectionIds).toMatchObject(inferred);
+  });
+
+  test("the most specific governed ingredient wins over a broader alias", async () => {
+    expect((await expandCreateDishIngredient(request("Ground beef"))).ingredient.canonicalId).toBe("ground-beef");
+    expect((await expandCreateDishIngredient(request("Pork tenderloin"))).ingredient.canonicalId).toBe("pork-tenderloin");
+    expect((await expandCreateDishIngredient(request("Egg whites"))).ingredient.canonicalId).toBe("egg-whites");
+  });
+
   test("Create-a-Dish compatibility adds stir-frying without replacing governed mappings", async () => {
     const result = await expandCreateDishIngredient(request("Chicken"));
     expect(result.options.methods.map((item) => item.id)).toEqual(
@@ -71,7 +124,7 @@ describe("Create a Dish ingredient expansion", () => {
     expect(salmon.options.methods.map((item) => item.id)).not.toContain("fried");
   });
 
-  test.each(["Steak", "Fish"])("%s returns clarification", async (input) => {
+  test.each(["Steak", "Fish", "Roast", "Chops"])("%s returns clarification", async (input) => {
     const result = await expandCreateDishIngredient(request(input));
     expect(result.ingredient.status).toMatch(/^clarification_/);
     expect(result.ingredient.clarification?.choices.length).toBeGreaterThan(1);
@@ -129,6 +182,37 @@ describe("Create a Dish ingredient expansion", () => {
     expect(result.resolvedCombination?.form?.id).toBe("cubed");
     expect(result.resolvedCombination?.method?.id).toBe("grilled");
     expect(result.resolvedCombination?.selectionSource.flavor).toBe("system_selected");
+  });
+
+  test("Surprise Me respects a selected cooking method and cuisine", async () => {
+    const result = await expandCreateDishIngredient(
+      request("Chicken", {
+        surprisePolicy: {
+          delegatedDimensions: ["texture", "flavor"],
+          selectedOptionIds: { method: "grilled", cuisine: "korean" },
+        },
+      }),
+    );
+    expect(result.resolvedCombination?.texture?.compatibleMethodIds).toContain("grilled");
+    expect(result.resolvedCombination?.flavor?.cuisineId).toBe("korean");
+    expect(result.resolvedCombination?.method?.id).toBe("grilled");
+    expect(result.resolvedCombination?.cuisine?.id).toBe("korean");
+  });
+
+  test("Cuisine remains ranking context and never rejects a user-selected flavor", async () => {
+    const result = await expandCreateDishIngredient(
+      request("Chicken", {
+        surprisePolicy: {
+          delegatedDimensions: [],
+          selectedOptionIds: { flavor: "korean-inspired", cuisine: "japanese" },
+        },
+      }),
+    );
+    expect(result.resolvedCombination?.flavor?.id).toBe("korean-inspired");
+    expect(result.resolvedCombination?.cuisine?.id).toBe("japanese");
+    expect(result.warnings.map((warning) => warning.code)).not.toContain(
+      "NO_COMPATIBLE_COMBINATION",
+    );
   });
 
   test("unknown client option IDs are rejected", async () => {

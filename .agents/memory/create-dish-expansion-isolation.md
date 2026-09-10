@@ -16,3 +16,9 @@ Generation must revalidate every option ID and compatibility against current ser
 **Why:** Soft prompt wording plus generic method/flavor variation caused three otherwise-valid candidates to ignore selected intent and all fail the final evidence gate. Hidden Method/Cuisine fields also allowed stale client state to reactivate removed controls.
 
 **How to apply:** Reject extra structured-intent dimensions at the server boundary, sanitize client intent construction, place active culinary intent above profile defaults, and keep the final evidence gate strict.
+
+**Rule:** Existing Cooking Method constrains expansion textures in both interaction orders and again immediately before intent construction. Existing Cuisine may rank flavor suggestions but never reject, replace, or become hidden structured intent.
+
+**Why:** Method-first inference and Slow Cooker/No-Bake Surprise Me could otherwise create contradictory hard texture intent. Treating Cuisine as compatibility instead of ranking could reject an explicitly chosen adaptable flavor.
+
+**How to apply:** Disable or clear incompatible textures with an explanation, reconcile delegated textures against the current method at generation time, and keep Cuisine out of final expansion resolution.
