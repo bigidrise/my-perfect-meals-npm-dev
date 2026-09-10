@@ -70,6 +70,7 @@ import KosherProTip from "@/components/KosherProTip";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { PillButton } from "@/components/ui/pill-button";
+import { IconPillOption } from "@/components/ui/icon-pill-option";
 import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import type {
@@ -1269,21 +1270,15 @@ export default function CreateDishPage() {
                     <label className="block text-sm font-medium mb-2 text-white">
                       {t("createDish.cookMethod")}
                     </label>
-                    <div className="flex flex-wrap gap-x-5 gap-y-3">
+                    <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                       {COOK_METHODS.map((m) => (
-                        <div key={m.label} className="flex flex-col items-center gap-1.5">
-                          <PillButton
-                            active={cookMethod === m.label}
-                            variant="amber"
-                            onClick={() => selectCookMethod(m.label)}
-                            className="w-14 text-lg leading-none py-2"
-                          >
-                            {m.emoji}
-                          </PillButton>
-                          <span className="text-xs text-white/80 font-medium text-center leading-tight">
-                            {m.label}
-                          </span>
-                        </div>
+                        <IconPillOption
+                          key={m.label}
+                          icon={m.emoji}
+                          label={m.label}
+                          active={cookMethod === m.label}
+                          onClick={() => selectCookMethod(m.label)}
+                        />
                       ))}
                     </div>
                   </div>
