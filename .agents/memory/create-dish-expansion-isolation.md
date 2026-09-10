@@ -28,3 +28,9 @@ Generation must revalidate every option ID and compatibility against current ser
 **Why:** Augmented instructions were mistaken for dish identity, literal evidence rejected valid culinary meaning, and title-plus-ingredient image prompts lost selected physical form or misread “crispy” as dessert “crisp.”
 
 **How to apply:** Keep safety-enriched generation text separate from classification input; use affirmative, negation-aware catalog evidence for final checks; pass deterministic Form/Texture/Flavor visual requirements through cache identity, prompt, and validator.
+
+**Rule:** Everyday ingredient language takes precedence over technically possible alternate meanings: unqualified steak means Beef + Steak Cut, while tuna, swordfish, and cauliflower steaks require an explicit subject; broad fish asks for a bounded governed species.
+
+**Why:** Presenting Tuna and Cauliflower as peer meanings of plain “steak” made the taxonomy technically defensible but unnatural and mixed primary ingredient with cut/form.
+
+**How to apply:** Keep species, form/cut, method, texture, flavor, and alternate interpretations separate. Add common fish deliberately with species-appropriate forms rather than giving every fish every cut.

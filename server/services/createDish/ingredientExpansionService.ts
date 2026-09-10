@@ -43,16 +43,6 @@ const AMBIGUOUS: Record<
   string,
   { status: "clarification_required" | "clarification_recommended"; question: string; choices: [string, string][] }
 > = {
-  steak: {
-    status: "clarification_required",
-    question: "What kind of steak would you like to use?",
-    choices: [
-      ["beef", "Beef"],
-      ["tuna", "Tuna"],
-      ["cauliflower", "Cauliflower"],
-      ["other", "Something Else"],
-    ],
-  },
   fish: {
     status: "clarification_recommended",
     question: "Do you have a particular fish in mind?",
@@ -60,6 +50,11 @@ const AMBIGUOUS: Record<
       ["salmon", "Salmon"],
       ["cod", "Cod"],
       ["tilapia", "Tilapia"],
+      ["white-fish", "White Fish"],
+      ["red-snapper", "Red Snapper"],
+      ["whiting", "Whiting"],
+      ["swordfish", "Swordfish"],
+      ["tuna", "Tuna"],
       ["surprise", "Surprise Me"],
     ],
   },
