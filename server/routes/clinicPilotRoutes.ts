@@ -13,7 +13,7 @@ import {
 const router = Router();
 const actor = (req: any) => req.authUser?.id as string;
 
-async function isBusinessAdmin(userId: string, businessId: string) {
+export async function isBusinessAdmin(userId: string, businessId: string) {
   const [business] = await db.select({ ownerUserId: businesses.ownerUserId }).from(businesses)
     .where(eq(businesses.id, businessId)).limit(1);
   if (business?.ownerUserId === userId) return true;
@@ -52,7 +52,13 @@ router.post("/links/:pilotId", requireAuth, requireMfa, async (req: any, res) =>
       capacity: req.body?.capacity === undefined ? undefined : Number(req.body.capacity),
       expiresAt: req.body?.expiresAt ? new Date(req.body.expiresAt) : null,
     });
-    return res.status(201).json({ linkId: created.link.id, expiresAt: created.link.expiresAt, capacity: created.link.capacity, rawToken: created.rawToken });
+    return res.status(201).json({
+      linkId: created.link.id,
+      expiresAt: created.link.expiresAt,
+      capacity: created.link.capacity,
+      rawToken: created.rawToken,
+      joinPath: `/join/clinic#token=${created.rawToken}`,
+    });
   } catch (error: any) { return res.status(400).json({ error: "Unable to create clinic enrollment link.", code: error?.message || "CLINIC_LINK_CREATE_FAILED" }); }
 });
 

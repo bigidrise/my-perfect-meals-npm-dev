@@ -23,7 +23,12 @@ export default function Auth() {
     () => new URLSearchParams(search).get("pilotAuthorization"),
     [search],
   );
-  const clinicPilotToken = useMemo(() => new URLSearchParams(search).get("clinicPilotToken"), [search]);
+  const clinicPilotToken = useMemo(() => {
+    const params = new URLSearchParams(search);
+    return params.get("clinicPilot") === "1"
+      ? sessionStorage.getItem("mpm.clinicPilotToken")
+      : null;
+  }, [search]);
   // returnTo is set by /join/studio (and similar pages) when redirecting an
   // unauthenticated user to login. Only same-origin paths are honoured.
   const urlReturnTo = useMemo(() => {
@@ -109,7 +114,8 @@ export default function Auth() {
         setErr(data.error || "Could not enroll in the clinic pilot.");
         return;
       }
-      setLocation(urlReturnTo || `/join/clinic/${encodeURIComponent(clinicPilotToken)}`);
+      sessionStorage.removeItem("mpm.clinicPilotToken");
+      setLocation(u.onboardingCompletedAt ? "/dashboard" : "/onboarding");
       return;
     }
 

@@ -88,6 +88,24 @@ describe("requireProCareAccess — production billing enforcement", () => {
     });
   });
 
+  it("rejects clinic patient entitlement and attribution without explicit ProCare access", async () => {
+    const result = await invokeGate({
+      id: "clinic-patient",
+      accessTier: "PAID_FULL",
+      planLookupKey: null,
+      clinicTrialEntitlementId: "clinic-entitlement-1",
+      attributionOrganizationId: "clinic-organization-1",
+      pilotProCareAccess: false,
+      sponsoredProCareAccess: false,
+      isFounder: false,
+    }, true);
+    expect(result).toMatchObject({
+      nextCalled: false,
+      statusCode: 403,
+      body: { code: "PROCARE_SUBSCRIPTION_REQUIRED" },
+    });
+  });
+
   it("rejects a non-clinical sponsored business seat", async () => {
     const result = await invokeGate({
       id: "sponsored-staff",
