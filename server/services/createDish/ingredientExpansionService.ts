@@ -63,6 +63,24 @@ const AMBIGUOUS: Record<
       ["surprise", "Surprise Me"],
     ],
   },
+  roast: {
+    status: "clarification_required",
+    question: "What ingredient would you like to roast?",
+    choices: [
+      ["beef", "Beef"],
+      ["pork", "Pork"],
+      ["chicken", "Chicken"],
+      ["other", "Something Else"],
+    ],
+  },
+  chops: {
+    status: "clarification_required",
+    question: "What kind of chops are you using?",
+    choices: [
+      ["pork", "Pork Chops"],
+      ["other", "Something Else"],
+    ],
+  },
 };
 
 const normalize = (value: string) =>
@@ -72,7 +90,25 @@ const toMappingId = (value: string) => normalize(value).replace(/\s+/g, "_");
 
 function recognize(input: string) {
   const normalized = normalize(input);
-  const ambiguous = AMBIGUOUS[normalized];
+  const entry = CREATE_DISH_CULINARY_ENTRIES
+    .flatMap((candidate) =>
+      candidate.aliases
+        .map((alias) => normalize(alias))
+        .filter((alias) =>
+          alias === normalized ||
+          new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(normalized)
+        )
+        .map((alias) => ({ candidate, alias })),
+    )
+    .sort((left, right) =>
+      Number(right.alias === normalized) - Number(left.alias === normalized) ||
+      right.alias.length - left.alias.length
+    )[0]?.candidate;
+  const ambiguousKey = Object.keys(AMBIGUOUS).find((term) =>
+    normalized === term ||
+    new RegExp(`\\b${term}\\b`, "i").test(normalized),
+  );
+  const ambiguous = !entry && ambiguousKey ? AMBIGUOUS[ambiguousKey] : null;
   if (ambiguous) {
     return {
       submittedText: input,
@@ -88,13 +124,6 @@ function recognize(input: string) {
     };
   }
 
-  const entry = CREATE_DISH_CULINARY_ENTRIES.find((candidate) =>
-    candidate.aliases.some((alias) => {
-      const normalizedAlias = normalize(alias);
-      return normalizedAlias === normalized ||
-        new RegExp(`\\b${normalizedAlias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(normalized);
-    }),
-  );
   if (!entry) {
     return {
       submittedText: input,
@@ -131,8 +160,24 @@ function inferSelectionIds(
     "pan-seared": ["pan seared", "seared", "sear"],
     "stir-fried": ["stir fried", "stir fry", "stir-fry"],
     "air-fried": ["air fried", "air fry", "air-fried"],
-    "crispy-exterior": ["crispy"],
-    crispy: ["crispy"],
+    "crispy-exterior": ["crispy", "crunchy", "crisp"],
+    crispy: ["crispy", "crunchy", "crisp"],
+    crunchy: ["crunchy", "crisp"],
+    "golden-browned": ["golden", "golden browned", "golden-browned"],
+    "fall-apart-tender": ["fall apart", "fall-apart", "slow cooked", "slow-cooked"],
+    flaky: ["flaky", "flaked"],
+    creamy: ["creamy"],
+    silky: ["silky", "smooth"],
+    charred: ["charred", "blackened"],
+    juicy: ["juicy", "succulent"],
+    tender: ["tender"],
+    ground: ["ground", "minced"],
+    chopped: ["chopped", "chop"],
+    flaked: ["flaked", "flaky"],
+    mashed: ["mashed", "mash"],
+    crumbled: ["crumbled", "crumble"],
+    spicy: ["spicy", "hot"],
+    cajun: ["cajun", "spicy", "hot"],
   };
   for (const candidate of options) {
     if (inferred[candidate.dimension]) continue;
@@ -264,6 +309,30 @@ function findOption(
   return found;
 }
 
+function chooseDelegatedOption(
+  options: ExpansionOption[],
+  dimension: ExpansionDimension,
+  result: Record<ExpansionDimension, ExpansionOption | null>,
+): ExpansionOption | null {
+  const candidates = options.filter((candidate) => candidate.dimension === dimension);
+  if (!candidates.length) return null;
+  if (dimension === "texture" && result.method) {
+    return candidates.find((candidate) =>
+      !candidate.compatibleMethodIds?.length ||
+      candidate.compatibleMethodIds.includes(result.method!.id as CookingMethodId)
+    ) ?? null;
+  }
+  if (dimension === "flavor" && result.cuisine) {
+    return candidates.find((candidate) => candidate.cuisineId === result.cuisine!.id)
+      ?? candidates.find((candidate) => !candidate.cuisineId)
+      ?? candidates[0];
+  }
+  if (dimension === "cuisine" && result.flavor?.cuisineId) {
+    return candidates.find((candidate) => candidate.id === result.flavor!.cuisineId) ?? null;
+  }
+  return candidates[0];
+}
+
 function resolveCombination(
   options: ExpansionOption[],
   request: ExpandIngredientRequest,
@@ -295,15 +364,16 @@ function resolveCombination(
     if (selectedId) {
       result[dimension] = findOption(options, selectedId, dimension);
       selectionSource[dimension] = "user_selected";
-    } else if (delegated.has(dimension)) {
-      result[dimension] =
-        options.find((candidate) => candidate.dimension === dimension) ?? null;
-      selectionSource[dimension] = result[dimension]
-        ? "system_selected"
-        : "not_applicable";
     } else {
       selectionSource[dimension] = "not_applicable";
     }
+  }
+  for (const dimension of dimensions) {
+    if (result[dimension] || !delegated.has(dimension)) continue;
+    result[dimension] = chooseDelegatedOption(options, dimension, result);
+    selectionSource[dimension] = result[dimension]
+      ? "system_selected"
+      : "not_applicable";
   }
 
   if (
@@ -325,17 +395,16 @@ function resolveCombination(
   }
   if (result.flavor?.cuisineId) {
     if (result.cuisine && result.cuisine.id !== result.flavor.cuisineId) {
-      if (selectionSource.cuisine === "user_selected") {
-        throw new Error("NO_COMPATIBLE_COMBINATION:flavor_cuisine");
+      if (selectionSource.cuisine !== "user_selected") {
+        result.cuisine = options.find(
+          (candidate) =>
+            candidate.dimension === "cuisine" &&
+            candidate.id === result.flavor!.cuisineId,
+        ) ?? null;
+        selectionSource.cuisine = result.cuisine
+          ? "system_selected"
+          : "not_applicable";
       }
-      result.cuisine = options.find(
-        (candidate) =>
-          candidate.dimension === "cuisine" &&
-          candidate.id === result.flavor!.cuisineId,
-      ) ?? null;
-      selectionSource.cuisine = result.cuisine
-        ? "system_selected"
-        : "not_applicable";
     } else if (!result.cuisine && delegated.has("cuisine")) {
       result.cuisine = options.find(
         (candidate) =>
@@ -393,9 +462,10 @@ export async function expandCreateDishIngredient(
       mappings.length
         ? [
             ...mappings.flatMap((mapping) => mapping.validMethods),
+            ...(entry.methodIds ?? []),
             ...(entry.additionalMethodIds ?? []),
           ]
-        : entry.methodIds ?? [],
+        : [...(entry.methodIds ?? []), ...(entry.additionalMethodIds ?? [])],
     ),
   ).filter((id) => !blockedMethodIds.has(id));
   const allergyTags = new Set((context.allergyTags ?? []).map(normalize));
@@ -434,6 +504,25 @@ export async function expandCreateDishIngredient(
           }),
         );
       }
+    }
+  }
+  for (const texture of entry.textures ?? []) {
+    const compatibleMethodIds = texture.compatibleMethodIds.filter((methodId) =>
+      methodIds.includes(methodId)
+    );
+    if (!compatibleMethodIds.length) continue;
+    const existing = textureMap.get(texture.id);
+    if (existing) {
+      existing.compatibleMethodIds = Array.from(
+        new Set([...(existing.compatibleMethodIds ?? []), ...compatibleMethodIds]),
+      );
+    } else {
+      textureMap.set(
+        texture.id,
+        option("texture", texture.id, texture.label, "catalog", {
+          compatibleMethodIds,
+        }),
+      );
     }
   }
   const textures = Array.from(textureMap.values());

@@ -76,6 +76,7 @@ import type {
   CreateDishIntent,
   ExpandIngredientResponse,
   ExpansionDimension,
+  ValidatedCookingMethodId,
 } from "../../../../shared/createDishIngredientExpansion";
 import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIngredientExpansion";
 
@@ -216,6 +217,24 @@ const COOK_METHODS: { label: string; emoji: string }[] = [
 ];
 
 const EXPANSION_DIMENSIONS: ExpansionDimension[] = ["form", "texture", "flavor"];
+const EXPANSION_DIMENSION_LABELS: Record<ExpansionDimension, string> = {
+  form: "Form / Cut",
+  method: "Method",
+  texture: "Texture",
+  flavor: "Flavor",
+  cuisine: "Cuisine",
+};
+const COOK_METHOD_TO_EXPANSION_ID: Record<string, ValidatedCookingMethodId | null> = {
+  Stovetop: "pan-seared",
+  Oven: "baked",
+  "Air Fryer": "air-fried",
+  "Slow Cooker": null,
+  Grill: "grilled",
+  "No-Bake": null,
+  Any: null,
+};
+const SLOW_COOKER_TEXTURES = new Set(["tender", "fall-apart-tender", "juicy", "creamy"]);
+const NO_BAKE_TEXTURES = new Set(["creamy", "silky", "delicate"]);
 const expansionOptionKey: Record<ExpansionDimension, keyof ExpandIngredientResponse["options"]> = {
   form: "forms",
   method: "methods",
@@ -481,16 +500,39 @@ export default function CreateDishPage() {
   const lastExpandedTextRef = useRef("");
   const expansionRequestRef = useRef(0);
 
-  const expansionPolicy = () => ({
-    delegatedDimensions: delegatedDimensions.filter((dimension) =>
-      EXPANSION_DIMENSIONS.includes(dimension),
-    ),
-    selectedOptionIds: {
-      form: expansionSelections.form ?? null,
-      texture: expansionSelections.texture ?? null,
-      flavor: expansionSelections.flavor ?? null,
-    },
-  });
+  const expansionPolicy = () => {
+    const mappedMethodId = COOK_METHOD_TO_EXPANSION_ID[cookMethod] ?? null;
+    const methodId = mappedMethodId && ingredientExpansion?.options.methods.some(
+      (option) => option.id === mappedMethodId,
+    )
+      ? mappedMethodId
+      : null;
+    return {
+      delegatedDimensions: delegatedDimensions.filter((dimension) =>
+        EXPANSION_DIMENSIONS.includes(dimension),
+      ),
+      selectedOptionIds: {
+        form: expansionSelections.form ?? null,
+        method: methodId,
+        texture: expansionSelections.texture ?? null,
+        flavor: expansionSelections.flavor ?? null,
+        cuisine: null,
+      },
+    };
+  };
+
+  const isTextureCompatibleWithCookMethod = (
+    texture: ExpandIngredientResponse["options"]["textures"][number] | undefined,
+    methodLabel = cookMethod,
+  ) => {
+    if (!texture || !methodLabel || methodLabel === "Any") return true;
+    if (methodLabel === "Slow Cooker") return SLOW_COOKER_TEXTURES.has(texture.id);
+    if (methodLabel === "No-Bake") return NO_BAKE_TEXTURES.has(texture.id);
+    const methodId = COOK_METHOD_TO_EXPANSION_ID[methodLabel];
+    return !methodId ||
+      !texture.compatibleMethodIds?.length ||
+      texture.compatibleMethodIds.includes(methodId);
+  };
 
   const requestIngredientExpansion = async (
     text: string,
@@ -549,9 +591,13 @@ export default function CreateDishPage() {
       }
       setExpansionFallback(false);
       setIngredientExpansion(result);
+      const inferredTextureId = result.inferredSelectionIds?.texture ?? null;
+      const inferredTexture = result.options.textures.find(
+        (option) => option.id === inferredTextureId,
+      );
       setExpansionSelections({
         form: result.inferredSelectionIds?.form ?? null,
-        texture: result.inferredSelectionIds?.texture ?? null,
+        texture: isTextureCompatibleWithCookMethod(inferredTexture) ? inferredTextureId : null,
         flavor: result.inferredSelectionIds?.flavor ?? null,
       });
     }, 420);
@@ -561,18 +607,7 @@ export default function CreateDishPage() {
   const toggleExpansionSelection = (dimension: ExpansionDimension, id: string) => {
     if (dimension === "texture") {
       const selectedTexture = ingredientExpansion?.options.textures.find((option) => option.id === id);
-      const methodId = cookMethod === "Oven"
-        ? "baked"
-        : cookMethod === "Air Fryer"
-          ? "air-fried"
-          : cookMethod === "Grill"
-            ? "grilled"
-            : null;
-      if (
-        methodId &&
-        selectedTexture?.compatibleMethodIds?.length &&
-        !selectedTexture.compatibleMethodIds.includes(methodId)
-      ) {
+      if (!isTextureCompatibleWithCookMethod(selectedTexture)) {
         toast({
           title: "That texture doesn't match your cooking method",
           description: `Choose a different texture or change the ${cookMethod} cooking method.`,
@@ -600,21 +635,13 @@ export default function CreateDishPage() {
 
   const selectCookMethod = (nextMethod: string) => {
     const updatedMethod = cookMethod === nextMethod ? "" : nextMethod;
-    const methodId = updatedMethod === "Oven"
-      ? "baked"
-      : updatedMethod === "Air Fryer"
-        ? "air-fried"
-        : updatedMethod === "Grill"
-          ? "grilled"
-          : null;
     const selectedTextureId = expansionSelections.texture;
     const selectedTexture = ingredientExpansion?.options.textures.find(
       (option) => option.id === selectedTextureId,
     );
     if (
-      methodId &&
-      selectedTexture?.compatibleMethodIds?.length &&
-      !selectedTexture.compatibleMethodIds.includes(methodId)
+      selectedTexture &&
+      !isTextureCompatibleWithCookMethod(selectedTexture, updatedMethod)
     ) {
       setExpansionSelections((current) => ({ ...current, texture: null }));
       toast({
@@ -624,6 +651,19 @@ export default function CreateDishPage() {
       });
     }
     setCookMethod(updatedMethod);
+  };
+
+  const rankExpansionOptions = (
+    dimension: ExpansionDimension,
+    options: ExpandIngredientResponse["options"][keyof ExpandIngredientResponse["options"]],
+  ) => {
+    if (dimension !== "flavor" || !cuisineOverrideEnabled || !cuisineOverrideValue.trim()) {
+      return options;
+    }
+    const normalizedCuisine = cuisineOverrideValue.trim().toLowerCase().replace(/\s+/g, "-");
+    return [...options].sort((left, right) =>
+      Number(right.cuisineId === normalizedCuisine) - Number(left.cuisineId === normalizedCuisine)
+    );
   };
 
   const chooseClarification = (choiceId: string, label: string) => {
@@ -674,6 +714,30 @@ export default function CreateDishPage() {
     if (!combination || ingredient.status === "unsupported" || !ingredient.canonicalId || !ingredient.canonicalName || !ingredient.category) {
       return null;
     }
+    let resolvedTexture = combination.texture;
+    let resolvedTextureSource = combination.selectionSource.texture;
+    if (!isTextureCompatibleWithCookMethod(resolvedTexture ?? undefined)) {
+      const compatibleTexture = delegatedDimensions.includes("texture")
+        ? result.options.textures.find((option) =>
+            isTextureCompatibleWithCookMethod(option)
+          ) ?? null
+        : null;
+      resolvedTexture = compatibleTexture;
+      resolvedTextureSource = compatibleTexture ? "system_selected" : "not_applicable";
+      setExpansionSelections((current) => ({ ...current, texture: compatibleTexture?.id ?? null }));
+      if (!compatibleTexture) {
+        setDelegatedDimensions((current) =>
+          current.filter((dimension) => dimension !== "texture")
+        );
+      }
+      toast({
+        title: compatibleTexture ? "Compatible texture selected" : "Texture choice cleared",
+        description: compatibleTexture
+          ? `${compatibleTexture.label} works with the ${cookMethod} cooking method.`
+          : `The ${cookMethod} cooking method will stay in control without a conflicting texture.`,
+        variant: "warning",
+      });
+    }
     return {
       creator: "create_a_dish",
       originalText: dishInput.trim(),
@@ -684,11 +748,11 @@ export default function CreateDishPage() {
       },
       resolvedCombination: {
         form: combination.form,
-        texture: combination.texture,
+        texture: resolvedTexture,
         flavor: combination.flavor,
         selectionSource: {
           form: combination.selectionSource.form,
-          texture: combination.selectionSource.texture,
+          texture: resolvedTextureSource,
           flavor: combination.selectionSource.flavor,
         },
       },
@@ -1112,12 +1176,17 @@ export default function CreateDishPage() {
 
                       <div className="space-y-3">
                         {EXPANSION_DIMENSIONS.map((dimension) => {
-                          const options = ingredientExpansion.options[expansionOptionKey[dimension]];
+                          const options = rankExpansionOptions(
+                            dimension,
+                            ingredientExpansion.options[expansionOptionKey[dimension]],
+                          );
                           if (!options?.length) return null;
                           return (
                             <div key={dimension} className="min-w-0">
                               <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                                <span className="text-xs font-semibold capitalize text-white/80">{dimension}</span>
+                                <span className="text-xs font-semibold text-white/80">
+                                  {EXPANSION_DIMENSION_LABELS[dimension]}
+                                </span>
                                 <button
                                   type="button"
                                   onClick={() => surpriseDimension(dimension)}
@@ -1132,20 +1201,30 @@ export default function CreateDishPage() {
                                 </button>
                               </div>
                               <div className="flex max-w-full flex-wrap gap-2">
-                                {options.map((option) => (
-                                  <button
-                                    type="button"
-                                    key={option.id}
-                                    onClick={() => toggleExpansionSelection(dimension, option.id)}
-                                    className={`max-w-full rounded-full border px-3 py-1.5 text-left text-xs leading-snug transition-colors ${
-                                      expansionSelections[dimension] === option.id
-                                        ? "border-orange-300 bg-orange-400/20 text-orange-50"
-                                        : "border-white/20 bg-white/5 text-white/80 hover:border-orange-300/60"
-                                    }`}
-                                  >
-                                    <span className="break-words">{option.label}</span>
-                                  </button>
-                                ))}
+                                {options.map((option) => {
+                                  const incompatible =
+                                    dimension === "texture" &&
+                                    !isTextureCompatibleWithCookMethod(option);
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={option.id}
+                                      disabled={incompatible}
+                                      aria-pressed={expansionSelections[dimension] === option.id}
+                                      title={incompatible ? `${option.label} is not compatible with ${cookMethod}` : undefined}
+                                      onClick={() => toggleExpansionSelection(dimension, option.id)}
+                                      className={`max-w-full rounded-full border px-3 py-1.5 text-left text-xs leading-snug transition-colors ${
+                                        expansionSelections[dimension] === option.id
+                                          ? "border-orange-300 bg-orange-400/20 text-orange-50 shadow-[0_0_0_1px_rgba(253,186,116,0.2)]"
+                                          : incompatible
+                                            ? "cursor-not-allowed border-white/10 bg-white/[0.03] text-white/30 line-through"
+                                            : "border-white/20 bg-white/5 text-white/80 hover:border-orange-300/60"
+                                      }`}
+                                    >
+                                      <span className="break-words">{option.label}</span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             </div>
                           );
