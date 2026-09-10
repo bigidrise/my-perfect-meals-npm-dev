@@ -88,6 +88,14 @@ describe("unified organization invitation durations", () => {
     expect(email).toContain("safeFounderVideoUrl ?");
     expect(email).toContain("safeFacebookGroupUrl ?");
     expect(routes).toContain("supportEmail: organizationContext.supportEmail");
+    expect(routes).toContain('const PRODUCTION_PATIENT_ENROLLMENT_APP_URL = "https://app.myperfectmeals.ai"');
+    expect(routes).toContain('process.env.NODE_ENV === "production"');
+    expect(routes).toContain("`${getPatientEnrollmentAppUrl()}/business/join#token=${token}`");
+    expect(routes).toContain("`${getPatientEnrollmentAppUrl()}/business/join#token=${invite.token}`");
+    expect(routes).not.toContain("`${getAppUrl()}/business/join/${token}`");
+    expect(email).toContain('recipientName?.trim() || "there"');
+    expect(email).toContain("For your security, please create your account or sign in using ${safeRecipient}.");
+    expect(email.indexOf("Open My Perfect Meals")).toBeLessThan(email.indexOf("Getting started is simple"));
     expect(routes).toContain("recipientName: req.body?.participantName");
     expect(routes).toContain("recipientName: recipient.displayName");
   });
