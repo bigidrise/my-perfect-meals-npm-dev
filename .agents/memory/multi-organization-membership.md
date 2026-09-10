@@ -1,10 +1,10 @@
 ---
 name: Multi-organization membership
-description: Product rule allowing a professional to hold different roles across organizations.
+description: Product and authorization rules for one account managing multiple isolated organizations.
 ---
 
-A user may remain an active staff member in one organization while creating and owning a different organization. Membership identity and duplicate protection are scoped to the organization/user pair, not globally to the user.
+A user may hold different roles in multiple organizations through one account. A Hub selects the active organization, and one reusable dashboard reloads that organization's isolated data. Membership identity and duplicate protection are scoped to the organization/user pair, not globally to the user.
 
-**Why:** Organization ownership is a valid separate role; a global one-active-membership-per-user rule blocked the pre-payment setup flow for existing staff members.
+**Why:** Organization ownership is a valid separate role, and multi-organization administrators must not need duplicate accounts or risk acting on whichever business a query happens to return first.
 
-**How to apply:** Preserve same-organization uniqueness, tenant isolation, authorization checks, and transactional organization creation. Do not add a global active-membership uniqueness constraint.
+**How to apply:** Require explicit server-validated organization/location selection for sensitive reads and mutations. Keep the active organization obvious, clear old data before switching, and never hard-code a dashboard per organization.

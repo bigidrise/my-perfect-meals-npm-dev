@@ -38,7 +38,7 @@ router.get("/inspect", async (req, res) => {
     return res.json({
       pilotId: link.pilotId, pilotName: link.pilotName, status: link.status,
       expiresAt: link.expiresAt, capacity: link.capacity, enrolledCount: link.enrolledCount,
-      available: link.available,
+      accessDurationDays: link.accessDurationDays, available: link.available,
     });
   } catch { return res.status(500).json({ error: "Unable to inspect enrollment link.", code: "CLINIC_LINK_INSPECT_FAILED" }); }
 });
@@ -51,11 +51,13 @@ router.post("/links/:pilotId", requireAuth, requireMfa, async (req: any, res) =>
       businessId, pilotId: req.params.pilotId, actorUserId: actor(req),
       capacity: req.body?.capacity === undefined ? undefined : Number(req.body.capacity),
       expiresAt: req.body?.expiresAt ? new Date(req.body.expiresAt) : null,
+      accessDurationDays: Number(req.body?.accessDurationDays),
     });
     return res.status(201).json({
       linkId: created.link.id,
       expiresAt: created.link.expiresAt,
       capacity: created.link.capacity,
+      accessDurationDays: created.link.accessDurationDays,
       rawToken: created.rawToken,
       joinPath: `/join/clinic#token=${created.rawToken}`,
     });
@@ -65,7 +67,7 @@ router.post("/links/:pilotId", requireAuth, requireMfa, async (req: any, res) =>
 router.get("/links", requireAuth, requireMfa, async (req: any, res) => {
   const businessId = typeof req.query.businessId === "string" ? req.query.businessId : "";
   if (!businessId || !(await isBusinessAdmin(actor(req), businessId))) return res.status(403).json({ error: "Business administrator access required.", code: "BUSINESS_ADMIN_REQUIRED" });
-  const links = await db.select({ id: clinicPilotEnrollmentLinks.id, pilotId: clinicPilotEnrollmentLinks.pilotId, status: clinicPilotEnrollmentLinks.status, expiresAt: clinicPilotEnrollmentLinks.expiresAt, capacity: clinicPilotEnrollmentLinks.capacity, createdAt: clinicPilotEnrollmentLinks.createdAt, revokedAt: clinicPilotEnrollmentLinks.revokedAt }).from(clinicPilotEnrollmentLinks).where(eq(clinicPilotEnrollmentLinks.businessId, businessId));
+  const links = await db.select({ id: clinicPilotEnrollmentLinks.id, pilotId: clinicPilotEnrollmentLinks.pilotId, status: clinicPilotEnrollmentLinks.status, expiresAt: clinicPilotEnrollmentLinks.expiresAt, capacity: clinicPilotEnrollmentLinks.capacity, accessDurationDays: clinicPilotEnrollmentLinks.accessDurationDays, createdAt: clinicPilotEnrollmentLinks.createdAt, revokedAt: clinicPilotEnrollmentLinks.revokedAt }).from(clinicPilotEnrollmentLinks).where(eq(clinicPilotEnrollmentLinks.businessId, businessId));
   return res.json({ links });
 });
 

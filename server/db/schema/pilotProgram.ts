@@ -118,6 +118,7 @@ export const clinicPilotEnrollmentLinks = pgTable("clinic_pilot_enrollment_links
   status: varchar("status", { length: 16 }).$type<"active" | "revoked">().notNull().default("active"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   capacity: integer("capacity").notNull(),
+  accessDurationDays: integer("access_duration_days").notNull().default(30),
   createdByUserId: varchar("created_by_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "restrict" }),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
   revokedByUserId: varchar("revoked_by_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
@@ -134,7 +135,8 @@ export const clinicTrialEntitlements = pgTable("clinic_trial_entitlements", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   pilotId: uuid("pilot_id").notNull().references(() => organizationalPilots.id, { onDelete: "cascade" }),
-  linkId: uuid("link_id").notNull().references(() => clinicPilotEnrollmentLinks.id, { onDelete: "restrict" }),
+  linkId: uuid("link_id").references(() => clinicPilotEnrollmentLinks.id, { onDelete: "restrict" }),
+  businessInvitationId: uuid("business_invitation_id").references(() => businessInvitations.id, { onDelete: "restrict" }),
   businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
   organizationId: uuid("organization_id"),
   participantId: uuid("participant_id").notNull().references(() => organizationalPilotParticipants.id, { onDelete: "restrict" }),
@@ -148,9 +150,28 @@ export const clinicTrialEntitlements = pgTable("clinic_trial_entitlements", {
   activeIdx: index("clinic_trial_entitlements_user_active_idx").on(table.userId, table.endsAt),
 }));
 
+/** Individual temporary professional access; separate from patient trials and organization membership. */
+export const professionalTemporaryAccessEntitlements = pgTable("professional_temporary_access_entitlements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  pilotId: uuid("pilot_id").notNull().references(() => organizationalPilots.id, { onDelete: "cascade" }),
+  businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
+  participantId: uuid("participant_id").notNull().references(() => organizationalPilotParticipants.id, { onDelete: "restrict" }),
+  businessInvitationId: uuid("business_invitation_id").notNull().references(() => businessInvitations.id, { onDelete: "restrict" }),
+  professionalRole: varchar("professional_role", { length: 32 }).notNull(),
+  status: varchar("status", { length: 16 }).$type<"active" | "expired" | "revoked">().notNull().default("active"),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  invitationUnique: uniqueIndex("professional_temporary_access_invitation_unique").on(table.businessInvitationId),
+  userActiveIdx: index("professional_temporary_access_user_active_idx").on(table.userId, table.endsAt),
+}));
+
 export type OrganizationalPilotAuthorization = typeof organizationalPilotAuthorizations.$inferSelect;
 export type OrganizationalPilot = typeof organizationalPilots.$inferSelect;
 export type OrganizationalPilotParticipant = typeof organizationalPilotParticipants.$inferSelect;
 export type OrganizationalPilotEvent = typeof organizationalPilotEvents.$inferSelect;
 export type ClinicPilotEnrollmentLink = typeof clinicPilotEnrollmentLinks.$inferSelect;
 export type ClinicTrialEntitlement = typeof clinicTrialEntitlements.$inferSelect;
+export type ProfessionalTemporaryAccessEntitlement = typeof professionalTemporaryAccessEntitlements.$inferSelect;
