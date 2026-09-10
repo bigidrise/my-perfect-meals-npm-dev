@@ -40,6 +40,7 @@ import {
   Copy,
   ExternalLink,
   HelpCircle,
+  MapPin,
 } from "lucide-react";
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 import OrganizationInvitationsAccess from "@/components/business/OrganizationInvitationsAccess";
