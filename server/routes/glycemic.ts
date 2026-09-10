@@ -15,7 +15,7 @@ import { isDiabetesFoodPreferenceEligible } from "@shared/diabetesEligibility";
 const router = express.Router();
 
 async function userCanConfigureGlycemicPreferences(userId: string): Promise<boolean> {
-  const [[user], [diabetesProfile]] = await Promise.all([
+  const [[user], [diabetesProfileRow]] = await Promise.all([
     db.select({
       medicalConditions: users.medicalConditions,
       healthConditions: users.healthConditions,
@@ -28,7 +28,7 @@ async function userCanConfigureGlycemicPreferences(userId: string): Promise<bool
   ]);
   return isDiabetesFoodPreferenceEligible({
     ...user,
-    diabetesType: diabetesProfile?.diabetesType,
+    diabetesType: diabetesProfileRow?.diabetesType,
   });
 }
 
