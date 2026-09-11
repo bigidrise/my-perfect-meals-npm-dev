@@ -37,7 +37,7 @@ async function getOrganizationAffiliateAccount(req: any) {
   const [account] = await db
     .select()
     .from(userAffiliateAccounts)
-    .where(affiliateAccountScope(userId, workspace.organizationId))
+    .where(affiliateAccountScope(workspace.organizationId))
     .limit(1);
   return { userId, workspace, account };
 }
@@ -113,7 +113,7 @@ router.post("/register-track", requireAuth, requireProAccess, async (req, res) =
               requiredPhases: "phase_1_and_2",
               updatedAt: new Date(),
             })
-            .where(affiliateAccountScope(userId, workspace.organizationId));
+            .where(affiliateAccountScope(workspace.organizationId));
           return res.json({ ok: true, track: "business_affiliate", upgraded: true });
         }
         // Already activated as social — cannot change track silently
