@@ -13,6 +13,22 @@ export function readAuthoritativeTextValue(
   return limitTextInputValue(element?.value ?? stateValue, maxLength);
 }
 
+export async function captureAuthoritativeTextValue(
+  element: TextControl | null,
+  stateValue: string,
+  maxLength?: number,
+): Promise<string> {
+  element?.blur();
+  await new Promise<void>((resolve) => {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => resolve());
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+  return readAuthoritativeTextValue(element, stateValue, maxLength);
+}
+
 export function commitTextInputValue(
   event: TextInputEvent,
   setValue: (value: string) => void,

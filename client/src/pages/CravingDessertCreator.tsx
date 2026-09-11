@@ -64,7 +64,7 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
-import { commitTextInputValue, readAuthoritativeTextValue } from "@/lib/authoritativeTextInput";
+import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -351,11 +351,11 @@ export default function DessertCreator() {
     `${dessertCategory} ${flavorFamily} ${submittedSpecificDessert}`.trim();
 
   async function handleGenerateDessert(skipPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
-    const submittedDescription = readAuthoritativeTextValue(
+    const submittedDescription = await captureAuthoritativeTextValue(
       customDessertDescriptionRef.current,
       customDessertDescription,
     );
-    const submittedSpecificDessert = readAuthoritativeTextValue(
+    const submittedSpecificDessert = await captureAuthoritativeTextValue(
       specificDessertRef.current,
       specificDessert,
       150,

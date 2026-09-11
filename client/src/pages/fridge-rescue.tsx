@@ -93,7 +93,7 @@ import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
-import { commitTextInputValue, readAuthoritativeTextValue } from "@/lib/authoritativeTextInput";
+import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -429,7 +429,7 @@ const FridgeRescuePage = () => {
   };
 
   const handleGenerateMeals = async (skipPreflight = false, dietAdaptOverride = false) => {
-    const submittedIngredients = readAuthoritativeTextValue(ingredientsInputRef.current, ingredients);
+    const submittedIngredients = await captureAuthoritativeTextValue(ingredientsInputRef.current, ingredients);
     if (submittedIngredients !== ingredients) setIngredients(submittedIngredients);
     const userDietOverride = continueAnywayRef.current;
     continueAnywayRef.current = false;

@@ -145,7 +145,7 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
-import { commitTextInputValue, readAuthoritativeTextValue } from "@/lib/authoritativeTextInput";
+import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -549,7 +549,7 @@ export default function CravingCreator() {
   }, [cravingInput, starchDecision, checkStarch]);
 
   const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
-    const submittedCravingInput = readAuthoritativeTextValue(cravingInputRef.current, cravingInput, 300);
+    const submittedCravingInput = await captureAuthoritativeTextValue(cravingInputRef.current, cravingInput, 300);
     if (submittedCravingInput !== cravingInput) setCravingInput(submittedCravingInput);
     const userDietOverride = continueAnywayRef.current;
     continueAnywayRef.current = false;
