@@ -2333,6 +2333,22 @@ router.get("/check-status", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/organization-creation-access", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const [actor] = await db
+      .select({ isAdmin: users.isAdmin })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const founderComplimentary = process.env.NODE_ENV !== "production" && actor?.isAdmin === true;
+    return res.json({ mode: founderComplimentary ? "founder_complimentary" : "paid" });
+  } catch (err) {
+    console.error("[business/organization-creation-access] error:", err);
+    return res.status(500).json({ error: "Could not determine organization access." });
+  }
+});
+
 // ── POST /api/business/create-org — Self-service org creation for new business accounts.
 // Creates a businesses + owner businessMembers row with status=pending_billing.
 // The Stripe webhook flips status to active. Ordinary organizations are flat;
@@ -2342,13 +2358,66 @@ router.get("/check-status", requireAuth, async (req, res) => {
 router.post("/create-org", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const orgName = ((req.body as any).name || "").trim();
+  const creationRequestId = typeof req.body?.creationRequestId === "string" ? req.body.creationRequestId.trim() : "";
+  const createNewIntent = req.body?.creationIntent === "create-new";
   if (!orgName || orgName.length < 2) {
     return res.status(400).json({ error: "Organization name must be at least 2 characters." });
   }
   if (orgName.length > 80) {
     return res.status(400).json({ error: "Organization name must be 80 characters or fewer." });
   }
+  if (createNewIntent && (!creationRequestId || creationRequestId.length > 100)) {
+    return res.status(400).json({ error: "A valid organization creation request is required." });
+  }
   try {
+    const [actor] = await db
+      .select({ isAdmin: users.isAdmin })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const founderComplimentary = createNewIntent && process.env.NODE_ENV !== "production" && actor?.isAdmin === true;
+
+    if (createNewIntent) {
+      const result = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${creationRequestId}))`);
+        const [prior] = await tx
+          .select()
+          .from(businesses)
+          .where(eq(businesses.creationRequestId, creationRequestId))
+          .limit(1);
+        if (prior) {
+          if (prior.ownerUserId !== userId) throw new Error("Organization creation request belongs to another account.");
+          return { business: prior, created: false };
+        }
+
+        const [business] = await tx.insert(businesses).values({
+          name: orgName,
+          ownerUserId: userId,
+          creationRequestId,
+          plan: "clinical_business_monthly",
+          seatLimit: 1,
+          status: founderComplimentary ? "active" : "pending_billing",
+        }).returning();
+        await tx.insert(businessMembers).values({
+          businessId: business.id,
+          userId,
+          role: "owner",
+          status: "active",
+        });
+        await tx.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+        return { business, created: true };
+      });
+
+      const workspace = await ensureCanonicalWorkspaceForBusiness(result.business.id);
+      return res.status(result.created ? 201 : 200).json({
+        businessId: result.business.id,
+        organizationId: workspace.organizationId,
+        locationId: workspace.locationId,
+        created: result.created,
+        paymentRequired: !founderComplimentary,
+      });
+    }
+
     // Existing paid self-service behavior remains one setup per owner.
     const [existing] = await db
       .select()

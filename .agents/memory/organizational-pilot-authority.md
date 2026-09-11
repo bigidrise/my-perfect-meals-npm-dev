@@ -13,8 +13,10 @@ Pilot Champion authority is an exact-user organizational authorization, not a pa
 
 Each complimentary organization requires its own founder/admin-issued, email-bound authorization. An authorization is single-use and becomes permanently bound to the business it creates; multiple organizations require multiple explicit authorizations, never a reusable pilot-user bypass.
 
+Development founder testing is the narrow exception: a trusted server-side administrator may repeatedly create independent complimentary test organizations without Stripe or consuming pilot authorizations. This bypass must never activate in Production.
+
 An active organizational-pilot membership may elevate commercial product entitlements only. It must not infer ProCare, clinical credentials, care relationships, or Business administration; owner/admin membership remains the separate management authority.
 
-**Why:** Clinics and gyms can support far more clients than professionals, and participant-level clocks, placeholder users, synthetic paid plans, email-domain administration, or unlimited free-organization flags do not scale or preserve billing and administrative authority.
+**Why:** Clinics and gyms can support far more clients than professionals, and participant-level clocks, placeholder users, synthetic paid plans, email-domain administration, or production unlimited free-organization flags do not scale or preserve billing and administrative authority. Founder testing still needs the real pilot-facing setup experience.
 
-**How to apply:** Keep Stripe and paid Business flows unchanged. Founder/admin self-service may issue and revoke unused authorizations, but organization creation must lock and consume one exact authorization. Store pending invitations without users, associate real accounts only on acceptance, and leave role, ProCare, care-team, and client relationships as independent authorities.
+**How to apply:** Keep Stripe and paid Business flows unchanged. Resolve complimentary mode on the server. Founder/admin self-service may issue and revoke unused authorizations, but normal pilot creation must lock and consume one exact authorization. Keep Development founder bypass explicit and environment-gated. Store pending invitations without users, associate real accounts only on acceptance, and leave role, ProCare, care-team, and client relationships as independent authorities.

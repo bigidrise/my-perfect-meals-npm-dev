@@ -136,7 +136,7 @@ export default function OrganizationHub() {
               <p className="mt-1 text-sm text-white/50">Add an organization you are authorized to manage.</p>
               <button
                 type="button"
-                onClick={() => setLocation("/business/start")}
+                onClick={() => setLocation("/business/setup?createNew=1")}
                 className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold hover:bg-blue-500"
               >
                 <span className="inline-flex items-center gap-2"><Plus className="h-4 w-4" /> Start Organization</span>
@@ -222,7 +222,7 @@ export default function OrganizationHub() {
         {!loading && !error && organizations.length > 0 && (
           <button
             type="button"
-            onClick={() => setLocation("/business/start")}
+            onClick={() => setLocation("/business/setup?createNew=1")}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500/10 px-5 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/20"
           >
             <Plus className="h-4 w-4" /> Add Organization
