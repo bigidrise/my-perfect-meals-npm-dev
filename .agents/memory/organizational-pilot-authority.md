@@ -7,7 +7,7 @@ An authorized organizational pilot extends the existing Business organization; i
 
 Professional seats and client capacity are permanently separate allocations. Client capacity authorizes later enrollment and is not a requirement to pre-create users.
 
-One organizational pilot owns the shared start and end timestamps. Normal commercial pilot access requires an active pilot, active participation, and current time inside that window. Preparing grants no normal commercial entitlement.
+The Business commercial-access window owns the shared start and end timestamps. Organizational-pilot dates are compatibility/history mirrors and must match that window exactly; they are not an independently writable clock. Normal commercial pilot access requires an active pilot, active participation, and current time inside the Business window. Preparing grants no normal commercial entitlement.
 
 Pilot Champion authority is an exact-user organizational authorization, not a participant role that can be requested through an ordinary team invitation. Existing and new users claim through different entry paths, then converge on the same Business organization, pilot, and Champion authority. Champion administration and participant commercial entitlement remain independent permissions.
 
@@ -17,4 +17,4 @@ An active organizational-pilot membership may elevate commercial product entitle
 
 **Why:** Clinics and gyms can support far more clients than professionals, and participant-level clocks, placeholder users, synthetic paid plans, or email-domain administration do not preserve billing and administrative authority. Universal onboarding must not erase the separate provenance and capacity semantics of authorized programs.
 
-**How to apply:** Keep authorized-program records and clocks separate from universal onboarding commercial state. Admin self-service may issue and revoke unused authorizations, and authorized pilot creation must lock and consume one exact authorization. Store pending invitations without users, associate real accounts only on acceptance, and leave role, ProCare, care-team, and client relationships as independent authorities.
+**How to apply:** Keep authorized-program provenance and capacity separate while using Business commercial access as the sole timing authority. Establish its window once at successful setup activation; retries and ordinary organization changes must reuse it. Any organizational-pilot mirror must be written atomically from the same window and fail closed on disagreement. Admin self-service may issue and revoke unused authorizations, and authorized pilot creation must lock and consume one exact authorization. Store pending invitations without users, associate real accounts only on acceptance, and leave role, ProCare, care-team, and client relationships as independent authorities.
