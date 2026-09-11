@@ -29,7 +29,7 @@ interface AffiliateAccount {
   organizationRole: string;
   organizationRelationshipType: "internal_staff" | "external_contractor";
   canManage: boolean;
-  organizationRewardfulLifecycle: {
+  organizationRewardfulLifecycle?: {
     state: "not_available" | "setup_available" | "setup_in_progress" | "active";
     setupAvailable: boolean;
     reason: string;
@@ -184,7 +184,7 @@ export default function AffiliateDashboard() {
           }));
         }
       }
-      if (affiliateData) {
+      if ((affiliateData as AffiliateAccount | null)?.hasLinkedRewardful) {
         apiRequest("/api/affiliate/rewardful-status")
           .then((s) => setRewardfulStatus(s as RewardfulStatus))
           .catch(() => {});
@@ -392,6 +392,17 @@ export default function AffiliateDashboard() {
     );
   }
 
+  const organizationRewardfulLifecycle = account.organizationRewardfulLifecycle ?? {
+    state: account.hasLinkedRewardful
+      ? account.isActive
+        ? "active" as const
+        : "setup_in_progress" as const
+      : "not_available" as const,
+    setupAvailable: false,
+    reason: "organization_lifecycle_unavailable",
+    commercialState: null,
+  };
+
   const qrSrc = account.rewardfulReferralUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=16&color=000000&bgcolor=ffffff&data=${encodeURIComponent(account.rewardfulReferralUrl)}`
     : null;
@@ -448,19 +459,19 @@ export default function AffiliateDashboard() {
           )}
 
           {/* ── REWARDFUL ACCOUNT SETUP CARD ── */}
-          {account.organizationRewardfulLifecycle.state === "not_available" && (
+          {organizationRewardfulLifecycle.state === "not_available" && (
             <Card className="border-orange-500/25 bg-orange-500/10">
               <CardLabel>Organization lifecycle</CardLabel>
               <p className="text-sm font-bold text-white">Partner &amp; Revenue is not available yet</p>
               <p className="mt-2 text-xs leading-relaxed text-gray-300">
-                {account.organizationRewardfulLifecycle.reason === "onboarding_pilot_active"
+                {organizationRewardfulLifecycle.reason === "onboarding_pilot_active"
                   ? "This organization is still in its 30-day Business pilot. Setup becomes available when the pilot completes; no Rewardful account will be created automatically."
                   : "This organization must reach an eligible commercial state before Rewardful setup can begin."}
               </p>
             </Card>
           )}
 
-          {account.organizationRewardfulLifecycle.state === "setup_available" && (
+          {organizationRewardfulLifecycle.state === "setup_available" && (
             <Card className="border-orange-500/30 bg-orange-500/10">
               <CardLabel>Organization setup</CardLabel>
               <p className="text-sm font-bold text-white">Set Up Partner &amp; Revenue</p>
@@ -525,7 +536,7 @@ export default function AffiliateDashboard() {
             </Card>
           )}
 
-          {account.organizationRewardfulLifecycle.state === "setup_in_progress" && (
+          {organizationRewardfulLifecycle.state === "setup_in_progress" && (
             <Card className="border-orange-500/30 bg-orange-500/10">
               <CardLabel>Rewardful setup</CardLabel>
               <p className="text-sm font-bold text-white">Organization account linked</p>
