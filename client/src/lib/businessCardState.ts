@@ -11,6 +11,7 @@ export type BusinessCardState =
   | { state: "loading" }
   | ({ state: "active" } & BusinessCardDetails)
   | ({ state: "incomplete" } & BusinessCardDetails)
+  | { state: "pilot-ready" }
   | { state: "none" }
   | { state: "error" };
 
@@ -73,6 +74,15 @@ export async function resolveBusinessCardState(
       }
     }
 
+    const pilotWorkspaceRes = await request("/api/business/workspaces");
+    if (pilotWorkspaceRes.ok) {
+      const pilotWorkspaceData = await pilotWorkspaceRes.json();
+      const workspaces = Array.isArray(pilotWorkspaceData?.workspaces) ? pilotWorkspaceData.workspaces : [];
+      if (workspaces.some((workspace: any) => workspace.action === "setup")) {
+        return { state: "pilot-ready" };
+      }
+    }
+
     // This is the only authoritative "none" check. The owner/member endpoints
     // may return 401/403/404 simply because their narrower permission gate does
     // not apply to this user.
@@ -112,6 +122,12 @@ export function businessCardPresentation(state: BusinessCardState): {
         title: "Complete Organization Setup",
         description: `${state.name} · Setup before payment`,
         destination: "/business/start",
+      };
+    case "pilot-ready":
+      return {
+        title: "Open Organization Hub",
+        description: "Your complimentary organization access is ready",
+        destination: "/business-organizations",
       };
     case "none":
       return {

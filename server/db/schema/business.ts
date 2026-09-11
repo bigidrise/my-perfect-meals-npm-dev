@@ -3,11 +3,7 @@ import { pgTable, uuid, text, timestamp, integer, unique, uniqueIndex } from "dr
 export const businesses = pgTable("businesses", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  ownerUserId: text("owner_user_id"),
-  setupRelationship: text("setup_relationship")
-    .$type<"owner_manager" | "setup_on_behalf">()
-    .notNull()
-    .default("owner_manager"),
+  ownerUserId: text("owner_user_id").notNull(),
   creationRequestId: text("creation_request_id"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),

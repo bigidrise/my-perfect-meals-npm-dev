@@ -1387,23 +1387,6 @@ async function initializeApp() {
         await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_sent_at timestamptz`);
         // Stable provider idempotency key (UUID) for the business welcome email — set once, never cleared
         await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_key text`);
-        await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS setup_relationship text NOT NULL DEFAULT 'owner_manager'`);
-        await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS creation_request_id text`);
-        await db.execute(sql`ALTER TABLE businesses ALTER COLUMN owner_user_id DROP NOT NULL`);
-        await db.execute(sql`
-          DO $$ DECLARE constraint_name text;
-          BEGIN
-            SELECT c.conname INTO constraint_name
-            FROM pg_constraint c
-            JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
-            WHERE c.conrelid = 'businesses'::regclass AND c.contype = 'u' AND a.attname = 'owner_user_id'
-            LIMIT 1;
-            IF constraint_name IS NOT NULL THEN
-              EXECUTE format('ALTER TABLE businesses DROP CONSTRAINT %I', constraint_name);
-            END IF;
-          END $$;
-        `);
-        await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS businesses_creation_request_id_uniq ON businesses (creation_request_id) WHERE creation_request_id IS NOT NULL`);
         // ── Phase 1 personal plan snapshot columns on users ───────────────
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_plan_lookup_key varchar(100)`);
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS personal_entitlements text[] NOT NULL DEFAULT ARRAY[]::text[]`);

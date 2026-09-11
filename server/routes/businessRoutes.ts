@@ -27,6 +27,7 @@ import {
 } from "../services/organizationalPilotInvitationService";
 import {
   claimPilotAuthorization,
+  createManagedPilotOrganization,
   createApprovedPilotAuthorization,
   getClaimedChampionSetup,
   getOrganizationWorkspaceOptions,
@@ -177,6 +178,29 @@ router.post("/pilot-authorizations/claim", requireAuth, async (req, res) => {
     try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
       console.error("[business/pilot-authorization/claim] error:", unexpected);
       return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+router.post("/pilot-organizations", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const created = await createManagedPilotOrganization({
+      userId,
+      name: req.body?.name ?? "",
+      creationRequestId: req.body?.creationRequestId ?? "",
+    });
+    const workspace = await ensureCanonicalWorkspaceForBusiness(created.business.id);
+    return res.status(created.alreadyCreated ? 200 : 201).json({
+      businessId: created.business.id,
+      organizationId: workspace.organization.id,
+      locationId: workspace.defaultLocation.id,
+      created: !created.alreadyCreated,
+    });
+  } catch (error) {
+    try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-organizations/create] error:", unexpected);
+      return res.status(500).json({ error: "Could not create organization." });
     }
   }
 });
@@ -2289,37 +2313,33 @@ router.get("/check-status", requireAuth, async (req, res) => {
 router.post("/create-org", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const orgName = ((req.body as any).name || "").trim();
-  const setupRelationship = (req.body as any).setupRelationship === "setup_on_behalf"
-    ? "setup_on_behalf"
-    : "owner_manager";
-  const creationRequestId = String((req.body as any).creationRequestId || "").trim();
   if (!orgName || orgName.length < 2) {
     return res.status(400).json({ error: "Organization name must be at least 2 characters." });
   }
   if (orgName.length > 80) {
     return res.status(400).json({ error: "Organization name must be 80 characters or fewer." });
   }
-  if (!creationRequestId || creationRequestId.length > 100) {
-    return res.status(400).json({ error: "A valid organization creation request is required." });
-  }
   try {
-    // Idempotency is per setup attempt, not per user: one administrator may
-    // create and manage multiple independent organizations.
+    // Existing paid self-service behavior remains one setup per owner.
     const [existing] = await db
       .select()
       .from(businesses)
-      .where(eq(businesses.creationRequestId, creationRequestId))
+      .where(eq(businesses.ownerUserId, userId))
       .limit(1);
 
     if (existing) {
-      const [creatorMember] = await db
+      if (existing.name !== orgName) {
+        await db.update(businesses).set({ name: orgName, updatedAt: new Date() }).where(eq(businesses.id, existing.id));
+      }
+      const [ownerMember] = await db
         .select({ id: businessMembers.id })
         .from(businessMembers)
         .where(and(eq(businessMembers.businessId, existing.id), eq(businessMembers.userId, userId)))
         .limit(1);
-      if (!creatorMember) {
-        return res.status(403).json({ error: "This setup request belongs to another administrator." });
+      if (!ownerMember) {
+        await db.insert(businessMembers).values({ businessId: existing.id, userId, role: "owner", status: "active" });
       }
+      await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
       await ensureCanonicalWorkspaceForBusiness(existing.id);
       return res.json({ businessId: existing.id, created: false });
     }
@@ -2329,9 +2349,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
       newBiz = await db.transaction(async (tx) => {
         const [biz] = await tx.insert(businesses).values({
           name: orgName,
-          ownerUserId: setupRelationship === "owner_manager" ? userId : null,
-          setupRelationship,
-          creationRequestId,
+          ownerUserId: userId,
           plan: "clinical_business_monthly",
           seatLimit: 1,
           status: "pending_billing",
@@ -2342,7 +2360,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
         await tx.insert(businessMembers).values({
           businessId: biz.id,
           userId,
-          role: setupRelationship === "owner_manager" ? "owner" : "admin",
+          role: "owner",
           status: "active",
         });
 
@@ -2356,11 +2374,8 @@ router.post("/create-org", requireAuth, async (req, res) => {
         conflictErr?.code === "23505" || // PostgreSQL unique violation
         String(conflictErr?.message).includes("unique");
       if (isUniqueViolation) {
-        const [race] = await db.select().from(businesses).where(eq(businesses.creationRequestId, creationRequestId)).limit(1);
+        const [race] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
         if (race) {
-          const [member] = await db.select({ id: businessMembers.id }).from(businessMembers)
-            .where(and(eq(businessMembers.businessId, race.id), eq(businessMembers.userId, userId))).limit(1);
-          if (!member) return res.status(403).json({ error: "This setup request belongs to another administrator." });
           await ensureCanonicalWorkspaceForBusiness(race.id);
           return res.json({ businessId: race.id, created: false });
         }
@@ -2369,7 +2384,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
     }
 
     await ensureCanonicalWorkspaceForBusiness(newBiz!.id);
-    console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | creator=${userId} | relationship=${setupRelationship}`);
+    console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | owner=${userId}`);
     return res.json({ businessId: newBiz!.id, created: true });
   } catch (err: any) {
     console.error("[business/create-org] error:", err);
