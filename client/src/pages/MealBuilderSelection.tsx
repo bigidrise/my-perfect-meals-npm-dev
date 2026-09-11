@@ -12,7 +12,6 @@ import {
   MessageCircle,
   AlertTriangle,
   RefreshCw,
-  Trophy,
   Dumbbell,
   Lock,
 } from "lucide-react";
@@ -62,13 +61,6 @@ const BUILDER_CONFIG: BuilderOption[] = [
     color: "from-black via-zinc-950 to-black",
   },
   {
-    id: "beach_body",
-    titleKey: "performanceTitle",
-    descKey: "performanceDesc",
-    icon: <Trophy className="w-8 h-8" />,
-    color: "from-black via-zinc-950 to-black",
-  },
-  {
     id: "general_nutrition",
     titleKey: "generalTitle",
     descKey: "generalDesc",
@@ -97,7 +89,6 @@ export default function MealBuilderSelection() {
     }, 100);
   };
 
-  const isProCareClient = user?.isProCare && !["admin", "coach", "physician", "trainer"].includes(user?.professionalRole || user?.role || "");
   const isUnlimited = switchStatus?.isUnlimited ?? false;
 
   const PRO_BUILDERS: string[] = [];
@@ -113,11 +104,6 @@ export default function MealBuilderSelection() {
     title: t(b.titleKey),
     description: t(b.descKey),
   }));
-
-  const availableBuilders =
-    isProCareClient && user?.activeBoard
-      ? BUILDER_OPTIONS.filter((opt) => opt.id === user.activeBoard)
-      : BUILDER_OPTIONS;
 
   useEffect(() => {
     refreshUser();
@@ -321,22 +307,7 @@ export default function MealBuilderSelection() {
         )}
 
         <div className="space-y-4 mb-8">
-          {isProCareClient && !user?.activeBoard && (
-            <div className="bg-zinc-900/80 border border-zinc-700 rounded-2xl p-6 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 flex items-center justify-center">
-                <Utensils className="w-8 h-8 text-zinc-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                {t("awaitingTitle")}
-              </h3>
-              <p className="text-zinc-400 text-sm">
-                {t("awaitingDesc")}
-              </p>
-            </div>
-          )}
-
-          {!(isProCareClient && !user?.activeBoard) &&
-            availableBuilders.map((option) => {
+          {BUILDER_OPTIONS.map((option) => {
               const isUnlocked = isProBuilderUnlocked(option.id);
               const isProBuilder = PRO_BUILDERS.includes(option.id);
 
@@ -408,16 +379,14 @@ export default function MealBuilderSelection() {
           </p>
         </div>
 
-        {!(isProCareClient && !user?.activeBoard) && (
-          <Button
-            ref={saveButtonRef}
-            onClick={handleContinue}
-            disabled={!selected || saving}
-            className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
-          >
-            {saving ? t("saving") : selected ? t("saveBtn") : t("selectFirst")}
-          </Button>
-        )}
+        <Button
+          ref={saveButtonRef}
+          onClick={handleContinue}
+          disabled={!selected || saving}
+          className="w-full h-14 text-lg bg-lime-600 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50"
+        >
+          {saving ? t("saving") : selected ? t("saveBtn") : t("selectFirst")}
+        </Button>
       </div>
 
     </motion.div>
