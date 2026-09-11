@@ -2289,60 +2289,60 @@ router.get("/check-status", requireAuth, async (req, res) => {
 router.post("/create-org", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const orgName = ((req.body as any).name || "").trim();
+  const setupRelationship = (req.body as any).setupRelationship === "setup_on_behalf"
+    ? "setup_on_behalf"
+    : "owner_manager";
+  const creationRequestId = String((req.body as any).creationRequestId || "").trim();
   if (!orgName || orgName.length < 2) {
     return res.status(400).json({ error: "Organization name must be at least 2 characters." });
   }
   if (orgName.length > 80) {
     return res.status(400).json({ error: "Organization name must be 80 characters or fewer." });
   }
+  if (!creationRequestId || creationRequestId.length > 100) {
+    return res.status(400).json({ error: "A valid organization creation request is required." });
+  }
   try {
-    // Idempotent: return existing record if user is already an owner
+    // Idempotency is per setup attempt, not per user: one administrator may
+    // create and manage multiple independent organizations.
     const [existing] = await db
       .select()
       .from(businesses)
-      .where(eq(businesses.ownerUserId, userId))
+      .where(eq(businesses.creationRequestId, creationRequestId))
       .limit(1);
 
     if (existing) {
-      // Update name if they're changing it
-      if (existing.name !== orgName) {
-        await db.update(businesses).set({ name: orgName, updatedAt: new Date() }).where(eq(businesses.id, existing.id));
-      }
-      // Repair: ensure owner membership exists (may be absent if a previous attempt failed mid-write)
-      const [ownerMember] = await db
+      const [creatorMember] = await db
         .select({ id: businessMembers.id })
         .from(businessMembers)
         .where(and(eq(businessMembers.businessId, existing.id), eq(businessMembers.userId, userId)))
         .limit(1);
-      if (!ownerMember) {
-        await db.insert(businessMembers).values({ businessId: existing.id, userId, role: "owner", status: "active" });
-        console.warn(`[business/create-org] repaired missing owner membership | biz=${existing.id} | owner=${userId}`);
+      if (!creatorMember) {
+        return res.status(403).json({ error: "This setup request belongs to another administrator." });
       }
-      // Repair: ensure professionalRole is set
-      await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
       await ensureCanonicalWorkspaceForBusiness(existing.id);
       return res.json({ businessId: existing.id, created: false });
     }
 
-    // Wrap all three writes in a transaction so partial failures can be retried cleanly.
-    // ownerUserId has a UNIQUE constraint — concurrent requests will hit a conflict error;
-    // we catch it and re-read the record that the concurrent write produced.
     let newBiz: typeof businesses.$inferSelect;
     try {
       newBiz = await db.transaction(async (tx) => {
         const [biz] = await tx.insert(businesses).values({
           name: orgName,
-          ownerUserId: userId,
+          ownerUserId: setupRelationship === "owner_manager" ? userId : null,
+          setupRelationship,
+          creationRequestId,
           plan: "clinical_business_monthly",
           seatLimit: 1,
           status: "pending_billing",
         }).returning();
 
-        // Add owner as seat 1 immediately
+        // A contractor setting up a client organization is an administrator,
+        // not its legal owner/account holder.
         await tx.insert(businessMembers).values({
           businessId: biz.id,
           userId,
-          role: "owner",
+          role: setupRelationship === "owner_manager" ? "owner" : "admin",
           status: "active",
         });
 
@@ -2355,12 +2355,12 @@ router.post("/create-org", requireAuth, async (req, res) => {
       const isUniqueViolation =
         conflictErr?.code === "23505" || // PostgreSQL unique violation
         String(conflictErr?.message).includes("unique");
-      // Unique constraint on ownerUserId means a concurrent request already
-      // created the org. Re-read and return it rather than surfacing a 500.
       if (isUniqueViolation) {
-        const [race] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
+        const [race] = await db.select().from(businesses).where(eq(businesses.creationRequestId, creationRequestId)).limit(1);
         if (race) {
-          console.warn(`[business/create-org] race resolved | biz=${race.id} | owner=${userId}`);
+          const [member] = await db.select({ id: businessMembers.id }).from(businessMembers)
+            .where(and(eq(businessMembers.businessId, race.id), eq(businessMembers.userId, userId))).limit(1);
+          if (!member) return res.status(403).json({ error: "This setup request belongs to another administrator." });
           await ensureCanonicalWorkspaceForBusiness(race.id);
           return res.json({ businessId: race.id, created: false });
         }
@@ -2369,7 +2369,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
     }
 
     await ensureCanonicalWorkspaceForBusiness(newBiz!.id);
-    console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | owner=${userId} | name="${orgName}"`);
+    console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | creator=${userId} | relationship=${setupRelationship}`);
     return res.json({ businessId: newBiz!.id, created: true });
   } catch (err: any) {
     console.error("[business/create-org] error:", err);

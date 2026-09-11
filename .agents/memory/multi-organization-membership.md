@@ -3,8 +3,8 @@ name: Multi-organization membership
 description: Product and authorization rules for one account managing multiple isolated organizations.
 ---
 
-A user may hold different roles in multiple organizations through one account. A Hub selects the active organization, and one reusable dashboard reloads that organization's isolated data. Membership identity and duplicate protection are scoped to the organization/user pair, not globally to the user.
+A durable organization tenant exists independently of every person who creates, owns, administers, or manages it. Users attach through organization-scoped memberships and may hold different roles in multiple organizations. A Hub selects the active organization, and one reusable dashboard reloads that organization's isolated data.
 
-**Why:** Organization ownership is a valid separate role, and multi-organization administrators must not need duplicate accounts or risk acting on whichever business a query happens to return first.
+**Why:** Businesses must retain their data and access when an owner retires, an employee leaves, or an external manager is replaced. No user ID or email is the organization's identity.
 
-**How to apply:** Require explicit server-validated organization/location selection for sensitive reads and mutations. Keep the active organization obvious, clear old data before switching, and never hard-code a dashboard per organization.
+**How to apply:** Use a permanent tenant ID for organization-owned data. Treat creator, business authority, internal admin, and external manager as memberships. Require server-validated organization/location selection, and never allow removal of the last controlling authority without a replacement.

@@ -19,11 +19,14 @@ export default function BusinessSetup() {
   const search = useSearch();
   const { user } = useAuth();
   const pilotMode = new URLSearchParams(search).get("pilot") === "1";
+  const newOrganizationMode = new URLSearchParams(search).get("new") === "1";
 
   const [orgName, setOrgName] = useState("");
   const [step, setStep] = useState<"form" | "redirecting">("form");
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [setupRelationship, setSetupRelationship] = useState<"owner_manager" | "setup_on_behalf">("owner_manager");
+  const [creationRequestId] = useState(() => crypto.randomUUID());
   const [pilotSetup, setPilotSetup] = useState<{
     organizationName: string;
     professionalCapacity: number;
@@ -48,6 +51,7 @@ export default function BusinessSetup() {
           setOrgName(pilotData.organizationName);
           return;
         }
+        if (newOrganizationMode) return;
         const res = await fetch("/api/business/check-status", {
           credentials: "include",
           headers: getAuthHeaders(),
@@ -62,7 +66,7 @@ export default function BusinessSetup() {
         if (pilotMode) setErr(error?.message || "Could not load pilot setup.");
       }
     })();
-  }, [pilotMode]);
+  }, [pilotMode, newOrganizationMode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,7 +99,7 @@ export default function BusinessSetup() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ name: orgName.trim() }),
+        body: JSON.stringify({ name: orgName.trim(), setupRelationship, creationRequestId }),
       });
       const createData = await createRes.json();
       if (!createRes.ok) {
@@ -119,7 +123,7 @@ export default function BusinessSetup() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({}),
+        body: JSON.stringify({ businessId: createData.businessId }),
       });
       const checkoutData = await checkoutRes.json();
       if (!checkoutRes.ok) {
@@ -181,6 +185,37 @@ export default function BusinessSetup() {
               maxLength={80}
             />
           </div>
+
+          {!pilotMode && (
+            <fieldset>
+              <legend className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2">
+                Your relationship to this organization
+              </legend>
+              <div className="space-y-2">
+                {[
+                  ["owner_manager", "I own/manage this organization"],
+                  ["setup_on_behalf", "I am setting up My Perfect Meals on behalf of this organization"],
+                ].map(([value, label]) => (
+                  <label key={value} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 p-3 text-sm text-white/80">
+                    <input
+                      type="radio"
+                      name="setupRelationship"
+                      value={value}
+                      checked={setupRelationship === value}
+                      onChange={() => setSetupRelationship(value as typeof setupRelationship)}
+                      className="mt-0.5"
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+              {setupRelationship === "setup_on_behalf" && (
+                <p className="mt-2 text-xs text-white/45">
+                  You will receive administrative access to configure this organization. This does not designate you as its legal owner.
+                </p>
+              )}
+            </fieldset>
+          )}
 
           {/* Organization access or authorized pilot capacity */}
           <div>
