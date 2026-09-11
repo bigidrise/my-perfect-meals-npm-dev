@@ -14,3 +14,9 @@ Patient invitation emails always open the public Production app and use the frag
 **Why:** Recipients must never be sent to a Replit Development domain, and a path token is not read by the enrollment page.
 
 **How to apply:** Patient emails use `https://app.myperfectmeals.ai/business/join#token=...` in every environment. Professional invitation behavior remains separate.
+
+Invitation Status may permanently delete unaccepted invitation records within the administrator's selected organization and location. Accepted invitations are not deletable there.
+
+**Why:** Deleting an accepted invitation would not revoke the resulting membership and would misleadingly suggest that access was removed.
+
+**How to apply:** Require confirmation for deletion, enforce exact workspace scope server-side, and direct administrators to Patients or Team when they need to revoke accepted access.

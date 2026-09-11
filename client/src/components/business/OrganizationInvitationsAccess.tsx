@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Copy, Download, FileSpreadsheet, Loader2, Mail, QrCode, RefreshCw, Send, Upload, UserPlus, Users } from "lucide-react";
+import { Copy, Download, FileSpreadsheet, Loader2, Mail, QrCode, RefreshCw, Send, Trash2, Upload, UserPlus, Users } from "lucide-react";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
@@ -127,6 +127,7 @@ export default function OrganizationInvitationsAccess({
   const [shareLink, setShareLink] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [resendingToken, setResendingToken] = useState<string | null>(null);
+  const [deletingToken, setDeletingToken] = useState<string | null>(null);
 
   const invitations = population === "client" ? patientInvitations : teamInvitations;
   const recipients = useMemo(() => {
@@ -333,6 +334,35 @@ export default function OrganizationInvitationsAccess({
     }
   };
 
+  const deleteInvitation = async (invitation: InvitationSummary) => {
+    if (!invitation.token) return;
+    const confirmed = window.confirm(
+      `Delete the invitation for ${invitation.email}? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingToken(invitation.token);
+    try {
+      const response = await fetch(`/api/business/invitations/${invitation.token}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Could not delete invitation.");
+      toast({ title: "Invitation deleted", description: `${invitation.email} was removed from Invitation Status.` });
+      onRefresh();
+    } catch (error) {
+      toast({
+        title: "Could not delete invitation",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingToken(null);
+    }
+  };
+
   const downloadTemplate = () => {
     const blob = new Blob(["Email,First Name,Last Name\npatient@example.com,Jamie,Smith\n"], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -532,18 +562,33 @@ export default function OrganizationInvitationsAccess({
                     <span className="capitalize">{(invitation.status || "pending").replace(/_/g, " ")}</span>
                     <span>{new Date(invitation.expiresAt).toLocaleDateString()}</span>
                   </div>
-                  {invitation.token && ["pending", "expired", "delivery_failed"].includes(invitation.status || "pending") && (
-                    <button
-                      type="button"
-                      onClick={() => resendInvitation(invitation)}
-                      disabled={resendingToken === invitation.token}
-                      className="mt-3 w-full rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15 disabled:opacity-40"
-                    >
-                      {resendingToken === invitation.token
-                        ? <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />
-                        : <RefreshCw className="mr-1 inline h-3.5 w-3.5" />}
-                      Resend Email
-                    </button>
+                  {invitation.token && (invitation.status || "pending") !== "accepted" && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {["pending", "expired", "delivery_failed"].includes(invitation.status || "pending") && (
+                        <button
+                          type="button"
+                          onClick={() => resendInvitation(invitation)}
+                          disabled={resendingToken === invitation.token || deletingToken === invitation.token}
+                          className="rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15 disabled:opacity-40"
+                        >
+                          {resendingToken === invitation.token
+                            ? <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />
+                            : <RefreshCw className="mr-1 inline h-3.5 w-3.5" />}
+                          Resend Email
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => deleteInvitation(invitation)}
+                        disabled={deletingToken === invitation.token || resendingToken === invitation.token}
+                        className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-40"
+                      >
+                        {deletingToken === invitation.token
+                          ? <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />
+                          : <Trash2 className="mr-1 inline h-3.5 w-3.5" />}
+                        Delete
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

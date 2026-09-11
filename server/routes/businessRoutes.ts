@@ -1294,9 +1294,8 @@ router.post("/removal-notice/dismiss", requireAuth, async (req, res) => {
   }
 });
 
-// ── DELETE /api/business/invitations/:token — owner cancels a pending invite
+// ── DELETE /api/business/invitations/:token — remove an unaccepted invite
 router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (req, res) => {
-  const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
   try {
@@ -1307,19 +1306,33 @@ router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (r
     }
     const { business, locationId } = resolved;
 
-    await db
-      .update(businessInvitations)
-      .set({ status: "cancelled" })
+    const [invite] = await db
+      .select({ id: businessInvitations.id, status: businessInvitations.status })
+      .from(businessInvitations)
       .where(
         and(
           eq(businessInvitations.token, token),
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.locationId, locationId),
-          eq(businessInvitations.status, "pending"),
         ),
-      );
+      )
+      .limit(1);
 
-    return res.json({ success: true });
+    if (!invite) {
+      return res.status(404).json({ error: "Invitation not found in the selected organization and location." });
+    }
+    if (invite.status === "accepted") {
+      return res.status(409).json({
+        error: "Accepted invitations cannot be deleted here. Remove the person from Patients or Team instead.",
+        code: "ACCEPTED_INVITATION",
+      });
+    }
+
+    await db
+      .delete(businessInvitations)
+      .where(eq(businessInvitations.id, invite.id));
+
+    return res.json({ success: true, deleted: true });
   } catch (err) {
     const workspaceError = sendDashboardWorkspaceError(res, err);
     if (workspaceError) return workspaceError;

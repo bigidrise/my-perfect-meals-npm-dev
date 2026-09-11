@@ -158,6 +158,24 @@ describe("unified organization invitation durations", () => {
     expect(client).toContain("/api/business/invitations/${invitation.token}/resend");
   });
 
+  it("lets administrators delete unaccepted invitations only inside the selected workspace", () => {
+    const routes = fs.readFileSync(
+      path.resolve(process.cwd(), "server/routes/businessRoutes.ts"),
+      "utf8",
+    );
+    const client = fs.readFileSync(
+      path.resolve(process.cwd(), "client/src/components/business/OrganizationInvitationsAccess.tsx"),
+      "utf8",
+    );
+    expect(client).toContain("Delete the invitation for ${invitation.email}?");
+    expect(client).toContain('method: "DELETE"');
+    expect(client).toContain("deleteInvitation(invitation)");
+    expect(routes).toContain('code: "ACCEPTED_INVITATION"');
+    expect(routes).toContain("eq(businessInvitations.businessId, business.id)");
+    expect(routes).toContain("eq(businessInvitations.locationId, locationId)");
+    expect(routes).toContain(".delete(businessInvitations)");
+  });
+
   it("never reports an invitation email as sent when the provider rejects it", () => {
     const routes = fs.readFileSync(
       path.resolve(process.cwd(), "server/routes/businessRoutes.ts"),
