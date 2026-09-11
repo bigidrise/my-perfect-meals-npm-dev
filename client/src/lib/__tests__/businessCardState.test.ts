@@ -58,6 +58,7 @@ describe("More page organization card state", () => {
     const responses = [
       response({}, 404),
       response({}, 403),
+      response({}, 404),
       response({
         exists: true,
         status: "pending_billing",
@@ -76,6 +77,7 @@ describe("More page organization card state", () => {
     const responses = [
       response({}, 404),
       response({}, 403),
+      response({}, 404),
       response({ exists: false, status: null, name: null }),
     ];
     const state = await resolveBusinessCardState(async () => responses.shift()!);

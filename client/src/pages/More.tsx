@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isHouseholdPlan } from "@shared/planFeatures";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -82,6 +82,7 @@ export default function MorePage() {
     INITIAL_BUSINESS_CARD_STATE,
   );
   const [businessLookupAttempt, setBusinessLookupAttempt] = useState(0);
+  const businessAutoRetryUsed = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +114,28 @@ export default function MorePage() {
       cancelled = true;
     };
   }, [authLoading, user?.id, businessLookupAttempt]);
+
+  useEffect(() => {
+    businessAutoRetryUsed.current = false;
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (
+      businessCard.state !== "error"
+      || authLoading
+      || !user?.id
+      || businessAutoRetryUsed.current
+    ) {
+      return;
+    }
+
+    businessAutoRetryUsed.current = true;
+    const retryTimer = window.setTimeout(() => {
+      setBusinessLookupAttempt((attempt: number) => attempt + 1);
+    }, 1500);
+
+    return () => window.clearTimeout(retryTimer);
+  }, [authLoading, businessCard.state, user?.id]);
 
   const businessCardView = businessCardPresentation(businessCard);
 

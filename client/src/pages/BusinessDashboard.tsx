@@ -1222,14 +1222,14 @@ export default function BusinessDashboard() {
                     </span>
                   )}
                 </div>
-                {!isAdminView && (
-                  <button
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/60 hover:text-white transition-colors flex-shrink-0"
-                    onClick={() => { setNameInput(business.name); setEditingName(true); }}
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <button
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/60 hover:text-white transition-colors flex-shrink-0"
+                  onClick={() => { setNameInput(business.name); setEditingName(true); }}
+                  aria-label="Edit organization name"
+                  title="Edit organization name"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
               </>
             )}
           </div>
