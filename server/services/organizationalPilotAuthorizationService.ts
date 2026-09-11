@@ -311,6 +311,97 @@ export async function getClaimedChampionSetup(userId: string) {
   return row;
 }
 
+export async function createManagedPilotOrganization(input: {
+  userId: string;
+  name: string;
+  creationRequestId: string;
+}) {
+  const name = input.name.trim();
+  if (name.length < 2 || name.length > 80) {
+    throw new PilotAuthorizationError("Organization name must be between 2 and 80 characters.", "INVALID_ORGANIZATION_NAME");
+  }
+  if (!input.creationRequestId || input.creationRequestId.length > 100) {
+    throw new PilotAuthorizationError("A valid organization creation request is required.", "INVALID_CREATION_REQUEST");
+  }
+  const identity = await resolveEmailIdentityForUser(input.userId);
+  if (identity.status !== "unique") {
+    throw new PilotAuthorizationError("A unique account email is required.", "EMAIL_IDENTITY_REVIEW_REQUIRED", 409);
+  }
+  const normalizedEmail = normalizeEmailIdentity(identity.user.email);
+
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${input.creationRequestId}))`);
+    const [existing] = await tx.select().from(businesses)
+      .where(eq(businesses.creationRequestId, input.creationRequestId)).limit(1);
+    if (existing) {
+      const [membership] = await tx.select().from(businessMembers).where(and(
+        eq(businessMembers.businessId, existing.id),
+        eq(businessMembers.userId, input.userId),
+        eq(businessMembers.status, "active"),
+      )).limit(1);
+      if (!membership) throw new PilotAuthorizationError("This setup request belongs to another account.", "CREATION_REQUEST_FORBIDDEN", 403);
+      return { business: existing, alreadyCreated: true };
+    }
+
+    const [template] = await tx.select({
+      professionalCapacity: organizationalPilotAuthorizations.professionalCapacity,
+      clientCapacity: organizationalPilotAuthorizations.clientCapacity,
+      durationDays: organizationalPilotAuthorizations.durationDays,
+    }).from(organizationalPilotAuthorizations).where(and(
+      or(
+        eq(organizationalPilotAuthorizations.claimedByUserId, input.userId),
+        eq(organizationalPilotAuthorizations.normalizedChampionEmail, normalizedEmail),
+      ),
+      inArray(organizationalPilotAuthorizations.status, ["approved", "claimed"]),
+    )).limit(1);
+    if (!template) {
+      throw new PilotAuthorizationError("Approved complimentary pilot access is required.", "PILOT_ACCESS_REQUIRED", 403);
+    }
+
+    const [business] = await tx.insert(businesses).values({
+      name,
+      ownerUserId: input.userId,
+      creationRequestId: input.creationRequestId,
+      plan: "organizational_pilot",
+      seatLimit: template.professionalCapacity,
+      clientCapacity: template.clientCapacity,
+      status: "active",
+    }).returning();
+    const [membership] = await tx.insert(businessMembers).values({
+      businessId: business.id,
+      userId: input.userId,
+      role: "admin",
+      status: "active",
+    }).returning();
+    const [authorization] = await tx.insert(organizationalPilotAuthorizations).values({
+      organizationName: name,
+      championEmail: normalizedEmail,
+      normalizedChampionEmail: normalizedEmail,
+      status: "claimed",
+      professionalCapacity: template.professionalCapacity,
+      clientCapacity: template.clientCapacity,
+      durationDays: template.durationDays,
+      businessId: business.id,
+      approvedAt: new Date(),
+      claimedAt: new Date(),
+      claimedByUserId: input.userId,
+      createdByUserId: input.userId,
+    }).returning();
+    await tx.insert(organizationalPilots).values({
+      businessId: business.id,
+      authorizationId: authorization.id,
+      name: `${name} ${template.durationDays}-Day Pilot`,
+      status: "preparing",
+      professionalCapacity: template.professionalCapacity,
+      clientCapacity: template.clientCapacity,
+      durationDays: template.durationDays,
+      championBusinessMemberId: membership.id,
+      createdByUserId: input.userId,
+    });
+    return { business, alreadyCreated: false };
+  });
+}
+
 export async function updateClaimedChampionSetup(userId: string, name: string) {
   const setup = await getClaimedChampionSetup(userId);
   const normalizedName = name.trim();

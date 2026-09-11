@@ -821,9 +821,7 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_sent_at timestamptz`);
     // Stable provider idempotency key (UUID) for the business welcome email — set once, never cleared
     await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_key text`);
-    await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS setup_relationship text NOT NULL DEFAULT 'owner_manager'`);
     await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS creation_request_id text`);
-    await db.execute(sql`ALTER TABLE businesses ALTER COLUMN owner_user_id DROP NOT NULL`);
     await db.execute(sql`
       DO $$ DECLARE constraint_name text;
       BEGIN

@@ -19,13 +19,12 @@ export default function BusinessSetup() {
   const search = useSearch();
   const { user } = useAuth();
   const pilotMode = new URLSearchParams(search).get("pilot") === "1";
-  const newOrganizationMode = new URLSearchParams(search).get("new") === "1";
+  const pilotCreateMode = new URLSearchParams(search).get("pilotCreate") === "1";
 
   const [orgName, setOrgName] = useState("");
   const [step, setStep] = useState<"form" | "redirecting">("form");
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [setupRelationship, setSetupRelationship] = useState<"owner_manager" | "setup_on_behalf">("owner_manager");
   const [creationRequestId] = useState(() => crypto.randomUUID());
   const [pilotSetup, setPilotSetup] = useState<{
     organizationName: string;
@@ -51,7 +50,7 @@ export default function BusinessSetup() {
           setOrgName(pilotData.organizationName);
           return;
         }
-        if (newOrganizationMode) return;
+        if (pilotCreateMode) return;
         const res = await fetch("/api/business/check-status", {
           credentials: "include",
           headers: getAuthHeaders(),
@@ -66,7 +65,7 @@ export default function BusinessSetup() {
         if (pilotMode) setErr(error?.message || "Could not load pilot setup.");
       }
     })();
-  }, [pilotMode, newOrganizationMode]);
+  }, [pilotMode, pilotCreateMode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -94,12 +93,15 @@ export default function BusinessSetup() {
         setLocation("/business-dashboard");
         return;
       }
-      // Step 1: Create the organization record
-      const createRes = await fetch("/api/business/create-org", {
+      const createRes = await fetch(pilotCreateMode ? "/api/business/pilot-organizations" : "/api/business/create-org", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ name: orgName.trim(), setupRelationship, creationRequestId }),
+        body: JSON.stringify(
+          pilotCreateMode
+            ? { name: orgName.trim(), creationRequestId }
+            : { name: orgName.trim() },
+        ),
       });
       const createData = await createRes.json();
       if (!createRes.ok) {
@@ -118,12 +120,16 @@ export default function BusinessSetup() {
         return;
       }
 
-      // Step 2: Create Stripe checkout session
+      if (pilotCreateMode) {
+        setLocation("/business-organizations");
+        return;
+      }
+
       const checkoutRes = await fetch("/api/stripe/checkout/business", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ businessId: createData.businessId }),
+        body: JSON.stringify({}),
       });
       const checkoutData = await checkoutRes.json();
       if (!checkoutRes.ok) {
@@ -186,37 +192,6 @@ export default function BusinessSetup() {
             />
           </div>
 
-          {!pilotMode && (
-            <fieldset>
-              <legend className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2">
-                Your relationship to this organization
-              </legend>
-              <div className="space-y-2">
-                {[
-                  ["owner_manager", "I own/manage this organization"],
-                  ["setup_on_behalf", "I am setting up My Perfect Meals on behalf of this organization"],
-                ].map(([value, label]) => (
-                  <label key={value} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 p-3 text-sm text-white/80">
-                    <input
-                      type="radio"
-                      name="setupRelationship"
-                      value={value}
-                      checked={setupRelationship === value}
-                      onChange={() => setSetupRelationship(value as typeof setupRelationship)}
-                      className="mt-0.5"
-                    />
-                    <span>{label}</span>
-                  </label>
-                ))}
-              </div>
-              {setupRelationship === "setup_on_behalf" && (
-                <p className="mt-2 text-xs text-white/45">
-                  You will receive administrative access to configure this organization. This does not designate you as its legal owner.
-                </p>
-              )}
-            </fieldset>
-          )}
-
           {/* Organization access or authorized pilot capacity */}
           <div>
             <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-2">
@@ -247,7 +222,7 @@ export default function BusinessSetup() {
           </div>
 
           {/* Price preview */}
-          {!pilotMode && (
+            {!pilotMode && !pilotCreateMode && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between">
               <div>
                 <p className="text-white/50 text-xs">Organization / Business Suite</p>
@@ -294,16 +269,18 @@ export default function BusinessSetup() {
             disabled={submitting || orgName.trim().length < 2}
             className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? (
+              {submitting ? (
               <><Loader2 className="w-5 h-5 animate-spin" /> Creating organization…</>
             ) : (
-              <><Users className="w-5 h-5" /> {pilotMode ? "Open Business Suite" : "Continue to Payment"} <ChevronRight className="w-4 h-4" /></>
+                <><Users className="w-5 h-5" /> {pilotMode ? "Open Business Suite" : pilotCreateMode ? "Add Organization" : "Continue to Payment"} <ChevronRight className="w-4 h-4" /></>
             )}
           </button>
 
           <p className="text-center text-white/30 text-xs">
-            {pilotMode
+              {pilotMode
               ? "No payment is required for this authorized pilot. Claiming setup does not start the pilot clock."
+                : pilotCreateMode
+                  ? "This organization uses your approved complimentary pilot access. No payment is required."
               : "Secure checkout via Stripe. Your flat Organization subscription is $44.99/month."}
           </p>
         </form>
