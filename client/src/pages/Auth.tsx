@@ -19,11 +19,28 @@ export default function Auth() {
   const urlRole = useMemo(() => new URLSearchParams(search).get("role") as "trainer" | "physician" | "business" | null, [search]);
   // Invitation token carried from a team-member invite email.  When present this
   // signup is always business-intent; the token is auto-accepted after auth.
-  const urlInvite = useMemo(() => new URLSearchParams(search).get("invite"), [search]);
+  const urlInvite = useMemo(() => {
+    const params = new URLSearchParams(search);
+    if (params.get("organizationInvite") !== "1") {
+      return params.get("invite");
+    }
+    const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get("token");
+    if (fragmentToken) {
+      sessionStorage.setItem("mpm.organizationInviteToken", fragmentToken);
+      window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+    }
+    return fragmentToken ?? sessionStorage.getItem("mpm.organizationInviteToken");
+  }, [search]);
   const pilotAuthorizationToken = useMemo(
     () => new URLSearchParams(search).get("pilotAuthorization"),
     [search],
   );
+  const clinicPilotToken = useMemo(() => {
+    const params = new URLSearchParams(search);
+    return params.get("clinicPilot") === "1"
+      ? sessionStorage.getItem("mpm.clinicPilotToken")
+      : null;
+  }, [search]);
   // returnTo is set by /join/studio (and similar pages) when redirecting an
   // unauthenticated user to login. Only same-origin paths are honoured.
   const urlReturnTo = useMemo(() => {
@@ -36,7 +53,7 @@ export default function Auth() {
     return p.get("source") || p.get("ref") || null;
   }, [search]);
   const [mode, setMode] = useState<"signup" | "login">(
-    isProCare || urlRole || urlInvite || pilotAuthorizationToken ? "signup" : urlMode === "signup" ? "signup" : "login"
+    isProCare || urlRole || urlInvite || pilotAuthorizationToken || clinicPilotToken ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -49,10 +66,11 @@ export default function Auth() {
 
   async function acceptInviteToken(token: string): Promise<{ ok: boolean; error?: string }> {
     try {
-      const res = await fetch(`/api/business/invite/${token}/accept`, {
+      const res = await fetch("/api/business/invite/accept", {
         method: "POST",
-        headers: { ...getAuthHeaders() },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
+        body: JSON.stringify({ token }),
       });
       const data = await res.json();
       if (!res.ok) return { ok: false, error: data.error };
@@ -100,6 +118,21 @@ export default function Auth() {
     localStorage.setItem("isAuthenticated", "true");
     sessionStorage.removeItem("mpm.welcomeGateDone");
 
+    if (clinicPilotToken) {
+      const result = await fetch("/api/clinic-pilot/enroll", {
+        method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include", body: JSON.stringify({ token: clinicPilotToken }),
+      });
+      if (!result.ok) {
+        const data = await result.json().catch(() => ({}));
+        setErr(data.error || "Could not enroll in the clinic pilot.");
+        return;
+      }
+      sessionStorage.removeItem("mpm.clinicPilotToken");
+      setLocation(u.onboardingCompletedAt ? "/dashboard" : "/onboarding");
+      return;
+    }
+
     // If an invite token is present, auto-accept it now that the user is
     // authenticated.  On success we always route to the business dashboard,
     // regardless of whether this was a fresh signup or an existing-user login.
@@ -111,6 +144,7 @@ export default function Auth() {
         setErr(result.error || "Could not accept invitation. Please try again.");
         return;
       }
+      sessionStorage.removeItem("mpm.organizationInviteToken");
       // Refresh session so the business membership is visible immediately
       try { await refreshUser(); } catch { /* non-fatal */ }
       setLocation("/business-dashboard");
@@ -155,7 +189,17 @@ export default function Auth() {
 
     const isBusinessUser = fullUser?.professionalRole === "business";
 
-    if (isBusinessUser && mode === "signup") {
+    if (mode === "login" && organizationWorkspaceAvailable) {
+      // Canonical organization/location access is authoritative. A legacy
+      // billing/setup status must never send an existing workspace back through
+      // organization creation.
+      if (isBusinessUser) {
+        setLocation("/business-dashboard");
+      } else {
+        localStorage.removeItem("mpm_workspace_preference");
+        setShowWorkspaceChooser(true);
+      }
+    } else if (isBusinessUser && mode === "signup") {
       // New business signups go directly to org setup + seat purchase
       setLocation("/business/setup");
     } else if (isBusinessUser && mode === "login") {
@@ -181,7 +225,7 @@ export default function Auth() {
       } catch {
         setLocation("/business-dashboard");
       }
-    } else if ((isProfessional || organizationWorkspaceAvailable) && mode === "login") {
+    } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
     } else if (mode === "signup" && urlRole === "business") {
@@ -235,6 +279,7 @@ export default function Auth() {
           signupSource,
           urlInvite,
           pilotAuthorizationToken,
+          clinicPilotToken,
         );
         await proceedAfterLogin(u, { professionalSetupPending });
         return;

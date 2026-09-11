@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomBytes, randomUUID } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
-import { eq, and, ne, sql, isNull, gt, or } from "drizzle-orm";
+import { eq, and, ne, sql, isNull, gt, or, inArray } from "drizzle-orm";
 import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
@@ -27,11 +27,14 @@ import {
 } from "../services/organizationalPilotInvitationService";
 import {
   claimPilotAuthorization,
+  createManagedPilotOrganization,
   createApprovedPilotAuthorization,
   getClaimedChampionSetup,
   getOrganizationWorkspaceOptions,
   inspectPilotAuthorizationToken,
+  listPilotAuthorizations,
   PilotAuthorizationError,
+  revokeUnusedPilotAuthorization,
   updateClaimedChampionSetup,
 } from "../services/organizationalPilotAuthorizationService";
 import organizationWorkspaceRouter from "./organizationWorkspaceRoutes";
@@ -44,9 +47,15 @@ import {
   locationMemberships,
   organizationMemberships,
 } from "../db/schema/workspaces";
-import { organizationalPilots } from "../db/schema/pilotProgram";
+import { organizations } from "../db/schema/organizations";
+import { organizationalPilotParticipants, organizationalPilots } from "../db/schema/pilotProgram";
+import {
+  MAX_ORGANIZATION_INVITATION_BATCH,
+  reviewOrganizationInvitationRecipients,
+} from "../services/organizationInvitationBatchService";
 import { activateProCareClient, ActivationError } from "../services/procareActivation";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
+import { loadOrgContext } from "../lib/orgContext";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -60,6 +69,8 @@ const CLIENT_TRIAL_DURATIONS = [7, 14, 30] as const;
 const ORGANIZATION_INVITE_SEND_WINDOW_MS = 60 * 1000;
 const ORGANIZATION_INVITE_SEND_LIMIT = 20;
 const ORGANIZATION_RESEND_COOLDOWN_MS = 10 * 60 * 1000;
+const INVITATION_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PATIENT_ENROLLMENT_APP_URL = "https://app.myperfectmeals.ai";
 
 function isFlatOrganization(business: Pick<typeof businesses.$inferSelect, "plan">): boolean {
   return business.plan === "clinical_business_monthly";
@@ -124,6 +135,33 @@ router.post("/pilot-authorizations", requireAuth, requireAdmin, async (req, res)
   }
 });
 
+router.get("/pilot-authorizations", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const authorizations = await listPilotAuthorizations();
+    return res.json({ authorizations });
+  } catch (error) {
+    console.error("[business/pilot-authorization/list] error:", error);
+    return res.status(500).json({ error: "Could not load organization pilot authorizations." });
+  }
+});
+
+router.post("/pilot-authorizations/:authorizationId/revoke", requireAuth, requireAdmin, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const authorization = await revokeUnusedPilotAuthorization({
+      authorizationId: req.params.authorizationId,
+      revokedByUserId: userId,
+      reason: req.body?.reason,
+    });
+    return res.json({ authorization });
+  } catch (error) {
+    try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-authorization/revoke] error:", unexpected);
+      return res.status(500).json({ error: "Could not revoke organization pilot authorization." });
+    }
+  }
+});
+
 router.get("/pilot-authorizations/claim/:token", async (req, res) => {
   try {
     const authorization = await inspectPilotAuthorizationToken(req.params.token);
@@ -170,6 +208,29 @@ router.post("/pilot-authorizations/claim", requireAuth, async (req, res) => {
     try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
       console.error("[business/pilot-authorization/claim] error:", unexpected);
       return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+router.post("/pilot-organizations", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const created = await createManagedPilotOrganization({
+      userId,
+      authorizationId: req.body?.authorizationId ?? "",
+      creationRequestId: req.body?.creationRequestId ?? "",
+    });
+    const workspace = await ensureCanonicalWorkspaceForBusiness(created.business.id);
+    return res.status(created.alreadyCreated ? 200 : 201).json({
+      businessId: created.business.id,
+      organizationId: workspace.organizationId,
+      locationId: workspace.locationId,
+      created: !created.alreadyCreated,
+    });
+  } catch (error) {
+    try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-organizations/create] error:", unexpected);
+      return res.status(500).json({ error: "Could not create organization." });
     }
   }
 });
@@ -232,6 +293,10 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
     if (!allowedRoles.includes(participantRole)) {
       return res.status(400).json({ error: "Invalid role for this participant population.", code: "INVALID_ROLE" });
     }
+    const trialDays = Number(req.body?.trialDays);
+    if (!isAllowedClientTrialDuration(trialDays)) {
+      return res.status(400).json({ error: "Complimentary access must be 7, 14, or 30 days.", code: "INVALID_ACCESS_DURATION" });
+    }
     const created = await createOrganizationalPilotInvitation({
       businessId: resolved.business.id,
       locationId: resolved.locationId,
@@ -242,6 +307,7 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
       participantRole,
       assignedProfessionalUserId: req.body?.assignedProfessionalUserId ?? null,
       participantName: req.body?.participantName ?? null,
+      trialDays,
     });
     const inviteLink = `${getAppUrl()}${created.inviteLink}`;
     if (req.body?.sendEmail !== false) {
@@ -253,8 +319,9 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
         role: participantRole,
         expiresAt: created.invite.expiresAt,
         invitationType: created.invite.invitationType,
-        trialDays: null,
+        trialDays,
         programName: created.pilot.name,
+        recipientName: req.body?.participantName ?? undefined,
       });
     }
     return res.status(201).json({
@@ -263,6 +330,7 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
       participantId: created.participant.id,
       populationType,
       participantRole,
+      trialDays,
       expiresAt: created.invite.expiresAt,
       ...(req.body?.sendEmail === false ? { inviteLink } : {}),
     });
@@ -274,14 +342,218 @@ router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, a
   }
 });
 
+async function buildPilotInvitationBatchReview(req: any) {
+  const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
+  const populationType = req.body?.populationType;
+  if (populationType !== "professional" && populationType !== "client") {
+    throw new PilotInvitationError(
+      "populationType must be professional or client.",
+      "INVALID_POPULATION",
+    );
+  }
+  const participantRole = req.body?.participantRole as PilotInvitationRole;
+  const allowedRoles = populationType === "professional"
+    ? ["nurse", "provider", "coach", "staff"]
+    : ["client"];
+  if (!allowedRoles.includes(participantRole)) {
+    throw new PilotInvitationError(
+      "Invalid role for this participant population.",
+      "INVALID_ROLE",
+    );
+  }
+  const trialDays = Number(req.body?.trialDays);
+  if (!isAllowedClientTrialDuration(trialDays)) {
+    throw new PilotInvitationError(
+      "Complimentary access must be 7, 14, or 30 days.",
+      "INVALID_ACCESS_DURATION",
+    );
+  }
+
+  const [pilot] = await db.select().from(organizationalPilots).where(and(
+    eq(organizationalPilots.id, req.params.pilotId),
+    eq(organizationalPilots.businessId, resolved.business.id),
+  )).limit(1);
+  if (!pilot || !["preparing", "active"].includes(pilot.status)) {
+    throw new PilotInvitationError(
+      "Organizational pilot not found or unavailable.",
+      "PILOT_NOT_AVAILABLE",
+      404,
+    );
+  }
+
+  let initial;
+  try {
+    initial = reviewOrganizationInvitationRecipients(req.body?.recipients);
+  } catch (error) {
+    throw new PilotInvitationError(
+      error instanceof Error ? error.message : "Invalid recipients.",
+      "INVALID_RECIPIENTS",
+    );
+  }
+  const candidateEmails = initial.valid.map((recipient) => recipient.email);
+  const existingEmails = new Set<string>();
+  const existingMemberEmails = new Set<string>();
+  if (candidateEmails.length > 0) {
+    const existingParticipants = await db.select({
+      email: organizationalPilotParticipants.normalizedEmail,
+    }).from(organizationalPilotParticipants).where(and(
+      eq(organizationalPilotParticipants.pilotId, pilot.id),
+      inArray(organizationalPilotParticipants.normalizedEmail, candidateEmails),
+      inArray(organizationalPilotParticipants.status, ["pending", "active"]),
+    ));
+    existingParticipants.forEach((participant) => existingEmails.add(participant.email));
+    if (populationType === "professional") {
+      const activeMembers = await db.select({ email: users.email })
+        .from(businessMembers)
+        .innerJoin(users, eq(users.id, businessMembers.userId))
+        .where(and(
+          eq(businessMembers.businessId, resolved.business.id),
+          eq(businessMembers.status, "active"),
+        ));
+      activeMembers.forEach((member) => {
+        if (member.email && candidateEmails.includes(normalizeEmailIdentity(member.email))) {
+          existingMemberEmails.add(member.email);
+        }
+      });
+    }
+  }
+  const review = reviewOrganizationInvitationRecipients(
+    req.body?.recipients,
+    existingEmails,
+    existingMemberEmails,
+  );
+  const [reserved] = await db.select({
+    count: sql<number>`count(*)::int`,
+  }).from(organizationalPilotParticipants).where(and(
+    eq(organizationalPilotParticipants.pilotId, pilot.id),
+    eq(organizationalPilotParticipants.populationType, populationType),
+    inArray(organizationalPilotParticipants.status, ["pending", "active"]),
+  ));
+  const capacity = populationType === "professional"
+    ? pilot.professionalCapacity
+    : pilot.clientCapacity;
+  const availableCapacity = Math.max(0, capacity - Number(reserved?.count ?? 0));
+
+  return {
+    resolved,
+    pilot,
+    populationType,
+    participantRole,
+    trialDays,
+    review,
+    capacity,
+    availableCapacity,
+    overCapacity: Math.max(0, review.valid.length - availableCapacity),
+  };
+}
+
+router.post("/pilots/:pilotId/invitations/batch-review", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+  try {
+    const result = await buildPilotInvitationBatchReview(req);
+    return res.json({
+      ...result.review,
+      capacity: result.capacity,
+      availableCapacity: result.availableCapacity,
+      overCapacity: result.overCapacity,
+      maxBatchSize: MAX_ORGANIZATION_INVITATION_BATCH,
+    });
+  } catch (error) {
+    try { return handlePilotInvitationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-invite/batch-review] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
+router.post("/pilots/:pilotId/invitations/batch-send", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const result = await buildPilotInvitationBatchReview(req);
+    if (
+      result.review.invalid.length > 0
+      || result.review.duplicates.length > 0
+      || result.review.existingMembers.length > 0
+    ) {
+      return res.status(409).json({
+        error: "Recipients changed or require review. Review the batch again before sending.",
+        code: "BATCH_REVIEW_REQUIRED",
+        ...result.review,
+      });
+    }
+    if (result.overCapacity > 0) {
+      return res.status(409).json({
+        error: `This batch exceeds available ${result.populationType} capacity by ${result.overCapacity}.`,
+        code: "BATCH_CAPACITY_EXCEEDED",
+        availableCapacity: result.availableCapacity,
+        requested: result.review.valid.length,
+      });
+    }
+
+    const sent: Array<{ email: string; invitationId: string; emailQueued: boolean }> = [];
+    const failed: Array<{ email: string; error: string; code?: string }> = [];
+    for (const recipient of result.review.valid) {
+      try {
+        const created = await createOrganizationalPilotInvitation({
+          businessId: result.resolved.business.id,
+          locationId: result.resolved.locationId,
+          pilotId: result.pilot.id,
+          invitedByUserId: userId,
+          email: recipient.email,
+          populationType: result.populationType,
+          participantRole: result.participantRole,
+          participantName: recipient.displayName,
+          assignedProfessionalUserId: req.body?.assignedProfessionalUserId ?? null,
+          trialDays: result.trialDays,
+        });
+        const inviteLink = `${getAppUrl()}${created.inviteLink}`;
+        const emailResult = await sendBusinessInviteEmail({
+          to: recipient.email,
+          businessName: result.resolved.business.name,
+          inviterName: "Your organization",
+          inviteLink,
+          role: result.participantRole,
+          expiresAt: created.invite.expiresAt,
+          invitationType: created.invite.invitationType,
+          trialDays: result.trialDays,
+          programName: created.pilot.name,
+          recipientName: recipient.displayName,
+        });
+        sent.push({
+          email: recipient.email,
+          invitationId: created.invite.id,
+          emailQueued: Boolean(emailResult),
+        });
+      } catch (error) {
+        failed.push({
+          email: recipient.email,
+          error: error instanceof Error ? error.message : "Could not create invitation.",
+          ...(error instanceof PilotInvitationError ? { code: error.code } : {}),
+        });
+      }
+    }
+    return res.status(failed.length > 0 ? 207 : 201).json({
+      success: failed.length === 0,
+      sent,
+      failed,
+      counts: { requested: result.review.valid.length, sent: sent.length, failed: failed.length },
+    });
+  } catch (error) {
+    try { return handlePilotInvitationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-invite/batch-send] error:", unexpected);
+      return res.status(500).json({ error: "Server error." });
+    }
+  }
+});
+
 router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
     if (!resolved) return res.status(403).json({ error: "No business account found." });
     const [invite] = await db.select().from(businessInvitations).where(and(
       eq(businessInvitations.id, req.params.inviteId),
       eq(businessInvitations.businessId, resolved.business.id),
+      eq(businessInvitations.locationId, resolved.locationId),
     )).limit(1);
     if (!invite?.organizationalPilotId) return res.status(404).json({ error: "Pilot invitation not found." });
     const cancelled = await cancelOrganizationalPilotInvitation(invite.id, userId);
@@ -289,6 +561,8 @@ router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin,
       ? res.json({ success: true })
       : res.status(409).json({ error: "Invitation is no longer pending." });
   } catch (error) {
+    const workspaceError = sendDashboardWorkspaceError(res, error);
+    if (workspaceError) return workspaceError;
     console.error("[business/pilot-invite/cancel] error:", error);
     return res.status(500).json({ error: "Server error." });
   }
@@ -297,8 +571,14 @@ router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin,
 router.post("/pilot-invitations/:inviteId/resend", requireAuth, requireProOrOrgAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
-    const resolved = await resolveAuthorizedBusiness(userId, "admin_or_owner");
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
     if (!resolved) return res.status(403).json({ error: "No business account found." });
+    const [selectedInvite] = await db.select({ id: businessInvitations.id }).from(businessInvitations).where(and(
+      eq(businessInvitations.id, req.params.inviteId),
+      eq(businessInvitations.businessId, resolved.business.id),
+      eq(businessInvitations.locationId, resolved.locationId),
+    )).limit(1);
+    if (!selectedInvite) return res.status(404).json({ error: "Pilot invitation not found." });
     const resent = await resendOrganizationalPilotInvitation({
       inviteId: req.params.inviteId,
       businessId: resolved.business.id,
@@ -313,11 +593,13 @@ router.post("/pilot-invitations/:inviteId/resend", requireAuth, requireProOrOrgA
       role: resent.invite.participantRole ?? resent.invite.role,
       expiresAt: resent.expiresAt,
       invitationType: resent.invite.invitationType,
-      trialDays: null,
+      trialDays: resent.invite.trialDays,
       programName: resent.invite.programName ?? undefined,
     });
     return res.json({ success: true, expiresAt: resent.expiresAt });
   } catch (error) {
+    const workspaceError = sendDashboardWorkspaceError(res, error);
+    if (workspaceError) return workspaceError;
     try { return handlePilotInvitationError(res, error); } catch (unexpected) {
       console.error("[business/pilot-invite/resend] error:", unexpected);
       return res.status(500).json({ error: "Server error." });
@@ -385,7 +667,7 @@ async function getActiveSeats(businessId: string): Promise<number> {
 }
 
 /**
- * resolveAuthorizedBusiness — resolves the organization the caller is authorized
+ * Dashboard authorization capabilities.
  * to manage and returns their role within it.
  *
  * "admin_or_owner" — both Organization Owners and Organization Admins may act.
@@ -396,46 +678,6 @@ async function getActiveSeats(businessId: string): Promise<number> {
  */
 type CallerRole = "owner" | "admin";
 type Capability = "admin_or_owner" | "owner_only";
-
-async function resolveAuthorizedBusiness(
-  userId: string,
-  capability: Capability,
-): Promise<{ business: typeof businesses.$inferSelect; callerRole: CallerRole } | null> {
-  // Owner path — fastest lookup, most common case
-  const [ownerBiz] = await db
-    .select()
-    .from(businesses)
-    .where(eq(businesses.ownerUserId, userId))
-    .limit(1);
-  if (ownerBiz) return { business: ownerBiz, callerRole: "owner" };
-
-  // Owner-only actions stop here
-  if (capability === "owner_only") return null;
-
-  // Admin-membership path — resolve via businessMembers role
-  const [adminMembership] = await db
-    .select({ businessId: businessMembers.businessId })
-    .from(businessMembers)
-    .where(
-      and(
-        eq(businessMembers.userId, userId),
-        eq(businessMembers.role, "admin"),
-        eq(businessMembers.status, "active"),
-      ),
-    )
-    .limit(1);
-
-  if (!adminMembership) return null;
-
-  const [adminBiz] = await db
-    .select()
-    .from(businesses)
-    .where(eq(businesses.id, adminMembership.businessId))
-    .limit(1);
-
-  if (!adminBiz) return null;
-  return { business: adminBiz, callerRole: "admin" };
-}
 
 async function resolveSelectedBusiness(req: any): Promise<{
   business: typeof businesses.$inferSelect;
@@ -557,7 +799,10 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         and(
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.locationId, locationId),
-          eq(businessInvitations.status, "pending"),
+          or(
+            eq(businessInvitations.status, "pending"),
+            eq(businessInvitations.status, "delivery_failed"),
+          ),
           gt(businessInvitations.expiresAt, now),
           eq(businessInvitations.invitationType, "team_member"),
         ),
@@ -710,6 +955,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     trialDays,
     programName,
     partnerRecordId,
+    recipientName,
     sendEmail: shouldSendEmail = true,
   } = req.body as {
     email: string;
@@ -718,17 +964,23 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     trialDays?: number;
     programName?: string;
     partnerRecordId?: string;
+    recipientName?: string;
     sendEmail?: boolean;
   };
 
-  if (!email || !email.includes("@")) {
+  const normalizedEmail = typeof email === "string" ? normalizeEmailIdentity(email) : "";
+  if (
+    !normalizedEmail ||
+    normalizedEmail.length > 254 ||
+    !INVITATION_EMAIL_PATTERN.test(normalizedEmail)
+  ) {
     return res.status(400).json({ error: "Valid email required." });
   }
 
   const isClient = invitationType === "client";
 
   if (!isClient) {
-    const validRoles = ["admin", "coach", "trainer", "physician", "staff"];
+    const validRoles = ["admin", "coach", "trainer", "physician", "nurse", "staff"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: "Invalid role." });
     }
@@ -751,7 +1003,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       return res.status(403).json({ error: "No business account found." });
     }
     const { business, locationId } = resolved;
-    const invitationIdentity = await resolveEmailIdentityForEmail(email);
+    const invitationIdentity = await resolveEmailIdentityForEmail(normalizedEmail);
     if (invitationIdentity.candidates.length > 1) {
       return res.status(409).json({
         error: "This email address belongs to multiple legacy accounts. Ask an administrator to resolve the account identity before sending an invitation.",
@@ -818,7 +1070,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         and(
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.locationId, locationId),
-          eq(businessInvitations.email, email.toLowerCase()),
+          eq(businessInvitations.email, normalizedEmail),
           eq(businessInvitations.status, "pending"),
           gt(businessInvitations.expiresAt, now),
           eq(businessInvitations.invitationType, invitationType as any),
@@ -827,7 +1079,12 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       .limit(1);
 
     if (existingInvite) {
-      return res.status(400).json({ error: "A pending invitation already exists for this email." });
+      return res.status(409).json({
+        error: "A pending invitation already exists for this email. Use Resend on the existing invitation.",
+        code: "PENDING_INVITATION_EXISTS",
+        invitationId: existingInvite.id,
+        expiresAt: existingInvite.expiresAt,
+      });
     }
 
     // Expire stale pending invites for this email+type
@@ -838,7 +1095,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         and(
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.locationId, locationId),
-          eq(businessInvitations.email, email.toLowerCase()),
+          eq(businessInvitations.email, normalizedEmail),
           eq(businessInvitations.status, "pending"),
           eq(businessInvitations.invitationType, invitationType as any),
           sql`${businessInvitations.expiresAt} <= ${now}`,
@@ -874,10 +1131,10 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     const resolvedTrialDays = isClient ? Number(trialDays) : null;
 
-    await db.insert(businessInvitations).values({
+    const [createdInvitation] = await db.insert(businessInvitations).values({
       businessId: business.id,
       locationId,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       token,
       role: isClient ? "staff" : (role as any),
       status: "pending",
@@ -887,7 +1144,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       trialDays: resolvedTrialDays,
       programName: isClient ? (programName?.trim() || null) : null,
       partnerRecordId: partnerRecordId ?? null,
-    });
+    }).returning({ id: businessInvitations.id });
 
     // Stamp policy snapshot for team member invites
     if (!isClient) {
@@ -907,12 +1164,13 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     // and skip consumer nutrition onboarding.  Client invites keep the
     // dedicated join page since they go through a different acceptance flow.
     const inviteLink = isClient
-      ? `${getAppUrl()}/business/join/${token}`
+      ? `${PATIENT_ENROLLMENT_APP_URL}/business/join#token=${token}`
       : `${getAppUrl()}/auth?mode=signup&invite=${token}`;
 
     if (shouldSendEmail) {
-      await sendBusinessInviteEmail({
-        to: email.toLowerCase(),
+      const organizationContext = await loadOrgContext(business.organizationId);
+      const emailResult = await sendBusinessInviteEmail({
+        to: normalizedEmail,
         businessName: business.name,
         inviterName: owner?.username || "Your organization",
         inviteLink,
@@ -921,11 +1179,29 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         invitationType: invitationType as any,
         trialDays: resolvedTrialDays,
         programName: isClient ? (programName?.trim() || null) : undefined,
+        recipientName: recipientName?.trim() || undefined,
+        supportEmail: organizationContext.supportEmail,
       });
+      if (!emailResult) {
+        await db
+          .update(businessInvitations)
+          .set({ status: "delivery_failed" })
+          .where(eq(businessInvitations.id, createdInvitation.id));
+        return res.status(502).json({
+          error: "The invitation was saved, but the email provider did not accept the message. You can retry it from Invitation Status.",
+          code: "INVITATION_EMAIL_DELIVERY_FAILED",
+          invitationId: createdInvitation.id,
+        });
+      }
     }
 
     console.log(`✅ [business] Invite sent | type=${invitationType}`);
-    return res.json({ success: true, inviteLink, message: `Invitation created for ${email}.` });
+    return res.json({
+      success: true,
+      emailQueued: shouldSendEmail,
+      inviteLink,
+      message: `Invitation created for ${normalizedEmail}.`,
+    });
   } catch (err) {
     const workspaceError = sendDashboardWorkspaceError(res, err);
     if (workspaceError) return workspaceError;
@@ -1072,9 +1348,8 @@ router.post("/removal-notice/dismiss", requireAuth, async (req, res) => {
   }
 });
 
-// ── DELETE /api/business/invitations/:token — owner cancels a pending invite
+// ── DELETE /api/business/invitations/:token — remove an unaccepted invite
 router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (req, res) => {
-  const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
   try {
@@ -1085,19 +1360,33 @@ router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (r
     }
     const { business, locationId } = resolved;
 
-    await db
-      .update(businessInvitations)
-      .set({ status: "cancelled" })
+    const [invite] = await db
+      .select({ id: businessInvitations.id, status: businessInvitations.status })
+      .from(businessInvitations)
       .where(
         and(
           eq(businessInvitations.token, token),
           eq(businessInvitations.businessId, business.id),
           eq(businessInvitations.locationId, locationId),
-          eq(businessInvitations.status, "pending"),
         ),
-      );
+      )
+      .limit(1);
 
-    return res.json({ success: true });
+    if (!invite) {
+      return res.status(404).json({ error: "Invitation not found in the selected organization and location." });
+    }
+    if (invite.status === "accepted") {
+      return res.status(409).json({
+        error: "Accepted invitations cannot be deleted here. Remove the person from Patients or Team instead.",
+        code: "ACCEPTED_INVITATION",
+      });
+    }
+
+    await db
+      .delete(businessInvitations)
+      .where(eq(businessInvitations.id, invite.id));
+
+    return res.json({ success: true, deleted: true });
   } catch (err) {
     const workspaceError = sendDashboardWorkspaceError(res, err);
     if (workspaceError) return workspaceError;
@@ -1129,6 +1418,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
           eq(businessInvitations.locationId, locationId),
           or(
             eq(businessInvitations.status, "pending"),
+            eq(businessInvitations.status, "delivery_failed"),
             eq(businessInvitations.status, "expired"),
           ),
         ),
@@ -1142,6 +1432,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
     // expiresAt is reset to now + seven days on every delivery. It therefore
     // provides a durable resend timestamp without a new mutable schema column.
     if (
+      invite.status === "pending" &&
       invite.expiresAt.getTime() >
       Date.now() + (7 * 24 * 60 * 60 * 1000 - ORGANIZATION_RESEND_COOLDOWN_MS)
     ) {
@@ -1152,11 +1443,6 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
     }
 
     const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const newToken = generateInviteToken();
-    await db
-      .update(businessInvitations)
-      .set({ status: "pending", expiresAt: newExpiry, token: newToken })
-      .where(eq(businessInvitations.id, invite.id));
 
     const [owner] = await db
       .select({ username: users.username })
@@ -1166,10 +1452,11 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
 
     const isClientResend = (invite.invitationType ?? "team_member") === "client";
     const inviteLink = isClientResend
-      ? `${getAppUrl()}/business/join/${newToken}`
-      : `${getAppUrl()}/auth?mode=signup&invite=${newToken}`;
+      ? `${PATIENT_ENROLLMENT_APP_URL}/business/join#token=${invite.token}`
+      : `${getAppUrl()}/auth?mode=signup&invite=${invite.token}`;
 
-    await sendBusinessInviteEmail({
+    const organizationContext = await loadOrgContext(business.organizationId);
+    const emailResult = await sendBusinessInviteEmail({
       to: invite.email,
       businessName: business.name,
       inviterName: owner?.username || "Your team owner",
@@ -1179,9 +1466,25 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
       invitationType: (invite.invitationType ?? "team_member") as any,
       trialDays: invite.trialDays,
       programName: invite.programName,
+      supportEmail: organizationContext.supportEmail,
     });
+    if (!emailResult) {
+      await db
+        .update(businessInvitations)
+        .set({ status: "delivery_failed" })
+        .where(eq(businessInvitations.id, invite.id));
+      return res.status(502).json({
+        error: "The email provider did not accept this resend. The invitation was not reported as sent.",
+        code: "INVITATION_EMAIL_DELIVERY_FAILED",
+      });
+    }
 
-    return res.json({ success: true, message: "Invite resent.", newToken });
+    await db
+      .update(businessInvitations)
+      .set({ status: "pending", expiresAt: newExpiry })
+      .where(eq(businessInvitations.id, invite.id));
+
+    return res.json({ success: true, emailQueued: true, message: "Invite resent." });
   } catch (err) {
     const workspaceError = sendDashboardWorkspaceError(res, err);
     if (workspaceError) return workspaceError;
@@ -1281,9 +1584,11 @@ router.patch("/org-policies", requireAuth, requireProOrOrgAdmin, async (req, res
   }
 });
 
-// ── GET /api/business/invite/:token — public: get invite details for accept page
-router.get("/invite/:token", async (req, res) => {
-  const { token } = req.params;
+// New invitation links submit tokens through a header so bearer credentials do
+// not appear in request URLs. The legacy path remains for previously sent links.
+async function inspectBusinessInvitation(req: any, res: any) {
+  const token = req.get("x-business-invitation-token") || req.params.token;
+  if (!token) return res.status(400).json({ error: "Invitation token is required." });
 
   try {
     const pilotInvite = await findOrganizationalPilotInvitation(token);
@@ -1375,12 +1680,15 @@ router.get("/invite/:token", async (req, res) => {
     console.error("[business/invite/get] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
-});
+}
 
-// ── POST /api/business/invite/:token/accept — authenticated user accepts invite
-router.post("/invite/:token/accept", requireAuth, async (req, res) => {
+router.get("/invite/inspect", inspectBusinessInvitation);
+router.get("/invite/:token", inspectBusinessInvitation);
+
+async function acceptBusinessInvitation(req: any, res: any) {
   const userId = (req as any).authUser?.id as string;
-  const { token } = req.params;
+  const token = req.body?.token || req.get("x-business-invitation-token") || req.params.token;
+  if (!token) return res.status(400).json({ error: "Invitation token is required." });
 
   try {
     const pilotInvite = await findOrganizationalPilotInvitation(token);
@@ -1396,7 +1704,9 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
           businessName: pilotBusiness?.name ?? pilotInvite.programName,
           populationType: pilotInvite.populationType,
           participantRole: pilotInvite.participantRole,
-          pilotEndAt: accepted.alreadyAccepted ? null : accepted.pilotEndAt,
+          trialDays: pilotInvite.trialDays,
+          accessStartsAt: accepted.alreadyAccepted ? null : accepted.accessStartsAt,
+          accessEndsAt: accepted.alreadyAccepted ? null : accepted.accessEndsAt,
         });
       } catch (error) {
         try { return handlePilotInvitationError(res, error); } catch (unexpected) { throw unexpected; }
@@ -1848,11 +2158,13 @@ router.post("/invite/:token/accept", requireAuth, async (req, res) => {
     console.error("[business/invite/accept] error:", err);
     return res.status(500).json({ error: "Server error." });
   }
-});
+}
 
-// ── PATCH /api/business/name — owner renames the business
+router.post("/invite/accept", requireAuth, acceptBusinessInvitation);
+router.post("/invite/:token/accept", requireAuth, acceptBusinessInvitation);
+
+// ── PATCH /api/business/name — selected organization owner/admin updates its display name
 router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {
-  const userId = (req as any).authUser?.id as string;
   const { name } = req.body as { name: string };
 
   if (!name || name.trim().length < 2) {
@@ -1864,12 +2176,24 @@ router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     if (!resolved) return res.status(403).json({ error: "No business account found." });
 
-    await db
-      .update(businesses)
-      .set({ name: name.trim(), updatedAt: new Date() })
-      .where(eq(businesses.id, resolved.business.id));
+    const normalizedName = name.trim();
+    await db.transaction(async (tx) => {
+      await tx
+        .update(businesses)
+        .set({ name: normalizedName, updatedAt: new Date() })
+        .where(eq(businesses.id, resolved.business.id));
+      await tx
+        .update(organizations)
+        .set({ name: normalizedName, updatedAt: new Date() })
+        .where(eq(organizations.id, resolved.organizationId));
+    });
 
-    return res.json({ success: true });
+    return res.json({
+      success: true,
+      businessId: resolved.business.id,
+      organizationId: resolved.organizationId,
+      name: normalizedName,
+    });
   } catch (err) {
     const workspaceError = sendDashboardWorkspaceError(res, err);
     if (workspaceError) return workspaceError;
@@ -1894,7 +2218,7 @@ router.post("/seats", requireAuth, requireProAccess, async (req, res) => {
   const operationId = requestedOperationId || randomUUID();
 
   try {
-    const seatsResolved = await resolveAuthorizedBusiness(userId, "owner_only");
+    const seatsResolved = await resolveDashboardBusiness(req, "owner_only");
     if (!seatsResolved) return res.status(404).json({ error: "No business found for this account." });
     const biz = seatsResolved.business;
     if (biz.status !== "active") return res.status(400).json({ error: "Business subscription is not active." });
@@ -2021,6 +2345,22 @@ router.get("/check-status", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/organization-creation-access", requireAuth, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const [actor] = await db
+      .select({ isAdmin: users.isAdmin })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const founderComplimentary = process.env.NODE_ENV !== "production" && actor?.isAdmin === true;
+    return res.json({ mode: founderComplimentary ? "founder_complimentary" : "paid" });
+  } catch (err) {
+    console.error("[business/organization-creation-access] error:", err);
+    return res.status(500).json({ error: "Could not determine organization access." });
+  }
+});
+
 // ── POST /api/business/create-org — Self-service org creation for new business accounts.
 // Creates a businesses + owner businessMembers row with status=pending_billing.
 // The Stripe webhook flips status to active. Ordinary organizations are flat;
@@ -2030,14 +2370,67 @@ router.get("/check-status", requireAuth, async (req, res) => {
 router.post("/create-org", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const orgName = ((req.body as any).name || "").trim();
+  const creationRequestId = typeof req.body?.creationRequestId === "string" ? req.body.creationRequestId.trim() : "";
+  const createNewIntent = req.body?.creationIntent === "create-new";
   if (!orgName || orgName.length < 2) {
     return res.status(400).json({ error: "Organization name must be at least 2 characters." });
   }
   if (orgName.length > 80) {
     return res.status(400).json({ error: "Organization name must be 80 characters or fewer." });
   }
+  if (createNewIntent && (!creationRequestId || creationRequestId.length > 100)) {
+    return res.status(400).json({ error: "A valid organization creation request is required." });
+  }
   try {
-    // Idempotent: return existing record if user is already an owner
+    const [actor] = await db
+      .select({ isAdmin: users.isAdmin })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const founderComplimentary = createNewIntent && process.env.NODE_ENV !== "production" && actor?.isAdmin === true;
+
+    if (createNewIntent) {
+      const result = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${creationRequestId}))`);
+        const [prior] = await tx
+          .select()
+          .from(businesses)
+          .where(eq(businesses.creationRequestId, creationRequestId))
+          .limit(1);
+        if (prior) {
+          if (prior.ownerUserId !== userId) throw new Error("Organization creation request belongs to another account.");
+          return { business: prior, created: false };
+        }
+
+        const [business] = await tx.insert(businesses).values({
+          name: orgName,
+          ownerUserId: userId,
+          creationRequestId,
+          plan: "clinical_business_monthly",
+          seatLimit: 1,
+          status: founderComplimentary ? "active" : "pending_billing",
+        }).returning();
+        await tx.insert(businessMembers).values({
+          businessId: business.id,
+          userId,
+          role: "owner",
+          status: "active",
+        });
+        await tx.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+        return { business, created: true };
+      });
+
+      const workspace = await ensureCanonicalWorkspaceForBusiness(result.business.id);
+      return res.status(result.created ? 201 : 200).json({
+        businessId: result.business.id,
+        organizationId: workspace.organizationId,
+        locationId: workspace.locationId,
+        created: result.created,
+        paymentRequired: !founderComplimentary,
+      });
+    }
+
+    // Existing paid self-service behavior remains one setup per owner.
     const [existing] = await db
       .select()
       .from(businesses)
@@ -2045,11 +2438,9 @@ router.post("/create-org", requireAuth, async (req, res) => {
       .limit(1);
 
     if (existing) {
-      // Update name if they're changing it
       if (existing.name !== orgName) {
         await db.update(businesses).set({ name: orgName, updatedAt: new Date() }).where(eq(businesses.id, existing.id));
       }
-      // Repair: ensure owner membership exists (may be absent if a previous attempt failed mid-write)
       const [ownerMember] = await db
         .select({ id: businessMembers.id })
         .from(businessMembers)
@@ -2057,17 +2448,12 @@ router.post("/create-org", requireAuth, async (req, res) => {
         .limit(1);
       if (!ownerMember) {
         await db.insert(businessMembers).values({ businessId: existing.id, userId, role: "owner", status: "active" });
-        console.warn(`[business/create-org] repaired missing owner membership | biz=${existing.id} | owner=${userId}`);
       }
-      // Repair: ensure professionalRole is set
       await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
       await ensureCanonicalWorkspaceForBusiness(existing.id);
       return res.json({ businessId: existing.id, created: false });
     }
 
-    // Wrap all three writes in a transaction so partial failures can be retried cleanly.
-    // ownerUserId has a UNIQUE constraint — concurrent requests will hit a conflict error;
-    // we catch it and re-read the record that the concurrent write produced.
     let newBiz: typeof businesses.$inferSelect;
     try {
       newBiz = await db.transaction(async (tx) => {
@@ -2079,7 +2465,8 @@ router.post("/create-org", requireAuth, async (req, res) => {
           status: "pending_billing",
         }).returning();
 
-        // Add owner as seat 1 immediately
+        // A contractor setting up a client organization is an administrator,
+        // not its legal owner/account holder.
         await tx.insert(businessMembers).values({
           businessId: biz.id,
           userId,
@@ -2096,12 +2483,9 @@ router.post("/create-org", requireAuth, async (req, res) => {
       const isUniqueViolation =
         conflictErr?.code === "23505" || // PostgreSQL unique violation
         String(conflictErr?.message).includes("unique");
-      // Unique constraint on ownerUserId means a concurrent request already
-      // created the org. Re-read and return it rather than surfacing a 500.
       if (isUniqueViolation) {
         const [race] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
         if (race) {
-          console.warn(`[business/create-org] race resolved | biz=${race.id} | owner=${userId}`);
           await ensureCanonicalWorkspaceForBusiness(race.id);
           return res.json({ businessId: race.id, created: false });
         }
@@ -2110,7 +2494,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
     }
 
     await ensureCanonicalWorkspaceForBusiness(newBiz!.id);
-    console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | owner=${userId} | name="${orgName}"`);
+    console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | owner=${userId}`);
     return res.json({ businessId: newBiz!.id, created: true });
   } catch (err: any) {
     console.error("[business/create-org] error:", err);

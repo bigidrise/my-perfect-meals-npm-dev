@@ -3,7 +3,8 @@ import { pgTable, uuid, text, timestamp, integer, unique, uniqueIndex } from "dr
 export const businesses = pgTable("businesses", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  ownerUserId: text("owner_user_id").notNull().unique(),
+  ownerUserId: text("owner_user_id").notNull(),
+  creationRequestId: text("creation_request_id"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   stripeCheckoutReservationId: text("stripe_checkout_reservation_id"),
@@ -56,6 +57,7 @@ export const businesses = pgTable("businesses", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
+  creationRequestIdUnique: uniqueIndex("businesses_creation_request_id_uniq").on(t.creationRequestId),
   stripeCustomerIdUnique: uniqueIndex("businesses_stripe_customer_id_uniq").on(t.stripeCustomerId),
   stripeSubscriptionIdUnique: uniqueIndex("businesses_stripe_subscription_id_uniq").on(t.stripeSubscriptionId),
   stripeCheckoutSessionIdUnique: uniqueIndex("businesses_stripe_checkout_session_id_uniq").on(t.stripeCheckoutSessionId),
@@ -92,7 +94,7 @@ export const businessInvitations = pgTable("business_invitations", {
    * tokens remain supported by the existing paid-business flow. */
   tokenHash: text("token_hash"),
   role: text("role").$type<"admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
-  status: text("status").$type<"pending" | "accepted" | "cancelled" | "expired">().notNull().default("pending"),
+  status: text("status").$type<"pending" | "delivery_failed" | "accepted" | "cancelled" | "expired">().notNull().default("pending"),
   invitedByUserId: text("invited_by_user_id").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),

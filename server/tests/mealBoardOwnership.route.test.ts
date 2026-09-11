@@ -8,7 +8,7 @@ const OWNER_ID = "board-owner";
 const UNRELATED_ID = "unrelated-user";
 const BOARD_ID = "board-1";
 
-const auth = { user: null as { id: string } | null };
+const auth = { user: null as Record<string, unknown> | null };
 const state = {
   selectResults: [] as Array<Array<Record<string, unknown>>>,
   selectIndex: 0,
@@ -149,6 +149,23 @@ const candidates = [
 describe("consumer meal board mutation ownership", () => {
   it("denies an unrelated current-board read/create before database access", async () => {
     auth.user = { id: UNRELATED_ID };
+
+    const res = await request(await buildApp()).get(
+      `/api/users/${OWNER_ID}/boards/diabetic/current`,
+    );
+
+    expect(res.status).toBe(403);
+    expect(state.selectIndex).toBe(0);
+    expect(state.itemReads).toBe(0);
+    expect(state.boardCreates).toBe(0);
+  });
+
+  it("denies a clinic-attributed participant with no care relationship", async () => {
+    auth.user = {
+      id: UNRELATED_ID,
+      clinicTrialEntitlementId: "clinic-entitlement-1",
+      attributionOrganizationId: "clinic-organization-1",
+    };
 
     const res = await request(await buildApp()).get(
       `/api/users/${OWNER_ID}/boards/diabetic/current`,

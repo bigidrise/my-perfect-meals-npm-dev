@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import { businessMembers, businesses } from "../db/schema/business";
 import {
@@ -57,16 +57,6 @@ export async function createApprovedPilotAuthorization(input: {
 
   const authorization = await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${normalizedChampionEmail}))`);
-    const [existing] = await tx.select({ id: organizationalPilotAuthorizations.id })
-      .from(organizationalPilotAuthorizations)
-      .where(and(
-        eq(organizationalPilotAuthorizations.normalizedChampionEmail, normalizedChampionEmail),
-        inArray(organizationalPilotAuthorizations.status, ["approved", "claimed"]),
-      ))
-      .limit(1);
-    if (existing) {
-      throw new PilotAuthorizationError("This Champion already has an active organizational authorization.", "AUTHORIZATION_ALREADY_EXISTS", 409);
-    }
     const [created] = await tx.insert(organizationalPilotAuthorizations).values({
       organizationName,
       championEmail: normalizedChampionEmail,
@@ -85,6 +75,61 @@ export async function createApprovedPilotAuthorization(input: {
   });
 
   return { authorization, rawToken };
+}
+
+export async function listPilotAuthorizations() {
+  return db.select({
+    id: organizationalPilotAuthorizations.id,
+    organizationName: organizationalPilotAuthorizations.organizationName,
+    championEmail: organizationalPilotAuthorizations.championEmail,
+    status: organizationalPilotAuthorizations.status,
+    professionalCapacity: organizationalPilotAuthorizations.professionalCapacity,
+    clientCapacity: organizationalPilotAuthorizations.clientCapacity,
+    durationDays: organizationalPilotAuthorizations.durationDays,
+    claimTokenExpiresAt: organizationalPilotAuthorizations.claimTokenExpiresAt,
+    businessId: organizationalPilotAuthorizations.businessId,
+    approvedAt: organizationalPilotAuthorizations.approvedAt,
+    claimedAt: organizationalPilotAuthorizations.claimedAt,
+    revokedAt: organizationalPilotAuthorizations.revokedAt,
+    revocationReason: organizationalPilotAuthorizations.revocationReason,
+  }).from(organizationalPilotAuthorizations)
+    .orderBy(desc(organizationalPilotAuthorizations.createdAt));
+}
+
+export async function revokeUnusedPilotAuthorization(input: {
+  authorizationId: string;
+  revokedByUserId: string;
+  reason?: string;
+}) {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${input.authorizationId}))`);
+    const [authorization] = await tx.select().from(organizationalPilotAuthorizations)
+      .where(eq(organizationalPilotAuthorizations.id, input.authorizationId)).limit(1);
+    if (!authorization) {
+      throw new PilotAuthorizationError("Organization pilot authorization not found.", "AUTHORIZATION_NOT_FOUND", 404);
+    }
+    if (authorization.status !== "approved" || authorization.businessId) {
+      throw new PilotAuthorizationError(
+        "Only an unused approved organization pilot can be revoked here.",
+        "AUTHORIZATION_NOT_REVOCABLE",
+        409,
+      );
+    }
+    const [revoked] = await tx.update(organizationalPilotAuthorizations).set({
+      status: "revoked",
+      revokedAt: new Date(),
+      revokedByUserId: input.revokedByUserId,
+      revocationReason: input.reason?.trim() || "Revoked by founder/admin",
+      updatedAt: new Date(),
+    }).where(and(
+      eq(organizationalPilotAuthorizations.id, input.authorizationId),
+      eq(organizationalPilotAuthorizations.status, "approved"),
+    )).returning();
+    if (!revoked) {
+      throw new PilotAuthorizationError("This organization pilot changed before it could be revoked.", "REVOCATION_RACE", 409);
+    }
+    return revoked;
+  });
 }
 
 export async function inspectPilotAuthorizationToken(rawToken: string) {
@@ -166,15 +211,6 @@ export async function claimPilotAuthorization(input: {
       ? (await tx.select().from(businesses).where(eq(businesses.id, locked.businessId)).limit(1))[0]
       : null;
     if (!business) {
-      const [owned] = await tx.select().from(businesses)
-        .where(eq(businesses.ownerUserId, input.userId)).limit(1);
-      if (owned) {
-        throw new PilotAuthorizationError(
-          "This account already owns a different organization. An administrator must associate the authorization explicitly.",
-          "BUSINESS_OWNERSHIP_CONFLICT",
-          409,
-        );
-      }
       [business] = await tx.insert(businesses).values({
         name: locked.organizationName,
         ownerUserId: input.userId,
@@ -252,6 +288,9 @@ export async function getOrganizationWorkspaceOptions(userId: string) {
     organizationName: organizationalPilotAuthorizations.organizationName,
     status: organizationalPilotAuthorizations.status,
     expiresAt: organizationalPilotAuthorizations.claimTokenExpiresAt,
+    professionalCapacity: organizationalPilotAuthorizations.professionalCapacity,
+    clientCapacity: organizationalPilotAuthorizations.clientCapacity,
+    durationDays: organizationalPilotAuthorizations.durationDays,
   }).from(organizationalPilotAuthorizations).where(and(
     eq(organizationalPilotAuthorizations.normalizedChampionEmail, normalizedEmail),
     eq(organizationalPilotAuthorizations.status, "approved"),
@@ -273,6 +312,7 @@ export async function getOrganizationWorkspaceOptions(userId: string) {
       eq(businessMembers.userId, userId),
       eq(businessMembers.status, "active"),
       inArray(businessMembers.role, ["owner", "admin"]),
+      eq(businesses.status, "active"),
     ));
 
   return [
@@ -308,6 +348,106 @@ export async function getClaimedChampionSetup(userId: string) {
     )).limit(1);
   if (!row) throw new PilotAuthorizationError("No claimed Champion authorization found.", "CHAMPION_AUTHORIZATION_NOT_FOUND", 404);
   return row;
+}
+
+export async function createManagedPilotOrganization(input: {
+  userId: string;
+  authorizationId: string;
+  creationRequestId: string;
+}) {
+  if (!input.authorizationId) {
+    throw new PilotAuthorizationError("Choose an approved organization pilot.", "AUTHORIZATION_REQUIRED");
+  }
+  if (!input.creationRequestId || input.creationRequestId.length > 100) {
+    throw new PilotAuthorizationError("A valid organization creation request is required.", "INVALID_CREATION_REQUEST");
+  }
+  const identity = await resolveEmailIdentityForUser(input.userId);
+  if (identity.status !== "unique") {
+    throw new PilotAuthorizationError("A unique account email is required.", "EMAIL_IDENTITY_REVIEW_REQUIRED", 409);
+  }
+  const normalizedEmail = normalizeEmailIdentity(identity.user.email);
+
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${input.creationRequestId}))`);
+    const [existing] = await tx.select().from(businesses)
+      .where(eq(businesses.creationRequestId, input.creationRequestId)).limit(1);
+    if (existing) {
+      const [membership] = await tx.select().from(businessMembers).where(and(
+        eq(businessMembers.businessId, existing.id),
+        eq(businessMembers.userId, input.userId),
+        eq(businessMembers.status, "active"),
+      )).limit(1);
+      if (!membership) throw new PilotAuthorizationError("This setup request belongs to another account.", "CREATION_REQUEST_FORBIDDEN", 403);
+      return { business: existing, alreadyCreated: true };
+    }
+
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${input.authorizationId}))`);
+    const [authorization] = await tx.select().from(organizationalPilotAuthorizations)
+      .where(eq(organizationalPilotAuthorizations.id, input.authorizationId)).limit(1);
+    if (!authorization) {
+      throw new PilotAuthorizationError("Organization pilot authorization not found.", "AUTHORIZATION_NOT_FOUND", 404);
+    }
+    if (authorization.normalizedChampionEmail !== normalizedEmail) {
+      throw new PilotAuthorizationError("This organization pilot was authorized for another account.", "EMAIL_MISMATCH", 403);
+    }
+    if (authorization.status === "claimed" && authorization.businessId) {
+      const [claimedBusiness] = await tx.select().from(businesses)
+        .where(eq(businesses.id, authorization.businessId)).limit(1);
+      if (authorization.claimedByUserId === input.userId && claimedBusiness) {
+        return { business: claimedBusiness, alreadyCreated: true };
+      }
+      throw new PilotAuthorizationError("This organization pilot has already been used.", "AUTHORIZATION_ALREADY_CLAIMED", 409);
+    }
+    if (authorization.status !== "approved") {
+      throw new PilotAuthorizationError("This organization pilot is no longer available.", "AUTHORIZATION_NOT_APPROVED", 410);
+    }
+    if (authorization.claimTokenExpiresAt && authorization.claimTokenExpiresAt <= new Date()) {
+      await tx.update(organizationalPilotAuthorizations).set({ status: "expired", updatedAt: new Date() })
+        .where(eq(organizationalPilotAuthorizations.id, authorization.id));
+      throw new PilotAuthorizationError("This organization pilot authorization has expired.", "AUTHORIZATION_EXPIRED", 410);
+    }
+
+    const [business] = await tx.insert(businesses).values({
+      name: authorization.organizationName,
+      ownerUserId: input.userId,
+      creationRequestId: input.creationRequestId,
+      plan: "organizational_pilot",
+      seatLimit: authorization.professionalCapacity,
+      clientCapacity: authorization.clientCapacity,
+      status: "active",
+    }).returning();
+    const [membership] = await tx.insert(businessMembers).values({
+      businessId: business.id,
+      userId: input.userId,
+      role: "admin",
+      status: "active",
+    }).returning();
+    const [claimed] = await tx.update(organizationalPilotAuthorizations).set({
+      status: "claimed",
+      businessId: business.id,
+      claimedAt: new Date(),
+      claimedByUserId: input.userId,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(organizationalPilotAuthorizations.id, authorization.id),
+      eq(organizationalPilotAuthorizations.status, "approved"),
+    )).returning();
+    if (!claimed) {
+      throw new PilotAuthorizationError("This organization pilot was claimed by another request.", "CLAIM_RACE", 409);
+    }
+    await tx.insert(organizationalPilots).values({
+      businessId: business.id,
+      authorizationId: claimed.id,
+      name: `${authorization.organizationName} ${authorization.durationDays}-Day Pilot`,
+      status: "preparing",
+      professionalCapacity: authorization.professionalCapacity,
+      clientCapacity: authorization.clientCapacity,
+      durationDays: authorization.durationDays,
+      championBusinessMemberId: membership.id,
+      createdByUserId: input.userId,
+    });
+    return { business, alreadyCreated: false };
+  });
 }
 
 export async function updateClaimedChampionSetup(userId: string, name: string) {

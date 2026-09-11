@@ -18,6 +18,7 @@ import { businessMembers, businesses } from "../db/schema/business";
 import { eq, and } from "drizzle-orm";
 import { getActivePilotProCareGrant, getPilotClientSponsorshipState } from "./pilotProcareAccess";
 import { getActivePilotFullAccess } from "./pilotProgramAccess";
+import { getActiveClinicTrialEntitlement, getActiveProfessionalTemporaryAccess } from "./clinicPilotEnrollmentService";
 import {
   getTierForLookupKey,
   getEntitlementsForTier,
@@ -76,6 +77,8 @@ export async function computeEffectiveAccess(
   const BILLING_ENFORCED = process.env.BILLING_ENFORCED === "true";
   const pilotGrant = await getActivePilotProCareGrant(user.id);
   const pilotFullAccess = await getActivePilotFullAccess(user.id);
+  const clinicTrial = await getActiveClinicTrialEntitlement(user.id);
+  const professionalTemporaryAccess = await getActiveProfessionalTemporaryAccess(user.id);
   const pilotClientSponsorship = user.trialAccessType === "client"
     ? await getPilotClientSponsorshipState(user.id)
     : { linked: false, active: false };
@@ -144,7 +147,7 @@ export async function computeEffectiveAccess(
         ? (user.trialEndsAt instanceof Date ? user.trialEndsAt : new Date(user.trialEndsAt))
         : null;
       const hasActiveTrial = !effectiveLookupKey && trialEnd != null && trialEnd > new Date();
-      const tier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess)
+      const tier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess || professionalTemporaryAccess || (clinicTrial && getTierForLookupKey(effectiveLookupKey) === "free"))
         ? TRIAL_UNLOCKS_TIER
         : getTierForLookupKey(effectiveLookupKey);
       return {
@@ -164,7 +167,7 @@ export async function computeEffectiveAccess(
       };
     }
     const baseMembershipTier = getTierForLookupKey(membership.plan);
-    const effectiveMembershipTier: PlanTier = pilotFullAccess
+    const effectiveMembershipTier: PlanTier = (pilotFullAccess || professionalTemporaryAccess)
       ? TRIAL_UNLOCKS_TIER
       : baseMembershipTier;
     const isOrganizationalPilotBusiness = membership.plan === "organizational_pilot";
@@ -204,7 +207,7 @@ export async function computeEffectiveAccess(
     && trialEnd != null
     && trialEnd > now
     && (!pilotClientSponsorship.linked || pilotClientSponsorship.active);
-  const effectiveTier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess)
+  const effectiveTier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess || professionalTemporaryAccess || (clinicTrial && baseTier === "free"))
     ? TRIAL_UNLOCKS_TIER
     : baseTier;
 

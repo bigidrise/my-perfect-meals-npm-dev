@@ -52,7 +52,7 @@
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
 - [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.
 - [Academy progression authority](academy-progression-authority.md) — Phase 1 is educational; Phase 2 earns the core Specialist credential; ProCare is optional and role-gated.
-- [Academy contextual navigation](academy-contextual-navigation.md) — ProCare back controls should return to the logical course parent, not rely on browser history.
+- [Academy contextual navigation](academy-contextual-navigation.md) — preserve contextual back routes and Academy entry points in both More and Business Suite.
 - [Frontend static asset location](frontend-static-asset-location.md) — browser-facing images belong in client/public; verify the exact served asset before changing page layering.
 - [Production-mode dev dependencies](production-mode-dev-dependencies.md) — NODE_ENV=production can omit declared TypeScript types and create false LSP cascades.
 - [Crawler-visible SPA pages](crawler-visible-spa-pages.md) — public HTML snapshots must precede every SPA fallback and remain public after the client mounts.
@@ -76,8 +76,11 @@
 - [One-action food choice](one-action-food-choice.md) — profiles set defaults; an informed explicit choice governs one food action without changing the profile.
 - [Macro replacement boundary](macro-replacement-boundary.md) — recalculation is preview-only; saved targets remain authoritative until a final confirmed save succeeds.
 - [Business invitation identity](business-invitation-identity.md) — one email-bound invitation connects existing or new accounts through the same acceptance path.
-- [Multi-organization membership](multi-organization-membership.md) — staff membership in one organization must not prevent owning another.
+- [Multi-organization membership](multi-organization-membership.md) — one account can manage multiple isolated organizations through explicit workspace selection.
 - [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
+- [Paid organization workspace visibility](paid-organization-workspace-visibility.md) — self-service organizations appear at login only after paid activation; pending setup stays hidden.
+- [Organization invitation clocks](organization-invitation-clocks.md) — organization, patient, and professional temporary access use separate clocks and entitlement types.
+- [Organization invitation delivery state](organization-invitation-delivery-state.md) — pending means provider-accepted; delivery failures must remain retryable and visible.
 - [Organization config resilience](organization-config-resilience.md) — authenticated tenant config may be partial; normalize it over complete defaults before feature-flag reads.
 - [Organization Location isolation](organization-location-isolation.md) — parent administration never implies Location access; active context is an exact authorized pair.
 - [Diabetes glucose context boundary](diabetes-glucose-context-boundary.md) — all food surfaces enforce state produce choices; only the Diabetes Meal Builder consumes diabetes-specific numbers.

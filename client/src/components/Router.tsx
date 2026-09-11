@@ -890,7 +890,9 @@ export default function Router() {
     "/business/start",
   ];
 
-  const shouldShowBottomNav = !hideBottomNavRoutes.includes(location);
+  const shouldShowBottomNav =
+    !hideBottomNavRoutes.includes(location) &&
+    !location.startsWith("/join/clinic");
 
   const { user, loading } = useAuth();
 
@@ -933,6 +935,7 @@ export default function Router() {
     "/profile", "/settings",
     "/home",
     "/business/join",
+    "/join/clinic",
     "/business/start",
     "/business-dashboard",
     "/business/setup",
@@ -1031,6 +1034,7 @@ export default function Router() {
         <Route path="/guest-suite" component={GuestBuilder} />
         <Route path="/home" component={Home} />
         <Route path="/auth" component={Auth} />
+        <Route path="/join/clinic" component={lazy(() => import("@/pages/ClinicPilotJoinPage"))} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/pilot/activate" component={lazy(() => import("@/pages/PilotActivation"))} />
@@ -1045,7 +1049,8 @@ export default function Router() {
         <Route path="/business/setup" component={lazy(() => import("@/pages/BusinessSetup"))} />
         <Route path="/business/dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
         <Route path="/business-dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
-        <Route path="/business/join/:token" component={lazy(() => import("@/pages/BusinessInviteAccept"))} />
+        <Route path="/business-organizations" component={lazy(() => import("@/pages/OrganizationHub"))} />
+        <Route path="/business/join" component={lazy(() => import("@/pages/BusinessInviteAccept"))} />
         <Route path="/org-success-center" component={lazy(() => import("@/pages/OrganizationSuccessCenter"))} />
         <Route path="/family-info" component={FamilyInfoPage} />
         <Route path="/household-profiles" component={HouseholdProfilesPage} />

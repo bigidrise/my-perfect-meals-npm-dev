@@ -40,8 +40,10 @@ import {
   Copy,
   ExternalLink,
   HelpCircle,
+  MapPin,
 } from "lucide-react";
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
+import OrganizationInvitationsAccess from "@/components/business/OrganizationInvitationsAccess";
 
 interface BusinessData {
   workspace: {
@@ -581,6 +583,7 @@ export default function BusinessDashboard() {
           populationType: "client",
           participantRole: "client",
           participantName: clientProgramName.trim() || null,
+          trialDays: resolvedTrialDays,
           sendEmail: deliveryMethod === "email",
         } : {
           email: clientEmail,
@@ -1020,7 +1023,7 @@ export default function BusinessDashboard() {
       {!isDesktop && (
         <div className="fixed top-0 left-0 right-0 z-10 bg-black/60 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="px-4 py-3 flex items-center gap-3">
-            <button onClick={() => setLocation("/more")} className="text-white/60 active:text-white transition-colors">
+            <button onClick={() => setLocation("/business-organizations")} className="text-white/60 active:text-white transition-colors">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div className="flex-1">
@@ -1040,11 +1043,25 @@ export default function BusinessDashboard() {
 
       <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
 
-        {workspaceOptions.reduce((count, option) => count + option.locations.length, 0) > 1 && activeWorkspace && (
+        {activeWorkspace && (
           <Card className="bg-white/5 border border-orange-500/20 text-white p-4">
-            <label className="text-white/50 text-xs font-semibold uppercase tracking-wide block mb-2">
-              Organization / Location
-            </label>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-white/50 text-xs font-semibold uppercase tracking-wide">Active organization</p>
+                <p className="mt-1 text-base font-bold">{activeWorkspace.organizationName}</p>
+                <p className="mt-0.5 text-xs text-white/45">
+                  {workspaceOptions.find((option) => option.id === activeWorkspace.organizationId)?.role?.replaceAll("_", " ") || "Authorized member"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLocation("/business-organizations")}
+                className="rounded-lg border border-orange-500/25 bg-orange-500/10 px-3 py-2 text-xs font-semibold text-orange-300 hover:bg-orange-500/15"
+              >
+                Organization Hub
+              </button>
+            </div>
+            {workspaceOptions.reduce((count, option) => count + option.locations.length, 0) > 1 ? (
             <select
               value={`${activeWorkspace.organizationId}:${activeWorkspace.locationId}`}
               disabled={switchingWorkspace}
@@ -1061,6 +1078,12 @@ export default function BusinessDashboard() {
                   </option>
                 )))}
             </select>
+            ) : (
+              <p className="flex items-center gap-1.5 text-sm text-white/65">
+                <MapPin className="h-4 w-4 text-orange-300" />
+                {activeWorkspace.locationName}
+              </p>
+            )}
           </Card>
         )}
 
@@ -1079,6 +1102,18 @@ export default function BusinessDashboard() {
             </span>
           </button>
         )}
+
+        <div id="organization-invitations-access">
+          <OrganizationInvitationsAccess
+            businessId={ownerData.business.id}
+            businessName={ownerData.business.name}
+            pilot={ownerData.pilot ?? null}
+            isDesktop={isDesktop}
+            teamInvitations={ownerData.invitations}
+            patientInvitations={ownerData.clientInvitations ?? []}
+            onRefresh={fetchData}
+          />
+        </div>
 
         {/* Launch Guide Checklist — shown until dismissed */}
         {!launchGuideDismissed && (() => {
@@ -1105,12 +1140,12 @@ export default function BusinessDashboard() {
                   {
                     done: hasInvited,
                     label: "Invite your team — add coaches, trainers, or staff",
-                    action: () => setInviteOpen(true),
+                    action: () => document.getElementById("organization-invitations-access")?.scrollIntoView({ behavior: "smooth", block: "start" }),
                   },
                   {
                     done: (ownerData?.clientInvitations?.length ?? 0) > 0,
                     label: "Invite your first client — give clients complimentary access",
-                    action: () => setClientInviteOpen(true),
+                    action: () => document.getElementById("organization-invitations-access")?.scrollIntoView({ behavior: "smooth", block: "start" }),
                   },
                   {
                     done: false,
@@ -1187,14 +1222,14 @@ export default function BusinessDashboard() {
                     </span>
                   )}
                 </div>
-                {!isAdminView && (
-                  <button
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/60 hover:text-white transition-colors flex-shrink-0"
-                    onClick={() => { setNameInput(business.name); setEditingName(true); }}
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <button
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/60 hover:text-white transition-colors flex-shrink-0"
+                  onClick={() => { setNameInput(business.name); setEditingName(true); }}
+                  aria-label="Edit organization name"
+                  title="Edit organization name"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
               </>
             )}
           </div>
@@ -1222,40 +1257,6 @@ export default function BusinessDashboard() {
             Your flat $44.99/month Organization plan lets you manage client invitations and professional team members in one place.
           </p>
         </Card>
-
-        <InfoCallout title="Professional team invitations">
-          Invite coaches, trainers, physicians, and staff to join your organization. Each professional receives a one-time 30-day introductory entitlement; after it ends, they need another valid entitlement to continue professional access.
-        </InfoCallout>
-
-        {/* Invite Buttons */}
-        <div className="flex gap-2">
-          <button
-            className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-            onClick={() => setInviteOpen(true)}
-            disabled={business.status !== "active"}
-          >
-            <UserPlus className="w-4 h-4" />
-            {t("businessDashboard.inviteTeamMember")}
-          </button>
-          <button
-            className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-            onClick={() => {
-              if (!hasProAccess) {
-                setClientUpgradeModalOpen(true);
-                return;
-              }
-              setClientInviteOpen(true);
-            }}
-          >
-            <UserPlus className="w-4 h-4" />
-            {t("businessDashboard.inviteClient")}
-          </button>
-        </div>
-
-        <InfoCallout title="Team Member vs. Client Invitation — what's the difference?">
-          <p><span className="text-white/75 font-medium">Invite Team Member</span> is for your staff — coaches, trainers, physicians, and other professionals who work inside your organization. They sign in with their own account and receive a one-time 30-day introductory entitlement.</p>
-          <p className="mt-1.5"><span className="text-white/75 font-medium">Invite Client</span> is for patients and end-users. They receive a link granting 7, 14, or 30 days of complimentary access. When that period ends, they keep a free account and can upgrade on their own.</p>
-        </InfoCallout>
 
         {/* Partner & Revenue Center */}
         <button
@@ -1633,16 +1634,13 @@ export default function BusinessDashboard() {
                 <UserPlus className="w-7 h-7 text-white/20 mx-auto mb-2" />
                 <p className="text-white/60 text-sm font-medium">No client invitations yet</p>
                 <p className="text-white/40 text-xs mt-1 leading-relaxed max-w-xs mx-auto">
-                  Send a Client Invitation to give a patient or client complimentary access to My Perfect Meals.
+                  Use Invitations &amp; Access above to invite a patient or client.
                 </p>
                 <button
                   className="mt-3 px-4 py-2 rounded-lg bg-orange-600/80 hover:bg-orange-600 text-white text-xs font-semibold transition-colors"
-                  onClick={() => {
-                    if (!hasProAccess) { setClientUpgradeModalOpen(true); return; }
-                    setClientInviteOpen(true);
-                  }}
+                  onClick={() => document.getElementById("organization-invitations-access")?.scrollIntoView({ behavior: "smooth", block: "start" })}
                 >
-                  Invite a Client
+                  Go to Invitations &amp; Access
                 </button>
               </div>
             ) : (
@@ -1800,8 +1798,7 @@ export default function BusinessDashboard() {
                 onChange={(e) => setClientEmail(e.target.value)}
               />
             </div>
-            {!ownerData?.pilot && (
-              <>
+            <>
                 <div>
                   <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-1.5">
                     Business Name <span className="text-white/30 normal-case font-normal">(optional)</span>
@@ -1846,8 +1843,7 @@ export default function BusinessDashboard() {
                     ))}
                   </div>
                 </div>
-              </>
-            )}
+            </>
             {/* Invitation delivery options */}
             <div className="space-y-2">
               <button

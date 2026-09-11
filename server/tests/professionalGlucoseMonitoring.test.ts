@@ -41,6 +41,20 @@ describe("professional raw-glucose authorization policy", () => {
     ).toMatchObject({ allowed: true, reason: "allowed" });
   });
 
+  it("denies clinic attribution alone without an exact care relationship and consent", () => {
+    const clinicParticipantFacts: ProfessionalGlucoseAccessFacts = {
+      ...allowedFacts,
+      sameOrganization: true,
+      activeExactRelationship: false,
+      patientMatchesRelationship: false,
+      clinicalConsentActive: false,
+    };
+    expect(evaluateProfessionalGlucoseAccess(clinicParticipantFacts)).toMatchObject({
+      allowed: false,
+      reason: "relationship_not_active",
+    });
+  });
+
   test.each([
     ["unauthenticated caller", { authenticated: false }, "authentication_required"],
     ["suspended professional account", { professionalAccountActive: false }, "professional_account_inactive"],

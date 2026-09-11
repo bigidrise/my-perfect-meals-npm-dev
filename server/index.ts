@@ -123,6 +123,7 @@ import coachCornerRouter from "./routes/coachCorner";
 import myPerfectBeginningRouter from "./routes/myPerfectBeginning";
 import myPerfectBeginningGenerationRouter from "./routes/my-perfect-beginning";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
+import clinicPilotRouter from "./routes/clinicPilotRoutes";
 
 const app = express();
 
@@ -342,6 +343,8 @@ registerMarketingPageRoutes(
 // Health checks and keep-alive first
 app.use("/api", healthRouter);
 app.use("/api", keepaliveRouter);
+// Clinic patient pilot routes; migration is guarded by environment policy.
+app.use("/api/clinic-pilot", clinicPilotRouter);
 
 // ── Release identity — public, no auth, reads manifest baked at build time ───
 // The acceptance gate and monitoring read this after every publish to confirm
@@ -818,6 +821,21 @@ setTimeout(async () => {
     await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_sent_at timestamptz`);
     // Stable provider idempotency key (UUID) for the business welcome email — set once, never cleared
     await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_email_key text`);
+    await db.execute(sql`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS creation_request_id text`);
+    await db.execute(sql`
+      DO $$ DECLARE constraint_name text;
+      BEGIN
+        SELECT c.conname INTO constraint_name
+        FROM pg_constraint c
+        JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
+        WHERE c.conrelid = 'businesses'::regclass AND c.contype = 'u' AND a.attname = 'owner_user_id'
+        LIMIT 1;
+        IF constraint_name IS NOT NULL THEN
+          EXECUTE format('ALTER TABLE businesses DROP CONSTRAINT %I', constraint_name);
+        END IF;
+      END $$;
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS businesses_creation_request_id_uniq ON businesses (creation_request_id) WHERE creation_request_id IS NOT NULL`);
     // Client Invitation Engine — extend business_invitations to support client type
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS invitation_type text NOT NULL DEFAULT 'team_member'`);
     await db.execute(sql`ALTER TABLE business_invitations ADD COLUMN IF NOT EXISTS trial_days integer`);
@@ -1583,6 +1601,15 @@ app.get("/api/users/:id/streak", (req, res) => {
 const PORT = Number(process.env.PORT) || 5000;
 
 async function start() {
+  // Clinic entitlement reads can occur during startup backfills, so its
+  // development schema must exist before any service or route starts querying.
+  if (process.env.NODE_ENV !== "production") {
+    const { runClinicPilotDevelopmentMigration } = await import(
+      "./db/migrations/runClinicPilotDevelopmentMigration"
+    );
+    await runClinicPilotDevelopmentMigration();
+  }
+
   // Seed default organizations on every boot (idempotent)
   try {
     const { seedDefaultOrganizations } = await import("./lib/orgSeeder");
@@ -1640,6 +1667,11 @@ async function start() {
     const { db: dbWorkspace } = await import("./db");
     const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
     await runOrganizationWorkspaceMigration(dbWorkspace);
+  });
+  await withBootRetry("Organization Partner Revenue migration", async () => {
+    const { db: dbPartnerRevenue } = await import("./db");
+    const { runOrganizationPartnerRevenueMigration } = await import("./db/migrations/runOrganizationPartnerRevenueMigration");
+    await runOrganizationPartnerRevenueMigration(dbPartnerRevenue);
   });
   await withBootRetry("Stripe billing migration", async () => {
     const { db: dbStripeBilling } = await import("./db");

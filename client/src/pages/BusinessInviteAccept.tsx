@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -65,8 +65,14 @@ const NEXT_STEPS = [
 ];
 
 export default function BusinessInviteAccept() {
-  const params = useParams<{ token: string }>();
-  const token = params.token;
+  const [token] = useState(() => {
+    const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get("token");
+    if (fragmentToken) {
+      sessionStorage.setItem("mpm.organizationInviteToken", fragmentToken);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    return fragmentToken ?? sessionStorage.getItem("mpm.organizationInviteToken");
+  });
   const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -79,8 +85,14 @@ export default function BusinessInviteAccept() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
-    fetch(`/api/business/invite/${token}`)
+    if (!token) {
+      setFetchError("Invitation token is missing.");
+      setLoading(false);
+      return;
+    }
+    fetch("/api/business/invite/inspect", {
+      headers: { "x-business-invitation-token": token },
+    })
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setFetchError(data.error);
@@ -92,15 +104,16 @@ export default function BusinessInviteAccept() {
 
   const handleAccept = async () => {
     if (!user) {
-      setLocation(`/auth?redirect=/business/join/${token}`);
+      setLocation("/auth?organizationInvite=1");
       return;
     }
     setAccepting(true);
     try {
-      const res = await fetch(`/api/business/invite/${token}/accept`, {
+      const res = await fetch("/api/business/invite/accept", {
         method: "POST",
-        headers: { ...getAuthHeaders() },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
+        body: JSON.stringify({ token }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -112,6 +125,7 @@ export default function BusinessInviteAccept() {
       try { await refreshUser(); } catch { /* non-fatal — dashboard retries */ }
       setAcceptedData({ businessName: data.businessName, role: data.role, invitationType: data.invitationType, programName: data.programName, trialDays: data.trialDays });
       setAccepted(true);
+      sessionStorage.removeItem("mpm.organizationInviteToken");
     } catch {
       toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
     } finally {

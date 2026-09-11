@@ -65,7 +65,7 @@ describe("organizational pilot invitation contract", () => {
     expect(service).toContain('if (participant.populationType === "professional")');
   });
 
-  test("11 active-pilot acceptance inherits the organization end date", () => {
+  test("11 invited recipients receive a rolling entitlement instead of inheriting the organization end date", () => {
     const end = new Date("2026-10-01T00:00:00Z");
     expect(isOrganizationalPilotEntitlementActive({
       pilotStatus: "active",
@@ -73,10 +73,11 @@ describe("organizational pilot invitation contract", () => {
       pilotStartAt: new Date("2026-09-01T00:00:00Z"),
       pilotEndAt: end,
     }, new Date("2026-09-20T00:00:00Z"))).toBe(true);
-    expect(service).toContain("pilotEndAt: pilot.pilotEndAt");
+    expect(service).toContain("accessEndsAt = clinicTrialEnd(acceptedAt, trialDays)");
+    expect(service).not.toContain("pilotEndAt: pilot.pilotEndAt");
   });
 
-  test("12 preparing-pilot acceptance creates no personal clock", () => {
+  test("12 preparing organization access remains inactive until the organization pilot starts", () => {
     expect(isOrganizationalPilotEntitlementActive({
       pilotStatus: "preparing",
       participantStatus: "active",

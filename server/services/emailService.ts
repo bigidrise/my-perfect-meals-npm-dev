@@ -1161,6 +1161,10 @@ export async function sendBusinessInviteEmail({
   invitationType = 'team_member',
   trialDays,
   programName,
+  recipientName,
+  founderVideoUrl,
+  facebookGroupUrl,
+  supportEmail,
 }: {
   to: string;
   businessName: string;
@@ -1171,6 +1175,10 @@ export async function sendBusinessInviteEmail({
   invitationType?: 'team_member' | 'client';
   trialDays?: number | null;
   programName?: string | null;
+  recipientName?: string | null;
+  founderVideoUrl?: string | null;
+  facebookGroupUrl?: string | null;
+  supportEmail?: string | null;
 }) {
   if (!resend) {
     console.log('⚠️ Resend service not available - skipping business invite email');
@@ -1185,6 +1193,22 @@ export async function sendBusinessInviteEmail({
   const safeInviteLink = escapeEmailHtml(inviteLink);
   const safeRecipient = escapeEmailHtml(to);
   const safeProgram = escapeEmailHtml(resolvedProgram);
+  const recipientNameSource = recipientName?.trim() || "there";
+  const recipientFirstName = recipientNameSource.split(/\s+/)[0];
+  const safeRecipientFirstName = escapeEmailHtml(
+    recipientFirstName.charAt(0).toUpperCase() + recipientFirstName.slice(1),
+  );
+  const safeFounderVideoUrl = escapeEmailHtml(
+    founderVideoUrl || "https://youtu.be/X5AiYTHzyrQ",
+  );
+  const safeFacebookGroupUrl = escapeEmailHtml(
+    facebookGroupUrl || "https://www.facebook.com/groups/myperfectmealsofficial",
+  );
+  const resolvedSupportEmail = supportEmail?.trim() || "support@myperfectmeals.ai";
+  const safeSupportEmail = escapeEmailHtml(resolvedSupportEmail);
+  const temporaryProfessionalAccessCopy = trialDays == null
+    ? ""
+    : ` with <strong style="color: white;">${resolvedDays} days of complimentary professional access</strong>`;
 
   // ── Client invitation email ────────────────────────────────────────────────
   if (invitationType === 'client') {
@@ -1199,42 +1223,62 @@ export async function sendBusinessInviteEmail({
             <!-- Header -->
             <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); padding: 36px 30px; border-radius: 12px 12px 0 0; text-align: center;">
               <p style="color: #93c5fd; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">My Perfect Meals</p>
-              <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2;">You're invited to My Perfect Meals</h1>
-              <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${safeBusinessName} has invited you to <strong style="color: white;">${safeProgram}</strong> with ${resolvedDays} days of complimentary access.</p>
+              <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2;">Welcome to My Perfect Meals</h1>
+              <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${safeBusinessName} has invited you to receive <strong style="color: white;">${resolvedDays} days of complimentary access</strong> to My Perfect Meals.</p>
             </div>
 
             <!-- Body -->
             <div style="background: #f9fafb; padding: 32px 30px; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
 
-              <!-- Sent by -->
-              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px 20px; margin-bottom: 28px;">
-                <p style="color: #374151; font-size: 14px; margin: 0;">
-                  <strong style="color: #1d4ed8;">Sent by ${safeInviterName}</strong> on behalf of ${safeBusinessName}
-                </p>
-              </div>
+              <p style="color: #111827; font-size: 16px; margin: 0 0 20px;">Hi ${safeRecipientFirstName},</p>
+              <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+                My Perfect Meals was created to help make nutrition simpler, more personal, and easier to use in real life&mdash;without making you feel like you have to give up all the foods you enjoy.
+              </p>
 
-              <!-- What you get -->
-              <h2 style="color: #111827; font-size: 17px; margin: 0 0 12px; font-weight: 700;">What's included in your ${resolvedDays}-day access:</h2>
-              <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
-                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; AI-powered personalized meal plans</td></tr>
-                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Dietary tracking &amp; biometric monitoring</td></tr>
-                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; Nutrition tools and personalized guidance</td></tr>
-                <tr><td style="padding: 5px 0; color: #374151; font-size: 14px;">✅&nbsp; No credit card required to get started</td></tr>
-              </table>
+              ${safeFounderVideoUrl ? `
+              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 20px; margin-bottom: 28px; text-align: center;">
+                <h2 style="color: #111827; font-size: 18px; margin: 0 0 10px;">A Personal Welcome From the Founder</h2>
+                <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 16px;">Watch this short welcome to learn why My Perfect Meals was created and how it can help make food work better for your life.</p>
+                <a href="${safeFounderVideoUrl}" style="display: inline-block; background: #111827; color: white; padding: 13px 24px; text-decoration: none; border-radius: 9px; font-weight: 700;">&#9654; Watch the Welcome Video</a>
+              </div>` : ""}
 
               <!-- CTA -->
               <div style="text-align: center; margin: 0 0 32px;">
                  <a href="${safeInviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 16px 44px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 17px; letter-spacing: 0.2px;">
-                   Accept Invitation →
+                   Open My Perfect Meals
                 </a>
                 <p style="color: #6b7280; font-size: 13px; margin: 10px 0 0;">
-                   This invitation is reserved for ${safeRecipient}.
+                   For your security, please create your account or sign in using ${safeRecipient}.
                 </p>
                  <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 16px 0 0;">
-                   <strong>Already have My Perfect Meals?</strong> Sign in with your existing account and accept this invitation.<br/>
-                   <strong>New to My Perfect Meals?</strong> Create your account from this invitation. Both paths connect you to ${safeBusinessName} in My Perfect Meals.
+                   Your ${resolvedDays} days of complimentary access begin when you activate this invitation.
                  </p>
               </div>
+
+              <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 10px; padding: 18px 20px; margin-bottom: 28px;">
+                <h2 style="color: #111827; font-size: 17px; margin: 0 0 12px; font-weight: 700;">Getting started is simple</h2>
+                <ol style="color: #374151; font-size: 14px; line-height: 1.7; margin: 0; padding-left: 20px;">
+                  <li>Open My Perfect Meals using the button above.</li>
+                  <li>Create your account or sign in using the email that received this invitation.</li>
+                  <li>Complete onboarding so My Perfect Meals can personalize your experience.</li>
+                  <li>Go to your Dashboard and tap <strong>Quick Start</strong>.</li>
+                  <li>Quick Start will take you directly to <strong>My Perfect Meals Academy</strong>, where we'll show you how to use the platform step by step.</li>
+                </ol>
+              </div>
+
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; margin-bottom: 24px;">
+                <h2 style="color: #111827; font-size: 17px; margin: 0 0 10px;">One important thing to remember</h2>
+                <p style="color: #374151; font-size: 14px; line-height: 1.7; margin: 0;">
+                  My Perfect Meals isn't about making food something to fear. It's about helping you better understand your choices and make nutrition work within your life.
+                </p>
+                <p style="color: #111827; font-size: 15px; font-weight: 700; margin: 14px 0 0;">Enjoy your food. Enjoy your life.</p>
+              </div>
+
+              ${safeFacebookGroupUrl ? `
+              <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 20px; margin-bottom: 24px; text-align: center;">
+                <h2 style="color: #111827; font-size: 17px; margin: 0 0 12px;">Join the My Perfect Meals Community</h2>
+                <a href="${safeFacebookGroupUrl}" style="color: #2563eb; font-weight: 700;">Visit the Facebook Group</a>
+              </div>` : ""}
 
               <!-- Expiry notice -->
               <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 16px; margin-bottom: 24px; border-radius: 4px;">
@@ -1253,8 +1297,9 @@ export async function sendBusinessInviteEmail({
             <!-- Footer -->
             <div style="background: #1f2937; padding: 20px 30px; border-radius: 0 0 12px 12px; text-align: center;">
               <p style="color: #6b7280; font-size: 12px; margin: 0;">
-                My Perfect Meals &mdash; Clinical Nutrition Platform<br/>
-                 <span style="color: #4b5563;">Questions? Contact ${safeInviterName} or reply to this email.</span>
+                Welcome to My Perfect Meals. We're glad you're here.<br/>
+                <span style="color: #9ca3af;">Need help getting started? <a href="mailto:${safeSupportEmail}" style="color: #93c5fd;">${safeSupportEmail}</a></span><br/><br/>
+                <span style="color: #6b7280;">My Perfect Meals provides nutrition education and decision-support tools and is not a substitute for medical care. Continue to follow the medical guidance provided by your healthcare professionals.</span>
               </p>
             </div>
 
@@ -1285,7 +1330,7 @@ export async function sendBusinessInviteEmail({
           <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); padding: 36px 30px; border-radius: 12px 12px 0 0; text-align: center;">
             <p style="color: #93c5fd; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">My Perfect Meals</p>
             <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; line-height: 1.2;">Welcome to ${businessName}'s Team</h1>
-            <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${inviterName} has invited you to join as a <strong style="color: white;">${roleLabel}</strong></p>
+            <p style="color: #bfdbfe; margin: 12px 0 0; font-size: 16px;">${inviterName} has invited you to join as a <strong style="color: white;">${roleLabel}</strong>${temporaryProfessionalAccessCopy}.</p>
           </div>
 
           <!-- Body -->

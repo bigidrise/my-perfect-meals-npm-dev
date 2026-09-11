@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { db } from "../db";
 import { businesses, businessMembers } from "../db/schema/business";
 import {
@@ -12,6 +12,7 @@ import {
   userWorkspaceSelections,
 } from "../db/schema/workspaces";
 import { users } from "@shared/schema";
+import { ensureOrganizationPartnerRevenueShell } from "./organizationPartnerRevenueService";
 
 export type WorkspaceLocationOption = {
   id: string;
@@ -128,6 +129,10 @@ export async function discoverAuthorizedWorkspaces(
       organizations,
       eq(organizations.id, organizationLocations.organizationId),
     )
+    .leftJoin(
+      businesses,
+      eq(businesses.id, organizations.sourceBusinessId),
+    )
     .innerJoin(
       organizationMemberships,
       and(
@@ -141,6 +146,10 @@ export async function discoverAuthorizedWorkspaces(
       eq(locationMemberships.status, "active"),
       eq(organizationLocations.status, "active"),
       eq(organizations.activeStatus, "active"),
+      or(
+        isNull(organizations.sourceBusinessId),
+        eq(businesses.status, "active"),
+      ),
     ))
     .orderBy(organizations.name, organizationLocations.name);
 
@@ -202,7 +211,19 @@ export async function resolveActiveWorkspace(
     .limit(1);
 
   if (stored) {
-    return selectAuthorizedWorkspace(options, stored);
+    try {
+      return selectAuthorizedWorkspace(options, stored);
+    } catch (error) {
+      if (
+        !(error instanceof WorkspaceContextError)
+        || error.code !== "INVALID_WORKSPACE_SELECTION"
+      ) {
+        throw error;
+      }
+      // A saved selection can outlive billing or access changes. Recover below
+      // from the currently authorized active workspace instead of trapping the
+      // user in an unpaid or revoked organization.
+    }
   }
 
   const context = selectAuthorizedWorkspace(options);
@@ -332,6 +353,12 @@ export async function ensureCanonicalWorkspaceForBusiness(
           set: { role: member.role, status: accessStatus, updatedAt: new Date() },
         });
     }
+
+    await ensureOrganizationPartnerRevenueShell(tx, {
+      userId: business.ownerUserId,
+      organizationId,
+      organizationName: business.name,
+    });
 
     return { organizationId, locationId };
   });
