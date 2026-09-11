@@ -66,7 +66,7 @@ const ORGANIZATION_INVITE_SEND_WINDOW_MS = 60 * 1000;
 const ORGANIZATION_INVITE_SEND_LIMIT = 20;
 const ORGANIZATION_RESEND_COOLDOWN_MS = 10 * 60 * 1000;
 const INVITATION_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PRODUCTION_PATIENT_ENROLLMENT_APP_URL = "https://app.myperfectmeals.ai";
+const PATIENT_ENROLLMENT_APP_URL = "https://app.myperfectmeals.ai";
 
 function isFlatOrganization(business: Pick<typeof businesses.$inferSelect, "plan">): boolean {
   return business.plan === "clinical_business_monthly";
@@ -566,11 +566,6 @@ const getAppUrl = () =>
   process.env.APP_URL ||
   (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null) ||
   "http://localhost:5000";
-
-const getPatientEnrollmentAppUrl = () =>
-  process.env.NODE_ENV === "production"
-    ? PRODUCTION_PATIENT_ENROLLMENT_APP_URL
-    : getAppUrl();
 
 function generateInviteToken(): string {
   return randomBytes(32).toString("hex");
@@ -1115,7 +1110,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
     // and skip consumer nutrition onboarding.  Client invites keep the
     // dedicated join page since they go through a different acceptance flow.
     const inviteLink = isClient
-      ? `${getPatientEnrollmentAppUrl()}/business/join#token=${token}`
+      ? `${PATIENT_ENROLLMENT_APP_URL}/business/join#token=${token}`
       : `${getAppUrl()}/auth?mode=signup&invite=${token}`;
 
     if (shouldSendEmail) {
@@ -1390,7 +1385,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
 
     const isClientResend = (invite.invitationType ?? "team_member") === "client";
     const inviteLink = isClientResend
-      ? `${getPatientEnrollmentAppUrl()}/business/join#token=${invite.token}`
+      ? `${PATIENT_ENROLLMENT_APP_URL}/business/join#token=${invite.token}`
       : `${getAppUrl()}/auth?mode=signup&invite=${invite.token}`;
 
     const organizationContext = await loadOrgContext(business.organizationId);
