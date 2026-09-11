@@ -697,6 +697,20 @@ app.use("/api/kitchens", requireAuth, kitchenLibraryRouter);
 // Initialize SMS worker (side-effect import)
 import "./workers/smsWorker";
 
+// Development-only pilot delivery wake-up. The database outbox and leases are
+// authoritative; this timer is only a bounded, unref'd nudge and is absent in
+// production (and test runs).
+if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
+  import("./services/businessPilotDeliveryService").then(({ processDueBusinessPilotDeliveries }) => {
+    const timer = setInterval(() => {
+      void processDueBusinessPilotDeliveries({ batchSize: 10 }).catch((error) => {
+        console.error("[business-pilot-worker] poll failed:", error);
+      });
+    }, 60_000);
+    timer.unref();
+  });
+}
+
 // Lazy load heavy imports to speed startup
 let dailyReminderInitialized = false;
 

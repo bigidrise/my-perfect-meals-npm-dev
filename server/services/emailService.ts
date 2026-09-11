@@ -2,6 +2,28 @@ import { Resend } from 'resend';
 
 const EMAIL_FROM = 'My Perfect Meals <noreply@mail.myperfectmeals.com>';
 
+/** Development Business pilot review email. Deliberately contains no client or PHI detail. */
+export async function sendBusinessPilotReviewEmail({
+  to, week, messageType, bookingUrl, fallbackEmail, wording,
+}: { to: string; week: number; messageType: string; bookingUrl: string | null; fallbackEmail: string | null; wording: string }): Promise<{ id?: string } | null> {
+  if (!resend) return null;
+  const cta = bookingUrl ? `<p><a href="${escapeEmailHtml(bookingUrl)}">Schedule your pilot review</a></p>` : "";
+  const fallback = fallbackEmail ? `If scheduling is not convenient, contact ${escapeEmailHtml(fallbackEmail)}.` : "";
+  const result = await resend.emails.send({
+    from: EMAIL_FROM, to: [to],
+    subject: safeEmailSubject(
+      messageType === "final_review"
+        ? "Your Business pilot review is due"
+        : messageType.startsWith("midweek_")
+          ? `Business pilot — week ${week} progress reminder`
+          : `Business pilot — week ${week} assignments`,
+    ),
+    html: `<div><p>${escapeEmailHtml(wording)}</p>${cta}<p>${fallback}</p><p>This message contains no client or health information.</p></div>`,
+  });
+  if (result.error) throw new Error(result.error.message);
+  return result.data ? { id: result.data.id } : null;
+}
+
 function escapeEmailHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")

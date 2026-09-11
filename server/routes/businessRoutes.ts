@@ -53,7 +53,7 @@ import {
   organizationMemberships,
 } from "../db/schema/workspaces";
 import { organizations } from "../db/schema/organizations";
-import { organizationalPilotParticipants, organizationalPilots } from "../db/schema/pilotProgram";
+import { organizationalPilotParticipants, organizationalPilots, businessPilotDeliveryAttempts, businessPilotCompletions } from "../db/schema/pilotProgram";
 import {
   MAX_ORGANIZATION_INVITATION_BATCH,
   reviewOrganizationInvitationRecipients,
@@ -68,6 +68,16 @@ import {
   PERMANENT_COMPLIMENTARY_BUSINESS_ACCESS,
 } from "../services/businessCommercialAccessService";
 import { getPilotReviewConfiguration } from "../config/pilotReviewConfig";
+import {
+  getBusinessPilotGuidance,
+  setBusinessPilotAssignment,
+  getBusinessPilotWeek,
+  WEEKS,
+} from "../services/businessPilotGuidanceService";
+import {
+  processDueBusinessPilotDeliveries,
+  suppressBusinessPilotRecipient,
+} from "../services/businessPilotDeliveryService";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -75,6 +85,84 @@ const stripe = stripeKey
   : null;
 
 const router = Router();
+
+// Development-only guided Business pilot surface. Production deliberately has
+// no route here: the commercial product must not acquire a second pilot clock.
+function developmentPilotOnly(req: any, res: any, next: any) {
+  if (process.env.NODE_ENV === "production") return res.sendStatus(404);
+  return next();
+}
+
+router.get("/pilot-guidance", developmentPilotOnly, requireAuth, async (req, res) => {
+  try {
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
+    if (!resolved) return res.sendStatus(404);
+    const guidance = await getBusinessPilotGuidance({
+      userId: (req as any).authUser?.id as string,
+      businessId: resolved.business.id,
+    });
+    return res.json(guidance ?? { active: false });
+  } catch (error) {
+    const workspaceError = sendDashboardWorkspaceError(res, error);
+    if (workspaceError) return workspaceError;
+    return res.status(500).json({ error: "Could not load pilot guidance." });
+  }
+});
+
+router.put("/pilot-guidance/assignments/:key", developmentPilotOnly, requireAuth, async (req, res) => {
+  try {
+    if (typeof req.body?.completed !== "boolean") return res.status(400).json({ error: "completed must be boolean." });
+    const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
+    if (!resolved) return res.sendStatus(404);
+    const guidance = await setBusinessPilotAssignment({
+      userId: (req as any).authUser?.id as string,
+      businessId: resolved.business.id,
+      key: req.params.key,
+      completed: req.body.completed,
+    });
+    if (guidance === undefined) return res.status(404).json({ error: "Assignment not found." });
+    return guidance ? res.json(guidance) : res.sendStatus(404);
+  } catch (error) {
+    const workspaceError = sendDashboardWorkspaceError(res, error);
+    if (workspaceError) return workspaceError;
+    return res.status(500).json({ error: "Could not update pilot assignment." });
+  }
+});
+
+router.get("/pilot-guidance/inspection/:pilotId", developmentPilotOnly, requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const deliveries = await db.select({
+      id: businessPilotDeliveryAttempts.id,
+      recipientEmail: businessPilotDeliveryAttempts.recipientEmail,
+      messageType: businessPilotDeliveryAttempts.messageType,
+      week: businessPilotDeliveryAttempts.week,
+      status: businessPilotDeliveryAttempts.status,
+      attempts: businessPilotDeliveryAttempts.attempts,
+      nextRetryAt: businessPilotDeliveryAttempts.nextRetryAt,
+      providerId: businessPilotDeliveryAttempts.providerId,
+      failure: businessPilotDeliveryAttempts.failure,
+    }).from(businessPilotDeliveryAttempts).where(eq(businessPilotDeliveryAttempts.pilotId, req.params.pilotId));
+    const completions = await db.select().from(businessPilotCompletions).where(eq(businessPilotCompletions.pilotId, req.params.pilotId));
+    const [pilotInspection] = await db.select({ pilot: organizationalPilots, business: businesses }).from(organizationalPilots).innerJoin(businesses, eq(businesses.id, organizationalPilots.businessId)).where(eq(organizationalPilots.id, req.params.pilotId)).limit(1);
+    const day = pilotInspection?.business.commercialAccessStartedAt ? Math.floor((Date.now() - pilotInspection.business.commercialAccessStartedAt.getTime()) / 86400000) + 1 : 0;
+    const currentWeek = day > 0 ? getBusinessPilotWeek(day) : null;
+    const currentCompletions = currentWeek ? completions.filter((c) => c.completed).length : 0;
+    return res.json({ pilotId: req.params.pilotId, currentWeek, progress: { completedCount: currentCompletions, totalCount: currentWeek ? WEEKS[currentWeek - 1].assignments.length : 0 }, completions, deliveries, schedule: deliveries.map((d) => ({ messageType: d.messageType, week: d.week, status: d.status, nextRetryAt: d.nextRetryAt })) });
+  } catch {
+    return res.status(500).json({ error: "Could not inspect pilot guidance." });
+  }
+});
+
+router.post("/pilot-guidance/admin/process", developmentPilotOnly, requireAuth, requireAdmin, async (_req, res) => {
+  return res.json(await processDueBusinessPilotDeliveries({ batchSize: 10 }));
+});
+
+router.post("/pilot-guidance/admin/suppress", developmentPilotOnly, requireAuth, requireAdmin, async (req, res) => {
+  const { email, reason } = req.body ?? {};
+  if (typeof email !== "string" || !["bounce", "complaint", "operational_opt_out", "invalid_contact", "removed_contact"].includes(reason)) return res.status(400).json({ error: "email and valid operational suppression reason are required." });
+  await suppressBusinessPilotRecipient(email, reason);
+  return res.json({ suppressed: true });
+});
 
 router.use("/workspace", organizationWorkspaceRouter);
 const CLIENT_TRIAL_DURATIONS = [7, 14, 30] as const;
