@@ -67,6 +67,7 @@ import {
   hasPermanentComplimentaryBusinessAccess,
   PERMANENT_COMPLIMENTARY_BUSINESS_ACCESS,
 } from "../services/businessCommercialAccessService";
+import { getPilotReviewConfiguration } from "../config/pilotReviewConfig";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -916,8 +917,8 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       professionalCapacity: organizationalPilots.professionalCapacity,
       clientCapacity: organizationalPilots.clientCapacity,
       durationDays: organizationalPilots.durationDays,
-      pilotStartAt: organizationalPilots.pilotStartAt,
-      pilotEndAt: organizationalPilots.pilotEndAt,
+      pilotStartAt: businesses.commercialAccessStartedAt,
+      pilotEndAt: businesses.commercialAccessEndsAt,
     }).from(organizationalPilots)
       .where(eq(organizationalPilots.businessId, business.id))
       .limit(1);
@@ -931,6 +932,9 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       },
       workspace: { organizationId, locationId, locationName },
       pilot: pilot ?? null,
+      pilotReview: process.env.NODE_ENV === "production"
+        ? null
+        : getPilotReviewConfiguration(),
       members,
       invitations,
       clientInvitations,

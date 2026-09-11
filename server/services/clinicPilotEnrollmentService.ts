@@ -25,11 +25,24 @@ export async function createClinicPilotEnrollmentLink(input: { businessId: strin
   assertTemporaryAccessDuration(accessDurationDays);
   const rawToken = newToken();
   const [link] = await db.transaction(async (tx) => {
-    const [business] = await tx.select({ organizationId: businesses.organizationId, status: businesses.status }).from(businesses).where(eq(businesses.id, input.businessId)).limit(1);
+    const [business] = await tx.select({
+      organizationId: businesses.organizationId,
+      status: businesses.status,
+      commercialAccessMode: businesses.commercialAccessMode,
+      pilotStartAt: businesses.commercialAccessStartedAt,
+      pilotEndAt: businesses.commercialAccessEndsAt,
+    }).from(businesses).where(eq(businesses.id, input.businessId)).limit(1);
     const [pilot] = await tx.select().from(organizationalPilots).where(and(eq(organizationalPilots.id, input.pilotId), eq(organizationalPilots.businessId, input.businessId), eq(organizationalPilots.status, "active"))).limit(1);
     const now = new Date();
     if (!business || business.status !== "active") throw new Error("BUSINESS_INACTIVE");
-    if (!pilot || !pilot.pilotStartAt || !pilot.pilotEndAt || pilot.pilotStartAt > now || pilot.pilotEndAt <= now) throw new Error("PILOT_ENROLLMENT_CLOSED");
+    if (
+      !pilot ||
+      business.commercialAccessMode !== "onboarding_pilot" ||
+      !business.pilotStartAt ||
+      !business.pilotEndAt ||
+      business.pilotStartAt > now ||
+      business.pilotEndAt <= now
+    ) throw new Error("PILOT_ENROLLMENT_CLOSED");
     const [created] = await tx.insert(clinicPilotEnrollmentLinks).values({ businessId: input.businessId, pilotId: input.pilotId, organizationId: business.organizationId ?? null, tokenHash: hashToken(rawToken), capacity, accessDurationDays, expiresAt: input.expiresAt ?? null, createdByUserId: input.actorUserId }).returning();
     await tx.insert(organizationalPilotEvents).values({ pilotId: input.pilotId, actorUserId: input.actorUserId, eventType: "clinic_link_created", entityType: "clinic_enrollment_link", entityId: created.id, metadata: { capacity, accessDurationDays } });
     return [created];
@@ -38,11 +51,11 @@ export async function createClinicPilotEnrollmentLink(input: { businessId: strin
 }
 
 export async function inspectClinicPilotEnrollmentLink(rawToken: string) {
-  const [link] = await db.select({ id: clinicPilotEnrollmentLinks.id, pilotId: clinicPilotEnrollmentLinks.pilotId, businessId: clinicPilotEnrollmentLinks.businessId, status: clinicPilotEnrollmentLinks.status, expiresAt: clinicPilotEnrollmentLinks.expiresAt, capacity: clinicPilotEnrollmentLinks.capacity, accessDurationDays: clinicPilotEnrollmentLinks.accessDurationDays, pilotName: organizationalPilots.name, pilotStatus: organizationalPilots.status, pilotStartAt: organizationalPilots.pilotStartAt, pilotEndAt: organizationalPilots.pilotEndAt, businessStatus: businesses.status }).from(clinicPilotEnrollmentLinks).innerJoin(organizationalPilots, eq(organizationalPilots.id, clinicPilotEnrollmentLinks.pilotId)).innerJoin(businesses, eq(businesses.id, clinicPilotEnrollmentLinks.businessId)).where(eq(clinicPilotEnrollmentLinks.tokenHash, hashToken(rawToken))).limit(1);
+  const [link] = await db.select({ id: clinicPilotEnrollmentLinks.id, pilotId: clinicPilotEnrollmentLinks.pilotId, businessId: clinicPilotEnrollmentLinks.businessId, status: clinicPilotEnrollmentLinks.status, expiresAt: clinicPilotEnrollmentLinks.expiresAt, capacity: clinicPilotEnrollmentLinks.capacity, accessDurationDays: clinicPilotEnrollmentLinks.accessDurationDays, pilotName: organizationalPilots.name, pilotStatus: organizationalPilots.status, pilotStartAt: businesses.commercialAccessStartedAt, pilotEndAt: businesses.commercialAccessEndsAt, businessStatus: businesses.status, commercialAccessMode: businesses.commercialAccessMode }).from(clinicPilotEnrollmentLinks).innerJoin(organizationalPilots, eq(organizationalPilots.id, clinicPilotEnrollmentLinks.pilotId)).innerJoin(businesses, eq(businesses.id, clinicPilotEnrollmentLinks.businessId)).where(eq(clinicPilotEnrollmentLinks.tokenHash, hashToken(rawToken))).limit(1);
   if (!link) return null;
   const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(clinicTrialEntitlements).where(eq(clinicTrialEntitlements.linkId, link.id));
   const now = new Date();
-  return { ...link, enrolledCount: Number(count ?? 0), available: link.status === "active" && link.businessStatus === "active" && link.pilotStatus === "active" && !!link.pilotStartAt && !!link.pilotEndAt && link.pilotStartAt <= now && link.pilotEndAt > now && (!link.expiresAt || link.expiresAt > now) && Number(count ?? 0) < link.capacity };
+  return { ...link, enrolledCount: Number(count ?? 0), available: link.status === "active" && link.businessStatus === "active" && link.commercialAccessMode === "onboarding_pilot" && link.pilotStatus === "active" && !!link.pilotStartAt && !!link.pilotEndAt && link.pilotStartAt <= now && link.pilotEndAt > now && (!link.expiresAt || link.expiresAt > now) && Number(count ?? 0) < link.capacity };
 }
 
 export async function enrollClinicPatient(rawToken: string, userId: string) {
@@ -57,11 +70,23 @@ export async function enrollClinicPatientInTransaction(tx: any, rawToken: string
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${link.pilotId}))`);
     const [existing] = await tx.select().from(clinicTrialEntitlements).where(and(eq(clinicTrialEntitlements.userId, userId), eq(clinicTrialEntitlements.pilotId, link.pilotId))).limit(1);
     if (existing) return { entitlement: existing, alreadyEnrolled: true };
-    const [business] = await tx.select({ status: businesses.status }).from(businesses).where(eq(businesses.id, link.businessId)).limit(1);
+    const [business] = await tx.select({
+      status: businesses.status,
+      commercialAccessMode: businesses.commercialAccessMode,
+      pilotStartAt: businesses.commercialAccessStartedAt,
+      pilotEndAt: businesses.commercialAccessEndsAt,
+    }).from(businesses).where(eq(businesses.id, link.businessId)).limit(1);
     const [pilot] = await tx.select().from(organizationalPilots).where(and(eq(organizationalPilots.id, link.pilotId), eq(organizationalPilots.status, "active"))).limit(1);
     const now = new Date();
     if (!business || business.status !== "active") throw new Error("BUSINESS_INACTIVE");
-    if (!pilot || !pilot.pilotStartAt || !pilot.pilotEndAt || pilot.pilotStartAt > now || pilot.pilotEndAt <= now) throw new Error("PILOT_ENROLLMENT_CLOSED");
+    if (
+      !pilot ||
+      business.commercialAccessMode !== "onboarding_pilot" ||
+      !business.pilotStartAt ||
+      !business.pilotEndAt ||
+      business.pilotStartAt > now ||
+      business.pilotEndAt <= now
+    ) throw new Error("PILOT_ENROLLMENT_CLOSED");
     if (link.status !== "active") throw new Error("LINK_REVOKED");
     if (link.expiresAt && link.expiresAt <= now) throw new Error("LINK_EXPIRED");
     const [{ linkCount }] = await tx.select({ linkCount: sql<number>`count(*)::int` }).from(clinicTrialEntitlements).where(eq(clinicTrialEntitlements.linkId, link.id));
