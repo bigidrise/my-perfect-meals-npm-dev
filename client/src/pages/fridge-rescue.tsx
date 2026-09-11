@@ -156,6 +156,7 @@ const FridgeRescuePage = () => {
   usePageTitle("Fridge Rescue");
   const { toast } = useToast();
   const { t } = useTranslation("fridgeRescue");
+  const { t: tRouteTitle } = useTranslation("routeTitles");
   const { runAction, open, startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("fridge-rescue");
   // Get actual user ID from auth context for medical safety
@@ -796,7 +797,7 @@ const FridgeRescuePage = () => {
               data-wt="fridge-rescue-header"
               className="text-lg font-bold text-white truncate min-w-0"
             >
-              {t("title")}
+              {tRouteTitle("fridgeRescue")}
             </h1>
 
             <div className="flex-grow" />
