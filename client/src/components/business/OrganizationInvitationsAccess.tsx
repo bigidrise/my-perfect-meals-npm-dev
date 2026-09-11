@@ -410,7 +410,7 @@ export default function OrganizationInvitationsAccess({
             <DialogTitle>Invitations &amp; Access — {businessName}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
+          <div className="mt-3 grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
             <section className="space-y-4">
               <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/5 p-1">
                 <button onClick={() => selectPopulation("client")} className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${population === "client" ? "bg-orange-600" : "text-white/60"}`}>
