@@ -259,7 +259,47 @@ export default function AffiliateDashboard() {
     );
   }
 
-  if (!account) return null;
+  if (!account) {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex flex-col text-white`}>
+        <div
+          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-xs font-medium active:scale-[0.95] transition-transform"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+            <h1 className="text-base font-bold">Partner &amp; Revenue Center</h1>
+          </div>
+        </div>
+        <div
+          className="px-4 max-w-2xl mx-auto w-full"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
+        >
+          <Card>
+            <CardLabel>Organization account</CardLabel>
+            <p className="text-sm font-semibold">
+              This organization does not have a referral account yet.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-white/60">
+              Your organization remains available, but its Partner &amp; Revenue account could not be loaded. Return to the Organization Dashboard and try again.
+            </p>
+            <button
+              onClick={() => setLocation("/business-dashboard")}
+              className="mt-4 rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-bold"
+            >
+              Organization Dashboard
+            </button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // Operational page — all actions require Pro subscription
   if (!hasPro) {

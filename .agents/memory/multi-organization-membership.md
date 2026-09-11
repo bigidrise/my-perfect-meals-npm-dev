@@ -13,4 +13,4 @@ Personal affiliate relationships and organization Partner/Revenue relationships 
 
 **Why:** A person may independently promote MPM while administering one or more organizations. User-scoped fallback, email matching, or updates by user ID can leak commercial history across tenants or attribute incoming revenue to the wrong organization.
 
-**How to apply:** Preserve user-owned affiliate rows for future personal programs. For organization reads and actions, resolve and authorize the active workspace server-side, include organization identity in client cache boundaries, and update webhook state by the matched account's primary key.
+**How to apply:** Preserve user-owned affiliate rows for future personal programs. For organization reads and actions, resolve and authorize the active workspace server-side, then query by organization UUID alone; a creator/owner user ID stored on the row is not an authorization filter. Include organization identity in client cache boundaries, and update webhook state by the matched account's primary key.
