@@ -22,13 +22,18 @@ describe("organization-scoped Partner and Revenue Center", () => {
     expect(scopeHelpers).not.toContain("partnerRecords.userId");
   });
 
-  test("organization reads do not inherit personal certifications or Rewardful identity by email", () => {
+  test("organization reads and account creation do not inherit Rewardful identity by email", () => {
     const dashboardRoute = affiliateRoutes.slice(
       affiliateRoutes.indexOf('router.get("/dashboard"'),
       affiliateRoutes.indexOf('// ─── GET /api/affiliate/dashboard-link'),
     );
     expect(dashboardRoute).not.toContain("userCertifications");
-    expect(affiliateRoutes).not.toContain("getRewardfulAffiliateByEmail");
+    const organizationCreateRoute = affiliateRoutes.slice(
+      affiliateRoutes.indexOf('router.post("/organization/setup"'),
+      affiliateRoutes.indexOf("// ─── POST /api/affiliate/send-invite"),
+    );
+    expect(organizationCreateRoute).not.toContain("getRewardfulAffiliateByEmail");
+    expect(organizationCreateRoute).not.toContain("attach-existing/request-confirmation");
     expect(partnerRoutes.slice(
       partnerRoutes.indexOf('router.get("/identity"'),
       partnerRoutes.indexOf("// ─── Admin: GET"),

@@ -1,6 +1,7 @@
 import { Router } from "express";
+import { createHash, randomBytes } from "node:crypto";
 import { db } from "../db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { users } from "../../shared/schema";
@@ -9,10 +10,11 @@ import {
   createOrganizationRewardfulAffiliate,
   getRewardfulMagicLink,
   getRewardfulAffiliate,
+  getRewardfulAffiliateByEmail,
   getRewardfulAffiliateStatus,
   RewardfulAffiliateConflictError,
 } from "../services/rewardfulApi";
-import { sendAffiliateReferralInvite } from "../services/emailService";
+import { sendAffiliateReferralInvite, sendRewardfulConnectionConfirmationEmail } from "../services/emailService";
 import { requireEmailService, emailServiceAvailable } from "../middleware/requireEmailService";
 import { resolveActiveWorkspace } from "../services/organizationWorkspaceService";
 import {
@@ -23,8 +25,33 @@ import {
 } from "../services/organizationPartnerRevenueService";
 import { partnerRecords } from "../db/schema/partnerRecords";
 import { partnerActivityLog } from "../db/schema/partnerActivityLog";
+import { rewardfulConnectionConfirmations } from "../db/schema/rewardfulConnectionConfirmations";
 
 const router = Router();
+const REWARDFUL_CONFIRMATION_TTL_MS = 30 * 60 * 1000;
+const rewardfulConfirmationAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function requireDevelopmentRewardfulConnection(res: any): boolean {
+  if (process.env.NODE_ENV === "development") return true;
+  res.status(404).json({ error: "Not found" });
+  return false;
+}
+
+function allowRewardfulConfirmationAttempt(key: string, limit: number): boolean {
+  const now = Date.now();
+  const existing = rewardfulConfirmationAttempts.get(key);
+  if (!existing || existing.resetAt <= now) {
+    rewardfulConfirmationAttempts.set(key, { count: 1, resetAt: now + 15 * 60 * 1000 });
+    return true;
+  }
+  if (existing.count >= limit) return false;
+  existing.count += 1;
+  return true;
+}
+
+function hashRewardfulConfirmationToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 function sessionSelection(req: any) {
   return req.session?.activeOrganizationId && req.session?.activeLocationId
@@ -403,6 +430,211 @@ router.post("/organization/attach-existing", requireAuth, async (req, res) => {
   } catch (err: any) {
     console.error("[Affiliate] attach existing organization Rewardful error:", err);
     return res.status(err?.status ?? 500).json({ error: err?.message ?? "Could not attach Rewardful account." });
+  }
+});
+
+router.post("/organization/attach-existing/request-confirmation", requireAuth, async (req, res) => {
+  if (!requireDevelopmentRewardfulConnection(res)) return;
+  try {
+    const { userId, workspace, account } = await getOrganizationAffiliateAccount(req);
+    requireOrganizationPartnerManager(workspace);
+    if (!allowRewardfulConfirmationAttempt(`request:${userId}:${workspace.organizationId}:${req.ip}`, 5)) {
+      return res.status(429).json({ error: "Too many connection attempts. Please wait before trying again." });
+    }
+    if (!account) return res.status(404).json({ error: "Organization affiliate account was not found." });
+    if (account.rewardfulAffiliateId) {
+      return res.status(409).json({
+        error: "This organization already has a Rewardful account linked.",
+        code: "ORGANIZATION_REWARDFUL_ALREADY_LINKED",
+      });
+    }
+    const lifecycle = await resolveOrganizationPartnerLifecycle(workspace.organizationId, account);
+    if (!lifecycle.setupAvailable) {
+      return res.status(403).json({
+        error: "Partner & Revenue setup is not available for this organization yet.",
+        code: "ORGANIZATION_PARTNER_SETUP_NOT_AVAILABLE",
+      });
+    }
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Enter the business email used with Rewardful." });
+    }
+    const affiliate = await getRewardfulAffiliateByEmail(email);
+    if (!affiliate?.id || affiliate.email.trim().toLowerCase() !== email) {
+      return res.status(404).json({
+        found: false,
+        code: "REWARDFUL_AFFILIATE_NOT_FOUND",
+        error: "No existing Rewardful affiliate was found for that email.",
+      });
+    }
+    const [usedBy] = await db
+      .select({ organizationId: userAffiliateAccounts.organizationId })
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.rewardfulAffiliateId, affiliate.id))
+      .limit(1);
+    if (usedBy?.organizationId && usedBy.organizationId !== workspace.organizationId) {
+      return res.status(409).json({
+        error: "That Rewardful account is already attached to another organization.",
+        code: "REWARDFUL_AFFILIATE_ALREADY_ASSIGNED",
+      });
+    }
+
+    const rawToken = randomBytes(32).toString("base64url");
+    const expiresAt = new Date(Date.now() + REWARDFUL_CONFIRMATION_TTL_MS);
+    await db.transaction(async (tx) => {
+      await tx.update(rewardfulConnectionConfirmations)
+        .set({ consumedAt: new Date() })
+        .where(and(
+          eq(rewardfulConnectionConfirmations.organizationId, workspace.organizationId),
+          eq(rewardfulConnectionConfirmations.requesterUserId, userId),
+          isNull(rewardfulConnectionConfirmations.consumedAt),
+        ));
+      await tx.insert(rewardfulConnectionConfirmations).values({
+        organizationId: workspace.organizationId,
+        locationId: workspace.locationId,
+        requesterUserId: userId,
+        rewardfulAffiliateId: affiliate.id,
+        destinationEmail: email,
+        tokenHash: hashRewardfulConfirmationToken(rawToken),
+        expiresAt,
+      });
+    });
+    const devDomain = process.env.REPLIT_DEV_DOMAIN;
+    if (!devDomain) throw new Error("Development confirmation URL is not configured.");
+    const confirmationUrl = `https://${devDomain}/rewardful/connect/confirm?token=${encodeURIComponent(rawToken)}`;
+    const sent = await sendRewardfulConnectionConfirmationEmail({
+      to: email,
+      organizationName: workspace.organizationName,
+      confirmationUrl,
+      expiresAt,
+    });
+    if (!sent) {
+      await db.update(rewardfulConnectionConfirmations)
+        .set({ consumedAt: new Date() })
+        .where(eq(rewardfulConnectionConfirmations.tokenHash, hashRewardfulConfirmationToken(rawToken)));
+      return res.status(503).json({ error: "The confirmation email could not be sent. Please try again." });
+    }
+    return res.status(202).json({
+      found: true,
+      confirmationRequired: true,
+      message: "We found an existing Rewardful account for this email. Check that inbox to confirm the connection.",
+      expiresAt,
+    });
+  } catch (err: any) {
+    console.error("[Affiliate] Rewardful email connection request failed:", err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? "Could not request Rewardful confirmation." });
+  }
+});
+
+router.post("/organization/attach-existing/confirm", async (req, res) => {
+  if (!requireDevelopmentRewardfulConnection(res)) return;
+  const rawToken = String(req.body?.token ?? "").trim();
+  if (!rawToken || rawToken.length > 256) {
+    return res.status(400).json({ error: "The confirmation link is invalid." });
+  }
+  if (!allowRewardfulConfirmationAttempt(`confirm:${req.ip}`, 10)) {
+    return res.status(429).json({ error: "Too many confirmation attempts. Please wait and try again." });
+  }
+  try {
+    const tokenHash = hashRewardfulConfirmationToken(rawToken);
+    const [confirmation] = await db
+      .select()
+      .from(rewardfulConnectionConfirmations)
+      .where(and(
+        eq(rewardfulConnectionConfirmations.tokenHash, tokenHash),
+        isNull(rewardfulConnectionConfirmations.consumedAt),
+        gt(rewardfulConnectionConfirmations.expiresAt, new Date()),
+      ))
+      .limit(1);
+    if (!confirmation) {
+      return res.status(410).json({ error: "This confirmation link has expired or was already used." });
+    }
+
+    const workspace = await resolveActiveWorkspace(confirmation.requesterUserId, {
+      organizationId: confirmation.organizationId,
+      locationId: confirmation.locationId,
+    });
+    requireOrganizationPartnerManager(workspace);
+    const [account] = await db.select().from(userAffiliateAccounts)
+      .where(affiliateAccountScope(confirmation.organizationId)).limit(1);
+    if (!account || account.rewardfulAffiliateId) {
+      return res.status(409).json({ error: "This organization's Rewardful connection has already changed." });
+    }
+    const lifecycle = await resolveOrganizationPartnerLifecycle(confirmation.organizationId, account);
+    if (!lifecycle.setupAvailable) {
+      return res.status(403).json({ error: "Partner & Revenue setup is no longer available for this organization." });
+    }
+    const verified = await getRewardfulAffiliate(confirmation.rewardfulAffiliateId);
+    if (
+      !verified?.id ||
+      verified.id !== confirmation.rewardfulAffiliateId ||
+      verified.email.trim().toLowerCase() !== confirmation.destinationEmail
+    ) {
+      return res.status(409).json({ error: "The Rewardful account email changed before confirmation." });
+    }
+    const [usedBy] = await db.select({ organizationId: userAffiliateAccounts.organizationId })
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.rewardfulAffiliateId, verified.id))
+      .limit(1);
+    if (usedBy?.organizationId && usedBy.organizationId !== confirmation.organizationId) {
+      return res.status(409).json({ error: "That Rewardful account is already attached to another organization." });
+    }
+
+    const link = verified.links?.[0];
+    const now = new Date();
+    const [updated] = await db.transaction(async (tx) => {
+      const [consumed] = await tx.update(rewardfulConnectionConfirmations)
+        .set({ consumedAt: now })
+        .where(and(
+          eq(rewardfulConnectionConfirmations.id, confirmation.id),
+          isNull(rewardfulConnectionConfirmations.consumedAt),
+          gt(rewardfulConnectionConfirmations.expiresAt, now),
+        ))
+        .returning({ id: rewardfulConnectionConfirmations.id });
+      if (!consumed) throw new Error("This confirmation link has expired or was already used.");
+      const [saved] = await tx.update(userAffiliateAccounts).set({
+        rewardfulAffiliateId: verified.id,
+        rewardfulState: verified.state,
+        rewardfulReferralUrl: link?.url ?? null,
+        rewardfulReferralToken: link?.token ?? null,
+        rewardfulCampaignId: verified.campaign?.id ?? null,
+        activatedAt: now,
+        updatedAt: now,
+      }).where(and(
+        affiliateAccountScope(confirmation.organizationId),
+        isNull(userAffiliateAccounts.rewardfulAffiliateId),
+      )).returning();
+      if (!saved) throw new Error("Organization Rewardful account changed before confirmation completed.");
+      await tx.update(partnerRecords).set({
+        rewardfulAffiliateId: verified.id,
+        rewardfulCreatedAt: now,
+        acceptedAt: now,
+        contactEmail: verified.email,
+        status: verified.state === "active" ? "active" : "setup_in_progress",
+        updatedAt: now,
+      }).where(partnerRecordScope(confirmation.organizationId));
+      await tx.insert(partnerActivityLog).values({
+        userId: confirmation.requesterUserId,
+        actorId: confirmation.requesterUserId,
+        action: "organization_rewardful_attached_by_email_confirmation",
+        details: {
+          organizationId: confirmation.organizationId,
+          rewardfulAffiliateId: verified.id,
+          previousState: "setup_available",
+          newState: verified.state,
+        },
+      });
+      return [saved] as const;
+    });
+    return res.json({
+      ok: true,
+      organizationId: updated.organizationId,
+      message: "The existing Rewardful account is now connected.",
+    });
+  } catch (err: any) {
+    console.error("[Affiliate] Rewardful email connection confirmation failed:", err);
+    const status = /expired|already used/i.test(err?.message ?? "") ? 410 : (err?.status ?? 500);
+    return res.status(status).json({ error: err?.message ?? "Could not confirm the Rewardful connection." });
   }
 });
 

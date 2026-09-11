@@ -156,6 +156,8 @@ export default function AffiliateDashboard() {
   const [organizationContactName, setOrganizationContactName] = useState("");
   const [organizationContactEmail, setOrganizationContactEmail] = useState("");
   const [existingAffiliateId, setExistingAffiliateId] = useState("");
+  const [existingRewardfulEmail, setExistingRewardfulEmail] = useState("");
+  const [existingConnectionMessage, setExistingConnectionMessage] = useState("");
   const [organizationSetupLoading, setOrganizationSetupLoading] = useState(false);
 
   useEffect(() => {
@@ -330,6 +332,25 @@ export default function AffiliateDashboard() {
     }
   }, [organizationSetupLoading, toast]);
 
+  const requestExistingRewardfulConfirmation = useCallback(async () => {
+    if (organizationSetupLoading || !existingRewardfulEmail.trim()) return;
+    setOrganizationSetupLoading(true);
+    setExistingConnectionMessage("");
+    try {
+      const data = await apiRequest("/api/affiliate/organization/attach-existing/request-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: existingRewardfulEmail.trim() }),
+      }) as { message?: string };
+      setExistingConnectionMessage(data.message ?? "Check that email inbox to confirm the connection.");
+      toast({ title: "Confirmation email sent", description: "The Rewardful account is not attached until its owner confirms." });
+    } catch (error: any) {
+      setExistingConnectionMessage(error?.message ?? "No existing Rewardful affiliate was found for that email.");
+    } finally {
+      setOrganizationSetupLoading(false);
+    }
+  }, [existingRewardfulEmail, organizationSetupLoading, toast]);
+
   const trackLabel = account?.affiliateTrack === "business_affiliate"
     ? "Business & Coaching Affiliate"
     : "Social & Referral Affiliate";
@@ -481,6 +502,7 @@ export default function AffiliateDashboard() {
               </p>
               {account.canManage ? (
                 <div className="mt-4 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-orange-300">Create New Rewardful Account</p>
                   <input
                     value={organizationContactName}
                     onChange={(event) => setOrganizationContactName(event.target.value)}
@@ -505,7 +527,34 @@ export default function AffiliateDashboard() {
                     {organizationSetupLoading ? "Starting setup..." : "Set Up Partner & Revenue"}
                   </button>
                   <div className="border-t border-white/10 pt-3">
-                    <p className="mb-2 text-xs font-semibold text-white">Already have a Rewardful account?</p>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-orange-300">Connect Existing Rewardful Account</p>
+                    {import.meta.env.DEV && (
+                      <div className="mb-3 rounded-xl border border-orange-500/20 bg-orange-500/5 p-3">
+                        <label className="text-xs font-semibold text-white">Business email used with Rewardful</label>
+                        <input
+                          value={existingRewardfulEmail}
+                          onChange={(event) => setExistingRewardfulEmail(event.target.value)}
+                          placeholder="organization@example.com"
+                          type="email"
+                          className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/35"
+                        />
+                        <button
+                          type="button"
+                          disabled={organizationSetupLoading || !existingRewardfulEmail.trim()}
+                          onClick={requestExistingRewardfulConfirmation}
+                          className="mt-2 w-full rounded-xl bg-orange-600 px-3 py-2.5 text-xs font-bold text-white disabled:opacity-50"
+                        >
+                          {organizationSetupLoading ? "Checking Rewardful..." : "Find Existing Account"}
+                        </button>
+                        {existingConnectionMessage && (
+                          <p className="mt-2 text-[11px] leading-relaxed text-white/65">{existingConnectionMessage}</p>
+                        )}
+                        <p className="mt-2 text-[11px] leading-relaxed text-white/45">
+                          Finding an account does not attach it. We send an expiring, single-use confirmation to the email registered with Rewardful.
+                        </p>
+                      </div>
+                    )}
+                    <p className="mb-2 text-[11px] font-semibold text-white/60">Exact affiliate ID fallback</p>
                     <div className="flex gap-2">
                       <input
                         value={existingAffiliateId}
@@ -521,7 +570,7 @@ export default function AffiliateDashboard() {
                         )}
                         className="rounded-xl border border-orange-500/40 bg-orange-500/15 px-3 py-2.5 text-xs font-bold text-orange-200 disabled:opacity-50"
                       >
-                        Attach Existing
+                        Attach by ID
                       </button>
                     </div>
                     <p className="mt-2 text-[11px] leading-relaxed text-white/45">
