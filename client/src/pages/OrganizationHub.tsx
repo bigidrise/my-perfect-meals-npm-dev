@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Building2, ChevronLeft, ChevronRight, Loader2, MapPin, Plus, ShieldCheck } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, CircleHelp, Loader2, MapPin, Plus, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOrganizationQuickStart } from "@/hooks/useOrganizationQuickStart";
+import { OrganizationQuickStartModal } from "@/components/business/OrganizationQuickStartModal";
+import {
+  clearOrganizationQuickStartJourney,
+  readOrganizationQuickStartJourney,
+} from "@/hooks/useOrganizationQuickStart";
 
 type WorkspaceLocation = {
   id: string;
@@ -23,29 +30,35 @@ function roleLabel(role: string) {
 }
 
 export default function OrganizationHub() {
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
   const [pendingPilots, setPendingPilots] = useState<PendingPilot[]>([]);
   const [loading, setLoading] = useState(true);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
+  const quickStart = useOrganizationQuickStart(user?.id);
 
   useEffect(() => {
     let active = true;
     Promise.all([
       fetch("/api/business/workspace/options", { credentials: "include" }),
       fetch("/api/business/workspaces", { credentials: "include" }),
+      fetch("/api/business/workspace/active", { credentials: "include", cache: "no-store" }),
     ])
-      .then(async ([workspaceResponse, pilotResponse]) => {
+      .then(async ([workspaceResponse, pilotResponse, activeResponse]) => {
         if (!workspaceResponse.ok) throw new Error("Could not load your organizations.");
         return {
           workspaceData: await workspaceResponse.json(),
           pilotData: pilotResponse.ok ? await pilotResponse.json() : { workspaces: [] },
+          activeData: activeResponse.ok ? await activeResponse.json() : null,
         };
       })
-      .then(({ workspaceData, pilotData }) => {
+      .then(({ workspaceData, pilotData, activeData }) => {
         if (!active) return;
         setOrganizations(Array.isArray(workspaceData?.organizations) ? workspaceData.organizations : []);
+        setActiveOrganizationId(activeData?.workspace?.organizationId ?? null);
         setPendingPilots(
           Array.isArray(pilotData?.workspaces)
             ? pilotData.workspaces.filter((item: any) => item.action === "setup")
@@ -60,6 +73,23 @@ export default function OrganizationHub() {
       });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const params = new URLSearchParams(window.location.search);
+    const returningOrganizationId = params.get("organizationQuickStartReturn");
+    if (!returningOrganizationId) return;
+    const journey = readOrganizationQuickStartJourney(
+      sessionStorage,
+      user.id,
+      returningOrganizationId,
+    );
+    window.history.replaceState({}, "", "/business-organizations");
+    if (journey) {
+      setActiveOrganizationId(returningOrganizationId);
+      quickStart.open(journey.continuationStep);
+    }
+  }, [user?.id, quickStart.open]);
 
   async function openOrganization(organizationId: string, locationId: string) {
     const key = `${organizationId}:${locationId}`;
@@ -95,10 +125,21 @@ export default function OrganizationHub() {
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-lg font-bold">Organization Hub</h1>
             <p className="text-xs text-white/50">Choose the organization you want to manage</p>
           </div>
+          <button
+            type="button"
+            onClick={quickStart.open}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-400/25 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-200 hover:bg-blue-500/20"
+            aria-label="Open Organization Quick Start"
+            data-testid="organization-quick-start-open"
+          >
+            <CircleHelp className="h-4 w-4" />
+            <span className="hidden sm:inline">Organization Quick Start</span>
+            <span className="sm:hidden">Quick Start</span>
+          </button>
         </div>
       </header>
 
@@ -229,6 +270,18 @@ export default function OrganizationHub() {
           </button>
         )}
       </main>
+      <OrganizationQuickStartModal
+        open={quickStart.isOpen}
+        userId={user?.id ?? null}
+        organizationId={activeOrganizationId}
+        continuationStep={quickStart.continuationStep}
+        onClose={(disableFutureAutoOpen) => {
+          if (user?.id && activeOrganizationId) {
+            clearOrganizationQuickStartJourney(sessionStorage, user.id, activeOrganizationId);
+          }
+          quickStart.close(disableFutureAutoOpen);
+        }}
+      />
     </div>
   );
 }

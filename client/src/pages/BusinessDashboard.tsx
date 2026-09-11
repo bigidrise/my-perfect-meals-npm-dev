@@ -1181,7 +1181,7 @@ export default function BusinessDashboard() {
                   },
                   {
                     done: false,
-                    label: "Partner & Revenue Center — unlocks after Academy certification",
+                    label: "Partner & Revenue Center — organization setup and referral tools",
                     action: () => setLocation("/business-center/affiliate"),
                   },
                 ].map(({ done, label, action }) => (

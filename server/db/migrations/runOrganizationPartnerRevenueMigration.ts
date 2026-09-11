@@ -6,6 +6,10 @@ export async function runOrganizationPartnerRevenueMigration(
   database: MigrationDatabase,
 ): Promise<void> {
   await database.execute(sql`
+    ALTER TABLE partner_records
+      ADD COLUMN IF NOT EXISTS contact_email text
+  `);
+  await database.execute(sql`
     ALTER TABLE user_affiliate_accounts
       ADD COLUMN IF NOT EXISTS organization_id uuid
         REFERENCES organizations(id) ON DELETE CASCADE

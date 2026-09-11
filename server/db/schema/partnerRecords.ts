@@ -11,6 +11,7 @@ export const partnerRecords = pgTable("partner_records", {
 
   partnerTier: text("partner_tier"),
   contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
 
   promoCode: text("promo_code"),
   promoCodeSecondary: text("promo_code_secondary"),

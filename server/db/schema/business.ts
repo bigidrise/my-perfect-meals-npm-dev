@@ -95,6 +95,10 @@ export const businessMembers = pgTable("business_members", {
   userId: text("user_id").notNull(),
   locationId: uuid("location_id"),
   role: text("role").$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "nurse" | "staff">().notNull().default("staff"),
+  relationshipType: text("relationship_type")
+    .$type<"internal_staff" | "external_contractor">()
+    .notNull()
+    .default("internal_staff"),
   status: text("status").$type<"active" | "removed">().notNull().default("active"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
   removedAt: timestamp("removed_at", { withTimezone: true }),
