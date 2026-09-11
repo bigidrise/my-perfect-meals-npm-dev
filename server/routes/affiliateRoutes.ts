@@ -1,19 +1,28 @@
 import { Router } from "express";
 import { db } from "../db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
-import { requireProAccess } from "../middleware/requireProAccess";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { users } from "../../shared/schema";
 import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibility";
-import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus } from "../services/rewardfulApi";
+import {
+  createOrganizationRewardfulAffiliate,
+  getRewardfulMagicLink,
+  getRewardfulAffiliate,
+  getRewardfulAffiliateStatus,
+  RewardfulAffiliateConflictError,
+} from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite } from "../services/emailService";
 import { requireEmailService, emailServiceAvailable } from "../middleware/requireEmailService";
 import { resolveActiveWorkspace } from "../services/organizationWorkspaceService";
 import {
   affiliateAccountScope,
   ensureOrganizationPartnerRevenueShell,
+  partnerRecordScope,
+  resolveOrganizationPartnerLifecycle,
 } from "../services/organizationPartnerRevenueService";
+import { partnerRecords } from "../db/schema/partnerRecords";
+import { partnerActivityLog } from "../db/schema/partnerActivityLog";
 
 const router = Router();
 
@@ -42,7 +51,19 @@ async function getOrganizationAffiliateAccount(req: any) {
   return { userId, workspace, account };
 }
 
-function organizationAffiliateResponse(account: typeof userAffiliateAccounts.$inferSelect) {
+function requireOrganizationPartnerManager(workspace: { organizationRole: string }) {
+  if (!["owner", "admin"].includes(workspace.organizationRole)) {
+    const error = new Error("Organization owner or administrator access is required.") as Error & { status: number };
+    error.status = 403;
+    throw error;
+  }
+}
+
+async function organizationAffiliateResponse(
+  account: typeof userAffiliateAccounts.$inferSelect,
+  workspace: { organizationId: string; organizationRole: string },
+) {
+  const lifecycle = await resolveOrganizationPartnerLifecycle(workspace.organizationId, account);
   return {
     organizationId: account.organizationId,
     affiliateTrack: account.affiliateTrack,
@@ -55,6 +76,10 @@ function organizationAffiliateResponse(account: typeof userAffiliateAccounts.$in
     rewardfulCampaignId: account.rewardfulCampaignId,
     activatedAt: account.activatedAt,
     isActive: account.rewardfulState === "active",
+    hasLinkedRewardful: Boolean(account.rewardfulAffiliateId),
+    organizationRole: workspace.organizationRole,
+    canManage: ["owner", "admin"].includes(workspace.organizationRole),
+    partnerLifecycle: lifecycle,
   };
 }
 
@@ -85,9 +110,10 @@ router.get("/eligibility", requireAuth, async (req, res) => {
 
 // ─── POST /api/affiliate/register-track ──────────────────────────────────────
 // requireProAccess: Free/Essential users cannot enrol in the affiliate program.
-router.post("/register-track", requireAuth, requireProAccess, async (req, res) => {
+router.post("/register-track", requireAuth, async (req, res) => {
   try {
     const { userId, workspace, account: existing } = await getOrganizationAffiliateAccount(req);
+    requireOrganizationPartnerManager(workspace);
     const { track } = req.body as { track?: string };
 
     if (!track || !["social_affiliate", "business_affiliate"].includes(track)) {
@@ -141,11 +167,11 @@ router.post("/register-track", requireAuth, requireProAccess, async (req, res) =
 
 // ─── GET /api/affiliate/account ───────────────────────────────────────────────
 // requireProAccess: reading affiliate account data is part of programme participation.
-router.get("/account", requireAuth, requireProAccess, async (req, res) => {
+router.get("/account", requireAuth, async (req, res) => {
   try {
-    const { account } = await getOrganizationAffiliateAccount(req);
+    const { account, workspace } = await getOrganizationAffiliateAccount(req);
     if (!account) return res.json({ account: null });
-    return res.json({ account: organizationAffiliateResponse(account) });
+    return res.json({ account: await organizationAffiliateResponse(account, workspace) });
   } catch (err) {
     console.error("[Affiliate] account error:", err);
     return res.status(500).json({ error: "Failed to fetch affiliate account" });
@@ -156,11 +182,11 @@ router.get("/account", requireAuth, requireProAccess, async (req, res) => {
 // Returns the full affiliate account record for the partner dashboard page.
 // Same data as /account but unwrapped (no nesting) to match AffiliateDashboard expectations.
 // requireProAccess: dashboard access is programme participation, not browsing.
-router.get("/dashboard", requireAuth, requireProAccess, async (req, res) => {
+router.get("/dashboard", requireAuth, async (req, res) => {
   try {
-    const { account } = await getOrganizationAffiliateAccount(req);
+    const { account, workspace } = await getOrganizationAffiliateAccount(req);
     if (!account) return res.status(404).json({ error: "No affiliate account found" });
-    return res.json(organizationAffiliateResponse(account));
+    return res.json(await organizationAffiliateResponse(account, workspace));
   } catch (err) {
     console.error("[Affiliate] dashboard error:", err);
     return res.status(500).json({ error: "Failed to fetch affiliate dashboard" });
@@ -169,7 +195,7 @@ router.get("/dashboard", requireAuth, requireProAccess, async (req, res) => {
 
 // ─── GET /api/affiliate/dashboard-link ────────────────────────────────────────
 // requireProAccess: generating a Rewardful SSO link is programme participation.
-router.get("/dashboard-link", requireAuth, requireProAccess, async (req, res) => {
+router.get("/dashboard-link", requireAuth, async (req, res) => {
   try {
     const { account } = await getOrganizationAffiliateAccount(req);
 
@@ -209,7 +235,7 @@ router.get("/dashboard-link", requireAuth, requireProAccess, async (req, res) =>
 // Returns live Rewardful account status: email confirmed, signed in, SSO portal URL.
 // Called once by the dashboard on mount to show the account-setup card when needed.
 // requireProAccess: only active affiliates (Pro+) access their Rewardful account.
-router.get("/rewardful-status", requireAuth, requireProAccess, async (req, res) => {
+router.get("/rewardful-status", requireAuth, async (req, res) => {
   try {
     const { account } = await getOrganizationAffiliateAccount(req);
 
@@ -233,7 +259,7 @@ router.get("/rewardful-status", requireAuth, requireProAccess, async (req, res) 
 // Manually fetches the latest referral URL/token from Rewardful for accounts
 // where the URL is missing (e.g., link wasn't available at creation time).
 // requireProAccess: syncing a referral link is programme participation.
-router.post("/sync-link", requireAuth, requireProAccess, async (req, res) => {
+router.post("/sync-link", requireAuth, async (req, res) => {
   try {
     const { workspace, account } = await getOrganizationAffiliateAccount(req);
 
@@ -263,7 +289,7 @@ router.post("/sync-link", requireAuth, requireProAccess, async (req, res) => {
 
 // ─── POST /api/affiliate/activate-retry ──────────────────────────────────────
 // Organization activation is never inferred from personal Academy credentials.
-router.post("/activate-retry", requireAuth, requireProAccess, async (req, res) => {
+router.post("/activate-retry", requireAuth, async (req, res) => {
   try {
     const { workspace } = await getOrganizationAffiliateAccount(req);
     return res.status(409).json({
@@ -277,9 +303,187 @@ router.post("/activate-retry", requireAuth, requireProAccess, async (req, res) =
   }
 });
 
+router.post("/organization/attach-existing", requireAuth, async (req, res) => {
+  try {
+    const { userId, workspace, account } = await getOrganizationAffiliateAccount(req);
+    requireOrganizationPartnerManager(workspace);
+    const affiliateId = String(req.body?.rewardfulAffiliateId ?? "").trim();
+    if (!affiliateId) {
+      return res.status(400).json({ error: "Rewardful affiliate ID is required." });
+    }
+    if (account?.rewardfulAffiliateId === affiliateId) {
+      return res.json(await organizationAffiliateResponse(account, workspace));
+    }
+    if (account?.rewardfulAffiliateId) {
+      return res.status(409).json({
+        error: "This organization already has a Rewardful account linked.",
+        code: "ORGANIZATION_REWARDFUL_ALREADY_LINKED",
+      });
+    }
+    const [usedBy] = await db
+      .select({ organizationId: userAffiliateAccounts.organizationId })
+      .from(userAffiliateAccounts)
+      .where(eq(userAffiliateAccounts.rewardfulAffiliateId, affiliateId))
+      .limit(1);
+    if (usedBy?.organizationId && usedBy.organizationId !== workspace.organizationId) {
+      return res.status(409).json({
+        error: "This Rewardful account is already attached to another organization.",
+        code: "REWARDFUL_AFFILIATE_ALREADY_ASSIGNED",
+      });
+    }
+    const verified = await getRewardfulAffiliate(affiliateId);
+    if (!verified?.id || verified.id !== affiliateId) {
+      return res.status(404).json({
+        error: "Rewardful could not verify that affiliate ID.",
+        code: "REWARDFUL_AFFILIATE_NOT_VERIFIED",
+      });
+    }
+    const link = verified.links?.[0];
+    const now = new Date();
+    const [updated] = await db.transaction(async (tx) => {
+      const [saved] = await tx
+        .update(userAffiliateAccounts)
+        .set({
+          rewardfulAffiliateId: verified.id,
+          rewardfulState: verified.state,
+          rewardfulReferralUrl: link?.url ?? null,
+          rewardfulReferralToken: link?.token ?? null,
+          rewardfulCampaignId: verified.campaign?.id ?? null,
+          activatedAt: now,
+          updatedAt: now,
+        })
+        .where(and(
+          affiliateAccountScope(workspace.organizationId),
+          isNull(userAffiliateAccounts.rewardfulAffiliateId),
+        ))
+        .returning();
+      if (!saved) throw new Error("Organization Rewardful account changed before attachment completed.");
+      await tx.update(partnerRecords).set({
+        rewardfulAffiliateId: verified.id,
+        rewardfulCreatedAt: now,
+        acceptedAt: now,
+        status: verified.state === "active" ? "active" : "setup_in_progress",
+        updatedAt: now,
+      }).where(partnerRecordScope(workspace.organizationId));
+      await tx.insert(partnerActivityLog).values({
+        userId,
+        actorId: userId,
+        action: "organization_rewardful_attached",
+        details: {
+          organizationId: workspace.organizationId,
+          rewardfulAffiliateId: verified.id,
+          previousState: "not_activated",
+          newState: verified.state,
+        },
+      });
+      return [saved] as const;
+    });
+    const portalUrl = await getRewardfulMagicLink(verified.id);
+    return res.json({
+      ...(await organizationAffiliateResponse(updated, workspace)),
+      portalUrl,
+    });
+  } catch (err: any) {
+    console.error("[Affiliate] attach existing organization Rewardful error:", err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? "Could not attach Rewardful account." });
+  }
+});
+
+router.post("/organization/setup", requireAuth, async (req, res) => {
+  try {
+    const { userId, workspace, account } = await getOrganizationAffiliateAccount(req);
+    requireOrganizationPartnerManager(workspace);
+    if (!account) return res.status(404).json({ error: "Organization affiliate account was not found." });
+    if (account.rewardfulAffiliateId) {
+      return res.status(409).json({
+        error: "This organization already has a Rewardful account linked.",
+        code: "ORGANIZATION_REWARDFUL_ALREADY_LINKED",
+      });
+    }
+    const lifecycle = await resolveOrganizationPartnerLifecycle(workspace.organizationId, account);
+    if (!lifecycle.setupAvailable) {
+      return res.status(403).json({
+        error: "Partner & Revenue setup is not available for this organization yet.",
+        code: "ORGANIZATION_PARTNER_SETUP_NOT_AVAILABLE",
+        partnerLifecycle: lifecycle,
+      });
+    }
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    const contactName = String(req.body?.contactName ?? "").trim();
+    const nameParts = contactName.split(/\s+/).filter(Boolean);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || nameParts.length < 2) {
+      return res.status(400).json({ error: "A valid organization contact name and email are required." });
+    }
+    const campaignId = process.env.REWARDFUL_CAMPAIGN_ID ?? "";
+    if (!campaignId || !process.env.REWARDFUL_API_SECRET) {
+      return res.status(503).json({
+        error: "Rewardful organization setup is not configured.",
+        code: "REWARDFUL_CONFIGURATION_REQUIRED",
+      });
+    }
+    const affiliate = await createOrganizationRewardfulAffiliate({
+      firstName: nameParts[0],
+      lastName: nameParts.slice(1).join(" "),
+      email,
+      campaignId,
+    });
+    const link = affiliate.links?.[0];
+    const now = new Date();
+    const [updated] = await db.transaction(async (tx) => {
+      const [saved] = await tx.update(userAffiliateAccounts).set({
+        rewardfulAffiliateId: affiliate.id,
+        rewardfulState: affiliate.state,
+        rewardfulReferralUrl: link?.url ?? null,
+        rewardfulReferralToken: link?.token ?? null,
+        rewardfulCampaignId: affiliate.campaign?.id ?? campaignId,
+        activatedAt: now,
+        updatedAt: now,
+      }).where(and(
+        affiliateAccountScope(workspace.organizationId),
+        isNull(userAffiliateAccounts.rewardfulAffiliateId),
+      )).returning();
+      if (!saved) throw new Error("Organization Rewardful setup was already completed.");
+      await tx.update(partnerRecords).set({
+        rewardfulAffiliateId: affiliate.id,
+        rewardfulCreatedAt: now,
+        acceptedAt: now,
+        contactName,
+        status: affiliate.state === "active" ? "active" : "setup_in_progress",
+        updatedAt: now,
+      }).where(partnerRecordScope(workspace.organizationId));
+      await tx.insert(partnerActivityLog).values({
+        userId,
+        actorId: userId,
+        action: "organization_rewardful_created",
+        details: {
+          organizationId: workspace.organizationId,
+          rewardfulAffiliateId: affiliate.id,
+          previousState: "setup_available",
+          newState: affiliate.state,
+        },
+      });
+      return [saved] as const;
+    });
+    const portalUrl = await getRewardfulMagicLink(affiliate.id);
+    return res.status(201).json({
+      ...(await organizationAffiliateResponse(updated, workspace)),
+      portalUrl,
+    });
+  } catch (err: any) {
+    if (err instanceof RewardfulAffiliateConflictError) {
+      return res.status(409).json({
+        error: "That email already belongs to a Rewardful affiliate. Use Attach Existing with the exact affiliate ID, or use a distinct organization contact email.",
+        code: err.code,
+      });
+    }
+    console.error("[Affiliate] organization Rewardful setup error:", err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? "Could not start Rewardful setup." });
+  }
+});
+
 // ─── POST /api/affiliate/send-invite ─────────────────────────────────────────
 // requireProAccess: sending referral invitations is a revenue-generating action.
-router.post("/send-invite", requireAuth, requireProAccess, requireEmailService, async (req, res) => {
+router.post("/send-invite", requireAuth, requireEmailService, async (req, res) => {
   try {
     const { userId, account } = await getOrganizationAffiliateAccount(req);
     const { name, email } = req.body as { name?: string; email?: string };
