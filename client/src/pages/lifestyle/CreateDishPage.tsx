@@ -73,6 +73,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { IconPillOption } from "@/components/ui/icon-pill-option";
 import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { commitTextInputValue, readAuthoritativeTextValue } from "@/lib/authoritativeTextInput";
 import type {
   CreateDishIntent,
   ExpandIngredientResponse,
@@ -251,6 +252,7 @@ export default function CreateDishPage() {
   const isDesktop = useIsDesktop();
   const { toast } = useToast();
   const [dishInput, setDishInput] = useState("");
+  const dishInputRef = useRef<HTMLTextAreaElement>(null);
   const [servings, setServings] = useState<number>(2);
   const [cookMethod, setCookMethod] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -697,8 +699,8 @@ export default function CreateDishPage() {
     );
   };
 
-  const getAuthoritativeExpansion = async (): Promise<CreateDishIntent | null> => {
-    const result = await requestIngredientExpansion(dishInput.trim(), expansionPolicy());
+  const getAuthoritativeExpansion = async (submittedDishInput: string): Promise<CreateDishIntent | null> => {
+    const result = await requestIngredientExpansion(submittedDishInput.trim(), expansionPolicy());
     if (!result) {
       setExpansionFallback(true);
       return null;
@@ -741,7 +743,7 @@ export default function CreateDishPage() {
     }
     return {
       creator: "create_a_dish",
-      originalText: dishInput.trim(),
+      originalText: submittedDishInput.trim(),
       ingredient: {
         canonicalId: ingredient.canonicalId,
         canonicalName: ingredient.canonicalName,
@@ -779,9 +781,9 @@ export default function CreateDishPage() {
     }
   }, [dishInput, starchDecision, checkStarch]);
 
-  const buildPrompt = () => {
+  const buildPrompt = (submittedDishInput = dishInput) => {
     const parts: string[] = [];
-    if (dishInput.trim()) parts.push(dishInput.trim());
+    if (submittedDishInput.trim()) parts.push(submittedDishInput.trim());
     if (cookMethod && cookMethod !== "Any")
       parts.push(`Cooking method: ${cookMethod}`);
     if (notes.trim()) parts.push(`Notes: ${notes.trim()}`);
@@ -796,12 +798,14 @@ export default function CreateDishPage() {
   }, [pendingGeneration, overrideToken, governanceOverrideToken, isGenerating]);
 
   const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false, userDietOverride = false) => {
+    const submittedDishInput = readAuthoritativeTextValue(dishInputRef.current, dishInput, 300);
+    if (submittedDishInput !== dishInput) setDishInput(submittedDishInput);
     const effectiveUserDietOverride = userDietOverride || continueAnywayRef.current;
     continueAnywayRef.current = false;
     userDietOverride = effectiveUserDietOverride;
     setDietAdaptedNotice(null);
 
-    if (!dishInput.trim()) {
+    if (!submittedDishInput.trim()) {
       toast({
         title: t("createDish.errorMissing"),
         description: t("createDish.errorDescribe"),
@@ -810,7 +814,7 @@ export default function CreateDishPage() {
       return;
     }
 
-    const prompt = buildPrompt();
+    const prompt = buildPrompt(submittedDishInput);
 
     // 🔐 Server-authoritative food-governance preflight.
     if (!skipPreflight && !hasActiveOverride) {
@@ -847,7 +851,7 @@ export default function CreateDishPage() {
     try {
       // Expansion is advisory: a failed or unsupported expansion must never
       // interrupt the established generation path.
-      const createDishIntent = await getAuthoritativeExpansion();
+      const createDishIntent = await getAuthoritativeExpansion(submittedDishInput);
       const url = apiUrl("/api/meals/craving-creator");
       const response = await fetch(url, {
         method: "POST",
@@ -1094,8 +1098,11 @@ export default function CreateDishPage() {
                     </div>
                     <div className="relative">
                       <textarea
+                        ref={dishInputRef}
                         value={dishInput}
-                        onChange={(e) => setDishInput(e.target.value)}
+                        onChange={(e) => commitTextInputValue(e, setDishInput, 300)}
+                        onInput={(e) => commitTextInputValue(e, setDishInput, 300)}
+                        onCompositionEnd={(e) => commitTextInputValue(e, setDishInput, 300)}
                         placeholder={t("createDish.placeholder")}
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}
