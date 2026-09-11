@@ -445,7 +445,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           "/partners",
           "/join/clinic",
           "/join/studio",
-          ...(import.meta.env.DEV ? ["/__modal-test__", "/__sheet-test__"] : []),
+          ...(import.meta.env.DEV ? ["/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"] : []),
         ];
         const isPublicPath =
           isExactPublicMarketingRoute(window.location.pathname) ||

@@ -601,6 +601,7 @@ const AffiliateOpportunities = lazy(() => import("@/pages/AffiliateOpportunities
 const AffiliatePathPage = lazy(() => import("@/pages/AffiliatePathPage"));
 const AffiliateProgramOverview = lazy(() => import("@/pages/AffiliateProgramOverview"));
 const AffiliateDashboard = lazy(() => import("@/pages/AffiliateDashboard"));
+const RewardfulConnectionConfirm = lazy(() => import("@/pages/RewardfulConnectionConfirm"));
 const CertificationDashboard = lazy(() => import("@/pages/certification/CertificationDashboard"));
 const CertificationLesson = lazy(() => import("@/pages/certification/CertificationLesson"));
 const CertificationQuiz = lazy(() => import("@/pages/certification/CertificationQuiz"));
@@ -862,6 +863,7 @@ export default function Router() {
     "/guest-suite",
     "/forgot-password",
     "/reset-password",
+    "/rewardful/connect/confirm",
     "/onboarding",
     "/onboarding-v2",
     "/pricing",
@@ -920,7 +922,7 @@ export default function Router() {
   const ungatedRoutes = [
     // Dev-only responsive regression harnesses — never gated in development
     ...(import.meta.env.DEV
-      ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__"]
+      ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"]
       : []),
     "/", "/auth", "/welcome", "/login", "/signup",
     "/guest-builder", "/guest-suite",
@@ -1303,6 +1305,7 @@ export default function Router() {
         {/* Admin */}
         <Route path="/admin/certifications" component={GuardedAdminCertifications} />
         {/* Affiliate Program — overview gates path selection */}
+        <Route path="/rewardful/connect/confirm" component={RewardfulConnectionConfirm} />
         <Route path="/business-center/affiliate/dashboard" component={GatedAffiliateDashboard} />
         <Route path="/business-center/affiliate" component={GatedAffiliateProgramOverview} />
         <Route path="/business-center/affiliate/choose" component={GatedAffiliateOpportunities} />

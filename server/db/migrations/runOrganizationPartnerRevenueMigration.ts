@@ -65,5 +65,27 @@ export async function runOrganizationPartnerRevenueMigration(
     CREATE UNIQUE INDEX IF NOT EXISTS partner_records_organization_uq
       ON partner_records(organization_id)
   `);
+  await database.execute(sql`
+    CREATE TABLE IF NOT EXISTS rewardful_connection_confirmations (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      location_id uuid NOT NULL REFERENCES organization_locations(id) ON DELETE CASCADE,
+      requester_user_id text NOT NULL,
+      rewardful_affiliate_id text NOT NULL,
+      destination_email text NOT NULL,
+      token_hash text NOT NULL,
+      expires_at timestamptz NOT NULL,
+      consumed_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+  await database.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS rewardful_connection_confirmations_token_hash_uq
+      ON rewardful_connection_confirmations(token_hash)
+  `);
+  await database.execute(sql`
+    CREATE INDEX IF NOT EXISTS rewardful_connection_confirmations_org_created_idx
+      ON rewardful_connection_confirmations(organization_id, created_at)
+  `);
   console.log("✅ Organization Partner & Revenue migration complete");
 }
