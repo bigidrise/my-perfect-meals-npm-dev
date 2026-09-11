@@ -28,33 +28,34 @@ export type OrganizationPartnerLifecycleState =
   | "setup_in_progress"
   | "active";
 
-export async function resolveOrganizationPartnerLifecycle(
-  organizationId: string,
-  account: typeof userAffiliateAccounts.$inferSelect,
-  now = new Date(),
-) {
-  if (account.rewardfulAffiliateId) {
+export function deriveOrganizationPartnerLifecycle(input: {
+  rewardfulAffiliateId: string | null;
+  rewardfulState: string;
+  business: {
+    status: "active" | "cancelled" | "past_due" | "pending_billing";
+    commercialAccessMode: "onboarding_pilot" | "paid" | "authorized_arrangement" | null;
+    commercialAccessStartedAt: Date | null;
+    commercialAccessEndsAt: Date | null;
+  } | null;
+  now?: Date;
+}) {
+  if (input.rewardfulAffiliateId) {
     return {
-      state: account.rewardfulState === "active" ? "active" : "setup_in_progress",
+      state: input.rewardfulState === "active" ? "active" : "setup_in_progress",
       setupAvailable: true,
-      reason: account.rewardfulState === "active" ? "rewardful_active" : "rewardful_linked",
+      reason: input.rewardfulState === "active" ? "rewardful_active" : "rewardful_linked",
       commercialState: null,
     } as const;
   }
-
-  const [business] = await db
-    .select({
-      status: businesses.status,
-      commercialAccessMode: businesses.commercialAccessMode,
-      commercialAccessStartedAt: businesses.commercialAccessStartedAt,
-      commercialAccessEndsAt: businesses.commercialAccessEndsAt,
-    })
-    .from(organizations)
-    .innerJoin(businesses, eq(businesses.id, organizations.sourceBusinessId))
-    .where(eq(organizations.id, organizationId))
-    .limit(1);
-
-  if (!business) {
+  if (input.rewardfulState === "setup_in_progress") {
+    return {
+      state: "setup_in_progress" as const,
+      setupAvailable: false,
+      reason: "rewardful_creation_in_progress",
+      commercialState: null,
+    };
+  }
+  if (!input.business) {
     return {
       state: "not_available" as const,
       setupAvailable: false,
@@ -62,16 +63,14 @@ export async function resolveOrganizationPartnerLifecycle(
       commercialState: null,
     };
   }
-
-  const commercialState = deriveBusinessCommercialState(business, now);
+  const commercialState = deriveBusinessCommercialState(input.business, input.now);
   const expiredOnboardingPilot =
-    business.commercialAccessMode === "onboarding_pilot" &&
+    input.business.commercialAccessMode === "onboarding_pilot" &&
     commercialState === "commercial_required";
   const establishedOrganization =
-    business.commercialAccessMode !== "onboarding_pilot" &&
+    input.business.commercialAccessMode !== "onboarding_pilot" &&
     commercialState === "commercially_active";
   const setupAvailable = expiredOnboardingPilot || establishedOrganization;
-
   return {
     state: setupAvailable ? "setup_available" as const : "not_available" as const,
     setupAvailable,
@@ -84,6 +83,31 @@ export async function resolveOrganizationPartnerLifecycle(
         : "organization_commercial_access_required",
     commercialState,
   };
+}
+
+export async function resolveOrganizationPartnerLifecycle(
+  organizationId: string,
+  account: typeof userAffiliateAccounts.$inferSelect,
+  now = new Date(),
+) {
+  const [business] = await db
+    .select({
+      status: businesses.status,
+      commercialAccessMode: businesses.commercialAccessMode,
+      commercialAccessStartedAt: businesses.commercialAccessStartedAt,
+      commercialAccessEndsAt: businesses.commercialAccessEndsAt,
+    })
+    .from(organizations)
+    .innerJoin(businesses, eq(businesses.id, organizations.sourceBusinessId))
+    .where(eq(organizations.id, organizationId))
+    .limit(1);
+
+  return deriveOrganizationPartnerLifecycle({
+    rewardfulAffiliateId: account.rewardfulAffiliateId,
+    rewardfulState: account.rewardfulState ?? "not_activated",
+    business: business ?? null,
+    now,
+  });
 }
 
 export async function ensureOrganizationPartnerRevenueShell(

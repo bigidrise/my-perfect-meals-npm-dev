@@ -44,12 +44,18 @@ export async function runOrganizationWorkspaceMigration(
       user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       role text NOT NULL DEFAULT 'member'
         CHECK (role IN ('owner', 'admin', 'billing_admin', 'member')),
+      relationship_type text NOT NULL DEFAULT 'internal_staff'
+        CHECK (relationship_type IN ('internal_staff', 'external_contractor')),
       status text NOT NULL DEFAULT 'active'
         CHECK (status IN ('active', 'revoked')),
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE (organization_id, user_id)
     )
+  `);
+  await database.execute(sql`
+    ALTER TABLE organization_memberships
+      ADD COLUMN IF NOT EXISTS relationship_type text NOT NULL DEFAULT 'internal_staff'
   `);
   await database.execute(sql`
     CREATE INDEX IF NOT EXISTS organization_memberships_user_status_idx
@@ -63,12 +69,18 @@ export async function runOrganizationWorkspaceMigration(
       user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       role text NOT NULL DEFAULT 'member'
         CHECK (role IN ('owner', 'admin', 'coach', 'trainer', 'physician', 'nurse', 'staff', 'member')),
+      relationship_type text NOT NULL DEFAULT 'internal_staff'
+        CHECK (relationship_type IN ('internal_staff', 'external_contractor')),
       status text NOT NULL DEFAULT 'active'
         CHECK (status IN ('active', 'revoked')),
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE (location_id, user_id)
     )
+  `);
+  await database.execute(sql`
+    ALTER TABLE location_memberships
+      ADD COLUMN IF NOT EXISTS relationship_type text NOT NULL DEFAULT 'internal_staff'
   `);
   await database.execute(sql`
     CREATE INDEX IF NOT EXISTS location_memberships_user_status_idx
@@ -88,6 +100,10 @@ export async function runOrganizationWorkspaceMigration(
     ALTER TABLE business_members
       ADD COLUMN IF NOT EXISTS location_id uuid
         REFERENCES organization_locations(id) ON DELETE RESTRICT
+  `);
+  await database.execute(sql`
+    ALTER TABLE business_members
+      ADD COLUMN IF NOT EXISTS relationship_type text NOT NULL DEFAULT 'internal_staff'
   `);
   await database.execute(sql`
     CREATE INDEX IF NOT EXISTS business_members_location_status_idx
@@ -176,6 +192,7 @@ export async function runOrganizationWorkspaceMigration(
       organization_id,
       user_id,
       role,
+      relationship_type,
       status,
       created_at,
       updated_at
@@ -188,6 +205,7 @@ export async function runOrganizationWorkspaceMigration(
         WHEN bm.role = 'admin' THEN 'admin'
         ELSE 'member'
       END,
+      bm.relationship_type,
       CASE WHEN bm.status = 'active' THEN 'active' ELSE 'revoked' END,
       now(),
       now()
@@ -198,6 +216,7 @@ export async function runOrganizationWorkspaceMigration(
     ON CONFLICT (organization_id, user_id) DO UPDATE
       SET status = EXCLUDED.status,
           role = EXCLUDED.role,
+          relationship_type = EXCLUDED.relationship_type,
           updated_at = now()
   `);
 
@@ -206,6 +225,7 @@ export async function runOrganizationWorkspaceMigration(
       location_id,
       user_id,
       role,
+      relationship_type,
       status,
       created_at,
       updated_at
@@ -218,6 +238,7 @@ export async function runOrganizationWorkspaceMigration(
           THEN bm.role
         ELSE 'member'
       END,
+      bm.relationship_type,
       CASE WHEN bm.status = 'active' THEN 'active' ELSE 'revoked' END,
       now(),
       now()
@@ -227,6 +248,7 @@ export async function runOrganizationWorkspaceMigration(
     ON CONFLICT (location_id, user_id) DO UPDATE
       SET status = EXCLUDED.status,
           role = EXCLUDED.role,
+          relationship_type = EXCLUDED.relationship_type,
           updated_at = now()
   `);
 

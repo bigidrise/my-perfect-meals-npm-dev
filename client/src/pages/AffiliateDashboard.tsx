@@ -13,9 +13,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { computePartnerLifecycle, LifecycleResult } from "@shared/partnerLifecycle";
-import { useAuth } from "@/contexts/AuthContext";
-import { isProOrAbove } from "@/lib/subscriptionCheck";
-import { ProActionLock } from "@/components/ProActionLock";
 
 interface AffiliateAccount {
   affiliateTrack: string;
@@ -28,6 +25,16 @@ interface AffiliateAccount {
   rewardfulCampaignId: string | null;
   activatedAt: string | null;
   isActive: boolean;
+  hasLinkedRewardful: boolean;
+  organizationRole: string;
+  organizationRelationshipType: "internal_staff" | "external_contractor";
+  canManage: boolean;
+  organizationRewardfulLifecycle: {
+    state: "not_available" | "setup_available" | "setup_in_progress" | "active";
+    setupAvailable: boolean;
+    reason: string;
+    commercialState: string | null;
+  };
 }
 
 interface PartnerRecord {
@@ -93,8 +100,6 @@ export default function AffiliateDashboard() {
     }
   }, [setLocation]);
   const isDesktop = useIsDesktop();
-  const { user } = useAuth();
-  const hasPro = isProOrAbove(user);
   const [copiedDesktopUrl, setCopiedDesktopUrl] = useState(false);
   const [account, setAccount] = useState<AffiliateAccount | null>(null);
   const [rewardfulStatus, setRewardfulStatus] = useState<RewardfulStatus | null>(null);
@@ -111,6 +116,10 @@ export default function AffiliateDashboard() {
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSending, setInviteSending] = useState(false);
+  const [organizationContactName, setOrganizationContactName] = useState("");
+  const [organizationContactEmail, setOrganizationContactEmail] = useState("");
+  const [existingAffiliateId, setExistingAffiliateId] = useState("");
+  const [organizationSetupLoading, setOrganizationSetupLoading] = useState(false);
 
   useEffect(() => {
     document.title = "Partner & Revenue Center | My Perfect Meals";
@@ -166,6 +175,14 @@ export default function AffiliateDashboard() {
 
   const openPortal = useCallback(async () => {
     if (portalLoading) return;
+    if (!account?.canManage) {
+      toast({
+        title: "Administrative access required",
+        description: "Only an organization owner or delegated administrator can open Rewardful payout settings.",
+        variant: "destructive",
+      });
+      return;
+    }
     setPortalLoading(true);
     // Open the window synchronously inside the click handler so browsers
     // treat it as a user-initiated popup (not a programmatic one that gets blocked).
@@ -189,7 +206,7 @@ export default function AffiliateDashboard() {
     } finally {
       setPortalLoading(false);
     }
-  }, [toast, portalLoading]);
+  }, [toast, portalLoading, account?.canManage]);
 
   const syncLink = useCallback(async () => {
     setSyncLoading(true);
@@ -237,6 +254,43 @@ export default function AffiliateDashboard() {
       setInviteSending(false);
     }
   }, [inviteName, inviteEmail, toast]);
+
+  const completeOrganizationRewardfulAction = useCallback(async (
+    path: string,
+    body: Record<string, string>,
+  ) => {
+    if (organizationSetupLoading) return;
+    setOrganizationSetupLoading(true);
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const data = await apiRequest(path, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+      }) as AffiliateAccount & { portalUrl?: string | null };
+      setAccount(data);
+      if (data.portalUrl && win) {
+        win.location.href = data.portalUrl;
+      } else {
+        win?.close();
+      }
+      toast({
+        title: path.endsWith("attach-existing") ? "Rewardful account attached" : "Partner & Revenue setup started",
+        description: data.portalUrl
+          ? "Rewardful opened so you can complete payout setup."
+          : "The organization account is linked. You can open Rewardful from this page.",
+      });
+    } catch (error: any) {
+      win?.close();
+      toast({
+        title: "Setup could not be completed",
+        description: error?.message ?? "Review the organization information and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOrganizationSetupLoading(false);
+    }
+  }, [organizationSetupLoading, toast]);
 
   const trackLabel = account?.affiliateTrack === "business_affiliate"
     ? "Business & Coaching Affiliate"
@@ -301,41 +355,6 @@ export default function AffiliateDashboard() {
     );
   }
 
-  // Operational page — all actions require Pro subscription
-  if (!hasPro) {
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${BC_GRADIENT} flex flex-col`}>
-        <div
-          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-        >
-          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
-            <h1 className="text-base font-bold text-white">Partner & Revenue Center</h1>
-          </div>
-        </div>
-        <div
-          className="px-4 max-w-2xl mx-auto w-full"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5.5rem)" }}
-        >
-          <ProActionLock feature="your Partner & Revenue Center">
-            <div className="space-y-4">
-              <div className="h-32 rounded-2xl bg-white/5 border border-white/10" />
-              <div className="h-48 rounded-2xl bg-white/5 border border-white/10" />
-              <div className="h-24 rounded-2xl bg-white/5 border border-white/10" />
-            </div>
-          </ProActionLock>
-        </div>
-      </div>
-    );
-  }
-
   const qrSrc = account.rewardfulReferralUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=16&color=000000&bgcolor=ffffff&data=${encodeURIComponent(account.rewardfulReferralUrl)}`
     : null;
@@ -364,7 +383,7 @@ export default function AffiliateDashboard() {
               <h1 className="text-base font-bold text-white">Partner & Revenue Center</h1>
               <p className="text-xs text-white/40 truncate">{partnerRecord?.partnerName ?? trackLabel}</p>
             </div>
-            {hasPro && (
+            {account.isActive && (
               <button
                 onClick={() => setShowInvite(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-bold active:scale-[0.95] transition-transform"
@@ -392,7 +411,103 @@ export default function AffiliateDashboard() {
           )}
 
           {/* ── REWARDFUL ACCOUNT SETUP CARD ── */}
-          {needsRewardfulSetup && (
+          {account.organizationRewardfulLifecycle.state === "not_available" && (
+            <Card className="border-orange-500/25 bg-orange-500/10">
+              <CardLabel>Organization lifecycle</CardLabel>
+              <p className="text-sm font-bold text-white">Partner &amp; Revenue is not available yet</p>
+              <p className="mt-2 text-xs leading-relaxed text-gray-300">
+                {account.organizationRewardfulLifecycle.reason === "onboarding_pilot_active"
+                  ? "This organization is still in its 30-day Business pilot. Setup becomes available when the pilot completes; no Rewardful account will be created automatically."
+                  : "This organization must reach an eligible commercial state before Rewardful setup can begin."}
+              </p>
+            </Card>
+          )}
+
+          {account.organizationRewardfulLifecycle.state === "setup_available" && (
+            <Card className="border-orange-500/30 bg-orange-500/10">
+              <CardLabel>Organization setup</CardLabel>
+              <p className="text-sm font-bold text-white">Set Up Partner &amp; Revenue</p>
+              <p className="mt-2 text-xs leading-relaxed text-gray-300">
+                Use the clinic or organization’s own business contact information. Do not use a contractor’s personal identity.
+              </p>
+              {account.canManage ? (
+                <div className="mt-4 space-y-3">
+                  <input
+                    value={organizationContactName}
+                    onChange={(event) => setOrganizationContactName(event.target.value)}
+                    placeholder="Organization contact name"
+                    className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/35"
+                  />
+                  <input
+                    value={organizationContactEmail}
+                    onChange={(event) => setOrganizationContactEmail(event.target.value)}
+                    placeholder="Organization business email"
+                    type="email"
+                    className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/35"
+                  />
+                  <button
+                    disabled={organizationSetupLoading || !organizationContactName.trim() || !organizationContactEmail.trim()}
+                    onClick={() => completeOrganizationRewardfulAction(
+                      "/api/affiliate/organization/setup",
+                      { contactName: organizationContactName.trim(), email: organizationContactEmail.trim() },
+                    )}
+                    className="w-full rounded-xl bg-orange-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                  >
+                    {organizationSetupLoading ? "Starting setup..." : "Set Up Partner & Revenue"}
+                  </button>
+                  <div className="border-t border-white/10 pt-3">
+                    <p className="mb-2 text-xs font-semibold text-white">Already have a Rewardful account?</p>
+                    <div className="flex gap-2">
+                      <input
+                        value={existingAffiliateId}
+                        onChange={(event) => setExistingAffiliateId(event.target.value)}
+                        placeholder="Exact Rewardful affiliate ID"
+                        className="min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/35"
+                      />
+                      <button
+                        disabled={organizationSetupLoading || !existingAffiliateId.trim()}
+                        onClick={() => completeOrganizationRewardfulAction(
+                          "/api/affiliate/organization/attach-existing",
+                          { rewardfulAffiliateId: existingAffiliateId.trim() },
+                        )}
+                        className="rounded-xl border border-orange-500/40 bg-orange-500/15 px-3 py-2.5 text-xs font-bold text-orange-200 disabled:opacity-50"
+                      >
+                        Attach Existing
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-white/45">
+                      The exact affiliate ID is verified with Rewardful and cannot be silently shared with another organization.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-white/60">
+                  An organization owner or delegated administrator must complete this setup.
+                </p>
+              )}
+            </Card>
+          )}
+
+          {account.organizationRewardfulLifecycle.state === "setup_in_progress" && (
+            <Card className="border-orange-500/30 bg-orange-500/10">
+              <CardLabel>Rewardful setup</CardLabel>
+              <p className="text-sm font-bold text-white">Organization account linked</p>
+              <p className="mt-2 text-xs leading-relaxed text-gray-300">
+                Rewardful setup is in progress. Use the portal below to complete payout information and activation.
+              </p>
+              {account.hasLinkedRewardful && account.canManage && (
+                <button
+                  onClick={openPortal}
+                  disabled={portalLoading}
+                  className="mt-4 w-full rounded-xl bg-orange-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                >
+                  {portalLoading ? "Opening..." : "Open Rewardful Portal"}
+                </button>
+              )}
+            </Card>
+          )}
+
+          {needsRewardfulSetup && account.canManage && (
             <motion.div
               className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5"
               initial={{ opacity: 0, y: 10 }}

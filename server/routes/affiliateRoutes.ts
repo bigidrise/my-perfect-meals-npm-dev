@@ -61,7 +61,11 @@ function requireOrganizationPartnerManager(workspace: { organizationRole: string
 
 async function organizationAffiliateResponse(
   account: typeof userAffiliateAccounts.$inferSelect,
-  workspace: { organizationId: string; organizationRole: string },
+  workspace: {
+    organizationId: string;
+    organizationRole: string;
+    organizationRelationshipType: string;
+  },
 ) {
   const lifecycle = await resolveOrganizationPartnerLifecycle(workspace.organizationId, account);
   return {
@@ -78,8 +82,9 @@ async function organizationAffiliateResponse(
     isActive: account.rewardfulState === "active",
     hasLinkedRewardful: Boolean(account.rewardfulAffiliateId),
     organizationRole: workspace.organizationRole,
+    organizationRelationshipType: workspace.organizationRelationshipType,
     canManage: ["owner", "admin"].includes(workspace.organizationRole),
-    partnerLifecycle: lifecycle,
+    organizationRewardfulLifecycle: lifecycle,
   };
 }
 
@@ -197,7 +202,8 @@ router.get("/dashboard", requireAuth, async (req, res) => {
 // requireProAccess: generating a Rewardful SSO link is programme participation.
 router.get("/dashboard-link", requireAuth, async (req, res) => {
   try {
-    const { account } = await getOrganizationAffiliateAccount(req);
+    const { workspace, account } = await getOrganizationAffiliateAccount(req);
+    requireOrganizationPartnerManager(workspace);
 
     if (!account) {
       return res.status(404).json({ error: "No affiliate account found" });
@@ -225,9 +231,9 @@ router.get("/dashboard-link", requireAuth, async (req, res) => {
     }
 
     return res.json({ url });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[Affiliate] dashboard-link error:", err);
-    return res.status(500).json({ error: "Failed to generate dashboard link" });
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? "Failed to generate dashboard link" });
   }
 });
 
@@ -237,7 +243,8 @@ router.get("/dashboard-link", requireAuth, async (req, res) => {
 // requireProAccess: only active affiliates (Pro+) access their Rewardful account.
 router.get("/rewardful-status", requireAuth, async (req, res) => {
   try {
-    const { account } = await getOrganizationAffiliateAccount(req);
+    const { workspace, account } = await getOrganizationAffiliateAccount(req);
+    requireOrganizationPartnerManager(workspace);
 
     if (!account?.rewardfulAffiliateId) {
       return res.status(404).json({ error: "No Rewardful affiliate account" });
@@ -249,9 +256,9 @@ router.get("/rewardful-status", requireAuth, async (req, res) => {
     }
 
     return res.json(status);
-  } catch (err) {
+  } catch (err: any) {
     console.error("[Affiliate] rewardful-status error:", err);
-    return res.status(500).json({ error: "Failed to fetch Rewardful status" });
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? "Failed to fetch Rewardful status" });
   }
 });
 
@@ -262,6 +269,7 @@ router.get("/rewardful-status", requireAuth, async (req, res) => {
 router.post("/sync-link", requireAuth, async (req, res) => {
   try {
     const { workspace, account } = await getOrganizationAffiliateAccount(req);
+    requireOrganizationPartnerManager(workspace);
 
     if (!account?.rewardfulAffiliateId) {
       return res.status(404).json({ error: "No Rewardful affiliate account found" });
@@ -281,9 +289,9 @@ router.post("/sync-link", requireAuth, async (req, res) => {
 
     console.log(`[Affiliate] sync-link: updated referral URL for organizationId=${workspace.organizationId}`);
     return res.json({ ok: true, referralUrl: fetchedUrl, referralToken: fetchedToken });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[Affiliate] sync-link error:", err);
-    return res.status(500).json({ error: "Failed to sync referral link" });
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? "Failed to sync referral link" });
   }
 });
 
@@ -318,6 +326,14 @@ router.post("/organization/attach-existing", requireAuth, async (req, res) => {
       return res.status(409).json({
         error: "This organization already has a Rewardful account linked.",
         code: "ORGANIZATION_REWARDFUL_ALREADY_LINKED",
+      });
+    }
+    const lifecycle = await resolveOrganizationPartnerLifecycle(workspace.organizationId, account!);
+    if (!lifecycle.setupAvailable) {
+      return res.status(403).json({
+        error: "Partner & Revenue setup is not available for this organization yet.",
+        code: "ORGANIZATION_PARTNER_SETUP_NOT_AVAILABLE",
+        organizationRewardfulLifecycle: lifecycle,
       });
     }
     const [usedBy] = await db
@@ -362,6 +378,7 @@ router.post("/organization/attach-existing", requireAuth, async (req, res) => {
         rewardfulAffiliateId: verified.id,
         rewardfulCreatedAt: now,
         acceptedAt: now,
+        contactEmail: verified.email,
         status: verified.state === "active" ? "active" : "setup_in_progress",
         updatedAt: now,
       }).where(partnerRecordScope(workspace.organizationId));
@@ -390,6 +407,7 @@ router.post("/organization/attach-existing", requireAuth, async (req, res) => {
 });
 
 router.post("/organization/setup", requireAuth, async (req, res) => {
+  let claimedOrganizationId: string | null = null;
   try {
     const { userId, workspace, account } = await getOrganizationAffiliateAccount(req);
     requireOrganizationPartnerManager(workspace);
@@ -405,7 +423,7 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
       return res.status(403).json({
         error: "Partner & Revenue setup is not available for this organization yet.",
         code: "ORGANIZATION_PARTNER_SETUP_NOT_AVAILABLE",
-        partnerLifecycle: lifecycle,
+        organizationRewardfulLifecycle: lifecycle,
       });
     }
     const email = String(req.body?.email ?? "").trim().toLowerCase();
@@ -421,6 +439,22 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
         code: "REWARDFUL_CONFIGURATION_REQUIRED",
       });
     }
+    const [claimed] = await db
+      .update(userAffiliateAccounts)
+      .set({ rewardfulState: "setup_in_progress", updatedAt: new Date() })
+      .where(and(
+        affiliateAccountScope(workspace.organizationId),
+        isNull(userAffiliateAccounts.rewardfulAffiliateId),
+        eq(userAffiliateAccounts.rewardfulState, "not_activated"),
+      ))
+      .returning({ id: userAffiliateAccounts.id });
+    if (!claimed) {
+      return res.status(409).json({
+        error: "Rewardful setup is already in progress or has been completed.",
+        code: "ORGANIZATION_REWARDFUL_SETUP_ALREADY_STARTED",
+      });
+    }
+    claimedOrganizationId = workspace.organizationId;
     const affiliate = await createOrganizationRewardfulAffiliate({
       firstName: nameParts[0],
       lastName: nameParts.slice(1).join(" "),
@@ -441,6 +475,7 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
       }).where(and(
         affiliateAccountScope(workspace.organizationId),
         isNull(userAffiliateAccounts.rewardfulAffiliateId),
+        eq(userAffiliateAccounts.rewardfulState, "setup_in_progress"),
       )).returning();
       if (!saved) throw new Error("Organization Rewardful setup was already completed.");
       await tx.update(partnerRecords).set({
@@ -448,6 +483,7 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
         rewardfulCreatedAt: now,
         acceptedAt: now,
         contactName,
+        contactEmail: email,
         status: affiliate.state === "active" ? "active" : "setup_in_progress",
         updatedAt: now,
       }).where(partnerRecordScope(workspace.organizationId));
@@ -465,11 +501,24 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
       return [saved] as const;
     });
     const portalUrl = await getRewardfulMagicLink(affiliate.id);
+    claimedOrganizationId = null;
     return res.status(201).json({
       ...(await organizationAffiliateResponse(updated, workspace)),
       portalUrl,
     });
   } catch (err: any) {
+    if (claimedOrganizationId) {
+      await db.update(userAffiliateAccounts).set({
+        rewardfulState: "not_activated",
+        updatedAt: new Date(),
+      }).where(and(
+        affiliateAccountScope(claimedOrganizationId),
+        isNull(userAffiliateAccounts.rewardfulAffiliateId),
+        eq(userAffiliateAccounts.rewardfulState, "setup_in_progress"),
+      )).catch((resetError) => {
+        console.error("[Affiliate] could not reset failed organization setup claim:", resetError);
+      });
+    }
     if (err instanceof RewardfulAffiliateConflictError) {
       return res.status(409).json({
         error: "That email already belongs to a Rewardful affiliate. Use Attach Existing with the exact affiliate ID, or use a distinct organization contact email.",
