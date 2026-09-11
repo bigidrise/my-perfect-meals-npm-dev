@@ -45,6 +45,7 @@ import {
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 import OrganizationInvitationsAccess from "@/components/business/OrganizationInvitationsAccess";
 import RewardfulPayoutGuidance from "@/components/business/RewardfulPayoutGuidance";
+import GuidedBusinessPilot from "@/components/business/GuidedBusinessPilot";
 
 interface BusinessData {
   workspace: {
@@ -1118,6 +1119,8 @@ export default function BusinessDashboard() {
       )}
 
       <div className="px-4 space-y-4 max-w-2xl mx-auto" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+
+        <GuidedBusinessPilot />
 
         {activeWorkspace && (
           <Card className="bg-white/5 border border-orange-500/20 text-white p-4">

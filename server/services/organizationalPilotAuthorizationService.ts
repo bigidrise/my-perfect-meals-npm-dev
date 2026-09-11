@@ -558,6 +558,20 @@ export async function updateClaimedChampionSetup(userId: string, name: string) {
           durationDays: authorization.durationDays,
         },
       });
+      // Initialize the immutable guidance snapshot at activation, not on a
+      // dashboard read. The unique pilot constraint makes retries harmless.
+      if (process.env.NODE_ENV !== "production" && business.organizationId) {
+        const { businessPilotGuidance } = await import("../db/schema/pilotProgram");
+        const { BUSINESS_PILOT_PROGRAM_VERSION, selectBusinessPilotPack } = await import("./businessPilotGuidanceService");
+        const { organizations } = await import("../db/schema/organizations");
+        const [org] = await tx.select().from(organizations).where(eq(organizations.id, business.organizationId!)).limit(1);
+        await tx.insert(businessPilotGuidance).values({
+          pilotId: pilot.id,
+          organizationId: business.organizationId!,
+          programVersion: BUSINESS_PILOT_PROGRAM_VERSION,
+          assignmentPack: selectBusinessPilotPack(org, business),
+        }).onConflictDoNothing();
+      }
       window = authoritativeWindow;
       activated = true;
     } else if (pilot.status === "active") {
