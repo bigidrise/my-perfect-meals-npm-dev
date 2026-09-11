@@ -1668,6 +1668,11 @@ async function start() {
     const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
     await runOrganizationWorkspaceMigration(dbWorkspace);
   });
+  await withBootRetry("Organization Partner Revenue migration", async () => {
+    const { db: dbPartnerRevenue } = await import("./db");
+    const { runOrganizationPartnerRevenueMigration } = await import("./db/migrations/runOrganizationPartnerRevenueMigration");
+    await runOrganizationPartnerRevenueMigration(dbPartnerRevenue);
+  });
   await withBootRetry("Stripe billing migration", async () => {
     const { db: dbStripeBilling } = await import("./db");
     const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");

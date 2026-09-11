@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { users } from "../../shared/schema";
 import { userCertifications } from "../db/schema/certifications";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
@@ -33,7 +33,10 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
     const [account] = await db
       .select()
       .from(userAffiliateAccounts)
-      .where(eq(userAffiliateAccounts.userId, userId))
+      .where(and(
+        eq(userAffiliateAccounts.userId, userId),
+        isNull(userAffiliateAccounts.organizationId),
+      ))
       .limit(1);
 
     if (!account) return; // user hasn't selected a track yet
@@ -51,7 +54,7 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
         if (!account.phase1CompletedAt) {
           await db.update(userAffiliateAccounts)
             .set({ phase1CompletedAt: new Date(), updatedAt: new Date() })
-            .where(eq(userAffiliateAccounts.userId, userId));
+            .where(eq(userAffiliateAccounts.id, account.id));
         }
       }
     } else if (track === "business_affiliate") {
@@ -68,7 +71,7 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
       if (Object.keys(updates).length > 1) {
         await db.update(userAffiliateAccounts)
           .set(updates)
-          .where(eq(userAffiliateAccounts.userId, userId));
+          .where(eq(userAffiliateAccounts.id, account.id));
       }
 
       if (phase1Done && phase2Done) shouldActivate = true;
@@ -119,14 +122,17 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
         activatedAt,
         updatedAt: new Date(),
       })
-      .where(eq(userAffiliateAccounts.userId, userId));
+      .where(eq(userAffiliateAccounts.id, account.id));
 
     // Auto-stamp partner_records lifecycle milestones if a record exists.
     // rewardfulCreatedAt and acceptedAt are inferred from activation — no manual admin step needed.
     const [partnerRecord] = await db
       .select({ rewardfulCreatedAt: partnerRecords.rewardfulCreatedAt, acceptedAt: partnerRecords.acceptedAt })
       .from(partnerRecords)
-      .where(eq(partnerRecords.userId, userId))
+      .where(and(
+        eq(partnerRecords.userId, userId),
+        isNull(partnerRecords.organizationId),
+      ))
       .limit(1);
     if (partnerRecord) {
       const stamps: Record<string, Date | string> = {
@@ -135,7 +141,10 @@ export async function evaluateAffiliateActivation(userId: string): Promise<void>
       };
       if (!partnerRecord.rewardfulCreatedAt) stamps.rewardfulCreatedAt = activatedAt;
       if (!partnerRecord.acceptedAt) stamps.acceptedAt = activatedAt;
-      await db.update(partnerRecords).set(stamps as any).where(eq(partnerRecords.userId, userId));
+      await db.update(partnerRecords).set(stamps as any).where(and(
+        eq(partnerRecords.userId, userId),
+        isNull(partnerRecords.organizationId),
+      ));
     }
 
     console.log(`[Affiliate] ✅ Rewardful affiliate created: ${affiliate.id} | state=${affiliate.state}`);

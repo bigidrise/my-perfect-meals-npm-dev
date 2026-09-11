@@ -160,7 +160,14 @@ export async function runOrganizationWorkspaceMigration(
       now(),
       now()
     FROM businesses b
+    JOIN organizations existing_organization
+      ON existing_organization.id = b.organization_id
     WHERE b.organization_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM organization_locations existing_location
+        WHERE existing_location.organization_id = b.organization_id
+      )
     ON CONFLICT (source_business_id) DO NOTHING
   `);
 

@@ -1,8 +1,10 @@
-import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, uuid, uniqueIndex } from "drizzle-orm/pg-core";
+import { organizations } from "./organizations";
 
 export const userAffiliateAccounts = pgTable("user_affiliate_accounts", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull().unique(),
+  userId: text("user_id").notNull(),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
 
   affiliateTrack: text("affiliate_track").notNull(),
   requiredPhases: text("required_phases").notNull(),
@@ -26,7 +28,10 @@ export const userAffiliateAccounts = pgTable("user_affiliate_accounts", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => ({
+  organizationUnique: uniqueIndex("user_affiliate_accounts_organization_uq").on(table.organizationId),
+  rewardfulAffiliateUnique: uniqueIndex("user_affiliate_accounts_rewardful_affiliate_uq").on(table.rewardfulAffiliateId),
+}));
 
 export type UserAffiliateAccount = typeof userAffiliateAccounts.$inferSelect;
 export type InsertUserAffiliateAccount = typeof userAffiliateAccounts.$inferInsert;

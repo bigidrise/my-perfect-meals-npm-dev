@@ -7,6 +7,11 @@ import { requireAdmin } from "../middleware/requireAdmin";
 import { partnerRecords } from "../db/schema/partnerRecords";
 import { partnerActivityLog } from "../db/schema/partnerActivityLog";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
+import { resolveActiveWorkspace } from "../services/organizationWorkspaceService";
+import {
+  ensureOrganizationPartnerRevenueShell,
+  partnerRecordScope,
+} from "../services/organizationPartnerRevenueService";
 import { users } from "../../shared/schema";
 import { computePartnerLifecycle } from "../../shared/partnerLifecycle";
 
@@ -62,30 +67,27 @@ function lifecycleResponse(record: typeof partnerRecords.$inferSelect, log: (typ
 router.get("/identity", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
-    let record = await getRecord(userId);
+    const session = (req as any).session;
+    const workspace = await resolveActiveWorkspace(
+      userId,
+      session?.activeOrganizationId && session?.activeLocationId
+        ? {
+            organizationId: session.activeOrganizationId,
+            locationId: session.activeLocationId,
+          }
+        : null,
+    );
+    await ensureOrganizationPartnerRevenueShell(db, {
+      userId,
+      organizationId: workspace.organizationId,
+      organizationName: workspace.organizationName,
+    });
+    const [record] = await db
+      .select()
+      .from(partnerRecords)
+      .where(partnerRecordScope(userId, workspace.organizationId))
+      .limit(1);
     if (!record) return res.json({ partner: null, lifecycle: null });
-
-    // Lazy backfill: if acceptedAt or rewardfulCreatedAt are missing but the user
-    // already has a live Rewardful affiliate, stamp them now so the timeline reflects reality.
-    if (!record.acceptedAt || !record.rewardfulCreatedAt || !record.rewardfulAffiliateId) {
-      const [affiliateAccount] = await db
-        .select({ rewardfulAffiliateId: userAffiliateAccounts.rewardfulAffiliateId, activatedAt: userAffiliateAccounts.activatedAt })
-        .from(userAffiliateAccounts)
-        .where(eq(userAffiliateAccounts.userId, userId))
-        .limit(1);
-
-      if (affiliateAccount?.rewardfulAffiliateId) {
-        const stamps: Record<string, Date | string> = { updatedAt: new Date() };
-        const ts = affiliateAccount.activatedAt ?? new Date();
-        if (!record.acceptedAt) stamps.acceptedAt = ts;
-        if (!record.rewardfulCreatedAt) stamps.rewardfulCreatedAt = ts;
-        if (!record.rewardfulAffiliateId) {
-          stamps.rewardfulAffiliateId = affiliateAccount.rewardfulAffiliateId;
-        }
-        await db.update(partnerRecords).set(stamps as any).where(eq(partnerRecords.userId, userId));
-        record = { ...record, ...stamps };
-      }
-    }
 
     const lifecycle = computePartnerLifecycle({
       partnerTypes: record.partnerTypes ?? [],
@@ -98,7 +100,7 @@ router.get("/identity", requireAuth, async (req, res) => {
       managedPayoutsAt: record.managedPayoutsAt,
       campaignActiveAt: record.campaignActiveAt,
     });
-    return res.json({ partner: record, lifecycle });
+    return res.json({ organizationId: workspace.organizationId, partner: record, lifecycle });
   } catch (err) {
     console.error("[PartnerRoutes] GET /identity error:", err);
     return res.status(500).json({ error: "Failed to load partner identity" });

@@ -711,6 +711,8 @@ async function initializeApp() {
           await runPilotProgramMigration(database as any);
           const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
           await runOrganizationWorkspaceMigration(database as any);
+           const { runOrganizationPartnerRevenueMigration } = await import("./db/migrations/runOrganizationPartnerRevenueMigration");
+           await runOrganizationPartnerRevenueMigration(database as any);
            const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
            await runHydrationHubMigration(database as any);
            const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
