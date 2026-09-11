@@ -36,7 +36,8 @@ describe("multi-organization owner setup", () => {
     expect(businessRoutes).toContain('router.post("/pilot-organizations"');
     expect(setup).toContain('pilotCreateMode ? "/api/business/pilot-organizations" : "/api/business/create-org"');
     expect(setup).toContain("if (pilotCreateMode)");
-    expect(setup).toContain('setLocation("/business-organizations")');
+    expect(setup).toContain('fetch("/api/business/workspace/select"');
+    expect(setup).toContain('setLocation("/business-dashboard")');
   });
 
   test("pilot organizations use per-attempt idempotency and preserve owner metadata", () => {
@@ -106,6 +107,10 @@ describe("multi-organization owner setup", () => {
     expect(route).toContain("ownerUserId: userId");
     expect(route).toContain("ensureCanonicalWorkspaceForBusiness(result.business.id)");
     expect(route).toContain("paymentRequired: !founderComplimentary");
+    expect(setup).toContain('fetch("/api/business/workspace/select"');
+    expect(setup).toContain("organizationId: createData.organizationId");
+    expect(setup).toContain("locationId: createData.locationId");
+    expect(setup).toContain('setLocation("/business-dashboard")');
   });
 
   test("an approved pilot user with zero organizations is routed to the Hub", () => {
