@@ -8,6 +8,12 @@ import {
   organizationalPilots,
 } from "../db/schema/pilotProgram";
 import { normalizeEmailIdentity, resolveEmailIdentityForUser } from "./emailIdentityService";
+import {
+  assertOrganizationalPilotMirror,
+  createBusinessPilotWindow,
+  planBusinessPilotWindowReconciliation,
+  resolveAuthoritativeBusinessPilotWindow,
+} from "./businessCommercialAccessService";
 
 export class PilotAuthorizationError extends Error {
   constructor(
@@ -337,8 +343,8 @@ export async function getClaimedChampionSetup(userId: string) {
     professionalCapacity: organizationalPilotAuthorizations.professionalCapacity,
     clientCapacity: organizationalPilotAuthorizations.clientCapacity,
     durationDays: organizationalPilotAuthorizations.durationDays,
-    pilotStartAt: organizationalPilots.pilotStartAt,
-    pilotEndAt: organizationalPilots.pilotEndAt,
+    pilotStartAt: businesses.commercialAccessStartedAt,
+    pilotEndAt: businesses.commercialAccessEndsAt,
   }).from(organizationalPilotAuthorizations)
     .innerJoin(businesses, eq(businesses.id, organizationalPilotAuthorizations.businessId))
     .innerJoin(organizationalPilots, eq(organizationalPilots.authorizationId, organizationalPilotAuthorizations.id))
@@ -456,7 +462,148 @@ export async function updateClaimedChampionSetup(userId: string, name: string) {
   if (normalizedName.length < 2 || normalizedName.length > 80) {
     throw new PilotAuthorizationError("Organization name must be between 2 and 80 characters.", "INVALID_ORGANIZATION_NAME");
   }
-  await db.update(businesses).set({ name: normalizedName, updatedAt: new Date() })
-    .where(eq(businesses.id, setup.businessId));
-  return { ...setup, organizationName: normalizedName };
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${setup.authorizationId}))`);
+    const [authorization] = await tx.select().from(organizationalPilotAuthorizations)
+      .where(eq(organizationalPilotAuthorizations.id, setup.authorizationId)).limit(1);
+    if (
+      !authorization ||
+      authorization.status !== "claimed" ||
+      authorization.claimedByUserId !== userId ||
+      authorization.businessId !== setup.businessId
+    ) {
+      throw new PilotAuthorizationError(
+        "The claimed organization authorization is no longer available.",
+        "CHAMPION_AUTHORIZATION_NOT_FOUND",
+        404,
+      );
+    }
+
+    const [business] = await tx.select().from(businesses)
+      .where(eq(businesses.id, setup.businessId)).limit(1);
+    const [pilot] = await tx.select().from(organizationalPilots)
+      .where(and(
+        eq(organizationalPilots.id, setup.pilotId),
+        eq(organizationalPilots.authorizationId, authorization.id),
+        eq(organizationalPilots.businessId, setup.businessId),
+      )).limit(1);
+    if (!business || !pilot) {
+      throw new PilotAuthorizationError(
+        "The organization pilot setup is incomplete.",
+        "CHAMPION_PILOT_REQUIRED",
+        409,
+      );
+    }
+
+    let window: { startedAt: Date; endsAt: Date };
+    let activated = false;
+    if (pilot.status === "preparing") {
+      if (pilot.pilotStartAt || pilot.pilotEndAt) {
+        throw new PilotAuthorizationError(
+          "A preparing pilot cannot already have dates.",
+          "PILOT_CLOCK_CONFLICT",
+          409,
+        );
+      }
+      window = createBusinessPilotWindow(authorization.durationDays);
+      let commercialUpdate;
+      try {
+        commercialUpdate = planBusinessPilotWindowReconciliation(business, window);
+      } catch (error) {
+        throw new PilotAuthorizationError(
+          error instanceof Error ? error.message : "Business pilot clock conflict.",
+          "PILOT_CLOCK_CONFLICT",
+          409,
+        );
+      }
+      const [updatedBusiness] = await tx.update(businesses).set({
+        name: normalizedName,
+        ...(commercialUpdate ?? {}),
+        updatedAt: new Date(),
+      }).where(eq(businesses.id, business.id)).returning();
+      const [activatedPilot] = await tx.update(organizationalPilots).set({
+        status: "active",
+        pilotStartAt: window.startedAt,
+        pilotEndAt: window.endsAt,
+        startedByUserId: userId,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(organizationalPilots.id, pilot.id),
+        eq(organizationalPilots.status, "preparing"),
+      )).returning();
+      if (!activatedPilot) {
+        throw new PilotAuthorizationError(
+          "The pilot was activated by another request.",
+          "PILOT_ACTIVATION_RACE",
+          409,
+        );
+      }
+      const authoritativeWindow = resolveAuthoritativeBusinessPilotWindow(updatedBusiness);
+      if (!authoritativeWindow) {
+        throw new PilotAuthorizationError(
+          "The Business pilot window was not established.",
+          "PILOT_CLOCK_CONFLICT",
+          409,
+        );
+      }
+      assertOrganizationalPilotMirror(authoritativeWindow, activatedPilot);
+      await tx.insert(organizationalPilotEvents).values({
+        pilotId: pilot.id,
+        actorUserId: userId,
+        eventType: "pilot_started",
+        entityType: "business_commercial_access",
+        entityId: business.id,
+        metadata: {
+          authoritativeClock: "business_commercial_access",
+          durationDays: authorization.durationDays,
+        },
+      });
+      // Initialize the immutable guidance snapshot at activation, not on a
+      // dashboard read. The unique pilot constraint makes retries harmless.
+      if (process.env.NODE_ENV !== "production" && business.organizationId) {
+        const { businessPilotGuidance } = await import("../db/schema/pilotProgram");
+        const { BUSINESS_PILOT_PROGRAM_VERSION, selectBusinessPilotPack } = await import("./businessPilotGuidanceService");
+        const { organizations } = await import("../db/schema/organizations");
+        const [org] = await tx.select().from(organizations).where(eq(organizations.id, business.organizationId!)).limit(1);
+        await tx.insert(businessPilotGuidance).values({
+          pilotId: pilot.id,
+          organizationId: business.organizationId!,
+          programVersion: BUSINESS_PILOT_PROGRAM_VERSION,
+          assignmentPack: selectBusinessPilotPack(org, business),
+        }).onConflictDoNothing();
+      }
+      window = authoritativeWindow;
+      activated = true;
+    } else if (pilot.status === "active") {
+      const authoritativeWindow = resolveAuthoritativeBusinessPilotWindow(business);
+      if (!authoritativeWindow) {
+        throw new PilotAuthorizationError(
+          "The active pilot is missing its authoritative Business window.",
+          "PILOT_CLOCK_CONFLICT",
+          409,
+        );
+      }
+      assertOrganizationalPilotMirror(authoritativeWindow, pilot);
+      await tx.update(businesses).set({
+        name: normalizedName,
+        updatedAt: new Date(),
+      }).where(eq(businesses.id, business.id));
+      window = authoritativeWindow;
+    } else {
+      throw new PilotAuthorizationError(
+        `A ${pilot.status} pilot cannot be activated.`,
+        "PILOT_NOT_ACTIVATABLE",
+        409,
+      );
+    }
+
+    return {
+      ...setup,
+      organizationName: normalizedName,
+      pilotStatus: "active" as const,
+      pilotStartAt: window.startedAt,
+      pilotEndAt: window.endsAt,
+      activated,
+    };
+  });
 }

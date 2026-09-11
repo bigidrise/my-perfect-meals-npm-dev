@@ -1,6 +1,7 @@
 import {
   index,
   integer,
+  boolean,
   jsonb,
   pgTable,
   text,
@@ -106,6 +107,61 @@ export const organizationalPilotEvents = pgTable("organizational_pilot_events", 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   historyIdx: index("organizational_pilot_events_history_idx").on(table.pilotId, table.createdAt),
+}));
+
+/** Immutable Development Business guidance snapshot and completion ledger. */
+export const businessPilotGuidance = pgTable("business_pilot_guidance", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pilotId: uuid("pilot_id").notNull().references(() => organizationalPilots.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull(),
+  programVersion: text("program_version").notNull(),
+  assignmentPack: text("assignment_pack").notNull(),
+  activatedAt: timestamp("activated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  pilotUnique: uniqueIndex("business_pilot_guidance_pilot_unique").on(table.pilotId),
+}));
+
+export const businessPilotCompletions = pgTable("business_pilot_completions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pilotId: uuid("pilot_id").notNull().references(() => organizationalPilots.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull(),
+  programVersion: text("program_version").notNull(),
+  assignmentKey: text("assignment_key").notNull(),
+  actorUserId: varchar("actor_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "restrict" }),
+  completed: boolean("completed").notNull().default(true),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  assignmentUnique: uniqueIndex("business_pilot_completion_unique").on(table.organizationId, table.pilotId, table.programVersion, table.assignmentKey),
+}));
+
+export const businessPilotDeliveryAttempts = pgTable("business_pilot_delivery_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pilotId: uuid("pilot_id").notNull().references(() => organizationalPilots.id, { onDelete: "cascade" }),
+  recipientEmail: text("recipient_email").notNull(),
+  messageType: text("message_type").notNull(),
+  week: integer("week").notNull(),
+  purpose: varchar("purpose", { length: 20 }).$type<"operational" | "marketing">().notNull().default("operational"),
+  status: varchar("status", { length: 20 }).$type<"pending" | "claimed" | "sent" | "failed" | "suppressed">().notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  nextRetryAt: timestamp("next_retry_at", { withTimezone: true }).notNull().defaultNow(),
+  leaseUntil: timestamp("lease_until", { withTimezone: true }),
+  providerId: text("provider_id"),
+  failure: text("failure"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  logicalUnique: uniqueIndex("business_pilot_delivery_logical_unique").on(table.pilotId, table.recipientEmail, table.messageType, table.week),
+}));
+
+export const businessPilotSuppressions = pgTable("business_pilot_suppressions", {
+  recipientEmail: text("recipient_email").notNull(),
+  purpose: varchar("purpose", { length: 20 }).notNull().default("operational"),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  recipientPurposeUnique: uniqueIndex("business_pilot_suppression_unique").on(table.recipientEmail, table.purpose),
 }));
 
 /** Clinic patient enrollment links. Raw tokens are never stored. */
