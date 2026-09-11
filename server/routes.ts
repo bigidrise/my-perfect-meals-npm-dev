@@ -2468,33 +2468,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
-      const humanFoodValidatedFridgeMeals = glp1ValidatedFridgeMeals.filter((meal: any) => {
-        const validation = validateHumanFoodCandidate(
-          {
-            name: meal.name,
-            description: meal.description,
-            ingredients: meal.ingredients ?? [],
-            instructions: meal.instructions ?? [],
-          },
-          fridgeHumanFoodContext,
+      const {
+        getFridgeRescueReleaseStatus,
+        validateFridgeRescueMealsWithHumanFood,
+      } = await import(
+        "./services/fridgeRescueHumanFoodAdapter"
+      );
+      const humanFoodValidation = validateFridgeRescueMealsWithHumanFood(
+        glp1ValidatedFridgeMeals,
+        fridgeHumanFoodContext,
+        {
+          protocolValidated: true,
+          glp1Validated: glp1FridgeTargets !== null,
+        },
+      );
+      const humanFoodValidatedFridgeMeals = humanFoodValidation.accepted;
+      for (const rejection of humanFoodValidation.rejected) {
+        console.warn(
+          `[FRIDGE] Excluding "${rejection.meal.name}" after canonical Human Food validation:`,
+          rejection.validation.findings.map((finding) => finding.code),
         );
-        if (validation.outcome !== "pass") {
-          console.warn(
-            `[FRIDGE] Excluding "${meal.name}" after canonical Human Food validation:`,
-            validation.findings.map((finding) => finding.code),
-          );
-          return false;
-        }
-        return true;
+      }
+      const releaseStatus = getFridgeRescueReleaseStatus({
+        generatedCount: cleanFridgeMeals.length,
+        glp1ValidatedCount: glp1ValidatedFridgeMeals.length,
+        humanFoodValidatedCount: humanFoodValidatedFridgeMeals.length,
       });
-      if (
-        humanFoodValidatedFridgeMeals.length === 0 &&
-        glp1ValidatedFridgeMeals.length > 0
-      ) {
-        return res.status(422).json({
-          error: "GLUCOSE_PREFERENCE_VALIDATION_FAILED",
-          message: "Generated meals did not satisfy your current food preferences. Please try different fridge items.",
+      if (releaseStatus === 422) {
+        const reasonCodes = Array.from(new Set(
+          humanFoodValidation.rejected.flatMap(({ validation }) =>
+            validation.findings.map((finding) => finding.code)
+          ),
+        ));
+        if (glp1FridgeTargets !== null && glp1ValidatedFridgeMeals.length === 0) {
+          reasonCodes.push("GLP1_ALL_CANDIDATES_REJECTED");
+        }
+        return res.status(releaseStatus).json({
+          error: glp1ValidatedFridgeMeals.length === 0
+            ? "GLP1_VALIDATION_FAILED"
+            : "HUMAN_FOOD_VALIDATION_FAILED",
+          message: glp1ValidatedFridgeMeals.length === 0
+            ? "Generated meals exceeded your current GLP-1 meal limits. Please try different fridge items."
+            : "Generated meals could not be verified against your current food and nutrition requirements. Please try different fridge items.",
+          reasonCodes: Array.from(new Set(reasonCodes)),
           retryable: true,
         });
       }

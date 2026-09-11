@@ -87,3 +87,4 @@
 - [Create a Dish expansion isolation](create-dish-expansion-isolation.md) — expansion is typed culinary intent owned only by create_a_dish, never generic creator behavior.
 - [Icon pill choices](icon-pill-choice-layout.md) — icon-based food selectors place the icon above a compact text pill, not inside an oversized button.
 - [Authoritative mobile text submission](authoritative-mobile-text-submission.md) — food creators must process the visible field value, not potentially stale React state.
+- [Shared validator consumer contracts](shared-validator-consumer-contracts.md) — shared validation changes must run contract suites for every protected feature that feeds them.
