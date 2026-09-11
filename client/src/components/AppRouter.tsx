@@ -22,7 +22,7 @@ const PUBLIC_ROUTES = ["/welcome", "/auth", "/forgot-password", "/reset-password
 
 function isPublicAppRoute(path: string): boolean {
   const devRoutes = import.meta.env.DEV
-    ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__"]
+    ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"]
     : [];
   return (
     isExactPublicMarketingRoute(path) ||
@@ -218,7 +218,10 @@ export default function AppRouter({ children }: AppRouterProps) {
     );
   }
 
-  if (location.startsWith("/join/clinic")) {
+  if (
+    location.startsWith("/join/clinic") ||
+    (import.meta.env.DEV && location.startsWith("/rewardful/connect/confirm"))
+  ) {
     return <>{children}</>;
   }
 

@@ -127,6 +127,50 @@ if (process.env.RESEND_API_KEY) {
   console.log('⚠️ RESEND_API_KEY not found - Care Team invites disabled');
 }
 
+export async function sendRewardfulConnectionConfirmationEmail({
+  to,
+  organizationName,
+  confirmationUrl,
+  expiresAt,
+}: {
+  to: string;
+  organizationName: string;
+  confirmationUrl: string;
+  expiresAt: Date;
+}): Promise<boolean> {
+  if (!resend) return false;
+  const safeOrganizationName = escapeEmailHtml(organizationName);
+  const safeConfirmationUrl = escapeEmailHtml(confirmationUrl);
+  try {
+    const { error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject: safeEmailSubject(`Confirm Rewardful connection for ${organizationName}`),
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px">
+          <h1 style="font-size:24px;color:#111827">Confirm your Rewardful connection</h1>
+          <p style="color:#374151;line-height:1.6">
+            An authorized administrator asked to connect the Rewardful affiliate registered to this email with
+            <strong>${safeOrganizationName}</strong> in My Perfect Meals.
+          </p>
+          <p style="color:#374151;line-height:1.6">Only continue if this Rewardful account belongs to that organization.</p>
+          <p style="margin:28px 0">
+            <a href="${safeConfirmationUrl}" style="display:inline-block;background:#ea580c;color:white;padding:14px 24px;text-decoration:none;border-radius:10px;font-weight:700">
+              Confirm Rewardful Connection
+            </a>
+          </p>
+          <p style="color:#6b7280;font-size:13px">This single-use link expires ${escapeEmailHtml(expiresAt.toLocaleString("en-US", { timeZone: "America/Chicago" }))} Central Time.</p>
+          <p style="color:#6b7280;font-size:13px">If you did not expect this request, do not use the link. No banking information is requested or stored by My Perfect Meals.</p>
+        </div>
+      `,
+    });
+    return !error;
+  } catch (error) {
+    console.error("[Affiliate] Rewardful connection confirmation email failed:", error);
+    return false;
+  }
+}
+
 export async function sendPasswordResetEmail({
   to,
   resetLink,
