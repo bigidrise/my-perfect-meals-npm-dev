@@ -145,6 +145,7 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -236,6 +237,7 @@ export default function CravingCreator() {
   const quickTour = useQuickTour("craving-creator");
   const [useOnboarding, setUseOnboarding] = useState(true); // ENFORCED: Always use onboarding for medical safety
   const [cravingInput, setCravingInput] = useState("");
+  const cravingInputRef = useRef<HTMLTextAreaElement>(null);
   const [dishFailureAlert, setDishFailureAlert] = useState<{ show: boolean; message: string; title?: string; suggestedActions?: string[] }>({ show: false, message: "" });
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [savedMeals, setSavedMeals] = useState(new Set<string>());
@@ -547,13 +549,15 @@ export default function CravingCreator() {
   }, [cravingInput, starchDecision, checkStarch]);
 
   const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
+    const submittedCravingInput = await captureAuthoritativeTextValue(cravingInputRef.current, cravingInput, 300);
+    if (submittedCravingInput !== cravingInput) setCravingInput(submittedCravingInput);
     const userDietOverride = continueAnywayRef.current;
     continueAnywayRef.current = false;
-    console.log("🔥 handleGenerateMeal called - craving:", cravingInput);
+    console.log("🔥 handleGenerateMeal called - craving:", submittedCravingInput);
     setDietAdaptedNotice(null);
     setDishFailureAlert({ show: false, message: "" });
 
-    if (!cravingInput.trim()) {
+    if (!submittedCravingInput.trim()) {
       console.log("❌ Empty craving input - showing toast");
       toast({
         title: "Missing Information",
@@ -565,7 +569,7 @@ export default function CravingCreator() {
 
     // 🔐 Preflight safety check - BEFORE starting progress bar
     if (!skipPreflight && !hasActiveOverride) {
-      const isSafe = await checkSafety(cravingInput, "craving-creator");
+      const isSafe = await checkSafety(submittedCravingInput, "craving-creator");
       if (!isSafe) {
         // Banner will show automatically via safetyAlert state
         return;
@@ -574,7 +578,7 @@ export default function CravingCreator() {
 
     // 🥔 Starch Guard preflight check - blocks if starchy + budget exhausted
     if (!skipPreflight && starchDecision !== "let_chef_pick") {
-      const starchOk = checkStarch(cravingInput);
+      const starchOk = checkStarch(submittedCravingInput);
       if (!starchOk) {
         // Intercept will show - user must choose before proceeding
         return;
@@ -583,7 +587,7 @@ export default function CravingCreator() {
 
     // 🥗 Diet Guard preflight check — advisory, fires at generate time (not on keystroke)
     if (!skipPreflight && activeDiet && !dietAdaptOverride) {
-      const dietOk = checkDiet(cravingInput);
+      const dietOk = checkDiet(submittedCravingInput);
       if (!dietOk) {
         // DietGuardIntercept will show inline — user chooses path
         return;
@@ -600,7 +604,7 @@ export default function CravingCreator() {
     }
 
     console.log("✅ Starting generation with:", {
-      cravingInput,
+      cravingInput: submittedCravingInput,
       servings,
       selectedDiet,
       safetyEnabled,
@@ -617,7 +621,7 @@ export default function CravingCreator() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           targetMealType: "snacks",
-          cravingInput,
+          cravingInput: submittedCravingInput,
           dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
             ? dietOverrideValue
             : (selectedDiet || dietaryRestrictions),
@@ -769,7 +773,7 @@ export default function CravingCreator() {
       // Immediately cache the new meal so it survives navigation/refresh
       saveCravingCache({
         generatedMeal: meal,
-        craving: cravingInput,
+        craving: submittedCravingInput,
         servings: servings, // Use actual serving size from state
         mealType: "snacks",
         generatedAtISO: new Date().toISOString(),
@@ -1033,10 +1037,13 @@ export default function CravingCreator() {
                     </div>
                     <div className="relative">
                       <textarea
+                        ref={cravingInputRef}
                         data-testid="cravingcreator-input-box"
                         data-wt="cc-description-input"
                         value={cravingInput}
-                        onChange={(e) => { setCravingInput(e.target.value); if (dishFailureAlert.show) setDishFailureAlert({ show: false, message: "" }); }}
+                        onChange={(e) => { commitTextInputValue(e, setCravingInput, 300); if (dishFailureAlert.show) setDishFailureAlert({ show: false, message: "" }); }}
+                        onInput={(e) => { commitTextInputValue(e, setCravingInput, 300); if (dishFailureAlert.show) setDishFailureAlert({ show: false, message: "" }); }}
+                        onCompositionEnd={(e) => { commitTextInputValue(e, setCravingInput, 300); if (dishFailureAlert.show) setDishFailureAlert({ show: false, message: "" }); }}
                         placeholder="e.g., I want something creamy chocolate with peanut butter swirl and crunchy topping - BE SPECIFIC and describe what you crave!"
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/50 border border-white/30 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}

@@ -64,6 +64,7 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -179,9 +180,11 @@ export default function DessertCreator() {
   const [dietOverrideEnabled, setDietOverrideEnabled] = useState(false);
   const [dietOverrideValue, setDietOverrideValue] = useState("");
   const [customDessertDescription, setCustomDessertDescription] = useState("");
+  const customDessertDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const [dessertCategory, setDessertCategory] = useState("");
   const [flavorFamily, setFlavorFamily] = useState("");
   const [specificDessert, setSpecificDessert] = useState("");
+  const specificDessertRef = useRef<HTMLInputElement>(null);
   const [servingSize, setServingSize] = useState("single");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
@@ -340,15 +343,29 @@ export default function DessertCreator() {
     setProgress(100);
   };
 
-  const dessertActionRequest = () =>
-    customDessertDescription.trim() ||
-    `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
+  const dessertActionRequest = (
+    submittedDescription = customDessertDescription,
+    submittedSpecificDessert = specificDessert,
+  ) =>
+    submittedDescription.trim() ||
+    `${dessertCategory} ${flavorFamily} ${submittedSpecificDessert}`.trim();
 
   async function handleGenerateDessert(skipPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
+    const submittedDescription = await captureAuthoritativeTextValue(
+      customDessertDescriptionRef.current,
+      customDessertDescription,
+    );
+    const submittedSpecificDessert = await captureAuthoritativeTextValue(
+      specificDessertRef.current,
+      specificDessert,
+      150,
+    );
+    if (submittedDescription !== customDessertDescription) setCustomDessertDescription(submittedDescription);
+    if (submittedSpecificDessert !== specificDessert) setSpecificDessert(submittedSpecificDessert);
     const userDietOverride = continueAnywayRef.current;
     continueAnywayRef.current = false;
     setDietAdaptedNotice(null);
-    const hasCustomDescription = customDessertDescription.trim().length > 0;
+    const hasCustomDescription = submittedDescription.trim().length > 0;
 
     if (!hasCustomDescription && !dessertCategory) {
       toast({
@@ -370,7 +387,10 @@ export default function DessertCreator() {
 
     // SafetyGuard preflight check if safety is enabled and no override
     if (safetyEnabled && !hasActiveOverride && !overrideToken) {
-      const isSafe = await checkSafety(dessertActionRequest(), "dessert_creator");
+      const isSafe = await checkSafety(
+        dessertActionRequest(submittedDescription, submittedSpecificDessert),
+        "dessert_creator",
+      );
       if (!isSafe) {
         return; // Banner will show automatically
       }
@@ -378,7 +398,7 @@ export default function DessertCreator() {
 
     // 🥗 Diet Guard precheck — advisory, fires at generate time
     if (!skipPreflight && activeDiet) {
-      const requestText = `${dessertCategory} ${flavorFamily} ${specificDessert}`.trim();
+      const requestText = `${dessertCategory} ${flavorFamily} ${submittedSpecificDessert}`.trim();
       const dietOk = checkDiet(requestText);
       if (!dietOk) {
         return; // DietGuardIntercept will show inline
@@ -390,7 +410,7 @@ export default function DessertCreator() {
     console.log("🍨 [DESSERT] Starting generation...", {
       dessertCategory,
       flavorFamily,
-      specificDessert,
+      specificDessert: submittedSpecificDessert,
       servingSize,
       safetyEnabled,
       hasOverrideToken: !!overrideToken,
@@ -405,7 +425,7 @@ export default function DessertCreator() {
         body: JSON.stringify({
           dessertCategory,
           flavorFamily,
-          specificDessert,
+          specificDessert: submittedSpecificDessert,
           servingSize,
           cakeStyle: dessertCategory === "cake" ? cakeStyle : undefined,
           cakeType:
@@ -425,11 +445,11 @@ export default function DessertCreator() {
           // governanceOverrideToken remains for compatibility with older routes.
           advisoryOverrideToken: governanceOverrideToken,
           governanceOverrideToken,
-          actionRequest: dessertActionRequest(),
+          actionRequest: dessertActionRequest(submittedDescription, submittedSpecificDessert),
           authorizationAction: "dessert_creator",
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
-          customDessertDescription: customDessertDescription.trim() || undefined,
+          customDessertDescription: submittedDescription.trim() || undefined,
           dietAdaptOverride,
           userDietOverride,
           cookMethod: cookMethod || undefined,
@@ -643,8 +663,11 @@ export default function DessertCreator() {
                 </label>
                 <div className="relative">
                   <textarea
+                    ref={customDessertDescriptionRef}
                     value={customDessertDescription}
-                    onChange={(e) => setCustomDessertDescription(e.target.value)}
+                    onChange={(e) => commitTextInputValue(e, setCustomDessertDescription)}
+                    onInput={(e) => commitTextInputValue(e, setCustomDessertDescription)}
+                    onCompositionEnd={(e) => commitTextInputValue(e, setCustomDessertDescription)}
                     placeholder='e.g. "A rustic peach galette with almond frangipane" or "Dark chocolate lava cake, gluten-free"'
                     rows={3}
                     className="w-full rounded-lg bg-black/60 border border-orange-400/40 text-white placeholder-white/30 text-sm px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-orange-400/60 resize-none"
@@ -802,8 +825,11 @@ export default function DessertCreator() {
                 </label>
                 <div className="relative">
                   <input
+                    ref={specificDessertRef}
                     value={specificDessert}
-                    onChange={(e) => setSpecificDessert(e.target.value)}
+                    onChange={(e) => commitTextInputValue(e, setSpecificDessert, 150)}
+                    onInput={(e) => commitTextInputValue(e, setSpecificDessert, 150)}
+                    onCompositionEnd={(e) => commitTextInputValue(e, setSpecificDessert, 150)}
                     placeholder="e.g., with cream cheese frosting, extra cinnamon..."
                     className="w-full bg-black text-white border border-white/30 px-3 py-2 pr-8 rounded-lg text-sm placeholder:text-white/50"
                     maxLength={150}

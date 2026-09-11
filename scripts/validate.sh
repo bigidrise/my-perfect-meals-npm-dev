@@ -100,6 +100,16 @@ else
 fi
 rm -f "$HYDRATION_TSLOG"
 
+FRIDGE_CONTRACT_LOG=$(mktemp /tmp/mpm-fridge-contract-XXXXXX.log)
+if npm run test:fridge-rescue-contract -- --silent >"$FRIDGE_CONTRACT_LOG" 2>&1; then
+  pass "Fridge Rescue consumer contract: Human Food and GLP-1 handoffs remain intact"
+else
+  fail "Fridge Rescue consumer contract failed — shared food validation changes may have broken a protected consumer"
+  echo ""
+  head -80 "$FRIDGE_CONTRACT_LOG" | sed 's/^/    /'
+fi
+rm -f "$FRIDGE_CONTRACT_LOG"
+
 # ──────────────────────────────────────────────────
 header "Step 2 of 4: Core File Integrity"
 # If any of these files go missing, the server will not start correctly.

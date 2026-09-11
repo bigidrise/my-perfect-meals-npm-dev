@@ -23,12 +23,12 @@ const journey = [
   {
     icon: Building2,
     title: "Set up your organization",
-    description: "Enter the required business information before payment.",
+    description: "Name your organization and create its first workspace.",
   },
   {
-    icon: CreditCard,
-    title: "Activate your Business Suite",
-    description: "Subscribe for a flat $44.99/month Organization plan.",
+    icon: CheckCircle2,
+    title: "Start your 30-day Business pilot",
+    description: "No payment is required today. Your pilot starts when setup is complete.",
   },
   {
     icon: UserPlus,
@@ -140,10 +140,9 @@ export default function BusinessStart() {
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-300 mb-3">
             Start Your Organization
           </p>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">$44.99/month</h1>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">30-Day Business Pilot</h1>
           <p className="mt-5 text-base sm:text-lg leading-relaxed text-white/70 max-w-2xl mx-auto">
-            Turn My Perfect Meals into a business platform for your clients and team. Set up your organization,
-            invite existing members or new clients, and manage them from your Organization Dashboard and ProCare Studio.
+            Create your organization, enter the Business Suite, and begin setting up your locations and team.
           </p>
           {organization?.name && (
             <p className="mt-4 text-sm text-blue-200">
@@ -183,7 +182,7 @@ export default function BusinessStart() {
             {!loading && !checking && <ArrowRight className="h-5 w-5" />}
           </button>
           <p className="mt-3 text-xs text-white/40">
-            Organization information is completed before secure checkout.
+            No payment is required today. Continued active Business operation after the pilot requires a valid commercial arrangement.
           </p>
         </div>
       </main>

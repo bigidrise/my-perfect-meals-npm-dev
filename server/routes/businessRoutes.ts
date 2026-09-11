@@ -3,7 +3,12 @@ import { randomBytes, randomUUID } from "crypto";
 import Stripe from "stripe";
 import { db } from "../db";
 import { eq, and, ne, sql, isNull, gt, or, inArray } from "drizzle-orm";
-import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
+import {
+  businessAccessGrants,
+  businesses,
+  businessMembers,
+  businessInvitations,
+} from "../db/schema/business";
 import { users } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireProAccess } from "../middleware/requireProAccess";
@@ -56,6 +61,12 @@ import {
 import { activateProCareClient, ActivationError } from "../services/procareActivation";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 import { loadOrgContext } from "../lib/orgContext";
+import {
+  createBusinessOnboardingWindow,
+  deriveBusinessCommercialState,
+  hasPermanentComplimentaryBusinessAccess,
+  PERMANENT_COMPLIMENTARY_BUSINESS_ACCESS,
+} from "../services/businessCommercialAccessService";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeKey
@@ -271,7 +282,7 @@ router.patch("/pilot-setup", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.post("/pilots/:pilotId/invitations", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
@@ -447,7 +458,7 @@ async function buildPilotInvitationBatchReview(req: any) {
   };
 }
 
-router.post("/pilots/:pilotId/invitations/batch-review", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.post("/pilots/:pilotId/invitations/batch-review", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   try {
     const result = await buildPilotInvitationBatchReview(req);
     return res.json({
@@ -465,7 +476,7 @@ router.post("/pilots/:pilotId/invitations/batch-review", requireAuth, requirePro
   }
 });
 
-router.post("/pilots/:pilotId/invitations/batch-send", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.post("/pilots/:pilotId/invitations/batch-send", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const result = await buildPilotInvitationBatchReview(req);
@@ -545,7 +556,7 @@ router.post("/pilots/:pilotId/invitations/batch-send", requireAuth, requireProOr
   }
 });
 
-router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
@@ -568,7 +579,7 @@ router.delete("/pilot-invitations/:inviteId", requireAuth, requireProOrOrgAdmin,
   }
 });
 
-router.post("/pilot-invitations/:inviteId/resend", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.post("/pilot-invitations/:inviteId/resend", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
     const resolved = await resolveDashboardBusiness(req, "admin_or_owner");
@@ -738,6 +749,26 @@ async function resolveDashboardBusiness(
   return { ...selected, callerRole };
 }
 
+async function requireSelectedBusinessCommercialAccess(req: any, res: any, next: any) {
+  try {
+    const selected = await resolveSelectedBusiness(req);
+    const commercialState = deriveBusinessCommercialState(selected.business);
+    if (commercialState === "commercial_required") {
+      return res.status(402).json({
+        error: "This organization's 30-day Business pilot has ended. A commercial arrangement is required to continue active Business operations.",
+        code: "COMMERCIAL_REQUIRED",
+        commercialState,
+        commercialRequiredAt: selected.business.commercialAccessEndsAt,
+      });
+    }
+    return next();
+  } catch (error) {
+    const workspaceError = sendDashboardWorkspaceError(res, error);
+    if (workspaceError) return workspaceError;
+    return res.status(500).json({ error: "Could not verify organization commercial access." });
+  }
+}
+
 function sendDashboardWorkspaceError(res: any, error: unknown) {
   if (error instanceof WorkspaceContextError) {
     return res.status(error.status).json({ error: error.message, code: error.code });
@@ -893,6 +924,11 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     return res.json({
       business,
+      commercialAccess: {
+        state: deriveBusinessCommercialState(business),
+        startedAt: business.commercialAccessStartedAt,
+        endsAt: business.commercialAccessEndsAt,
+      },
       workspace: { organizationId, locationId, locationName },
       pilot: pilot ?? null,
       members,
@@ -946,7 +982,7 @@ router.get("/membership", requireAuth, requireProAccess, async (req, res) => {
 });
 
 // ── POST /api/business/invite — owner sends a team member or client invitation
-router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.post("/invite", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const {
     email,
@@ -1218,7 +1254,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 //   2. Call clearRemovalNotice() so any undismissed removal-notice rows — including
 //      historical rows from prior removal cycles — are stamped immediately.
 // Both steps run inside one transaction so they can never diverge.
-router.patch("/members/:memberId/restore", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.patch("/members/:memberId/restore", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 
@@ -1275,7 +1311,7 @@ router.patch("/members/:memberId/restore", requireAuth, requireProOrOrgAdmin, as
 });
 
 // ── DELETE /api/business/members/:memberId — owner removes a member
-router.delete("/members/:memberId", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.delete("/members/:memberId", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { memberId } = req.params;
 
@@ -1349,7 +1385,7 @@ router.post("/removal-notice/dismiss", requireAuth, async (req, res) => {
 });
 
 // ── DELETE /api/business/invitations/:token — remove an unaccepted invite
-router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const { token } = req.params;
 
   try {
@@ -1396,7 +1432,7 @@ router.delete("/invitations/:token", requireAuth, requireProOrOrgAdmin, async (r
 });
 
 // ── POST /api/business/invitations/:token/resend — owner resends an invite
-router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { token } = req.params;
 
@@ -1494,7 +1530,7 @@ router.post("/invitations/:token/resend", requireAuth, requireProOrOrgAdmin, asy
 });
 
 // ── PATCH /api/business/policy — owner updates independent_client_policy
-router.patch("/policy", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.patch("/policy", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { policy } = req.body as { policy: string };
 
@@ -1533,7 +1569,7 @@ router.patch("/policy", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 });
 
 // ── PATCH /api/business/org-policies — owner updates org-level policy flags
-router.patch("/org-policies", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.patch("/org-policies", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   const { requireAcademy, requireProfessionalVerification } = req.body as {
     requireAcademy?: boolean;
@@ -1694,10 +1730,19 @@ async function acceptBusinessInvitation(req: any, res: any) {
     const pilotInvite = await findOrganizationalPilotInvitation(token);
     if (pilotInvite) {
       try {
+        const [pilotBusiness] = await db.select()
+          .from(businesses).where(eq(businesses.id, pilotInvite.businessId)).limit(1);
+        if (
+          !pilotBusiness ||
+          deriveBusinessCommercialState(pilotBusiness) === "commercial_required"
+        ) {
+          return res.status(402).json({
+            error: "This organization's Business access requires commercial resolution before invitations can be accepted.",
+            code: "COMMERCIAL_REQUIRED",
+          });
+        }
         const accepted = await acceptOrganizationalPilotInvitation(token, userId);
         if (!accepted) return res.status(404).json({ error: "Invitation not found." });
-        const [pilotBusiness] = await db.select({ name: businesses.name })
-          .from(businesses).where(eq(businesses.id, pilotInvite.businessId)).limit(1);
         return res.json({
           success: true,
           alreadyAccepted: accepted.alreadyAccepted,
@@ -1767,6 +1812,12 @@ async function acceptBusinessInvitation(req: any, res: any) {
     if (!business || business.status !== "active") {
       return res.status(403).json({ error: "This business account is no longer active." });
     }
+    if (deriveBusinessCommercialState(business) === "commercial_required") {
+      return res.status(402).json({
+        error: "This organization's Business access requires commercial resolution before invitations can be accepted.",
+        code: "COMMERCIAL_REQUIRED",
+      });
+    }
 
     // ── Client invitation path — extend trial, no seat consumed ──────────────
     if (invite.invitationType === "client") {
@@ -1777,14 +1828,10 @@ async function acceptBusinessInvitation(req: any, res: any) {
           code: "INVALID_CLIENT_TRIAL_DURATION",
         });
       }
-      if (
-        business.plan !== "clinical_business_monthly"
-        || !business.stripeCustomerId
-        || !business.stripeSubscriptionId
-      ) {
+      if (business.plan !== "clinical_business_monthly") {
         return res.status(403).json({
-          error: "This invitation is not from a verified paid Organization.",
-          code: "PAID_ORGANIZATION_REQUIRED",
+          error: "This invitation is not from an active Organization.",
+          code: "ACTIVE_ORGANIZATION_REQUIRED",
         });
       }
 
@@ -2164,7 +2211,7 @@ router.post("/invite/accept", requireAuth, acceptBusinessInvitation);
 router.post("/invite/:token/accept", requireAuth, acceptBusinessInvitation);
 
 // ── PATCH /api/business/name — selected organization owner/admin updates its display name
-router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {
+router.patch("/name", requireAuth, requireProOrOrgAdmin, requireSelectedBusinessCommercialAccess, async (req, res) => {
   const { name } = req.body as { name: string };
 
   if (!name || name.trim().length < 2) {
@@ -2348,22 +2395,78 @@ router.get("/check-status", requireAuth, async (req, res) => {
 router.get("/organization-creation-access", requireAuth, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
   try {
-    const [actor] = await db
-      .select({ isAdmin: users.isAdmin })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    const founderComplimentary = process.env.NODE_ENV !== "production" && actor?.isAdmin === true;
-    return res.json({ mode: founderComplimentary ? "founder_complimentary" : "paid" });
+    const permanentComplimentary = await hasPermanentComplimentaryBusinessAccess(userId);
+    return res.json({
+      mode: permanentComplimentary ? "permanent_complimentary" : "onboarding_pilot",
+      paymentRequiredToday: false,
+      pilotDurationDays: 30,
+    });
   } catch (err) {
     console.error("[business/organization-creation-access] error:", err);
     return res.status(500).json({ error: "Could not determine organization access." });
   }
 });
 
+router.post("/access-grants/permanent-complimentary", requireAuth, requireAdmin, async (req, res) => {
+  const grantedByUserId = (req as any).authUser?.id as string;
+  const userId = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+  const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+  if (!userId || !reason) {
+    return res.status(400).json({ error: "Immutable user ID and audit reason are required." });
+  }
+  try {
+    const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+    if (!target) return res.status(404).json({ error: "User not found." });
+    const [existing] = await db
+      .select()
+      .from(businessAccessGrants)
+      .where(and(
+        eq(businessAccessGrants.userId, userId),
+        eq(businessAccessGrants.grantType, PERMANENT_COMPLIMENTARY_BUSINESS_ACCESS),
+        isNull(businessAccessGrants.revokedAt),
+      ))
+      .limit(1);
+    if (existing) return res.json({ grant: existing, created: false });
+    const [grant] = await db.insert(businessAccessGrants).values({
+      userId,
+      grantType: PERMANENT_COMPLIMENTARY_BUSINESS_ACCESS,
+      grantedByUserId,
+      reason,
+    }).returning();
+    return res.status(201).json({ grant, created: true });
+  } catch (err) {
+    console.error("[business/access-grants/create] error:", err);
+    return res.status(500).json({ error: "Could not grant complimentary Business access." });
+  }
+});
+
+router.post("/access-grants/permanent-complimentary/revoke", requireAuth, requireAdmin, async (req, res) => {
+  const revokedByUserId = (req as any).authUser?.id as string;
+  const userId = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+  const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+  if (!userId || !reason) {
+    return res.status(400).json({ error: "Immutable user ID and revocation reason are required." });
+  }
+  try {
+    const revoked = await db
+      .update(businessAccessGrants)
+      .set({ revokedAt: new Date(), revokedByUserId, revocationReason: reason })
+      .where(and(
+        eq(businessAccessGrants.userId, userId),
+        eq(businessAccessGrants.grantType, PERMANENT_COMPLIMENTARY_BUSINESS_ACCESS),
+        isNull(businessAccessGrants.revokedAt),
+      ))
+      .returning({ id: businessAccessGrants.id });
+    return res.json({ revoked: revoked.length > 0 });
+  } catch (err) {
+    console.error("[business/access-grants/revoke] error:", err);
+    return res.status(500).json({ error: "Could not revoke complimentary Business access." });
+  }
+});
+
 // ── POST /api/business/create-org — Self-service org creation for new business accounts.
-// Creates a businesses + owner businessMembers row with status=pending_billing.
-// The Stripe webhook flips status to active. Ordinary organizations are flat;
+// Creates a businesses + owner businessMembers row and starts exactly one
+// organization-owned 30-day onboarding pilot. Ordinary organizations are flat;
 // seatLimit is retained only for legacy compatibility and is not capacity.
 // This endpoint intentionally does NOT require requireProAccess — it is the entry point
 // before the user has paid. requireAuth only.
@@ -2382,12 +2485,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "A valid organization creation request is required." });
   }
   try {
-    const [actor] = await db
-      .select({ isAdmin: users.isAdmin })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    const founderComplimentary = createNewIntent && process.env.NODE_ENV !== "production" && actor?.isAdmin === true;
+    const onboardingWindow = createBusinessOnboardingWindow();
 
     if (createNewIntent) {
       const result = await db.transaction(async (tx) => {
@@ -2399,6 +2497,20 @@ router.post("/create-org", requireAuth, async (req, res) => {
           .limit(1);
         if (prior) {
           if (prior.ownerUserId !== userId) throw new Error("Organization creation request belongs to another account.");
+          if (
+            prior.status === "pending_billing" &&
+            !prior.stripeSubscriptionId &&
+            !prior.commercialAccessMode
+          ) {
+            const [activated] = await tx.update(businesses).set({
+              status: "active",
+              commercialAccessMode: "onboarding_pilot",
+              commercialAccessStartedAt: onboardingWindow.startedAt,
+              commercialAccessEndsAt: onboardingWindow.endsAt,
+              updatedAt: new Date(),
+            }).where(eq(businesses.id, prior.id)).returning();
+            return { business: activated, created: false };
+          }
           return { business: prior, created: false };
         }
 
@@ -2408,7 +2520,10 @@ router.post("/create-org", requireAuth, async (req, res) => {
           creationRequestId,
           plan: "clinical_business_monthly",
           seatLimit: 1,
-          status: founderComplimentary ? "active" : "pending_billing",
+          status: "active",
+          commercialAccessMode: "onboarding_pilot",
+          commercialAccessStartedAt: onboardingWindow.startedAt,
+          commercialAccessEndsAt: onboardingWindow.endsAt,
         }).returning();
         await tx.insert(businessMembers).values({
           businessId: business.id,
@@ -2426,11 +2541,15 @@ router.post("/create-org", requireAuth, async (req, res) => {
         organizationId: workspace.organizationId,
         locationId: workspace.locationId,
         created: result.created,
-        paymentRequired: !founderComplimentary,
+        paymentRequired: false,
+        commercialState: deriveBusinessCommercialState(result.business),
+        commercialRequiredAt: result.business.commercialAccessEndsAt,
       });
     }
 
-    // Existing paid self-service behavior remains one setup per owner.
+    // Existing initial setup remains one setup per owner. A pre-existing,
+    // never-paid pending record is activated into the universal onboarding
+    // pilot once; paid and authorized organizations retain their history.
     const [existing] = await db
       .select()
       .from(businesses)
@@ -2450,8 +2569,31 @@ router.post("/create-org", requireAuth, async (req, res) => {
         await db.insert(businessMembers).values({ businessId: existing.id, userId, role: "owner", status: "active" });
       }
       await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
-      await ensureCanonicalWorkspaceForBusiness(existing.id);
-      return res.json({ businessId: existing.id, created: false });
+      let effective = existing;
+      if (
+        existing.status === "pending_billing" &&
+        !existing.stripeSubscriptionId &&
+        !existing.commercialAccessMode
+      ) {
+        const [activated] = await db.update(businesses).set({
+          status: "active",
+          commercialAccessMode: "onboarding_pilot",
+          commercialAccessStartedAt: onboardingWindow.startedAt,
+          commercialAccessEndsAt: onboardingWindow.endsAt,
+          updatedAt: new Date(),
+        }).where(eq(businesses.id, existing.id)).returning();
+        effective = activated;
+      }
+      const workspace = await ensureCanonicalWorkspaceForBusiness(existing.id);
+      return res.json({
+        businessId: existing.id,
+        organizationId: workspace.organizationId,
+        locationId: workspace.locationId,
+        created: false,
+        paymentRequired: false,
+        commercialState: deriveBusinessCommercialState(effective),
+        commercialRequiredAt: effective.commercialAccessEndsAt,
+      });
     }
 
     let newBiz: typeof businesses.$inferSelect;
@@ -2462,7 +2604,10 @@ router.post("/create-org", requireAuth, async (req, res) => {
           ownerUserId: userId,
           plan: "clinical_business_monthly",
           seatLimit: 1,
-          status: "pending_billing",
+          status: "active",
+          commercialAccessMode: "onboarding_pilot",
+          commercialAccessStartedAt: onboardingWindow.startedAt,
+          commercialAccessEndsAt: onboardingWindow.endsAt,
         }).returning();
 
         // A contractor setting up a client organization is an administrator,
@@ -2493,9 +2638,17 @@ router.post("/create-org", requireAuth, async (req, res) => {
       throw conflictErr;
     }
 
-    await ensureCanonicalWorkspaceForBusiness(newBiz!.id);
+    const workspace = await ensureCanonicalWorkspaceForBusiness(newBiz!.id);
     console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | owner=${userId}`);
-    return res.json({ businessId: newBiz!.id, created: true });
+    return res.json({
+      businessId: newBiz!.id,
+      organizationId: workspace.organizationId,
+      locationId: workspace.locationId,
+      created: true,
+      paymentRequired: false,
+      commercialState: deriveBusinessCommercialState(newBiz!),
+      commercialRequiredAt: newBiz!.commercialAccessEndsAt,
+    });
   } catch (err: any) {
     console.error("[business/create-org] error:", err);
     return res.status(500).json({ error: err?.message || "Could not create organization." });

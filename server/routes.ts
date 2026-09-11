@@ -2468,33 +2468,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
-      const humanFoodValidatedFridgeMeals = glp1ValidatedFridgeMeals.filter((meal: any) => {
-        const validation = validateHumanFoodCandidate(
-          {
-            name: meal.name,
-            description: meal.description,
-            ingredients: meal.ingredients ?? [],
-            instructions: meal.instructions ?? [],
-          },
-          fridgeHumanFoodContext,
+      const {
+        getFridgeRescueReleaseStatus,
+        validateFridgeRescueMealsWithHumanFood,
+      } = await import(
+        "./services/fridgeRescueHumanFoodAdapter"
+      );
+      const humanFoodValidation = validateFridgeRescueMealsWithHumanFood(
+        glp1ValidatedFridgeMeals,
+        fridgeHumanFoodContext,
+        {
+          protocolValidated: true,
+          glp1Validated: glp1FridgeTargets !== null,
+        },
+      );
+      const humanFoodValidatedFridgeMeals = humanFoodValidation.accepted;
+      for (const rejection of humanFoodValidation.rejected) {
+        console.warn(
+          `[FRIDGE] Excluding "${rejection.meal.name}" after canonical Human Food validation:`,
+          rejection.validation.findings.map((finding) => finding.code),
         );
-        if (validation.outcome !== "pass") {
-          console.warn(
-            `[FRIDGE] Excluding "${meal.name}" after canonical Human Food validation:`,
-            validation.findings.map((finding) => finding.code),
-          );
-          return false;
-        }
-        return true;
+      }
+      const releaseStatus = getFridgeRescueReleaseStatus({
+        generatedCount: cleanFridgeMeals.length,
+        glp1ValidatedCount: glp1ValidatedFridgeMeals.length,
+        humanFoodValidatedCount: humanFoodValidatedFridgeMeals.length,
       });
-      if (
-        humanFoodValidatedFridgeMeals.length === 0 &&
-        glp1ValidatedFridgeMeals.length > 0
-      ) {
-        return res.status(422).json({
-          error: "GLUCOSE_PREFERENCE_VALIDATION_FAILED",
-          message: "Generated meals did not satisfy your current food preferences. Please try different fridge items.",
+      if (releaseStatus === 422) {
+        const reasonCodes = Array.from(new Set(
+          humanFoodValidation.rejected.flatMap(({ validation }) =>
+            validation.findings.map((finding) => finding.code)
+          ),
+        ));
+        if (glp1FridgeTargets !== null && glp1ValidatedFridgeMeals.length === 0) {
+          reasonCodes.push("GLP1_ALL_CANDIDATES_REJECTED");
+        }
+        return res.status(releaseStatus).json({
+          error: glp1ValidatedFridgeMeals.length === 0
+            ? "GLP1_VALIDATION_FAILED"
+            : "HUMAN_FOOD_VALIDATION_FAILED",
+          message: glp1ValidatedFridgeMeals.length === 0
+            ? "Generated meals exceeded your current GLP-1 meal limits. Please try different fridge items."
+            : "Generated meals could not be verified against your current food and nutrition requirements. Please try different fridge items.",
+          reasonCodes: Array.from(new Set(reasonCodes)),
           retryable: true,
         });
       }
@@ -4753,22 +4769,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Role-based access enforcement for Pro Care clients
-      // Pro Care clients can ONLY select their assigned activeBoard (admins bypass)
-      const isProCareClient = existingUser.isProCare && existingUser.role !== "admin";
-      if (isProCareClient) {
-        if (!existingUser.activeBoard) {
-          return res.status(403).json({ 
-            error: "No board assigned. Your coach will assign a meal builder for you."
-          });
-        }
-        if (selectedMealBuilder !== existingUser.activeBoard) {
-          return res.status(403).json({ 
-            error: "You can only use your assigned meal builder."
-          });
-        }
-      }
-      
       // Update the selected meal builder — no trial granted
       const [user] = await db.update(users)
         .set({ selectedMealBuilder, activeBoard: selectedMealBuilder })
@@ -4838,26 +4838,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validBuilders = ["weekly", "diabetic", "glp1", "anti_inflammatory", "beach_body", "general_nutrition", "performance_competition"];
       if (!validBuilders.includes(selectedMealBuilder)) {
         return res.status(400).json({ error: "Invalid meal builder selection" });
-      }
-      
-      // Pro builders require trainer unlock - users cannot self-select these
-      const proBuilders = ["general_nutrition", "performance_competition"];
-      if (proBuilders.includes(selectedMealBuilder)) {
-        // Check if this user has been assigned this builder by a trainer
-        const [userData] = await db
-        .select({ activeBoard: users.activeBoard, isProCare: users.isProCare })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-        // ProCare enforcement: client cannot override assigned board
-        if (userData?.isProCare && userData?.activeBoard) {
-          return res.status(403).json({
-            error: "Your meal builder is assigned by your coach. Contact your professional to request changes.",
-          });
-        } 
-        if (!userData || userData.activeBoard !== selectedMealBuilder) {
-          return res.status(403).json({ error: "This builder requires trainer/coach unlock. Contact your trainer to enable access." });
-        }
       }
       
       const result = await attemptBuilderSwitch(userId, selectedMealBuilder);

@@ -93,6 +93,7 @@ import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 
 const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
   {
@@ -155,6 +156,7 @@ const FridgeRescuePage = () => {
   usePageTitle("Fridge Rescue");
   const { toast } = useToast();
   const { t } = useTranslation("fridgeRescue");
+  const { t: tRouteTitle } = useTranslation("routeTitles");
   const { runAction, open, startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("fridge-rescue");
   // Get actual user ID from auth context for medical safety
@@ -205,6 +207,7 @@ const FridgeRescuePage = () => {
     );
   }
   const [ingredients, setIngredients] = useState("");
+  const ingredientsInputRef = useRef<HTMLTextAreaElement>(null);
   const [meals, setMeals] = useState<MealData[]>([]);
   const [refineIndex, setRefineIndex] = useState<number | null>(null);
   const [preRefinedMealsByIndex, setPreRefinedMealsByIndex] = useState<Record<number, MealData>>({});
@@ -427,6 +430,8 @@ const FridgeRescuePage = () => {
   };
 
   const handleGenerateMeals = async (skipPreflight = false, dietAdaptOverride = false) => {
+    const submittedIngredients = await captureAuthoritativeTextValue(ingredientsInputRef.current, ingredients);
+    if (submittedIngredients !== ingredients) setIngredients(submittedIngredients);
     const userDietOverride = continueAnywayRef.current;
     continueAnywayRef.current = false;
     setDietAdaptedNotice(null);
@@ -436,14 +441,14 @@ const FridgeRescuePage = () => {
     });
     window.dispatchEvent(interactedEvent);
 
-    if (!ingredients.trim()) {
+    if (!submittedIngredients.trim()) {
       alert("Please enter some ingredients first!");
       return;
     }
 
     // 🔐 Preflight safety check - BEFORE starting progress bar
     if (!skipPreflight && !hasActiveOverride) {
-      const isSafe = await checkSafety(ingredients, "fridge-rescue");
+      const isSafe = await checkSafety(submittedIngredients, "fridge-rescue");
       if (!isSafe) {
         // Banner will show automatically via safetyAlert state
         return;
@@ -452,7 +457,7 @@ const FridgeRescuePage = () => {
 
     // 🥗 Diet Guard precheck — skip entirely when user has explicitly overridden diet
     if (!dietOverrideEnabled && !skipPreflight && activeDiet && dietDecision !== "let_chef_adapt") {
-      const dietOk = checkDiet(ingredients);
+      const dietOk = checkDiet(submittedIngredients);
       if (!dietOk) {
         return; // DietGuardIntercept will show inline
       }
@@ -469,7 +474,7 @@ const FridgeRescuePage = () => {
           ...getAuthHeaders(),
         },
         body: JSON.stringify({
-          fridgeItems: ingredients
+          fridgeItems: submittedIngredients
             .split(",")
             .map((i) => i.trim())
             .filter((i) => i),
@@ -591,7 +596,7 @@ const FridgeRescuePage = () => {
       } else {
         setGenerationFailure({
           show: true,
-          message: "Something went wrong generating your meal ideas. Please try again.",
+          message: errorMsg || "Something went wrong generating your meal ideas. Please try again.",
           suggestedActions: [
             "Try Again — we'll scan your ingredients fresh",
             "Check your ingredient list for any unusual items",
@@ -792,7 +797,7 @@ const FridgeRescuePage = () => {
               data-wt="fridge-rescue-header"
               className="text-lg font-bold text-white truncate min-w-0"
             >
-              {t("title")}
+              {tRouteTitle("fridgeRescue")}
             </h1>
 
             <div className="flex-grow" />
@@ -904,10 +909,13 @@ const FridgeRescuePage = () => {
                   </label>
                   <div className="relative">
                     <textarea
+                      ref={ingredientsInputRef}
                       id="ingredients"
                       data-testid="fridge-input"
                       value={ingredients}
-                      onChange={(e) => setIngredients(e.target.value)}
+                      onChange={(e) => commitTextInputValue(e, setIngredients)}
+                      onInput={(e) => commitTextInputValue(e, setIngredients)}
+                      onCompositionEnd={(e) => commitTextInputValue(e, setIngredients)}
                       placeholder="e.g., chicken breast, broccoli, rice, onions, eggs"
                       className="w-full p-3 pr-10 border border-white/20 bg-black/20 rounded-xl focus:ring-2 focus:ring-white/50 focus:border-white/50 text-sm text-white"
                       rows={3}

@@ -15,7 +15,7 @@
 
 import { db } from "../db";
 import { businessMembers, businesses } from "../db/schema/business";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt, isNull, ne, or } from "drizzle-orm";
 import { getActivePilotProCareGrant, getPilotClientSponsorshipState } from "./pilotProcareAccess";
 import { getActivePilotFullAccess } from "./pilotProgramAccess";
 import { getActiveClinicTrialEntitlement, getActiveProfessionalTemporaryAccess } from "./clinicPilotEnrollmentService";
@@ -130,7 +130,12 @@ export async function computeEffectiveAccess(
       and(
         eq(businessMembers.userId, user.id),
         eq(businessMembers.status, "active"),
-        eq(businesses.status, "active")
+        eq(businesses.status, "active"),
+        or(
+          isNull(businesses.commercialAccessMode),
+          ne(businesses.commercialAccessMode, "onboarding_pilot"),
+          gt(businesses.commercialAccessEndsAt, new Date()),
+        ),
       )
     )
     .limit(1);
