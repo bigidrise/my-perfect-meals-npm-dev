@@ -58,6 +58,11 @@ interface BusinessData {
     plan: string;
     independentClientPolicy?: string;
   };
+  commercialAccess?: {
+    state: "pilot_active" | "commercially_active" | "commercial_required";
+    startedAt: string | null;
+    endsAt: string | null;
+  };
   pilot?: {
     id: string;
     status: string;
@@ -933,6 +938,33 @@ export default function BusinessDashboard() {
   const isAdminView = viewMode === "admin";
   const { business, members, invitations } = ownerData;
 
+  if (ownerData.commercialAccess?.state === "commercial_required") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-600/20 border border-orange-500/30">
+            <Building2 className="w-8 h-8 text-orange-400" />
+          </div>
+          <div>
+            <h2 className="text-white text-xl font-bold mb-2">Commercial Access Required</h2>
+            <p className="text-white/60 text-sm leading-relaxed">
+              This organization's 30-day Business pilot has ended. Its organization, locations, memberships, and data are preserved.
+            </p>
+          </div>
+          <div className="rounded-xl border border-orange-500/25 bg-orange-500/10 px-4 py-3 text-sm text-orange-100">
+            Commercial options will be presented here once the applicable arrangement is defined.
+          </div>
+          <button
+            className="w-full py-2 rounded-xl bg-white/10 text-white/60 text-sm"
+            onClick={() => setLocation("/business-organizations")}
+          >
+            Return to Organization Hub
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Pending billing (org provisioned but Stripe not yet completed) ──────────
   if (business.status === "pending_billing") {
     return (
@@ -1254,7 +1286,9 @@ export default function BusinessDashboard() {
             </div>
           </div>
           <p className="mt-2 text-white/60 text-xs leading-relaxed">
-            Your flat $44.99/month Organization plan lets you manage client invitations and professional team members in one place.
+            {ownerData.commercialAccess?.state === "pilot_active"
+              ? `Your 30-day Business pilot is active${ownerData.commercialAccess.endsAt ? ` through ${new Date(ownerData.commercialAccess.endsAt).toLocaleDateString()}` : ""}.`
+              : "Your organization can manage client invitations and professional team members in one place."}
           </p>
         </Card>
 

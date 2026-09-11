@@ -372,7 +372,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     assertStripeBillingOwnership(stripeKey);
     const { db: checkoutDb } = await import("../db");
     const { businesses: bizTable } = await import("../db/schema/business");
-    const { and, eq, isNull, sql: drizzleSql } = await import("drizzle-orm");
+    const { and, eq, isNull, or, sql: drizzleSql } = await import("drizzle-orm");
     const proposedReservationId = randomUUID();
     const [reservedBusiness] = await checkoutDb
       .update(bizTable)
@@ -388,7 +388,13 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       .where(and(
         eq(bizTable.id, businessId),
         eq(bizTable.ownerUserId, userId),
-        eq(bizTable.status, "pending_billing"),
+        or(
+          eq(bizTable.status, "pending_billing"),
+          and(
+            eq(bizTable.status, "active"),
+            eq(bizTable.commercialAccessMode, "onboarding_pilot"),
+          ),
+        ),
         isNull(bizTable.stripeSubscriptionId),
       ))
       .returning({

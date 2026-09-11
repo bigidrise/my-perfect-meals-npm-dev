@@ -23,6 +23,10 @@ export const businesses = pgTable("businesses", {
   clientCapacity: integer("client_capacity"),
   seatLimit: integer("seat_limit").notNull().default(4),
   status: text("status").$type<"active" | "cancelled" | "past_due" | "pending_billing">().notNull().default("active"),
+  commercialAccessMode: text("commercial_access_mode")
+    .$type<"onboarding_pilot" | "paid" | "authorized_arrangement">(),
+  commercialAccessStartedAt: timestamp("commercial_access_started_at", { withTimezone: true }),
+  commercialAccessEndsAt: timestamp("commercial_access_ends_at", { withTimezone: true }),
   /**
    * FK to the organizations table — links this commercial team product to
    * the enterprise tenant backbone. Nullable: not all businesses have a
@@ -65,6 +69,25 @@ export const businesses = pgTable("businesses", {
 
 export type Business = typeof businesses.$inferSelect;
 export type InsertBusiness = typeof businesses.$inferInsert;
+
+export const businessAccessGrants = pgTable("business_access_grants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull(),
+  grantType: text("grant_type")
+    .$type<"permanent_complimentary_business_access">()
+    .notNull(),
+  grantedByUserId: text("granted_by_user_id").notNull(),
+  reason: text("reason").notNull(),
+  grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  revokedByUserId: text("revoked_by_user_id"),
+  revocationReason: text("revocation_reason"),
+}, (t) => ({
+  userGrantLookup: uniqueIndex("business_access_grants_user_type_granted_uniq")
+    .on(t.userId, t.grantType, t.grantedAt),
+}));
+
+export type BusinessAccessGrant = typeof businessAccessGrants.$inferSelect;
 
 export const businessMembers = pgTable("business_members", {
   id: uuid("id").defaultRandom().primaryKey(),

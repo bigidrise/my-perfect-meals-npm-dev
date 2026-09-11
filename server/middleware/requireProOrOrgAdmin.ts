@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./requireAuth";
 import { getTierForLookupKey } from "@shared/planFeatures";
 import { db } from "../db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { businessMembers } from "../db/schema/business";
 
 /**
@@ -57,7 +57,9 @@ export async function requireProOrOrgAdmin(
     // Paid but wrong tier — fall through to org-admin check before rejecting
   }
 
-  // Org-admin path — active admin member of any business org
+  // Organization-management path. Commercial access is resolved separately
+  // for the selected organization; personal plan status must not prevent an
+  // active owner/admin from reaching its dashboard or resolution screen.
   try {
     const [adminRow] = await db
       .select({ id: businessMembers.id })
@@ -65,7 +67,7 @@ export async function requireProOrOrgAdmin(
       .where(
         and(
           eq(businessMembers.userId, userId),
-          eq(businessMembers.role, "admin"),
+          inArray(businessMembers.role, ["owner", "admin"]),
           eq(businessMembers.status, "active"),
         ),
       )

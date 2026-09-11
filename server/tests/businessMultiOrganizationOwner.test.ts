@@ -49,7 +49,7 @@ describe("multi-organization owner setup", () => {
     expect(pilotAuthorization).toContain('role: "admin"');
   });
 
-  test("each free organization consumes one exact server-approved authorization", () => {
+  test("authorized organizations retain their exact approval while using the shared setup UI", () => {
     expect(pilotAuthorization).toContain("input.authorizationId");
     expect(pilotAuthorization).toContain("authorization.status !== \"approved\"");
     expect(pilotAuthorization).toContain("authorization.normalizedChampionEmail !== normalizedEmail");
@@ -58,10 +58,10 @@ describe("multi-organization owner setup", () => {
     expect(pilotAuthorization).not.toContain("const [template]");
     expect(setup).toContain("authorizationId: pilotAuthorizationId");
     expect(setup).toContain("const isPilotSetup = pilotMode || pilotCreateMode");
-    expect(setup).toContain('{isComplimentarySetup ? (isFounderComplimentary ? "Complimentary Organization Access" : "Pilot Access") : "Organization Plan"}');
-    expect(setup).toContain("30-Day Complimentary Organization Pilot");
+    expect(setup).toContain('isPilotSetup ? "Authorized Pilot Access" : "30-Day Business Pilot"');
+    expect(setup).toContain("30-Day Authorized Organization Pilot");
     expect(setup).toContain("$0 today");
-    expect(setup).toContain('isComplimentarySetup ? "Set Up Organization"');
+    expect(setup).toContain('"Create Organization"');
   });
 
   test("founder administration creates, lists, and safely revokes organization grants", () => {
@@ -89,12 +89,12 @@ describe("multi-organization owner setup", () => {
     expect(start).toContain('setLocation("/business-dashboard")');
   });
 
-  test("Development founders share complimentary setup without consuming pilot grants", () => {
+  test("every authenticated user gets the same no-payment Business onboarding policy", () => {
     expect(businessRoutes).toContain('router.get("/organization-creation-access"');
-    expect(businessRoutes).toContain('process.env.NODE_ENV !== "production" && actor?.isAdmin === true');
-    expect(setup).toContain('"Complimentary Organization Access"');
+    expect(businessRoutes).toContain('"onboarding_pilot"');
+    expect(businessRoutes).toContain("paymentRequiredToday: false");
     expect(setup).toContain(">$0 today<");
-    expect(setup).toContain("no pilot authorization is consumed");
+    expect(setup).toContain("No payment is required today");
     expect(setup).toContain("createData.paymentRequired === false");
   });
 
@@ -107,7 +107,8 @@ describe("multi-organization owner setup", () => {
     expect(route).toContain("businesses.creationRequestId, creationRequestId");
     expect(route).toContain("ownerUserId: userId");
     expect(route).toContain("ensureCanonicalWorkspaceForBusiness(result.business.id)");
-    expect(route).toContain("paymentRequired: !founderComplimentary");
+    expect(route).toContain("paymentRequired: false");
+    expect(route).toContain('commercialAccessMode: "onboarding_pilot"');
     expect(setup).toContain('fetch("/api/business/workspace/select"');
     expect(setup).toContain("organizationId: createData.organizationId");
     expect(setup).toContain("locationId: createData.locationId");
@@ -171,15 +172,16 @@ describe("multi-organization owner setup", () => {
     expect(productionBoot).not.toContain("CREATE UNIQUE INDEX IF NOT EXISTS idx_business_members_one_active_per_user");
   });
 
-  test("paid checkout remains after ordinary paid organization creation only", () => {
+  test("ordinary organization creation opens the workspace without Day-1 checkout", () => {
     const createFetch = setup.indexOf('"/api/business/create-org"');
     const createSuccessGate = setup.indexOf("if (!createRes.ok)", createFetch);
     const checkoutFetch = setup.indexOf('fetch("/api/stripe/checkout/business"', createSuccessGate);
     expect(createFetch).toBeGreaterThan(-1);
     expect(createSuccessGate).toBeGreaterThan(createFetch);
-    expect(checkoutFetch).toBeGreaterThan(createSuccessGate);
-    expect(setup).toContain("businessId: createData.businessId");
+    expect(checkoutFetch).toBe(-1);
+    expect(setup).toContain("createData.paymentRequired === false");
+    expect(setup).toContain("No payment is required today");
     expect(stripeCheckout).toContain("eq(bizTable.id, businessId)");
-    expect(setup).toContain("This organization uses your approved complimentary pilot access. No payment is required.");
+    expect(setup).toContain('setLocation("/business-dashboard")');
   });
 });

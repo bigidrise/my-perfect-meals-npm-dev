@@ -139,7 +139,7 @@ describe("trusted Stripe entitlement pipeline", () => {
     expect(businessHandler).toContain('getTrustedCheckoutPlan("clinical_business_monthly")');
     expect(businessHandler).toContain("price: trustedBusinessPlan.priceId");
     expect(businessHandler).toContain("const requestedSeats = 1");
-    expect(businessHandler).toContain('code: "INITIAL_ORGANIZATION_OWNER_SEAT_ONLY"');
+    expect(businessHandler).toContain('code: "FLAT_ORGANIZATION_QUANTITY_ONLY"');
     expect(businessHandler).toContain("quantity: requestedSeats");
     expect(businessHandler).not.toContain("process.env.STRIPE_CLINICAL_BUSINESS_MONTHLY_PRICE_ID");
   });
@@ -161,7 +161,7 @@ describe("trusted Stripe entitlement pipeline", () => {
   it("serializes professional invite acceptance with seat reductions", () => {
     const businessRoutes = source("server/routes/businessRoutes.ts");
     const acceptHandler = businessRoutes.slice(
-      businessRoutes.indexOf('router.post("/invite/:token/accept"'),
+      businessRoutes.indexOf("async function acceptBusinessInvitation"),
       businessRoutes.indexOf('router.patch("/name"'),
     );
     const seatHandler = businessRoutes.slice(businessRoutes.indexOf('router.post("/seats"'));
