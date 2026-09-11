@@ -32,7 +32,9 @@ import {
   getClaimedChampionSetup,
   getOrganizationWorkspaceOptions,
   inspectPilotAuthorizationToken,
+  listPilotAuthorizations,
   PilotAuthorizationError,
+  revokeUnusedPilotAuthorization,
   updateClaimedChampionSetup,
 } from "../services/organizationalPilotAuthorizationService";
 import organizationWorkspaceRouter from "./organizationWorkspaceRoutes";
@@ -132,6 +134,33 @@ router.post("/pilot-authorizations", requireAuth, requireAdmin, async (req, res)
   }
 });
 
+router.get("/pilot-authorizations", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const authorizations = await listPilotAuthorizations();
+    return res.json({ authorizations });
+  } catch (error) {
+    console.error("[business/pilot-authorization/list] error:", error);
+    return res.status(500).json({ error: "Could not load organization pilot authorizations." });
+  }
+});
+
+router.post("/pilot-authorizations/:authorizationId/revoke", requireAuth, requireAdmin, async (req, res) => {
+  const userId = (req as any).authUser?.id as string;
+  try {
+    const authorization = await revokeUnusedPilotAuthorization({
+      authorizationId: req.params.authorizationId,
+      revokedByUserId: userId,
+      reason: req.body?.reason,
+    });
+    return res.json({ authorization });
+  } catch (error) {
+    try { return handlePilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/pilot-authorization/revoke] error:", unexpected);
+      return res.status(500).json({ error: "Could not revoke organization pilot authorization." });
+    }
+  }
+});
+
 router.get("/pilot-authorizations/claim/:token", async (req, res) => {
   try {
     const authorization = await inspectPilotAuthorizationToken(req.params.token);
@@ -187,14 +216,14 @@ router.post("/pilot-organizations", requireAuth, async (req, res) => {
   try {
     const created = await createManagedPilotOrganization({
       userId,
-      name: req.body?.name ?? "",
+      authorizationId: req.body?.authorizationId ?? "",
       creationRequestId: req.body?.creationRequestId ?? "",
     });
     const workspace = await ensureCanonicalWorkspaceForBusiness(created.business.id);
     return res.status(created.alreadyCreated ? 200 : 201).json({
       businessId: created.business.id,
-      organizationId: workspace.organization.id,
-      locationId: workspace.defaultLocation.id,
+      organizationId: workspace.organizationId,
+      locationId: workspace.locationId,
       created: !created.alreadyCreated,
     });
   } catch (error) {

@@ -24,6 +24,10 @@ const pilotAuthorization = fs.readFileSync(
   path.join(root, "server/services/organizationalPilotAuthorizationService.ts"),
   "utf8",
 );
+const pilotAdmin = fs.readFileSync(
+  path.join(root, "client/src/pages/PilotProgramAdmin.tsx"),
+  "utf8",
+);
 
 describe("multi-organization owner setup", () => {
   test("pilot organization creation is separate from paid create-org", () => {
@@ -41,10 +45,37 @@ describe("multi-organization owner setup", () => {
     expect(pilotAuthorization).toContain('role: "admin"');
   });
 
+  test("each free organization consumes one exact server-approved authorization", () => {
+    expect(pilotAuthorization).toContain("input.authorizationId");
+    expect(pilotAuthorization).toContain("authorization.status !== \"approved\"");
+    expect(pilotAuthorization).toContain("authorization.normalizedChampionEmail !== normalizedEmail");
+    expect(pilotAuthorization).toContain("status: \"claimed\"");
+    expect(pilotAuthorization).toContain("businessId: business.id");
+    expect(pilotAuthorization).not.toContain("const [template]");
+    expect(setup).toContain("authorizationId: pilotAuthorizationId");
+    expect(setup).toContain("const isPilotSetup = pilotMode || pilotCreateMode");
+    expect(setup).toContain('{isPilotSetup ? "Pilot Access" : "Organization Plan"}');
+    expect(setup).toContain("30-Day Complimentary Organization Pilot");
+    expect(setup).toContain("$0 today");
+    expect(setup).toContain('pilotCreateMode ? "Set Up Organization"');
+  });
+
+  test("founder administration creates, lists, and safely revokes organization grants", () => {
+    expect(businessRoutes).toContain('router.post("/pilot-authorizations", requireAuth, requireAdmin');
+    expect(businessRoutes).toContain('router.get("/pilot-authorizations", requireAuth, requireAdmin');
+    expect(businessRoutes).toContain('router.post("/pilot-authorizations/:authorizationId/revoke", requireAuth, requireAdmin');
+    expect(pilotAuthorization).toContain('authorization.status !== "approved" || authorization.businessId');
+    expect(pilotAdmin).toContain("Authorize New Pilot");
+    expect(pilotAdmin).toContain("Revoke unused authorization");
+    expect(pilotAdmin).toContain("if (!user?.isAdmin)");
+  });
+
   test("hub supports first and subsequent independent organizations", () => {
     expect(hub).toContain("You don't have any organizations yet.");
-    expect(hub.match(/Add Organization/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(hub).toContain('setLocation("/business/setup?pilotCreate=1")');
+    expect(hub).toContain("pendingPilots.map");
+    expect(hub).toContain("pilotAuthorization=${encodeURIComponent(pilot.authorizationId)}");
+    expect(hub).toContain('onClick={() => setLocation("/business/start")}');
+    expect(hub).toContain("<Plus className=\"h-4 w-4\" /> Add Organization");
   });
 
   test("an approved pilot user with zero organizations is routed to the Hub", () => {
@@ -56,8 +87,8 @@ describe("multi-organization owner setup", () => {
 
   test("pilot creation provisions a canonical organization and default location", () => {
     expect(businessRoutes).toContain("ensureCanonicalWorkspaceForBusiness(created.business.id)");
-    expect(businessRoutes).toContain("organizationId: workspace.organization.id");
-    expect(businessRoutes).toContain("locationId: workspace.defaultLocation.id");
+    expect(businessRoutes).toContain("organizationId: workspace.organizationId");
+    expect(businessRoutes).toContain("locationId: workspace.locationId");
     expect(pilotAuthorization).toContain('plan: "organizational_pilot"');
     expect(pilotAuthorization).toContain('status: "preparing"');
   });

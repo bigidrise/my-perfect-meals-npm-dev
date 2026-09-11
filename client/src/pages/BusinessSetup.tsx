@@ -20,6 +20,8 @@ export default function BusinessSetup() {
   const { user } = useAuth();
   const pilotMode = new URLSearchParams(search).get("pilot") === "1";
   const pilotCreateMode = new URLSearchParams(search).get("pilotCreate") === "1";
+  const pilotAuthorizationId = new URLSearchParams(search).get("pilotAuthorization");
+  const isPilotSetup = pilotMode || pilotCreateMode;
 
   const [orgName, setOrgName] = useState("");
   const [step, setStep] = useState<"form" | "redirecting">("form");
@@ -50,7 +52,26 @@ export default function BusinessSetup() {
           setOrgName(pilotData.organizationName);
           return;
         }
-        if (pilotCreateMode) return;
+        if (pilotCreateMode) {
+          const workspaceRes = await fetch("/api/business/workspaces", {
+            credentials: "include",
+            headers: getAuthHeaders(),
+          });
+          const workspaceData = await workspaceRes.json();
+          const authorized = Array.isArray(workspaceData?.workspaces)
+            ? workspaceData.workspaces.find((item: any) => item.authorizationId === pilotAuthorizationId && item.action === "setup")
+            : null;
+          if (!workspaceRes.ok || !authorized) throw new Error("This organization pilot is not available.");
+          setPilotSetup({
+            organizationName: authorized.organizationName,
+            professionalCapacity: authorized.professionalCapacity,
+            clientCapacity: authorized.clientCapacity,
+            durationDays: authorized.durationDays,
+            pilotStatus: authorized.status,
+          });
+          setOrgName(authorized.organizationName);
+          return;
+        }
         const res = await fetch("/api/business/check-status", {
           credentials: "include",
           headers: getAuthHeaders(),
@@ -62,10 +83,10 @@ export default function BusinessSetup() {
           }
         }
       } catch (error: any) {
-        if (pilotMode) setErr(error?.message || "Could not load pilot setup.");
+        if (isPilotSetup) setErr(error?.message || "Could not load pilot setup.");
       }
     })();
-  }, [pilotMode, pilotCreateMode]);
+  }, [pilotMode, pilotCreateMode, pilotAuthorizationId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -99,7 +120,7 @@ export default function BusinessSetup() {
         credentials: "include",
         body: JSON.stringify(
           pilotCreateMode
-            ? { name: orgName.trim(), creationRequestId }
+            ? { authorizationId: pilotAuthorizationId, creationRequestId }
             : { name: orgName.trim() },
         ),
       });
@@ -169,7 +190,7 @@ export default function BusinessSetup() {
           <h1 className="text-white text-2xl font-bold">Set Up Your Organization</h1>
           <p className="text-white/50 text-sm mt-2">
             {user?.email && <span className="text-white/70">{user.email} · </span>}
-            {pilotMode
+            {isPilotSetup
               ? "Confirm your organization details and authorized pilot capacity."
                : "Name your organization and activate your flat-rate Organization plan."}
           </p>
@@ -187,6 +208,7 @@ export default function BusinessSetup() {
               placeholder="e.g. Apex Performance Nutrition"
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
+              readOnly={pilotCreateMode}
               autoFocus
               maxLength={80}
             />
@@ -195,17 +217,24 @@ export default function BusinessSetup() {
           {/* Organization access or authorized pilot capacity */}
           <div>
             <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-2">
-              {pilotMode ? "Authorized Professional Capacity" : "Organization Plan"}
+              {isPilotSetup ? "Pilot Access" : "Organization Plan"}
             </label>
-            {pilotMode ? (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
-                  <p className="text-xs text-white/50">Professional seats</p>
-                  <p className="mt-1 text-2xl font-bold text-orange-300">{pilotSetup?.professionalCapacity ?? 0}</p>
+            {isPilotSetup ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                  <p className="text-sm font-semibold text-emerald-200">30-Day Complimentary Organization Pilot</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-300">$0 today</p>
+                  <p className="mt-1 text-xs text-white/60">No payment is required to activate your approved pilot. Your pilot begins when the organization is activated.</p>
                 </div>
-                <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4">
-                  <p className="text-xs text-white/50">Client capacity</p>
-                  <p className="mt-1 text-2xl font-bold text-violet-300">{pilotSetup?.clientCapacity ?? 0}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+                    <p className="text-xs text-white/50">Professional seats</p>
+                    <p className="mt-1 text-2xl font-bold text-orange-300">{pilotSetup?.professionalCapacity ?? 0}</p>
+                  </div>
+                  <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4">
+                    <p className="text-xs text-white/50">Client capacity</p>
+                    <p className="mt-1 text-2xl font-bold text-violet-300">{pilotSetup?.clientCapacity ?? 0}</p>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -215,8 +244,8 @@ export default function BusinessSetup() {
               </div>
             )}
             <p className="text-white/30 text-xs mt-2">
-              {pilotMode
-                ? `These limits come from the approved authorization and cannot be increased here. The ${pilotSetup?.durationDays ?? 30}-day clock remains stopped while the pilot is Preparing.`
+              {isPilotSetup
+                ? `These limits come from the approved authorization and cannot be increased here. After the pilot, you may choose to continue on the Organization plan, currently $44.99/month. You will not be charged automatically unless you complete paid enrollment.`
                 : "Invite and manage professional team members from your Organization Dashboard. Each invited professional receives a one-time 30-day introductory entitlement, then needs another valid entitlement to continue professional access."}
             </p>
           </div>
@@ -272,7 +301,7 @@ export default function BusinessSetup() {
               {submitting ? (
               <><Loader2 className="w-5 h-5 animate-spin" /> Creating organization…</>
             ) : (
-                <><Users className="w-5 h-5" /> {pilotMode ? "Open Business Suite" : pilotCreateMode ? "Add Organization" : "Continue to Payment"} <ChevronRight className="w-4 h-4" /></>
+                <><Users className="w-5 h-5" /> {pilotMode ? "Open Business Suite" : pilotCreateMode ? "Set Up Organization" : "Continue to Payment"} <ChevronRight className="w-4 h-4" /></>
             )}
           </button>
 
