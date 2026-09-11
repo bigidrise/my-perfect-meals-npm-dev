@@ -341,6 +341,10 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     });
   }
   const requestedSeats = 1;
+  const businessId = String(req.body?.businessId || "").trim();
+  if (!businessId) {
+    return res.status(400).json({ error: "Choose the organization to activate." });
+  }
 
   const trustedBusinessPlan = getTrustedCheckoutPlan("clinical_business_monthly");
   if (!trustedBusinessPlan) {
@@ -364,7 +368,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
   try {
     assertStripeBillingOwnership(stripeKey);
     const { db: checkoutDb } = await import("../db");
-    const { businesses: bizTable } = await import("../db/schema/business");
+    const { businesses: bizTable, businessMembers: memberTable } = await import("../db/schema/business");
     const { and, eq, isNull, sql: drizzleSql } = await import("drizzle-orm");
     const proposedReservationId = randomUUID();
     const [reservedBusiness] = await checkoutDb
@@ -379,9 +383,16 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         updatedAt: new Date(),
       })
       .where(and(
-        eq(bizTable.ownerUserId, userId),
+        eq(bizTable.id, businessId),
         eq(bizTable.status, "pending_billing"),
         isNull(bizTable.stripeSubscriptionId),
+        drizzleSql`EXISTS (
+          SELECT 1 FROM ${memberTable}
+          WHERE ${memberTable.businessId} = ${bizTable.id}
+            AND ${memberTable.userId} = ${userId}
+            AND ${memberTable.status} = 'active'
+            AND ${memberTable.role} IN ('owner', 'admin')
+        )`,
       ))
       .returning({
         id: bizTable.id,
@@ -393,7 +404,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       const [existingBusiness] = await checkoutDb
         .select({ id: bizTable.id, status: bizTable.status })
         .from(bizTable)
-        .where(eq(bizTable.ownerUserId, userId))
+        .where(eq(bizTable.id, businessId))
         .limit(1);
       return res.status(existingBusiness ? 409 : 403).json({
         code: existingBusiness ? "ORGANIZATION_CHECKOUT_UNAVAILABLE" : "ORGANIZATION_REQUIRED",

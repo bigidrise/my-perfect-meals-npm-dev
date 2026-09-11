@@ -1,5 +1,5 @@
 {
-  "version": "1786833691430",
+  "version": "1789086629776",
   "commit": "efc7ca1c",
   "releasedAt": "2026-08-15T22:41:31.430Z",
   "notes": [
@@ -7,5 +7,9 @@
     "Saved Groceries now provides a faster way to find and add commonly purchased products to the shopping list.",
     "Shopping-list additions now prevent duplicate saved-grocery entries."
   ],
-  "releaseId": "2026-09-03-1"
+  "releaseId": "2026-09-03-1",
+  "gitSha": "76446e792",
+  "buildTimestamp": "2026-09-11T00:30:29.799Z",
+  "environment": "production",
+  "storageBucketId": "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b"
 }
