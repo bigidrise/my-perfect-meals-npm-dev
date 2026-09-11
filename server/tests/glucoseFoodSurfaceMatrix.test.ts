@@ -41,8 +41,9 @@ describe("active food surfaces preserve canonical glucose preferences", () => {
     );
     expect(activeRoute).toContain("createHumanFoodRequestScope");
     expect(activeRoute).toContain("buildHumanFoodPromptBlock");
-    expect(activeRoute).toContain("validateHumanFoodCandidate");
-    expect(activeRoute).toContain("GLUCOSE_PREFERENCE_VALIDATION_FAILED");
+    expect(activeRoute).toContain("validateFridgeRescueMealsWithHumanFood");
+    expect(activeRoute).toContain("getFridgeRescueReleaseStatus");
+    expect(activeRoute).toContain("HUMAN_FOOD_VALIDATION_FAILED");
   });
 
   test("Dessert Creator resolves context and final-validates output", () => {

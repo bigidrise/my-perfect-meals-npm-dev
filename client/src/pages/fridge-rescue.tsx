@@ -595,7 +595,7 @@ const FridgeRescuePage = () => {
       } else {
         setGenerationFailure({
           show: true,
-          message: "Something went wrong generating your meal ideas. Please try again.",
+          message: errorMsg || "Something went wrong generating your meal ideas. Please try again.",
           suggestedActions: [
             "Try Again — we'll scan your ingredients fresh",
             "Check your ingredient list for any unusual items",
