@@ -17,6 +17,7 @@ export interface FridgeRescueGeneratedMeal {
   carbs?: number;
   fat?: number;
   starchyCarbs?: number;
+  fibrousCarbs?: number;
 }
 
 function existingFiniteNumber(value: unknown): number | undefined {
@@ -30,12 +31,19 @@ export function toFridgeRescueHumanFoodCandidate(
     glp1Validated: boolean;
   },
 ): HumanFoodCandidate {
+  const explicitCarbs = existingFiniteNumber(meal.carbs);
+  const starchyCarbs = existingFiniteNumber(meal.starchyCarbs);
+  const fibrousCarbs = existingFiniteNumber(meal.fibrousCarbs);
+  const derivedCarbs =
+    starchyCarbs !== undefined && fibrousCarbs !== undefined
+      ? starchyCarbs + fibrousCarbs
+      : undefined;
   const nutrition = {
     calories: existingFiniteNumber(meal.calories),
     protein: existingFiniteNumber(meal.protein),
-    carbs: existingFiniteNumber(meal.carbs),
+    carbs: explicitCarbs ?? derivedCarbs,
     fat: existingFiniteNumber(meal.fat),
-    starchyCarbs: existingFiniteNumber(meal.starchyCarbs),
+    starchyCarbs,
   };
   const hasRequiredNutrition =
     nutrition.calories !== undefined &&

@@ -76,9 +76,9 @@ const meals = [
     instructions: "Cook the chicken thoroughly.",
     calories: 510,
     protein: 42,
-    carbs: 18,
     fat: 21,
     starchyCarbs: 8,
+    fibrousCarbs: 10,
   },
   {
     name: "Lean chicken bowl",
@@ -87,9 +87,9 @@ const meals = [
     instructions: "Grill the chicken and steam the broccoli.",
     calories: 380,
     protein: 40,
-    carbs: 22,
     fat: 10,
     starchyCarbs: 6,
+    fibrousCarbs: 16,
   },
   {
     name: "Chicken spinach plate",
@@ -98,14 +98,14 @@ const meals = [
     instructions: "Bake the chicken and wilt the spinach.",
     calories: 340,
     protein: 38,
-    carbs: 14,
     fat: 9,
     starchyCarbs: 0,
+    fibrousCarbs: 14,
   },
 ];
 
 describe("Fridge Rescue Human Food consumer contract", () => {
-  test("preserves generated nutrition and recipe fields into Human Food validation", () => {
+  test("preserves the real generated split-carb shape into Human Food validation", () => {
     const candidate = toFridgeRescueHumanFoodCandidate(meals[1], {
       protocolValidated: true,
       glp1Validated: true,
@@ -128,14 +128,34 @@ describe("Fridge Rescue Human Food consumer contract", () => {
     });
   });
 
-  test("does not report missing verified macros when generated values exist", () => {
+  test("uses an explicit finite total-carbs value when the generator supplies one", () => {
+    const candidate = toFridgeRescueHumanFoodCandidate({
+      ...meals[1],
+      carbs: 24,
+    }, {
+      protocolValidated: true,
+      glp1Validated: true,
+    });
+    expect(candidate.nutrition?.carbs).toBe(24);
+  });
+
+  test("does not report missing verified macros for an active GLP-1 prescription", () => {
     const result = validateFridgeRescueMealsWithHumanFood(
       [meals[1]],
-      context(),
+      context({
+        safety: { ...context().safety, healthConditions: ["GLP-1"] },
+        nutrition: {
+          prescription: { source: "daily_nutrition_prescription" },
+          resolution: { status: "RESOLVED", reasonCodes: [] },
+          projectedRemaining: { calories: 450, protein: 50, carbs: 40, fat: 15 },
+          activeConstraints: { consumedStarchExhausted: false },
+        } as any,
+      }),
       { protocolValidated: true, glp1Validated: true },
     );
     expect(result.rejected).toHaveLength(0);
     expect(result.accepted).toHaveLength(1);
+    expect(result.accepted[0]).toBe(meals[1]);
   });
 
   test("returns two survivors when one of three exceeds the GLP-1 fat ceiling", () => {
@@ -203,6 +223,37 @@ describe("Fridge Rescue Human Food consumer contract", () => {
         "verified_calories_missing",
         "verified_carbs_missing",
         "verified_fat_missing",
+      ]));
+  });
+
+  test("fails safely when only one split carbohydrate value is verifiable", () => {
+    const incompleteSplitMeal = {
+      ...meals[1],
+      fibrousCarbs: undefined,
+    };
+    const candidate = toFridgeRescueHumanFoodCandidate(incompleteSplitMeal, {
+      protocolValidated: true,
+      glp1Validated: true,
+    });
+    expect(candidate.nutrition).toMatchObject({
+      calories: 380,
+      protein: 40,
+      carbs: undefined,
+      fat: 10,
+      starchyCarbs: 6,
+    });
+    expect(candidate.evidence?.nutritionEvidence).toBe("unknown");
+
+    const result = validateFridgeRescueMealsWithHumanFood(
+      [incompleteSplitMeal],
+      context({ safety: { ...context().safety, healthConditions: ["GLP-1"] } }),
+      { protocolValidated: true, glp1Validated: true },
+    );
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected[0].validation.findings.map((finding) => finding.code))
+      .toEqual(expect.arrayContaining([
+        "nutrition_evidence_unknown",
+        "verified_carbs_missing",
       ]));
   });
 });
